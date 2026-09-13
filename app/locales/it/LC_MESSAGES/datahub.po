@@ -5253,3 +5253,239 @@ msgstr "Aiuto"
 
 msgid "Linked"
 msgstr "Collegata"
+
+msgid "Developer"
+msgstr "Sviluppatore"
+
+
+msgid "Edit Localization"
+msgstr "Modifica localizzazione"
+
+
+msgid "Browse and edit the translation catalogue without a .po editor"
+msgstr "Sfoglia e modifica il catalogo delle traduzioni senza un editor .po"
+
+
+msgid "Series Operation Builder"
+msgstr "Costruttore di operazioni sulle serie"
+
+
+msgid "Scaffold a new series-operation dialog from a template"
+msgstr "Genera una nuova finestra di operazione sulle serie da un modello"
+
+
+msgid "Function Creator"
+msgstr "Creatore di funzioni"
+
+
+msgid "Scaffold a new curve-fit / analytic function"
+msgstr "Genera una nuova funzione di fit / analitica"
+
+
+msgid "Renderer Helper"
+msgstr "Assistente renderer"
+
+
+msgid "Scaffold a new chart-type axis renderer from a template"
+msgstr "Genera un nuovo renderer di tipo grafico da un modello"
+
+
+msgid "Developer tools"
+msgstr "Strumenti sviluppatore"
+
+
+msgid "{feature} is not implemented yet - see todo.txt for the design sketch."
+msgstr "{feature} non è ancora implementato - vedi todo.txt per la bozza di progettazione."
+
+msgid "Heatmap"
+msgstr "Mappa di calore"
+
+
+msgid "Raw per-cell colour over a regular x/y grid, no interpolation between cells - the value actually measured in each one."
+msgstr "Colore grezzo per cella su una griglia x/y regolare, senza interpolazione tra le celle - il valore effettivamente misurato in ciascuna."
+
+msgid "Hexbin"
+msgstr "Binning esagonale"
+
+
+msgid "2D density of x/y pairs binned into hexagons - where a scatter with too many points to read individually actually piles up."
+msgstr "Densità 2D di coppie x/y raggruppate in esagoni - dove uno scatter con troppi punti da leggere individualmente si accumula davvero."
+
+msgid "Event Plot"
+msgstr "Grafico eventi"
+
+
+msgid "A row of tick marks per series at each x where an event happened - a digital signal's edges, an error log, a spike train."
+msgstr "Una riga di trattini per serie in ogni x in cui è avvenuto un evento - i fronti di un segnale digitale, un log di errori, un treno di impulsi."
+
+msgid "3D Line Plot"
+msgstr "Grafico a linee 3D"
+
+
+msgid "A trajectory or parametric curve through three dimensions, points connected in row order rather than drawn as an unconnected cloud."
+msgstr "Una traiettoria o curva parametrica in tre dimensioni, con i punti collegati nell'ordine delle righe invece di essere disegnati come una nuvola sconnessa."
+
+
+msgid "3D Bar Chart"
+msgstr "Grafico a barre 3D"
+
+
+msgid "Bars rising from the x/y plane to z - categorical data in three dimensions, where a Heatmap's flat colour alone is not enough."
+msgstr "Barre che si innalzano dal piano x/y fino a z - dati categoriali in tre dimensioni, dove il solo colore piatto di una mappa di calore non basta."
+
+msgid "Measure"
+msgstr "Misura"
+
+
+msgid "Measure the distance and slope between two points"
+msgstr "Misura la distanza e la pendenza tra due punti"
+
+msgid "Measure from here"
+msgstr "Misura da qui"
+
+
+msgid "Measure to here"
+msgstr "Misura fino a qui"
+
+
+msgid "Clear measurement"
+msgstr "Cancella misura"
+
+
+msgid "Start measuring the distance and slope to another point."
+msgstr "Inizia a misurare distanza e pendenza verso un altro punto."
+
+
+msgid "Finish the measurement at this point."
+msgstr "Termina la misura a questo punto."
+
+
+msgid "Remove the ruler from the chart."
+msgstr "Rimuovi il righello dal grafico."
+
+
+msgid "undefined (Δx = 0)"
+msgstr "indefinita (Δx = 0)"
+
+
+msgid "Δx: {dx}\nΔy: {dy}\nslope: {slope}"
+msgstr "Δx: {dx}\nΔy: {dy}\npendenza: {slope}"
+
+msgid "Crosshair"
+msgstr "Mirino"
+
+
+msgid "A guide line under the pointer, shared across every axes of this figure."
+msgstr "Una linea guida sotto il puntatore, condivisa tra tutti gli assi di questa figura."
+
+
+msgid "Link zoom/pan across axes"
+msgstr "Collega zoom/panoramica tra gli assi"
+
+
+msgid "Zooming or panning one axes' x range applies it to every other axes of this figure too."
+msgstr "Zoomare o spostare l'intervallo x di un asse lo applica anche a tutti gli altri assi di questa figura."
+
+msgid "Measurements"
+msgstr "Misure"
+
+
+msgid "A ruler between two points, with its dx/dy/slope written beside it - the same thing a chart's own \"Measure from here\" / \"Measure to here\" right-click actions create. Color has its own column; anything else goes in Kwargs JSON."
+msgstr "Un righello tra due punti, con dx/dy/pendenza scritti accanto - la stessa cosa che creano le azioni del menu contestuale \"Misura da qui\" / \"Misura fino a qui\". Il colore ha una colonna propria; il resto va nel JSON Kwargs."
+
+
+msgid "Add measurement"
+msgstr "Aggiungi misura"
+
+
+msgid "Start X"
+msgstr "X iniziale"
+
+
+msgid "Start Y"
+msgstr "Y iniziale"
+
+
+msgid "End X"
+msgstr "X finale"
+
+
+msgid "End Y"
+msgstr "Y finale"
+
+
+msgid "Cancel measurement"
+msgstr "Annulla misura"
+
+
+msgid "Forget the pending point without finishing the measurement."
+msgstr "Dimentica il punto in sospeso senza completare la misura."
+
+msgid "Move annotation"
+msgstr "Sposta annotazione"
+
+msgid "Select points"
+msgstr "Seleziona punti"
+
+msgid "Drag a rectangle over the chart to select points, for hiding or splitting into a new series."
+msgstr "Trascina un rettangolo sul grafico per selezionare punti, da nascondere o dividere in una nuova serie."
+
+msgid "No points in the selection."
+msgstr "Nessun punto nella selezione."
+
+msgid "{count} point(s) selected across {series} series - right-click to act on them."
+msgstr "{count} punto/i selezionato/i in {series} serie - clic destro per agire su di essi."
+
+msgid "Hide {count} selected point(s)"
+msgstr "Nascondi {count} punto/i selezionato/i"
+
+msgid "Hide these points on their source table."
+msgstr "Nascondi questi punti nella tabella di origine."
+
+msgid "New series from selection"
+msgstr "Nuova serie dalla selezione"
+
+msgid "Add a new series holding only the selected points."
+msgstr "Aggiungi una nuova serie contenente solo i punti selezionati."
+
+msgid "Hide selected points"
+msgstr "Nascondi punti selezionati"
+
+msgid "{name} (selection)"
+msgstr "{name} (selezione)"
+
+msgid "Hide the selected points on their source table"
+msgstr "Nascondi i punti selezionati nella tabella di origine"
+
+msgid "Drag a rectangle over the chart to select points, for hiding or splitting into a new series"
+msgstr "Trascina un rettangolo sul grafico per selezionare punti, da nascondere o dividere in una nuova serie"
+
+msgid "Export view"
+msgstr "Esporta vista"
+
+msgid "Nothing visible to export - zoom out, or check the chart has data."
+msgstr "Niente di visibile da esportare - riduci lo zoom o verifica che il grafico contenga dati."
+
+msgid "Export view as CSV…"
+msgstr "Esporta vista come CSV…"
+
+msgid "Save the rows currently on screen as a CSV file"
+msgstr "Salva le righe attualmente a schermo come file CSV"
+
+msgid "Export view as CSV"
+msgstr "Esporta vista come CSV"
+
+msgid "CSV files (*.csv)"
+msgstr "File CSV (*.csv)"
+
+msgid "Live updates"
+msgstr "Aggiornamenti live"
+
+msgid "Redraw this chart every {seconds:g}s, for a source table a rig or an import keeps filling in."
+msgstr "Ridisegna questo grafico ogni {seconds:g}s, per una tabella di origine che uno strumento o un'importazione continua a riempire."
+
+msgid "Redraw this chart on a timer, for a source table a rig or an import keeps filling in"
+msgstr "Ridisegna questo grafico a intervalli regolari, per una tabella di origine che uno strumento o un'importazione continua a riempire"
+
+msgid "Show a synced crosshair across every axes of this figure"
+msgstr "Mostra un mirino sincronizzato su tutti gli assi di questa figura"

@@ -104,7 +104,17 @@ def test_the_menu_keeps_everything_that_was_not_the_fit_mode(panel) -> None:
     menu = panel._build_actions_menu()
     labels = [action.text() for action in menu.actions() if not action.isSeparator()]
 
-    assert labels == ["Reload", "Copy", "Save", "Delete"]
+    assert labels == [
+        "Reload",
+        "Copy",
+        "Save",
+        "Export view as CSV…",
+        "Crosshair",
+        "Link zoom/pan across axes",
+        "Select points",
+        "Live updates",
+        "Delete",
+    ]
 
 
 # ----------------------------------------------------------------------

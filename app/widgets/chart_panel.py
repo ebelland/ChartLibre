@@ -8,7 +8,9 @@ FIT_PROPORTIONAL modes.  The QScrollArea owns the visible chart viewport and the
 FigureCanvasQTAgg is the scroll area's widget directly.
 """
 
+import csv
 from io import BytesIO
+import json
 import math
 from typing import Any, Final
 
@@ -25,8 +27,10 @@ from matplotlib.patches import Patch, Rectangle, Wedge
 
 from app.charts.descriptor_grid import descriptor_axis_count, descriptor_prepared_for_render
 from app.charts.render_figure import render_figure_from_descriptor
+from app.data.data_source import quote_identifier
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.series_operations.dialog_base import generated_table_name
 from app.utils.messages import ask, show_message
 from app.styles.style import (
     SPLITTER_HANDLE_WIDTH,
@@ -92,6 +96,12 @@ PICK_TOLERANCE_POINTS: Final[float] = get_constant("pick_tolerance_points", 5.0)
 #: default figure.dpi, so a figure saved before per-figure dpi existed keeps
 #: the on-screen size it always had.
 FIXED_MODE_SCREEN_DPI: Final[float] = get_constant("fixed_mode_screen_dpi", 100.0)
+
+#: How often "Live updates" re-reads and redraws the chart, in milliseconds.
+#: A flat poll rather than a SQLite change hook: a hook fires per write, and
+#: an import streaming rows in one-by-one would then redraw once per row -
+#: this instead coalesces however many rows landed into one redraw per tick.
+LIVE_REFRESH_INTERVAL_MS: Final[int] = get_constant("live_refresh_interval_ms", 2000)
 
 
 def axis_text(axis: Any, value: float) -> str:
@@ -206,6 +216,11 @@ class ChartPanel(QFrame):
 
         self._canvas = FigureCanvasQTAgg(self._figure)
         self._init_hover_readout()
+        self._init_ruler()
+        self._init_crosshair()
+        self._init_annotation_drag()
+        self._init_box_selection()
+        self._init_live_updates()
         self._toolbar = NavigationToolbar2QT(
             self._canvas,
             parent=self,
@@ -242,7 +257,6 @@ class ChartPanel(QFrame):
 
         self._configure_canvas()
         self._configure_toolbar()
-        self._actions_menu = self._build_actions_menu()
         self._top_row = self._build_top_row()
 
         self._fixed_scroll_area = QScrollArea(self)
@@ -742,7 +756,17 @@ class ChartPanel(QFrame):
     def _update_hover_readout(self) -> None:
         """Find the point under the pointer and draw its value beside it."""
         event = self._hover_event
-        if event is None or getattr(event, "inaxes", None) is None:
+        inaxes = getattr(event, "inaxes", None) if event is not None else None
+
+        if self._crosshair_enabled:
+            # Tracks the raw pointer position regardless of whether a data
+            # point is nearby - unlike the annotation below, which only
+            # shows for an actual hit. Always a full draw_idle() rather
+            # than the blit path: see _update_crosshair for why, and why
+            # that is safe to mix with the hover annotation's own blitting.
+            self._update_crosshair(event if inaxes is not None else None)
+
+        if inaxes is None:
             self._hide_hover_annotation()
             return
 
@@ -752,7 +776,7 @@ class ChartPanel(QFrame):
             return
 
         artist, x_value, y_value = hit
-        axes = event.inaxes
+        axes = inaxes
 
         series = str(artist.get_label() or "").strip()
         if not series or series.startswith("_"):
@@ -768,7 +792,13 @@ class ChartPanel(QFrame):
         annotation.xy = (x_value, y_value)
         annotation.set_text(text)
         annotation.set_visible(True)
-        self._blit_hover(axes, annotation)
+        if self._crosshair_enabled:
+            # _update_crosshair already issued a draw_idle() this tick;
+            # blitting on top of it would restore a background captured
+            # before the crosshair moved - see the comment there.
+            self._canvas.draw_idle()
+        else:
+            self._blit_hover(axes, annotation)
 
     def _nearest_point_to(self, event: Any) -> tuple[Any, float, float] | None:
         """Return (artist, x, y) for the closest data point, or None.
@@ -890,6 +920,712 @@ class ChartPanel(QFrame):
             self._hover_background = None
         self._canvas.draw_idle()
 
+    # ------------------------------------------------------------------
+    # Crosshair
+    # ------------------------------------------------------------------
+    #: Colour for the crosshair lines - grey rather than the hover
+    #: annotation's own colours, so it reads as a ruled guide under the
+    #: data rather than as a second thing competing for attention.
+    CROSSHAIR_COLOR: Final[str] = "#808080"
+
+    def _init_crosshair(self) -> None:
+        """Reset crosshair state to "off, nothing drawn"."""
+        self._crosshair_enabled = False
+        #: axes -> its vertical line, shared x across every axes.
+        self._crosshair_vlines: dict[Any, Any] = {}
+        #: axes -> its horizontal line, only ever visible on the one axes
+        #: under the pointer - y scales are not shared, so a horizontal
+        #: line on every axes would compare unrelated numbers.
+        self._crosshair_hlines: dict[Any, Any] = {}
+        #: The linked-zoom/pan toggle lives here too: both are "act across
+        #: every axes of this figure" settings a person turns on together
+        #: when comparing stacked panels.
+        self._link_x_zoom_enabled = False
+        self._syncing_x_limits = False
+
+    def _discard_crosshair(self) -> None:
+        """Forget the crosshair's artists after figure.clear() destroyed them.
+
+        Mirrors _discard_hover_annotation/_discard_ruler: the enabled flags
+        survive a reload (a person's choice to see a crosshair should not
+        reset itself every time the chart redraws), only the per-axes
+        artists and the pending link-zoom guard do not.
+        """
+        self._crosshair_vlines = {}
+        self._crosshair_hlines = {}
+        self._syncing_x_limits = False
+
+    def _on_toggle_crosshair(self, checked: bool) -> None:
+        self._crosshair_enabled = bool(checked)
+        if not self._crosshair_enabled:
+            self._hide_crosshair()
+
+    def _on_toggle_link_x_zoom(self, checked: bool) -> None:
+        self._link_x_zoom_enabled = bool(checked)
+
+    def _update_crosshair(self, event: Any | None) -> None:
+        """Move the crosshair to the pointer, across every chart axes.
+
+        Always a full draw_idle() rather than blitting: the hover
+        annotation's blit restores a *cached* background snapshot, and
+        that snapshot is only ever valid with the crosshair at the
+        position it was captured at. Keeping the crosshair on the blit
+        path too would mean re-capturing the background on every single
+        pointer move - the crosshair's whole reason to exist - which
+        defeats blitting's purpose anyway. draw_idle() here also drops
+        _hover_background through the existing draw_event connection
+        (_invalidate_hover_background), so the *next* blit-only hover
+        update - crosshair off, or pointer over a bare point - always
+        recaptures a fresh background rather than reusing a stale one.
+        """
+        if event is None or event.xdata is None:
+            self._hide_crosshair()
+            return
+
+        active_axes = event.inaxes
+        for axes in self._figure.axes:
+            if not hasattr(axes, "_dhub_axis_id"):
+                continue  # a colorbar or other helper axes, not a chart one
+
+            vline = self._crosshair_vlines.get(axes)
+            if vline is None:
+                vline = axes.axvline(
+                    event.xdata,
+                    color=self.CROSSHAIR_COLOR,
+                    linewidth=0.8,
+                    linestyle="--",
+                    zorder=9_000,
+                )
+                self._crosshair_vlines[axes] = vline
+            else:
+                vline.set_xdata([event.xdata, event.xdata])
+            vline.set_visible(True)
+
+            hline = self._crosshair_hlines.get(axes)
+            if axes is active_axes and event.ydata is not None:
+                if hline is None:
+                    hline = axes.axhline(
+                        event.ydata,
+                        color=self.CROSSHAIR_COLOR,
+                        linewidth=0.8,
+                        linestyle="--",
+                        zorder=9_000,
+                    )
+                    self._crosshair_hlines[axes] = hline
+                else:
+                    hline.set_ydata([event.ydata, event.ydata])
+                hline.set_visible(True)
+            elif hline is not None:
+                hline.set_visible(False)
+
+        self._canvas.draw_idle()
+
+    def _hide_crosshair(self) -> None:
+        """Hide every crosshair line without discarding the artists."""
+        changed = False
+        for line in (*self._crosshair_vlines.values(), *self._crosshair_hlines.values()):
+            if line.get_visible():
+                line.set_visible(False)
+                changed = True
+        if changed:
+            self._canvas.draw_idle()
+
+    def _connect_x_sync_callbacks(self) -> None:
+        """Wire every chart axes' xlim_changed to the link-zoom sync.
+
+        xlim_changed fires however the limits changed - scroll zoom, the
+        Matplotlib toolbar's pan/zoom tools, a rectangle zoom - so this one
+        connection covers all of them rather than patching each entry
+        point that can move an axes' x range.
+        """
+        for axes in self._figure.axes:
+            if hasattr(axes, "_dhub_axis_id"):
+                axes.callbacks.connect("xlim_changed", self._on_axes_xlim_changed)
+
+    def _on_axes_xlim_changed(self, changed_axes: Any) -> None:
+        """Apply one axes' new x range to every other chart axes.
+
+        Guarded by _syncing_x_limits: setting another axes' xlim fires its
+        own xlim_changed right back at this same callback, and without the
+        guard two linked axes would bounce the change back and forth.
+        """
+        if not self._link_x_zoom_enabled or self._syncing_x_limits:
+            return
+
+        xlim = changed_axes.get_xlim()
+        self._syncing_x_limits = True
+        try:
+            for axes in self._figure.axes:
+                if axes is changed_axes or not hasattr(axes, "_dhub_axis_id"):
+                    continue
+                if axes.get_xlim() != xlim:
+                    axes.set_xlim(xlim)
+        finally:
+            self._syncing_x_limits = False
+        self._canvas.draw_idle()
+
+    # ------------------------------------------------------------------
+    # Draggable annotations
+    # ------------------------------------------------------------------
+    def _init_annotation_drag(self) -> None:
+        """Reset drag state to "nothing being dragged"."""
+        #: (axis_id, annotation index, artist, axes) of the annotation
+        #: currently being dragged, or None. The axes is kept alongside the
+        #: axis id so a drop can be refused if the pointer left it - x/y
+        #: from a different axes' coordinate system would be meaningless
+        #: written onto this one.
+        self._dragging_annotation: tuple[int, int, Any, Any] | None = None
+
+    def _discard_annotation_drag(self) -> None:
+        """Forget an in-progress drag after figure.clear() destroyed its artist."""
+        self._dragging_annotation = None
+
+    def _annotation_artist_at(self, axes: Any, event: Any) -> tuple[int, Any] | None:
+        """Return (index, artist) for the axis annotation under *event*.
+
+        Hit-tests only artists BaseAxisRenderer.apply_annotation tagged
+        with ``_dhub_annotation_index`` - the hover readout, a
+        measurement's label, and any other Text this axes happens to carry
+        are left alone; none of them are ever tagged.
+        """
+        for artist in axes.texts:
+            index = getattr(artist, "_dhub_annotation_index", None)
+            if index is None:
+                continue
+            try:
+                hit, _details = artist.contains(event)
+            except Exception:
+                continue
+            if hit:
+                return int(index), artist
+        return None
+
+    def _on_annotation_drag_press(self, event: Any) -> None:
+        """Start dragging an axis annotation, if the click landed on one.
+
+        Left button only, and only while no Matplotlib navigation tool
+        (pan/zoom) is active - those clicks belong to the toolbar, not to
+        this. Also skipped while box selection is the active tool, so a
+        drag never has to guess whether it started a selection or moved
+        an annotation.
+        """
+        if self._select_mode_enabled:
+            return
+        if event.button != 1 or event.inaxes is None:
+            return
+        if str(getattr(self._toolbar, "mode", "")) != "":
+            return
+
+        axis_id = getattr(event.inaxes, "_dhub_axis_id", None)
+        if axis_id is None:
+            return
+
+        hit = self._annotation_artist_at(event.inaxes, event)
+        if hit is None:
+            return
+
+        index, artist = hit
+        self._dragging_annotation = (int(axis_id), index, artist, event.inaxes)
+
+    def _on_annotation_drag_motion(self, event: Any) -> None:
+        """Follow the pointer while an annotation is being dragged."""
+        if self._dragging_annotation is None:
+            return
+        if event.inaxes is None or event.xdata is None or event.ydata is None:
+            return
+
+        _axis_id, _index, artist, axes = self._dragging_annotation
+        if event.inaxes is not axes:
+            return
+
+        if hasattr(artist, "xy"):
+            # An Annotation (the "arrow" type): xy is the anchor point the
+            # arrow points to and the stored x/y - xyann (the text/arrow
+            # tip) stays at its own offset from it, unaffected.
+            artist.xy = (event.xdata, event.ydata)
+        else:
+            artist.set_position((event.xdata, event.ydata))
+        self._canvas.draw_idle()
+
+    def _on_annotation_drag_release(self, event: Any) -> None:
+        """Finish an annotation drag: write the new position back, or snap
+        back to the stored one if the drop is not usable."""
+        if self._dragging_annotation is None:
+            return
+        axis_id, index, _artist, axes = self._dragging_annotation
+        self._dragging_annotation = None
+
+        if event.inaxes is not axes or event.xdata is None or event.ydata is None:
+            self.reload()
+            return
+
+        try:
+            self._repo.snapshot_for_undo(
+                self._repo.DESCRIPTOR_TABLES, label=_("Move annotation")
+            )
+            options = dict(self._repo.get_axis_options(int(axis_id)) or {})
+            annotations = list(options.get("annotations") or [])
+            if index < 0 or index >= len(annotations):
+                self.reload()
+                return
+            entry = dict(annotations[index])
+            entry["x"] = float(event.xdata)
+            entry["y"] = float(event.ydata)
+            annotations[index] = entry
+            options["annotations"] = annotations
+            self._repo.set_axis_options(int(axis_id), options)
+        except Exception:  # noqa: BLE001
+            applogger.exception("Could not move the annotation.")
+            self.reload()
+            return
+
+        self.reload()
+        self.figure_edited.emit()
+
+    # ------------------------------------------------------------------
+    # Box selection
+    # ------------------------------------------------------------------
+    #: Colour for the selection rectangle - matches the crosshair rather
+    #: than the ruler/hover colours, since like the crosshair this is a
+    #: guide the user draws rather than a value read off the data.
+    SELECT_COLOR: Final[str] = "#1f77b4"
+
+    def _init_box_selection(self) -> None:
+        """Reset box selection to "off, nothing selected"."""
+        self._select_mode_enabled = False
+        #: (axes, x0, y0) of the corner a drag started from, or None.
+        self._selection_start: tuple[Any, float, float] | None = None
+        #: The rubber-band rectangle artist while a drag is in progress.
+        self._selection_rect_artist: Any | None = None
+        #: The last completed selection - axis id, its bounds, and per
+        #: series (keyed by the series' own name, the same identity the
+        #: pick/legend code already matches artists by) the descriptor
+        #: fields a "Hide"/"New series" action needs. None once acted on,
+        #: cleared, or the pointer draws a new one.
+        self._last_selection: dict[str, Any] | None = None
+
+    def _discard_box_selection(self) -> None:
+        """Forget an in-progress drag after figure.clear() destroyed its artist.
+
+        The completed selection survives a reload deliberately: the axes it
+        refers to are gone, but its bounds and series metadata are not tied
+        to any artist, so "Hide selected points" still works after e.g. a
+        crosshair toggle triggers a redraw in between selecting and acting.
+        """
+        self._selection_start = None
+        self._selection_rect_artist = None
+
+    def _on_toggle_select_mode(self, checked: bool) -> None:
+        self._select_mode_enabled = bool(checked)
+        if not self._select_mode_enabled:
+            self._discard_box_selection()
+            self._canvas.draw_idle()
+
+    def _on_box_select_press(self, event: Any) -> None:
+        """Start a rubber-band selection, if the tool is on."""
+        if not self._select_mode_enabled or event.button != 1:
+            return
+        if event.inaxes is None or event.xdata is None or event.ydata is None:
+            return
+        if not hasattr(event.inaxes, "_dhub_axis_id"):
+            return
+
+        self._selection_start = (event.inaxes, float(event.xdata), float(event.ydata))
+        rect = Rectangle(
+            (event.xdata, event.ydata),
+            0,
+            0,
+            facecolor=self.SELECT_COLOR,
+            edgecolor=self.SELECT_COLOR,
+            alpha=0.15,
+            linewidth=1.0,
+            linestyle="--",
+            zorder=9_500,
+        )
+        event.inaxes.add_patch(rect)
+        self._selection_rect_artist = rect
+        self._canvas.draw_idle()
+
+    def _on_box_select_motion(self, event: Any) -> None:
+        """Grow the rubber-band rectangle to follow the pointer."""
+        if self._selection_start is None or self._selection_rect_artist is None:
+            return
+        axes, x0, y0 = self._selection_start
+        if event.inaxes is not axes or event.xdata is None or event.ydata is None:
+            return
+
+        x1, y1 = float(event.xdata), float(event.ydata)
+        self._selection_rect_artist.set_bounds(
+            min(x0, x1), min(y0, y1), abs(x1 - x0), abs(y1 - y0)
+        )
+        self._canvas.draw_idle()
+
+    def _on_box_select_release(self, event: Any) -> None:
+        """Finish the drag: collect the points it covers, or drop it."""
+        if self._selection_start is None:
+            return
+        axes, x0, y0 = self._selection_start
+        self._selection_start = None
+        rect_artist = self._selection_rect_artist
+        self._selection_rect_artist = None
+        if rect_artist is not None:
+            rect_artist.remove()
+
+        if event.inaxes is not axes or event.xdata is None or event.ydata is None:
+            self._last_selection = None
+            self._canvas.draw_idle()
+            return
+
+        x1, y1 = float(event.xdata), float(event.ydata)
+        x_min, x_max = sorted((x0, x1))
+        y_min, y_max = sorted((y0, y1))
+        if x_min == x_max or y_min == y_max:
+            # A click, not a drag - nothing to select.
+            self._last_selection = None
+            self._canvas.draw_idle()
+            return
+
+        axis_id = int(getattr(axes, "_dhub_axis_id"))
+        self._last_selection = self._collect_selection(axis_id, axes, x_min, x_max, y_min, y_max)
+        self._canvas.draw_idle()
+
+        if self._last_selection is None:
+            self.selection_changed.emit(_("No points in the selection."))
+            return
+        point_count = sum(len(info["x"]) for info in self._last_selection["series"].values())
+        self.selection_changed.emit(
+            _("{count} point(s) selected across {series} series - right-click to act on them.").format(
+                count=point_count, series=len(self._last_selection["series"])
+            )
+        )
+
+    def _collect_selection(
+        self, axis_id: int, axes: Any, x_min: float, x_max: float, y_min: float, y_max: float
+    ) -> dict[str, Any] | None:
+        """Return every plotted point inside the rectangle, grouped by series.
+
+        Matched to a series descriptor by artist label, the same identity
+        _on_pick and the legend toggle already use - a renderer draws a
+        series' Line2D/PathCollection labelled with the series' own name.
+        """
+        series_rows = {str(row["name"]): row for row in self._repo.get_series(axis_id) or []}
+        matches: dict[str, Any] = {}
+
+        for artist in (*axes.lines, *axes.collections):
+            label = str(artist.get_label() or "").strip()
+            if not label or label.startswith("_") or label not in series_rows:
+                continue
+
+            if hasattr(artist, "get_offsets"):
+                points = np.asarray(artist.get_offsets())
+                if points.size == 0:
+                    continue
+                xs, ys = points[:, 0].astype(float), points[:, 1].astype(float)
+            else:
+                x_data, y_data = artist.get_data()
+                try:
+                    xs = np.asarray(x_data, dtype=float)
+                    ys = np.asarray(y_data, dtype=float)
+                except (TypeError, ValueError):
+                    continue
+
+            mask = (xs >= x_min) & (xs <= x_max) & (ys >= y_min) & (ys <= y_max)
+            if not mask.any():
+                continue
+
+            row = series_rows[label]
+            matches[label] = {
+                "series_id": int(row["id"]),
+                "sql_query": str(row["sql_query"] or ""),
+                "roles": json.loads(row["roles"]) if row["roles"] else {},
+                "style": json.loads(row["style_json"]) if row["style_json"] else {},
+                "x": xs[mask],
+                "y": ys[mask],
+            }
+
+        if not matches:
+            return None
+        return {
+            "axis_id": axis_id,
+            "x0": x_min,
+            "x1": x_max,
+            "y0": y_min,
+            "y1": y_max,
+            "series": matches,
+        }
+
+    def _hide_selection(self) -> None:
+        """Hide every selected point on its own source table.
+
+        Only works for a series whose query reads a plain table (the same
+        restriction ``update_series_hide_filter`` already documents) -
+        anything else has no rowid to flip a Hide flag on. A series over a
+        saved query or a join is silently left alone rather than failing
+        the whole action for every series the rectangle happened to cover.
+        """
+        selection = self._last_selection
+        if not selection:
+            return
+        self._last_selection = None
+
+        try:
+            undo_entry = self._repo.snapshot_for_undo(
+                self._repo.DESCRIPTOR_TABLES, label=_("Hide selected points")
+            )
+            hid_any = False
+            for info in selection["series"].values():
+                roles = info["roles"]
+                if "x" not in roles or "y" not in roles:
+                    continue
+                if not self._repo.is_table_backed_sql(info["sql_query"]):
+                    continue
+
+                # A direct, bounded query - left<x<right, bottom<y<top - rather
+                # than reading every not-yet-hidden row into a DataFrame and
+                # masking it in Python: the rectangle is already the WHERE
+                # clause SQLite needs, so let it do the filtering.
+                table_name = self._repo.query_source_table(info["sql_query"])
+                self._repo.ensure_hide_column(table_name)
+                x_col = str(roles["x"]).strip()
+                y_col = str(roles["y"]).strip()
+                frame = self._repo.query_df(
+                    f"SELECT rowid AS __rowid__ FROM {quote_identifier(table_name)} "
+                    f"WHERE {quote_identifier(x_col)} BETWEEN ? AND ? "
+                    f"AND {quote_identifier(y_col)} BETWEEN ? AND ? "
+                    f'AND COALESCE("Hide", 0) = 0',
+                    (selection["x0"], selection["x1"], selection["y0"], selection["y1"]),
+                )
+                if frame.empty:
+                    continue
+                rowids = frame["__rowid__"].astype(int).tolist()
+
+                # The Hide column lives on the source data table, not on any
+                # of DESCRIPTOR_TABLES - added to the same undo entry so one
+                # undo reverts both the flag and the SQL rewrite below.
+                self._repo.snapshot_for_undo(
+                    [table_name], label=_("Hide selected points"), entry_id=undo_entry
+                )
+                self._repo.mark_hide_rowids(table_name=table_name, rowids=rowids)
+                self._repo.update_series_hide_filter(info["series_id"], info["sql_query"])
+                hid_any = True
+        except Exception:  # noqa: BLE001
+            applogger.exception("Could not hide the selected points.")
+            return
+
+        if not hid_any:
+            return
+        self.reload()
+        self.figure_edited.emit()
+
+    def _create_series_from_selection(self) -> None:
+        """Add one new series per selected series, holding only its selected rows.
+
+        Works for any series query, not only a plain table: the rectangle is
+        just a WHERE clause wrapped around whatever the source series already
+        selects, the same "read the series' own query as a subquery" idea
+        the rest of the app already leans on for a series-over-a-series.
+        """
+        selection = self._last_selection
+        if not selection:
+            return
+        self._last_selection = None
+
+        axis_id = selection["axis_id"]
+        try:
+            self._repo.snapshot_for_undo(
+                self._repo.DESCRIPTOR_TABLES, label=_("New series from selection")
+            )
+            next_index = len(self._repo.get_series(axis_id) or [])
+            created_any = False
+            for label, info in selection["series"].items():
+                sql = (
+                    f"SELECT * FROM ({info['sql_query']}) "
+                    f"WHERE x BETWEEN ? AND ? AND y BETWEEN ? AND ?"
+                )
+                frame = self._repo.query_df(
+                    sql, (selection["x0"], selection["x1"], selection["y0"], selection["y1"])
+                )
+                if frame.empty:
+                    continue
+                table_name = generated_table_name(f"{label}_selection")
+                self._repo.import_dataframe(frame, table_name=table_name, normalize_columns=False)
+                style = dict(info["style"])
+                style.pop("generated_selection", None)
+                style["generated_selection"] = True
+                self._repo.create_series_descriptor(
+                    axis_id=axis_id,
+                    series_index=next_index,
+                    name=_("{name} (selection)").format(name=label),
+                    sql_query=f"SELECT * FROM {quote_identifier(table_name)}",
+                    roles=info["roles"],
+                    style=style,
+                )
+                next_index += 1
+                created_any = True
+        except Exception:  # noqa: BLE001
+            applogger.exception("Could not create a series from the selection.")
+            return
+
+        if not created_any:
+            return
+        self.reload()
+        self.figure_edited.emit()
+
+    # ------------------------------------------------------------------
+    # Live updates
+    # ------------------------------------------------------------------
+    def _init_live_updates(self) -> None:
+        """Turn live updates off and create its timer.
+
+        Called once from __init__, not on every reload: like the crosshair
+        and box-selection toggles, a person's choice to watch this chart
+        live is a viewer setting that should survive the chart's own
+        redraws, not something reload() resets every time it runs.
+        """
+        self._live_updates_enabled = False
+        self._live_timer = QTimer(self)
+        self._live_timer.setInterval(LIVE_REFRESH_INTERVAL_MS)
+        self._live_timer.timeout.connect(self._on_live_timer_tick)
+
+    def _on_toggle_live_updates(self, checked: bool) -> None:
+        self._live_updates_enabled = bool(checked)
+        if self._live_updates_enabled:
+            self._live_timer.start()
+        else:
+            self._live_timer.stop()
+
+    def _on_live_timer_tick(self) -> None:
+        """Redraw on the timer, unless a gesture on this chart is mid-flight.
+
+        reload() clears the figure and rebuilds it from the descriptor, so
+        a redraw arriving mid-drag would pull the artist a drag or a
+        pending ruler point refers to out from under it. A completed box
+        selection is not guarded here: it already survives reload() by
+        design (see _discard_box_selection), so a timer tick between
+        selecting and right-clicking "Hide selected" does not lose it.
+        """
+        if (
+            self._dragging_annotation is not None
+            or self._selection_start is not None
+            or self._ruler_start is not None
+        ):
+            return
+        self.reload()
+
+    # ------------------------------------------------------------------
+    # Ruler / measure mode
+    # ------------------------------------------------------------------
+    #: Colour for the pending point's marker. A completed measurement's own
+    #: colour lives in its stored kwargs instead (BaseAxisRenderer.
+    #: apply_measurement), defaulting to this same value.
+    RULER_COLOR: Final[str] = "#d62728"
+
+    def _init_ruler(self) -> None:
+        """Reset the ruler to "no pending point"."""
+        #: (axis id, x, y) of the point "Measure from here" was clicked at,
+        #: or None while nothing is pending. A *finished* measurement is
+        #: not tracked here at all - see _measure_to_here - it is stored on
+        #: the axis and drawn back by BaseAxisRenderer.apply_measurements
+        #: like a reference line, not kept as a transient artist.
+        self._ruler_start: tuple[int, float, float] | None = None
+        #: The pending point's own marker artist, if one is currently shown.
+        self._ruler_artists: list[Any] = []
+
+    def _discard_ruler(self) -> None:
+        """Forget the pending point after the figure it was drawn on is gone.
+
+        Mirrors _discard_hover_annotation: figure.clear() (in reload())
+        already destroyed the marker artist, so the reference is simply
+        dropped rather than removed a second time.
+        """
+        self._ruler_start = None
+        self._ruler_artists = []
+
+    def _clear_ruler(self) -> None:
+        """Remove the pending point's marker, and forget it.
+
+        Unlike _discard_ruler, the figure here is still alive - this is
+        either "Cancel measurement", or the first step of starting a new
+        one over an old pending point - so the marker is actually removed
+        rather than merely forgotten.
+        """
+        for artist in self._ruler_artists:
+            try:
+                artist.remove()
+            except Exception:
+                pass
+        self._ruler_artists = []
+        self._ruler_start = None
+        self._canvas.draw_idle()
+
+    def _measure_from_here(
+        self, axes: Any, axis_id: int, x_value: float, y_value: float
+    ) -> None:
+        """Start a measurement at the clicked point.
+
+        Replaces any point already pending - only one measurement can be
+        in progress at a time, so starting a new one always reads as "the
+        current one", never as an old pending click left behind by mistake.
+        """
+        self._clear_ruler()
+        self._ruler_start = (axis_id, x_value, y_value)
+        (marker,) = axes.plot(
+            [x_value],
+            [y_value],
+            marker="+",
+            markersize=11,
+            markeredgewidth=1.6,
+            color=self.RULER_COLOR,
+            linestyle="none",
+            zorder=10_000,
+        )
+        self._ruler_artists.append(marker)
+        self._canvas.draw_idle()
+
+    def _measure_to_here(
+        self, axes: Any, axis_id: int, x_value: float, y_value: float
+    ) -> None:
+        """Finish the pending measurement at the clicked point, and store it.
+
+        A no-op if nothing is pending, or if the second click landed on a
+        different axes than the first - dx/dy/slope mean nothing between
+        two axes that may not even share units.
+
+        Written to the axis' own "measurements" - the same storage a
+        reference line or an annotation gets (BaseAxisRenderer.
+        apply_measurements draws it back) - rather than drawn here as a
+        transient artist: a measurement worth taking is worth it still
+        being there next time the chart opens, and worth deleting from the
+        Overlay panel's Measurements tab the same way a line is.
+        """
+        if self._ruler_start is None or self._ruler_start[0] != axis_id:
+            return
+
+        _axis_id, x0, y0 = self._ruler_start
+        self._clear_ruler()
+
+        try:
+            self._repo.snapshot_for_undo(
+                self._repo.DESCRIPTOR_TABLES, label=_("Add measurement")
+            )
+            options = dict(self._repo.get_axis_options(int(axis_id)) or {})
+            measurements = list(options.get("measurements") or [])
+            measurements.append(
+                {"x0": x0, "y0": y0, "x1": x_value, "y1": y_value, "kwargs": {}}
+            )
+            options["measurements"] = measurements
+            self._repo.set_axis_options(int(axis_id), options)
+        except Exception:  # noqa: BLE001
+            applogger.exception("Could not add a measurement.")
+            return
+
+        applogger.info(
+            "Added a measurement (%g, %g) -> (%g, %g) on axis %s",
+            x0, y0, x_value, y_value, axis_id,
+        )
+        self.reload()
+        self.figure_edited.emit()
+
     def _configure_fixed_scroll_area(self) -> None:
         """Configure the scroll area used only by FIXED mode."""
         self._fixed_scroll_area.setSizeAdjustPolicy(
@@ -934,6 +1670,19 @@ class ChartPanel(QFrame):
         self._canvas.mpl_connect("draw_event", lambda _e: self._invalidate_hover_background())
         self._canvas.mpl_connect("resize_event", lambda _e: self._invalidate_hover_background())
         self._canvas.mpl_connect("axes_leave_event", lambda _e: self._hide_hover_annotation())
+        self._canvas.mpl_connect("axes_leave_event", lambda _e: self._hide_crosshair())
+        # Dragging an axis annotation to reposition it: press picks it up
+        # (or does nothing, if the click missed one), motion follows the
+        # pointer, release writes the new position back and persists it.
+        self._canvas.mpl_connect("button_press_event", self._on_annotation_drag_press)
+        self._canvas.mpl_connect("motion_notify_event", self._on_annotation_drag_motion)
+        self._canvas.mpl_connect("button_release_event", self._on_annotation_drag_release)
+        # Box selection: an alternative tool, toggled on from the actions
+        # menu - see _on_annotation_drag_press's own guard for why the two
+        # never fire on the same drag.
+        self._canvas.mpl_connect("button_press_event", self._on_box_select_press)
+        self._canvas.mpl_connect("motion_notify_event", self._on_box_select_motion)
+        self._canvas.mpl_connect("button_release_event", self._on_box_select_release)
         self._canvas.setMinimumSize(0, 0)
         self._canvas.setMaximumSize(QSize(16777215, 16777215))
         self._canvas.setAutoFillBackground(False)
@@ -1069,6 +1818,42 @@ class ChartPanel(QFrame):
                 MenuItem(_("Reload"), _("Reload chart"), None, self.reload,False,"reload"),
                 MenuItem(_("Copy"),_("Copy figure"),PySide6.QtGui.QKeySequence.StandardKey.Copy,self.copy_chart_to_clipboard,False,"copy"),
                 MenuItem(_("Save"),_("Save as picture"), PySide6.QtGui.QKeySequence.StandardKey.SaveAs,self.save_chart_as,False,"save"),
+                MenuItem(_("Export view as CSV…"),_("Save the rows currently on screen as a CSV file"),None,self.export_view_as_csv,False,"export_csv"),
+                None,
+                MenuItem(
+                    text=_("Crosshair"),
+                    tooltip=_("A guide line under the pointer, shared across every axes of this figure."),
+                    callback=self._on_toggle_crosshair,
+                    checkable=True,
+                    checked=self._crosshair_enabled,
+                    icon="crosshair",
+                ),
+                MenuItem(
+                    text=_("Link zoom/pan across axes"),
+                    tooltip=_("Zooming or panning one axes' x range applies it to every other axes of this figure too."),
+                    callback=self._on_toggle_link_x_zoom,
+                    checkable=True,
+                    checked=self._link_x_zoom_enabled,
+                    icon="zoom_fit",
+                ),
+                MenuItem(
+                    text=_("Select points"),
+                    tooltip=_("Drag a rectangle over the chart to select points, for hiding or splitting into a new series."),
+                    callback=self._on_toggle_select_mode,
+                    checkable=True,
+                    checked=self._select_mode_enabled,
+                    icon="select_points",
+                ),
+                MenuItem(
+                    text=_("Live updates"),
+                    tooltip=_("Redraw this chart every {seconds:g}s, for a source table a rig or an import keeps filling in.").format(
+                        seconds=LIVE_REFRESH_INTERVAL_MS / 1000
+                    ),
+                    callback=self._on_toggle_live_updates,
+                    checkable=True,
+                    checked=self._live_updates_enabled,
+                    icon="live_updates",
+                ),
                 None,
                 MenuItem(_("Delete"),_("Delete this figure"),PySide6.QtGui.QKeySequence.StandardKey.Delete,self.delete_chart,False,"delete"),
             ],
@@ -1087,10 +1872,16 @@ class ChartPanel(QFrame):
         self.context_menu_for(pos).exec(self._canvas.mapToGlobal(pos))
 
     def context_menu_for(self, pos: QPoint) -> QMenu:
-        """Return the menu a right-click at *pos* should open."""
+        """Return the menu a right-click at *pos* should open.
+
+        Built fresh every time, inside the axes or out: Crosshair and Link
+        zoom/pan are checkable, and a cached QMenu built once at __init__
+        would keep showing whatever checked state was true the first time
+        it was ever shown.
+        """
         target = self._axis_at(pos)
         if target is None:
-            return self._actions_menu
+            return self._build_actions_menu()
 
         axis_id, axes, x_value, y_value = target
         menu = self._build_actions_menu()
@@ -1132,7 +1923,92 @@ class ChartPanel(QFrame):
             key=None,
             action=lambda: self._add_annotation(axis_id, x_value, y_value),
         )
+        menu.addSeparator()
+        self._add_measure_menu_items(menu, axes, axis_id, x_value, y_value)
+        self._add_selection_menu_items(menu, axis_id)
         return menu
+
+    def _add_selection_menu_items(self, menu: QMenu, axis_id: int) -> None:
+        """Add "Hide"/"New series" for the pending box selection, if any.
+
+        Only shown for the axis the rectangle was drawn on - a selection
+        does not carry over to a right-click on a different axes.
+        """
+        selection = self._last_selection
+        if not selection or selection["axis_id"] != axis_id:
+            return
+
+        menu.addSeparator()
+        point_count = sum(len(info["x"]) for info in selection["series"].values())
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="hide_points",
+            checkable=False,
+            text=_("Hide {count} selected point(s)").format(count=point_count),
+            tooltip=_("Hide these points on their source table."),
+            key=None,
+            action=self._hide_selection,
+        )
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="add_series",
+            checkable=False,
+            text=_("New series from selection"),
+            tooltip=_("Add a new series holding only the selected points."),
+            key=None,
+            action=self._create_series_from_selection,
+        )
+
+    def _add_measure_menu_items(
+        self, menu: QMenu, axes: Any, axis_id: int, x_value: float, y_value: float
+    ) -> None:
+        """Add the ruler's two-click flow to a context menu.
+
+        "Measure to here" only appears once a start point is pending on
+        this same axes - measuring across two axes that may not even share
+        units would report a slope neither one means.
+        """
+        pending_here = (
+            self._ruler_start is not None and self._ruler_start[0] == axis_id
+        )
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="measure",
+            checkable=False,
+            text=_("Measure from here"),
+            tooltip=_("Start measuring the distance and slope to another point."),
+            key=None,
+            action=lambda: self._measure_from_here(axes, axis_id, x_value, y_value),
+        )
+        if pending_here:
+            create_menu_item(
+                parent=self,
+                menu=menu,
+                icon="measure",
+                checkable=False,
+                text=_("Measure to here"),
+                tooltip=_("Finish the measurement at this point."),
+                key=None,
+                action=lambda: self._measure_to_here(axes, axis_id, x_value, y_value),
+            )
+        if self._ruler_start is not None:
+            # A completed measurement is not cleared from here any more -
+            # it is stored on the axis (apply_measurements) and deleted
+            # from the Overlay panel's Measurements tab, the same way a
+            # reference line is. This only cancels a still-pending point.
+            create_menu_item(
+                parent=self,
+                menu=menu,
+                icon="clear",
+                checkable=False,
+                text=_("Cancel measurement"),
+                tooltip=_("Forget the pending point without finishing the measurement."),
+                key=None,
+                action=self._clear_ruler,
+            )
 
     def _axis_at(self, pos: QPoint) -> tuple[int, Any, float, float] | None:
         """Return (axis id, axes, x, y) for the axes under *pos*, or None.
@@ -2096,6 +2972,82 @@ class ChartPanel(QFrame):
         if ask(self, "chart.confirm_delete"):
             self.close()
 
+    def export_view_as_csv(self) -> None:
+        """Save the rows actually on screen - after zoom and downsampling -
+        as one CSV. A sibling of copy/save-chart, for the data rather than
+        the picture: what a peak-fit or a "why does this look off" question
+        wants is the numbers behind what is visible, not the whole series.
+        """
+        file_path, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            _("Export view as CSV"),
+            f"chart_{self._figure_id}_view.csv",
+            _("CSV files (*.csv)"),
+        )
+        if not file_path:
+            return
+
+        rows = self._current_view_rows()
+        if not rows:
+            show_message(self, "chart.export_view_empty")
+            return
+
+        try:
+            with open(file_path, "w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=("axis", "series", "x", "y"))
+                writer.writeheader()
+                writer.writerows(rows)
+            applogger.info(
+                "Chart view exported (figure_id=%s, path=%s, rows=%d)",
+                self._figure_id,
+                file_path,
+                len(rows),
+            )
+        except Exception:
+            applogger.exception("Failed to export chart view (figure_id=%s)", self._figure_id)
+            show_message(self, "chart.save_failed")
+
+    def _current_view_rows(self) -> list[dict[str, Any]]:
+        """Return every plotted point currently inside its own axes' zoom.
+
+        Each chart axes keeps its own xlim/ylim, so "the current view" is
+        computed per axes rather than once for the whole figure - a
+        zoomed-in panel next to an untouched one only exports the zoomed
+        rows from the first.
+        """
+        rows: list[dict[str, Any]] = []
+        for axes in self._figure.axes:
+            axis_id = getattr(axes, "_dhub_axis_id", None)
+            if axis_id is None:
+                continue
+            x_min, x_max = axes.get_xlim()
+            y_min, y_max = axes.get_ylim()
+
+            for artist in (*axes.lines, *axes.collections):
+                label = str(artist.get_label() or "").strip()
+                if not label or label.startswith("_"):
+                    continue
+
+                if hasattr(artist, "get_offsets"):
+                    points = np.asarray(artist.get_offsets())
+                    if points.size == 0:
+                        continue
+                    xs, ys = points[:, 0].astype(float), points[:, 1].astype(float)
+                else:
+                    x_data, y_data = artist.get_data()
+                    try:
+                        xs = np.asarray(x_data, dtype=float)
+                        ys = np.asarray(y_data, dtype=float)
+                    except (TypeError, ValueError):
+                        continue
+
+                mask = (xs >= x_min) & (xs <= x_max) & (ys >= y_min) & (ys <= y_max)
+                for x_value, y_value in zip(xs[mask], ys[mask]):
+                    rows.append(
+                        {"axis": int(axis_id), "series": label, "x": float(x_value), "y": float(y_value)}
+                    )
+        return rows
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -2127,6 +3079,7 @@ class ChartPanel(QFrame):
 
         self._canvas_sync_timer.stop()
         self._canvas_late_sync_timer.stop()
+        self._live_timer.stop()
 
         try:
             # Before the delete opens its transaction: the undo store
@@ -2163,6 +3116,10 @@ class ChartPanel(QFrame):
         """Reload the latest descriptor from the repository and re-render it."""
         self._figure.clear()
         self._discard_hover_annotation()
+        self._discard_ruler()
+        self._discard_crosshair()
+        self._discard_annotation_drag()
+        self._discard_box_selection()
         self._refresh_config_from_source()
         self._apply_persisted_figure_metrics_to_rcparams()
         self._reset_figure_metrics_from_rcparams_for_reload()
@@ -2184,6 +3141,7 @@ class ChartPanel(QFrame):
                 repo=self._repo,
             )
             self._make_data_artists_pickable()
+            self._connect_x_sync_callbacks()
 
             # Do not normalize again from len(self._figure.axes). Matplotlib can
             # contain extra Axes created by a stale grid, colorbars, twinx axes,

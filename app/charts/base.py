@@ -461,11 +461,12 @@ class BaseAxisRenderer(Protocol):
         """
         annotations = options.get("annotations", [])
         if isinstance(annotations, list):
-            for annotation in annotations:
+            for index, annotation in enumerate(annotations):
                 if isinstance(annotation, dict):
-                    self.apply_annotation(ax, annotation)
+                    self.apply_annotation(ax, annotation, index=index)
 
         self.apply_reference_lines(ax, options)
+        self.apply_measurements(ax, options)
 
     def apply_reference_lines(self, ax: Any, options: dict[str, Any]) -> None:
         """Draw the full-width/height lines stored in ``options["lines"]``.
@@ -516,13 +517,93 @@ class BaseAxisRenderer(Protocol):
         except Exception:  # noqa: BLE001 - a bad kwarg costs the line, not the chart
             applogger.exception("A reference line could not be drawn: %r", line)
 
-    def apply_annotation(self, ax: Any, annotation: dict[str, Any]) -> None:
-        """Apply one text, boxed text or arrow annotation to *ax*."""
+    def apply_measurements(self, ax: Any, options: dict[str, Any]) -> None:
+        """Draw the rulers stored in ``options["measurements"]``.
+
+        Each entry is ``{"x0", "y0", "x1", "y1", "kwargs": {...}}`` - the two
+        points a ChartPanel ruler measurement was taken between (see
+        ChartPanel._measure_to_here). Kept on the axis rather than drawn as
+        a transient artist: a measurement worth taking is worth it still
+        being there the next time the chart is opened, editable from the
+        Overlay panel's own Measurements tab exactly like a reference line.
+        """
+        measurements = options.get("measurements", [])
+        if not isinstance(measurements, list):
+            return
+        for measurement in measurements:
+            if isinstance(measurement, dict):
+                self.apply_measurement(ax, measurement)
+
+    def apply_measurement(self, ax: Any, measurement: dict[str, Any]) -> None:
+        """Draw one measurement: a line between two points and its dx/dy/slope."""
+        try:
+            x0 = float(measurement.get("x0"))  # type: ignore[arg-type]
+            y0 = float(measurement.get("y0"))  # type: ignore[arg-type]
+            x1 = float(measurement.get("x1"))  # type: ignore[arg-type]
+            y1 = float(measurement.get("y1"))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            applogger.warning(
+                "Skipping a measurement with no usable coordinates: %r",
+                measurement,
+                show_dialog=False,
+                raise_error=False,
+            )
+            return
+        if not all(np.isfinite(value) for value in (x0, y0, x1, y1)):
+            return
+
+        kwargs = measurement.get("kwargs", {})
+        kwargs = dict(kwargs) if isinstance(kwargs, dict) else {}
+        color = str(kwargs.pop("color", "") or "#d62728")
+
+        dx, dy = x1 - x0, y1 - y0
+        slope_text = "undefined (Δx = 0)" if dx == 0 else f"{dy / dx:.4g}"
+
+        try:
+            ax.plot(
+                [x0, x1],
+                [y0, y1],
+                color=color,
+                linewidth=1.4,
+                marker="+",
+                markersize=11,
+                markeredgewidth=1.6,
+                zorder=10_000,
+                **kwargs,
+            )
+            ax.annotate(
+                f"Δx: {dx:.4g}\nΔy: {dy:.4g}\nslope: {slope_text}",
+                xy=((x0 + x1) / 2.0, (y0 + y1) / 2.0),
+                xytext=(12, 12),
+                textcoords="offset points",
+                fontsize=8,
+                zorder=10_000,
+                bbox={
+                    "boxstyle": "round,pad=0.4",
+                    "fc": "#ffffe0",
+                    "ec": color,
+                    "alpha": 0.95,
+                },
+            )
+        except Exception:  # noqa: BLE001 - a bad kwarg costs the ruler, not the chart
+            applogger.exception("A measurement could not be drawn: %r", measurement)
+
+    def apply_annotation(
+        self, ax: Any, annotation: dict[str, Any], *, index: int | None = None
+    ) -> Any | None:
+        """Apply one text, boxed text or arrow annotation to *ax*.
+
+        Returns the artist actually drawn, tagged with ``_dhub_annotation_index``
+        when *index* is given - ChartPanel's draggable-annotation handler
+        (_annotation_artist_at) hit-tests exactly this attribute to tell a
+        real axis annotation apart from the hover readout, a measurement's
+        label, or any other Text/Annotation artist sharing the same axes.
+        """
         try:
             x = float(annotation.get("x", 0.0))
             y = float(annotation.get("y", 0.0))
         except (TypeError, ValueError):
-            return
+            return None
 
         annotation_type = str(annotation.get("type", "text") or "text").lower()
         text = str(annotation.get("text", "") or "")
@@ -543,7 +624,7 @@ class BaseAxisRenderer(Protocol):
         if annotation_type == "arrow":
             if not isinstance(arrowprops, dict):
                 arrowprops = {"arrowstyle": "->"}
-            ax.annotate(
+            artist = ax.annotate(
                 text,
                 xy=(x, y),
                 xytext=xytext,
@@ -551,7 +632,9 @@ class BaseAxisRenderer(Protocol):
                 arrowprops=arrowprops,
                 **kwargs,
             )
-            return
+            if index is not None:
+                artist._dhub_annotation_index = index
+            return artist
 
         if annotation_type == "boxed text":
             kwargs.setdefault(
@@ -559,7 +642,10 @@ class BaseAxisRenderer(Protocol):
                 {"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.8},
             )
 
-        ax.text(x, y, text, **kwargs)
+        artist = ax.text(x, y, text, **kwargs)
+        if index is not None:
+            artist._dhub_annotation_index = index
+        return artist
 
     # ------------------------------------------------------------------
     # Error bars

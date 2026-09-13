@@ -94,7 +94,7 @@ def test_it_hosts_one_tab_per_kind_of_overlay(
 ) -> None:
     titles = [widget._tabs.tabText(i) for i in range(widget._tabs.count())]
 
-    assert titles == ["Annotations", "Lines"]
+    assert titles == ["Annotations", "Lines", "Measurements"]
 
 
 def test_it_names_the_axis_it_is_editing(widget: OverlayPropertiesWidget) -> None:
@@ -238,6 +238,55 @@ def test_invalid_kwargs_json_costs_the_kwargs_not_the_line(
         "value": 2.0,
         "kwargs": {},
     }
+
+
+# ----------------------------------------------------------------------
+# Measurements: written by ChartPanel's ruler, edited here
+# ----------------------------------------------------------------------
+def test_a_stored_measurement_loads_into_the_table(
+    widget: OverlayPropertiesWidget,
+) -> None:
+    widget._add_measurement_row(
+        {"x0": 0.0, "y0": 1.0, "x1": 2.0, "y1": 3.0, "kwargs": {"color": "#00ff00"}}
+    )
+    table = widget._measurements_table
+
+    assert table.rowCount() == 1
+    assert table.item(0, 0).text() == "0.0"
+    assert table.item(0, 1).text() == "1.0"
+    assert table.item(0, 2).text() == "2.0"
+    assert table.item(0, 3).text() == "3.0"
+    assert table.cellWidget(0, 4).current_hex() == "#00ff00"
+
+
+def test_a_new_measurement_reaches_the_payload(widget: OverlayPropertiesWidget) -> None:
+    sent: list[dict] = []
+    widget.overlay_options_requested.connect(sent.append)
+
+    widget._add_measurement_row(
+        {"x0": 1.0, "y0": 1.0, "x1": 5.0, "y1": 9.0, "kwargs": {}}
+    )
+    widget._emit_overlay_options_requested()
+
+    assert sent[0]["measurements"] == [
+        {"x0": 1.0, "y0": 1.0, "x1": 5.0, "y1": 9.0, "kwargs": {}}
+    ]
+
+
+def test_deleting_a_measurement_row_drops_it_from_the_payload(
+    widget: OverlayPropertiesWidget,
+) -> None:
+    widget._add_measurement_row(
+        {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0, "kwargs": {}}
+    )
+    widget._measurements_table.selectRow(0)
+    widget._delete_selected_rows(widget._measurements_table)
+
+    sent: list[dict] = []
+    widget.overlay_options_requested.connect(sent.append)
+    widget._emit_overlay_options_requested()
+
+    assert sent[0]["measurements"] == []
 
 
 # ----------------------------------------------------------------------
@@ -437,6 +486,48 @@ def test_a_line_with_an_unusable_value_costs_only_itself() -> None:
             "lines": [
                 {"orientation": "vertical", "value": "nonsense"},
                 {"orientation": "vertical", "value": 1.0},
+            ]
+        }
+    )
+
+    assert len(axes.lines) == 1
+
+
+def test_a_measurement_draws_a_line_between_its_two_points() -> None:
+    _figure, axes = _drawn(
+        {"measurements": [{"x0": 0.0, "y0": 0.0, "x1": 4.0, "y1": 2.0, "kwargs": {}}]}
+    )
+
+    assert len(axes.lines) == 1
+    drawn = axes.lines[0]
+    assert list(drawn.get_xdata()) == [0.0, 4.0]
+    assert list(drawn.get_ydata()) == [0.0, 2.0]
+
+
+def test_a_measurement_writes_its_slope_into_a_label() -> None:
+    _figure, axes = _drawn(
+        {"measurements": [{"x0": 0.0, "y0": 0.0, "x1": 4.0, "y1": 2.0, "kwargs": {}}]}
+    )
+
+    texts = [child.get_text() for child in axes.texts]
+    assert any("0.5" in text for text in texts)  # slope = dy/dx = 2/4
+
+
+def test_a_vertical_measurement_reports_slope_as_undefined() -> None:
+    _figure, axes = _drawn(
+        {"measurements": [{"x0": 1.0, "y0": 0.0, "x1": 1.0, "y1": 5.0, "kwargs": {}}]}
+    )
+
+    texts = [child.get_text() for child in axes.texts]
+    assert any("undefined" in text for text in texts)
+
+
+def test_a_measurement_with_no_usable_coordinates_costs_only_itself() -> None:
+    _figure, axes = _drawn(
+        {
+            "measurements": [
+                {"x0": "nonsense", "y0": 0.0, "x1": 1.0, "y1": 1.0, "kwargs": {}},
+                {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0, "kwargs": {}},
             ]
         }
     )

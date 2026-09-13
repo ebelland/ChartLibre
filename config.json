@@ -28,6 +28,13 @@
       "SegoeFluent": "E932",
       "ThemeIcon": "list-add"
     },
+    "crosshair": {
+      "text": "Crosshair",
+      "description": "Show a synced crosshair across every axes of this figure",
+      "SFSymbol": "dot.crosshair",
+      "SegoeFluent": "E7C8",
+      "ThemeIcon": "edit-find"
+    },
     "add_series": {
       "text": "Add series",
       "description": "Add a series to the selected axis",
@@ -115,6 +122,34 @@
       "SegoeFluent": "E70F",
       "ThemeIcon": "document-edit"
     },
+    "edit_localization": {
+      "text": "Edit Localization",
+      "description": "Browse and edit the translation catalogue without a .po editor",
+      "SFSymbol": "globe",
+      "SegoeFluent": "E774",
+      "ThemeIcon": "preferences-desktop-locale"
+    },
+    "series_operation_builder": {
+      "text": "Series Operation Builder",
+      "description": "Scaffold a new series-operation dialog from a template",
+      "SFSymbol": "puzzlepiece.extension",
+      "SegoeFluent": "EA86",
+      "ThemeIcon": "applications-development"
+    },
+    "function_creator": {
+      "text": "Function Creator",
+      "description": "Scaffold a new curve-fit / analytic function",
+      "SFSymbol": "function",
+      "SegoeFluent": "E9D2",
+      "ThemeIcon": "accessories-calculator"
+    },
+    "renderer_helper": {
+      "text": "Renderer Helper",
+      "description": "Scaffold a new chart-type axis renderer from a template",
+      "SFSymbol": "paintbrush.pointed",
+      "SegoeFluent": "EB9F",
+      "ThemeIcon": "applications-graphics"
+    },
     "export_csv": {
       "text": "Export CSV",
       "description": "Export as a CSV file",
@@ -135,6 +170,13 @@
       "SFSymbol": "arrow.down.circle",
       "SegoeFluent": "E896",
       "ThemeIcon": "emblem-downloads"
+    },
+    "hide_points": {
+      "text": "Hide",
+      "description": "Hide the selected points on their source table",
+      "SFSymbol": "eye.slash",
+      "SegoeFluent": "E890",
+      "ThemeIcon": "list-remove"
     },
     "import": {
       "text": "Import",
@@ -171,6 +213,13 @@
       "SegoeFluent": "e710",
       "ThemeIcon": "list-add"
     },
+    "live_updates": {
+      "text": "Live updates",
+      "description": "Redraw this chart on a timer, for a source table a rig or an import keeps filling in",
+      "SFSymbol": "dot.radiowaves.left.and.right",
+      "SegoeFluent": "E72C",
+      "ThemeIcon": "view-refresh"
+    },
     "load_demo": {
       "text": "Load demo",
       "description": "Load one of the shipped demo projects and open it",
@@ -191,6 +240,13 @@
       "SFSymbol": "chart.xyaxis.line",
       "SegoeFluent": "e710",
       "ThemeIcon": "list-add"
+    },
+    "measure": {
+      "text": "Measure",
+      "description": "Measure the distance and slope between two points",
+      "SFSymbol": "ruler",
+      "SegoeFluent": "E9D2",
+      "ThemeIcon": "accessories-calculator"
     },
     "nav_chart_options": {
       "text": "Chart Options",
@@ -349,17 +405,24 @@
     "save": {
       "text": "Save",
       "description": "Save to a file",
-      "SFSymbol": "square.and.arrow.down",
-      "SegoeFluent": "E74E",
+      "SFSymbol": "square.and.arrow.up",
+      "SegoeFluent": "E703",
       "ThemeIcon": "document-save"
     },
     "save_as": {
       "text": "Save As...",
       "description": "Save the current database under a new name, and switch to it",
       "shortcut": "Ctrl+Shift+S",
-      "SFSymbol": "square.and.arrow.down.on.square",
-      "SegoeFluent": "E792",
+      "SFSymbol": "square.and.arrow.up.on.square",
+      "SegoeFluent": "E703",
       "ThemeIcon": "document-save-as"
+    },
+    "select_points": {
+      "text": "Select points",
+      "description": "Drag a rectangle over the chart to select points, for hiding or splitting into a new series",
+      "SFSymbol": "lasso",
+      "SegoeFluent": "E8B0",
+      "ThemeIcon": "edit-select-all"
     },
     "select_all": {
       "text": "Select all",
@@ -482,6 +545,11 @@
       "title": "Delete chart",
       "text": "Delete this chart?"
     },
+    "chart.export_view_empty": {
+      "level": "info",
+      "title": "Export view",
+      "text": "Nothing visible to export - zoom out, or check the chart has data."
+    },
     "chart.no_series": {
       "level": "warning",
       "title": "Series",
@@ -541,6 +609,11 @@
       "level": "error",
       "title": "Load demo",
       "text": "Could not load the demo project:\n{error}"
+    },
+    "dev.not_implemented": {
+      "level": "info",
+      "title": "Developer tools",
+      "text": "{feature} is not implemented yet - see todo.txt for the design sketch."
     },
     "import.clipboard_empty": {
       "level": "info",
@@ -823,6 +896,7 @@
     "notes_initial_fraction": 0.3,
     "pick_tolerance_points": 5.0,
     "fixed_mode_screen_dpi": 100.0,
+    "live_refresh_interval_ms": 2000,
     "auto_apply_delay_ms": 400,
     "properties_redraw_debounce_ms": 120,
     "snapshot_coalesce_seconds": 2.0,

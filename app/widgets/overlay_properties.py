@@ -41,8 +41,7 @@ from app.charts.kwarg_spec import DEFAULT
 from app.logs.logger import applogger
 from app.styles.style import (
     MARGIN_PANEL,
-    apply_card_layout,
-    create_card_widget,
+    CardFrame,
     create_section_title,
     stdSizeAndlayout,
 )
@@ -117,15 +116,25 @@ _LINE_COLS: Final[tuple[_Col, ...]] = (
     _Col("Style", _LINESTYLE, "linestyle"),
     _Col("Kwargs JSON", _KWARGS),
 )
+_MEASUREMENT_COLS: Final[tuple[_Col, ...]] = (
+    _Col("Start X", _FLOAT, "x0"),
+    _Col("Start Y", _FLOAT, "y0"),
+    _Col("End X", _FLOAT, "x1"),
+    _Col("End Y", _FLOAT, "y1"),
+    _Col("Color", _COLOR, "color"),
+    _Col("Kwargs JSON", _KWARGS),
+)
 _WIDGET_KINDS: Final[frozenset[str]] = frozenset({_COLOR, _LINESTYLE, _FONT, _SIZE})
 
 
 class OverlayPropertiesWidget(BaseProperties):
-    """Edit the annotations and reference lines of the selected axis."""
+    """Edit the annotations, reference lines and measurements of the
+    selected axis."""
 
-    #: Emitted with ``{"axis_id": int, "annotations": [...], "lines": [...]}``.
-    #: Not the axis panel's own signal: that payload carries the whole axis,
-    #: so a partial one from here would clear whatever it left out.
+    #: Emitted with ``{"axis_id": int, "annotations": [...], "lines": [...],
+    #: "measurements": [...]}``. Not the axis panel's own signal: that
+    #: payload carries the whole axis, so a partial one from here would
+    #: clear whatever it left out.
     overlay_options_requested = Signal(dict)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -135,6 +144,7 @@ class OverlayPropertiesWidget(BaseProperties):
         self._install_auto_apply(self._emit_overlay_options_requested)
         self._annotations_table.itemChanged.connect(self._queue_auto_apply)
         self._lines_table.itemChanged.connect(self._queue_auto_apply)
+        self._measurements_table.itemChanged.connect(self._queue_auto_apply)
         self.clear_connected_figure()
 
     # ------------------------------------------------------------------
@@ -174,13 +184,23 @@ class OverlayPropertiesWidget(BaseProperties):
                 "{\"linewidth\": 2, \"label\": \"limit\"}."
             ),
         )
+        self._measurements_table = self._add_tab(
+            _("Measurements"), "overlayMeasurementsCard", "axisMeasurementsTable",
+            _MEASUREMENT_COLS, add_text=_("Add measurement"),
+            tooltip=_(
+                "A ruler between two points, with its dx/dy/slope written "
+                "beside it - the same thing a chart's own \"Measure from "
+                "here\" / \"Measure to here\" right-click actions create. "
+                "Color has its own column; anything else goes in Kwargs "
+                "JSON."
+            ),
+        )
         root.addWidget(self._tabs, 1)
 
     def _build_axis_card(self) -> QWidget:
         """Name the axis being edited - the Axis panel owns the selector."""
-        card = create_card_widget(self, "overlayAxisCard")
-        layout = QVBoxLayout(card)
-        apply_card_layout(layout)
+        card = CardFrame(self, "overlayAxisCard")
+        layout = card.layout()
         layout.addWidget(create_section_title(_("Axis"), card))
         self._axis_label = QLabel(_("No axis selected"), card)
         self._axis_label.setWordWrap(True)
@@ -198,9 +218,8 @@ class OverlayPropertiesWidget(BaseProperties):
         tooltip: str,
     ) -> QTableWidget:
         """Build one tab (table + Add/Delete row) and return its table."""
-        card = create_card_widget(self._tabs, card_name)
-        layout = QVBoxLayout(card)
-        apply_card_layout(layout)
+        card = CardFrame(self._tabs, card_name)
+        layout = card.layout()
 
         table = QTableWidget(0, len(cols), card)
         table.setObjectName(table_name)
@@ -241,8 +260,10 @@ class OverlayPropertiesWidget(BaseProperties):
         buttons = (add, delete)
         if cols is _ANNOTATION_COLS:
             self._btn_add_annotation, self._btn_delete_annotation = buttons
-        else:
+        elif cols is _LINE_COLS:
             self._btn_add_line, self._btn_delete_line = buttons
+        else:
+            self._btn_add_measurement, self._btn_delete_measurement = buttons
 
         self._tabs.addTab(card, title)
         return table
@@ -417,6 +438,7 @@ class OverlayPropertiesWidget(BaseProperties):
         self._current_axis_id = None
         self._annotations_table.setRowCount(0)
         self._lines_table.setRowCount(0)
+        self._measurements_table.setRowCount(0)
         self._axis_label.setText(_("No axis selected"))
         super().clear_connected_figure()
 
@@ -426,6 +448,7 @@ class OverlayPropertiesWidget(BaseProperties):
     def _reload_from_descriptor(self) -> None:
         self._annotations_table.setRowCount(0)
         self._lines_table.setRowCount(0)
+        self._measurements_table.setRowCount(0)
 
         options = self._axis_options()
         if options is None:
@@ -436,6 +459,7 @@ class OverlayPropertiesWidget(BaseProperties):
         self._axis_label.setText(self._axis_title(options))
         self._load_rows(self._annotations_table, _ANNOTATION_COLS, options, "annotations")
         self._load_rows(self._lines_table, _LINE_COLS, options, "lines")
+        self._load_rows(self._measurements_table, _MEASUREMENT_COLS, options, "measurements")
         self._set_enabled_state(True)
 
     def _load_rows(
@@ -555,6 +579,9 @@ class OverlayPropertiesWidget(BaseProperties):
     def _add_line_row(self, line: dict[str, Any] | None = None) -> None:
         self._add_row(self._lines_table, _LINE_COLS, line)
 
+    def _add_measurement_row(self, measurement: dict[str, Any] | None = None) -> None:
+        self._add_row(self._measurements_table, _MEASUREMENT_COLS, measurement)
+
     # ------------------------------------------------------------------
     # Saving
     # ------------------------------------------------------------------
@@ -585,6 +612,7 @@ class OverlayPropertiesWidget(BaseProperties):
                 "axis_id": int(self._current_axis_id),
                 "annotations": self._payload(self._annotations_table, _ANNOTATION_COLS),
                 "lines": self._payload(self._lines_table, _LINE_COLS),
+                "measurements": self._payload(self._measurements_table, _MEASUREMENT_COLS),
             }
         )
 
@@ -593,6 +621,8 @@ class OverlayPropertiesWidget(BaseProperties):
             self._annotations_table, self._btn_add_annotation,
             self._btn_delete_annotation, self._lines_table,
             self._btn_add_line, self._btn_delete_line,
+            self._measurements_table, self._btn_add_measurement,
+            self._btn_delete_measurement,
         ):
             widget.setEnabled(enabled)
 
