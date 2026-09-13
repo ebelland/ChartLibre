@@ -113,7 +113,7 @@ def test_the_menu_bar_carries_one_menu_per_group(window: MainWindow) -> None:
     # Window sits between the app's own menus and Help - the usual place on
     # a Mac - even though it holds no MenuItem of its own (see
     # _build_macos_window_menu).
-    assert titles == ["File", "Edit", "Database", "Window", "Help"]
+    assert titles == ["File", "Edit", "Database", "Developer", "Window", "Help"]
 
 
 def test_file_holds_the_file_group(window: MainWindow) -> None:
@@ -146,6 +146,19 @@ def test_help_holds_the_help_group(window: MainWindow) -> None:
     items = menu.actions()
     ids = [action.data() for action in items if not action.isSeparator()]
     assert ids == ["settings", "log_viewer", "user_manual", "load_demo", "credits"]
+
+
+def test_developer_holds_the_stub_tools(window: MainWindow) -> None:
+    """Menu entries only for now - each is a stub, see todo.txt."""
+    _top_actions, menu = _menu_named(window, "Developer")
+    items = menu.actions()
+    ids = [action.data() for action in items if not action.isSeparator()]
+    assert ids == [
+        "edit_localization",
+        "series_operation_builder",
+        "function_creator",
+        "renderer_helper",
+    ]
 
 
 def test_window_holds_minimize_and_zoom(window: MainWindow) -> None:
@@ -272,6 +285,24 @@ def test_off_macos_page_switching_is_unaffected(
 
 
 # ----------------------------------------------------------------------
+# Developer menu: stubs for now (see todo.txt)
+# ----------------------------------------------------------------------
+def test_a_dev_stub_reports_its_own_feature_name(
+    window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[str, dict]] = []
+    monkeypatch.setattr(
+        main_window_module,
+        "show_message",
+        lambda _parent, message_id, **kwargs: calls.append((message_id, kwargs)),
+    )
+
+    window._on_edit_localization()
+
+    assert calls == [("dev.not_implemented", {"feature": "Edit Localization"})]
+
+
+# ----------------------------------------------------------------------
 # One list feeds both
 # ----------------------------------------------------------------------
 def test_the_popup_and_the_menu_bar_share_one_item_list(window: MainWindow) -> None:
@@ -311,4 +342,4 @@ def test_rebuilding_the_menu_does_not_duplicate_the_bar(window: MainWindow) -> N
     window._build_app_menu()
 
     menu_bar = window.menuBar()
-    assert len(menu_bar.actions()) == 5
+    assert len(menu_bar.actions()) == 6

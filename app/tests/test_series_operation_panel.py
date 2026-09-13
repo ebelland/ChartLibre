@@ -8,8 +8,9 @@ inline, which is why it moved to a hint bar these also cover.
 from __future__ import annotations
 
 from PySide6.QtCore import QEvent
-from PySide6.QtGui import QEnterEvent
+from PySide6.QtGui import QEnterEvent, QIcon
 from PySide6.QtCore import QPointF
+from PySide6.QtWidgets import QLabel
 
 from app.scanners.series_operation_scanner import series_operations
 from app.widgets.base_properties import BaseProperties
@@ -145,6 +146,28 @@ def test_enter_and_space_activate_a_focused_tile(qapp) -> None:
         received.clear()
         tile.keyPressEvent(QKeyEvent(QEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier))
         assert received, f"key {key} did not activate the tile"
+
+
+def test_a_long_title_wraps_instead_of_overflowing_the_tile(qapp) -> None:
+    """A layout-wide AlignHCenter used to size every child to its own
+    unwrapped width and centre that, so a name longer than the tile
+    ("Interpolazione") was never actually constrained narrow enough for
+    setWordWrap(True) to do anything - it just overflowed the 84px tile
+    and got clipped on both sides."""
+    tile = OperationTile(
+        parent=None, icon=QIcon(), title="A rather long operation name", description="d"
+    )
+    tile.show()
+    qapp.processEvents()
+    try:
+        title_label = next(
+            label
+            for label in tile.findChildren(QLabel)
+            if label.property("operationTileTitle")
+        )
+        assert title_label.width() <= tile.width()
+    finally:
+        tile.close()
 
 
 # ----------------------------------------------------------------------

@@ -50,7 +50,7 @@ from app.styles.style import (
     SPLITTER_HANDLE_WIDTH,
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
-    create_card_widget,
+    CardFrame,
     create_menu,
     create_menu_item,
     icon_from_svg_source,
@@ -356,13 +356,15 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def _create_data_page(self) -> QWidget:
         """Create the Data page with table list and preview splitter."""
-        page = create_card_widget(self, "dataPageCard")
+        page = CardFrame(self, "dataPageCard")
         page.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
         )
-        layout = QVBoxLayout(page)
-        stdSizeAndlayout(layout)
+        layout = page.layout()
+        if layout is None:
+            layout = QVBoxLayout(page)
+            page.setLayout(layout)
         split = self._data_split = QSplitter(Qt.Orientation.Vertical, page)
         split.setChildrenCollapsible(True)
         split.setHandleWidth(SPLITTER_HANDLE_WIDTH)
@@ -490,6 +492,18 @@ class MainWindow(QMainWindow):
                     action_menu_item("optimize_db", self._on_optimize_db),
                     None,
                     action_menu_item("database_info", self._on_database_info),
+                ],
+            ),
+            (
+                _("Developer"),
+                [
+                    action_menu_item("edit_localization", self._on_edit_localization),
+                    None,
+                    action_menu_item(
+                        "series_operation_builder", self._on_series_operation_builder
+                    ),
+                    action_menu_item("function_creator", self._on_function_creator),
+                    action_menu_item("renderer_helper", self._on_renderer_helper),
                 ],
             ),
             (
@@ -1001,15 +1015,14 @@ class MainWindow(QMainWindow):
 
     def _create_left_panel(self) -> QWidget:
         """Create the left-side area: activity rail + stacked content."""
-        panel = create_card_widget(self, "leftPanelCard")
+        panel = CardFrame(self, "leftPanelCard", orientation=Qt.Orientation.Horizontal)
         panel.setMinimumSize(0, 0)
         panel.setSizePolicy(
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding,
         )
 
-        layout = QHBoxLayout(panel)
-        stdSizeAndlayout(layout)
+        layout = panel.layout()
         layout.addWidget(self._left_rail, 0)
         layout.addWidget(self._left_stack, 1)
 
@@ -1546,12 +1559,12 @@ class MainWindow(QMainWindow):
         self._redraw_properties_chart()
 
     def _on_overlay_options_requested(self, payload: dict[str, Any]) -> None:
-        """Persist the annotations and reference lines of one axis.
+        """Persist the annotations, reference lines and measurements of one axis.
 
         Its own handler rather than the axis one: that payload describes a
         whole axis - renderer, projection, hide_axis - and is written as
         such, so a partial one sent through it would clear what it left
-        out. This writes exactly the two keys it owns.
+        out. This writes exactly the three keys it owns.
         """
         axis_id_value = payload.get("axis_id")
         if axis_id_value is None:
@@ -1560,7 +1573,7 @@ class MainWindow(QMainWindow):
 
         self._snapshot_descriptors(_("Overlay properties"))
         options = self._repo.get_axis_options(axis_id) or {}
-        for key in ("annotations", "lines"):
+        for key in ("annotations", "lines", "measurements"):
             value = payload.get(key)
             if not isinstance(value, list):
                 continue
@@ -1984,6 +1997,31 @@ class MainWindow(QMainWindow):
         panel = self._current_chart_panel()
         if panel is not None:
             panel.copy_chart_to_clipboard()
+
+    def _on_edit_localization(self) -> None:
+        """Stub: not implemented yet, see todo.txt's Developer-tools entry."""
+        self._on_dev_stub("edit_localization")
+
+    def _on_series_operation_builder(self) -> None:
+        """Stub: not implemented yet, see todo.txt's Developer-tools entry."""
+        self._on_dev_stub("series_operation_builder")
+
+    def _on_function_creator(self) -> None:
+        """Stub: not implemented yet, see todo.txt's Developer-tools entry."""
+        self._on_dev_stub("function_creator")
+
+    def _on_renderer_helper(self) -> None:
+        """Stub: not implemented yet, see todo.txt's Developer-tools entry."""
+        self._on_dev_stub("renderer_helper")
+
+    def _on_dev_stub(self, action_id: str) -> None:
+        """Placeholder for a Developer-menu tool: the menu entry exists,
+        the tool behind it does not yet - see todo.txt for each one's design
+        sketch. One handler for all four rather than four copies of the same
+        message box.
+        """
+        _icon, text, _tooltip = action_presentation(action_id)
+        show_message(self, "dev.not_implemented", feature=text)
 
     def _on_zoom(self) -> None:
         """Toggle the window between its normal and maximized size.

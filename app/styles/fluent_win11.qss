@@ -1094,4 +1094,12 @@ QLabel#operationHint {
     border-bottom-right-radius: 12px;
     padding: 8px 10px;
 }
-`
+
+/* The scroll area's content widget: styled because it fills the whole
+   scroll viewport (setWidgetResizable(True)) and left unstyled, an
+   unstyled QWidget's default background role would not match the card's
+   own Base white, leaving a visible band where the trailing stretch below
+   the last section opens up leftover space. */
+#seriesOperationsContent {
+    background: palette(base);
+}

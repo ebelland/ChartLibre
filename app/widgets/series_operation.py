@@ -47,7 +47,7 @@ from PySide6.QtWidgets import (
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.scanners.series_operation_scanner import series_operations
 from app.styles.style import (
-    create_card_widget,
+    CardFrame,
     create_compact_section_title,
     icon_from_svg_source,
     stdSizeAndlayout,
@@ -146,7 +146,18 @@ class OperationTile(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 8, 6, 6)
         layout.setSpacing(6)
-        layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        # AlignTop only - not AlignHCenter too. A layout-wide AlignHCenter
+        # tells Qt to size every child to its own natural width and centre
+        # that, rather than stretching it to the tile's width; for a
+        # wrapping label that means it is never actually *given* a width
+        # narrower than its unwrapped text, so setWordWrap(True) below had
+        # nothing to wrap against and a long name like "Interpolazione"
+        # just overflowed the tile and got clipped both sides. The icon
+        # still centres itself - it gets its own AlignHCenter on
+        # addWidget, below - and the title now centres its *text* through
+        # its own alignment instead, after being stretched to the tile's
+        # full width.
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         icon_label = QLabel(self)
         icon_label.setFixedSize(self.ICON_SIZE, self.ICON_SIZE)
@@ -268,12 +279,11 @@ class SeriesOperationWidget(BaseProperties):
         root_layout = QVBoxLayout(self)
         stdSizeAndlayout(root_layout)
 
-        page = create_card_widget(self, "seriesOperationsPageCard")
+        page = CardFrame(self, "seriesOperationsPageCard", margins=(0, 0, 0, 0))
         page.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         root_layout.addWidget(page, 1)
 
-        page_layout = QVBoxLayout(page)
-        stdSizeAndlayout(page_layout)
+        page_layout = page.layout()
 
         scroll = QScrollArea(page)
         scroll.setWidgetResizable(True)
@@ -283,6 +293,15 @@ class SeriesOperationWidget(BaseProperties):
         page_layout.addWidget(scroll, 1)
 
         content = QWidget(scroll)
+        # setWidgetResizable(True) keeps this exactly filling the viewport,
+        # so styling it is enough to cover the scroll area's whole visible
+        # rect - including the leftover space below the last section that
+        # the stretch at the end of this method opens up. Left unstyled, an
+        # unstyled QWidget's default background role (Window, a grey tone
+        # on macOS) showed through as a band between the tiles and the
+        # card's own white (Base) - two different whites sitting one above
+        # the other in the same card.
+        content.setObjectName("seriesOperationsContent")
         content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         scroll.setWidget(content)
 
