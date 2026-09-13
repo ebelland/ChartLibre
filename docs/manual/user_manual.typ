@@ -211,7 +211,7 @@ Every chart type requires the query to produce columns with specific names, its 
 
 == Chart types <renderers>
 
-ChartLibre ships 29 chart types (*renderers*), grouped into the same categories Matplotlib's own documentation uses. Each is a self-contained piece of code that receives the rows a series' SQL query returns and draws them; see @advanced-renderer for how a new one is added.
+ChartLibre ships 34 chart types (*renderers*), grouped into the same categories Matplotlib's own documentation uses. Each is a self-contained piece of code that receives the rows a series' SQL query returns and draws them; see @advanced-renderer for how a new one is added.
 
 The chart picker lists them section by section and its search box matches a name or a whole category, so typing "stat" brings up the statistical family at once.
 
@@ -248,6 +248,8 @@ The chart picker lists them section by section and its search box matches a name
   [*ECDF*], [Empirical cumulative distribution function],
   [*Pareto Chart*], [Categories sorted by descending magnitude with a cumulative-percentage line],
   [*Pie Chart*], [Pie or donut chart of one series],
+  [*Hexbin*], [2D density of x/y pairs binned into hexagons, for a scatter with too many points to read individually],
+  [*Event Plot*], [A row of tick marks per series at each x where an event happened — a digital signal's edges, an error log, a spike train],
 )
 
 === Gridded data
@@ -259,6 +261,7 @@ Values sampled on a complete, evenly spaced x/y grid.
   stroke: none,
   inset: 6pt,
   [*Contour Plot*], [Filled or line contours of z over a regular x/y grid],
+  [*Heatmap*], [Raw per-cell colour over a regular x/y grid, no interpolation between cells],
   [*Quiver*], [An arrow per sample showing a vector field's direction and magnitude (u/v components)],
   [*Stream Plot*], [Streamlines traced through a vector field — where a flow goes, rather than what it does at each sample],
   [*Wind Barbs*], [A barb per point encoding speed in flags, readable where a field of arrows is not],
@@ -286,6 +289,8 @@ The same quantities measured wherever they could be measured, with no grid to as
   [*Surface Plot*], [3D surface over a regular x/y grid],
   [*Surface Plot (Scattered)*], [3D triangulated surface for scattered (non-gridded) x/y/z data],
   [*Scatter Plot (3D)*], [Points in three dimensions, optionally coloured and sized by further columns],
+  [*3D Line Plot*], [A trajectory or parametric curve through three dimensions, points connected in row order],
+  [*3D Bar Chart*], [Bars rising from the x/y plane to z — categorical data in three dimensions],
 )
 
 #note[

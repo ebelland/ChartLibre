@@ -50,6 +50,11 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Triangular Mesh",
     "Triangular Color Mesh",
     "Scatter Plot (3D)",
+    "Heatmap",
+    "Hexbin",
+    "Event Plot",
+    "3D Line Plot",
+    "3D Bar Chart",
 )
 
 
@@ -584,6 +589,74 @@ def _showcase_definitions() -> list[dict[str, Any]]:
             },
             "series": [
                 ("ripple", "SELECT x, y, z FROM src_scatter3d", {}),
+            ],
+        },
+        {
+            "chart_type": "Heatmap",
+            "name": "Heatmap showcase",
+            "labels": ("x", "y"),
+            # No colorbar here: it is its own Axes at a different position,
+            # which is exactly what this module's "one plot area" check
+            # (test_render_all_renderers.py) exists to catch on a renderer
+            # that scatters subplots by mistake - Contour Plot's own
+            # showcase leaves it off for the same reason.
+            "axis_options": {"title": "Heatmap"},
+            "series": [
+                ("ripple", "SELECT x, y, z FROM src_grid", {}),
+            ],
+        },
+        {
+            "chart_type": "Hexbin",
+            "name": "Hexbin showcase",
+            "labels": ("x", "y"),
+            # No colorbar: see the note on Heatmap's showcase above.
+            "axis_options": {"title": "Hexbin", "gridsize": 20},
+            "series": [
+                ("cloud", "SELECT x, y FROM src_xy", {}),
+            ],
+        },
+        {
+            "chart_type": "Event Plot",
+            "name": "Event Plot showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Event Plot"},
+            "series": [
+                (
+                    "channel A",
+                    "SELECT t AS x FROM src_series WHERE CAST(t AS INTEGER) % 37 = 0",
+                    {},
+                ),
+                (
+                    "channel B",
+                    "SELECT t AS x FROM src_series WHERE CAST(t AS INTEGER) % 53 = 0",
+                    {},
+                ),
+            ],
+        },
+        {
+            "chart_type": "3D Line Plot",
+            "name": "3D Line showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "3D Line Plot", "projection": "3d"},
+            "series": [
+                (
+                    "trajectory",
+                    "SELECT x, y, z FROM src_scatter3d ORDER BY rowid LIMIT 200",
+                    {},
+                ),
+            ],
+        },
+        {
+            "chart_type": "3D Bar Chart",
+            "name": "3D Bar showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "3D Bar Chart", "projection": "3d"},
+            "series": [
+                (
+                    "ripple",
+                    "SELECT x, y, z FROM src_grid WHERE CAST(rowid AS INTEGER) % 20 = 0",
+                    {},
+                ),
             ],
         },
     ]

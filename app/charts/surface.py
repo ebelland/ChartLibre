@@ -1,4 +1,4 @@
-"""3D renderers: two surfaces and a point cloud.
+"""3D renderers: two surfaces, a point cloud, and a line.
 
 Two shapes of input, two Matplotlib functions - the same split the contour
 renderers (app/charts/contour.py) are built around, and for the same
@@ -20,7 +20,14 @@ over them, for a cloud whose shape - clusters, a plane, an outlier - is the
 reading, and for data too sparse or too noisy for a surface to be honest
 about.
 
-All three request a 3D axes through ``options["projection"] = "3d"``, returned by
+``Line3DAxisRenderer`` connects the points in row order instead of either -
+a trajectory or a parametric curve, where *which point comes after which*
+is the reading, not the cloud's shape or a skin over it. The scattered
+renderer sorts nothing and pivots nothing, on purpose: unlike a surface or
+a cloud, a curve's row order is data, usually the time or parameter each
+point was sampled at, and reordering it would draw a different curve.
+
+All four request a 3D axes through ``options["projection"] = "3d"``, returned by
 create_chart_dialog.py's per-chart-type axis defaults;
 render_figure.py's _subplot_kwargs_for_axis already reads a generic
 "projection" option for every renderer, so nothing about axis creation had to
@@ -37,6 +44,7 @@ from matplotlib import rcParams
 from app.charts.base import (
     ARTIST_KWARGS,
     CMAP_KWARGS,
+    LINE_KWARGS,
     VIEW_OPTIONS,
     BaseAxisRenderer,
     SeriesData,
@@ -488,3 +496,95 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
             )
             return None
         return values
+
+
+class Line3DAxisRenderer(BaseAxisRenderer):
+    """A curve through three-dimensional points, in row order.
+
+    Role columns:
+        x, y, z   required, one point per row, connected in the order the
+                  query returns them - a trajectory or a parametric curve,
+                  not a cloud. Map an ORDER BY onto whatever the path
+                  actually follows (time, arc length, a parameter) or the
+                  line will cut across itself.
+
+    Several series draw as several curves on the same axes, each in its own
+    colour from the style cycle - the natural way to compare a handful of
+    trajectories in the same 3D space.
+    """
+
+    Name: str = "3D Line Plot"
+    Category: str = "3D and volumetric data"
+    Description: str = (
+        "A trajectory or parametric curve through three dimensions, points "
+        "connected in row order rather than drawn as an unconnected cloud."
+    )
+    Link: str = "https://matplotlib.org/stable/gallery/mplot3d/lines3d.html"
+
+    RequiredRoles: list[str] = ["x", "y", "z"]
+    OptionalRoles: list[str] = []
+
+    Kwargs: dict[str, object] = merge(
+        pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
+        LINE_KWARGS,
+        {
+            "marker": {
+                "default": "",
+                "type": str,
+                "group": "Appearance",
+                "description": "Marker drawn at each sample along the curve, as a Matplotlib marker code. Empty draws the line only.",
+            },
+            "markersize": {
+                "default": 4.0,
+                "type": float,
+                "min": 0.0,
+                "max": 40.0,
+                "step": 0.5,
+                "group": "Appearance",
+                "description": "Marker size, in points. Only visible with Marker set.",
+            },
+        },
+    )
+
+    #: The camera, read here and applied to the axes rather than forwarded.
+    Options: dict[str, object] = dict(VIEW_OPTIONS)
+
+    def render_axis(
+        self,
+        ax: Any,
+        series: list[SeriesData],
+        options: dict[str, Any] | None = None,
+    ) -> None:
+        axis_options = options or {}
+
+        for index, sd in enumerate(series):
+            style = dict(sd.style or {})
+            if not style.get("visible", True) or not self.ensure_required_roles(sd.df):
+                continue
+
+            x, y, z = finite_xyz(sd.df)
+            if x.size == 0:
+                applogger.info("Series '%s' skipped: no finite x/y/z rows.", sd.name)
+                continue
+
+            merged = self.merge_style(axis_options, style)
+            kwargs = {
+                key: value
+                for key, value in self.get_kwargs(merged).items()
+                if value is not None and value != ""
+            }
+            kwargs.setdefault("label", style.get("label") or sd.name)
+            kwargs.setdefault("color", self.series_color(style, index))
+
+            try:
+                ax.plot(x, y, z, **kwargs)
+            except Exception:
+                applogger.exception(
+                    "3D Line Plot failed to draw series '%s'.", sd.name
+                )
+
+        view = _view_kwargs(axis_options, self)
+        if view:
+            ax.view_init(**view)
+
+        self.apply_annotations(ax, axis_options)

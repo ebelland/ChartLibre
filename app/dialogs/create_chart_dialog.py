@@ -28,12 +28,11 @@ from app.data.sqlite_repo import SqliteRepo
 from app.data.data_source import quote_identifier
 from app.utils.messages import show_message
 from app.styles.style import (
-    apply_card_layout,
     apply_dialog_shell,
     apply_toolbox_header_metrics,
     create_doc_link,
     set_doc_link,
-    create_card_widget,
+    CardFrame,
     create_action_button,
     create_section_title,
     load_icon,
@@ -144,9 +143,8 @@ class NewPlotTabDialog(QDialog):
             Qt.TextInteractionFlag.TextBrowserInteraction
         )
 
-        renderer_details = create_card_widget(self, "rendererDetailsCard")
-        renderer_details_layout = QVBoxLayout(renderer_details)
-        apply_card_layout(renderer_details_layout)
+        renderer_details = CardFrame(self, "rendererDetailsCard")
+        renderer_details_layout = renderer_details.layout()
         renderer_details_layout.addWidget(self._renderer_name)
 
         renderer_details_layout.addWidget(self._renderer_link)
@@ -166,9 +164,8 @@ class NewPlotTabDialog(QDialog):
         self._edit_figure_name = QLineEdit()
         self._edit_figure_name.setPlaceholderText(_("Figure name"))
 
-        fig_group = create_card_widget(self, "plotTargetCard")
-        fig_main = QVBoxLayout(fig_group)
-        apply_card_layout(fig_main)
+        fig_group = CardFrame(self, "plotTargetCard")
+        fig_main = fig_group.layout()
 
         target_title = create_section_title(_("Target"), fig_group)
         target_title.setStyleSheet("font-weight: 700;")
@@ -222,14 +219,13 @@ class NewPlotTabDialog(QDialog):
             QSizePolicy.Policy.Expanding,
         )
 
-        series_list_group = create_card_widget(self, "plotSeriesListCard")
+        series_list_group = CardFrame(self, "plotSeriesListCard")
         series_list_group.setMinimumWidth(220)
         series_list_group.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
         )
-        series_list_layout = QVBoxLayout(series_list_group)
-        apply_card_layout(series_list_layout)
+        series_list_layout = series_list_group.layout()
 
         series_header = QWidget(series_list_group)
         series_header_layout = QHBoxLayout(series_header)
@@ -291,9 +287,8 @@ class NewPlotTabDialog(QDialog):
         self._roles_scroll.setWidget(self._roles_panel)
         self._rebuild_role_combos()
 
-        editor_group = create_card_widget(self, "plotSeriesEditorCard")
-        editor_layout = QVBoxLayout(editor_group)
-        apply_card_layout(editor_layout)
+        editor_group = CardFrame(self, "plotSeriesEditorCard")
+        editor_layout = editor_group.layout()
 
         series_editor_title = create_section_title(_("Series"), editor_group)
         series_editor_title.setStyleSheet("font-weight: 700;")
@@ -316,14 +311,13 @@ class NewPlotTabDialog(QDialog):
         # "grigio e bianco" (grey and white) the panels looked inconsistent
         # for was this column against the other two, not a shade mismatch
         # within any one of them.
-        renderer_panel = create_card_widget(self, "plotRendererCard")
+        renderer_panel = CardFrame(self, "plotRendererCard")
         renderer_panel.setMinimumWidth(220)
         renderer_panel.setSizePolicy(
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding,
         )
-        renderer_layout = QVBoxLayout(renderer_panel)
-        apply_card_layout(renderer_layout)
+        renderer_layout = renderer_panel.layout()
 
         renderer_title = create_section_title(_("Renderers"), renderer_panel)
         renderer_title.setStyleSheet("font-weight: 700;")
@@ -1321,7 +1315,13 @@ class NewPlotTabDialog(QDialog):
     #: for every axis, so this is the only place that had to name which
     #: renderers want it.
     CHART_TYPES_NEEDING_3D_AXES: frozenset[str] = frozenset(
-        {"Surface Plot", "Surface Plot (Scattered)", "Scatter Plot (3D)"}
+        {
+            "Surface Plot",
+            "Surface Plot (Scattered)",
+            "Scatter Plot (3D)",
+            "3D Line Plot",
+            "3D Bar Chart",
+        }
     )
 
     def _default_axis_options(self, chart_type: str) -> dict[str, Any] | None:
