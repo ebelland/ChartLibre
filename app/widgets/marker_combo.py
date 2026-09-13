@@ -26,6 +26,7 @@ from PySide6.QtGui import (
     QPen,
     QPolygonF,
 )
+from matplotlib import rcParams
 from PySide6.QtWidgets import QWidget
 
 from app.charts.kwarg_spec import DEFAULT
@@ -460,14 +461,31 @@ _STROKE_ONLY = {
 }
 
 
-@lru_cache(maxsize=None)
 def _marker_icon(marker: str) -> QIcon:
-    """Build and cache a preview icon for one Matplotlib marker."""
+    """Return a preview icon for one Matplotlib marker, "Default" included.
+
+    "Default" has no shape of its own to preview, so it is drawn as a faint
+    version of whatever it actually resolves to right now - rcParams'
+    ``lines.marker`` - rather than assumed to be a circle: most style
+    sheets default this to "no marker" (a bare line), and a "Default"
+    entry that always draws a circle would be showing a shape nothing will
+    actually render. Not cached here: the *resolved* marker is what gets
+    cached, in _resolved_marker_icon, so a style sheet switch invalidates
+    only the entries it actually changed, with nothing to clear by hand.
+    """
+    is_default = marker == DEFAULT
+    resolved = str(rcParams.get("lines.marker", "") or "") if is_default else marker
+    return _resolved_marker_icon(resolved, faint=is_default)
+
+
+@lru_cache(maxsize=None)
+def _resolved_marker_icon(marker: str, *, faint: bool) -> QIcon:
+    """Build (and cache) a preview icon for one concrete Matplotlib marker."""
     # Allocated at the display's pixel density: the coordinates below stay
     # logical, but the bitmap has the pixels to be sharp on a Retina screen.
     pixmap = create_hidpi_pixmap(_ICON_SIZE, _ICON_SIZE)
 
-    if not marker:
+    if not marker or marker.lower() == "none":
         return QIcon(pixmap)
 
     painter = QPainter(pixmap)
@@ -475,10 +493,11 @@ def _marker_icon(marker: str) -> QIcon:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
         marker_color = QColor(_MARKER_COLOR)
-        if marker == DEFAULT:
-            # No shape of its own to preview - a faint circle reads as
-            # "unset/inherited" without claiming to be the concrete "Circle"
-            # entry, which is drawn at full strength.
+        if faint:
+            # It used to always draw a circle at full strength, which made
+            # the entry read as a second, washed-out "Circle" - the
+            # faintness has to be the only difference from the concrete
+            # entry it resolved to.
             marker_color.setAlpha(110)
 
         pen = QPen(marker_color)
@@ -494,14 +513,11 @@ def _marker_icon(marker: str) -> QIcon:
         center = _ICON_SIZE / 2
         radius = _ICON_SIZE * 0.32
 
-        if marker == DEFAULT:
-            _draw_circle(painter, center, center, radius)
+        draw = _DRAW_FUNCS.get(marker)
+        if draw is not None:
+            draw(painter, center, center, radius)
         else:
-            draw = _DRAW_FUNCS.get(marker)
-            if draw is not None:
-                draw(painter, center, center, radius)
-            else:
-                _draw_text_marker(painter, center, center, radius, marker)
+            _draw_text_marker(painter, center, center, radius, marker)
 
     finally:
         painter.end()

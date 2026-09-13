@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from matplotlib import rcParams
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen
 from PySide6.QtWidgets import QSizePolicy, QWidget
@@ -58,24 +59,41 @@ _PEN_STYLES: dict[str, Qt.PenStyle | None] = {
 }
 
 
-@lru_cache(maxsize=None)
 def _line_icon(linestyle: str) -> QIcon:
-    """Build (and cache) a preview icon for one Matplotlib linestyle."""
+    """Return a preview icon for one Matplotlib linestyle, "Default" included.
+
+    "Default" has no style of its own to preview, so it is drawn as a faint
+    version of whatever it actually resolves to right now - rcParams'
+    ``lines.linestyle`` - rather than assumed to be solid: a custom
+    .mplstyle is free to ship dashed, dotted or no line at all as its own
+    default, and a combo claiming "Default" looks like a continuous line
+    regardless would be showing the wrong preview for that style sheet.
+    Not cached here: the *resolved* style is what gets cached, in
+    _resolved_line_icon, so a style sheet switch changing what "Default"
+    means invalidates only the entries it actually changed, with nothing to
+    clear by hand.
+    """
+    is_default = linestyle == DEFAULT
+    resolved = (
+        str(rcParams.get("lines.linestyle", "-") or "-").strip().lower()
+        if is_default
+        else linestyle
+    )
+    return _resolved_line_icon(resolved, faint=is_default)
+
+
+@lru_cache(maxsize=None)
+def _resolved_line_icon(linestyle: str, *, faint: bool) -> QIcon:
+    """Build (and cache) a preview icon for one concrete Matplotlib linestyle."""
     # Allocated at the display's pixel density: the coordinates below stay
     # logical, but the bitmap has the pixels to be sharp on a Retina screen.
     pixmap = create_hidpi_pixmap(_ICON_W, _ICON_H)
 
-    # "Default" has no style of its own to preview, so it is drawn as a
-    # faint version of what it almost always resolves to: rcParams'
-    # ``lines.linestyle``, which is solid in every style sheet that ships
-    # with Matplotlib. It used to be drawn *dashed*, which made the entry
-    # read as a second, washed-out "Dashed" - the faintness is the whole
-    # signal, so it has to be the only difference. Same treatment as the
-    # marker combo's Default, a faint circle. (Reading the live rcParam
-    # here instead would be worse: the icons are built once and cached,
-    # so it would go stale the moment a style sheet was loaded.)
-    is_default = linestyle == DEFAULT
-    pen_style = Qt.PenStyle.SolidLine if is_default else _PEN_STYLES.get(linestyle)
+    # "none" is an explicit key here (draw nothing), so .get's fallback only
+    # ever applies to a linestyle this combo does not know - an exotic
+    # custom dash tuple a style sheet set as its default, say - where solid
+    # is the least wrong guess.
+    pen_style = _PEN_STYLES.get(linestyle, Qt.PenStyle.SolidLine)
     if pen_style is not None:
         painter = QPainter(pixmap)
         try:
@@ -83,7 +101,11 @@ def _line_icon(linestyle: str) -> QIcon:
             pen = QPen(QColor(_LINE_COLOR))
             pen.setWidth(_LINE_WIDTH)
             pen.setStyle(pen_style)
-            if is_default:
+            if faint:
+                # It used to be drawn dashed regardless, which made the
+                # entry read as a second, washed-out "Dashed" - the
+                # faintness has to be the only difference from the concrete
+                # entry it resolved to.
                 color = QColor(_LINE_COLOR)
                 color.setAlpha(110)
                 pen.setColor(color)

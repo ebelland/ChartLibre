@@ -14,10 +14,13 @@ at the bottom of the selector section.
 """
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping, Sequence
+from functools import lru_cache
 from typing import Any, Final
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QIcon, QPainter
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -29,10 +32,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from matplotlib import rcParams
 
 from app.data.sqlite_repo import SqliteRepo
 from app.styles.style import (
     create_action_button,
+    create_hidpi_pixmap,
     mark_editor_panel,
     stdSizeAndlayout,
 )
@@ -46,6 +51,34 @@ _FIGURE_ROLE: Final[Qt.ItemDataRole] = Qt.ItemDataRole.UserRole
 _AXIS_ROLE: Final[Qt.ItemDataRole] = Qt.ItemDataRole.UserRole
 _SERIES_ROLE: Final[Qt.ItemDataRole] = Qt.ItemDataRole.UserRole
 _QT_MAX_WIDGET_HEIGHT: Final[int] = 16777215
+
+_SWATCH_SIZE: Final[int] = 14
+
+
+@lru_cache(maxsize=None)
+def _color_swatch_icon(color: str) -> QIcon:
+    """A small filled circle in *color*, for one row of the series list.
+
+    Every operation dialog picks its series from this same checklist, and
+    until now every row read as plain text - a series' own plotted colour,
+    already visible on the chart this dialog was opened from, was nowhere
+    in the list that picks among them.
+    """
+    pixmap = create_hidpi_pixmap(_SWATCH_SIZE, _SWATCH_SIZE)
+    qcolor = QColor(color)
+    if not qcolor.isValid():
+        qcolor = QColor("#808080")
+
+    painter = QPainter(pixmap)
+    try:
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setBrush(qcolor)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(1, 1, _SWATCH_SIZE - 2, _SWATCH_SIZE - 2)
+    finally:
+        painter.end()
+
+    return QIcon(pixmap)
 
 
 class AxisSeriesSelector(QWidget):
@@ -437,6 +470,11 @@ class AxisSeriesSelector(QWidget):
                 continue
 
             item = QListWidgetItem(str(series["name"]))
+            item.setIcon(
+                _color_swatch_icon(
+                    self._series_color(series, self.series_list.count())
+                )
+            )
             item.setData(_SERIES_ROLE, series)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(
@@ -447,6 +485,31 @@ class AxisSeriesSelector(QWidget):
             self.series_list.addItem(item)
 
         self._signals_blocked = False
+
+    @staticmethod
+    def _series_color(series: Any, position: int) -> str:
+        """Resolve one series' swatch colour: its own if set, else the
+        active property cycle indexed by its position in the list - the
+        same approximation SeriesPropertiesWidget's own combo makes, for a
+        series that has no explicit colour of its own yet.
+        """
+        try:
+            style = json.loads(series["style_json"] or "{}")
+        except (TypeError, ValueError, KeyError, IndexError):
+            style = {}
+        if not isinstance(style, dict):
+            style = {}
+
+        color = str(style.get("color") or "").strip()
+        if color:
+            return color
+
+        try:
+            cycle = list(rcParams["axes.prop_cycle"].by_key().get("color") or [])
+        except (KeyError, AttributeError, TypeError):
+            cycle = []
+        cycle = cycle or ["#1f77b4"]
+        return str(cycle[position % len(cycle)])
 
     def _set_all_series_selected(self, selected: bool) -> None:
         """Set all visible series checkboxes to checked/unchecked."""
