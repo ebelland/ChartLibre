@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from PySide6.QtWidgets import QWidget
 
 from app.widgets.axis_properties import AxisPropertiesWidget
 from app.widgets.base_properties import BaseProperties
@@ -119,3 +120,47 @@ def test_the_two_platforms_answer_differently_on_purpose() -> None:
 
     assert "palette(base)" in panel_rule("fluent_win11.qss")
     assert "palette(window)" in panel_rule("macos_native.qss")
+
+
+#: Not SeriesOperationWidget: its one card deliberately has a zero-margin
+#: outer layout, so the hint bar fixed at its bottom (see
+#: series_operation.py's module docstring) can sit flush with the card's
+#: own rounded bottom corners rather than leaving a gap that would break
+#: the corner match. The other three are property *editors* - a form in a
+#: card - where flush-against-the-border is simply cramped, not deliberate.
+_PROPERTY_EDITOR_CLASSES = (
+    FigurePropertiesWidget,
+    AxisPropertiesWidget,
+    SeriesPropertiesWidget,
+)
+
+
+@pytest.mark.parametrize("widget_class", _PROPERTY_EDITOR_CLASSES)
+def test_every_card_s_own_layout_has_room_to_breathe(qapp, widget_class) -> None:
+    """Every card=true frame's own top-level layout must use
+    apply_card_layout, not stdSizeAndlayout's zeroed margins - the latter
+    is right for a layout *nested* inside a card, wrong for the outermost
+    one, where content flush against the card's border reads as cramped.
+    Series properties' two cards used stdSizeAndlayout here by mistake,
+    the only panel of the three with no padding around its own content."""
+    widget = widget_class()
+
+    cards = [
+        child for child in widget.findChildren(QWidget) if child.property("card")
+    ]
+    assert cards, f"{widget_class.__name__} has no card=true frame to check"
+
+    for card in cards:
+        layout = card.layout()
+        if layout is None:
+            continue
+        left, top, right, bottom = (
+            layout.contentsMargins().left(),
+            layout.contentsMargins().top(),
+            layout.contentsMargins().right(),
+            layout.contentsMargins().bottom(),
+        )
+        assert (left, top, right, bottom) != (0, 0, 0, 0), (
+            f"{widget_class.__name__}'s {card.objectName()!r} card has no "
+            "margins on its own layout"
+        )

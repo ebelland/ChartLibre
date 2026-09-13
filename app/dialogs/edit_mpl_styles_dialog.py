@@ -45,7 +45,7 @@ import numpy as np
 from app.styles.style import (
     MARGIN_CARD,
     apply_dialog_shell,
-    create_card_widget,
+    CardFrame,
     action_presentation,
     create_action_button,
     create_section_title,
@@ -492,11 +492,8 @@ class MplStyleEditorDialog(QDialog):
         title: str,
         note: str | None = None,
     ) -> tuple[QWidget, QVBoxLayout]:
-        panel: QWidget = create_card_widget(self, f"mplStyle{title.replace(' ', '')}Card")
-        layout: QVBoxLayout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
-        layout.setContentsMargins(*MARGIN_CARD)
-        layout.setSpacing(8)
+        panel: QWidget = CardFrame(self, f"mplStyle{title.replace(' ', '')}Card")
+        layout: QVBoxLayout = panel.layout()
 
         title_label: QLabel = create_section_title(title, panel)
         layout.addWidget(title_label, 0)

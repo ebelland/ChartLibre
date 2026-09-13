@@ -44,7 +44,7 @@ from app.utils.messages import show_message
 from app.styles.style import (
     action_presentation,
     apply_dialog_shell,
-    create_card_widget,
+    CardFrame,
     create_action_button,
     create_compact_section_title,
     load_icon,
@@ -267,9 +267,8 @@ class ImportDataDialog(QDialog):
         self._desired_sheet = str(cfg.get("sheet", "") or "").strip()
 
         # ---------------- Left panel (compact) ----------------
-        left = create_card_widget(self, "importOptionsCard")
-        left_layout = QVBoxLayout(left)
-        stdSizeAndlayout(left_layout)
+        left = CardFrame(self, "importOptionsCard")
+        left_layout = left.layout()
 
         left_layout.addWidget(create_compact_section_title(_("Source"), left))
 

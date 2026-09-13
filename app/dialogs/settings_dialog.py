@@ -43,11 +43,10 @@ from app.logs.logger import applogger
 from app.styles.style import (
     CONFIG_APP_STYLE,
     available_app_styles,
-    apply_card_layout,
     apply_dialog_shell,
+    CardFrame,
     configure_combo_width,
     create_action_button,
-    create_card_widget,
     create_section_title,
     load_icon,
     qss_file_style_key,
@@ -150,9 +149,8 @@ class SettingsDialog(QDialog):
         root = QVBoxLayout(self)
         apply_dialog_shell(self, root, size="small")
 
-        card = create_card_widget(self, "settingsCard")
-        card_layout = QVBoxLayout(card)
-        apply_card_layout(card_layout)
+        card = CardFrame(self, "settingsCard")
+        card_layout = card.layout()
         # One QFormLayout for every row, section headings included.  Two of
         # them would each size their own label column, so the combos in the
         # second group would not line up with the first - visible, and the

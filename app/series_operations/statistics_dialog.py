@@ -39,7 +39,7 @@ from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
-from app.styles.style import create_card_widget, stdSizeAndlayout
+from app.styles.style import CardFrame, stdSizeAndlayout
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.utils import report_html
@@ -249,9 +249,8 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         )
 
     def build_model_selector(self) -> QWidget:
-        panel = create_card_widget(self, "statisticsModelCard")
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
+        panel = CardFrame(self, "statisticsModelCard")
+        layout = panel.layout()
         layout.addWidget(self.model_combo)
         note = QLabel(
             _("Check one or more series. One-sample tests are calculated for "
@@ -275,9 +274,11 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         return panel
 
     def build_parameter_selector(self) -> QWidget:
-        panel = create_card_widget(self, "statisticsParametersCard")
-        form = QFormLayout(panel)
+        panel = CardFrame(self, "statisticsParametersCard")
+        form_widget = QWidget(panel)
+        form = QFormLayout(form_widget)
         stdSizeAndlayout(form)
+        panel.layout().addWidget(form_widget)
         form.addRow(_("Reference value:"), self.popmean_spin)
         form.addRow(_("Alternative:"), self.alternative_combo)
         form.addRow(_("Trimmed mean:"), self.trim_percent_spin)

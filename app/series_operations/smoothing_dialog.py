@@ -57,7 +57,7 @@ from app.series_operations.dialog_base import (
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.styles.style import (
-    create_card_widget,
+    CardFrame,
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
@@ -911,9 +911,8 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         self._create_controls()
 
     def build_model_selector(self) -> QWidget:
-        panel = create_card_widget(self, "smoothingModelCard")
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
+        panel = CardFrame(self, "smoothingModelCard")
+        layout = panel.layout()
 
         self.dimension_combo = QComboBox(self)
         self.dimension_combo.addItems([DIM_1D, DIM_2D, DIM_3D])
@@ -938,10 +937,12 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         return panel
 
     def build_parameter_selector(self) -> QWidget:
-        settings_widget = create_card_widget(self, "smoothingParamsCard")
-        self.form = QFormLayout(settings_widget)
+        settings_widget = CardFrame(self, "smoothingParamsCard")
+        form_widget = QWidget(settings_widget)
+        self.form = QFormLayout(form_widget)
         stdSizeAndlayout(self.form)
         self._add_parameter_rows()
+        settings_widget.layout().addWidget(form_widget)
 
         scroll = QScrollArea(self)
         stdSizeAndlayout(scroll)

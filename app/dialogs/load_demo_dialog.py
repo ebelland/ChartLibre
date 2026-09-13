@@ -26,8 +26,8 @@ from PySide6.QtWidgets import (
 from app.data.demo_project import DEMO_PROJECTS, DemoProject
 from app.styles.style import (
     apply_dialog_shell,
+    CardFrame,
     create_action_button,
-    create_card_widget,
     create_section_title,
     load_icon,
     mark_editor_panel,
@@ -53,9 +53,8 @@ class LoadDemoDialog(QDialog):
         root = QVBoxLayout(self)
         apply_dialog_shell(self, root, size="small")
 
-        card = create_card_widget(self, "loadDemoCard")
-        card_layout = QVBoxLayout(card)
-        stdSizeAndlayout(card_layout)
+        card = CardFrame(self, "loadDemoCard")
+        card_layout = card.layout()
         card_layout.addWidget(create_section_title(_("Load demo"), card))
 
         self._list = QListWidget(card)

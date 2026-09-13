@@ -54,9 +54,9 @@ from app.data.repo._common import is_read_only_select
 from app.logs.logger import applogger
 from app.styles.style import (
     apply_dialog_shell,
+    CardFrame,
     configure_combo_width,
     create_action_button,
-    create_card_widget,
     create_compact_section_title,
     load_icon,
     mark_editor_panel,
@@ -168,11 +168,10 @@ class ConnectDatabaseDialog(QDialog):
     # ------------------------------------------------------------------
     def _build_connection_card(self) -> QWidget:
         """The left column: everything needed to open the connection."""
-        card = create_card_widget(self, "connectDatabaseCard")
+        card = CardFrame(self, "connectDatabaseCard")
         card.setMaximumWidth(_FORM_COLUMN_MAX_WIDTH)
         card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-        card_layout = QVBoxLayout(card)
-        stdSizeAndlayout(card_layout)
+        card_layout = card.layout()
         card_layout.addWidget(create_compact_section_title(_("Connection"), card))
 
         form = QFormLayout()
@@ -257,9 +256,8 @@ class ConnectDatabaseDialog(QDialog):
         so a table picked while a query sits typed under it would leave
         Accept looking at a state neither field alone explains.
         """
-        card = create_card_widget(self, "connectTablesCard")
-        card_layout = QVBoxLayout(card)
-        stdSizeAndlayout(card_layout)
+        card = CardFrame(self, "connectTablesCard")
+        card_layout = card.layout()
 
         header_row = QHBoxLayout()
         stdSizeAndlayout(header_row)

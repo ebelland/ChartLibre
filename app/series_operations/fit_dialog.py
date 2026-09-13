@@ -67,9 +67,8 @@ from app.utils.messages import show_message
 from app.utils import report_html
 
 from app.styles.style import (
-    apply_card_layout,
+    CardFrame,
     create_action_button,
-    create_card_widget,
     mark_editor_panel,
     stdSizeAndlayout,
 )
@@ -275,9 +274,8 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         self._applied = False
 
     def build_model_selector(self) -> QWidget:
-        panel = create_card_widget(self, "fitModelCard")
-        layout = QVBoxLayout(panel)
-        apply_card_layout(layout)
+        panel = CardFrame(self, "fitModelCard")
+        layout = panel.layout()
         self._model_search.setPlaceholderText(_("Search models..."))
         self._model_search.setToolTip(_("Filter the model catalog by name."))
         layout.addWidget(self._model_search)
@@ -345,9 +343,8 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         This panel only contains expression/model options, parameter editor,
         and output/fit options.
         """
-        outer = create_card_widget(self, "fitParamsCard")
-        layout = QVBoxLayout(outer)
-        apply_card_layout(layout)
+        outer = CardFrame(self, "fitParamsCard")
+        layout = outer.layout()
 
         # Expression / model options.
         option_row = QWidget(outer)

@@ -38,7 +38,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.styles.style import (
     apply_dialog_shell,
-    create_card_widget,
+    CardFrame,
     create_action_button,
     create_section_title,
     load_icon,
@@ -127,9 +127,8 @@ class QueryBuilderDialog(QDialog):
 
     def _build_side_panel(self) -> QWidget:
         """Build the settings panel shown on the left."""
-        panel = create_card_widget(self, "querySettingsCard")
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
+        panel = CardFrame(self, "querySettingsCard")
+        layout = panel.layout()
 
         layout.addWidget(create_section_title(_("Saved queries:"), panel))
         self._query_combo = QComboBox(panel)
@@ -184,9 +183,8 @@ class QueryBuilderDialog(QDialog):
 
     def _build_editor_panel(self) -> QWidget:
         """SQL editor on top, result preview below."""
-        panel = create_card_widget(self, "queryEditorCard")
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
+        panel = CardFrame(self, "queryEditorCard")
+        layout = panel.layout()
 
         layout.addWidget(create_section_title(_("SQL:"), panel))
 

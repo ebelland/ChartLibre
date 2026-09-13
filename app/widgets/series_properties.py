@@ -29,8 +29,8 @@ from matplotlib import rcParams
 from app.charts.kwarg_spec import DEFAULT
 from app.styles.style import (
     MARGIN_PANEL,
+    CardFrame,
     create_action_button,
-    create_card_widget,
     create_hidpi_pixmap,
     create_section_title,
     stdSizeAndlayout,
@@ -199,14 +199,13 @@ class SeriesPropertiesWidget(BaseProperties):
 
     def _build_selector_section(self) -> QWidget:
         """Create the series selector and ordering controls."""
-        section = create_card_widget(self, "seriesSelectorCard")
+        section = CardFrame(self, "seriesSelectorCard")
         section.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
         )
 
-        layout = QVBoxLayout(section)
-        stdSizeAndlayout(layout)
+        layout = section.layout()
 
         self._series_title = create_section_title(_("Series"), section)
         layout.addWidget(self._series_title)
@@ -251,15 +250,14 @@ class SeriesPropertiesWidget(BaseProperties):
 
     def _build_options_section(self) -> QWidget:
         """Create editable series style controls."""
-        section = create_card_widget(self, "seriesOptionsCard")
+        section = CardFrame(self, "seriesOptionsCard")
         stdSizeAndlayout(section)
         section.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
         )
 
-        layout = QVBoxLayout(section)
-        stdSizeAndlayout(layout)
+        layout = section.layout()
 
         form = QFormLayout()
         stdSizeAndlayout(form)

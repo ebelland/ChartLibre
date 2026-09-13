@@ -28,13 +28,12 @@ from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.styles.style import (
-    apply_card_layout,
     apply_dialog_shell,
     icon_from_svg_source,
     set_doc_link,
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
-    create_card_widget,
+    CardFrame,
     create_action_button,
     create_section_title,
     stdSizeAndlayout,
@@ -256,9 +255,8 @@ class SeriesOperationDialogBase(QDialog):
 
     def build_model_selector(self) -> QWidget:
         """Default model selector using the shared model_combo."""
-        panel = create_card_widget(self, "operationModelCard")
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
+        panel = CardFrame(self, "operationModelCard")
+        layout = panel.layout()
         stdSizeAndlayout(self.model_combo)
         layout.addWidget(self.model_combo)
         return panel
@@ -386,12 +384,11 @@ class SeriesOperationDialogBase(QDialog):
         if content.property("card"):
             card: QWidget = content
         else:
-            card = create_card_widget(page, "operationToolboxCard")
+            card = CardFrame(page, "operationToolboxCard")
             card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-            card_layout = QVBoxLayout(card)
-            apply_card_layout(card_layout)
+            card_layout = card.layout()
             # Stretch: the Axis / Series selector carries an expanding series
             # list that has to take the height the card is given.
             card_layout.addWidget(content, 1)
@@ -445,9 +442,8 @@ class SeriesOperationDialogBase(QDialog):
         apply_toolbox_page_metrics(left_toolbox)
         self.left_toolbox = left_toolbox
 
-        right = create_card_widget(self, "operationResultsCard")
-        right_layout = QVBoxLayout(right)
-        stdSizeAndlayout(right_layout)
+        right = CardFrame(self, "operationResultsCard")
+        right_layout = right.layout()
 
         results_title = create_section_title(_("Results"), right)
         right_layout.addWidget(results_title, 0)

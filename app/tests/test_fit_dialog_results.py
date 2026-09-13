@@ -234,12 +234,12 @@ def test_the_fit_options_are_one_control_per_row() -> None:
 
 
 def test_the_two_cards_have_real_padding() -> None:
-    """Both used stdSizeAndlayout - zero margins - directly on a
-    create_card_widget()'s own layout, which is documented as wrong: that
-    helper is for a *nested* layout, where the card around it already
-    supplies the padding. Content sat flush against the card border."""
+    """Both cards now come from CardFrame, which bakes its own padded
+    layout in at construction time - a call site can no longer zero a
+    card's own outer margins with stdSizeAndlayout by mistake, which used
+    to happen here and left content flush against the card border."""
     assert FIT_SOURCE.count("stdSizeAndlayout(layout)") == 0
-    assert "apply_card_layout(layout)" in FIT_SOURCE
+    assert FIT_SOURCE.count("CardFrame(") >= 2
 
 
 def test_every_optimizer_and_loss_label_fits_a_narrow_panel() -> None:

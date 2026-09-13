@@ -18,10 +18,9 @@ from PySide6.QtWidgets import (
 
 from app.logs.logger import LOG_FILE
 from app.styles.style import (
-    apply_card_layout,
     apply_dialog_shell,
+    CardFrame,
     create_action_button,
-    create_card_widget,
     create_section_title,
     load_icon,
     mark_editor_panel,
@@ -62,9 +61,8 @@ class LogViewerDialog(QDialog):
         root = QVBoxLayout(self)
         apply_dialog_shell(self, root, size="medium")
 
-        card = create_card_widget(self, "logViewerCard")
-        card_layout = QVBoxLayout(card)
-        apply_card_layout(card_layout)
+        card = CardFrame(self, "logViewerCard")
+        card_layout = card.layout()
 
         card_layout.addWidget(
             create_section_title(_("Application Log"), card)

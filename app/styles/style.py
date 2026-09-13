@@ -43,7 +43,7 @@ from PySide6.QtGui import (
     QPixmap,
     QTextOption,
 )
-from PySide6.QtWidgets import QApplication, QBoxLayout, QCheckBox, QComboBox, QFormLayout, QFrame, QLineEdit, QMenu, QPlainTextEdit, QScrollArea, QSizePolicy, QToolButton, QWidget, QPushButton
+from PySide6.QtWidgets import QApplication, QBoxLayout, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout, QLineEdit, QMenu, QPlainTextEdit, QScrollArea, QSizePolicy, QToolButton, QVBoxLayout, QWidget, QPushButton
 from app.logs.logger import applogger
 from app.styles.palettes import themed_qss
 from app.utils.config import get_constant, get_section, get_value
@@ -339,6 +339,12 @@ EXTRA_THEME_ICON_NAMES: frozenset[str] = frozenset(
         # "x-office-spreadsheet" above, this one for LibreOffice Base's .odb.
         "x-office-database",
         "x-office-spreadsheet",
+        # Developer-menu stubs (todo.txt P3-4/P3-5/P3-6): freedesktop Icon
+        # Naming Specification categories, not covered by Qt's own smaller
+        # ThemeIcon enum.
+        "applications-development",
+        "applications-graphics",
+        "preferences-desktop-locale",
     }
 )
 
@@ -1408,7 +1414,7 @@ def apply_fusion_for_item_view_styling(view: QWidget) -> None:
         # area has these. Nothing else needs putting back.
         scrollbar = getattr(view, reader, None)
         bar = scrollbar() if callable(scrollbar) else None
-        if bar is not None:
+        if isinstance(bar, QtWidgets.QScrollBar):
             bar.setStyle(application_style)
 
 
@@ -1459,16 +1465,48 @@ def create_compact_section_title(
     return label
 
 
-def create_card_widget(parent: QWidget | None = None, object_name: str | None = None) -> QFrame:
-    """Create a lightweight card/container frame styled through QSS."""
-    card = QFrame(parent)
-    if object_name:
-        card.setObjectName(object_name)
-    card.setProperty("card", True)
-    card.setFrameShape(QFrame.Shape.NoFrame)
-    card.setMinimumWidth(0)
-    card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-    return card
+class CardFrame(QFrame):
+    """A rounded ``[card="true"]`` surface with its own layout pre-margined.
+
+    What ``create_card_widget()`` and ``apply_card_layout()`` did as two
+    separate calls - the QSS side (the "card" property, no frame shape, an
+    expanding size policy) and the layout side (margins, spacing) - always
+    had to travel together, and a call site that built its own layout with
+    ``stdSizeAndlayout`` instead of ``apply_card_layout`` by mistake got a
+    card with its content flush against the rounded border: cramped, not
+    wrong enough to fail a review, and it happened more than once (axis
+    kwargs, series properties, an operation dialog's model selector, all
+    independently). Baking the layout into construction makes that specific
+    mistake impossible rather than something to remember not to make.
+
+    ``self.layout()`` is ready to use immediately - add widgets to it, or
+    nest another layout inside one of them. Pass ``orientation`` for a
+    card whose top-level content reads left-to-right instead of stacked.
+    """
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        object_name: str | None = None,
+        *,
+        orientation: Qt.Orientation = Qt.Orientation.Vertical,
+        margins: tuple[int, int, int, int] = MARGIN_CARD,
+        spacing: int = SPACING_DEFAULT,
+    ) -> None:
+        super().__init__(parent)
+        if object_name:
+            self.setObjectName(object_name)
+        self.setProperty("card", True)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
+        layout_cls = (
+            QVBoxLayout if orientation == Qt.Orientation.Vertical else QHBoxLayout
+        )
+        layout = layout_cls(self)
+        layout.setContentsMargins(*margins)
+        layout.setSpacing(spacing)
 
 
 def mark_editor_panel(widget: QWidget) -> QWidget:

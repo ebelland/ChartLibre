@@ -39,8 +39,7 @@ from app.dialogs.edit_mpl_styles_dialog import (
 )
 from app.styles.style import (
     MARGIN_PANEL,
-    apply_card_layout,
-    create_card_widget,
+    CardFrame,
     create_action_button,
     create_section_title,
     stdSizeAndlayout,
@@ -290,9 +289,8 @@ class FigurePropertiesWidget(BaseProperties):
         lay.setSpacing(12)
 
         # ----- Name -----
-        name_section = create_card_widget(self, "figureNameCard")
-        name_section_lay = QVBoxLayout(name_section)
-        apply_card_layout(name_section_lay)
+        name_section = CardFrame(self, "figureNameCard")
+        name_section_lay = name_section.layout()
         name_section_lay.addWidget(create_section_title(_("Name"), name_section))
 
         self._name_edit = QLineEdit(name_section)
@@ -307,9 +305,8 @@ class FigurePropertiesWidget(BaseProperties):
         lay.addWidget(name_section)
 
         # ----- Style -----
-        style_section = create_card_widget(self, "figureStyleCard")
-        style_section_lay = QVBoxLayout(style_section)
-        apply_card_layout(style_section_lay)
+        style_section = CardFrame(self, "figureStyleCard")
+        style_section_lay = style_section.layout()
 
         style_title = create_section_title(_("Style"), style_section)
         style_section_lay.addWidget(style_title)
@@ -345,9 +342,8 @@ class FigurePropertiesWidget(BaseProperties):
         lay.addWidget(style_section)
 
         # ----- Grid -----
-        grid_section = create_card_widget(self, "figureGridCard")
-        grid_section_lay = QVBoxLayout(grid_section)
-        apply_card_layout(grid_section_lay)
+        grid_section = CardFrame(self, "figureGridCard")
+        grid_section_lay = grid_section.layout()
 
         grid_title = create_section_title(_("Grid"), grid_section)
         grid_section_lay.addWidget(grid_title)
@@ -447,9 +443,8 @@ class FigurePropertiesWidget(BaseProperties):
         lay.addWidget(grid_section)
 
         # ----- Figure options -----
-        opts_section = create_card_widget(self, "figureOptionsCard")
-        opts_section_lay = QVBoxLayout(opts_section)
-        apply_card_layout(opts_section_lay)
+        opts_section = CardFrame(self, "figureOptionsCard")
+        opts_section_lay = opts_section.layout()
 
         opts_title = create_section_title(_("Figure options"), opts_section)
         opts_section_lay.addWidget(opts_title)
@@ -570,9 +565,8 @@ class FigurePropertiesWidget(BaseProperties):
         spacing themselves and overwrite whatever subplots_adjust set, so the
         controls are disabled rather than silently ignored.
         """
-        section = create_card_widget(self, "figureMarginsCard")
-        section_lay = QVBoxLayout(section)
-        apply_card_layout(section_lay)
+        section = CardFrame(self, "figureMarginsCard")
+        section_lay = section.layout()
         section_lay.addWidget(create_section_title(_("Manual spacing"), section))
 
         # Two fields per row - the natural pairs an edge or a gap already

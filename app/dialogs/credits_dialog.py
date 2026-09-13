@@ -18,8 +18,8 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
 from app import APP_NAME, APP_VERSION
 from app.styles.style import (
     apply_dialog_shell,
+    CardFrame,
     create_action_button,
-    create_card_widget,
     create_section_title,
     load_icon,
     stdSizeAndlayout,
@@ -41,9 +41,8 @@ class CreditsDialog(QDialog):
         root = QVBoxLayout(self)
         apply_dialog_shell(self, root, size="small")
 
-        card = create_card_widget(self, "creditsCard")
-        card_layout = QVBoxLayout(card)
-        stdSizeAndlayout(card_layout)
+        card = CardFrame(self, "creditsCard")
+        card_layout = card.layout()
         card_layout.addWidget(create_section_title(_("Credits"), card))
 
         # The same pane the operation reports use, so the credits can be

@@ -43,8 +43,7 @@ from app.charts.render_figure import (
 )
 from app.styles.style import (
     MARGIN_PANEL,
-    apply_card_layout,
-    create_card_widget,
+    CardFrame,
     create_action_button,
     create_section_title,
     mark_icon_only,
@@ -197,9 +196,8 @@ class AxisPropertiesWidget(BaseProperties):
 
     def _build_axis_selector_section(self) -> QWidget:
         """Create axis selector, axis actions and renderer display."""
-        section = create_card_widget(self, "axisSelectorCard")
-        layout = QVBoxLayout(section)
-        apply_card_layout(layout)
+        section = CardFrame(self, "axisSelectorCard")
+        layout = section.layout()
 
         self._axis_combo = QComboBox(section)
         self._configure_combo_width(self._axis_combo, minimum_contents_length=24)
@@ -269,14 +267,13 @@ class AxisPropertiesWidget(BaseProperties):
             QSizePolicy.Policy.Expanding,
         )
 
-        section = create_card_widget(scroll, object_name)
+        section = CardFrame(scroll, object_name)
         section.setMinimumHeight(0)
         section.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
         )
-        layout = QVBoxLayout(section)
-        apply_card_layout(layout)
+        layout = section.layout()
         scroll.setWidget(section)
         return scroll, section, layout
 
@@ -869,13 +866,12 @@ class AxisPropertiesWidget(BaseProperties):
 
     def _build_kwargs_section(self) -> QWidget:
         """Create the host section for DictEditorPanel."""
-        section = create_card_widget(self, "axisKwargsCard")
+        section = CardFrame(self, "axisKwargsCard")
         section.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
         )
-        layout = QVBoxLayout(section)
-        stdSizeAndlayout(layout)
+        layout = section.layout()
 
         # The reset button is not built here: it belongs on the editor's own
         # search row (see rebuild_kwargs_editor), and the editor is rebuilt
