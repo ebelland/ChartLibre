@@ -1108,25 +1108,22 @@ class MainWindow(QMainWindow):
         target = rail if rail is not None else self._left_rail
         width = NAV_RAIL_EXPANDED_WIDTH if expanded else NAV_RAIL_COLLAPSED_WIDTH
         target.setFixedWidth(width)
-        arrow = (
-            QStyle.StandardPixmap.SP_ArrowLeft
+        chevron = (
+            QStyle.StandardPixmap.SP_ArrowBack
             if expanded
-            else QStyle.StandardPixmap.SP_ArrowRight
+            else QStyle.StandardPixmap.SP_ArrowForward
         )
-        self._nav_toggle.setIcon(self.style().standardIcon(arrow))
-        self._nav_toggle.setIconSize(QSize(16, 16))
-        self._nav_toggle.setText(_("Collapse") if expanded else "")
-        self._nav_toggle.setToolButtonStyle(
-            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
-            if expanded else Qt.ToolButtonStyle.ToolButtonIconOnly
-        )
+        self._nav_toggle.setIcon(self.style().standardIcon(chevron))
+        self._nav_toggle.setIconSize(QSize(18, 18))
+        self._nav_toggle.setText("")
+        self._nav_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         navigation_label = (
             _("Collapse navigation") if expanded else _("Expand navigation")
         )
         self._nav_toggle.setToolTip(navigation_label)
         self._nav_toggle.setStatusTip(navigation_label)
         self._nav_toggle.setAccessibleName(navigation_label)
-        self._nav_toggle.setFixedWidth(width - 16)
+        self._nav_toggle.setFixedWidth(40)
         for action_id, button in zip(self._nav_action_ids, self._nav_buttons):
             _icon, text, tooltip = action_presentation(action_id)
             button.setText(text if expanded else "")
