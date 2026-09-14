@@ -1060,7 +1060,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(4)
 
         self._nav_toggle = QToolButton(rail)
-        self._nav_toggle.setObjectName("navigationToggleButton")
+        self._nav_toggle.setObjectName("activityButton")
         self._nav_toggle.setToolTip(_("Expand navigation"))
         self._nav_toggle.setFixedHeight(32)
         self._nav_toggle.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -1068,7 +1068,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._nav_toggle)
 
         self._file_button = self._create_activity_button(action_id="open")
-        self._file_button.setObjectName("fileMenuButton")
+        self._file_button.setObjectName("activityButton")
         self._file_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self._file_button.setMenu(self._file_menu)
         layout.addWidget(self._file_button)
@@ -1087,12 +1087,12 @@ class MainWindow(QMainWindow):
         layout.addStretch(1)
 
         self._settings_button = self._create_activity_button(action_id="settings")
-        self._settings_button.setObjectName("appSettingsButton")
+        self._settings_button.setObjectName("activityButton")
         self._settings_button.clicked.connect(self._on_settings)
         layout.addWidget(self._settings_button)
 
         self._help_button = self._create_activity_button(action_id="user_manual")
-        self._help_button.setObjectName("helpMenuButton")
+        self._help_button.setObjectName("activityButton")
         self._help_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self._help_button.setMenu(self._help_menu)
         layout.addWidget(self._help_button)
@@ -1165,7 +1165,7 @@ class MainWindow(QMainWindow):
         icon, _text, tooltip = action_presentation(action_id)
 
         button = QToolButton(self)
-        button.setObjectName("navigationButton")
+        button.setObjectName("activityButton")
         button.setAutoRaise(True)
         button.setIcon(icon)
         button.setIconSize(QSize(20, 20))

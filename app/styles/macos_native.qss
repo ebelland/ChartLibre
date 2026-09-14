@@ -117,7 +117,7 @@ QFrame[card="true"],
 QWidget[card="true"] {
   background: palette(base);
   border: 1px solid rgba(@SHADOW_RGB@, 0.08);
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 /* The Figure/Axis/Series properties panels (BaseProperties).
