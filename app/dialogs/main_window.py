@@ -859,6 +859,10 @@ class MainWindow(QMainWindow):
         """
         previous = getattr(self, "_app_menu", None)
         groups = self._app_menu_items()
+        self._file_menu = create_menu(self, list(groups[0][1]))
+        self._file_menu.setTitle(_("File"))
+        self._help_menu = create_menu(self, list(groups[-1][1]))
+        self._help_menu.setTitle(_("Help & About"))
         self._app_menu = create_menu(self, self._flatten_menu_groups(groups))
         if previous is not None and IS_MACOS:
             # It is parented to this window, so replacing the attribute is not
