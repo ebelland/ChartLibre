@@ -95,7 +95,6 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QStackedWidget,
-    QStyle,
     QTabWidget,
     QToolBox,
     QToolButton,
@@ -136,6 +135,15 @@ CHART_SELECTION_TIMEOUT_MS: int = get_constant("chart_selection_timeout_ms", 15_
 IS_WINDOWS: bool = sys.platform == "win32"
 NAV_RAIL_COLLAPSED_WIDTH: int = 48
 NAV_RAIL_EXPANDED_WIDTH: int = 196
+
+# The "toggle sidebar" glyph used by VS Code, MS Teams and most native
+# panel-toggle buttons: a rounded panel outline with a vertical divider near
+# the left edge. One fixed icon rather than a chevron that flips direction -
+# real sidebar-toggle buttons don't change glyph between expanded/collapsed.
+_NAV_TOGGLE_ICON_SVG: str = (
+    '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>'
+    '<line x1="9" y1="3" x2="9" y2="21"/>'
+)
 
 
 class MainWindow(QMainWindow):
@@ -1110,12 +1118,7 @@ class MainWindow(QMainWindow):
         target = rail if rail is not None else self._left_rail
         width = NAV_RAIL_EXPANDED_WIDTH if expanded else NAV_RAIL_COLLAPSED_WIDTH
         target.setFixedWidth(width)
-        chevron = (
-            QStyle.StandardPixmap.SP_ArrowBack
-            if expanded
-            else QStyle.StandardPixmap.SP_ArrowForward
-        )
-        self._nav_toggle.setIcon(self.style().standardIcon(chevron))
+        self._nav_toggle.setIcon(icon_from_svg_source(_NAV_TOGGLE_ICON_SVG, size=18))
         self._nav_toggle.setIconSize(QSize(18, 18))
         self._nav_toggle.setText("")
         self._nav_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
