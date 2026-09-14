@@ -5439,8 +5439,8 @@ msgstr "{count} punto/i selezionato/i in {series} serie - clic destro per agire 
 msgid "Hide {count} selected point(s)"
 msgstr "Nascondi {count} punto/i selezionato/i"
 
-msgid "Hide these points on their source table."
-msgstr "Nascondi questi punti nella tabella di origine."
+msgid "Hide these points from this series without changing its data."
+msgstr "Nascondi questi punti da questa serie senza modificarne i dati."
 
 msgid "New series from selection"
 msgstr "Nuova serie dalla selezione"
@@ -5454,8 +5454,8 @@ msgstr "Nascondi punti selezionati"
 msgid "{name} (selection)"
 msgstr "{name} (selezione)"
 
-msgid "Hide the selected points on their source table"
-msgstr "Nascondi i punti selezionati nella tabella di origine"
+msgid "Hide the selected points from this series"
+msgstr "Nascondi i punti selezionati da questa serie"
 
 msgid "Drag a rectangle over the chart to select points, for hiding or splitting into a new series"
 msgstr "Trascina un rettangolo sul grafico per selezionare punti, da nascondere o dividere in una nuova serie"
@@ -5489,3 +5489,249 @@ msgstr "Ridisegna questo grafico a intervalli regolari, per una tabella di origi
 
 msgid "Show a synced crosshair across every axes of this figure"
 msgstr "Mostra un mirino sincronizzato su tutti gli assi di questa figura"
+
+msgid "Contamination:"
+msgstr "Contaminazione:"
+
+msgid "Expected fraction of points that are outliers."
+msgstr "Frazione attesa di punti anomali."
+
+msgid "Neighbours:"
+msgstr "Vicini:"
+
+msgid "Number of neighbours each point's local density is compared against."
+msgstr "Numero di vicini con cui viene confrontata la densità locale di ogni punto."
+
+msgid "Nu:"
+msgstr "Nu:"
+
+msgid "Upper bound on the fraction of training errors and lower bound on the fraction of support vectors."
+msgstr "Limite superiore sulla frazione di errori di addestramento e limite inferiore sulla frazione di vettori di supporto."
+
+msgid "Choose the regression model."
+msgstr "Scegli il modello di regressione."
+
+msgid "Choose the transform."
+msgstr "Scegli la trasformazione."
+
+msgid "Regression"
+msgstr "Regressione"
+
+msgid "Transform"
+msgstr "Trasforma"
+
+msgid "R²"
+msgstr "R²"
+
+msgid "Robust and ML regression models"
+msgstr "Modelli di regressione robusta e ML"
+
+msgid "Rescale or reshape a series' distribution"
+msgstr "Riscala o rimodella la distribuzione di una serie"
+
+msgid "GP Regression"
+msgstr "Regressione GP"
+
+msgid "Kernel"
+msgstr "Kernel"
+
+msgid "Kernel:"
+msgstr "Kernel:"
+
+msgid "Choose the kernel."
+msgstr "Scegli il kernel."
+
+msgid "Log marginal likelihood"
+msgstr "Log-verosimiglianza marginale"
+
+msgid "Fitted kernel"
+msgstr "Kernel adattato"
+
+msgid "Length scale:"
+msgstr "Scala di lunghezza:"
+
+msgid "Starting guess for how quickly the fit can vary with x. Re-optimized automatically while fitting - a starting point, not a fixed choice."
+msgstr "Stima iniziale della rapidità con cui l'adattamento può variare con x. Riottimizzata automaticamente durante l'adattamento - un punto di partenza, non una scelta fissa."
+
+msgid "Noise level:"
+msgstr "Livello di rumore:"
+
+msgid "Starting guess for the observation noise variance, added to the kernel. Also re-optimized while fitting."
+msgstr "Stima iniziale della varianza del rumore di osservazione, aggiunta al kernel. Anch'essa riottimizzata durante l'adattamento."
+
+msgid "A Gaussian process' mean and band rarely share a scale with noisy source data, so a new axis is the default."
+msgstr "La media e la banda di un processo gaussiano condividono raramente la scala dei dati di origine rumorosi, quindi un nuovo asse è l'impostazione predefinita."
+
+msgid "Max trials:"
+msgstr "Tentativi massimi:"
+
+msgid "How many random subsets RANSAC tries before keeping the best one."
+msgstr "Quanti sottoinsiemi casuali prova RANSAC prima di scegliere il migliore."
+
+msgid "Epsilon:"
+msgstr "Epsilon:"
+
+msgid "Robustness/efficiency trade-off: values closer to 1 down-weight more points as outliers, larger values behave more like an ordinary least-squares fit."
+msgstr "Compromesso robustezza/efficienza: valori vicini a 1 penalizzano più punti come anomali, valori maggiori si comportano più come un fit ai minimi quadrati ordinario."
+
+msgid "Regularization:"
+msgstr "Regolarizzazione:"
+
+msgid "L2 regularization strength."
+msgstr "Intensità della regolarizzazione L2."
+
+msgid "Direction:"
+msgstr "Direzione:"
+
+msgid "Whether the fitted curve must rise, fall, or whichever the data itself suggests."
+msgstr "Se la curva stimata deve salire, scendere, o come suggeriscono i dati stessi."
+
+msgid "Increasing"
+msgstr "Crescente"
+
+msgid "Decreasing"
+msgstr "Decrescente"
+
+msgid "Trees:"
+msgstr "Alberi:"
+
+msgid "Number of trees in the ensemble. More is smoother and slower."
+msgstr "Numero di alberi nell'ensemble. Di più è più regolare e più lento."
+
+msgid "Max depth:"
+msgstr "Profondità massima:"
+
+msgid "Deepest a single tree may grow. 0 means unlimited."
+msgstr "La profondità massima raggiungibile da un singolo albero. 0 significa illimitata."
+
+msgid "Learning rate:"
+msgstr "Tasso di apprendimento:"
+
+msgid "How much each boosting stage corrects the previous one."
+msgstr "Quanto ogni fase di boosting corregge la precedente."
+
+msgid "A fitted curve usually shares its source's scale, so the same axis overlays it directly on the data. A new axis or figure keeps the two apart instead."
+msgstr "Una curva stimata condivide di solito la scala della sua sorgente, quindi lo stesso asse la sovrappone direttamente ai dati. Un nuovo asse o una nuova figura le tiene invece separate."
+
+msgid "Box-Cox"
+msgstr "Box-Cox"
+
+msgid "Centre on the median:"
+msgstr "Centra sulla mediana:"
+
+msgid "Divide by the interquartile range."
+msgstr "Dividi per il range interquartile."
+
+msgid "How finely the mapping is estimated. Clipped to the number of points in the series when the series is shorter than this."
+msgstr "Con quale finezza viene stimata la mappatura. Limitato al numero di punti della serie quando la serie è più corta di questo valore."
+
+msgid "Normal"
+msgstr "Normale"
+
+msgid "Quantiles:"
+msgstr "Quantili:"
+
+msgid "Scale by the IQR:"
+msgstr "Scala secondo l'IQR:"
+
+msgid "Subtract the median before scaling."
+msgstr "Sottrai la mediana prima di scalare."
+
+msgid "Target shape:"
+msgstr "Forma di destinazione:"
+
+msgid "The distribution the transformed values are mapped onto."
+msgstr "La distribuzione su cui vengono mappati i valori trasformati."
+
+msgid "Uniform"
+msgstr "Uniforme"
+
+msgid "Yeo-Johnson"
+msgstr "Yeo-Johnson"
+
+msgid "Yeo-Johnson accepts any data; Box-Cox is often a better fit but requires every value to be strictly positive."
+msgstr "Yeo-Johnson accetta qualsiasi dato; Box-Cox è spesso più adatto ma richiede che ogni valore sia strettamente positivo."
+
+msgid "A transformed series is usually on a different scale than its source (z-scores, quantiles, ...), so a new axis is the default. Same axis overlays them when the ranges are comparable; a new figure keeps the result out of this chart entirely."
+msgstr "Una serie trasformata è di solito su una scala diversa da quella della sorgente (z-score, quantili, ...), quindi un nuovo asse è l'impostazione predefinita. Lo stesso asse le sovrappone quando gli intervalli sono comparabili; una nuova figura tiene invece il risultato fuori da questo grafico."
+
+msgid "Twenty datasets, twenty-nine figures across every chart type and six multi-axis layouts, and one saved query."
+msgstr "Venti set di dati, ventinove figure che coprono ogni tipo di grafico e sei layout multi-asse, e una query salvata."
+
+msgid "New chart types - heatmap, hexbin, event plot, and true 3D"
+msgstr "Nuovi tipi di grafico - heatmap, hexbin, event plot e 3D reale"
+
+msgid "Five chart types added after the first release, each on data suited to what makes it different from a plain scatter or line: a smooth surface as a per-cell heatmap, four thousand drivers binned into a hexbin, three servers' error timestamps as an event raster, and a helix and a small sales table as a true 3D line and 3D bar chart rather than a scattered or projected stand-in."
+msgstr "Cinque tipi di grafico aggiunti dopo la prima versione, ciascuno su dati adatti a ciò che lo distingue da un semplice scatter o linea: una superficie liscia come heatmap per cella, quattromila guidatori raggruppati in un hexbin, le timestamp di errore di tre server come raster di eventi, e un'elica e una piccola tabella di vendite come vera linea 3D e grafico a barre 3D anziché un sostituto sparso o proiettato."
+
+msgid "Choose a decomposition (a curve per component) or a manifold embedding (a 2D scatter)."
+msgstr "Scegli una decomposizione (una curva per componente) o un embedding di manifold (uno scatter 2D)."
+
+msgid "Select two or more source series."
+msgstr "Seleziona due o più serie di origine."
+
+msgid "Component 1"
+msgstr "Componente 1"
+
+msgid "Component 2"
+msgstr "Componente 2"
+
+msgid "Decomposition"
+msgstr "Decomposizione"
+
+msgid "Input"
+msgstr "Input"
+
+msgid "Explained variance"
+msgstr "Varianza spiegata"
+
+msgid "Component"
+msgstr "Componente"
+
+msgid "Share"
+msgstr "Quota"
+
+msgid "{count} point(s) embedded from {series} series into 2 dimensions."
+msgstr "{count} punto/i incorporato/i da {series} serie in 2 dimensioni."
+
+msgid "Grid points:"
+msgstr "Punti griglia:"
+
+msgid "Every selected series is linearly resampled onto this many evenly spaced points across their shared x range, before decomposing or embedding them together."
+msgstr "Ogni serie selezionata viene ricampionata linearmente su questo numero di punti equidistanti nel loro intervallo x condiviso, prima di essere decomposta o incorporata insieme alle altre."
+
+msgid "Components:"
+msgstr "Componenti:"
+
+msgid "How many components to extract. Clamped to the number of selected series."
+msgstr "Quante componenti estrarre. Limitato al numero di serie selezionate."
+
+msgid "Perplexity:"
+msgstr "Perplessità:"
+
+msgid "Roughly, how many neighbours each point is assumed to have. Lowered automatically if it does not fit the sample count."
+msgstr "Indica approssimativamente quanti vicini si presume abbia ogni punto. Ridotta automaticamente se non è adatta al numero di campioni."
+
+msgid "Neighbors:"
+msgstr "Vicini:"
+
+msgid "How many nearby points each one is connected to. Lowered automatically if it does not fit the sample count."
+msgstr "A quanti punti vicini ciascuno è collegato. Ridotto automaticamente se non è adatto al numero di campioni."
+
+msgid "Decompose or embed several series together (PCA, ICA, NMF, t-SNE, ...)"
+msgstr "Decomponi o incorpora più serie insieme (PCA, ICA, NMF, t-SNE, ...)"
+
+msgid "Gaussian process regression with an uncertainty band"
+msgstr "Regressione a processo gaussiano con banda di incertezza"
+
+msgid "A real colloidal force-distance curve, repulsive at short range and attractive beyond it, with a measurable crossover - its curvature is also a fair test for Regression's Random Forest/Gradient Boosting models and for GP Regression's uncertainty band."
+msgstr "Una curva forza-distanza colloidale reale, repulsiva a corto raggio e attrattiva oltre, con un incrocio misurabile - la sua curvatura è anche un buon banco di prova per i modelli Random Forest/Gradient Boosting di Regression e per la banda di incertezza di GP Regression."
+
+msgid "Three years of daily closing prices for three stocks, noisy enough that a moving average earns its keep - the three series also share a date axis, which is what Decomposition needs to run PCA/ICA across them together."
+msgstr "Tre anni di prezzi di chiusura giornalieri per tre azioni, abbastanza rumorosi da giustificare una media mobile - le tre serie condividono anche un asse temporale, ciò che serve a Decomposition per eseguire PCA/ICA su di esse insieme."
+
+msgid "Salaries across five departments, with one real outlier the box plot already shows and the operation can confirm - a right-skewed distribution Transform's Power/Quantile models can reshape, too."
+msgstr "Stipendi in cinque reparti, con un vero valore anomalo già visibile nel box plot e che l'operazione può confermare - una distribuzione asimmetrica a destra che anche i modelli Power/Quantile di Transform possono rimodellare."
+
+msgid "Four thousand drivers by distance and speeding: the classic two-feature clustering dataset, and shape-aware enough a population for Outliers' Isolation Forest/Local Outlier Factor models to earn their keep over a plain Z-score."
+msgstr "Quattromila guidatori per distanza e velocità: il classico dataset di clustering a due caratteristiche, ed una popolazione abbastanza sensibile alla forma da far valere i modelli Isolation Forest/Local Outlier Factor di Outliers rispetto a un semplice Z-score."

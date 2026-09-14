@@ -94,6 +94,7 @@ A SQLite database writes its own changes straight to disk on every operation, so
 
 / *Save As...*: saves the current database under a new name/path and switches to working on that copy, leaving the original untouched.
 / *Optimize DB*: checks the database for problems, reports them, and compacts it (`VACUUM`, `ANALYZE`) to shrink it on disk and speed up opening it.
+/ *Database Info*: the current project's file path and size, a list of every table with its row count and which import (if any) it is linked to, and buttons to export a table (CSV/Excel) or refresh a linked one on the spot.
 
 = The main window
 
@@ -134,6 +135,43 @@ Occupies the right side of the window and is organized into tabs — each tab is
 *Zoom to fit* brings the whole chart back within the panel's bounds in one click.
 
 The *Plot* button, at the top of the Series Operations panel, creates a new figure, configured as described in @creating-a-chart.
+
+=== Right-click menu
+
+Right-clicking the chart opens a menu with, at the top, the actions below; clicking inside an axis (rather than on empty space) adds a second group naming the exact point clicked:
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [*Reload*], [Redraw the chart from its saved definition, discarding any zoom/pan.],
+  [*Copy*], [Copy the chart image to the clipboard.],
+  [*Save*], [Save the chart as a picture, in the format chosen under Settings.],
+  [*Export view as CSV…*], [Save the rows actually visible right now — after any zoom, and after downsampling — as a CSV file. Each row records which axis and series it belongs to.],
+  [*Crosshair*], [A guide line under the pointer, shared across every axis of the figure (its horizontal half only ever appears on the axis actually being pointed at).],
+  [*Link zoom/pan across axes*], [Zooming or panning one axis' x range applies the same range to every other axis of the figure — for comparing several time series stacked one above another.],
+  [*Select points*], [Turns the pointer into a rectangle-selection tool — see below.],
+  [*Live updates*], [Redraws the chart on a timer, for a source table a long-running import or an external process keeps filling in.],
+  [*Delete*], [Removes this figure, after confirmation.],
+)
+
+Clicking inside an axis additionally offers *Add vertical/horizontal line at …* and *Add annotation here…*, and the ruler flow described next.
+
+=== Measuring, annotating and selecting points
+
+*Measure from here* / *Measure to here*, on the axis context menu, record a two-click measurement: the distance, Δx, Δy and the slope between the two points, kept on the chart like a reference line. Every measurement — like every annotation and reference line — has its own tab in *Overlay properties* (reachable from Chart Options), where it can be edited by exact numbers or deleted.
+
+An annotation can also be repositioned directly: click and drag its text on the chart to move it, rather than opening Overlay properties to change its coordinates by hand.
+
+Turning on *Select points* lets you drag a rectangle over the chart; every plotted point it covers, from every series on that axis, is picked up. Right-clicking while a selection is active offers two more actions:
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [*Hide N selected point(s)*], [Removes those points from the chart without touching the underlying table — it simply narrows the series' own query. Undo brings them back.],
+  [*New series from selection*], [Adds a new series, on the same axis, holding only the selected points — a quick way to isolate one region of a series (a peak, an outlier cluster) for its own analysis.],
+)
 
 = Importing data
 
@@ -328,6 +366,8 @@ From Chart Options, depending on the selected level:
 
 Every setting shows a contextual description, so reading Matplotlib's own documentation is rarely necessary to understand what a parameter does.
 
+*Overlay properties*, also in Chart Options, lists an axis' annotations, reference lines and measurements — one tab each — as editable tables: exact position, text, colour and every other drawing option by value, rather than only by dragging on the chart.
+
 = Series operations <series-operations>
 
 *Series Operations* applies statistical or mathematical transformations to an existing series' data, previewing the result before it is committed to the chart. Every operation dialog shares the same layout: on the left, the source axis/series, a model and its parameters; on the right, a preview of the result and a log of the computation.
@@ -340,10 +380,14 @@ The panel itself is a grid of square buttons grouped by what they are for — *P
   inset: 6pt,
   [*Peaks*], [Find and measure peaks], [Detects peaks in a series and reports their position, height and width.],
   [*Roots*], [Find where a series crosses a level], [Locates the x values at which a series crosses a chosen level — zero by default — by interpolating between the samples either side.],
-  [*Calculus*], [Differentiate or integrate], [Computes the numerical derivative or the cumulative integral of a series, with smoothing built into the first and baseline subtraction into the second.],
+  [*Calculus*], [Differentiate or integrate], [Computes the numerical derivative or the cumulative integral of a series, with smoothing built into the first and baseline subtraction into the second. On a dated x axis, the result is scaled against the sample spacing's own natural unit (day, hour, ...) rather than raw seconds, so "dy/dx" reads as "per day" for daily data instead of a tiny per-second number.],
   [*Statistics*], [Compute metrics], [Reports summary statistics (mean, standard deviation, quantiles, ...) for a series.],
-  [*Outliers*], [Detect anomalies], [Flags points that deviate from the rest of a series by a chosen statistical criterion.],
+  [*Outliers*], [Detect anomalies], [Flags points that deviate from the rest of a series, by a chosen statistical criterion (Z-score, IQR, ...) or a shape-aware model (Isolation Forest, Local Outlier Factor, One-Class SVM, Elliptic Envelope) that judges a point by where it sits relative to its neighbours rather than by its value alone.],
   [*Clustering*], [Group similar data], [Groups a series' points into clusters (k-means, DBSCAN, ...) and labels each point by cluster.],
+  [*Regression*], [Robust and ML regression], [Fits a curve through noisy or outlier-heavy data with a model that does not assume a known shape: RANSAC and Huber (robust linear, tolerant of gross outliers), Isotonic (guaranteed monotone), or Random Forest / Gradient Boosting (flexible, nonparametric).],
+  [*GP Regression*], [Fit with an uncertainty band], [Gaussian process regression: a smooth fitted curve plus a ±2σ credible band as two more series, so the result says how sure it is, not only what it thinks the value is.],
+  [*Transform*], [Rescale a distribution], [Reshapes a series' values with a Power, Quantile, Standard or Robust transform — the usual prerequisite for a method (a curve fit, a control chart) that assumes roughly normal or well-scaled data.],
+  [*Decomposition*], [Combine several series], [Projects several selected series, resampled onto a shared grid, into fewer dimensions: PCA/ICA/NMF for an explained-variance-ranked decomposition, or t-SNE/Isomap/Locally Linear Embedding for an exploratory 2D embedding of their shared structure. The one operation here that reads several series *together* rather than one at a time.],
   [*Control Chart*], [Monitor process stability], [Builds a statistical control chart and flags rule violations — I-MR, X-bar-R and X-bar-S for measurements, p, np, c and u for counts.],
   [*Smoothing*], [Reduce noise], [Applies a smoothing model (moving average, Savitzky-Golay, ...) to reduce noise while preserving the underlying shape.],
   [*Spectral Analysis*], [Analyse frequencies], [Power spectral density, cross-spectral density, coherence, magnitude/phase spectra and auto/cross-correlation, on their own new axis.],
@@ -388,7 +432,7 @@ The *Log viewer* shows the history of the application's internal operations (sta
 
 = Credits
 
-*Credits* lists the application, the version in use, and the open-source libraries it is built on (including Qt/PySide6, Matplotlib, NumPy, pandas, SciPy and statsmodels).
+*Credits* lists the application, the version in use, and the open-source libraries it is built on (including Qt/PySide6, Matplotlib, NumPy, pandas, SciPy, statsmodels and scikit-learn).
 
 = Advanced: extending ChartLibre <advanced>
 

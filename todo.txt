@@ -8,7 +8,8 @@ P0 - BUGS: wrong output, or work that cannot proceed
       Nota: chart_panel (2.214), style (1.939), fit_dialog (1.760) e
       cluster_dialog (1.722) restano sopra le 1.500 righe.
 
-P-01 Derivative-Integrals with date time.
+
+
 
 ================================================================
 UI - reported while testing (2026-09)
@@ -57,33 +58,7 @@ N-19  GUI: toward a more standard, easy, intuitive interface
         is usually presented, though it is a real redesign, not a quick
         pass.
 
-N-20  other rendering backends and richer ChartPanel interactivity - a
-      brainstorm, not yet scoped work
-      Matplotlib stays the renderer of record: every chart type, every
-      series operation and the whole descriptor model are built on it, and
-      duplicating that surface for a second backend is not worth it. Two
-      narrower integrations pull their weight instead:
-      - pyqtgraph as a second, *optional* renderer for one axis at a time,
-        picked when interaction matters more than chart variety: OpenGL
-        line/scatter that stays smooth at counts where Matplotlib redraw is
-        the bottleneck, a built-in crosshair, and mouse-driven ROI/region
-        select for free (this is the natural engine behind P2-4, not a
-        replacement for it). A closer fit than QtCharts here - QtCharts is
-        fast but its chart-type and annotation vocabulary is much narrower
-        than what this app's descriptors already express.
-
-      - A figure-descriptor -> Vega-Lite spec exporter is a cheap idea
-        worth a look later: the descriptors are already a declarative
-        JSON-ish shape, which is most of what a Vega-Lite spec is.
-
-      ChartPanel interactivity is done: ruler/measure mode, a synced
-      crosshair with linked x zoom/pan across axes, draggable annotations,
-      box-select feeding "hide selected"/"new series from selection",
-      "export the current view as data" (CSV, honouring each axes' own
-      zoom), and a "Live updates" timer toggle (polls and redraws on an
-      interval - LIVE_REFRESH_INTERVAL_MS in config.json - rather than a
-      SQLite change hook, so a streaming import's many small writes
-      coalesce into one redraw per tick instead of one per row).
+N-20  
 
       Broader, beyond the chart itself - things a data scientist, an
       engineer or a student doing coursework would reach for:
@@ -111,74 +86,9 @@ N-20  other rendering backends and richer ChartPanel interactivity - a
 P2 - VALUABLE
 ================================================================
 
-
-P2-4  ChartPanel: rubber-band region selection (RectangleSelector)
-      The natural bridge between the chart and the operations: select a peak
-      on screen, hand its limits to the integrator.
-
 P2-12 series operations: inline preview plot beside the numeric results
       publish_results emits text/HTML only; a fit or a peak-find is far more
       legible with a small plot next to it.
-
-P2-15 series operations: scikit-learn models
-      Five candidates, roughly in this order:
-      - Transform: PowerTransformer (Yeo-Johnson/Box-Cox), QuantileTransformer,
-        StandardScaler, RobustScaler. Small, and a prerequisite for anything
-        that assumes normality (the X-chart, curve fits) on skewed data.
-      - GP Regression: GaussianProcessRegressor, kernel = RBF / Matern-3/2 /
-        Matern-5/2 / RationalQuadratic (+ WhiteKernel noise). Output is the
-        mean series *and* a +/-2 sigma credible band as two more series - the
-        one smoother here that quantifies its own uncertainty.
-      - Robust / ML regression: RANSACRegressor, HuberRegressor,
-        IsotonicRegression (guaranteed monotone), RandomForestRegressor,
-        GradientBoostingRegressor. Could be new models on the existing Fit
-        dialog rather than a new one - it already has the model_combo/
-        params/preview shape this needs.
-      - Anomaly detection: extend the existing Outliers dialog with
-        IsolationForest, LocalOutlierFactor, OneClassSVM, EllipticEnvelope -
-        reuses its hide/preview plumbing, catches shape-aware outliers the
-        z-score/IQR models miss.
-      - Decomposition: PCA / FastICA / NMF across several selected series on
-        a shared x grid -> N component series + an explained-variance
-        report. The one new shape here: many series in, many out (blind
-        source separation, common-mode removal).
-      - Manifold learning: t-SNE / Isomap / LocallyLinearEmbedding, same
-        many-in shape as Decomposition above but for the nonlinear
-        structure PCA misses - exploratory, so frame the result as "a 2D
-        layout", not as a measurement, in whatever report it gets.
-
-P2-18 renderer coverage: chart types Matplotlib supports that this app does
-      not yet draw. 29 chart types exist today (app/charts/*.py); checked
-      against Matplotlib's own Axes/Axes3D API for what nothing here wraps.
-      Candidates worth a renderer, roughly in order of how many requests a
-      gap like this tends to generate:
-      - Heatmap (imshow/pcolormesh over a regular x/y grid, no
-        interpolation): distinct from Contour Plot, which always
-        interpolates between levels - a correlation matrix or a raw
-        measurement grid wants to show the actual cell values, not a
-        smoothed field between them.
-      - tricontour / tricontourf: the smooth, level-interpolated sibling of
-        the existing Triangular Color Mesh (tripcolor draws flat patches,
-        no interpolation) - same relationship Heatmap above has to Contour
-        Plot, for scattered rather than gridded data.
-      - hexbin: 2D density for a scatter with too many points to read
-        individually - the 2D counterpart to Histogram, and a common ask
-        wherever ECDF/Histogram already are.
-      - eventplot: spike/event raster (parallel tick marks per row) - time-
-        stamped events (a raw pass/fail log, a channel of digital signal
-        edges) that a line or scatter chart draws as noise.
-      - 3D Line Plot (Axes3D.plot): a parametric curve or trajectory in
-        three dimensions. Scatter Plot (3D) exists but never connects its
-        points in order, which is the one thing a trajectory needs.
-      - 3D Bar Chart (Axes3D.bar3d): categorical data in three dimensions -
-        the 3D counterpart Bar Chart already has in 2D.
-      Not candidates: specgram/psd/csd/cohere/*_spectrum/xcorr/acorr are
-      already covered as series operations (spectral_dialog.py) that draw
-      their output through the existing Scatter Plot/Time Series renderers
-      - a transform belongs there, not as a new axis renderer. polar
-      projections and voxels are real gaps too but a bigger architectural
-      question (a polar axes changes what "x/y role" even means; voxels are
-      heavy and rarely load-bearing) rather than a renderer to drop in.
 
 P2-19 pysym: user-authored Python/symbolic series - a suggested design, not
       yet scoped or agreed
