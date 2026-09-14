@@ -11,20 +11,23 @@ re-renders the whole figure.
 from __future__ import annotations
 
 import gc
+import sys
 from functools import partial
 from pathlib import Path
 from time import monotonic
-from typing import Any, cast
+from typing import Any
 
 from PySide6.QtCore import QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
+    QColor,
     QDesktopServices,
     QIcon,
 )
 from app import APP_ICON, APP_NAME
 from app.charts import layout_presets
+from app.dialogs.windows_title_bar import WindowsTitleBar
 from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.chart_panel import ChartPanel
@@ -34,6 +37,10 @@ from app.data.demo_project import PROJECTS_DIR, copy_demo_project
 from app.dialogs.load_demo_dialog import LoadDemoDialog
 from app.dialogs.credits_dialog import CreditsDialog
 from app.dialogs.database_info_dialog import DatabaseInfoDialog
+from app.dialogs.renderer_helper_dialog import RendererHelperDialog
+from app.dialogs.series_operation_builder_dialog import SeriesOperationBuilderDialog
+from app.dialogs.function_creator_dialog import FunctionCreatorDialog
+from app.dialogs.edit_localization_dialog import EditLocalizationDialog
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
 from app.widgets.axis_properties import AxisPropertiesWidget
 from app.widgets.overlay_properties import OverlayPropertiesWidget
@@ -58,7 +65,7 @@ from app.styles.style import (
     stdSizeAndlayout,
     _pyobjc_core_is_safe_to_import,
 )
-from app.widgets.table_list import  TableListPanel
+from app.widgets.table_list import TableListPanel
 from app.widgets.table_preview import TablePreviewPanel
 from app.utils.config import (
     clear_recent_databases,
@@ -73,7 +80,28 @@ from app.utils.startup import PROJECT_FILE_FILTER
 from app.utils.messages import show_message
 from app.logs.logger import applogger
 from app.utils.i18n import _
-from PySide6.QtWidgets import QApplication, QButtonGroup, QFileDialog, QFrame, QHBoxLayout, QMainWindow, QMenu, QMenuBar, QScrollArea, QSizePolicy, QSplitter, QStackedWidget, QTabWidget, QToolBox, QToolButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QBoxLayout,
+    QButtonGroup,
+    QFileDialog,
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QLabel,
+    QMainWindow,
+    QMenu,
+    QMenuBar,
+    QScrollArea,
+    QSizePolicy,
+    QSplitter,
+    QStackedWidget,
+    QStyle,
+    QTabWidget,
+    QToolBox,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 # Coalescing window for property-driven chart reloads, in milliseconds.
 # Long enough to swallow a spinbox drag, short enough to feel immediate.
@@ -105,6 +133,11 @@ CHART_PANE_MIN_WIDTH: int = get_constant("chart_pane_min_width", 260)
 # can be mistaken for a description of some later chart.
 CHART_SELECTION_TIMEOUT_MS: int = get_constant("chart_selection_timeout_ms", 15_000)
 
+IS_WINDOWS: bool = sys.platform == "win32"
+NAV_RAIL_COLLAPSED_WIDTH: int = 48
+NAV_RAIL_EXPANDED_WIDTH: int = 196
+
+
 class MainWindow(QMainWindow):
     """Main window with custom activity rail and chart tabs.
 
@@ -125,10 +158,15 @@ class MainWindow(QMainWindow):
         self._repo = repo
         self._db_path = db_path
         applogger.set_status_bar(self.statusBar())
+        self._configure_status_bar()
         applogger.debug(f"Initializing main window for database: {db_path}")
 
-        self.setWindowTitle(_("ChartLibre"))
+        self._update_window_title()
         self.setWindowIcon(icon_from_svg_source(APP_ICON, size=32))
+        self._navigation_expanded = False
+        self._windows_title_bar: WindowsTitleBar | None = None
+        if IS_WINDOWS:
+            self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.resize(1200, 800)
 
         # Debounce for property-driven chart reloads (see _redraw_properties_chart).
@@ -148,13 +186,11 @@ class MainWindow(QMainWindow):
         self._last_snapshot_label: str = ""
         self._last_snapshot_at: float = 0.0
 
-        self.statusBar().showMessage("Ready")
-
         # Files can be dropped on the window: see dropEvent.
         self.setAcceptDrops(True)
 
         # Keep the whole window shrinkable.
-        self.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # Right side: chart tabs.
         self._tabs = QTabWidget(self)
@@ -184,6 +220,9 @@ class MainWindow(QMainWindow):
         # Wrap the splitter in a plain central widget with a zero-minimum layout.
         self._central_host = self._create_central_host()
         self.setCentralWidget(self._central_host)
+        if IS_WINDOWS:
+            self.setMouseTracking(True)
+            self.installEventFilter(self)
 
         # Default page.
         self._set_nav_index(0)
@@ -196,6 +235,58 @@ class MainWindow(QMainWindow):
         self._restore_layout()
 
         applogger.debug("Main window initialized")
+
+    _STATUS_BAR_COLORS = {
+        "normal": "#007ACC",
+        "success": "#16825D",
+        "busy": "#B35C00",
+        "warning": "#9A6700",
+        "error": "#C42B1C",
+    }
+
+    def _configure_status_bar(self) -> None:
+        bar = self.statusBar()
+        bar.setObjectName("vscodeStatusBar")
+        bar.setSizeGripEnabled(False)
+        bar.setFixedHeight(24)
+        self._status_project = QLabel(self._db_path.name if self._db_path else "", bar)
+        self._status_context = QLabel(_("ChartLibre"), bar)
+        self._status_state = QLabel(_("Ready"), bar)
+        self._status_state.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        bar.addWidget(self._status_project, 0)
+        bar.addWidget(self._status_context, 1)
+        bar.addPermanentWidget(self._status_state, 0)
+        self._set_status_state("normal")
+
+    def _set_status_state(self, state: str = "normal", message: str | None = None, timeout_ms: int = 0) -> None:
+        color = self._STATUS_BAR_COLORS.get(state, self._STATUS_BAR_COLORS["normal"])
+        stylesheet = (
+            f"QStatusBar#vscodeStatusBar {{ background: {color}; color: white; border: none; }} "
+            "QStatusBar#vscodeStatusBar::item { border: none; } "
+            "QStatusBar#vscodeStatusBar QLabel { color: white; background: transparent; }"
+        )
+        self.statusBar().setStyleSheet(stylesheet)
+        if message is not None:
+            self._status_state.setText(message)
+            if timeout_ms > 0:
+                QTimer.singleShot(timeout_ms, lambda: self._set_status_state("normal", _("Ready")))
+
+    def _update_window_title(self) -> None:
+        """Show the active project beside ChartLibre in every title surface."""
+        project = self._db_path.name if self._db_path else _("Untitled project")
+        self.setWindowTitle(f"{APP_NAME} | {project}")
+        self.setToolTip(str(self._db_path) if self._db_path else "")
+        if hasattr(self, "_status_project"):
+            self._status_project.setText(project)
+            self._status_project.setToolTip(str(self._db_path) if self._db_path else "")
+
+    def _toggle_workspace(self) -> None:
+        visible = not self._left_panel.isVisible()
+        self._left_panel.setVisible(visible)
+        if self._windows_title_bar is not None:
+            self._windows_title_bar.workspace_button.setChecked(not visible)
+            self._windows_title_bar.workspace_button.setToolTip(_("Workspace: hide the left panel") if visible else _("Workspace: show the left panel"))
+        self._set_status_state("normal", _("Left panel shown") if visible else _("Chart workspace expanded"), 2500)
 
     # ------------------------------------------------------------------
     # Configuration helpers
@@ -319,8 +410,12 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout(host)
         stdSizeAndlayout(layout)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+        if IS_WINDOWS:
+            self._windows_title_bar = WindowsTitleBar(self)
+            layout.addWidget(self._windows_title_bar, 0)
         layout.addWidget(self._main_split, 1)
-
         return host
 
     def _on_settings(self) -> None:
@@ -354,17 +449,28 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Left pages
     # ------------------------------------------------------------------
+    @staticmethod
+    def _apply_surface_shadow(widget: QWidget, *, blur: int = 24, y_offset: int = 5) -> None:
+        """Add a restrained Fluent elevation shadow to a top-level surface."""
+        effect = QGraphicsDropShadowEffect(widget)
+        effect.setBlurRadius(float(blur))
+        effect.setOffset(0.0, float(y_offset))
+        effect.setColor(QColor(0, 0, 0, 42))
+        widget.setGraphicsEffect(effect)
+
     def _create_data_page(self) -> QWidget:
         """Create the Data page with table list and preview splitter."""
         page = CardFrame(self, "dataPageCard")
+        page.setProperty("elevated", True)
         page.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
         )
-        layout = page.layout()
-        if layout is None:
+        raw_layout = page.layout()
+        if isinstance(raw_layout, QBoxLayout):
+            layout = raw_layout
+        else:
             layout = QVBoxLayout(page)
-            page.setLayout(layout)
         split = self._data_split = QSplitter(Qt.Orientation.Vertical, page)
         split.setChildrenCollapsible(True)
         split.setHandleWidth(SPLITTER_HANDLE_WIDTH)
@@ -938,52 +1044,115 @@ class MainWindow(QMainWindow):
 
 
     def _create_activity_rail(self) -> QFrame:
-        """Create a VS Code-like vertical activity rail."""
+        """Create a Copilot-style rail with File at top and app actions below."""
         rail = QFrame(self)
         rail.setObjectName("activityRail")
         rail.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        rail.setFixedWidth(48)
+        rail.setFixedWidth(NAV_RAIL_COLLAPSED_WIDTH)
         rail.setMinimumHeight(0)
-        rail.setSizePolicy(
-            QSizePolicy.Policy.Fixed,
-            QSizePolicy.Policy.Expanding,
-        )
-
+        rail.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         layout = QVBoxLayout(rail)
-        stdSizeAndlayout(layout)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
 
-        # The "Menu" button - New, Open, Import, Settings, Credits... - is not
-        # a page to switch to, so it was never really one of this group's
-        # choices: it sat at id 0 only because it had to occupy *some* slot,
-        # and _set_nav_index compensated with an "index - 1" that existed for
-        # no other reason. On macOS it is not drawn here at all any more - see
-        # _build_macos_menu_bar - which is what made dropping that offset
-        # worth doing now rather than leaving it as one more thing a removed
-        # button had to keep working around.
-        if not IS_MACOS:
-            menu_button = self._create_activity_button(action_id="nav_menu")
-            layout.addWidget(menu_button, 0, Qt.AlignmentFlag.AlignHCenter)
+        self._nav_toggle = QToolButton(rail)
+        self._nav_toggle.setObjectName("navigationToggleButton")
+        self._nav_toggle.setToolTip(_("Expand navigation"))
+        self._nav_toggle.setFixedHeight(32)
+        self._nav_toggle.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._nav_toggle.clicked.connect(self._toggle_navigation)
+        layout.addWidget(self._nav_toggle)
 
-        # Navigation buttons.
+        self._file_button = self._create_activity_button(action_id="open")
+        self._file_button.setObjectName("fileMenuButton")
+        self._file_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self._file_button.setMenu(self._file_menu)
+        layout.addWidget(self._file_button)
+
         self._nav_group = QButtonGroup(self)
         self._nav_group.setExclusive(True)
         self._nav_group.idClicked.connect(self._set_nav_index)
         self._nav_buttons: list[QToolButton] = []
-        nav_actions = (
-            "nav_data",
-            "nav_chart_options",
-            "nav_series_operations",
-        )
-        for index, action_id in enumerate(nav_actions):
+        self._nav_action_ids = ("nav_data", "nav_chart_options", "nav_series_operations")
+        for index, action_id in enumerate(self._nav_action_ids):
             button = self._create_activity_button(action_id=action_id)
             self._nav_group.addButton(button, index)
             self._nav_buttons.append(button)
-            layout.addWidget( button,0,Qt.AlignmentFlag.AlignHCenter,)
+            layout.addWidget(button)
 
         layout.addStretch(1)
 
-        
+        self._settings_button = self._create_activity_button(action_id="settings")
+        self._settings_button.setObjectName("appSettingsButton")
+        self._settings_button.clicked.connect(self._on_settings)
+        layout.addWidget(self._settings_button)
+
+        self._help_button = self._create_activity_button(action_id="user_manual")
+        self._help_button.setObjectName("helpMenuButton")
+        self._help_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self._help_button.setMenu(self._help_menu)
+        layout.addWidget(self._help_button)
+
+        self._set_navigation_expanded(False, rail=rail)
         return rail
+
+    def _toggle_navigation(self) -> None:
+        self._set_navigation_expanded(not self._navigation_expanded)
+
+    def _set_navigation_expanded(self, expanded: bool, *, rail: QFrame | None = None) -> None:
+        self._navigation_expanded = bool(expanded)
+        target = rail if rail is not None else self._left_rail
+        width = NAV_RAIL_EXPANDED_WIDTH if expanded else NAV_RAIL_COLLAPSED_WIDTH
+        target.setFixedWidth(width)
+        arrow = (
+            QStyle.StandardPixmap.SP_ArrowLeft
+            if expanded
+            else QStyle.StandardPixmap.SP_ArrowRight
+        )
+        self._nav_toggle.setIcon(self.style().standardIcon(arrow))
+        self._nav_toggle.setIconSize(QSize(16, 16))
+        self._nav_toggle.setText(_("Collapse") if expanded else "")
+        self._nav_toggle.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+            if expanded else Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
+        navigation_label = (
+            _("Collapse navigation") if expanded else _("Expand navigation")
+        )
+        self._nav_toggle.setToolTip(navigation_label)
+        self._nav_toggle.setStatusTip(navigation_label)
+        self._nav_toggle.setAccessibleName(navigation_label)
+        self._nav_toggle.setFixedWidth(width - 16)
+        for action_id, button in zip(self._nav_action_ids, self._nav_buttons):
+            _icon, text, tooltip = action_presentation(action_id)
+            button.setText(text if expanded else "")
+            button.setToolButtonStyle(
+                Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+                if expanded else Qt.ToolButtonStyle.ToolButtonIconOnly
+            )
+            button.setToolTip(tooltip)
+            button.setFixedWidth(width - 8 if not expanded else width - 16)
+            button.setStyleSheet(
+                "text-align: left; padding: 4px 8px;" if expanded
+                else "text-align: center; padding: 0px;"
+            )
+        auxiliary = (
+            (self._file_button, _("File"), _("Open file commands")),
+            (self._settings_button, _("App settings"), _("Open application settings")),
+            (self._help_button, _("Help & About"), _("Open help and about commands")),
+        )
+        for button, label, tooltip in auxiliary:
+            button.setText(label if expanded else "")
+            button.setToolButtonStyle(
+                Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+                if expanded else Qt.ToolButtonStyle.ToolButtonIconOnly
+            )
+            button.setToolTip(tooltip)
+            button.setFixedWidth(width - 8 if not expanded else width - 16)
+            button.setStyleSheet(
+                "text-align: left; padding: 4px 8px;" if expanded
+                else "text-align: center; padding: 0px;"
+            )
 
     def _create_activity_button(self, *, action_id: str) -> QToolButton:
         """Create one icon-only activity rail button from its catalogue entry.
@@ -995,17 +1164,15 @@ class MainWindow(QMainWindow):
         icon, _text, tooltip = action_presentation(action_id)
 
         button = QToolButton(self)
-        button.setObjectName("activityButton")
+        button.setObjectName("navigationButton")
         button.setAutoRaise(True)
         button.setIcon(icon)
         button.setIconSize(QSize(20, 20))
         button.setToolTip(tooltip)
         button.setStatusTip(tooltip)
-        button.setFixedSize(32, 32)
-        button.setSizePolicy(
-            QSizePolicy.Policy.Fixed,
-            QSizePolicy.Policy.Fixed,
-        )
+        button.setFixedHeight(32)
+        button.setMinimumWidth(32)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         if action_id == "nav_menu":
             button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
             button.setMenu(self._app_menu)
@@ -1016,13 +1183,18 @@ class MainWindow(QMainWindow):
     def _create_left_panel(self) -> QWidget:
         """Create the left-side area: activity rail + stacked content."""
         panel = CardFrame(self, "leftPanelCard", orientation=Qt.Orientation.Horizontal)
+        panel.setProperty("elevated", True)
+        self._apply_surface_shadow(panel, blur=22, y_offset=3)
         panel.setMinimumSize(0, 0)
         panel.setSizePolicy(
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding,
         )
 
-        layout = panel.layout()
+        raw_layout = panel.layout()
+        if not isinstance(raw_layout, QBoxLayout):
+            raise RuntimeError("CardFrame did not create a box layout")
+        layout = raw_layout
         layout.addWidget(self._left_rail, 0)
         layout.addWidget(self._left_stack, 1)
 
@@ -1070,7 +1242,7 @@ class MainWindow(QMainWindow):
         relax_minimum_width(self._left_panel)
         # The rail is fixed-width and always visible, so the floor applies to
         # the content next to it, not to the panel as a whole.
-        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._left_rail.minimumWidth())
+        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + NAV_RAIL_COLLAPSED_WIDTH)
 
         # The chart pane needs the same treatment, and for the same reason:
         # whichever pane keeps a large implicit minimum wins the whole
@@ -1079,8 +1251,19 @@ class MainWindow(QMainWindow):
         relax_minimum_width(self._tabs)
         self._tabs.setMinimumWidth(CHART_PANE_MIN_WIDTH)
 
+        self._chart_surface = CardFrame(self, "chartSurfaceCard")
+        self._chart_surface.setProperty("elevated", True)
+        self._chart_surface.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        chart_layout = self._chart_surface.layout()
+        if not isinstance(chart_layout, QBoxLayout):
+            raise RuntimeError("CardFrame did not create a box layout")
+        chart_layout.addWidget(self._tabs, 1)
+        self._apply_surface_shadow(self._chart_surface, blur=24, y_offset=4)
+
         split.addWidget(self._left_panel)
-        split.addWidget(self._tabs)
+        split.addWidget(self._chart_surface)
 
         split.setStretchFactor(0, 0)
         split.setStretchFactor(1, 1)
@@ -1108,7 +1291,7 @@ class MainWindow(QMainWindow):
             self._repo = SqliteRepo(db_path=db_path)
             self._db_path = db_path
             self._table_panel.set_repo(self._repo)
-            self.setWindowTitle(f"{APP_NAME}: {self._db_path}")
+            self._update_window_title()
             set_last_database(db_path)
 
             self._table_panel.reload()
@@ -1685,7 +1868,7 @@ class MainWindow(QMainWindow):
             self._repo = SqliteRepo(db_path=db_path)
             self._db_path = db_path
             self._table_panel.set_repo(self._repo)
-            self.setWindowTitle(f"{APP_NAME}: {self._db_path}")
+            self._update_window_title()
             set_last_database(db_path)
             self._table_panel.reload()
             self._reload_tabs()
@@ -1999,29 +2182,20 @@ class MainWindow(QMainWindow):
             panel.copy_chart_to_clipboard()
 
     def _on_edit_localization(self) -> None:
-        """Stub: not implemented yet, see todo.txt's Developer-tools entry."""
-        self._on_dev_stub("edit_localization")
+        """Open Edit Localization: browse/edit a translation catalogue."""
+        EditLocalizationDialog(self).exec()
 
     def _on_series_operation_builder(self) -> None:
-        """Stub: not implemented yet, see todo.txt's Developer-tools entry."""
-        self._on_dev_stub("series_operation_builder")
+        """Open the Series Operation Builder: scaffold a new operation file."""
+        SeriesOperationBuilderDialog(self).exec()
 
     def _on_function_creator(self) -> None:
-        """Stub: not implemented yet, see todo.txt's Developer-tools entry."""
-        self._on_dev_stub("function_creator")
+        """Open the Function Creator: scaffold a new fit-function file."""
+        FunctionCreatorDialog(self).exec()
 
     def _on_renderer_helper(self) -> None:
-        """Stub: not implemented yet, see todo.txt's Developer-tools entry."""
-        self._on_dev_stub("renderer_helper")
-
-    def _on_dev_stub(self, action_id: str) -> None:
-        """Placeholder for a Developer-menu tool: the menu entry exists,
-        the tool behind it does not yet - see todo.txt for each one's design
-        sketch. One handler for all four rather than four copies of the same
-        message box.
-        """
-        _icon, text, _tooltip = action_presentation(action_id)
-        show_message(self, "dev.not_implemented", feature=text)
+        """Open the Renderer Helper: scaffold a new chart-type file."""
+        RendererHelperDialog(self).exec()
 
     def _on_zoom(self) -> None:
         """Toggle the window between its normal and maximized size.
