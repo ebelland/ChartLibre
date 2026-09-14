@@ -319,6 +319,43 @@ def _baseline_spectrum() -> pd.DataFrame:
     return pd.DataFrame({"x": x, "intensity": intensity})
 
 
+def _server_events() -> pd.DataFrame:
+    """Three servers' error timestamps over one synthetic day - built (not
+    measured) with a fixed seed, the same convention as
+    :func:`_baseline_spectrum`, so the raster looks the same on every
+    machine that builds this demo. Different rates per server so the three
+    rows of an Event Plot read differently from each other at a glance.
+    """
+    rng = np.random.default_rng(20260913)
+    rows = [
+        pd.DataFrame({"server": server, "minute": np.sort(rng.uniform(0.0, 1440.0, count))})
+        for server, count in (("web-1", 40), ("web-2", 65), ("db-1", 18))
+    ]
+    return pd.concat(rows, ignore_index=True)
+
+
+def _regional_sales() -> pd.DataFrame:
+    """Quarterly sales across four regions - built (not measured), same
+    fixed-seed convention as the other generated tables. Sixteen rows: a
+    small enough grid for a 3D Bar Chart to read as sixteen individual
+    bars rather than a wall of them.
+    """
+    rng = np.random.default_rng(20260913)
+    regions = ["North", "South", "East", "West"]
+    return pd.DataFrame(
+        [
+            {
+                "region_index": region_index,
+                "region": region,
+                "quarter": quarter,
+                "sales": float(80 + 20 * region_index + 15 * quarter + rng.normal(0, 5)),
+            }
+            for region_index, region in enumerate(regions)
+            for quarter in (1, 2, 3, 4)
+        ]
+    )
+
+
 #: Table name -> the function that loads it. A demo file writes only the
 #: tables its own figures read, which is what keeps a single-subject demo
 #: small enough to open and understand.
@@ -341,6 +378,8 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "signal_spectrum": _signal_spectrum,
     "attribute_chart_counts": _attribute_chart_counts,
     "baseline_spectrum": _baseline_spectrum,
+    "server_events": _server_events,
+    "regional_sales": _regional_sales,
 }
 
 #: Saved query name -> its SQL, and the table it reads.
@@ -786,6 +825,108 @@ def _figure_specs() -> list[FigureSpec]:
                 ),
             ],
         ),
+        FigureSpec(
+            name="25 · Heatmap of a smooth surface",
+            key="heatmap_grid",
+            tables=("surface_grid",),
+            queries=(),
+            chart_type="Heatmap",
+            title="The same surface as a per-cell heatmap",
+            x_label="x",
+            y_label="y",
+            axis_options={"title": "Heatmap", "cmap": "viridis"},
+            series=[
+                SeriesSpec(
+                    name="Surface",
+                    sql="SELECT x AS x, y AS y, z AS z FROM surface_grid",
+                    roles={"x": "x", "y": "y", "z": "z"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="26 · Driver behaviour as a hexbin",
+            key="driver_hexbin",
+            tables=("driver_behaviour",),
+            queries=(),
+            chart_type="Hexbin",
+            title="Distance against speeding, binned rather than four thousand overlapping points",
+            x_label="distance feature",
+            y_label="speeding feature",
+            axis_options={"grid": True, "gridsize": 25},
+            series=[
+                SeriesSpec(
+                    name="Drivers",
+                    sql=(
+                        "SELECT distance_feature AS x, speeding_feature AS y "
+                        "FROM driver_behaviour"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="27 · Server error events",
+            key="server_events",
+            tables=("server_events",),
+            queries=(),
+            chart_type="Event Plot",
+            title="One row of ticks per server, over a synthetic day",
+            x_label="minute of day",
+            y_label="",
+            axis_options={"title": "Server errors"},
+            series=[
+                SeriesSpec(
+                    name=server,
+                    sql=f"SELECT minute AS x FROM server_events WHERE server = '{server}'",
+                    roles={"x": "x"},
+                    style={},
+                )
+                for server in ("web-1", "web-2", "db-1")
+            ],
+        ),
+        FigureSpec(
+            name="28 · Helix as a true 3D line",
+            key="helix_3d_line",
+            tables=("parametric_curve",),
+            queries=(),
+            chart_type="3D Line Plot",
+            title="The same helix as a trajectory in three dimensions",
+            x_label="x",
+            y_label="y",
+            axis_options={"projection": "3d", "title": "3D Line Plot"},
+            series=[
+                SeriesSpec(
+                    name="Helix",
+                    sql="SELECT x AS x, y AS y, t AS z FROM parametric_curve ORDER BY t",
+                    roles={"x": "x", "y": "y", "z": "z"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="29 · Regional sales as 3D bars",
+            key="regional_sales_3d_bar",
+            tables=("regional_sales",),
+            queries=(),
+            chart_type="3D Bar Chart",
+            title="Sixteen bars: four regions across four quarters",
+            x_label="region",
+            y_label="quarter",
+            axis_options={"projection": "3d", "title": "3D Bar Chart"},
+            series=[
+                SeriesSpec(
+                    name="Sales",
+                    sql=(
+                        "SELECT region_index AS x, quarter AS y, sales AS z "
+                        "FROM regional_sales"
+                    ),
+                    roles={"x": "x", "y": "y", "z": "z"},
+                    style={},
+                ),
+            ],
+        ),
     ]
 
 
@@ -1067,7 +1208,7 @@ class DemoProject:
 DEMO_PROJECTS: tuple[DemoProject, ...] = (
     DemoProject(
         "Getting started - real data across every chart type",
-        "Fifteen real datasets, twenty-two figures across every chart type "
+        "Twenty datasets, twenty-nine figures across every chart type "
         "and six multi-axis layouts, and one saved query.",
         (),
     ),
@@ -1092,25 +1233,32 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
     DemoProject(
         "DLVO force curve - ready for Fit and Calculus",
         "A real colloidal force-distance curve, repulsive at short range and "
-        "attractive beyond it, with a measurable crossover.",
+        "attractive beyond it, with a measurable crossover - its curvature "
+        "is also a fair test for Regression's Random Forest/Gradient "
+        "Boosting models and for GP Regression's uncertainty band.",
         ("dlvo_force",),
     ),
     DemoProject(
         "Stock prices - three tickers, ready for Smoothing",
         "Three years of daily closing prices for three stocks, noisy enough "
-        "that a moving average earns its keep.",
+        "that a moving average earns its keep - the three series also share "
+        "a date axis, which is what Decomposition needs to run PCA/ICA "
+        "across them together.",
         ("stock_timeseries",),
     ),
     DemoProject(
         "Employee compensation - ready for the Outlier operation",
         "Salaries across five departments, with one real outlier the box "
-        "plot already shows and the operation can confirm.",
+        "plot already shows and the operation can confirm - a right-skewed "
+        "distribution Transform's Power/Quantile models can reshape, too.",
         ("employee_box",),
     ),
     DemoProject(
         "Driver behaviour - ready for the Cluster operation",
         "Four thousand drivers by distance and speeding: the classic "
-        "two-feature clustering dataset.",
+        "two-feature clustering dataset, and shape-aware enough a "
+        "population for Outliers' Isolation Forest/Local Outlier Factor "
+        "models to earn their keep over a plain Z-score.",
         ("driver_scatter",),
     ),
     DemoProject(
@@ -1168,6 +1316,22 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "explicit colour, so opening Overlay properties shows its colour/"
         "line/font/size editors populated rather than empty.",
         ("attribute_counts", "baseline_spectrum"),
+    ),
+    DemoProject(
+        "New chart types - heatmap, hexbin, event plot, and true 3D",
+        "Five chart types added after the first release, each on data suited "
+        "to what makes it different from a plain scatter or line: a smooth "
+        "surface as a per-cell heatmap, four thousand drivers binned into a "
+        "hexbin, three servers' error timestamps as an event raster, and a "
+        "helix and a small sales table as a true 3D line and 3D bar chart "
+        "rather than a scattered or projected stand-in.",
+        (
+            "heatmap_grid",
+            "driver_hexbin",
+            "server_events",
+            "helix_3d_line",
+            "regional_sales_3d_bar",
+        ),
     ),
 )
 
