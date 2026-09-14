@@ -79,12 +79,18 @@ _TILE_HEIGHT = 84
 #: switch would never reach them again.
 _SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Analysis", ("Peaks", "Roots", "Calculus")),
-    ("Statistics", ("Statistics", "Outliers", "Clustering", "Control Chart")),
+    (
+        "Statistics",
+        (
+            "Statistics", "Outliers", "Clustering", "Control Chart",
+            "Transform", "Decomposition",
+        ),
+    ),
     (
         "Signal Processing",
         ("Smoothing", "Spectral Analysis", "Filtering", "Baseline Correction"),
     ),
-    ("Modeling", ("Fit", "Interpolation", "Function")),
+    ("Modeling", ("Fit", "Interpolation", "Function", "Regression", "GP Regression")),
 )
 _FALLBACK_SECTION = "Other"
 

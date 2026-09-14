@@ -186,7 +186,9 @@ def test_hidden_parameters_are_still_readable(qapp) -> None:
     form = ParameterForm(
         SeriesOutlierDialog.PARAMS, host, context=lambda: {"model": OUTLIER_IQR}
     )
-    assert set(form.values()) == {"threshold", "iqr_factor", "window"}
+    assert set(form.values()) == {
+        "threshold", "iqr_factor", "window", "contamination", "n_neighbors", "nu",
+    }
 
 
 def test_the_form_round_trips_its_values(qapp) -> None:

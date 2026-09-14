@@ -21,6 +21,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from scipy.ndimage import median_filter
+from sklearn.covariance import EllipticEnvelope
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.svm import OneClassSVM
 
 from app.data.data_source import parse_roles, quote_identifier, row_value
 from app.data.sqlite_repo import SqliteRepo
@@ -48,12 +52,32 @@ OUTLIER_ZSCORE = "Z-score threshold"
 OUTLIER_IQR = "Interquartile range"
 OUTLIER_MAD = "Median absolute deviation"
 OUTLIER_ROLLING = "Rolling median residual"
+OUTLIER_ISOLATION_FOREST = "Isolation Forest"
+OUTLIER_LOCAL_OUTLIER_FACTOR = "Local Outlier Factor"
+OUTLIER_ONE_CLASS_SVM = "One-Class SVM"
+OUTLIER_ELLIPTIC_ENVELOPE = "Elliptic Envelope"
 
 OUTLIER_METHODS = (
     OUTLIER_ZSCORE,
     OUTLIER_IQR,
     OUTLIER_MAD,
     OUTLIER_ROLLING,
+    OUTLIER_ISOLATION_FOREST,
+    OUTLIER_LOCAL_OUTLIER_FACTOR,
+    OUTLIER_ONE_CLASS_SVM,
+    OUTLIER_ELLIPTIC_ENVELOPE,
+)
+
+#: The four statistical methods above test y alone - a residual, a z-score,
+#: a spread. These four are shape-aware: they fit the joint (x, y) point
+#: cloud as a 2D feature space, which is what lets them catch an outlier a
+#: pure-y test misses - a point that sits at a perfectly ordinary y value
+#: but far from the curve everything else traces at that x.
+SKLEARN_OUTLIER_METHODS = (
+    OUTLIER_ISOLATION_FOREST,
+    OUTLIER_LOCAL_OUTLIER_FACTOR,
+    OUTLIER_ONE_CLASS_SVM,
+    OUTLIER_ELLIPTIC_ENVELOPE,
 )
 
 OUTLIER_DOCS = {
@@ -72,6 +96,22 @@ OUTLIER_DOCS = {
     OUTLIER_ROLLING: (
         "Rolling median residuals",
         "https://en.wikipedia.org/wiki/Moving_average#Median_filter",
+    ),
+    OUTLIER_ISOLATION_FOREST: (
+        "Isolation Forest",
+        "https://en.wikipedia.org/wiki/Isolation_forest",
+    ),
+    OUTLIER_LOCAL_OUTLIER_FACTOR: (
+        "Local Outlier Factor",
+        "https://en.wikipedia.org/wiki/Local_outlier_factor",
+    ),
+    OUTLIER_ONE_CLASS_SVM: (
+        "One-Class SVM",
+        "https://scikit-learn.org/stable/modules/outlier_detection.html#one-class-svm",
+    ),
+    OUTLIER_ELLIPTIC_ENVELOPE: (
+        "Elliptic Envelope (Minimum Covariance Determinant)",
+        "https://scikit-learn.org/stable/modules/outlier_detection.html#fitting-an-elliptic-envelope",
     ),
 }
 
@@ -149,6 +189,42 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             maximum=9999,
             odd_only=True,
             visible_for={"model": (OUTLIER_ROLLING,)},
+        ),
+        FloatParam(
+            "contamination",
+            "Contamination:",
+            tooltip="Expected fraction of points that are outliers.",
+            default_value=0.05,
+            minimum=0.001,
+            maximum=0.5,
+            visible_for={
+                "model": (
+                    OUTLIER_ISOLATION_FOREST,
+                    OUTLIER_LOCAL_OUTLIER_FACTOR,
+                    OUTLIER_ELLIPTIC_ENVELOPE,
+                )
+            },
+        ),
+        IntParam(
+            "n_neighbors",
+            "Neighbours:",
+            tooltip="Number of neighbours each point's local density is compared against.",
+            default_value=20,
+            minimum=1,
+            maximum=9999,
+            visible_for={"model": (OUTLIER_LOCAL_OUTLIER_FACTOR,)},
+        ),
+        FloatParam(
+            "nu",
+            "Nu:",
+            tooltip=(
+                "Upper bound on the fraction of training errors and lower "
+                "bound on the fraction of support vectors."
+            ),
+            default_value=0.05,
+            minimum=0.001,
+            maximum=0.999,
+            visible_for={"model": (OUTLIER_ONE_CLASS_SVM,)},
         ),
     )
 
@@ -549,7 +625,7 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         x_sorted = x_values[order]
         y_sorted = y_values[order]
         rowids_sorted = rowids[order]
-        mask_sorted = self._outlier_mask(y_sorted, model, params)
+        mask_sorted = self._outlier_mask(x_sorted, y_sorted, model, params)
         outlier_count = int(np.count_nonzero(mask_sorted))
         outlier_rowids = rowids_sorted[mask_sorted]
 
@@ -578,6 +654,9 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
                 "threshold": float(params.get("threshold", 3.0)),
                 "iqr_factor": float(params.get("iqr_factor", 1.5)),
                 "window": int(params.get("window", 11)),
+                "contamination": float(params.get("contamination", 0.05)),
+                "n_neighbors": int(params.get("n_neighbors", 20)),
+                "nu": float(params.get("nu", 0.05)),
             },
             outlier_count=outlier_count,
             message=message,
@@ -586,7 +665,12 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
     def _params(self) -> dict[str, Any]:
         return self.parameter_values()
 
-    def _outlier_mask(self, y_data: np.ndarray, model: str, params: Mapping[str, Any]) -> np.ndarray:
+    def _outlier_mask(
+        self, x_data: np.ndarray, y_data: np.ndarray, model: str, params: Mapping[str, Any]
+    ) -> np.ndarray:
+        if model in SKLEARN_OUTLIER_METHODS:
+            return self._sklearn_outlier_mask(x_data, y_data, model, params)
+
         threshold = float(params.get("threshold", 3.0))
         if model == OUTLIER_ZSCORE:
             mean = float(np.mean(y_data))
@@ -627,6 +711,64 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             return residuals > threshold * scale
         applogger.error(f"Unsupported outlier detection model: {model}")
         return np.zeros(0)
+
+    @staticmethod
+    def _sklearn_outlier_mask(
+        x_data: np.ndarray, y_data: np.ndarray, model: str, params: Mapping[str, Any]
+    ) -> np.ndarray:
+        """Fit one of the four shape-aware estimators on the (x, y) cloud.
+
+        Every one of these reports its verdict the same way - -1 is an
+        outlier, +1 is not - straight from fit_predict/predict, so the four
+        branches differ only in which estimator is built and how its own
+        parameters are read.
+        """
+        features = np.column_stack([x_data, y_data])
+        n_samples = features.shape[0]
+
+        if model == OUTLIER_ISOLATION_FOREST:
+            contamination = float(params.get("contamination", 0.05))
+            labels = IsolationForest(
+                contamination=contamination, random_state=0
+            ).fit_predict(features)
+            return labels == -1
+
+        if model == OUTLIER_LOCAL_OUTLIER_FACTOR:
+            contamination = float(params.get("contamination", 0.05))
+            # n_neighbors must be below the sample count, or scikit-learn
+            # raises instead of just capping it - a short series would
+            # otherwise crash rather than fall back to the largest
+            # neighbourhood that still makes sense for it.
+            n_neighbors = max(1, min(int(params.get("n_neighbors", 20)), n_samples - 1))
+            labels = LocalOutlierFactor(
+                n_neighbors=n_neighbors, contamination=contamination
+            ).fit_predict(features)
+            return labels == -1
+
+        if model == OUTLIER_ONE_CLASS_SVM:
+            nu = float(params.get("nu", 0.05))
+            estimator = OneClassSVM(nu=nu, kernel="rbf", gamma="scale")
+            labels = estimator.fit(features).predict(features)
+            return labels == -1
+
+        if model == OUTLIER_ELLIPTIC_ENVELOPE:
+            contamination = float(params.get("contamination", 0.05))
+            try:
+                estimator = EllipticEnvelope(contamination=contamination, random_state=0)
+                labels = estimator.fit(features).predict(features)
+            except Exception as exc:
+                # Typically a singular covariance matrix - too few points, or
+                # points that are collinear / have (near-)zero variance in x
+                # or y. Both are properties of the data, not a bug, so this
+                # is worth its own clear message rather than a raw LinAlgError.
+                raise ValueError(
+                    "Elliptic Envelope could not fit a covariance for this "
+                    f"series ({n_samples} point(s)): {exc}"
+                ) from exc
+            return labels == -1
+
+        applogger.error(f"Unsupported outlier detection model: {model}")
+        return np.zeros(n_samples, dtype=bool)
 
     @staticmethod
     def _odd_window(value: int, n_values: int, minimum: int = 3) -> int:

@@ -52,12 +52,17 @@ def test_the_approved_groupings_are_exact() -> None:
     }
     assert by_section.get("Analysis") == sorted(["Peaks", "Roots", "Calculus"])
     assert by_section.get("Statistics") == sorted(
-        ["Statistics", "Outliers", "Clustering", "Control Chart"]
+        [
+            "Statistics", "Outliers", "Clustering", "Control Chart",
+            "Transform", "Decomposition",
+        ]
     )
     assert by_section.get("Signal Processing") == sorted(
         ["Smoothing", "Spectral Analysis", "Filtering", "Baseline Correction"]
     )
-    assert by_section.get("Modeling") == sorted(["Fit", "Interpolation", "Function"])
+    assert by_section.get("Modeling") == sorted(
+        ["Fit", "Interpolation", "Function", "Regression", "GP Regression"]
+    )
 
 
 def test_an_unmapped_operation_falls_back_to_other_rather_than_vanishing() -> None:
