@@ -1139,11 +1139,13 @@ class MainWindow(QMainWindow):
                 "text-align: left; padding: 4px 8px;" if expanded
                 else "text-align: center; padding: 0px;"
             )
-        auxiliary = (
-            (self._file_button, _("File"), _("Open file commands")),
-            (self._settings_button, _("App settings"), _("Open application settings")),
-            (self._help_button, _("Help & About"), _("Open help and about commands")),
-        )
+        auxiliary = []
+        if not IS_MACOS:
+            auxiliary = [
+                (self._file_button, _("File"), _("Open file commands")),
+                (self._settings_button, _("App settings"), _("Open application settings")),
+                (self._help_button, _("Help & About"), _("Open help and about commands")),
+            ]
         for button, label, tooltip in auxiliary:
             button.setText(label if expanded else "")
             button.setToolButtonStyle(
