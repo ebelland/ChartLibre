@@ -1067,11 +1067,12 @@ class MainWindow(QMainWindow):
         self._nav_toggle.clicked.connect(self._toggle_navigation)
         layout.addWidget(self._nav_toggle)
 
-        self._file_button = self._create_activity_button(action_id="open")
-        self._file_button.setObjectName("activityButton")
-        self._file_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self._file_button.setMenu(self._file_menu)
-        layout.addWidget(self._file_button)
+        if not IS_MACOS:
+            self._file_button = self._create_activity_button(action_id="open")
+            self._file_button.setObjectName("activityButton")
+            self._file_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+            self._file_button.setMenu(self._file_menu)
+            layout.addWidget(self._file_button)
 
         self._nav_group = QButtonGroup(self)
         self._nav_group.setExclusive(True)
@@ -1086,16 +1087,17 @@ class MainWindow(QMainWindow):
 
         layout.addStretch(1)
 
-        self._settings_button = self._create_activity_button(action_id="settings")
-        self._settings_button.setObjectName("activityButton")
-        self._settings_button.clicked.connect(self._on_settings)
-        layout.addWidget(self._settings_button)
+        if not IS_MACOS:
+            self._settings_button = self._create_activity_button(action_id="settings")
+            self._settings_button.setObjectName("activityButton")
+            self._settings_button.clicked.connect(self._on_settings)
+            layout.addWidget(self._settings_button)
 
-        self._help_button = self._create_activity_button(action_id="user_manual")
-        self._help_button.setObjectName("activityButton")
-        self._help_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self._help_button.setMenu(self._help_menu)
-        layout.addWidget(self._help_button)
+            self._help_button = self._create_activity_button(action_id="user_manual")
+            self._help_button.setObjectName("activityButton")
+            self._help_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+            self._help_button.setMenu(self._help_menu)
+            layout.addWidget(self._help_button)
 
         self._set_navigation_expanded(False, rail=rail)
         return rail
