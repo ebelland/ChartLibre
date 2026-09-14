@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.scanners.series_operation_scanner import series_operations
 from app.styles.style import (
+    MARGIN_PANEL,
     CardFrame,
     create_compact_section_title,
     icon_from_svg_source,
@@ -313,6 +314,7 @@ class SeriesOperationWidget(BaseProperties):
 
         layout = QVBoxLayout(content)
         stdSizeAndlayout(layout)
+        layout.setContentsMargins(*MARGIN_PANEL)
         layout.setSpacing(2)
 
         # Plot is a section of one, built the same way and out of the same

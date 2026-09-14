@@ -566,41 +566,12 @@ QWidget#panelBody {
   background: transparent;
 }
 
-/* -------------------------------
-   The sidebar — Finder's, not a card.
-
-   This is the largest departure from the Windows sheet, and it is
-   deliberate.  Finder's sidebar is not a panel sitting inside the
-   window: it *is* the left edge of the window.  It has no border,
-   no corner radius and no card fill; it is a faintly recessed
-   surface separated from the content by a single hairline, and its
-   selection is a rounded capsule inset from both edges rather than
-   a full-bleed accent row.
-
-   Object-name rules, so they win over the QWidget[card="true"]
-   block above: the Python code builds these with the same
-   create_card_widget() helper as every other surface, and on
-   Windows a card is the right answer.
--------------------------------- */
-
-QWidget#leftPanelCard,
-QWidget#dataPageCard,
-QFrame#leftPanelCard,
-QFrame#dataPageCard {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-}
-
-QWidget#leftPanelCard {
-  /* Faintly recessed against the content, which is what makes the
-     sidebar read as a sidebar without drawing a box around it. */
-  background: rgba(@SHADOW_RGB@, 0.02);
-  /* The hairline that divides sidebar from content.  The splitter
-     handle sits on top of it and is transparent, so the line does
-     not double up while dragging. */
-  border-right: 1px solid rgba(@SHADOW_RGB@, 0.10);
-}
+/* leftPanelCard / dataPageCard: no override here — they were once
+   styled flush and square, Finder-sidebar style, but that read as a
+   flat grey slab next to the chart's rounded white card. They fall
+   through to the QWidget[card="true"] rule above, so the sidebar now
+   gets the same automatic rounded-white treatment as every other card
+   in the app. */
 
 /* Finder's divider is a hairline you aim at, not a visible bar. */
 QSplitter::handle {

@@ -263,7 +263,7 @@ class MainWindow(QMainWindow):
         stylesheet = (
             f"QStatusBar#vscodeStatusBar {{ background: {color}; color: white; border: none; }} "
             "QStatusBar#vscodeStatusBar::item { border: none; } "
-            "QStatusBar#vscodeStatusBar QLabel { color: white; background: transparent; }"
+            "QStatusBar#vscodeStatusBar QLabel { color: white; background: transparent; padding: 0 4px; }"
         )
         self.statusBar().setStyleSheet(stylesheet)
         if message is not None:
@@ -460,7 +460,7 @@ class MainWindow(QMainWindow):
 
     def _create_data_page(self) -> QWidget:
         """Create the Data page with table list and preview splitter."""
-        page = CardFrame(self, "dataPageCard")
+        page = CardFrame(self, "dataPageCard", margins=(0, 0, 0, 0))
         page.setProperty("elevated", True)
         page.setSizePolicy(
             QSizePolicy.Policy.Expanding,
