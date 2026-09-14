@@ -1355,13 +1355,18 @@ class ChartPanel(QFrame):
         }
 
     def _hide_selection(self) -> None:
-        """Hide every selected point on its own source table.
+        """Hide every selected point by rewriting its series' own query.
 
-        Only works for a series whose query reads a plain table (the same
-        restriction ``update_series_hide_filter`` already documents) -
-        anything else has no rowid to flip a Hide flag on. A series over a
-        saved query or a join is silently left alone rather than failing
-        the whole action for every series the rectangle happened to cover.
+        Not a rowid-based Hide flag (that only ever worked for a series
+        reading a plain table, and even then turned out unreliable in
+        practice - see todo.txt P-02). Wrapping the series' existing SQL in
+        a WHERE clause that keeps only the points OUTSIDE the rectangle
+        works for any series, table-backed or not - the same
+        "read the series' own query as a subquery" idea
+        _create_series_from_selection already uses, just with the
+        condition negated (De Morgan: NOT(xmin<=x<=xmax AND ymin<=y<=ymax)
+        is x<xmin OR x>xmax OR y<ymin OR y>ymax) and updating the existing
+        series in place instead of adding a new one.
         """
         selection = self._last_selection
         if not selection:
@@ -1369,7 +1374,7 @@ class ChartPanel(QFrame):
         self._last_selection = None
 
         try:
-            undo_entry = self._repo.snapshot_for_undo(
+            self._repo.snapshot_for_undo(
                 self._repo.DESCRIPTOR_TABLES, label=_("Hide selected points")
             )
             hid_any = False
@@ -1377,36 +1382,12 @@ class ChartPanel(QFrame):
                 roles = info["roles"]
                 if "x" not in roles or "y" not in roles:
                     continue
-                if not self._repo.is_table_backed_sql(info["sql_query"]):
-                    continue
-
-                # A direct, bounded query - left<x<right, bottom<y<top - rather
-                # than reading every not-yet-hidden row into a DataFrame and
-                # masking it in Python: the rectangle is already the WHERE
-                # clause SQLite needs, so let it do the filtering.
-                table_name = self._repo.query_source_table(info["sql_query"])
-                self._repo.ensure_hide_column(table_name)
-                x_col = str(roles["x"]).strip()
-                y_col = str(roles["y"]).strip()
-                frame = self._repo.query_df(
-                    f"SELECT rowid AS __rowid__ FROM {quote_identifier(table_name)} "
-                    f"WHERE {quote_identifier(x_col)} BETWEEN ? AND ? "
-                    f"AND {quote_identifier(y_col)} BETWEEN ? AND ? "
-                    f'AND COALESCE("Hide", 0) = 0',
-                    (selection["x0"], selection["x1"], selection["y0"], selection["y1"]),
+                new_sql = (
+                    f"SELECT * FROM ({info['sql_query']}) "
+                    f"WHERE (x < {selection['x0']!r} OR x > {selection['x1']!r} "
+                    f"OR y < {selection['y0']!r} OR y > {selection['y1']!r})"
                 )
-                if frame.empty:
-                    continue
-                rowids = frame["__rowid__"].astype(int).tolist()
-
-                # The Hide column lives on the source data table, not on any
-                # of DESCRIPTOR_TABLES - added to the same undo entry so one
-                # undo reverts both the flag and the SQL rewrite below.
-                self._repo.snapshot_for_undo(
-                    [table_name], label=_("Hide selected points"), entry_id=undo_entry
-                )
-                self._repo.mark_hide_rowids(table_name=table_name, rowids=rowids)
-                self._repo.update_series_hide_filter(info["series_id"], info["sql_query"])
+                self._repo.update_series_sql_query(int(info["series_id"]), new_sql)
                 hid_any = True
         except Exception:  # noqa: BLE001
             applogger.exception("Could not hide the selected points.")
@@ -1946,7 +1927,7 @@ class ChartPanel(QFrame):
             icon="hide_points",
             checkable=False,
             text=_("Hide {count} selected point(s)").format(count=point_count),
-            tooltip=_("Hide these points on their source table."),
+            tooltip=_("Hide these points from this series without changing its data."),
             key=None,
             action=self._hide_selection,
         )

@@ -173,7 +173,7 @@
     },
     "hide_points": {
       "text": "Hide",
-      "description": "Hide the selected points on their source table",
+      "description": "Hide the selected points from this series",
       "SFSymbol": "eye.slash",
       "SegoeFluent": "E890",
       "ThemeIcon": "list-remove"

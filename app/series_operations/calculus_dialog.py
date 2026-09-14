@@ -105,6 +105,32 @@ BASELINE_NONE = "none"
 BASELINE_MINIMUM = "minimum"
 BASELINE_ENDPOINTS = "endpoints"
 
+# A dated series' x always arrives here as seconds since the epoch (see
+# SeriesOperationDialogBase.numeric_x) - correct to differentiate/integrate
+# against directly, but a derivative "per second" of daily data is ~86400x
+# smaller than what a person looking at the chart expects, and a definite
+# integral's reported area is inflated by the same factor. Picking the
+# coarsest unit that keeps the median sample spacing at 0.5 or more of it
+# turns "per second"/"y*seconds" into "per day"/"y*days" for the common
+# case without needing the user to say what the data's cadence is.
+_TIME_UNITS: tuple[tuple[str, float], ...] = (
+    ("year", 365.25 * 86400.0),
+    ("week", 7.0 * 86400.0),
+    ("day", 86400.0),
+    ("hour", 3600.0),
+    ("minute", 60.0),
+    ("second", 1.0),
+)
+
+
+def _pick_time_unit(median_spacing_seconds: float) -> tuple[str, float]:
+    """Return (unit name, seconds per unit) for a median sample spacing."""
+    if median_spacing_seconds > 0:
+        for name, seconds in _TIME_UNITS:
+            if median_spacing_seconds >= seconds * 0.5:
+                return name, seconds
+    return "second", 1.0
+
 
 @dataclass(slots=True)
 class CalculusResult:
@@ -360,28 +386,34 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         params: Mapping[str, Any],
     ) -> CalculusResult:
         order = int(params.get("order", 1))
+        unit_label, unit_seconds = self._temporal_unit(name, x_values)
+        # x_calc is only ever used for the derivative's own math - the
+        # result keeps the original x_values (raw seconds for a dated
+        # series) so it still lands on the axis's real date scale, see
+        # SeriesOperationDialogBase.restore_temporal_x.
+        x_calc = x_values / unit_seconds if unit_label else x_values
 
         if model == DERIV_GRADIENT:
             # np.gradient, not np.diff: it takes x explicitly, so it is correct
             # on unevenly sampled data, and it returns one value per input
             # point rather than n-1, so the result still lines up with the
             # source series on the same axis.
-            derivative = np.gradient(y_values, x_values, edge_order=2)
+            derivative = np.gradient(y_values, x_calc, edge_order=2)
             detail = "central difference"
 
         elif model == DERIV_SPLINE:
             spline = UnivariateSpline(
-                x_values,
+                x_calc,
                 y_values,
                 k=min(5, max(order + 1, 3)),
                 s=float(params.get("smoothing", 0)),
             )
-            derivative = spline.derivative(n=order)(x_values)
+            derivative = spline.derivative(n=order)(x_calc)
             detail = f"spline, s={params.get('smoothing', 0)}"
 
         else:
-            window, polyorder = self._savgol_window(x_values.size, params)
-            spacing = self._uniform_spacing(x_values, name)
+            window, polyorder = self._savgol_window(x_calc.size, params)
+            spacing = self._uniform_spacing(x_calc, name)
             # delta scales the result into units of y per unit of x. Without
             # it savgol returns a derivative per sample index, which is off by
             # a factor of the sampling interval - silently right only when the
@@ -395,14 +427,36 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             )
             detail = f"window {window}, order {polyorder}"
 
+        power = "²" if order == 2 else ""
+        base_name = f"{name} - d{power}y/dx{power}"
+        result_name = f"{base_name} (x in {unit_label}s)" if unit_label else base_name
         return CalculusResult(
             source_name=name,
-            result_name=f"{name} - d{'²' if order == 2 else ''}y/dx{'²' if order == 2 else ''}",
+            result_name=result_name,
             model=model,
             x=x_values,
             y=derivative,
-            metadata={"order": order, "detail": detail},
+            metadata={"order": order, "detail": detail, "per": unit_label},
         )
+
+    def _temporal_unit(self, name: str, x_values: np.ndarray) -> tuple[str, float]:
+        """Return (unit name, seconds per unit) for *name*'s x, if temporal.
+
+        ("", 1.0) for a plain numeric x - the empty label is also the
+        signal callers use to skip rescaling entirely. See _TIME_UNITS'
+        own comment for why an untouched "per second" is wrong often
+        enough to be worth picking a coarser unit automatically.
+        """
+        # getattr, not a direct read: tests exercise this dialog's pure
+        # numeric methods on a bare cls.__new__(cls) instance with no
+        # __init__ run, so _temporal_x_sources (set in __init__) may not
+        # exist at all - absent is the same as "nothing is temporal".
+        if not getattr(self, "_temporal_x_sources", {}).get(name):
+            return "", 1.0
+        steps = np.diff(x_values)
+        median_spacing = float(np.median(steps)) if steps.size else 0.0
+        unit_label, unit_seconds = _pick_time_unit(median_spacing)
+        return unit_label, unit_seconds
 
     def _savgol_window(
         self,
@@ -460,29 +514,35 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         corrected, baseline_detail = self._subtract_baseline(
             x_values, y_values, str(params.get("baseline", BASELINE_NONE))
         )
+        unit_label, unit_seconds = self._temporal_unit(name, x_values)
+        # x_calc is only for the integral's own math - see _differentiate's
+        # own comment on why the result keeps x_values (raw seconds for a
+        # dated series) rather than the rescaled x_calc.
+        x_calc = x_values / unit_seconds if unit_label else x_values
+        unit_suffix = f" (x in {unit_label}s)" if unit_label else ""
 
         if model == INTEGRAL_CUMULATIVE:
             # initial=0 so the result has one value per input point and starts
             # at zero, which is what makes it plottable against the source.
-            running = cumulative_trapezoid(corrected, x_values, initial=0.0)
+            running = cumulative_trapezoid(corrected, x_calc, initial=0.0)
             return CalculusResult(
                 source_name=name,
-                result_name=f"{name} - ∫y dx",
+                result_name=f"{name} - ∫y dx{unit_suffix}",
                 model=model,
                 x=x_values,
                 y=running,
                 total=float(running[-1]) if running.size else 0.0,
-                metadata={"baseline": baseline_detail},
+                metadata={"baseline": baseline_detail, "per": unit_label},
             )
 
         use_simpson = bool(params.get("simpson", False))
-        if use_simpson and x_values.size % 2 == 0:
+        if use_simpson and x_calc.size % 2 == 0:
             # Simpson's rule pairs intervals, so it needs an odd number of
             # points. SciPy silently changes method on an even sample rather
             # than saying so, which makes the reported rule wrong.
             applogger.warning(
                 f"{name}: Simpson's rule needs an odd number of points; "
-                f"the series has {x_values.size}, so the trapezoidal rule was "
+                f"the series has {x_calc.size}, so the trapezoidal rule was "
                 f"used instead.",
                 show_dialog=False,
                 raise_error=False,
@@ -490,14 +550,14 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             use_simpson = False
 
         total = (
-            float(simpson(corrected, x=x_values))
+            float(simpson(corrected, x=x_calc))
             if use_simpson
-            else float(trapezoid(corrected, x_values))
+            else float(trapezoid(corrected, x_calc))
         )
 
         return CalculusResult(
             source_name=name,
-            result_name=f"{name} - area",
+            result_name=f"{name} - area{unit_suffix}",
             model=model,
             # A single number still has to be a series to be stored and drawn,
             # so it is reported across the range it was computed over.
@@ -507,6 +567,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             metadata={
                 "baseline": baseline_detail,
                 "rule": "Simpson" if use_simpson else "trapezoidal",
+                "per": unit_label,
             },
         )
 
@@ -598,6 +659,9 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             y_label = "d\u00b2y/dx\u00b2" if order == 2 else "dy/dx"
         else:
             y_label = "\u222by dx"
+        unit_label = str(first.metadata.get("per") or "")
+        if unit_label:
+            y_label = f"{y_label} (x in {unit_label}s)"
 
         try:
             self._repo.update_axis_descriptor(
@@ -670,7 +734,9 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
                 report_html.format_number(result.total)
                 if result.total is not None
                 else "&mdash;",
-                ", ".join(f"{key}: {value}" for key, value in result.metadata.items()),
+                ", ".join(
+                    f"{key}: {value}" for key, value in result.metadata.items() if value
+                ),
             )
             for result in results
         ]

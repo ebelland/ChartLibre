@@ -156,6 +156,85 @@ def test_the_calculus_dialog_differentiates_a_dated_series(
     assert len(results[0].y) == DAYS
 
 
+# ----------------------------------------------------------------------
+# Calculus on dates: seconds-since-epoch is correct but unreadable
+# (todo.txt P-01) - a derivative/integral against raw seconds is ~86400x
+# smaller/larger than what daily data means intuitively.
+# ----------------------------------------------------------------------
+def test_a_derivative_of_a_dated_series_is_scaled_per_day_not_per_second(
+    qapp, repo: SqliteRepo, dated_figure
+) -> None:
+    from app.series_operations.calculus_dialog import (
+        DERIV_GRADIENT,
+        SeriesCalculusDialog,
+    )
+
+    figure_id, _axis_id = dated_figure
+    dialog = _dialog(SeriesCalculusDialog, repo, figure_id)
+    dialog.model_combo.setCurrentText(DERIV_GRADIENT)
+    result = dialog.compute_results()[0]
+
+    # sin(n/5)'s slope is O(0.1-0.2) per day; per second it would be
+    # ~86400x smaller, around 1e-6 - comfortably below this floor.
+    assert np.abs(result.y).max() > 0.01
+    assert "day" in result.result_name
+    assert result.metadata.get("per") == "day"
+
+
+def test_an_integral_of_a_dated_series_is_scaled_per_day_not_per_second(
+    qapp, repo: SqliteRepo, dated_figure
+) -> None:
+    from app.series_operations.calculus_dialog import (
+        INTEGRAL_DEFINITE,
+        SeriesCalculusDialog,
+    )
+
+    figure_id, _axis_id = dated_figure
+    dialog = _dialog(SeriesCalculusDialog, repo, figure_id)
+    dialog.model_combo.setCurrentText(INTEGRAL_DEFINITE)
+    result = dialog.compute_results()[0]
+
+    # The area under sin(n/5) over 60 days is a single-digit number in
+    # y*days; in y*seconds (the un-rescaled bug) it would be ~86400x
+    # larger, in the tens of thousands.
+    assert result.total is not None
+    assert abs(result.total) < 100.0
+    assert "day" in result.result_name
+
+
+def test_a_plain_numeric_series_is_not_rescaled(qapp, repo: SqliteRepo) -> None:
+    """The rescaling is conditional on a temporal x, not applied blindly."""
+    from app.series_operations.calculus_dialog import (
+        DERIV_GRADIENT,
+        SeriesCalculusDialog,
+    )
+
+    repo.import_dataframe(
+        pd.DataFrame({"n": np.arange(60.0), "v": np.sin(np.arange(60) / 5.0)}),
+        table_name="plain",
+        normalize_columns=False,
+    )
+    figure_id = int(repo.create_figure_descriptor(name="P", nrows=1, ncols=1))
+    axis_id = int(
+        repo.create_axis_descriptor(
+            figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+            title="p", x_label="n", y_label="v", options={},
+        )
+    )
+    repo.create_series_descriptor(
+        axis_id=axis_id, series_index=0, name="sig",
+        sql_query="SELECT n AS x, v AS y FROM plain",
+        roles={"x": "x", "y": "y"}, style={},
+    )
+    dialog = _dialog(SeriesCalculusDialog, repo, figure_id)
+    dialog.model_combo.setCurrentText(DERIV_GRADIENT)
+
+    result = dialog.compute_results()[0]
+
+    assert "x in" not in result.result_name
+    assert result.metadata.get("per") == ""
+
+
 @pytest.mark.parametrize(
     "module_name, class_name",
     [

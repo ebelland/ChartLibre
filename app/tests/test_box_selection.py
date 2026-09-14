@@ -2,13 +2,14 @@
 
 A rectangle drawn while "Select points" is on picks out the plotted points
 it covers, grouped by the series they belong to (matched by the artist's
-own label, same identity _on_pick and the legend toggle already use). What
-happens next reuses two pieces of infrastructure that already existed for
-other features rather than inventing a third: "Hide selected points" is the
-same rowid-based Hide column the Outlier dialog flips
-(SqliteRepo.mark_hide_rowids/update_series_hide_filter), and "New series
-from selection" wraps the source series' own SQL in a WHERE clause the way
-a series-over-a-series already works elsewhere.
+own label, same identity _on_pick and the legend toggle already use). Both
+actions on the result wrap the source series' own SQL as a subquery, the
+way a series-over-a-series already works elsewhere - "New series from
+selection" adds a new series keeping only the rows inside the rectangle;
+"Hide selected points" rewrites the existing series' query to keep only
+the rows outside it. Neither needs the series to read a plain table (an
+earlier, rowid-based Hide-column version of "Hide selected points" did,
+and turned out unreliable in practice - see todo.txt P-02).
 """
 from __future__ import annotations
 
@@ -149,34 +150,52 @@ def test_hiding_the_selection_removes_those_rows_from_the_chart(panel) -> None:
     built._hide_selection()
 
     assert built._last_selection is None
-    assert built._repo.count_hidden_rows("w") == 4
     remaining_axes = built._figure.axes[0]
     collection = remaining_axes.collections[0]
     x_data = np.asarray(collection.get_offsets())[:, 0]
     assert sorted(float(v) for v in x_data) == [0.0, 1.0, 2.0, 7.0, 8.0, 9.0]
+    # The original table is untouched - only the series' own query changed.
+    assert built._repo.query_df("SELECT COUNT(*) AS n FROM w")["n"].iloc[0] == 10
+
+
+def test_hiding_the_selection_rewrites_the_series_query(panel) -> None:
+    built, axis_id = panel
+    built._select_mode_enabled = True
+    axes = built._figure.axes[0]
+    original_sql = built._repo.get_series(axis_id)[0]["sql_query"]
+    _drag(built, axes, 2.5, 2.5, 6.5, 6.5)
+
+    built._hide_selection()
+
+    new_sql = built._repo.get_series(axis_id)[0]["sql_query"]
+    assert new_sql != original_sql
+    frame = built._repo.query_df(f"SELECT x FROM ({new_sql})")
+    assert sorted(frame["x"].tolist()) == [0.0, 1.0, 2.0, 7.0, 8.0, 9.0]
 
 
 def test_hiding_the_selection_can_be_undone(panel) -> None:
     built, axis_id = panel
     built._select_mode_enabled = True
     axes = built._figure.axes[0]
+    original_sql = built._repo.get_series(axis_id)[0]["sql_query"]
     _drag(built, axes, 2.5, 2.5, 6.5, 6.5)
 
     built._hide_selection()
-    assert built._repo.count_hidden_rows("w") == 4
+    assert built._repo.get_series(axis_id)[0]["sql_query"] != original_sql
 
     built._repo.undo_last()
 
-    assert built._repo.count_hidden_rows("w") == 0
+    assert built._repo.get_series(axis_id)[0]["sql_query"] == original_sql
 
 
 def test_hiding_an_empty_selection_does_nothing(panel) -> None:
-    built, _axis_id = panel
+    built, axis_id = panel
     built._last_selection = None
+    original_sql = built._repo.get_series(axis_id)[0]["sql_query"]
 
     built._hide_selection()  # must not raise
 
-    assert built._repo.count_hidden_rows("w") == 0
+    assert built._repo.get_series(axis_id)[0]["sql_query"] == original_sql
 
 
 # ----------------------------------------------------------------------
