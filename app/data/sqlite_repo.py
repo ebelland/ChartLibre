@@ -41,6 +41,7 @@ from app.utils.config import load_config
 # DatabaseReport" is what the rest of the application writes, and the split
 # into app/data/repo/ is meant to be invisible from outside (todo.txt N-5).
 from app.data.repo._common import (  # noqa: F401 - re-export
+    DatabasePragmaInfo,
     DatabaseReport,
     SavedQuery,
     _dumps_json,

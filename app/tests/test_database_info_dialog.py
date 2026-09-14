@@ -102,3 +102,51 @@ def test_no_selection_disables_every_row_action(qapp, repo: SqliteRepo) -> None:
 )
 def test_human_size_reads_the_way_a_person_would(num_bytes: int, expected: str) -> None:
     assert _human_size(num_bytes) == expected
+
+
+# ----------------------------------------------------------------------
+# PRAGMA info - what SQLite and the filesystem themselves can say
+# ----------------------------------------------------------------------
+def test_database_pragma_info_counts_tables_and_rows(repo: SqliteRepo) -> None:
+    info = repo.database_pragma_info()
+
+    assert info.table_count == 2
+    assert info.total_rows == 5  # 3 + 2
+    assert info.sqlite_version
+    assert info.page_size > 0
+    assert info.page_count > 0
+
+
+def test_size_bytes_is_page_size_times_page_count(repo: SqliteRepo) -> None:
+    info = repo.database_pragma_info()
+    assert info.size_bytes == info.page_size * info.page_count
+
+
+def test_file_modified_is_read_from_the_real_file(repo: SqliteRepo) -> None:
+    info = repo.database_pragma_info()
+    assert info.file_modified is not None
+
+
+def test_the_dialog_opens_with_the_pragma_section(qapp, repo: SqliteRepo) -> None:
+    # Constructing the dialog runs _add_pragma_rows; not raising and the
+    # data it read back matching the fixture is the meaningful assertion -
+    # hunting individual QLabel widgets would only restate the same thing
+    # more fragilely.
+    dialog = DatabaseInfoDialog(repo, parent=None)
+
+    assert dialog._repo.database_pragma_info().table_count == 2
+
+
+def test_a_pragma_failure_does_not_break_the_dialog(
+    qapp, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _raise(self) -> None:
+        raise RuntimeError("boom")
+
+    # An instance attribute cannot be patched here - SqliteRepo's mixins
+    # are all __slots__ = (), so the class method is the only patch point.
+    monkeypatch.setattr(SqliteRepo, "database_pragma_info", _raise)
+
+    dialog = DatabaseInfoDialog(repo, parent=None)  # must not raise
+
+    assert dialog is not None

@@ -131,43 +131,35 @@ P2-19 pysym: user-authored Python/symbolic series - a suggested design, not
 P3 - LATER
 ================================================================
 
-P3-4  Function Creator - Developer menu stub added, design sketch below
-      app/functions/user_functions.py already documents the whole contract
-      a fit function needs (name/category/description/expression/p0/params/
-      execute/initial_guess) and is scanned with no registration step
-      (functions_scanner.py). The tool is a short form for those fields -
-      name, LaTeX-ish expression string, parameter names/starting values,
-      an execute(x, p) body - that stamps a new class into
-      user_functions.py (or a sibling file in the same scanned folder) and
-      opens it. Validate immediately after writing: import the file fresh
-      and confirm functions_scanner picks up the new class, rather than
-      letting a typo surface only the next time someone opens the Fit
-      dialog.
+Done: the whole Developer menu - Renderer Helper, Series Operation
+      Builder, Function Creator and Edit Localization.
+      - The first three write into a new user/ folder at the project
+        root - user/charts/, user/series_operations/, user/functions/ -
+        rather than into app/'s own shipped source tree (a packaged
+        build's app/ may be read-only, and user-authored code has no
+        business living beside the app's own shipped files anyway). Each
+        built-in scanner (axis_renderer_scanner.py,
+        series_operation_scanner.py, functions_scanner.py) now reads its
+        app/ folder and the matching user/ one together
+        (class_discovery.discover_classes_merged, built-in wins a name
+        collision). The shared scaffolding plumbing - name/class-name
+        derivation, write + fresh-import-and-rediscover validation, open
+        in the system editor - lives once in
+        app/dialogs/dev_tools_common.py.
+      - Edit Localization is a table editor over one language's .po
+        catalogue: every source string i18n.source_translator_calls()
+        finds (the same AST sweep test_localization.py's own safety net
+        runs) unioned with whatever the catalogue already has, a
+        "missing only" filter, "New language..." (seeds a fresh
+        catalogue from every known source string), and an optional
+        "Translate missing (auto)" button (soft dependency on the
+        `translate` PyPI package - always a draft to review, never
+        treated as finished). Saves through the new
+        i18n._write_po/_po_escape (round-trips losslessly with
+        _parse_po) and recompiles the .mo immediately. "Localized
+        manual" is instructions only - user_manual.typ is Typst prose,
+        not a string catalogue, so translating it is a manual step this
+        tool just explains (copy to user_manual_<lang>.typ, translate,
+        `typst compile`).
 
-P3-5  Edit Localization - Developer menu stub added, design sketch below
-      A table of every msgid/msgstr in
-      app/locales/it/LC_MESSAGES/datahub.po (i18n._parse_po already reads
-      it), filterable to "missing only" using the exact scan
-      test_localization.py already runs (walk every module's _()/tr()
-      calls, diff against the catalogue) - which would have caught the 5
-      currently-untranslated add.vertical/add.horizontal/add.annotation
-      strings the moment they were written instead of at the next full
-      test run. Needs a _write_po counterpart to i18n's existing
-      _write_mo (only the compiled .mo writer exists today) that keeps
-      comments and ordering stable enough for a real diff to stay
-      readable - rewriting the whole file on every save would turn one
-      changed string into a thousand-line diff.
 
-P3-6  Series Operation Builder and Renderer Helper - Developer menu stubs
-      added, design sketch below
-      The same idea as Function Creator (P3-4) applied to the other two
-      "drop a correctly-shaped class in a folder, no registration" spots:
-      app/series_operations (series_operation_scanner.py,
-      SeriesOperationDialogBase) and app/charts (axis_renderer_scanner.py,
-      BaseAxisRenderer). Each is a short form - name, description, the
-      required/optional roles, a Kwargs sketch - that stamps a template
-      file into the right folder and opens it; the scanner does the actual
-      wiring, so there is nothing to register by hand once the file is
-      correctly shaped. Same validation step as P3-4: import the stamped
-      file and confirm the relevant scanner discovers it before declaring
-      success.

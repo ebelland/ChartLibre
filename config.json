@@ -86,6 +86,27 @@
       "SegoeFluent": "E8C8",
       "ThemeIcon": "edit-copy"
     },
+    "create_renderer": {
+      "text": "Create Renderer",
+      "description": "Scaffold the new chart-type file",
+      "SFSymbol": "doc.badge.plus",
+      "SegoeFluent": "E710",
+      "ThemeIcon": "document-new"
+    },
+    "create_series_operation": {
+      "text": "Create Operation",
+      "description": "Scaffold the new series-operation file",
+      "SFSymbol": "doc.badge.plus",
+      "SegoeFluent": "E710",
+      "ThemeIcon": "document-new"
+    },
+    "create_function": {
+      "text": "Create Function",
+      "description": "Scaffold the new fit-function file",
+      "SFSymbol": "doc.badge.plus",
+      "SegoeFluent": "E710",
+      "ThemeIcon": "document-new"
+    },
     "credits": {
       "text": "Credits",
       "description": "Who made this, and what it is made of",
@@ -610,10 +631,50 @@
       "title": "Load demo",
       "text": "Could not load the demo project:\n{error}"
     },
-    "dev.not_implemented": {
+    "dev.validation_error": {
+      "level": "warning",
+      "title": "Renderer Helper",
+      "text": "{detail}"
+    },
+    "dev.renderer_created": {
       "level": "info",
-      "title": "Developer tools",
-      "text": "{feature} is not implemented yet - see todo.txt for the design sketch."
+      "title": "Renderer Helper",
+      "text": "\"{name}\" was written to {path} and is already discoverable - it will appear in the chart picker. Open it and fill in render_axis with real drawing code."
+    },
+    "dev.renderer_create_failed": {
+      "level": "warning",
+      "title": "Renderer Helper",
+      "text": "{path} was written, but it did not check out as a valid renderer: {error}. Fix the file directly and reopen it."
+    },
+    "dev.series_operation_created": {
+      "level": "info",
+      "title": "Series Operation Builder",
+      "text": "\"{name}\" was written to {path} and is already discoverable - it will appear in the Series Operations panel. Open it and replace compute_results with the real computation."
+    },
+    "dev.series_operation_create_failed": {
+      "level": "warning",
+      "title": "Series Operation Builder",
+      "text": "{path} was written, but it did not check out as a valid operation: {error}. Fix the file directly and reopen it."
+    },
+    "dev.function_created": {
+      "level": "info",
+      "title": "Function Creator",
+      "text": "\"{name}\" was written to {path} and is already discoverable - it will appear in the Fit dialog's model list. Open it and replace execute() with the real formula."
+    },
+    "dev.function_create_failed": {
+      "level": "warning",
+      "title": "Function Creator",
+      "text": "{path} was written, but it did not check out as a valid function: {error}. Fix the file directly and reopen it."
+    },
+    "dev.localization_saved": {
+      "level": "info",
+      "title": "Edit Localization",
+      "text": "The {language} catalogue was saved and recompiled."
+    },
+    "dev.localization_auto_translated": {
+      "level": "info",
+      "title": "Edit Localization",
+      "text": "{count} translation(s) filled in - review them before saving."
     },
     "import.clipboard_empty": {
       "level": "info",

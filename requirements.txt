@@ -25,6 +25,13 @@ pyobjc-framework-Cocoa>=12.2; sys_platform == "darwin"
 # instead of leaving them stacked at their points.
 adjustText==1.3.0
 
+# Optional: Edit Localization's "Translate missing (auto)" button
+# (app/dialogs/edit_localization_dialog.py) guards the import the same way
+# adjustText does above - the editor works fully without it, just without
+# that one button (a thin wrapper around the MyMemory translation API, no
+# API key needed).
+translate==3.6.1
+
 # Required for "Import - Database" against a PostgreSQL or MySQL server.
 # Pure Python, deliberately: no C extension means no wheel to be missing on
 # whatever Python this ships on next, the same reasoning as adjustText above

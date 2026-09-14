@@ -71,6 +71,7 @@ class DatabaseInfoDialog(QDialog):
         form = QFormLayout()
         form.addRow(_("Path:"), self._selectable_label(str(repo.db_path)))
         form.addRow(_("Size on disk:"), self._selectable_label(self._db_size_text()))
+        self._add_pragma_rows(form)
         card_layout.addLayout(form)
 
         self._table = QTableWidget(0, 3, card)
@@ -135,6 +136,55 @@ class DatabaseInfoDialog(QDialog):
             return _human_size(self._repo.db_path.stat().st_size)
         except OSError:
             return _("unknown")
+
+    def _add_pragma_rows(self, form: QFormLayout) -> None:
+        """Add everything SQLite and the filesystem themselves can say.
+
+        A best effort, not a hard requirement of opening this dialog - a
+        PRAGMA failing (a very old or unusual SQLite build) loses this
+        section, not the whole dialog.
+        """
+        try:
+            info = self._repo.database_pragma_info()
+        except Exception:
+            applogger.exception("Could not read database PRAGMA info.")
+            return
+
+        form.addRow(
+            _("Tables:"),
+            self._selectable_label(
+                _("{tables} table(s), {rows} row(s) total").format(
+                    tables=f"{info.table_count:,}", rows=f"{info.total_rows:,}"
+                )
+            ),
+        )
+        if info.reclaimable_bytes:
+            pages_text = _(
+                "{count:,} x {size} B, {amount} reclaimable by Optimize DB"
+            ).format(
+                count=info.page_count,
+                size=info.page_size,
+                amount=_human_size(info.reclaimable_bytes),
+            )
+        else:
+            pages_text = _("{count:,} x {size} B").format(
+                count=info.page_count, size=info.page_size
+            )
+        form.addRow(_("Pages:"), self._selectable_label(pages_text))
+        form.addRow(
+            _("Encoding:"), self._selectable_label(f"{info.encoding} · {info.journal_mode}")
+        )
+        form.addRow(_("SQLite version:"), self._selectable_label(info.sqlite_version))
+        if info.file_created is not None:
+            form.addRow(
+                _("File created:"),
+                self._selectable_label(info.file_created.strftime("%Y-%m-%d %H:%M")),
+            )
+        if info.file_modified is not None:
+            form.addRow(
+                _("Last modified:"),
+                self._selectable_label(info.file_modified.strftime("%Y-%m-%d %H:%M")),
+            )
 
     def _reload_tables(self) -> None:
         """Repopulate the table list, keeping the current selection by name."""

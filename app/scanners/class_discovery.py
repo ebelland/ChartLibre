@@ -293,6 +293,43 @@ def discover_classes(
     return discovered
 
 
+def discover_classes_merged(
+    *,
+    roots: tuple[Path, ...],
+    base_class_name: str,
+    value_attr: str | None = "Name",
+    string_attrs: tuple[str, ...] = (),
+    string_list_attrs: tuple[str, ...] = (),
+    require_value_attr: bool = True,
+) -> list[dict[str, Any]]:
+    """Discover across several roots at once, earlier roots winning ties.
+
+    For a plugin family split across a built-in folder and a user one (see
+    app.utils.config.USER_CHARTS_DIR and its siblings) - pass the built-in
+    root first so a name collision resolves to the built-in entry rather
+    than silently shadowing it with a user one. A root that does not exist
+    (the user folder, before anything has ever been scaffolded into it)
+    contributes nothing rather than raising - see discover_classes' own
+    handling of a missing root.
+    """
+    discovered: list[dict[str, Any]] = []
+    seen_values: set[Any] = set()
+    for root in roots:
+        for entry in discover_classes(
+            root=root,
+            base_class_name=base_class_name,
+            value_attr=value_attr,
+            string_attrs=string_attrs,
+            string_list_attrs=string_list_attrs,
+            require_value_attr=require_value_attr,
+        ):
+            if entry["value"] in seen_values:
+                continue
+            seen_values.add(entry["value"])
+            discovered.append(entry)
+    return discovered
+
+
 def attr_name_to_key(attr_name: str) -> str:
     """
     Convert class attribute names to discovery dictionary keys.

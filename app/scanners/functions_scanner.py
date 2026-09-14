@@ -1,8 +1,12 @@
 """Fit-function scanner for SeriesFitDialog.
 
 The fit dialog is intentionally decoupled from concrete model definitions.
-Built-in functions live in ``app/functions/functions.py`` and user functions
-live in ``app/functions/user_functions.py``.  This scanner uses the generic
+Built-in functions live in ``app/functions/functions.py``, a hand-written
+example lives in ``app/functions/user_functions.py``, and a function the
+Function Creator (Developer menu) scaffolds lives in ``user/functions/``
+instead (kept out of the app's own shipped source, see
+``app.utils.config.USER_FUNCTIONS_DIR``) - this scanner reads all of
+``app/functions/`` plus that folder together.  It uses the generic
 ``class_discovery`` helpers to find classes that directly inherit from
 ``base_function`` and then loads their ``execute(x, p)`` method on demand.
 """
@@ -16,7 +20,11 @@ from typing import Any, Callable, Final
 import numpy as np
 
 from app.logs.logger import applogger
-from app.scanners.class_discovery import discover_classes, import_class_from_discovery_entry
+from app.scanners.class_discovery import (
+    discover_classes_merged,
+    import_class_from_discovery_entry,
+)
+from app.utils.config import USER_FUNCTIONS_DIR
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,8 +80,14 @@ class FunctionScanner:
     BASE_CLASS_NAME: Final[str] = "base_function"
     DEFAULT_CATEGORY: Final[str] = "Functions"
 
-    def __init__(self, *, root: Path | None = None) -> None:
+    def __init__(
+        self, *, root: Path | None = None, extra_roots: tuple[Path, ...] | None = None
+    ) -> None:
         self.root = root or Path(__file__).resolve().parent.joinpath("..", "functions")
+        #: Scanned alongside ``root`` - defaults to user/functions/, where the
+        #: Function Creator writes. Overridable (an empty tuple included) for
+        #: tests that want ``root`` scanned on its own.
+        self.extra_roots = (USER_FUNCTIONS_DIR,) if extra_roots is None else extra_roots
         self._specs: list[FitFunctionSpec] | None = None
 
     def refresh(self) -> list[FitFunctionSpec]:
@@ -131,14 +145,13 @@ class FunctionScanner:
         return model
 
     def _discover(self) -> list[FitFunctionSpec]:
-        entries = discover_classes(
-            root=self.root,
+        entries = discover_classes_merged(
+            roots=(self.root, *self.extra_roots),
             base_class_name=self.BASE_CLASS_NAME,
             value_attr="name",
             string_attrs=("category", "description", "expression"),
             string_list_attrs=("params",),
             require_value_attr=False,
-            skip_init=True,
         )
 
         specs: list[FitFunctionSpec] = []

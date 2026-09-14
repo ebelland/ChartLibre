@@ -12,10 +12,17 @@ Part of ``SqliteRepo``; see ``app/data/repo/__init__.py``.
 from __future__ import annotations
 
 import re
+import sqlite3
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import app.data.descriptors
-from app.data.repo._common import DatabaseReport, ensure_connection_wrapper
+from app.data.repo._common import (
+    DatabasePragmaInfo,
+    DatabaseReport,
+    ensure_connection_wrapper,
+)
 from app.logs.logger import applogger
 
 
@@ -79,6 +86,57 @@ class MaintenanceMixin:
         assert self._con is not None
         self._con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         applogger.info("Checkpointed: WAL folded into the database file.")
+
+    @ensure_connection_wrapper
+    def database_pragma_info(self) -> DatabasePragmaInfo:
+        """Return everything SQLite and the filesystem can say about this
+        database file, for the Database Info dialog's own "Info" section.
+
+        Not a health check (see check_database for that) - just what the
+        engine already tracks (page accounting, encoding, journal mode)
+        and what the OS already knows (the file's own timestamps) without
+        computing anything new, beyond a row count per table which SQLite
+        itself has no PRAGMA for.
+        """
+        assert self._con is not None
+
+        def pragma(name: str) -> Any:
+            row = self._con.execute(f"PRAGMA {name}").fetchone()
+            return row[0] if row is not None else None
+
+        tables = self.list_user_tables()
+        table_names = [str(name) for name in tables["Table"]] if not tables.empty else []
+        total_rows = sum(self.row_count(name) for name in table_names)
+
+        file_created: datetime | None = None
+        file_modified: datetime | None = None
+        try:
+            stat = Path(self.db_path).stat()
+            file_modified = datetime.fromtimestamp(stat.st_mtime)
+            # macOS/BSD only - st_birthtime does not exist on Linux, where
+            # there is no true file-creation time to read at all (st_ctime
+            # is "last metadata change", not creation, and reporting it as
+            # one would be reporting the wrong thing with confidence).
+            birthtime = getattr(stat, "st_birthtime", None)
+            if birthtime is not None:
+                file_created = datetime.fromtimestamp(birthtime)
+        except OSError:
+            pass
+
+        return DatabasePragmaInfo(
+            sqlite_version=sqlite3.sqlite_version,
+            page_size=int(pragma("page_size") or 0),
+            page_count=int(pragma("page_count") or 0),
+            freelist_count=int(pragma("freelist_count") or 0),
+            encoding=str(pragma("encoding") or ""),
+            journal_mode=str(pragma("journal_mode") or ""),
+            application_id=int(pragma("application_id") or 0),
+            user_version=int(pragma("user_version") or 0),
+            table_count=len(table_names),
+            total_rows=total_rows,
+            file_created=file_created,
+            file_modified=file_modified,
+        )
 
     @ensure_connection_wrapper
     def save_as(self, target_path: Path) -> Path:

@@ -17,6 +17,7 @@ from app.styles.style import (
     create_menu,
     load_icon,
 )
+from app.dialogs.query_builder_dialog import QueryBuilderDialog
 from app.utils.config import get_section, update_section
 from app.data.sqlite_repo import SqliteRepo
 from app.utils.import_runner import refresh_link
@@ -221,7 +222,9 @@ class TableListPanel(QWidget):
     def _build_model(self) -> _TableListModel:
         model = _TableListModel(self)
         model.setColumnCount(4)
-        model.setHorizontalHeaderLabels(["Table", "Link", "File", "Notes"])
+        model.setHorizontalHeaderLabels(
+            [_("Table"), _("Link"), _("Source"), _("Notes")]
+        )
         return model
 
     def _configure_headers(self) -> None:
@@ -290,6 +293,39 @@ class TableListPanel(QWidget):
         if selected_to_emit:
             self.tableSelected.emit(selected_to_emit)
 
+    #: How many characters of a query's SQL the Source column shows before
+    #: cutting it off - the full text is always still in the tooltip.
+    _SOURCE_TEXT_MAX = 60
+
+    @classmethod
+    def _source_display_text(cls, is_query: bool, has_link: bool, source_path: str) -> str:
+        """Return the Source column's own text for one row.
+
+        A saved query shows its SQL (collapsed to one line, truncated); a
+        database-backed link shows "connection -> table" rather than the
+        raw "connection#table" list_data_sources/_link_display_path
+        (import_data_dialog.py) store in source_path; a file or web link
+        shows its filename; a plain table with no link shows nothing.
+        """
+        if is_query:
+            collapsed = " ".join(source_path.split())
+            if len(collapsed) <= cls._SOURCE_TEXT_MAX:
+                return collapsed
+            return collapsed[: cls._SOURCE_TEXT_MAX - 1] + "…"
+
+        if not has_link or not source_path:
+            return ""
+
+        # A database link's own display path is "connection#table" (or
+        # "connection#query") - never a filesystem path, so a "/" before
+        # the "#" means this is instead a file path that happens to
+        # contain one, not a database link.
+        head, sep, tail = source_path.partition("#")
+        if sep and "/" not in head and "://" not in source_path:
+            return f"{head} → {tail}"
+
+        return Path(source_path).name
+
     def _build_row(self, row) -> list[QStandardItem]:
         """Build the four QStandardItems for one row of the source dataframe."""
         table_name = str(row.Table)
@@ -311,13 +347,14 @@ class TableListPanel(QWidget):
         it_link.setEditable(False)
         it_link.setFlags(PySide6.QtCore.Qt.ItemFlag.ItemIsEnabled | PySide6.QtCore.Qt.ItemFlag.ItemIsSelectable)
 
-        # Show filename only; full path goes in the tooltip.
-        filename = "" if is_query else (Path(source_path).name if source_path else "")
-        it_file = QStandardItem(filename)
-        # For a query, list_data_sources puts the SQL in source_path.
+        source_text = self._source_display_text(is_query, has_link, source_path)
+        it_file = QStandardItem(source_text)
+        # The short/truncated form goes in the cell; the full path or SQL
+        # goes in the tooltip - list_data_sources puts a query's SQL in
+        # source_path, same field a file/database link's path lives in.
         it_file.setToolTip(source_path)
         it_file.setEditable(False)
-        if not filename:
+        if not source_text:
             # Dim placeholder so empty cells don't compete visually.
             it_file.setForeground(QColor(128, 128, 128, 80))
 
@@ -540,6 +577,17 @@ class TableListPanel(QWidget):
                 icon="rename",
             )
         )
+
+        current_source = self._current_source()
+        if len(selected_sources) == 1 and current_source is not None and current_source[1]:
+            items.append(
+                MenuItem(
+                    text=_("Edit…"),
+                    tooltip=_("Open this saved query in the Query Builder"),
+                    callback=self._edit_selected_query,
+                    icon="edit",
+                )
+            )
         if has_link:
             items.append(
                 MenuItem(
@@ -594,6 +642,20 @@ class TableListPanel(QWidget):
 
         menu = create_menu(self, items)
         menu.exec(self._view.viewport().mapToGlobal(pos))
+
+    def _edit_selected_query(self) -> None:
+        """Open the selected saved query in the Query Builder.
+
+        Reload afterwards regardless of the dialog's own result - a rename
+        or a delete from inside the builder should not leave a stale row
+        (or a stale SQL preview in the tooltip) behind here.
+        """
+        current_source = self._current_source()
+        if self._repo is None or current_source is None or not current_source[1]:
+            return
+        name, _is_query = current_source
+        QueryBuilderDialog(self._repo, query_name=name, parent=self._top_level_parent()).exec()
+        self.reload()
 
     def set_generated_visible(self, visible: bool) -> None:
         """Show or hide the tables written by series operations."""

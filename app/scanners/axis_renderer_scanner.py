@@ -1,7 +1,9 @@
 """
 Static discovery and dynamic loading of axis renderers.
 
-Renderer classes are found by AST-scanning ``app/charts`` at import time.
+Renderer classes are found by AST-scanning ``app/charts`` - and, for a
+renderer the Renderer Helper (Developer menu) scaffolded, ``user/charts``
+alongside it, see ``app.utils.config.USER_CHARTS_DIR`` - at import time.
 The classes themselves are loaded from disk on demand and cached.
 """
 
@@ -11,9 +13,10 @@ from pathlib import Path
 
 from app.logs.logger import applogger
 from app.scanners.class_discovery import (
-    discover_classes,
+    discover_classes_merged,
     import_class_from_discovery_entry,
 )
+from app.utils.config import USER_CHARTS_DIR
 
 
 # Chart types that have been renamed, old name -> current name.
@@ -72,12 +75,15 @@ def get_renderer(name: str) -> dict | None:
 
 def _discover_axis_renderers() -> list:
     """
-    Scan app/charts for classes that directly inherit from BaseAxisRenderer.
+    Scan app/charts, then user/charts, for classes that directly inherit
+    from BaseAxisRenderer - built-in first, so a name collision (which the
+    Renderer Helper already refuses to create) resolves to the built-in
+    one rather than silently shadowing it.
     """
-    root = Path(__file__).resolve().parent.parent / "charts"
+    builtin_root = Path(__file__).resolve().parent.parent / "charts"
 
-    return discover_classes(
-        root=root,
+    return discover_classes_merged(
+        roots=(builtin_root, USER_CHARTS_DIR),
         base_class_name="BaseAxisRenderer",
         value_attr="Name",
         string_attrs=(

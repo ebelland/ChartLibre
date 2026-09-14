@@ -23,6 +23,7 @@ no runtime dependency on gettext tooling being installed.
 from __future__ import annotations
 
 import array
+import ast
 import gettext
 import os
 import struct
@@ -145,6 +146,97 @@ def _write_mo(entries: dict[str, str], path: Path) -> None:
     output += array.array("i", key_offsets + value_offsets).tobytes()
     output += ids + strs
     path.write_bytes(output)
+
+
+def _po_escape(text: str) -> str:
+    """Quote one string for a .po file - the inverse of :func:`_po_string`.
+
+    Always as a single physical line, backslash/newline/quote escaped
+    inline (``"line one\\nline two"``) rather than split across
+    continuation lines - a style this project's own catalogues already
+    use throughout (see any multi-line entry in datahub.po) and one
+    _parse_po already reads back correctly either way, since it just
+    accumulates whatever _po_string unescapes.
+    """
+    escaped = text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+    return f'"{escaped}"'
+
+
+def _write_po(
+    entries: dict[str, str],
+    path: Path,
+    *,
+    header_comment: str = "",
+) -> None:
+    """Write a .po file from a ``msgid -> msgstr`` map (Edit Localization).
+
+    The counterpart to :func:`_parse_po`: read, edit the dict it returns,
+    write it back here. Entry order follows *entries*' own iteration
+    order - a dict parsed by _parse_po and then only added to keeps the
+    file's existing order, so re-saving an edited catalogue does not
+    reshuffle it into an unreadable diff.
+
+    The empty-msgid key is the header (Project-Id-Version/Language/...,
+    see _parse_po's own docstring on why it must survive) and is written
+    like any other entry, first. *header_comment* is only used when
+    *entries* has no "" key yet (a catalogue being created from scratch);
+    an existing header's own leading '#' comment lines are the caller's
+    responsibility to preserve by reading them from the file being
+    replaced before calling this, since nothing about them is captured by
+    _parse_po for this function to round-trip on its own.
+    """
+    lines: list[str] = []
+    if header_comment:
+        lines.append(header_comment.rstrip("\n"))
+        lines.append("")
+
+    header = entries.get("", "")
+    lines.append('msgid ""')
+    lines.append(f"msgstr {_po_escape(header)}")
+    lines.append("")
+
+    for msgid, msgstr in entries.items():
+        if msgid == "":
+            continue
+        lines.append(f"msgid {_po_escape(msgid)}")
+        lines.append(f"msgstr {_po_escape(msgstr)}")
+        lines.append("")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines).rstrip("\n") + "\n", encoding="utf-8")
+
+
+def source_translator_calls(root: Path | None = None) -> set[str]:
+    """Every literal string passed to ``_()``/``tr()`` anywhere under *root*.
+
+    The same AST sweep app/tests/test_localization.py's own safety net
+    runs (its "every translated string is in the catalogue" test), exposed
+    here so a tool that wants to know what *should* be in a catalogue -
+    Edit Localization, the Developer-menu tool - has one implementation to
+    read rather than a second copy that can drift from the test's own.
+    Only a literal string argument counts, same restriction as that test:
+    ``_(some_variable)`` cannot be swept statically either way.
+    """
+    app_dir = root or Path(__file__).resolve().parent.parent
+    found: set[str] = set()
+    for path in sorted(app_dir.rglob("*.py")):
+        if "__pycache__" in path.parts or "tests" in path.parts:
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in ("_", "tr")
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+            ):
+                found.add(node.args[0].value)
+    return found
 
 
 def _mo_path(language: str) -> Path:

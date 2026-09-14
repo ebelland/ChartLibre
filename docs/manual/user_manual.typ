@@ -94,7 +94,7 @@ A SQLite database writes its own changes straight to disk on every operation, so
 
 / *Save As...*: saves the current database under a new name/path and switches to working on that copy, leaving the original untouched.
 / *Optimize DB*: checks the database for problems, reports them, and compacts it (`VACUUM`, `ANALYZE`) to shrink it on disk and speed up opening it.
-/ *Database Info*: the current project's file path and size, a list of every table with its row count and which import (if any) it is linked to, and buttons to export a table (CSV/Excel) or refresh a linked one on the spot.
+/ *Database Info*: the current project's file path and size, everything SQLite itself can report about the file (table/row totals, page accounting and how much *Optimize DB* would reclaim, encoding, journal mode, SQLite's own version, and the file's creation/modification time from the filesystem), a list of every table with its row count and which import (if any) it is linked to, and buttons to export a table (CSV/Excel) or refresh a linked one on the spot.
 
 = The main window
 
@@ -117,6 +117,8 @@ A vertical column of icons switches between the application's main sections:
 == Data panel
 
 Lists the tables in the database (saved queries are marked with a *Q* icon) and, once one is selected, shows a preview with its first rows and columns. This is also where importing data and opening the Query Builder start.
+
+Its *Source* column says where each row's data actually comes from: a filename for a file or web import, "connection → table" for a database import, the query itself (truncated, with the full text in the tooltip) for a saved query, and nothing for a table with no link. Right-clicking a saved query offers *Edit…*, which reopens it in the Query Builder.
 
 == Chart panel
 
@@ -437,6 +439,15 @@ The *Log viewer* shows the history of the application's internal operations (sta
 = Advanced: extending ChartLibre <advanced>
 
 ChartLibre discovers chart types and series operations the same way: by scanning a folder for Python classes that directly subclass a known base class, at import time — no registration list to edit and keep in sync. Dropping a well-formed file into the right folder is enough for it to appear in the application.
+
+The *Developer* menu (macOS: its own menu; elsewhere: the Menu button's Developer section) offers a GUI shortcut for the sections below, so writing the file by hand is the fallback, not the only way:
+
+/ *Renderer Helper*: a short form (name, category, description, link, required/optional roles) that scaffolds a new chart-type file.
+/ *Series Operation Builder*: the same, for a new series-operation dialog - the scaffolded file already runs, passing each selected series through unchanged, ready to have the real computation dropped in.
+/ *Function Creator*: the same, for a new fit function - the scaffolded `execute(x, p)` already evaluates a real polynomial in the declared parameters.
+/ *Edit Localization*: a table editor for a language's translation catalogue, filterable to untranslated strings only, with a button to create a new language from scratch and an optional machine-translation pass to draft from.
+
+Every scaffolded file from the first three goes under `user/` at the project root (`user/charts/`, `user/series_operations/`, `user/functions/`) rather than into `app/`'s own shipped source - kept separate on purpose, so a packaged build's own files are never touched and a person's own additions are never confused with what shipped.
 
 == Writing a custom chart renderer <advanced-renderer>
 

@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from functools import wraps
 from typing import Any, ClassVar, Mapping
 
@@ -260,4 +261,42 @@ class DatabaseReport:
                 ", ".join(self.unreferenced_tables),
             )
         applogger.info(self.summary())
+
+
+@dataclass(slots=True)
+class DatabasePragmaInfo:
+    """Everything SQLite itself can say about the connected database file.
+
+    Read-only PRAGMAs and the file's own OS timestamps, for the Database
+    Info dialog's "Info" section - not a health check (see DatabaseReport
+    for that), just what the engine and the filesystem already know
+    without being asked to compute anything.
+    """
+
+    sqlite_version: str
+    page_size: int
+    page_count: int
+    freelist_count: int
+    encoding: str
+    journal_mode: str
+    application_id: int
+    user_version: int
+    table_count: int
+    total_rows: int
+    #: None when the OS this runs on does not expose a true creation time
+    #: (Linux's st_ctime is "last metadata change", not creation - see
+    #: database_pragma_info's own docstring).
+    file_created: datetime | None = None
+    file_modified: datetime | None = None
+
+    @property
+    def size_bytes(self) -> int:
+        """The database file's logical size - page_size x page_count."""
+        return self.page_size * self.page_count
+
+    @property
+    def reclaimable_bytes(self) -> int:
+        """What VACUUM would free - the free pages already counted in
+        size_bytes but holding nothing live."""
+        return self.page_size * self.freelist_count
 

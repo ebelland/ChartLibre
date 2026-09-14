@@ -5735,3 +5735,246 @@ msgstr "Stipendi in cinque reparti, con un vero valore anomalo già visibile nel
 
 msgid "Four thousand drivers by distance and speeding: the classic two-feature clustering dataset, and shape-aware enough a population for Outliers' Isolation Forest/Local Outlier Factor models to earn their keep over a plain Z-score."
 msgstr "Quattromila guidatori per distanza e velocità: il classico dataset di clustering a due caratteristiche, ed una popolazione abbastanza sensibile alla forma da far valere i modelli Isolation Forest/Local Outlier Factor di Outliers rispetto a un semplice Z-score."
+
+msgid "\"{name}\" is already used by an existing chart type."
+msgstr "\"{name}\" è già usato da un tipo di grafico esistente."
+
+msgid "A file named \"{file}\" already exists under app/charts/."
+msgstr "Un file chiamato \"{file}\" esiste già in app/charts/."
+
+msgid "At least one required role is needed."
+msgstr "È necessario almeno un ruolo obbligatorio."
+
+msgid "Category:"
+msgstr "Categoria:"
+
+msgid "Could not create an import spec for the new file."
+msgstr "Impossibile creare una specifica di importazione per il nuovo file."
+
+msgid "Description cannot be empty."
+msgstr "La descrizione non può essere vuota."
+
+msgid "Description:"
+msgstr "Descrizione:"
+
+msgid "File name must be a valid Python file name, e.g. my_chart.py."
+msgstr "Il nome del file deve essere un nome file Python valido, es. my_chart.py."
+
+msgid "File name:"
+msgstr "Nome file:"
+
+msgid "Link:"
+msgstr "Link:"
+
+msgid "Matplotlib documentation URL (optional)"
+msgstr "URL della documentazione Matplotlib (opzionale)"
+
+msgid "Name cannot be empty."
+msgstr "Il nome non può essere vuoto."
+
+msgid "One line, shown in the chart picker."
+msgstr "Una riga, mostrata nel selettore dei grafici."
+
+msgid "Optional roles:"
+msgstr "Ruoli opzionali:"
+
+msgid "Required roles:"
+msgstr "Ruoli obbligatori:"
+
+msgid "The class imported, but axis_renderer_scanner did not discover it as a renderer - check that it subclasses BaseAxisRenderer directly."
+msgstr "La classe è stata importata, ma axis_renderer_scanner non l'ha rilevata come renderer - verifica che erediti direttamente da BaseAxisRenderer."
+
+msgid "The file imported, but class \"{cls}\" was not found in it."
+msgstr "Il file è stato importato, ma la classe \"{cls}\" non è stata trovata al suo interno."
+
+msgid "Writes a new file under app/charts/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. render_axis is left for you to write the actual drawing code into."
+msgstr "Scrive un nuovo file in app/charts/ con una classe già compilata da questi campi - nessuna registrazione necessaria, lo scanner lo rileva non appena il file esiste. render_axis viene lasciato a te per scrivere il codice di disegno vero e proprio."
+
+msgid "comma-separated, e.g. x, y"
+msgstr "separati da virgola, es. x, y"
+
+msgid "comma-separated, optional"
+msgstr "separati da virgola, opzionale"
+
+msgid "e.g. Ridgeline Plot"
+msgstr "es. Ridgeline Plot"
+
+msgid "e.g. ridgeline.py"
+msgstr "es. ridgeline.py"
+
+msgid "{detail}"
+msgstr "{detail}"
+
+msgid "\"{name}\" was written to {path} and is already discoverable - it will appear in the chart picker. Open it and fill in render_axis with real drawing code."
+msgstr "\"{name}\" è stato scritto in {path} ed è già rilevabile - apparirà nel selettore dei grafici. Aprilo e compila render_axis con il codice di disegno vero e proprio."
+
+msgid "{path} was written, but it did not check out as a valid renderer: {error}. Fix the file directly and reopen it."
+msgstr "{path} è stato scritto, ma non è risultato un renderer valido: {error}. Correggi direttamente il file e riaprilo."
+
+msgid "A file named \"{file}\" already exists under user/charts/."
+msgstr "Un file chiamato \"{file}\" esiste già in user/charts/."
+
+msgid "Writes a new file under user/charts/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. render_axis is left for you to write the actual drawing code into."
+msgstr "Scrive un nuovo file in user/charts/ con una classe già compilata da questi campi - nessuna registrazione necessaria, lo scanner lo rileva non appena il file esiste. render_axis viene lasciato a te per scrivere il codice di disegno vero e proprio."
+
+msgid "\"{name}\" is already used by an existing series operation."
+msgstr "\"{name}\" è già usato da un'operazione sulle serie esistente."
+
+msgid "A file named \"{file}\" already exists under user/series_operations/."
+msgstr "Un file chiamato \"{file}\" esiste già in user/series_operations/."
+
+msgid "File name must be a valid Python file name, e.g. my_operation_dialog.py."
+msgstr "Il nome del file deve essere un nome file Python valido, es. my_operation_dialog.py."
+
+msgid "One line, shown in the Series Operations panel."
+msgstr "Una riga, mostrata nel pannello Series Operations."
+
+msgid "The class imported, but series_operation_scanner did not discover it as an operation - check that it subclasses SeriesOperationDialogBase directly."
+msgstr "La classe è stata importata, ma series_operation_scanner non l'ha rilevata come operazione - verifica che erediti direttamente da SeriesOperationDialogBase."
+
+msgid "Writes a new file under user/series_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
+msgstr "Scrive un nuovo file in user/series_operations/ con una classe già compilata da questi campi - nessuna registrazione necessaria, lo scanner lo rileva non appena il file esiste. compute_results già lascia passare ogni serie selezionata invariata; sostituiscilo con il calcolo reale."
+
+msgid "e.g. Envelope Detector"
+msgstr "es. Envelope Detector"
+
+msgid "e.g. envelope_detector_dialog.py"
+msgstr "es. envelope_detector_dialog.py"
+
+msgid "\"{name}\" was written to {path} and is already discoverable - it will appear in the Series Operations panel. Open it and replace compute_results with the real computation."
+msgstr "\"{name}\" è stato scritto in {path} ed è già rilevabile - apparirà nel pannello Series Operations. Aprilo e sostituisci compute_results con il calcolo reale."
+
+msgid "{path} was written, but it did not check out as a valid operation: {error}. Fix the file directly and reopen it."
+msgstr "{path} è stato scritto, ma non è risultato un'operazione valida: {error}. Correggi direttamente il file e riaprilo."
+
+msgid "\"{name}\" is already used by an existing function."
+msgstr "\"{name}\" è già usato da una funzione esistente."
+
+msgid "A file named \"{file}\" already exists under user/functions/."
+msgstr "Un file chiamato \"{file}\" esiste già in user/functions/."
+
+msgid "At least one parameter is needed."
+msgstr "È necessario almeno un parametro."
+
+msgid "File name must be a valid Python file name, e.g. my_function.py."
+msgstr "Il nome del file deve essere un nome file Python valido, es. my_function.py."
+
+msgid "One line, shown in the fit dialog's model list."
+msgstr "Una riga, mostrata nell'elenco modelli del dialogo Fit."
+
+msgid "Parameters:"
+msgstr "Parametri:"
+
+msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
+msgstr "La classe è stata importata, ma functions_scanner non l'ha rilevata come funzione - verifica che erediti direttamente da base_function."
+
+msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
+msgstr "Scrive un nuovo file in user/functions/ con una classe già compilata da questi campi - nessuna registrazione necessaria, lo scanner lo rileva non appena il file esiste. execute(x, p) valuta già un vero polinomio nei parametri dichiarati; sostituiscilo con la formula reale."
+
+msgid "comma-separated, e.g. intercept, slope"
+msgstr "separati da virgola, es. intercept, slope"
+
+msgid "e.g. Stretched Exponential"
+msgstr "es. Stretched Exponential"
+
+msgid "e.g. stretched_exponential.py"
+msgstr "es. stretched_exponential.py"
+
+msgid "\"{name}\" was written to {path} and is already discoverable - it will appear in the Fit dialog's model list. Open it and replace execute() with the real formula."
+msgstr "\"{name}\" è stato scritto in {path} ed è già rilevabile - apparirà nell'elenco modelli del dialogo Fit. Aprilo e sostituisci execute() con la formula reale."
+
+msgid "{path} was written, but it did not check out as a valid function: {error}. Fix the file directly and reopen it."
+msgstr "{path} è stato scritto, ma non è risultata una funzione valida: {error}. Correggi direttamente il file e riaprilo."
+
+msgid "\"{code}\" already has a catalogue."
+msgstr "\"{code}\" ha già un catalogo."
+
+msgid "Create a new, empty catalogue"
+msgstr "Crea un nuovo catalogo vuoto"
+
+msgid "Fill every empty translation with a machine translation to review"
+msgstr "Compila ogni traduzione vuota con una traduzione automatica da rivedere"
+
+msgid "How to produce a translated copy of the user manual"
+msgstr "Come produrre una copia tradotta del manuale utente"
+
+msgid "Language:"
+msgstr "Lingua:"
+
+msgid "Localized manual"
+msgstr "Manuale localizzato"
+
+msgid "Localized manual…"
+msgstr "Manuale localizzato…"
+
+msgid "Missing only"
+msgstr "Solo mancanti"
+
+msgid "New language"
+msgstr "Nuova lingua"
+
+msgid "New language…"
+msgstr "Nuova lingua…"
+
+msgid "Not a valid language code."
+msgstr "Non è un codice lingua valido."
+
+msgid "This fills every empty translation with a machine translation from an online service - a starting point to review, not a finished translation. Continue?"
+msgstr "Questo compila ogni traduzione vuota con una traduzione automatica da un servizio online - un punto di partenza da rivedere, non una traduzione definitiva. Continuare?"
+
+msgid "Translate missing (auto)"
+msgstr "Traduci mancanti (automatico)"
+
+msgid "Translation"
+msgstr "Traduzione"
+
+msgid "Two-letter language code (e.g. \"fr\", \"de\"):"
+msgstr "Codice lingua di due lettere (es. \"fr\", \"de\"):"
+
+msgid "docs/manual/user_manual.typ is not translated by this tool - it is prose inside Typst markup, not a string catalogue. To produce a translated copy:\n\n1. Copy user_manual.typ to user_manual_<lang>.typ (e.g. user_manual_it.typ).\n2. Translate the prose, leaving every #-command, code block and image reference untouched.\n3. Compile it: typst compile user_manual_<lang>.typ.\n\nThe application text itself does not need this step - it comes from the catalogue this dialog edits."
+msgstr "docs/manual/user_manual.typ non viene tradotto da questo strumento - è prosa dentro markup Typst, non un catalogo di stringhe. Per produrre una copia tradotta:\n\n1. Copia user_manual.typ in user_manual_<lang>.typ (es. user_manual_it.typ).\n2. Traduci la prosa, lasciando invariati ogni comando #, blocco di codice e riferimento a immagini.\n3. Compilalo: typst compile user_manual_<lang>.typ.\n\nIl testo dell'applicazione stesso non richiede questo passaggio - proviene dal catalogo che questo dialogo modifica."
+
+msgid "{count} string(s), {missing} missing translation."
+msgstr "{count} stringa/e, {missing} traduzione/i mancante/i."
+
+msgid "The {language} catalogue was saved and recompiled."
+msgstr "Il catalogo {language} è stato salvato e ricompilato."
+
+msgid "{count} translation(s) filled in - review them before saving."
+msgstr "{count} traduzione/i compilata/e - rivedile prima di salvare."
+
+msgid "Encoding:"
+msgstr "Codifica:"
+
+msgid "File created:"
+msgstr "File creato:"
+
+msgid "Last modified:"
+msgstr "Ultima modifica:"
+
+msgid "Pages:"
+msgstr "Pagine:"
+
+msgid "SQLite version:"
+msgstr "Versione SQLite:"
+
+msgid "{count:,} x {size} B"
+msgstr "{count:,} x {size} B"
+
+msgid "{count:,} x {size} B, {amount} reclaimable by Optimize DB"
+msgstr "{count:,} x {size} B, {amount} recuperabili con Ottimizza DB"
+
+msgid "{tables} table(s), {rows} row(s) total"
+msgstr "{tables} tabella/e, {rows} riga/righe totali"
+
+msgid "Edit…"
+msgstr "Modifica…"
+
+msgid "Link"
+msgstr "Collegamento"
+
+msgid "Notes"
+msgstr "Note"
+
+msgid "Open this saved query in the Query Builder"
+msgstr "Apri questa query salvata nel Query Builder"

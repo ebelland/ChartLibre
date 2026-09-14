@@ -28,6 +28,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QWidget
 
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -285,21 +286,34 @@ def test_off_macos_page_switching_is_unaffected(
 
 
 # ----------------------------------------------------------------------
-# Developer menu: stubs for now (see todo.txt)
+# Developer menu: each tool opens its own dialog (see todo.txt P3-4/5/6)
 # ----------------------------------------------------------------------
-def test_a_dev_stub_reports_its_own_feature_name(
-    window: MainWindow, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    "handler_name, dialog_attr",
+    [
+        ("_on_edit_localization", "EditLocalizationDialog"),
+        ("_on_series_operation_builder", "SeriesOperationBuilderDialog"),
+        ("_on_function_creator", "FunctionCreatorDialog"),
+        ("_on_renderer_helper", "RendererHelperDialog"),
+    ],
+)
+def test_each_dev_tool_opens_its_own_dialog(
+    window: MainWindow, monkeypatch: pytest.MonkeyPatch, handler_name: str, dialog_attr: str
 ) -> None:
-    calls: list[tuple[str, dict]] = []
-    monkeypatch.setattr(
-        main_window_module,
-        "show_message",
-        lambda _parent, message_id, **kwargs: calls.append((message_id, kwargs)),
-    )
+    opened: list[QWidget] = []
 
-    window._on_edit_localization()
+    class _FakeDialog:
+        def __init__(self, parent: QWidget) -> None:
+            opened.append(parent)
 
-    assert calls == [("dev.not_implemented", {"feature": "Edit Localization"})]
+        def exec(self) -> None:
+            return None
+
+    monkeypatch.setattr(main_window_module, dialog_attr, _FakeDialog)
+
+    getattr(window, handler_name)()
+
+    assert opened == [window]
 
 
 # ----------------------------------------------------------------------
