@@ -594,7 +594,94 @@ class MainWindow(QMainWindow):
         stack.addWidget(properties_scroll)
         stack.addWidget(self._create_series_operations_page())
         stack.addWidget(self._create_database_page())
+        stack.addWidget(self._create_file_page())
         return stack
+
+    def _create_file_page(self) -> QWidget:
+        """New / Open / Import / Save / Save As, plus Open Recent.
+
+        Page index 4, matching NavigationBar.action_ids' "nav_file" - the
+        rail's own popup-menu File button (off macOS only) used to be the
+        only way to reach these; a page reachable on every platform, same
+        as Database's, replaces it.
+        """
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        stdSizeAndlayout(layout)
+
+        new_open_row = QHBoxLayout()
+        stdSizeAndlayout(new_open_row)
+        create_action_button(parent=page, action_id="new", action=self._on_new_file, layout=new_open_row)
+        create_action_button(parent=page, action_id="open", action=self._on_open_database, layout=new_open_row)
+        create_action_button(parent=page, action_id="import", action=self._on_import_data, layout=new_open_row)
+        new_open_row.addStretch(1)
+        layout.addLayout(new_open_row)
+
+        save_row = QHBoxLayout()
+        stdSizeAndlayout(save_row)
+        create_action_button(parent=page, action_id="save", action=self._on_save, layout=save_row)
+        create_action_button(parent=page, action_id="save_as", action=self._on_save_as, layout=save_row)
+        save_row.addStretch(1)
+        layout.addLayout(save_row)
+
+        recent_row = QHBoxLayout()
+        stdSizeAndlayout(recent_row)
+        open_icon, _open_text, _open_tooltip = action_presentation("open")
+        self._file_recent_button = create_action_button(
+            parent=page,
+            action_id="open",
+            # A no-op, not None: create_action_button disables a button
+            # given no action at all, on the reasoning that a button doing
+            # nothing on click is worse than one that looks unavailable -
+            # right for a plain action button, wrong here, where the click
+            # is meant for the popup menu below rather than for this.
+            action=lambda: None,
+            layout=recent_row,
+            presentation=(
+                open_icon,
+                _("Open recent"),
+                _("Open a recently used project"),
+            ),
+        )
+        recent_menu = QMenu(self._file_recent_button)
+        # Rebuilt on every show, not built once here: user.json's recent
+        # list changes between visits to this page (opening a project adds
+        # to it), the same reason the native File menu rebuilds its own
+        # Open Recent submenu on demand rather than caching it.
+        recent_menu.aboutToShow.connect(
+            lambda: self._refresh_open_recent_menu(recent_menu)
+        )
+        self._file_recent_button.setMenu(recent_menu)
+        recent_row.addStretch(1)
+        layout.addLayout(recent_row)
+
+        layout.addStretch(1)
+        return page
+
+    def _refresh_open_recent_menu(self, menu: QMenu) -> None:
+        """(Re)populate the File page's Open Recent popup from user.json."""
+        menu.clear()
+        item = self._recent_databases_item()
+        for sub_item in item.submenu or []:
+            if sub_item is None:
+                menu.addSeparator()
+                continue
+            create_menu_item(
+                menu,
+                menu,
+                sub_item.icon,
+                False,
+                sub_item.text,
+                sub_item.tooltip or "",
+                None,
+                sub_item.callback,
+                enabled=sub_item.enabled,
+            )
+        if not item.submenu:
+            create_menu_item(
+                menu, menu, None, False, _("No recent projects"), "", None, None,
+                enabled=False,
+            )
 
     def _create_database_page(self) -> QWidget:
         """Query Builder / Optimize DB actions, plus the database overview.
@@ -1147,7 +1234,6 @@ class MainWindow(QMainWindow):
         self._nav_group = rail.button_group
         self._nav_buttons = rail.buttons
         self._nav_action_ids = rail.action_ids
-        self._file_button = rail.file_button
         self._settings_button = rail.settings_button
         self._help_button = rail.help_button
         return rail

@@ -41,6 +41,10 @@ _DATABASE_ICON = (
     '<path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/>'
     '<path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>'
 )
+_FILE_ICON = (
+    '<path d="M6 2h9l5 5v15H6z"/>'
+    '<path d="M15 2v5h5"/>'
+)
 
 
 class NavigationBar(QFrame):
@@ -79,19 +83,17 @@ class NavigationBar(QFrame):
         )
         layout.addWidget(self.workspace_button)
 
-        if not is_macos:
-            self.file_button = self._catalogue_tile("open", _("File"), checkable=False)
-            self.file_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-            self.file_button.setMenu(window._file_menu)
-            layout.addWidget(self.file_button)
-        else:
-            self.file_button = None
-
+        # "File" is a page tile like Data/Database, not a platform-gated
+        # auxiliary button: File's actions (New/Open/Import/Save...) used to
+        # only exist as this button's own popup menu, off macOS only - see
+        # main_window._create_file_page for where they live now, on every
+        # platform, the same way Database's own popup dialog became a page.
         self.action_ids = (
             "nav_data",
             "nav_chart_options",
             "nav_series_operations",
             "nav_database",
+            "nav_file",
         )
 
         self.button_group = QButtonGroup(self)
@@ -196,6 +198,13 @@ class NavigationBar(QFrame):
                 icon_from_svg_source(_DATABASE_ICON, size=20),
                 _("Database"),
                 _("Show database tools"),
+                checkable=True,
+            )
+        if action_id == "nav_file":
+            return self._tile(
+                icon_from_svg_source(_FILE_ICON, size=20),
+                _("File"),
+                _("New, open, import and save"),
                 checkable=True,
             )
         icon, text, tooltip = action_presentation(action_id)
