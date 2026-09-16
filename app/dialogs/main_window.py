@@ -17,11 +17,12 @@ from pathlib import Path
 from time import monotonic
 from typing import Any, cast
 
-from PySide6.QtCore import QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
     QColor,
+    QCursor,
     QDesktopServices,
     QIcon,
 )
@@ -220,8 +221,15 @@ class MainWindow(QMainWindow):
         self._central_host = self._create_central_host()
         self.setCentralWidget(self._central_host)
         if IS_WINDOWS:
-            self.setMouseTracking(True)
-            self.installEventFilter(self)
+            # Frameless (see setWindowFlag above), so the OS gives us no edge
+            # resize handles at all - _resize_edge_at/_update_resize_cursor
+            # below fill that in. Watching _central_host, not self: it fills
+            # the entire client area (setCentralWidget), margin included, so
+            # self - the QMainWindow - never actually sees a mouse event of
+            # its own to filter. The 8px contentsMargins in
+            # _create_central_host is exactly the band this hit-tests.
+            self._central_host.setMouseTracking(True)
+            self._central_host.installEventFilter(self)
 
         # Default page.
         self._set_nav_index(0)
@@ -2176,6 +2184,74 @@ class MainWindow(QMainWindow):
         if isinstance(widget, ChartPanel):
             return widget
         return None
+
+    # ------------------------------------------------------------------
+    # Frameless window resize (Windows)
+    # ------------------------------------------------------------------
+    #: How close to an edge, in pixels, counts as "grab this edge to resize".
+    _RESIZE_MARGIN: int = 6
+
+    #: Cursor shape for each edge/corner combination _resize_edge_at can
+    #: return. Absent from here (the interior, or a maximized window) means
+    #: the ordinary arrow.
+    _RESIZE_CURSORS: dict[Qt.Edge, Qt.CursorShape] = {
+        Qt.Edge.LeftEdge: Qt.CursorShape.SizeHorCursor,
+        Qt.Edge.RightEdge: Qt.CursorShape.SizeHorCursor,
+        Qt.Edge.TopEdge: Qt.CursorShape.SizeVerCursor,
+        Qt.Edge.BottomEdge: Qt.CursorShape.SizeVerCursor,
+        Qt.Edge.TopEdge | Qt.Edge.LeftEdge: Qt.CursorShape.SizeFDiagCursor,
+        Qt.Edge.BottomEdge | Qt.Edge.RightEdge: Qt.CursorShape.SizeFDiagCursor,
+        Qt.Edge.TopEdge | Qt.Edge.RightEdge: Qt.CursorShape.SizeBDiagCursor,
+        Qt.Edge.BottomEdge | Qt.Edge.LeftEdge: Qt.CursorShape.SizeBDiagCursor,
+    }
+
+    def _resize_edge_at(self, pos: QPoint) -> Qt.Edge:
+        """Return which edge(s) of _central_host *pos* is within the margin of.
+
+        *pos* is in _central_host's own coordinates - the widget
+        eventFilter below watches, not the window's (self never sees a
+        mouse event of its own to filter; see __init__'s comment on why).
+        """
+        rect = self._central_host.rect()
+        margin = self._RESIZE_MARGIN
+        edges = Qt.Edge(0)
+        if pos.x() <= margin:
+            edges |= Qt.Edge.LeftEdge
+        elif pos.x() >= rect.width() - margin:
+            edges |= Qt.Edge.RightEdge
+        if pos.y() <= margin:
+            edges |= Qt.Edge.TopEdge
+        elif pos.y() >= rect.height() - margin:
+            edges |= Qt.Edge.BottomEdge
+        return edges
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Give the frameless window (Windows only) edge-drag resizing.
+
+        FramelessWindowHint (see __init__) leaves the OS with no resize
+        handles of its own to offer - this is the replacement, the same
+        margin-hit-test-plus-startSystemResize technique
+        WindowsTitleBar.mousePressEvent already uses for the move case.
+        A maximized window is left alone: its edges are the screen's own
+        edges, and dragging those would resize the display area a user
+        grabbing what looks like a window border did not mean to touch.
+        """
+        if IS_WINDOWS and watched is self._central_host and not self.isMaximized():
+            if event.type() == QEvent.Type.MouseMove:
+                edges = self._resize_edge_at(event.position().toPoint())
+                cursor = self._RESIZE_CURSORS.get(edges, Qt.CursorShape.ArrowCursor)
+                self._central_host.setCursor(cursor)
+            elif (
+                event.type() == QEvent.Type.MouseButtonPress
+                and event.button() == Qt.MouseButton.LeftButton
+            ):
+                edges = self._resize_edge_at(event.position().toPoint())
+                if edges:
+                    handle = self.windowHandle()
+                    if handle is not None:
+                        handle.startSystemResize(edges)
+                        return True
+        return super().eventFilter(watched, event)
 
     # ------------------------------------------------------------------
     # Qt events
