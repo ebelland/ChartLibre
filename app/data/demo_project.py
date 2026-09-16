@@ -356,6 +356,146 @@ def _regional_sales() -> pd.DataFrame:
     )
 
 
+def _machine_measurements() -> pd.DataFrame:
+    """Repeated readings of a 25.000 mm gauge block from four coordinate
+    measuring machines - the classic "does it matter which machine took the
+    reading" question. Built (not measured), same fixed-seed convention as
+    the other generated tables. Machine C carries a deliberate +0.006 mm
+    bias and Machine D three times the other three's scatter, so a
+    per-machine box plot and a run-order scatter each read differently at a
+    glance.
+    """
+    rng = np.random.default_rng(20260915)
+    nominal = 25.000
+    machines = {
+        "Machine A": (0.000, 0.004),
+        "Machine B": (0.002, 0.004),
+        "Machine C": (0.006, 0.004),
+        "Machine D": (0.001, 0.012),
+    }
+    runs_per_machine = 30
+    rows = [
+        {"machine": machine, "run": run, "value": float(value)}
+        for machine, (bias, sigma) in machines.items()
+        for run, value in enumerate(
+            nominal + bias + rng.normal(0.0, sigma, runs_per_machine), start=1
+        )
+    ]
+    return pd.DataFrame(rows)
+
+
+def _machine_downtime() -> pd.DataFrame:
+    """A few scheduled maintenance windows per machine, over a 30-day
+    session - a Gantt-style interval table (category/start/duration) for
+    the two Broken Bar renderers, on the same four machines as
+    :func:`_machine_measurements` rather than a subject of its own. Exact
+    by construction: a maintenance schedule is planned, not measured.
+    """
+    return pd.DataFrame(
+        [
+            {"machine": "Machine A", "start": 3, "duration": 1},
+            {"machine": "Machine A", "start": 18, "duration": 2},
+            {"machine": "Machine B", "start": 9, "duration": 1},
+            {"machine": "Machine B", "start": 24, "duration": 1},
+            {"machine": "Machine C", "start": 1, "duration": 2},
+            {"machine": "Machine C", "start": 14, "duration": 1},
+            {"machine": "Machine C", "start": 27, "duration": 2},
+            {"machine": "Machine D", "start": 6, "duration": 3},
+            {"machine": "Machine D", "start": 21, "duration": 1},
+        ]
+    )
+
+
+def _vector_field_grid() -> pd.DataFrame:
+    """A solid-body rotation - u=-y, v=x, scaled down - on a regular 15x15
+    grid over [-5, 5]. Exact by construction, the same convention as the
+    Lissajous/Anscombe tables: there is nothing random in it to seed. The
+    even spacing is the point - Stream Plot refuses anything less, and
+    Quiver/Wind Barbs read the same grid as their scattered-sample case.
+    """
+    axis = np.linspace(-5.0, 5.0, 15)
+    xx, yy = np.meshgrid(axis, axis)
+    scale = 0.15
+    return pd.DataFrame(
+        {
+            "x": xx.ravel(),
+            "y": yy.ravel(),
+            "u": (-yy * scale).ravel(),
+            "v": (xx * scale).ravel(),
+        }
+    )
+
+
+def _daily_temperature_range() -> pd.DataFrame:
+    """Thirty days of a plausible daily min/mean/max temperature band - a
+    seasonal sine plus a slower-breathing spread, exact by construction
+    like the vector field above, so Fill Between has an evenly shaped band
+    to shade without needing a random seed.
+    """
+    day = np.arange(1, 31)
+    mean = 15.0 + 6.0 * np.sin(2.0 * np.pi * day / 30.0)
+    spread = 3.0 + 0.5 * np.sin(2.0 * np.pi * day / 15.0)
+    return pd.DataFrame(
+        {
+            "day": day,
+            "temp_min": mean - spread,
+            "temp_mean": mean,
+            "temp_max": mean + spread,
+        }
+    )
+
+
+def _defect_causes() -> pd.DataFrame:
+    """Counted causes behind a batch of rejected circuit boards - the
+    classic Pareto-chart table: a handful of causes account for most of the
+    defects, and the chart's whole point is showing which few.
+    """
+    return pd.DataFrame(
+        {
+            "cause": [
+                "Solder bridge", "Missing component", "Misalignment",
+                "Cold joint", "Wrong value", "Scratched surface", "Other",
+            ],
+            "count": [48, 31, 19, 12, 7, 4, 3],
+        }
+    )
+
+
+def _release_events() -> pd.DataFrame:
+    """Ten software release dates and version labels - a small, realistic
+    Timeline table: a date, a label, and a channel (major/minor) to colour
+    them by.
+    """
+    return pd.DataFrame(
+        {
+            "date": [
+                "2025-01-14", "2025-02-03", "2025-03-20", "2025-05-02",
+                "2025-06-18", "2025-08-05", "2025-09-22", "2025-11-10",
+                "2025-12-19", "2026-02-04",
+            ],
+            "label": [
+                "v1.0", "v1.1", "v1.2", "v2.0", "v2.1",
+                "v2.2", "v3.0", "v3.1", "v3.2", "v4.0",
+            ],
+            "channel": [
+                "major", "minor", "minor", "major", "minor",
+                "minor", "major", "minor", "minor", "major",
+            ],
+        }
+    )
+
+
+def _sparse_calibration() -> pd.DataFrame:
+    """A logistic response curve sampled at only nine irregular points - a
+    scanning instrument that lingered near the shoulder and hurried
+    elsewhere. Exact by construction, so Interpolation's generated curve can
+    be checked against the true shape by eye rather than against noise.
+    """
+    x = np.array([0.0, 0.5, 1.0, 2.0, 2.5, 3.0, 4.5, 6.0, 8.0])
+    y = 10.0 / (1.0 + np.exp(-(x - 3.0)))
+    return pd.DataFrame({"concentration": x, "response": y})
+
+
 #: Table name -> the function that loads it. A demo file writes only the
 #: tables its own figures read, which is what keeps a single-subject demo
 #: small enough to open and understand.
@@ -380,6 +520,13 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "baseline_spectrum": _baseline_spectrum,
     "server_events": _server_events,
     "regional_sales": _regional_sales,
+    "machine_measurements": _machine_measurements,
+    "machine_downtime": _machine_downtime,
+    "vector_field_grid": _vector_field_grid,
+    "daily_temperature_range": _daily_temperature_range,
+    "defect_causes": _defect_causes,
+    "release_events": _release_events,
+    "sparse_calibration": _sparse_calibration,
 }
 
 #: Saved query name -> its SQL, and the table it reads.
@@ -927,6 +1074,500 @@ def _figure_specs() -> list[FigureSpec]:
                 ),
             ],
         ),
+        FigureSpec(
+            name="30 · Gauge readings by machine - spread",
+            key="machine_box",
+            tables=("machine_measurements",),
+            queries=(),
+            chart_type="Box Plot",
+            title="25.000 mm gauge block, four machines compared",
+            x_label="machine",
+            y_label="measured length (mm)",
+            axis_options={"grid": True, "grid_axis": "y", "showmeans": True},
+            series=[
+                SeriesSpec(
+                    name=machine,
+                    sql=(
+                        'SELECT machine AS "group", value AS value '
+                        f"FROM machine_measurements WHERE machine = '{machine}'"
+                    ),
+                    roles={"value": "value", "group": "group"},
+                    style={},
+                )
+                for machine in ("Machine A", "Machine B", "Machine C", "Machine D")
+            ],
+        ),
+        FigureSpec(
+            name="31 · Gauge readings by machine - run order",
+            key="machine_scatter",
+            tables=("machine_measurements",),
+            queries=(),
+            chart_type="Scatter Plot",
+            title="Same readings, in the order each machine took them",
+            x_label="run",
+            y_label="measured length (mm)",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name=machine,
+                    sql=(
+                        "SELECT run AS x, value AS y FROM machine_measurements "
+                        f"WHERE machine = '{machine}' ORDER BY run"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={"marker": "o", "linestyle": "-", "alpha": 0.75, "markersize": 4.0},
+                )
+                for machine in ("Machine A", "Machine B", "Machine C", "Machine D")
+            ],
+        ),
+        FigureSpec(
+            name="32 · Gauge readings by machine - cumulative distribution",
+            key="machine_ecdf",
+            tables=("machine_measurements",),
+            queries=(),
+            chart_type="ECDF",
+            title="Same four machines, read as a cumulative distribution",
+            x_label="measured length (mm)",
+            y_label="cumulative proportion",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name=machine,
+                    sql=(
+                        "SELECT value AS value FROM machine_measurements "
+                        f"WHERE machine = '{machine}'"
+                    ),
+                    roles={"value": "value"},
+                    style={"marker": "", "linestyle": "-"},
+                )
+                for machine in ("Machine A", "Machine B", "Machine C", "Machine D")
+            ],
+        ),
+        FigureSpec(
+            name="33 · Gauge readings by machine - summary table",
+            key="machine_table",
+            tables=("machine_measurements",),
+            queries=(),
+            chart_type="Table",
+            title="Per-machine summary",
+            x_label="",
+            y_label="",
+            axis_options={},
+            series=[
+                SeriesSpec(
+                    name="Summary",
+                    sql=(
+                        "SELECT machine AS Machine, COUNT(*) AS n, "
+                        "ROUND(AVG(value), 4) AS mean_mm, "
+                        "ROUND(MIN(value), 4) AS min_mm, "
+                        "ROUND(MAX(value), 4) AS max_mm "
+                        "FROM machine_measurements GROUP BY machine ORDER BY machine"
+                    ),
+                    roles={},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="34 · Machine maintenance windows",
+            key="machine_downtime_hbar",
+            tables=("machine_downtime",),
+            queries=(),
+            chart_type="Broken Bar",
+            title="Scheduled maintenance over a thirty-day session",
+            x_label="day",
+            y_label="machine",
+            axis_options={"grid": True, "grid_axis": "x"},
+            series=[
+                SeriesSpec(
+                    name="Maintenance",
+                    sql=(
+                        "SELECT machine AS category, start AS start, "
+                        "duration AS duration FROM machine_downtime"
+                    ),
+                    roles={"category": "category", "start": "start", "duration": "duration"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="35 · Machine maintenance windows - vertical",
+            key="machine_downtime_vbar",
+            tables=("machine_downtime",),
+            queries=(),
+            chart_type="Broken Bar (Vertical)",
+            title="The same schedule, read top to bottom",
+            x_label="machine",
+            y_label="day",
+            axis_options={"grid": True, "grid_axis": "y"},
+            series=[
+                SeriesSpec(
+                    name="Maintenance",
+                    sql=(
+                        "SELECT machine AS category, start AS start, "
+                        "duration AS duration FROM machine_downtime"
+                    ),
+                    roles={"category": "category", "start": "start", "duration": "duration"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="36 · Regional sales, stacked by quarter",
+            key="regional_sales_stack",
+            tables=("regional_sales",),
+            queries=(),
+            chart_type="Stack Plot",
+            title="Four regions' sales, stacked",
+            x_label="quarter",
+            y_label="sales",
+            axis_options={"grid": True, "grid_axis": "y"},
+            series=[
+                SeriesSpec(
+                    name=region,
+                    sql=(
+                        "SELECT quarter AS x, sales AS y FROM regional_sales "
+                        f"WHERE region = '{region}' ORDER BY quarter"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={},
+                )
+                for region in ("North", "South", "East", "West")
+            ],
+        ),
+        FigureSpec(
+            name="37 · Server errors, running total",
+            key="server_events_stairs",
+            tables=("server_events",),
+            queries=(),
+            chart_type="Stairs",
+            title="Cumulative error count over the day",
+            x_label="minute of day",
+            y_label="errors so far",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name=server,
+                    # A correlated subquery, not ROW_NUMBER() OVER (...): the
+                    # Hide=0 filter every series query gets is inserted by
+                    # finding the first ORDER BY/GROUP BY/LIMIT/OFFSET token
+                    # in the raw SQL text (see sql_with_hide_filter), and a
+                    # window function's own ORDER BY is exactly such a token
+                    # - it would land the filter inside the parentheses
+                    # instead of the outer WHERE.
+                    sql=(
+                        "SELECT a.minute AS x, "
+                        "(SELECT COUNT(*) FROM server_events b "
+                        "WHERE b.server = a.server AND b.minute <= a.minute) AS y "
+                        f"FROM server_events a WHERE a.server = '{server}' "
+                        "ORDER BY a.minute"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={},
+                )
+                for server in ("web-1", "web-2", "db-1")
+            ],
+        ),
+        FigureSpec(
+            name="38 · Signal spectrum as discrete tones",
+            key="signal_spectrum_stem",
+            tables=("signal_spectrum",),
+            queries=(),
+            chart_type="Stem Plot",
+            title="The three tones, read as lines rather than a curve",
+            x_label="frequency (Hz)",
+            y_label="amplitude",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="spectrum",
+                    sql=(
+                        "SELECT freq_hz AS x, magnitude AS y FROM signal_spectrum "
+                        "WHERE freq_hz <= 80 ORDER BY freq_hz"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="39 · Surface as a contour map",
+            key="surface_contour",
+            tables=("surface_grid",),
+            queries=(),
+            chart_type="Contour Plot",
+            title="The same surface, seen from directly above",
+            x_label="x",
+            y_label="y",
+            axis_options={"cmap": "viridis"},
+            series=[
+                SeriesSpec(
+                    name="Surface",
+                    sql="SELECT x AS x, y AS y, z AS z FROM surface_grid",
+                    roles={"x": "x", "y": "y", "z": "z"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="40 · Scattered surface as a contour map",
+            key="scattered_contour",
+            tables=("scattered_surface",),
+            queries=(),
+            chart_type="Contour Plot (Scattered)",
+            title="The scattered surface, contoured from its triangulation",
+            x_label="x",
+            y_label="y",
+            axis_options={"cmap": "terrain"},
+            series=[
+                SeriesSpec(
+                    name="Surface",
+                    sql="SELECT x AS x, y AS y, z AS z FROM scattered_surface",
+                    roles={"x": "x", "y": "y", "z": "z"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="41 · Scattered surface's triangulation",
+            key="scattered_tri_mesh",
+            tables=("scattered_surface",),
+            queries=(),
+            chart_type="Triangular Mesh",
+            title="The mesh Surface Plot (Scattered) triangulates before drawing",
+            x_label="x",
+            y_label="y",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Mesh",
+                    sql="SELECT x AS x, y AS y FROM scattered_surface",
+                    roles={"x": "x", "y": "y"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="42 · Scattered surface's triangulation, coloured",
+            key="scattered_tri_color_mesh",
+            tables=("scattered_surface",),
+            queries=(),
+            chart_type="Triangular Color Mesh",
+            title="The same mesh, each face coloured by height",
+            x_label="x",
+            y_label="y",
+            axis_options={"cmap": "viridis"},
+            series=[
+                SeriesSpec(
+                    name="Mesh",
+                    sql="SELECT x AS x, y AS y, z AS z FROM scattered_surface",
+                    roles={"x": "x", "y": "y", "z": "z"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="43 · Helix as a 3D scatter",
+            key="parametric_scatter3d",
+            tables=("parametric_curve",),
+            queries=(),
+            chart_type="Scatter Plot (3D)",
+            title="The same helix, as discrete points rather than a line",
+            x_label="x",
+            y_label="y",
+            axis_options={"projection": "3d"},
+            series=[
+                SeriesSpec(
+                    name="Helix",
+                    sql="SELECT x AS x, y AS y, t AS z, t AS color FROM parametric_curve ORDER BY t",
+                    roles={"x": "x", "y": "y", "z": "z", "color": "color"},
+                    style={"marker": "o"},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="44 · Employee headcount by department",
+            key="employee_dept_pie",
+            tables=("employee_compensation",),
+            queries=(),
+            chart_type="Pie Chart",
+            title="Where the five departments' headcount sits",
+            x_label="",
+            y_label="",
+            axis_options={},
+            series=[
+                SeriesSpec(
+                    name="Headcount",
+                    sql=(
+                        "SELECT department AS label, COUNT(*) AS value "
+                        "FROM employee_compensation GROUP BY department ORDER BY department"
+                    ),
+                    roles={"value": "value", "label": "label"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="45 · Defect causes - Pareto",
+            key="defect_causes_pareto",
+            tables=("defect_causes",),
+            queries=(),
+            chart_type="Pareto Chart",
+            title="A handful of causes behind most of the rejects",
+            x_label="cause",
+            y_label="count",
+            axis_options={"grid": True, "grid_axis": "y"},
+            series=[
+                SeriesSpec(
+                    name="Causes",
+                    sql="SELECT cause AS X, count AS Y FROM defect_causes",
+                    roles={"X": "X", "Y": "Y"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="46 · Release history",
+            key="release_timeline",
+            tables=("release_events",),
+            queries=(),
+            chart_type="Timeline",
+            title="Ten releases, major versions standing out by colour",
+            x_label="date",
+            y_label="",
+            axis_options={},
+            series=[
+                SeriesSpec(
+                    name="Releases",
+                    sql="SELECT date AS x, label AS label, channel AS color FROM release_events ORDER BY date",
+                    roles={"x": "x", "label": "label", "color": "color"},
+                    style={"marker": "o", "linestyle": ""},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="47 · Regions, labelled by name",
+            key="regional_text",
+            tables=("regional_sales",),
+            queries=(),
+            chart_type="Text",
+            title="Average sales against the region's own index",
+            x_label="region index",
+            y_label="average sales",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Regions",
+                    sql=(
+                        "SELECT region_index AS x, AVG(sales) AS y, region AS text "
+                        "FROM regional_sales GROUP BY region_index, region ORDER BY region_index"
+                    ),
+                    roles={"x": "x", "y": "y", "text": "text"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="48 · A rotating field - arrows",
+            key="vector_field_quiver",
+            tables=("vector_field_grid",),
+            queries=(),
+            chart_type="Quiver",
+            title="Solid-body rotation, one arrow per grid point",
+            x_label="x",
+            y_label="y",
+            axis_options={"grid": True, "aspect": "equal"},
+            series=[
+                SeriesSpec(
+                    name="Field",
+                    sql="SELECT x, y, u, v FROM vector_field_grid",
+                    roles={"x": "x", "y": "y", "u": "u", "v": "v"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="49 · A rotating field - streamlines",
+            key="vector_field_stream",
+            tables=("vector_field_grid",),
+            queries=(),
+            chart_type="Stream Plot",
+            title="The same field, traced as flow lines",
+            x_label="x",
+            y_label="y",
+            axis_options={"aspect": "equal"},
+            series=[
+                SeriesSpec(
+                    name="Field",
+                    sql="SELECT x, y, u, v FROM vector_field_grid",
+                    roles={"x": "x", "y": "y", "u": "u", "v": "v"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="50 · A rotating field - wind barbs",
+            key="vector_field_barbs",
+            tables=("vector_field_grid",),
+            queries=(),
+            chart_type="Wind Barbs",
+            title="The same field again, in meteorology's own notation",
+            x_label="x",
+            y_label="y",
+            axis_options={"grid": True, "aspect": "equal"},
+            series=[
+                SeriesSpec(
+                    name="Field",
+                    sql="SELECT x, y, u, v FROM vector_field_grid",
+                    roles={"x": "x", "y": "y", "u": "u", "v": "v"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="51 · Daily temperature band",
+            key="temperature_fill_between",
+            tables=("daily_temperature_range",),
+            queries=(),
+            chart_type="Fill Between",
+            title="A month's min-to-max range, shaded",
+            x_label="day",
+            y_label="temperature",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Range",
+                    sql=(
+                        "SELECT day AS x, temp_min AS y, temp_max AS y2 "
+                        "FROM daily_temperature_range ORDER BY day"
+                    ),
+                    roles={"x": "x", "y": "y", "y2": "y2"},
+                    style={"alpha": 0.4},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="52 · Sparse calibration curve - ready for Interpolation",
+            key="sparse_calibration_scatter",
+            tables=("sparse_calibration",),
+            queries=(),
+            chart_type="Scatter Plot",
+            title="Nine irregular readings of a logistic response curve",
+            x_label="concentration",
+            y_label="response",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Readings",
+                    sql=(
+                        "SELECT concentration AS x, response AS y "
+                        "FROM sparse_calibration ORDER BY concentration"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={"marker": "o", "linestyle": ""},
+                ),
+            ],
+        ),
     ]
 
 
@@ -1233,9 +1874,11 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
     DemoProject(
         "DLVO force curve - ready for Fit and Calculus",
         "A real colloidal force-distance curve, repulsive at short range and "
-        "attractive beyond it, with a measurable crossover - its curvature "
-        "is also a fair test for Regression's Random Forest/Gradient "
-        "Boosting models and for GP Regression's uncertainty band.",
+        "attractive beyond it, with a measurable crossover - the Roots "
+        "operation's own question, answered exactly where the curve changes "
+        "sign - and its curvature is also a fair test for Regression's "
+        "Random Forest/Gradient Boosting models and for GP Regression's "
+        "uncertainty band.",
         ("dlvo_force",),
     ),
     DemoProject(
@@ -1250,8 +1893,9 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "Employee compensation - ready for the Outlier operation",
         "Salaries across five departments, with one real outlier the box "
         "plot already shows and the operation can confirm - a right-skewed "
-        "distribution Transform's Power/Quantile models can reshape, too.",
-        ("employee_box",),
+        "distribution Transform's Power/Quantile models can reshape, too - "
+        "plus a pie chart of the same five departments' headcount.",
+        ("employee_box", "employee_dept_pie"),
     ),
     DemoProject(
         "Driver behaviour - ready for the Cluster operation",
@@ -1274,17 +1918,23 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         ("pairwise_scatter",),
     ),
     DemoProject(
-        "3D surfaces - gridded and scattered",
+        "3D surfaces - gridded, scattered, contoured and meshed",
         "The same kind of surface in the two layouts the surface renderers "
-        "each need: a regular grid, and scattered points triangulated into "
-        "one.",
-        ("surface_3d", "scattered_3d"),
+        "each need - a regular grid, and scattered points triangulated into "
+        "one - plus both from directly above as a contour map, and the "
+        "scattered one's own triangulation shown bare, then coloured by "
+        "height.",
+        (
+            "surface_3d", "scattered_3d", "surface_contour",
+            "scattered_contour", "scattered_tri_mesh", "scattered_tri_color_mesh",
+        ),
     ),
     DemoProject(
-        "Parametric curve - a helix in projection",
+        "Parametric curve - a helix in projection and in 3D",
         "A helix seen end-on: a circle, coloured by how far along the curve "
-        "each point is.",
-        ("parametric_scatter",),
+        "each point is - and the same helix as discrete points in three "
+        "dimensions rather than a projection.",
+        ("parametric_scatter", "parametric_scatter3d"),
     ),
     DemoProject(
         "Figure layouts - shared scale, main+secondary, overlapping axes",
@@ -1300,38 +1950,88 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "processing: Anscombe's quartet on a shared-scale grid (the "
         "matplotlib gallery's own multi-axis example), four Lissajous "
         "figures at different frequency ratios, and a noisy signal beside "
-        "the frequency spectrum that recovers its three true tones - the "
-        "same signal the Filtering operation's IIR/FIR/Hilbert models can "
-        "run on directly (its 5, 20 and 50 Hz tones are exact targets for "
-        "a lowpass, a bandpass, or an envelope).",
-        ("anscombe_quartet", "lissajous_grid", "signal_time_and_frequency"),
+        "the frequency spectrum that recovers its three true tones, also "
+        "read as a stem plot of discrete lines - the same signal the "
+        "Filtering operation's IIR/FIR/Hilbert models can run on directly "
+        "(its 5, 20 and 50 Hz tones are exact targets for a lowpass, a "
+        "bandpass, or an envelope) and Spectral Analysis's own subject.",
+        (
+            "anscombe_quartet", "lissajous_grid", "signal_time_and_frequency",
+            "signal_spectrum_stem",
+        ),
     ),
     DemoProject(
-        "Quality and spectroscopy - two new series operations",
+        "Quality and spectroscopy - three quality-control operations",
         "Textbook defective-unit counts for the Control Chart operation's "
-        "attribute charts (p/np/c/u), and a synthetic spectrum with a "
-        "drifting, wandering "
-        "background for Baseline Correction (AsLS or rubber band) - both "
-        "figures already carry an annotation and a reference line with an "
-        "explicit colour, so opening Overlay properties shows its colour/"
-        "line/font/size editors populated rather than empty.",
-        ("attribute_counts", "baseline_spectrum"),
+        "attribute charts (p/np/c/u), a synthetic spectrum with a "
+        "drifting, wandering background for Baseline Correction (AsLS or "
+        "rubber band) and, once corrected, for the Peaks operation's "
+        "prominence filter to find its two peaks - both figures already "
+        "carry an annotation and a reference line with an explicit colour, "
+        "so opening Overlay properties shows its colour/line/font/size "
+        "editors populated rather than empty - and seven rejected-board "
+        "causes as a Pareto chart, the tool this kind of table exists for.",
+        ("attribute_counts", "baseline_spectrum", "defect_causes_pareto"),
     ),
     DemoProject(
         "New chart types - heatmap, hexbin, event plot, and true 3D",
-        "Five chart types added after the first release, each on data suited "
-        "to what makes it different from a plain scatter or line: a smooth "
+        "Chart types added after the first release, each on data suited to "
+        "what makes it different from a plain scatter or line: a smooth "
         "surface as a per-cell heatmap, four thousand drivers binned into a "
-        "hexbin, three servers' error timestamps as an event raster, and a "
-        "helix and a small sales table as a true 3D line and 3D bar chart "
-        "rather than a scattered or projected stand-in.",
+        "hexbin, three servers' error timestamps as an event raster (and, "
+        "on the same table, a running total as a stairs plot), a helix and "
+        "a small sales table as a true 3D line and 3D bar chart rather than "
+        "a scattered or projected stand-in, and that same sales table again "
+        "stacked by region instead of grouped.",
         (
             "heatmap_grid",
             "driver_hexbin",
             "server_events",
+            "server_events_stairs",
             "helix_3d_line",
             "regional_sales_3d_bar",
+            "regional_sales_stack",
         ),
+    ),
+    DemoProject(
+        "Machine comparison - four gauges measuring the same standard",
+        "Thirty repeated readings of a 25.000 mm gauge block from four "
+        "coordinate measuring machines: a box plot (which machine reads "
+        "high, which is noisier), the same distributions again as an ECDF, "
+        "a run-order scatter (whether either drifts over the session), a "
+        "summary table, and each machine's own scheduled maintenance as a "
+        "Gantt-style broken bar, horizontal and vertical - a shape-aware "
+        "population for the Outlier operation, and aligned closely enough "
+        "by run number for Statistics's paired t-test to confirm Machine "
+        "C's bias against Machine A.",
+        (
+            "machine_box", "machine_ecdf", "machine_scatter", "machine_table",
+            "machine_downtime_hbar", "machine_downtime_vbar",
+        ),
+    ),
+    DemoProject(
+        "Release history and regional sales - timeline and text",
+        "Ten software releases on a dated timeline, coloured by whether "
+        "each was a major or minor version, and the four sales regions "
+        "read as plain labelled points rather than bars.",
+        ("release_timeline", "regional_text"),
+    ),
+    DemoProject(
+        "A rotating field - quiver, streamlines and wind barbs",
+        "One synthetic vector field - solid-body rotation on a regular "
+        "grid - drawn the three ways a vector field can be: an arrow per "
+        "point, traced streamlines, and meteorology's own wind-barb "
+        "notation - plus an unrelated month of daily temperature range, "
+        "shaded as a filled band.",
+        ("vector_field_quiver", "vector_field_stream", "vector_field_barbs",
+         "temperature_fill_between"),
+    ),
+    DemoProject(
+        "Sparse calibration curve - ready for Interpolation",
+        "A logistic response curve sampled at only nine irregular points - "
+        "exact by construction, so Interpolation's generated curve can be "
+        "checked against the true shape rather than against noise.",
+        ("sparse_calibration_scatter",),
     ),
 )
 
