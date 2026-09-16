@@ -100,6 +100,14 @@ class SqliteRepo(
     _series_cache_max_entries: int = _SERIES_CACHE_DEFAULT_MAX_ENTRIES
     _series_cache_hits: int = 0
     _series_cache_misses: int = 0
+    # Accumulated by @descriptor_write_wrapper: total_changes contributed by
+    # writes that only touch descriptor tables, subtracted back out in
+    # _database_stamp() below so an axis/figure/series edit does not clear
+    # every other series's cached frame along with its own.
+    _series_cache_metadata_changes: int = 0
+    # Reentrancy depth for @descriptor_write_wrapper - see its docstring on
+    # why only the outermost nested call may add to the counter above.
+    _series_cache_metadata_write_depth: int = 0
 
     # Row counts behind series_row_count(), invalidated the same way and at
     # the same time as _series_cache - see that field's docstring.
@@ -253,6 +261,15 @@ class SqliteRepo(
         Together they need no manual bookkeeping on write paths, which removes
         the whole class of "invalidation missed a writer" bugs.  Cost is ~8 µs
         against the ~35 ms the cache saves per series.
+
+        ``total_changes`` is reduced by ``_series_cache_metadata_changes``
+        first: that counter (kept by ``@descriptor_write_wrapper``) is every
+        change so far attributable to a write that only touched a descriptor
+        table - a figure/axis/series options edit - which cannot itself
+        change what any series query returns. Subtracting it is additive
+        only: a write nothing has marked as descriptor-only still counts
+        fully here, so this can only make the stamp change *less* often than
+        raw ``total_changes`` would, never miss a real data write.
         """
         con = self._con
         if con is None:
@@ -260,7 +277,8 @@ class SqliteRepo(
 
         data_version = int(con.execute("PRAGMA data_version").fetchone()[0])
         schema_version = int(con.execute("PRAGMA schema_version").fetchone()[0])
-        return (int(con.total_changes), data_version, schema_version)
+        changes = int(con.total_changes) - self._series_cache_metadata_changes
+        return (changes, data_version, schema_version)
 
     def invalidate_series_cache(self) -> None:
         """Drop every cached series DataFrame."""

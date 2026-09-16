@@ -34,6 +34,57 @@ def ensure_connection_wrapper(func):
         return func(self, *args, **kwargs)
     return wrapper
 
+
+def descriptor_write_wrapper(func):
+    """Mark a write as touching only descriptor tables, not data tables.
+
+    Every write in DescriptorsMixin targets ``__figure_descriptors__``,
+    ``__axis_descriptors__`` or ``__series_descriptors__`` - never a table a
+    series query's own SQL selects from - so it cannot change what a cached
+    SeriesFrame means. ``SqliteRepo._database_stamp`` folds
+    ``Connection.total_changes`` into the stamp that invalidates the whole
+    series cache; without this, editing one axis's label cleared the cached
+    series of every axis of every open figure, because ``total_changes``
+    counts this UPDATE exactly like it counts a real data edit. Subtracting
+    the delta here (via ``_series_cache_metadata_changes``) keeps the stamp
+    honest about everything else, without asking the invalidation itself to
+    trust any hand-kept bookkeeping: a write this decorator is missing from
+    only over-invalidates, same as before, never under-invalidates.
+
+    Stack it inside ``@ensure_connection_wrapper`` (that one runs first, so
+    the connection this reads ``total_changes`` from is guaranteed to
+    exist)::
+
+        @ensure_connection_wrapper
+        @descriptor_write_wrapper
+        def set_axis_options(self, ...): ...
+
+    Reentrant by depth, not by measuring every call: ``delete_figure`` calls
+    ``delete_axis`` calls ``delete_series``, all three wrapped, and
+    ``total_changes`` already accounts for the inner calls' rows by the time
+    the outer one finishes. Only the outermost call takes a "before" reading
+    and folds the total delta in on the way back out - an inner call that
+    measured its own slice too would double-count those rows, so
+    ``_series_cache_metadata_changes`` could out-grow ``total_changes``
+    itself and, on some future write, the stamp could go *backwards* onto a
+    value already sitting in the cache - stale data served as current.
+    """
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        con = self._con
+        if con is None:
+            return func(self, *args, **kwargs)
+        entering = self._series_cache_metadata_write_depth == 0
+        before = con.total_changes if entering else 0
+        self._series_cache_metadata_write_depth += 1
+        try:
+            return func(self, *args, **kwargs)
+        finally:
+            self._series_cache_metadata_write_depth -= 1
+            if entering:
+                self._series_cache_metadata_changes += con.total_changes - before
+    return wrapper
+
 # Regex: SQL statement that returns rows (SELECT, WITH, PRAGMA, EXPLAIN)
 _RETURNS_ROWS_RE = re.compile(r"^\s*(select|with|pragma|explain)\b", re.IGNORECASE)
 

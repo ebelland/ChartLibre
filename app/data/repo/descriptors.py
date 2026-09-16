@@ -24,6 +24,7 @@ from app.data.repo._common import (
     _is_ident,
     _loads_json,
     _quote_ident,
+    descriptor_write_wrapper,
     ensure_connection_wrapper,
 )
 
@@ -66,6 +67,7 @@ class DescriptorsMixin:
         return str(row[0]) if row else None
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def delete_figure(self, figure_id: int) -> None:
         """Delete figure and all associated axes and series (cascade)."""
         assert self._con is not None
@@ -81,6 +83,7 @@ class DescriptorsMixin:
             )
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def delete_axis(self, axis_id: int) -> None:
         """Delete axis and all associated series (cascade via FK)."""
         assert self._con is not None
@@ -94,6 +97,7 @@ class DescriptorsMixin:
         self._commit()
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def delete_series(self, series_id: int) -> None:
         """Delete series from database."""
         assert self._con is not None
@@ -115,6 +119,7 @@ class DescriptorsMixin:
         return _loads_json(row["options_json"]) if row else {}
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def set_figure_options(self, figure_id: int, options: dict[str, Any]) -> None:
         """Persist figure UI options."""
         assert self._con is not None
@@ -126,6 +131,7 @@ class DescriptorsMixin:
         self._commit()
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def set_figure_properties(self, figure_id: int, nrows:int, ncols:int,name:str, options: dict[str, Any]) -> None:
         """Persist figure UI options."""
         assert self._con is not None
@@ -149,6 +155,7 @@ class DescriptorsMixin:
         return _loads_json(row["options_json"]) if row else {}
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def set_axis_options(self, axis_id: int, options: dict[str, Any]) -> None:
         """Persist axis UI options."""
         assert self._con is not None
@@ -160,6 +167,7 @@ class DescriptorsMixin:
         self._commit()
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def update_series_style(self, series_id: int, style: dict[str, Any]) -> None:
         """Persist series style_json."""
         assert self._con is not None
@@ -171,6 +179,7 @@ class DescriptorsMixin:
         self._commit()
         
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def update_series_sql_query(self, series_id: int, sql_query: str) -> None:
         """Persist the SQL query for one series descriptor."""
         assert self._con is not None
@@ -308,6 +317,7 @@ class DescriptorsMixin:
     # =====================================================================
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def update_axis_chart_type(self, *, axis_id: int, chart_type: str) -> None:
         """Update chart_type for an existing axis."""
         assert self._con is not None
@@ -318,6 +328,7 @@ class DescriptorsMixin:
         self._commit()
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def update_axis_descriptor(
         self,
         *,
@@ -354,6 +365,7 @@ class DescriptorsMixin:
         self._commit()
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def create_figure_descriptor(
         self,
         *,
@@ -470,6 +482,7 @@ class DescriptorsMixin:
         return int(cur.lastrowid or 0)
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def create_series_descriptor(
         self,
         *,
@@ -519,6 +532,7 @@ class DescriptorsMixin:
         return int(cur.lastrowid or 0)
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def ensure_figure_grid_capacity(self, *, figure_id: int, needed_axes: int) -> None:
         """Ensure figure grid has enough cells for needed_axes subplots.
         
@@ -551,6 +565,7 @@ class DescriptorsMixin:
 
 
     @ensure_connection_wrapper
+    @descriptor_write_wrapper
     def swap_axis_indexes(
         self,
         *,
@@ -586,6 +601,7 @@ class DescriptorsMixin:
                 (by_id[second_id], first_id),
             )
 
+    @descriptor_write_wrapper
     def apply_axis_layout(
         self,
         *,

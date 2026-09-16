@@ -80,6 +80,20 @@ def _load_class(file_path: str, class_name: str, mtime_ns: int, module_prefix: s
     return cls
 
 
+@lru_cache(maxsize=None)
+def _resolved_path(raw_path: str) -> Path:
+    """Resolve a discovery entry's path once per raw string, not per call.
+
+    The renderer/operation file *set* does not move while the process runs -
+    only a file's own content can, which the mtime check below re-reads on
+    every call so a file the Developer-menu scaffolding tools just wrote (or
+    a plugin author just edited) hot-reloads without a restart. Resolving
+    the same path string again on every render is pure syscall overhead on a
+    value that never changes for it.
+    """
+    return Path(raw_path).resolve()
+
+
 def import_class_from_discovery_entry(
     entry: dict[str, Any],
     *,
@@ -92,7 +106,7 @@ def import_class_from_discovery_entry(
         - path
         - name
     """
-    file_path = Path(entry["path"]).resolve()
+    file_path = _resolved_path(str(entry["path"]))
 
     try:
         mtime_ns = file_path.stat().st_mtime_ns
