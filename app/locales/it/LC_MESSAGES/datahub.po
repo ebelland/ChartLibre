@@ -5978,3 +5978,132 @@ msgstr "Note"
 
 msgid "Open this saved query in the Query Builder"
 msgstr "Apri questa query salvata nel Query Builder"
+
+msgid "App settings"
+msgstr "Impostazioni app"
+
+msgid "Chart workspace expanded"
+msgstr "Area grafici espansa"
+
+msgid "Collapse navigation"
+msgstr "Comprimi la barra di navigazione"
+
+msgid "Expand navigation"
+msgstr "Espandi la barra di navigazione"
+
+msgid "Help & About"
+msgstr "Aiuto e informazioni"
+
+msgid "Left panel shown"
+msgstr "Pannello sinistro visibile"
+
+msgid "Maximize"
+msgstr "Ingrandisci"
+
+msgid "Open application settings"
+msgstr "Apri le impostazioni dell'applicazione"
+
+msgid "Open file commands"
+msgstr "Apri i comandi file"
+
+msgid "Open help and about commands"
+msgstr "Apri i comandi di aiuto e informazioni"
+
+msgid "Ready"
+msgstr "Pronto"
+
+msgid "Untitled project"
+msgstr "Progetto senza titolo"
+
+msgid "Workspace: hide the left panel"
+msgstr "Area di lavoro: nascondi il pannello sinistro"
+
+msgid "Workspace: show the left panel"
+msgstr "Area di lavoro: mostra il pannello sinistro"
+
+msgid "A real colloidal force-distance curve, repulsive at short range and attractive beyond it, with a measurable crossover - the Roots operation's own question, answered exactly where the curve changes sign - and its curvature is also a fair test for Regression's Random Forest/Gradient Boosting models and for GP Regression's uncertainty band."
+msgstr "Una curva forza-distanza colloidale reale, repulsiva a corto raggio e attrattiva oltre, con un incrocio misurabile - la domanda tipica dell'operazione Roots, risolta esattamente dove la curva cambia segno - e la sua curvatura è anche un buon banco di prova per i modelli Random Forest/Gradient Boosting di Regression e per la banda di incertezza di GP Regression."
+
+msgid "Salaries across five departments, with one real outlier the box plot already shows and the operation can confirm - a right-skewed distribution Transform's Power/Quantile models can reshape, too - plus a pie chart of the same five departments' headcount."
+msgstr "Stipendi in cinque reparti, con un vero valore anomalo già visibile nel box plot e che l'operazione può confermare - una distribuzione asimmetrica a destra che anche i modelli Power/Quantile di Transform possono rimodellare - più un grafico a torta dello stesso organico nei cinque reparti."
+
+msgid "3D surfaces - gridded, scattered, contoured and meshed"
+msgstr "Superfici 3D - a griglia, sparse, a contorno e a mesh"
+
+msgid "The same kind of surface in the two layouts the surface renderers each need - a regular grid, and scattered points triangulated into one - plus both from directly above as a contour map, and the scattered one's own triangulation shown bare, then coloured by height."
+msgstr "Lo stesso tipo di superficie nei due formati richiesti dai renderer di superficie - una griglia regolare, e punti sparsi triangolati in una superficie - più entrambe viste dall'alto come mappa di contorno, e la triangolazione della superficie sparsa mostrata nuda, poi colorata in base all'altezza."
+
+msgid "Parametric curve - a helix in projection and in 3D"
+msgstr "Curva parametrica - un'elica in proiezione e in 3D"
+
+msgid "A helix seen end-on: a circle, coloured by how far along the curve each point is - and the same helix as discrete points in three dimensions rather than a projection."
+msgstr "Un'elica vista di taglio: un cerchio, colorato in base a quanto ogni punto è avanzato lungo la curva - e la stessa elica come punti discreti in tre dimensioni anziché in proiezione."
+
+msgid "Three teaching examples from mathematics, physics and signal processing: Anscombe's quartet on a shared-scale grid (the matplotlib gallery's own multi-axis example), four Lissajous figures at different frequency ratios, and a noisy signal beside the frequency spectrum that recovers its three true tones, also read as a stem plot of discrete lines - the same signal the Filtering operation's IIR/FIR/Hilbert models can run on directly (its 5, 20 and 50 Hz tones are exact targets for a lowpass, a bandpass, or an envelope) and Spectral Analysis's own subject."
+msgstr "Tre esempi didattici da matematica, fisica ed elaborazione dei segnali: il quartetto di Anscombe su una griglia a scala condivisa (l'esempio multi-asse della stessa galleria di matplotlib), quattro figure di Lissajous a diversi rapporti di frequenza, e un segnale rumoroso accanto allo spettro di frequenza che ne recupera i tre toni veri, letto anche come stem plot di linee discrete - lo stesso segnale su cui i modelli IIR/FIR/Hilbert dell'operazione Filtraggio possono lavorare direttamente (i suoi toni a 5, 20 e 50 Hz sono bersagli esatti per un passa-basso, un passa-banda o un inviluppo) e il soggetto stesso di Spectral Analysis."
+
+msgid "Quality and spectroscopy - three quality-control operations"
+msgstr "Qualità e spettroscopia - tre operazioni di controllo qualità"
+
+msgid "Textbook defective-unit counts for the Control Chart operation's attribute charts (p/np/c/u), a synthetic spectrum with a drifting, wandering background for Baseline Correction (AsLS or rubber band) and, once corrected, for the Peaks operation's prominence filter to find its two peaks - both figures already carry an annotation and a reference line with an explicit colour, so opening Overlay properties shows its colour/line/font/size editors populated rather than empty - and seven rejected-board causes as a Pareto chart, the tool this kind of table exists for."
+msgstr "Conteggi di unità difettose da manuale per le carte per attributi dell'operazione Carta di controllo (p/np/c/u), uno spettro sintetico con uno sfondo che deriva e ondeggia per la Correzione della linea di base (AsLS o rubber band) e, una volta corretto, per il filtro di prominenza dell'operazione Peaks che ne trova i due picchi - entrambe le figure portano già un'annotazione e una linea di riferimento con un colore esplicito, cosi' aprendo le proprietà delle sovrapposizioni si vedono gli editor di colore/linea/carattere/dimensione già popolati invece che vuoti - e sette cause di scarto come grafico di Pareto, lo strumento per cui esiste questo tipo di tabella."
+
+msgid "Chart types added after the first release, each on data suited to what makes it different from a plain scatter or line: a smooth surface as a per-cell heatmap, four thousand drivers binned into a hexbin, three servers' error timestamps as an event raster (and, on the same table, a running total as a stairs plot), a helix and a small sales table as a true 3D line and 3D bar chart rather than a scattered or projected stand-in, and that same sales table again stacked by region instead of grouped."
+msgstr "Tipi di grafico aggiunti dopo la prima versione, ciascuno su dati adatti a ciò che lo distingue da un semplice scatter o linea: una superficie liscia come heatmap per cella, quattromila guidatori raggruppati in un hexbin, le timestamp di errore di tre server come raster di eventi (e, sulla stessa tabella, un totale progressivo come stairs plot), un'elica e una piccola tabella di vendite come vera linea 3D e grafico a barre 3D anziché un sostituto sparso o proiettato, e la stessa tabella di vendite di nuovo impilata per regione invece che raggruppata."
+
+msgid "Machine comparison - four gauges measuring the same standard"
+msgstr "Confronto tra macchine - quattro calibri che misurano lo stesso campione"
+
+msgid "Thirty repeated readings of a 25.000 mm gauge block from four coordinate measuring machines: a box plot (which machine reads high, which is noisier), the same distributions again as an ECDF, a run-order scatter (whether either drifts over the session), a summary table, and each machine's own scheduled maintenance as a Gantt-style broken bar, horizontal and vertical - a shape-aware population for the Outlier operation, and aligned closely enough by run number for Statistics's paired t-test to confirm Machine C's bias against Machine A."
+msgstr "Trenta letture ripetute di un blocchetto campione da 25,000 mm da parte di quattro macchine di misura a coordinate: un box plot (quale macchina legge alto, quale è più rumorosa), le stesse distribuzioni di nuovo come ECDF, uno scatter per ordine di misura (se una delle due deriva nel corso della sessione), una tabella riassuntiva, e la manutenzione programmata di ciascuna macchina come broken bar in stile Gantt, orizzontale e verticale - una popolazione utile per l'operazione Outlier, e allineata abbastanza bene per numero di lettura da permettere al t-test appaiato di Statistics di confermare lo scostamento della Macchina C rispetto alla Macchina A."
+
+msgid "Release history and regional sales - timeline and text"
+msgstr "Cronologia release e vendite regionali - timeline e testo"
+
+msgid "Ten software releases on a dated timeline, coloured by whether each was a major or minor version, and the four sales regions read as plain labelled points rather than bars."
+msgstr "Dieci release software su una timeline datata, colorate a seconda che si tratti di una versione major o minor, e le quattro regioni di vendita lette come semplici punti etichettati anziché barre."
+
+msgid "A rotating field - quiver, streamlines and wind barbs"
+msgstr "Un campo rotante - quiver, linee di flusso e wind barbs"
+
+msgid "One synthetic vector field - solid-body rotation on a regular grid - drawn the three ways a vector field can be: an arrow per point, traced streamlines, and meteorology's own wind-barb notation - plus an unrelated month of daily temperature range, shaded as a filled band."
+msgstr "Un campo vettoriale sintetico - rotazione rigida su una griglia regolare - disegnato nei tre modi in cui un campo vettoriale può essere reso: una freccia per punto, linee di flusso tracciate, e la notazione meteorologica dei wind barbs - più un mese scorrelato di escursione termica giornaliera, ombreggiato come banda riempita."
+
+msgid "Sparse calibration curve - ready for Interpolation"
+msgstr "Curva di calibrazione rada - pronta per Interpolation"
+
+msgid "A logistic response curve sampled at only nine irregular points - exact by construction, so Interpolation's generated curve can be checked against the true shape rather than against noise."
+msgstr "Una curva di risposta logistica campionata in soli nove punti irregolari - esatta per costruzione, cosi' la curva generata da Interpolation può essere verificata contro la forma vera anziché contro il rumore."
+
+msgid "Add a horizontal line to the selected axis"
+msgstr "Aggiungi una linea orizzontale all'asse selezionato"
+
+msgid "Add a vertical line to the selected axis"
+msgstr "Aggiungi una linea verticale all'asse selezionato"
+
+msgid "Add an annotation to the selected axis"
+msgstr "Aggiungi un'annotazione all'asse selezionato"
+
+msgid "Add horizontal line"
+msgstr "Aggiungi linea orizzontale"
+
+msgid "Add vertical line"
+msgstr "Aggiungi linea verticale"
+
+msgid "Create Function"
+msgstr "Crea funzione"
+
+msgid "Create Operation"
+msgstr "Crea operazione"
+
+msgid "Create Renderer"
+msgstr "Crea renderer"
+
+msgid "Scaffold the new chart-type file"
+msgstr "Genera il nuovo file del tipo di grafico"
+
+msgid "Scaffold the new fit-function file"
+msgstr "Genera il nuovo file della funzione di fit"
+
+msgid "Scaffold the new series-operation file"
+msgstr "Genera il nuovo file dell'operazione sulle serie"
