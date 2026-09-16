@@ -698,7 +698,18 @@ class MainWindow(QMainWindow):
             (
                 _("Help"),
                 [
-                    action_menu_item("settings", self._on_settings),
+                    # Only on macOS: PreferencesRole (_MACOS_MENU_ROLES) is
+                    # what actually pulls this out into the native apple
+                    # menu there, so it has to be declared somewhere for
+                    # Cocoa to relocate - "Help" is as good a place as any
+                    # a user never actually sees it listed under. Everywhere
+                    # else it would just be a second, redundant way to reach
+                    # what the rail's own dedicated Settings tile already
+                    # does one click away.
+                    *(
+                        [action_menu_item("settings", self._on_settings)]
+                        if IS_MACOS else []
+                    ),
                     action_menu_item("log_viewer", self._show_log_viewer),
                     None,
                     action_menu_item("user_manual", self._on_user_manual),

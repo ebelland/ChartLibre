@@ -250,6 +250,22 @@ def test_off_macos_page_switching_is_unaffected(
     assert built._nav_buttons[1].isChecked()
 
 
+def test_off_macos_the_help_group_drops_the_redundant_settings_item(
+    make_window, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Settings has its own rail tile off macOS (NavigationBar.settings_button)
+    - listing it again in the Help popup would be a second, redundant way to
+    reach the same thing. On macOS it stays: PreferencesRole is what actually
+    pulls it into the native apple menu, and nothing else declares it."""
+    monkeypatch.setattr(main_window_module, "IS_MACOS", False)
+
+    built = make_window()
+
+    ids = [action.data() for action in built._help_menu.actions() if not action.isSeparator()]
+    assert "settings" not in ids
+    assert ids == ["log_viewer", "user_manual", "load_demo", "credits"]
+
+
 # ----------------------------------------------------------------------
 # Developer menu: each tool opens its own dialog (see todo.txt P3-4/5/6)
 # ----------------------------------------------------------------------
