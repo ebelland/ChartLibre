@@ -280,10 +280,18 @@ class MainWindow(QMainWindow):
                 QTimer.singleShot(timeout_ms, lambda: self._set_status_state("normal", _("Ready")))
 
     def _update_window_title(self) -> None:
-        """Show the active project beside ChartLibre in every title surface."""
+        """Show the active project beside ChartLibre in every title surface.
+
+        No ``self.setToolTip(...)`` here: a tooltip on the main window
+        itself is also the fallback tooltip for every child widget that has
+        none of its own - Qt forwards an unhandled ToolTip event up the
+        parent chain - so setting one here used to make the .dhub path show
+        up on almost any control instead of that control's own hint. The
+        status bar's project label is the one place this path belongs, and
+        it already carries it below.
+        """
         project = self._db_path.name if self._db_path else _("Untitled project")
         self.setWindowTitle(f"{APP_NAME} | {project}")
-        self.setToolTip(str(self._db_path) if self._db_path else "")
         if hasattr(self, "_status_project"):
             self._status_project.setText(project)
             self._status_project.setToolTip(str(self._db_path) if self._db_path else "")
