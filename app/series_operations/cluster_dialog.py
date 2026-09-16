@@ -953,17 +953,20 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self.feature_combo.currentIndexChanged.connect(self.refresh_results)
         self.render_mode_combo.currentIndexChanged.connect(self.refresh_results)
 
-        self.cluster_count_spin.valueChanged.connect(self.refresh_results)
-        self.kmeans_iter_spin.valueChanged.connect(self.refresh_results)
-        self.kmeans_thresh_spin.valueChanged.connect(self.refresh_results)
+        # Spinboxes go through the debounced path: KMeans/hierarchical/
+        # DBSCAN etc. are heavy enough that holding a spinbox's arrow down
+        # (or dragging it) must not fire one full clustering run per tick.
+        self.cluster_count_spin.valueChanged.connect(self._queue_refresh_results)
+        self.kmeans_iter_spin.valueChanged.connect(self._queue_refresh_results)
+        self.kmeans_thresh_spin.valueChanged.connect(self._queue_refresh_results)
         self.whiten_check.stateChanged.connect(self.refresh_results)
-        self.max_runtime_spin.valueChanged.connect(self.refresh_results)
+        self.max_runtime_spin.valueChanged.connect(self._queue_refresh_results)
         self.linkage_method_combo.currentIndexChanged.connect(self.refresh_results)
         self.metric_combo.currentIndexChanged.connect(self.refresh_results)
         self.hierarchy_criterion_combo.currentIndexChanged.connect(self.refresh_results)
-        self.distance_threshold_spin.valueChanged.connect(self.refresh_results)
-        self.sklearn_eps_spin.valueChanged.connect(self.refresh_results)
-        self.sklearn_min_samples_spin.valueChanged.connect(self.refresh_results)
+        self.distance_threshold_spin.valueChanged.connect(self._queue_refresh_results)
+        self.sklearn_eps_spin.valueChanged.connect(self._queue_refresh_results)
+        self.sklearn_min_samples_spin.valueChanged.connect(self._queue_refresh_results)
 
         self._doc_link.linkActivated.connect(self._open_description)
 

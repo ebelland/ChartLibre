@@ -246,8 +246,12 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
         self.model_combo.currentIndexChanged.connect(self.refresh_results)
         self._draw_baseline_check.toggled.connect(self.refresh_results)
+        # Debounced: AsLS re-runs its iterative solver from scratch on every
+        # change, so holding a spinbox's arrow down (lambda spans orders of
+        # magnitude; iterations multiplies the cost directly) must not fire
+        # one full solve per tick.
         for spin in (self._lambda_spin, self._p_spin, self._iterations_spin):
-            spin.valueChanged.connect(self.refresh_results)
+            spin.valueChanged.connect(self._queue_refresh_results)
 
     def _model(self) -> str:
         return self.model_combo.currentText() or BASELINE_ASLS

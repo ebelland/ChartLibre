@@ -18,7 +18,7 @@ import json
 import re
 from typing import Any
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QHBoxLayout, QSizePolicy, QSplitter, QToolBox, QVBoxLayout, QWidget
 import numpy as np
@@ -40,6 +40,7 @@ from app.styles.style import (
 )
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numeric_axis
+from app.utils.config import get_constant
 from app.utils.series_validation import (
     SeriesIssue,
     clean_xy,
@@ -59,6 +60,11 @@ from app.widgets.html_results import HtmlResultsView, looks_like_html, plain_to_
 from app.utils.i18n import _
 
 _TABLE_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
+
+#: Delay between the last control change and a debounced refresh_results()
+#: call - see _queue_refresh_results. Same default as the property panels'
+#: own auto-apply (base_properties.AUTO_APPLY_DELAY_MS).
+PREVIEW_DEBOUNCE_MS: int = get_constant("series_operation_preview_debounce_ms", 400)
 
 # Every table an operation writes starts with this.  One character, and the
 # source list can hide the whole class of them: a project with six fits and a
@@ -190,6 +196,16 @@ class SeriesOperationDialogBase(QDialog):
         self._model_selector_widget = self.build_model_selector()
         self._parameter_selector_widget = self.build_parameter_selector()
         self._results_widget = self.build_results_pane()
+
+        # Debounced refresh_results(): a control wired to a computation
+        # heavy enough to matter (KMeans, Welch/FFT, AsLS...) should go
+        # through _queue_refresh_results in connect_operation_signals
+        # instead of refresh_results directly, or holding a spinbox's
+        # arrow down fires that computation once per intermediate value.
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(PREVIEW_DEBOUNCE_MS)
+        self._refresh_timer.timeout.connect(self.refresh_results)
 
         self._build_common_ui()
         self.connect_common_signals()
@@ -586,6 +602,18 @@ class SeriesOperationDialogBase(QDialog):
     def refresh_results(self) -> None:
         """Recompute/refresh the right-side results pane."""
         raise NotImplementedError
+
+    def _queue_refresh_results(self, *_ignored: Any) -> None:
+        """(Re)start the countdown to a debounced refresh_results() call.
+
+        Connect a control here instead of straight to refresh_results when
+        what it triggers is heavy enough to matter (KMeans, Welch/FFT, AsLS)
+        - holding a spinbox's arrow down, or dragging it, then fires that
+        computation once after the last change rather than once per tick.
+        Ignores its arguments so it connects straight to Qt signals that
+        pass one (valueChanged, currentIndexChanged, stateChanged).
+        """
+        self._refresh_timer.start()
 
     # ------------------------------------------------------------------
     # Shared generated-series apply pipeline

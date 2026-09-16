@@ -401,13 +401,16 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         self._fs_auto_check.toggled.connect(self._refresh_visibility)
         self._fs_auto_check.toggled.connect(self.refresh_results)
 
+        # Spinboxes go through the debounced path: Welch/FFT/wavelet
+        # transforms are heavy enough that holding a spinbox's arrow down
+        # (or dragging it) must not fire one full recompute per tick.
         for widget in (
             self._fs_spin,
             self._overlap_spin,
         ):
-            widget.valueChanged.connect(self.refresh_results)
+            widget.valueChanged.connect(self._queue_refresh_results)
         for widget in (self._nperseg_spin, self._maxlags_spin):
-            widget.valueChanged.connect(self.refresh_results)
+            widget.valueChanged.connect(self._queue_refresh_results)
         for widget in (
             self._window_combo,
             self._detrend_combo,
@@ -422,7 +425,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
             self._wavelet_w0_spin,
             self._wavelet_scales_spin,
         ):
-            widget.valueChanged.connect(self.refresh_results)
+            widget.valueChanged.connect(self._queue_refresh_results)
 
     def _refresh_visibility(self) -> None:
         """Show only the parameters the selected method actually uses."""
