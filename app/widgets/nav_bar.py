@@ -12,9 +12,18 @@ from app.utils.i18n import _
 if TYPE_CHECKING:
     from app.dialogs.main_window import MainWindow
 
+#: Windows/Fluent: a fixed-width column of square icon-over-label tiles.
 NAV_BAR_WIDTH = 120
 NAV_ICON_SIZE = QSize(20, 20)
 NAV_ITEM_SIZE = QSize(104, 64)
+
+#: macOS: a wider Apple Music/Finder-style sidebar of icon-beside-label
+#: rows, rather than square tiles - there is no native AppKit sidebar
+#: control to defer to (see macos_native.qss's own note on #activityRail),
+#: so this is this app's best approximation of one.
+_MACOS_NAV_BAR_WIDTH = 200
+_MACOS_ICON_SIZE = QSize(16, 16)
+_MACOS_ROW_HEIGHT = 30
 
 _HOME_ICON = (
     '<path d="M3 11.5 12 4l9 7.5"/>'
@@ -53,9 +62,10 @@ class NavigationBar(QFrame):
     def __init__(self, window: MainWindow, *, is_macos: bool) -> None:
         super().__init__(window)
         self._window: MainWindow = window
+        self._is_macos = is_macos
         self.setObjectName("activityRail")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setFixedWidth(NAV_BAR_WIDTH)
+        self.setFixedWidth(_MACOS_NAV_BAR_WIDTH if is_macos else NAV_BAR_WIDTH)
         # Vertical Ignored, not Expanding: the tiles below are each
         # setFixedSize (64px tall, deliberately - Fluent-style tiles, not
         # accidental), and stacked vertically that sums to well over the
@@ -126,38 +136,11 @@ class NavigationBar(QFrame):
             self.settings_button = None
             self.help_button = None
 
-        self.setStyleSheet("""
-            QFrame#activityRail {
-                background: palette(window);
-                border: none;
-                border-right: 1px solid palette(midlight);
-            }
-            QToolButton#navigationItem {
-                background: transparent;
-                color: palette(window-text);
-                border: none;
-                border-radius: 8px;
-                padding: 6px 4px;
-                font-size: 8pt;
-            }
-            QToolButton#navigationItem:hover {
-                background: palette(midlight);
-            }
-            QToolButton#navigationItem:pressed {
-                background: palette(mid);
-            }
-            QToolButton#navigationItem:checked {
-                background: palette(button);
-                color: palette(window-text);
-                border-left: 4px solid palette(highlight);
-                padding-left: 0px;
-                font-weight: 600;
-            }
-            QToolButton#navigationItem::menu-indicator {
-                image: none;
-                width: 0px;
-            }
-        """)
+        # No inline setStyleSheet here: #activityRail/#navigationItem are
+        # styled per platform in fluent_win11.qss (square Fluent tiles) and
+        # macos_native.qss (Apple Music/Finder-style sidebar rows) instead,
+        # the same split every other piece of bespoke chrome in this app
+        # already follows - see that file's own PLATFORM PARITY NOTES.
 
     def _on_group_clicked(self, button_id: int) -> None:
         if button_id == -2:
@@ -221,10 +204,21 @@ class NavigationBar(QFrame):
         button.setObjectName("navigationItem")
         button.setAutoRaise(False)
         button.setIcon(icon)
-        button.setIconSize(NAV_ICON_SIZE)
         button.setText(text)
-        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        button.setFixedSize(NAV_ITEM_SIZE)
+        if self._is_macos:
+            # A sidebar row - icon beside a left-aligned label, stretched to
+            # the rail's own width - not a square tile: Apple Music/Finder's
+            # sidebar is a list, not a grid of icons.
+            button.setIconSize(_MACOS_ICON_SIZE)
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            button.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            )
+            button.setFixedHeight(_MACOS_ROW_HEIGHT)
+        else:
+            button.setIconSize(NAV_ICON_SIZE)
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+            button.setFixedSize(NAV_ITEM_SIZE)
         button.setToolTip(tooltip)
         button.setStatusTip(tooltip)
         button.setAccessibleName(text)

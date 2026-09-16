@@ -32,7 +32,7 @@ from app.widgets.windows_title_bar import WindowsTitleBar
 from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.chart_panel import ChartPanel
-from app.widgets.nav_bar import NAV_BAR_WIDTH, NavigationBar
+from app.widgets.nav_bar import NavigationBar
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.import_data_dialog import ImportDataDialog, is_importable
 from app.data.demo_project import PROJECTS_DIR, copy_demo_project
@@ -1296,8 +1296,12 @@ class MainWindow(QMainWindow):
 
         relax_minimum_width(self._left_panel)
         # The rail is fixed-width and always visible, so the floor applies to
-        # the content next to it, not to the panel as a whole.
-        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + NAV_BAR_WIDTH)
+        # the content next to it, not to the panel as a whole. Read from the
+        # rail itself, not the NAV_BAR_WIDTH constant: NavigationBar picks
+        # its own width per platform (a macOS sidebar is wider than a
+        # Windows Fluent tile rail), so the constant alone is only ever
+        # right for one of them.
+        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._left_rail.width())
 
         # The chart pane needs the same treatment, and for the same reason:
         # whichever pane keeps a large implicit minimum wins the whole

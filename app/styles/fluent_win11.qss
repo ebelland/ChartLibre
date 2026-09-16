@@ -814,76 +814,46 @@ TablePreviewPanel QHeaderView::section:last {
 }
 
 /* -------------------------------
-   Activity rail / navigation
+   Activity rail / navigation (NavigationBar, app/widgets/nav_bar.py)
+   A column of square icon-over-label tiles (#navigationItem) - the
+   Fluent-2 counterpart to macos_native.qss's own Apple Music/Finder-style
+   sidebar rows under the same object name.
 -------------------------------- */
-/* ==========================================================
-   Fluent 2 Navigation Rail
-   ========================================================== */
 
-QFrame#activityRail,
-QFrame#sideBar,
-QWidget#sideBar,
-QWidget#navigationPane {
-
-    /*background: #103B6D;*/
-    border-right: 1px solid rgba(@GLOW_RGB@,0.08);
-
-    color: white;
+QFrame#activityRail {
+    background: palette(window);
+    border: none;
+    border-right: 1px solid palette(midlight);
 }
 
-/* ==========================================================
-   Navigation Buttons
-   ========================================================== */
-
-QToolButton#railMenuButton,
-QToolButton#activityButton {
-
-    min-width: 36px;
-    min-height: 36px;
-
-    max-width: 36px;
-    max-height: 36px;
-
-    margin: 2px;
-
+QToolButton#navigationItem {
+    background: transparent;
+    color: palette(window-text);
     border: none;
     border-radius: 8px;
-
-    background: transparent;
-
-    color: rgba(@GLOW_RGB@,0.92);
-
-    font-family: "Segoe Fluent Icons";
-    font-size: 16px;
+    padding: 6px 4px;
+    font-size: 8pt;
 }
 
-QToolButton#railMenuButton:hover,
-QToolButton#activityButton:hover {
-
-    background: rgba(@GLOW_RGB@,0.10);
+QToolButton#navigationItem:hover {
+    background: palette(midlight);
 }
 
-QToolButton#activityButton:pressed,
-QToolButton#railMenuButton:pressed {
-
-    background: rgba(@GLOW_RGB@,0.20);
+QToolButton#navigationItem:pressed {
+    background: palette(mid);
 }
 
-QToolButton#activityButton:checked {
-
-    background: rgba(@GLOW_RGB@,0.18);
-
-    border-left: 3px solid rgba(@ACCENT_RGB@, 1.0);
-
-    padding-left: 3px;
-
-    color: white;
-
+QToolButton#navigationItem:checked {
+    background: palette(button);
+    color: palette(window-text);
+    border-left: 4px solid palette(highlight);
+    padding-left: 0px;
     font-weight: 600;
 }
 
-QToolButton::menu-indicator {
+QToolButton#navigationItem::menu-indicator {
     image: none;
+    width: 0px;
 }
 
   /* ==========================================================

@@ -127,6 +127,21 @@ P2-19 pysym: user-authored Python/symbolic series - a suggested design, not
         is worth doing even so - this is closer to a spreadsheet macro than
         to a saved filter.
 
+P2-20 .dhub HTML chart viewer - export a project's charts to a static
+      HTML page
+      Motivated by wanting to look at a project's charts somewhere the
+      desktop app cannot run (e.g. an iPad, which PySide6 does not target
+      at all). render_figure.py already renders a FigureDescriptor into a
+      matplotlib Figure from nothing but SqliteRepo - no Qt anywhere in
+      that path - so a standalone script could open any .dhub file,
+      iterate its saved figures, savefig each to PNG/SVG, and bundle them
+      into one self-contained HTML page (one tab/section per figure) -
+      viewable via AirDrop/iCloud/Safari, no app install needed. No
+      zoom/pan/tooltip interactivity in this pass; if that turns out to
+      matter, re-rendering with Plotly instead of matplotlib is the
+      upgrade path, at the cost of redoing every chart type in
+      app/charts/.
+
 ================================================================
 P3 - LATER
 ================================================================

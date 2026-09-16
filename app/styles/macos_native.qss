@@ -487,26 +487,42 @@ QFrame#activityRail {
   border-right: 1px solid rgba(@SHADOW_RGB@, 0.08);
 }
 
-QToolButton#activityButton {
+/* #navigationItem, not the old #activityButton (renamed when the rail
+   itself was rebuilt as NavigationBar - this block went stale and unused
+   for a while, silently overridden by that widget's own now-removed
+   setStyleSheet call). Rows, not tiles: icon beside a left-aligned label,
+   full sidebar width, rounded selection pill - Apple Music/Finder's
+   sidebar language, not Fluent's centered icon-over-text square. */
+QToolButton#navigationItem {
   background: transparent;
   border: none;
   border-radius: 6px;
+  padding: 0 10px;
+  text-align: left;
+  font-size: 13pt;
 }
 
-QToolButton#activityButton:hover {
+QToolButton#navigationItem:hover {
   background: rgba(@SHADOW_RGB@, 0.06);
 }
 
-QToolButton#activityButton:checked {
-  background: rgba(@ACCENT_RGB@, 0.16);
+QToolButton#navigationItem:pressed {
+  background: rgba(@SHADOW_RGB@, 0.10);
 }
 
-QToolButton#activityButton:checked:hover {
+QToolButton#navigationItem:checked {
+  background: rgba(@ACCENT_RGB@, 0.16);
+  color: palette(highlight);
+  font-weight: 600;
+}
+
+QToolButton#navigationItem:checked:hover {
   background: rgba(@ACCENT_RGB@, 0.22);
 }
 
-QToolButton#activityButton::menu-indicator {
+QToolButton#navigationItem::menu-indicator {
   image: none;
+  width: 0px;
 }
 
 /* -------------------------------
