@@ -104,6 +104,9 @@ class AxisPropertiesWidget(BaseProperties):
         self._current_axis_id: int | None = None
         self._axis_map: dict[int, AxisDescriptorLike] = {}
         self._kwargs_editor: DictEditorPanel | None = None
+        # (axis_id, renderer_key, resolved kwargs values) of the editor
+        # currently built - see rebuild_kwargs_editor's no-op guard.
+        self._kwargs_build_signature: tuple[Any, ...] | None = None
         # Rebuilt with the editor it sits on - see rebuild_kwargs_editor.
         # create_action_button() and mark_icon_only() return a generic button
         # instance rather than a QPushButton specifically, so the attribute must
@@ -932,24 +935,45 @@ class AxisPropertiesWidget(BaseProperties):
         """Replace kwargs host content."""
         self._replace_layout_widget(self._kwargs_layout, widget)
 
-    def rebuild_kwargs_editor(self, axis_id: int | None) -> None:
-        """Rebuild the renderer kwargs editor for ``axis_id``."""
+    def _abandon_kwargs_editor(self) -> None:
+        """Drop the live editor before showing a note widget in its place."""
+        self._kwargs_build_signature = None
         if self._kwargs_editor is not None:
             self._kwargs_editor.commit_pending_edits()
             self._kwargs_editor = None
 
+    def rebuild_kwargs_editor(self, axis_id: int | None) -> None:
+        """Rebuild the renderer kwargs editor for ``axis_id``.
+
+        A no-op when the axis, its renderer and its resolved kwargs values
+        are all identical to the last build. ``_reload_property_widgets``
+        calls this on every series reorder, axis move and layout-preset
+        apply in ``main_window.py`` even though none of those touch the
+        selected axis's own renderer or kwargs, and a full rebuild replaces
+        the whole ``DictEditorPanel`` tree - one row per kwarg - for no
+        visible change. The comparison is on the *resolved values*
+        (``get_kwargs(current_options)``), not on object identity or on
+        ``axis_kwargs`` alone, so a real change is still picked up however
+        it happened - Undo included - even with the axis_id and renderer
+        unchanged: any option that feeds a kwarg's resolution changes what
+        this computes, not just the axis_kwargs sub-dict (see
+        ``BaseAxisRenderer._sources``).
+        """
         axis_desc = self._axis_map.get(int(axis_id)) if axis_id is not None else None
         if axis_desc is None:
+            self._abandon_kwargs_editor()
             self.set_kwargs_widget(self._build_note_widget(_("Select an axis to edit kwargs.")))
             return
 
         renderer_key = self._axis_renderer(axis_desc, self._axis_options(axis_desc))
         if not renderer_key:
+            self._abandon_kwargs_editor()
             self.set_kwargs_widget(self._build_note_widget(_("Renderer not found.")))
             return
 
         renderer: RendererConfig | None = get_renderer(renderer_key)
         if renderer is None:
+            self._abandon_kwargs_editor()
             self.set_kwargs_widget(self._build_note_widget(_("Renderer not found.")))
             return
 
@@ -960,6 +984,7 @@ class AxisPropertiesWidget(BaseProperties):
             renderer_instance = renderer_class()
         except Exception:
             applogger.exception("Failed to load renderer kwargs schema")
+            self._abandon_kwargs_editor()
             self.set_kwargs_widget(
                 self._build_note_widget(_("Failed to load renderer kwargs schema."))
             )
@@ -967,6 +992,7 @@ class AxisPropertiesWidget(BaseProperties):
 
         schema = getattr(renderer_instance, "Kwargs", None)
         if not schema:
+            self._abandon_kwargs_editor()
             self.set_kwargs_widget(
                 self._build_note_widget(_("No kwargs available for this renderer."))
             )
@@ -978,20 +1004,34 @@ class AxisPropertiesWidget(BaseProperties):
         current_options: dict[str, Any] = _plain_options(
             self._repo.get_axis_options(axis_id_int) or {}
         )
+        values = renderer_instance.get_kwargs(current_options)
+
+        signature = (axis_id_int, renderer_key, tuple(sorted(values.items())))
+        if self._kwargs_editor is not None and signature == self._kwargs_build_signature:
+            return
+
+        if self._kwargs_editor is not None:
+            self._kwargs_editor.commit_pending_edits()
+            self._kwargs_editor = None
 
         editor = DictEditorPanel(schema, self)
         self._configure_kwargs_editor(editor)
-        values = renderer_instance.get_kwargs(current_options)
         if values:
             editor.set_values(values)
             self._configure_kwargs_editor(editor)
+        # Auto-apply dropped the Apply button (see _connect_auto_apply); this
+        # editor is rebuilt from scratch per axis/renderer rather than wired
+        # up front like the static form controls, so it has to queue its own
+        # apply here or a kwargs edit is never persisted until some other
+        # field happens to be touched too.
+        editor.valuesChanged.connect(self._queue_auto_apply)
 
         # DictEditorPanel.reset_to_defaults() already existed - every kwarg's
         # schema default *is* the "leave this to the style sheet" sentinel
         # (see kwarg_spec.DEFAULT) - it just had no button anywhere calling
         # it, so the only way back to "stop overriding this" was retyping
         # "default" into each row by hand. Resets the live editor only, the
-        # same as any other edit here: Apply still persists it.
+        # same as any other edit here: auto-apply persists it a moment later.
         #
         # Built per editor, and on the editor's own search row: one strip of
         # chrome over the tree instead of two, and no button left behind on
@@ -1011,6 +1051,7 @@ class AxisPropertiesWidget(BaseProperties):
             editor.add_search_row_widget(reset_button)
 
         self._kwargs_editor = editor
+        self._kwargs_build_signature = signature
         self.set_kwargs_widget(editor)
 
     def clean_kwargs(self) -> dict[str, Any]:
@@ -1098,7 +1139,14 @@ class AxisPropertiesWidget(BaseProperties):
             desc = self._repo.load_figure_descriptor(self._figure_id)
             previous_axis_id = self._current_axis_id
             self._axis_map.clear()
-            self._kwargs_editor = None
+            # Not nulled here: every caller of set_connected_figure/
+            # reload_controls follows it with rebuild_kwargs_editor, and
+            # that method now owns the editor's lifecycle - it commits and
+            # replaces it when the axis/renderer/kwargs actually changed,
+            # and leaves it alone (skipping a full QTreeWidget rebuild)
+            # when they did not. Nulling it here unconditionally would
+            # defeat that: rebuild_kwargs_editor only skips when an editor
+            # is still there to reuse.
 
             with QSignalBlocker(self._axis_combo):
                 self._axis_combo.clear()

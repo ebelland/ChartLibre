@@ -81,7 +81,8 @@ def test_reset_does_not_touch_the_stored_axis_until_apply(
     widget: AxisPropertiesWidget, repo: SqliteRepo
 ) -> None:
     """Same rule as any other edit in this panel: nothing is persisted
-    until Apply is pressed, so a reset can still be backed out of."""
+    until the auto-apply timer fires, so a reset can still be backed out
+    of in the moment before it does."""
     axis_id = widget.current_axis_id()
     before = dict(repo.get_axis_options(axis_id) or {})
 
@@ -121,13 +122,41 @@ def test_the_button_is_icon_only(widget: AxisPropertiesWidget) -> None:
     assert button.toolTip()
 
 
-def test_rebuilding_the_editor_replaces_the_button_with_it(
+def test_rebuilding_with_nothing_changed_reuses_the_editor_and_button(
     widget: AxisPropertiesWidget,
 ) -> None:
-    """The button is owned by the editor now, so it must be rebuilt with
-    it - a kept reference would be a pointer into a deleted panel."""
-    first = widget._btn_reset_kwargs
+    """rebuild_kwargs_editor is called on every series reorder, axis move
+    and layout-preset apply (see main_window._reload_property_widgets),
+    none of which touch the selected axis's own renderer or kwargs - so a
+    second call with nothing actually different must not tear down and
+    rebuild the whole kwargs tree (and its button) for no visible change."""
+    first_editor = widget._kwargs_editor
+    first_button = widget._btn_reset_kwargs
+
     widget.rebuild_kwargs_editor(widget.current_axis_id())
+
+    assert widget._kwargs_editor is first_editor
+    assert widget._btn_reset_kwargs is first_button
+
+
+def test_rebuilding_after_a_real_change_replaces_the_button(
+    widget: AxisPropertiesWidget, repo: SqliteRepo
+) -> None:
+    """The button is owned by the editor now, so it must be rebuilt with
+    it - a kept reference would be a pointer into a deleted panel - once
+    the axis's kwargs have actually changed, same as any other edit."""
+    first = widget._btn_reset_kwargs
+    axis_id = widget.current_axis_id()
+    assert axis_id is not None
+
+    editor = widget._kwargs_editor
+    assert editor is not None
+    a_key = next(iter(editor.config))
+    options = dict(repo.get_axis_options(axis_id) or {})
+    options["axis_kwargs"] = {a_key: "a value nothing defaults to"}
+    repo.set_axis_options(axis_id, options)
+
+    widget.rebuild_kwargs_editor(axis_id)
 
     assert widget._btn_reset_kwargs is not first
     assert widget._btn_reset_kwargs.parentWidget() is not None
