@@ -5,6 +5,21 @@
 
 
 /* ==========================================================
+   Frameless window's own edge
+   ========================================================== */
+
+/* main_window.py sets Qt.FramelessWindowHint on Windows, which strips every
+   bit of native chrome - border, corner, drop shadow - so the window has no
+   visible edge of its own against whatever is behind it without this. Plain
+   1px outline, no radius: WinUI3 windows are only softly rounded by DWM at
+   the compositor level, which a QSS border-radius on an opaque child widget
+   cannot reproduce (it would draw a rounded rectangle inside a still-square
+   window, not reshape the window itself). */
+QWidget#windowFrame {
+    border: 1px solid rgba(@SHADOW_RGB@, 0.35);
+}
+
+/* ==========================================================
    Global Base
    ========================================================== */
 

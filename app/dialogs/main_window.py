@@ -430,6 +430,14 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
         if IS_WINDOWS:
+            # FramelessWindowHint (see __init__) strips every bit of native
+            # chrome - border, corner, drop shadow - so without this the
+            # window has no visible edge at all against whatever is behind
+            # it. fluent_win11.qss draws a plain 1px outline on this object
+            # name; WA_StyledBackground is what makes a QWidget paint a QSS
+            # border at all rather than silently ignoring it.
+            host.setObjectName("windowFrame")
+            host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             self._windows_title_bar = WindowsTitleBar(self)
             layout.addWidget(self._windows_title_bar, 0)
         layout.addWidget(self._main_split, 1)

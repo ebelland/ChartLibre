@@ -52,7 +52,20 @@ class NavigationBar(QFrame):
         self.setObjectName("activityRail")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setFixedWidth(NAV_BAR_WIDTH)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        # Vertical Ignored, not Expanding: the tiles below are each
+        # setFixedSize (64px tall, deliberately - Fluent-style tiles, not
+        # accidental), and stacked vertically that sums to well over the
+        # window's own minimum height. Under Expanding, Qt's own
+        # qSmartMinSize takes max(sizeHint, minimumSizeHint) as the floor
+        # regardless of what setMinimumHeight is given - an explicit minimum
+        # only overrides that floor when it is > 0, so setMinimumHeight(0)
+        # alone is silently a no-op here. Ignored drops that floor to 0 (Qt
+        # still hands the rail whatever height the splitter actually gives
+        # it - this only changes what the rail *demands*, not what it
+        # *gets*), which is what stops it from forcing the containing frame,
+        # and the window through it, at least as tall as its own content.
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Ignored)
+        self.setMinimumHeight(0)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 10, 8, 10)
