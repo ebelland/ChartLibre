@@ -154,12 +154,23 @@ class ChartPanel(QFrame):
         repo: SqliteRepo,
         figure_id: int,
         parent: QWidget | None = None,
+        *,
+        defer_render: bool = False,
     ) -> None:
-        """Initialise the panel and render its first chart state."""
+        """Initialise the panel and render its first chart state.
+
+        ``defer_render=True`` skips that first render - the caller must
+        call :meth:`ensure_rendered` once the panel actually needs to show
+        something. For a project opened with many figures (one ChartPanel
+        per figure, all built up front by MainWindow._reload_tabs), only
+        the one tab actually shown needs a render before the window becomes
+        interactive; the rest can wait until the user clicks their tab.
+        """
         super().__init__(parent)
 
         self._repo = repo
         self._figure_id = int(figure_id)
+        self._needs_initial_render = bool(defer_render)
         self._deleted = False
         self._pending_canvas_sync = False
         self._pending_canvas_redraw = False
@@ -229,6 +240,21 @@ class ChartPanel(QFrame):
 
         self._init_ui()
         self.set_resize_mode(self._resize_mode, persist=False, redraw=False)
+        if self._needs_initial_render:
+            self._capture_fixed_metrics_from_rendered_figure()
+        else:
+            self.reload()
+
+    def ensure_rendered(self) -> None:
+        """Run the deferred first render, once, if ``defer_render`` skipped it.
+
+        Idempotent, so callers do not need to track whether this panel's
+        turn has already come - the properties panel's own "connect to the
+        current chart" path calls this on every tab switch regardless.
+        """
+        if not self._needs_initial_render:
+            return
+        self._needs_initial_render = False
         self.reload()
 
     # ------------------------------------------------------------------
@@ -2111,8 +2137,15 @@ class ChartPanel(QFrame):
         return QSize(800, 450)
 
     def showEvent(self, event: PySide6.QtGui.QShowEvent) -> None:
-        """Refresh geometry when a hidden chart tab becomes visible."""
+        """Refresh geometry when a hidden chart tab becomes visible.
+
+        Also a backstop for the deferred first render (see __init__'s
+        ``defer_render``): MainWindow always calls ensure_rendered() itself
+        before connecting the properties panel to a newly-current tab, but
+        this covers becoming visible any other way too.
+        """
         super().showEvent(event)
+        self.ensure_rendered()
         self._schedule_canvas_geometry_sync(redraw=True, late=True)
 
     def event(self, event: QEvent) -> bool:

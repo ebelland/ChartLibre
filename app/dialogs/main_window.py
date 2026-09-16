@@ -1330,7 +1330,13 @@ class MainWindow(QMainWindow):
         try:
             self._tabs.clear()
             for fig_id, name in self._repo.load_figures_from_db():
-                panel = ChartPanel(self._repo, fig_id, parent=self._tabs)
+                # Only the tab that ends up current needs its first render
+                # before the window is interactive - see
+                # _update_properties_for_current_chart's ensure_rendered()
+                # call, which renders whichever tab that turns out to be.
+                # A project with many figures otherwise pays for a full
+                # render of every one of them just to show the first.
+                panel = ChartPanel(self._repo, fig_id, parent=self._tabs, defer_render=True)
                 panel.setMinimumSize(0, 0)
                 panel.setSizePolicy(
                     QSizePolicy.Policy.Expanding,
@@ -1390,6 +1396,11 @@ class MainWindow(QMainWindow):
             self._clear_property_widgets()
             return
 
+        # A no-op unless _reload_tabs built this panel with defer_render:
+        # this is the one place every "the current chart is now this panel"
+        # path converges (initial load, tab click, Undo, chart deletion),
+        # so it is where a still-unrendered tab's first render belongs.
+        panel.ensure_rendered()
         self._set_property_widgets_connected(
             figure_id=int(panel.figure_id),
             figure=panel.figure,
