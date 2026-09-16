@@ -438,6 +438,18 @@ class MainWindow(QMainWindow):
             # it. fluent_win11.qss draws a plain 1px outline on this object
             # name; WA_StyledBackground is what makes a QWidget paint a QSS
             # border at all rather than silently ignoring it.
+            #
+            # No drop shadow here, unlike the elevated internal cards this
+            # replaced: a shadow effect needs room *outside* the widget it
+            # is attached to in order to render, and host fills the client
+            # area exactly - the OS window edge sits at host's own edge, so
+            # the shadow's bleed would just be clipped away. Giving it that
+            # room means making the window translucent and inset from its
+            # real (now larger, transparent) bounds, which also strands
+            # QMainWindow's own statusBar() - built by Qt outside
+            # centralWidget entirely - outside the inset border with no
+            # background of its own. Worth doing, not safely from here
+            # without a way to check it on an actual Windows build.
             host.setObjectName("windowFrame")
             host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             self._windows_title_bar = WindowsTitleBar(self)
@@ -1125,7 +1137,6 @@ class MainWindow(QMainWindow):
         """Create the left-side area: activity rail + stacked content."""
         panel = CardFrame(self, "leftPanelCard", orientation=Qt.Orientation.Horizontal)
         panel.setProperty("elevated", True)
-        self._apply_surface_shadow(panel, blur=22, y_offset=3)
         panel.setMinimumSize(0, 0)
         panel.setSizePolicy(
             QSizePolicy.Policy.Preferred,
@@ -1199,7 +1210,6 @@ class MainWindow(QMainWindow):
         if not isinstance(chart_layout, QBoxLayout):
             raise RuntimeError("CardFrame did not create a box layout")
         chart_layout.addWidget(self._tabs, 1)
-        self._apply_surface_shadow(self._chart_surface, blur=24, y_offset=4)
 
         split.addWidget(self._left_panel)
         split.addWidget(self._chart_surface)
