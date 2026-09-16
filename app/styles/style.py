@@ -1951,12 +1951,23 @@ def relax_minimum_width(root: QWidget, *, minimum: int = 0) -> QWidget:
     minimum and the maximum equal - are left alone: the activity rail and its
     icon buttons are that width because someone decided so, not by accident.
 
+    ``setMinimumWidth(0)`` on its own is a no-op on any widget whose
+    horizontal size policy is Expanding rather than Shrink (which is most
+    plain container widgets - a property panel, a page, a card): Qt's own
+    ``qSmartMinSize`` only lets an explicit minimum override
+    ``max(sizeHint, minimumSizeHint)`` when that minimum is greater than
+    zero. A combo's or a scroll area's own extra handling below already
+    worked around this by changing what ``sizeHint`` itself returns, which
+    is why relaxing *those* ever looked like it was working; every other
+    widget's implicit floor was silently untouched. At least 1px, always -
+    imperceptible, and the one value Qt actually honours as an override.
+
     Returns *root* so it can be used inline where a widget is expected.
     """
     for widget in [root, *root.findChildren(QWidget)]:
         if widget.minimumWidth() == widget.maximumWidth():
             continue
-        widget.setMinimumWidth(minimum)
+        widget.setMinimumWidth(max(minimum, 1))
         if isinstance(widget, QComboBox):
             # Through configure_combo_width, not setMinimumContentsLength
             # alone: the contents length is only consulted under an
