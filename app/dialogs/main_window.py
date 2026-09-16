@@ -37,7 +37,7 @@ from app.dialogs.import_data_dialog import ImportDataDialog, is_importable
 from app.data.demo_project import PROJECTS_DIR, copy_demo_project
 from app.dialogs.load_demo_dialog import LoadDemoDialog
 from app.dialogs.credits_dialog import CreditsDialog
-from app.dialogs.database_info_dialog import DatabaseInfoDialog
+from app.widgets.database_info_panel import DatabaseInfoPanel
 from app.dialogs.renderer_helper_dialog import RendererHelperDialog
 from app.dialogs.series_operation_builder_dialog import SeriesOperationBuilderDialog
 from app.dialogs.function_creator_dialog import FunctionCreatorDialog
@@ -59,6 +59,7 @@ from app.styles.style import (
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
     CardFrame,
+    create_action_button,
     create_menu,
     create_menu_item,
     icon_from_svg_source,
@@ -88,6 +89,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
     QGraphicsDropShadowEffect,
+    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
@@ -571,7 +573,43 @@ class MainWindow(QMainWindow):
         properties_scroll.setWidget(self._properties_control)
         stack.addWidget(properties_scroll)
         stack.addWidget(self._create_series_operations_page())
+        stack.addWidget(self._create_database_page())
         return stack
+
+    def _create_database_page(self) -> QWidget:
+        """Query Builder / Optimize DB actions, plus the database overview.
+
+        Page index 3, matching NavigationBar.action_ids' "nav_database" -
+        the two have to stay in step, since _set_nav_index addresses this
+        stack by the same index the rail reports. DatabaseInfoPanel used to
+        be its own modal dialog (see git history); embedded here it sits
+        beside the two actions it always belonged next to, rather than in a
+        window of its own.
+        """
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        stdSizeAndlayout(layout)
+
+        action_row = QHBoxLayout()
+        stdSizeAndlayout(action_row)
+        create_action_button(
+            parent=page,
+            action_id="query_builder",
+            action=self._on_query_builder,
+            layout=action_row,
+        )
+        create_action_button(
+            parent=page,
+            action_id="optimize_db",
+            action=self._on_optimize_db,
+            layout=action_row,
+        )
+        action_row.addStretch(1)
+        layout.addLayout(action_row)
+
+        self._database_info_panel = DatabaseInfoPanel(self._repo, page)
+        layout.addWidget(self._database_info_panel, 1)
+        return page
 
     # ------------------------------------------------------------------
     # Activity rail
@@ -1104,19 +1142,7 @@ class MainWindow(QMainWindow):
         return panel
 
     def _set_nav_index(self, index: int) -> None:
-        """Select one content page and restore the pane when necessary.
-
-        "Database" is a rail tile (NavigationBar.action_ids) but not a
-        _left_stack page - there is no embedded page for it yet, only the
-        existing modal DatabaseInfoDialog - so it opens that instead of
-        switching pages, and the rail is resynced to whichever page is
-        actually still showing afterward (it would otherwise show
-        "Database" checked, exclusive-group style, over unrelated content).
-        """
-        if self._left_rail.action_ids[index:index + 1] == ("nav_database",):
-            self._on_database_info()
-            self._left_rail.select_page(self._left_stack.currentIndex())
-            return
+        """Select one content page and restore the pane when necessary."""
         if not 0 <= index < self._left_stack.count():
             return
         if not self._left_stack.isVisible():
@@ -1204,6 +1230,7 @@ class MainWindow(QMainWindow):
             self._repo = SqliteRepo(db_path=db_path)
             self._db_path = db_path
             self._table_panel.set_repo(self._repo)
+            self._database_info_panel.set_repo(self._repo)
             self._update_window_title()
             set_last_database(db_path)
 
@@ -1792,6 +1819,7 @@ class MainWindow(QMainWindow):
             self._repo = SqliteRepo(db_path=db_path)
             self._db_path = db_path
             self._table_panel.set_repo(self._repo)
+            self._database_info_panel.set_repo(self._repo)
             self._update_window_title()
             set_last_database(db_path)
             self._table_panel.reload()
@@ -2083,13 +2111,9 @@ class MainWindow(QMainWindow):
         self._table_panel.reload()
 
     def _on_database_info(self) -> None:
-        """Open the Database Info dialog, then refresh in case a table
-        was exported or a link updated the data underneath the table list."""
-        if self._repo is None:
-            return
-        dialog = DatabaseInfoDialog(self._repo, parent=self)
-        dialog.exec()
-        self._table_panel.reload()
+        """Switch to the embedded Database page (nav rail and Database menu
+        both land here - see _create_database_page)."""
+        self._set_nav_index(self._left_rail.action_ids.index("nav_database"))
 
     def _on_copy_chart(self) -> None:
         """Copy the current chart tab's figure to the clipboard.

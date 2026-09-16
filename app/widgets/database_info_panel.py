@@ -6,13 +6,17 @@ overview that puts the whole database's shape (how many tables, how big,
 which ones are fed by a link) on screen at once, with those same actions
 one click away for whichever row is selected, rather than requiring a
 right-click per table.
+
+A plain embeddable QWidget, not a QDialog: it sits inside MainWindow's
+"Database" nav page (see main_window._create_database_page), alongside the
+Query Builder / Optimize DB actions the same page offers, rather than
+opening as its own modal window.
 """
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QDialog,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -29,7 +33,6 @@ from PySide6.QtWidgets import (
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.styles.style import (
-    apply_dialog_shell,
     CardFrame,
     create_action_button,
     create_section_title,
@@ -51,30 +54,27 @@ def _human_size(num_bytes: int) -> str:
     return f"{size:.1f} TB"
 
 
-class DatabaseInfoDialog(QDialog):
+class DatabaseInfoPanel(QWidget):
     """Path, size, tables and import links for the connected database."""
 
-    def __init__(self, repo: SqliteRepo, parent: QWidget) -> None:
+    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._repo = repo
 
-        self.setWindowTitle(_("Database Info"))
-        self.setWindowIcon(load_icon("database_info"))
-
         root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
+        stdSizeAndlayout(root)
 
-        card = CardFrame(self, "databaseInfoCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("Database Info"), card))
+        self._card = CardFrame(self, "databaseInfoCard")
+        self._card_layout = self._card.layout()
+        self._card_layout.addWidget(create_section_title(_("Database Info"), self._card))
 
-        form = QFormLayout()
-        form.addRow(_("Path:"), self._selectable_label(str(repo.db_path)))
-        form.addRow(_("Size on disk:"), self._selectable_label(self._db_size_text()))
-        self._add_pragma_rows(form)
-        card_layout.addLayout(form)
+        self._form_host = QWidget(self._card)
+        self._form_layout = QFormLayout(self._form_host)
+        stdSizeAndlayout(self._form_layout)
+        self._card_layout.addWidget(self._form_host)
+        self._build_form()
 
-        self._table = QTableWidget(0, 3, card)
+        self._table = QTableWidget(0, 3, self._card)
         self._table.setHorizontalHeaderLabels([_("Table"), _("Rows"), _("Linked")])
         header = self._table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -87,7 +87,7 @@ class DatabaseInfoDialog(QDialog):
         self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._table.itemSelectionChanged.connect(self._update_button_states)
         mark_editor_panel(self._table)
-        card_layout.addWidget(self._table, 1)
+        self._card_layout.addWidget(self._table, 1)
 
         action_row = QHBoxLayout()
         stdSizeAndlayout(action_row)
@@ -115,15 +115,28 @@ class DatabaseInfoDialog(QDialog):
             ),
         )
         action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="close", action=self.accept, layout=action_row
-        )
-        card_layout.addLayout(action_row)
+        self._card_layout.addLayout(action_row)
 
-        root.addWidget(card, 1)
+        root.addWidget(self._card, 1)
 
         self._reload_tables()
         self._update_button_states()
+
+    def set_repo(self, repo: SqliteRepo) -> None:
+        """Point the panel at a newly-opened database and refresh everything."""
+        self._repo = repo
+        self._build_form()
+        self._reload_tables()
+        self._update_button_states()
+
+    def _build_form(self) -> None:
+        """(Re)build the path/size/pragma rows for the current repo."""
+        while self._form_layout.rowCount():
+            self._form_layout.removeRow(0)
+
+        self._form_layout.addRow(_("Path:"), self._selectable_label(str(self._repo.db_path)))
+        self._form_layout.addRow(_("Size on disk:"), self._selectable_label(self._db_size_text()))
+        self._add_pragma_rows()
 
     def _selectable_label(self, text: str) -> QLabel:
         label = QLabel(text, self)
@@ -137,12 +150,12 @@ class DatabaseInfoDialog(QDialog):
         except OSError:
             return _("unknown")
 
-    def _add_pragma_rows(self, form: QFormLayout) -> None:
+    def _add_pragma_rows(self) -> None:
         """Add everything SQLite and the filesystem themselves can say.
 
-        A best effort, not a hard requirement of opening this dialog - a
+        A best effort, not a hard requirement of building this panel - a
         PRAGMA failing (a very old or unusual SQLite build) loses this
-        section, not the whole dialog.
+        section, not the whole panel.
         """
         try:
             info = self._repo.database_pragma_info()
@@ -150,6 +163,7 @@ class DatabaseInfoDialog(QDialog):
             applogger.exception("Could not read database PRAGMA info.")
             return
 
+        form = self._form_layout
         form.addRow(
             _("Tables:"),
             self._selectable_label(

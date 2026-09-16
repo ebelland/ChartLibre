@@ -1,4 +1,4 @@
-"""The Database Info dialog: path/size, tables, and the link status of each.
+"""The Database Info panel: path/size, tables, and the link status of each.
 
 The one thing worth pinning beyond "the table has rows" is that Export and
 Update link track the *selected* row - a table with no link must not offer
@@ -10,9 +10,10 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from PySide6.QtWidgets import QLabel
 
 from app.data.sqlite_repo import SqliteRepo
-from app.dialogs.database_info_dialog import DatabaseInfoDialog, _human_size
+from app.widgets.database_info_panel import DatabaseInfoPanel, _human_size
 
 
 @pytest.fixture
@@ -41,21 +42,21 @@ def repo(tmp_db_path: Path) -> SqliteRepo:
 
 
 def test_every_table_is_listed_with_its_row_count(qapp, repo: SqliteRepo) -> None:
-    dialog = DatabaseInfoDialog(repo, parent=None)
+    panel = DatabaseInfoPanel(repo, parent=None)
 
     rows = {
-        dialog._table.item(row, 0).text(): dialog._table.item(row, 1).text()
-        for row in range(dialog._table.rowCount())
+        panel._table.item(row, 0).text(): panel._table.item(row, 1).text()
+        for row in range(panel._table.rowCount())
     }
     assert rows == {"plain_table": "3", "linked_table": "2"}
 
 
 def test_only_the_linked_table_is_marked_linked(qapp, repo: SqliteRepo) -> None:
-    dialog = DatabaseInfoDialog(repo, parent=None)
+    panel = DatabaseInfoPanel(repo, parent=None)
 
     linked = {
-        dialog._table.item(row, 0).text(): dialog._table.item(row, 2).text()
-        for row in range(dialog._table.rowCount())
+        panel._table.item(row, 0).text(): panel._table.item(row, 2).text()
+        for row in range(panel._table.rowCount())
     }
     assert linked["linked_table"] == "Yes"
     assert linked["plain_table"] == ""
@@ -64,31 +65,31 @@ def test_only_the_linked_table_is_marked_linked(qapp, repo: SqliteRepo) -> None:
 def test_update_link_is_only_enabled_for_a_linked_selection(
     qapp, repo: SqliteRepo
 ) -> None:
-    dialog = DatabaseInfoDialog(repo, parent=None)
+    panel = DatabaseInfoPanel(repo, parent=None)
 
-    for row in range(dialog._table.rowCount()):
-        if dialog._table.item(row, 0).text() == "plain_table":
-            dialog._table.selectRow(row)
+    for row in range(panel._table.rowCount()):
+        if panel._table.item(row, 0).text() == "plain_table":
+            panel._table.selectRow(row)
             break
-    assert not dialog._update_link_button.isEnabled()
-    assert dialog._export_csv_button.isEnabled()
+    assert not panel._update_link_button.isEnabled()
+    assert panel._export_csv_button.isEnabled()
 
-    for row in range(dialog._table.rowCount()):
-        if dialog._table.item(row, 0).text() == "linked_table":
-            dialog._table.selectRow(row)
+    for row in range(panel._table.rowCount()):
+        if panel._table.item(row, 0).text() == "linked_table":
+            panel._table.selectRow(row)
             break
-    assert dialog._update_link_button.isEnabled()
+    assert panel._update_link_button.isEnabled()
 
 
 def test_no_selection_disables_every_row_action(qapp, repo: SqliteRepo) -> None:
-    dialog = DatabaseInfoDialog(repo, parent=None)
-    dialog._table.clearSelection()
-    dialog._table.setCurrentCell(-1, -1)
-    dialog._update_button_states()
+    panel = DatabaseInfoPanel(repo, parent=None)
+    panel._table.clearSelection()
+    panel._table.setCurrentCell(-1, -1)
+    panel._update_button_states()
 
-    assert not dialog._export_csv_button.isEnabled()
-    assert not dialog._export_xlsx_button.isEnabled()
-    assert not dialog._update_link_button.isEnabled()
+    assert not panel._export_csv_button.isEnabled()
+    assert not panel._export_xlsx_button.isEnabled()
+    assert not panel._update_link_button.isEnabled()
 
 
 @pytest.mark.parametrize(
@@ -127,17 +128,17 @@ def test_file_modified_is_read_from_the_real_file(repo: SqliteRepo) -> None:
     assert info.file_modified is not None
 
 
-def test_the_dialog_opens_with_the_pragma_section(qapp, repo: SqliteRepo) -> None:
-    # Constructing the dialog runs _add_pragma_rows; not raising and the
+def test_the_panel_opens_with_the_pragma_section(qapp, repo: SqliteRepo) -> None:
+    # Constructing the panel runs _add_pragma_rows; not raising and the
     # data it read back matching the fixture is the meaningful assertion -
     # hunting individual QLabel widgets would only restate the same thing
     # more fragilely.
-    dialog = DatabaseInfoDialog(repo, parent=None)
+    panel = DatabaseInfoPanel(repo, parent=None)
 
-    assert dialog._repo.database_pragma_info().table_count == 2
+    assert panel._repo.database_pragma_info().table_count == 2
 
 
-def test_a_pragma_failure_does_not_break_the_dialog(
+def test_a_pragma_failure_does_not_break_the_panel(
     qapp, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def _raise(self) -> None:
@@ -147,6 +148,31 @@ def test_a_pragma_failure_does_not_break_the_dialog(
     # are all __slots__ = (), so the class method is the only patch point.
     monkeypatch.setattr(SqliteRepo, "database_pragma_info", _raise)
 
-    dialog = DatabaseInfoDialog(repo, parent=None)  # must not raise
+    panel = DatabaseInfoPanel(repo, parent=None)  # must not raise
 
-    assert dialog is not None
+    assert panel is not None
+
+
+def test_set_repo_refreshes_the_table_and_form(
+    qapp, repo: SqliteRepo, tmp_db_path: Path
+) -> None:
+    """Opening a different project through MainWindow must not leave the
+    embedded panel showing the previous database's path and tables."""
+    panel = DatabaseInfoPanel(repo, parent=None)
+    assert panel._table.rowCount() == 2
+
+    other_path = tmp_db_path.with_name("other.dhub")
+    for suffix in (".dhub", ".dhub-wal", ".dhub-shm"):
+        other_path.with_suffix(suffix).unlink(missing_ok=True)
+    other = SqliteRepo(db_path=other_path)
+    try:
+        other.import_dataframe(pd.DataFrame({"x": [1]}), table_name="only_table")
+
+        panel.set_repo(other)
+
+        assert panel._table.rowCount() == 1
+        assert panel._table.item(0, 0).text() == "only_table"
+        labels = [label.text() for label in panel._form_host.findChildren(QLabel)]
+        assert any(str(other_path) == text for text in labels)
+    finally:
+        other.close()
