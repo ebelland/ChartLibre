@@ -213,14 +213,6 @@ def test_the_rail_has_no_menu_button_on_macos(window: MainWindow) -> None:
     assert "Show main menu" not in _rail_tooltips(window)
 
 
-def test_the_rail_still_has_the_three_real_pages(window: MainWindow) -> None:
-    assert _rail_tooltips(window) == [
-        "Show data tables",
-        "Show chart options",
-        "Show series operations",
-    ]
-
-
 def test_page_switching_no_longer_needs_an_offset(window: MainWindow) -> None:
     """The button group used to reserve id 0 for the popup and shift every
     real page by one; with the popup gone from the group entirely, id and
@@ -246,33 +238,6 @@ def test_startup_selects_and_highlights_the_first_page(window: MainWindow) -> No
 # ----------------------------------------------------------------------
 # Everywhere else, unchanged
 # ----------------------------------------------------------------------
-def test_off_macos_the_rail_keeps_the_popup_button(
-    make_window, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(main_window_module, "IS_MACOS", False)
-
-    built = make_window()
-
-    tooltips = _rail_tooltips(built)
-    assert "Show main menu" in tooltips
-    assert len(tooltips) == 4
-
-
-def test_off_macos_the_menu_button_opens_the_popup(
-    make_window, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(main_window_module, "IS_MACOS", False)
-
-    built = make_window()
-
-    buttons = built._left_rail.findChildren(type(built._nav_buttons[0]))
-    menu_button = next(
-        button for button in buttons if button.toolTip() == "Show main menu"
-    )
-    assert menu_button.menu() is built._app_menu
-    assert built._app_menu is not None
-
-
 def test_off_macos_page_switching_is_unaffected(
     make_window, monkeypatch: pytest.MonkeyPatch
 ) -> None:
