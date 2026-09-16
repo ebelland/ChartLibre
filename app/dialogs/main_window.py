@@ -15,7 +15,7 @@ import sys
 from functools import partial
 from pathlib import Path
 from time import monotonic
-from typing import Any
+from typing import Any, cast
 
 from PySide6.QtCore import QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
@@ -27,10 +27,11 @@ from PySide6.QtGui import (
 )
 from app import APP_ICON, APP_NAME
 from app.charts import layout_presets
-from app.dialogs.windows_title_bar import WindowsTitleBar
+from app.widgets.windows_title_bar import WindowsTitleBar
 from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.chart_panel import ChartPanel
+from app.widgets.nav_bar import NAV_BAR_WIDTH, NavigationBar
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.import_data_dialog import ImportDataDialog, is_importable
 from app.data.demo_project import PROJECTS_DIR, copy_demo_project
@@ -133,17 +134,6 @@ CHART_PANE_MIN_WIDTH: int = get_constant("chart_pane_min_width", 260)
 CHART_SELECTION_TIMEOUT_MS: int = get_constant("chart_selection_timeout_ms", 15_000)
 
 IS_WINDOWS: bool = sys.platform == "win32"
-NAV_RAIL_COLLAPSED_WIDTH: int = 48
-NAV_RAIL_EXPANDED_WIDTH: int = 196
-
-# The "toggle sidebar" glyph used by VS Code, MS Teams and most native
-# panel-toggle buttons: a rounded panel outline with a vertical divider near
-# the left edge. One fixed icon rather than a chevron that flips direction -
-# real sidebar-toggle buttons don't change glyph between expanded/collapsed.
-_NAV_TOGGLE_ICON_SVG: str = (
-    '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>'
-    '<line x1="9" y1="3" x2="9" y2="21"/>'
-)
 
 
 class MainWindow(QMainWindow):
@@ -171,7 +161,6 @@ class MainWindow(QMainWindow):
 
         self._update_window_title()
         self.setWindowIcon(icon_from_svg_source(APP_ICON, size=32))
-        self._navigation_expanded = False
         self._windows_title_bar: WindowsTitleBar | None = None
         if IS_WINDOWS:
             self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
@@ -218,7 +207,7 @@ class MainWindow(QMainWindow):
         # Build VS Code-like rail + stacked pages.
         self._build_app_menu()
         self._left_stack = self._create_left_stack()
-        self._left_rail = self._create_activity_rail()
+        self._left_rail: NavigationBar = self._create_activity_rail()
         self._left_panel = self._create_left_panel()
         self._configure_left_panel()
 
@@ -297,12 +286,24 @@ class MainWindow(QMainWindow):
             self._status_project.setToolTip(str(self._db_path) if self._db_path else "")
 
     def _toggle_workspace(self) -> None:
-        visible = not self._left_panel.isVisible()
-        self._left_panel.setVisible(visible)
-        if self._windows_title_bar is not None:
-            self._windows_title_bar.workspace_button.setChecked(not visible)
-            self._windows_title_bar.workspace_button.setToolTip(_("Workspace: hide the left panel") if visible else _("Workspace: show the left panel"))
-        self._set_status_state("normal", _("Left panel shown") if visible else _("Chart workspace expanded"), 2500)
+        """Collapse left content to the navigation rail, or restore it."""
+        hiding = self._left_stack.isVisible()
+        sizes = self._main_split.sizes()
+        if hiding:
+            self._left_panel_restore_width = max(sizes[0], 360)
+            self._left_stack.hide()
+            rail_width = self._left_rail.width()
+            self._left_panel.setMinimumWidth(rail_width)
+            self._left_panel.setMaximumWidth(rail_width)
+            self._main_split.setSizes([rail_width, max(sizes[1], 1)])
+        else:
+            self._left_panel.setMaximumWidth(16777215)
+            self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._left_rail.width())
+            self._left_stack.show()
+            restore_width = int(getattr(self, "_left_panel_restore_width", 420))
+            total = max(sum(sizes), restore_width + CHART_PANE_MIN_WIDTH)
+            self._main_split.setSizes([restore_width, max(total - restore_width, 1)])
+        self._left_rail.set_workspace_hidden(hiding)
 
     # ------------------------------------------------------------------
     # Configuration helpers
@@ -1063,138 +1064,16 @@ class MainWindow(QMainWindow):
             applogger.exception("Failed to rename the native macOS app menu items.")
 
 
-    def _create_activity_rail(self) -> QFrame:
-        """Create a Copilot-style rail with File at top and app actions below."""
-        rail = QFrame(self)
-        rail.setObjectName("activityRail")
-        rail.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        rail.setFixedWidth(NAV_RAIL_COLLAPSED_WIDTH)
-        rail.setMinimumHeight(0)
-        rail.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
-        layout = QVBoxLayout(rail)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(4)
-
-        self._nav_toggle = QToolButton(rail)
-        self._nav_toggle.setObjectName("activityButton")
-        self._nav_toggle.setToolTip(_("Expand navigation"))
-        self._nav_toggle.setFixedHeight(32)
-        self._nav_toggle.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self._nav_toggle.clicked.connect(self._toggle_navigation)
-        layout.addWidget(self._nav_toggle)
-
-        if not IS_MACOS:
-            self._file_button = self._create_activity_button(action_id="open")
-            self._file_button.setObjectName("activityButton")
-            self._file_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-            self._file_button.setMenu(self._file_menu)
-            layout.addWidget(self._file_button)
-
-        self._nav_group = QButtonGroup(self)
-        self._nav_group.setExclusive(True)
-        self._nav_group.idClicked.connect(self._set_nav_index)
-        self._nav_buttons: list[QToolButton] = []
-        self._nav_action_ids = ("nav_data", "nav_chart_options", "nav_series_operations")
-        for index, action_id in enumerate(self._nav_action_ids):
-            button = self._create_activity_button(action_id=action_id)
-            self._nav_group.addButton(button, index)
-            self._nav_buttons.append(button)
-            layout.addWidget(button)
-
-        layout.addStretch(1)
-
-        if not IS_MACOS:
-            self._settings_button = self._create_activity_button(action_id="settings")
-            self._settings_button.setObjectName("activityButton")
-            self._settings_button.clicked.connect(self._on_settings)
-            layout.addWidget(self._settings_button)
-
-            self._help_button = self._create_activity_button(action_id="user_manual")
-            self._help_button.setObjectName("activityButton")
-            self._help_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-            self._help_button.setMenu(self._help_menu)
-            layout.addWidget(self._help_button)
-
-        self._set_navigation_expanded(False, rail=rail)
+    def _create_activity_rail(self) -> NavigationBar:
+        """Create the Fluent navigation bar."""
+        rail = NavigationBar(self, is_macos=IS_MACOS)
+        self._nav_group = rail.button_group
+        self._nav_buttons = rail.buttons
+        self._nav_action_ids = rail.action_ids
+        self._file_button = rail.file_button
+        self._settings_button = rail.settings_button
+        self._help_button = rail.help_button
         return rail
-
-    def _toggle_navigation(self) -> None:
-        self._set_navigation_expanded(not self._navigation_expanded)
-
-    def _set_navigation_expanded(self, expanded: bool, *, rail: QFrame | None = None) -> None:
-        self._navigation_expanded = bool(expanded)
-        target = rail if rail is not None else self._left_rail
-        width = NAV_RAIL_EXPANDED_WIDTH if expanded else NAV_RAIL_COLLAPSED_WIDTH
-        target.setFixedWidth(width)
-        self._nav_toggle.setIcon(icon_from_svg_source(_NAV_TOGGLE_ICON_SVG, size=18))
-        self._nav_toggle.setIconSize(QSize(18, 18))
-        self._nav_toggle.setText("")
-        self._nav_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        navigation_label = (
-            _("Collapse navigation") if expanded else _("Expand navigation")
-        )
-        self._nav_toggle.setToolTip(navigation_label)
-        self._nav_toggle.setStatusTip(navigation_label)
-        self._nav_toggle.setAccessibleName(navigation_label)
-        self._nav_toggle.setFixedWidth(40)
-        for action_id, button in zip(self._nav_action_ids, self._nav_buttons):
-            _icon, text, tooltip = action_presentation(action_id)
-            button.setText(text if expanded else "")
-            button.setToolButtonStyle(
-                Qt.ToolButtonStyle.ToolButtonTextBesideIcon
-                if expanded else Qt.ToolButtonStyle.ToolButtonIconOnly
-            )
-            button.setToolTip(tooltip)
-            button.setFixedWidth(width - 8 if not expanded else width - 16)
-            button.setStyleSheet(
-                "text-align: left; padding: 4px 8px;" if expanded
-                else "text-align: center; padding: 0px;"
-            )
-        auxiliary = []
-        if not IS_MACOS:
-            auxiliary = [
-                (self._file_button, _("File"), _("Open file commands")),
-                (self._settings_button, _("App settings"), _("Open application settings")),
-                (self._help_button, _("Help & About"), _("Open help and about commands")),
-            ]
-        for button, label, tooltip in auxiliary:
-            button.setText(label if expanded else "")
-            button.setToolButtonStyle(
-                Qt.ToolButtonStyle.ToolButtonTextBesideIcon
-                if expanded else Qt.ToolButtonStyle.ToolButtonIconOnly
-            )
-            button.setToolTip(tooltip)
-            button.setFixedWidth(width - 8 if not expanded else width - 16)
-            button.setStyleSheet(
-                "text-align: left; padding: 4px 8px;" if expanded
-                else "text-align: center; padding: 0px;"
-            )
-
-    def _create_activity_button(self, *, action_id: str) -> QToolButton:
-        """Create one icon-only activity rail button from its catalogue entry.
-
-        Icon-only, so the label is dropped and the description carries the
-        whole meaning of the button - which is why these four actions are the
-        ones where a missing description would be most felt.
-        """
-        icon, _text, tooltip = action_presentation(action_id)
-
-        button = QToolButton(self)
-        button.setObjectName("activityButton")
-        button.setAutoRaise(True)
-        button.setIcon(icon)
-        button.setIconSize(QSize(20, 20))
-        button.setToolTip(tooltip)
-        button.setStatusTip(tooltip)
-        button.setFixedHeight(32)
-        button.setMinimumWidth(32)
-        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        if action_id == "nav_menu":
-            button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-            button.setMenu(self._app_menu)
-        else:
-            button.setCheckable(True)
-        return button
 
     def _create_left_panel(self) -> QWidget:
         """Create the left-side area: activity rail + stacked content."""
@@ -1217,16 +1096,26 @@ class MainWindow(QMainWindow):
         return panel
 
     def _set_nav_index(self, index: int) -> None:
-        """Switch the active left-side page from the activity rail.
+        """Select one content page and restore the pane when necessary.
 
-        No "Menu" entry to skip past any more - the button group holds only
-        the three real pages now, on every platform - so the group's id is
-        the stack's page index directly.
+        "Database" is a rail tile (NavigationBar.action_ids) but not a
+        _left_stack page - there is no embedded page for it yet, only the
+        existing modal DatabaseInfoDialog - so it opens that instead of
+        switching pages, and the rail is resynced to whichever page is
+        actually still showing afterward (it would otherwise show
+        "Database" checked, exclusive-group style, over unrelated content).
         """
+        if self._left_rail.action_ids[index:index + 1] == ("nav_database",):
+            self._on_database_info()
+            self._left_rail.select_page(self._left_stack.currentIndex())
+            return
+        if not 0 <= index < self._left_stack.count():
+            return
+        if not self._left_stack.isVisible():
+            self._toggle_workspace()
         self._left_stack.setCurrentIndex(index)
-        self._nav_buttons[index].setChecked(True)
+        self._left_rail.select_page(index)
         applogger.debug("Left navigation page changed to index %s", index)
-
 
     # ------------------------------------------------------------------
     # Main layout
@@ -1258,7 +1147,7 @@ class MainWindow(QMainWindow):
         relax_minimum_width(self._left_panel)
         # The rail is fixed-width and always visible, so the floor applies to
         # the content next to it, not to the panel as a whole.
-        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + NAV_RAIL_COLLAPSED_WIDTH)
+        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + NAV_BAR_WIDTH)
 
         # The chart pane needs the same treatment, and for the same reason:
         # whichever pane keeps a large implicit minimum wins the whole
