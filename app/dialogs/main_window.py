@@ -1040,8 +1040,8 @@ class MainWindow(QMainWindow):
         """
         previous = getattr(self, "_app_menu", None)
         groups = self._app_menu_items()
-        self._file_menu = create_menu(self, list(groups[0][1]))
-        self._file_menu.setTitle(_("File"))
+        # No self._file_menu: it only ever existed for the rail's own File
+        # popup button, which nav_file (a page now, not a popup) replaced.
         self._help_menu = create_menu(self, list(groups[-1][1]))
         self._help_menu.setTitle(_("Help & About"))
         self._app_menu = create_menu(self, self._flatten_menu_groups(groups))
@@ -1084,11 +1084,38 @@ class MainWindow(QMainWindow):
         menu_bar = self.menuBar()
         menu_bar.clear()
 
+        # menu_bar.clear() above only lets go of menus it was actually
+        # holding - the hidden-but-alive File/Database menus below are
+        # never added to it, so without this every rebuild (every
+        # undo-stack change; see this method's own docstring) would pile up
+        # another orphaned QMenu plus another copy of the same shortcut
+        # re-registered on self, instead of replacing the previous one.
+        for action in getattr(self, "_macos_hidden_menu_actions", ()):
+            self.removeAction(action)
+        for menu in getattr(self, "_macos_hidden_menus", ()):
+            menu.deleteLater()
+        self._macos_hidden_menus: list[QMenu] = []
+        self._macos_hidden_menu_actions: list[QAction] = []
+
+        # File and Database are both covered by the nav rail's own pages
+        # now (_create_file_page/_create_database_page) - a second, visible
+        # menu for the same actions would just be redundant chrome. Their
+        # items are still built (below, into a menu that is never added to
+        # the bar) and their shortcuts kept alive on the window itself
+        # (self.addAction), so Cmd+S and friends do not stop working just
+        # because the menu that used to carry them is gone from view.
+        hidden_titles = {_("File"), _("Database")}
+
         for index, (title, items) in enumerate(groups):
             if index == len(groups) - 1:
                 self._build_macos_window_menu(menu_bar)
 
-            menu = menu_bar.addMenu(title)
+            hidden = title in hidden_titles
+            if hidden:
+                menu = QMenu(self)
+                menu.setTitle(title)
+            else:
+                menu = menu_bar.addMenu(title)
             # Cocoa rarely delivers this for a menu-bar menu, and rebuilding
             # the bar from inside a show handler would clear the menu
             # mid-display - so _sync (a plain property poke), never _refresh.
@@ -1126,6 +1153,17 @@ class MainWindow(QMainWindow):
                 role = self._MACOS_MENU_ROLES.get(str(action.data() or ""))
                 if role is not None:
                     action.setMenuRole(role)
+
+            if hidden:
+                # menu itself keeps every action in it alive regardless
+                # (append below); addAction is only for the ones whose
+                # shortcut has to keep firing with no visible menu left to
+                # carry it - Cmd+S and the rest of File/Database's own.
+                self._macos_hidden_menus.append(menu)
+                for action in menu.actions():
+                    if not action.shortcut().isEmpty():
+                        self.addAction(action)
+                        self._macos_hidden_menu_actions.append(action)
 
     def _build_macos_window_menu(self, menu_bar: QMenuBar) -> None:
         """Build the Window menu: Minimize and Zoom.

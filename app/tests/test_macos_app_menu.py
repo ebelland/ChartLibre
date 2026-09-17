@@ -109,23 +109,40 @@ def test_the_menu_bar_carries_one_menu_per_group(window: MainWindow) -> None:
     top_actions = menu_bar.actions()
     titles = [action.text() for action in top_actions]
 
-    # "File", not "Menu": a Mac user looks for New/Open/Import under File,
-    # and the rail button this replaced is not on screen to be echoed.
-    # Window sits between the app's own menus and Help - the usual place on
-    # a Mac - even though it holds no MenuItem of its own (see
-    # _build_macos_window_menu).
-    assert titles == ["File", "Edit", "Database", "Developer", "Window", "Help"]
+    # No File or Database: both are covered by the nav rail's own pages now
+    # (_create_file_page/_create_database_page) - a second, visible menu
+    # for the same actions would be redundant chrome. Window sits between
+    # the app's own menus and Help - the usual place on a Mac - even though
+    # it holds no MenuItem of its own (see _build_macos_window_menu).
+    assert titles == ["Edit", "Developer", "Window", "Help"]
 
 
-def test_file_holds_the_file_group(window: MainWindow) -> None:
-    _top_actions, menu = _menu_named(window, "File")
-    items = menu.actions()
+def test_file_and_database_are_hidden_but_still_alive(window: MainWindow) -> None:
+    """Not in the visible bar (see test_the_menu_bar_carries_one_menu_per_
+    group), but still built - _MACOS_MENU_ROLES applies to their items same
+    as any other group's, and File's own shortcuts (Cmd+S...) still have to
+    fire with no menu left to carry them."""
+    hidden_ids_by_title = {
+        menu.title(): [a.data() for a in menu.actions() if not a.isSeparator()]
+        for menu in window._macos_hidden_menus
+    }
+    assert hidden_ids_by_title["File"] == [
+        "new", "open", None, "import", "save", "save_as"
+    ]
+    assert hidden_ids_by_title["Database"] == [
+        "query_builder", "optimize_db", "database_info"
+    ]
 
-    ids = [action.data() for action in items if not action.isSeparator()]
-    # Open recent carries no action id: it is a submenu, not an action, and
-    # its entries are file paths rather than catalogue ids.
-    assert [action.text() for action in items if action.menu()] == ["Open recent"]
-    assert ids == ["new", "open", None, "import", "save", "save_as"]
+
+def test_the_file_shortcuts_still_fire_with_no_menu_to_carry_them(
+    window: MainWindow,
+) -> None:
+    shortcuts = {
+        action.shortcut().toString()
+        for action in window.actions()
+        if not action.shortcut().isEmpty()
+    }
+    assert "Ctrl+S" in shortcuts
 
 
 def test_edit_holds_undo_and_copy(window: MainWindow) -> None:
@@ -133,13 +150,6 @@ def test_edit_holds_undo_and_copy(window: MainWindow) -> None:
     items = menu.actions()
     ids = [action.data() for action in items if not action.isSeparator()]
     assert ids == ["undo", "copy"]
-
-
-def test_database_holds_the_database_group(window: MainWindow) -> None:
-    _top_actions, menu = _menu_named(window, "Database")
-    items = menu.actions()
-    ids = [action.data() for action in items if not action.isSeparator()]
-    assert ids == ["query_builder", "optimize_db", "database_info"]
 
 
 def test_help_holds_the_help_group(window: MainWindow) -> None:
@@ -303,7 +313,9 @@ def test_each_dev_tool_opens_its_own_dialog(
 def test_the_popup_and_the_menu_bar_share_one_item_list(window: MainWindow) -> None:
     """They cannot drift apart the way two hand-kept copies would: the popup
     is every group's items flattened into one list (_flatten_menu_groups),
-    and the bar is the same groups split back out into one QMenu each."""
+    and the bar is the same groups split back out into one QMenu each - plus
+    File and Database, which are built the same way but kept off the visible
+    bar (see test_file_and_database_are_hidden_but_still_alive)."""
     popup_ids = [
         action.data()
         for action in window._app_menu.actions()
@@ -327,14 +339,25 @@ def test_the_popup_and_the_menu_bar_share_one_item_list(window: MainWindow) -> N
             if not action.isSeparator():
                 bar_ids.append(action.data())
 
-    assert popup_ids == bar_ids
+    hidden_ids = [
+        action.data()
+        for menu in window._macos_hidden_menus
+        for action in menu.actions()
+        if not action.isSeparator()
+    ]
+
+    assert sorted(popup_ids, key=str) == sorted(bar_ids + hidden_ids, key=str)
 
 
 def test_rebuilding_the_menu_does_not_duplicate_the_bar(window: MainWindow) -> None:
     """_build_app_menu runs again after Settings closes - language or theme
-    may have changed. The menu bar must be replaced, not added to."""
+    may have changed. The menu bar must be replaced, not added to - and the
+    hidden File/Database menus (and the shortcut actions standing in for
+    them) must not pile up either."""
     window._build_app_menu()
     window._build_app_menu()
 
     menu_bar = window.menuBar()
-    assert len(menu_bar.actions()) == 6
+    assert len(menu_bar.actions()) == 4
+    assert len(window._macos_hidden_menus) == 2
+    assert len(window.actions()) == len(set(window.actions()))
