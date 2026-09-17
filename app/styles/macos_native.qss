@@ -106,6 +106,21 @@ QLabel[sectionTitle="true"] {
 }
 
 /* -------------------------------
+   Frameless window's own edge
+   main_window.py sets Qt.FramelessWindowHint on macOS too now, not
+   just Windows - removing the native title-bar-plus-traffic-lights
+   strip in favor of CustomTitleBar, the same widget Windows already
+   used. FramelessWindowHint strips every bit of native chrome (border,
+   corner, drop shadow) on both platforms, so without this the window
+   would have no visible edge at all against whatever is behind it -
+   see fluent_win11.qss's own identical rule on #windowFrame.
+-------------------------------- */
+
+QWidget#windowFrame {
+  border: 1px solid rgba(@SHADOW_RGB@, 0.35);
+}
+
+/* -------------------------------
    Surfaces
    Cards read as the grouped-box surface used by System Settings
    and the Pages/Keynote inspectors: white fill, hairline border,

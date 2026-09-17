@@ -1,4 +1,4 @@
-"""Custom Windows title bar for frameless windows."""
+"""Custom title bar for frameless windows (Windows and macOS)."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -15,13 +15,21 @@ if TYPE_CHECKING:
 CUSTOM_TITLE_BAR_HEIGHT: int = 40
 
 
-class WindowsTitleBar(QFrame):
-    """Custom Windows chrome that delegates movement to the window system."""
+class CustomTitleBar(QFrame):
+    """Custom chrome that delegates movement/resizing to the window system.
+
+    Built once, for Windows (no native chrome at all under
+    Qt.FramelessWindowHint - "no border under Windows and square corners
+    under Mac" was the original report), and reused as-is for macOS's own
+    frameless mode rather than a second, native-Cocoa-flavoured widget:
+    same buttons, same layout, same QWindow.startSystemMove/startSystemResize
+    mechanism either way.
+    """
 
     def __init__(self, window: MainWindow) -> None:
         super().__init__(window)
         self._window = window
-        self.setObjectName("windowsTitleBar")
+        self.setObjectName("customTitleBar")
         self.setFixedHeight(CUSTOM_TITLE_BAR_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QHBoxLayout(self)

@@ -28,7 +28,7 @@ from PySide6.QtGui import (
 )
 from app import APP_ICON, APP_NAME
 from app.charts import layout_presets
-from app.widgets.windows_title_bar import WindowsTitleBar
+from app.widgets.custom_title_bar import CustomTitleBar
 from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.chart_panel import ChartPanel
@@ -165,8 +165,15 @@ class MainWindow(QMainWindow):
 
         self._update_window_title()
         self.setWindowIcon(icon_from_svg_source(APP_ICON, size=32))
-        self._windows_title_bar: WindowsTitleBar | None = None
-        if IS_WINDOWS:
+        self._custom_title_bar: CustomTitleBar | None = None
+        if IS_WINDOWS or IS_MACOS:
+            # Frameless everywhere but Linux (whose window managers already
+            # draw a native title bar this app has no reason to fight) -
+            # macOS's own native chrome was the same plain title-bar-plus-
+            # traffic-lights strip as any other window, worth removing for
+            # the same reason it was worth removing on Windows: it is 40px
+            # of screen fully given over to nothing but the window title,
+            # which CustomTitleBar (below) replaces one-for-one on both.
             self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.resize(1200, 800)
 
@@ -221,7 +228,7 @@ class MainWindow(QMainWindow):
         # Wrap the splitter in a plain central widget with a zero-minimum layout.
         self._central_host = self._create_central_host()
         self.setCentralWidget(self._central_host)
-        if IS_WINDOWS:
+        if IS_WINDOWS or IS_MACOS:
             # Frameless (see setWindowFlag above), so the OS gives us no edge
             # resize handles at all - _resize_edge_at/_update_resize_cursor
             # below fill that in. Watching _central_host, not self: it fills
@@ -440,13 +447,14 @@ class MainWindow(QMainWindow):
         stdSizeAndlayout(layout)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
-        if IS_WINDOWS:
+        if IS_WINDOWS or IS_MACOS:
             # FramelessWindowHint (see __init__) strips every bit of native
             # chrome - border, corner, drop shadow - so without this the
             # window has no visible edge at all against whatever is behind
-            # it. fluent_win11.qss draws a plain 1px outline on this object
-            # name; WA_StyledBackground is what makes a QWidget paint a QSS
-            # border at all rather than silently ignoring it.
+            # it. Each platform QSS draws a plain 1px outline on this object
+            # name (fluent_win11.qss, macos_native.qss); WA_StyledBackground
+            # is what makes a QWidget paint a QSS border at all rather than
+            # silently ignoring it.
             #
             # No drop shadow here, unlike the elevated internal cards this
             # replaced: a shadow effect needs room *outside* the widget it
@@ -458,11 +466,11 @@ class MainWindow(QMainWindow):
             # QMainWindow's own statusBar() - built by Qt outside
             # centralWidget entirely - outside the inset border with no
             # background of its own. Worth doing, not safely from here
-            # without a way to check it on an actual Windows build.
+            # without a way to check it on an actual Windows/Mac build.
             host.setObjectName("windowFrame")
             host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            self._windows_title_bar = WindowsTitleBar(self)
-            layout.addWidget(self._windows_title_bar, 0)
+            self._custom_title_bar = CustomTitleBar(self)
+            layout.addWidget(self._custom_title_bar, 0)
         layout.addWidget(self._main_split, 1)
         return host
 
@@ -2440,7 +2448,7 @@ class MainWindow(QMainWindow):
         return None
 
     # ------------------------------------------------------------------
-    # Frameless window resize (Windows)
+    # Frameless window resize (Windows and macOS)
     # ------------------------------------------------------------------
     #: How close to an edge, in pixels, counts as "grab this edge to resize".
     _RESIZE_MARGIN: int = 6
@@ -2480,17 +2488,21 @@ class MainWindow(QMainWindow):
         return edges
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Give the frameless window (Windows only) edge-drag resizing.
+        """Give the frameless window (Windows and macOS) edge-drag resizing.
 
         FramelessWindowHint (see __init__) leaves the OS with no resize
         handles of its own to offer - this is the replacement, the same
         margin-hit-test-plus-startSystemResize technique
-        WindowsTitleBar.mousePressEvent already uses for the move case.
+        CustomTitleBar.mousePressEvent already uses for the move case.
         A maximized window is left alone: its edges are the screen's own
         edges, and dragging those would resize the display area a user
         grabbing what looks like a window border did not mean to touch.
         """
-        if IS_WINDOWS and watched is self._central_host and not self.isMaximized():
+        if (
+            (IS_WINDOWS or IS_MACOS)
+            and watched is self._central_host
+            and not self.isMaximized()
+        ):
             if event.type() == QEvent.Type.MouseMove:
                 edges = self._resize_edge_at(event.position().toPoint())
                 cursor = self._RESIZE_CURSORS.get(edges, Qt.CursorShape.ArrowCursor)

@@ -1,12 +1,13 @@
-"""Edge-drag resizing for the frameless window (Windows only).
+"""Edge-drag resizing for the frameless window (Windows and macOS).
 
 Qt.FramelessWindowHint (see main_window.py __init__) leaves the OS with no
 resize handles of its own - "cannot resize main window under Win11" was
 that gap: setMouseTracking/installEventFilter were wired up in __init__ but
 MainWindow had no eventFilter at all, so neither of them did anything.
 eventFilter now hit-tests the margin around _central_host's own edges and
-calls QWindow.startSystemResize, the same technique WindowsTitleBar already
-uses for moving the window.
+calls QWindow.startSystemResize, the same technique CustomTitleBar already
+uses for moving the window - macOS went frameless later, the same way, and
+shares every test below via the ``platform_flag`` parametrization.
 """
 from __future__ import annotations
 
@@ -32,11 +33,12 @@ def repo(tmp_db_path: Path) -> SqliteRepo:
     built.close()
 
 
-@pytest.fixture
+@pytest.fixture(params=["IS_WINDOWS", "IS_MACOS"])
 def window(
-    repo: SqliteRepo, tmp_db_path: Path, monkeypatch: pytest.MonkeyPatch, qapp
+    repo: SqliteRepo, tmp_db_path: Path, monkeypatch: pytest.MonkeyPatch, qapp, request
 ):
-    monkeypatch.setattr(main_window_module, "IS_WINDOWS", True)
+    monkeypatch.setattr(main_window_module, "IS_WINDOWS", request.param == "IS_WINDOWS")
+    monkeypatch.setattr(main_window_module, "IS_MACOS", request.param == "IS_MACOS")
     built = MainWindow(repo=repo, db_path=tmp_db_path)
     built.resize(900, 700)
     yield built
@@ -136,7 +138,9 @@ def test_a_maximized_window_is_not_resized_from_its_edges(window: MainWindow) ->
 def test_elsewhere_the_filter_does_nothing_special(
     repo: SqliteRepo, tmp_db_path: Path, monkeypatch: pytest.MonkeyPatch, qapp
 ) -> None:
+    """Neither platform flag set - a stand-in for Linux."""
     monkeypatch.setattr(main_window_module, "IS_WINDOWS", False)
+    monkeypatch.setattr(main_window_module, "IS_MACOS", False)
     built = MainWindow(repo=repo, db_path=tmp_db_path)
     try:
         handle = MagicMock()
