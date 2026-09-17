@@ -107,10 +107,12 @@ def test_both_stylesheets_say_what_the_panel_ground_is(qss_name: str) -> None:
     assert "#basePropertiesPanel" in qss
 
 
-def test_the_two_platforms_answer_differently_on_purpose() -> None:
-    """White on Windows (WinUI3 Settings: outlined cards on one white
-    page), the window ground on macOS (System Settings: white grouped
-    boxes floating on grey). Matching them up would be the bug."""
+def test_the_page_is_white_on_both_platforms() -> None:
+    """Both platforms read #basePropertiesPanel as the white page ground
+    now - current System Settings' own white-page-grey-card convention
+    (see macos_native.qss's Surfaces note) reads the same way WinUI3's
+    one-white-page-with-outlined-cards already did, even though the two
+    still differ on what a *card* looks like (see the test below)."""
     from app.styles.style import _load_qss
 
     def panel_rule(name: str) -> str:
@@ -119,7 +121,24 @@ def test_the_two_platforms_answer_differently_on_purpose() -> None:
         return block.split("}", 1)[0]
 
     assert "palette(base)" in panel_rule("fluent_win11.qss")
-    assert "palette(window)" in panel_rule("macos_native.qss")
+    assert "palette(base)" in panel_rule("macos_native.qss")
+
+
+def test_the_two_platforms_still_answer_differently_on_cards() -> None:
+    """White cards with a hairline border on Windows (WinUI3 Settings),
+    grey inset "well" cards on macOS (current System Settings - the
+    VoiceOver info box, "Controlli della barra dei menu", ...). Matching
+    them up would be the bug - the page-ground convention above changed,
+    the card-vs-page contrast that convention exists for did not."""
+    from app.styles.style import _load_qss
+
+    def card_rule(name: str) -> str:
+        qss, _path = _load_qss(name)
+        block = qss.split('[card="true"]', 1)[1]
+        return block.split("}", 1)[0]
+
+    assert "palette(base)" in card_rule("fluent_win11.qss")
+    assert "palette(window)" in card_rule("macos_native.qss")
 
 
 #: Not SeriesOperationWidget: its one card deliberately has a zero-margin

@@ -1351,12 +1351,14 @@ def apply_platform_style(
         qss, path = _load_qss(qss_name) if qss_name else ("", None)
 
     # No app.setStyle() override here, deliberately: macos_native.qss's own
-    # header explains why standard controls (QPushButton, QComboBox, QMenu,
-    # QScrollBar...) are left unstyled on purpose - Qt's native Aqua/Fluent
-    # style plugins already draw those authentically, and forcing Fusion
-    # app-wide to fix one narrow rendering gap (see
-    # apply_fusion_for_item_view_styling below) would throw that away for
-    # every other widget in the application. The gap gets a surgical fix
+    # header explains why most standard controls (QMenu, QScrollBar,
+    # QLineEdit...) are left unstyled on purpose - Qt's native Aqua/Fluent
+    # style plugins already draw those authentically (QPushButton,
+    # QComboBox and QCheckBox are the exceptions that file's own header
+    # explains too), and forcing Fusion app-wide to fix one narrow
+    # rendering gap (see apply_fusion_for_item_view_styling below) would
+    # throw that away for every other widget in the application. The gap
+    # gets a surgical fix
     # instead, on just the specific views that need it.
 
     # Read the sheet first, then theme it: themed_qss hands back the palette it

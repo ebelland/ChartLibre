@@ -1,4 +1,4 @@
-py-chart-db TODO
+ChartLibre TODO
 Ranked by priority. P0 = wrong results or blocked work, P3 = nice to have.
 
 
@@ -8,6 +8,11 @@ P0 - BUGS: wrong output, or work that cannot proceed
       Nota: chart_panel (2.214), style (1.939), fit_dialog (1.760) e
       cluster_dialog (1.722) restano sopra le 1.500 righe.
 
+P1-1 2026-09-17 08:52:55 | WARNING  | AppLogger._handle_qt_message | Qt warning: Populating font family aliases took 200 ms. Replace uses of missing font family "Segoe UI Variable" with one that exists to avoid this cost. 
+
+P1-2 Nav bar windows fonts too small
+
+P1-3 Status bar: no padding on left end right edges 
 
 
 

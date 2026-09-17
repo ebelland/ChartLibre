@@ -150,14 +150,16 @@ def test_a_page_that_chose_its_own_margins_keeps_them(qapp) -> None:
 
 
 def test_both_sheets_say_what_a_toolbox_page_is(qapp) -> None:
-    """Opposite answers on purpose - grey on macOS, where white cards float
-    on a settings pane; white on Windows, which puts outlined cards on one
-    continuous page - and neither may be left to inheritance."""
+    """The same answer on both now - white, current System Settings' own
+    page ground under its grey inset cards (see macos_native.qss's
+    Surfaces note), which reads the same way WinUI3's one-white-page-
+    with-outlined-cards convention already did - and neither may be left
+    to inheritance."""
     from pathlib import Path
 
     styles = Path(__file__).resolve().parent.parent / "styles"
     for sheet, expected in (
-        ("macos_native.qss", "palette(window)"),
+        ("macos_native.qss", "palette(base)"),
         ("fluent_win11.qss", "palette(base)"),
     ):
         text = (styles / sheet).read_text(encoding="utf-8")

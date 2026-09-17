@@ -469,7 +469,7 @@ class MainWindow(QMainWindow):
             # without a way to check it on an actual Windows/Mac build.
             host.setObjectName("windowFrame")
             host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            self._custom_title_bar = CustomTitleBar(self)
+            self._custom_title_bar = CustomTitleBar(self, is_macos=IS_MACOS)
             layout.addWidget(self._custom_title_bar, 0)
         layout.addWidget(self._main_split, 1)
         return host
