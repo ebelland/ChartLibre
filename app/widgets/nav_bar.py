@@ -14,9 +14,12 @@ if TYPE_CHECKING:
     from app.dialogs.main_window import MainWindow
 
 #: Windows/Fluent: a fixed-width column of square icon-over-label tiles.
-NAV_BAR_WIDTH = 120
+#: Widened from the original 104/120 - "Operazioni sulle serie" and
+#: "Area di lavoro" wrapped or clipped badly under an icon in a tile
+#: that narrow, at any font past this sheet's own 10pt base.
+NAV_BAR_WIDTH = 132
 NAV_ICON_SIZE = QSize(20, 20)
-NAV_ITEM_SIZE = QSize(104, 64)
+NAV_ITEM_SIZE = QSize(116, 64)
 
 #: macOS: a wider Apple Music/Finder-style sidebar of icon-beside-label
 #: rows, rather than square tiles - there is no native AppKit sidebar
@@ -59,6 +62,30 @@ _DEVELOPER_ICON = (
     '<polyline points="16 18 22 12 16 6"/>'
     '<polyline points="8 6 2 12 8 18"/>'
 )
+
+
+def _wrap_tile_label(text: str) -> str:
+    """Break a tile label onto two lines at its middlemost space.
+
+    QToolButton has no word-wrap of its own (a Qt limitation, not a
+    missed setting) - left alone, a label past the tile's own width just
+    elides ("Series ...rations"), unreadable. Breaking it explicitly is
+    the same thing WinUI3's own longer tile labels do. Only ever applied
+    to this button's own text, never to the shared catalogue string
+    (spec.translated_text()) that menus and tooltips reuse unwrapped.
+    """
+    if " " not in text:
+        return text
+    words = text.split(" ")
+    lengths = [len(word) for word in words]
+    total = sum(lengths) + len(words) - 1
+    best_index, best_gap, running = 0, total, 0
+    for index, length in enumerate(lengths[:-1]):
+        running += length + 1
+        gap = abs(running - total / 2)
+        if gap < best_gap:
+            best_index, best_gap = index, gap
+    return " ".join(words[: best_index + 1]) + "\n" + " ".join(words[best_index + 1 :])
 
 
 class NavigationBar(QFrame):
@@ -231,7 +258,7 @@ class NavigationBar(QFrame):
         button.setObjectName("navigationItem")
         button.setAutoRaise(False)
         button.setIcon(icon)
-        button.setText(text)
+        button.setText(text if self._is_macos else _wrap_tile_label(text))
         if self._is_macos:
             # A sidebar row - icon beside a left-aligned label, stretched to
             # the rail's own width - not a square tile: Apple Music/Finder's

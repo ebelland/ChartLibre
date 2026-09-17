@@ -29,8 +29,18 @@ QWidget#windowFrame {
     outline: none;
 }
 
+/* No background here on purpose (used to be palette(window)): a bare
+   QWidget selector matches every plain layout-only container in the
+   app, and Qt auto-sets WA_StyledBackground on any widget a stylesheet
+   rule names - so every unstyled row wrapper (a QHBoxLayout holding a
+   couple of buttons, say) silently started painting a grey fill. Rows
+   whose content happens to expand full-width (a QComboBox, a QLineEdit)
+   hid it completely; rows that don't (two buttons plus a stretch, a
+   lone checkbox) showed it as an unexplained grey stripe - reported
+   against the Grid card's own Rows/Cols row. Real surfaces (cards,
+   pages, the window frame) already set their own background
+   explicitly; nothing needed this blanket one. */
 QWidget {
-    background: palette(window);
     color: palette(window-text);
     selection-background-color: palette(highlight);
     selection-color: palette(highlighted-text);
@@ -309,6 +319,7 @@ QMenu::separator {
 
 QTabWidget::pane {
     border: none;
+    border-top: 1px solid rgba(@SHADOW_RGB@, 0.10);
     background: transparent;
     margin: 0;
     padding: 0;
@@ -318,6 +329,12 @@ QTabWidget {
     background: transparent;
 }
 
+/* A hairline shelf under the whole strip - the selected tab's own
+   bottom border below overpaints exactly its own width of it with the
+   pane's background colour, the classic "notebook tab" trick that
+   makes the selected tab read as fused to the content below it rather
+   than sitting apart from it (WinUI3's own TabView look, not a floating
+   underline-only tab as this file drew before). */
 QTabBar {
     background: transparent;
     border: none;
@@ -326,72 +343,62 @@ QTabBar {
 /* Base tab */
 QTabBar::tab {
     background: transparent;
+    color: palette(window-text);
 
     min-height: 36px;
 
     padding: 0 16px;
     margin-right: 2px;
 
-    border: single transparent;
-    border-bottom: 3px solid transparent;
-
-    /*color: palette(window-text);*/
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
 
     font-weight: 400;
 }
+
 QTabBar QToolButton {
     min-width: 5px;
     min-height: 5px;
-    /*background: #3c3c3c;*/
 }
+
 /* Hover state */
-QTabBar::tab:hover {
-    background: rgba(@SHADOW_RGB@, 0.045);
-
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-
+QTabBar::tab:hover:!selected {
+    background: rgba(@SHADOW_RGB@, 0.05);
     color: palette(window-text);
 }
 
-/* Selected tab */
+/* Selected tab: matches the pane's own background and sits flush
+   against it (no gap, no border of its own on that edge) - the tab and
+   the content it opens read as one connected surface, WinUI3-style,
+   instead of a coloured underline floating below plain text. */
 QTabBar::tab:selected {
-    background: transparent;
-
+    background: palette(base);
     color: palette(window-text);
-
     font-weight: 600;
 
-    border-bottom: 3px solid palette(highlight);
-}
-
-/* Selected hover */
-QTabBar::tab:selected:hover {
-    background: rgba(@SHADOW_RGB@, 0.035);
-
-    border-bottom: 3px solid palette(highlight);
-
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
+    border: 1px solid rgba(@SHADOW_RGB@, 0.10);
+    border-bottom: 1px solid palette(base);
+    margin-bottom: -1px;
 }
 
 /* Pressed */
 QTabBar::tab:pressed {
-    background: rgba(@SHADOW_RGB@, 0.075);
+    background: rgba(@SHADOW_RGB@, 0.09);
 }
 
 /* Disabled */
 QTabBar::tab:disabled {
     color: rgba(@NEUTRAL_RGB@, 0.65);
     background: transparent;
-    border-bottom: 3px solid transparent;
 }
 
 /* Focus approximation.
    Qt QSS cannot draw Fluent's true keyboard focus outline cleanly
    around tab text, so this uses a stronger underline. */
-QTabBar::tab:focus {
-    border-bottom: 3px solid palette(highlight);
+QTabBar::tab:focus:!selected {
+    border-bottom: 2px solid palette(highlight);
 }
 
 /* First / last tab cleanup */
@@ -401,30 +408,6 @@ QTabBar::tab:first {
 
 QTabBar::tab:last {
     margin-right: 0;
-}
-
-QTabBar::tab:selected {
-    background: rgba(@ACCENT_RGB@, 0.055);
-
-    color: palette(window-text);
-
-    font-weight: 600;
-
-    border-bottom: 3px solid palette(highlight);
-
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-}QTabBar::tab:selected {
-    background: rgba(@ACCENT_RGB@, 0.055);
-
-    color: palette(window-text);
-
-    font-weight: 600;
-
-    border-bottom: 3px solid palette(highlight);
-
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
 }
 /* -------------------------------
    Buttons
@@ -832,7 +815,10 @@ QToolButton#navigationItem {
     border: none;
     border-radius: 8px;
     padding: 6px 4px;
-    font-size: 8pt;
+    /* Was 8pt against this sheet's own 10pt body base (see "* {" above)
+       - visibly smaller than every other label in the app, not a
+       deliberate caption size. */
+    font-size: 10.5pt;
 }
 
 QToolButton#navigationItem:hover {

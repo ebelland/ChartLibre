@@ -109,10 +109,13 @@ The main window splits into two areas.
 
 A vertical column of icons switches between the application's main sections:
 
-- *Data* — the list of tables and queries in the database, with a data preview.
+- *Workspace* — collapses the panel beside the rail down to the rail's own width, for when the chart panel needs the room; clicking it again restores whatever section was open.
+- *Tables* — the list of tables and queries in the database, with a data preview.
 - *Chart Options* — properties of the currently selected figure, axis and series.
 - *Series Operations* — *Plot*, plus the analysis tools (fit, statistics, filtering, ...) that apply to a series' data.
-- *Menu* — opens the application's main menu (new, open, import, settings, credits, ...).
+- *Database* — the Query Builder (see @creating-a-chart) and an overview of the database itself: its path and size, every table's row count, and per-table CSV/Excel export and import-link refresh.
+- *File* — New, Open, Import and Load demo; Save and Save As; and the Open Recent list.
+- *Developer* — scaffolding tools: the translation catalogue editor, the series-operation builder, the custom function creator, and the renderer helper (see @advanced).
 
 == Data panel
 

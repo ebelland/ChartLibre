@@ -111,7 +111,7 @@ SPLITTER_HANDLE_WIDTH: int = get_constant("splitter_handle_width", 6)
 
 # Floor for the resizable side panels.  Not zero: a panel dragged to nothing
 # looks like a bug and cannot be grabbed again.
-PANEL_MIN_WIDTH: int = get_constant("panel_min_width", 140)
+PANEL_MIN_WIDTH: int = get_constant("panel_min_width", 180)
 
 #: Kept in sync by convention with #windowFrame's own border-radius in
 #: macos_native.qss - Qt has no API to read a border-radius back out of an
