@@ -221,7 +221,16 @@ class SeriesOperationBuilderDialog(QDialog):
         self.setModal(True)
 
         root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
+        # None, not "medium": a title, one hint paragraph and three fields
+        # is far short of the 900x640 every "medium" dialog gets, and with
+        # every one of this card's children at stretch 0, Qt's box layout
+        # does not just leave the surplus at the bottom - it spreads it
+        # roughly evenly between them (its documented fallback when no
+        # item claims a share), so a forced oversize read as loose gaps
+        # between the title, the hint and the form rather than as one
+        # window that was simply too big. Sizing to the layout's own
+        # sizeHint instead removes the surplus this card never asked for.
+        apply_dialog_shell(self, root, size=None)
 
         card = CardFrame(self, "seriesOperationBuilderCard")
         card_layout = card.layout()
@@ -274,6 +283,10 @@ class SeriesOperationBuilderDialog(QDialog):
             layout=action_row,
         )
         card_layout.addLayout(action_row)
+        # Belt and braces: if this dialog is ever resized past its content
+        # (a person dragging it larger), the surplus collapses here rather
+        # than spreading back out between the rows above.
+        card_layout.addStretch(1)
 
         root.addWidget(card, 1)
 

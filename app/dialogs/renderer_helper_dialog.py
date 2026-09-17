@@ -190,7 +190,14 @@ class RendererHelperDialog(QDialog):
         self.setModal(True)
 
         root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
+        # None, not "medium" - see series_operation_builder_dialog's own
+        # note on why a forced 900x640 read as loose gaps between every
+        # row rather than as a window that was simply too big: with every
+        # child here at stretch 0, Qt spreads unclaimed surplus roughly
+        # evenly between them instead of leaving it in one place. Sizing
+        # to the layout's own sizeHint removes the surplus this card
+        # never asked for.
+        apply_dialog_shell(self, root, size=None)
 
         card = CardFrame(self, "rendererHelperCard")
         card_layout = card.layout()
@@ -261,6 +268,10 @@ class RendererHelperDialog(QDialog):
             layout=action_row,
         )
         card_layout.addLayout(action_row)
+        # Belt and braces: if this dialog is ever resized past its content,
+        # the surplus collapses here rather than spreading back out
+        # between the rows above.
+        card_layout.addStretch(1)
 
         root.addWidget(card, 1)
 
