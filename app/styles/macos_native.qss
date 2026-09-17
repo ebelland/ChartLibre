@@ -473,18 +473,21 @@ QTabBar QToolButton:hover {
 /* -------------------------------
    Activity rail (#activityRail)
    A narrow icon sidebar has no native macOS widget to defer to,
-   so this gets explicit treatment: a faint tint to read as a
-   distinct chrome strip (like Mail/Finder sidebars), tool
-   buttons as borderless squares that pick up a soft rounded
-   highlight on hover, and a tinted accent capsule for the
-   active section — matching the translucent (not solid-fill)
-   selection look of macOS sidebar items.
+   so this gets explicit treatment: tool buttons as borderless
+   squares that pick up a soft rounded highlight on hover, and a
+   tinted accent capsule for the active section — matching the
+   translucent (not solid-fill) selection look of macOS sidebar
+   items. No fill or border of its own on the rail's frame,
+   unlike a Windows/Fluent nav rail: recent first-party macOS
+   apps (Music, Notes) run their sidebar in the same material as
+   the rest of the window, with only the selection pill marking
+   it as a sidebar at all - a tinted strip here would read as
+   Fluent chrome transplanted onto a Mac.
 -------------------------------- */
 
 QFrame#activityRail {
-  background: rgba(@SHADOW_RGB@, 0.025);
+  background: transparent;
   border: none;
-  border-right: 1px solid rgba(@SHADOW_RGB@, 0.08);
 }
 
 /* #navigationItem, not the old #activityButton (renamed when the rail
