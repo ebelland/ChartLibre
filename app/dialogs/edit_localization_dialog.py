@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QInputDialog,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QTableWidget,
     QTableWidgetItem,
@@ -157,6 +158,12 @@ class EditLocalizationDialog(QDialog):
         self._missing_only_check.toggled.connect(self._apply_filter)
         top_row.addWidget(self._missing_only_check)
         card_layout.addLayout(top_row)
+
+        self._search_edit = QLineEdit(card)
+        self._search_edit.setPlaceholderText(_("Search source or translation…"))
+        self._search_edit.setClearButtonEnabled(True)
+        self._search_edit.textChanged.connect(self._apply_filter)
+        card_layout.addWidget(self._search_edit)
 
         self._table = QTableWidget(0, 2, card)
         self._table.setHorizontalHeaderLabels([_("Source"), _("Translation")])
@@ -294,10 +301,20 @@ class EditLocalizationDialog(QDialog):
 
     def _apply_filter(self) -> None:
         missing_only = self._missing_only_check.isChecked()
+        search = self._search_edit.text().strip().lower()
         for row in range(self._table.rowCount()):
+            source_item = self._table.item(row, 0)
             translation_item = self._table.item(row, 1)
-            is_missing = not (translation_item.text() if translation_item else "").strip()
-            self._table.setRowHidden(row, missing_only and not is_missing)
+            source_text = source_item.text() if source_item else ""
+            translation_text = translation_item.text() if translation_item else ""
+            is_missing = not translation_text.strip()
+            matches_search = (
+                not search
+                or search in source_text.lower()
+                or search in translation_text.lower()
+            )
+            hide = (missing_only and not is_missing) or not matches_search
+            self._table.setRowHidden(row, hide)
 
     # ------------------------------------------------------------------
     # Save

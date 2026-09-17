@@ -129,6 +129,65 @@ def test_missing_only_hides_translated_rows(dialog) -> None:
             assert hidden is False
 
 
+def test_search_hides_rows_that_match_neither_column(dialog) -> None:
+    dialog._search_edit.setText("Untranslated one")
+
+    for row in range(dialog._table.rowCount()):
+        source = dialog._table.item(row, 0).text()
+        hidden = dialog._table.isRowHidden(row)
+        if source == "Untranslated one":
+            assert hidden is False
+        elif source == "Hello":
+            assert hidden is True
+
+
+def test_search_matches_the_translation_column_too(dialog) -> None:
+    dialog._search_edit.setText("Ciao")
+
+    for row in range(dialog._table.rowCount()):
+        source = dialog._table.item(row, 0).text()
+        hidden = dialog._table.isRowHidden(row)
+        if source == "Hello":
+            assert hidden is False
+        elif source == "Untranslated one":
+            assert hidden is True
+
+
+def test_search_is_case_insensitive(dialog) -> None:
+    dialog._search_edit.setText("untranslated ONE")
+
+    row = next(
+        r for r in range(dialog._table.rowCount())
+        if dialog._table.item(r, 0).text() == "Untranslated one"
+    )
+    assert dialog._table.isRowHidden(row) is False
+
+
+def test_search_combines_with_missing_only(dialog) -> None:
+    """A row has to satisfy both filters at once, not just the last one
+    applied - "Hello" matches the search text but is not missing, so
+    Missing only still hides it."""
+    dialog._search_edit.setText("Hello")
+    dialog._missing_only_check.setChecked(True)
+
+    row = next(
+        r for r in range(dialog._table.rowCount())
+        if dialog._table.item(r, 0).text() == "Hello"
+    )
+    assert dialog._table.isRowHidden(row) is True
+
+
+def test_clearing_the_search_shows_every_row_again(dialog) -> None:
+    dialog._search_edit.setText("Untranslated one")
+    dialog._search_edit.setText("")
+
+    row = next(
+        r for r in range(dialog._table.rowCount())
+        if dialog._table.item(r, 0).text() == "Hello"
+    )
+    assert dialog._table.isRowHidden(row) is False
+
+
 def test_editing_a_cell_and_saving_persists_it(
     dialog, seeded_it_catalog: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
