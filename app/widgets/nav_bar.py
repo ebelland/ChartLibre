@@ -54,6 +54,10 @@ _FILE_ICON = (
     '<path d="M6 2h9l5 5v15H6z"/>'
     '<path d="M15 2v5h5"/>'
 )
+_DEVELOPER_ICON = (
+    '<polyline points="16 18 22 12 16 6"/>'
+    '<polyline points="8 6 2 12 8 18"/>'
+)
 
 
 class NavigationBar(QFrame):
@@ -104,6 +108,7 @@ class NavigationBar(QFrame):
             "nav_series_operations",
             "nav_database",
             "nav_file",
+            "nav_developer",
         )
 
         self.button_group = QButtonGroup(self)
@@ -188,6 +193,13 @@ class NavigationBar(QFrame):
                 icon_from_svg_source(_FILE_ICON, size=20),
                 _("File"),
                 _("New, open, import and save"),
+                checkable=True,
+            )
+        if action_id == "nav_developer":
+            return self._tile(
+                icon_from_svg_source(_DEVELOPER_ICON, size=20),
+                _("Developer"),
+                _("Scaffolding tools and the translation catalogue"),
                 checkable=True,
             )
         icon, text, tooltip = action_presentation(action_id)

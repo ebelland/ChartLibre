@@ -14,6 +14,8 @@ opening as its own modal window.
 """
 from __future__ import annotations
 
+from typing import Callable
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -38,6 +40,7 @@ from app.styles.style import (
     create_section_title,
     load_icon,
     mark_editor_panel,
+    mark_icon_only,
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
@@ -57,7 +60,13 @@ def _human_size(num_bytes: int) -> str:
 class DatabaseInfoPanel(QWidget):
     """Path, size, tables and import links for the connected database."""
 
-    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        repo: SqliteRepo,
+        parent: QWidget | None = None,
+        *,
+        optimize_action: Callable[[], None] | None = None,
+    ) -> None:
         super().__init__(parent)
         self._repo = repo
 
@@ -66,7 +75,23 @@ class DatabaseInfoPanel(QWidget):
 
         self._card = CardFrame(self, "databaseInfoCard")
         self._card_layout = self._card.layout()
-        self._card_layout.addWidget(create_section_title(_("Database Info"), self._card))
+
+        header_row = QHBoxLayout()
+        stdSizeAndlayout(header_row)
+        header_row.addWidget(create_section_title(_("Database Info"), self._card))
+        header_row.addStretch(1)
+        if optimize_action is not None:
+            # Lives here, not beside Query Builder (see main_window's own
+            # Query Builder section): it is a maintenance action against
+            # exactly the size/page stats this card already shows, not
+            # against the query workflow.
+            create_action_button(
+                parent=self._card,
+                action_id="optimize_db",
+                action=optimize_action,
+                layout=header_row,
+            )
+        self._card_layout.addLayout(header_row)
 
         self._form_host = QWidget(self._card)
         self._form_layout = QFormLayout(self._form_host)
@@ -89,33 +114,46 @@ class DatabaseInfoPanel(QWidget):
         mark_editor_panel(self._table)
         self._card_layout.addWidget(self._table, 1)
 
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        self._export_csv_button = create_action_button(
-            parent=self,
-            action_id="export_csv",
-            action=self._export_selected_csv,
-            layout=action_row,
-        )
-        self._export_xlsx_button = create_action_button(
-            parent=self,
-            action_id="export_xlsx",
-            action=self._export_selected_xlsx,
-            layout=action_row,
-        )
+        # Update link gets its own full-width row - it is the one action
+        # here that only ever applies to one table at a time and reads best
+        # spelled out. Export CSV/Excel share the next row and go icon-only
+        # (mark_icon_only): two full-text buttons side by side were wider
+        # than this narrow nav panel wants; the tooltip already carries
+        # "Export CSV" / "Export Excel" for whoever needs the word.
+        update_row = QHBoxLayout()
+        stdSizeAndlayout(update_row)
         self._update_link_button = create_action_button(
             parent=self,
             action_id="update_link",
             action=self._update_selected_link,
-            layout=action_row,
+            layout=update_row,
             presentation=(
                 load_icon("reload"),
                 _("Update link"),
                 _("Refresh the selected table from its import link"),
             ),
         )
-        action_row.addStretch(1)
-        self._card_layout.addLayout(action_row)
+        update_row.addStretch(1)
+        self._card_layout.addLayout(update_row)
+
+        export_row = QHBoxLayout()
+        stdSizeAndlayout(export_row)
+        self._export_csv_button = create_action_button(
+            parent=self,
+            action_id="export_csv",
+            action=self._export_selected_csv,
+            layout=export_row,
+        )
+        mark_icon_only(self._export_csv_button)
+        self._export_xlsx_button = create_action_button(
+            parent=self,
+            action_id="export_xlsx",
+            action=self._export_selected_xlsx,
+            layout=export_row,
+        )
+        mark_icon_only(self._export_xlsx_button)
+        export_row.addStretch(1)
+        self._card_layout.addLayout(export_row)
 
         root.addWidget(self._card, 1)
 
@@ -201,9 +239,16 @@ class DatabaseInfoPanel(QWidget):
             )
 
     def _reload_tables(self) -> None:
-        """Repopulate the table list, keeping the current selection by name."""
+        """Repopulate the table list, keeping the current selection by name.
+
+        include_internal=True: this list is the database's own inventory,
+        so the app's "__..._descriptors__" tables belong in it same as any
+        other - unlike list_user_tables()'s other callers (the chart
+        data-source picker, the pragma row-count total), which only ever
+        want tables a user could plot.
+        """
         selected = self._selected_table()
-        frame = self._repo.list_user_tables()
+        frame = self._repo.list_user_tables(include_internal=True)
 
         self._table.setRowCount(len(frame.index))
         for row, record in enumerate(frame.to_dict("records")):

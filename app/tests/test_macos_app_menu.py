@@ -111,10 +111,14 @@ def test_the_menu_bar_carries_one_menu_per_group(window: MainWindow) -> None:
 
     # No File or Database: both are covered by the nav rail's own pages now
     # (_create_file_page/_create_database_page) - a second, visible menu
-    # for the same actions would be redundant chrome. Window sits between
-    # the app's own menus and Help - the usual place on a Mac - even though
-    # it holds no MenuItem of its own (see _build_macos_window_menu).
-    assert titles == ["Edit", "Developer", "Window", "Help"]
+    # for the same actions would be redundant chrome. No Developer either:
+    # unlike File/Database it is not even hidden-but-built, it is gone from
+    # _app_menu_items entirely (see _create_developer_page) - none of its
+    # four actions carries a shortcut worth keeping alive, so there was
+    # nothing left for a hidden menu to do. Window sits between the app's
+    # own menus and Help - the usual place on a Mac - even though it holds
+    # no MenuItem of its own (see _build_macos_window_menu).
+    assert titles == ["Edit", "Window", "Help"]
 
 
 def test_file_and_database_are_hidden_but_still_alive(window: MainWindow) -> None:
@@ -153,23 +157,14 @@ def test_edit_holds_undo_and_copy(window: MainWindow) -> None:
 
 
 def test_help_holds_the_help_group(window: MainWindow) -> None:
+    """No load_demo here any more either - it moved to the File page's own
+    Workspace section (see main_window._create_file_page), same reasoning
+    as Developer: starting from a demo is starting a workspace, not
+    documentation."""
     _top_actions, menu = _menu_named(window, "Help")
     items = menu.actions()
     ids = [action.data() for action in items if not action.isSeparator()]
-    assert ids == ["settings", "log_viewer", "user_manual", "load_demo", "credits"]
-
-
-def test_developer_holds_the_stub_tools(window: MainWindow) -> None:
-    """Menu entries only for now - each is a stub, see todo.txt."""
-    _top_actions, menu = _menu_named(window, "Developer")
-    items = menu.actions()
-    ids = [action.data() for action in items if not action.isSeparator()]
-    assert ids == [
-        "edit_localization",
-        "series_operation_builder",
-        "function_creator",
-        "renderer_helper",
-    ]
+    assert ids == ["settings", "log_viewer", "user_manual", "credits"]
 
 
 def test_window_holds_minimize_and_zoom(window: MainWindow) -> None:
@@ -273,7 +268,7 @@ def test_off_macos_the_help_group_drops_the_redundant_settings_item(
 
     ids = [action.data() for action in built._help_menu.actions() if not action.isSeparator()]
     assert "settings" not in ids
-    assert ids == ["log_viewer", "user_manual", "load_demo", "credits"]
+    assert ids == ["log_viewer", "user_manual", "credits"]
 
 
 # ----------------------------------------------------------------------
@@ -358,6 +353,6 @@ def test_rebuilding_the_menu_does_not_duplicate_the_bar(window: MainWindow) -> N
     window._build_app_menu()
 
     menu_bar = window.menuBar()
-    assert len(menu_bar.actions()) == 4
+    assert len(menu_bar.actions()) == 3
     assert len(window._macos_hidden_menus) == 2
     assert len(window.actions()) == len(set(window.actions()))

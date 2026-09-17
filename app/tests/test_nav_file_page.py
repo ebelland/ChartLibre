@@ -2,9 +2,10 @@
 
 NavigationBar's popup-menu File button (off macOS only, InstantPopup +
 window._file_menu) becomes a real "nav_file" page tile on every platform -
-New/Open/Import/Save/Save As as flat buttons, plus an Open Recent popup that
-rebuilds itself from user.json on every show - mirroring how Database's own
-modal dialog became a page.
+Workspace (New/Open/Import/Load demo) and Save as flat buttons in their own
+sections, plus an Open Recent list (one button per line, not a dropdown)
+that rebuilds itself from user.json on every visit - mirroring how
+Database's own modal dialog became a page.
 """
 from __future__ import annotations
 
@@ -39,14 +40,27 @@ def test_the_file_tile_switches_to_the_file_page(window: MainWindow) -> None:
 
 
 def test_the_page_offers_the_file_actions(window: MainWindow) -> None:
-    from PySide6.QtWidgets import QPushButton
+    from PySide6.QtWidgets import QLabel, QPushButton
 
     page = window._left_stack.widget(_file_tile_index(window))
     labels = {button.text() for button in page.findChildren(QPushButton)}
-    for expected in ("New", "Open", "Import", "Save", "Open recent"):
+    labels |= {label.text() for label in page.findChildren(QLabel)}
+    for expected in ("New", "Open", "Import", "Load demo", "Save", "Open recent"):
         assert any(expected.lower() in label.lower() for label in labels), (
             expected, labels
         )
+
+
+def test_the_page_is_split_into_sections(window: MainWindow) -> None:
+    from PySide6.QtWidgets import QLabel
+
+    page = window._left_stack.widget(_file_tile_index(window))
+    titles = {
+        label.text()
+        for label in page.findChildren(QLabel)
+        if label.property("sectionTitle")
+    }
+    assert titles == {"Workspace", "Save", "Open recent"}
 
 
 def test_no_recent_projects_shows_a_disabled_placeholder(
@@ -56,16 +70,18 @@ def test_no_recent_projects_shows_a_disabled_placeholder(
         "app.dialogs.main_window.get_recent_databases", lambda: []
     )
     window._set_nav_index(_file_tile_index(window))
-    menu = window._file_recent_button.menu()
 
-    menu.aboutToShow.emit()
+    from PySide6.QtWidgets import QLabel
 
-    actions = menu.actions()
-    assert len(actions) == 1
-    assert not actions[0].isEnabled()
+    labels = [
+        label.text()
+        for label in window._file_page.findChildren(QLabel)
+        if label.property("muted")
+    ]
+    assert "No recent projects" in labels
 
 
-def test_the_recent_menu_reflects_the_current_list(
+def test_the_recent_list_reflects_the_current_list(
     window: MainWindow, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     made_up = [Path("/tmp/one.dhub"), Path("/tmp/two.dhub")]
@@ -73,13 +89,56 @@ def test_the_recent_menu_reflects_the_current_list(
         "app.dialogs.main_window.get_recent_databases", lambda: made_up
     )
     window._set_nav_index(_file_tile_index(window))
-    menu = window._file_recent_button.menu()
 
-    menu.aboutToShow.emit()
+    from PySide6.QtWidgets import QPushButton
 
-    names = [a.text() for a in menu.actions() if not a.isSeparator()]
+    names = {button.text() for button in window._file_page.findChildren(QPushButton)}
     assert "one.dhub" in names
     assert "two.dhub" in names
+
+
+def test_the_recent_list_is_one_button_per_line_not_a_dropdown(
+    window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each recent entry is a plain button with no menu attached - the
+    dropdown (window._file_recent_button.menu()) this list replaced."""
+    made_up = [Path("/tmp/one.dhub"), Path("/tmp/two.dhub")]
+    monkeypatch.setattr(
+        "app.dialogs.main_window.get_recent_databases", lambda: made_up
+    )
+    window._set_nav_index(_file_tile_index(window))
+
+    from PySide6.QtWidgets import QPushButton
+
+    one_button = next(
+        b for b in window._file_page.findChildren(QPushButton) if b.text() == "one.dhub"
+    )
+    assert one_button.menu() is None
+
+
+def test_clicking_a_recent_entry_opens_it(
+    window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    made_up = [Path("/tmp/one.dhub")]
+    monkeypatch.setattr(
+        "app.dialogs.main_window.get_recent_databases", lambda: made_up
+    )
+
+    from PySide6.QtWidgets import QPushButton
+
+    # Patched before the list is (re)built, not after: each row's click
+    # handler is functools.partial(self._on_open_recent, path), which - by
+    # design, so a rebuilt list can't ever call a stale path - captures
+    # today's bound method at build time rather than re-resolving the
+    # attribute on every click the way a plain `self._on_open_recent`
+    # connection would.
+    with patch.object(window, "_on_open_recent") as handler:
+        window._set_nav_index(_file_tile_index(window))
+        button = next(
+            b for b in window._file_page.findChildren(QPushButton) if b.text() == "one.dhub"
+        )
+        button.click()
+    handler.assert_called_once_with(Path("/tmp/one.dhub"))
 
 
 def test_clicking_new_calls_the_new_file_handler(window: MainWindow) -> None:

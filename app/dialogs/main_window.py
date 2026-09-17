@@ -63,6 +63,7 @@ from app.styles.style import (
     create_action_button,
     create_menu,
     create_menu_item,
+    create_section_title,
     icon_from_svg_source,
     relax_minimum_width,
     stdSizeAndlayout,
@@ -574,40 +575,51 @@ class MainWindow(QMainWindow):
     def _create_left_stack(self) -> QStackedWidget:
         """Create the stacked pages shown next to the activity rail.
 
-        The properties page is wrapped in a QScrollArea so it scrolls vertically
-        instead of forcing the whole main window to keep a large minimum height.
+        The properties, Database and File pages are each wrapped in a
+        QScrollArea so they scroll vertically instead of forcing the whole
+        main window to keep a large minimum height - a QStackedWidget's own
+        minimumSizeHint is the max over *every* page it holds, current or
+        not, so an unbounded page (many tables, many recent projects) would
+        otherwise inflate the window's floor even while some other, shorter
+        page is the one actually showing.
         """
         stack = QStackedWidget(self)
         stack.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding,)
         stack.addWidget(self._data_page)
-        
-        properties_scroll = QScrollArea(self)
-        stdSizeAndlayout(properties_scroll)
-        properties_scroll.setMinimumSize(0, 0)
-        properties_scroll.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-
-        properties_scroll.setWidgetResizable(True)
-        properties_scroll.setWidget(self._properties_control)
-        stack.addWidget(properties_scroll)
+        stack.addWidget(self._scrollable(self._properties_control))
         stack.addWidget(self._create_series_operations_page())
-        stack.addWidget(self._create_database_page())
-        stack.addWidget(self._create_file_page())
+        stack.addWidget(self._scrollable(self._create_database_page()))
+        stack.addWidget(self._scrollable(self._create_file_page()))
+        stack.addWidget(self._scrollable(self._create_developer_page()))
         return stack
 
+    def _scrollable(self, widget: QWidget) -> QScrollArea:
+        """Wrap *widget* in a QScrollArea with no minimum-height floor of
+        its own - see _create_left_stack for why every page that can grow
+        without bound needs this."""
+        scroll = QScrollArea(self)
+        stdSizeAndlayout(scroll)
+        scroll.setMinimumSize(0, 0)
+        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(widget)
+        return scroll
+
     def _create_file_page(self) -> QWidget:
-        """New / Open / Import / Save / Save As, plus Open Recent.
+        """Workspace (New/Open/Import/Load demo), Save, and Open Recent.
 
         Page index 4, matching NavigationBar.action_ids' "nav_file" - the
         rail's own popup-menu File button (off macOS only) used to be the
         only way to reach these; a page reachable on every platform, same
-        as Database's, replaces it.
+        as Database's, replaces it. Load demo lives here, not under Help
+        (see _app_menu_items) - starting from a demo is a way of starting a
+        workspace, not a piece of documentation.
         """
         page = QWidget(self)
         layout = QVBoxLayout(page)
         stdSizeAndlayout(layout)
+
+        layout.addWidget(create_section_title(_("Workspace"), page))
 
         new_open_row = QHBoxLayout()
         stdSizeAndlayout(new_open_row)
@@ -617,6 +629,13 @@ class MainWindow(QMainWindow):
         new_open_row.addStretch(1)
         layout.addLayout(new_open_row)
 
+        demo_row = QHBoxLayout()
+        stdSizeAndlayout(demo_row)
+        create_action_button(parent=page, action_id="load_demo", action=self._on_load_demo, layout=demo_row)
+        demo_row.addStretch(1)
+        layout.addLayout(demo_row)
+
+        layout.addWidget(create_section_title(_("Save"), page))
         save_row = QHBoxLayout()
         stdSizeAndlayout(save_row)
         create_action_button(parent=page, action_id="save", action=self._on_save, layout=save_row)
@@ -624,99 +643,199 @@ class MainWindow(QMainWindow):
         save_row.addStretch(1)
         layout.addLayout(save_row)
 
-        recent_row = QHBoxLayout()
-        stdSizeAndlayout(recent_row)
-        open_icon, _open_text, _open_tooltip = action_presentation("open")
-        self._file_recent_button = create_action_button(
-            parent=page,
-            action_id="open",
-            # A no-op, not None: create_action_button disables a button
-            # given no action at all, on the reasoning that a button doing
-            # nothing on click is worse than one that looks unavailable -
-            # right for a plain action button, wrong here, where the click
-            # is meant for the popup menu below rather than for this.
-            action=lambda: None,
-            layout=recent_row,
-            presentation=(
-                open_icon,
-                _("Open recent"),
-                _("Open a recently used project"),
-            ),
-        )
-        recent_menu = QMenu(self._file_recent_button)
-        # Rebuilt on every show, not built once here: user.json's recent
-        # list changes between visits to this page (opening a project adds
-        # to it), the same reason the native File menu rebuilds its own
-        # Open Recent submenu on demand rather than caching it.
-        recent_menu.aboutToShow.connect(
-            lambda: self._refresh_open_recent_menu(recent_menu)
-        )
-        self._file_recent_button.setMenu(recent_menu)
-        recent_row.addStretch(1)
-        layout.addLayout(recent_row)
+        layout.addWidget(create_section_title(_("Open recent"), page))
+        self._file_page = page
+        self._recent_list_layout = QVBoxLayout()
+        stdSizeAndlayout(self._recent_list_layout)
+        layout.addLayout(self._recent_list_layout)
+        self._refresh_recent_list()
 
         layout.addStretch(1)
         return page
 
-    def _refresh_open_recent_menu(self, menu: QMenu) -> None:
-        """(Re)populate the File page's Open Recent popup from user.json."""
-        menu.clear()
-        item = self._recent_databases_item()
-        for sub_item in item.submenu or []:
-            if sub_item is None:
-                menu.addSeparator()
+    def _refresh_recent_list(self) -> None:
+        """(Re)populate the File page's Open Recent list from user.json.
+
+        A list of one button per line, not the dropdown this used to be -
+        every entry visible at once, the way the rest of this page already
+        reads. Rebuilt on every call rather than cached: user.json's recent
+        list changes between visits to this page (opening or saving a
+        project adds to it), the same reason the native File menu's own
+        Open Recent submenu rebuilds itself on every show.
+        """
+        layout = self._recent_list_layout
+        self._clear_layout(layout)
+
+        recent = get_recent_databases()
+        if not recent:
+            placeholder = QLabel(_("No recent projects"), self._file_page)
+            placeholder.setProperty("muted", True)
+            layout.addWidget(placeholder)
+            return
+
+        open_icon, _open_text, _open_tooltip = action_presentation("open")
+        for path in recent:
+            row = QHBoxLayout()
+            stdSizeAndlayout(row)
+            create_action_button(
+                parent=self._file_page,
+                action_id="open",
+                action=partial(self._on_open_recent, path),
+                layout=row,
+                presentation=(open_icon, path.name, str(path.parent)),
+            )
+            row.addStretch(1)
+            layout.addLayout(row)
+
+        clear_row = QHBoxLayout()
+        stdSizeAndlayout(clear_row)
+        clear_icon, _clear_text, _clear_tooltip = action_presentation("clear")
+        create_action_button(
+            parent=self._file_page,
+            action_id="clear",
+            action=self._on_clear_recent,
+            layout=clear_row,
+            presentation=(
+                clear_icon,
+                _("Clear list"),
+                _("Forget the list of recently opened projects"),
+            ),
+        )
+        clear_row.addStretch(1)
+        layout.addLayout(clear_row)
+
+    @staticmethod
+    def _clear_layout(layout: QBoxLayout) -> None:
+        """Empty *layout*, deleting every widget it holds - nested
+        sub-layouts (one QHBoxLayout row per recent entry) included.
+        ``takeAt`` alone only detaches an item; the widget underneath
+        stays alive and parented, so without this each refresh would
+        leave the previous run's buttons sitting invisibly on top of
+        the new ones."""
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
                 continue
-            create_menu_item(
-                menu,
-                menu,
-                sub_item.icon,
-                False,
-                sub_item.text,
-                sub_item.tooltip or "",
-                None,
-                sub_item.callback,
-                enabled=sub_item.enabled,
-            )
-        if not item.submenu:
-            create_menu_item(
-                menu, menu, None, False, _("No recent projects"), "", None, None,
-                enabled=False,
-            )
+            sub_layout = item.layout()
+            if sub_layout is not None:
+                MainWindow._clear_layout(sub_layout)
 
     def _create_database_page(self) -> QWidget:
-        """Query Builder / Optimize DB actions, plus the database overview.
+        """Query Builder, plus the database overview (info/tables/Optimize
+        DB/links) - each its own section.
 
         Page index 3, matching NavigationBar.action_ids' "nav_database" -
         the two have to stay in step, since _set_nav_index addresses this
         stack by the same index the rail reports. DatabaseInfoPanel used to
         be its own modal dialog (see git history); embedded here it sits
-        beside the two actions it always belonged next to, rather than in a
-        window of its own.
+        beside the action it always belonged next to, rather than in a
+        window of its own. Optimize DB lives inside DatabaseInfoPanel's own
+        header (see its optimize_action parameter), not here beside Query
+        Builder: it operates on the size/page stats that card shows, not on
+        the query workflow.
         """
         page = QWidget(self)
         layout = QVBoxLayout(page)
         stdSizeAndlayout(layout)
 
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        create_action_button(
-            parent=page,
-            action_id="query_builder",
-            action=self._on_query_builder,
-            layout=action_row,
-        )
-        create_action_button(
-            parent=page,
-            action_id="optimize_db",
-            action=self._on_optimize_db,
-            layout=action_row,
-        )
-        action_row.addStretch(1)
-        layout.addLayout(action_row)
+        layout.addWidget(self._create_query_builder_section(page))
 
-        self._database_info_panel = DatabaseInfoPanel(self._repo, page)
+        self._database_info_panel = DatabaseInfoPanel(
+            self._repo, page, optimize_action=self._on_optimize_db,
+        )
         layout.addWidget(self._database_info_panel, 1)
         return page
+
+    def _create_query_builder_section(self, parent: QWidget) -> QWidget:
+        """Query Builder, as its own card: one button, with the catalogue's
+        own description shown underneath rather than only in the tooltip -
+        this page's first section, so it reads without hovering."""
+        card = CardFrame(parent, "queryBuilderCard")
+        card_layout = card.layout()
+        card_layout.addWidget(create_section_title(_("Query Builder"), card))
+
+        button_row = QHBoxLayout()
+        stdSizeAndlayout(button_row)
+        create_action_button(
+            parent=card,
+            action_id="query_builder",
+            action=self._on_query_builder,
+            layout=button_row,
+        )
+        button_row.addStretch(1)
+        card_layout.addLayout(button_row)
+
+        _icon, _text, tooltip = action_presentation("query_builder")
+        description = QLabel(tooltip, card)
+        description.setWordWrap(True)
+        description.setProperty("muted", True)
+        card_layout.addWidget(description)
+
+        return card
+
+    #: (action_id, handler) - the Developer menu's old group, one section
+    #: each. See _create_developer_page for why they live here now instead.
+    _DEV_TOOLS: tuple[tuple[str, str], ...] = (
+        ("edit_localization", "_on_edit_localization"),
+        ("series_operation_builder", "_on_series_operation_builder"),
+        ("function_creator", "_on_function_creator"),
+        ("renderer_helper", "_on_renderer_helper"),
+    )
+
+    def _create_developer_page(self) -> QWidget:
+        """Scaffolding tools and the translation catalogue editor.
+
+        Page index 5, matching NavigationBar.action_ids' "nav_developer" -
+        the old "Developer" menu group, moved here rather than merely
+        hidden the way File/Database's own groups still are (see
+        _app_menu_items): none of these four actions carries a shortcut
+        worth preserving, and off macOS there was no menu bar to begin
+        with - only the rail's own flattened popup, which itself no
+        longer has a button anywhere pointing at it, making this group
+        unreachable there before this page existed.
+        """
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        stdSizeAndlayout(layout)
+
+        for action_id, handler_name in self._DEV_TOOLS:
+            layout.addWidget(
+                self._create_dev_tool_section(page, action_id, handler_name)
+            )
+
+        layout.addStretch(1)
+        return page
+
+    def _create_dev_tool_section(
+        self, parent: QWidget, action_id: str, handler_name: str
+    ) -> QWidget:
+        """One scaffolding tool as its own card - button plus the
+        catalogue's own description shown underneath, same pattern as
+        Query Builder's own section on the Database page."""
+        icon, text, tooltip = action_presentation(action_id)
+        card = CardFrame(parent, f"{action_id}Card")
+        card_layout = card.layout()
+        card_layout.addWidget(create_section_title(text, card))
+
+        button_row = QHBoxLayout()
+        stdSizeAndlayout(button_row)
+        create_action_button(
+            parent=card,
+            action_id=action_id,
+            action=getattr(self, handler_name),
+            layout=button_row,
+        )
+        button_row.addStretch(1)
+        card_layout.addLayout(button_row)
+
+        description = QLabel(tooltip, card)
+        description.setWordWrap(True)
+        description.setProperty("muted", True)
+        card_layout.addWidget(description)
+
+        return card
 
     # ------------------------------------------------------------------
     # Activity rail
@@ -771,18 +890,6 @@ class MainWindow(QMainWindow):
                 ],
             ),
             (
-                _("Developer"),
-                [
-                    action_menu_item("edit_localization", self._on_edit_localization),
-                    None,
-                    action_menu_item(
-                        "series_operation_builder", self._on_series_operation_builder
-                    ),
-                    action_menu_item("function_creator", self._on_function_creator),
-                    action_menu_item("renderer_helper", self._on_renderer_helper),
-                ],
-            ),
-            (
                 _("Help"),
                 [
                     # Only on macOS: PreferencesRole (_MACOS_MENU_ROLES) is
@@ -800,7 +907,6 @@ class MainWindow(QMainWindow):
                     action_menu_item("log_viewer", self._show_log_viewer),
                     None,
                     action_menu_item("user_manual", self._on_user_manual),
-                    action_menu_item("load_demo", self._on_load_demo),
                     None,
                     action_menu_item("credits", self._on_credits),
                 ],
@@ -1007,6 +1113,7 @@ class MainWindow(QMainWindow):
             )
             show_message(self, "database.open_failed", error=db_path)
             self._build_app_menu()
+            self._refresh_recent_list()
             return
 
         applogger.info("Opening recent database: %s", db_path)
@@ -1020,6 +1127,7 @@ class MainWindow(QMainWindow):
         """Forget the list. The database currently open is not affected."""
         clear_recent_databases()
         self._build_app_menu()
+        self._refresh_recent_list()
 
     def _build_app_menu(self) -> None:
         """Create the app menu, and place it where each platform expects it.
@@ -1303,6 +1411,11 @@ class MainWindow(QMainWindow):
             self._toggle_workspace()
         self._left_stack.setCurrentIndex(index)
         self._left_rail.select_page(index)
+        if self._left_rail.action_ids[index] == "nav_file":
+            # Same reason the native menu's Open Recent rebuilds on every
+            # show: user.json's list can have changed since this page was
+            # last visited.
+            self._refresh_recent_list()
         applogger.debug("Left navigation page changed to index %s", index)
 
     # ------------------------------------------------------------------
@@ -1396,8 +1509,10 @@ class MainWindow(QMainWindow):
             self._update_properties_for_current_chart()
             # set_last_database above has just put this file at the top of
             # the recent list; the menu showing that list has to be rebuilt
-            # or it goes on showing the order from before the switch.
+            # or it goes on showing the order from before the switch - same
+            # for the File page's own list.
             self._build_app_menu()
+            self._refresh_recent_list()
         finally:
             self.setUpdatesEnabled(True)
 

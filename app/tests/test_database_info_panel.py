@@ -48,7 +48,21 @@ def test_every_table_is_listed_with_its_row_count(qapp, repo: SqliteRepo) -> Non
         panel._table.item(row, 0).text(): panel._table.item(row, 1).text()
         for row in range(panel._table.rowCount())
     }
-    assert rows == {"plain_table": "3", "linked_table": "2"}
+    assert rows["plain_table"] == "3"
+    assert rows["linked_table"] == "2"
+
+
+def test_the_apps_own_internal_tables_are_listed_too(qapp, repo: SqliteRepo) -> None:
+    """Unlike the chart data-source picker (list_data_sources), this panel
+    is the database's own inventory - its "__..._descriptors__" tables
+    belong in that picture same as any table a user imported."""
+    panel = DatabaseInfoPanel(repo, parent=None)
+
+    names = {
+        panel._table.item(row, 0).text() for row in range(panel._table.rowCount())
+    }
+    assert "__table_descriptors__" in names
+    assert "__import_links__" in names
 
 
 def test_only_the_linked_table_is_marked_linked(qapp, repo: SqliteRepo) -> None:
@@ -159,7 +173,8 @@ def test_set_repo_refreshes_the_table_and_form(
     """Opening a different project through MainWindow must not leave the
     embedded panel showing the previous database's path and tables."""
     panel = DatabaseInfoPanel(repo, parent=None)
-    assert panel._table.rowCount() == 2
+    before_count = panel._table.rowCount()
+    assert before_count > 2  # 2 user tables + the app's own internal ones
 
     other_path = tmp_db_path.with_name("other.dhub")
     for suffix in (".dhub", ".dhub-wal", ".dhub-shm"):
@@ -170,8 +185,18 @@ def test_set_repo_refreshes_the_table_and_form(
 
         panel.set_repo(other)
 
-        assert panel._table.rowCount() == 1
-        assert panel._table.item(0, 0).text() == "only_table"
+        names = {
+            panel._table.item(row, 0).text() for row in range(panel._table.rowCount())
+        }
+        assert names == {
+            "only_table",
+            "__axis_descriptors__",
+            "__figure_descriptors__",
+            "__import_links__",
+            "__queries__",
+            "__series_descriptors__",
+            "__table_descriptors__",
+        }
         labels = [label.text() for label in panel._form_host.findChildren(QLabel)]
         assert any(str(other_path) == text for text in labels)
     finally:

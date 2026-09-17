@@ -101,16 +101,27 @@ class TablesMixin:
     # =====================================================================
 
 
-    def list_user_tables(self) -> pd.DataFrame:
+    def list_user_tables(self, *, include_internal: bool = False) -> pd.DataFrame:
         """List all user tables with link status and notes.
-        
+
         Returns DataFrame with columns:
           - Table: table name
           - has_link: bool indicating if import link exists
           - Notes: user notes (or None)
           - source_path: import source path (or None)
+
+        ``include_internal`` also lists this app's own "__..._descriptors__"
+        and similar tables - off by default, since every other caller (the
+        chart data-source picker, the pragma table/row count) wants only
+        tables a user could plot, but the Database nav page's own table
+        list wants the full picture of what the file actually holds.
+        ``sqlite_%`` (SQLite's own bookkeeping, e.g. sqlite_sequence) is
+        never included either way - that is not this application's state.
         """
-        sql = """
+        internal_filter = (
+            "" if include_internal else "AND sm.name NOT LIKE '__%__' ESCAPE '_'"
+        )
+        sql = f"""
         SELECT
             sm.name AS "Table",
             (LENGTH(COALESCE(il.source_path, '')) > 0) AS has_link,
@@ -120,8 +131,8 @@ class TablesMixin:
         LEFT JOIN __import_links__ il ON il.table_name = sm.name
         LEFT JOIN __table_descriptors__ td ON td.name = sm.name
         WHERE sm.type = 'table'
-          AND sm.name NOT LIKE '__%__' ESCAPE '_'
           AND sm.name NOT LIKE 'sqlite_%'
+          {internal_filter}
         ORDER BY sm.name
         """
         df = self.query_df(sql)

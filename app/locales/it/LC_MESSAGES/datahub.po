@@ -3079,6 +3079,9 @@ msgid "Search chart types..."
 msgstr "Cerca tipi di grafico..."
 
 
+msgid "Search source or translation…"
+msgstr "Cerca per originale o traduzione…"
+
 msgid "Search models..."
 msgstr "Cerca modelli..."
 
@@ -5257,6 +5260,9 @@ msgstr "Collegata"
 msgid "Developer"
 msgstr "Sviluppatore"
 
+msgid "Scaffolding tools and the translation catalogue"
+msgstr "Strumenti di scaffolding e catalogo delle traduzioni"
+
 
 msgid "Edit Localization"
 msgstr "Modifica localizzazione"
@@ -6015,11 +6021,35 @@ msgstr "Pronto"
 msgid "Untitled project"
 msgstr "Progetto senza titolo"
 
+msgid "Workspace"
+msgstr "Area di lavoro"
+
+msgid "No recent projects"
+msgstr "Nessun progetto recente"
+
+msgid "Clear list"
+msgstr "Svuota elenco"
+
+msgid "Forget the list of recently opened projects"
+msgstr "Dimentica l'elenco dei progetti aperti di recente"
+
 msgid "Workspace: hide the left panel"
 msgstr "Area di lavoro: nascondi il pannello sinistro"
 
 msgid "Workspace: show the left panel"
 msgstr "Area di lavoro: mostra il pannello sinistro"
+
+msgid "Hide the left panel"
+msgstr "Nascondi il pannello sinistro"
+
+msgid "Show the left panel"
+msgstr "Mostra il pannello sinistro"
+
+msgid "Show database tools"
+msgstr "Mostra gli strumenti del database"
+
+msgid "New, open, import and save"
+msgstr "Nuovo, apri, importa e salva"
 
 msgid "A real colloidal force-distance curve, repulsive at short range and attractive beyond it, with a measurable crossover - the Roots operation's own question, answered exactly where the curve changes sign - and its curvature is also a fair test for Regression's Random Forest/Gradient Boosting models and for GP Regression's uncertainty band."
 msgstr "Una curva forza-distanza colloidale reale, repulsiva a corto raggio e attrattiva oltre, con un incrocio misurabile - la domanda tipica dell'operazione Roots, risolta esattamente dove la curva cambia segno - e la sua curvatura è anche un buon banco di prova per i modelli Random Forest/Gradient Boosting di Regression e per la banda di incertezza di GP Regression."

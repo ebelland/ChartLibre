@@ -160,10 +160,13 @@ def test_cancelling_the_picker_loads_nothing(
     assert window._db_path == original_db_path
 
 
-def test_the_menu_offers_load_demo(window) -> None:
-    ids = [
-        action.data()
-        for action in window._app_menu.actions()
-        if not action.isSeparator()
-    ]
-    assert "load_demo" in ids
+def test_the_file_page_offers_load_demo(window) -> None:
+    """Moved from the Help menu to the File page's own Workspace section
+    (see main_window._create_file_page) - starting from a demo is starting
+    a workspace, not documentation."""
+    from PySide6.QtWidgets import QPushButton
+
+    index = window._left_rail.action_ids.index("nav_file")
+    page = window._left_stack.widget(index)
+    labels = {button.text() for button in page.findChildren(QPushButton)}
+    assert "Load demo" in labels
