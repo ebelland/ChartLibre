@@ -40,7 +40,9 @@ from PySide6.QtGui import (
     QImage,
     QKeySequence,
     QPainter,
+    QPainterPath,
     QPixmap,
+    QRegion,
     QTextOption,
 )
 from PySide6.QtWidgets import QApplication, QBoxLayout, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout, QLineEdit, QMenu, QPlainTextEdit, QScrollArea, QSizePolicy, QToolButton, QVBoxLayout, QWidget, QPushButton
@@ -110,6 +112,39 @@ SPLITTER_HANDLE_WIDTH: int = get_constant("splitter_handle_width", 6)
 # Floor for the resizable side panels.  Not zero: a panel dragged to nothing
 # looks like a bug and cannot be grabbed again.
 PANEL_MIN_WIDTH: int = get_constant("panel_min_width", 140)
+
+#: Kept in sync by convention with #windowFrame's own border-radius in
+#: macos_native.qss - Qt has no API to read a border-radius back out of an
+#: applied stylesheet, so this is the one place both the QSS and
+#: apply_rounded_window_mask() below have to agree on the number by hand.
+#: Deliberately modest: QRegion has no anti-aliasing at all (it is a union
+#: of axis-aligned rectangles, not a painted curve), so any radius here
+#: shows as a visible staircase, not a smooth curve - a smaller radius
+#: just means fewer, smaller steps, not none. 10px read as noticeably
+#: blocky; this is the trade-off point against looking barely rounded at
+#: all.
+WINDOW_CORNER_RADIUS: int = 6
+
+
+def apply_rounded_window_mask(window: QWidget, *, radius: int = WINDOW_CORNER_RADIUS) -> None:
+    """Clip a frameless top-level window to a rounded-rect region.
+
+    QSS border-radius on #windowFrame only rounds what that widget itself
+    paints (its own background and border); the children filling it edge to
+    edge - #leftPanelCard, the chart tabs - still paint square corners over
+    it, since a stylesheet's border-radius does not clip child widgets.
+    setMask() operates at the native window level instead, so it clips
+    everything drawn into the window - children included - to the same
+    shape a real OS-drawn rounded window has.
+
+    Call from the window's own resizeEvent (see MainWindow and
+    StyleDemoWindow), so the mask is recomputed for the window's *current*
+    size - a mask built once at construction time would still be sized for
+    whatever geometry the window happened to have then.
+    """
+    path = QPainterPath()
+    path.addRoundedRect(QRectF(window.rect()), float(radius), float(radius))
+    window.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
 
 @dataclass(frozen=True, slots=True)
@@ -1511,6 +1546,45 @@ class CardFrame(QFrame):
         layout.setSpacing(spacing)
 
 
+class TitledCard(QWidget):
+    """A section title *above* a CardFrame, never inside its own border.
+
+    Impostazioni di Sistema puts "macOS" / "Schermi" outside the grouped
+    box beneath them, not as a title baked into its frame the way
+    QGroupBox - and this app's own cards, before this - do. Drop-in
+    replacement for the old ``card = CardFrame(parent, name); card_layout
+    = card.layout(); card_layout.addWidget(create_section_title(...))``
+    idiom: construct this instead, then use ``self.card`` exactly like
+    that ``card`` variable - ``self.card.layout()`` is ready the same way.
+    Add *this* widget to your layout, not ``self.card`` - the title has to
+    travel with its card as one block. ``self.title_label`` is the title
+    QLabel itself, for the rare card whose title changes at runtime
+    (series_properties.py's own count-in-the-title, for one).
+    """
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        title: str = "",
+        object_name: str | None = None,
+        *,
+        orientation: Qt.Orientation = Qt.Orientation.Vertical,
+        margins: tuple[int, int, int, int] = MARGIN_CARD,
+        spacing: int = SPACING_DEFAULT,
+    ) -> None:
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        self.title_label = create_section_title(title, self)
+        layout.addWidget(self.title_label)
+
+        self.card = CardFrame(
+            self, object_name, orientation=orientation, margins=margins, spacing=spacing,
+        )
+        layout.addWidget(self.card)
+
+
 def mark_editor_panel(widget: QWidget) -> QWidget:
     """Mark list/tree/editor widgets for shared panel styling."""
     widget.setProperty("editorPanel", True)
@@ -1821,8 +1895,12 @@ def apply_toolbox_header_metrics(
 
 #: What a QToolBox page inset from its edges: enough for the white cards
 #: inside it to read as floating on the page rather than as filling it,
-#: which is the whole point of a grey ground behind them.
-MARGIN_TOOLBOX_PAGE: tuple[int, int, int, int] = (10, 10, 10, 12)
+#: which is the whole point of a grey ground behind them. Top is taller
+#: than the other three: the page sits directly under the toolbox's own
+#: tab header ("Proprietà della figura" and its underline), and 10px
+#: there read as the section title crowding the header rather than as
+#: its own block.
+MARGIN_TOOLBOX_PAGE: tuple[int, int, int, int] = (10, 16, 10, 12)
 
 
 def apply_toolbox_page_metrics(

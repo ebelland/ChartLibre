@@ -6,6 +6,21 @@ window, without needing a database or the rest of MainWindow. Forces
 macos_native.qss + the frameless/traffic-lights title bar regardless of the
 host platform.
 
+The left column is a stand-in for the real app's #leftPanelCard: a narrow
+#activityRail sidebar (grey, hairline on its own right edge - Tahoe's
+System Settings sidebar) with the traffic lights embedded at its own top
+(as Finder/Mail/System Settings place them, inside the sidebar column
+itself, rather than in a separate window-wide title strip), and a single
+Workspace toggle. #leftPanelCard itself is white with its own right
+hairline - the "list column" beside a grey sidebar, Mail/Finder-style -
+and starts hidden, same as "no left panels" is the real app's own default
+reading. Toggling it in reveals a stack of cards whose section-title
+labels sit above their card, never inside its border.
+
+The right side simulates the real ChartPanel: a QTabWidget using the same
+tab-bar language the real chart tabs use (macos_native.qss styles QTabBar
+generically, not by object name), next to the QSS editor panel.
+
 The right-hand panel is the actual macos_native.qss text, editable in
 place: "Applica" re-applies whatever is in the box (themed the same way
 apply_platform_style themes it) without touching the file on disk - the
@@ -16,6 +31,7 @@ actually worth keeping.
 """
 from __future__ import annotations
 
+from typing import Callable
 from pathlib import Path
 import sys
 
@@ -24,28 +40,35 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QFont, QResizeEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
     QPlainTextEdit,
     QSplitter,
+    QTabWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from app.styles.style import (
+    SPACING_LOOSE,
+    SPACING_TIGHT,
     CardFrame,
     _load_qss,
     apply_platform_style,
+    apply_rounded_window_mask,
     create_action_button,
     create_section_title,
+    icon_from_svg_source,
     load_icon,
     mark_icon_only,
     stdSizeAndlayout,
@@ -56,54 +79,170 @@ from app.widgets.custom_title_bar import CustomTitleBar
 
 QSS_NAME = "macos_native.qss"
 
+_SIDEBAR_WIDTH = 200
+_LEFT_CONTENT_WIDTH = 280
+_ROW_HEIGHT = 30
+
+#: Small inline glyph, same idiom as nav_bar.py's own icons - kept local
+#: rather than imported so this demo has no dependency on NavigationBar's
+#: MainWindow-shaped constructor.
+_COMPONENTS_ICON = (
+    '<circle cx="12" cy="12" r="3"/>'
+    '<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8'
+    'M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>'
+)
+
 
 class StyleDemoWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("ChartLibre | style demo")
-        self.resize(1040, 720)
+        self.resize(1180, 720)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
 
         host = QWidget(self)
         host.setObjectName("windowFrame")
         host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        outer = QVBoxLayout(host)
-        outer.setContentsMargins(8, 8, 8, 8)
-        outer.setSpacing(8)
-        self._title_bar = CustomTitleBar(self, is_macos=True)
-        outer.addWidget(self._title_bar, 0)
+        outer = QHBoxLayout(host)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        self.setCentralWidget(host)
+
+        outer.addWidget(self._left_panel(host), 0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, host)
         outer.addWidget(splitter, 1)
-        self.setCentralWidget(host)
-
-        splitter.addWidget(self._preview_panel(splitter))
+        splitter.addWidget(self._main_content(splitter))
         splitter.addWidget(self._editor_panel(splitter))
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
 
         self._reload_from_file()
 
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Keep the rounded-corner mask sized to the window - see
+        apply_rounded_window_mask's own docstring, and MainWindow's
+        identical override, which this one is meant to match."""
+        super().resizeEvent(event)
+        if self.isMaximized():
+            self.clearMask()
+        else:
+            apply_rounded_window_mask(self)
+
     # ------------------------------------------------------------------
-    # Preview: the widgets under review
+    # Left panel: #activityRail (grey, own right edge) + hidden-by-default
+    # content column (white, own right edge), matching macos_native.qss's
+    # #leftPanelCard/#activityRail rules.
     # ------------------------------------------------------------------
-    def _preview_panel(self, parent: QWidget) -> QWidget:
-        panel = QWidget(parent)
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
-        layout.addWidget(self._menu_card(panel))
-        layout.addWidget(self._buttons_card(panel))
-        layout.addWidget(self._controls_card(panel))
-        layout.addStretch(1)
+    def _left_panel(self, parent: QWidget) -> QWidget:
+        panel = QFrame(parent)
+        panel.setObjectName("leftPanelCard")
+        layout = QHBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        layout.addWidget(self._nav_sidebar(panel), 0)
+
+        self._left_content = self._componenti_page(panel)
+        self._left_content.setFixedWidth(_LEFT_CONTENT_WIDTH)
+        self._left_content.setVisible(False)
+        layout.addWidget(self._left_content, 0)
         return panel
 
-    def _menu_card(self, parent: QWidget) -> QWidget:
+    def _nav_sidebar(self, parent: QWidget) -> QWidget:
+        sidebar = QFrame(parent)
+        sidebar.setObjectName("activityRail")
+        sidebar.setFixedWidth(_SIDEBAR_WIDTH)
+        layout = QVBoxLayout(sidebar)
+        layout.setContentsMargins(8, 8, 8, 10)
+        layout.setSpacing(4)
+
+        # Not a separate window-wide strip: sized to the sidebar's own
+        # width, the way a real Mac app's traffic lights sit inside the
+        # sidebar column rather than spanning the whole window.
+        self._title_bar = CustomTitleBar(self, is_macos=True)
+        layout.addWidget(self._title_bar)
+        layout.addSpacing(6)
+
+        self._workspace_button = QToolButton(sidebar)
+        self._workspace_button.setObjectName("navigationItem")
+        self._workspace_button.setAutoRaise(False)
+        self._workspace_button.setIcon(icon_from_svg_source(_COMPONENTS_ICON, size=16))
+        self._workspace_button.setIconSize(QSize(16, 16))
+        self._workspace_button.setText(_("Workspace"))
+        self._workspace_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self._workspace_button.setFixedHeight(_ROW_HEIGHT)
+        self._workspace_button.setCheckable(True)
+        self._workspace_button.setToolTip(_("Show the left panel"))
+        self._workspace_button.toggled.connect(self._toggle_workspace)
+        layout.addWidget(self._workspace_button)
+        layout.addStretch(1)
+        return sidebar
+
+    def _toggle_workspace(self, checked: bool) -> None:
+        self._left_content.setVisible(checked)
+        self._workspace_button.setToolTip(
+            _("Hide the left panel") if checked else _("Show the left panel")
+        )
+
+    # ------------------------------------------------------------------
+    # Main content: the ChartPanel stand-in — a plain QTabWidget using the
+    # same tab-bar language the real chart tabs use.
+    # ------------------------------------------------------------------
+    def _main_content(self, parent: QWidget) -> QWidget:
+        content = QWidget(parent)
+        # Same "white page the cards float on" convention the real
+        # properties/toolbox pages already use (see macos_native.qss).
+        content.setProperty("toolboxPage", True)
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(SPACING_LOOSE)
+
+        tabs = QTabWidget(content)
+        tabs.setTabsClosable(True)
+        tabs.setMovable(True)
+        for label in (_("Line"), _("Scatter"), _("Bar")):
+            tab_page = QWidget(tabs)
+            tab_layout = QVBoxLayout(tab_page)
+            tab_layout.addWidget(
+                QLabel(_('Contenuto di "{label}"').format(label=label), tab_page)
+            )
+            tab_layout.addStretch(1)
+            tabs.addTab(tab_page, label)
+        layout.addWidget(tabs, 1)
+        return content
+
+    def _componenti_page(self, parent: QWidget) -> QWidget:
+        page = QWidget(parent)
+        layout = QVBoxLayout(page)
+        stdSizeAndlayout(layout)
+        layout.addWidget(self._titled_card(page, _("Menu"), self._fill_menu_card))
+        layout.addWidget(self._titled_card(page, _("Buttons"), self._fill_buttons_card))
+        layout.addWidget(self._titled_card(page, _("Controls"), self._fill_controls_card))
+        layout.addStretch(1)
+        return page
+
+    def _titled_card(
+        self, parent: QWidget, title: str, fill: Callable[[CardFrame], None]
+    ) -> QWidget:
+        """A section title *above* its card, never inside the card's own
+        border - "macOS" / "Schermi" sit outside the grouped box in
+        Impostazioni di Sistema, not as a title baked into its frame."""
+        wrapper = QWidget(parent)
+        wrapper_layout = QVBoxLayout(wrapper)
+        wrapper_layout.setContentsMargins(0, 0, 0, 0)
+        wrapper_layout.setSpacing(SPACING_TIGHT)
+        wrapper_layout.addWidget(create_section_title(title, wrapper))
+
+        card = CardFrame(wrapper, f"demo{title}Card")
+        fill(card)
+        wrapper_layout.addWidget(card)
+        return wrapper
+
+    def _fill_menu_card(self, card: CardFrame) -> None:
         """A QMenu opened from a plain button - "menu con voci bianche e
         bordi doppi" was reported against this exact control."""
-        card = CardFrame(parent, "demoMenuCard")
         layout = card.layout()
-        layout.addWidget(create_section_title(_("Menu"), card))
-
         menu = QMenu(card)
         for label in (_("New"), _("Open"), _("Save")):
             menu.addAction(label)
@@ -120,13 +259,9 @@ class StyleDemoWindow(QMainWindow):
         row.addWidget(button)
         row.addStretch(1)
         layout.addLayout(row)
-        return card
 
-    def _buttons_card(self, parent: QWidget) -> QWidget:
-        card = CardFrame(parent, "demoButtonsCard")
+    def _fill_buttons_card(self, card: CardFrame) -> None:
         layout = card.layout()
-        layout.addWidget(create_section_title(_("Buttons"), card))
-
         row = QHBoxLayout()
         stdSizeAndlayout(row)
         plain = create_action_button(parent=card, action_id="open", action=lambda: None)
@@ -141,13 +276,9 @@ class StyleDemoWindow(QMainWindow):
         row.addWidget(icon_only)
         row.addStretch(1)
         layout.addLayout(row)
-        return card
 
-    def _controls_card(self, parent: QWidget) -> QWidget:
-        card = CardFrame(parent, "demoControlsCard")
+    def _fill_controls_card(self, card: CardFrame) -> None:
         layout = card.layout()
-        layout.addWidget(create_section_title(_("Controls"), card))
-
         combo = QComboBox(card)
         combo.addItems(["Line", "Scatter", "Bar", "Area"])
         layout.addWidget(combo)
@@ -158,8 +289,6 @@ class StyleDemoWindow(QMainWindow):
 
         checkbox_off = QCheckBox(_("Show legend"), card)
         layout.addWidget(checkbox_off)
-
-        return card
 
     # ------------------------------------------------------------------
     # Editor: the actual macos_native.qss text, live-editable

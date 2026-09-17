@@ -35,9 +35,8 @@ from PySide6.QtWidgets import (
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.styles.style import (
-    CardFrame,
+    TitledCard,
     create_action_button,
-    create_section_title,
     load_icon,
     mark_editor_panel,
     mark_icon_only,
@@ -73,25 +72,28 @@ class DatabaseInfoPanel(QWidget):
         root = QVBoxLayout(self)
         stdSizeAndlayout(root)
 
-        self._card = CardFrame(self, "databaseInfoCard")
+        self._titled_card = TitledCard(self, _("Database Info"), "databaseInfoCard")
+        self._card = self._titled_card.card
         self._card_layout = self._card.layout()
 
-        header_row = QHBoxLayout()
-        stdSizeAndlayout(header_row)
-        header_row.addWidget(create_section_title(_("Database Info"), self._card))
-        header_row.addStretch(1)
         if optimize_action is not None:
             # Lives here, not beside Query Builder (see main_window's own
             # Query Builder section): it is a maintenance action against
             # exactly the size/page stats this card already shows, not
-            # against the query workflow.
+            # against the query workflow. Its own row, right-aligned,
+            # rather than beside the title - the title moved outside the
+            # card's border (see TitledCard) and an action button belongs
+            # inside it.
+            optimize_row = QHBoxLayout()
+            stdSizeAndlayout(optimize_row)
+            optimize_row.addStretch(1)
             create_action_button(
                 parent=self._card,
                 action_id="optimize_db",
                 action=optimize_action,
-                layout=header_row,
+                layout=optimize_row,
             )
-        self._card_layout.addLayout(header_row)
+            self._card_layout.addLayout(optimize_row)
 
         self._form_host = QWidget(self._card)
         self._form_layout = QFormLayout(self._form_host)
@@ -155,7 +157,7 @@ class DatabaseInfoPanel(QWidget):
         export_row.addStretch(1)
         self._card_layout.addLayout(export_row)
 
-        root.addWidget(self._card, 1)
+        root.addWidget(self._titled_card, 1)
 
         self._reload_tables()
         self._update_button_states()

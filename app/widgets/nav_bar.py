@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QButtonGroup, QFrame, QSizePolicy, QToolButton, QV
 
 from app.styles.style import action_presentation, icon_from_svg_source
 from app.utils.i18n import _
+from app.widgets.custom_title_bar import CustomTitleBar
 
 if TYPE_CHECKING:
     from app.dialogs.main_window import MainWindow
@@ -88,6 +89,20 @@ class NavigationBar(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 10, 8, 10)
         layout.setSpacing(4)
+
+        # macOS only: the traffic lights sit at the rail's own top, sized
+        # to the rail's width - the way Finder/Mail/System Settings place
+        # them inside the sidebar column itself, rather than in a separate
+        # window-wide strip above everything (see the style demo this was
+        # tried against first, app/tests/manual_macos_style_demo.py).
+        # Windows keeps its own icon+title+min/max/close strip full-width
+        # instead - see main_window._create_central_host - since that
+        # layout needs the whole window's width, not just the rail's.
+        self.title_bar: CustomTitleBar | None = None
+        if self._is_macos:
+            self.title_bar = CustomTitleBar(window, is_macos=True)
+            layout.addWidget(self.title_bar)
+            layout.addSpacing(6)
 
         self.workspace_button = self._tile(
             icon_from_svg_source(_HOME_ICON, size=20),

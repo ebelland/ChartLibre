@@ -42,7 +42,7 @@ from app.logs.logger import applogger
 from app.styles.style import (
     MARGIN_PANEL,
     CardFrame,
-    create_section_title,
+    TitledCard,
     stdSizeAndlayout,
 )
 from app.utils.config import get_constant
@@ -199,9 +199,8 @@ class OverlayPropertiesWidget(BaseProperties):
 
     def _build_axis_card(self) -> QWidget:
         """Name the axis being edited - the Axis panel owns the selector."""
-        card = CardFrame(self, "overlayAxisCard")
-        layout = card.layout()
-        layout.addWidget(create_section_title(_("Axis"), card))
+        card = TitledCard(self, _("Axis"), "overlayAxisCard")
+        layout = card.card.layout()
         self._axis_label = QLabel(_("No axis selected"), card)
         self._axis_label.setWordWrap(True)
         layout.addWidget(self._axis_label)

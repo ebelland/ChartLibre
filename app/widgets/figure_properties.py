@@ -39,9 +39,8 @@ from app.dialogs.edit_mpl_styles_dialog import (
 )
 from app.styles.style import (
     MARGIN_PANEL,
-    CardFrame,
+    TitledCard,
     create_action_button,
-    create_section_title,
     stdSizeAndlayout,
     configure_combo_width,
 )
@@ -289,9 +288,8 @@ class FigurePropertiesWidget(BaseProperties):
         lay.setSpacing(12)
 
         # ----- Name -----
-        name_section = CardFrame(self, "figureNameCard")
-        name_section_lay = name_section.layout()
-        name_section_lay.addWidget(create_section_title(_("Name"), name_section))
+        name_section = TitledCard(self, _("Name"), "figureNameCard")
+        name_section_lay = name_section.card.layout()
 
         self._name_edit = QLineEdit(name_section)
         self._name_edit.setPlaceholderText(_("Chart name"))
@@ -305,11 +303,8 @@ class FigurePropertiesWidget(BaseProperties):
         lay.addWidget(name_section)
 
         # ----- Style -----
-        style_section = CardFrame(self, "figureStyleCard")
-        style_section_lay = style_section.layout()
-
-        style_title = create_section_title(_("Style"), style_section)
-        style_section_lay.addWidget(style_title)
+        style_section = TitledCard(self, _("Style"), "figureStyleCard")
+        style_section_lay = style_section.card.layout()
 
         self._style_combo = QComboBox(style_section)
         self._configure_combo_width(self._style_combo)
@@ -342,11 +337,8 @@ class FigurePropertiesWidget(BaseProperties):
         lay.addWidget(style_section)
 
         # ----- Grid -----
-        grid_section = CardFrame(self, "figureGridCard")
-        grid_section_lay = grid_section.layout()
-
-        grid_title = create_section_title(_("Grid"), grid_section)
-        grid_section_lay.addWidget(grid_title)
+        grid_section = TitledCard(self, _("Grid"), "figureGridCard")
+        grid_section_lay = grid_section.card.layout()
 
         grid_row = QWidget(grid_section)
         grid_lay = QHBoxLayout(grid_row)
@@ -443,11 +435,8 @@ class FigurePropertiesWidget(BaseProperties):
         lay.addWidget(grid_section)
 
         # ----- Figure options -----
-        opts_section = CardFrame(self, "figureOptionsCard")
-        opts_section_lay = opts_section.layout()
-
-        opts_title = create_section_title(_("Figure options"), opts_section)
-        opts_section_lay.addWidget(opts_title)
+        opts_section = TitledCard(self, _("Figure options"), "figureOptionsCard")
+        opts_section_lay = opts_section.card.layout()
 
         form = QFormLayout()
         stdSizeAndlayout(form)
@@ -565,9 +554,8 @@ class FigurePropertiesWidget(BaseProperties):
         spacing themselves and overwrite whatever subplots_adjust set, so the
         controls are disabled rather than silently ignored.
         """
-        section = CardFrame(self, "figureMarginsCard")
-        section_lay = section.layout()
-        section_lay.addWidget(create_section_title(_("Manual spacing"), section))
+        section = TitledCard(self, _("Manual spacing"), "figureMarginsCard")
+        section_lay = section.card.layout()
 
         # Two fields per row - the natural pairs an edge or a gap already
         # comes in (Left/Right, Bottom/Top, Column gap/Row gap) - rather than

@@ -2,6 +2,20 @@ QMainWindow {
     background-color:palette(base);
 }
 
+/* Frameless window's own edge (FramelessWindowHint strips every bit of
+   native chrome - border, corner, drop shadow). Rounded to match real
+   macOS windows; the radius here has to match WINDOW_CORNER_RADIUS in
+   style.py by hand (Qt cannot read a border-radius back out of an
+   applied stylesheet) - apply_rounded_window_mask() is what actually
+   clips the window's content to this same rounded shape, since QSS
+   border-radius alone only rounds what this widget itself paints, not
+   its children. */
+QWidget#windowFrame {
+  background: palette(window);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.28);
+  border-radius: 6px;
+}
+
 QLabel[role="title"] {
   font-size: 17pt;
   font-weight: 600;
@@ -33,11 +47,38 @@ QLabel[sectionTitle="true"] {
 
 QFrame[card="true"],
 QWidget[card="true"] {
-  background: palette(window);
+  /* Lighter than a plain button now sitting on it (see QPushButton
+     below): System Settings' grouped boxes read as barely tinted
+     against the white page, with the button inside carrying the
+     visible grey — not the reverse, which palette(window) gave here
+     before (palette(button) resolves lighter than palette(window) in
+     the light palette, so a plain button used to read lighter than
+     the card around it). */
+  background: rgba(@SHADOW_RGB@, 0.02);
   border-radius: 12px;
 }
 
+/* Pure white, not the generic card's faint tint: this one card is a
+   page-sized surface holding the whole chart tab strip and its content
+   (the style demo's own equivalent is a plain toolboxPage="true" ground,
+   not a card), not a small grouped box - the 2% tint elsewhere framed
+   the tab widget in a barely-there grey margin that read as a panel
+   sitting behind it. */
+QFrame#chartSurfaceCard {
+  background: palette(base);
+}
+
 QWidget#basePropertiesPanel {
+  background: palette(base);
+}
+
+/* A page is the white ground the grey cards float on - the same answer
+   fluent_win11.qss gives (see test_both_sheets_say_what_a_toolbox_page_is).
+   Without this, apply_toolbox_page_metrics's own toolboxPage="true"
+   property - and every page in main_window.py that sets it by hand
+   (File, Database, Developer) - had nothing to bind to and stayed
+   whatever was behind them. */
+QWidget[toolboxPage="true"] {
   background: palette(base);
 }
 
@@ -78,7 +119,10 @@ QAbstractButton[iconOnly="true"] {
 }
 
 QPushButton {
-  background: palette(button);
+  /* A visibly grey pill against the now-lighter card (see
+     [card="true"] above), not palette(button)'s near-white — that
+     used to read lighter than the card it sat on. */
+  background: rgba(@SHADOW_RGB@, 0.06);
   color: palette(button-text);
   border-radius: 6px;
   padding: 4px 14px;
@@ -91,11 +135,11 @@ QPushButton {
 }
 
 QPushButton:hover {
-  background: rgba(@SHADOW_RGB@, 0.04);
+  background: rgba(@SHADOW_RGB@, 0.10);
 }
 
 QPushButton:pressed {
-  background: rgba(@SHADOW_RGB@, 0.10);
+  background: rgba(@SHADOW_RGB@, 0.16);
 }
 
 QPushButton:disabled {
@@ -172,13 +216,20 @@ QDialog {
 -------------------------------- */
 
 QFrame#ChartPanel {
-  background: palette(window);
+  /* White, not the grey window ground: everything else (cards, toolbox
+     pages, the series-operations content) reads as one white surface
+     now, and this was the one panel still showing palette(window)'s
+     grey wherever the toolbar row or the canvas did not fully cover it -
+     a grey panel behind the chart. */
+  background: palette(base);
   border: none;
   border-radius: 0;
 }
 
 QToolBar {
+  background: transparent;
   border: none;
+  border-bottom: none;
   spacing: 2px;
 }
 
@@ -215,46 +266,44 @@ QToolButton#zoom_fitButton:hover {
 }
 
 
+/* Native macOS segmented-control tabs: a single toned track holding
+   equal-height segments, the selected one a flat white pill with a
+   hairline border — not the earlier bevel trick (a lit top edge +
+   darker bottom edge to fake a drop shadow), which read as a raised
+   button rather than an AppKit tab. */
+
 QTabWidget::pane {
   border: none;
-  border-top: 1px solid rgba(@SHADOW_RGB@, 0.08);
-  top: -1px;
+  background: transparent;
 }
 
 QTabBar {
-  background: transparent;
+  background: rgba(@SHADOW_RGB@, 0.05);
+  border-radius: 8px;
+  padding: 2px;
   qproperty-drawBase: 0;
 }
 
 QTabBar::tab {
-  background: rgba(@SHADOW_RGB@, 0.04);
+  background: transparent;
   color: palette(mid);
-  border: 1px solid transparent;
-  border-radius: 9px;
-  /* Horizontal-only padding keeps the strip height constant however
-     long a title is; the vertical gap comes from the margin so the
-     lozenge floats clear of the strip edges. */
-  padding: 4px 16px;
-  margin: 4px 2px;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 14px;
+  margin: 1px;
   /* Deliberately small: a large min-width would put a floor under the
      whole chart pane (see _configure_tabs). */
   min-width: 52px;
 }
 
 QTabBar::tab:hover:!selected {
-  background: rgba(@SHADOW_RGB@, 0.09);
   color: palette(text);
 }
 
 QTabBar::tab:selected {
-  /* The floating glass lozenge: base fill, a bright top edge catching
-     the light, a slightly darker bottom edge reading as the shadow it
-     casts on the track - the closest QSS gets to a real drop shadow. */
   background: palette(base);
   color: palette(text);
-  border: 1px solid rgba(@SHADOW_RGB@, 0.14);
-  border-top-color: rgba(255, 255, 255, 0.9);
-  border-bottom-color: rgba(@SHADOW_RGB@, 0.22);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.10);
   font-weight: 600;
 }
 
@@ -282,9 +331,13 @@ QTabBar QToolButton:hover {
   background: rgba(@SHADOW_RGB@, 0.06);
 }
 
+/* Tahoe's System Settings sidebar: a grey column with a hairline on
+   its own right edge, separating it from the white list/content beside
+   it — not flush with whatever sits next to it. */
 QFrame#activityRail {
-  background: transparent;
+  background: rgba(@SHADOW_RGB@, 0.035);
   border: none;
+  border-right: 1px solid rgba(@SHADOW_RGB@, 0.08);
 }
 
 
@@ -334,7 +387,7 @@ QToolButton#navigationItem::menu-indicator {
 -------------------------------- */
 
 QLabel#chartCoordLabel {
-  color: palette(mid);
+  color: palette(text);
   font-size: 11pt;
   padding: 0 6px;
 }
@@ -377,12 +430,20 @@ QWidget#panelBody {
   background: transparent;
 }
 
-/* leftPanelCard / dataPageCard: no override here — they were once
-   styled flush and square, Finder-sidebar style, but that read as a
-   flat grey slab next to the chart's rounded white card. They fall
-   through to the QWidget[card="true"] rule above, so the sidebar now
-   gets the same automatic rounded-white treatment as every other card
-   in the app. */
+/* leftPanelCard: the activity rail plus the content stack beside it
+   (Tables/Properties/Database/...), flush against the chart panel to
+   its right — not a floating rounded card. White, with a hairline on
+   its own right edge, is the "list column" Mail/Finder/System Settings
+   put next to their own grey sidebar; #activityRail above draws that
+   grey sidebar as its own region inside this same white panel. Needs
+   an id rule (not just the QWidget[card="true"] one above) to win: a
+   CardFrame always carries the card="true" property too. */
+QFrame#leftPanelCard {
+  background: palette(base);
+  border: none;
+  border-right: 1px solid rgba(@SHADOW_RGB@, 0.10);
+  border-radius: 0;
+}
 
 /* Finder's divider is a hairline you aim at, not a visible bar. */
 QSplitter::handle {
@@ -530,4 +591,78 @@ QLabel#operationHint {
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
     padding: 8px 10px;
+}
+
+/* Fills the whole scroll viewport (setWidgetResizable(True)) - styled
+   because an unstyled QWidget's default background role (Window, a grey
+   tone on macOS) would otherwise show through as a band between the
+   operation tiles and the card's own white beneath the trailing stretch.
+   See series_operation.py's own comment on #seriesOperationsContent. */
+#seriesOperationsContent {
+    background: palette(base);
+}
+
+/* ----------------------------------------------------------
+   Flat combo box — macOS's plain/borderless popup-button idiom
+   (Finder's "Ordina per:", a sidebar's own dropdown): invisible
+   background and border at rest, only the text and the chevron
+   read; a highlight appears on hover and while open.
+
+   Scoped to [flat="true"], not every QComboBox: this file's own
+   PLATFORM PARITY NOTES explain why QComboBox is otherwise left
+   fully native - giving it any stylesheet at all switches Qt off
+   native Aqua painting for the whole control, and an earlier
+   attempt at a custom combo read as a double-bordered popup rather
+   than a native one. Safe here only because nothing is opted in by
+   default; set it explicitly (``combo.setProperty("flat", True)``)
+   on the one combo that should read this way.
+   ---------------------------------------------------------- */
+
+QComboBox[flat="true"] {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 26px 2px 6px;
+  color: palette(text);
+}
+
+QComboBox[flat="true"]:hover {
+  background: rgba(@SHADOW_RGB@, 0.06);
+}
+
+QComboBox[flat="true"]:on {
+  background: rgba(@SHADOW_RGB@, 0.10);
+  border-color: rgba(@SHADOW_RGB@, 0.14);
+}
+
+QComboBox[flat="true"]::drop-down {
+  subcontrol-origin: padding;
+  subcontrol-position: top right;
+  width: 20px;
+  border: none;
+  background: transparent;
+}
+
+/* No image on down-arrow: Qt draws the platform's own arrow, same
+   reasoning as fluent_win11.qss's own QComboBox rule - a url() here
+   would need a file on disk, and a Qt stylesheet cannot be handed one
+   of this app's own themed QIcons. */
+
+QComboBox[flat="true"] QAbstractItemView {
+  background: palette(base);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.14);
+  border-radius: 8px;
+  padding: 4px;
+  outline: none;
+}
+
+QComboBox[flat="true"] QAbstractItemView::item {
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+
+QComboBox[flat="true"] QAbstractItemView::item:hover,
+QComboBox[flat="true"] QAbstractItemView::item:selected {
+  background: palette(highlight);
+  color: palette(highlighted-text);
 }

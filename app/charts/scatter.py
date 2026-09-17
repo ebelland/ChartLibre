@@ -260,7 +260,21 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             x = pd.to_numeric( sd.df['x'], errors="coerce")
             y = pd.to_numeric( sd.df['y'], errors="coerce")
             color_source = sd.df['color'] if 'color' in sd.df.columns else None
-            color = pd.to_numeric(color_source, errors="coerce") if color_source is not None else None
+            # A non-numeric colour column (colour names, hex codes - the
+            # Pairwise sample demo's own "orange"/"green"/"blue"/"red")
+            # holds literal colour specs, not a continuous field: coercing
+            # it with pd.to_numeric turned every value to NaN, and an
+            # all-NaN `c=` array does not raise from ax.scatter but does
+            # silently break its data-limits autoscale, collapsing the
+            # axes to a near-zero range regardless of the real x/y extent.
+            color_is_literal = (
+                color_source is not None
+                and not pd.api.types.is_numeric_dtype(color_source.dtype)
+            )
+            if color_is_literal:
+                color = color_source
+            else:
+                color = pd.to_numeric(color_source, errors="coerce") if color_source is not None else None
             size = pd.to_numeric(sd.df['size'], errors="coerce") if 'size' in sd.df.columns else None
 
             if x is None or y is None:
@@ -279,8 +293,11 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             color_is_discrete = False
             if color is not None and color_source is not None:
                 masked_color_source = color_source[mask]
-                color_is_discrete = self.is_discrete_integer_color(masked_color_source)
-                color_values = color[mask].to_numpy(dtype=float)
+                if color_is_literal:
+                    color_values = color[mask].to_numpy()
+                else:
+                    color_is_discrete = self.is_discrete_integer_color(masked_color_source)
+                    color_values = color[mask].to_numpy(dtype=float)
 
             size_values = None
             if size is not None:

@@ -30,9 +30,9 @@ from app.charts.kwarg_spec import DEFAULT
 from app.styles.style import (
     MARGIN_PANEL,
     CardFrame,
+    TitledCard,
     create_action_button,
     create_hidpi_pixmap,
-    create_section_title,
     stdSizeAndlayout,
 )
 from app.widgets.base_properties import BaseProperties
@@ -199,16 +199,14 @@ class SeriesPropertiesWidget(BaseProperties):
 
     def _build_selector_section(self) -> QWidget:
         """Create the series selector and ordering controls."""
-        section = CardFrame(self, "seriesSelectorCard")
+        section = TitledCard(self, _("Series"), "seriesSelectorCard")
         section.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
         )
+        self._series_title = section.title_label
 
-        layout = section.layout()
-
-        self._series_title = create_section_title(_("Series"), section)
-        layout.addWidget(self._series_title)
+        layout = section.card.layout()
 
         self._series_combo = QComboBox(section)
         stdSizeAndlayout(self._series_combo)

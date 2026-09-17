@@ -15,7 +15,7 @@ import sys
 from functools import partial
 from pathlib import Path
 from time import monotonic
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
@@ -25,6 +25,7 @@ from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
     QIcon,
+    QResizeEvent,
 )
 from app import APP_ICON, APP_NAME
 from app.charts import layout_presets
@@ -57,9 +58,11 @@ from app.styles.style import (
     action_menu_item,
     action_presentation,
     SPLITTER_HANDLE_WIDTH,
+    apply_rounded_window_mask,
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
     CardFrame,
+    TitledCard,
     create_action_button,
     create_menu,
     create_menu_item,
@@ -445,8 +448,21 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout(host)
         stdSizeAndlayout(layout)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
+        if IS_MACOS:
+            # Flush to the window frame's own edge, same as the style demo
+            # (app/tests/manual_macos_style_demo.py, which uses this exact
+            # zero margin): #leftPanelCard and #activityRail already draw
+            # their own hairline edges, and #windowFrame its own 1px
+            # outline below - a contentsMargins here on top of those was
+            # just extra white gutter around the whole window that the
+            # demo never had. The traffic lights now live inside the
+            # activity rail (see NavigationBar.__init__), which insets
+            # them from the corner on its own.
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(0)
+        else:
+            layout.setContentsMargins(8, 8, 8, 8)
+            layout.setSpacing(8)
         if IS_WINDOWS or IS_MACOS:
             # FramelessWindowHint (see __init__) strips every bit of native
             # chrome - border, corner, drop shadow - so without this the
@@ -469,8 +485,14 @@ class MainWindow(QMainWindow):
             # without a way to check it on an actual Windows/Mac build.
             host.setObjectName("windowFrame")
             host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            self._custom_title_bar = CustomTitleBar(self, is_macos=IS_MACOS)
-            layout.addWidget(self._custom_title_bar, 0)
+            if IS_WINDOWS:
+                # macOS instead embeds its traffic lights at the top of the
+                # activity rail itself (see NavigationBar.__init__) - not a
+                # separate window-wide strip: Windows' own icon+title+
+                # min/max/close row needs the whole window's width, the
+                # traffic lights don't.
+                self._custom_title_bar = CustomTitleBar(self, is_macos=False)
+                layout.addWidget(self._custom_title_bar, 0)
         layout.addWidget(self._main_split, 1)
         return host
 
@@ -592,6 +614,13 @@ class MainWindow(QMainWindow):
         page is the one actually showing.
         """
         stack = QStackedWidget(self)
+        # Top padding here only, not on #activityRail beside it: the rail's
+        # traffic lights are meant to sit close to the window's own top
+        # edge (see NavigationBar.__init__), but a page's own content
+        # starting flush against that same edge read as cramped - the
+        # nav rows have their own icon+label affordance to read as
+        # "away from the edge", a page's first row of fields does not.
+        stack.setContentsMargins(0, 12, 0, 0)
         stack.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding,)
         stack.addWidget(self._data_page)
         stack.addWidget(self._scrollable(self._properties_control))
@@ -624,42 +653,72 @@ class MainWindow(QMainWindow):
         workspace, not a piece of documentation.
         """
         page = QWidget(self)
+        # Same "white page the cards float on" convention the properties
+        # toolbox pages get from apply_toolbox_page_metrics - a plain
+        # QWidget paints no stylesheet background at all without
+        # WA_StyledBackground, so without both of these this page stayed
+        # transparent next to Tables (a card) and Chart properties
+        # (already toolboxPage), the one grey gap in an otherwise white
+        # left panel.
+        page.setProperty("toolboxPage", True)
+        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QVBoxLayout(page)
         stdSizeAndlayout(layout)
 
-        layout.addWidget(create_section_title(_("Workspace"), page))
+        layout.addWidget(
+            self._titled_card(page, _("Workspace"), self._fill_workspace_card, object_name="fileWorkspaceCard")
+        )
+        layout.addWidget(
+            self._titled_card(page, _("Save"), self._fill_save_card, object_name="fileSaveCard")
+        )
+        layout.addWidget(
+            self._titled_card(page, _("Open recent"), self._fill_recent_card, object_name="fileRecentCard")
+        )
+        layout.addStretch(1)
+        return page
 
+    def _titled_card(
+        self,
+        parent: QWidget,
+        title: str,
+        fill: Callable[[CardFrame], None],
+        *,
+        object_name: str | None = None,
+    ) -> QWidget:
+        """A section title *above* its card - see style.TitledCard."""
+        titled = TitledCard(parent, title, object_name)
+        fill(titled.card)
+        return titled
+
+    def _fill_workspace_card(self, card: CardFrame) -> None:
+        layout = card.layout()
         new_open_row = QHBoxLayout()
         stdSizeAndlayout(new_open_row)
-        create_action_button(parent=page, action_id="new", action=self._on_new_file, layout=new_open_row)
-        create_action_button(parent=page, action_id="open", action=self._on_open_database, layout=new_open_row)
-        create_action_button(parent=page, action_id="import", action=self._on_import_data, layout=new_open_row)
+        create_action_button(parent=card, action_id="new", action=self._on_new_file, layout=new_open_row)
+        create_action_button(parent=card, action_id="open", action=self._on_open_database, layout=new_open_row)
+        create_action_button(parent=card, action_id="import", action=self._on_import_data, layout=new_open_row)
         new_open_row.addStretch(1)
         layout.addLayout(new_open_row)
 
         demo_row = QHBoxLayout()
         stdSizeAndlayout(demo_row)
-        create_action_button(parent=page, action_id="load_demo", action=self._on_load_demo, layout=demo_row)
+        create_action_button(parent=card, action_id="load_demo", action=self._on_load_demo, layout=demo_row)
         demo_row.addStretch(1)
         layout.addLayout(demo_row)
 
-        layout.addWidget(create_section_title(_("Save"), page))
+    def _fill_save_card(self, card: CardFrame) -> None:
+        layout = card.layout()
         save_row = QHBoxLayout()
         stdSizeAndlayout(save_row)
-        create_action_button(parent=page, action_id="save", action=self._on_save, layout=save_row)
-        create_action_button(parent=page, action_id="save_as", action=self._on_save_as, layout=save_row)
+        create_action_button(parent=card, action_id="save", action=self._on_save, layout=save_row)
+        create_action_button(parent=card, action_id="save_as", action=self._on_save_as, layout=save_row)
         save_row.addStretch(1)
         layout.addLayout(save_row)
 
-        layout.addWidget(create_section_title(_("Open recent"), page))
-        self._file_page = page
-        self._recent_list_layout = QVBoxLayout()
-        stdSizeAndlayout(self._recent_list_layout)
-        layout.addLayout(self._recent_list_layout)
+    def _fill_recent_card(self, card: CardFrame) -> None:
+        self._file_page = card
+        self._recent_list_layout = card.layout()
         self._refresh_recent_list()
-
-        layout.addStretch(1)
-        return page
 
     def _refresh_recent_list(self) -> None:
         """(Re)populate the File page's Open Recent list from user.json.
@@ -745,6 +804,8 @@ class MainWindow(QMainWindow):
         the query workflow.
         """
         page = QWidget(self)
+        page.setProperty("toolboxPage", True)
+        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QVBoxLayout(page)
         stdSizeAndlayout(layout)
 
@@ -760,10 +821,13 @@ class MainWindow(QMainWindow):
         """Query Builder, as its own card: one button, with the catalogue's
         own description shown underneath rather than only in the tooltip -
         this page's first section, so it reads without hovering."""
-        card = CardFrame(parent, "queryBuilderCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("Query Builder"), card))
+        return self._titled_card(
+            parent, _("Query Builder"), self._fill_query_builder_card,
+            object_name="queryBuilderCard",
+        )
 
+    def _fill_query_builder_card(self, card: CardFrame) -> None:
+        card_layout = card.layout()
         button_row = QHBoxLayout()
         stdSizeAndlayout(button_row)
         create_action_button(
@@ -780,8 +844,6 @@ class MainWindow(QMainWindow):
         description.setWordWrap(True)
         description.setProperty("muted", True)
         card_layout.addWidget(description)
-
-        return card
 
     #: (action_id, handler) - the Developer menu's old group, one section
     #: each. See _create_developer_page for why they live here now instead.
@@ -805,6 +867,8 @@ class MainWindow(QMainWindow):
         unreachable there before this page existed.
         """
         page = QWidget(self)
+        page.setProperty("toolboxPage", True)
+        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QVBoxLayout(page)
         stdSizeAndlayout(layout)
 
@@ -822,28 +886,27 @@ class MainWindow(QMainWindow):
         """One scaffolding tool as its own card - button plus the
         catalogue's own description shown underneath, same pattern as
         Query Builder's own section on the Database page."""
-        icon, text, tooltip = action_presentation(action_id)
-        card = CardFrame(parent, f"{action_id}Card")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(text, card))
+        _icon, text, tooltip = action_presentation(action_id)
 
-        button_row = QHBoxLayout()
-        stdSizeAndlayout(button_row)
-        create_action_button(
-            parent=card,
-            action_id=action_id,
-            action=getattr(self, handler_name),
-            layout=button_row,
-        )
-        button_row.addStretch(1)
-        card_layout.addLayout(button_row)
+        def fill(card: CardFrame) -> None:
+            card_layout = card.layout()
+            button_row = QHBoxLayout()
+            stdSizeAndlayout(button_row)
+            create_action_button(
+                parent=card,
+                action_id=action_id,
+                action=getattr(self, handler_name),
+                layout=button_row,
+            )
+            button_row.addStretch(1)
+            card_layout.addLayout(button_row)
 
-        description = QLabel(tooltip, card)
-        description.setWordWrap(True)
-        description.setProperty("muted", True)
-        card_layout.addWidget(description)
+            description = QLabel(tooltip, card)
+            description.setWordWrap(True)
+            description.setProperty("muted", True)
+            card_layout.addWidget(description)
 
-        return card
+        return self._titled_card(parent, text, fill, object_name=f"{action_id}Card")
 
     # ------------------------------------------------------------------
     # Activity rail
@@ -1394,7 +1457,17 @@ class MainWindow(QMainWindow):
 
     def _create_left_panel(self) -> QWidget:
         """Create the left-side area: activity rail + stacked content."""
-        panel = CardFrame(self, "leftPanelCard", orientation=Qt.Orientation.Horizontal)
+        # Flush, not padded: #leftPanelCard's own QSS draws it as a plain
+        # white panel with a hairline on its own right edge (Mail/Finder's
+        # sidebar-plus-list arrangement - see macos_native.qss), not a
+        # floating rounded card. The default MARGIN_CARD (10px all round)
+        # left a white gutter framing the grey activity rail on every
+        # side - most visible above and below it, where nothing else
+        # explains a gap.
+        panel = CardFrame(
+            self, "leftPanelCard", orientation=Qt.Orientation.Horizontal,
+            margins=(0, 0, 0, 0),
+        )
         panel.setProperty("elevated", True)
         panel.setMinimumSize(0, 0)
         panel.setSizePolicy(
@@ -1469,7 +1542,13 @@ class MainWindow(QMainWindow):
         relax_minimum_width(self._tabs)
         self._tabs.setMinimumWidth(CHART_PANE_MIN_WIDTH)
 
-        self._chart_surface = CardFrame(self, "chartSurfaceCard")
+        # Flush: now that #chartSurfaceCard paints pure white (see
+        # macos_native.qss), a margin here was just empty space with
+        # nothing left to separate from - the same white on both sides
+        # of it.
+        self._chart_surface = CardFrame(
+            self, "chartSurfaceCard", margins=(0, 0, 0, 0),
+        )
         self._chart_surface.setProperty("elevated", True)
         self._chart_surface.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -2466,6 +2545,24 @@ class MainWindow(QMainWindow):
         Qt.Edge.TopEdge | Qt.Edge.RightEdge: Qt.CursorShape.SizeBDiagCursor,
         Qt.Edge.BottomEdge | Qt.Edge.LeftEdge: Qt.CursorShape.SizeBDiagCursor,
     }
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Keep the window's rounded-corner mask sized to the window.
+
+        macOS only: #windowFrame's own QSS border-radius rounds what it
+        paints, but the children filling it edge to edge (#leftPanelCard,
+        the chart tabs) still have square corners of their own, poking out
+        past the curve - see apply_rounded_window_mask's own docstring.
+        Cleared while maximized: a maximized window's edges are the
+        screen's own, and a real macOS window is square-cornered there too.
+        """
+        super().resizeEvent(event)
+        if not IS_MACOS:
+            return
+        if self.isMaximized():
+            self.clearMask()
+        else:
+            apply_rounded_window_mask(self)
 
     def _resize_edge_at(self, pos: QPoint) -> Qt.Edge:
         """Return which edge(s) of _central_host *pos* is within the margin of.

@@ -4,11 +4,15 @@ Qt.FramelessWindowHint strips every bit of native chrome - border, corner,
 drop shadow - so without a border of its own the window had no visible edge
 at all against whatever is behind it ("no border under Windows"). macOS got
 the same treatment later: its own native title-bar-plus-traffic-lights strip
-is replaced by CustomTitleBar the same way Windows' was. The central host
-widget gets objectName "windowFrame" and WA_StyledBackground on both
-platforms; fluent_win11.qss and macos_native.qss each draw the actual 1px
-outline on that object name. Linux keeps its window manager's own native
-chrome - there is no equivalent "elsewhere" gap to fill in.
+is replaced by CustomTitleBar the same way Windows' was - but embedded at
+the top of the activity rail (see NavigationBar.__init__), not as a second
+window-wide strip above _main_split the way Windows' own icon+title+
+min/max/close row still is; _custom_title_bar itself is therefore only
+ever built on Windows now. The central host widget gets objectName
+"windowFrame" and WA_StyledBackground on both platforms; fluent_win11.qss
+and macos_native.qss each draw the actual 1px outline on that object name.
+Linux keeps its window manager's own native chrome - there is no
+equivalent "elsewhere" gap to fill in.
 """
 from __future__ import annotations
 
@@ -52,7 +56,13 @@ def test_a_frameless_platform_gets_a_named_styled_central_host(
         assert window._central_host.testAttribute(
             Qt.WidgetAttribute.WA_StyledBackground
         )
-        assert window._custom_title_bar is not None
+        if platform_flag == "IS_WINDOWS":
+            assert window._custom_title_bar is not None
+        else:
+            # macOS: no window-wide strip - the traffic lights live inside
+            # the activity rail instead (see NavigationBar.__init__).
+            assert window._custom_title_bar is None
+            assert window._left_rail.title_bar is not None
     finally:
         window.close()
         applogger.set_status_bar(None)
