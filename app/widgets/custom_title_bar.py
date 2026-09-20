@@ -1,11 +1,20 @@
 """Custom title bar for frameless windows (Windows and macOS)."""
 from __future__ import annotations
 
+import weakref
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QStyle, QToolButton
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QStyle,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.styles.style import icon_from_svg_source
 from app.utils.i18n import _
@@ -26,6 +35,10 @@ CUSTOM_TITLE_BAR_HEIGHT: int = 24
 _MAC_TITLE_BAR_HEIGHT: int = 28
 _MAC_BUTTON_DIAMETER: int = 12
 _MAC_BUTTON_SPACING: int = 8
+
+#: Extra height the strip takes when the sidebar toggle moves onto its own
+#: line under the traffic lights - see CustomTitleBar.set_compact.
+_MAC_STACKED_TOGGLE_HEIGHT: int = 24
 
 #: The sidebar toggle's own glyph: a panel with its left column divided
 #: off, the same shape every macOS app uses for "hide/show the sidebar".
@@ -61,9 +74,31 @@ class CustomTitleBar(QFrame):
     sidebar itself is doing the same job a title once did.
     """
 
-    def __init__(self, window: MainWindow, *, is_macos: bool) -> None:
-        super().__init__(window)
-        self._window = window
+    def __init__(
+        self,
+        window: MainWindow,
+        *,
+        is_macos: bool,
+        parent: QWidget | None = None,
+    ) -> None:
+        # *window* is what the buttons act on (close, minimise, zoom,
+        # startSystemMove); *parent* is who owns this widget. They are the
+        # same for the Windows caption strip, which the window lays out
+        # itself, and different on macOS, where the rail holds the strip -
+        # passing the window as parent there left Qt and the layout
+        # disagreeing about the owner, which crashed the interpreter when
+        # Python later collected the window (SIGBUS in deleteChildren).
+        super().__init__(parent if parent is not None else window)
+        # A weak proxy, not the window itself. The buttons here act on the
+        # window, but this widget does not own it - and on macOS it is a
+        # grandchild of it (the rail holds the strip), so a strong
+        # reference closes a cycle: window -> rail -> strip -> window.
+        # Python's collector is then free to break that cycle in an order
+        # Qt does not expect, which crashed the interpreter outright
+        # (SIGBUS inside QObjectPrivate::deleteChildren, at whichever
+        # unrelated line the collector happened to run on). Every call
+        # below goes through the proxy unchanged.
+        self._window: MainWindow = weakref.proxy(window)
         # Passed in, not re-imported: main_window.py already decided which
         # of IS_WINDOWS/IS_MACOS triggered building this at all (see
         # _create_central_host) - re-deriving IS_MACOS here independently
@@ -75,14 +110,55 @@ class CustomTitleBar(QFrame):
         self.setObjectName("customTitleBar")
         self.setFixedHeight(_MAC_TITLE_BAR_HEIGHT if self._is_macos else CUSTOM_TITLE_BAR_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        layout = QHBoxLayout(self)
-        layout.setSpacing(4)
-
         self.title_label: QLabel | None = None
+        self.sidebar_button: QToolButton | None = None
+        self._controls_row: QHBoxLayout | None = None
+
         if self._is_macos:
-            self._build_mac_controls(layout)
+            # A column, not a row: set_compact below moves the sidebar
+            # toggle onto a second line when the rail is too narrow to
+            # hold it beside the lights.
+            self._stacked_row = QVBoxLayout(self)
+            self._stacked_row.setContentsMargins(0, 0, 0, 0)
+            self._stacked_row.setSpacing(2)
+            controls = QHBoxLayout()
+            controls.setSpacing(4)
+            self._controls_row = controls
+            self._stacked_row.addLayout(controls)
+            self._build_mac_controls(controls)
         else:
+            layout = QHBoxLayout(self)
+            layout.setSpacing(4)
             self._build_windows_controls(layout)
+
+    def set_compact(self, compact: bool) -> None:
+        """Stack the sidebar toggle under the traffic lights, or inline it.
+
+        macOS only, and only because of arithmetic: three 12px lights with
+        8px between them and an inset already fill a collapsed rail's
+        width, so a toggle beside them would be pushed off the edge (it
+        was - the lights themselves ended up overlapping). Below them it
+        fits, and the rail grows by one row rather than by 40px of width,
+        which is the width collapsing was meant to give back in the first
+        place.
+        """
+        if not self._is_macos or self.sidebar_button is None:
+            return
+        row = self._controls_row
+        if row is None:
+            return
+
+        row.removeWidget(self.sidebar_button)
+        if compact:
+            self._stacked_row.addWidget(
+                self.sidebar_button, 0, Qt.AlignmentFlag.AlignHCenter
+            )
+            self.setFixedHeight(_MAC_TITLE_BAR_HEIGHT + _MAC_STACKED_TOGGLE_HEIGHT)
+        else:
+            row.addWidget(self.sidebar_button)
+            row.addStretch(1)
+            self.setFixedHeight(_MAC_TITLE_BAR_HEIGHT)
+        self.sidebar_button.setVisible(True)
 
     # ------------------------------------------------------------------
     # Windows: icon, title, square right-aligned buttons

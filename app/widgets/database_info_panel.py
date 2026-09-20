@@ -126,7 +126,7 @@ class DatabaseInfoPanel(QWidget):
         # icon-only pair this replaces, reads best spelled out when there
         # is no longer a second button competing for the same row's width.
         self._selected_table_card = TitledCard(
-            self, _("Tabella (tabella selezionata)"), "selectedTableCard"
+            self, _("Table (selected table)"), "selectedTableCard"
         )
         selected_table_layout = self._selected_table_card.card.layout()
 

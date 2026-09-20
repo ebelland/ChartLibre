@@ -231,13 +231,19 @@ def test_page_switching_no_longer_needs_an_offset(window: MainWindow) -> None:
     assert window._nav_buttons[2].isChecked()
 
 
-def test_startup_selects_and_highlights_the_first_page(window: MainWindow) -> None:
-    """Under the old offset, _set_nav_index(0) - called once at startup to
-    select the default page - addressed the popup's own reserved slot and
-    did nothing: the data page showed only because QStackedWidget already
-    defaults to index 0, and its rail button was never actually checked."""
-    assert window._left_stack.currentIndex() == 0
-    assert window._nav_buttons[0].isChecked()
+def test_startup_selects_and_highlights_the_default_page(window: MainWindow) -> None:
+    """Under the old offset, the startup call to _set_nav_index addressed
+    the popup's own reserved slot and did nothing: the data page showed
+    only because QStackedWidget already defaults to index 0, and its rail
+    button was never actually checked.
+
+    The default page is the tables, addressed by key rather than by the
+    literal 0 it used to be - File sits above them in the rail now (see
+    nav_bar.DEFAULT_PAGES), and opening onto it would hide the data the
+    window was just opened on."""
+    index = window._left_rail.action_ids.index("nav_data")
+    assert window._left_stack.currentIndex() == index
+    assert window._nav_buttons[index].isChecked()
 
 
 # ----------------------------------------------------------------------

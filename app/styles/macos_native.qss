@@ -25,18 +25,18 @@ QWidget#windowFrame {
   border-radius: 6px;
 }
 
-/* Once MainWindow.showEvent has successfully handed rounding to the real
-   NSWindow's own CALayer (apply_native_macos_corner_radius, in
-   app/styles/style.py), this fill and border must go back to being a
-   plain rectangle: the corner curve above and the native clip are two
-   independent anti-aliased curves at the same nominal radius but
-   different rendering paths, so they do not fall on the same pixels -
-   the mismatch showed as a doubled edge, a square corner from this rule
-   peeking out past the native curve. Left square here, the *one* native
-   clip rounds this along with everything else in the window, so only
-   one curve ever reaches the screen. */
+/* The radius above is kept even once apply_native_macos_corner_radius
+   reports success. It used to be zeroed here, on the reasoning that the
+   native CALayer clip is the one true curve and a second painted one
+   would not land on the same pixels - but when that native clip does not
+   visibly take (it reports success and the window still renders square,
+   which is what it did on the machine this was reported from), zeroing
+   the radius is what leaves the corner square with nothing rounding it
+   at all. A curve that is drawn slightly softly is a far smaller problem
+   than no curve, so this rule now only drops the *border* - the hairline
+   is what was visibly doubling against the native edge, not the fill. */
 QWidget#windowFrame[nativeRounded="true"] {
-  border-radius: 0;
+  border: none;
 }
 
 QLabel[role="title"] {
@@ -393,14 +393,13 @@ QFrame#activityRail {
   border-right: 1px solid rgba(@SHADOW_RGB@, 0.08);
 }
 
-/* The title bar strip (see main_window._create_central_host) sits right
-   above #activityRail, unstyled by default - without a rule here it shows
-   #windowFrame's own white background instead, one shade off from the
-   rail's own tint directly below it. Same tint, so the traffic lights read
-   as part of one continuous grey band with the rail, not a separate white
-   strip glued on top of it. */
+/* Transparent, not tinted: the traffic lights live *inside* #activityRail
+   now (NavigationBar.__init__), so the rail's own grey is already behind
+   them. Painting the rail's tint a second time here would stack two
+   translucent layers and make the top of the rail a visibly darker band
+   than the rows below it. */
 QFrame#customTitleBar {
-  background: rgba(@SHADOW_RGB@, 0.035);
+  background: transparent;
   border: none;
 }
 

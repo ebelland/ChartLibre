@@ -58,12 +58,15 @@ def test_macos_gets_three_left_aligned_traffic_lights_and_no_title(window) -> No
     try:
         assert bar.height() == _MAC_TITLE_BAR_HEIGHT
         assert bar.title_label is None
-        # AppKit's own left-to-right order: close, minimize, zoom.
-        layout = bar.layout()
+        # AppKit's own left-to-right order: close, minimize, zoom. Read
+        # from the controls row rather than from the widget's own layout:
+        # that one is a column now, so that set_compact can move the
+        # sidebar toggle onto a second line under the lights.
+        row = bar._controls_row
         assert (
-            layout.indexOf(bar.close_button)
-            < layout.indexOf(bar.minimize_button)
-            < layout.indexOf(bar.maximize_button)
+            row.indexOf(bar.close_button)
+            < row.indexOf(bar.minimize_button)
+            < row.indexOf(bar.maximize_button)
         )
     finally:
         bar.deleteLater()

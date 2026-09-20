@@ -57,10 +57,12 @@ def test_a_frameless_platform_gets_a_named_styled_central_host(
         assert window._central_host.testAttribute(
             Qt.WidgetAttribute.WA_StyledBackground
         )
-        # Both platforms get a window-wide strip now - see
-        # main_window._create_central_host - so the window can be dragged
-        # from above the central table panel and the chart tabs too, not
-        # just from above the activity rail.
+        # Both platforms end up with a title bar, in different places:
+        # Windows puts a caption strip across the window, macOS puts its
+        # traffic lights at the top of the activity rail so the panels
+        # beside it keep their own background up to the window's edge (see
+        # main_window._create_central_host). Either way the window owns a
+        # reference to it.
         assert window._custom_title_bar is not None
     finally:
         window.close()

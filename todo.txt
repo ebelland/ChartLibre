@@ -9,62 +9,14 @@ P0 - BUGS: wrong output, or work that cannot proceed
       cluster_dialog (1.722) restano sopra le 1.500 righe.
 
 P1-1 2026-09-17 08:52:55 | WARNING  | AppLogger._handle_qt_message | Qt warning: Populating font family aliases took 200 ms. Replace uses of missing font family "Segoe UI Variable" with one that exists to avoid this cost. 
-
-P1-2 Nav bar windows fonts too small
-
-P1-3 Status bar: no padding on left end right edges 
-
-
+P1-2 Icon theme: none insatlled (Linux?)
 
 ================================================================
 UI - reported while testing (2026-09)
 ================================================================
+N-01  Database panel: add possibility to change columns data type (cast), replicate menu voices in table preview. Duplicate table.
 
-N-19  GUI: toward a more standard, easy, intuitive interface
-      Requested generically ("una GUI piu' standard, facile ed intuitiva");
-      these are the concrete points actually observed hands-on this round,
-      not a generic UX checklist - each names a specific place, not a
-      principle.
-      - The Series properties selector is a plain-text combo; each entry's
-        series already has an actual plotted colour. A small colour swatch
-        per row (matching MatplotlibColorCombo's own approach elsewhere)
-        would make "which series is this" recognisable without opening it.
-      - The activity rail (Data / Chart options / Series operations) is
-        icon-only with tooltip-only labels - fine once learned, but nothing
-        in the running app teaches a first-time user what the four icons
-        are for beyond hovering each one. Worth checking whether a
-        one-time label (or a "?" walkthrough) is worth the added chrome,
-        given nav rail structure itself is being kept as-is per the
-        Finder-sidebar discussion.
-
-        _apply_source_dependent_enablement in import_data_dialog.py, run
-        after every _build_columns_table since that rebuilds the per-column
-        combos from scratch. Disabled rather than hidden - the row stays
-        where it was instead of the panel reflowing under the pointer mid-
-        preview. Left panel also grouped into labeled sections (Source /
-        Read options / Columns), the same create_compact_section_title
-        convention as the properties panels and the connect-database
-        dialog, instead of one flat form.
-        Also done in the same pass: ConnectDatabaseDialog gained "Use a
-        query" (a SQL box swapped in for the table list via a QStackedWidget,
-        validated with is_read_only_select so this cannot become a way to
-        DELETE against someone else's database), threaded through as
-        SERVER_DATABASE_QUERY_READERS / read_sqlite_query / read_from_link_
-        source's query branch so "Update link" also replays a query-sourced
-        import. And the web-source quick-pick gained its own "Web" row
-        label plus Add source/Delete source buttons - add_user_web_source/
-        remove_user_web_source in data_sources.py, backed by a
-        get_user_web_sources/set_user_web_sources section in user.json,
-        layered onto the bundled web_sources.json catalogue (WebDataSource.
-        custom marks which is which; only a custom entry can be deleted).
-      - Manual spacing (Figure properties) asks for six raw 0..1 fractions
-        with no visual feedback - a live-updating preview, or drag handles
-        on the chart itself, is the more standard way this kind of control
-        is usually presented, though it is a real redesign, not a quick
-        pass.
-
-N-20  
-
+N-02
       Broader, beyond the chart itself - things a data scientist, an
       engineer or a student doing coursework would reach for:
       - Notebook/script export: a figure's series are already SQL queries
@@ -87,63 +39,13 @@ N-20
         operations already use, just without a dialog in front of it.
 
 
-================================================================
-DONE (2026-09) - series operations: no-auto-calc, 3D surfaces
-================================================================
-
-Series operations no longer recompute on every control change - only
-Preview/OK do (SeriesOperationDialogBase.mark_results_stale, replacing
-refresh_results()/_queue_refresh_results() and the debounce QTimer across
-all ~18 dialogs; app/tests/test_series_operation_dialog_no_auto_compute.py).
-User-defined functions/series operations that collide in name with an
-earlier one (built-in or user) now log a warning instead of silently
-vanishing (class_discovery.discover_classes_merged).
-
-3D surfaces (z = f(x, y)) are now a first-class case across the series
-operations that make sense for them:
-- base_surface_function (app/functions/base.py) + built-ins
-  (app/functions/surface_functions.py: Plane, Paraboloid, Gaussian2D,
-  Saddle, Ripple2D) + user template (app/functions/user_surface_functions.py).
-  Scanned by SurfaceFunctionScanner (app/scanners/functions_scanner.py),
-  merged into the same model tree as the 1D functions, tagged ndim=2.
-- SeriesOperationDialogBase gained series_origin() (labels a selected
-  series as 2D / 3D-on-a-grid / 3D-scattered / vector-field, shown in
-  AxisSeriesSelector), series_xyz() (scattered x/y/z reader) and
-  series_grid_xyz() (exact grid via app.charts.grids.pivot_to_grid,
-  falling back to scipy.interpolate.griddata - NaN outside the convex
-  hull, never invented values).
-- Fit dialog: real surface fitting (z = f(x, y, p)), drawn as
-  "Surface Plot (Scattered)" (TriSurface) on the source series' own axis.
-- Function dialog: evaluate/draw a surface function on a generated grid,
-  "Surface Plot".
-- Peaks: 2D local maxima/minima on a grid (scipy.ndimage maximum_filter/
-  minimum_filter; "prominence" is neighbourhood-local, not true
-  topographic prominence - see the P3 follow-up below), drawn as
-  "Scatter Plot (3D)".
-- Roots: the z = 0 level curve via matplotlib contour, drawn as
-  "3D Line Plot".
-- Calculus: surface gradient (magnitude, drawn as "Contour Plot") and
-  volume under the surface (double Simpson integration); the model list
-  (CALCULUS_MODELS) is deliberately data-driven so curl/divergence
-  (P2-21 below) has a natural place to land later.
-- Demo: "3D Series Operations" (app/data/demo_project.py) - a Gaussian
-  bump (exact grid + jittered/scattered) fit, its peak, a saddle's zero
-  contour, and its gradient/volume - computed by calling the real dialog
-  methods directly, not reimplemented, so the demo cannot drift from the
-  algorithm.
-- Fixed along the way: SqliteRepo.downsampled_series_frame's row-stride
-  decimation silently broke grid completeness for an odd grid side length
-  over 1,000 rows (Surface Plot / Contour Plot then refused to draw at
-  all) - these two chart types now skip row-based downsampling entirely
-  (app/charts/render_figure.py, app/tests/test_downsample.py). Also:
-  monte_carlo_p0/choose_starting_point (app/functions/monte_carlo.py,
-  app/functions/starting_point.py) used to .ravel() a surface fit's
-  (N, 2) x into (2N,), scrambling the two independent columns together
-  before a fit ever ran.
-
-NOT done yet, on purpose - see P2-21 and P2-22 below: vector fields
+N-03 NOT done yet, on purpose - see P2-21 and P2-22 below: vector fields
 (x, y, u, v - curl, divergence) and parametric 3D curves
 (x(t), y(t), z(t)).
+
+N-04  Preview editable
+
+N-05: wherever there is an SQL SELECT user text, avoid SQL injections and unsafe operations (usually it must start with SELECT and should not contain UPDATE or DELETE)
 
 ================================================================
 P2 - VALUABLE

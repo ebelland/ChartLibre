@@ -180,7 +180,15 @@ class MainWindow(QMainWindow):
 
         self._update_window_title()
         self.setWindowIcon(icon_from_svg_source(APP_ICON, size=32))
-        self._custom_title_bar: CustomTitleBar | None = None
+        #: Only set on Windows, where this window lays the caption strip
+        #: out itself. On macOS the rail owns the strip and this stays
+        #: None - read it through the _custom_title_bar property below,
+        #: which asks whichever of the two actually built one. Holding a
+        #: second, strong Python reference here to a widget the rail owns
+        #: in C++ is what made the interpreter crash (SIGBUS inside
+        #: QObjectPrivate::deleteChildren) when the garbage collector
+        #: later tore a closed window's object graph down.
+        self._own_title_bar: CustomTitleBar | None = None
         #: Set on the first showEvent, whether or not the attempt actually
         #: succeeds - apply_native_macos_corner_radius needs a native window
         #: handle that does not exist yet at __init__ time, and the
@@ -264,8 +272,10 @@ class MainWindow(QMainWindow):
             self._central_host.setMouseTracking(True)
             self._central_host.installEventFilter(self)
 
-        # Default page.
-        self._set_nav_index(0)
+        # Default page: the tables, not whatever happens to be first in the
+        # rail. File sits above them now, and opening onto an empty file
+        # page would hide the data the window was just opened on.
+        self._set_nav_index(self._left_rail.action_ids.index("nav_data"))
         self._table_panel.reload()
         self._reload_tabs()
         self._update_properties_for_current_chart()
@@ -540,7 +550,12 @@ class MainWindow(QMainWindow):
             # it. Each platform QSS draws a plain 1px outline on this object
             # name (fluent_win11.qss, macos_native.qss); WA_StyledBackground
             # is what makes a QWidget paint a QSS border at all rather than
-            # silently ignoring it.
+            # silently ignoring it. Keep this a plain fill with no border
+            # radius of its own on macOS: the window's real corners are
+            # rounded by its NSWindow layer (apply_native_macos_corner_
+            # radius), and a second curve painted here never lands on the
+            # same pixels as that one - which is the doubled edge along the
+            # top that the strip below used to show.
             #
             # No drop shadow here, unlike the elevated internal cards this
             # replaced: a shadow effect needs room *outside* the widget it
@@ -555,19 +570,36 @@ class MainWindow(QMainWindow):
             # without a way to check it on an actual Windows/Mac build.
             host.setObjectName("windowFrame")
             host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            # Full window width, on both platforms: this strip is the only
-            # place startSystemMove gets wired up (see
-            # CustomTitleBar.mousePressEvent), so anything it does not
-            # cover cannot be used to drag the window. macOS used to embed
-            # its own copy only inside the activity rail (see
-            # NavigationBar.__init__, now reverted) - fine as long as the
-            # rail was the only thing under the strip, but it left no way
-            # to drag the window from above the central table panel or the
-            # chart tabs, both of which sit outside the rail's 200px width.
-            self._custom_title_bar = CustomTitleBar(self, is_macos=IS_MACOS)
-            layout.addWidget(self._custom_title_bar, 0)
+
+        if IS_WINDOWS:
+            # Windows only: a caption strip across the whole window, which
+            # is what a Windows 11 window has - icon and title on the left,
+            # min/max/close on the right, all of it draggable.
+            #
+            # macOS deliberately has none. Its traffic lights live at the
+            # top of the navigation rail instead (NavigationBar.__init__),
+            # so each column keeps its own background all the way to the
+            # window's top edge - grey for the rail, white for the panels
+            # beside it - the way Finder and System Settings look. A strip
+            # here would cut across all of them.
+            self._own_title_bar = CustomTitleBar(self, is_macos=False)
+            layout.addWidget(self._own_title_bar, 0)
         layout.addWidget(self._main_split, 1)
         return host
+
+    @property
+    def _custom_title_bar(self) -> CustomTitleBar | None:
+        """This window's title bar, wherever it was built.
+
+        Windows builds its own caption strip; on macOS the navigation
+        rail holds the traffic lights instead. A property rather than an
+        attribute so that the macOS one is only ever reached through its
+        real owner - see _own_title_bar on what caching it here cost.
+        """
+        if self._own_title_bar is not None:
+            return self._own_title_bar
+        rail = getattr(self, "_left_rail", None)
+        return None if rail is None else rail.title_bar
 
     def _on_settings(self) -> None:
         """Open the application preferences.
@@ -694,11 +726,16 @@ class MainWindow(QMainWindow):
         # starting flush against that same edge read as cramped.
         stack.setContentsMargins(0, 12, 0, 0)
         stack.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding,)
+        # Page order follows NavigationBar.action_ids exactly - the rail
+        # hands back the index of the tile that was clicked, nothing
+        # richer, so the two lists are one ordering split across two
+        # files. File comes first, directly under Workspace: it is where
+        # a session starts (new, open, import, the recent list).
+        stack.addWidget(self._scrollable(self._create_file_page()))
         stack.addWidget(self._data_page)
         stack.addWidget(self._scrollable(self._properties_control))
         stack.addWidget(self._create_series_operations_page())
         stack.addWidget(self._scrollable(self._create_database_page()))
-        stack.addWidget(self._scrollable(self._create_file_page()))
         stack.addWidget(self._scrollable(self._create_developer_page()))
         return stack
 
@@ -1311,6 +1348,14 @@ class MainWindow(QMainWindow):
         # popup button, which nav_file (a page now, not a popup) replaced.
         self._help_menu = create_menu(self, list(groups[-1][1]))
         self._help_menu.setTitle(_("Help & About"))
+        # The rail's Help tile holds whichever menu object existed when it
+        # was built, so a rebuild has to hand it the new one - otherwise
+        # the tile keeps popping up the menu from before the language or
+        # the undo stack changed. Guarded because the first build runs
+        # before the rail exists.
+        rail = getattr(self, "_left_rail", None)
+        if rail is not None:
+            rail.set_help_menu(self._help_menu)
         self._app_menu = create_menu(self, self._flatten_menu_groups(groups))
         if previous is not None and IS_MACOS:
             # It is parented to this window, so replacing the attribute is not
@@ -1534,14 +1579,40 @@ class MainWindow(QMainWindow):
 
 
     def _create_activity_rail(self) -> NavigationBar:
-        """Create the Fluent navigation bar."""
+        """Create the navigation rail and say what its tiles do here.
+
+        The rail itself is host-agnostic (see nav_bar's own docstring): it
+        reports clicks and this is where they are given meaning, rather
+        than the rail reaching into this window for a stack to switch and
+        a settings dialog to open.
+        """
         rail = NavigationBar(self, is_macos=IS_MACOS)
+        rail.page_selected.connect(self._set_nav_index)
+        rail.workspace_toggled.connect(self._on_workspace_tile_clicked)
+        rail.action_triggered.connect(self._on_rail_action)
+        rail.set_help_menu(self._help_menu)
         self._nav_group = rail.button_group
         self._nav_buttons = rail.buttons
         self._nav_action_ids = rail.action_ids
         self._settings_button = rail.settings_button
         self._help_button = rail.help_button
         return rail
+
+    def _on_workspace_tile_clicked(self) -> None:
+        """Collapse the panel beside the rail, but never re-open it here.
+
+        The tile is a one-way "hide" - it is checked while hidden, and
+        clicking a page tile is what brings the panel back - so a click
+        arriving while the panel is already hidden must do nothing rather
+        than toggle it open again.
+        """
+        if self._left_stack.isVisible():
+            self._toggle_workspace()
+
+    def _on_rail_action(self, key: str) -> None:
+        """Run a footer tile's action, named by key."""
+        if key == "settings":
+            self._on_settings()
 
     def _create_left_panel(self) -> QWidget:
         """Create the left-side area: activity rail + stacked content."""
@@ -2655,42 +2726,39 @@ class MainWindow(QMainWindow):
         self._native_corner_radius_attempted = True
         if apply_native_macos_corner_radius(self):
             self._native_corner_radius_active = True
-            # Belt and braces: a QRegion mask set earlier (there should not
-            # be one yet, but resizeEvent could in principle have already
-            # fired once) would reimpose the very staircase this just
-            # replaced, on top of the now-smooth native curve.
-            self.clearMask()
-            # #windowFrame's own QSS border-radius (macos_native.qss) drew a
-            # *second*, independent rounded corner on top of - not aligned
-            # with - the one the native CALayer clip now draws: two AA
-            # curves at the same nominal radius but different rendering
-            # paths do not fall on the same pixels, which showed as a
-            # doubled edge (a square corner from one peeking past the
-            # curve of the other). "nativeRounded" tells the stylesheet to
-            # paint #windowFrame's fill and border as a plain rectangle
-            # instead - the single native clip then rounds *that* along
-            # with everything else in the window, so there is only ever
-            # one curve on screen.
+            # The mask deliberately stays: see resizeEvent on why a
+            # reported success is not proof the native clip is visible.
+            # What did visibly double against the native edge was
+            # #windowFrame's 1px hairline, not its fill: two independent
+            # curves at the same radius do not land on the same pixels, so
+            # the border traced one of them just inside the other. The
+            # "nativeRounded" property drops that border (macos_native.qss)
+            # while keeping the radius, so the fill still rounds.
             self._central_host.setProperty("nativeRounded", True)
             repolish_widget(self._central_host)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Keep the window's rounded-corner mask sized to the window.
 
-        macOS only, and only as a fallback: apply_native_macos_corner_radius
-        (see showEvent) rounds the window's real NSWindow corners with
-        anti-aliasing a QRegion mask cannot produce - see its own docstring
-        - and once that has succeeded this mask would only reimpose the
-        staircase it replaced, so it is skipped. Still needed when pyobjc is
-        unavailable: #windowFrame's own QSS border-radius rounds what it
-        paints, but the children filling it edge to edge (#leftPanelCard,
-        the chart tabs) still have square corners of their own, poking out
-        past the curve - see apply_rounded_window_mask's own docstring.
-        Cleared while maximized: a maximized window's edges are the
-        screen's own, and a real macOS window is square-cornered there too.
+        macOS only. The mask runs whether or not
+        apply_native_macos_corner_radius (see showEvent) reported success:
+        it used to be skipped in that case, on the grounds that the native
+        CALayer clip anti-aliases the curve better than a QRegion can and
+        the mask would only put the staircase back. That holds when the
+        native clip actually takes - and when it silently does not, which
+        is what was reported, skipping the mask leaves a square window
+        with nothing rounding it. A slightly harder curve is worth far
+        more than no curve, and the two agree on the same radius, so the
+        mask is simply always applied and whichever clip is tighter wins.
+        The mask is also what rounds the children filling the frame edge
+        to edge (#leftPanelCard, the chart tabs), whose own square corners
+        would otherwise poke past #windowFrame's painted curve - see
+        apply_rounded_window_mask's own docstring. Cleared while
+        maximized: a maximized window's edges are the screen's own, and a
+        real macOS window is square-cornered there too.
         """
         super().resizeEvent(event)
-        if not IS_MACOS or self._native_corner_radius_active:
+        if not IS_MACOS:
             return
         if self.isMaximized():
             self.clearMask()

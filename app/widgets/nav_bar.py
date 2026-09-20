@@ -1,16 +1,57 @@
-"""Fluent 2 navigation rail for the main window."""
+"""A platform-aware navigation rail: Fluent tiles on Windows, a macOS sidebar.
+
+Reusable outside this application. The rail knows how to *look* like the
+platform it is running on and nothing about what its entries mean: the
+pages are passed in as :class:`NavPage` records and every click leaves as
+a signal, so a host window decides what a tile does. Nothing here reaches
+back into the window that owns it except to give the title bar something
+to move (macOS), which is what a frameless window needs.
+
+To reuse it:
+
+    rail = NavigationBar(window, is_macos=IS_MACOS, pages=[
+        NavPage("files", "Files", "Show the files", icon_svg=FOLDER_SVG),
+        NavPage("settings", "Settings", "Preferences"),
+    ])
+    rail.page_selected.connect(stack.setCurrentIndex)
+    rail.workspace_toggled.connect(window.toggle_side_panel)
+
+A page with no ``icon_svg`` falls back to the application's own action
+catalogue (``style.action_presentation``), which is this project's way of
+naming an icon per platform; a project without one simply passes the SVG.
+"""
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QButtonGroup, QFrame, QSizePolicy, QToolButton, QVBoxLayout
 
 from app.styles.style import action_presentation, icon_from_svg_source
 from app.utils.i18n import _
+from app.widgets.custom_title_bar import CustomTitleBar
 
 if TYPE_CHECKING:
-    from app.dialogs.main_window import MainWindow
+    from PySide6.QtWidgets import QWidget
+
+
+@dataclass(frozen=True, slots=True)
+class NavPage:
+    """One page tile: its key, what it reads as, and how it is drawn.
+
+    ``key`` is what identifies the page to the host - this application
+    uses its action-catalogue ids, another project can use anything it
+    likes. ``icon_svg`` is the body of an SVG (the ``<path>``/``<rect>``
+    elements, no wrapper), drawn at the rail's own icon size; leaving it
+    None asks the action catalogue for a platform icon instead.
+    """
+
+    key: str
+    label: str = ""
+    tooltip: str = ""
+    icon_svg: str | None = None
 
 #: Windows/Fluent: a fixed-width column of square icon-over-label tiles.
 #: Widened from the original 104/120 - "Operazioni sulle serie" and
@@ -34,7 +75,10 @@ _MACOS_ROW_HEIGHT = 30
 #: The rail is never hidden outright, unlike the sidebar in some apps:
 #: the icons stay as the way back, so there is no invisible state to get
 #: stuck in.
-_MACOS_COMPACT_WIDTH = 48
+#: 64, not 48: the three traffic lights at the top of the rail need
+#: 12px each plus 8px between them plus the inset, and squeezing the rail
+#: below that drew them overlapping each other.
+_MACOS_COMPACT_WIDTH = 64
 _WINDOWS_COMPACT_WIDTH = 56
 
 _HOME_ICON = (
@@ -71,6 +115,26 @@ _DEVELOPER_ICON = (
     '<polyline points="8 6 2 12 8 18"/>'
 )
 
+#: This application's own rail. Passed as a default rather than built
+#: inside the class, so the class itself carries no knowledge of what
+#: ChartLibre's pages are - see the module docstring for reuse. The
+#: order is the order of the pages beside it (see
+#: main_window._create_left_stack): File first, directly under Workspace,
+#: since that is where a session starts.
+DEFAULT_PAGES: tuple[NavPage, ...] = (
+    NavPage("nav_file", "File", "New, open, import and save", _FILE_ICON),
+    NavPage("nav_data", "Tables", "Show data tables", _TABLE_ICON),
+    NavPage("nav_chart_options", "", "", _SLIDERS_ICON),
+    NavPage("nav_series_operations", "", ""),
+    NavPage("nav_database", "Database", "Show database tools", _DATABASE_ICON),
+    NavPage(
+        "nav_developer",
+        "Developer",
+        "Scaffolding tools and the translation catalogue",
+        _DEVELOPER_ICON,
+    ),
+)
+
 
 def _wrap_tile_label(text: str) -> str:
     """Break a tile label onto two lines at its middlemost space.
@@ -97,13 +161,38 @@ def _wrap_tile_label(text: str) -> str:
 
 
 class NavigationBar(QFrame):
-    """Wide Fluent rail with icon-over-label navigation tiles."""
+    """A navigation rail: Fluent tiles on Windows, a sidebar list on macOS.
 
-    def __init__(self, window: MainWindow, *, is_macos: bool) -> None:
+    Host-agnostic: it reports what was clicked and never acts on the
+    window itself. See the module docstring for how to reuse it.
+    """
+
+    #: A page tile was chosen - the index into ``pages``, so a host can
+    #: hand it straight to a QStackedWidget.
+    page_selected = Signal(int)
+    #: The workspace tile was clicked; the host decides what "workspace"
+    #: means (here: collapse the panel beside the rail).
+    workspace_toggled = Signal()
+    #: A footer tile was clicked, by key ("settings" here). Footer tiles
+    #: are actions rather than pages, so they carry no index.
+    action_triggered = Signal(str)
+
+    def __init__(
+        self,
+        window: QWidget,
+        *,
+        is_macos: bool,
+        pages: Sequence[NavPage] | None = None,
+    ) -> None:
         super().__init__(window)
-        self._window: MainWindow = window
+        # Held only to give the frameless title bar a window to move and
+        # to parent the help menu - never to call back into it.
+        self._window = window
         self._is_macos = is_macos
         self._compact = False
+        self.pages: tuple[NavPage, ...] = tuple(
+            DEFAULT_PAGES if pages is None else pages
+        )
         self.setObjectName("activityRail")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setFixedWidth(_MACOS_NAV_BAR_WIDTH if is_macos else NAV_BAR_WIDTH)
@@ -126,12 +215,24 @@ class NavigationBar(QFrame):
         layout.setContentsMargins(8, 10, 8, 10)
         layout.setSpacing(4)
 
-        # The traffic lights (macOS) and the icon+title+min/max/close row
-        # (Windows) both live one level up now - see
-        # main_window._create_central_host - in a strip spanning the whole
-        # window's width, not just the rail's: a copy embedded only here
-        # left no way to drag the window from above the central table panel
-        # or the chart tabs, both outside the rail entirely.
+        # macOS: the traffic lights sit at the top of the rail itself, on
+        # the rail's own grey. A full-window-width strip above the splitter
+        # was tried instead and looked wrong for the reason Finder, Music
+        # and System Settings all avoid it: it put a grey band across the
+        # top of the *white* panels beside the rail, so their background
+        # stopped short of the window's edge and every vertical divider
+        # ended in a seam a few pixels down from the top. Windows keeps its
+        # own full-width caption strip (icon, title, min/max/close), which
+        # is what that platform's windows actually look like - see
+        # main_window._create_central_host.
+        self.title_bar: CustomTitleBar | None = None
+        if self._is_macos:
+            # parent=self, window=the window its buttons act on: see
+            # CustomTitleBar.__init__ on why those must not be the same
+            # object here.
+            self.title_bar = CustomTitleBar(window, is_macos=True, parent=self)
+            layout.addWidget(self.title_bar)
+            layout.addSpacing(4)
 
         self.workspace_button = self._tile(
             (
@@ -148,27 +249,18 @@ class NavigationBar(QFrame):
         )
         layout.addWidget(self.workspace_button)
 
-        # "File" is a page tile like Data/Database, not a platform-gated
-        # auxiliary button: File's actions (New/Open/Import/Save...) used to
-        # only exist as this button's own popup menu, off macOS only - see
-        # main_window._create_file_page for where they live now, on every
-        # platform, the same way Database's own popup dialog became a page.
-        self.action_ids = (
-            "nav_data",
-            "nav_chart_options",
-            "nav_series_operations",
-            "nav_database",
-            "nav_file",
-            "nav_developer",
-        )
+        #: The page keys, in rail order. Kept as a plain tuple of strings
+        #: because callers index pages by key ("which tile is Database?")
+        #: far more often than they want the whole record.
+        self.action_ids = tuple(page.key for page in self.pages)
 
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)
         self.button_group.addButton(self.workspace_button, -2)
         self.button_group.idClicked.connect(self._on_group_clicked)
         self.buttons: list[QToolButton] = []
-        for index, action_id in enumerate(self.action_ids):
-            button = self._navigation_tile(action_id)
+        for index, page in enumerate(self.pages):
+            button = self._navigation_tile(page)
             self.button_group.addButton(button, index)
             self.buttons.append(button)
             layout.addWidget(button)
@@ -179,14 +271,17 @@ class NavigationBar(QFrame):
             self.settings_button = self._catalogue_tile(
                 "settings", _("Settings"), checkable=False
             )
-            self.settings_button.clicked.connect(window._on_settings)
+            # A signal, not window._on_settings: the rail reports the
+            # click and the host decides what settings are.
+            self.settings_button.clicked.connect(
+                lambda: self.action_triggered.emit("settings")
+            )
             layout.addWidget(self.settings_button)
 
             self.help_button = self._catalogue_tile(
                 "user_manual", _("Help"), checkable=False
             )
             self.help_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-            self.help_button.setMenu(window._help_menu)
             layout.addWidget(self.help_button)
         else:
             self.settings_button = None
@@ -199,11 +294,20 @@ class NavigationBar(QFrame):
         # already follows - see that file's own PLATFORM PARITY NOTES.
 
     def _on_group_clicked(self, button_id: int) -> None:
+        """Report the click; what it means is the host's business."""
         if button_id == -2:
-            if self._window._left_stack.isVisible():
-                self._window._toggle_workspace()
+            self.workspace_toggled.emit()
             return
-        self._window._set_nav_index(button_id)
+        self.page_selected.emit(button_id)
+
+    def set_help_menu(self, menu) -> None:
+        """Attach the menu the Help tile pops up (off macOS only).
+
+        Separate from construction because the menu belongs to the host -
+        the rail only needs somewhere to hang it.
+        """
+        if self.help_button is not None:
+            self.help_button.setMenu(menu)
 
     def set_workspace_hidden(self, hidden: bool) -> None:
         self.workspace_button.setChecked(bool(hidden))
@@ -234,6 +338,11 @@ class NavigationBar(QFrame):
         else:
             self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else NAV_BAR_WIDTH)
 
+        # The traffic lights do not fit beside the toggle at this width;
+        # the strip restacks itself rather than letting them overlap.
+        if self.title_bar is not None:
+            self.title_bar.set_compact(compact)
+
         for button in self._all_tiles():
             self._apply_tile_mode(button)
 
@@ -246,15 +355,24 @@ class NavigationBar(QFrame):
         return tiles
 
     def _apply_tile_mode(self, button: QToolButton) -> None:
-        """Set one tile's text, style and size for the current mode."""
+        """Set one tile's text, style and size for the current mode.
+
+        The icon is re-set to the same size in both modes, never scaled up
+        to fill the space the label left behind: a rail that collapses
+        should read as the same row of icons, moved, not as a different
+        and larger set of them.
+        """
         full_text = str(button.property("navLabel") or button.text())
+        icon_size = _MACOS_ICON_SIZE if self._is_macos else NAV_ICON_SIZE
+        button.setIconSize(icon_size)
+
         if self._compact:
             button.setText("")
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             if self._is_macos:
                 button.setFixedHeight(_MACOS_ROW_HEIGHT)
             else:
-                button.setFixedSize(QSize(40, 40))
+                button.setFixedSize(QSize(_WINDOWS_COMPACT_WIDTH - 16, NAV_ITEM_SIZE.height()))
             return
 
         button.setText(full_text if self._is_macos else _wrap_tile_label(full_text))
@@ -269,51 +387,26 @@ class NavigationBar(QFrame):
         if 0 <= index < len(self.buttons):
             self.buttons[index].setChecked(True)
 
-    def _navigation_tile(self, action_id: str) -> QToolButton:
-        # macOS keeps its own hand-drawn outline icons - unchanged. Windows
-        # reads icon, text and tooltip straight from the action catalogue
-        # (config.json's SegoeFluent glyphs), the same way every action
-        # elsewhere in the app already presents itself - one fewer place
-        # a Windows icon can drift from its catalogue entry.
-        if self._is_macos:
-            if action_id == "nav_data":
-                return self._tile(
-                    icon_from_svg_source(_TABLE_ICON, size=20),
-                    _("Tables"),
-                    _("Show data tables"),
-                    checkable=True,
-                )
-            if action_id == "nav_chart_options":
-                _icon, text, tooltip = action_presentation(action_id)
-                return self._tile(
-                    icon_from_svg_source(_SLIDERS_ICON, size=20),
-                    text,
-                    tooltip,
-                    checkable=True,
-                )
-            if action_id == "nav_database":
-                return self._tile(
-                    icon_from_svg_source(_DATABASE_ICON, size=20),
-                    _("Database"),
-                    _("Show database tools"),
-                    checkable=True,
-                )
-            if action_id == "nav_file":
-                return self._tile(
-                    icon_from_svg_source(_FILE_ICON, size=20),
-                    _("File"),
-                    _("New, open, import and save"),
-                    checkable=True,
-                )
-            if action_id == "nav_developer":
-                return self._tile(
-                    icon_from_svg_source(_DEVELOPER_ICON, size=20),
-                    _("Developer"),
-                    _("Scaffolding tools and the translation catalogue"),
-                    checkable=True,
-                )
-        icon, text, tooltip = action_presentation(action_id)
-        return self._tile(icon, text, tooltip, checkable=True)
+    def _navigation_tile(self, page: NavPage) -> QToolButton:
+        """Build one page tile from its record.
+
+        Where the icon comes from is the one platform difference left:
+        macOS draws the page's own outline SVG, matching the hairline
+        look of a Finder sidebar, while Windows asks the action catalogue
+        for the Segoe Fluent glyph so a Windows icon can never drift from
+        its catalogue entry. A page carrying no SVG - or any page at all
+        on Windows - falls through to the catalogue; a project reusing
+        this class without one just passes ``icon_svg`` for every page.
+        """
+        icon, text, tooltip = action_presentation(page.key)
+        if self._is_macos and page.icon_svg:
+            icon = icon_from_svg_source(page.icon_svg, size=20)
+        return self._tile(
+            icon,
+            _(page.label) if page.label else text,
+            _(page.tooltip) if page.tooltip else tooltip,
+            checkable=True,
+        )
 
     def _catalogue_tile(
         self, action_id: str, label: str, *, checkable: bool

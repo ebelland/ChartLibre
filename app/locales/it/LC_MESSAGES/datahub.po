@@ -6200,3 +6200,12 @@ msgstr "Condividi Z"
 
 msgid "Use one common Z range for all 3D axes in this figure. The selected axis provides the Z limits; 2D axes are ignored."
 msgstr "Usa un unico intervallo Z per tutti gli assi 3D di questa figura. L'asse selezionato fornisce i limiti Z; gli assi 2D vengono ignorati."
+
+msgid "Hide the navigation labels"
+msgstr "Nascondi le etichette di navigazione"
+
+msgid "Show the navigation labels"
+msgstr "Mostra le etichette di navigazione"
+
+msgid "Table (selected table)"
+msgstr "Tabella (tabella selezionata)"
