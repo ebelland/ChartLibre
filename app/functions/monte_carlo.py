@@ -105,7 +105,13 @@ def monte_carlo_p0(
     should_continue: Callable[[int, float], bool] | None = None,
 ) -> tuple[np.ndarray, float, int]:
     """Search a model's parameters at random against ``y``; see the search below."""
-    x_array = np.asarray(x, dtype=float).ravel()
+    # Not an unconditional .ravel(): a 2-variable surface model's x is an
+    # (N, 2) array of (x, y) independent columns (see fit_dialog's
+    # _split_xy/_is_2d_fit), and flattening that to (2N,) before it ever
+    # reaches ``model`` would silently interleave the two columns into one
+    # meaningless vector. Only genuinely 1D input is reshaped.
+    x_raw = np.asarray(x, dtype=float)
+    x_array = x_raw.ravel() if x_raw.ndim <= 1 else x_raw
     y_array = np.asarray(y, dtype=float).ravel()
 
     return monte_carlo_search(

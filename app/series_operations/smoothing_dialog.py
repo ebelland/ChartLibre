@@ -902,7 +902,7 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         self.model_combo.setVisible(False)
         self._refresh_methods()
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     def create_axis_series_selector(self) -> AxisSeriesSelector:
         return AxisSeriesSelector(self._repo, self._figure_id, self)
@@ -953,12 +953,12 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         return super().build_results_pane()
 
     def connect_operation_signals(self) -> None:
-        self.series_selector.selection_changed.connect(lambda *_args: self.refresh_results())
-        self.series_selector.axis_changed.connect(lambda *_args: self.refresh_results())
+        self.series_selector.selection_changed.connect(lambda *_args: self.mark_results_stale())
+        self.series_selector.axis_changed.connect(lambda *_args: self.mark_results_stale())
         self.dimension_combo.currentIndexChanged.connect(self._refresh_methods)
-        self.dimension_combo.currentIndexChanged.connect(self.refresh_results)
+        self.dimension_combo.currentIndexChanged.connect(self.mark_results_stale)
         self.method_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.method_combo.currentIndexChanged.connect(self.refresh_results)
+        self.method_combo.currentIndexChanged.connect(self.mark_results_stale)
         self._doc_link.linkActivated.connect(self._open_description)
 
     @staticmethod
@@ -1281,7 +1281,7 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
 
     def _on_axis_changed(self, axis_name: str) -> None:
         del axis_name
-        self.refresh_results()
+        self.mark_results_stale()
 
     def _refresh_methods(self) -> None:
         """Rebuild method list from the registry for the selected dimension."""
@@ -1558,17 +1558,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         if not results:
             return ""
         return f"Preview for {len(results)} smoothed series"
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = results
-        self.set_results_text(self.format_results(results) if results else "Select one or more source series.")
 
     @staticmethod
     def _source_series_id(series: SeriesChoice) -> int | None:

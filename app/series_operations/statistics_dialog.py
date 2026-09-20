@@ -142,7 +142,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         # show paired-sample results when more than one series exists.
         self.series_selector.select_all_series()
         self._sync_model_controls()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI hooks
@@ -341,16 +341,16 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
     def connect_operation_signals(self) -> None:
         self.create_chart_check.toggled.connect(self.chart_type_combo.setEnabled)
         self.model_combo.currentIndexChanged.connect(lambda *_args: self._sync_model_controls())
-        self.model_combo.currentIndexChanged.connect(lambda *_args: self.refresh_results())
-        self.popmean_spin.valueChanged.connect(lambda *_args: self.refresh_results())
-        self.alternative_combo.currentIndexChanged.connect(lambda *_args: self.refresh_results())
-        self.trim_percent_spin.valueChanged.connect(lambda *_args: self.refresh_results())
-        self.anderson_method_combo.currentIndexChanged.connect(lambda *_args: self.refresh_results())
-        self.monte_carlo_resamples_spin.valueChanged.connect(lambda *_args: self.refresh_results())
-        self.monte_carlo_batch_spin.valueChanged.connect(lambda *_args: self.refresh_results())
-        self.distribution_combo.currentIndexChanged.connect(lambda *_args: self.refresh_results())
-        self.exhaustive_check.toggled.connect(lambda *_args: self.refresh_results())
-        self.rank_combo.currentIndexChanged.connect(lambda *_args: self.refresh_results())
+        self.model_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
+        self.popmean_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
+        self.alternative_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
+        self.trim_percent_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
+        self.anderson_method_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
+        self.monte_carlo_resamples_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
+        self.monte_carlo_batch_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
+        self.distribution_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
+        self.exhaustive_check.toggled.connect(lambda *_args: self.mark_results_stale())
+        self.rank_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
 
     # ------------------------------------------------------------------
     # Base pipeline overrides: read-only operation
@@ -375,16 +375,6 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
     def ok(self) -> None:
         if self.apply():
             self.accept()
-
-    def refresh_results(self) -> None:
-        try:
-            results = list(self.compute_results())
-        except Exception:
-            self.set_results_html(
-                "<p style='color:#666;'>Check one or more numeric series to compute statistics.</p>"
-            )
-            return
-        self.publish_results(self.format_results(results))
 
     def compute_results(self) -> Sequence[SeriesStatsResult]:
         samples = self._selected_samples()

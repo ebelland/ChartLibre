@@ -27,9 +27,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QVBoxLayout, QWidget
+from scipy.ndimage import maximum_filter, minimum_filter
 from scipy.signal import find_peaks, peak_prominences, peak_widths
 
-from app.data.data_source import row_value
+from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
@@ -66,7 +67,13 @@ PEAK_DOCS = {
 
 @dataclass(slots=True)
 class Peak:
-    """One located peak, with the measurements that describe it."""
+    """One located peak, with the measurements that describe it.
+
+    ``z`` is None for an ordinary 1D peak on a curve. A peak found on a
+    surface (``z`` role present, see ``_find_one_3d``) sets it, and leaves
+    ``width``/``left_x``/``right_x`` as NaN - those describe a 1D half-
+    prominence interval, which a 2D local maximum simply does not have.
+    """
 
     x: float
     y: float
@@ -75,6 +82,7 @@ class Peak:
     left_x: float
     right_x: float
     is_minimum: bool = False
+    z: float | None = None
 
 
 @dataclass(slots=True)
@@ -88,6 +96,16 @@ class PeakResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_frame(self) -> pd.DataFrame:
+        if self.metadata.get("is_3d"):
+            return pd.DataFrame(
+                {
+                    "x": [peak.x for peak in self.peaks],
+                    "y": [peak.y for peak in self.peaks],
+                    "z": [peak.z for peak in self.peaks],
+                    "prominence": [peak.prominence for peak in self.peaks],
+                    "is_minimum": [int(peak.is_minimum) for peak in self.peaks],
+                }
+            )
         return pd.DataFrame(
             {
                 "x": [peak.x for peak in self.peaks],
@@ -213,7 +231,7 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         )
         self.series_selector.reload(select_all_series=True)
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
@@ -244,7 +262,7 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
 
     def connect_operation_signals(self) -> None:
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.refresh_results)
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
@@ -255,21 +273,6 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
 
     def _model(self) -> str:
         return self.model_combo.currentText() or PEAKS_MAXIMA
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = list(results)
-        self.set_results_text(
-            self.format_results(results)
-            if results
-            else _("Select one or more source series.")
-        )
 
     # ------------------------------------------------------------------
     # Computation
@@ -285,8 +288,16 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         for row in self.selected_series():
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
-                x_values, y_values = self.series_xy(row, name)
-                results.append(self._find_one(name, x_values, y_values, model, params))
+                roles = parse_roles(row_value(row, "roles", default={}))
+                if roles.get("z"):
+                    # A series with a z role is a surface, not a curve - see
+                    # series_origin. The 1D find_peaks search below has
+                    # nothing to say about it, so it gets its own 2D local-
+                    # maximum search instead; the 1D path is untouched.
+                    results.append(self._find_one_3d(row, name, model, params))
+                else:
+                    x_values, y_values = self.series_xy(row, name)
+                    results.append(self._find_one(name, x_values, y_values, model, params))
             except Exception as exc:
                 errors.append(f"{name}: {exc}")
 
@@ -403,6 +414,122 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         return found
 
     # ------------------------------------------------------------------
+    # Surfaces (a series with a z role): 2D local-maximum search
+    # ------------------------------------------------------------------
+
+    def _find_one_3d(
+        self,
+        row: Any,
+        name: str,
+        model: str,
+        params: Mapping[str, Any],
+    ) -> PeakResult:
+        """Find local maxima/minima on a gridded (or interpolated) surface.
+
+        Same filter vocabulary as the 1D search - "Minimum" as a fraction of
+        the z range, "Minimum separation" as a neighbourhood size - reused
+        rather than duplicated with new names, so switching a series from a
+        curve to a surface does not also mean learning new parameters.
+        """
+        x_grid, y_grid, z_grid, interpolated = self.series_grid_xyz(row, name)
+
+        peaks: list[Peak] = []
+        if model in (PEAKS_MAXIMA, PEAKS_BOTH):
+            peaks.extend(self._search_3d(x_grid, y_grid, z_grid, params, minimum=False))
+        if model in (PEAKS_MINIMA, PEAKS_BOTH):
+            peaks.extend(self._search_3d(x_grid, y_grid, z_grid, params, minimum=True))
+
+        peaks.sort(key=lambda peak: (peak.x, peak.y))
+
+        return PeakResult(
+            source_name=name,
+            result_name=f"{name} - peaks",
+            model=model,
+            peaks=peaks,
+            metadata={
+                "found": len(peaks),
+                "filter": str(params.get("filter_by", "prominence")),
+                "is_3d": True,
+                "interpolated": bool(interpolated),
+            },
+        )
+
+    def _search_3d(
+        self,
+        x_grid: np.ndarray,
+        y_grid: np.ndarray,
+        z_grid: np.ndarray,
+        params: Mapping[str, Any],
+        *,
+        minimum: bool,
+    ) -> list[Peak]:
+        """2D analogue of ``_search``: a local-maximum filter, not find_peaks.
+
+        ``scipy.signal.find_peaks`` is a 1D algorithm; a surface's local
+        maxima are found with ``scipy.ndimage.maximum_filter`` instead - a
+        cell is a candidate when it equals the maximum of its own
+        neighbourhood, and its "prominence" is how far it stands above the
+        *minimum* of that same neighbourhood (the 2D reading of the 1D
+        prominence idea: height above the nearest lower ground).
+
+        NaN cells - present only in an interpolated grid, outside the convex
+        hull of the original points (see ``series_grid_xyz``) - are pushed to
+        -inf before filtering so they can never win a maximum comparison, and
+        any candidate whose own cell was NaN, or whose neighbourhood touches
+        a NaN (making its "minimum" -inf and its prominence infinite), is
+        discarded rather than reported as a peak.
+        """
+        signal = -z_grid if minimum else z_grid
+        finite_mask = np.isfinite(signal)
+        if not np.any(finite_mask):
+            return []
+
+        finite_values = signal[finite_mask]
+        span = float(np.ptp(finite_values))
+        if span <= 0.0:
+            return []
+
+        threshold = float(params.get("threshold", 0.05)) * span
+        distance = max(1, int(params.get("distance", 1)))
+        neighborhood = 2 * distance + 1
+
+        masked = np.where(finite_mask, signal, -np.inf)
+        local_max = maximum_filter(masked, size=neighborhood, mode="nearest")
+        local_min = minimum_filter(masked, size=neighborhood, mode="nearest")
+        with np.errstate(invalid="ignore"):
+            prominence = masked - local_min
+
+        is_candidate = finite_mask & (masked == local_max) & np.isfinite(prominence)
+
+        if str(params.get("filter_by", "prominence")) == "height":
+            base = float(np.min(finite_values))
+            keep = is_candidate & (masked >= base + threshold)
+        else:
+            keep = is_candidate & (prominence >= max(threshold, 1e-12))
+
+        rows_idx, cols_idx = np.nonzero(keep)
+        found = [
+            Peak(
+                x=float(x_grid[r, c]),
+                y=float(y_grid[r, c]),
+                z=float(z_grid[r, c]),
+                prominence=float(prominence[r, c]),
+                width=float("nan"),
+                left_x=float("nan"),
+                right_x=float("nan"),
+                is_minimum=minimum,
+            )
+            for r, c in zip(rows_idx.tolist(), cols_idx.tolist())
+        ]
+
+        limit = int(params.get("limit", 50))
+        if len(found) > limit:
+            found.sort(key=lambda peak: peak.prominence, reverse=True)
+            found = found[:limit]
+
+        return found
+
+    # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
 
@@ -416,10 +543,22 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         result: PeakResult,
     ) -> ResultSeriesSpec:
         del axis_id
+        is_3d = bool(result.metadata.get("is_3d"))
+        # Same source series -> same axis either way: a series with a z role
+        # is already drawn on a 3D-projection axis by the time this dialog
+        # can select it (see series_origin), so - exactly like the 1D peaks
+        # markers, which never create an axis of their own - the found peaks
+        # are simply added to that same axis, now with roles x, y, z.
+        sql_query = (
+            f'SELECT x, y, z FROM "{table_name}"'
+            if is_3d
+            else f'SELECT x, y FROM "{table_name}" ORDER BY x'
+        )
+        roles = {"x": "x", "y": "y", "z": "z"} if is_3d else {"x": "x", "y": "y"}
         return ResultSeriesSpec(
             name=result.result_name,
-            sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
-            roles={"x": "x", "y": "y"},
+            sql_query=sql_query,
+            roles=roles,
             style={
                 "generated_peaks": True,
                 "peaks_dialog": "series_peaks",
@@ -466,6 +605,40 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
                                 "or switch from height to prominence if the "
                                 "baseline is not at zero."
                             )
+                        ),
+                    )
+                )
+                continue
+
+            if result.metadata.get("is_3d"):
+                grid_note = report_html.note(
+                    _(
+                        "This surface's points were not a complete x/y grid, "
+                        "so the peaks below were found on a linearly "
+                        "interpolated one - treat them as approximate."
+                    )
+                    if result.metadata.get("interpolated")
+                    else _("Found on the surface's own exact x/y grid.")
+                )
+                rows_3d = [
+                    (
+                        str(index + 1),
+                        report_html.format_number(peak.x),
+                        report_html.format_number(peak.y),
+                        report_html.format_number(peak.z),
+                        report_html.format_number(peak.prominence, digits=4),
+                        _("minimum") if peak.is_minimum else _("maximum"),
+                    )
+                    for index, peak in enumerate(result.peaks)
+                ]
+                sections.append(
+                    report_html.section(
+                        f"{result.source_name} \u2014 {len(result.peaks)}",
+                        grid_note,
+                        report_html.table(
+                            ("#", "x", "y", "z", _("Prominence"), _("Kind")),
+                            rows_3d,
+                            align=("right", "right", "right", "right", "right", "left"),
                         ),
                     )
                 )

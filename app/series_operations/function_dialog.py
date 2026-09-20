@@ -41,7 +41,7 @@ from PySide6.QtWidgets import (
 
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.scanners.functions_scanner import FunctionScanner
+from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
 from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
@@ -58,7 +58,13 @@ SPACING_LOG = "log"
 
 @dataclass(slots=True)
 class FunctionResult:
-    """One evaluated function."""
+    """One evaluated function.
+
+    ``z`` is None for an ordinary y = f(x) curve. For a surface function
+    (z = f(x, y)) it holds the evaluated grid, flattened in step with ``x``
+    and ``y`` - three parallel 1D arrays over the same points, which is what
+    the SQLite table and the Surface renderer both want.
+    """
 
     function_name: str
     result_name: str
@@ -67,8 +73,11 @@ class FunctionResult:
     params: dict[str, float]
     expression: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+    z: np.ndarray | None = None
 
     def to_frame(self) -> pd.DataFrame:
+        if self.z is not None:
+            return pd.DataFrame({"x": self.x, "y": self.y, "z": self.z})
         return pd.DataFrame({"x": self.x, "y": self.y})
 
 
@@ -161,6 +170,10 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         self._last_results: list[FunctionResult] = []
         self._parameter_form: QFormLayout | None = None
         self._scanner = FunctionScanner()
+        # Surface (z = f(x, y)) functions, same split as the fit dialog: see
+        # SurfaceFunctionScanner's docstring for why this is a second scanner
+        # instance rather than a second base class check sprinkled around.
+        self._surface_scanner = SurfaceFunctionScanner()
         self._selected_function: dict[str, Any] = {}
         self._result_axis_id: int | None = None
         self._result_figure_id: int | None = None
@@ -176,7 +189,7 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         )
         self.axis_series_panel.setVisible(False)
         self._reload_function_tree()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
@@ -246,7 +259,7 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         self._params_table.setToolTip(
             _("Values used to evaluate the function. Nothing is fitted here.")
         )
-        self._params_table.itemChanged.connect(lambda *_a: self.refresh_results())
+        self._params_table.itemChanged.connect(lambda *_a: self.mark_results_stale())
         mark_editor_panel(self._params_table)
         layout.addWidget(self._params_table, 1)
 
@@ -257,12 +270,32 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         # parameter table are wired where they are built.
         return None
 
+    def _catalog_data(self) -> dict[str, list[dict[str, Any]]]:
+        """Return every plottable function, 1D and surface, grouped by category.
+
+        Merged the same way the fit dialog merges its two scanners: a surface
+        function's own categories ("Surfaces", "User surfaces") simply show
+        up as ordinary groups in the same tree.
+        """
+        merged: dict[str, list[dict[str, Any]]] = {
+            category: list(models) for category, models in self._scanner.catalog().items()
+        }
+        for category, models in self._surface_scanner.catalog().items():
+            merged.setdefault(category, []).extend(models)
+            merged[category].sort(key=lambda item: str(item.get("name", "")).lower())
+        return dict(sorted(merged.items(), key=lambda item: item[0].lower()))
+
+    def _is_2d_function(self, payload: Mapping[str, Any] | None = None) -> bool:
+        """True when the selected (or given) function is z = f(x, y)."""
+        data = payload if payload is not None else self._selected_function
+        return int((data or {}).get("ndim", 1)) == 2
+
     def _reload_function_tree(self) -> None:
         """Fill the tree from the scanner, grouped by category."""
         self._function_tree.blockSignals(True)
         try:
             self._function_tree.clear()
-            catalog = self._scanner.catalog()
+            catalog = self._catalog_data()
             for category, functions in catalog.items():
                 parent = QTreeWidgetItem([category, ""])
                 # Categories are grouping only; making them selectable invites
@@ -316,7 +349,7 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
             str(payload.get("name", "")),
             str(payload.get("doc_url", "") or ""),
         )
-        self.refresh_results()
+        self.mark_results_stale()
 
     def _rebuild_params_table(self, payload: Mapping[str, Any]) -> None:
         """Show one editable row per function parameter, seeded from p0."""
@@ -355,21 +388,6 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
                 values.append(0.0)
         return names, np.asarray(values, dtype=float)
 
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = list(results)
-        self.set_results_text(
-            self.format_results(results)
-            if results
-            else _("Select a function.")
-        )
-
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
@@ -378,6 +396,9 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         payload = self._selected_function
         if not payload:
             return []
+
+        if self._is_2d_function(payload):
+            return self._compute_surface_result(payload)
 
         params = self.parameter_values()
         x_values = self._build_range(params)
@@ -423,6 +444,54 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
             )
         ]
 
+    def _compute_surface_result(self, payload: Mapping[str, Any]) -> list[FunctionResult]:
+        """Evaluate a z = f(x, y) function over a grid and flatten it.
+
+        Judgment call: the same From/To/Points range declared for x is reused
+        for y rather than adding a second set of range controls - a
+        reasonable default for a first version (a square domain), and one
+        that keeps this dialog's parameter panel unchanged for the 1D case.
+        A future version could add independent Y range controls without
+        touching anything else here.
+        """
+        params = self.parameter_values()
+        x_lin = self._build_range(params)
+        y_lin = x_lin.copy()
+        x_grid, y_grid = np.meshgrid(x_lin, y_lin)
+
+        names, values = self._function_params()
+        model = self._surface_scanner.make_model(dict(payload))
+        xy = np.column_stack([x_grid.ravel(), y_grid.ravel()])
+        z_values = np.asarray(model(xy, values), dtype=float)
+
+        finite = int(np.count_nonzero(np.isfinite(z_values)))
+        if finite == 0:
+            raise ValueError(
+                "the function is undefined everywhere in this range - check "
+                "the range and the parameter values"
+            )
+
+        metadata: dict[str, Any] = {
+            "spacing": str(params.get("spacing", SPACING_LINEAR)),
+            "range": f"{x_lin[0]:g} .. {x_lin[-1]:g} (both axes)",
+        }
+        if finite < z_values.size:
+            metadata["undefined"] = z_values.size - finite
+
+        name = str(payload.get("name", "function"))
+        return [
+            FunctionResult(
+                function_name=name,
+                result_name=name,
+                x=x_grid.ravel(),
+                y=y_grid.ravel(),
+                z=z_values,
+                params=dict(zip(names, (float(value) for value in values))),
+                expression=str(payload.get("expression", "") or ""),
+                metadata=metadata,
+            )
+        ]
+
     @staticmethod
     def _build_range(params: Mapping[str, Any]) -> np.ndarray:
         """Return the x values to evaluate at."""
@@ -459,12 +528,27 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         it.
         """
         name = str(results[0].function_name) if results else "Function"
+        is_surface = bool(results and results[0].z is not None)
+        if is_surface:
+            # An exact rectangular meshgrid, not scattered points - built
+            # from np.meshgrid over the declared range - so the plain
+            # (non-scattered) Surface renderer is the honest choice here,
+            # unlike the fit dialog's TriSurface for arbitrary data points.
+            # "projection": "3d" is what create_chart_dialog itself sets for
+            # every CHART_TYPES_NEEDING_3D_AXES entry when a Surface axis is
+            # created through the UI - an axis made programmatically (as
+            # "New axis"/"New figure" here do) has to set it explicitly too.
+            options = {"grid": True, "projection": "3d"}
+            chart_type = "Surface Plot"
+        else:
+            options = {"grid": True, "linestyle": "-", "marker": ""}
+            chart_type = "Scatter Plot"
         return self.resolve_destination_axis(
             selected_axis_id,
-            chart_type="Scatter Plot",
+            chart_type=chart_type,
             title=name,
             figure_name=name,
-            options={"grid": True, "linestyle": "-", "marker": ""},
+            options=options,
         )
 
     def discard_operation_artifacts(self) -> None:
@@ -495,6 +579,18 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         result: FunctionResult,
     ) -> ResultSeriesSpec:
         del axis_id
+        if result.z is not None:
+            return ResultSeriesSpec(
+                name=result.result_name,
+                sql_query=f'SELECT x, y, z FROM "{table_name}"',
+                roles={"x": "x", "y": "y", "z": "z"},
+                style={
+                    "generated_function": True,
+                    "function_dialog": "series_function",
+                    "function": result.function_name,
+                    "fit_mode": "2D",
+                },
+            )
         return ResultSeriesSpec(
             name=result.result_name,
             sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
@@ -533,10 +629,12 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
 
         sections: list[str] = []
         for result in results:
-            finite = np.isfinite(result.y)
+            is_surface = result.z is not None
+            values = result.z if is_surface else result.y
+            finite = np.isfinite(values)
             summary_rows: list[tuple[str, Any]] = [
                 (_("Function"), result.function_name),
-                (_("Points"), result.y.size),
+                (_("Points"), values.size),
                 (_("Range"), result.metadata.get("range", "")),
                 (_("Spacing"), result.metadata.get("spacing", "")),
             ]
@@ -544,10 +642,10 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
                 summary_rows.extend(
                     [
                         (
-                            _("y range"),
-                            f"{report_html.format_number(float(np.min(result.y[finite])))}"
+                            _("z range") if is_surface else _("y range"),
+                            f"{report_html.format_number(float(np.min(values[finite])))}"
                             f" .. "
-                            f"{report_html.format_number(float(np.max(result.y[finite])))}",
+                            f"{report_html.format_number(float(np.max(values[finite])))}",
                         ),
                     ]
                 )

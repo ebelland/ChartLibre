@@ -38,6 +38,12 @@ class FitFunctionSpec:
     p0: tuple[float, ...]
     params: tuple[str, ...]
     discovery_entry: dict[str, Any]
+    #: Number of independent variables: 1 for y = f(x) (``base_function``),
+    #: 2 for z = f(x, y) (``base_surface_function``). Carried on the spec
+    #: rather than re-derived from the class each time, because the fit
+    #: dialog needs it after the class has already been discovered and
+    #: turned into a plain dict payload for the tree widget.
+    ndim: int = 1
 
     @property
     def class_name(self) -> str:
@@ -60,6 +66,7 @@ class FitFunctionSpec:
             "discovery_entry": dict(self.discovery_entry),
             "function_class": self.class_name,
             "path": self.path,
+            "ndim": self.ndim,
         }
 
 
@@ -77,8 +84,15 @@ class FunctionScanner:
     - ``execute(x, p)``: static/class method used by least-squares fitting
     """
 
+    #: Overridden by ``SurfaceFunctionScanner`` rather than duplicated: every
+    #: other method here - discovery, caching, the catalog tree, filtering -
+    #: is identical between a 1-variable and a 2-variable function library,
+    #: so only what actually differs (which base class, which default
+    #: category, how many independent variables the model takes) is a class
+    #: attribute.
     BASE_CLASS_NAME: Final[str] = "base_function"
     DEFAULT_CATEGORY: Final[str] = "Functions"
+    NDIM: Final[int] = 1
 
     def __init__(
         self, *, root: Path | None = None, extra_roots: tuple[Path, ...] | None = None
@@ -130,12 +144,32 @@ class FunctionScanner:
         return cls
 
     def make_model(self, payload: dict[str, Any]) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
-        """Build a fit callable from a tree payload."""
+        """Build a fit callable from a tree payload.
+
+        For a 1-variable function (``ndim`` 1, the default) the returned
+        model reads ``x_or_xy`` as x alone, discarding a second column when
+        one happens to be present - see ``_primary_x``.
+
+        For a 2-variable surface function (``ndim`` 2), the fit dialog's own
+        convention applies: ``x_or_xy`` is an ``(N, 2)`` array, column 0 is x
+        and column 1 is y (the same shape ``fit_dialog._split_xy`` already
+        expects for its own two-input models), and ``execute(x, y, p)`` is
+        called with the two columns split apart.
+        """
         cls = self.load_class(payload)
 
         execute = getattr(cls, "execute", None)
         if not callable(execute):
             raise TypeError(f"Discovered function {cls!r} has no callable execute(x, p).")
+
+        if int(payload.get("ndim", 1)) == 2:
+
+            def surface_model(x_or_xy: np.ndarray, p: np.ndarray) -> np.ndarray:
+                x, y = self._split_xy(np.asarray(x_or_xy, dtype=float))
+                params = np.asarray(p, dtype=float).reshape(-1)
+                return np.asarray(execute(x, y, params), dtype=float)
+
+            return surface_model
 
         def model(x_or_xy: np.ndarray, p: np.ndarray) -> np.ndarray:
             x = self._primary_x(np.asarray(x_or_xy, dtype=float))
@@ -198,6 +232,7 @@ class FunctionScanner:
                     p0=p0,
                     params=params,
                     discovery_entry=dict(entry),
+                    ndim=self.NDIM,
                 )
             )
 
@@ -210,6 +245,23 @@ class FunctionScanner:
         if arr.ndim == 2:
             return arr[:, 0]
         return arr
+
+    @staticmethod
+    def _split_xy(value: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Split an ``(N, 2)`` array into its x and y columns.
+
+        Raises rather than guessing when the caller handed a 2-variable
+        model a plain 1D array: that means whoever built ``x_data`` did not
+        actually assemble the second independent variable, which is a bug
+        worth surfacing immediately rather than fitting garbage.
+        """
+        arr = np.asarray(value, dtype=float)
+        if arr.ndim != 2 or arr.shape[1] < 2:
+            raise ValueError(
+                "This surface model requires an (N, 2) array of (x, y) "
+                "independent columns."
+            )
+        return arr[:, 0], arr[:, 1]
 
     @staticmethod
     def _string_tuple(value: Any) -> tuple[str, ...]:
@@ -228,3 +280,21 @@ class FunctionScanner:
         if fallback_length > 0:
             return tuple(1.0 for _ in range(fallback_length))
         return (1.0, 1.0)
+
+
+class SurfaceFunctionScanner(FunctionScanner):
+    """Discover z = f(x, y) surface fit functions.
+
+    Everything but *which classes count* is shared with ``FunctionScanner`` -
+    discovery, caching, the catalog tree, filtering, model building - so this
+    overrides only the three class attributes that describe the difference,
+    rather than re-implementing ``_discover``/``make_model`` from scratch.
+    Built-ins live in ``app/functions/surface_functions.py``, a hand-written
+    example in ``app/functions/user_surface_functions.py``, and both are
+    scanned from the same ``app/functions/`` root ``FunctionScanner`` uses -
+    the base-class filter is what keeps the two libraries apart.
+    """
+
+    BASE_CLASS_NAME: Final[str] = "base_surface_function"
+    DEFAULT_CATEGORY: Final[str] = "Surfaces"
+    NDIM: Final[int] = 2

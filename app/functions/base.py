@@ -246,3 +246,35 @@ class base_function:
         return None
 
 
+@dataclass
+class base_surface_function:
+    """Base metadata contract for scanned surface (2-variable) fit functions.
+
+    Same idea as ``base_function``, but for z = f(x, y) instead of y = f(x):
+    ``execute(x, y, p)`` evaluates it, ``initial_guess(x, y, z)`` reads a
+    starting point off scattered (x, y, z) data. Neither is ever called on an
+    instance, for the same reason ``base_function``'s own are not - the
+    scanner discovers the class and reads its attributes without
+    constructing anything.
+    """
+
+    name: ClassVar[str] = ""
+    category: ClassVar[str] = "Surfaces"
+    description: ClassVar[str] = ""
+    expression: ClassVar[str] = ""
+    p0: ClassVar[list[float]] = []
+    params: ClassVar[list[str]] = []
+
+    @staticmethod
+    def execute(x: np.ndarray, y: np.ndarray, p: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
+
+    @staticmethod
+    def initial_guess(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> List[float] | None:
+        """Return a starting point read off the data, or None.
+
+        See ``base_function.initial_guess`` for why None is a different
+        answer from a bad guess.
+        """
+        del x, y, z
+        return None

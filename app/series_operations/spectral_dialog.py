@@ -241,7 +241,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         self.series_selector.set_series_filter(self._has_query)
         self.series_selector.reload(select_all_series=False)
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # Widgets
@@ -395,37 +395,34 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         return widget
 
     def connect_operation_signals(self) -> None:
-        """Recompute the preview whenever a parameter changes."""
+        """Mark the preview stale whenever a parameter changes."""
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.refresh_results)
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
         self._fs_auto_check.toggled.connect(self._refresh_visibility)
-        self._fs_auto_check.toggled.connect(self.refresh_results)
+        self._fs_auto_check.toggled.connect(self.mark_results_stale)
 
-        # Spinboxes go through the debounced path: Welch/FFT/wavelet
-        # transforms are heavy enough that holding a spinbox's arrow down
-        # (or dragging it) must not fire one full recompute per tick.
         for widget in (
             self._fs_spin,
             self._overlap_spin,
         ):
-            widget.valueChanged.connect(self._queue_refresh_results)
+            widget.valueChanged.connect(self.mark_results_stale)
         for widget in (self._nperseg_spin, self._maxlags_spin):
-            widget.valueChanged.connect(self._queue_refresh_results)
+            widget.valueChanged.connect(self.mark_results_stale)
         for widget in (
             self._window_combo,
             self._detrend_combo,
             self._scaling_combo,
             self._corr_norm_combo,
         ):
-            widget.currentIndexChanged.connect(self.refresh_results)
+            widget.currentIndexChanged.connect(self.mark_results_stale)
         for widget in (self._onesided_check, self._db_check):
-            widget.toggled.connect(self.refresh_results)
+            widget.toggled.connect(self.mark_results_stale)
         for widget in (
             self._sigma_spin,
             self._wavelet_w0_spin,
             self._wavelet_scales_spin,
         ):
-            widget.valueChanged.connect(self._queue_refresh_results)
+            widget.valueChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self) -> None:
         """Show only the parameters the selected method actually uses."""
@@ -1106,15 +1103,3 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
             ),
         )
 
-    def refresh_results(self) -> None:
-        """Recompute and show the preview text without touching the database."""
-        try:
-            results = list(self.compute_results())
-        except Exception as exc:
-            self._last_results = []
-            # Always plain: the exception text is not markup.
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = results
-        self.publish_results(self.format_results(results))

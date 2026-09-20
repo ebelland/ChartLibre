@@ -9,11 +9,27 @@ QMainWindow {
    applied stylesheet) - apply_rounded_window_mask() is what actually
    clips the window's content to this same rounded shape, since QSS
    border-radius alone only rounds what this widget itself paints, not
-   its children. */
+   its children. This is the *fallback* path only, for when
+   apply_native_macos_corner_radius (see the rule right below) could not
+   run - pyobjc missing, most likely. */
 QWidget#windowFrame {
   background: palette(window);
   border: 1px solid rgba(@SHADOW_RGB@, 0.28);
   border-radius: 6px;
+}
+
+/* Once MainWindow.showEvent has successfully handed rounding to the real
+   NSWindow's own CALayer (apply_native_macos_corner_radius, in
+   app/styles/style.py), this fill and border must go back to being a
+   plain rectangle: the corner curve above and the native clip are two
+   independent anti-aliased curves at the same nominal radius but
+   different rendering paths, so they do not fall on the same pixels -
+   the mismatch showed as a doubled edge, a square corner from this rule
+   peeking out past the native curve. Left square here, the *one* native
+   clip rounds this along with everything else in the window, so only
+   one curve ever reaches the screen. */
+QWidget#windowFrame[nativeRounded="true"] {
+  border-radius: 0;
 }
 
 QLabel[role="title"] {
@@ -168,6 +184,36 @@ QPushButton#primaryDialogButton:disabled {
   color: palette(mid);
 }
 
+/* Destructive buttons - "Clear list" and anything else that forgets/
+   deletes rather than opens/saves. AppKit's own systemRed, not the
+   theme's accent color - the same reason the traffic lights in
+   custom_title_bar.py are not theme-dependent either. */
+QPushButton[destructive="true"] {
+  background: #FF3B30;
+  color: white;
+  border: 1px solid #FF3B30;
+  border-radius: 6px;
+  padding: 4px 14px;
+  min-height: 15px;
+  font-weight: 600;
+}
+
+QPushButton[destructive="true"]:hover {
+  background: #E0342A;
+  border: 1px solid #E0342A;
+}
+
+QPushButton[destructive="true"]:pressed {
+  background: #C52E25;
+  border: 1px solid #C52E25;
+}
+
+QPushButton[destructive="true"]:disabled {
+  background: rgba(@SHADOW_RGB@, 0.10);
+  border-color: rgba(@SHADOW_RGB@, 0.10);
+  color: palette(mid);
+}
+
 QToolBox {
   background: transparent;
   border: none;
@@ -227,7 +273,7 @@ QFrame#ChartPanel {
 }
 
 QToolBar {
-  background: transparent;
+  /*background: transparent;*/
   border: none;
   border-bottom: none;
   spacing: 2px;
@@ -288,7 +334,7 @@ QTabBar::tab {
   background: transparent;
   color: palette(mid);
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 4px 14px;
   margin: 1px;
   /* Deliberately small: a large min-width would put a floor under the
@@ -338,6 +384,17 @@ QFrame#activityRail {
   background: rgba(@SHADOW_RGB@, 0.035);
   border: none;
   border-right: 1px solid rgba(@SHADOW_RGB@, 0.08);
+}
+
+/* The title bar strip (see main_window._create_central_host) sits right
+   above #activityRail, unstyled by default - without a rule here it shows
+   #windowFrame's own white background instead, one shade off from the
+   rail's own tint directly below it. Same tint, so the traffic lights read
+   as part of one continuous grey band with the rail, not a separate white
+   strip glued on top of it. */
+QFrame#customTitleBar {
+  background: rgba(@SHADOW_RGB@, 0.035);
+  border: none;
 }
 
 

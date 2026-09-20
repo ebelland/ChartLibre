@@ -1226,6 +1226,14 @@ msgid "Export Excel"
 msgstr "Esporta Excel"
 
 
+msgid "Export as Excel"
+msgstr "Esporta come Excel"
+
+
+msgid "Export as text file"
+msgstr "Esporta come file di Testo"
+
+
 msgid "Export XLSX"
 msgstr "Esporta XLSX"
 
@@ -2778,6 +2786,10 @@ msgid "Rename the selection"
 msgstr "Rinomina la selezione"
 
 
+msgid "New name for table '{table}':"
+msgstr "Nuovo nome per la tabella '{table}':"
+
+
 msgid "Rename…"
 msgstr "Rinomina…"
 
@@ -4128,6 +4140,9 @@ msgstr "unbiased divide per la sovrapposizione a ogni ritardo; biased divide per
 
 msgid "y range"
 msgstr "Intervallo di y"
+
+msgid "z range"
+msgstr "Intervallo di z"
 
 
 msgid "{count} of {total} points signal. The process is not in statistical control."
@@ -6105,6 +6120,12 @@ msgstr "Curva di calibrazione rada - pronta per Interpolation"
 msgid "A logistic response curve sampled at only nine irregular points - exact by construction, so Interpolation's generated curve can be checked against the true shape rather than against noise."
 msgstr "Una curva di risposta logistica campionata in soli nove punti irregolari - esatta per costruzione, cosi' la curva generata da Interpolation può essere verificata contro la forma vera anziché contro il rumore."
 
+msgid "3D Series Operations - Fit, Peaks, Roots and Calculus on a surface"
+msgstr "Operazioni sulle serie 3D - Fit, Picchi, Radici e Calcolo su una superficie"
+
+msgid "A Gaussian bump and a saddle, run through the four Series Operations that now understand a series with a z role: a Gaussian2D surface fitted to 500 scattered points, the bump's one peak found on its exact grid, a saddle's z=0 level curve traced as its two true diagonals, and the bump's gradient magnitude with the volume under it reported alongside."
+msgstr "Una gobba gaussiana e una sella, elaborate con le quattro Operazioni sulle serie che ora comprendono una serie con un ruolo z: una superficie Gaussian2D adattata a 500 punti sparsi, l'unico picco della gobba trovato sulla sua griglia esatta, la curva di livello z=0 di una sella tracciata come le sue due vere diagonali, e la magnitudine del gradiente della gobba con il volume sottostante riportato accanto."
+
 msgid "Add a horizontal line to the selected axis"
 msgstr "Aggiungi una linea orizzontale all'asse selezionato"
 
@@ -6137,3 +6158,45 @@ msgstr "Genera il nuovo file della funzione di fit"
 
 msgid "Scaffold the new series-operation file"
 msgstr "Genera il nuovo file dell'operazione sulle serie"
+
+msgid "2D (x, y)"
+msgstr "2D (x, y)"
+
+msgid "3D on a grid (x, y, z)"
+msgstr "3D su una griglia (x, y, z)"
+
+msgid "3D scattered (x, y, z)"
+msgstr "3D sparsi (x, y, z)"
+
+msgid "vector field (x, y, u, v)"
+msgstr "campo vettoriale (x, y, u, v)"
+
+msgid "Found on the surface's own exact x/y grid."
+msgstr "Trovato sulla griglia x/y esatta della superficie."
+
+msgid "Traced on the surface's own exact x/y grid."
+msgstr "Tracciata sulla griglia x/y esatta della superficie."
+
+msgid "This surface's points were not a complete x/y grid, so the peaks below were found on a linearly interpolated one - treat them as approximate."
+msgstr "I punti di questa superficie non formavano una griglia x/y completa, quindi i picchi seguenti sono stati trovati su una griglia interpolata linearmente - considerali approssimativi."
+
+msgid "This surface's points were not a complete x/y grid, so this level curve was traced on a linearly interpolated one - treat it as approximate."
+msgstr "I punti di questa superficie non formavano una griglia x/y completa, quindi questa curva di livello è stata tracciata su una griglia interpolata linearmente - considerala approssimativa."
+
+msgid "The surface never reaches this level - z stays on one side of it everywhere on the grid."
+msgstr "La superficie non raggiunge mai questo livello - z rimane da un lato di esso ovunque sulla griglia."
+
+msgid "Show workspace"
+msgstr "Mostra l'area di lavoro"
+
+msgid "Show developer tools"
+msgstr "Mostra gli strumenti per sviluppatori"
+
+msgid "Show file menu"
+msgstr "Mostra il menu file"
+
+msgid "Share Z"
+msgstr "Condividi Z"
+
+msgid "Use one common Z range for all 3D axes in this figure. The selected axis provides the Z limits; 2D axes are ignored."
+msgstr "Usa un unico intervallo Z per tutti gli assi 3D di questa figura. L'asse selezionato fornisce i limiti Z; gli assi 2D vengono ignorati."

@@ -882,7 +882,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
 
         self.model_combo.setVisible(False)
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     def create_axis_series_selector(self) -> AxisSeriesSelector:
         return AxisSeriesSelector(self._repo, self._figure_id, self)
@@ -942,31 +942,28 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         return scroll
 
     def connect_operation_signals(self) -> None:
-        self.series_selector.selection_changed.connect(lambda *_args: self.refresh_results())
-        self.series_selector.axis_changed.connect(lambda *_args: self.refresh_results())
+        self.series_selector.selection_changed.connect(lambda *_args: self.mark_results_stale())
+        self.series_selector.axis_changed.connect(lambda *_args: self.mark_results_stale())
 
         self.method_combo.currentIndexChanged.connect(self._refresh_tools)
         self.method_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.method_combo.currentIndexChanged.connect(self.refresh_results)
+        self.method_combo.currentIndexChanged.connect(self.mark_results_stale)
         self.scipy_tool_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.scipy_tool_combo.currentIndexChanged.connect(self.refresh_results)
-        self.feature_combo.currentIndexChanged.connect(self.refresh_results)
-        self.render_mode_combo.currentIndexChanged.connect(self.refresh_results)
+        self.scipy_tool_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self.feature_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self.render_mode_combo.currentIndexChanged.connect(self.mark_results_stale)
 
-        # Spinboxes go through the debounced path: KMeans/hierarchical/
-        # DBSCAN etc. are heavy enough that holding a spinbox's arrow down
-        # (or dragging it) must not fire one full clustering run per tick.
-        self.cluster_count_spin.valueChanged.connect(self._queue_refresh_results)
-        self.kmeans_iter_spin.valueChanged.connect(self._queue_refresh_results)
-        self.kmeans_thresh_spin.valueChanged.connect(self._queue_refresh_results)
-        self.whiten_check.stateChanged.connect(self.refresh_results)
-        self.max_runtime_spin.valueChanged.connect(self._queue_refresh_results)
-        self.linkage_method_combo.currentIndexChanged.connect(self.refresh_results)
-        self.metric_combo.currentIndexChanged.connect(self.refresh_results)
-        self.hierarchy_criterion_combo.currentIndexChanged.connect(self.refresh_results)
-        self.distance_threshold_spin.valueChanged.connect(self._queue_refresh_results)
-        self.sklearn_eps_spin.valueChanged.connect(self._queue_refresh_results)
-        self.sklearn_min_samples_spin.valueChanged.connect(self._queue_refresh_results)
+        self.cluster_count_spin.valueChanged.connect(self.mark_results_stale)
+        self.kmeans_iter_spin.valueChanged.connect(self.mark_results_stale)
+        self.kmeans_thresh_spin.valueChanged.connect(self.mark_results_stale)
+        self.whiten_check.stateChanged.connect(self.mark_results_stale)
+        self.max_runtime_spin.valueChanged.connect(self.mark_results_stale)
+        self.linkage_method_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self.metric_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self.hierarchy_criterion_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self.distance_threshold_spin.valueChanged.connect(self.mark_results_stale)
+        self.sklearn_eps_spin.valueChanged.connect(self.mark_results_stale)
+        self.sklearn_min_samples_spin.valueChanged.connect(self.mark_results_stale)
 
         self._doc_link.linkActivated.connect(self._open_description)
 
@@ -1620,25 +1617,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
     @staticmethod
     def _html_escape(value: Any) -> str:
         return html.escape(str(value), quote=True)
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self._last_report_html = ""
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = results
-        if not results:
-            self._last_report_html = ""
-            self.set_results_text("Select one or more source series.")
-            return
-
-        preview_text = self.format_results(results)
-        self._last_report_html = ""
-        self.set_results_text(preview_text)
 
     def apply_results_to_axis(self, axis_id: int, results: Sequence[ClusterResult]) -> None:
         if self.render_mode_combo.currentText() == RENDER_SEPARATE_SERIES:

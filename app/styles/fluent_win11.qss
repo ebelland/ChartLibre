@@ -870,6 +870,37 @@ QPushButton[accent="true"]:disabled {
     color: rgba(@NEUTRAL_RGB@,0.70);
     border: 1px solid rgba(@NEUTRAL_RGB@,0.15);
 }
+
+/* ==========================================================
+   Destructive buttons - "Clear list" and anything else that
+   forgets/deletes rather than opens/saves. Windows 11's own
+   SystemFillColorCritical red, not the theme's accent color: a
+   destructive action reads the same regardless of accent choice.
+   ========================================================== */
+
+QPushButton[destructive="true"] {
+    background: #C42B1C;
+    color: white;
+    border: 1px solid #C42B1C;
+    font-weight: 600;
+}
+
+QPushButton[destructive="true"]:hover {
+    background: #A4262C;
+    border: 1px solid #A4262C;
+}
+
+QPushButton[destructive="true"]:pressed {
+    background: #8E2019;
+    border: 1px solid #8E2019;
+}
+
+QPushButton[destructive="true"]:disabled {
+    background: rgba(@NEUTRAL_RGB@,0.18);
+    color: rgba(@NEUTRAL_RGB@,0.70);
+    border: 1px solid rgba(@NEUTRAL_RGB@,0.15);
+}
+
 /* ==========================================================
    Dialog ButtonBox Primary Buttons
    ========================================================== */

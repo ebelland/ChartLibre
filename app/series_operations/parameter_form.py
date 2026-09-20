@@ -8,8 +8,8 @@ One class, three jobs: build the widgets in declaration order, hand back the
 current values by name, and show or hide each row as the declared
 ``visible_for`` rules dictate.  Every widget's change signal is routed to a
 single callback, because the thing every existing dialog does with it is call
-``refresh_results`` - and connecting eight signals by hand is exactly the step
-that gets forgotten when a ninth control is added.
+``mark_results_stale`` - and connecting eight signals by hand is exactly the
+step that gets forgotten when a ninth control is added.
 """
 
 from __future__ import annotations

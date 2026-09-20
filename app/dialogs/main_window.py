@@ -25,7 +25,9 @@ from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
     QIcon,
+    QMouseEvent,
     QResizeEvent,
+    QShowEvent,
 )
 from app import APP_ICON, APP_NAME
 from app.charts import layout_presets
@@ -58,6 +60,7 @@ from app.styles.style import (
     action_menu_item,
     action_presentation,
     SPLITTER_HANDLE_WIDTH,
+    apply_native_macos_corner_radius,
     apply_rounded_window_mask,
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
@@ -68,7 +71,9 @@ from app.styles.style import (
     create_menu_item,
     create_section_title,
     icon_from_svg_source,
+    mark_destructive_button,
     relax_minimum_width,
+    repolish_widget,
     stdSizeAndlayout,
     _pyobjc_core_is_safe_to_import,
 )
@@ -96,6 +101,7 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QMainWindow,
     QMenu,
     QMenuBar,
@@ -169,6 +175,16 @@ class MainWindow(QMainWindow):
         self._update_window_title()
         self.setWindowIcon(icon_from_svg_source(APP_ICON, size=32))
         self._custom_title_bar: CustomTitleBar | None = None
+        #: Set on the first showEvent, whether or not the attempt actually
+        #: succeeds - apply_native_macos_corner_radius needs a native window
+        #: handle that does not exist yet at __init__ time, and the
+        #: environment it depends on (pyobjc installed or not) cannot change
+        #: mid-run, so one attempt is enough.
+        self._native_corner_radius_attempted: bool = False
+        #: True only once that attempt has actually succeeded - resizeEvent
+        #: below uses this (not the flag above) to decide whether its own
+        #: QRegion fallback mask is still needed.
+        self._native_corner_radius_active: bool = False
         if IS_WINDOWS or IS_MACOS:
             # Frameless everywhere but Linux (whose window managers already
             # draw a native title bar this app has no reason to fight) -
@@ -455,9 +471,9 @@ class MainWindow(QMainWindow):
             # their own hairline edges, and #windowFrame its own 1px
             # outline below - a contentsMargins here on top of those was
             # just extra white gutter around the whole window that the
-            # demo never had. The traffic lights now live inside the
-            # activity rail (see NavigationBar.__init__), which insets
-            # them from the corner on its own.
+            # demo never had. The traffic lights sit inside the title bar
+            # strip added below, which insets them from the corner on its
+            # own.
             layout.setContentsMargins(0, 0, 0, 0)
             layout.setSpacing(0)
         else:
@@ -485,14 +501,17 @@ class MainWindow(QMainWindow):
             # without a way to check it on an actual Windows/Mac build.
             host.setObjectName("windowFrame")
             host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            if IS_WINDOWS:
-                # macOS instead embeds its traffic lights at the top of the
-                # activity rail itself (see NavigationBar.__init__) - not a
-                # separate window-wide strip: Windows' own icon+title+
-                # min/max/close row needs the whole window's width, the
-                # traffic lights don't.
-                self._custom_title_bar = CustomTitleBar(self, is_macos=False)
-                layout.addWidget(self._custom_title_bar, 0)
+            # Full window width, on both platforms: this strip is the only
+            # place startSystemMove gets wired up (see
+            # CustomTitleBar.mousePressEvent), so anything it does not
+            # cover cannot be used to drag the window. macOS used to embed
+            # its own copy only inside the activity rail (see
+            # NavigationBar.__init__, now reverted) - fine as long as the
+            # rail was the only thing under the strip, but it left no way
+            # to drag the window from above the central table panel or the
+            # chart tabs, both of which sit outside the rail's 200px width.
+            self._custom_title_bar = CustomTitleBar(self, is_macos=IS_MACOS)
+            layout.addWidget(self._custom_title_bar, 0)
         layout.addWidget(self._main_split, 1)
         return host
 
@@ -615,11 +634,10 @@ class MainWindow(QMainWindow):
         """
         stack = QStackedWidget(self)
         # Top padding here only, not on #activityRail beside it: the rail's
-        # traffic lights are meant to sit close to the window's own top
-        # edge (see NavigationBar.__init__), but a page's own content
-        # starting flush against that same edge read as cramped - the
-        # nav rows have their own icon+label affordance to read as
-        # "away from the edge", a page's first row of fields does not.
+        # own nav rows have their own icon+label affordance to read as
+        # "away from the edge" below the title bar strip (see
+        # main_window._create_central_host), but a page's own content
+        # starting flush against that same edge read as cramped.
         stack.setContentsMargins(0, 12, 0, 0)
         stack.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding,)
         stack.addWidget(self._data_page)
@@ -690,8 +708,17 @@ class MainWindow(QMainWindow):
         fill(titled.card)
         return titled
 
-    def _fill_workspace_card(self, card: CardFrame) -> None:
+    @staticmethod
+    def _card_layout(card: CardFrame) -> QBoxLayout:
+        """Return CardFrame's box layout, logging and recovering if absent."""
         layout = card.layout()
+        if isinstance(layout, QBoxLayout):
+            return layout
+        applogger.error("CardFrame did not create a box layout")
+        return QVBoxLayout(card)
+
+    def _fill_workspace_card(self, card: CardFrame) -> None:
+        layout = self._card_layout(card)
         new_open_row = QHBoxLayout()
         stdSizeAndlayout(new_open_row)
         create_action_button(parent=card, action_id="new", action=self._on_new_file, layout=new_open_row)
@@ -707,7 +734,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(demo_row)
 
     def _fill_save_card(self, card: CardFrame) -> None:
-        layout = card.layout()
+        layout = self._card_layout(card)
         save_row = QHBoxLayout()
         stdSizeAndlayout(save_row)
         create_action_button(parent=card, action_id="save", action=self._on_save, layout=save_row)
@@ -717,7 +744,7 @@ class MainWindow(QMainWindow):
 
     def _fill_recent_card(self, card: CardFrame) -> None:
         self._file_page = card
-        self._recent_list_layout = card.layout()
+        self._recent_list_layout = self._card_layout(card)
         self._refresh_recent_list()
 
     def _refresh_recent_list(self) -> None:
@@ -757,7 +784,7 @@ class MainWindow(QMainWindow):
         clear_row = QHBoxLayout()
         stdSizeAndlayout(clear_row)
         clear_icon, _clear_text, _clear_tooltip = action_presentation("clear")
-        create_action_button(
+        clear_button = create_action_button(
             parent=self._file_page,
             action_id="clear",
             action=self._on_clear_recent,
@@ -768,11 +795,16 @@ class MainWindow(QMainWindow):
                 _("Forget the list of recently opened projects"),
             ),
         )
+        # Red, not just another left-aligned button in the same column as
+        # every recent-project row above it - the whole list otherwise reads
+        # as one undifferentiated stack of rows, with nothing marking this
+        # one as the one a misclick cannot undo.
+        mark_destructive_button(clear_button)
         clear_row.addStretch(1)
         layout.addLayout(clear_row)
 
     @staticmethod
-    def _clear_layout(layout: QBoxLayout) -> None:
+    def _clear_layout(layout: QLayout) -> None:
         """Empty *layout*, deleting every widget it holds - nested
         sub-layouts (one QHBoxLayout row per recent entry) included.
         ``takeAt`` alone only detaches an item; the widget underneath
@@ -781,6 +813,8 @@ class MainWindow(QMainWindow):
         the new ones."""
         while layout.count():
             item = layout.takeAt(0)
+            if item is None:
+                continue
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
@@ -827,7 +861,7 @@ class MainWindow(QMainWindow):
         )
 
     def _fill_query_builder_card(self, card: CardFrame) -> None:
-        card_layout = card.layout()
+        card_layout = self._card_layout(card)
         button_row = QHBoxLayout()
         stdSizeAndlayout(button_row)
         create_action_button(
@@ -889,7 +923,7 @@ class MainWindow(QMainWindow):
         _icon, text, tooltip = action_presentation(action_id)
 
         def fill(card: CardFrame) -> None:
-            card_layout = card.layout()
+            card_layout = self._card_layout(card)
             button_row = QHBoxLayout()
             stdSizeAndlayout(button_row)
             create_action_button(
@@ -2546,10 +2580,49 @@ class MainWindow(QMainWindow):
         Qt.Edge.BottomEdge | Qt.Edge.LeftEdge: Qt.CursorShape.SizeBDiagCursor,
     }
 
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Round the window's real corners once it has a native handle.
+
+        apply_native_macos_corner_radius needs window.winId() to resolve to
+        an actual NSWindow, which is only meaningful once the widget is
+        mapped - __init__ is too early. Tried once: unlike the QRegion mask
+        in resizeEvent below, a CALayer's corner radius does not need
+        redoing on every resize (see that function's own docstring).
+        """
+        super().showEvent(event)
+        if self._native_corner_radius_attempted or not IS_MACOS:
+            return
+        self._native_corner_radius_attempted = True
+        if apply_native_macos_corner_radius(self):
+            self._native_corner_radius_active = True
+            # Belt and braces: a QRegion mask set earlier (there should not
+            # be one yet, but resizeEvent could in principle have already
+            # fired once) would reimpose the very staircase this just
+            # replaced, on top of the now-smooth native curve.
+            self.clearMask()
+            # #windowFrame's own QSS border-radius (macos_native.qss) drew a
+            # *second*, independent rounded corner on top of - not aligned
+            # with - the one the native CALayer clip now draws: two AA
+            # curves at the same nominal radius but different rendering
+            # paths do not fall on the same pixels, which showed as a
+            # doubled edge (a square corner from one peeking past the
+            # curve of the other). "nativeRounded" tells the stylesheet to
+            # paint #windowFrame's fill and border as a plain rectangle
+            # instead - the single native clip then rounds *that* along
+            # with everything else in the window, so there is only ever
+            # one curve on screen.
+            self._central_host.setProperty("nativeRounded", True)
+            repolish_widget(self._central_host)
+
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Keep the window's rounded-corner mask sized to the window.
 
-        macOS only: #windowFrame's own QSS border-radius rounds what it
+        macOS only, and only as a fallback: apply_native_macos_corner_radius
+        (see showEvent) rounds the window's real NSWindow corners with
+        anti-aliasing a QRegion mask cannot produce - see its own docstring
+        - and once that has succeeded this mask would only reimpose the
+        staircase it replaced, so it is skipped. Still needed when pyobjc is
+        unavailable: #windowFrame's own QSS border-radius rounds what it
         paints, but the children filling it edge to edge (#leftPanelCard,
         the chart tabs) still have square corners of their own, poking out
         past the curve - see apply_rounded_window_mask's own docstring.
@@ -2557,7 +2630,7 @@ class MainWindow(QMainWindow):
         screen's own, and a real macOS window is square-cornered there too.
         """
         super().resizeEvent(event)
-        if not IS_MACOS:
+        if not IS_MACOS or self._native_corner_radius_active:
             return
         if self.isMaximized():
             self.clearMask()
@@ -2595,25 +2668,27 @@ class MainWindow(QMainWindow):
         edges, and dragging those would resize the display area a user
         grabbing what looks like a window border did not mean to touch.
         """
-        if (
+        if not (
             (IS_WINDOWS or IS_MACOS)
             and watched is self._central_host
+            and isinstance(event, QMouseEvent)
             and not self.isMaximized()
         ):
-            if event.type() == QEvent.Type.MouseMove:
-                edges = self._resize_edge_at(event.position().toPoint())
-                cursor = self._RESIZE_CURSORS.get(edges, Qt.CursorShape.ArrowCursor)
-                self._central_host.setCursor(cursor)
-            elif (
-                event.type() == QEvent.Type.MouseButtonPress
-                and event.button() == Qt.MouseButton.LeftButton
-            ):
-                edges = self._resize_edge_at(event.position().toPoint())
-                if edges:
-                    handle = self.windowHandle()
-                    if handle is not None:
-                        handle.startSystemResize(edges)
-                        return True
+            return super().eventFilter(watched, event)
+
+        edges = self._resize_edge_at(event.position().toPoint())
+        if event.type() == QEvent.Type.MouseMove:
+            cursor = self._RESIZE_CURSORS.get(edges, Qt.CursorShape.ArrowCursor)
+            self._central_host.setCursor(cursor)
+        elif (
+            event.type() == QEvent.Type.MouseButtonPress
+            and event.button() == Qt.MouseButton.LeftButton
+            and edges
+        ):
+            handle = self.windowHandle()
+            if handle is not None:
+                handle.startSystemResize(edges)
+                return True
         return super().eventFilter(watched, event)
 
     # ------------------------------------------------------------------

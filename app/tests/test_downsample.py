@@ -157,6 +157,67 @@ def test_downsample_combo_defaults_to_the_default_threshold(qapp) -> None:
     assert widget._downsample_combo.currentData() == DEFAULT_DOWNSAMPLE_THRESHOLD
 
 
+# ----------------------------------------------------------------------
+# Grid chart types (Surface Plot, Contour Plot) must not be row-decimated:
+# an odd grid side length leaves an incomplete Cartesian product once every
+# Nth row is dropped, which pivot_to_grid then rightly refuses to draw.
+# ----------------------------------------------------------------------
+def _figure_with_odd_grid(
+    repo: SqliteRepo, *, side: int, chart_type: str, options: dict | None = None
+) -> int:
+    """A *side* x *side* x/y/z grid, big enough to cross the default threshold."""
+    xs, ys = np.arange(side, dtype=float), np.arange(side, dtype=float)
+    grid_x, grid_y = np.meshgrid(xs, ys)
+    repo.import_dataframe(
+        pd.DataFrame(
+            {
+                "x": grid_x.ravel(),
+                "y": grid_y.ravel(),
+                "z": (grid_x + grid_y).ravel(),
+            }
+        ),
+        table_name="grid",
+        normalize_columns=False,
+    )
+    figure_id = repo.create_figure_descriptor(name="F", nrows=1, ncols=1)
+    axis_id = repo.create_axis_descriptor(
+        figure_id=figure_id, axis_index=0, chart_type=chart_type,
+        title="t", x_label="x", y_label="y", options=options or {},
+    )
+    repo.create_series_descriptor(
+        axis_id=axis_id, series_index=0, name="s",
+        sql_query="SELECT x, y, z FROM grid", roles={"x": "x", "y": "y", "z": "z"},
+        style={},
+    )
+    return int(figure_id)
+
+
+def test_an_odd_side_surface_grid_past_the_threshold_still_draws(repo: SqliteRepo) -> None:
+    """41x41 = 1681 rows, over DEFAULT_DOWNSAMPLE_THRESHOLD (1000).
+
+    Before the grid-type bypass, row-based decimation broke grid
+    completeness on an odd side length (an even one happened to survive by
+    luck), pivot_to_grid refused it, and the renderer drew nothing.
+    """
+    figure_id = _figure_with_odd_grid(
+        repo, side=41, chart_type="Surface Plot", options={"projection": "3d"}
+    )
+    fig = Figure()
+    render_figure_from_descriptor(
+        figure=fig, descriptor=repo.load_figure_descriptor(figure_id), repo=repo
+    )
+    assert len(fig.axes[0].collections) > 0
+
+
+def test_an_odd_side_contour_grid_past_the_threshold_still_draws(repo: SqliteRepo) -> None:
+    figure_id = _figure_with_odd_grid(repo, side=41, chart_type="Contour Plot")
+    fig = Figure()
+    render_figure_from_descriptor(
+        figure=fig, descriptor=repo.load_figure_descriptor(figure_id), repo=repo
+    )
+    assert len(fig.axes[0].collections) > 0
+
+
 def test_downsample_combo_round_trips_through_save_and_reload(
     qapp, repo: SqliteRepo
 ) -> None:

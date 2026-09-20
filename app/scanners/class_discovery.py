@@ -338,6 +338,13 @@ def discover_classes_merged(
             require_value_attr=require_value_attr,
         ):
             if entry["value"] in seen_values:
+                applogger.warning(
+                    "%s '%s' in %s is shadowed by an earlier one with the "
+                    "same name; rename it to make it visible.",
+                    base_class_name,
+                    entry["value"],
+                    entry["path"],
+                )
                 continue
             seen_values.add(entry["value"])
             discovered.append(entry)

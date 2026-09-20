@@ -160,12 +160,16 @@ def render_figure_from_descriptor(
             # for one (base axes, then their twins).
             ax._dhub_axis_id = int(axis_desc.id)  # noqa: SLF001 - our own attribute, not matplotlib's
 
+            chart_type = str(axis_desc.chart_type or "").strip()
             series_list = _build_series_data_list(
                 repo=repo,
                 axis_desc=axis_desc,
-                downsample_threshold=downsample_threshold,
+                downsample_threshold=(
+                    0
+                    if chart_type in _GRID_REQUIRED_CHART_TYPES
+                    else downsample_threshold
+                ),
             )
-            chart_type = str(axis_desc.chart_type or "").strip()
             renderer = get_renderer(chart_type)
             if renderer is None:
                 applogger.error("Renderer not found for chart_type=%r.", chart_type)
@@ -188,6 +192,7 @@ def render_figure_from_descriptor(
 
             _apply_axis_runtime_options(ax=ax, axis_desc=axis_desc)
 
+        _apply_shared_z_ranges(all_axes, ax_by_id)
         _clear_redundant_shared_axis_labels(shared_axes)
         _apply_layout(figure, descriptor)
         _normalize_axes_fill_policy(figure, descriptor)
@@ -581,6 +586,43 @@ def _close_gaps_between_shared_neighbours(
         gridspec.update(wspace=horizontal_space)
 
 
+def _apply_shared_z_ranges(
+    axes: list[AxisDescriptor], ax_by_id: dict[int, Any]
+) -> None:
+    """Use one common final Z range when any 3D axis enables Share Z.
+
+    Matplotlib has no native ``sharez`` subplot argument. The checked axis is
+    therefore the source, and its final Z limits are copied to every other 3D
+    axis after renderers, scales and manual limits have run. If several axes
+    are checked, the first checked 3D axis in descriptor order is the source.
+    """
+    source = next(
+        (
+            ax_by_id.get(int(desc.id))
+            for desc in axes
+            if isinstance(desc.options, dict)
+            and bool(desc.options.get("sharez"))
+            and hasattr(ax_by_id.get(int(desc.id)), "get_zlim")
+        ),
+        None,
+    )
+    if source is None:
+        return
+    try:
+        shared_limits = source.get_zlim()
+    except Exception:
+        applogger.exception("Failed to read the shared Z range")
+        return
+    for desc in axes:
+        ax = ax_by_id.get(int(desc.id))
+        if ax is None or ax is source or not hasattr(ax, "set_zlim"):
+            continue
+        try:
+            ax.set_zlim(*shared_limits)
+        except Exception:
+            applogger.exception("Failed to share the Z range for axis id=%r", desc.id)
+
+
 def _clear_redundant_shared_axis_labels(shared_axes: set[Any]) -> None:
     """Blank the axis label text and title label_outer() leaves standing.
 
@@ -630,6 +672,19 @@ OPT_DOWNSAMPLE_THRESHOLD = "downsample_threshold"
 #: own. Keeps a redraw quick on a large series while leaving the shape of
 #: any ordinary curve untouched (it only decimates *past* this many points).
 DEFAULT_DOWNSAMPLE_THRESHOLD = get_constant("default_downsample_threshold", 1_000)
+
+#: Chart types whose renderer needs a *complete* x/y/z grid (pivot_to_grid,
+#: app/charts/grids.py) and refuses anything less. Row-based downsampling
+#: (SqliteRepo.downsampled_series_frame) keeps one row out of every stride
+#: after ORDER BY x - fine for an ordinary curve, but on a grid table an odd
+#: number of rows per x-block shifts which y-values survive from one block
+#: to the next, so the surviving rows are no longer a full Cartesian product
+#: of x and y. pivot_to_grid then rightly refuses them, and the renderer
+#: draws nothing instead of the smaller-but-complete grid it should. Grid
+#: datasets are also typically far smaller than the row counts downsampling
+#: exists for, so these chart types simply skip it rather than decimating by
+#: unique x/y instead - not worth the extra machinery yet.
+_GRID_REQUIRED_CHART_TYPES = frozenset({"Surface Plot", "Contour Plot"})
 
 
 def _figure_downsample_threshold(descriptor: FigureDescriptor) -> int:

@@ -173,7 +173,7 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         )
         self.series_selector.reload(select_all_series=True)
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
@@ -244,14 +244,10 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
 
     def connect_operation_signals(self) -> None:
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.refresh_results)
-        self._draw_baseline_check.toggled.connect(self.refresh_results)
-        # Debounced: AsLS re-runs its iterative solver from scratch on every
-        # change, so holding a spinbox's arrow down (lambda spans orders of
-        # magnitude; iterations multiplies the cost directly) must not fire
-        # one full solve per tick.
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self._draw_baseline_check.toggled.connect(self.mark_results_stale)
         for spin in (self._lambda_spin, self._p_spin, self._iterations_spin):
-            spin.valueChanged.connect(self._queue_refresh_results)
+            spin.valueChanged.connect(self.mark_results_stale)
 
     def _model(self) -> str:
         return self.model_combo.currentText() or BASELINE_ASLS
@@ -264,19 +260,6 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         title, url = BASELINE_DOCS.get(self._model(), ("", ""))
         set_doc_link(self._doc_link, title, url)
 
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:  # noqa: BLE001 - shown in the results pane
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-        self._last_results = list(results)
-        self.set_results_text(
-            self.format_results(results)
-            if results
-            else _("Select one or more source series.")
-        )
 
     # ------------------------------------------------------------------
     # Computation

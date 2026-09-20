@@ -1,11 +1,11 @@
 """Database Info: path, size, tables and import links, in one place.
 
 Everything here already existed somewhere - TableListPanel's own context
-menu already exports a table and refreshes its link - this is a read-only
-overview that puts the whole database's shape (how many tables, how big,
-which ones are fed by a link) on screen at once, with those same actions
-one click away for whichever row is selected, rather than requiring a
-right-click per table.
+menu already exports, renames and refreshes the link of a table - this is a
+read-only overview that puts the whole database's shape (how many tables,
+how big, which ones are fed by a link) on screen at once, with those same
+actions one click away for whichever row is selected, rather than requiring
+a right-click per table.
 
 A plain embeddable QWidget, not a QDialog: it sits inside MainWindow's
 "Database" nav page (see main_window._create_database_page), alongside the
@@ -39,7 +39,6 @@ from app.styles.style import (
     create_action_button,
     load_icon,
     mark_editor_panel,
-    mark_icon_only,
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
@@ -76,14 +75,22 @@ class DatabaseInfoPanel(QWidget):
         self._card = self._titled_card.card
         self._card_layout = self._card.layout()
 
+        self._form_host = QWidget(self._card)
+        self._form_layout = QFormLayout(self._form_host)
+        stdSizeAndlayout(self._form_layout)
+        self._card_layout.addWidget(self._form_host)
+        self._build_form()
+
         if optimize_action is not None:
             # Lives here, not beside Query Builder (see main_window's own
             # Query Builder section): it is a maintenance action against
-            # exactly the size/page stats this card already shows, not
-            # against the query workflow. Its own row, right-aligned,
-            # rather than beside the title - the title moved outside the
-            # card's border (see TitledCard) and an action button belongs
-            # inside it.
+            # exactly the size/page stats the form above it shows - right
+            # below "Last modified", its own last row - rather than against
+            # the query workflow. Above the table list, not below it: it
+            # acts on the database file as a whole, not on any one table.
+            # Its own row, right-aligned, rather than beside the title -
+            # the title moved outside the card's border (see TitledCard)
+            # and an action button belongs inside it.
             optimize_row = QHBoxLayout()
             stdSizeAndlayout(optimize_row)
             optimize_row.addStretch(1)
@@ -94,12 +101,6 @@ class DatabaseInfoPanel(QWidget):
                 layout=optimize_row,
             )
             self._card_layout.addLayout(optimize_row)
-
-        self._form_host = QWidget(self._card)
-        self._form_layout = QFormLayout(self._form_host)
-        stdSizeAndlayout(self._form_layout)
-        self._card_layout.addWidget(self._form_host)
-        self._build_form()
 
         self._table = QTableWidget(0, 3, self._card)
         self._table.setHorizontalHeaderLabels([_("Table"), _("Rows"), _("Linked")])
@@ -116,12 +117,19 @@ class DatabaseInfoPanel(QWidget):
         mark_editor_panel(self._table)
         self._card_layout.addWidget(self._table, 1)
 
-        # Update link gets its own full-width row - it is the one action
-        # here that only ever applies to one table at a time and reads best
-        # spelled out. Export CSV/Excel share the next row and go icon-only
-        # (mark_icon_only): two full-text buttons side by side were wider
-        # than this narrow nav panel wants; the tooltip already carries
-        # "Export CSV" / "Export Excel" for whoever needs the word.
+        root.addWidget(self._titled_card, 1)
+
+        # A separate card, not more rows tacked onto Database Info above:
+        # these four act on whichever row is selected in the table list,
+        # not on the database as a whole, and each gets the full row to
+        # itself - one full-text button per line, rather than the
+        # icon-only pair this replaces, reads best spelled out when there
+        # is no longer a second button competing for the same row's width.
+        self._selected_table_card = TitledCard(
+            self, _("Tabella (tabella selezionata)"), "selectedTableCard"
+        )
+        selected_table_layout = self._selected_table_card.card.layout()
+
         update_row = QHBoxLayout()
         stdSizeAndlayout(update_row)
         self._update_link_button = create_action_button(
@@ -136,28 +144,52 @@ class DatabaseInfoPanel(QWidget):
             ),
         )
         update_row.addStretch(1)
-        self._card_layout.addLayout(update_row)
+        selected_table_layout.addLayout(update_row)
 
-        export_row = QHBoxLayout()
-        stdSizeAndlayout(export_row)
-        self._export_csv_button = create_action_button(
-            parent=self,
-            action_id="export_csv",
-            action=self._export_selected_csv,
-            layout=export_row,
-        )
-        mark_icon_only(self._export_csv_button)
+        export_xlsx_row = QHBoxLayout()
+        stdSizeAndlayout(export_xlsx_row)
         self._export_xlsx_button = create_action_button(
             parent=self,
             action_id="export_xlsx",
             action=self._export_selected_xlsx,
-            layout=export_row,
+            layout=export_xlsx_row,
+            presentation=(
+                load_icon("export_xlsx"),
+                _("Export as Excel"),
+                _("Export as an Excel workbook"),
+            ),
         )
-        mark_icon_only(self._export_xlsx_button)
-        export_row.addStretch(1)
-        self._card_layout.addLayout(export_row)
+        export_xlsx_row.addStretch(1)
+        selected_table_layout.addLayout(export_xlsx_row)
 
-        root.addWidget(self._titled_card, 1)
+        export_csv_row = QHBoxLayout()
+        stdSizeAndlayout(export_csv_row)
+        self._export_csv_button = create_action_button(
+            parent=self,
+            action_id="export_csv",
+            action=self._export_selected_csv,
+            layout=export_csv_row,
+            presentation=(
+                load_icon("export_csv"),
+                _("Export as text file"),
+                _("Export as a CSV file"),
+            ),
+        )
+        export_csv_row.addStretch(1)
+        selected_table_layout.addLayout(export_csv_row)
+
+        rename_row = QHBoxLayout()
+        stdSizeAndlayout(rename_row)
+        self._rename_button = create_action_button(
+            parent=self,
+            action_id="rename",
+            action=self._rename_selected_table,
+            layout=rename_row,
+        )
+        rename_row.addStretch(1)
+        selected_table_layout.addLayout(rename_row)
+
+        root.addWidget(self._selected_table_card)
 
         self._reload_tables()
         self._update_button_states()
@@ -287,6 +319,7 @@ class DatabaseInfoPanel(QWidget):
         table = self._selected_table()
         self._export_csv_button.setEnabled(table is not None)
         self._export_xlsx_button.setEnabled(table is not None)
+        self._rename_button.setEnabled(table is not None)
         self._update_link_button.setEnabled(
             table is not None and self._selected_table_has_link()
         )
@@ -350,4 +383,30 @@ class DatabaseInfoPanel(QWidget):
             refresh_link(self._repo, link_id=int(link["id"]), password=password)
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Link refresh failed: %s", exc)
+        self._reload_tables()
+
+    def _rename_selected_table(self) -> None:
+        """Rename the selected table - the same action TableListPanel's own
+        context menu offers (see its _rename_table), reached from here too
+        since this panel already tracks which table is selected."""
+        table = self._selected_table()
+        if not table:
+            return
+        new, ok = QInputDialog.getText(
+            self,
+            _("Rename table"),
+            _("New name for table '{table}':").format(table=table),
+            QLineEdit.EchoMode.Normal,
+            table,
+        )
+        if not ok:
+            return
+        new = (new or "").strip()
+        if not new or new == table:
+            return
+        try:
+            self._repo.rename_table(table, new)
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Rename failed: %s", exc)
+            return
         self._reload_tables()

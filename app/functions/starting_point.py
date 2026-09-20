@@ -104,7 +104,11 @@ def choose_starting_point(
     seed: int | None = None,
 ) -> StartingPoint:
     """Return the parameters a fit should start from, and their provenance."""
-    x_array = np.asarray(x, dtype=float).ravel()
+    # See monte_carlo_p0's own comment: a surface model's x is (N, 2), and
+    # flattening it here before ask_the_function/monte_carlo_p0 ever see it
+    # would scramble the two independent columns together.
+    x_raw = np.asarray(x, dtype=float)
+    x_array = x_raw.ravel() if x_raw.ndim <= 1 else x_raw
     y_array = np.asarray(y, dtype=float).ravel()
     start = np.asarray(declared, dtype=float).ravel()
     low = np.asarray(lower, dtype=float).ravel()

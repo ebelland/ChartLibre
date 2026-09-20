@@ -244,7 +244,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         )
         self.series_selector.reload(select_all_series=True)
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
@@ -374,14 +374,14 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
             self.model_combo, self._family_combo, self._response_combo,
             self._window_combo, self._analytic_combo, self._detrend_combo,
         ):
-            combo.currentIndexChanged.connect(self.refresh_results)
+            combo.currentIndexChanged.connect(self.mark_results_stale)
         for check in (self._fs_auto_check,):
-            check.toggled.connect(self.refresh_results)
+            check.toggled.connect(self.mark_results_stale)
         for spin in (
             self._fs_spin, self._order_spin, self._numtaps_spin,
             self._cutoff1_spin, self._cutoff2_spin, self._ripple_spin, self._atten_spin,
         ):
-            spin.valueChanged.connect(self.refresh_results)
+            spin.valueChanged.connect(self.mark_results_stale)
 
     def _model(self) -> str:
         return self.model_combo.currentText() or FILTER_IIR
@@ -411,20 +411,6 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
 
         title, url = FILTER_DOCS.get(model, ("", ""))
         set_doc_link(self._doc_link, title, url)
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:  # noqa: BLE001 - shown in the results pane
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-        self._last_results = list(results)
-        self.set_results_text(
-            self.format_results(results)
-            if results
-            else _("Select one or more source series.")
-        )
 
     # ------------------------------------------------------------------
     # Input

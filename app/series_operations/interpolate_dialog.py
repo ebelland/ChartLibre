@@ -373,19 +373,19 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
     def connect_operation_signals(self) -> None:
         self.model_combo.currentIndexChanged.connect(self._refresh_model_defaults)
         self._degree_spin.valueChanged.connect(self._refresh_model_defaults)
-        self._points_spin.valueChanged.connect(self.refresh_results)
+        self._points_spin.valueChanged.connect(self.mark_results_stale)
         self._spacing_combo.currentIndexChanged.connect(self._refresh_model_defaults)
-        self._range_edit.textChanged.connect(self.refresh_results)
-        self._integer_step_spin.valueChanged.connect(self.refresh_results)
-        self._custom_x_edit.textChanged.connect(self.refresh_results)
-        self._extend_spin.valueChanged.connect(self.refresh_results)
-        self._extrap_check.stateChanged.connect(self.refresh_results)
+        self._range_edit.textChanged.connect(self.mark_results_stale)
+        self._integer_step_spin.valueChanged.connect(self.mark_results_stale)
+        self._custom_x_edit.textChanged.connect(self.mark_results_stale)
+        self._extend_spin.valueChanged.connect(self.mark_results_stale)
+        self._extrap_check.stateChanged.connect(self.mark_results_stale)
         self._spline_type_combo.currentIndexChanged.connect(self._refresh_model_defaults)
-        self._spline_degree_spin.valueChanged.connect(self.refresh_results)
-        self._cubic_bc_combo.currentIndexChanged.connect(self.refresh_results)
-        self._smoothing_spin.valueChanged.connect(self.refresh_results)
+        self._spline_degree_spin.valueChanged.connect(self.mark_results_stale)
+        self._cubic_bc_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self._smoothing_spin.valueChanged.connect(self.mark_results_stale)
         self._guess_check.stateChanged.connect(self._refresh_model_defaults)
-        self._params_edit.textChanged.connect(self.refresh_results)
+        self._params_edit.textChanged.connect(self.mark_results_stale)
 
     def _set_setting_tooltips(self) -> None:
         self.model_combo.setToolTip(_("Choose the fitting/interpolation model."))
@@ -507,7 +507,7 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
 
         # Suppress unused variable warning while keeping logic readable.
         _unused = uses_original_x
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # Computation
@@ -540,18 +540,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         if model == MODEL_SIGMOID:
             return {"a": 1.0, "x0": 0.0, "k": 1.0, "c": 0.0}
         return {}
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self._results_label.setText(f"Error:\n{exc}")
-            return
-        self._last_results = results
-        self._results_label.setText(
-            self.format_results(results) if results else "Select one or more source series."
-        )
 
     def compute_results(self) -> list[FitResult]:
         """Build interpolation results for selected SQLite series rows."""

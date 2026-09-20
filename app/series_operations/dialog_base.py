@@ -18,12 +18,15 @@ import json
 import re
 from typing import Any
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QHBoxLayout, QSizePolicy, QSplitter, QToolBox, QVBoxLayout, QWidget
 import numpy as np
 import pandas as pd
 
+from scipy.interpolate import griddata
+
+from app.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
@@ -40,7 +43,6 @@ from app.styles.style import (
 )
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numeric_axis
-from app.utils.config import get_constant
 from app.utils.series_validation import (
     SeriesIssue,
     clean_xy,
@@ -60,11 +62,6 @@ from app.widgets.html_results import HtmlResultsView, looks_like_html, plain_to_
 from app.utils.i18n import _
 
 _TABLE_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
-
-#: Delay between the last control change and a debounced refresh_results()
-#: call - see _queue_refresh_results. Same default as the property panels'
-#: own auto-apply (base_properties.AUTO_APPLY_DELAY_MS).
-PREVIEW_DEBOUNCE_MS: int = get_constant("series_operation_preview_debounce_ms", 400)
 
 # Every table an operation writes starts with this.  One character, and the
 # source list can hide the whole class of them: a project with six fits and a
@@ -98,7 +95,7 @@ class SeriesOperationDialogBase(QDialog):
     - create model controls in ``build_model_selector``;
     - create parameter controls in ``build_parameter_selector``;
     - optionally override ``build_results_pane`` when a QLabel is not enough;
-    - implement ``compute_results`` and ``refresh_results``;
+    - implement ``compute_results``;
     - provide generated-series metadata through the apply hooks below;
     - connect operation-specific signals in ``connect_operation_signals``.
     """
@@ -110,6 +107,13 @@ class SeriesOperationDialogBase(QDialog):
     #: an import.
     Name: str = ""
     Description: str = ""
+
+    #: Shown in the results pane whenever a control changes, until Preview or
+    #: OK actually computes something. Controls no longer trigger compute_results()
+    #: as a side effect of being edited - only Preview and OK (through
+    #: _run_operation) do, so a heavy operation never runs on an intermediate
+    #: value while a spin box is being dragged or typed into.
+    PENDING_RESULTS_MESSAGE: str = "Press Preview or OK to see the result."
 
     #: The operation's icon, as an SVG document.  Inline rather than a path to
     #: one: a file beside the module is a second thing to copy and a second
@@ -196,16 +200,6 @@ class SeriesOperationDialogBase(QDialog):
         self._model_selector_widget = self.build_model_selector()
         self._parameter_selector_widget = self.build_parameter_selector()
         self._results_widget = self.build_results_pane()
-
-        # Debounced refresh_results(): a control wired to a computation
-        # heavy enough to matter (KMeans, Welch/FFT, AsLS...) should go
-        # through _queue_refresh_results in connect_operation_signals
-        # instead of refresh_results directly, or holding a spinbox's
-        # arrow down fires that computation once per intermediate value.
-        self._refresh_timer = QTimer(self)
-        self._refresh_timer.setSingleShot(True)
-        self._refresh_timer.setInterval(PREVIEW_DEBOUNCE_MS)
-        self._refresh_timer.timeout.connect(self.refresh_results)
 
         self._build_common_ui()
         self.connect_common_signals()
@@ -315,7 +309,7 @@ class SeriesOperationDialogBase(QDialog):
         self._parameter_form_spec = ParameterForm(
             self.PARAMS,
             self,
-            on_change=self.refresh_results,
+            on_change=self.mark_results_stale,
             context=self.parameter_context,
         )
         # Kept under the name the base already uses for the hand-built form, so
@@ -371,7 +365,9 @@ class SeriesOperationDialogBase(QDialog):
         """Wire signals common to selector-based operation dialogs."""
         selection_changed = getattr(self.series_selector, "selection_changed", None)
         if selection_changed is not None:
-            selection_changed.connect(lambda *_args: self.refresh_results())
+            selection_changed.connect(lambda *_args: self.mark_results_stale())
+            selection_changed.connect(lambda *_args: self._update_origin_label())
+        self._update_origin_label()
     
     def connect_operation_signals(self) -> None:
         """Subclasses connect model/parameter widgets here."""
@@ -599,21 +595,15 @@ class SeriesOperationDialogBase(QDialog):
         else:
             self.set_results_text(formatted)
 
-    def refresh_results(self) -> None:
-        """Recompute/refresh the right-side results pane."""
-        raise NotImplementedError
+    def mark_results_stale(self, *_ignored: Any) -> None:
+        """Invalidate any previewed results without recomputing anything.
 
-    def _queue_refresh_results(self, *_ignored: Any) -> None:
-        """(Re)start the countdown to a debounced refresh_results() call.
-
-        Connect a control here instead of straight to refresh_results when
-        what it triggers is heavy enough to matter (KMeans, Welch/FFT, AsLS)
-        - holding a spinbox's arrow down, or dragging it, then fires that
-        computation once after the last change rather than once per tick.
-        Ignores its arguments so it connects straight to Qt signals that
-        pass one (valueChanged, currentIndexChanged, stateChanged).
+        Wired wherever a control used to call refresh_results()/
+        _queue_refresh_results() straight away. Preview and OK are the only
+        paths left that actually run compute_results().
         """
-        self._refresh_timer.start()
+        self.store_cached_results([])
+        self.publish_results(_(self.PENDING_RESULTS_MESSAGE))
 
     # ------------------------------------------------------------------
     # Shared generated-series apply pipeline
@@ -807,6 +797,177 @@ class SeriesOperationDialogBase(QDialog):
             _coerced, is_temporal = coerce_axis(column)
             self._temporal_x_sources[name] = bool(is_temporal)
         return to_numeric_axis(column)
+
+    def series_origin(self, row: Any) -> str:
+        """Return a short, human caption for what shape one series' data is.
+
+        Purely informational: no operation decides what it can compute from
+        this string, only the roles it reads directly.  It exists so a user
+        opening, say, the peaks or roots dialog on a series with a ``z`` role
+        is told - before pressing anything - whether they are about to search
+        a 2D curve, a 3D grid, an interpolated 3D surface, or a vector field.
+
+        Deciding "on a grid" vs. "scattered" needs the actual data (a SQL
+        query), which is why this is relatively expensive and is meant to be
+        called only when the selection changes - see
+        ``connect_common_signals`` - not on every redraw.
+        """
+        roles = parse_roles(row_value(row, "roles", default={}))
+        has_z = bool(roles.get("z"))
+        has_u = bool(roles.get("u"))
+        has_v = bool(roles.get("v"))
+
+        if has_u and has_v:
+            # Informational only: nothing in this task actually computes
+            # curl/divergence yet, this just tells the user what they see.
+            return _("vector field (x, y, u, v)")
+
+        if not has_z:
+            return _("2D (x, y)")
+
+        try:
+            name = self._series_display_name(row)
+            x, y, z = self.series_xyz(row, name)
+            frame = pd.DataFrame({"x": x, "y": y, "z": z})
+            grid = pivot_to_grid(frame)
+        except Exception:
+            # Any failure to read/pivot the data still leaves a true fact
+            # standing: there is a z role, so this is 3D of some kind. Which
+            # kind is a detail the label can afford to get wrong here - the
+            # operation itself will raise a clear error if it matters.
+            return _("3D scattered (x, y, z)")
+
+        return _("3D on a grid (x, y, z)") if grid is not None else _("3D scattered (x, y, z)")
+
+    def _update_origin_label(self) -> None:
+        """Show ``series_origin`` for the current selection, if there is one.
+
+        Wired next to ``mark_results_stale`` in ``connect_common_signals``:
+        the same event (selection changed) that invalidates a preview is the
+        one point where the caption needs recomputing.
+        """
+        selector = getattr(self, "series_selector", None)
+        if selector is None or not hasattr(selector, "set_origin_text"):
+            return
+        rows = self.selected_series()
+        if not rows:
+            selector.set_origin_text("")
+            return
+        try:
+            selector.set_origin_text(self.series_origin(rows[0]))
+        except Exception:
+            applogger.exception("Failed to describe the selected series' data shape.")
+            selector.set_origin_text("")
+
+    def series_xyz(self, row: Any, name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Run one selected series' SQL and return its x/y/z, as parallel arrays.
+
+        The scattered (not-yet-gridded) reading of a 3D series: one point per
+        row, same idea as smoothing_dialog's ``_series_choice_from_row`` but
+        centralised here so every 3D-aware operation reads its data the same
+        way. x and y go through ``numeric_x``/``numeric_y`` (timestamp-aware,
+        same as the 2D case); z is a computed/measured quantity, never a
+        chart axis a result has to land back on, so it goes through
+        ``to_numeric_axis`` directly.
+
+        Raises a clear error when the series has no ``z`` role, or when that
+        role no longer names a real column - callers are expected to have
+        already decided (via ``series_origin`` or the roles themselves) that
+        this series is 3D before calling this, not to find out from the
+        exception.
+        """
+        sql_query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
+        if not sql_query:
+            raise ValueError("the series has no SQL query")
+
+        frame = self._repo.query_df(sql_query)
+        if frame.empty:
+            raise ValueError("the series query returned no rows")
+
+        roles = parse_roles(row_value(row, "roles", default={}))
+        columns = [str(column) for column in frame.columns]
+        z_col = str(roles.get("z") or "")
+        if not z_col or z_col not in columns:
+            raise ValueError("the series has no z role")
+
+        numeric = [
+            str(column)
+            for column in frame.columns
+            if pd.api.types.is_numeric_dtype(frame[column])
+        ]
+        x_col = str(roles.get("x") or "")
+        y_col = str(roles.get("y") or "")
+        if x_col not in columns:
+            x_col = numeric[0] if numeric else columns[0]
+        if y_col not in columns:
+            y_col = numeric[1] if len(numeric) > 1 else x_col
+
+        x_values = np.asarray(self.numeric_x(frame[x_col], name), dtype=float).reshape(-1)
+        y_values = np.asarray(self.numeric_y(frame[y_col]), dtype=float).reshape(-1)
+        z_values = np.asarray(to_numeric_axis(frame[z_col]), dtype=float).reshape(-1)
+        return x_values, y_values, z_values
+
+    def series_grid_xyz(
+        self,
+        row: Any,
+        name: str,
+        *,
+        resolution: int = 120,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
+        """Return ``(X, Y, Z, interpolated)`` grids for one 3D series.
+
+        Preference order, and why it is this order:
+
+        1. **Exact.** ``pivot_to_grid`` (``app/charts/grids.py``) recognises a
+           complete Cartesian product of the distinct x and y values and
+           returns it untouched - no smoothing, no invented values. This is
+           always tried first and always preferred, because it is the only
+           answer that is exactly what was measured.
+        2. **Honest interpolation.** When the points are not a complete grid
+           (which is the common case for anything sampled freehand, or
+           jittered), a regular ``resolution`` x ``resolution`` grid is built
+           over the data's own x/y span and filled with
+           ``scipy.interpolate.griddata(..., method="linear")``. Linear
+           interpolation inside the convex hull of the original points is a
+           defensible estimate; *outside* it, ``griddata`` correctly refuses
+           to guess and leaves ``NaN`` - which this function deliberately
+           does not paper over. A caller that averages, contours or searches
+           this grid has to skip those cells rather than be handed a number
+           that was invented to fill a hole no data ever supported.
+
+        Never a third option: there is no "reasonable default" for a cell
+        with no support and no neighbours close enough to interpolate from -
+        that would be fabricated precision, which is worse than leaving it
+        as ``NaN`` and saying so via the returned ``interpolated`` flag.
+        """
+        x, y, z = self.series_xyz(row, name)
+        frame = pd.DataFrame({"x": x, "y": y, "z": z})
+
+        grid = pivot_to_grid(frame)
+        if grid is not None:
+            x_grid, y_grid, z_grid = grid
+            return x_grid, y_grid, z_grid, False
+
+        finite = np.isfinite(x) & np.isfinite(y) & np.isfinite(z)
+        x_finite, y_finite, z_finite = x[finite], y[finite], z[finite]
+        if x_finite.size < 4 or np.unique(x_finite).size < 2 or np.unique(y_finite).size < 2:
+            raise ValueError("not enough points to interpolate a surface")
+
+        x_lin = np.linspace(float(np.min(x_finite)), float(np.max(x_finite)), int(resolution))
+        y_lin = np.linspace(float(np.min(y_finite)), float(np.max(y_finite)), int(resolution))
+        x_grid, y_grid = np.meshgrid(x_lin, y_lin)
+
+        z_grid = griddata(
+            (x_finite, y_finite),
+            z_finite,
+            (x_grid, y_grid),
+            method="linear",
+        )
+        z_grid = np.asarray(z_grid, dtype=float)
+        if not np.any(np.isfinite(z_grid)):
+            raise ValueError("not enough points to interpolate a surface")
+
+        return x_grid, y_grid, z_grid, True
 
     def numeric_y(self, column: Any) -> np.ndarray:
         """Return a y column as floats, timestamps included.

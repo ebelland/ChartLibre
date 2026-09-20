@@ -230,7 +230,7 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
         )
         self.series_selector.reload(select_all_series=True)
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
@@ -261,7 +261,7 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
 
     def connect_operation_signals(self) -> None:
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.refresh_results)
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
@@ -272,21 +272,6 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
 
     def _model(self) -> str:
         return self.model_combo.currentText() or REGRESSION_RANSAC
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = list(results)
-        self.set_results_text(
-            self.format_results(results)
-            if results
-            else _("Select one or more source series.")
-        )
 
     # ------------------------------------------------------------------
     # Computation

@@ -88,6 +88,64 @@ N-20
 
 
 ================================================================
+DONE (2026-09) - series operations: no-auto-calc, 3D surfaces
+================================================================
+
+Series operations no longer recompute on every control change - only
+Preview/OK do (SeriesOperationDialogBase.mark_results_stale, replacing
+refresh_results()/_queue_refresh_results() and the debounce QTimer across
+all ~18 dialogs; app/tests/test_series_operation_dialog_no_auto_compute.py).
+User-defined functions/series operations that collide in name with an
+earlier one (built-in or user) now log a warning instead of silently
+vanishing (class_discovery.discover_classes_merged).
+
+3D surfaces (z = f(x, y)) are now a first-class case across the series
+operations that make sense for them:
+- base_surface_function (app/functions/base.py) + built-ins
+  (app/functions/surface_functions.py: Plane, Paraboloid, Gaussian2D,
+  Saddle, Ripple2D) + user template (app/functions/user_surface_functions.py).
+  Scanned by SurfaceFunctionScanner (app/scanners/functions_scanner.py),
+  merged into the same model tree as the 1D functions, tagged ndim=2.
+- SeriesOperationDialogBase gained series_origin() (labels a selected
+  series as 2D / 3D-on-a-grid / 3D-scattered / vector-field, shown in
+  AxisSeriesSelector), series_xyz() (scattered x/y/z reader) and
+  series_grid_xyz() (exact grid via app.charts.grids.pivot_to_grid,
+  falling back to scipy.interpolate.griddata - NaN outside the convex
+  hull, never invented values).
+- Fit dialog: real surface fitting (z = f(x, y, p)), drawn as
+  "Surface Plot (Scattered)" (TriSurface) on the source series' own axis.
+- Function dialog: evaluate/draw a surface function on a generated grid,
+  "Surface Plot".
+- Peaks: 2D local maxima/minima on a grid (scipy.ndimage maximum_filter/
+  minimum_filter; "prominence" is neighbourhood-local, not true
+  topographic prominence - see the P3 follow-up below), drawn as
+  "Scatter Plot (3D)".
+- Roots: the z = 0 level curve via matplotlib contour, drawn as
+  "3D Line Plot".
+- Calculus: surface gradient (magnitude, drawn as "Contour Plot") and
+  volume under the surface (double Simpson integration); the model list
+  (CALCULUS_MODELS) is deliberately data-driven so curl/divergence
+  (P2-21 below) has a natural place to land later.
+- Demo: "3D Series Operations" (app/data/demo_project.py) - a Gaussian
+  bump (exact grid + jittered/scattered) fit, its peak, a saddle's zero
+  contour, and its gradient/volume - computed by calling the real dialog
+  methods directly, not reimplemented, so the demo cannot drift from the
+  algorithm.
+- Fixed along the way: SqliteRepo.downsampled_series_frame's row-stride
+  decimation silently broke grid completeness for an odd grid side length
+  over 1,000 rows (Surface Plot / Contour Plot then refused to draw at
+  all) - these two chart types now skip row-based downsampling entirely
+  (app/charts/render_figure.py, app/tests/test_downsample.py). Also:
+  monte_carlo_p0/choose_starting_point (app/functions/monte_carlo.py,
+  app/functions/starting_point.py) used to .ravel() a surface fit's
+  (N, 2) x into (2N,), scrambling the two independent columns together
+  before a fit ever ran.
+
+NOT done yet, on purpose - see P2-21 and P2-22 below: vector fields
+(x, y, u, v - curl, divergence) and parametric 3D curves
+(x(t), y(t), z(t)).
+
+================================================================
 P2 - VALUABLE
 ================================================================
 
@@ -147,9 +205,89 @@ P2-20 .dhub HTML chart viewer - export a project's charts to a static
       upgrade path, at the cost of redoing every chart type in
       app/charts/.
 
+P2-21 3D roadmap, step 2: vector field series operations (curl,
+      divergence)
+      Builds on the 3D surface work above (see DONE (2026-09)) - same
+      pattern, one dimension family over. Not yet scoped in code, only
+      designed.
+      - Series roles: x, y, u, v - already read by the existing Quiver/
+        Stream renderers (app/charts/vector_field.py), never by a series
+        operation. A vector-field series is already recognised by
+        series_origin() (SeriesOperationDialogBase,
+        app/series_operations/dialog_base.py - today it only labels it,
+        "vector field (x, y, u, v)"); this step is what makes that label
+        actually usable by an operation instead of just informational.
+      - Function contract: base_vector_function (app/functions/base.py,
+        sibling of base_surface_function), execute(x, y, p) -> (u, v);
+        scanned the same way base_surface_function is (a
+        VectorFunctionScanner alongside SurfaceFunctionScanner in
+        app/scanners/functions_scanner.py - give it its own `kind` field
+        rather than overloading `ndim` again, since both are 2-variable
+        but return different shapes).
+      - Calculus dialog (app/series_operations/calculus_dialog.py):
+        CALCULUS_MODELS/SURFACE_MODELS were deliberately left data-driven
+        for exactly this. Add:
+        - Divergence: du/dx + dv/dy (scalar field, drawn as "Contour
+          Plot") - same np.gradient/grid machinery as the surface
+          gradient (_gradient_surface), called twice, once per component.
+        - Curl (2D/scalar): dv/dx - du/dy (same drawing).
+        Reuse series_grid_xyz() twice (once per component) or give it a
+        variant that reads two z-like columns (u, v) in one pass - decide
+        once this is actually built, whichever avoids querying the
+        series' SQL twice.
+      - Peaks/Roots: "peaks" on a vector field is a search for maximum
+        field magnitude sqrt(u^2+v^2) - the same 2D local-maxima code
+        Peaks already has (_search_3d in peaks_dialog.py), pointed at the
+        magnitude grid instead of z. "Roots" is a stagnation-point search
+        (both u and v approximately zero) - a new case, not a reuse of
+        the existing z=0 contour path (a level curve is not the right
+        shape for two simultaneous conditions); likely a 2D root-finding
+        pass over (u(x,y), v(x,y)) = (0, 0) on the grid.
+      - True 3D fields (x, y, z, u, v, w) have no chart renderer at all
+        today - out of scope until one exists.
+
+P2-22 3D roadmap, step 3: parametric 3D curves (x(t), y(t), z(t))
+      Builds on the same 3D work. Not yet scoped in code, only designed.
+      - Function contract: base_parametric3d_function (app/functions/
+        base.py), execute(t, p) -> (x, y, z); scanned like
+        base_surface_function.
+      - Function dialog: evaluate over a t range (reuses the existing
+        From/To/Points range controls unchanged - it is already a
+        1D-domain problem), draw with "3D Line Plot"
+        (app/charts/surface.py's Line3DAxisRenderer).
+      - Fit: fitting a parametric curve to a series of measured (x, y, z)
+        points ordered by an implicit or explicit parameter is a
+        materially different problem from the surface fit just built
+        (there is no single-valued z = f(x, y) here) - needs its own
+        design pass before touching fit_dialog.py again, not a copy of
+        _load_fit_data_2d.
+      - Peaks: local extrema of curvature, or of |r(t)|, along the curve -
+        closer to the original 1D scipy.signal.find_peaks path
+        (peaks_dialog.py's own 1D _search) than to the 2D grid one just
+        built for surfaces.
+      - Roots: where a chosen coordinate (or |r(t)|) crosses zero along
+        t - same idea, closest to the existing 1D root search in
+        roots_dialog.py.
+      - Calculus: derivative = velocity vector (dx/dt, dy/dt, dz/dt);
+        integral = arc length (integral of |r'(t)| dt, scipy.integrate).
+
 ================================================================
 P3 - LATER
 ================================================================
+
+P3-21 Minor follow-ups noticed while building the 3D surface work (see
+      DONE (2026-09) above)
+      - peaks_dialog.py's 2D "prominence" is neighbourhood-local (height
+        above the local minimum within the search radius), not a true
+        topographic prominence (which needs a flood-fill over the whole
+        basin) - fine for now, documented in the code, but worth
+        revisiting if it misfires on real data with nested bumps.
+      - function_dialog.py's surface mode reuses the same From/To/Points
+        range for both X and Y (a square domain only) - a second Y range
+        control would let it evaluate a rectangular domain instead.
+      - smoothing_dialog.py's _on_axis_changed looks like dead code (not
+        connected to any signal) - noticed during the no-auto-calc pass,
+        left alone as out of scope for that change.
 
 Done: the whole Developer menu - Renderer Helper, Series Operation
       Builder, Function Creator and Edit Localization.

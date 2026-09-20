@@ -73,7 +73,7 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
-from app.scanners.functions_scanner import FunctionScanner
+from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
 
 
 def _primary_x(value: np.ndarray) -> np.ndarray:
@@ -89,6 +89,29 @@ def _split_xy(value: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     if arr.ndim != 2 or arr.shape[1] < 2:
         applogger.error("This model requires 2D input with x and y independent columns.")
     return arr[:, 0], arr[:, 1]
+
+
+class _SurfaceInitialGuessAdapter:
+    """Adapt a surface function's 3-argument ``initial_guess`` to the plain
+    ``(x, y)`` shape ``ask_the_function``/``choose_starting_point`` expect.
+
+    Those two (``app/functions/starting_point.py``) are shared with every 1D
+    fit function, whose ``initial_guess(x, y)`` reads ``x`` as the sole
+    independent variable and ``y`` as the target. A surface function's own
+    ``initial_guess(x, y, z)`` needs x and y separately and z as the target -
+    so this unpacks the ``(N, 2)`` array this dialog builds for a 2D fit
+    before forwarding, rather than teaching the shared starting-point module
+    about a minority of functions that take one more argument.
+    """
+
+    def __init__(self, cls: Any) -> None:
+        self._cls = cls
+
+    def initial_guess(self, xy: np.ndarray, z: np.ndarray) -> list[float] | None:
+        arr = np.asarray(xy, dtype=float)
+        if arr.ndim != 2 or arr.shape[1] < 2:
+            return None
+        return self._cls.initial_guess(arr[:, 0], arr[:, 1], np.asarray(z, dtype=float))
 
 @dataclass(slots=True)
 class SeriesFitResult:
@@ -188,10 +211,16 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         self._initial_table: str | None = None
         self._selected_model: dict[str, Any] = {}
         self._function_scanner = FunctionScanner()
+        # Surface (z = f(x, y)) functions live in a second scanner rather
+        # than a second base class check sprinkled through this file: see
+        # SurfaceFunctionScanner's own docstring for why it is a subclass
+        # rather than a duplicate of FunctionScanner.
+        self._surface_scanner = SurfaceFunctionScanner()
         self._param_defaults: list[float] = [0.0, 1.0]
         self._last_result: SeriesFitResult | None = None
         self._source_name = "Selected series"
         self._source_x_col = "x"
+        self._source_x2_col: str | None = None
         self._source_y_col = "y"
 
         self._model_search = QLineEdit(self)
@@ -458,9 +487,21 @@ class SeriesFitDialog(SeriesOperationDialogBase):
 
         The previous JSON catalog is intentionally removed.  All fit models are
         now function classes discovered from app/functions/functions.py and
-        app/functions/user_functions.py through FunctionScanner.
+        app/functions/user_functions.py through FunctionScanner, plus every
+        z = f(x, y) surface function from app/functions/surface_functions.py
+        and app/functions/user_surface_functions.py through
+        SurfaceFunctionScanner. The two catalogs are merged by category - a
+        surface function's own categories ("Surfaces", "User surfaces") show
+        up as ordinary top-level groups in the same tree, no separate UI
+        needed.
         """
-        return self._function_scanner.catalog()
+        merged: dict[str, list[dict[str, Any]]] = {
+            category: list(models) for category, models in self._function_scanner.catalog().items()
+        }
+        for category, models in self._surface_scanner.catalog().items():
+            merged.setdefault(category, []).extend(models)
+            merged[category].sort(key=lambda item: str(item.get("name", "")).lower())
+        return dict(sorted(merged.items(), key=lambda item: item[0].lower()))
 
     def _build_model_catalog(self) -> None:
         self._models_tree.clear()
@@ -532,11 +573,24 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         return self._initial_table or self._source_name or "selected_series"
 
     def _is_2d_fit(self) -> bool:
-        """The scanned function dialog currently fits 1D target = f(x)."""
-        return False
+        """True when the selected model is a surface function z = f(x, y).
+
+        Driven entirely by the selected model's declared ``ndim`` (see
+        ``FitFunctionSpec``/``SurfaceFunctionScanner``), not by anything
+        about the selected series: a 2-variable model always needs a second
+        independent variable, and a 1-variable one never uses one, whatever
+        roles the series happens to have.
+        """
+        return int(self._selected_model.get("ndim", 1)) == 2
 
     def _selected_column_names(self) -> tuple[str, str | None, str]:
         """Return source X, optional X2, and target column names."""
+        if self._is_2d_fit():
+            return (
+                self._source_x_col or "x",
+                self._source_x2_col or "y",
+                self._source_y_col or "z",
+            )
         return self._source_x_col or "x", None, self._source_y_col or "target"
 
     def _apply_model_choice_from_payload(self, payload: dict[str, Any]) -> None:
@@ -757,6 +811,65 @@ class SeriesFitDialog(SeriesOperationDialogBase):
 
 
     def _load_fit_data(self) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+        if self._is_2d_fit():
+            return self._load_fit_data_2d()
+        return self._load_fit_data_1d()
+
+    def _load_fit_data_2d(self) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+        """Read a series' x, y and z roles for a surface (2D) fit.
+
+        A 2D fit's independent variables are not chosen through a combo: the
+        series already names them through its own roles - x and y are the
+        two independent variables, z is the target - which is what
+        ``SeriesOperationDialogBase.series_xyz`` reads. No extra "X2" picker
+        is needed for the common case this dialog supports (a series that
+        already carries x/y/z), which is why none was added.
+        """
+        row = self._selected_series_row()
+        roles = parse_roles(row_value(row, "roles", default={}))
+        source_name = str(roles.get("name", "Series"))
+        if not roles.get("z"):
+            applogger.error(
+                "A surface model needs a series with x, y and z roles; "
+                "the selected series has no z role."
+            )
+
+        x_values, y_values, z_values = self.series_xyz(row, source_name)
+
+        finite = np.isfinite(x_values) & np.isfinite(y_values) & np.isfinite(z_values)
+        dropped = int(finite.size - int(np.count_nonzero(finite)))
+        if dropped:
+            applogger.warning(
+                "%s: dropped %d row(s) with non-finite x/y/z before fitting.",
+                source_name,
+                dropped,
+                show_dialog=False,
+                raise_error=False,
+            )
+        x_clean = x_values[finite]
+        y_clean = y_values[finite]
+        target_clean = z_values[finite]
+        if target_clean.size < self.INPUT_MINIMUM_POINTS:
+            applogger.error(
+                f"{source_name}: not enough finite (x, y, z) points to fit a surface."
+            )
+
+        clean_frame = cast(
+            pd.DataFrame,
+            pd.DataFrame({"x": x_clean, "y": y_clean, "target": target_clean}),
+        )
+
+        self._source_name = source_name
+        self._source_x_col = str(roles.get("x") or "x")
+        self._source_x2_col = str(roles.get("y") or "y")
+        self._source_y_col = str(roles.get("z") or "z")
+        self._refresh_default_output_name(force=True)
+
+        x_data = np.column_stack([x_clean, y_clean])
+        target_data = target_clean
+        return x_data, target_data, clean_frame
+
+    def _load_fit_data_1d(self) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
         row = self._selected_series_row()
         source_name = str(parse_roles(row["roles"]).get("name", "Series"))
         sql_query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
@@ -869,8 +982,9 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         p0, _unused, _unused, _unused = self._collect_params_from_table()
         if self._selected_model.get("_multi_peak"):
             return self._make_multi_peak_model(self._selected_model), p0
+        scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
-            return self._function_scanner.make_model(self._selected_model), p0
+            return scanner.make_model(self._selected_model), p0
         except Exception:
             applogger.exception(
                 "Failed to build scanned fit function: %s",
@@ -1079,13 +1193,19 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         """
         if not self._selected_model or self._selected_model.get("_multi_peak"):
             return None
+        scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
-            return self._function_scanner.load_class(self._selected_model)
+            cls = scanner.load_class(self._selected_model)
         except Exception:
             applogger.exception(
                 "Could not load the class for %s", self._selected_model.get("name", "")
             )
             return None
+        # ask_the_function/choose_starting_point call initial_guess(x, y) -
+        # the 1D contract every fit function shares. A surface function's own
+        # initial_guess(x, y, z) needs one more argument, so it is wrapped
+        # rather than called directly; see _SurfaceInitialGuessAdapter.
+        return _SurfaceInitialGuessAdapter(cls) if self._is_2d_fit() else cls
 
     def _fill_initial_from_estimator(self) -> bool:
         """Put the function's own estimate in the Initial column, if it has one.
@@ -1344,19 +1464,24 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                     row_values.append("" if not np.isfinite(value) else f"{float(value):.4g}")
                 corr_rows.append(tuple(row_values))
 
+        summary_rows = [
+            ("Mode", result.fit_mode),
+            ("Source", result.source_table),
+        ]
+        if result.fit_mode == "2D":
+            summary_rows.append(("X1", result.x_col or ""))
+            summary_rows.append(("X2", result.x2_col or ""))
+        else:
+            summary_rows.append(("X", result.x_col or ""))
+        summary_rows.append(("Target", result.target_col or ""))
+        summary_rows.append(("Status", result.message))
+
         return report_html.document(
             "Fit",
             result.model_name,
             report_html.section(
                 _("Curve"),
-                report_html.summary_table(
-                    [
-                        ("Mode", result.fit_mode),
-                        ("Source", result.source_table),
-                        ("Target", result.target_col or ""),
-                        ("Status", result.message),
-                    ]
-                ),
+                report_html.summary_table(summary_rows),
             ),
             report_html.section(
                 _("Function expression"),
@@ -1437,12 +1562,6 @@ class SeriesFitDialog(SeriesOperationDialogBase):
     # SeriesOperationDialogBase hooks
     # ------------------------------------------------------------------
 
-    def refresh_results(self) -> None:
-        """Re-show the last outcome after a selection or parameter change."""
-        if self._last_result is not None:
-            self._fill_results_table(self._last_result.params, self._last_result.param_std)
-            self.publish_results(self.format_results([self._last_result]))
-
     @property
     def generated_style_filter(self) -> Mapping[str, Any]:
         return {"generated_fit": True, "fit_dialog": "series_fit"}
@@ -1466,13 +1585,32 @@ class SeriesFitDialog(SeriesOperationDialogBase):
 
     def result_series_spec(self, axis_id: int, table_name: str, result: SeriesFitResult) -> ResultSeriesSpec:
         del axis_id
-        sql_query = f'SELECT x, y_fit AS y FROM "{table_name}" ORDER BY x'
-        roles = {"x": "x", "y": "y"}
-        return ResultSeriesSpec(
-            name=f"Fit: {result.source_table} [{result.model_name}]",
-            sql_query=sql_query,
-            roles=roles,
-            style={
+        name = f"Fit: {result.source_table} [{result.model_name}]"
+
+        if result.fit_mode == "2D":
+            # Drawn with plot_trisurf (see TriSurfaceAxisRenderer), not
+            # pivoted onto a rectangular grid: the source points a surface
+            # fit runs on are rarely a complete x/y grid (that is exactly
+            # what series_grid_xyz's own fallback to interpolation is for
+            # elsewhere in this task), and triangulating the fitted z values
+            # directly draws a continuous skin without inventing a grid the
+            # data never supported.
+            sql_query = f'SELECT x, y, z_fit AS z FROM "{table_name}"'
+            roles = {"x": "x", "y": "y", "z": "z"}
+            style = {
+                "source_series": result.source_table,
+                "source_x_col": result.x_col,
+                "source_x2_col": result.x2_col or "",
+                "source_z_col": result.target_col,
+                "fit_model": result.model_name,
+                "fit_mode": "2D",
+                "generated_fit": True,
+                "fit_dialog": "series_fit",
+            }
+        else:
+            sql_query = f'SELECT x, y_fit AS y FROM "{table_name}" ORDER BY x'
+            roles = {"x": "x", "y": "y"}
+            style = {
                 "linestyle": "--",
                 "linewidth": 2.0,
                 "marker": "",
@@ -1483,7 +1621,13 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                 "fit_mode": "1D",
                 "generated_fit": True,
                 "fit_dialog": "series_fit",
-            },
+            }
+
+        return ResultSeriesSpec(
+            name=name,
+            sql_query=sql_query,
+            roles=roles,
+            style=style,
         )
 
     def format_results(self, results: Sequence[SeriesFitResult]) -> str:

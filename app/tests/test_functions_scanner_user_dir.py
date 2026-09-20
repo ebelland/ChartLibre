@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from app.scanners.functions_scanner import FunctionScanner
+from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
 
 _STUB = '''from __future__ import annotations
 import numpy as np
@@ -54,6 +54,71 @@ def test_defaults_to_user_functions_dir_when_extra_roots_is_not_given() -> None:
 
     scanner = FunctionScanner()
     assert scanner.extra_roots == (USER_FUNCTIONS_DIR,)
+
+
+_SURFACE_STUB = '''from __future__ import annotations
+import numpy as np
+from app.functions.base import base_surface_function
+
+
+class {cls}(base_surface_function):
+    name = "{name}"
+    category = "User surfaces"
+    description = "d"
+    expression = "z = p[0]"
+    p0 = [1.0]
+    params = ["a"]
+
+    @staticmethod
+    def execute(x: np.ndarray, y: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return p[0] * np.ones_like(x)
+'''
+
+
+def test_a_surface_function_is_discovered_with_ndim_2(tmp_path: Path) -> None:
+    (tmp_path / "mine_surface.py").write_text(
+        _SURFACE_STUB.format(cls="MineSurfaceFunction", name="My Own Surface"),
+        encoding="utf-8",
+    )
+
+    scanner = SurfaceFunctionScanner(extra_roots=(tmp_path,))
+    specs = scanner.specs()
+    mine = next(spec for spec in specs if spec.name == "My Own Surface")
+
+    assert mine.ndim == 2
+    assert mine.as_catalog_payload()["ndim"] == 2
+
+
+def test_a_1d_scanner_never_sees_a_surface_function(tmp_path: Path) -> None:
+    (tmp_path / "mine_surface.py").write_text(
+        _SURFACE_STUB.format(cls="MineSurfaceFunction2", name="My Own Surface 2"),
+        encoding="utf-8",
+    )
+
+    scanner = FunctionScanner(extra_roots=(tmp_path,))
+    assert not any(spec.name == "My Own Surface 2" for spec in scanner.specs())
+
+
+def test_built_in_surfaces_are_discovered_with_ndim_2() -> None:
+    scanner = SurfaceFunctionScanner()
+    specs = scanner.specs()
+    names = {spec.name for spec in specs}
+    assert {"Plane", "Paraboloid", "Gaussian2D", "Saddle", "Ripple2D"} <= names
+    assert all(spec.ndim == 2 for spec in specs)
+
+
+def test_surface_make_model_calls_execute_with_split_x_y() -> None:
+    scanner = SurfaceFunctionScanner()
+    payload = next(
+        p for p in scanner.catalog()["Surfaces"] if p["name"] == "Plane"
+    )
+    model = scanner.make_model(payload)
+
+    xy = np.column_stack([np.array([1.0, 2.0, 3.0]), np.array([10.0, 20.0, 30.0])])
+    p = np.array([1.0, 2.0, 3.0])  # a=1, b=2, c=3 -> z = 1 + 2x + 3y
+    result = model(xy, p)
+    expected = 1.0 + 2.0 * xy[:, 0] + 3.0 * xy[:, 1]
+    assert np.allclose(result, expected)
 
 
 def test_a_function_creator_file_is_discovered_through_the_real_user_dir() -> None:

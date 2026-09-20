@@ -261,7 +261,7 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         self._populate_axes()
         self._refresh_methods()
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     def init_operation_widgets(self) -> None:
         self._doc_link = create_doc_link(self)
@@ -289,9 +289,9 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
 
     def connect_operation_signals(self) -> None:
         # Only the model combo: ParameterForm connects every declared
-        # parameter to refresh_results when it builds them.
+        # parameter to mark_results_stale when it builds them.
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.refresh_results)
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _populate_axes(self) -> None:
         self.series_selector.reload(select_all_series=True)
@@ -319,17 +319,6 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             form.refresh_visibility()
         title, url = OUTLIER_DOCS[model]
         set_doc_link(self._doc_link, title, url)
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = results
-        self.set_results_text(self.format_results(results) if results else "Select one or more source series.")
 
     def compute_results(self) -> list[OutlierResult]:
         """Detect outliers for each selected source series.

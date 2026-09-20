@@ -40,7 +40,7 @@ from scipy.integrate import cumulative_trapezoid, simpson, trapezoid
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import savgol_filter
 
-from app.data.data_source import row_value
+from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
@@ -61,16 +61,29 @@ DERIV_SPLINE = "Derivative (spline)"
 INTEGRAL_CUMULATIVE = "Integral (cumulative)"
 INTEGRAL_DEFINITE = "Integral (total area)"
 
+#: A series with a z role gets two more entries in the same combo, rather
+#: than a second model list gated on the selection: a data-driven list is
+#: what makes a *third* one (curl/divergence, once vector fields - x, y, u,
+#: v - are in scope) a matter of adding another string here later, not a new
+#: branch of dialog. Picking one of these on a series with no z role simply
+#: fails per-row with a clear error (see compute_results), the same way
+#: every other row-level mismatch here already does.
+DERIV_GRADIENT_SURFACE = "Derivative (surface gradient)"
+INTEGRAL_VOLUME_SURFACE = "Integral (surface volume)"
+
 CALCULUS_MODELS = (
     DERIV_SAVGOL,
     DERIV_GRADIENT,
     DERIV_SPLINE,
+    DERIV_GRADIENT_SURFACE,
     INTEGRAL_CUMULATIVE,
     INTEGRAL_DEFINITE,
+    INTEGRAL_VOLUME_SURFACE,
 )
 
 DERIVATIVES = (DERIV_SAVGOL, DERIV_GRADIENT, DERIV_SPLINE)
 INTEGRALS = (INTEGRAL_CUMULATIVE, INTEGRAL_DEFINITE)
+SURFACE_MODELS = (DERIV_GRADIENT_SURFACE, INTEGRAL_VOLUME_SURFACE)
 
 CALCULUS_DOCS = {
     DERIV_SAVGOL: (
@@ -90,6 +103,14 @@ CALCULUS_DOCS = {
         "https://en.wikipedia.org/wiki/Trapezoidal_rule",
     ),
     INTEGRAL_DEFINITE: (
+        "Simpson's rule",
+        "https://en.wikipedia.org/wiki/Simpson%27s_rule",
+    ),
+    DERIV_GRADIENT_SURFACE: (
+        "Gradient",
+        "https://en.wikipedia.org/wiki/Gradient",
+    ),
+    INTEGRAL_VOLUME_SURFACE: (
         "Simpson's rule",
         "https://en.wikipedia.org/wiki/Simpson%27s_rule",
     ),
@@ -146,8 +167,23 @@ class CalculusResult:
     #: the chart having to special-case a one-point series.
     total: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    #: Set only for the surface gradient: ``x``/``y`` are then the flattened
+    #: grid's own coordinates (not a curve's x and a computed y), and ``z``
+    #: is the gradient magnitude at each of them. ``dz_dx``/``dz_dy`` carry
+    #: the two components separately, for a report that wants more than the
+    #: magnitude the chart draws.
+    z: np.ndarray | None = None
+    dz_dx: np.ndarray | None = None
+    dz_dy: np.ndarray | None = None
 
     def to_frame(self) -> pd.DataFrame:
+        if self.z is not None:
+            data: dict[str, np.ndarray] = {"x": self.x, "y": self.y, "z": self.z}
+            if self.dz_dx is not None:
+                data["dz_dx"] = self.dz_dx
+            if self.dz_dy is not None:
+                data["dz_dy"] = self.dz_dy
+            return pd.DataFrame(data)
         return pd.DataFrame({"x": self.x, "y": self.y})
 
 
@@ -279,7 +315,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         )
         self.series_selector.reload(select_all_series=True)
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
@@ -310,7 +346,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
 
     def connect_operation_signals(self) -> None:
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.refresh_results)
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
@@ -321,21 +357,6 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
 
     def _model(self) -> str:
         return self.model_combo.currentText() or DERIV_SAVGOL
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = list(results)
-        self.set_results_text(
-            self.format_results(results)
-            if results
-            else _("Select one or more source series.")
-        )
 
     # ------------------------------------------------------------------
     # Computation
@@ -351,8 +372,11 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         for row in self.selected_series():
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
-                x_values, y_values = self.series_xy(row, name)
-                results.append(self._compute_one(name, x_values, y_values, model, params))
+                if model in SURFACE_MODELS:
+                    results.append(self._compute_one_3d(row, name, model))
+                else:
+                    x_values, y_values = self.series_xy(row, name)
+                    results.append(self._compute_one(name, x_values, y_values, model, params))
             except Exception as exc:
                 errors.append(f"{name}: {exc}")
 
@@ -374,6 +398,109 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         if model in DERIVATIVES:
             return self._differentiate(name, x_values, y_values, model, params)
         return self._integrate(name, x_values, y_values, model, params)
+
+    # --- Surfaces (a series with a z role): gradient and volume ---------
+
+    def _compute_one_3d(self, row: Any, name: str, model: str) -> CalculusResult:
+        x_grid, y_grid, z_grid, interpolated = self.series_grid_xyz(row, name)
+        if model == DERIV_GRADIENT_SURFACE:
+            return self._gradient_surface(name, x_grid, y_grid, z_grid, interpolated)
+        return self._volume_surface(name, x_grid, y_grid, z_grid, interpolated)
+
+    def _gradient_surface(
+        self,
+        name: str,
+        x_grid: np.ndarray,
+        y_grid: np.ndarray,
+        z_grid: np.ndarray,
+        interpolated: bool,
+    ) -> CalculusResult:
+        """Return the surface's gradient magnitude on the same grid.
+
+        ``np.gradient`` on a 2D array indexed ``Z[row, col]`` returns
+        ``(dZ/d(axis0), dZ/d(axis1))`` - and ``series_grid_xyz`` builds its
+        grids with ``np.meshgrid``'s default ('xy') indexing, where axis 0
+        walks y and axis 1 walks x. So the first array back is dz/dy and the
+        second is dz/dx, not the other way round. This was verified, not
+        assumed: ``np.gradient(Z, y_axis, x_axis)`` on z = 2x + 3y returns a
+        constant (3, 2) pair everywhere - see test_calculus_surface.py.
+
+        NaN cells (only present in an interpolated grid, outside the convex
+        hull of the source points - see series_grid_xyz) propagate into the
+        gradient at that cell and its immediate neighbours, exactly as they
+        should: there is no real slope to report next to a hole in the data.
+        """
+        x_axis = x_grid[0, :]
+        y_axis = y_grid[:, 0]
+        with np.errstate(invalid="ignore"):
+            dz_dy, dz_dx = np.gradient(z_grid, y_axis, x_axis)
+        magnitude = np.sqrt(dz_dx**2 + dz_dy**2)
+
+        return CalculusResult(
+            source_name=name,
+            result_name=f"{name} - |grad z|",
+            model=DERIV_GRADIENT_SURFACE,
+            x=x_grid.ravel(),
+            y=y_grid.ravel(),
+            z=magnitude.ravel(),
+            dz_dx=dz_dx.ravel(),
+            dz_dy=dz_dy.ravel(),
+            metadata={
+                "detail": "np.gradient over the x/y grid",
+                "interpolated": bool(interpolated),
+            },
+        )
+
+    def _volume_surface(
+        self,
+        name: str,
+        x_grid: np.ndarray,
+        y_grid: np.ndarray,
+        z_grid: np.ndarray,
+        interpolated: bool,
+    ) -> CalculusResult:
+        """Return the volume under the surface, by double Simpson integration.
+
+        ``simpson`` is applied along x first (axis=1, one number per row),
+        then the resulting 1D profile is integrated along y - the standard
+        way to turn a 1D quadrature rule into a 2D one on a regular grid.
+
+        NaN cells (an interpolated grid's cells outside the convex hull of
+        the source points) are treated as zero rather than excluded: excising
+        them would leave a hole Simpson's rule cannot integrate around
+        without a much more careful (and here unwarranted) treatment, and
+        zero is the same assumption ``griddata`` already made by refusing to
+        guess there in the first place. This is reported in the metadata
+        the report table shows, not hidden.
+        """
+        x_axis = x_grid[0, :]
+        y_axis = y_grid[:, 0]
+        finite = np.isfinite(z_grid)
+        nan_count = int(z_grid.size - np.count_nonzero(finite))
+        z_filled = np.where(finite, z_grid, 0.0)
+
+        inner = simpson(z_filled, x=x_axis, axis=1)
+        total = float(simpson(inner, x=y_axis))
+
+        detail = "double Simpson's rule (x then y)"
+        if nan_count:
+            detail += (
+                f"; {nan_count} of {z_grid.size} interpolated cell(s) outside "
+                "the data's convex hull were treated as 0"
+            )
+
+        return CalculusResult(
+            source_name=name,
+            result_name=f"{name} - volume under surface",
+            model=INTEGRAL_VOLUME_SURFACE,
+            # Same trick the 1D definite integral uses: a single number is
+            # still reported as a two-point flat line so it can be stored
+            # and drawn like every other result.
+            x=np.array([float(np.min(x_axis)), float(np.max(x_axis))]),
+            y=np.array([total, total]),
+            total=total,
+            metadata={"detail": detail, "interpolated": bool(interpolated)},
+        )
 
     # --- Derivatives ---------------------------------------------------
 
@@ -623,12 +750,23 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         A new axis on the same figure, not a new tab: the result is a second
         view of this chart's data and belongs beside it.
         """
+        is_surface_gradient = bool(results and results[0].model == DERIV_GRADIENT_SURFACE)
+        if is_surface_gradient:
+            # Contour Plot, not Surface: the magnitude is a scalar field
+            # over (x, y), which is exactly what a contour map shows, and
+            # (unlike Surface/Scatter3D) it needs no 3D projection.
+            chart_type = "Contour Plot"
+            options: dict[str, Any] = {"grid": True}
+        else:
+            chart_type = "Scatter Plot"
+            options = {"grid": True, "linestyle": "-", "marker": ""}
+
         axis_id = self.resolve_destination_axis(
             selected_axis_id,
-            chart_type="Scatter Plot",
+            chart_type=chart_type,
             title=self._model(),
             figure_name=self._result_figure_name(results),
-            options={"grid": True, "linestyle": "-", "marker": ""},
+            options=options,
         )
         self._label_result_axis(results)
         return axis_id
@@ -657,6 +795,10 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         order = int(first.metadata.get("order", 1) or 1)
         if first.model in DERIVATIVES:
             y_label = "d\u00b2y/dx\u00b2" if order == 2 else "dy/dx"
+        elif first.model == DERIV_GRADIENT_SURFACE:
+            y_label = "|\u2207z|"
+        elif first.model == INTEGRAL_VOLUME_SURFACE:
+            y_label = "volume"
         else:
             y_label = "\u222by dx"
         unit_label = str(first.metadata.get("per") or "")
@@ -691,6 +833,18 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         result: CalculusResult,
     ) -> ResultSeriesSpec:
         del axis_id
+        if result.z is not None:
+            return ResultSeriesSpec(
+                name=result.result_name,
+                sql_query=f'SELECT x, y, z FROM "{table_name}"',
+                roles={"x": "x", "y": "y", "z": "z"},
+                style={
+                    "generated_calculus": True,
+                    "calculus_dialog": "series_calculus",
+                    "source_name": result.source_name,
+                    "model": result.model,
+                },
+            )
         return ResultSeriesSpec(
             name=result.result_name,
             sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QInputDialog, QLabel
 
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.database_info_panel import DatabaseInfoPanel, _human_size
@@ -104,6 +104,48 @@ def test_no_selection_disables_every_row_action(qapp, repo: SqliteRepo) -> None:
     assert not panel._export_csv_button.isEnabled()
     assert not panel._export_xlsx_button.isEnabled()
     assert not panel._update_link_button.isEnabled()
+    assert not panel._rename_button.isEnabled()
+
+
+def test_rename_selected_table_renames_and_reloads(
+    qapp, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    panel = DatabaseInfoPanel(repo, parent=None)
+    for row in range(panel._table.rowCount()):
+        if panel._table.item(row, 0).text() == "plain_table":
+            panel._table.selectRow(row)
+            break
+
+    monkeypatch.setattr(
+        QInputDialog, "getText", staticmethod(lambda *a, **k: ("renamed_table", True))
+    )
+    panel._rename_selected_table()
+
+    names = {
+        panel._table.item(row, 0).text() for row in range(panel._table.rowCount())
+    }
+    assert "renamed_table" in names
+    assert "plain_table" not in names
+
+
+def test_rename_selected_table_does_nothing_when_dialog_is_cancelled(
+    qapp, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    panel = DatabaseInfoPanel(repo, parent=None)
+    for row in range(panel._table.rowCount()):
+        if panel._table.item(row, 0).text() == "plain_table":
+            panel._table.selectRow(row)
+            break
+
+    monkeypatch.setattr(
+        QInputDialog, "getText", staticmethod(lambda *a, **k: ("ignored", False))
+    )
+    panel._rename_selected_table()
+
+    names = {
+        panel._table.item(row, 0).text() for row in range(panel._table.rowCount())
+    }
+    assert "plain_table" in names
 
 
 @pytest.mark.parametrize(

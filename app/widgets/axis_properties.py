@@ -135,6 +135,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._projection_combo,
             self._sharex_check,
             self._sharey_check,
+            self._sharez_check,
             self._hide_axis_check,
         ) + self._extended_option_widgets()
 
@@ -200,7 +201,10 @@ class AxisPropertiesWidget(BaseProperties):
     def _build_axis_selector_section(self) -> QWidget:
         """Create axis selector, axis actions and renderer display."""
         section = CardFrame(self, "axisSelectorCard")
-        layout = section.layout()
+        raw_layout = section.layout()
+        if not isinstance(raw_layout, QVBoxLayout):
+            raise RuntimeError("CardFrame did not create a vertical box layout")
+        layout = raw_layout
 
         self._axis_combo = QComboBox(section)
         self._configure_combo_width(self._axis_combo, minimum_contents_length=24)
@@ -276,7 +280,10 @@ class AxisPropertiesWidget(BaseProperties):
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
         )
-        layout = section.layout()
+        raw_layout = section.layout()
+        if not isinstance(raw_layout, QVBoxLayout):
+            raise RuntimeError("CardFrame did not create a vertical box layout")
+        layout = raw_layout
         scroll.setWidget(section)
         return scroll, section, layout
 
@@ -315,6 +322,11 @@ class AxisPropertiesWidget(BaseProperties):
 
         self._sharex_check = QCheckBox(_("Share X"), section)
         self._sharey_check = QCheckBox(_("Share Y"), section)
+        self._sharez_check = QCheckBox(_("Share Z"), section)
+        self._sharez_check.setToolTip(
+            _("Use one common Z range for all 3D axes in this figure. "
+              "The selected axis provides the Z limits; 2D axes are ignored.")
+        )
         self._hide_axis_check = QCheckBox(_("Hide axis"), section)
 
         share_row = QWidget(section)
@@ -323,6 +335,7 @@ class AxisPropertiesWidget(BaseProperties):
         share_layout.setSpacing(8)
         share_layout.addWidget(self._sharex_check)
         share_layout.addWidget(self._sharey_check)
+        share_layout.addWidget(self._sharez_check)
         share_layout.addStretch(1)
 
         # "Pick radius" used to be here, writing the axis' own ``pickradius``.
@@ -874,7 +887,10 @@ class AxisPropertiesWidget(BaseProperties):
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
         )
-        layout = section.layout()
+        raw_layout = section.layout()
+        if not isinstance(raw_layout, QVBoxLayout):
+            raise RuntimeError("CardFrame did not create a vertical box layout")
+        layout = raw_layout
 
         # The reset button is not built here: it belongs on the editor's own
         # search row (see rebuild_kwargs_editor), and the editor is rebuilt
@@ -1120,6 +1136,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._projection_combo,
             self._sharex_check,
             self._sharey_check,
+            self._sharez_check,
             self._hide_axis_check,
             self._renderer_value,
             self._tabs,
@@ -1254,6 +1271,7 @@ class AxisPropertiesWidget(BaseProperties):
             )
             self._sharex_check.setChecked(bool(options.get("sharex", False)))
             self._sharey_check.setChecked(bool(options.get("sharey", False)))
+            self._sharez_check.setChecked(bool(options.get("sharez", False)))
             self._hide_axis_check.setChecked(
                 bool(options.get("hide_axis", options.get("hidden", False)))
             )
@@ -1287,6 +1305,7 @@ class AxisPropertiesWidget(BaseProperties):
                 self._projection_combo,
                 self._sharex_check,
                 self._sharey_check,
+                self._sharez_check,
                 self._hide_axis_check,
             )
             + self._extended_option_widgets()
@@ -1303,6 +1322,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._projection_combo.setCurrentIndex(0)
             self._sharex_check.setChecked(False)
             self._sharey_check.setChecked(False)
+            self._sharez_check.setChecked(False)
             self._hide_axis_check.setChecked(False)
             self._clear_extended_axis_options()
         self._renderer_value.clear()
@@ -1453,6 +1473,7 @@ class AxisPropertiesWidget(BaseProperties):
             "projection": str(self._projection_combo.currentData() or "rectilinear"),
             "sharex": bool(self._sharex_check.isChecked()),
             "sharey": bool(self._sharey_check.isChecked()),
+            "sharez": bool(self._sharez_check.isChecked()),
             "hide_axis": bool(self._hide_axis_check.isChecked()),
             "renderer": self._renderer_value.text().strip(),
         }

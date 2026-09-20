@@ -147,6 +147,87 @@ def apply_rounded_window_mask(window: QWidget, *, radius: int = WINDOW_CORNER_RA
     window.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
 
+def apply_native_macos_corner_radius(window: QWidget, *, radius: int = WINDOW_CORNER_RADIUS) -> bool:
+    """Round *window*'s real corners through its NSWindow, not a QRegion mask.
+
+    apply_rounded_window_mask() clips with QWidget.setMask(), and Qt
+    implements that as a plain QRegion - a set of whole pixels with no
+    partial coverage, so however the QPainterPath feeding it is built, the
+    curve still lands on the pixel grid as a visible staircase (see
+    WINDOW_CORNER_RADIUS's own docstring). A real macOS window - Finder,
+    System Settings, any other AppKit window - rounds its corners through
+    Core Animation instead, which *does* anti-alias. pyobjc is already a
+    hard macOS dependency for SF Symbols (see _sf_symbol_bridge); the same
+    bridge is used here to reach this widget's own native NSView from its
+    winId() and set the corner radius on its CALayer, so the window server
+    draws the curve rather than Qt.
+
+    Call once the window has a native handle - its first showEvent, same as
+    _rename_macos_app_menu_items has to wait for the native menu to exist.
+    Unlike apply_rounded_window_mask this does not need to be repeated on
+    every resize: a CALayer's corner radius is a shape, not a pixel mask,
+    and AppKit keeps the layer's bounds synced to the NSView's frame on its
+    own.
+
+    Returns True on success, False - nothing changed - if pyobjc is
+    unavailable, *window* is not on macOS, or any of the handful of ObjC
+    calls above fails; the caller falls back to apply_rounded_window_mask()
+    in that case.
+    """
+    if not IS_MACOS or not _pyobjc_core_is_safe_to_import():
+        return False
+
+    # A genuine NSView/NSWindow only exists under Qt's real "cocoa" platform
+    # plugin. IS_MACOS only checks the OS, not the active Qt backend - under
+    # any other one (offscreen, for headless tests and scripts), winId()
+    # returns a synthetic handle with no relation to a real native pointer.
+    # objc.objc_object() below does not validate it: handed a bad pointer,
+    # pyobjc reads unowned memory and segfaults the whole process rather than
+    # raising a catchable Python exception, so this has to be ruled out
+    # before that call, not caught after it.
+    app = QGuiApplication.instance()
+    if app is None or app.platformName() != "cocoa":
+        return False
+
+    window_id = int(window.winId())
+    if window_id == 0:
+        return False
+
+    try:
+        import AppKit  # type: ignore[import-not-found]
+        import objc  # type: ignore[import-not-found]
+    except ImportError:
+        return False
+
+    try:
+        ns_view = objc.objc_object(c_void_p=window_id)
+        if ns_view is None:
+            return False
+        ns_window = ns_view.window()
+        if ns_window is None:
+            return False
+        # A rounded NSWindow also has to be non-opaque, or the corners the
+        # layer cuts away would still show the window's own opaque backing
+        # instead of whatever is behind it - the QRegion mask gave that for
+        # free by removing those pixels outright.
+        ns_window.setOpaque_(False)
+        ns_window.setBackgroundColor_(AppKit.NSColor.clearColor())
+        content_view = ns_window.contentView()
+        content_view.setWantsLayer_(True)
+        layer = content_view.layer()
+        layer.setCornerRadius_(float(radius))
+        layer.setMasksToBounds_(True)
+    except Exception:
+        applogger.exception(
+            "Failed to apply the native macOS window corner radius; falling "
+            "back to the QRegion mask instead.",
+            show_dialog=False,
+            raise_error=False,
+        )
+        return False
+    return True
+
+
 @dataclass(frozen=True, slots=True)
 class PlatformStyle:
     """Resolved platform styling information."""
@@ -1608,6 +1689,23 @@ def mark_icon_only(button: QtWidgets.QAbstractButton) -> QtWidgets.QAbstractButt
     """
     button.setText("")
     button.setProperty("iconOnly", True)
+    repolish_widget(button)
+    return button
+
+
+def mark_destructive_button(button: QtWidgets.QAbstractButton) -> QtWidgets.QAbstractButton:
+    """Style a button as a destructive action - solid red, on both platforms.
+
+    "Clear list" sat in the exact same column as every recent-project row
+    above it, one more left-aligned button among several - nothing set it
+    apart from an action a misclick could not undo. ``[destructive="true"]``
+    is a new rule in both stylesheets (fluent_win11.qss, macos_native.qss),
+    the same ``setProperty`` + QSS-attribute-selector idiom ``[primary="true"]``
+    already uses for the opposite emphasis (see _mark_primary_button) - not
+    a fixed inline color, so it still follows whatever palette the active
+    theme resolves disabled/hover state through.
+    """
+    button.setProperty("destructive", True)
     repolish_widget(button)
     return button
 

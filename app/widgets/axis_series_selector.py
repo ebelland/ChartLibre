@@ -145,6 +145,16 @@ class AxisSeriesSelector(QWidget):
         self.series_label = QLabel(_("Series:"), self)
         self.series_list = QListWidget(self, sortingEnabled=True)
 
+        # What kind of data the current selection actually is - 2D, a 3D
+        # grid, scattered 3D points, or a vector field. Purely presentational:
+        # the text is computed and set by the owning dialog (series_origin()
+        # in SeriesOperationDialogBase), which is the one place that already
+        # reads the series' roles and data. This widget only displays it.
+        self.origin_label = QLabel("", self)
+        self.origin_label.setProperty("muted", True)
+        self.origin_label.setWordWrap(True)
+        self.origin_label.hide()
+
         # Series are checkable, not row-selected. The list is the only widget in
         # this selector that should consume spare vertical space.
         self.series_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
@@ -208,6 +218,7 @@ class AxisSeriesSelector(QWidget):
         layout.addWidget(self.axis_label, 0)
         layout.addWidget(self.axis_combo, 0)
         layout.addWidget(self.series_label, 0)
+        layout.addWidget(self.origin_label, 0)
         layout.addWidget(series_section, 1)
 
     def _connect_signals(self) -> None:
@@ -295,6 +306,18 @@ class AxisSeriesSelector(QWidget):
         section = self.series_list.parentWidget()
         if section is not None and section.objectName() == "axisSeriesListSection":
             section.setVisible(visible)
+
+    def set_origin_text(self, text: str) -> None:
+        """Show (or hide, for an empty text) the data-origin caption.
+
+        Called by the owning dialog whenever the selection changes - see
+        ``SeriesOperationDialogBase.series_origin``. Kept as a plain setter
+        here because this widget has no access to the series' SQL/roles by
+        itself; it only knows how to display what it is told.
+        """
+        clean = str(text or "").strip()
+        self.origin_label.setText(clean)
+        self.origin_label.setVisible(bool(clean))
 
     def set_axes(
         self,

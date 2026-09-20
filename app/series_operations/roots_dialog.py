@@ -53,7 +53,7 @@ from PySide6.QtWidgets import QFormLayout, QVBoxLayout, QWidget
 from scipy.interpolate import CubicSpline, PchipInterpolator
 from scipy.optimize import brentq, newton, toms748
 
-from app.data.data_source import row_value
+from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.dialog_base import (
@@ -109,21 +109,34 @@ INTERP_PCHIP = "pchip"
 
 @dataclass(slots=True)
 class Root:
-    """One located crossing."""
+    """One located crossing.
+
+    For a 2D crossing (a series with a z role, see ``_solve_one_3d``), ``x``
+    and ``y`` are a point's actual coordinates rather than x and a residual,
+    ``z`` holds the level (constant across every point), and
+    ``curve_index`` groups points into the separate polylines
+    ``ax.contour`` returned - a saddle's z=0 level set, for instance, is two
+    unconnected diagonal lines, not one.
+    """
 
     x: float
     #: The interpolant's value there. Not exactly the level - it is the
     #: residual that says how well the solver converged, and a large one is
     #: the sign of a bracket the interpolant does not really cross.
+    #: For a 2D crossing this is instead the point's own y coordinate.
     y: float
     #: True when the series is going up through the level at this x. A
     #: rising and a falling crossing are different events - a threshold
-    #: being exceeded and a recovery - and the report says which.
+    #: being exceeded and a recovery - and the report says which. Meaningless
+    #: for a 2D crossing (a level *curve* has no single "up"), always False
+    #: there.
     rising: bool
     #: How the value was arrived at: the solver's name, or "sample" for a
-    #: point that sat on the level to begin with.
+    #: point that sat on the level to begin with. "contour" for a 2D one.
     method: str
     iterations: int = 0
+    z: float | None = None
+    curve_index: int = 0
 
 
 @dataclass(slots=True)
@@ -138,6 +151,29 @@ class RootResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_frame(self) -> pd.DataFrame:
+        if self.metadata.get("is_3d"):
+            # A NaN row between two curve_index groups: several disconnected
+            # level curves (a saddle's z=0 set is two crossing lines) are
+            # stored end to end in one table, and without a break matplotlib
+            # would draw a spurious line segment joining the end of one
+            # curve to the start of the next.
+            xs: list[float] = []
+            ys: list[float] = []
+            zs: list[float] = []
+            curve_indices: list[int] = []
+            last_curve: int | None = None
+            for root in self.roots:
+                if last_curve is not None and root.curve_index != last_curve:
+                    xs.append(float("nan"))
+                    ys.append(float("nan"))
+                    zs.append(float("nan"))
+                    curve_indices.append(last_curve)
+                xs.append(root.x)
+                ys.append(root.y)
+                zs.append(root.z)
+                curve_indices.append(root.curve_index)
+                last_curve = root.curve_index
+            return pd.DataFrame({"x": xs, "y": ys, "z": zs, "curve_index": curve_indices})
         return pd.DataFrame(
             {
                 "x": [root.x for root in self.roots],
@@ -260,7 +296,7 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         )
         self.series_selector.reload(select_all_series=True)
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
@@ -296,7 +332,7 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
 
     def connect_operation_signals(self) -> None:
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.refresh_results)
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
@@ -308,20 +344,6 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
     def _model(self) -> str:
         return self.model_combo.currentText() or ROOT_BRENT
 
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = list(results)
-        self.set_results_text(
-            self.format_results(results)
-            if results
-            else _("Select one or more source series.")
-        )
 
     # ------------------------------------------------------------------
     # Computation
@@ -337,8 +359,17 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         for row in self.selected_series():
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
-                x_values, y_values = self.series_xy(row, name)
-                results.append(self._solve_one(name, x_values, y_values, model, params))
+                roles = parse_roles(row_value(row, "roles", default={}))
+                if roles.get("z"):
+                    # A series with a z role is a surface: "the roots" are a
+                    # whole level *curve* (z = level), not a handful of x
+                    # crossings, so it gets its own path (matplotlib's
+                    # contour extraction) rather than the bracket-then-SciPy
+                    # machinery below, which assumes a single-valued y(x).
+                    results.append(self._solve_one_3d(row, name, params))
+                else:
+                    x_values, y_values = self.series_xy(row, name)
+                    results.append(self._solve_one(name, x_values, y_values, model, params))
             except Exception as exc:
                 errors.append(f"{name}: {exc}")
 
@@ -417,6 +448,108 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
                 "samples": int(x_values.size),
             },
         )
+
+    # --- Surfaces (a series with a z role): the level curve z = level -----
+
+    def _solve_one_3d(
+        self,
+        row: Any,
+        name: str,
+        params: Mapping[str, Any],
+    ) -> RootResult:
+        """Find the level curve z = level on a gridded (or interpolated) surface.
+
+        The bracket-and-refine machinery above assumes y is single-valued in
+        x, which a surface's level set is not - a saddle's z = 0 set is two
+        crossing lines. Matplotlib's own contour extraction already solves
+        exactly this (it is what draws a Contour chart's lines), so it is
+        reused here rather than re-deriving marching squares by hand: a
+        throwaway, never-shown Figure/Axes builds ``ax.contour`` at a single
+        level and its polylines are read back as (x, y) points.
+        """
+        level = float(params.get("level", 0.0))
+        limit = int(params.get("limit", 100))
+
+        x_grid, y_grid, z_grid, interpolated = self.series_grid_xyz(row, name)
+        polylines = self._extract_level_curves(x_grid, y_grid, z_grid, level)
+
+        roots: list[Root] = []
+        truncated = False
+        for curve_index, (xs, ys) in enumerate(polylines):
+            for x_value, y_value in zip(xs.tolist(), ys.tolist()):
+                if len(roots) >= limit:
+                    truncated = True
+                    break
+                roots.append(
+                    Root(
+                        x=float(x_value),
+                        y=float(y_value),
+                        rising=False,
+                        method="contour",
+                        z=level,
+                        curve_index=curve_index,
+                    )
+                )
+            if truncated:
+                break
+
+        return RootResult(
+            source_name=name,
+            result_name=f"{name} - roots",
+            model="Contour (matplotlib)",
+            level=level,
+            roots=roots,
+            metadata={
+                "found": len(roots),
+                "truncated": truncated,
+                "is_3d": True,
+                "interpolated": bool(interpolated),
+                "curves": len(polylines),
+            },
+        )
+
+    @staticmethod
+    def _extract_level_curves(
+        x_grid: np.ndarray,
+        y_grid: np.ndarray,
+        z_grid: np.ndarray,
+        level: float,
+    ) -> list[tuple[np.ndarray, np.ndarray]]:
+        """Return the ``z_grid == level`` polylines as ``(xs, ys)`` arrays.
+
+        ``allsegs`` is still present on the ``QuadContourSet`` matplotlib
+        ships in this repo (checked against the installed version); the
+        ``get_paths()``/``Path.vertices`` route is used as a fallback in case
+        a future matplotlib drops it, so this keeps working across an
+        upgrade rather than failing outright.
+        """
+        from matplotlib.figure import Figure
+
+        figure = Figure()
+        axes = figure.add_subplot(111)
+        try:
+            contour_set = axes.contour(x_grid, y_grid, z_grid, levels=[float(level)])
+
+            polylines: list[tuple[np.ndarray, np.ndarray]] = []
+            if hasattr(contour_set, "allsegs"):
+                segments = contour_set.allsegs[0] if contour_set.allsegs else []
+                for segment in segments:
+                    segment = np.asarray(segment, dtype=float)
+                    if segment.shape[0] >= 1:
+                        polylines.append((segment[:, 0], segment[:, 1]))
+            else:
+                for path in contour_set.get_paths():
+                    vertices = np.asarray(path.vertices, dtype=float)
+                    if vertices.shape[0] >= 1:
+                        polylines.append((vertices[:, 0], vertices[:, 1]))
+            return polylines
+        finally:
+            # A Figure never added to a canvas still holds real Matplotlib
+            # state; close it explicitly rather than count on garbage
+            # collection to do it promptly.
+            import matplotlib.pyplot as plt
+
+            plt.close(figure)
 
     # --- The bracketing half, which decides what can be found ----------
 
@@ -632,6 +765,27 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         result: RootResult,
     ) -> ResultSeriesSpec:
         del axis_id
+        if result.metadata.get("is_3d"):
+            # A level curve is a curve, not scattered findings - drawn with a
+            # connecting line (3D Line Plot), unlike the 1D case's isolated
+            # markers. Points are read back in the row order matplotlib's
+            # contour produced them in, which is what keeps a polyline a
+            # polyline rather than a scribble - the same reason
+            # Line3DAxisRenderer never reorders its own input.
+            return ResultSeriesSpec(
+                name=result.result_name,
+                sql_query=f'SELECT x, y, z, curve_index FROM "{table_name}" ORDER BY curve_index, rowid',
+                roles={"x": "x", "y": "y", "z": "z"},
+                style={
+                    "generated_roots": True,
+                    "roots_dialog": "series_roots",
+                    "source_name": result.source_name,
+                    "model": result.model,
+                    "level": result.level,
+                    "linestyle": "-",
+                    "marker": "",
+                },
+            )
         return ResultSeriesSpec(
             name=result.result_name,
             sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
@@ -673,17 +827,58 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
 
         sections: list[str] = []
         for result in results:
+            is_3d = bool(result.metadata.get("is_3d"))
+
             if not result.roots:
+                message = (
+                    _(
+                        "The surface never reaches this level - z stays on "
+                        "one side of it everywhere on the grid."
+                    )
+                    if is_3d
+                    else _(
+                        "The series never crosses this level. Check "
+                        "the level against the data's range - a "
+                        "crossing no two samples straddle cannot be "
+                        "found from these samples."
+                    )
+                )
+                sections.append(
+                    report_html.section(result.source_name, report_html.note(message))
+                )
+                continue
+
+            if is_3d:
+                grid_note = report_html.note(
+                    _(
+                        "This surface's points were not a complete x/y grid, "
+                        "so this level curve was traced on a linearly "
+                        "interpolated one - treat it as approximate."
+                    )
+                    if result.metadata.get("interpolated")
+                    else _("Traced on the surface's own exact x/y grid.")
+                )
+                curves = int(result.metadata.get("curves", 0))
+                rows_3d = [
+                    (
+                        str(index + 1),
+                        str(root.curve_index + 1),
+                        report_html.format_number(root.x),
+                        report_html.format_number(root.y),
+                    )
+                    for index, root in enumerate(result.roots)
+                ]
+                heading = f"{result.source_name} — {curves} curve(s), {len(result.roots)} point(s)"
+                if result.metadata.get("truncated"):
+                    heading = f"{heading} ({_('truncated')})"
                 sections.append(
                     report_html.section(
-                        result.source_name,
-                        report_html.note(
-                            _(
-                                "The series never crosses this level. Check "
-                                "the level against the data's range - a "
-                                "crossing no two samples straddle cannot be "
-                                "found from these samples."
-                            )
+                        heading,
+                        grid_note,
+                        report_html.table(
+                            ("#", _("Curve"), "x", "y"),
+                            rows_3d,
+                            align=("right", "right", "right", "right"),
                         ),
                     )
                 )
@@ -725,6 +920,9 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         subtitle = _("level {level}").format(
             level=report_html.format_number(results[0].level)
         )
+        # results[0].model, not self._model(): a 3D result's actual method
+        # was always "Contour (matplotlib)" regardless of which 1D solver
+        # happens to be selected in the combo right now.
         return report_html.document(
-            _("Roots"), f"{self._model()} — {subtitle}", *sections
+            _("Roots"), f"{results[0].model} — {subtitle}", *sections
         )

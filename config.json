@@ -272,9 +272,30 @@
     "nav_chart_options": {
       "text": "Chart Options",
       "description": "Show chart options",
-      "SFSymbol": "gearshape",
-      "SegoeFluent": "E713",
+      "SFSymbol": "slider.horizontal.3",
+      "SegoeFluent": "f8a6",
       "ThemeIcon": "preferences-system"
+    },
+    "nav_workspace": {
+      "text": "Workspace",
+      "description": "Show workspace",
+      "SFSymbol": "house",
+      "SegoeFluent": "e80f",
+      "ThemeIcon": "x-office-database"
+    },
+    "nav_developer": {
+      "text": "Developer",
+      "description": "Show developer tools",
+      "SFSymbol": "chevron.left.forwardslash.chevron.right",
+      "SegoeFluent": "e943",
+      "ThemeIcon": "applications-system"
+    },
+    "nav_database": {
+      "text": "Database",
+      "description": "Show database tools",
+      "SFSymbol": "server.rack",
+      "SegoeFluent": "eda2",
+      "ThemeIcon": "x-office-database"
     },
     "nav_data": {
       "text": "Data",
@@ -288,6 +309,13 @@
       "description": "Show main menu",
       "SFSymbol": "line.horizontal.3",
       "SegoeFluent": "e700",
+      "ThemeIcon": "open-menu"
+    },
+    "nav_file": {
+      "text": "File",
+      "description": "Show file menu",
+      "SFSymbol": "folder",
+      "SegoeFluent": "e8e5",
       "ThemeIcon": "open-menu"
     },
     "nav_series_operations": {

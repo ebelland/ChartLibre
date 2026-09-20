@@ -461,7 +461,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         self.series_selector.reload(select_all_series=True)
         self._refresh_size_columns()
         self._refresh_visibility()
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
@@ -520,20 +520,20 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
 
     def connect_common_signals(self) -> None:
         # Not super(): the base connects selection_changed straight to
-        # refresh_results, but the size-column combo has to be repopulated
-        # from the new selection *before* the results are recomputed.
+        # mark_results_stale, but the size-column combo has to be
+        # repopulated from the new selection first.
         changed = getattr(self.series_selector, "selection_changed", None)
         if changed is not None:
             changed.connect(self._on_selection_changed)
 
     def _on_selection_changed(self, *_args: Any) -> None:
         self._refresh_size_columns()
-        self.refresh_results()
+        self.mark_results_stale()
 
     def connect_operation_signals(self) -> None:
         self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.refresh_results)
-        self._size_column_combo.currentIndexChanged.connect(self.refresh_results)
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self._size_column_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
@@ -568,21 +568,6 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
 
     def _chart(self) -> str:
         return self.model_combo.currentText() or CHART_INDIVIDUALS
-
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:  # noqa: BLE001 - shown in the results pane
-            self._last_results = []
-            self.set_results_text(f"Error:\n{exc}")
-            return
-
-        self._last_results = list(results)
-        self.set_results_text(
-            self.format_results(results)
-            if results
-            else _("Select one or more source series.")
-        )
 
     # ------------------------------------------------------------------
     # Input

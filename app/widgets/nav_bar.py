@@ -8,7 +8,6 @@ from PySide6.QtWidgets import QButtonGroup, QFrame, QSizePolicy, QToolButton, QV
 
 from app.styles.style import action_presentation, icon_from_svg_source
 from app.utils.i18n import _
-from app.widgets.custom_title_bar import CustomTitleBar
 
 if TYPE_CHECKING:
     from app.dialogs.main_window import MainWindow
@@ -117,22 +116,22 @@ class NavigationBar(QFrame):
         layout.setContentsMargins(8, 10, 8, 10)
         layout.setSpacing(4)
 
-        # macOS only: the traffic lights sit at the rail's own top, sized
-        # to the rail's width - the way Finder/Mail/System Settings place
-        # them inside the sidebar column itself, rather than in a separate
-        # window-wide strip above everything (see the style demo this was
-        # tried against first, app/tests/manual_macos_style_demo.py).
-        # Windows keeps its own icon+title+min/max/close strip full-width
-        # instead - see main_window._create_central_host - since that
-        # layout needs the whole window's width, not just the rail's.
-        self.title_bar: CustomTitleBar | None = None
-        if self._is_macos:
-            self.title_bar = CustomTitleBar(window, is_macos=True)
-            layout.addWidget(self.title_bar)
-            layout.addSpacing(6)
+        # The traffic lights (macOS) and the icon+title+min/max/close row
+        # (Windows) both live one level up now - see
+        # main_window._create_central_host - in a strip spanning the whole
+        # window's width, not just the rail's: a copy embedded only here
+        # left no way to drag the window from above the central table panel
+        # or the chart tabs, both outside the rail entirely.
 
         self.workspace_button = self._tile(
-            icon_from_svg_source(_HOME_ICON, size=20),
+            (
+                icon_from_svg_source(_HOME_ICON, size=20)
+                if self._is_macos
+                # Windows: the catalogue's own Fluent glyph (config.json's
+                # nav_workspace), same source every other Windows tile below
+                # reads from - macOS keeps its own hand-drawn outline icon.
+                else action_presentation("nav_workspace")[0]
+            ),
             _("Workspace"),
             _("Hide the left panel"),
             checkable=True,
@@ -208,42 +207,48 @@ class NavigationBar(QFrame):
             self.buttons[index].setChecked(True)
 
     def _navigation_tile(self, action_id: str) -> QToolButton:
-        if action_id == "nav_data":
-            return self._tile(
-                icon_from_svg_source(_TABLE_ICON, size=20),
-                _("Tables"),
-                _("Show data tables"),
-                checkable=True,
-            )
-        if action_id == "nav_chart_options":
-            _icon, text, tooltip = action_presentation(action_id)
-            return self._tile(
-                icon_from_svg_source(_SLIDERS_ICON, size=20),
-                text,
-                tooltip,
-                checkable=True,
-            )
-        if action_id == "nav_database":
-            return self._tile(
-                icon_from_svg_source(_DATABASE_ICON, size=20),
-                _("Database"),
-                _("Show database tools"),
-                checkable=True,
-            )
-        if action_id == "nav_file":
-            return self._tile(
-                icon_from_svg_source(_FILE_ICON, size=20),
-                _("File"),
-                _("New, open, import and save"),
-                checkable=True,
-            )
-        if action_id == "nav_developer":
-            return self._tile(
-                icon_from_svg_source(_DEVELOPER_ICON, size=20),
-                _("Developer"),
-                _("Scaffolding tools and the translation catalogue"),
-                checkable=True,
-            )
+        # macOS keeps its own hand-drawn outline icons - unchanged. Windows
+        # reads icon, text and tooltip straight from the action catalogue
+        # (config.json's SegoeFluent glyphs), the same way every action
+        # elsewhere in the app already presents itself - one fewer place
+        # a Windows icon can drift from its catalogue entry.
+        if self._is_macos:
+            if action_id == "nav_data":
+                return self._tile(
+                    icon_from_svg_source(_TABLE_ICON, size=20),
+                    _("Tables"),
+                    _("Show data tables"),
+                    checkable=True,
+                )
+            if action_id == "nav_chart_options":
+                _icon, text, tooltip = action_presentation(action_id)
+                return self._tile(
+                    icon_from_svg_source(_SLIDERS_ICON, size=20),
+                    text,
+                    tooltip,
+                    checkable=True,
+                )
+            if action_id == "nav_database":
+                return self._tile(
+                    icon_from_svg_source(_DATABASE_ICON, size=20),
+                    _("Database"),
+                    _("Show database tools"),
+                    checkable=True,
+                )
+            if action_id == "nav_file":
+                return self._tile(
+                    icon_from_svg_source(_FILE_ICON, size=20),
+                    _("File"),
+                    _("New, open, import and save"),
+                    checkable=True,
+                )
+            if action_id == "nav_developer":
+                return self._tile(
+                    icon_from_svg_source(_DEVELOPER_ICON, size=20),
+                    _("Developer"),
+                    _("Scaffolding tools and the translation catalogue"),
+                    checkable=True,
+                )
         icon, text, tooltip = action_presentation(action_id)
         return self._tile(icon, text, tooltip, checkable=True)
 

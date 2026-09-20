@@ -13,14 +13,16 @@ if TYPE_CHECKING:
     from app.dialogs.main_window import MainWindow
 
 #: Windows: icon + title on the left, square min/max/close on the right,
-#: each this tall.
-CUSTOM_TITLE_BAR_HEIGHT: int = 40
+#: each this tall. Compacted from an original 40 to match a native Windows
+#: 11 title bar's own height more closely.
+CUSTOM_TITLE_BAR_HEIGHT: int = 24
 
 #: macOS: a shorter strip - real AppKit title bars run about this tall -
-#: holding nothing but the traffic lights.
-_MAC_TITLE_BAR_HEIGHT: int = 28
-_MAC_BUTTON_DIAMETER: int = 12
-_MAC_BUTTON_SPACING: int = 8
+#: holding nothing but the traffic lights. Compacted alongside the Windows
+#: height above, from 28/12/8, for the same native-height match.
+_MAC_TITLE_BAR_HEIGHT: int = 24
+_MAC_BUTTON_DIAMETER: int = 10
+_MAC_BUTTON_SPACING: int = 6
 
 #: (fill, border) per light, in AppKit's own left-to-right order:
 #: close, minimize, zoom. Not theme-dependent - a real traffic light

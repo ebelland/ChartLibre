@@ -139,21 +139,11 @@ class {class_name}(SeriesOperationDialogBase):
             height=640,
         )
         self.series_selector.reload(select_all_series=True)
-        self.refresh_results()
+        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
-    def refresh_results(self) -> None:
-        try:
-            results = self.compute_results()
-        except Exception as exc:
-            self._last_results = []
-            self.set_results_text(f"Error:\\n{{exc}}")
-            return
-        self._last_results = list(results)
-        self.set_results_text(self.format_results(results))
-
     def compute_results(self) -> Sequence[{class_name}Result]:
         results: list[{class_name}Result] = []
         errors: list[str] = []

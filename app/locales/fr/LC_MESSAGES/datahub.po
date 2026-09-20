@@ -1,0 +1,2339 @@
+# fr translation for ChartLibre.
+# Message ids are the English source strings.
+
+msgid ""
+msgstr "Project-Id-Version: ChartLibre\nLanguage: fr\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n"
+
+msgid " cm"
+msgstr ""
+
+msgid "\"{code}\" already has a catalogue."
+msgstr ""
+
+msgid "\"{name}\" is already used by an existing chart type."
+msgstr ""
+
+msgid "\"{name}\" is already used by an existing function."
+msgstr ""
+
+msgid "\"{name}\" is already used by an existing series operation."
+msgstr ""
+
+msgid "(Default)"
+msgstr ""
+
+msgid "(Embedded style)"
+msgstr ""
+
+msgid "(auto)"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "...and {count} more, under Show Details."
+msgstr ""
+
+msgid "1, 2.5, 10 or one per line"
+msgstr ""
+
+msgid "A JOIN needs at least two tables."
+msgstr ""
+
+msgid "A UNION needs at least two tables."
+msgstr ""
+
+msgid "A file named \"{file}\" already exists under user/charts/."
+msgstr ""
+
+msgid "A file named \"{file}\" already exists under user/functions/."
+msgstr ""
+
+msgid "A file named \"{file}\" already exists under user/series_operations/."
+msgstr ""
+
+msgid "A guide line under the pointer, shared across every axes of this figure."
+msgstr ""
+
+msgid "A line across the whole axes, at this x."
+msgstr ""
+
+msgid "A line along the whole axes, at this y."
+msgstr ""
+
+msgid "A ruler between two points, with its dx/dy/slope written beside it - the same thing a chart's own \"Measure from here\" / \"Measure to here\" right-click actions create. Color has its own column; anything else goes in Kwargs JSON."
+msgstr ""
+
+msgid "A text note pinned to this point: x = {x}, y = {y}."
+msgstr ""
+
+msgid "A vertical or horizontal line across the whole axes, at a value in data coordinates. Color and style have their own columns; anything else goes in Kwargs JSON, for example: {\"linewidth\": 2, \"label\": \"limit\"}."
+msgstr ""
+
+msgid "AIC (penalises free parameters)"
+msgstr ""
+
+msgid "About"
+msgstr ""
+
+msgid "Add a chart"
+msgstr ""
+
+msgid "Add a chart of the fit residuals (measured minus fit) on a new axis in this figure. The classic way to see a fit that looks good but has structure in what it left behind."
+msgstr ""
+
+msgid "Add a chart of the measured values against the fitted values on a new axis in this figure. A perfect fit falls on the diagonal; how far points stray from it is the fit quality, independent of what x means."
+msgstr ""
+
+msgid "Add a new series holding only the selected points."
+msgstr ""
+
+msgid "Add an axis to the current figure showing the analysed series. Preview draws it; closing without applying removes it again."
+msgstr ""
+
+msgid "Add annotation"
+msgstr ""
+
+msgid "Add annotation here…"
+msgstr ""
+
+msgid "Add column from SQL expression..."
+msgstr ""
+
+msgid "Add computed column"
+msgstr ""
+
+msgid "Add horizontal line at y = {value}"
+msgstr ""
+
+msgid "Add line"
+msgstr ""
+
+msgid "Add measurement"
+msgstr ""
+
+msgid "Add new axis"
+msgstr ""
+
+msgid "Add source"
+msgstr ""
+
+msgid "Add vertical line at x = {value}"
+msgstr ""
+
+msgid "Add {orientation} line"
+msgstr ""
+
+msgid "Additional kwargs editor can be inserted here by the host."
+msgstr ""
+
+msgid "Algorithm:"
+msgstr ""
+
+msgid "All statistics"
+msgstr ""
+
+msgid "Allow evaluation outside source data X range."
+msgstr ""
+
+msgid "Allow extrapolation"
+msgstr ""
+
+msgid "Alternative hypothesis for supported tests."
+msgstr ""
+
+msgid "Alternative:"
+msgstr ""
+
+msgid "Amplitude envelope"
+msgstr ""
+
+msgid "Anderson method:"
+msgstr ""
+
+msgid "Anderson p-value: Monte Carlo"
+msgstr ""
+
+msgid "Anderson p-value: interpolated"
+msgstr ""
+
+msgid "Anderson-Darling normality"
+msgstr ""
+
+msgid "Annotation text:"
+msgstr ""
+
+msgid "Annotations"
+msgstr ""
+
+msgid "Annotations are stored in axis options. Color, font and size have their own columns; anything else goes in Kwargs JSON, for example: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
+msgstr ""
+
+msgid "App style"
+msgstr ""
+
+msgid "Appearance"
+msgstr ""
+
+msgid "Application Log"
+msgstr ""
+
+msgid "Apply a preset…"
+msgstr ""
+
+msgid "Apply multi-peak"
+msgstr ""
+
+msgid "Arrange every axis in this figure using the chosen layout."
+msgstr ""
+
+msgid "Asymmetry. Smaller pushes the baseline further below the peaks; it should stay well under 0.5."
+msgstr ""
+
+msgid "At least one parameter is needed."
+msgstr ""
+
+msgid "At least one required role is needed."
+msgstr ""
+
+msgid "Attenuation (dB):"
+msgstr ""
+
+msgid "Author"
+msgstr ""
+
+msgid "Auto"
+msgstr ""
+
+msgid "Axis"
+msgstr ""
+
+msgid "Axis / Series"
+msgstr ""
+
+msgid "Axis name"
+msgstr ""
+
+msgid "Axis name:"
+msgstr ""
+
+msgid "Axis properties"
+msgstr ""
+
+msgid "Axis {id}"
+msgstr ""
+
+msgid "Axis:"
+msgstr ""
+
+msgid "Axis: {action}"
+msgstr ""
+
+msgid "BIC (penalises them harder)"
+msgstr ""
+
+msgid "Bandpass"
+msgstr ""
+
+msgid "Bandstop"
+msgstr ""
+
+msgid "Batch size for Monte Carlo resampling. Auto lets SciPy choose."
+msgstr ""
+
+msgid "Bessel"
+msgstr ""
+
+msgid "Bottom"
+msgstr ""
+
+msgid "Boundary:"
+msgstr ""
+
+msgid "Browse…"
+msgstr ""
+
+msgid "Build a JOIN"
+msgstr ""
+
+msgid "Build a UNION"
+msgstr ""
+
+msgid "Butterworth"
+msgstr ""
+
+msgid "CSV files (*.csv)"
+msgstr ""
+
+msgid "Calculus"
+msgstr ""
+
+msgid "Cancel measurement"
+msgstr ""
+
+msgid "Category:"
+msgstr ""
+
+msgid "Centre line"
+msgstr ""
+
+msgid "Chart"
+msgstr ""
+
+msgid "Chart name"
+msgstr ""
+
+msgid "Chart:"
+msgstr ""
+
+msgid "ChartLibre"
+msgstr ""
+
+msgid "Charts"
+msgstr ""
+
+msgid "Chebyshev I"
+msgstr ""
+
+msgid "Chebyshev II"
+msgstr ""
+
+msgid "Check one or more series. One-sample tests are calculated for each checked series. Paired tests are calculated for every pair when two or more series are checked."
+msgstr ""
+
+msgid "Choose a decomposition (a curve per component) or a manifold embedding (a 2D scatter)."
+msgstr ""
+
+msgid "Choose how Anderson-Darling p-values are calculated when supported by SciPy."
+msgstr ""
+
+msgid "Choose how generated X values are built."
+msgstr ""
+
+msgid "Choose the baseline estimator."
+msgstr ""
+
+msgid "Choose the calculation."
+msgstr ""
+
+msgid "Choose the clustering algorithm family."
+msgstr ""
+
+msgid "Choose the exact scipy.cluster function/workflow to use."
+msgstr ""
+
+msgid "Choose the fitting/interpolation model."
+msgstr ""
+
+msgid "Choose the kernel."
+msgstr ""
+
+msgid "Choose the operation."
+msgstr ""
+
+msgid "Choose the outlier detection method."
+msgstr ""
+
+msgid "Choose the regression model."
+msgstr ""
+
+msgid "Choose the smoothing/filtering method."
+msgstr ""
+
+msgid "Choose the spectral or correlation estimator."
+msgstr ""
+
+msgid "Choose the transform."
+msgstr ""
+
+msgid "Choose whether clusters are rendered as one point-colored series or as separate series."
+msgstr ""
+
+msgid "Choose whether the source series is 1D, 2D, or 3D data."
+msgstr ""
+
+msgid "Choose which numeric columns are used as clustering features."
+msgstr ""
+
+msgid "Choose which statistics section to display."
+msgstr ""
+
+msgid "Clear list"
+msgstr ""
+
+msgid "Clear menu"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Color"
+msgstr ""
+
+msgid "Cols"
+msgstr ""
+
+msgid "Columns"
+msgstr ""
+
+msgid "Component"
+msgstr ""
+
+msgid "Component 1"
+msgstr ""
+
+msgid "Component 2"
+msgstr ""
+
+msgid "Connect to database"
+msgstr ""
+
+msgid "Connection"
+msgstr ""
+
+msgid "Constant"
+msgstr ""
+
+msgid "Contribution"
+msgstr ""
+
+msgid "Control Chart"
+msgstr ""
+
+msgid "Convert to decibels"
+msgstr ""
+
+msgid "Copy"
+msgstr ""
+
+msgid "Copy figure"
+msgstr ""
+
+msgid "Copy parameters"
+msgstr ""
+
+msgid "Correlation / association"
+msgstr ""
+
+msgid "Correlation matrix"
+msgstr ""
+
+msgid "Correlation tests"
+msgstr ""
+
+msgid "Create a new plot tab for the current table"
+msgstr ""
+
+msgid "Create a new, empty catalogue"
+msgstr ""
+
+msgid "Create new figure (new tab)"
+msgstr ""
+
+msgid "Credits"
+msgstr ""
+
+msgid "Crosshair"
+msgstr ""
+
+msgid "Curve"
+msgstr ""
+
+msgid "Cut threshold for distance/inconsistent criteria. Leave at auto for median linkage distance."
+msgstr ""
+
+msgid "Cutoff frequency (same units as fs)."
+msgstr ""
+
+msgid "Cutoff:"
+msgstr ""
+
+msgid "DPI"
+msgstr ""
+
+msgid "Damping (sigma):"
+msgstr ""
+
+msgid "Damping sigma of the Laplace variable s = sigma + i*omega. Zero reduces the transform to the Fourier transform; increasing it weights early samples more and suppresses late ones, which is what makes a decaying or unstable signal integrable."
+msgstr ""
+
+msgid "Data source:"
+msgstr ""
+
+msgid "Data type:"
+msgstr ""
+
+msgid "Database"
+msgstr ""
+
+msgid "Database Info"
+msgstr ""
+
+msgid "Database saved."
+msgstr ""
+
+msgid "Decomposition"
+msgstr ""
+
+msgid "Default"
+msgstr ""
+
+msgid "Default export format"
+msgstr ""
+
+msgid "Degree:"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Delete column '{column}'..."
+msgstr ""
+
+msgid "Delete selected"
+msgstr ""
+
+msgid "Delete selected items…"
+msgstr ""
+
+msgid "Delete selected tables…"
+msgstr ""
+
+msgid "Delete series"
+msgstr ""
+
+msgid "Delete the selected column"
+msgstr ""
+
+msgid "Delete the selected saved query"
+msgstr ""
+
+msgid "Delete the selected table"
+msgstr ""
+
+msgid "Delete this figure"
+msgstr ""
+
+msgid "Delete {count} selected items"
+msgstr ""
+
+msgid "Delete {count} selected tables"
+msgstr ""
+
+msgid "Delete…"
+msgstr ""
+
+msgid "Delimiter"
+msgstr ""
+
+msgid "Derive from the x role"
+msgstr ""
+
+msgid "Description"
+msgstr ""
+
+msgid "Description cannot be empty."
+msgstr ""
+
+msgid "Description:"
+msgstr ""
+
+msgid "Descriptive statistics"
+msgstr ""
+
+msgid "Design, direction, and the domain this exists for."
+msgstr ""
+
+msgid "Detail"
+msgstr ""
+
+msgid "Detrend:"
+msgstr ""
+
+msgid "Developer"
+msgstr ""
+
+msgid "Different from..."
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid "Display"
+msgstr ""
+
+msgid "Distribution fit"
+msgstr ""
+
+msgid "Distribution:"
+msgstr ""
+
+msgid "Docs:"
+msgstr ""
+
+msgid "Documentation"
+msgstr ""
+
+msgid "Downsample"
+msgstr ""
+
+msgid "Drag a rectangle over the chart to select points, for hiding or splitting into a new series."
+msgstr ""
+
+msgid "Draw at most this many points per series, sampling the rest away."
+msgstr ""
+
+msgid "Draw figure frame"
+msgstr ""
+
+msgid "Draw the baseline:"
+msgstr ""
+
+msgid "Draw the estimated baseline itself."
+msgstr ""
+
+msgid "Each library is used under its own licence, named above and shipped with the package it belongs to. Versions are the ones installed here, not the ones pinned."
+msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Edit Localization"
+msgstr ""
+
+msgid "Edit…"
+msgstr ""
+
+msgid "Elliptic"
+msgstr ""
+
+msgid "Encoding"
+msgstr ""
+
+msgid "Encoding:"
+msgstr ""
+
+msgid "Engine"
+msgstr ""
+
+msgid "Ensure ClusterId column"
+msgstr ""
+
+msgid "Ensure Hide column"
+msgstr ""
+
+msgid "Equal to..."
+msgstr ""
+
+msgid "Estimate"
+msgstr ""
+
+msgid "Estimates"
+msgstr ""
+
+msgid "Estimator"
+msgstr ""
+
+msgid "Eval X:"
+msgstr ""
+
+msgid "Example: {\"a\": 1.0, \"b\": 0.1}"
+msgstr ""
+
+msgid "Explained variance"
+msgstr ""
+
+msgid "Explicit X values where Y is evaluated."
+msgstr ""
+
+msgid "Export CSV"
+msgstr ""
+
+msgid "Export XLSX"
+msgstr ""
+
+msgid "Export current table as Excel file"
+msgstr ""
+
+msgid "Export current table as comma separated text file"
+msgstr ""
+
+msgid "Export view as CSV"
+msgstr ""
+
+msgid "Export view as CSV…"
+msgstr ""
+
+msgid "Export → CSV…"
+msgstr ""
+
+msgid "Export → XLSX…"
+msgstr ""
+
+msgid "Express the result as 10*log10 of the value."
+msgstr ""
+
+msgid "Expression:"
+msgstr ""
+
+msgid "Extend automatic data range by this percent on both sides."
+msgstr ""
+
+msgid "Extend:"
+msgstr ""
+
+msgid "Extra charts:"
+msgstr ""
+
+msgid "Failed to load renderer kwargs schema."
+msgstr ""
+
+msgid "Family:"
+msgstr ""
+
+msgid "Features:"
+msgstr ""
+
+msgid "Field to join on:"
+msgstr ""
+
+msgid "Fields:"
+msgstr ""
+
+msgid "Figure layout"
+msgstr ""
+
+msgid "Figure name"
+msgstr ""
+
+msgid "Figure options"
+msgstr ""
+
+msgid "Figure properties"
+msgstr ""
+
+msgid "Figure:"
+msgstr ""
+
+msgid "File"
+msgstr ""
+
+msgid "File created:"
+msgstr ""
+
+msgid "File name must be a valid Python file name, e.g. my_chart.py."
+msgstr ""
+
+msgid "File name must be a valid Python file name, e.g. my_function.py."
+msgstr ""
+
+msgid "File name must be a valid Python file name, e.g. my_operation_dialog.py."
+msgstr ""
+
+msgid "File name:"
+msgstr ""
+
+msgid "Fill every empty translation with a machine translation to review"
+msgstr ""
+
+msgid "Fill the Initial column from the data: the function's own estimator when it has one, a Monte Carlo search of the parameter space when it does not."
+msgstr ""
+
+msgid "Filter by name or category. Sections with no match are hidden."
+msgstr ""
+
+msgid "Filter order. Higher is a sharper roll-off and more phase distortion before sosfiltfilt cancels it."
+msgstr ""
+
+msgid "Filter the model catalog by name."
+msgstr ""
+
+msgid "Find:"
+msgstr ""
+
+msgid "Finish the measurement at this point."
+msgstr ""
+
+msgid "First row is header"
+msgstr ""
+
+msgid "First table:"
+msgstr ""
+
+msgid "Fit all ~100 continuous distributions instead of the 15 common ones. Considerably slower - seconds per refresh - and many of the extra candidates fit no real measurement."
+msgstr ""
+
+msgid "Fitted kernel"
+msgstr ""
+
+msgid "Fold the negative frequencies onto the positive ones. Correct for real-valued signals."
+msgstr ""
+
+msgid "Forget the list of recently opened projects"
+msgstr ""
+
+msgid "Forget the pending point without finishing the measurement."
+msgstr ""
+
+msgid "Fraction of each segment shared with the next."
+msgstr ""
+
+msgid "Frame on"
+msgstr ""
+
+msgid "Function"
+msgstr ""
+
+msgid "Function Creator"
+msgstr ""
+
+msgid "Function expression"
+msgstr ""
+
+msgid "Function expression with evaluated parameters"
+msgstr ""
+
+msgid "GP Regression"
+msgstr ""
+
+msgid "Gap between shared axes side by side. 0 draws them flush."
+msgstr ""
+
+msgid "Gap between shared axes stacked one above the other. 0 draws them flush."
+msgstr ""
+
+msgid "Goodness of fit"
+msgstr ""
+
+msgid "Greater"
+msgstr ""
+
+msgid "Grid"
+msgstr ""
+
+msgid "Grid cells this axis spans from its position, so it can take up more room than the other axes in the figure."
+msgstr ""
+
+msgid "Guess starting parameters"
+msgstr ""
+
+msgid "Guess starting parameters for nonlinear models."
+msgstr ""
+
+msgid "H"
+msgstr ""
+
+msgid "Half-prominence bounds"
+msgstr ""
+
+msgid "Height"
+msgstr ""
+
+msgid "Help"
+msgstr ""
+
+msgid "Help & About"
+msgstr ""
+
+msgid "Hide NULL / empty values"
+msgstr ""
+
+msgid "Hide axis"
+msgstr ""
+
+msgid "Hide rows"
+msgstr ""
+
+msgid "Hide rows by selected column"
+msgstr ""
+
+msgid "Hide rows equal to selected cell"
+msgstr ""
+
+msgid "Hide rows matching the selected cell value"
+msgstr ""
+
+msgid "Hide rows where the selected column is empty"
+msgstr ""
+
+msgid "Hide rows where {column} {operator} value"
+msgstr ""
+
+msgid "Hide selected points"
+msgstr ""
+
+msgid "Hide spines"
+msgstr ""
+
+msgid "Hide the left panel"
+msgstr ""
+
+msgid "Hide these points from this series without changing its data."
+msgstr ""
+
+msgid "Hide {count} selected point(s)"
+msgstr ""
+
+msgid "Higher or equal..."
+msgstr ""
+
+msgid "Higher than..."
+msgstr ""
+
+msgid "Highpass"
+msgstr ""
+
+msgid "Host"
+msgstr ""
+
+msgid "How a large residual is weighted. Least squares trusts every point; the robust losses cap what one bad point can do to the fit. Only the least-squares algorithms use it."
+msgstr ""
+
+msgid "How each bracketed crossing is refined. The three bracketing solvers cannot leave the interval they were given; Newton can, and is checked afterwards."
+msgstr ""
+
+msgid "How knots are distributed along X."
+msgstr ""
+
+msgid "How many scales to evaluate between the longest period the record supports and the Nyquist frequency, spaced logarithmically."
+msgstr ""
+
+msgid "How the candidates are ordered. AIC is the default because the KS statistic alone always favours the distributions with the most free parameters, whatever the data really is."
+msgstr ""
+
+msgid "How to produce a translated copy of the user manual"
+msgstr ""
+
+msgid "Import data"
+msgstr ""
+
+msgid "Initial value, bounds and fixed flag for each function parameter. Apply runs the fit with these settings."
+msgstr ""
+
+msgid "Initial values found by searching the parameter space at random: this function has no estimator of its own."
+msgstr ""
+
+msgid "Initial values read off the data by the function's own estimator."
+msgstr ""
+
+msgid "Initial values updated."
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
+msgid "Instantaneous frequency"
+msgstr ""
+
+msgid "Instantaneous phase"
+msgstr ""
+
+msgid "Invert Hide 0 <-> 1"
+msgstr ""
+
+msgid "Invert X"
+msgstr ""
+
+msgid "Invert Y"
+msgstr ""
+
+msgid "Invert Z"
+msgstr ""
+
+msgid "Iterations"
+msgstr ""
+
+msgid "Iterations:"
+msgstr ""
+
+msgid "JOIN type:"
+msgstr ""
+
+msgid "JSON starting parameters for nonlinear series_fit models."
+msgstr ""
+
+msgid "Jarque-Bera normality"
+msgstr ""
+
+msgid "K-means convergence threshold."
+msgstr ""
+
+msgid "KS statistic (closest curve)"
+msgstr ""
+
+msgid "Kernel"
+msgstr ""
+
+msgid "Kernel:"
+msgstr ""
+
+msgid "Kind"
+msgstr ""
+
+msgid "Knots:"
+msgstr ""
+
+msgid "Kolmogorov-Smirnov vs normal"
+msgstr ""
+
+msgid "Kurtosis test"
+msgstr ""
+
+msgid "Kwargs"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
+msgid "Lambda:"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Language:"
+msgstr ""
+
+msgid "Largest lag to keep. 0 keeps every lag."
+msgstr ""
+
+msgid "Last modified:"
+msgstr ""
+
+msgid "Layout"
+msgstr ""
+
+msgid "Left"
+msgstr ""
+
+msgid "Legend label"
+msgstr ""
+
+msgid "Less"
+msgstr ""
+
+msgid "Libraries"
+msgstr ""
+
+msgid "Library"
+msgstr ""
+
+msgid "Licence"
+msgstr ""
+
+msgid "Licences"
+msgstr ""
+
+msgid "Limits"
+msgstr ""
+
+msgid "Line style"
+msgstr ""
+
+msgid "Linear"
+msgstr ""
+
+msgid "Linear regression slope"
+msgstr ""
+
+msgid "Linear removes a best-fit line; constant removes only the mean."
+msgstr ""
+
+msgid "Lines"
+msgstr ""
+
+msgid "Link"
+msgstr ""
+
+msgid "Link zoom/pan across axes"
+msgstr ""
+
+msgid "Link:"
+msgstr ""
+
+msgid "Linked"
+msgstr ""
+
+msgid "Live updates"
+msgstr ""
+
+msgid "Load demo"
+msgstr ""
+
+msgid "Loaded current style into editor."
+msgstr ""
+
+msgid "Localized manual"
+msgstr ""
+
+msgid "Localized manual…"
+msgstr ""
+
+msgid "Log marginal likelihood"
+msgstr ""
+
+msgid "Loss:"
+msgstr ""
+
+msgid "Lower control limit"
+msgstr ""
+
+msgid "Lower or equal..."
+msgstr ""
+
+msgid "Lower than..."
+msgstr ""
+
+msgid "Lowpass"
+msgstr ""
+
+msgid "MC batch:"
+msgstr ""
+
+msgid "MC resamples:"
+msgstr ""
+
+msgid "Main field:"
+msgstr ""
+
+msgid "Main table:"
+msgstr ""
+
+msgid "Major"
+msgstr ""
+
+msgid "Manual spacing"
+msgstr ""
+
+msgid "Marker"
+msgstr ""
+
+msgid "Matplotlib Style (*.mplstyle);;All Files (*)"
+msgstr ""
+
+msgid "Matplotlib Style Editor"
+msgstr ""
+
+msgid "Matplotlib documentation URL (optional)"
+msgstr ""
+
+msgid "Max evals:"
+msgstr ""
+
+msgid "Max lags:"
+msgstr ""
+
+msgid "Maximize"
+msgstr ""
+
+msgid "Maximum k-means iterations."
+msgstr ""
+
+msgid "Maximum number of function evaluations for the optimizer."
+msgstr ""
+
+msgid "Maximum seconds to wait for clustering. Use 0 for no timeout."
+msgstr ""
+
+msgid "Mean lower limit"
+msgstr ""
+
+msgid "Mean upper limit"
+msgstr ""
+
+msgid "Measure from here"
+msgstr ""
+
+msgid "Measure to here"
+msgstr ""
+
+msgid "Measured vs. fit"
+msgstr ""
+
+msgid "Measurements"
+msgstr ""
+
+msgid "Measurements above the line, counts below it."
+msgstr ""
+
+msgid "Method:"
+msgstr ""
+
+msgid "Minimize"
+msgstr ""
+
+msgid "Minimum samples for DBSCAN/OPTICS core points."
+msgstr ""
+
+msgid "Minimum stopband attenuation, in dB (Chebyshev II / Elliptic)."
+msgstr ""
+
+msgid "Minor"
+msgstr ""
+
+msgid "Missing only"
+msgstr ""
+
+msgid "Model"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Morlet central frequency w0. Higher values resolve frequency more finely at the cost of time resolution; 6 is the usual compromise and the value at which the wavelet is near-admissible."
+msgstr ""
+
+msgid "Morlet w0:"
+msgstr ""
+
+msgid "Move annotation"
+msgstr ""
+
+msgid "Multi-peak builder"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "Name cannot be empty."
+msgstr ""
+
+msgid "Name of the SQLite table where fitted values/residuals are saved."
+msgstr ""
+
+msgid "Name of this figure. Also the title of its chart tab."
+msgstr ""
+
+msgid "Name:"
+msgstr ""
+
+msgid "Neighborhood radius for DBSCAN. 0 uses the default 0.5."
+msgstr ""
+
+msgid "New column name:"
+msgstr ""
+
+msgid "New database"
+msgstr ""
+
+msgid "New language"
+msgstr ""
+
+msgid "New language…"
+msgstr ""
+
+msgid "New plot"
+msgstr ""
+
+msgid "New query, not saved yet."
+msgstr ""
+
+msgid "New series from selection"
+msgstr ""
+
+msgid "New, open, import and save"
+msgstr ""
+
+msgid "No axes found"
+msgstr ""
+
+msgid "No axis selected"
+msgstr ""
+
+msgid "No current figure selected."
+msgstr ""
+
+msgid "No kwargs available for this renderer."
+msgstr ""
+
+msgid "No peaks passed the filter. Lower the minimum, or switch from height to prominence if the baseline is not at zero."
+msgstr ""
+
+msgid "No points in the selection."
+msgstr ""
+
+msgid "No points signal. The process is in statistical control - which says it is stable, not that it meets any specification."
+msgstr ""
+
+msgid "No recent projects"
+msgstr ""
+
+msgid "No renderer roles declared."
+msgstr ""
+
+msgid "No results for this selection."
+msgstr ""
+
+msgid "No results."
+msgstr ""
+
+msgid "Normalisation:"
+msgstr ""
+
+msgid "Normality / shape tests"
+msgstr ""
+
+msgid "Normality of paired differences"
+msgstr ""
+
+msgid "Normalize features by standard deviation before k-means."
+msgstr ""
+
+msgid "Not a valid language code."
+msgstr ""
+
+msgid "Notes"
+msgstr ""
+
+msgid "Number of FIR coefficients. More taps sharpen the transition band at the cost of needing more samples."
+msgstr ""
+
+msgid "Number of Monte Carlo resamples for Anderson-Darling p-values."
+msgstr ""
+
+msgid "Number of clusters to request."
+msgstr ""
+
+msgid "Number of generated points for continuous spacing modes."
+msgstr ""
+
+msgid "Number of knots (for knot-based spline models)."
+msgstr ""
+
+msgid "One axis cannot hold this many series of this chart type."
+msgstr ""
+
+msgid "One line, shown in the Series Operations panel."
+msgstr ""
+
+msgid "One line, shown in the chart picker."
+msgstr ""
+
+msgid "One line, shown in the fit dialog's model list."
+msgstr ""
+
+msgid "One-sample t-test"
+msgstr ""
+
+msgid "One-sample tests"
+msgstr ""
+
+msgid "One-sided spectrum"
+msgstr ""
+
+msgid "Open Matplotlib Style"
+msgstr ""
+
+msgid "Open NumPy/SciPy documentation for the model."
+msgstr ""
+
+msgid "Open database"
+msgstr ""
+
+msgid "Open documentation for the selected method."
+msgstr ""
+
+msgid "Open recent"
+msgstr ""
+
+msgid "Open this saved query in the Query Builder"
+msgstr ""
+
+msgid "Operation:"
+msgstr ""
+
+msgid "Optional range as 'start, stop'. Empty = data range plus Extend."
+msgstr ""
+
+msgid "Optional roles:"
+msgstr ""
+
+msgid "Order:"
+msgstr ""
+
+msgid "Output table:"
+msgstr ""
+
+msgid "Output:"
+msgstr ""
+
+msgid "Overlay properties"
+msgstr ""
+
+msgid "Pages:"
+msgstr ""
+
+msgid "Paired difference summary"
+msgstr ""
+
+msgid "Paired t-test"
+msgstr ""
+
+msgid "Paired tests"
+msgstr ""
+
+msgid "Paired-sample tests"
+msgstr ""
+
+msgid "Parameter"
+msgstr ""
+
+msgid "Parameter estimates"
+msgstr ""
+
+msgid "Parameters"
+msgstr ""
+
+msgid "Parameters:"
+msgstr ""
+
+msgid "Passband ripple, in dB (Chebyshev I / Elliptic)."
+msgstr ""
+
+msgid "Password"
+msgstr ""
+
+msgid "Password for {username}@{host}:"
+msgstr ""
+
+msgid "Path:"
+msgstr ""
+
+msgid "Peaks"
+msgstr ""
+
+msgid "Peaks:"
+msgstr ""
+
+msgid "Pick a saved query."
+msgstr ""
+
+msgid "Pick a scanned function model to populate the formula and parameters."
+msgstr ""
+
+msgid "Pick a table and a field."
+msgstr ""
+
+msgid "Pick rcParam…"
+msgstr ""
+
+msgid "Plot"
+msgstr ""
+
+msgid "Point"
+msgstr ""
+
+msgid "Point at an operation for details"
+msgstr ""
+
+msgid "Points"
+msgstr ""
+
+msgid "Points plotted"
+msgstr ""
+
+msgid "Points:"
+msgstr ""
+
+msgid "Polynomial degree (for polynomial-family models)."
+msgstr ""
+
+msgid "Polynomial degree for NumPy polyfit."
+msgstr ""
+
+msgid "Port"
+msgstr ""
+
+msgid "Position"
+msgstr ""
+
+msgid "Preview failed — see error dialog."
+msgstr ""
+
+msgid "Projection"
+msgstr ""
+
+msgid "Prominence"
+msgstr ""
+
+msgid "Qt Stylesheet (*.qss);;All Files (*)"
+msgstr ""
+
+msgid "Query Builder"
+msgstr ""
+
+msgid "Query name:"
+msgstr ""
+
+msgid "Query:"
+msgstr ""
+
+msgid "Range"
+msgstr ""
+
+msgid "Rank by:"
+msgstr ""
+
+msgid "Re-weighting passes."
+msgstr ""
+
+msgid "Read options"
+msgstr ""
+
+msgid "Ready"
+msgstr ""
+
+msgid "Redraw this chart every {seconds:g}s, for a source table a rig or an import keeps filling in."
+msgstr ""
+
+msgid "Reference value for one-sample location tests."
+msgstr ""
+
+msgid "Reference value:"
+msgstr ""
+
+msgid "Refresh data table"
+msgstr ""
+
+msgid "Refresh the selected table from its import link"
+msgstr ""
+
+msgid "Regression"
+msgstr ""
+
+msgid "Reload"
+msgstr ""
+
+msgid "Reload chart"
+msgstr ""
+
+msgid "Reload database tables"
+msgstr ""
+
+msgid "Reload tables"
+msgstr ""
+
+msgid "Remove a constant or linear trend from each segment first. A trend leaks into the lowest frequency bins and hides everything near it."
+msgstr ""
+
+msgid "Rename current table"
+msgstr ""
+
+msgid "Rename table"
+msgstr ""
+
+msgid "Rename…"
+msgstr ""
+
+msgid "Render as:"
+msgstr ""
+
+msgid "Renderer Helper"
+msgstr ""
+
+msgid "Renderer not found."
+msgstr ""
+
+msgid "Renderers"
+msgstr ""
+
+msgid "Reorder series"
+msgstr ""
+
+msgid "Replace previous smoothing preview in chart"
+msgstr ""
+
+msgid "Required roles:"
+msgstr ""
+
+msgid "Reset Clusters"
+msgstr ""
+
+msgid "Reset Hide to 0"
+msgstr ""
+
+msgid "Reset parameters"
+msgstr ""
+
+msgid "Residual"
+msgstr ""
+
+msgid "Residual sum of squares: {cost}"
+msgstr ""
+
+msgid "Residuals"
+msgstr ""
+
+msgid "Residuals vs. x"
+msgstr ""
+
+msgid "Response:"
+msgstr ""
+
+msgid "Result preview:"
+msgstr ""
+
+msgid "Results"
+msgstr ""
+
+msgid "Right"
+msgstr ""
+
+msgid "Ripple (dB):"
+msgstr ""
+
+msgid "Roots"
+msgstr ""
+
+msgid "Rows"
+msgstr ""
+
+msgid "Rule"
+msgstr ""
+
+msgid "R²"
+msgstr ""
+
+msgid "SELECT ... FROM ..."
+msgstr ""
+
+msgid "SELECT x, y FROM my_table WHERE ..."
+msgstr ""
+
+msgid "SQL query"
+msgstr ""
+
+msgid "SQL query (SELECT / WITH ...)"
+msgstr ""
+
+msgid "SQL:"
+msgstr ""
+
+msgid "SQLite version:"
+msgstr ""
+
+msgid "Sample size column:"
+msgstr ""
+
+msgid "Samples per Welch segment. Longer segments resolve finer frequency detail; shorter ones average away more noise."
+msgstr ""
+
+msgid "Samples per unit of x, used when not derived."
+msgstr ""
+
+msgid "Sampling rate:"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Save HTML"
+msgstr ""
+
+msgid "Save Matplotlib Style"
+msgstr ""
+
+msgid "Save as CSV"
+msgstr ""
+
+msgid "Save as picture"
+msgstr ""
+
+msgid "Save chart as"
+msgstr ""
+
+msgid "Save database as"
+msgstr ""
+
+msgid "Save parameters as CSV"
+msgstr ""
+
+msgid "Save query"
+msgstr ""
+
+msgid "Save the rows currently on screen as a CSV file"
+msgstr ""
+
+msgid "Saved queries:"
+msgstr ""
+
+msgid "Scaffolding tools and the translation catalogue"
+msgstr ""
+
+msgid "Scale"
+msgstr ""
+
+msgid "Scale and direction"
+msgstr ""
+
+msgid "Scales:"
+msgstr ""
+
+msgid "Scaling:"
+msgstr ""
+
+msgid "Search chart types..."
+msgstr ""
+
+msgid "Search models..."
+msgstr ""
+
+msgid "Search properties..."
+msgstr ""
+
+msgid "Search source or translation…"
+msgstr ""
+
+msgid "Second cutoff, for a bandpass/bandstop response."
+msgstr ""
+
+msgid "Second cutoff:"
+msgstr ""
+
+msgid "Second table:"
+msgstr ""
+
+msgid "Segment length:"
+msgstr ""
+
+msgid "Segment overlap:"
+msgstr ""
+
+msgid "Select Matplotlib Style"
+msgstr ""
+
+msgid "Select a function."
+msgstr ""
+
+msgid "Select a stylesheet"
+msgstr ""
+
+msgid "Select an axis to edit kwargs."
+msgstr ""
+
+msgid "Select database"
+msgstr ""
+
+msgid "Select file"
+msgstr ""
+
+msgid "Select one or more source series."
+msgstr ""
+
+msgid "Select points"
+msgstr ""
+
+msgid "Select project"
+msgstr ""
+
+msgid "Select two or more source series."
+msgstr ""
+
+msgid "Series"
+msgstr ""
+
+msgid "Series Operation Builder"
+msgstr ""
+
+msgid "Series name"
+msgstr ""
+
+msgid "Series name:"
+msgstr ""
+
+msgid "Series properties"
+msgstr ""
+
+msgid "Series:"
+msgstr ""
+
+msgid "Set Figure layout to Manual to edit spacing by hand."
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Shapiro-Wilk normality"
+msgstr ""
+
+msgid "Share"
+msgstr ""
+
+msgid "Share X"
+msgstr ""
+
+msgid "Share Y"
+msgstr ""
+
+msgid "Shared gap"
+msgstr ""
+
+msgid "Sharing"
+msgstr ""
+
+msgid "Sheet"
+msgstr ""
+
+msgid "Show data tables"
+msgstr ""
+
+msgid "Show database tools"
+msgstr ""
+
+msgid "Show generated tables"
+msgstr ""
+
+msgid "Show in legend"
+msgstr ""
+
+msgid "Show the left panel"
+msgstr ""
+
+msgid "Show the tables written by fits, smoothing, outlier and spectral operations. Their names start with an underscore."
+msgstr ""
+
+msgid "Sigma estimate"
+msgstr ""
+
+msgid "Sign test"
+msgstr ""
+
+msgid "Signal"
+msgstr ""
+
+msgid "Size on disk:"
+msgstr ""
+
+msgid "Skip last rows"
+msgstr ""
+
+msgid "Skip top rows"
+msgstr ""
+
+msgid "Smooth s:"
+msgstr ""
+
+msgid "Smoothness. Larger makes the baseline stiffer, so it bends less to follow narrow peaks."
+msgstr ""
+
+msgid "Snippets:"
+msgstr ""
+
+msgid "Solver"
+msgstr ""
+
+msgid "Solver:"
+msgstr ""
+
+msgid "Sort"
+msgstr ""
+
+msgid "Sort by X ascending"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Spacing"
+msgstr ""
+
+msgid "Spacing:"
+msgstr ""
+
+msgid "Span"
+msgstr ""
+
+msgid "Spline algorithm for SciPy spline family."
+msgstr ""
+
+msgid "Spline boundary condition."
+msgstr ""
+
+msgid "Spline degree k for UnivariateSpline/B-spline."
+msgstr ""
+
+msgid "Spline k:"
+msgstr ""
+
+msgid "Spline:"
+msgstr ""
+
+msgid "Start measuring the distance and slope to another point."
+msgstr ""
+
+msgid "Start params:"
+msgstr ""
+
+msgid "Step size used by integer/fixed-step spacing."
+msgstr ""
+
+msgid "Step:"
+msgstr ""
+
+msgid "Style"
+msgstr ""
+
+msgid "Subgroup size"
+msgstr ""
+
+msgid "Symlog threshold"
+msgstr ""
+
+msgid "Table"
+msgstr ""
+
+msgid "Table to join:"
+msgstr ""
+
+msgid "Tables"
+msgstr ""
+
+msgid "Tables:"
+msgstr ""
+
+msgid "Take the sampling frequency from the spacing of the x role."
+msgstr ""
+
+msgid "Taper applied to each segment before the FFT."
+msgstr ""
+
+msgid "Taper applied to the FIR coefficients."
+msgstr ""
+
+msgid "Taps:"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "The class imported, but axis_renderer_scanner did not discover it as a renderer - check that it subclasses BaseAxisRenderer directly."
+msgstr ""
+
+msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
+msgstr ""
+
+msgid "The class imported, but series_operation_scanner did not discover it as an operation - check that it subclasses SeriesOperationDialogBase directly."
+msgstr ""
+
+msgid "The column holding the sample size (units inspected) at each point."
+msgstr ""
+
+msgid "The dependency list is not available in this build."
+msgstr ""
+
+msgid "The field the SQL buttons below act on."
+msgstr ""
+
+msgid "The filter family. Butterworth is maximally flat; Chebyshev/Elliptic trade ripple for a sharper roll-off."
+msgstr ""
+
+msgid "The limits move with the sample size, so the zone rules (Nelson 5-8) do not apply and were not run."
+msgstr ""
+
+msgid "The operation runs on the figure it was opened from."
+msgstr ""
+
+msgid "The search found nothing better than the declared values, which are unchanged."
+msgstr ""
+
+msgid "The series never crosses this level. Check the level against the data's range - a crossing no two samples straddle cannot be found from these samples."
+msgstr ""
+
+msgid "The style and the language are applied the next time the app starts."
+msgstr ""
+
+msgid "The tables have no fields in common to UNION."
+msgstr ""
+
+msgid "This fills every empty translation with a machine translation from an online service - a starting point to review, not a finished translation. Continue?"
+msgstr ""
+
+msgid "This function takes no parameters."
+msgstr ""
+
+msgid "Tick length"
+msgstr ""
+
+msgid "Ticks"
+msgstr ""
+
+msgid "Tie eta"
+msgstr ""
+
+msgid "Tie width"
+msgstr ""
+
+msgid "Title"
+msgstr ""
+
+msgid "Top"
+msgstr ""
+
+msgid "Total"
+msgstr ""
+
+msgid "Transform"
+msgstr ""
+
+msgid "Translate missing (auto)"
+msgstr ""
+
+msgid "Translation"
+msgstr ""
+
+msgid "Trend:"
+msgstr ""
+
+msgid "Trim percentage used for trimmed mean."
+msgstr ""
+
+msgid "Trimmed mean:"
+msgstr ""
+
+msgid "Try every SciPy distribution"
+msgstr ""
+
+msgid "Two-letter language code (e.g. \"fr\", \"de\"):"
+msgstr ""
+
+msgid "Two-sided"
+msgstr ""
+
+msgid "Type:"
+msgstr ""
+
+msgid "URL"
+msgstr ""
+
+msgid "Undefined points"
+msgstr ""
+
+msgid "Undo: {what}"
+msgstr ""
+
+msgid "UnivariateSpline smoothing factor s."
+msgstr ""
+
+msgid "Untitled project"
+msgstr ""
+
+msgid "Update current table from its link"
+msgstr ""
+
+msgid "Update link"
+msgstr ""
+
+msgid "Upper control limit"
+msgstr ""
+
+msgid "Use a query"
+msgstr ""
+
+msgid "Use current figure"
+msgstr ""
+
+msgid "Use existing axis"
+msgstr ""
+
+msgid "Use latest fitted parameters"
+msgstr ""
+
+msgid "Username"
+msgstr ""
+
+msgid "V"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Values used to evaluate the function. Nothing is fitted here."
+msgstr ""
+
+msgid "Version"
+msgstr ""
+
+msgid "Visibility"
+msgstr ""
+
+msgid "Visible"
+msgstr ""
+
+msgid "Web"
+msgstr ""
+
+msgid "Weight residuals by magnitude when computing RMSE/R²."
+msgstr ""
+
+msgid "Weighted RMSE/R²"
+msgstr ""
+
+msgid "What to derive from the analytic signal."
+msgstr ""
+
+msgid "When enabled, applying this dialog again replaces the previously generated preview series."
+msgstr ""
+
+msgid "Which band the filter keeps."
+msgstr ""
+
+msgid "Which chart to add. 'Match the model' picks the one that shows what the selected statistics measure."
+msgstr ""
+
+msgid "Which fitted distribution the histogram draws. Best fit follows whichever candidate ranks first for the series."
+msgstr ""
+
+msgid "Which turning points to look for."
+msgstr ""
+
+msgid "Width"
+msgstr ""
+
+msgid "Width of the linear region around zero, for the symlog scale."
+msgstr ""
+
+msgid "Wilcoxon signed-rank"
+msgstr ""
+
+msgid "Wilcoxon signed-rank paired test"
+msgstr ""
+
+msgid "Window"
+msgstr ""
+
+msgid "Window:"
+msgstr ""
+
+msgid "Worksheet (for Excel sources)"
+msgstr ""
+
+msgid "Workspace"
+msgstr ""
+
+msgid "Writes a new file under user/charts/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. render_axis is left for you to write the actual drawing code into."
+msgstr ""
+
+msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
+msgstr ""
+
+msgid "Writes a new file under user/series_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
+msgstr ""
+
+msgid "Written by"
+msgstr ""
+
+msgid "X label"
+msgstr ""
+
+msgid "X log base"
+msgstr ""
+
+msgid "X range"
+msgstr ""
+
+msgid "X range:"
+msgstr ""
+
+msgid "X scale"
+msgstr ""
+
+msgid "X spacing:"
+msgstr ""
+
+msgid "X tick rotation"
+msgstr ""
+
+msgid "Y label"
+msgstr ""
+
+msgid "Y log base"
+msgstr ""
+
+msgid "Y range"
+msgstr ""
+
+msgid "Y scale"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "Z label"
+msgstr ""
+
+msgid "Z log base"
+msgstr ""
+
+msgid "Z range"
+msgstr ""
+
+msgid "Z scale"
+msgstr ""
+
+msgid "Zoom"
+msgstr ""
+
+msgid "Zooming or panning one axes' x range applies it to every other axes of this figure too."
+msgstr ""
+
+msgid "all"
+msgstr ""
+
+msgid "all lags"
+msgstr ""
+
+msgid "auto"
+msgstr ""
+
+msgid "auto, or start, stop"
+msgstr ""
+
+msgid "bar"
+msgstr ""
+
+msgid "comma-separated, e.g. intercept, slope"
+msgstr ""
+
+msgid "comma-separated, e.g. x, y"
+msgstr ""
+
+msgid "comma-separated, optional"
+msgstr ""
+
+msgid "density: power per unit frequency. spectrum: power per segment."
+msgstr ""
+
+msgid "docs/manual/user_manual.typ is not translated by this tool - it is prose inside Typst markup, not a string catalogue. To produce a translated copy:\n\n1. Copy user_manual.typ to user_manual_<lang>.typ (e.g. user_manual_it.typ).\n2. Translate the prose, leaving every #-command, code block and image reference untouched.\n3. Compile it: typst compile user_manual_<lang>.typ.\n\nThe application text itself does not need this step - it comes from the catalogue this dialog edits."
+msgstr ""
+
+msgid "e.g. Envelope Detector"
+msgstr ""
+
+msgid "e.g. Ridgeline Plot"
+msgstr ""
+
+msgid "e.g. Stretched Exponential"
+msgstr ""
+
+msgid "e.g. envelope_detector_dialog.py"
+msgstr ""
+
+msgid "e.g. ridgeline.py"
+msgstr ""
+
+msgid "e.g. stretched_exponential.py"
+msgstr ""
+
+msgid "falling"
+msgstr ""
+
+msgid "fit"
+msgstr ""
+
+msgid "fs:"
+msgstr ""
+
+msgid "https://example.com/data.csv"
+msgstr ""
+
+msgid "level {level}"
+msgstr ""
+
+msgid "maximum"
+msgstr ""
+
+msgid "measured"
+msgstr ""
+
+msgid "minimum"
+msgstr ""
+
+msgid "no timeout"
+msgstr ""
+
+msgid "not installed"
+msgstr ""
+
+msgid "p:"
+msgstr ""
+
+msgid "query"
+msgstr ""
+
+msgid "residual"
+msgstr ""
+
+msgid "rising"
+msgstr ""
+
+msgid "series"
+msgstr ""
+
+msgid "slice"
+msgstr ""
+
+msgid "space"
+msgstr ""
+
+msgid "truncated"
+msgstr ""
+
+msgid "unbiased divides by the overlap at each lag; biased divides by N; none returns the raw sum of products."
+msgstr ""
+
+msgid "unknown"
+msgstr ""
+
+msgid "y range"
+msgstr ""
+
+msgid "{chart} draws one series per axis: the {count} below will each get an axis of their own."
+msgstr ""
+
+msgid "{chart} draws up to {limit} series per axis: the {count} below will be split across {axes} axes."
+msgstr ""
+
+msgid "{count:,} x {size} B"
+msgstr ""
+
+msgid "{count:,} x {size} B, {amount} reclaimable by Optimize DB"
+msgstr ""
+
+msgid "{count} of {total} points signal. The process is not in statistical control."
+msgstr ""
+
+msgid "{count} point(s) embedded from {series} series into 2 dimensions."
+msgstr ""
+
+msgid "{count} point(s) selected across {series} series - right-click to act on them."
+msgstr ""
+
+msgid "{count} string(s), {missing} missing translation."
+msgstr ""
+
+msgid "{label}: {value}"
+msgstr ""
+
+msgid "{name} (selection)"
+msgstr ""
+
+msgid "{series}\nx: {x}\ny: {y}"
+msgstr ""
+
+msgid "{series} hidden"
+msgstr ""
+
+msgid "{series} shown"
+msgstr ""
+
+msgid "{series} — x: {x}, y: {y}"
+msgstr ""
+
+msgid "{series} — {count} points, mean x: {x}, mean y: {y}"
+msgstr ""
+
+msgid "{series} — {percent:.1f}% of the total"
+msgstr ""
+
+msgid "{tables} table(s), {rows} row(s) total"
+msgstr ""

@@ -14,9 +14,9 @@ Operations tool, plus a handful of classic teaching examples from
 mathematics and physics that are exact by construction rather than measured
 (Anscombe's quartet, Lissajous curves, a signal built from known
 frequencies) - see :func:`_multi_axis_figure_specs` for those. Run this
-module directly, or the thin wrapper at the repository root::
+module directly from the repository root::
 
-    python _make_demo_project.py
+    python -m app.data.demo_project
 
 which writes one ``.dhub`` file per subject into ``demo/`` - see
 :data:`DEMO_DIR`. The running application never calls :func:`build_demo_project`
@@ -496,6 +496,188 @@ def _sparse_calibration() -> pd.DataFrame:
     return pd.DataFrame({"concentration": x, "response": y})
 
 
+#: Grid side length shared by the bump and the saddle below. 31x31 = 961
+#: cells, kept under render_figure's DEFAULT_DOWNSAMPLE_THRESHOLD (1000):
+#: past it, a figure that never set its own downsample_threshold gets every
+#: series decimated to roughly that many rows by keeping one row in N after
+#: ``ORDER BY x`` - which for an *odd* grid side (41, 61, ...) shifts which y
+#: values survive from one x-block to the next and leaves a grid too holey
+#: for pivot_to_grid to recognise (Surface Plot/Contour Plot then refuse it
+#: outright). Staying under the threshold sidesteps the question entirely
+#: rather than relying on a side length happening to be even.
+_OPS_3D_GRID_SIZE: int = 31
+
+
+def _bump_grid_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(X, Y, Z) for a single Gaussian bump on an exact grid over [-5, 5]^2 -
+    amplitude 3, width 1.2, offset 0.2, centred at (1.2, -1.4). The centre is
+    deliberately off the grid's own symmetry points: at (1.0, -1.5) the
+    discrete maximum tied exactly between two neighbouring cells (the true
+    centre sits equidistant from both), and Peaks reported two identical
+    "peaks" instead of one. Exact by construction, the same convention as
+    the vector field/Lissajous tables. Shared by every "operations on a 3D
+    series" table below, so the Fit/Peaks/Calculus demos are all provably
+    about the same surface.
+    """
+    axis = np.linspace(-5.0, 5.0, _OPS_3D_GRID_SIZE)
+    xx, yy = np.meshgrid(axis, axis)
+    zz = 0.2 + 3.0 * np.exp(
+        -(((xx - 1.2) ** 2) + ((yy + 1.4) ** 2)) / (2.0 * 1.2**2)
+    )
+    return xx, yy, zz
+
+
+def _saddle_grid_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(X, Y, Z) for z = x^2 - y^2 on an exact grid over [-3, 3]^2 - a
+    saddle whose z=0 level set is exactly the two diagonals y=x and y=-x,
+    picked for Roots because the answer can be checked by eye rather than
+    only by tolerance.
+    """
+    axis = np.linspace(-3.0, 3.0, _OPS_3D_GRID_SIZE)
+    xx, yy = np.meshgrid(axis, axis)
+    zz = xx**2 - yy**2
+    return xx, yy, zz
+
+
+def _surface_bump_grid() -> pd.DataFrame:
+    """The Gaussian bump, gridded - the "exact" half of Peaks'/Fit's
+    grid-vs-scattered pair, and what series_grid_xyz reads back as a grid
+    with no interpolation needed."""
+    xx, yy, zz = _bump_grid_arrays()
+    return pd.DataFrame({"x": xx.ravel(), "y": yy.ravel(), "z": zz.ravel()})
+
+
+def _surface_bump_scattered() -> pd.DataFrame:
+    """The same bump, at 500 scattered (non-gridded) points with a little
+    measurement noise - what Fit's surface functions and series_grid_xyz's
+    interpolation fallback both exist for. A fixed seed, so the fit result
+    table computed from this below is reproducible.
+    """
+    rng = np.random.default_rng(20260920)
+    x = rng.uniform(-5.0, 5.0, 500)
+    y = rng.uniform(-5.0, 5.0, 500)
+    z = 0.2 + 3.0 * np.exp(
+        -(((x - 1.2) ** 2) + ((y + 1.4) ** 2)) / (2.0 * 1.2**2)
+    ) + rng.normal(0.0, 0.03, 500)
+    return pd.DataFrame({"x": x, "y": y, "z": z})
+
+
+def _surface_saddle_grid() -> pd.DataFrame:
+    """The saddle, gridded - see _saddle_grid_arrays."""
+    xx, yy, zz = _saddle_grid_arrays()
+    return pd.DataFrame({"x": xx.ravel(), "y": yy.ravel(), "z": zz.ravel()})
+
+
+def _surface_bump_fit_result() -> pd.DataFrame:
+    """The Gaussian2D surface function (app.functions.surface_functions),
+    fitted with the same least-squares engine the Fit dialog's optimizers
+    wrap, against the *scattered* bump table - then evaluated on a clean
+    grid for a continuous demo surface.
+
+    Not the dialog's own TriSurface-at-the-source-points choice: that is the
+    honest rendering for arbitrary, possibly sparse real data (see
+    fit_dialog.result_series_spec's own comment), but a static demo of "what
+    the fit found" reads better as a smooth surface than as a triangulation
+    of 500 scattered points on top of each other. Both are legitimate views
+    of the same fitted parameters - this table just draws the other one.
+    """
+    from scipy.optimize import least_squares
+
+    from app.functions.surface_functions import gaussian2d
+
+    scattered = _surface_bump_scattered()
+    x = scattered["x"].to_numpy(dtype=float)
+    y = scattered["y"].to_numpy(dtype=float)
+    z = scattered["z"].to_numpy(dtype=float)
+
+    p0 = gaussian2d.initial_guess(x, y, z) or [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+
+    def residuals(p: np.ndarray) -> np.ndarray:
+        return z - gaussian2d.execute(x, y, np.asarray(p, dtype=float))
+
+    fitted = least_squares(residuals, np.asarray(p0, dtype=float))
+
+    axis = np.linspace(-5.0, 5.0, _OPS_3D_GRID_SIZE)
+    xx, yy = np.meshgrid(axis, axis)
+    zz = gaussian2d.execute(xx.ravel(), yy.ravel(), fitted.x).reshape(xx.shape)
+    return pd.DataFrame({"x": xx.ravel(), "y": yy.ravel(), "z": zz.ravel()})
+
+
+def _surface_bump_peaks_result() -> pd.DataFrame:
+    """The bump's single maximum, found by the Peaks operation's own 2D
+    search (SeriesPeaksDialog._search_3d) run directly on the exact grid -
+    reused rather than re-implemented, so this table cannot drift from the
+    real algorithm.
+    """
+    from app.series_operations.peaks_dialog import PeakResult, SeriesPeaksDialog
+
+    xx, yy, zz = _bump_grid_arrays()
+    dialog = SeriesPeaksDialog.__new__(SeriesPeaksDialog)
+    params = {
+        "filter_by": "prominence",
+        "threshold": 0.05,
+        "distance": 5,
+        "min_width": 0.0,
+        "limit": 50,
+    }
+    peaks = dialog._search_3d(xx, yy, zz, params, minimum=False)
+    result = PeakResult(
+        source_name="Bump",
+        result_name="Bump - peaks",
+        model="Maxima",
+        peaks=peaks,
+        metadata={"found": len(peaks), "is_3d": True, "interpolated": False},
+    )
+    return result.to_frame()
+
+
+def _surface_saddle_roots_result() -> pd.DataFrame:
+    """The saddle's z=0 level curve (two diagonals), found by the Roots
+    operation's own contour extraction (SeriesRootsDialog._extract_level_
+    curves) run directly on the exact grid.
+    """
+    from app.series_operations.roots_dialog import Root, RootResult, SeriesRootsDialog
+
+    xx, yy, zz = _saddle_grid_arrays()
+    dialog = SeriesRootsDialog.__new__(SeriesRootsDialog)
+    polylines = dialog._extract_level_curves(xx, yy, zz, 0.0)
+    roots = [
+        Root(
+            x=float(px), y=float(py), rising=False, method="contour",
+            z=0.0, curve_index=curve_index,
+        )
+        for curve_index, (xs, ys) in enumerate(polylines)
+        for px, py in zip(xs.tolist(), ys.tolist())
+    ]
+    result = RootResult(
+        source_name="Saddle",
+        result_name="Saddle - roots",
+        model="Contour (matplotlib)",
+        level=0.0,
+        roots=roots,
+        metadata={
+            "found": len(roots),
+            "is_3d": True,
+            "interpolated": False,
+            "curves": len(polylines),
+        },
+    )
+    return result.to_frame()
+
+
+def _surface_bump_gradient_result() -> pd.DataFrame:
+    """The bump's gradient magnitude, found by the Calculus operation's own
+    surface gradient (SeriesCalculusDialog._gradient_surface) run directly
+    on the exact grid.
+    """
+    from app.series_operations.calculus_dialog import SeriesCalculusDialog
+
+    xx, yy, zz = _bump_grid_arrays()
+    dialog = SeriesCalculusDialog.__new__(SeriesCalculusDialog)
+    result = dialog._gradient_surface("Bump", xx, yy, zz, False)
+    return result.to_frame()
+
+
 #: Table name -> the function that loads it. A demo file writes only the
 #: tables its own figures read, which is what keeps a single-subject demo
 #: small enough to open and understand.
@@ -527,6 +709,13 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "defect_causes": _defect_causes,
     "release_events": _release_events,
     "sparse_calibration": _sparse_calibration,
+    "surface_bump_grid": _surface_bump_grid,
+    "surface_bump_scattered": _surface_bump_scattered,
+    "surface_saddle_grid": _surface_saddle_grid,
+    "surface_bump_fit_result": _surface_bump_fit_result,
+    "surface_bump_peaks_result": _surface_bump_peaks_result,
+    "surface_saddle_roots_result": _surface_saddle_roots_result,
+    "surface_bump_gradient_result": _surface_bump_gradient_result,
 }
 
 #: Saved query name -> its SQL, and the table it reads.
@@ -1809,7 +1998,136 @@ def _multi_axis_figure_specs() -> list[MultiAxisFigureSpec]:
                 ),
             ],
         ),
+        _ops_3d_showcase_spec(),
     ]
+
+
+def _ops_3d_showcase_spec() -> MultiAxisFigureSpec:
+    """One Gaussian bump and one saddle, run through every Series Operation
+    that now understands a series with a z role.
+
+    Every derived panel is computed by the operation's own code
+    (SeriesPeaksDialog._search_3d, SeriesRootsDialog._extract_level_curves,
+    SeriesCalculusDialog._gradient_surface - see the *_result table loaders
+    above) rather than re-implemented for the demo, so this figure cannot
+    silently drift from what the dialogs actually do. The volume figure is
+    the one thing with no chart of its own (it is a single number - see
+    calculus_dialog's own note on why) so it is folded into that axis's
+    title instead.
+    """
+    from app.series_operations.calculus_dialog import SeriesCalculusDialog
+
+    xx, yy, zz = _bump_grid_arrays()
+    volume = SeriesCalculusDialog.__new__(SeriesCalculusDialog)._volume_surface(
+        "Bump", xx, yy, zz, False
+    ).total
+
+    return MultiAxisFigureSpec(
+        name="24 · Series Operations on 3D data - Fit, Peaks, Roots, Calculus",
+        key="ops3d_showcase",
+        tables=(
+            "surface_bump_scattered",
+            "surface_bump_fit_result",
+            "surface_bump_grid",
+            "surface_bump_peaks_result",
+            "surface_saddle_grid",
+            "surface_saddle_roots_result",
+            "surface_bump_gradient_result",
+        ),
+        queries=(),
+        layout=layout_presets.GRID,
+        axes=[
+            AxisSpec(
+                chart_type="Surface Plot (Scattered)",
+                title="Raw data - a bump sampled at 500 scattered points",
+                x_label="x",
+                y_label="y",
+                axis_options={"projection": "3d", "cmap": "terrain"},
+                series=[
+                    SeriesSpec(
+                        name="Bump (scattered)",
+                        sql="SELECT x, y, z FROM surface_bump_scattered",
+                        roles={"x": "x", "y": "y", "z": "z"},
+                        style={},
+                    ),
+                ],
+            ),
+            AxisSpec(
+                chart_type="Surface Plot",
+                title="Fit - Gaussian2D fitted to the scattered data",
+                x_label="x",
+                y_label="y",
+                axis_options={"projection": "3d", "cmap": "viridis"},
+                series=[
+                    SeriesSpec(
+                        name="Gaussian2D fit",
+                        sql="SELECT x, y, z FROM surface_bump_fit_result",
+                        roles={"x": "x", "y": "y", "z": "z"},
+                        style={},
+                    ),
+                ],
+            ),
+            AxisSpec(
+                chart_type="Scatter Plot (3D)",
+                title="Peaks - the one maximum found on the exact grid",
+                x_label="x",
+                y_label="y",
+                axis_options={"projection": "3d"},
+                series=[
+                    SeriesSpec(
+                        name="Bump (grid)",
+                        sql="SELECT x, y, z FROM surface_bump_grid",
+                        roles={"x": "x", "y": "y", "z": "z"},
+                        style={"marker": ".", "markersize": 2.0, "linestyle": "", "alpha": 0.25},
+                    ),
+                    SeriesSpec(
+                        name="Peak",
+                        sql="SELECT x, y, z FROM surface_bump_peaks_result",
+                        roles={"x": "x", "y": "y", "z": "z"},
+                        style={"marker": "^", "markersize": 12.0, "linestyle": "", "color": "#E45756"},
+                    ),
+                ],
+            ),
+            AxisSpec(
+                chart_type="3D Line Plot",
+                title="Roots - z=0 on a saddle: exactly y=x and y=-x",
+                x_label="x",
+                y_label="y",
+                axis_options={"projection": "3d"},
+                series=[
+                    SeriesSpec(
+                        name="Saddle (grid)",
+                        sql="SELECT x, y, z FROM surface_saddle_grid",
+                        roles={"x": "x", "y": "y", "z": "z"},
+                        style={"marker": ".", "markersize": 1.5, "linestyle": "", "alpha": 0.15},
+                    ),
+                    SeriesSpec(
+                        name="z = 0 level curve",
+                        sql="SELECT x, y, z FROM surface_saddle_roots_result",
+                        roles={"x": "x", "y": "y", "z": "z"},
+                        style={"marker": "", "linestyle": "-", "linewidth": 2.2, "color": "#E45756"},
+                    ),
+                ],
+            ),
+            AxisSpec(
+                chart_type="Contour Plot",
+                # No projection: a scalar field over (x, y) is exactly what
+                # a contour map shows, on an ordinary 2D axes.
+                title=f"Calculus - |grad z| (volume under the bump: {volume:.2f})",
+                x_label="x",
+                y_label="y",
+                axis_options={"cmap": "magma"},
+                series=[
+                    SeriesSpec(
+                        name="|grad z|",
+                        sql="SELECT x, y, z FROM surface_bump_gradient_result",
+                        roles={"x": "x", "y": "y", "z": "z"},
+                        style={},
+                    ),
+                ],
+            ),
+        ],
+    )
 
 
 # ----------------------------------------------------------------------
@@ -2033,6 +2351,16 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "checked against the true shape rather than against noise.",
         ("sparse_calibration_scatter",),
     ),
+    DemoProject(
+        "3D Series Operations - Fit, Peaks, Roots and Calculus on a surface",
+        "A Gaussian bump and a saddle, run through the four Series "
+        "Operations that now understand a series with a z role: a "
+        "Gaussian2D surface fitted to 500 scattered points, the bump's one "
+        "peak found on its exact grid, a saddle's z=0 level curve traced "
+        "as its two true diagonals, and the bump's gradient magnitude "
+        "with the volume under it reported alongside.",
+        ("ops3d_showcase",),
+    ),
 )
 
 
@@ -2131,15 +2459,16 @@ def copy_demo_project(demo: DemoProject, target: Path) -> Path:
     The application does not build a demo on the spot any more: several of
     the source datasets (four thousand drivers, three years of daily prices)
     are large enough that rebuilding one on every click would make "Create
-    demo" feel like it had hung. Run ``_make_demo_project.py`` once to
-    populate :data:`DEMO_DIR`; after that, "Load demo" is just a file copy.
+    demo" feel like it had hung. Run ``python -m app.data.demo_project``
+    once to populate :data:`DEMO_DIR`; after that, "Load demo" is just a
+    file copy.
     """
     source = demo.source_path
     if not source.is_file():
         raise FileNotFoundError(
             f"Demo project not built: {source}. "
-            "Run _make_demo_project.py to build the demo set into "
-            f"{DEMO_DIR}."
+            "Run 'python -m app.data.demo_project' to build the demo set "
+            f"into {DEMO_DIR}."
         )
 
     target = SqliteRepo.ensure_dhub_extension(Path(target))
