@@ -496,6 +496,135 @@ def _sparse_calibration() -> pd.DataFrame:
     return pd.DataFrame({"concentration": x, "response": y})
 
 
+# ----------------------------------------------------------------------
+# Case studies: real published observations, not synthetic data.
+#
+# Downloaded once by app/data/fetch_case_study_data.py (see its docstring
+# for the sources and why the snapshot is deliberate) and read here like
+# any other sample file. Each one carries a result that is checked below
+# rather than asserted: the fits and the spectrum are computed from these
+# very tables, by the application's own code, when the demo is built.
+# ----------------------------------------------------------------------
+def _co2_mauna_loa() -> pd.DataFrame:
+    """Monthly mean CO2 at Mauna Loa - the Keeling curve, from 1958 on.
+
+    Two columns worth plotting together: the monthly mean, which visibly
+    breathes once a year, and NOAA's own deseasonalised series. The gap
+    between them *is* the seasonal signal - the Northern Hemisphere's
+    growing season drawing CO2 down each summer and returning it each
+    winter - which is what makes this the obvious series to run
+    Decomposition on.
+    """
+    frame = pd.read_csv(SAMPLE_DATA_DIR / "co2_mauna_loa.csv")
+    frame["date"] = pd.to_datetime(frame["date"])
+    return frame
+
+
+def _sunspots_monthly() -> pd.DataFrame:
+    """Monthly mean sunspot number since 1749 (WDC-SILSO).
+
+    The longest continuous record in observational astronomy, and the
+    one Schwabe read an eleven-year cycle out of in 1843 by eye. The
+    spectrum below recovers the same number from the same data.
+    """
+    frame = pd.read_csv(SAMPLE_DATA_DIR / "sunspots_monthly.csv")
+    frame["date"] = pd.to_datetime(frame["date"])
+    return frame
+
+
+def _sunspot_spectrum() -> pd.DataFrame:
+    """The sunspot record's amplitude spectrum, in cycles per year.
+
+    Computed by SeriesSpectralDialog's own ``_one_sided_fft`` - the same
+    code the Spectral operation runs - so the demo cannot drift from
+    what the application would draw. Opening the Spectral dialog on the
+    series next to this one reproduces it.
+
+    Cut at 0.6 cycles/year: everything the eye is here for sits below
+    that, and the rest is a long flat tail that squashes the peak.
+    """
+    from app.series_operations.spectral_dialog import SeriesSpectralDialog
+
+    sunspots = _sunspots_monthly()
+    values = sunspots["sunspot_number"].to_numpy(dtype=float)
+    # Twelve samples a year, so frequencies come out in cycles/year and
+    # the peak can be read as a period in years without converting.
+    dialog = SeriesSpectralDialog.__new__(SeriesSpectralDialog)
+    frequencies, spectrum = dialog._one_sided_fft(values, 12.0)
+    keep = (frequencies > 0.0) & (frequencies <= 0.6)
+    return pd.DataFrame(
+        {
+            "cycles_per_year": frequencies[keep],
+            "amplitude": np.abs(spectrum[keep]),
+        }
+    )
+
+
+def _global_temperature() -> pd.DataFrame:
+    """Annual global land-ocean temperature anomaly (NASA GISTEMP v4).
+
+    Degrees Celsius against the 1951-1980 mean, 1880 to the last
+    complete year.
+    """
+    return pd.read_csv(SAMPLE_DATA_DIR / "global_temperature.csv")
+
+
+#: The magnitude range the USGS global feed is complete over. Below this
+#: the catalogue misses small earthquakes outside well-instrumented
+#: regions - see _earthquake_size_law_fit on what that does to the fit.
+_GR_COMPLETE_FROM: float = 4.0
+_GR_COMPLETE_TO: float = 6.5
+
+
+def _earthquake_size_law() -> pd.DataFrame:
+    """How many earthquakes were at least as large as each magnitude.
+
+    One month of the USGS feed, counted cumulatively: the quantity
+    Gutenberg and Richter stated their law in. log10 of that count is
+    linear in magnitude, which is why it is a column here rather than a
+    log axis - the fit runs on the numbers.
+    """
+    return pd.read_csv(SAMPLE_DATA_DIR / "earthquake_size_law.csv")
+
+
+def _earthquake_size_law_fit() -> pd.DataFrame:
+    """The Gutenberg-Richter line, fitted over the complete range only.
+
+    log10 N = a - b M. Fitted here from M4.0 up, where this catalogue is
+    globally complete, and deliberately *not* from its lowest magnitude:
+    the feed reports down to M2.5 in the United States and only to about
+    M4 elsewhere, so the small-magnitude end rolls off because of what
+    the seismometers caught, not because of what the Earth did. Fitting
+    the whole curve returns b = 0.47; fitting the complete part returns
+    b near 1, which is the value the law is known for.
+
+    The line is drawn across the full magnitude range even so, so that
+    the roll-off shows as data departing from the fit - which is how the
+    magnitude of completeness is read off a real catalogue.
+    """
+    law = _earthquake_size_law()
+    complete = law[
+        (law["magnitude"] >= _GR_COMPLETE_FROM)
+        & (law["magnitude"] <= _GR_COMPLETE_TO)
+    ]
+    slope, intercept = np.polyfit(
+        complete["magnitude"].to_numpy(dtype=float),
+        complete["log10_count"].to_numpy(dtype=float),
+        1,
+    )
+    magnitudes = law["magnitude"].to_numpy(dtype=float)
+    return pd.DataFrame(
+        {
+            "magnitude": magnitudes,
+            "log10_count_fitted": intercept + slope * magnitudes,
+            # Constant columns, but this is where the numbers the demo's
+            # own titles quote come from - one place, computed once.
+            "b_value": float(-slope),
+            "a_value": float(intercept),
+        }
+    )
+
+
 #: Grid side length shared by the bump and the saddle below. 31x31 = 961
 #: cells, kept under render_figure's DEFAULT_DOWNSAMPLE_THRESHOLD (1000):
 #: past it, a figure that never set its own downsample_threshold gets every
@@ -716,6 +845,12 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "surface_bump_peaks_result": _surface_bump_peaks_result,
     "surface_saddle_roots_result": _surface_saddle_roots_result,
     "surface_bump_gradient_result": _surface_bump_gradient_result,
+    "co2_mauna_loa": _co2_mauna_loa,
+    "sunspots_monthly": _sunspots_monthly,
+    "sunspot_spectrum": _sunspot_spectrum,
+    "global_temperature": _global_temperature,
+    "earthquake_size_law": _earthquake_size_law,
+    "earthquake_size_law_fit": _earthquake_size_law_fit,
 }
 
 #: Saved query name -> its SQL, and the table it reads.
@@ -1757,6 +1892,146 @@ def _figure_specs() -> list[FigureSpec]:
                 ),
             ],
         ),
+        FigureSpec(
+            name="53 · The Keeling curve - CO2 at Mauna Loa since 1958",
+            key="keeling_curve",
+            tables=("co2_mauna_loa",),
+            queries=(),
+            chart_type="Time Series",
+            title="Monthly mean CO2, and the same record with the season removed",
+            x_label="",
+            y_label="CO2 (ppm)",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Monthly mean",
+                    sql=(
+                        "SELECT date AS x, co2_ppm AS y "
+                        "FROM co2_mauna_loa ORDER BY date"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={"linewidth": 0.9},
+                ),
+                SeriesSpec(
+                    name="Seasonally adjusted",
+                    sql=(
+                        "SELECT date AS x, co2_trend_ppm AS y "
+                        "FROM co2_mauna_loa WHERE co2_trend_ppm IS NOT NULL "
+                        "ORDER BY date"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={"linewidth": 1.6},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="54 · The solar cycle - 277 years of sunspot counts",
+            key="sunspot_record",
+            tables=("sunspots_monthly",),
+            queries=(),
+            chart_type="Time Series",
+            title="Monthly mean sunspot number (WDC-SILSO), 1749 onwards",
+            x_label="",
+            y_label="sunspot number",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Sunspot number",
+                    sql=(
+                        "SELECT date AS x, sunspot_number AS y "
+                        "FROM sunspots_monthly ORDER BY date"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={"linewidth": 0.7},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="55 · The solar cycle - its spectrum, peaking at 11 years",
+            key="sunspot_spectrum",
+            tables=("sunspot_spectrum",),
+            queries=(),
+            # Scatter Plot with a line style, not Time Series: the x here
+            # is a frequency, not a date, and this renderer is the one
+            # that draws a plain numeric x/y curve.
+            chart_type="Scatter Plot",
+            title="Amplitude spectrum of the sunspot record - one clear peak",
+            x_label="frequency (cycles per year)",
+            y_label="amplitude",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Amplitude",
+                    sql=(
+                        "SELECT cycles_per_year AS x, amplitude AS y "
+                        "FROM sunspot_spectrum ORDER BY cycles_per_year"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={"linewidth": 1.2, "linestyle": "-", "marker": ""},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="56 · Gutenberg-Richter - earthquake size follows a power law",
+            key="gutenberg_richter",
+            tables=("earthquake_size_law", "earthquake_size_law_fit"),
+            queries=(),
+            chart_type="Scatter Plot",
+            title=(
+                "One month of M2.5+ earthquakes: log10 N against magnitude, "
+                "fitted from M4.0 up"
+            ),
+            x_label="magnitude",
+            y_label="log10 (number at least this large)",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Observed",
+                    sql=(
+                        "SELECT magnitude AS x, log10_count AS y "
+                        "FROM earthquake_size_law ORDER BY magnitude"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={"marker": "o", "linestyle": "", "markersize": 4.0},
+                ),
+                SeriesSpec(
+                    name="Fit over the complete range",
+                    sql=(
+                        "SELECT magnitude AS x, log10_count_fitted AS y "
+                        "FROM earthquake_size_law_fit ORDER BY magnitude"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={"linestyle": "-", "linewidth": 1.6},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="57 · Global temperature anomaly since 1880",
+            key="global_temperature",
+            tables=("global_temperature",),
+            queries=(),
+            chart_type="Scatter Plot",
+            title="Annual land-ocean anomaly against the 1951-1980 mean (GISTEMP v4)",
+            x_label="year",
+            y_label="anomaly (degrees C)",
+            axis_options={"grid": True},
+            series=[
+                SeriesSpec(
+                    name="Annual anomaly",
+                    sql=(
+                        "SELECT year AS x, anomaly_c AS y "
+                        "FROM global_temperature ORDER BY year"
+                    ),
+                    roles={"x": "x", "y": "y"},
+                    style={
+                        "marker": "o",
+                        "markersize": 3.0,
+                        "linewidth": 1.0,
+                        "linestyle": "-",
+                    },
+                ),
+            ],
+        ),
     ]
 
 
@@ -2360,6 +2635,26 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "as its two true diagonals, and the bump's gradient magnitude "
         "with the volume under it reported alongside.",
         ("ops3d_showcase",),
+    ),
+    DemoProject(
+        "Real case studies - CO2, sunspots, earthquakes and warming",
+        "Four published results, each on the institution's own published "
+        "data rather than on anything invented here (downloaded by "
+        "app/data/fetch_case_study_data.py): the Keeling curve breathing "
+        "once a year on top of its rise from 315 to 428 ppm; 277 years of "
+        "sunspot counts whose spectrum - computed by the Spectral "
+        "operation's own FFT - peaks at 11.1 years, the cycle Schwabe "
+        "read off by eye in 1843; a month of earthquakes obeying "
+        "Gutenberg-Richter with b = 1.06 above the magnitude the "
+        "catalogue is complete at, and visibly departing from it below; "
+        "and 146 years of global temperature anomaly.",
+        (
+            "keeling_curve",
+            "sunspot_record",
+            "sunspot_spectrum",
+            "gutenberg_richter",
+            "global_temperature",
+        ),
     ),
 )
 

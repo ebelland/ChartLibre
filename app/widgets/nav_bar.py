@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QButtonGroup, QFrame, QSizePolicy, QToolButton, QVBoxLayout
@@ -34,6 +34,9 @@ from app.utils.i18n import _
 from app.widgets.custom_title_bar import CustomTitleBar
 
 if TYPE_CHECKING:
+    from app.main_window import MainWindow
+    from PySide6.QtWidgets import QWidget
+else:
     from PySide6.QtWidgets import QWidget
 
 
@@ -230,7 +233,9 @@ class NavigationBar(QFrame):
             # parent=self, window=the window its buttons act on: see
             # CustomTitleBar.__init__ on why those must not be the same
             # object here.
-            self.title_bar = CustomTitleBar(window, is_macos=True, parent=self)
+            self.title_bar = CustomTitleBar(
+                cast("MainWindow", window), is_macos=True, parent=self
+            )
             layout.addWidget(self.title_bar)
             layout.addSpacing(4)
 
