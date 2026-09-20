@@ -19,6 +19,23 @@ QWidget#windowFrame {
     border: 1px solid rgba(@SHADOW_RGB@, 0.35);
 }
 
+/* The navigation-rail toggle, left of the title: a flat glyph in the
+   title bar rather than a framed button, the same subtle-fill-on-hover
+   treatment WinUI3 gives its own caption-bar controls. */
+QToolButton#titleBarSidebarButton {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+}
+
+QToolButton#titleBarSidebarButton:hover {
+    background: rgba(@SHADOW_RGB@, 0.09);
+}
+
+QToolButton#titleBarSidebarButton:checked {
+    background: rgba(@SHADOW_RGB@, 0.14);
+}
+
 /* ==========================================================
    Global Base
    ========================================================== */

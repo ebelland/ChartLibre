@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QStyle, QToolButton
 
+from app.styles.style import icon_from_svg_source
 from app.utils.i18n import _
 
 if TYPE_CHECKING:
@@ -18,11 +19,20 @@ if TYPE_CHECKING:
 CUSTOM_TITLE_BAR_HEIGHT: int = 24
 
 #: macOS: a shorter strip - real AppKit title bars run about this tall -
-#: holding nothing but the traffic lights. Compacted alongside the Windows
-#: height above, from 28/12/8, for the same native-height match.
-_MAC_TITLE_BAR_HEIGHT: int = 24
-_MAC_BUTTON_DIAMETER: int = 10
-_MAC_BUTTON_SPACING: int = 6
+#: holding the traffic lights and the sidebar toggle. Kept at AppKit's own
+#: measurements rather than following the Windows height above: the lights
+#: are a native control people recognise by size, and the strip also has to
+#: fit the sidebar button beside them.
+_MAC_TITLE_BAR_HEIGHT: int = 28
+_MAC_BUTTON_DIAMETER: int = 12
+_MAC_BUTTON_SPACING: int = 8
+
+#: The sidebar toggle's own glyph: a panel with its left column divided
+#: off, the same shape every macOS app uses for "hide/show the sidebar".
+_SIDEBAR_ICON = (
+    '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/>'
+    '<line x1="9.5" y1="4.5" x2="9.5" y2="19.5"/>'
+)
 
 #: (fill, border) per light, in AppKit's own left-to-right order:
 #: close, minimize, zoom. Not theme-dependent - a real traffic light
@@ -83,6 +93,7 @@ class CustomTitleBar(QFrame):
         icon_label.setPixmap(self._window.windowIcon().pixmap(18, 18))
         icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         layout.addWidget(icon_label)
+        layout.addWidget(self._build_sidebar_button())
         self.title_label = QLabel(self._window.windowTitle(), self)
         self.title_label.setObjectName("titleBarTitle")
         self.title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
@@ -118,7 +129,42 @@ class CustomTitleBar(QFrame):
         layout.addWidget(self.close_button)
         layout.addWidget(self.minimize_button)
         layout.addWidget(self.maximize_button)
+        # Immediately right of the lights, where every macOS app that has
+        # one puts it, and far enough from them not to be hit by accident.
+        layout.addSpacing(_MAC_BUTTON_SPACING * 2)
+        layout.addWidget(self._build_sidebar_button())
         layout.addStretch(1)
+
+    # ------------------------------------------------------------------
+    # Shared: the sidebar toggle
+    # ------------------------------------------------------------------
+    def _build_sidebar_button(self) -> QToolButton:
+        """The control that collapses the navigation rail to its icons.
+
+        In the title bar rather than in the rail itself: it has to stay
+        reachable once the rail is narrow, and this is the strip that is
+        already above it on both platforms.
+        """
+        button = QToolButton(self)
+        button.setObjectName("titleBarSidebarButton")
+        button.setAutoRaise(True)
+        button.setCheckable(True)
+        button.setIcon(icon_from_svg_source(_SIDEBAR_ICON, size=18))
+        button.setIconSize(QSize(16, 16))
+        button.setFixedSize(26, 22)
+        button.setCursor(Qt.CursorShape.ArrowCursor)
+        button.setToolTip(_("Hide the navigation labels"))
+        button.toggled.connect(self._on_sidebar_toggled)
+        self.sidebar_button = button
+        return button
+
+    def _on_sidebar_toggled(self, collapsed: bool) -> None:
+        self.sidebar_button.setToolTip(
+            _("Show the navigation labels")
+            if collapsed
+            else _("Hide the navigation labels")
+        )
+        self._window.set_navigation_compact(collapsed)
 
     def _traffic_light(self, kind: str, callback: Any, tooltip: str) -> QToolButton:
         fill, border = _MAC_TRAFFIC_LIGHTS[kind]

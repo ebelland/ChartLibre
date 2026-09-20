@@ -28,6 +28,15 @@ _MACOS_NAV_BAR_WIDTH = 200
 _MACOS_ICON_SIZE = QSize(16, 16)
 _MACOS_ROW_HEIGHT = 30
 
+#: Collapsed ("icons only") rail width, per platform. Wide enough for the
+#: icon plus the tile's own hover/selected background around it, and no
+#: wider - the point of collapsing is to give the panel beside it room.
+#: The rail is never hidden outright, unlike the sidebar in some apps:
+#: the icons stay as the way back, so there is no invisible state to get
+#: stuck in.
+_MACOS_COMPACT_WIDTH = 48
+_WINDOWS_COMPACT_WIDTH = 56
+
 _HOME_ICON = (
     '<path d="M3 11.5 12 4l9 7.5"/>'
     '<path d="M5.5 10.5V21h13V10.5"/>'
@@ -94,6 +103,7 @@ class NavigationBar(QFrame):
         super().__init__(window)
         self._window: MainWindow = window
         self._is_macos = is_macos
+        self._compact = False
         self.setObjectName("activityRail")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setFixedWidth(_MACOS_NAV_BAR_WIDTH if is_macos else NAV_BAR_WIDTH)
@@ -202,6 +212,59 @@ class NavigationBar(QFrame):
         self.workspace_button.setStatusTip(tooltip)
         self.workspace_button.setAccessibleName(tooltip)
 
+    def is_compact(self) -> bool:
+        return self._compact
+
+    def set_compact(self, compact: bool) -> None:
+        """Show the tiles as icons only, and narrow the rail to match.
+
+        The labels are dropped rather than elided: at this width even the
+        shortest of them ("File") leaves no room for the icon beside it on
+        macOS, and a tile showing three characters of a word is worse than
+        one showing none - the tooltip already carries the full text, and
+        it is the only thing a hover reaches in this state.
+        """
+        compact = bool(compact)
+        if compact == self._compact:
+            return
+        self._compact = compact
+
+        if self._is_macos:
+            self.setFixedWidth(_MACOS_COMPACT_WIDTH if compact else _MACOS_NAV_BAR_WIDTH)
+        else:
+            self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else NAV_BAR_WIDTH)
+
+        for button in self._all_tiles():
+            self._apply_tile_mode(button)
+
+    def _all_tiles(self) -> list[QToolButton]:
+        """Every tile in the rail, including the ones that are not pages."""
+        tiles = [self.workspace_button, *self.buttons]
+        for extra in (self.settings_button, self.help_button):
+            if extra is not None:
+                tiles.append(extra)
+        return tiles
+
+    def _apply_tile_mode(self, button: QToolButton) -> None:
+        """Set one tile's text, style and size for the current mode."""
+        full_text = str(button.property("navLabel") or button.text())
+        if self._compact:
+            button.setText("")
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            if self._is_macos:
+                button.setFixedHeight(_MACOS_ROW_HEIGHT)
+            else:
+                button.setFixedSize(QSize(40, 40))
+            return
+
+        button.setText(full_text if self._is_macos else _wrap_tile_label(full_text))
+        if self._is_macos:
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            button.setFixedHeight(_MACOS_ROW_HEIGHT)
+        else:
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+            button.setFixedSize(NAV_ITEM_SIZE)
+
     def select_page(self, index: int) -> None:
         if 0 <= index < len(self.buttons):
             self.buttons[index].setChecked(True)
@@ -281,5 +344,9 @@ class NavigationBar(QFrame):
         button.setToolTip(tooltip)
         button.setStatusTip(tooltip)
         button.setAccessibleName(text)
+        # Kept aside so collapsing to icons and expanding again restores the
+        # label: accessibleName is not a safe place to read it back from -
+        # set_workspace_hidden rewrites that one to the current tooltip.
+        button.setProperty("navLabel", text)
         button.setCheckable(checkable)
         return button

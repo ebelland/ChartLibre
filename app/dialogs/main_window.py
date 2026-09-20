@@ -141,6 +141,12 @@ USER_MANUAL_PATH: Path = Path(__file__).resolve().parents[2] / "docs" / "manual"
 # splitter negotiation against the left panel.
 CHART_PANE_MIN_WIDTH: int = get_constant("chart_pane_min_width", 260)
 
+# How wide the panel *beside* the navigation rail starts out - the table
+# list, the property pages, the series-operation panels. Added to the rail's
+# own width rather than used as the whole left pane, since the rail's width
+# differs per platform; see _create_main_split.
+PANEL_DEFAULT_WIDTH: int = get_constant("panel_default_width", 340)
+
 # How long a picked-point readout stays in the status bar, in milliseconds.
 # Long enough to read and write down, short enough that it is gone before it
 # can be mistaken for a description of some later chart.
@@ -267,6 +273,11 @@ class MainWindow(QMainWindow):
         # Last: the saved geometry must win over the resize() above and over
         # any size hint the freshly populated panels have just produced.
         self._restore_layout()
+        # After _restore_layout, not before: collapsing the rail moves the
+        # splitter, and a restore running afterwards would put the saved
+        # (expanded) split back while the rail stayed narrow.
+        if IS_WINDOWS or IS_MACOS:
+            self._restore_navigation_compact()
 
         applogger.debug("Main window initialized")
 
@@ -341,6 +352,49 @@ class MainWindow(QMainWindow):
             total = max(sum(sizes), restore_width + CHART_PANE_MIN_WIDTH)
             self._main_split.setSizes([restore_width, max(total - restore_width, 1)])
         self._left_rail.set_workspace_hidden(hiding)
+
+    #: config.json key remembering whether the rail is collapsed to icons.
+    NAV_COMPACT_KEY: str = "navigation_compact"
+
+    def set_navigation_compact(self, compact: bool) -> None:
+        """Collapse the navigation rail to its icons, or restore its labels.
+
+        Different from _toggle_workspace, which hides the *panel* beside the
+        rail: this keeps every page reachable and only drops the words, so
+        the rail narrows from 200px to 48 and hands that width to whatever
+        is next to it. The width the splitter gives the left pane moves by
+        the same amount, or collapsing the rail would only widen the empty
+        gap inside it.
+        """
+        compact = bool(compact)
+        was = self._left_rail.width()
+        self._left_rail.set_compact(compact)
+        moved = self._left_rail.width() - was
+
+        if self._left_stack.isVisible():
+            self._left_panel.setMinimumWidth(
+                PANEL_MIN_WIDTH + self._left_rail.width()
+            )
+            sizes = self._main_split.sizes()
+            if len(sizes) == 2:
+                self._main_split.setSizes(
+                    [max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)]
+                )
+
+        set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
+
+    def _restore_navigation_compact(self) -> None:
+        """Re-apply the remembered collapsed state, button included."""
+        if not bool(get_section(STATE_KEY).get(self.NAV_COMPACT_KEY, False)):
+            return
+        button = getattr(self._custom_title_bar, "sidebar_button", None)
+        if button is not None:
+            # setChecked drives the toggled signal, which calls
+            # set_navigation_compact - the button and the rail cannot
+            # disagree about the state this way.
+            button.setChecked(True)
+        else:
+            self.set_navigation_compact(True)
 
     # ------------------------------------------------------------------
     # Configuration helpers
@@ -1597,7 +1651,13 @@ class MainWindow(QMainWindow):
 
         split.setStretchFactor(0, 0)
         split.setStretchFactor(1, 1)
-        split.setSizes([360, 840])
+        # Measured from the rail outwards, not a flat 360: the left pane
+        # holds the navigation rail *and* the panel beside it, and the rail
+        # is 200px wide on macOS against 132 on Windows. A fixed 360 left
+        # the macOS panel 160px of usable width - the table list and the
+        # series-operation panels were unreadably narrow in it - while
+        # giving Windows 228 for the same panel.
+        split.setSizes([self._left_rail.width() + PANEL_DEFAULT_WIDTH, 840])
 
         return split
 

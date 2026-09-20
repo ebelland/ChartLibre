@@ -12,8 +12,15 @@ QMainWindow {
    its children. This is the *fallback* path only, for when
    apply_native_macos_corner_radius (see the rule right below) could not
    run - pyobjc missing, most likely. */
+/* palette(base), not palette(window): #customTitleBar below tints itself
+   with the same translucent grey #activityRail uses, and a translucent
+   tint takes its final colour from whatever it is painted over. The rail
+   sits on the white left panel; the title bar sits directly on this. With
+   palette(window) (a grey of its own) under one and white under the
+   other, the identical tint rendered as two visibly different greys, with
+   the seam running straight across the top of the rail. */
 QWidget#windowFrame {
-  background: palette(window);
+  background: palette(base);
   border: 1px solid rgba(@SHADOW_RGB@, 0.28);
   border-radius: 6px;
 }
@@ -395,6 +402,25 @@ QFrame#activityRail {
 QFrame#customTitleBar {
   background: rgba(@SHADOW_RGB@, 0.035);
   border: none;
+}
+
+/* The sidebar toggle beside the traffic lights: a flat glyph, not a
+   button with a frame around it. Qt's default QToolButton chrome reads as
+   a raised control next to three flat lights, which is not what any macOS
+   app does with this icon - it only picks up a background on hover, and a
+   slightly firmer one while the rail is actually collapsed. */
+QToolButton#titleBarSidebarButton {
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+}
+
+QToolButton#titleBarSidebarButton:hover {
+  background: rgba(@SHADOW_RGB@, 0.09);
+}
+
+QToolButton#titleBarSidebarButton:checked {
+  background: rgba(@SHADOW_RGB@, 0.13);
 }
 
 
