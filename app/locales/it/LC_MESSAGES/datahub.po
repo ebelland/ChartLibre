@@ -3566,6 +3566,10 @@ msgid "Table"
 msgstr "Tabella"
 
 
+msgid "Table (selected table)"
+msgstr "Tabella (tabella selezionata)"
+
+
 msgid "Table to join:"
 msgstr "Tabella da unire:"
 

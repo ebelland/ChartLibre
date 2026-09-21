@@ -360,6 +360,72 @@ def _fluent_glyph_char(value: str) -> str:
     return chr(int(candidate, 16))
 
 
+#: The body font the Fluent sheet asks for, best first, resolved against what
+#: is actually installed by :func:`ui_font_family`.
+#:
+#: "Segoe UI Variable" is deliberately *not* in this list. It reads like the
+#: Windows 11 UI font's name and is what the sheet used to name, but no such
+#: family is ever installed: Windows 11 registers the variable face under
+#: three optical sizes - "Segoe UI Variable Small", "... Text" and
+#: "... Display" - and nothing under the bare name. Text is the one meant for
+#: body UI at this sheet's 10pt.
+_UI_FONT_STACK: tuple[str, ...] = (
+    "Segoe UI Variable Text",
+    "Segoe UI",
+    "Inter",
+    "Arial",
+)
+
+
+@lru_cache(maxsize=1)
+def ui_font_family() -> str:
+    """Return a ``font-family`` value naming only fonts that exist here.
+
+    The same rule as :func:`_best_fluent_font_family` below, for the body
+    font rather than the icon font, and for the same reason: a QSS
+    ``font-family`` that names a missing family makes Qt go looking for it,
+    and on Windows that lookup walks every alias the system knows before
+    giving up -
+
+        Populating font family aliases took 200 ms. Replace uses of missing
+        font family "Segoe UI Variable" with one that exists to avoid this
+        cost.
+
+    - which is a fifth of a second of the app's startup, plus a warning in
+    every log, spent to arrive at the second name in the list. Checking
+    ``families()`` first costs nothing extra: the font database is populated
+    on the first query either way, and a family that *is* there never
+    reaches the alias path.
+
+    Falls back to whatever Qt itself considers the UI font, which is by
+    definition installed, rather than to another guess.
+    """
+    families = set(QFontDatabase.families())
+    for family in _UI_FONT_STACK:
+        if family in families:
+            return f'"{family}"'
+    return f'"{QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont).family()}"'
+
+
+#: What :func:`ui_font_family` replaces in a sheet. Substituted after the
+#: palette's own tokens (see themed_qss) because it is not a palette
+#: property: the same theme resolves to a different family on a machine with
+#: different fonts installed.
+UI_FONT_FAMILY_TOKEN = "@UI_FONT_FAMILY@"
+
+
+def substitute_ui_font(qss: str) -> str:
+    """Resolve :data:`UI_FONT_FAMILY_TOKEN` in *qss*.
+
+    A sheet that does not use the token - the macOS one, or a sheet of the
+    user's own - passes through untouched, and without the font database
+    being read at all.
+    """
+    if UI_FONT_FAMILY_TOKEN not in qss:
+        return qss
+    return qss.replace(UI_FONT_FAMILY_TOKEN, ui_font_family())
+
+
 def _best_fluent_font_family() -> str | None:
     """Return an installed Fluent icon font, or None.
 
@@ -1482,6 +1548,7 @@ def apply_platform_style(
     # to go with it - a desktop with no QSS of its own still gets the theme's
     # colours through Qt.
     themed, palette = themed_qss(qss or "", palette_key)
+    themed = substitute_ui_font(themed)
     _ACTIVE_THEME_IS_DARK = palette.dark
     app.setPalette(palette.qpalette())
 

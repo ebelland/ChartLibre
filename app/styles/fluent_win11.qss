@@ -24,7 +24,12 @@ QWidget#windowFrame {
    ========================================================== */
 
 * {
-    font-family: "Segoe UI Variable", "Segoe UI", "Inter", "Arial", sans-serif;
+    /* Resolved at load time by style.substitute_ui_font, against the fonts
+       actually installed - not a static list. A list here would be a list
+       of guesses, and every name in it that the machine does not have costs
+       a full alias walk (~200 ms on Windows, with a Qt warning to match)
+       before Qt reaches the one it does. See style.ui_font_family. */
+    font-family: @UI_FONT_FAMILY@;
     font-size: 10pt;
     outline: none;
 }
