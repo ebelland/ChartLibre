@@ -100,8 +100,19 @@ A SQLite database writes its own changes straight to disk on every operation, so
 
 #figure(
   image("screenshot_main_window.png", width: 100%),
-  caption: [The main window: table list and data preview on the left, chart panel on the right.],
+  caption: [The main window on the Tables page: the navigation rail, the table
+  list and the data preview on the left, the chart panel on the right.],
 )
+
+#note[
+  The figures in this manual are taken in the *macOS native* style, which is
+  what the application wears on a Mac. On Windows and Linux the same screens
+  wear the Fluent style instead: the panels, the pages and every control are
+  the same and in the same place, but the navigation rail is a column of
+  square tiles rather than a sidebar of rows, and the window carries its own
+  title bar rather than the traffic lights. Regenerate the figures with
+  `python docs/manual/make_screenshots.py`.
+]
 
 The main window splits into two areas.
 
@@ -373,6 +384,12 @@ From Chart Options, depending on the selected level:
 
 Every setting shows a contextual description, so reading Matplotlib's own documentation is rarely necessary to understand what a parameter does.
 
+#figure(
+  image("screenshot_chart_options.png", width: 100%),
+  caption: [Chart Options: the figure, axis, series and overlay property
+  panels, one collapsible section each, over the chart they apply to.],
+)
+
 *Overlay properties*, also in Chart Options, lists an axis' annotations, reference lines and measurements — one tab each — as editable tables: exact position, text, colour and every other drawing option by value, rather than only by dragging on the chart.
 
 = Series operations <series-operations>
@@ -380,6 +397,11 @@ Every setting shows a contextual description, so reading Matplotlib's own docume
 *Series Operations* applies statistical or mathematical transformations to an existing series' data, previewing the result before it is committed to the chart. Every operation dialog shares the same layout: on the left, the source axis/series, a model and its parameters; on the right, a preview of the result and a log of the computation.
 
 The panel itself is a grid of square buttons grouped by what they are for — *Plot*, *Analysis*, *Statistics*, *Signal Processing*, *Modeling* — with a bar along the bottom that describes whichever button the pointer (or the keyboard focus) is on.
+
+#figure(
+  image("screenshot_series_operations.png", width: 100%),
+  caption: [The Series Operations page, with the hint bar along the bottom.],
+)
 
 #table(
   columns: (auto, 1fr, 1.4fr),
