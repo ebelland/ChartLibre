@@ -117,6 +117,8 @@ A vertical column of icons switches between the application's main sections:
 - *File* — New, Open, Import and Load demo; Save and Save As; and the Open Recent list.
 - *Developer* — scaffolding tools: the translation catalogue editor, the series-operation builder, the custom function creator, and the renderer helper (see @advanced).
 
+Off macOS the rail ends with two more tiles, *Settings* and *Help*, which open the same things the macOS menu bar carries in its application and Help menus.
+
 == Data panel
 
 Lists the tables in the database (saved queries are marked with a *Q* icon) and, once one is selected, shows a preview with its first rows and columns. This is also where importing data and opening the Query Builder start.
@@ -272,7 +274,6 @@ The chart picker lists them section by section and its search box matches a name
   [*Fill Between*], [The region between two y curves over a shared x — confidence bands, tolerance limits],
   [*Stack Plot*], [Series stacked into filled bands, showing how a total divides into its parts],
   [*Stem Plot*], [A stem from a baseline to each value — impulses, spectra, anything sampled at discrete x],
-  [*Stairs*], [A step outline over bin edges, for values that hold constant between them],
   [*Table*], [A data table, rows and columns of text rather than a plot],
   [*Text*], [Text labels at data points, spread apart to avoid overlap],
   [*Time Series*], [Time series, with numeric or timestamp x],
@@ -289,6 +290,7 @@ The chart picker lists them section by section and its search box matches a name
   [*Box Plot*], [Box-and-whisker plot],
   [*Violin Plot*], [Estimated distribution of one or more samples],
   [*ECDF*], [Empirical cumulative distribution function],
+  [*Stairs*], [A step outline over bin edges, for values that hold constant between them],
   [*Pareto Chart*], [Categories sorted by descending magnitude with a cumulative-percentage line],
   [*Pie Chart*], [Pie or donut chart of one series],
   [*Hexbin*], [2D density of x/y pairs binned into hexagons, for a scatter with too many points to read individually],
@@ -406,7 +408,44 @@ The panel itself is a grid of square buttons grouped by what they are for — *P
 A typical workflow is: select the axis and series to operate on, choose a model and its parameters, click *Preview* to see the result superimposed on the chart, adjust the parameters if needed, then confirm to add the result as a new series (or table) permanently. See @advanced-operation for how a new operation is added.
 
 #note[
-  An operation reads *one* source series. If several are ticked, the first one is used and the others are ignored — the status bar says which one it took. To operate on a different series, untick the others, or move the one you want to the top of the list.
+  Nothing is computed while you are editing. Changing a model, a parameter or the selected series marks the current result stale and leaves it at that; only *Preview* and *OK* actually run the computation. So a dialog that costs a second or two to evaluate can be set up in peace, and a half-typed parameter is never computed against.
+]
+
+#note[
+  An operation reads *one* source series. If several are ticked, the first one is used and the others are ignored — the status bar says which one it took. To operate on a different series, untick the others, or move the one you want to the top of the list. *Decomposition* is the exception: it is built to read several series together.
+]
+
+== Operating on a surface
+
+Four of the operations above also understand a series that carries a `z` role — a surface (z = f(x, y)) — rather than a plain x/y curve. They read the same series and the same parameters; what changes is what the question means in three dimensions.
+
+The *Axis / Series* panel captions whichever series is selected with the shape it found, so this is visible before anything is pressed:
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [`2D (x, y)`], [An ordinary curve — every operation's usual case.],
+  [`3D on a grid (x, y, z)`], [The rows form a complete, regular x/y grid, so the surface is read exactly as measured.],
+  [`3D scattered (x, y, z)`], [Points with no grid behind them. The surface is interpolated onto one, and stays undefined (blank) outside the samples' convex hull rather than being extrapolated into territory nothing was measured in.],
+  [`vector field (x, y, u, v)`], [A u/v field. Informational only for now — no operation computes on it.],
+)
+
+What each of the four does with a surface:
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [*Fit*], [Fits a surface model by least squares, the same way it fits a curve. Five are built in — *Plane* (z = a + b x + c y), *Paraboloid* (an elliptic bowl), *Gaussian2D* (a bump or dip on a flat baseline), *Saddle* (rises along x, falls along y) and *Ripple2D* (a separable oscillation) — listed under their own *Surfaces* category beside the 1D models, with *User surfaces* for your own.],
+  [*Function*], [Evaluates a surface function over a grid it generates, with no source series to read — the 3D counterpart of plotting y = f(x) over a range.],
+  [*Peaks*], [Finds local maxima and minima on the surface rather than along a curve. The same prominence and threshold parameters apply, so moving from a curve to a surface does not also mean learning new ones.],
+  [*Roots*], [Traces the *level curve* z = level, not a list of crossing points: a surface's level set is generally a curve, and a saddle's z = 0 set is two crossing lines rather than two numbers.],
+  [*Calculus*], [Reports the surface's gradient — its magnitude at each sample, with the dz/dx and dz/dy components carried alongside — and the volume under it, in place of the derivative and the integral of a curve.],
+)
+
+#note[
+  A surface operation never invents data. On a gridded series it works from the grid the rows actually form; on a scattered one it interpolates onto a grid and leaves everything outside the convex hull of the samples blank. The *3D Series Operations* demo (see @demos) is built by calling these same methods, so it shows exactly what they produce.
 ]
 
 = Appearance and styles
@@ -425,15 +464,17 @@ A typical workflow is: select the axis and series to operate on, choose a model 
 *Settings* gathers the general preferences:
 
 / *App style*: the look of the interface controls. Includes the platform's native styles plus, when installed, extra Qt styles (e.g. Breeze, Oxygen, QtCurve).
-/ *Language*: the interface language. Besides Auto (which follows the operating system's language), Italian is available.
+/ *Language*: the interface language. *Auto* follows the operating system's language and falls back to English when it names one with no catalogue. Every language that has a catalogue folder is then listed by its own name — English and *Italiano*, which is complete. A language whose catalogue is only started appears under its bare code (`fr`) and will still read mostly English; the *Edit Localization* editor (see @advanced) is where it gets filled in.
+
+Neither setting is applied live, and the dialog says so: *the style and the language are applied the next time the app starts*. That is deliberate rather than unfinished — re-styling every widget in a running application restarts the Qt style underneath them all, which is fatal where the HTML results pane is a `QWebEngineView`, and a language switch would only reach menus and labels built after it, leaving the rest of the window in the old one.
 
 = Application log
 
 The *Log viewer* shows the history of the application's internal operations (startup, opening a database, errors) — useful for diagnosing unexpected behaviour or attaching details to a bug report.
 
-= Demo projects
+= Demo projects <demos>
 
-*Load demo* opens a pre-filled `.dhub` database with sample tables and a set of figures already configured across several chart types. It is the fastest way to explore the application's features without preparing your own data, and a good place to copy a series' or an axis' settings from into a real project. It loads straight into your home directory under the demo's own name — no save dialog to answer first — and loading the same demo again simply replaces that file with a fresh copy, so an edited demo is never mistaken for your own work.
+*Load demo* opens a pre-filled `.dhub` database with sample tables and a set of figures already configured across several chart types. Twenty-one ship with the application, chosen from a list that shows each one's summary as it is selected — between them they cover every chart family in @renderers and give several of the series operations a dataset built to suit them (a sparse curve for *Interpolation*, a drifting spectrum for *Baseline Correction*, a three-tone signal for *Filtering* and *Spectral Analysis*, a Gaussian bump and a saddle for the surface operations). It is the fastest way to explore the application's features without preparing your own data, and a good place to copy a series' or an axis' settings from into a real project. It loads straight into your home directory under the demo's own name — no save dialog to answer first — and loading the same demo again simply replaces that file with a fresh copy, so an edited demo is never mistaken for your own work.
 
 = Credits
 
