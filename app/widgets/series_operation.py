@@ -96,6 +96,7 @@ _SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "Transform", "Decomposition",
         ),
     ),
+    ("Geometry", ("Geometry",)),
     (
         "Signal Processing",
         ("Smoothing", "Spectral Analysis", "Filtering", "Baseline Correction"),

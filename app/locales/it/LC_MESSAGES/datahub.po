@@ -6204,3 +6204,156 @@ msgstr "Condividi Z"
 
 msgid "Use one common Z range for all 3D axes in this figure. The selected axis provides the Z limits; 2D axes are ignored."
 msgstr "Usa un unico intervallo Z per tutti gli assi 3D di questa figura. L'asse selezionato fornisce i limiti Z; gli assi 2D vengono ignorati."
+
+
+msgid "Geometry"
+msgstr "Geometria"
+
+
+msgid "Rotate, move, scale or mirror a series' coordinates"
+msgstr "Ruota, sposta, scala o specchia le coordinate di una serie"
+
+
+msgid "Angle (degrees):"
+msgstr "Angolo (gradi):"
+
+
+msgid "Counter-clockwise, about the centre below. The query spells this out as cos(radians(...)) rather than as a decimal, so it can be read and edited afterwards."
+msgstr "In senso antiorario, attorno al centro indicato sotto. La query lo scrive come cos(radians(...)) invece che come numero decimale, cosi' resta leggibile e modificabile in seguito."
+
+
+msgid "Mirror across:"
+msgstr "Specchia rispetto a:"
+
+
+msgid "The line to reflect in, through the centre below."
+msgstr "La retta di riflessione, passante per il centro indicato sotto."
+
+
+msgid "Horizontal line (flip up/down)"
+msgstr "Retta orizzontale (ribalta sopra/sotto)"
+
+
+msgid "Vertical line (flip left/right)"
+msgstr "Retta verticale (ribalta destra/sinistra)"
+
+
+msgid "Diagonal y = x"
+msgstr "Diagonale y = x"
+
+
+msgid "Diagonal y = -x"
+msgstr "Diagonale y = -x"
+
+
+msgid "Move x by:"
+msgstr "Sposta x di:"
+
+
+msgid "Added to every x. Negative moves left."
+msgstr "Aggiunto a ogni x. Un valore negativo sposta a sinistra."
+
+
+msgid "Move y by:"
+msgstr "Sposta y di:"
+
+
+msgid "Added to every y. Negative moves down."
+msgstr "Aggiunto a ogni y. Un valore negativo sposta in basso."
+
+
+msgid "Scale x by:"
+msgstr "Scala x di:"
+
+
+msgid "1 leaves x alone; 2 doubles it about the centre below."
+msgstr "1 lascia x invariata; 2 la raddoppia rispetto al centro indicato sotto."
+
+
+msgid "Scale y by:"
+msgstr "Scala y di:"
+
+
+msgid "1 leaves y alone; 2 doubles it about the centre below."
+msgstr "1 lascia y invariata; 2 la raddoppia rispetto al centro indicato sotto."
+
+
+msgid "Shear x per y:"
+msgstr "Taglio di x per unita' di y:"
+
+
+msgid "Adds this much x for each unit of y above the centre."
+msgstr "Aggiunge questa quantita' di x per ogni unita' di y sopra il centro."
+
+
+msgid "Shear y per x:"
+msgstr "Taglio di y per unita' di x:"
+
+
+msgid "Adds this much y for each unit of x right of the centre."
+msgstr "Aggiunge questa quantita' di y per ogni unita' di x a destra del centro."
+
+
+msgid "Centre x:"
+msgstr "Centro x:"
+
+
+msgid "The fixed point. Rotation, scaling, mirroring and shearing all leave this point exactly where it is; a translation ignores it."
+msgstr "Il punto fisso. Rotazione, scalatura, specchiatura e taglio lasciano questo punto esattamente dov'e'; la traslazione lo ignora."
+
+
+msgid "Centre y:"
+msgstr "Centro y:"
+
+
+msgid "The other half of the fixed point."
+msgstr "L'altra meta' del punto fisso."
+
+
+msgid "Centre on the data"
+msgstr "Centra sui dati"
+
+
+msgid "Use the middle of the series' own extent as the fixed point instead of the two values above - which is what is wanted when the intent is 'turn this shape', not 'turn it about the origin'."
+msgstr "Usa il centro dell'estensione della serie come punto fisso invece dei due valori sopra - che e' cio' che serve quando si vuole 'ruotare questa forma', non 'ruotarla attorno all'origine'."
+
+
+msgid "Show the deformation grid"
+msgstr "Mostra la griglia di deformazione"
+
+
+msgid "Draws a square mesh over the source's extent and the same mesh after the transform. A rotation turns it, a scale stretches it, a shear leans it over - which is easier to read off the mesh than off the points."
+msgstr "Disegna una maglia quadrata sull'estensione della sorgente e la stessa maglia dopo la trasformazione. Una rotazione la ruota, una scalatura la allunga, un taglio la inclina - piu' facile da leggere sulla maglia che sui punti."
+
+
+msgid "Rotate"
+msgstr "Ruota"
+
+
+msgid "Translate"
+msgstr "Trasla"
+
+
+msgid "Mirror"
+msgstr "Specchia"
+
+
+msgid "Shear"
+msgstr "Taglia"
+
+
+msgid "Before"
+msgstr "Prima"
+
+
+msgid "After"
+msgstr "Dopo"
+
+
+msgid "Choose a series, then press Preview."
+msgstr "Scegli una serie, poi premi Anteprima."
+
+
+msgid "Press Preview to see where the points move."
+msgstr "Premi Anteprima per vedere dove si spostano i punti."
+

@@ -80,7 +80,13 @@ def test_a_section_with_nothing_discovered_is_left_out() -> None:
 def test_sections_appear_in_declared_order() -> None:
     grouped = _group_by_section(list(series_operations))
     titles = [title for title, _ops in grouped]
-    assert titles == ["Analysis", "Statistics", "Signal Processing", "Modeling"]
+    assert titles == [
+        "Analysis",
+        "Statistics",
+        "Geometry",
+        "Signal Processing",
+        "Modeling",
+    ]
 
 
 # ----------------------------------------------------------------------
