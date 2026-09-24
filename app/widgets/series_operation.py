@@ -29,6 +29,7 @@ from PySide6.QtCore import QEvent, QSize, Signal, Qt
 from PySide6.QtGui import (
     QEnterEvent,
     QFocusEvent,
+    QFontMetrics,
     QIcon,
     QKeyEvent,
     QMouseEvent,
@@ -62,9 +63,17 @@ _ACCENT = "#2563EB"
 #: OperationSection recomputes its column count from the width it is
 #: actually given divided by this, which is what lets two columns at the
 #: panel's usual width become three if it is widened.
-_TILE_MIN_WIDTH = 92
+#:
+#: 100, not the 84 this was, and measured rather than chosen: at 84 the
+#: tile left 72x38 for the name, which is two lines of the macOS sheet's
+#: 10.5pt. "Baseline Correction" and "GP Regression" need three once their
+#: long word is broken (see _break_long_words), and the Italian
+#: "Correzione linea di base" needs three in any font - so the third line
+#: was simply cut off. 100 leaves 88x54: three lines, with every shipped
+#: name in both languages fitting in a narrow face and a wide one alike.
+_TILE_MIN_WIDTH = 108
 _TILE_SPACING = 6
-_TILE_HEIGHT = 84
+_TILE_HEIGHT = 100
 
 #: Section name -> the operation Name strings (SeriesOperationDialogBase.Name)
 #: it holds, in display order. An operation whose Name is not listed here
@@ -123,6 +132,127 @@ def _group_by_section(operations: list[dict]) -> list[tuple[str, list[dict]]]:
     return grouped
 
 
+#: U+00AD. Invisible where the line does not break there, and drawn as a
+#: hyphen where it does - which is exactly the "you may break here" mark a
+#: long single word needs, and one Qt's text layout honours.
+_SOFT_HYPHEN = "\u00ad"
+
+
+def _break_long_words(text: str, metrics: QFontMetrics, available: int) -> str:
+    """Return *text* with soft hyphens inside any word too wide to fit.
+
+    ``setWordWrap(True)`` only ever breaks at a space, so a name that is one
+    long word - "Decomposition", "Interpolation", and worse once translated
+    ("Interpolazione", "Decomposizione") - has nowhere to break and is
+    elided instead: the tile reads "ecompositi". The macOS sheet sizes these
+    labels at 10.5pt, where "Decomposition" is 99px against the 72px a tile
+    leaves for text, so this is not a narrow-font problem that a different
+    machine would not have.
+
+    Break points are measured rather than guessed, so this works whatever
+    the language and whatever the font: take the longest prefix that still
+    fits once a hyphen is allowed for, mark it, and carry on through the
+    rest of the word.
+    """
+    if available <= 0:
+        return text
+
+    hyphen = metrics.horizontalAdvance("-")
+    room = available - hyphen
+    if room <= 0:
+        return text
+
+    out: list[str] = []
+    for word in text.split(" "):
+        if metrics.horizontalAdvance(word) <= available:
+            out.append(word)
+            continue
+
+        out.append(_break_one_word(word, metrics, available, room))
+
+    return " ".join(out)
+
+
+def _break_one_word(
+    word: str, metrics: QFontMetrics, available: int, room: int
+) -> str:
+    """Mark break points inside one word that is too wide for the tile.
+
+    Balanced rather than greedy where a single break is enough. Taking the
+    longest prefix that fits maximises the first line and leaves whatever is
+    left over on the second, which for these names means an orphan -
+    "Regressio-n", "Interpolati-on". Splitting nearest the middle instead
+    reads as hyphenation rather than as damage, and on this vocabulary it
+    happens to land on the real syllable break more often than not
+    ("Interpola-tion", "Decompo-sition").
+    """
+    # The cut has to leave the head within `room` (the width less a hyphen)
+    # and the tail within `available`; among those, take the most central.
+    candidates = [
+        index
+        for index in range(1, len(word))
+        if metrics.horizontalAdvance(word[:index]) <= room
+        and metrics.horizontalAdvance(word[index:]) <= available
+    ]
+    if candidates:
+        middle = len(word) / 2
+        cut = min(candidates, key=lambda index: (abs(index - middle), -index))
+        return word[:cut] + _SOFT_HYPHEN + word[cut:]
+
+    # Needs more than two lines: fall back to filling each one in turn.
+    pieces: list[str] = []
+    rest = word
+    # Bounded by construction: every pass either consumes at least one
+    # character or gives up, so a font that cannot fit even one character
+    # cannot spin here.
+    while metrics.horizontalAdvance(rest) > available:
+        cut = 0
+        for index in range(1, len(rest)):
+            if metrics.horizontalAdvance(rest[:index]) > room:
+                break
+            cut = index
+        if cut <= 0 or cut >= len(rest):
+            break
+        pieces.append(rest[:cut])
+        rest = rest[cut:]
+    pieces.append(rest)
+    return _SOFT_HYPHEN.join(pieces)
+
+
+class _TileTitle(QLabel):
+    """A tile's name, kept readable rather than elided.
+
+    Holds its own untouched text and re-breaks it whenever the width or the
+    font changes - the font matters because the size comes from the
+    stylesheet, which is applied at polish time, well after __init__ has
+    run, so measuring once at construction would measure the wrong font.
+    """
+
+    def __init__(self, text: str, parent: QWidget) -> None:
+        super().__init__(text, parent)
+        self._plain_text = text
+        self._shown_text = text
+        self.setWordWrap(True)
+
+    def _rebreak(self) -> None:
+        broken = _break_long_words(self._plain_text, self.fontMetrics(), self.width())
+        if broken == self._shown_text:
+            # Nothing to do, and setting it anyway would relayout, resize,
+            # and come straight back here.
+            return
+        self._shown_text = broken
+        super().setText(broken)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._rebreak()
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.FontChange:
+            self._rebreak()
+
+
 class OperationTile(QFrame):
     """One square operation tile: an icon over its name.
 
@@ -172,7 +302,7 @@ class OperationTile(QFrame):
         icon_label.setPixmap(icon.pixmap(QSize(self.ICON_SIZE, self.ICON_SIZE)))
         layout.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        title_label = QLabel(title, self)
+        title_label = _TileTitle(title, self)
         title_label.setProperty("operationTileTitle", True)
         title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         title_label.setWordWrap(True)

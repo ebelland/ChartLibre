@@ -574,8 +574,50 @@ _FALLBACK_ICON_THEMES: tuple[str, ...] = (
 _UNSET_ICON_THEMES: frozenset[str] = frozenset({"", "hicolor"})
 
 
+#: Where icon themes live on a freedesktop system, per the XDG base
+#: directory spec and the Icon Theme Specification.
+_XDG_ICON_DIRS: tuple[str, ...] = (
+    "~/.icons",
+    "~/.local/share/icons",
+    "/usr/local/share/icons",
+    "/usr/share/icons",
+)
+
+
+def _ensure_xdg_icon_search_paths() -> None:
+    """Make sure Qt is looking where icon themes are actually installed.
+
+    Qt does not populate ``themeSearchPaths`` itself: the platform theme
+    plugin does, and that plugin is what a desktop session provides. Under
+    GNOME or KDE the paths are therefore already right. On the desktops
+    :func:`ensure_icon_theme` exists for - a bare window manager, XFCE with
+    no settings daemon - and under the offscreen platform, ``themeSearchPaths``
+    is just ``[':/icons']``, Qt's own resource path, and nothing under
+    ``/usr/share/icons`` is ever looked at.
+
+    That made the probe below answer "no themes installed" on a machine
+    with several, so no theme was set, and every one of the catalogue's
+    theme icons came back null - the whole Linux icon backend silently off
+    on exactly the desktops it was written to cover.
+
+    Only directories that exist are added, and only once; a path Qt already
+    has is left where it is, so a desktop that ordered them itself keeps its
+    order and its precedence.
+    """
+    paths = [str(directory) for directory in QIcon.themeSearchPaths()]
+    known = set(paths)
+    for candidate in _XDG_ICON_DIRS:
+        resolved = str(Path(candidate).expanduser())
+        if resolved not in known and Path(resolved).is_dir():
+            paths.append(resolved)
+            known.add(resolved)
+    if len(paths) != len(QIcon.themeSearchPaths()):
+        QIcon.setThemeSearchPaths(paths)
+
+
 def _installed_icon_themes() -> list[str]:
     """Return the theme names actually present in Qt's search paths."""
+    _ensure_xdg_icon_search_paths()
     found: list[str] = []
     for directory in QIcon.themeSearchPaths():
         root = Path(str(directory))

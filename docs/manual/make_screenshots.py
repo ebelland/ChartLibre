@@ -23,11 +23,10 @@ things it cannot conjure off a Mac:
   only "Series Operations" is affected - it falls back to a freedesktop
   theme icon, or to nothing where no icon theme is installed.
 * *The system font*. macos_native.qss names no font-family at all, so the
-  text is whatever Qt calls the UI font: SF Pro on a Mac, and typically
-  DejaVu Sans elsewhere, which is wide enough to elide labels that fit on
-  a Mac. Off a Mac this substitutes Inter, the closest widely-packaged
-  face to SF Pro's metrics, so the figures show the eliding the
-  application really has rather than the font's.
+  text is whatever Qt calls the UI font - SF Pro on a Mac, something else
+  anywhere else. Nothing is substituted for it here: the system font is
+  the point of a native look, and a stand-in would only make the figures
+  look right on a machine that is not the one they claim to show.
 
 Everything else - layout, colour, spacing, the charts themselves - is the
 real application, driven through its real entry points.
@@ -64,10 +63,7 @@ import app.styles.style as style  # noqa: E402
 style._IS_MACOS = True
 style.IS_MACOS = True
 
-import platform  # noqa: E402
-
 from PySide6.QtCore import QTimer  # noqa: E402
-from PySide6.QtGui import QFont, QFontDatabase  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
 import app.dialogs.main_window as main_window_module  # noqa: E402
@@ -96,32 +92,6 @@ DEMO_INDEX = 0
 #: fitted to the panel) and a title short enough not to be elided, so the
 #: figure shows a chart rather than a demonstration of clipping.
 COVER_FIGURE = "Defect causes"
-
-
-#: What to stand in for the macOS system font off a Mac, best first.
-#: macos_native.qss names no font-family at all - it takes whatever Qt
-#: calls the UI font, which on macOS is SF Pro. Elsewhere that is usually
-#: DejaVu Sans, which is a good deal wider, and the difference is not
-#: cosmetic here: the operation tiles and the nav rail size their text to
-#: fit SF Pro, so a wider face elides them ("Smoothing" as "moothing") and
-#: the figure then documents a clipping bug that macOS users do not have.
-#: Inter is the closest widely-packaged face to SF Pro's metrics.
-_SF_PRO_STAND_INS = ("Inter", "Helvetica Neue", "Liberation Sans")
-
-
-def _use_a_mac_like_font(app: QApplication) -> None:
-    """On a Mac, leave the system font alone; elsewhere, get close to it."""
-    if platform.system() == "Darwin":
-        return
-    families = set(QFontDatabase.families())
-    for family in _SF_PRO_STAND_INS:
-        if family in families:
-            font = QFont(app.font())
-            font.setFamily(family)
-            app.setFont(font)
-            print(f"  (substituting {family} for the macOS system font)")
-            return
-    print("  ! no SF Pro stand-in installed; labels may be elided")
 
 
 def _settle(app: QApplication, rounds: int = 12) -> None:
@@ -183,7 +153,6 @@ def main() -> int:
     app = QApplication(sys.argv)
     style.ensure_icon_theme()
     style.apply_platform_style(app, preference="macos_native")
-    _use_a_mac_like_font(app)
 
     scratch = tempfile.TemporaryDirectory(prefix="chartlibre-shots-")
     window, repo = _open_demo(Path(scratch.name))
