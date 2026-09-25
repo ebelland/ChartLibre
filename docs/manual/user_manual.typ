@@ -136,6 +136,28 @@ Lists the tables in the database (saved queries are marked with a *Q* icon) and,
 
 Its *Source* column says where each row's data actually comes from: a filename for a file or web import, "connection → table" for a database import, the query itself (truncated, with the full text in the tooltip) for a saved query, and nothing for a table with no link. Right-clicking a saved query offers *Edit…*, which reopens it in the Query Builder.
 
+=== Editing a table by hand <table-editor>
+
+The preview is read-only: it is there to show what a table holds while a chart is built from it. To change the data itself, right-click the preview and choose *Edit table…*.
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [*Cells*], [Double-click one and type. An emptied cell becomes NULL rather than an empty string, which in a numeric column is the difference between "not measured" and a value that quietly turns the column into text.],
+  [*Rows*], [*Add row* appends an empty one; *Insert row above* puts one before the selected row; *Delete rows* removes every row with a selected cell.  The toolbar is icons rather than labelled buttons — hover one for its name — so that the dialog fits a laptop screen with the table, rather than the buttons, taking the room.],
+  [*Columns*], [Type a name, pick a type, then *Add column* (at the end) or *Insert before selected*. *Rename selected* renames the column the cursor is in, and *Delete selected* removes it and its contents.],
+  [*Managed columns*], [*Hide* marks rows every chart skips; *ClusterId* is what the Clustering operation writes into. The buttons here create, reset and invert them. These used to live in the preview's own right-click menu, several levels down a menu otherwise about looking rather than changing.],
+)
+
+#note[
+  Every change is written to the database as it is made — a SQLite table has nowhere to be "saved" to — and yet *Cancel* still puts the table back. Both are true because of the undo snapshot the editor takes before its first change: *OK* leaves that snapshot in the history like any other action, so the session can still be undone afterwards, and *Cancel* restores it there and then. Restoring is not itself undoable, so *Cancel* asks first.
+]
+
+#note[
+  Inserting a row *above* another renumbers the rows below it, and inserting a column *before* another rebuilds the table in the new order. Both keep the data; neither is offered on a table whose own rowid is one of its columns (an `INTEGER PRIMARY KEY`), because renumbering would be rewriting the key values themselves — there, add the row at the end instead.
+]
+
 == Chart panel
 
 Occupies the right side of the window and is organized into tabs — each tab is a *figure*. The toolbar above the chart offers Matplotlib's usual navigation tools:

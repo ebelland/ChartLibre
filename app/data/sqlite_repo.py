@@ -53,6 +53,7 @@ from app.data.repo._common import (  # noqa: F401 - re-export
     is_read_only_select,
 )
 from app.data.repo.descriptors import DescriptorsMixin
+from app.data.repo.editing import EditingMixin
 from app.data.repo.maintenance import MaintenanceMixin
 from app.data.repo.queries import QueriesMixin
 from app.data.repo.tables import TablesMixin
@@ -66,6 +67,7 @@ _SERIES_CACHE_DEFAULT_MAX_ENTRIES = 64
 @dataclass(slots=True)
 class SqliteRepo(
     TablesMixin,
+    EditingMixin,
     DescriptorsMixin,
     QueriesMixin,
     MaintenanceMixin,
@@ -779,6 +781,21 @@ class SqliteRepo(
         if self._con is None:
             return None
         entry = self.undo_store.undo(self._con)
+        if entry is not None:
+            self.invalidate_series_cache()
+        return entry
+
+    def undo_entry(self, entry_id: int) -> UndoEntry | None:
+        """Undo one particular recorded action, wherever it sits in the list.
+
+        ``undo_last`` is what the Undo command uses; this is for a caller
+        that knows which entry is its own - the table editor, whose Cancel
+        has to put back the state from before it was opened and nothing
+        else. Same restore, same cache invalidation, chosen by id.
+        """
+        if self._con is None:
+            return None
+        entry = self.undo_store.undo(self._con, int(entry_id))
         if entry is not None:
             self.invalidate_series_cache()
         return entry

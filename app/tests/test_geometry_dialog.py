@@ -261,3 +261,104 @@ def test_no_table_is_written_for_a_geometry_series(
     dialog.apply_results_to_axis(axis_id, results)
 
     assert set(repo.list_user_tables()) == before
+
+
+def test_every_other_column_and_role_survives(
+    qapp, repo: SqliteRepo, tmp_db_path: Path
+) -> None:
+    """A scatter coloured and sized by columns must still be, after moving.
+
+    Two halves, and the second is the one that was wrong: the generated
+    query carries the extra columns through, but the series descriptor has
+    to keep naming them, or the rows arrive complete and the chart draws
+    none of it - flat colour beside a source coloured by value.
+    """
+    frame = SQUARE.copy()
+    frame["temperature"] = [10.0, 20.0, 30.0, 40.0, 50.0]
+    frame["weight"] = [1.0, 2.0, 3.0, 4.0, 5.0]
+    frame["note"] = ["a", "b", "c", "d", "e"]
+    repo.import_dataframe(frame, table_name="rich", normalize_columns=False)
+
+    figure_id = repo.create_figure_descriptor(name="Rich")
+    axis_id = repo.create_axis_descriptor(
+        figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+        title="rich", x_label="x", y_label="y", options={},
+    )
+    repo.create_series_descriptor(
+        axis_id=axis_id,
+        series_index=0,
+        name="rich",
+        sql_query='SELECT * FROM "rich"',
+        roles={"x": "x", "y": "y", "color": "temperature", "size": "weight"},
+        style={},
+    )
+    built = SeriesGeometryDialog(repo=repo, figure_id=figure_id, parent=None)
+    try:
+        built.series_selector.reload(select_all_series=True)
+        _configure(built, ROTATE, angle=90.0, use_data_centre=False, cx=0.0, cy=0.0)
+        result = built.compute_results()[0]
+
+        rows = repo.query_df(result.sql)
+        for column in ("temperature", "weight", "note"):
+            assert column in rows.columns, f"{column} was dropped from the query"
+        assert list(rows["temperature"]) == [10.0, 20.0, 30.0, 40.0, 50.0]
+        assert list(rows["note"]) == ["a", "b", "c", "d", "e"]
+
+        spec = built.result_series_spec(axis_id, "", result)
+        assert spec.roles["color"] == "temperature"
+        assert spec.roles["size"] == "weight"
+        assert spec.roles["x"] == "x"
+        assert spec.roles["y"] == "y"
+    finally:
+        built.close()
+        applogger.set_status_bar(None)
+
+
+def test_a_moved_column_is_not_duplicated(dialog: SeriesGeometryDialog, repo: SqliteRepo) -> None:
+    """x and y are rewritten, not emitted twice beside their originals."""
+    _configure(dialog, TRANSLATE, dx=1.0, dy=2.0)
+    result = dialog.compute_results()[0]
+    rows = repo.query_df(result.sql)
+
+    assert list(rows.columns).count("x") == 1
+    assert list(rows.columns).count("y") == 1
+
+
+def test_an_awkward_column_name_does_not_break_the_query(
+    qapp, repo: SqliteRepo, tmp_db_path: Path
+) -> None:
+    """A source query may return a column whose name contains a quote.
+
+    ``SELECT "x"+"y"`` with no alias gives SQLite a column called
+    ``x"+"y``. Wrapping that in quotes without doubling the inner ones
+    closes the identifier early, and the generated query is a syntax
+    error - which is the sort of thing that only shows up on somebody
+    else's data.
+    """
+    figure_id = repo.create_figure_descriptor(name="Awkward")
+    axis_id = repo.create_axis_descriptor(
+        figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+        title="square", x_label="x", y_label="y", options={},
+    )
+    repo.create_series_descriptor(
+        axis_id=axis_id,
+        series_index=0,
+        name="awkward",
+        sql_query='SELECT "x", "y", "x"+"y", "y" AS "a space" FROM "square"',
+        roles={"x": "x", "y": "y"},
+        style={},
+    )
+    built = SeriesGeometryDialog(repo=repo, figure_id=figure_id, parent=None)
+    try:
+        built.series_selector.reload(select_all_series=True)
+        _configure(built, ROTATE, angle=45.0)
+        result = built.compute_results()[0]
+
+        rows = repo.query_df(result.sql)
+
+        assert '"x"+"y"' in rows.columns
+        assert "a space" in rows.columns
+        assert len(rows) == len(SQUARE)
+    finally:
+        built.close()
+        applogger.set_status_bar(None)

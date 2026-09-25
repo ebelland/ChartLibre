@@ -37,7 +37,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from app.data.data_source import parse_roles, row_value
+from app.data.data_source import parse_roles, quote_identifier, row_value
 from app.logs.logger import applogger
 from app.series_operations.dialog_base import ResultSeriesSpec, SeriesOperationDialogBase
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
@@ -468,16 +468,16 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
     def _build_affine(self, values: Mapping[str, Any], cx: float, cy: float) -> Affine:
         """Return the affine map, and the SQL that spells it."""
         model = self._current_model()
-        x_term = f'("{{x}}" - {_number(cx)})'
-        y_term = f'("{{y}}" - {_number(cy)})'
+        x_term = f"({{x}} - {_number(cx)})"
+        y_term = f"({{y}} - {_number(cy)})"
 
         if model == TRANSLATE:
             dx = float(values.get("dx", 0.0))
             dy = float(values.get("dy", 0.0))
             return Affine(
                 1.0, 0.0, 0.0, 1.0, dx, dy,
-                sql_x=f'"{{x}}" + {_number(dx)}',
-                sql_y=f'"{{y}}" + {_number(dy)}',
+                sql_x=f"{{x}} + {_number(dx)}",
+                sql_y=f"{{y}} + {_number(dy)}",
             )
 
         if model == SCALE:
@@ -547,13 +547,14 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         source's own SQL, which may be long, stays in one piece and editable
         where the user left it.
         """
-        x_expr = transform.sql_x.format(x=x_col, y=y_col)
-        y_expr = transform.sql_y.format(x=x_col, y=y_col)
+        x_quoted, y_quoted = quote_identifier(x_col), quote_identifier(y_col)
+        x_expr = transform.sql_x.format(x=x_quoted, y=y_quoted)
+        y_expr = transform.sql_y.format(x=x_quoted, y=y_quoted)
         columns = [
-            f'    {x_expr} AS "{x_col}"',
-            f'    {y_expr} AS "{y_col}"',
+            f"    {x_expr} AS {x_quoted}",
+            f"    {y_expr} AS {y_quoted}",
         ]
-        columns.extend(f'    "{name}"' for name in passthrough)
+        columns.extend(f"    {quote_identifier(name)}" for name in passthrough)
         body = ",\n".join(columns)
         return (
             "WITH source AS (\n"
@@ -684,10 +685,20 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         del axis_id, table_name
         style = dict(self.generated_style_filter)
         style["color"] = AFTER_COLOUR
+        # Every role the source had, not just x and y. The query already
+        # carries the other columns through untouched (see _build_sql), so
+        # naming only the two coordinates here would leave a scatter's
+        # colour and size columns present in the rows and unused by the
+        # chart - the moved series would draw in flat colour beside a
+        # source that is coloured by value, which reads as the transform
+        # having thrown the data away.
+        roles = dict(result.roles)
+        roles["x"] = result.x_role
+        roles["y"] = result.y_role
         return ResultSeriesSpec(
             name=f"{result.source_name} ({_(result.model).lower()})",
             sql_query=result.sql,
-            roles={"x": result.x_role, "y": result.y_role},
+            roles=roles,
             style=style,
         )
 

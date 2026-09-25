@@ -6357,3 +6357,203 @@ msgstr "Scegli una serie, poi premi Anteprima."
 msgid "Press Preview to see where the points move."
 msgstr "Premi Anteprima per vedere dove si spostano i punti."
 
+
+msgid "Add row"
+msgstr "Aggiungi riga"
+
+
+msgid "Add an empty row at the end of the table"
+msgstr "Aggiunge una riga vuota in fondo alla tabella"
+
+
+msgid "Insert row above"
+msgstr "Inserisci riga sopra"
+
+
+msgid "Add an empty row above the selected one"
+msgstr "Aggiunge una riga vuota sopra quella selezionata"
+
+
+msgid "Delete rows"
+msgstr "Elimina righe"
+
+
+msgid "Delete every row with a selected cell"
+msgstr "Elimina ogni riga che ha una cella selezionata"
+
+
+msgid "New column name"
+msgstr "Nome della nuova colonna"
+
+
+msgid "Add column"
+msgstr "Aggiungi colonna"
+
+
+msgid "Add the named column at the end of the table"
+msgstr "Aggiunge la colonna indicata in fondo alla tabella"
+
+
+msgid "Insert before selected"
+msgstr "Inserisci prima della selezionata"
+
+
+msgid "Add the named column immediately before the selected one"
+msgstr "Aggiunge la colonna indicata subito prima di quella selezionata"
+
+
+msgid "Rename selected"
+msgstr "Rinomina selezionata"
+
+
+msgid "Rename the selected column"
+msgstr "Rinomina la colonna selezionata"
+
+
+msgid "Delete the selected column and everything in it"
+msgstr "Elimina la colonna selezionata e tutto il suo contenuto"
+
+
+msgid "Managed columns"
+msgstr "Colonne gestite"
+
+
+msgid "Ensure Hide"
+msgstr "Crea Hide"
+
+
+msgid "Add the Hide column if this table does not have one"
+msgstr "Aggiunge la colonna Hide se questa tabella non ce l'ha"
+
+
+msgid "Reset Hide"
+msgstr "Azzera Hide"
+
+
+msgid "Set Hide back to 0 on every row, so nothing is hidden"
+msgstr "Riporta Hide a 0 su ogni riga, cosi' non e' nascosto niente"
+
+
+msgid "Invert Hide"
+msgstr "Inverti Hide"
+
+
+msgid "Swap hidden and shown rows"
+msgstr "Scambia le righe nascoste con quelle mostrate"
+
+
+msgid "Ensure ClusterId"
+msgstr "Crea ClusterId"
+
+
+msgid "Add the ClusterId column if this table does not have one"
+msgstr "Aggiunge la colonna ClusterId se questa tabella non ce l'ha"
+
+
+msgid "Reset clusters"
+msgstr "Azzera i cluster"
+
+
+msgid "Clear every cluster label"
+msgstr "Cancella tutte le etichette dei cluster"
+
+
+msgid "Edit table"
+msgstr "Modifica tabella"
+
+
+msgid "Hide marks rows the charts skip; ClusterId is written by the Clustering operation."
+msgstr "Hide segna le righe che i grafici saltano; ClusterId e' scritta dall'operazione Clustering."
+
+
+msgid "Select the row to insert above first."
+msgstr "Seleziona prima la riga sopra cui inserire."
+
+
+msgid "Select the rows to delete first."
+msgstr "Seleziona prima le righe da eliminare."
+
+
+msgid "Type a name for the new column first."
+msgstr "Scrivi prima un nome per la nuova colonna."
+
+
+msgid "Select the column to insert before first."
+msgstr "Seleziona prima la colonna prima della quale inserire."
+
+
+msgid "Select a column first."
+msgstr "Seleziona prima una colonna."
+
+
+msgid "Type the new name in the box first."
+msgstr "Scrivi prima il nuovo nome nella casella."
+
+
+msgid "Edit table '{table}'"
+msgstr "Modifica la tabella '{table}'"
+
+
+msgid "Close the editor. Every change has already been saved."
+msgstr "Chiude l'editor. Ogni modifica e' gia' stata salvata."
+
+
+msgid "Hide column ensured"
+msgstr "Colonna Hide creata"
+
+
+msgid "Hide reset"
+msgstr "Hide azzerata"
+
+
+msgid "Hide inverted"
+msgstr "Hide invertita"
+
+
+msgid "ClusterId column ensured"
+msgstr "Colonna ClusterId creata"
+
+
+msgid "Clusters reset"
+msgstr "Cluster azzerati"
+
+
+msgid "Delete {count} row(s)? This can be undone."
+msgstr "Eliminare {count} riga/e? L'operazione puo' essere annullata."
+
+
+msgid "Delete '{column}' and everything in it? This can be undone."
+msgstr "Eliminare '{column}' e tutto il suo contenuto? L'operazione puo' essere annullata."
+
+
+msgid "Could not do that"
+msgstr "Operazione non riuscita"
+
+
+msgid "Edit table..."
+msgstr "Modifica tabella..."
+
+
+msgid "Edit cells, add or delete rows and columns, and manage the Hide and ClusterId columns"
+msgstr "Modifica le celle, aggiunge o elimina righe e colonne, e gestisce le colonne Hide e ClusterId"
+
+
+msgid "Rename the selected column to the name in the box"
+msgstr "Rinomina la colonna selezionata con il nome scritto nella casella"
+
+
+msgid "Keep every change made here"
+msgstr "Mantieni tutte le modifiche fatte qui"
+
+
+msgid "Undo every change made here and close"
+msgstr "Annulla tutte le modifiche fatte qui e chiudi"
+
+
+msgid "Discard the changes?"
+msgstr "Scartare le modifiche?"
+
+
+msgid "Every change made in this editor will be undone, and the table put back as it was.\n\nThis cannot be redone."
+msgstr "Tutte le modifiche fatte in questo editor verranno annullate e la tabella tornera' com'era.\n\nL'operazione non puo' essere ripristinata."
+
