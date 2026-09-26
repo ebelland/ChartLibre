@@ -81,6 +81,43 @@ N-04  Preview editable
 
 N-05: wherever there is an SQL SELECT user text, avoid SQL injections and unsafe operations (usually it must start with SELECT and should not contain UPDATE or DELETE)
 
+N-06  Table preview, menu contestuale -> editor della tabella
+      Sposta "Elimina la colonna..." e "Aggiungi colonna da espressione
+      SQL..." dal menu contestuale di table preview nell'editor della
+      tabella (Modifica tabella). Replica anche "Nascondi righe..."
+      nell'editor.
+
+N-07  Table preview: aggiungi "Copia" al menu contestuale.
+
+N-08  Table preview: aggiungi "Duplica tabella" al menu contestuale.
+
+N-09  "Colora in base al valore": apre un dialogo per colorare con una
+      palette (Viridis o altre) in base a minimo/massimo, percentili o
+      media. Colorazione discreta, con varie categorie. Aggiunge alla
+      tabella una colonna "Colore" con il valore numerico del colore.
+
+N-10  Dialogo "Modifica tabella"
+      - Usa sempre SF Symbols e i font dell'app.
+      - Righe separate per l'aggiunta di una colonna e di una riga.
+      - Riga di stato con il numero di colonne e righe aggiunte, rimosse
+        e modificate.
+      - Tasto "Ripristina" per tornare alla tabella originale (chiede
+        conferma).
+
+N-11  Altre funzioni proposte per table preview / Modifica tabella
+      (da valutare, non ancora concordate):
+      - Rinomina colonna, direttamente dall'intestazione.
+      - Cambia tipo della colonna (cast) - vedi N-01.
+      - Ordina crescente/decrescente per la colonna selezionata.
+      - Statistiche della colonna: min, max, media, mediana, numero di
+        NULL e di valori distinti, in un tooltip o in un pannellino.
+      - Riempi valori mancanti: costante, media/mediana, valore
+        precedente, interpolazione lineare.
+      - Trova e sostituisci nella colonna o nella tabella.
+      - Raggruppa e aggrega (GROUP BY) in una nuova tabella.
+      - Esporta la selezione (o le righe visibili) in CSV/Excel.
+      - Crea una serie o un grafico dalle colonne selezionate.
+
 ================================================================
 P2 - VALUABLE
 ================================================================
