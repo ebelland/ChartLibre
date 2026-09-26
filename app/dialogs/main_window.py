@@ -393,15 +393,23 @@ class MainWindow(QMainWindow):
         self._left_rail.set_compact(compact)
         moved = self._left_rail.width() - was
 
+        sizes = self._main_split.sizes()
         if self._left_stack.isVisible():
             self._left_panel.setMinimumWidth(
                 PANEL_MIN_WIDTH + self._left_rail.width()
             )
-            sizes = self._main_split.sizes()
             if len(sizes) == 2:
                 self._main_split.setSizes(
                     [max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)]
                 )
+        else:
+            # Workspace hidden: the left pane is pinned to the rail's width
+            # (see _toggle_workspace), so the pin has to follow the rail.
+            rail_width = self._left_rail.width()
+            self._left_panel.setMinimumWidth(rail_width)
+            self._left_panel.setMaximumWidth(rail_width)
+            if len(sizes) == 2:
+                self._main_split.setSizes([rail_width, max(sum(sizes) - rail_width, 1)])
 
         set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
 
