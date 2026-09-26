@@ -59,6 +59,7 @@ from app.styles.style import (
     PANEL_MIN_WIDTH,
     action_menu_item,
     action_presentation,
+    SPACING_DEFAULT,
     SPLITTER_HANDLE_WIDTH,
     apply_native_macos_corner_radius,
     apply_rounded_window_mask,
@@ -304,6 +305,16 @@ class MainWindow(QMainWindow):
         bar.setObjectName("vscodeStatusBar")
         bar.setSizeGripEnabled(False)
         bar.setFixedHeight(24)
+        # The bar's own edge padding, and the only way to get it: QStatusBar
+        # is one of the widgets whose QSS box model Qt only honours for
+        # background and border, so a "padding" in the sheet below is
+        # accepted, ignored, and looks like it worked (see
+        # test_status_bar_padding.py, which pins that down so this does not
+        # get "simplified" back into the stylesheet). Without it the project
+        # label and the state label sit however many pixels off the edge the
+        # active style's own internal offset happens to leave - two on
+        # Fusion, flush under others - rather than a padding this app chose.
+        bar.setContentsMargins(SPACING_DEFAULT, 0, SPACING_DEFAULT, 0)
         self._status_project = QLabel(self._db_path.name if self._db_path else "", bar)
         self._status_context = QLabel(_("ChartLibre"), bar)
         self._status_state = QLabel(_("Ready"), bar)

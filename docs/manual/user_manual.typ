@@ -100,8 +100,19 @@ A SQLite database writes its own changes straight to disk on every operation, so
 
 #figure(
   image("screenshot_main_window.png", width: 100%),
-  caption: [The main window: table list and data preview on the left, chart panel on the right.],
+  caption: [The main window on the Tables page: the navigation rail, the table
+  list and the data preview on the left, the chart panel on the right.],
 )
+
+#note[
+  The figures in this manual are taken in the *macOS native* style, which is
+  what the application wears on a Mac. On Windows and Linux the same screens
+  wear the Fluent style instead: the panels, the pages and every control are
+  the same and in the same place, but the navigation rail is a column of
+  square tiles rather than a sidebar of rows, and the window carries its own
+  title bar rather than the traffic lights. Regenerate the figures with
+  `python docs/manual/make_screenshots.py`.
+]
 
 The main window splits into two areas.
 
@@ -117,11 +128,35 @@ A vertical column of icons switches between the application's main sections:
 - *File* — New, Open, Import and Load demo; Save and Save As; and the Open Recent list.
 - *Developer* — scaffolding tools: the translation catalogue editor, the series-operation builder, the custom function creator, and the renderer helper (see @advanced).
 
+Off macOS the rail ends with two more tiles, *Settings* and *Help*, which open the same things the macOS menu bar carries in its application and Help menus.
+
 == Data panel
 
 Lists the tables in the database (saved queries are marked with a *Q* icon) and, once one is selected, shows a preview with its first rows and columns. This is also where importing data and opening the Query Builder start.
 
 Its *Source* column says where each row's data actually comes from: a filename for a file or web import, "connection → table" for a database import, the query itself (truncated, with the full text in the tooltip) for a saved query, and nothing for a table with no link. Right-clicking a saved query offers *Edit…*, which reopens it in the Query Builder.
+
+=== Editing a table by hand <table-editor>
+
+The preview is read-only: it is there to show what a table holds while a chart is built from it. To change the data itself, right-click the preview and choose *Edit table…*.
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [*Cells*], [Double-click one and type. An emptied cell becomes NULL rather than an empty string, which in a numeric column is the difference between "not measured" and a value that quietly turns the column into text.],
+  [*Rows*], [*Add row* appends an empty one; *Insert row above* puts one before the selected row; *Delete rows* removes every row with a selected cell.  The toolbar is icons rather than labelled buttons — hover one for its name — so that the dialog fits a laptop screen with the table, rather than the buttons, taking the room.],
+  [*Columns*], [Type a name, pick a type, then *Add column* (at the end) or *Insert before selected*. *Rename selected* renames the column the cursor is in, and *Delete selected* removes it and its contents.],
+  [*Managed columns*], [*Hide* marks rows every chart skips; *ClusterId* is what the Clustering operation writes into. The buttons here create, reset and invert them. These used to live in the preview's own right-click menu, several levels down a menu otherwise about looking rather than changing.],
+)
+
+#note[
+  Every change is written to the database as it is made — a SQLite table has nowhere to be "saved" to — and yet *Cancel* still puts the table back. Both are true because of the undo snapshot the editor takes before its first change: *OK* leaves that snapshot in the history like any other action, so the session can still be undone afterwards, and *Cancel* restores it there and then. Restoring is not itself undoable, so *Cancel* asks first.
+]
+
+#note[
+  Inserting a row *above* another renumbers the rows below it, and inserting a column *before* another rebuilds the table in the new order. Both keep the data; neither is offered on a table whose own rowid is one of its columns (an `INTEGER PRIMARY KEY`), because renumbering would be rewriting the key values themselves — there, add the row at the end instead.
+]
 
 == Chart panel
 
@@ -272,7 +307,6 @@ The chart picker lists them section by section and its search box matches a name
   [*Fill Between*], [The region between two y curves over a shared x — confidence bands, tolerance limits],
   [*Stack Plot*], [Series stacked into filled bands, showing how a total divides into its parts],
   [*Stem Plot*], [A stem from a baseline to each value — impulses, spectra, anything sampled at discrete x],
-  [*Stairs*], [A step outline over bin edges, for values that hold constant between them],
   [*Table*], [A data table, rows and columns of text rather than a plot],
   [*Text*], [Text labels at data points, spread apart to avoid overlap],
   [*Time Series*], [Time series, with numeric or timestamp x],
@@ -289,6 +323,7 @@ The chart picker lists them section by section and its search box matches a name
   [*Box Plot*], [Box-and-whisker plot],
   [*Violin Plot*], [Estimated distribution of one or more samples],
   [*ECDF*], [Empirical cumulative distribution function],
+  [*Stairs*], [A step outline over bin edges, for values that hold constant between them],
   [*Pareto Chart*], [Categories sorted by descending magnitude with a cumulative-percentage line],
   [*Pie Chart*], [Pie or donut chart of one series],
   [*Hexbin*], [2D density of x/y pairs binned into hexagons, for a scatter with too many points to read individually],
@@ -371,6 +406,12 @@ From Chart Options, depending on the selected level:
 
 Every setting shows a contextual description, so reading Matplotlib's own documentation is rarely necessary to understand what a parameter does.
 
+#figure(
+  image("screenshot_chart_options.png", width: 100%),
+  caption: [Chart Options: the figure, axis, series and overlay property
+  panels, one collapsible section each, over the chart they apply to.],
+)
+
 *Overlay properties*, also in Chart Options, lists an axis' annotations, reference lines and measurements — one tab each — as editable tables: exact position, text, colour and every other drawing option by value, rather than only by dragging on the chart.
 
 = Series operations <series-operations>
@@ -378,6 +419,11 @@ Every setting shows a contextual description, so reading Matplotlib's own docume
 *Series Operations* applies statistical or mathematical transformations to an existing series' data, previewing the result before it is committed to the chart. Every operation dialog shares the same layout: on the left, the source axis/series, a model and its parameters; on the right, a preview of the result and a log of the computation.
 
 The panel itself is a grid of square buttons grouped by what they are for — *Plot*, *Analysis*, *Statistics*, *Signal Processing*, *Modeling* — with a bar along the bottom that describes whichever button the pointer (or the keyboard focus) is on.
+
+#figure(
+  image("screenshot_series_operations.png", width: 100%),
+  caption: [The Series Operations page, with the hint bar along the bottom.],
+)
 
 #table(
   columns: (auto, 1fr, 1.4fr),
@@ -401,12 +447,73 @@ The panel itself is a grid of square buttons grouped by what they are for — *P
   [*Fit*], [Fit data models], [Fits a mathematical model (Gaussian, exponential, polynomial, a user function, ...) to a series by least squares, and adds the fitted curve alongside the data. Optionally adds a residuals chart and a measured-vs-fit chart.],
   [*Interpolation*], [Fill missing values], [Fills gaps in a series (linear, spline, nearest, ...), producing a complete curve from a sparse one.],
   [*Function*], [Plot a function], [Evaluates a function over a range and plots it — the one operation that reads no source series at all.],
+  [*Geometry*], [Move a series' coordinates], [Rotates, translates, scales, mirrors or shears a series in the x/y plane. Alone among these, it computes nothing and stores nothing: the result is the source series' own query wrapped in the affine expressions, so the moved series follows its source rather than being a copy of it. See @geometry.],
 )
 
 A typical workflow is: select the axis and series to operate on, choose a model and its parameters, click *Preview* to see the result superimposed on the chart, adjust the parameters if needed, then confirm to add the result as a new series (or table) permanently. See @advanced-operation for how a new operation is added.
 
 #note[
-  An operation reads *one* source series. If several are ticked, the first one is used and the others are ignored — the status bar says which one it took. To operate on a different series, untick the others, or move the one you want to the top of the list.
+  Nothing is computed while you are editing. Changing a model, a parameter or the selected series marks the current result stale and leaves it at that; only *Preview* and *OK* actually run the computation. So a dialog that costs a second or two to evaluate can be set up in peace, and a half-typed parameter is never computed against.
+]
+
+#note[
+  An operation reads *one* source series. If several are ticked, the first one is used and the others are ignored — the status bar says which one it took. To operate on a different series, untick the others, or move the one you want to the top of the list. *Decomposition* is the exception: it is built to read several series together.
+]
+
+== Operating on a surface
+
+Four of the operations above also understand a series that carries a `z` role — a surface (z = f(x, y)) — rather than a plain x/y curve. They read the same series and the same parameters; what changes is what the question means in three dimensions.
+
+The *Axis / Series* panel captions whichever series is selected with the shape it found, so this is visible before anything is pressed:
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [`2D (x, y)`], [An ordinary curve — every operation's usual case.],
+  [`3D on a grid (x, y, z)`], [The rows form a complete, regular x/y grid, so the surface is read exactly as measured.],
+  [`3D scattered (x, y, z)`], [Points with no grid behind them. The surface is interpolated onto one, and stays undefined (blank) outside the samples' convex hull rather than being extrapolated into territory nothing was measured in.],
+  [`vector field (x, y, u, v)`], [A u/v field. Informational only for now — no operation computes on it.],
+)
+
+What each of the four does with a surface:
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [*Fit*], [Fits a surface model by least squares, the same way it fits a curve. Five are built in — *Plane* (z = a + b x + c y), *Paraboloid* (an elliptic bowl), *Gaussian2D* (a bump or dip on a flat baseline), *Saddle* (rises along x, falls along y) and *Ripple2D* (a separable oscillation) — listed under their own *Surfaces* category beside the 1D models, with *User surfaces* for your own.],
+  [*Function*], [Evaluates a surface function over a grid it generates, with no source series to read — the 3D counterpart of plotting y = f(x) over a range.],
+  [*Peaks*], [Finds local maxima and minima on the surface rather than along a curve. The same prominence and threshold parameters apply, so moving from a curve to a surface does not also mean learning new ones.],
+  [*Roots*], [Traces the *level curve* z = level, not a list of crossing points: a surface's level set is generally a curve, and a saddle's z = 0 set is two crossing lines rather than two numbers.],
+  [*Calculus*], [Reports the surface's gradient — its magnitude at each sample, with the dz/dx and dz/dy components carried alongside — and the volume under it, in place of the derivative and the integral of a curve.],
+)
+
+== Moving a series: Geometry <geometry>
+
+*Geometry* answers "put this where that is": rotate a scan onto a reference frame, shift a baseline, flip a profile, scale a model onto measured units. Pick a transform, set its numbers, and *Preview* draws where the points were and where they went.
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [*Rotate*], [Turns the series about a centre, counter-clockwise, by an angle in degrees.],
+  [*Translate*], [Adds a fixed amount to every x and y. The one transform with no centre — moving something does not leave any point of it where it was.],
+  [*Scale*], [Stretches x and y by their own factors about the centre. Different factors change the shape, not only the size.],
+  [*Mirror*], [Reflects across a horizontal, vertical or diagonal line through the centre.],
+  [*Shear*], [Leans the series over: so much x added per unit of y, or the other way about.],
+)
+
+*Centre on the data* — on by default — uses the middle of the series' own extent as the fixed point, which is what "turn this shape" usually means. Turn it off to name a centre explicitly, and the origin is then just one choice of centre among others.
+
+The results panel is a picture rather than a table, because a rotation is one: the source in blue, the result in red, and — with *Show the deformation grid* — a square mesh over the source's extent drawn before and after, which is what makes a shear or an uneven scale legible at a glance.
+
+#note[
+  Nothing is computed, and no table is written. The series this creates carries a SQL query: the source series' query, wrapped in the transform's own arithmetic, with the rotation spelled out as `cos(radians(30))` rather than as a decimal. Three things follow. The moved series *follows its source* — change the source query and the transform applies to whatever it now returns. A large series costs a query rather than a second copy of itself in the project file. And the transform can be read and adjusted afterwards in the Query Builder, which is where anyone wanting 30.5° instead of 30° will end up.
+]
+
+#note[
+  A surface operation never invents data. On a gridded series it works from the grid the rows actually form; on a scattered one it interpolates onto a grid and leaves everything outside the convex hull of the samples blank. The *3D Series Operations* demo (see @demos) is built by calling these same methods, so it shows exactly what they produce.
 ]
 
 = Appearance and styles
@@ -425,15 +532,17 @@ A typical workflow is: select the axis and series to operate on, choose a model 
 *Settings* gathers the general preferences:
 
 / *App style*: the look of the interface controls. Includes the platform's native styles plus, when installed, extra Qt styles (e.g. Breeze, Oxygen, QtCurve).
-/ *Language*: the interface language. Besides Auto (which follows the operating system's language), Italian is available.
+/ *Language*: the interface language. *Auto* follows the operating system's language and falls back to English when it names one with no catalogue. Every language that has a catalogue folder is then listed by its own name — English and *Italiano*, which is complete. A language whose catalogue is only started appears under its bare code (`fr`) and will still read mostly English; the *Edit Localization* editor (see @advanced) is where it gets filled in.
+
+Neither setting is applied live, and the dialog says so: *the style and the language are applied the next time the app starts*. That is deliberate rather than unfinished — re-styling every widget in a running application restarts the Qt style underneath them all, which is fatal where the HTML results pane is a `QWebEngineView`, and a language switch would only reach menus and labels built after it, leaving the rest of the window in the old one.
 
 = Application log
 
 The *Log viewer* shows the history of the application's internal operations (startup, opening a database, errors) — useful for diagnosing unexpected behaviour or attaching details to a bug report.
 
-= Demo projects
+= Demo projects <demos>
 
-*Load demo* opens a pre-filled `.dhub` database with sample tables and a set of figures already configured across several chart types. It is the fastest way to explore the application's features without preparing your own data, and a good place to copy a series' or an axis' settings from into a real project. It loads straight into your home directory under the demo's own name — no save dialog to answer first — and loading the same demo again simply replaces that file with a fresh copy, so an edited demo is never mistaken for your own work.
+*Load demo* opens a pre-filled `.dhub` database with sample tables and a set of figures already configured across several chart types. Twenty-one ship with the application, chosen from a list that shows each one's summary as it is selected — between them they cover every chart family in @renderers and give several of the series operations a dataset built to suit them (a sparse curve for *Interpolation*, a drifting spectrum for *Baseline Correction*, a three-tone signal for *Filtering* and *Spectral Analysis*, a Gaussian bump and a saddle for the surface operations). It is the fastest way to explore the application's features without preparing your own data, and a good place to copy a series' or an axis' settings from into a real project. It loads straight into your home directory under the demo's own name — no save dialog to answer first — and loading the same demo again simply replaces that file with a fresh copy, so an edited demo is never mistaken for your own work.
 
 = Credits
 

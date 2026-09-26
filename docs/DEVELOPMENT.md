@@ -616,6 +616,28 @@ Tests: `app/tests/test_chart_panel_selection.py`,
   rule added to `macos_native.qss` explicitly, or it falls through to the
   unstyled native bevel. `zoom_fitButton` (the "Adatta"/fit-to-window
   button) is the worked example.
+- Fonts: the sheets carry `@UI_FONT_FAMILY@`, not a list of family names.
+  `style.ui_font_family()` resolves it at load time against
+  `QFontDatabase.families()` and `substitute_ui_font` puts the answer into
+  the sheet, after the palette's own tokens (a font is a property of the
+  machine, not of the theme, so it is not one of `Palette.tokens()`).
+
+  This is the same rule `_best_fluent_font_family` applies to the icon font,
+  and for the same reason: a `font-family` that names a family the machine
+  does not have sends Qt looking for it, and on Windows that lookup walks
+  every alias the system knows first — `Populating font family aliases took
+  200 ms`, once per run, in the log. The sheet used to open with `"Segoe UI
+  Variable"`, which *no* Windows installs: 11 registers the variable UI face
+  under three optical sizes (`Segoe UI Variable Small` / `Text` / `Display`)
+  and nothing under the bare name, so that first choice was always a miss.
+  Resolved now to `Segoe UI Variable Text` on 11, `Segoe UI` on 10, and
+  whatever `QFontDatabase.systemFont` names anywhere else — which is
+  installed by definition, rather than being one more guess.
+
+  So: add a family to `style._UI_FONT_STACK`, best first, rather than to a
+  sheet. A sheet that uses no token (the macOS one) never reads the font
+  database at all.
+
 - Icons: three backends, tried in this order by `icon_from_action_spec` (read
   its docstring for the reasoning):
   1. `SFSymbol` on macOS — the system's own set;

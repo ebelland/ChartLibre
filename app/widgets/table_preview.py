@@ -331,19 +331,26 @@ class TablePreviewPanel(QWidget):
         # Table-writing actions need a real, LazyTableModel-backed table: a
         # saved query has no rowid and nothing in the repo to hide/cluster/add
         # a column to. A query preview keeps only the model-agnostic reload.
+        # "Edit table..." replaces the five Hide/ClusterId items that used to
+        # sit here. They are edits, and they now live with the rest of the
+        # editing - see TableEditorDialog, which also gained the row and
+        # column operations this menu never had.
         trailing_items: tuple[MenuItem | None, ...] = (
+            MenuItem(
+                _("Edit table..."),
+                callback=self._edit_table,
+                icon="document-edit",
+                tooltip=_(
+                    "Edit cells, add or delete rows and columns, and manage "
+                    "the Hide and ClusterId columns"
+                ),
+            ),
+            None,
             MenuItem(
                             _("Add column from SQL expression..."),
                             callback=self._add_column_from_expression,
                             icon="add",
                         ),
-            None,
-            MenuItem(_("Ensure Hide column"), callback=self._ensure_hide,icon="view-conceal"),
-            MenuItem(_("Reset Hide to 0"), callback=self._reset_hide, icon=""),
-            MenuItem(_("Invert Hide 0 <-> 1"), callback=self._invert_hide,icon="object-flip-vertical"),
-            None,
-            MenuItem(_("Ensure ClusterId column"), callback=self._ensure_cluster,icon="view-grid"),
-            MenuItem(_("Reset Clusters"), callback=self._reset_cluster,icon=""),
             None,
             MenuItem(_("Refresh data table"), callback=self._reload_model, icon="reload"),
         ) if lazy_model is not None else (
@@ -379,31 +386,24 @@ class TablePreviewPanel(QWidget):
             applogger.exception("Delete column failed: %s", exc)
             show_message(self, "preview.delete_column_failed", error=exc)
 
-    def _reset_hide(self) -> None:
-        if self._repo and self._table:
-            self._repo.clear_hide_column(self._table)
-            self._reload_model()
+    def _edit_table(self) -> None:
+        """Open the hand editor on this table, and show its result.
 
-    def _reset_cluster(self) -> None:
-        if self._repo and self._table:
-            self._repo.clear_cluster_column(self._table)
-            self._reload_model()
+        Imported late: the editor builds on this module's own
+        LazyTableModel, so importing it at module scope would be a cycle.
+        """
+        if self._repo is None or not self._table:
+            return
+        from app.dialogs.table_editor_dialog import TableEditorDialog
 
-    def _invert_hide(self) -> None:
-        if self._repo and self._table:
-            self._repo.invert_hide(self._table)
-            self._reload_model()
-
-    def _ensure_hide(self) -> None:
-        if self._repo and self._table:
-            self._repo.ensure_hide_column(self._table)
-            self._reload_model()
-
-    def _ensure_cluster(self) -> None:
-        if self._repo and self._table:
-            self._repo.ensure_cluster_column(self._table)
-            self._reload_model()
-            self.refresh.emit()
+        dialog = TableEditorDialog(self._repo, self._table, self)
+        dialog.exec()
+        self._reload_model()
+        # Not just this panel: the editor can add or drop a column, delete
+        # rows, or flip Hide, and every one of those changes what the
+        # charts built on this table draw. _ensure_cluster used to emit
+        # this for the one case it covered; the editor covers more.
+        self.refresh.emit()
 
     def _hide_by_comparison(self, column: str, operator: str) -> None:
         if self._repo is None or not self._table:

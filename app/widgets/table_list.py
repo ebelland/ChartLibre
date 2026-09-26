@@ -231,11 +231,17 @@ class TableListPanel(QWidget):
         """Configure manually resizable column headers."""
         hh = self._view.horizontalHeader()
         hh.setSectionResizeMode(self.COL_TABLE, QHeaderView.ResizeMode.Interactive)
-        hh.setSectionResizeMode(self.COL_HAS_LINK, QHeaderView.ResizeMode.Fixed)
+        # Not Fixed: this column was pinned at 40px, which is narrower than
+        # its own heading. "Link" needs 44px at the macOS sheet's 10.5pt
+        # once the stylesheet's 8px of side padding is counted, so the
+        # header read ".in" in English - and the Italian for it is
+        # "Collegamento", which wants about 110px and showed nothing at all.
+        # ResizeToContents sizes it to the wider of the heading and the "Q"
+        # it carries, in whatever language and at whatever font size.
+        hh.setSectionResizeMode(self.COL_HAS_LINK, QHeaderView.ResizeMode.ResizeToContents)
         hh.setSectionResizeMode(self.COL_FILE, QHeaderView.ResizeMode.Interactive)
         hh.setSectionResizeMode(self.COL_NOTES, QHeaderView.ResizeMode.Interactive)
         hh.resizeSection(self.COL_TABLE, 180)
-        hh.resizeSection(self.COL_HAS_LINK, 40)
         hh.resizeSection(self.COL_FILE, 240)
         hh.resizeSection(self.COL_NOTES, 260)
         hh.setMinimumSectionSize(36)

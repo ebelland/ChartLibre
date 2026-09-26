@@ -8,8 +8,42 @@ P0 - BUGS: wrong output, or work that cannot proceed
       Nota: chart_panel (2.214), style (1.939), fit_dialog (1.760) e
       cluster_dialog (1.722) restano sopra le 1.500 righe.
 
-P1-1 2026-09-17 08:52:55 | WARNING  | AppLogger._handle_qt_message | Qt warning: Populating font family aliases took 200 ms. Replace uses of missing font family "Segoe UI Variable" with one that exists to avoid this cost. 
-P1-2 Icon theme: none insatlled (Linux?)
+P1-1 DONE 2026-09-21. 2026-09-17 08:52:55 | WARNING  | AppLogger._handle_qt_message | Qt warning: Populating font family aliases took 200 ms. Replace uses of missing font family "Segoe UI Variable" with one that exists to avoid this cost.
+      No Windows installs a family by that name - Windows 11 registers the
+      variable UI face under three optical sizes ("Segoe UI Variable Small"
+      / "Text" / "Display") and nothing under the bare one, so the sheet's
+      first choice was always a miss and the 200 ms was spent on every run
+      reaching its second. fluent_win11.qss now carries @UI_FONT_FAMILY@
+      instead of a list of guesses, resolved at load time against
+      QFontDatabase by style.ui_font_family() - the same rule
+      _best_fluent_font_family() already applied to the icon font - so the
+      name that reaches Qt is one the machine has: Segoe UI Variable Text
+      on 11, Segoe UI on 10, the system UI font anywhere else.
+      Tests: test_ui_font_family.py.
+
+P1-2 DONE (already fixed by eaa3623, 2026-09-17 20:34, a few hours after
+      this was written - the entry was just never struck off).
+      QToolButton#navigationItem was 8pt against the sheet's own 10pt body
+      base; it is 10.5pt now. Nothing further changed here.
+
+P1-3 DONE 2026-09-21. Status bar: no padding on left end right edges
+      MainWindow._configure_status_bar now sets contentsMargins
+      (SPACING_DEFAULT either side) on the bar. Deliberately not a rule in
+      the sheet: QStatusBar is one of the widgets Qt honours only
+      background and border for, so a "padding" there is parsed, accepted
+      and ignored - it looks like a working fix in the diff and changes
+      nothing on screen. test_status_bar_padding.py pins that down so it
+      does not get "simplified" back into the QSS.
+      Known residue, recorded rather than left to be rediscovered: text
+      from showMessage() - "Database saved.", and everything AppLogger
+      routes here - is painted by QStatusBar itself at an offset
+      hard-coded in Qt (6px), which no margin or sheet reaches, so a
+      transient message sits a few pixels left of the project label it
+      replaces. Moving it means not using showMessage() at all (route
+      those messages into _status_context and drive the timeout here),
+      which is a bigger change than the padding it would be tidying.
+
+
 
 ================================================================
 UI - reported while testing (2026-09)

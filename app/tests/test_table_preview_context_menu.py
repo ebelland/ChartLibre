@@ -50,8 +50,10 @@ def test_context_menu_appears_for_a_real_table(qapp, tmp_db_path: Path) -> None:
 
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
     assert "Refresh data table" in texts
-    # Table-only actions are present for a real table.
-    assert "Ensure Hide column" in texts
+    # Table-only actions are present for a real table. "Edit table..." is
+    # the marker for them now: the Hide and ClusterId items this used to
+    # name were moved into that dialog, where the rest of the editing is.
+    assert "Edit table..." in texts
 
 
 def test_context_menu_still_appears_for_a_saved_query(qapp, tmp_db_path: Path) -> None:
@@ -66,7 +68,8 @@ def test_context_menu_still_appears_for_a_saved_query(qapp, tmp_db_path: Path) -
     assert menu is not None, "the context menu must not disappear for a saved query"
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
     assert "Refresh data table" in texts
-    # Table-writing actions do not apply to a query: nothing in the repo
-    # backs a "hide" or "cluster" column for it.
-    assert "Ensure Hide column" not in texts
+    # Table-writing actions do not apply to a query: it has no rowid to
+    # address a cell by, and nothing in the repo backs a "hide" or
+    # "cluster" column for it.
+    assert "Edit table..." not in texts
     assert "Add column from SQL expression..." not in texts

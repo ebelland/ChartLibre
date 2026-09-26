@@ -72,6 +72,7 @@ from app.styles.style import (
     load_icon,
     mark_icon_only,
     stdSizeAndlayout,
+    substitute_ui_font,
     themed_qss,
 )
 from app.utils.i18n import _
@@ -339,6 +340,11 @@ class StyleDemoWindow(QMainWindow):
             return
         try:
             themed, _palette = themed_qss(self._editor.toPlainText(), "light")
+            # Same two passes apply_platform_style makes, so what the box
+            # previews is what the app would install - a sheet pasted in
+            # here that uses @UI_FONT_FAMILY@ (fluent_win11.qss does)
+            # would otherwise preview with that whole rule dropped.
+            themed = substitute_ui_font(themed)
             app.setStyleSheet(themed)
         except Exception as exc:  # noqa: BLE001 - shown in the demo, not raised
             self._status_label.setText(_("Could not apply: {error}").format(error=exc))
