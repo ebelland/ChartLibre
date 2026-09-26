@@ -71,18 +71,9 @@ NAV_ITEM_SIZE = QSize(116, 64)
 _MACOS_NAV_BAR_WIDTH = 200
 _MACOS_ICON_SIZE = QSize(20, 20)
 _MACOS_ROW_HEIGHT = 34
-#: Collapsed to icons: the same icons, in slightly taller rows.
-_MACOS_COMPACT_ROW_HEIGHT = 38
 
-#: Collapsed ("icons only") rail width, per platform. Wide enough for the
-#: icon plus the tile's own hover/selected background around it, and no
-#: wider - the point of collapsing is to give the panel beside it room.
-#: The rail is never hidden outright, unlike the sidebar in some apps:
-#: the icons stay as the way back, so there is no invisible state to get
-#: stuck in.
-#: macOS: wide enough that the native traffic lights (they end at x=69)
-#: fit whole at the top of the rail; the sidebar toggle moves below them.
-_MACOS_COMPACT_WIDTH = 84
+#: Windows: collapsed ("icons only") rail width. macOS has no such mode -
+#: its sidebar toggle hides the rail outright (MainWindow).
 _WINDOWS_COMPACT_WIDTH = 56
 
 _HOME_ICON = (
@@ -339,26 +330,18 @@ class NavigationBar(QFrame):
         return self._compact
 
     def set_compact(self, compact: bool) -> None:
-        """Show the tiles as icons only, and narrow the rail to match.
+        """Show the tiles as icons only, and narrow the rail to match (Windows).
 
-        The labels are dropped rather than elided: at this width even the
-        shortest of them ("File") leaves no room for the icon beside it on
-        macOS, and a tile showing three characters of a word is worse than
-        one showing none - the tooltip already carries the full text, and
-        it is the only thing a hover reaches in this state.
+        The labels are dropped rather than elided: a tile showing three
+        characters of a word is worse than one showing none - the tooltip
+        already carries the full text.
         """
         compact = bool(compact)
         if compact == self._compact:
             return
         self._compact = compact
 
-        if self._is_macos:
-            self.setFixedWidth(_MACOS_COMPACT_WIDTH if compact else _MACOS_NAV_BAR_WIDTH)
-        else:
-            self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else NAV_BAR_WIDTH)
-
-        if self.title_bar is not None:
-            self.title_bar.set_compact(compact)
+        self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else NAV_BAR_WIDTH)
 
         for button in self._all_tiles():
             self._apply_tile_mode(button)
@@ -382,10 +365,7 @@ class NavigationBar(QFrame):
         if self._compact:
             button.setText("")
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-            if self._is_macos:
-                button.setFixedHeight(_MACOS_COMPACT_ROW_HEIGHT)
-            else:
-                button.setFixedSize(QSize(_WINDOWS_COMPACT_WIDTH - 16, NAV_ITEM_SIZE.height()))
+            button.setFixedSize(QSize(_WINDOWS_COMPACT_WIDTH - 16, NAV_ITEM_SIZE.height()))
             return
 
         button.setText(full_text if self._is_macos else _wrap_tile_label(full_text))

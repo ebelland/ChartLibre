@@ -11,8 +11,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QStyle,
+    QSizePolicy,
+    QSpacerItem,
     QToolButton,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -36,9 +37,6 @@ MAC_TITLE_BAR_HEIGHT: int = 32
 #: the gap macOS apps leave before the sidebar button.
 MAC_TRAFFIC_LIGHTS_END: int = 69
 _MAC_SIDEBAR_BUTTON_GAP: int = 12
-#: The extra row the sidebar toggle takes under the lights while the rail
-#: is collapsed and too narrow to hold it beside them.
-_MAC_STACKED_ROW_HEIGHT: int = 30
 
 #: The sidebar toggle's own glyph: a panel with its left column divided
 #: off, the same shape every macOS app uses for "hide/show the sidebar".
@@ -57,9 +55,9 @@ class CustomTitleBar(QFrame):
 
     macOS keeps its native window chrome instead: this strip only
     leaves room for AppKit's own traffic lights and puts the sidebar
-    toggle beside them, where Claude, Finder and Music have it. While the
-    rail is collapsed the toggle moves onto its own row below the lights,
-    above the first tile (see set_compact).
+    toggle beside them, where Claude, Finder and Music have it. The toggle
+    hides the whole rail; the window then moves this strip to the top of
+    the panel beside it (MainWindow.set_navigation_compact).
     """
 
     def __init__(
@@ -100,8 +98,7 @@ class CustomTitleBar(QFrame):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.title_label: QLabel | None = None
         self.sidebar_button: QToolButton | None = None
-        self._lights_row: QHBoxLayout | None = None
-        self._stacked_row: QHBoxLayout | None = None
+        self._lights_spacer: QSpacerItem | None = None
 
         if self._is_macos:
             self._build_mac_controls()
@@ -146,57 +143,39 @@ class CustomTitleBar(QFrame):
     # macOS: room for the native traffic lights, then the sidebar toggle
     # ------------------------------------------------------------------
     def _build_mac_controls(self) -> None:
-        column = QVBoxLayout(self)
-        column.setContentsMargins(0, 0, 0, 0)
-        column.setSpacing(0)
-        lights = QHBoxLayout()
-        lights.setContentsMargins(0, 0, 0, 0)
-        lights.addSpacing(self._mac_lights_inset())
-        lights.addWidget(self._build_sidebar_button(), 0, Qt.AlignmentFlag.AlignVCenter)
-        lights.addStretch(1)
-        stacked = QHBoxLayout()
-        stacked.setContentsMargins(0, 0, 0, 0)
-        column.addLayout(lights, 1)
-        column.addLayout(stacked)
-        self._lights_row = lights
-        self._stacked_row = stacked
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(0)
+        self._lights_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        row.addSpacerItem(self._lights_spacer)
+        row.addWidget(self._build_sidebar_button(), 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addStretch(1)
+        self.refresh_lights_inset()
 
-    def set_compact(self, compact: bool) -> None:
-        """Beside the lights when expanded; on its own row below them when not.
+    def refresh_lights_inset(self) -> None:
+        """Leave room on the left so the toggle clears the traffic lights.
 
-        macOS only: the collapsed rail is too narrow for the lights and the
-        toggle side by side, so the toggle drops to a row of its own, centred
-        over the icon column, and the strip grows by that row.
+        The lights sit at a fixed place in the window, and this strip can
+        sit inside a parent's left margin (the rail's) or flush with the
+        window edge (the panel beside it, while the rail is hidden), so the
+        parent's current margin is taken off. Call again after moving it.
         """
-        button = self.sidebar_button
-        if not self._is_macos or button is None:
+        if self._lights_spacer is None:
             return
-        assert self._lights_row is not None and self._stacked_row is not None
-        self._lights_row.removeWidget(button)
-        self._stacked_row.removeWidget(button)
-        if compact:
-            self._stacked_row.addWidget(button, 0, Qt.AlignmentFlag.AlignHCenter)
-            self.setFixedHeight(MAC_TITLE_BAR_HEIGHT + _MAC_STACKED_ROW_HEIGHT)
-        else:
-            self._lights_row.insertWidget(1, button, 0, Qt.AlignmentFlag.AlignVCenter)
-            self.setFixedHeight(MAC_TITLE_BAR_HEIGHT)
-
-    def _mac_lights_inset(self) -> int:
-        """Room to leave on the left so the toggle clears the traffic lights.
-
-        The lights are placed relative to the window, and this strip sits
-        inside the rail's own left margin, so that margin is taken off.
-        """
         parent = self.parentWidget()
         layout = parent.layout() if parent is not None else None
         margin = layout.contentsMargins().left() if layout is not None else 0
-        return MAC_TRAFFIC_LIGHTS_END - margin + _MAC_SIDEBAR_BUTTON_GAP
+        self._lights_spacer.changeSize(
+            MAC_TRAFFIC_LIGHTS_END - margin + _MAC_SIDEBAR_BUTTON_GAP, 0,
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum,
+        )
+        self.layout().invalidate()
 
     # ------------------------------------------------------------------
     # Shared: the sidebar toggle
     # ------------------------------------------------------------------
     def _build_sidebar_button(self) -> QToolButton:
-        """The control that collapses the navigation rail to its icons.
+        """The control that hides the navigation rail (macOS) or collapses it to icons.
 
         In the title bar rather than in the rail itself: it has to stay
         reachable once the rail is narrow, and this is the strip that is
@@ -210,17 +189,19 @@ class CustomTitleBar(QFrame):
         button.setIconSize(QSize(16, 16))
         button.setFixedSize(26, 22)
         button.setCursor(Qt.CursorShape.ArrowCursor)
-        button.setToolTip(_("Hide the navigation labels"))
+        button.setToolTip(self._sidebar_tooltip(False))
         button.toggled.connect(self._on_sidebar_toggled)
         self.sidebar_button = button
         return button
 
+    def _sidebar_tooltip(self, collapsed: bool) -> str:
+        if self._is_macos:
+            return _("Show the sidebar") if collapsed else _("Hide the sidebar")
+        return _("Show the navigation labels") if collapsed else _("Hide the navigation labels")
+
     def _on_sidebar_toggled(self, collapsed: bool) -> None:
-        self.sidebar_button.setToolTip(
-            _("Show the navigation labels")
-            if collapsed
-            else _("Hide the navigation labels")
-        )
+        if self.sidebar_button is not None:
+            self.sidebar_button.setToolTip(self._sidebar_tooltip(collapsed))
         self._window.set_navigation_compact(collapsed)
 
     # ------------------------------------------------------------------

@@ -355,20 +355,24 @@ class MainWindow(QMainWindow):
             self._status_project.setText(project)
             self._status_project.setToolTip(str(self._db_path) if self._db_path else "")
 
+    def _rail_width(self) -> int:
+        """The rail's width, or 0 while it is hidden (macOS sidebar toggle)."""
+        return self._left_rail.width() if self._left_rail.isVisibleTo(self._left_panel) else 0
+
     def _toggle_workspace(self) -> None:
         """Collapse left content to the navigation rail, or restore it."""
-        hiding = self._left_stack.isVisible()
+        hiding = (not self._left_stack.isHidden())
         sizes = self._main_split.sizes()
         if hiding:
             self._left_panel_restore_width = max(sizes[0], 360)
             self._left_stack.hide()
-            rail_width = self._left_rail.width()
+            rail_width = self._rail_width()
             self._left_panel.setMinimumWidth(rail_width)
             self._left_panel.setMaximumWidth(rail_width)
             self._main_split.setSizes([rail_width, max(sizes[1], 1)])
         else:
             self._left_panel.setMaximumWidth(16777215)
-            self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._left_rail.width())
+            self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._rail_width())
             self._left_stack.show()
             restore_width = int(getattr(self, "_left_panel_restore_width", 420))
             total = max(sum(sizes), restore_width + CHART_PANE_MIN_WIDTH)
@@ -389,12 +393,16 @@ class MainWindow(QMainWindow):
         gap inside it.
         """
         compact = bool(compact)
+        if IS_MACOS:
+            self._set_rail_hidden(compact)
+            set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
+            return
         was = self._left_rail.width()
         self._left_rail.set_compact(compact)
         moved = self._left_rail.width() - was
 
         sizes = self._main_split.sizes()
-        if self._left_stack.isVisible():
+        if (not self._left_stack.isHidden()):
             self._left_panel.setMinimumWidth(
                 PANEL_MIN_WIDTH + self._left_rail.width()
             )
@@ -412,6 +420,40 @@ class MainWindow(QMainWindow):
                 self._main_split.setSizes([rail_width, max(sum(sizes) - rail_width, 1)])
 
         set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
+
+    def _set_rail_hidden(self, hidden: bool) -> None:
+        """macOS: hide the whole navigation rail, the way Claude does.
+
+        The title strip (traffic lights, sidebar toggle) moves to the top of
+        the panel beside the rail, so it stays reachable and nothing is
+        drawn under the lights. The panel is reopened first if it was
+        hidden: with neither, the left side would be empty.
+        """
+        title_bar = self._left_rail.title_bar
+        if title_bar is None or hidden == (not self._left_rail.isVisibleTo(self._left_panel)):
+            return
+        if hidden and self._left_stack.isHidden():
+            self._toggle_workspace()
+        sizes = self._main_split.sizes()
+        rail_width = self._left_rail.width()
+        if hidden:
+            self._left_rail.hide()
+            strip_layout = self._rail_hidden_strip.layout()
+            assert strip_layout is not None
+            strip_layout.addWidget(title_bar)
+            self._rail_hidden_strip.show()
+            moved = -rail_width
+        else:
+            self._rail_hidden_strip.hide()
+            rail_layout = self._left_rail.layout()
+            assert isinstance(rail_layout, QBoxLayout)
+            rail_layout.insertWidget(0, title_bar)
+            self._left_rail.show()
+            moved = rail_width
+        title_bar.refresh_lights_inset()
+        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._rail_width())
+        if len(sizes) == 2:
+            self._main_split.setSizes([max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)])
 
     def _restore_navigation_compact(self) -> None:
         """Re-apply the remembered collapsed state, button included."""
@@ -1625,7 +1667,7 @@ class MainWindow(QMainWindow):
         arriving while the panel is already hidden must do nothing rather
         than toggle it open again.
         """
-        if self._left_stack.isVisible():
+        if (not self._left_stack.isHidden()):
             self._toggle_workspace()
 
     def _on_rail_action(self, key: str) -> None:
@@ -1658,7 +1700,23 @@ class MainWindow(QMainWindow):
             raise RuntimeError("CardFrame did not create a box layout")
         layout = raw_layout
         layout.addWidget(self._left_rail, 0)
-        layout.addWidget(self._left_stack, 1)
+        if IS_MACOS:
+            # The stack under a strip that is empty and hidden until the
+            # rail is: then the traffic lights and the sidebar toggle move
+            # here, above the panel, so nothing sits under the lights.
+            column = QWidget(panel)
+            column_layout = QVBoxLayout(column)
+            column_layout.setContentsMargins(0, 0, 0, 0)
+            column_layout.setSpacing(0)
+            self._rail_hidden_strip = QWidget(column)
+            strip_layout = QHBoxLayout(self._rail_hidden_strip)
+            strip_layout.setContentsMargins(0, 0, 0, 0)
+            self._rail_hidden_strip.hide()
+            column_layout.addWidget(self._rail_hidden_strip, 0)
+            column_layout.addWidget(self._left_stack, 1)
+            layout.addWidget(column, 1)
+        else:
+            layout.addWidget(self._left_stack, 1)
 
         return panel
 
@@ -1666,7 +1724,7 @@ class MainWindow(QMainWindow):
         """Select one content page and restore the pane when necessary."""
         if not 0 <= index < self._left_stack.count():
             return
-        if not self._left_stack.isVisible():
+        if self._left_stack.isHidden():
             self._toggle_workspace()
         self._left_stack.setCurrentIndex(index)
         self._left_rail.select_page(index)
