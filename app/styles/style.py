@@ -116,60 +116,6 @@ SPLITTER_HANDLE_WIDTH: int = get_constant("splitter_handle_width", 6)
 # looks like a bug and cannot be grabbed again.
 PANEL_MIN_WIDTH: int = get_constant("panel_min_width", 180)
 
-def hide_native_macos_window_title(window: QWidget) -> bool:
-    """Stop AppKit drawing *window*'s title text over its own content.
-
-    The main window extends its content under a transparent native title
-    bar (MainWindow.__init__); Qt has flags for that, but none for the title
-    text, which AppKit would otherwise draw across the top of the rail. One
-    NSWindow call, through the pyobjc bridge already used for SF Symbols.
-    The title itself is kept, for the Window menu and Mission Control.
-
-    Call once the window has a native handle (its first showEvent). Returns
-    True on success, False - nothing changed - if pyobjc is unavailable,
-    this is not Qt's real "cocoa" backend, or the call fails.
-    """
-    if not IS_MACOS or not _pyobjc_core_is_safe_to_import():
-        return False
-
-    # A genuine NSView/NSWindow only exists under Qt's real "cocoa" platform
-    # plugin. IS_MACOS only checks the OS, not the active Qt backend - under
-    # any other one (offscreen, for headless tests and scripts), winId()
-    # returns a synthetic handle with no relation to a real native pointer.
-    # objc.objc_object() below does not validate it: handed a bad pointer,
-    # pyobjc reads unowned memory and segfaults the whole process rather than
-    # raising a catchable Python exception, so this has to be ruled out
-    # before that call, not caught after it.
-    app = QGuiApplication.instance()
-    if app is None or QGuiApplication.platformName() != "cocoa":
-        return False
-
-    window_id = int(window.winId())
-    if window_id == 0:
-        return False
-
-    try:
-        import AppKit  # type: ignore[import-not-found]
-        import objc  # type: ignore[import-not-found]
-    except ImportError:
-        return False
-
-    try:
-        ns_view = objc.objc_object(c_void_p=window_id)
-        ns_window = None if ns_view is None else ns_view.window()
-        if ns_window is None:
-            return False
-        ns_window.setTitleVisibility_(AppKit.NSWindowTitleHidden)
-    except Exception:
-        applogger.exception(
-            "Failed to hide the native macOS window title.",
-            show_dialog=False,
-            raise_error=False,
-        )
-        return False
-    return True
-
-
 @dataclass(frozen=True, slots=True)
 class PlatformStyle:
     """Resolved platform styling information."""

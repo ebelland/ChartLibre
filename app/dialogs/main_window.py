@@ -27,7 +27,6 @@ from PySide6.QtGui import (
     QDesktopServices,
     QIcon,
     QMouseEvent,
-    QShowEvent,
 )
 from app import APP_ICON, APP_NAME
 from app.charts import layout_presets
@@ -56,7 +55,6 @@ from app.scanners.series_operation_scanner import import_class_from_file
 from app.styles.style import (
     EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
-    hide_native_macos_window_title,
     MenuItem,
     PANEL_MIN_WIDTH,
     action_menu_item,
@@ -207,10 +205,6 @@ class MainWindow(QMainWindow):
                 self.setWindowFlag(EXPANDED_CLIENT_AREA_HINT, True)
             self.setWindowFlag(Qt.WindowType.NoTitleBarBackgroundHint, True)
             self.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
-            # AppKit can bring the title text back (a new native window,
-            # a title change), so it is hidden again whenever that can
-            # happen - see _hide_native_title.
-            self.windowTitleChanged.connect(lambda _title: self._hide_native_title())
         self.resize(1200, 800)
 
         # Debounce for property-driven chart reloads (see _redraw_properties_chart).
@@ -351,7 +345,10 @@ class MainWindow(QMainWindow):
         it already carries it below.
         """
         project = self._db_path.name if self._db_path else _("Untitled project")
-        self.setWindowTitle(f"{APP_NAME} | {project}")
+        # macOS: no window title at all. The title bar is transparent and
+        # AppKit would draw the text across the rail; the status bar below
+        # already names the project.
+        self.setWindowTitle("" if IS_MACOS else f"{APP_NAME} | {project}")
         if hasattr(self, "_status_project"):
             self._status_project.setText(project)
             self._status_project.setToolTip(str(self._db_path) if self._db_path else "")
@@ -2788,26 +2785,6 @@ class MainWindow(QMainWindow):
         Qt.Edge.TopEdge | Qt.Edge.RightEdge: Qt.CursorShape.SizeBDiagCursor,
         Qt.Edge.BottomEdge | Qt.Edge.LeftEdge: Qt.CursorShape.SizeBDiagCursor,
     }
-
-    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
-        """Hide the native title text once the window has a native handle."""
-        super().showEvent(event)
-        self._hide_native_title()
-
-    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
-        super().changeEvent(event)
-        if event.type() == QEvent.Type.WindowStateChange:
-            self._hide_native_title()
-
-    def _hide_native_title(self) -> None:
-        """macOS: keep AppKit from drawing the title over the rail.
-
-        Deferred to the next event-loop turn, so the NSWindow exists and has
-        finished whatever it was doing; cheap and idempotent, so it is simply
-        repeated on every show, title change and window-state change.
-        """
-        if IS_MACOS and self.isVisible():
-            QTimer.singleShot(0, self, lambda: hide_native_macos_window_title(self))
 
     def _resize_edge_at(self, pos: QPoint) -> Qt.Edge:
         """Return which edge(s) of _central_host *pos* is within the margin of.
