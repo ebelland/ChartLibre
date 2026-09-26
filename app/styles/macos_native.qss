@@ -2,16 +2,6 @@ QMainWindow {
     background-color:palette(base);
 }
 
-/* Frameless window's own edge (FramelessWindowHint strips every bit of
-   native chrome - border, corner, drop shadow). Rounded to match real
-   macOS windows; the radius here has to match WINDOW_CORNER_RADIUS in
-   style.py by hand (Qt cannot read a border-radius back out of an
-   applied stylesheet) - apply_rounded_window_mask() is what actually
-   clips the window's content to this same rounded shape, since QSS
-   border-radius alone only rounds what this widget itself paints, not
-   its children. This is the *fallback* path only, for when
-   apply_native_macos_corner_radius (see the rule right below) could not
-   run - pyobjc missing, most likely. */
 /* palette(base), not palette(window): #customTitleBar below tints itself
    with the same translucent grey #activityRail uses, and a translucent
    tint takes its final colour from whatever it is painted over. The rail
@@ -21,22 +11,13 @@ QMainWindow {
    the seam running straight across the top of the rail. */
 QWidget#windowFrame {
   background: palette(base);
-  border: 1px solid rgba(@SHADOW_RGB@, 0.28);
-  border-radius: 6px;
 }
 
-/* The radius above is kept even once apply_native_macos_corner_radius
-   reports success. It used to be zeroed here, on the reasoning that the
-   native CALayer clip is the one true curve and a second painted one
-   would not land on the same pixels - but when that native clip does not
-   visibly take (it reports success and the window still renders square,
-   which is what it did on the machine this was reported from), zeroing
-   the radius is what leaves the corner square with nothing rounding it
-   at all. A curve that is drawn slightly softly is a far smaller problem
-   than no curve, so this rule now only drops the *border* - the hairline
-   is what was visibly doubling against the native edge, not the fill. */
+/* The main window is a real NSWindow (MainWindow.__init__): macOS draws
+   its edge and its rounded corners, so this frame only paints the fill. */
 QWidget#windowFrame[nativeRounded="true"] {
   border: none;
+  border-radius: 0px;
 }
 
 QLabel[role="title"] {

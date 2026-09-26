@@ -405,7 +405,7 @@ class NewPlotTabDialog(QDialog):
         self._sync_series_mode()
 
     @property
-    def result(self) -> NewPlotTabResult | None:
+    def chart_result(self) -> NewPlotTabResult | None:
         """Return the dialog result after accept."""
         return self._result
 

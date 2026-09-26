@@ -493,7 +493,7 @@ class MplStyleEditorDialog(QDialog):
         note: str | None = None,
     ) -> tuple[QWidget, QVBoxLayout]:
         panel: QWidget = CardFrame(self, f"mplStyle{title.replace(' ', '')}Card")
-        layout: QVBoxLayout = panel.layout()
+        layout = cast(QVBoxLayout, panel.layout())
 
         title_label: QLabel = create_section_title(title, panel)
         layout.addWidget(title_label, 0)

@@ -806,5 +806,6 @@ the machine.
   isolated `.dhub` path and a directory for saved plots
   (`DHUB_TEST_ARTIFACTS` env var to redirect).
 - Run the suite: `python -m pytest app/tests -q` (add
-  `QT_QPA_PLATFORM=offscreen` in a headless environment). `--run-perf`
-  enables the slow performance tests, off by default.
+  `QT_QPA_PLATFORM=offscreen` in a headless environment). The suite is
+  deliberately small: one or two tests per feature, on results, saved data
+  and crashes - not on layout details.

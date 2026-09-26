@@ -40,9 +40,7 @@ from PySide6.QtGui import (
     QImage,
     QKeySequence,
     QPainter,
-    QPainterPath,
     QPixmap,
-    QRegion,
     QTextOption,
 )
 from PySide6.QtWidgets import QApplication, QBoxLayout, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout, QLineEdit, QMenu, QPlainTextEdit, QScrollArea, QSizePolicy, QToolButton, QVBoxLayout, QWidget, QPushButton
@@ -61,6 +59,11 @@ _IS_WINDOWS = platform.system().lower().startswith("win")
 #: platform check but have no reason to reach into a private module constant
 #: (main_window.py's menu bar, at the moment).
 IS_MACOS: bool = _IS_MACOS
+
+#: Qt::ExpandedClientAreaHint (Qt 6.9+): content drawn under the native
+#: title bar. PySide6 lists the value only under its deprecated alias
+#: MaximizeUsingFullscreenGeometryHint, so it is built from the number.
+EXPANDED_CLIENT_AREA_HINT: Qt.WindowType = Qt.WindowType(0x00400000)
 
 MenuCallback = Callable[..., Any]
 ShortcutLike = QKeySequence.StandardKey | QKeySequence | str | int | None
@@ -113,66 +116,18 @@ SPLITTER_HANDLE_WIDTH: int = get_constant("splitter_handle_width", 6)
 # looks like a bug and cannot be grabbed again.
 PANEL_MIN_WIDTH: int = get_constant("panel_min_width", 180)
 
-#: Kept in sync by convention with #windowFrame's own border-radius in
-#: macos_native.qss - Qt has no API to read a border-radius back out of an
-#: applied stylesheet, so this is the one place both the QSS and
-#: apply_rounded_window_mask() below have to agree on the number by hand.
-#: Deliberately modest: QRegion has no anti-aliasing at all (it is a union
-#: of axis-aligned rectangles, not a painted curve), so any radius here
-#: shows as a visible staircase, not a smooth curve - a smaller radius
-#: just means fewer, smaller steps, not none. 10px read as noticeably
-#: blocky; this is the trade-off point against looking barely rounded at
-#: all.
-WINDOW_CORNER_RADIUS: int = 6
+def hide_native_macos_window_title(window: QWidget) -> bool:
+    """Stop AppKit drawing *window*'s title text over its own content.
 
+    The main window extends its content under a transparent native title
+    bar (MainWindow.__init__); Qt has flags for that, but none for the title
+    text, which AppKit would otherwise draw across the top of the rail. One
+    NSWindow call, through the pyobjc bridge already used for SF Symbols.
+    The title itself is kept, for the Window menu and Mission Control.
 
-def apply_rounded_window_mask(window: QWidget, *, radius: int = WINDOW_CORNER_RADIUS) -> None:
-    """Clip a frameless top-level window to a rounded-rect region.
-
-    QSS border-radius on #windowFrame only rounds what that widget itself
-    paints (its own background and border); the children filling it edge to
-    edge - #leftPanelCard, the chart tabs - still paint square corners over
-    it, since a stylesheet's border-radius does not clip child widgets.
-    setMask() operates at the native window level instead, so it clips
-    everything drawn into the window - children included - to the same
-    shape a real OS-drawn rounded window has.
-
-    Call from the window's own resizeEvent (see MainWindow and
-    StyleDemoWindow), so the mask is recomputed for the window's *current*
-    size - a mask built once at construction time would still be sized for
-    whatever geometry the window happened to have then.
-    """
-    path = QPainterPath()
-    path.addRoundedRect(QRectF(window.rect()), float(radius), float(radius))
-    window.setMask(QRegion(path.toFillPolygon().toPolygon()))
-
-
-def apply_native_macos_corner_radius(window: QWidget, *, radius: int = WINDOW_CORNER_RADIUS) -> bool:
-    """Round *window*'s real corners through its NSWindow, not a QRegion mask.
-
-    apply_rounded_window_mask() clips with QWidget.setMask(), and Qt
-    implements that as a plain QRegion - a set of whole pixels with no
-    partial coverage, so however the QPainterPath feeding it is built, the
-    curve still lands on the pixel grid as a visible staircase (see
-    WINDOW_CORNER_RADIUS's own docstring). A real macOS window - Finder,
-    System Settings, any other AppKit window - rounds its corners through
-    Core Animation instead, which *does* anti-alias. pyobjc is already a
-    hard macOS dependency for SF Symbols (see _sf_symbol_bridge); the same
-    bridge is used here to reach this widget's own native NSView from its
-    winId() and set the corner radius on its CALayer, so the window server
-    draws the curve rather than Qt.
-
-    Call once the window has a native handle - its first showEvent, same as
-    _rename_macos_app_menu_items has to wait for the native menu to exist.
-    Unlike apply_rounded_window_mask this does not need to be repeated on
-    every resize: a CALayer's corner radius is a shape, not a pixel mask,
-    and AppKit keeps the layer's bounds synced to the NSView's frame on its
-    own.
-
-    Returns True on success, False - nothing changed - if pyobjc is
-    unavailable, *window* is not on macOS, or any of the handful of ObjC
-    calls above fails; the caller falls back to apply_rounded_window_mask()
-    in that case.
+    Call once the window has a native handle (its first showEvent). Returns
+    True on success, False - nothing changed - if pyobjc is unavailable,
+    this is not Qt's real "cocoa" backend, or the call fails.
     """
     if not IS_MACOS or not _pyobjc_core_is_safe_to_import():
         return False
@@ -186,7 +141,7 @@ def apply_native_macos_corner_radius(window: QWidget, *, radius: int = WINDOW_CO
     # raising a catchable Python exception, so this has to be ruled out
     # before that call, not caught after it.
     app = QGuiApplication.instance()
-    if app is None or app.platformName() != "cocoa":
+    if app is None or QGuiApplication.platformName() != "cocoa":
         return False
 
     window_id = int(window.winId())
@@ -201,26 +156,13 @@ def apply_native_macos_corner_radius(window: QWidget, *, radius: int = WINDOW_CO
 
     try:
         ns_view = objc.objc_object(c_void_p=window_id)
-        if ns_view is None:
-            return False
-        ns_window = ns_view.window()
+        ns_window = None if ns_view is None else ns_view.window()
         if ns_window is None:
             return False
-        # A rounded NSWindow also has to be non-opaque, or the corners the
-        # layer cuts away would still show the window's own opaque backing
-        # instead of whatever is behind it - the QRegion mask gave that for
-        # free by removing those pixels outright.
-        ns_window.setOpaque_(False)
-        ns_window.setBackgroundColor_(AppKit.NSColor.clearColor())
-        content_view = ns_window.contentView()
-        content_view.setWantsLayer_(True)
-        layer = content_view.layer()
-        layer.setCornerRadius_(float(radius))
-        layer.setMasksToBounds_(True)
+        ns_window.setTitleVisibility_(AppKit.NSWindowTitleHidden)
     except Exception:
         applogger.exception(
-            "Failed to apply the native macOS window corner radius; falling "
-            "back to the QRegion mask instead.",
+            "Failed to hide the native macOS window title.",
             show_dialog=False,
             raise_error=False,
         )
@@ -1734,6 +1676,11 @@ class CardFrame(QFrame):
         layout = layout_cls(self)
         layout.setContentsMargins(*margins)
         layout.setSpacing(spacing)
+        self._box_layout: QBoxLayout = layout
+
+    def layout(self) -> QBoxLayout:
+        """The card's own box layout, typed as one so addLayout/addStretch resolve."""
+        return self._box_layout
 
 
 class TitledCard(QWidget):

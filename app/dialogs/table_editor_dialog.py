@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import QModelIndex, Qt
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -126,7 +126,7 @@ class EditableTableModel(LazyTableModel):
         rowids = self._rowids.get(chunk) or []
         return rowids[offset] if offset < len(rowids) else None
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
+    def flags(self, index: QModelIndex | QPersistentModelIndex) -> Qt.ItemFlag:
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
         return (
@@ -135,7 +135,7 @@ class EditableTableModel(LazyTableModel):
             | Qt.ItemFlag.ItemIsEditable
         )
 
-    def setData(self, index: QModelIndex, value: Any, role=Qt.ItemDataRole.EditRole) -> bool:
+    def setData(self, index: QModelIndex | QPersistentModelIndex, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:
         if not index.isValid() or role != Qt.ItemDataRole.EditRole:
             return False
         column = self.column_name(index.column())
@@ -161,7 +161,7 @@ class EditableTableModel(LazyTableModel):
         self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole])
         return True
 
-    def _coerce(self, index: QModelIndex, value: Any) -> Any:
+    def _coerce(self, index: QModelIndex | QPersistentModelIndex, value: Any) -> Any:
         """Return *value* as the column's own type, or as text, or as NULL.
 
         An empty box means NULL rather than an empty string: in a numeric

@@ -65,7 +65,7 @@ class _LinkDelegate(QStyledItemDelegate):
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,
-        index: PySide6.QtCore.QModelIndex,
+        index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex,
     ) -> None:
         super().paint(painter, option, index)
 
@@ -106,7 +106,7 @@ class _LinkDelegate(QStyledItemDelegate):
                              self._DOT_RADIUS * 2, self._DOT_RADIUS * 2)
         painter.restore()
 
-    def sizeHint(self, option: QStyleOptionViewItem, index: PySide6.QtCore.QModelIndex) -> PySide6.QtCore.QSize:
+    def sizeHint(self, option: QStyleOptionViewItem, index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex) -> PySide6.QtCore.QSize:
         return PySide6.QtCore.QSize(36, 32)
 
 
@@ -122,7 +122,7 @@ class _TableListModel(QStandardItemModel):
 
     def setData(
         self,
-        index: PySide6.QtCore.QModelIndex,
+        index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex,
         value: object,
         role: int = PySide6.QtCore.Qt.ItemDataRole.EditRole,
     ) -> bool:

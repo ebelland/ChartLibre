@@ -240,7 +240,7 @@ class ImportDataDialog(QDialog):
     def __init__(self, repo: SqliteRepo, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._repo = repo
-        self.result: Optional[ImportResult] = None
+        self.import_result: Optional[ImportResult] = None
         self._df: Optional[pd.DataFrame] = None
 
         # Which of the sources the preview and the import read from. Every
@@ -1199,7 +1199,7 @@ class ImportDataDialog(QDialog):
             show_message(self, "import.failed", error=exc)
             return
 
-        self.result = ImportResult(table_name=table, rows=int(len(df2)), cols=int(len(df2.columns)))
+        self.import_result = ImportResult(table_name=table, rows=int(len(df2)), cols=int(len(df2.columns)))
         self.accept()
 
     def _link_source_settings(self) -> dict[str, object] | None:

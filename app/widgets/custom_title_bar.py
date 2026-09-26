@@ -1,4 +1,4 @@
-"""Custom title bar for frameless windows (Windows and macOS)."""
+"""Title strips: a full caption bar on Windows, the sidebar toggle on macOS."""
 from __future__ import annotations
 
 import weakref
@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QStyle,
     QToolButton,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -27,18 +26,15 @@ if TYPE_CHECKING:
 #: 11 title bar's own height more closely.
 CUSTOM_TITLE_BAR_HEIGHT: int = 24
 
-#: macOS: a shorter strip - real AppKit title bars run about this tall -
-#: holding the traffic lights and the sidebar toggle. Kept at AppKit's own
-#: measurements rather than following the Windows height above: the lights
-#: are a native control people recognise by size, and the strip also has to
-#: fit the sidebar button beside them.
-_MAC_TITLE_BAR_HEIGHT: int = 28
-_MAC_BUTTON_DIAMETER: int = 12
-_MAC_BUTTON_SPACING: int = 8
-
-#: Extra height the strip takes when the sidebar toggle moves onto its own
-#: line under the traffic lights - see CustomTitleBar.set_compact.
-_MAC_STACKED_TOGGLE_HEIGHT: int = 24
+#: macOS: the strip at the top of the rail, level with the native traffic
+#: lights. The window is a real NSWindow with a transparent title bar
+#: (MainWindow.__init__), so AppKit draws the lights at its standard place:
+#: a 32pt title bar, the three buttons ending at x=69.
+MAC_TITLE_BAR_HEIGHT: int = 32
+#: Where the native lights end, measured from the window's left edge, plus
+#: the gap macOS apps leave before the sidebar button.
+MAC_TRAFFIC_LIGHTS_END: int = 69
+_MAC_SIDEBAR_BUTTON_GAP: int = 12
 
 #: The sidebar toggle's own glyph: a panel with its left column divided
 #: off, the same shape every macOS app uses for "hide/show the sidebar".
@@ -46,16 +42,6 @@ _SIDEBAR_ICON = (
     '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/>'
     '<line x1="9.5" y1="4.5" x2="9.5" y2="19.5"/>'
 )
-
-#: (fill, border) per light, in AppKit's own left-to-right order:
-#: close, minimize, zoom. Not theme-dependent - a real traffic light
-#: does not go dark in Dark Mode either.
-_MAC_TRAFFIC_LIGHTS: dict[str, tuple[str, str]] = {
-    "close": ("#FF5F57", "#E0443E"),
-    "minimize": ("#FEBC2E", "#DEA123"),
-    "maximize": ("#28C840", "#1AAB29"),
-}
-
 
 class CustomTitleBar(QFrame):
     """Custom chrome that delegates movement/resizing to the window system.
@@ -65,13 +51,10 @@ class CustomTitleBar(QFrame):
     under Mac" was the original report) - a left-aligned icon and title,
     square min/max/close buttons on the right, Qt's own standard glyphs.
 
-    macOS went frameless later, the same way (same FramelessWindowHint,
-    same QWindow.startSystemMove/startSystemResize this class already
-    used for Windows) but not with the same buttons: three small round
-    "traffic lights" on the *left*, AppKit's own close/minimize/zoom
-    colors and ordering, and no icon or title text at all - a real
-    Mac window in this style (Music, Notes, ...) shows none once the
-    sidebar itself is doing the same job a title once did.
+    macOS keeps its native window chrome instead: this strip only
+    leaves room for AppKit's own traffic lights and puts the sidebar
+    toggle beside them, where Claude, Finder and Music have it. It stays
+    in that spot whether the rail is expanded or collapsed.
     """
 
     def __init__(
@@ -108,57 +91,17 @@ class CustomTitleBar(QFrame):
         # it itself.
         self._is_macos = is_macos
         self.setObjectName("customTitleBar")
-        self.setFixedHeight(_MAC_TITLE_BAR_HEIGHT if self._is_macos else CUSTOM_TITLE_BAR_HEIGHT)
+        self.setFixedHeight(MAC_TITLE_BAR_HEIGHT if self._is_macos else CUSTOM_TITLE_BAR_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.title_label: QLabel | None = None
         self.sidebar_button: QToolButton | None = None
-        self._controls_row: QHBoxLayout | None = None
 
         if self._is_macos:
-            # A column, not a row: set_compact below moves the sidebar
-            # toggle onto a second line when the rail is too narrow to
-            # hold it beside the lights.
-            self._stacked_row = QVBoxLayout(self)
-            self._stacked_row.setContentsMargins(0, 0, 0, 0)
-            self._stacked_row.setSpacing(2)
-            controls = QHBoxLayout()
-            controls.setSpacing(4)
-            self._controls_row = controls
-            self._stacked_row.addLayout(controls)
-            self._build_mac_controls(controls)
+            self._build_mac_controls(QHBoxLayout(self))
         else:
             layout = QHBoxLayout(self)
             layout.setSpacing(4)
             self._build_windows_controls(layout)
-
-    def set_compact(self, compact: bool) -> None:
-        """Stack the sidebar toggle under the traffic lights, or inline it.
-
-        macOS only, and only because of arithmetic: three 12px lights with
-        8px between them and an inset already fill a collapsed rail's
-        width, so a toggle beside them would be pushed off the edge (it
-        was - the lights themselves ended up overlapping). Below them it
-        fits, and the rail grows by one row rather than by 40px of width,
-        which is the width collapsing was meant to give back in the first
-        place.
-        """
-        if not self._is_macos or self.sidebar_button is None:
-            return
-        row = self._controls_row
-        if row is None:
-            return
-
-        row.removeWidget(self.sidebar_button)
-        if compact:
-            self._stacked_row.addWidget(
-                self.sidebar_button, 0, Qt.AlignmentFlag.AlignHCenter
-            )
-            self.setFixedHeight(_MAC_TITLE_BAR_HEIGHT + _MAC_STACKED_TOGGLE_HEIGHT)
-        else:
-            row.addWidget(self.sidebar_button)
-            row.addStretch(1)
-            self.setFixedHeight(_MAC_TITLE_BAR_HEIGHT)
-        self.sidebar_button.setVisible(True)
 
     # ------------------------------------------------------------------
     # Windows: icon, title, square right-aligned buttons
@@ -193,23 +136,25 @@ class CustomTitleBar(QFrame):
         return button
 
     # ------------------------------------------------------------------
-    # macOS: traffic lights, left-aligned, nothing else
+    # macOS: room for the native traffic lights, then the sidebar toggle
     # ------------------------------------------------------------------
     def _build_mac_controls(self, layout: QHBoxLayout) -> None:
-        left_inset = max((_MAC_TITLE_BAR_HEIGHT - _MAC_BUTTON_DIAMETER) // 2, 0)
-        layout.setContentsMargins(left_inset, 0, 0, 0)
-        layout.setSpacing(_MAC_BUTTON_SPACING)
-        self.close_button = self._traffic_light("close", self._window.close, _("Close"))
-        self.minimize_button = self._traffic_light("minimize", self._window.showMinimized, _("Minimize"))
-        self.maximize_button = self._traffic_light("maximize", self._toggle_maximized, _("Zoom"))
-        layout.addWidget(self.close_button)
-        layout.addWidget(self.minimize_button)
-        layout.addWidget(self.maximize_button)
-        # Immediately right of the lights, where every macOS app that has
-        # one puts it, and far enough from them not to be hit by accident.
-        layout.addSpacing(_MAC_BUTTON_SPACING * 2)
-        layout.addWidget(self._build_sidebar_button())
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addSpacing(self._mac_lights_inset())
+        layout.addWidget(self._build_sidebar_button(), 0, Qt.AlignmentFlag.AlignVCenter)
         layout.addStretch(1)
+
+    def _mac_lights_inset(self) -> int:
+        """Room to leave on the left so the toggle clears the traffic lights.
+
+        The lights are placed relative to the window, and this strip sits
+        inside the rail's own left margin, so that margin is taken off.
+        """
+        parent = self.parentWidget()
+        layout = parent.layout() if parent is not None else None
+        margin = layout.contentsMargins().left() if layout is not None else 0
+        return MAC_TRAFFIC_LIGHTS_END - margin + _MAC_SIDEBAR_BUTTON_GAP
 
     # ------------------------------------------------------------------
     # Shared: the sidebar toggle
@@ -242,33 +187,12 @@ class CustomTitleBar(QFrame):
         )
         self._window.set_navigation_compact(collapsed)
 
-    def _traffic_light(self, kind: str, callback: Any, tooltip: str) -> QToolButton:
-        fill, border = _MAC_TRAFFIC_LIGHTS[kind]
-        button = QToolButton(self)
-        button.setObjectName(f"trafficLight{kind.capitalize()}")
-        button.setToolTip(tooltip)
-        button.setFixedSize(_MAC_BUTTON_DIAMETER, _MAC_BUTTON_DIAMETER)
-        button.setCursor(Qt.CursorShape.ArrowCursor)
-        # Inline, not the shared QSS files: these three colors are AppKit's
-        # own fixed palette - unlike everything else this app themes, a
-        # traffic light does not change with the app's light/dark mode.
-        button.setStyleSheet(
-            "QToolButton {"
-            f" background: {fill}; border: 1px solid {border};"
-            f" border-radius: {_MAC_BUTTON_DIAMETER // 2}px;"
-            "}"
-        )
-        button.clicked.connect(callback)
-        return button
-
     # ------------------------------------------------------------------
     # Shared
     # ------------------------------------------------------------------
     def _toggle_maximized(self) -> None:
         self._window.showNormal() if self._window.isMaximized() else self._window.showMaximized()
         if self._is_macos:
-            # The zoom light does not change appearance with state, the
-            # same way a real one does not.
             return
         icon = QStyle.StandardPixmap.SP_TitleBarNormalButton if self._window.isMaximized() else QStyle.StandardPixmap.SP_TitleBarMaxButton
         self.maximize_button.setIcon(self.style().standardIcon(icon))

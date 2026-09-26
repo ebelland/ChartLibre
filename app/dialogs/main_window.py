@@ -15,6 +15,7 @@ import sys
 from functools import partial
 from pathlib import Path
 from time import monotonic
+import warnings
 from typing import Any, Callable, cast
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
@@ -26,7 +27,6 @@ from PySide6.QtGui import (
     QDesktopServices,
     QIcon,
     QMouseEvent,
-    QResizeEvent,
     QShowEvent,
 )
 from app import APP_ICON, APP_NAME
@@ -54,15 +54,15 @@ from app.widgets.series_properties import SeriesPropertiesWidget
 from app.widgets.series_operation import SeriesOperationWidget
 from app.scanners.series_operation_scanner import import_class_from_file
 from app.styles.style import (
+    EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
+    hide_native_macos_window_title,
     MenuItem,
     PANEL_MIN_WIDTH,
     action_menu_item,
     action_presentation,
     SPACING_DEFAULT,
     SPLITTER_HANDLE_WIDTH,
-    apply_native_macos_corner_radius,
-    apply_rounded_window_mask,
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
     CardFrame,
@@ -74,7 +74,6 @@ from app.styles.style import (
     icon_from_svg_source,
     mark_destructive_button,
     relax_minimum_width,
-    repolish_widget,
     stdSizeAndlayout,
     _pyobjc_core_is_safe_to_import,
 )
@@ -190,25 +189,27 @@ class MainWindow(QMainWindow):
         #: QObjectPrivate::deleteChildren) when the garbage collector
         #: later tore a closed window's object graph down.
         self._own_title_bar: CustomTitleBar | None = None
-        #: Set on the first showEvent, whether or not the attempt actually
-        #: succeeds - apply_native_macos_corner_radius needs a native window
-        #: handle that does not exist yet at __init__ time, and the
-        #: environment it depends on (pyobjc installed or not) cannot change
-        #: mid-run, so one attempt is enough.
-        self._native_corner_radius_attempted: bool = False
-        #: True only once that attempt has actually succeeded - resizeEvent
-        #: below uses this (not the flag above) to decide whether its own
-        #: QRegion fallback mask is still needed.
-        self._native_corner_radius_active: bool = False
-        if IS_WINDOWS or IS_MACOS:
-            # Frameless everywhere but Linux (whose window managers already
-            # draw a native title bar this app has no reason to fight) -
-            # macOS's own native chrome was the same plain title-bar-plus-
-            # traffic-lights strip as any other window, worth removing for
-            # the same reason it was worth removing on Windows: it is 40px
-            # of screen fully given over to nothing but the window title,
-            # which CustomTitleBar (below) replaces one-for-one on both.
+        if IS_WINDOWS:
+            # Frameless: CustomTitleBar (below) replaces the native caption
+            # strip one-for-one - icon, title, min/max/close.
             self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        elif IS_MACOS:
+            # A real NSWindow, with its content drawn up under a title bar
+            # that paints nothing: macOS itself draws the corners (the
+            # system radius, anti-aliased), the shadow, the traffic lights
+            # and the resize edges, the way Claude, Finder and Music look.
+            # Only Qt's own public flags - no pyobjc on the window - so
+            # there is no native pointer here to get wrong. The traffic
+            # lights land on the rail's own title strip (NavigationBar).
+            with warnings.catch_warnings():
+                # PySide6 reports this value under its deprecated alias.
+                warnings.simplefilter("ignore", DeprecationWarning)
+                self.setWindowFlag(EXPANDED_CLIENT_AREA_HINT, True)
+            self.setWindowFlag(Qt.WindowType.NoTitleBarBackgroundHint, True)
+            self.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
+        #: Set on the first showEvent: the title is hidden once, when the
+        #: native window exists (see hide_native_macos_window_title).
+        self._native_title_hidden: bool = False
         self.resize(1200, 800)
 
         # Debounce for property-driven chart reloads (see _redraw_properties_chart).
@@ -262,7 +263,7 @@ class MainWindow(QMainWindow):
         # Wrap the splitter in a plain central widget with a zero-minimum layout.
         self._central_host = self._create_central_host()
         self.setCentralWidget(self._central_host)
-        if IS_WINDOWS or IS_MACOS:
+        if IS_WINDOWS:
             # Frameless (see setWindowFlag above), so the OS gives us no edge
             # resize handles at all - _resize_edge_at/_update_resize_cursor
             # below fill that in. Watching _central_host, not self: it fills
@@ -540,15 +541,10 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(host)
         stdSizeAndlayout(layout)
         if IS_MACOS:
-            # Flush to the window frame's own edge, same as the style demo
-            # (app/tests/manual_macos_style_demo.py, which uses this exact
-            # zero margin): #leftPanelCard and #activityRail already draw
-            # their own hairline edges, and #windowFrame its own 1px
-            # outline below - a contentsMargins here on top of those was
-            # just extra white gutter around the whole window that the
-            # demo never had. The traffic lights sit inside the title bar
-            # strip added below, which insets them from the corner on its
-            # own.
+            # Flush to the window's own edge: #leftPanelCard and
+            # #activityRail draw their own hairlines, and the NSWindow its
+            # own border and corners. The traffic lights sit in the rail's
+            # title strip.
             layout.setContentsMargins(0, 0, 0, 0)
             layout.setSpacing(0)
         else:
@@ -581,6 +577,10 @@ class MainWindow(QMainWindow):
             # without a way to check it on an actual Windows/Mac build.
             host.setObjectName("windowFrame")
             host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            if IS_MACOS:
+                # The NSWindow draws its own edge and corners now; this only
+                # paints the fill beneath the translucent rail.
+                host.setProperty("nativeRounded", True)
 
         if IS_WINDOWS:
             # Windows only: a caption strip across the whole window, which
@@ -2703,7 +2703,7 @@ class MainWindow(QMainWindow):
         return None
 
     # ------------------------------------------------------------------
-    # Frameless window resize (Windows and macOS)
+    # Frameless window resize (Windows)
     # ------------------------------------------------------------------
     #: How close to an edge, in pixels, counts as "grab this edge to resize".
     _RESIZE_MARGIN: int = 6
@@ -2723,58 +2723,11 @@ class MainWindow(QMainWindow):
     }
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
-        """Round the window's real corners once it has a native handle.
-
-        apply_native_macos_corner_radius needs window.winId() to resolve to
-        an actual NSWindow, which is only meaningful once the widget is
-        mapped - __init__ is too early. Tried once: unlike the QRegion mask
-        in resizeEvent below, a CALayer's corner radius does not need
-        redoing on every resize (see that function's own docstring).
-        """
+        """Hide the native title text once the window has a native handle."""
         super().showEvent(event)
-        if self._native_corner_radius_attempted or not IS_MACOS:
-            return
-        self._native_corner_radius_attempted = True
-        if apply_native_macos_corner_radius(self):
-            self._native_corner_radius_active = True
-            # The mask deliberately stays: see resizeEvent on why a
-            # reported success is not proof the native clip is visible.
-            # What did visibly double against the native edge was
-            # #windowFrame's 1px hairline, not its fill: two independent
-            # curves at the same radius do not land on the same pixels, so
-            # the border traced one of them just inside the other. The
-            # "nativeRounded" property drops that border (macos_native.qss)
-            # while keeping the radius, so the fill still rounds.
-            self._central_host.setProperty("nativeRounded", True)
-            repolish_widget(self._central_host)
-
-    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Keep the window's rounded-corner mask sized to the window.
-
-        macOS only. The mask runs whether or not
-        apply_native_macos_corner_radius (see showEvent) reported success:
-        it used to be skipped in that case, on the grounds that the native
-        CALayer clip anti-aliases the curve better than a QRegion can and
-        the mask would only put the staircase back. That holds when the
-        native clip actually takes - and when it silently does not, which
-        is what was reported, skipping the mask leaves a square window
-        with nothing rounding it. A slightly harder curve is worth far
-        more than no curve, and the two agree on the same radius, so the
-        mask is simply always applied and whichever clip is tighter wins.
-        The mask is also what rounds the children filling the frame edge
-        to edge (#leftPanelCard, the chart tabs), whose own square corners
-        would otherwise poke past #windowFrame's painted curve - see
-        apply_rounded_window_mask's own docstring. Cleared while
-        maximized: a maximized window's edges are the screen's own, and a
-        real macOS window is square-cornered there too.
-        """
-        super().resizeEvent(event)
-        if not IS_MACOS:
-            return
-        if self.isMaximized():
-            self.clearMask()
-        else:
-            apply_rounded_window_mask(self)
+        if IS_MACOS and not self._native_title_hidden:
+            self._native_title_hidden = True
+            hide_native_macos_window_title(self)
 
     def _resize_edge_at(self, pos: QPoint) -> Qt.Edge:
         """Return which edge(s) of _central_host *pos* is within the margin of.
@@ -2797,7 +2750,7 @@ class MainWindow(QMainWindow):
         return edges
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Give the frameless window (Windows and macOS) edge-drag resizing.
+        """Give the frameless Windows window edge-drag resizing.
 
         FramelessWindowHint (see __init__) leaves the OS with no resize
         handles of its own to offer - this is the replacement, the same
@@ -2808,7 +2761,7 @@ class MainWindow(QMainWindow):
         grabbing what looks like a window border did not mean to touch.
         """
         if not (
-            (IS_WINDOWS or IS_MACOS)
+            IS_WINDOWS
             and watched is self._central_host
             and isinstance(event, QMouseEvent)
             and not self.isMaximized()

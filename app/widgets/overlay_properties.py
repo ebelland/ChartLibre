@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Final, cast
+from typing import Any, Final, TypeVar, cast
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFontDatabase
@@ -66,6 +66,8 @@ TABLE_MIN_HEIGHT: Final[int] = get_constant("overlay_table_min_height", 120)
 WIDGET_COLUMN_WIDTH: Final[int] = get_constant("overlay_widget_column_width", 122)
 #: Above this an annotation is a title, not a label.
 _MAX_FONT_SIZE: Final[int] = 200
+
+_ComboT = TypeVar("_ComboT", bound=QComboBox)
 
 #: The CSS generic families Matplotlib resolves itself, offered above the
 #: installed faces: a portable descriptor wants "monospace", not "Menlo".
@@ -270,7 +272,7 @@ class OverlayPropertiesWidget(BaseProperties):
     # ------------------------------------------------------------------
     # Cell widgets
     # ------------------------------------------------------------------
-    def _table_combo(self, combo: QComboBox) -> QComboBox:
+    def _table_combo(self, combo: _ComboT) -> _ComboT:
         stdSizeAndlayout(combo, minimum_contents_length=6)
         combo.setMaximumWidth(WIDGET_COLUMN_WIDTH)
         combo.currentIndexChanged.connect(self._queue_auto_apply)

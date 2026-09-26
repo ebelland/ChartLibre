@@ -34,7 +34,7 @@ from app.utils.i18n import _
 from app.widgets.custom_title_bar import CustomTitleBar
 
 if TYPE_CHECKING:
-    from app.main_window import MainWindow
+    from app.dialogs.main_window import MainWindow
     from PySide6.QtWidgets import QWidget
 else:
     from PySide6.QtWidgets import QWidget
@@ -69,8 +69,14 @@ NAV_ITEM_SIZE = QSize(116, 64)
 #: control to defer to (see macos_native.qss's own note on #activityRail),
 #: so this is this app's best approximation of one.
 _MACOS_NAV_BAR_WIDTH = 200
-_MACOS_ICON_SIZE = QSize(16, 16)
-_MACOS_ROW_HEIGHT = 30
+_MACOS_ICON_SIZE = QSize(20, 20)
+_MACOS_ROW_HEIGHT = 34
+#: Collapsed to icons: large icons, VS Code activity-bar style, each in a
+#: square tile so the hover/selected background is square too.
+_MACOS_COMPACT_ICON_SIZE = QSize(28, 28)
+_MACOS_COMPACT_TILE = QSize(52, 52)
+#: Qt's QWIDGETSIZE_MAX, which PySide6 does not export.
+_QWIDGETSIZE_MAX = (1 << 24) - 1
 
 #: Collapsed ("icons only") rail width, per platform. Wide enough for the
 #: icon plus the tile's own hover/selected background around it, and no
@@ -78,10 +84,10 @@ _MACOS_ROW_HEIGHT = 30
 #: The rail is never hidden outright, unlike the sidebar in some apps:
 #: the icons stay as the way back, so there is no invisible state to get
 #: stuck in.
-#: 64, not 48: the three traffic lights at the top of the rail need
-#: 12px each plus 8px between them plus the inset, and squeezing the rail
-#: below that drew them overlapping each other.
-_MACOS_COMPACT_WIDTH = 64
+#: macOS: wide enough that the native traffic lights (they end at x=69)
+#: and the sidebar toggle beside them fit whole at the top of the rail -
+#: 69 + 12 gap + 26 toggle + 8 margin, rounded up.
+_MACOS_COMPACT_WIDTH = 116
 _WINDOWS_COMPACT_WIDTH = 56
 
 _HOME_ICON = (
@@ -215,7 +221,9 @@ class NavigationBar(QFrame):
         self.setMinimumHeight(0)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 10, 8, 10)
+        # macOS: no top margin - the title strip below has to sit level
+        # with the native traffic lights, which AppKit draws from y=0.
+        layout.setContentsMargins(8, 0 if is_macos else 10, 8, 10)
         layout.setSpacing(4)
 
         # macOS: the traffic lights sit at the top of the rail itself, on
@@ -241,7 +249,7 @@ class NavigationBar(QFrame):
 
         self.workspace_button = self._tile(
             (
-                icon_from_svg_source(_HOME_ICON, size=20)
+                icon_from_svg_source(_HOME_ICON, size=24)
                 if self._is_macos
                 # Windows: the catalogue's own Fluent glyph (config.json's
                 # nav_workspace), same source every other Windows tile below
@@ -343,11 +351,6 @@ class NavigationBar(QFrame):
         else:
             self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else NAV_BAR_WIDTH)
 
-        # The traffic lights do not fit beside the toggle at this width;
-        # the strip restacks itself rather than letting them overlap.
-        if self.title_bar is not None:
-            self.title_bar.set_compact(compact)
-
         for button in self._all_tiles():
             self._apply_tile_mode(button)
 
@@ -362,20 +365,21 @@ class NavigationBar(QFrame):
     def _apply_tile_mode(self, button: QToolButton) -> None:
         """Set one tile's text, style and size for the current mode.
 
-        The icon is re-set to the same size in both modes, never scaled up
-        to fill the space the label left behind: a rail that collapses
-        should read as the same row of icons, moved, not as a different
-        and larger set of them.
+        On macOS the collapsed rail shows larger icons, VS Code style: with
+        no label beside them the icon is all there is to recognise a page by.
         """
         full_text = str(button.property("navLabel") or button.text())
-        icon_size = _MACOS_ICON_SIZE if self._is_macos else NAV_ICON_SIZE
-        button.setIconSize(icon_size)
+        if self._is_macos:
+            button.setIconSize(_MACOS_COMPACT_ICON_SIZE if self._compact else _MACOS_ICON_SIZE)
+        else:
+            button.setIconSize(NAV_ICON_SIZE)
 
         if self._compact:
             button.setText("")
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             if self._is_macos:
-                button.setFixedHeight(_MACOS_ROW_HEIGHT)
+                button.setFixedSize(_MACOS_COMPACT_TILE)
+                self._set_tile_alignment(button, Qt.AlignmentFlag.AlignHCenter)
             else:
                 button.setFixedSize(QSize(_WINDOWS_COMPACT_WIDTH - 16, NAV_ITEM_SIZE.height()))
             return
@@ -383,10 +387,19 @@ class NavigationBar(QFrame):
         button.setText(full_text if self._is_macos else _wrap_tile_label(full_text))
         if self._is_macos:
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            # Undo the compact tile's fixed width: the row spans the rail.
+            button.setMinimumWidth(0)
+            button.setMaximumWidth(_QWIDGETSIZE_MAX)
             button.setFixedHeight(_MACOS_ROW_HEIGHT)
+            self._set_tile_alignment(button, Qt.AlignmentFlag(0))
         else:
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
             button.setFixedSize(NAV_ITEM_SIZE)
+
+    def _set_tile_alignment(self, button: QToolButton, alignment: Qt.AlignmentFlag) -> None:
+        layout = self.layout()
+        if layout is not None:
+            layout.setAlignment(button, alignment)
 
     def select_page(self, index: int) -> None:
         if 0 <= index < len(self.buttons):
@@ -405,7 +418,7 @@ class NavigationBar(QFrame):
         """
         icon, text, tooltip = action_presentation(page.key)
         if self._is_macos and page.icon_svg:
-            icon = icon_from_svg_source(page.icon_svg, size=20)
+            icon = icon_from_svg_source(page.icon_svg, size=24)
         return self._tile(
             icon,
             _(page.label) if page.label else text,

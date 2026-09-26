@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPoint, Qt, Signal
-from PySide6.QtWidgets import QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit
+from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, Qt, Signal
+from PySide6.QtWidgets import QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu
 from app.data.data_source import quote_identifier as _quote_table
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -70,17 +70,17 @@ class DataFrameTableModel(QAbstractTableModel):
         """Return the underlying DataFrame."""
         return self._frame
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802
         return 0 if parent.isValid() else int(len(self._frame))
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802
         return 0 if parent.isValid() else len(self._columns)
 
     def column_name(self, index: int) -> str | None:
         """Return the column name at a position, mirroring LazyTableModel."""
         return self._columns[index] if 0 <= index < len(self._columns) else None
 
-    def data(self, index: QModelIndex, role=Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         try:
@@ -89,7 +89,7 @@ class DataFrameTableModel(QAbstractTableModel):
             return None
         return "" if value is None else str(value)
 
-    def headerData(self, section: int, orientation, role=Qt.ItemDataRole.DisplayRole):  # noqa: N802
+    def headerData(self, section: int, orientation, role: int = Qt.ItemDataRole.DisplayRole):  # noqa: N802
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -512,13 +512,13 @@ class LazyTableModel(QAbstractTableModel):
     def column_name(self, index: int) -> str | None:
         return self._columns[index] if 0 <= index < len(self._columns) else None
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else self._row_count
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._columns)
 
-    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+    def headerData(self, section, orientation, role: int = Qt.ItemDataRole.DisplayRole):
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -527,7 +527,7 @@ class LazyTableModel(QAbstractTableModel):
             return None
         return str(section + 1)
 
-    def data(self, index: QModelIndex, role=Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
         if role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):

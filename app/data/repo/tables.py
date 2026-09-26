@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import struct
 from dataclasses import dataclass, field
 from typing import Any, Literal, Mapping, Sequence
 
@@ -1381,6 +1382,7 @@ class TablesMixin:
             predicate = f"{column_sql} IS NULL OR TRIM(CAST({column_sql} AS TEXT)) = ''"
         else:
             applogger.error(f"Unsupported hide mode: {mode}")
+            return 0
         cur = self._con.execute(
             f'UPDATE {_quote_ident(table_name)} SET "Hide" = 1 WHERE {predicate}'
         )

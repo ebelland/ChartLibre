@@ -206,7 +206,8 @@ class DictValueDelegate(QStyledItemDelegate):
         size.setHeight(max(size.height(), _MIN_ROW_HEIGHT))
         return size
 
-    def createEditor(self, parent: QWidget, option, index):  # noqa: N802, ANN001, ANN201
+    # Returning None (no editor) is valid Qt; the stub only admits QWidget.
+    def createEditor(self, parent: QWidget, option, index):  # noqa: N802, ANN001, ANN201  # pyright: ignore[reportIncompatibleMethodOverride]
         if index.column() != 1:
             return None
         key = self._panel.key_from_index(index)

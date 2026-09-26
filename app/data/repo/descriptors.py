@@ -27,6 +27,7 @@ from app.data.repo._common import (
     descriptor_write_wrapper,
     ensure_connection_wrapper,
 )
+from app.logs.logger import applogger
 
 
 class DescriptorsMixin:
