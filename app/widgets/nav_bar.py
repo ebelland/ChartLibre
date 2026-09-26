@@ -71,12 +71,8 @@ NAV_ITEM_SIZE = QSize(116, 64)
 _MACOS_NAV_BAR_WIDTH = 200
 _MACOS_ICON_SIZE = QSize(20, 20)
 _MACOS_ROW_HEIGHT = 34
-#: Collapsed to icons: large icons, VS Code activity-bar style, each in a
-#: square tile so the hover/selected background is square too.
-_MACOS_COMPACT_ICON_SIZE = QSize(28, 28)
-_MACOS_COMPACT_TILE = QSize(52, 52)
-#: Qt's QWIDGETSIZE_MAX, which PySide6 does not export.
-_QWIDGETSIZE_MAX = (1 << 24) - 1
+#: Collapsed to icons: the same icons, in slightly taller rows.
+_MACOS_COMPACT_ROW_HEIGHT = 38
 
 #: Collapsed ("icons only") rail width, per platform. Wide enough for the
 #: icon plus the tile's own hover/selected background around it, and no
@@ -85,9 +81,8 @@ _QWIDGETSIZE_MAX = (1 << 24) - 1
 #: the icons stay as the way back, so there is no invisible state to get
 #: stuck in.
 #: macOS: wide enough that the native traffic lights (they end at x=69)
-#: and the sidebar toggle beside them fit whole at the top of the rail -
-#: 69 + 12 gap + 26 toggle + 8 margin, rounded up.
-_MACOS_COMPACT_WIDTH = 116
+#: fit whole at the top of the rail; the sidebar toggle moves below them.
+_MACOS_COMPACT_WIDTH = 84
 _WINDOWS_COMPACT_WIDTH = 56
 
 _HOME_ICON = (
@@ -109,6 +104,17 @@ _SLIDERS_ICON = (
     '<circle cx="15" cy="12" r="2"/>'
     '<line x1="4" y1="18" x2="20" y2="18"/>'
     '<circle cx="11" cy="18" r="2"/>'
+)
+#: Drawn here, not taken from the action catalogue: the catalogue's glyph
+#: is a typeset "f(x)" that renders visibly smaller than the outline icons
+#: around it.
+_FUNCTION_ICON = (
+    '<path d="M10 4.2c-1.6-.7-3.3.1-3.6 1.9L4.6 18c-.3 1.8-2 2.6-3.6 1.9"/>'
+    '<line x1="3.2" y1="9.5" x2="9" y2="9.5"/>'
+    '<path d="M13.6 6.5c-1.4 1.6-2.1 3.4-2.1 5.5s.7 3.9 2.1 5.5"/>'
+    '<path d="M20.4 6.5c1.4 1.6 2.1 3.4 2.1 5.5s-.7 3.9-2.1 5.5"/>'
+    '<line x1="15" y1="9.5" x2="19" y2="14.5"/>'
+    '<line x1="19" y1="9.5" x2="15" y2="14.5"/>'
 )
 _DATABASE_ICON = (
     '<ellipse cx="12" cy="5" rx="8" ry="3"/>'
@@ -134,7 +140,7 @@ DEFAULT_PAGES: tuple[NavPage, ...] = (
     NavPage("nav_file", "File", "New, open, import and save", _FILE_ICON),
     NavPage("nav_data", "Tables", "Show data tables", _TABLE_ICON),
     NavPage("nav_chart_options", "", "", _SLIDERS_ICON),
-    NavPage("nav_series_operations", "", ""),
+    NavPage("nav_series_operations", "", "", _FUNCTION_ICON),
     NavPage("nav_database", "Database", "Show database tools", _DATABASE_ICON),
     NavPage(
         "nav_developer",
@@ -249,7 +255,7 @@ class NavigationBar(QFrame):
 
         self.workspace_button = self._tile(
             (
-                icon_from_svg_source(_HOME_ICON, size=24)
+                icon_from_svg_source(_HOME_ICON, size=20)
                 if self._is_macos
                 # Windows: the catalogue's own Fluent glyph (config.json's
                 # nav_workspace), same source every other Windows tile below
@@ -351,6 +357,9 @@ class NavigationBar(QFrame):
         else:
             self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else NAV_BAR_WIDTH)
 
+        if self.title_bar is not None:
+            self.title_bar.set_compact(compact)
+
         for button in self._all_tiles():
             self._apply_tile_mode(button)
 
@@ -365,21 +374,16 @@ class NavigationBar(QFrame):
     def _apply_tile_mode(self, button: QToolButton) -> None:
         """Set one tile's text, style and size for the current mode.
 
-        On macOS the collapsed rail shows larger icons, VS Code style: with
-        no label beside them the icon is all there is to recognise a page by.
+        The icon keeps its size in both modes.
         """
         full_text = str(button.property("navLabel") or button.text())
-        if self._is_macos:
-            button.setIconSize(_MACOS_COMPACT_ICON_SIZE if self._compact else _MACOS_ICON_SIZE)
-        else:
-            button.setIconSize(NAV_ICON_SIZE)
+        button.setIconSize(_MACOS_ICON_SIZE if self._is_macos else NAV_ICON_SIZE)
 
         if self._compact:
             button.setText("")
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             if self._is_macos:
-                button.setFixedSize(_MACOS_COMPACT_TILE)
-                self._set_tile_alignment(button, Qt.AlignmentFlag.AlignHCenter)
+                button.setFixedHeight(_MACOS_COMPACT_ROW_HEIGHT)
             else:
                 button.setFixedSize(QSize(_WINDOWS_COMPACT_WIDTH - 16, NAV_ITEM_SIZE.height()))
             return
@@ -387,19 +391,10 @@ class NavigationBar(QFrame):
         button.setText(full_text if self._is_macos else _wrap_tile_label(full_text))
         if self._is_macos:
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-            # Undo the compact tile's fixed width: the row spans the rail.
-            button.setMinimumWidth(0)
-            button.setMaximumWidth(_QWIDGETSIZE_MAX)
             button.setFixedHeight(_MACOS_ROW_HEIGHT)
-            self._set_tile_alignment(button, Qt.AlignmentFlag(0))
         else:
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
             button.setFixedSize(NAV_ITEM_SIZE)
-
-    def _set_tile_alignment(self, button: QToolButton, alignment: Qt.AlignmentFlag) -> None:
-        layout = self.layout()
-        if layout is not None:
-            layout.setAlignment(button, alignment)
 
     def select_page(self, index: int) -> None:
         if 0 <= index < len(self.buttons):
@@ -418,7 +413,7 @@ class NavigationBar(QFrame):
         """
         icon, text, tooltip = action_presentation(page.key)
         if self._is_macos and page.icon_svg:
-            icon = icon_from_svg_source(page.icon_svg, size=24)
+            icon = icon_from_svg_source(page.icon_svg, size=20)
         return self._tile(
             icon,
             _(page.label) if page.label else text,
