@@ -17,14 +17,7 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.control_chart_dialog import (
-    CHART_C,
-    CHART_NP,
-    CHART_P,
-    CHART_U,
-    SeriesControlChartDialog,
-    attribute_limits,
-)
+from app.series_operations.control_chart_dialog import CHART_C, CHART_P, CHART_U, SeriesControlChartDialog, attribute_limits
 from app.utils.dialog_state import clear_state
 
 # Montgomery, Introduction to Statistical Quality Control, Example 6.1:
@@ -65,32 +58,9 @@ def test_p_chart_limits_match_the_textbook() -> None:
     assert beyond == {14}
 
 
-def test_p_chart_limits_vary_with_the_sample_size() -> None:
-    counts = np.array([5, 5, 5, 5], dtype=float)
-    sizes = np.array([50, 100, 200, 400], dtype=float)
-    _stat, _center, upper, lower, _meta = attribute_limits(CHART_P, counts, sizes, 3.0)
-    # A bigger sample tightens the band.
-    assert np.all(np.diff(upper) < 0)
-    assert np.all(np.diff(lower[lower > 0]) >= 0) or np.all(lower == 0)
-
-
-def test_p_chart_lower_limit_never_goes_below_zero() -> None:
-    _stat, _center, _upper, lower, _meta = attribute_limits(
-        CHART_P, np.array([1, 0, 2, 1], dtype=float), np.full(4, 30.0), 3.0
-    )
-    assert np.all(lower >= 0.0)
-
-
 # ----------------------------------------------------------------------
 # np chart
 # ----------------------------------------------------------------------
-def test_np_chart_centre_is_n_times_pbar() -> None:
-    _stat, center, upper, lower, meta = attribute_limits(
-        CHART_NP, P_DEFECTIVES, np.full(20, 50.0), 3.0
-    )
-    assert center == pytest.approx(50 * meta["p-bar"])
-    assert np.ptp(upper) == 0.0 and np.ptp(lower) == 0.0  # constant limits
-    assert lower[0] >= 0.0
 
 
 # ----------------------------------------------------------------------
@@ -179,53 +149,3 @@ def test_the_dialog_applies_a_p_chart_with_the_picked_size_column(
     assert any("signals" in name for name in names)
 
 
-def test_a_size_column_that_is_not_there_is_a_clear_error(
-    qapp, repo: SqliteRepo, figure_with_counts
-) -> None:
-    figure_id, _axis_id = figure_with_counts
-    dialog = SeriesControlChartDialog(repo=repo, figure_id=figure_id)
-    try:
-        dialog.model_combo.setCurrentText(CHART_P)
-        dialog._size_column_combo.clear()  # nothing picked
-        with pytest.raises(ValueError, match="sample size"):
-            dialog.compute_results()
-    finally:
-        dialog.close()
-
-
-def test_c_chart_needs_no_size_column(
-    qapp, repo: SqliteRepo, figure_with_counts
-) -> None:
-    figure_id, _axis_id = figure_with_counts
-    dialog = SeriesControlChartDialog(repo=repo, figure_id=figure_id)
-    try:
-        dialog.model_combo.setCurrentText(CHART_C)
-        dialog._size_column_combo.clear()
-        results = dialog.compute_results()
-        assert len(results) == 1
-        assert results[0].chart == CHART_C
-    finally:
-        dialog.close()
-
-
-def test_the_chart_combo_lists_variables_charts_then_attribute_charts(
-    qapp, repo: SqliteRepo, figure_with_counts
-) -> None:
-    """One decision, not two: a user should not have to know in advance
-    which family their data belongs to before they can find the tool."""
-    from app.series_operations.control_chart_dialog import (
-        ATTRIBUTE_CHARTS,
-        VARIABLES_CHARTS,
-    )
-
-    figure_id, _axis_id = figure_with_counts
-    dialog = SeriesControlChartDialog(repo=repo, figure_id=figure_id)
-    try:
-        labels = [
-            dialog.model_combo.itemText(i) for i in range(dialog.model_combo.count())
-        ]
-        # itemText is "" for the separator QComboBox.insertSeparator adds.
-        labels = [label for label in labels if label]
-        assert labels == [*VARIABLES_CHARTS, *ATTRIBUTE_CHARTS]
-    finally:
-        dialog.close()

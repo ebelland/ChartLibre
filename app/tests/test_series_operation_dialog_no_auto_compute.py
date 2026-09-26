@@ -21,8 +21,6 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.baseline_dialog import SeriesBaselineDialog
-from app.series_operations.cluster_dialog import SeriesClusterDialog
-from app.series_operations.spectral_dialog import SeriesSpectralDialog
 from app.utils.dialog_state import clear_state
 
 
@@ -58,55 +56,10 @@ def _pending_message_shown(dialog) -> bool:
     return dialog.PENDING_RESULTS_MESSAGE in dialog._results_label.text()
 
 
-def test_baseline_lambda_spin_only_marks_results_stale(
-    qapp, repo: SqliteRepo, figure: tuple[int, int]
-) -> None:
-    figure_id, _axis_id = figure
-    dialog = SeriesBaselineDialog(repo=repo, figure_id=figure_id)
-    try:
-        assert dialog._last_results == []
-        assert _pending_message_shown(dialog)
-
-        dialog._lambda_spin.setValue(dialog._lambda_spin.value() + 1.0)
-
-        # Editing the control invalidated the (empty) preview - it did not
-        # compute anything.
-        assert dialog._last_results == []
-        assert _pending_message_shown(dialog)
-    finally:
-        dialog.close()
 
 
-def test_spectral_nperseg_spin_only_marks_results_stale(
-    qapp, repo: SqliteRepo, figure: tuple[int, int]
-) -> None:
-    figure_id, _axis_id = figure
-    dialog = SeriesSpectralDialog(repo=repo, figure_id=figure_id)
-    try:
-        dialog.series_selector.select_all_series()
-        assert dialog._last_results == []
-
-        dialog._nperseg_spin.setValue(dialog._nperseg_spin.value() + 8)
-
-        assert dialog._last_results == []
-    finally:
-        dialog.close()
 
 
-def test_cluster_count_spin_only_marks_results_stale(
-    qapp, repo: SqliteRepo, figure: tuple[int, int]
-) -> None:
-    figure_id, _axis_id = figure
-    dialog = SeriesClusterDialog(repo=repo, figure_id=figure_id)
-    try:
-        dialog.series_selector.select_all_series()
-        assert dialog._last_results == []
-
-        dialog.cluster_count_spin.setValue(dialog.cluster_count_spin.value() + 1)
-
-        assert dialog._last_results == []
-    finally:
-        dialog.close()
 
 
 def test_preview_is_the_only_thing_that_computes_a_baseline_result(

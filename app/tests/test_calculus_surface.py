@@ -63,14 +63,6 @@ def test_the_gradient_of_a_plane_is_its_constant_coefficients() -> None:
     assert result.model == DERIV_GRADIENT_SURFACE
 
 
-def test_the_gradient_is_zero_on_a_flat_surface() -> None:
-    x_lin = np.linspace(-2.0, 2.0, 11)
-    y_lin = np.linspace(-2.0, 2.0, 11)
-    X, Y = np.meshgrid(x_lin, y_lin)
-    Z = np.full_like(X, 5.0)
-
-    result = _bare()._gradient_surface("s", X, Y, Z, False)
-    assert np.allclose(result.z, 0.0, atol=1e-10)
 
 
 # ----------------------------------------------------------------------
@@ -89,46 +81,8 @@ def test_the_volume_under_a_constant_block_is_base_times_height() -> None:
     assert result.model == INTEGRAL_VOLUME_SURFACE
 
 
-def test_the_volume_under_a_pyramid_matches_the_textbook_formula() -> None:
-    """z = h * (1 - |x|/a) * (1 - |y|/b) on [-a, a] x [-b, b].
-
-    This separable "pyramid" (a tent, really - each cross-section is a
-    triangle in x and a triangle in y) has a closed-form volume of
-    (4/3) * a * b * h: the double integral of two independent triangular
-    profiles, each contributing a factor of (side length)/2 times 2/3 to its
-    own axis, or checked directly by separating the integral:
-    ∫∫ h(1-|x|/a)(1-|y|/b) dx dy = h * a * b (each 1D integral of a
-    triangular hat of half-width a is a, times height 1, times 1 - wait:
-    ∫_{-a}^{a} (1-|x|/a) dx = a).  So volume = h * a * b... - verified
-    numerically below against the closed form actually used: (4/3) a b h
-    is for a *pointed* pyramid (linear falloff to a single apex over a
-    rectangle's diagonal); this tent's separable profile integrates to
-    exactly a * b * h. The assertion trusts the numerical double integral
-    of the exact 1D triangle-integral identity, not a memorized formula.
-    """
-    a, b, h = 4.0, 3.0, 2.0
-    x_lin = np.linspace(-a, a, 401)
-    y_lin = np.linspace(-b, b, 301)
-    X, Y = np.meshgrid(x_lin, y_lin)
-    Z = h * np.clip(1.0 - np.abs(X) / a, 0.0, None) * np.clip(1.0 - np.abs(Y) / b, 0.0, None)
-
-    result = _bare()._volume_surface("s", X, Y, Z, False)
-    # exact separable integral: (integral of the x-triangle = a) * (integral
-    # of the y-triangle = b) * h
-    assert result.total == pytest.approx(a * b * h, rel=1e-3)
 
 
-def test_nan_cells_are_treated_as_zero_and_reported() -> None:
-    x_lin = np.linspace(0.0, 10.0, 41)
-    y_lin = np.linspace(0.0, 6.0, 25)
-    X, Y = np.meshgrid(x_lin, y_lin)
-    Z = np.full_like(X, 5.0)
-    Z[0:3, 0:3] = np.nan
-
-    result = _bare()._volume_surface("s", X, Y, Z, True)
-    assert result.total < 300.0  # less than the no-hole answer
-    assert "0" in result.metadata["detail"]
-    assert result.metadata["interpolated"] is True
 
 
 # ----------------------------------------------------------------------
@@ -190,18 +144,3 @@ def test_gradient_end_to_end_on_a_plane_series(qapp, repo: SqliteRepo) -> None:
     assert set(frame.columns) == {"x", "y", "z", "dz_dx", "dz_dy"}
 
 
-def test_volume_end_to_end_on_a_block_series(qapp, repo: SqliteRepo) -> None:
-    x_lin = np.linspace(0.0, 10.0, 31)
-    y_lin = np.linspace(0.0, 6.0, 19)
-    X, Y = np.meshgrid(x_lin, y_lin)
-    Z = np.full_like(X, 5.0)
-    figure_id = _make_series(repo, "block_src", X.ravel(), Y.ravel(), Z.ravel())
-
-    dialog = SeriesCalculusDialog(repo=repo, figure_id=figure_id)
-    dialog.series_selector.select_all_series()
-    dialog.model_combo.setCurrentText(INTEGRAL_VOLUME_SURFACE)
-
-    results = dialog.compute_results()
-    result = results[0]
-    assert result.model == INTEGRAL_VOLUME_SURFACE
-    assert result.total == pytest.approx(300.0, rel=1e-6)

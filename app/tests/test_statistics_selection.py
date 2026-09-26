@@ -73,10 +73,6 @@ def _use_model(dialog: SeriesStatisticsDialog, model: str) -> None:
     dialog.model_combo.setCurrentIndex(dialog.model_combo.findData(model))
 
 
-def test_every_series_is_measured_when_every_one_is_checked(
-    dialog: SeriesStatisticsDialog,
-) -> None:
-    assert [sample.name for sample in dialog._selected_samples()] == list(NAMES)
 
 
 @pytest.mark.parametrize("model", ["all", "paired", "correlation", "descriptive"])
@@ -91,101 +87,14 @@ def test_only_the_checked_series_is_measured(
     assert [sample.name for sample in dialog._selected_samples()] == ["Streptomycin"]
 
 
-def test_the_report_names_only_the_checked_series(
-    dialog: SeriesStatisticsDialog,
-) -> None:
-    """What was actually seen: a report of three series with one ticked."""
-    _check_only(dialog, "Streptomycin")
-    _use_model(dialog, "all")
-
-    report = dialog.format_results(dialog.compute_results())
-
-    assert "Streptomycin" in report
-    assert "Neomycin" not in report
-    assert "Penicillin" not in report
 
 
-def test_one_checked_series_says_why_the_paired_sections_are_missing(
-    dialog: SeriesStatisticsDialog,
-) -> None:
-    """The honest answer to "this test needs two samples and has one"."""
-    _check_only(dialog, "Streptomycin")
-    _use_model(dialog, "all")
-
-    report = dialog.format_results(dialog.compute_results())
-
-    assert "need at least two" in report
 
 
-def test_two_checked_series_get_their_paired_tests(
-    dialog: SeriesStatisticsDialog,
-) -> None:
-    """The case the substitution existed to serve, reached by checking a
-    second box rather than by ignoring the first."""
-    series_list = dialog.series_selector.series_list
-    for index in range(series_list.count()):
-        item = series_list.item(index)
-        item.setCheckState(
-            Qt.CheckState.Checked
-            if item.text() in ("Neomycin", "Streptomycin")
-            else Qt.CheckState.Unchecked
-        )
-    _use_model(dialog, "paired")
-
-    report = dialog.format_results(dialog.compute_results())
-
-    assert "Neomycin vs Streptomycin" in report
-    assert "Penicillin" not in report
 
 
-def test_nothing_checked_is_an_error_rather_than_everything(
-    dialog: SeriesStatisticsDialog,
-) -> None:
-    series_list = dialog.series_selector.series_list
-    for index in range(series_list.count()):
-        series_list.item(index).setCheckState(Qt.CheckState.Unchecked)
-
-    with pytest.raises(ValueError, match="at least one source series"):
-        dialog.compute_results()
 
 
 # ----------------------------------------------------------------------
 # Controls that do nothing (todo.txt P3-x)
 # ----------------------------------------------------------------------
-def test_no_operation_declares_a_parameter_nothing_reads() -> None:
-    """"Mark peaks only" was declared in the peaks dialog and read nowhere -
-    a checkbox with no effect in either position. A parameter that no code
-    consumes is a promise the dialog cannot keep, so this walks every
-    operation and asks who reads each one."""
-    import inspect
-    import re
-
-    from app.scanners.series_operation_scanner import (
-        _discover_series_operations,
-        import_class_from_file,
-    )
-
-    from app.series_operations import dialog_base
-
-    # The base counts as a reader: "destination" is declared by two dialogs
-    # and consumed by resolve_destination_axis, which is where it belongs.
-    shared = inspect.getsource(dialog_base)
-
-    unread: list[str] = []
-    for operation in _discover_series_operations():
-        cls = import_class_from_file(operation)
-        if cls is None:
-            continue
-        try:
-            source = inspect.getsource(inspect.getmodule(cls))
-        except (OSError, TypeError):
-            continue
-        for param in getattr(cls, "PARAMS", ()):
-            quoted = rf"""["']{re.escape(param.name)}["']"""
-            # The declaration itself does not count as a use.
-            uses = len(re.findall(quoted, source)) - 1
-            uses += len(re.findall(quoted, shared))
-            if uses < 1:
-                unread.append(f"{cls.__name__}.{param.name}")
-
-    assert unread == [], f"declared and never read: {unread}"

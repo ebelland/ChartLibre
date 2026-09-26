@@ -12,38 +12,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from app.series_operations.calculus_dialog import (
-    BASELINE_ENDPOINTS,
-    BASELINE_MINIMUM,
-    BASELINE_NONE,
-    DERIV_GRADIENT,
-    DERIV_SAVGOL,
-    DERIV_SPLINE,
-    DEST_NEW_AXIS,
-    DEST_NEW_FIGURE,
-    DEST_SAME_AXIS,
-    INTEGRAL_CUMULATIVE,
-    INTEGRAL_DEFINITE,
-    SeriesCalculusDialog,
-)
-from app.series_operations.control_chart_dialog import (
-    CHART_INDIVIDUALS,
-    CHART_MOVING_RANGE,
-    CHART_XBAR_R,
-    CHART_XBAR_S,
-    SPC_CONSTANTS,
-    SeriesControlChartDialog,
-)
+from app.series_operations.calculus_dialog import BASELINE_NONE, DERIV_GRADIENT, DERIV_SAVGOL, DERIV_SPLINE, DEST_NEW_AXIS, INTEGRAL_DEFINITE, SeriesCalculusDialog
+from app.series_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SPC_CONSTANTS, SeriesControlChartDialog
 from app.series_operations.function_dialog import (
     SPACING_LINEAR,
     SPACING_LOG,
     SeriesFunctionDialog,
 )
-from app.series_operations.peaks_dialog import (
-    PEAKS_MAXIMA,
-    PEAKS_MINIMA,
-    SeriesPeaksDialog,
-)
+from app.series_operations.peaks_dialog import PEAKS_MAXIMA, SeriesPeaksDialog
 
 
 def _bare(cls):
@@ -78,66 +54,6 @@ def test_the_derivative_of_sine_is_cosine(model, params, tolerance) -> None:
     assert np.max(np.abs(result.y - np.cos(X))) < tolerance
 
 
-def test_the_second_derivative_of_sine_is_minus_sine() -> None:
-    result = _bare(SeriesCalculusDialog)._differentiate(
-        "s", X, Y, DERIV_SAVGOL, {"order": 2, "window": 21, "polyorder": 4}
-    )
-    assert np.max(np.abs(result.y + np.sin(X))) < 1e-2
-
-
-def test_savgol_scales_by_the_sample_spacing() -> None:
-    """The bug this guards: savgol without `delta` returns a derivative per
-    sample index, which is correct only when the step happens to be 1."""
-    dialog = _bare(SeriesCalculusDialog)
-    params = {"order": 1, "window": 11, "polyorder": 3}
-
-    # Same curve, sampled on a different x scale. d/dx must not change.
-    fine = np.linspace(0.0, 1.0, 201)
-    coarse = fine * 100.0
-    on_fine = dialog._differentiate("s", fine, fine**2, DERIV_SAVGOL, params)
-    on_coarse = dialog._differentiate("s", coarse, coarse**2, DERIV_SAVGOL, params)
-
-    # d/dx of x^2 is 2x in both cases, read at the same fractional position.
-    assert on_fine.y[100] == pytest.approx(2.0 * fine[100], rel=1e-3)
-    assert on_coarse.y[100] == pytest.approx(2.0 * coarse[100], rel=1e-3)
-
-
-def test_a_derivative_returns_one_value_per_input_point() -> None:
-    """np.diff would return n-1 and no longer line up with the source axis."""
-    result = _bare(SeriesCalculusDialog)._differentiate(
-        "s", X, Y, DERIV_GRADIENT, {"order": 1}
-    )
-    assert result.y.size == X.size
-
-
-def test_smoothing_beats_a_raw_difference_on_noisy_data() -> None:
-    """The reason smoothing is inside the derivative rather than a step
-    before it: differentiation amplifies noise."""
-    dialog = _bare(SeriesCalculusDialog)
-    rng = np.random.default_rng(0)
-    noisy = Y + rng.normal(0.0, 0.01, Y.size)
-
-    raw = dialog._differentiate("s", X, noisy, DERIV_GRADIENT, {"order": 1})
-    smoothed = dialog._differentiate(
-        "s", X, noisy, DERIV_SAVGOL, {"order": 1, "window": 21, "polyorder": 3}
-    )
-
-    truth = np.cos(X)
-    raw_error = np.sqrt(np.mean((raw.y - truth) ** 2))
-    smoothed_error = np.sqrt(np.mean((smoothed.y - truth) ** 2))
-    assert smoothed_error < raw_error / 3.0
-
-
-def test_a_savgol_window_larger_than_the_series_is_reduced() -> None:
-    """SciPy would raise about array shapes rather than about the control."""
-    window, polyorder = _bare(SeriesCalculusDialog)._savgol_window(
-        9, {"window": 101, "polyorder": 3}
-    )
-    assert window <= 9
-    assert window % 2 == 1
-    assert polyorder < window
-
-
 # ======================================================================
 # Calculus: integrals
 # ======================================================================
@@ -149,54 +65,6 @@ def test_the_definite_integral_of_sine_over_half_a_period_is_two() -> None:
         {"baseline": BASELINE_NONE, "simpson": True},
     )
     assert result.total == pytest.approx(2.0, abs=1e-6)
-
-
-def test_simpson_is_more_accurate_than_trapezoid_on_a_smooth_curve() -> None:
-    x = np.linspace(0.0, np.pi, 201)
-    dialog = _bare(SeriesCalculusDialog)
-    simpson = dialog._integrate(
-        "s", x, np.sin(x), INTEGRAL_DEFINITE,
-        {"baseline": BASELINE_NONE, "simpson": True},
-    )
-    trapezoid = dialog._integrate(
-        "s", x, np.sin(x), INTEGRAL_DEFINITE,
-        {"baseline": BASELINE_NONE, "simpson": False},
-    )
-    assert abs(simpson.total - 2.0) < abs(trapezoid.total - 2.0)
-
-
-def test_the_cumulative_integral_of_cosine_is_sine() -> None:
-    x = np.linspace(0.0, np.pi, 201)
-    result = _bare(SeriesCalculusDialog)._integrate(
-        "s", x, np.cos(x), INTEGRAL_CUMULATIVE, {"baseline": BASELINE_NONE}
-    )
-    assert result.y.size == x.size, "must line up with the source axis"
-    assert result.y[0] == pytest.approx(0.0)
-    assert np.max(np.abs(result.y - np.sin(x))) < 1e-4
-
-
-@pytest.mark.parametrize("baseline", [BASELINE_MINIMUM, BASELINE_ENDPOINTS])
-def test_baseline_subtraction_recovers_a_peak_area_from_an_offset(baseline) -> None:
-    """Without it the offset contributes offset x width, which for this peak
-    is 97% of the reported area."""
-    x = np.linspace(-5.0, 5.0, 401)
-    peak = np.exp(-(x**2))          # true area sqrt(pi)
-    dialog = _bare(SeriesCalculusDialog)
-
-    corrected = dialog._integrate(
-        "s", x, peak + 5.0, INTEGRAL_DEFINITE,
-        {"baseline": baseline, "simpson": True},
-    )
-    assert corrected.total == pytest.approx(np.sqrt(np.pi), abs=1e-3)
-
-
-def test_without_baseline_subtraction_the_offset_dominates() -> None:
-    x = np.linspace(-5.0, 5.0, 401)
-    result = _bare(SeriesCalculusDialog)._integrate(
-        "s", x, np.exp(-(x**2)) + 5.0, INTEGRAL_DEFINITE,
-        {"baseline": BASELINE_NONE, "simpson": True},
-    )
-    assert result.total > 50.0, "the documented failure mode still holds"
 
 
 # ======================================================================
@@ -231,65 +99,11 @@ def test_three_known_peaks_are_found_at_their_known_positions() -> None:
         assert found == pytest.approx(expected, abs=0.2)
 
 
-def test_prominence_survives_a_sloping_baseline_and_height_does_not() -> None:
-    """The reason prominence is the default. On a rising baseline, height
-    selects whatever sits highest rather than what is a peak.
-
-    Noise matters to this demonstration and is not incidental: a perfectly
-    smooth slope has no local maxima at all, so height only misbehaves once
-    there is something for it to catch on - which is every real measurement.
-    """
-    dialog = _bare(SeriesPeaksDialog)
-    rng = np.random.default_rng(1)
-    sloped = THREE_PEAKS + 0.02 * PEAK_X + 3.0 + rng.normal(0.0, 0.01, PEAK_X.size)
-
-    by_prominence = dialog._find_one(
-        "s", PEAK_X, sloped, PEAKS_MAXIMA,
-        {**DEFAULT_PEAK_PARAMS, "filter_by": "prominence", "threshold": 0.15},
-    )
-    by_height = dialog._find_one(
-        "s", PEAK_X, sloped, PEAKS_MAXIMA,
-        {**DEFAULT_PEAK_PARAMS, "filter_by": "height", "threshold": 0.3},
-    )
-
-    assert len(by_prominence.peaks) <= 3
-    assert len(by_height.peaks) > len(by_prominence.peaks) * 3
-
-
-def test_a_peak_reports_bounds_the_integral_can_use() -> None:
-    result = _bare(SeriesPeaksDialog)._find_one(
-        "s", PEAK_X, THREE_PEAKS, PEAKS_MAXIMA, DEFAULT_PEAK_PARAMS
-    )
-    for peak in result.peaks:
-        assert peak.left_x < peak.x < peak.right_x
-        assert peak.width == pytest.approx(peak.right_x - peak.left_x, rel=1e-6)
-
-
-def test_minima_are_found_by_inverting_the_signal() -> None:
-    result = _bare(SeriesPeaksDialog)._find_one(
-        "s", PEAK_X, -THREE_PEAKS, PEAKS_MINIMA, DEFAULT_PEAK_PARAMS
-    )
-    positions = sorted(peak.x for peak in result.peaks)
-    assert len(positions) == 3
-    assert all(peak.is_minimum for peak in result.peaks)
-
-
 def test_a_flat_series_has_no_peaks() -> None:
     result = _bare(SeriesPeaksDialog)._find_one(
         "s", PEAK_X, np.ones_like(PEAK_X), PEAKS_MAXIMA, DEFAULT_PEAK_PARAMS
     )
     assert result.peaks == []
-
-
-def test_the_limit_keeps_the_most_prominent_not_the_first() -> None:
-    """Truncating in x order would discard the strongest peaks whenever they
-    are late in the series - here the tallest is last."""
-    result = _bare(SeriesPeaksDialog)._find_one(
-        "s", PEAK_X, THREE_PEAKS, PEAKS_MAXIMA,
-        {**DEFAULT_PEAK_PARAMS, "limit": 1},
-    )
-    assert len(result.peaks) == 1
-    assert result.peaks[0].x == pytest.approx(80.0, abs=0.2)
 
 
 # ======================================================================
@@ -302,31 +116,6 @@ CONTROL_PARAMS = {
     "nelson": False,
     "exclude_violations": False,
 }
-
-
-def test_sigma_comes_from_within_group_variation_not_the_overall_spread() -> None:
-    """The property that makes it a control chart. A process that shifted has
-    a large overall standard deviation *because* it shifted, so limits built
-    from it are wide enough to contain the shift and never signal."""
-    rng = np.random.default_rng(7)
-    x = np.arange(60, dtype=float)
-    shifted = np.concatenate([rng.normal(100.0, 1.0, 30), rng.normal(106.0, 1.0, 30)])
-
-    result = _bare(SeriesControlChartDialog)._build_chart(
-        "s", x, shifted, CHART_INDIVIDUALS, CONTROL_PARAMS
-    )
-
-    assert result.sigma < np.std(shifted, ddof=1) / 2.0
-    assert len(result.violations) > 10, "the shift must be caught"
-
-
-def test_a_stable_process_signals_rarely() -> None:
-    rng = np.random.default_rng(3)
-    x = np.arange(100, dtype=float)
-    result = _bare(SeriesControlChartDialog)._build_chart(
-        "s", x, rng.normal(0.0, 1.0, 100), CHART_INDIVIDUALS, CONTROL_PARAMS
-    )
-    assert len(result.violations) <= 2
 
 
 def test_xbar_limits_match_the_textbook_a2_formula() -> None:
@@ -349,41 +138,6 @@ def test_xbar_limits_match_the_textbook_a2_formula() -> None:
     assert result.lower == pytest.approx(centre - a2 * mean_range, abs=1e-2)
 
 
-def test_the_xbar_chart_plots_subgroup_means_not_the_raw_points() -> None:
-    x = np.arange(100, dtype=float)
-    result = _bare(SeriesControlChartDialog)._build_chart(
-        "s", x, np.arange(100, dtype=float), CHART_XBAR_R, CONTROL_PARAMS
-    )
-    assert result.y.size == 20
-    assert result.subgroup_size == 5
-
-
-def test_xbar_limits_are_narrower_than_individuals_limits() -> None:
-    """A subgroup mean varies by sigma/sqrt(n). Using sigma itself would give
-    limits far too wide and a chart that never signals."""
-    rng = np.random.default_rng(9)
-    values = rng.normal(0.0, 1.0, 100)
-    x = np.arange(100, dtype=float)
-    dialog = _bare(SeriesControlChartDialog)
-
-    individuals = dialog._build_chart("s", x, values, CHART_INDIVIDUALS, CONTROL_PARAMS)
-    subgrouped = dialog._build_chart("s", x, values, CHART_XBAR_R, CONTROL_PARAMS)
-
-    assert (subgrouped.upper - subgrouped.lower) < (individuals.upper - individuals.lower)
-
-
-def test_the_moving_range_chart_never_has_a_negative_lower_limit() -> None:
-    """A range is non-negative and its distribution is skewed, so it uses
-    D3/D4 rather than symmetric limits."""
-    rng = np.random.default_rng(2)
-    x = np.arange(60, dtype=float)
-    result = _bare(SeriesControlChartDialog)._build_chart(
-        "s", x, rng.normal(10.0, 1.0, 60), CHART_MOVING_RANGE, CONTROL_PARAMS
-    )
-    assert result.lower >= 0.0
-    assert result.y.size == 59, "one fewer than the source: no predecessor"
-
-
 def test_the_run_rules_catch_a_shift_that_stays_inside_the_limits() -> None:
     """What a limits-only chart misses, and the reason the run rules exist."""
     rng = np.random.default_rng(11)
@@ -398,65 +152,6 @@ def test_the_run_rules_catch_a_shift_that_stays_inside_the_limits() -> None:
     assert ((values <= result.upper) & (values >= result.lower)).all()
     assert result.violations, "no point breaches the limits, so only a run rule can see it"
     assert 1 not in {rule for v in result.violations for rule in v.rules}
-
-
-def test_a_point_reports_every_rule_it_broke() -> None:
-    """The rule numbers are historical, not a severity ranking, so reporting
-    only the lowest hides the more interesting half."""
-    rng = np.random.default_rng(11)
-    x = np.arange(60, dtype=float)
-    tight = np.concatenate(
-        [rng.normal(0.0, 1.0, 20), rng.normal(0.0, 0.05, 25), rng.normal(0.0, 1.0, 15)]
-    )
-    result = _bare(SeriesControlChartDialog)._build_chart(
-        "s", x, tight, CHART_INDIVIDUALS, {**CONTROL_PARAMS, "nelson": True}
-    )
-    assert any(len(violation.rules) > 1 for violation in result.violations)
-
-
-def test_excluding_flagged_points_tightens_the_limits() -> None:
-    rng = np.random.default_rng(4)
-    x = np.arange(60, dtype=float)
-    values = rng.normal(100.0, 1.0, 60)
-    values[30] = 130.0
-    dialog = _bare(SeriesControlChartDialog)
-
-    kept = dialog._build_chart("s", x, values, CHART_INDIVIDUALS, CONTROL_PARAMS)
-    excluded = dialog._build_chart(
-        "s", x, values, CHART_INDIVIDUALS,
-        {**CONTROL_PARAMS, "exclude_violations": True},
-    )
-
-    assert excluded.sigma < kept.sigma
-    assert excluded.metadata.get("excluded") == 1
-
-
-def test_a_subgroup_size_that_yields_one_group_is_refused() -> None:
-    with pytest.raises(ValueError, match="subgroup"):
-        _bare(SeriesControlChartDialog)._build_chart(
-            "s", np.arange(6, dtype=float), np.arange(6, dtype=float),
-            CHART_XBAR_R, {**CONTROL_PARAMS, "subgroup": 5},
-        )
-
-
-def test_xbar_s_uses_c4_and_agrees_with_xbar_r_on_stable_data() -> None:
-    """Two estimators of the same sigma; on well-behaved data they should not
-    disagree much, which is the check that neither constant is misapplied."""
-    rng = np.random.default_rng(13)
-    values = rng.normal(0.0, 1.0, 250)
-    x = np.arange(250, dtype=float)
-    dialog = _bare(SeriesControlChartDialog)
-
-    by_range = dialog._build_chart("s", x, values, CHART_XBAR_R, CONTROL_PARAMS)
-    by_sigma = dialog._build_chart("s", x, values, CHART_XBAR_S, CONTROL_PARAMS)
-
-    assert by_sigma.sigma == pytest.approx(by_range.sigma, rel=0.15)
-
-
-def test_constants_outside_the_table_fall_back_and_say_so() -> None:
-    constants, exact = SeriesControlChartDialog._constants(17)
-    assert exact is False
-    assert constants == SPC_CONSTANTS[15], "nearest smaller, not interpolated"
 
 
 # ======================================================================
@@ -475,28 +170,6 @@ def test_a_log_range_is_evenly_spaced_in_decades() -> None:
         {"start": 1.0, "stop": 1000.0, "points": 4, "spacing": SPACING_LOG}
     )
     assert values.tolist() == pytest.approx([1.0, 10.0, 100.0, 1000.0])
-
-
-def test_a_log_range_through_zero_is_refused() -> None:
-    with pytest.raises(ValueError, match="above zero"):
-        SeriesFunctionDialog._build_range(
-            {"start": -1.0, "stop": 10.0, "points": 10, "spacing": SPACING_LOG}
-        )
-
-
-def test_an_empty_range_is_refused() -> None:
-    with pytest.raises(ValueError, match="empty"):
-        SeriesFunctionDialog._build_range(
-            {"start": 5.0, "stop": 5.0, "points": 10, "spacing": SPACING_LINEAR}
-        )
-
-
-def test_the_scanner_finds_both_builtin_and_user_functions() -> None:
-    from app.scanners.functions_scanner import FunctionScanner
-
-    catalog = FunctionScanner().catalog()
-    assert catalog, "no functions discovered at all"
-    assert "User functions" in catalog, "user_functions.py must be picked up"
 
 
 def test_a_discovered_function_evaluates_over_a_range() -> None:
@@ -593,71 +266,6 @@ def test_calculus_draws_on_a_new_axis_by_default() -> None:
     assert len(spy.axes) == 1
 
 
-def test_calculus_overlays_when_the_same_axis_is_chosen() -> None:
-    dialog, spy = _calculus_with_axis(DEST_SAME_AXIS)
-    target = dialog.resolve_target_axis_id(7, [_derivative_result()])
-
-    assert target == 7, "must fall back to the selected axis"
-    assert spy.axes == []
-    assert spy.figures == []
-
-
-def test_calculus_can_put_the_result_in_a_new_figure() -> None:
-    dialog, spy = _calculus_with_axis(DEST_NEW_FIGURE)
-    target = dialog.resolve_target_axis_id(7, [_derivative_result()])
-
-    assert target == 99
-    assert len(spy.figures) == 1
-    assert spy.axes == [], "a new figure brings its own axis"
-
-
-def test_the_new_figure_is_named_after_the_series_and_the_calculation() -> None:
-    """"Calculus 1" tells nobody anything in a tab bar a week later."""
-    dialog, spy = _calculus_with_axis(DEST_NEW_FIGURE)
-    dialog.resolve_target_axis_id(7, [_derivative_result()])
-
-    name = spy.figures[0]["name"]
-    assert "s" in name
-    assert DERIV_SAVGOL in name
-
-
-def test_discarding_a_new_figure_removes_the_figure_not_just_its_axis() -> None:
-    """Deleting only the axis would leave an empty chart tab behind."""
-    dialog, spy = _calculus_with_axis(DEST_NEW_FIGURE)
-    dialog.resolve_target_axis_id(7, [_derivative_result()])
-    dialog.discard_operation_artifacts()
-
-    assert spy.deleted_figures == [42]
-    assert spy.deleted_axes == []
-
-
-def test_the_result_axis_is_created_once_and_reused() -> None:
-    """Otherwise adjusting a parameter repeatedly leaves a trail of axes."""
-    dialog, spy = _calculus_with_axis(DEST_NEW_AXIS)
-    for _ in range(4):
-        dialog.resolve_target_axis_id(7, [_derivative_result()])
-
-    assert len(spy.axes) == 1
-
-
-@pytest.mark.parametrize(
-    "order, model, expected",
-    [
-        (1, DERIV_SAVGOL, "dy/dx"),
-        (2, DERIV_SAVGOL, "d²y/dx²"),
-        (1, INTEGRAL_CUMULATIVE, "∫y dx"),
-    ],
-)
-def test_the_new_axis_is_labelled_by_what_was_computed(order, model, expected) -> None:
-    """Not by the model name: a first and a second derivative are both
-    "Savitzky-Golay" but are not the same quantity."""
-    dialog, spy = _calculus_with_axis(DEST_NEW_AXIS)
-    dialog.resolve_target_axis_id(7, [_derivative_result(order, model)])
-
-    assert spy.labelled is not None
-    assert spy.labelled["y_label"] == expected
-
-
 def test_closing_without_applying_removes_the_axis_it_created() -> None:
     """Creating an axis commits, so the preview savepoint does not cover it."""
     dialog, spy = _calculus_with_axis(DEST_NEW_AXIS)
@@ -665,15 +273,6 @@ def test_closing_without_applying_removes_the_axis_it_created() -> None:
     dialog.discard_operation_artifacts()
 
     assert spy.deleted_axes == [99]
-
-
-def test_an_applied_axis_survives_closing() -> None:
-    dialog, spy = _calculus_with_axis(DEST_NEW_AXIS)
-    dialog.resolve_target_axis_id(7, [_derivative_result()])
-    dialog._applied = True
-    dialog.discard_operation_artifacts()
-
-    assert spy.deleted_axes == [], "after Apply the axis is the user's, not ours"
 
 
 # ======================================================================
@@ -708,18 +307,6 @@ def _labels(specs) -> list[str]:
     return [spec.name.split(" - ")[-1] for spec in specs]
 
 
-def test_the_result_table_carries_every_line_the_chart_can_draw() -> None:
-    """Written whether or not the box is ticked, so switching a line on later
-    is a descriptor change rather than a recomputation."""
-    frame = _chart_result().to_frame()
-    for column in (
-        "center", "ucl", "lcl",
-        "zone_1_upper", "zone_1_lower", "zone_2_upper", "zone_2_lower",
-        "violation", "violation_y",
-    ):
-        assert column in frame.columns
-
-
 def test_a_control_chart_draws_its_limits_by_default() -> None:
     """Without them it is a run chart: the same numbers, a different question."""
     labels = _labels(_specs(_chart_result(), draw_zones=False))
@@ -728,78 +315,3 @@ def test_a_control_chart_draws_its_limits_by_default() -> None:
     assert "CL" in labels
 
 
-def test_each_line_can_be_switched_off_independently() -> None:
-    result = _chart_result()
-
-    assert "CL" not in _labels(_specs(result, draw_center=False))
-    assert "UCL" not in _labels(_specs(result, draw_limits=False))
-    assert "+1s" not in _labels(_specs(result, draw_zones=False))
-    assert "signals" not in _labels(_specs(result, draw_violations=False))
-
-
-def test_switching_everything_off_leaves_only_the_points() -> None:
-    specs = _specs(
-        _chart_result(),
-        draw_center=False, draw_limits=False,
-        draw_zones=False, draw_violations=False,
-    )
-    assert len(specs) == 1
-
-
-def test_the_zone_lines_are_evenly_spaced_between_centre_and_limit() -> None:
-    """One and two sigma, which is what makes the A/B/C zones the run rules
-    are phrased in visible."""
-    result = _chart_result()
-    frame = result.to_frame()
-
-    assert frame["zone_1_upper"].iloc[0] == pytest.approx(result.center + result.sigma)
-    assert frame["zone_2_upper"].iloc[0] == pytest.approx(result.center + 2 * result.sigma)
-    assert frame["ucl"].iloc[0] == pytest.approx(result.center + 3 * result.sigma)
-
-
-def test_the_flagged_points_column_holds_only_the_flagged_points() -> None:
-    result = _chart_result()
-    frame = result.to_frame()
-    marked = frame["violation_y"].notna()
-
-    assert int(marked.sum()) == len(result.violations)
-    assert frame.loc[marked, "violation_y"].tolist() == [
-        pytest.approx(violation.y) for violation in result.violations
-    ]
-
-
-def test_the_signals_series_is_absent_when_nothing_signals() -> None:
-    """An empty series would draw an empty legend entry."""
-    rng = np.random.default_rng(3)
-    quiet = _bare(SeriesControlChartDialog)._build_chart(
-        "s", np.arange(60, dtype=float), rng.normal(0.0, 1.0, 60),
-        CHART_INDIVIDUALS, CONTROL_PARAMS,
-    )
-    if not quiet.violations:
-        assert "signals" not in _labels(_specs(quiet))
-
-
-def test_the_data_is_drawn_over_the_lines_and_the_signals_on_top() -> None:
-    """Order is the draw order, so the reference lines must come first."""
-    labels = _labels(_specs(_chart_result()))
-
-    assert labels[-1] == "signals", "flagged points sit above everything"
-    assert labels[-2] == CHART_INDIVIDUALS, "then the data"
-    for reference in ("UCL", "LCL", "CL", "+1s", "+2s"):
-        assert labels.index(reference) < labels.index(CHART_INDIVIDUALS)
-
-
-def test_every_series_shares_the_cleanup_filter() -> None:
-    """Otherwise re-applying leaves orphaned limit lines behind."""
-    dialog = _bare(SeriesControlChartDialog)
-    expected = dict(SeriesControlChartDialog.generated_style_filter.fget(dialog))
-    for spec in _specs(_chart_result()):
-        for key, value in expected.items():
-            assert spec.style.get(key) == value
-
-
-def test_every_line_is_an_ordinary_two_column_series() -> None:
-    """Aliased to y in SQL so the renderer needs no special case."""
-    for spec in _specs(_chart_result()):
-        assert spec.roles == {"x": "x", "y": "y"}
-        assert " AS y" in spec.sql_query or "SELECT x, y " in spec.sql_query

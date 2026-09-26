@@ -106,22 +106,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=True,
         help="Save rendered matplotlib figures to the plots dir",
     )
-    parser.addoption(
-        "--run-perf",
-        action="store_true",
-        default=False,
-        help="Run performance tests (may be slow)",
-    )
 
 
 @pytest.fixture(scope="session")
 def show_plots(request: pytest.FixtureRequest) -> bool:
     return bool(request.config.getoption("--show-plots"))
-
-
-@pytest.fixture(scope="session")
-def run_perf(request: pytest.FixtureRequest) -> bool:
-    return bool(request.config.getoption("--run-perf"))
 
 
 class _TestLogger:

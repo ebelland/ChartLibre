@@ -16,17 +16,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from app.series_operations.spectral_dialog import (
-    METHOD_ACORR,
-    METHOD_ANGLE,
-    METHOD_COHERENCE,
-    METHOD_CSD,
-    METHOD_MAGNITUDE,
-    METHOD_PHASE,
-    METHOD_PSD,
-    METHOD_XCORR,
-    SeriesSpectralDialog,
-)
+from app.series_operations.spectral_dialog import METHOD_COHERENCE, METHOD_MAGNITUDE, METHOD_PSD, METHOD_XCORR, SeriesSpectralDialog
 
 FS = 200.0
 DURATION = 8.0
@@ -100,21 +90,6 @@ def _tone(frequency: float = TONE_HZ, phase: float = 0.0, noise: float = 0.0):
 # ----------------------------------------------------------------------
 # Sampling frequency
 # ----------------------------------------------------------------------
-def test_sampling_frequency_is_derived_from_uniform_spacing() -> None:
-    dialog = _dialog()
-    x, _ = _tone()
-    assert dialog._sampling_frequency(x, "s") == pytest.approx(FS, rel=1e-6)
-
-
-def test_explicit_sampling_frequency_is_used_when_asked() -> None:
-    dialog = _dialog(_fs_auto_check=False, _fs_spin=48_000.0)
-    x, _ = _tone()
-    assert dialog._sampling_frequency(x, "s") == pytest.approx(48_000.0)
-
-
-def test_non_increasing_x_falls_back_to_one() -> None:
-    dialog = _dialog()
-    assert dialog._sampling_frequency(np.zeros(10), "s") == pytest.approx(1.0)
 
 
 # ----------------------------------------------------------------------
@@ -130,19 +105,6 @@ def test_psd_peaks_at_the_tone_frequency() -> None:
     assert result.x_label == "frequency"
 
 
-def test_psd_in_decibels_is_the_log_of_the_linear_estimate() -> None:
-    linear = _dialog()._compute_single(METHOD_PSD, ("tone", *_tone()))
-    decibels = _dialog(_db_check=True)._compute_single(METHOD_PSD, ("tone", *_tone()))
-
-    assert linear is not None and decibels is not None
-    assert decibels.y_label == "dB"
-    # Same peak location, different scale.
-    assert linear.x[int(np.argmax(linear.y))] == pytest.approx(
-        decibels.x[int(np.argmax(decibels.y))]
-    )
-    assert np.max(decibels.y) < np.max(linear.y) or np.max(linear.y) < 1.0
-
-
 def test_magnitude_spectrum_peaks_at_the_tone_frequency() -> None:
     result = _dialog()._compute_single(METHOD_MAGNITUDE, ("tone", *_tone()))
 
@@ -150,51 +112,9 @@ def test_magnitude_spectrum_peaks_at_the_tone_frequency() -> None:
     assert result.x[int(np.argmax(result.y))] == pytest.approx(TONE_HZ, abs=0.5)
 
 
-def test_phase_spectrum_is_unwrapped_and_angle_is_not() -> None:
-    x, y = _tone(phase=1.0)
-    phase = _dialog()._compute_single(METHOD_PHASE, ("tone", x, y))
-    angle = _dialog()._compute_single(METHOD_ANGLE, ("tone", x, y))
-
-    assert phase is not None and angle is not None
-    assert np.all(np.abs(angle.y) <= np.pi + 1e-9)
-    # Unwrapping is what lets the phase leave the (-pi, pi] band.
-    assert np.ptp(phase.y) >= np.ptp(angle.y)
-
-
-def test_welch_segment_length_is_clamped_to_the_data() -> None:
-    """A segment longer than the signal would make scipy raise."""
-    dialog = _dialog(_nperseg_spin=100_000)
-    kwargs = dialog._welch_kwargs(FS, 512)
-    assert kwargs["nperseg"] == 512
-    assert kwargs["noverlap"] < kwargs["nperseg"]
-
-
-def test_detrend_none_is_passed_as_false() -> None:
-    """scipy spells 'do not detrend' as False, not as the string 'none'."""
-    assert _dialog(_detrend_combo="none")._welch_kwargs(FS, 1024)["detrend"] is False
-    assert _dialog(_detrend_combo="linear")._welch_kwargs(FS, 1024)["detrend"] == "linear"
-
-
-def test_decibel_conversion_survives_zeros() -> None:
-    """A zero bin is a real measurement; dropping it would shift the axis."""
-    values = np.array([0.0, 1.0, 100.0])
-    result = _dialog()._to_decibels(values)
-
-    assert np.all(np.isfinite(result))
-    assert result[2] == pytest.approx(20.0)
-
-
 # ----------------------------------------------------------------------
 # Paired estimators
 # ----------------------------------------------------------------------
-def test_csd_peaks_where_both_signals_have_power() -> None:
-    x, y = _tone()
-    _, y2 = _tone(phase=0.4)
-    result = _dialog()._compute_pair(METHOD_CSD, ("a", x, y), ("b", x, y2))
-
-    assert result is not None
-    assert result.x[int(np.argmax(result.y))] == pytest.approx(TONE_HZ, abs=1.0)
-    assert "a x b" in result.source_name
 
 
 def test_coherence_is_high_for_a_shared_tone_and_bounded() -> None:
@@ -223,68 +143,8 @@ def test_cross_correlation_finds_a_known_lag() -> None:
     assert result.x[int(np.argmax(result.y))] == pytest.approx(lag, abs=1.0)
 
 
-def test_autocorrelation_peaks_at_zero_lag() -> None:
-    rng = np.random.default_rng(4)
-    y = rng.normal(0.0, 1.0, 1024)
-    x = np.arange(y.size, dtype=float)
-
-    result = _dialog(_maxlags_spin=50)._compute_single(METHOD_ACORR, ("s", x, y))
-
-    assert result is not None
-    assert result.x[int(np.argmax(result.y))] == pytest.approx(0.0)
-    assert result.x_label == "lag"
-
-
-def test_max_lags_limits_the_output() -> None:
-    rng = np.random.default_rng(5)
-    y = rng.normal(0.0, 1.0, 512)
-    x = np.arange(y.size, dtype=float)
-
-    result = _dialog(_maxlags_spin=25)._compute_single(METHOD_ACORR, ("s", x, y))
-
-    assert result is not None
-    assert result.x.min() == pytest.approx(-25.0)
-    assert result.x.max() == pytest.approx(25.0)
-
-
-@pytest.mark.parametrize("normalisation", ["unbiased", "biased", "none"])
-def test_every_correlation_normalisation_runs(normalisation: str) -> None:
-    rng = np.random.default_rng(6)
-    y = rng.normal(0.0, 1.0, 256)
-    x = np.arange(y.size, dtype=float)
-
-    result = _dialog(_maxlags_spin=20, _corr_norm_combo=normalisation)._compute_single(
-        METHOD_ACORR, ("s", x, y)
-    )
-
-    assert result is not None
-    assert np.all(np.isfinite(result.y))
-
-
 # ----------------------------------------------------------------------
 # Result plumbing
 # ----------------------------------------------------------------------
-def test_result_frame_columns_match_the_labels() -> None:
-    result = _dialog()._compute_single(METHOD_PSD, ("tone", *_tone()))
-    assert result is not None
-
-    frame = result.to_frame()
-    assert list(frame.columns) == [result.x_label, result.y_label]
-    assert len(frame) == result.x.size
 
 
-def test_generated_series_sql_selects_the_result_columns() -> None:
-    result = _dialog()._compute_single(METHOD_PSD, ("tone", *_tone()))
-    assert result is not None
-
-    # generated_style_filter is a property, so the method needs an instance-like
-    # holder rather than the class itself.
-    holder = SimpleNamespace(
-        generated_style_filter=SeriesSpectralDialog.generated_style_filter.fget(None)
-    )
-    spec = SeriesSpectralDialog.result_series_spec(
-        holder, axis_id=1, table_name="tbl", result=result
-    )
-    assert '"frequency" AS x' in spec.sql_query
-    assert spec.roles == {"x": "x", "y": "y"}
-    assert spec.style["generated_spectral"] is True

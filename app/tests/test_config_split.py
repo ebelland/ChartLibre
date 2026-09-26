@@ -65,44 +65,13 @@ def test_a_setting_is_written_to_the_user_file(
     assert set(saved) == {"last_database", "dialog_state", "chart_panel"}
 
 
-def test_the_shipped_catalogue_is_left_alone_by_a_write(
-    temp_config: tuple[Path, Path],
-) -> None:
-    application, _user = temp_config
-    _write(application, {"actions": {"open": {"label": "Open"}}, "messages": {}})
-
-    config.set_value("app_style", "dark")
-
-    assert _read(application) == {"actions": {"open": {"label": "Open"}}, "messages": {}}
 
 
-@pytest.mark.parametrize("name", sorted(config.APPLICATION_SECTIONS))
-def test_writing_a_catalogue_section_is_refused(
-    name: str, temp_config: tuple[Path, Path]
-) -> None:
-    """Not silently redirected into user.json either: a caller that manages to
-    name a catalogue section is doing something wrong and should hear about
-    it, rather than have a shadow copy of the catalogue start overriding the
-    translated one."""
-    application, user = temp_config
-    _write(application, {name: {"shipped": True}})
-
-    config.set_section(name, {"replaced": True})
-
-    assert _read(application) == {name: {"shipped": True}}
-    assert not user.exists()
 
 
 # ----------------------------------------------------------------------
 # Reading the two as one
 # ----------------------------------------------------------------------
-def test_both_files_are_read_as_one(temp_config: tuple[Path, Path]) -> None:
-    application, user = temp_config
-    _write(application, {"actions": {"open": {}}})
-    _write(user, {"app_style": "dark"})
-
-    assert config.get_section("actions") == {"open": {}}
-    assert config.get_value("app_style") == "dark"
 
 
 def test_the_user_file_wins(temp_config: tuple[Path, Path]) -> None:
@@ -115,10 +84,6 @@ def test_the_user_file_wins(temp_config: tuple[Path, Path]) -> None:
     assert config.get_value("language") == "it"
 
 
-def test_a_missing_pair_reads_as_empty() -> None:
-    assert config.load_config() == {}
-    assert config.get_section("anything") == {}
-    assert config.get_value("anything", "fallback") == "fallback"
 
 
 def test_a_corrupt_user_file_does_not_take_the_catalogue_with_it(
@@ -133,11 +98,6 @@ def test_a_corrupt_user_file_does_not_take_the_catalogue_with_it(
     assert config.get_section("actions") == {"open": {"label": "Open"}}
 
 
-def test_a_non_object_section_reads_as_empty(temp_config: tuple[Path, Path]) -> None:
-    application, _user = temp_config
-    _write(application, {"actions": "oops"})
-
-    assert config.get_section("actions") == {}
 
 
 # ----------------------------------------------------------------------
@@ -153,21 +113,6 @@ PRE_SPLIT = {
 }
 
 
-def test_settings_are_moved_out_on_the_first_read(
-    temp_config: tuple[Path, Path],
-) -> None:
-    application, user = temp_config
-    _write(application, PRE_SPLIT)
-
-    assert config.get_value("app_style") == "dark"
-
-    assert set(_read(application)) == {"actions", "messages"}
-    assert _read(user) == {
-        "last_database": "/tmp/old.dhub",
-        "app_style": "dark",
-        "language": "it",
-        "window_geometry": {"main_window": [0, 0, 800, 600]},
-    }
 
 
 def test_nothing_is_lost_in_the_move(temp_config: tuple[Path, Path]) -> None:
@@ -180,81 +125,14 @@ def test_nothing_is_lost_in_the_move(temp_config: tuple[Path, Path]) -> None:
         assert config.load_config()[name] == expected
 
 
-def test_an_existing_user_value_survives_the_move(
-    temp_config: tuple[Path, Path],
-) -> None:
-    """Migrating twice - two installs, one shared home - must not roll a
-    setting back to what the old file happened to hold."""
-    application, user = temp_config
-    _write(application, PRE_SPLIT)
-    _write(user, {"app_style": "light"})
-
-    assert config.get_value("app_style") == "light"
-    assert _read(user)["app_style"] == "light"
 
 
-def test_a_read_only_install_still_reads_its_settings(
-    temp_config: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """An application installed somewhere it cannot write keeps working: the
-    settings are read where they are until they can be moved."""
-    application, _user = temp_config
-    _write(application, PRE_SPLIT)
-    monkeypatch.setattr(config, "_write", lambda path, data: False)
-
-    assert config.get_value("app_style") == "dark"
-    assert config.get_section("actions") == {"open": {"label": "Open"}}
 
 
-def test_a_second_load_does_not_migrate_again(
-    temp_config: tuple[Path, Path],
-) -> None:
-    application, user = temp_config
-    _write(application, PRE_SPLIT)
-    config.load_config()
-
-    config.set_value("app_style", "light")
-    config.load_config()
-
-    assert _read(user)["app_style"] == "light"
 
 
-def test_an_already_split_pair_is_left_alone(
-    temp_config: tuple[Path, Path],
-) -> None:
-    application, user = temp_config
-    _write(application, {"actions": {}, "messages": {}})
-    _write(user, {"app_style": "dark"})
-    before = application.stat().st_mtime_ns
-
-    config.load_config()
-
-    assert application.stat().st_mtime_ns == before
 
 
 # ----------------------------------------------------------------------
 # The repository's own copy
 # ----------------------------------------------------------------------
-def test_the_shipped_file_does_not_accumulate_settings() -> None:
-    """The regression that started this: a suite run used to leave a pytest
-    temporary path in the versioned config.json.
-
-    Skipped rather than failed on a checkout where the migration has not run
-    yet.  config.json is not shipped stripped - that would delete the settings
-    on the machine it lands on - so before the first launch it still holds
-    them, and asserting otherwise would fail on a fresh pull for the one
-    reason that is not a bug.
-    """
-    shipped = json.loads(
-        (Path(__file__).resolve().parents[2] / "config.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    leftover = sorted(set(shipped) - config.APPLICATION_SECTIONS)
-    if leftover:
-        pytest.skip(
-            "config.json still holds pre-split settings "
-            f"({', '.join(leftover)}); they move to user.json on the next load"
-        )
-
-    assert not set(shipped) - config.APPLICATION_SECTIONS

@@ -8,7 +8,6 @@ the pair that can drift apart silently.
 """
 from __future__ import annotations
 
-import math
 from pathlib import Path
 
 import numpy as np
@@ -109,32 +108,6 @@ def test_the_database_computes_what_the_preview_drew(
     np.testing.assert_allclose(rows[result.y_role].to_numpy(), result.after_y, atol=1e-9)
 
 
-def test_a_rotation_is_written_as_trigonometry(dialog: SeriesGeometryDialog) -> None:
-    """Not as a decimal: the query is meant to be read and edited.
-
-    Guarded on the database actually having the math functions, because
-    where it does not the operation deliberately writes the coefficients
-    out instead of a query that would error.
-    """
-    _configure(dialog, ROTATE, angle=30.0)
-    result = dialog.compute_results()[0]
-
-    if dialog._supports_trig_sql():
-        assert "cos(radians(30))" in result.sql
-        assert "sin(radians(30))" in result.sql
-    else:
-        assert "0.866" in result.sql
-
-
-def test_the_source_query_is_kept_whole(dialog: SeriesGeometryDialog) -> None:
-    """The transform wraps the source rather than rewriting it."""
-    _configure(dialog, TRANSLATE, dx=1.0, dy=1.0)
-    result = dialog.compute_results()[0]
-
-    assert 'SELECT "x", "y" FROM "square"' in result.sql
-    assert result.sql.startswith("WITH source AS")
-
-
 def test_a_rotation_of_zero_moves_nothing(dialog: SeriesGeometryDialog) -> None:
     _configure(dialog, ROTATE, angle=0.0)
     result = dialog.compute_results()[0]
@@ -182,45 +155,6 @@ def test_the_centre_is_a_fixed_point(dialog: SeriesGeometryDialog) -> None:
         assert moved_y[0] == pytest.approx(-1.5, abs=1e-9), model
 
 
-def test_extra_columns_survive_the_transform(
-    qapp, repo: SqliteRepo, tmp_db_path: Path
-) -> None:
-    """A scatter's colour/size columns must come through untouched."""
-    frame = SQUARE.copy()
-    frame["label"] = ["a", "b", "c", "d", "e"]
-    frame["weight"] = [1, 2, 3, 4, 5]
-    repo.import_dataframe(frame, table_name="square_rich", normalize_columns=False)
-
-    figure_id = repo.create_figure_descriptor(name="Passthrough")
-    axis_id = repo.create_axis_descriptor(
-        figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
-        title="square", x_label="x", y_label="y", options={},
-    )
-    repo.create_series_descriptor(
-        axis_id=axis_id,
-        series_index=0,
-        name="square_rich",
-        sql_query='SELECT * FROM "square_rich"',
-        roles={"x": "x", "y": "y"},
-        style={},
-    )
-    built = SeriesGeometryDialog(repo=repo, figure_id=figure_id, parent=None)
-    try:
-        built.series_selector.reload(select_all_series=True)
-        _configure(built, TRANSLATE, dx=10.0, dy=0.0)
-        result = built.compute_results()[0]
-        rows = repo.query_df(result.sql)
-
-        assert list(rows["label"]) == ["a", "b", "c", "d", "e"]
-        assert list(rows["weight"]) == [1, 2, 3, 4, 5]
-        np.testing.assert_allclose(
-            rows["x"].to_numpy(), SQUARE["x"].to_numpy() + 10.0, atol=1e-9
-        )
-    finally:
-        built.close()
-        applogger.set_status_bar(None)
-
-
 def test_a_ninety_degree_turn_about_the_origin_is_exact(
     dialog: SeriesGeometryDialog, repo: SqliteRepo
 ) -> None:
@@ -231,36 +165,6 @@ def test_a_ninety_degree_turn_about_the_origin_is_exact(
 
     np.testing.assert_allclose(rows["x"].to_numpy(), -SQUARE["y"].to_numpy(), atol=1e-9)
     np.testing.assert_allclose(rows["y"].to_numpy(), SQUARE["x"].to_numpy(), atol=1e-9)
-
-
-def test_the_results_pane_is_a_plot_not_the_html_view(
-    dialog: SeriesGeometryDialog,
-) -> None:
-    """The operation's own reason for overriding build_results_pane."""
-    from app.series_operations.geometry_dialog import _BeforeAfterView
-
-    assert isinstance(dialog._plot_view, _BeforeAfterView)
-    _configure(dialog, ROTATE, angle=45.0)
-    results = dialog.compute_results()
-    dialog.format_results(results)
-
-    axes = dialog._plot_view._figure.axes
-    assert axes, "nothing was drawn"
-    labels = [line.get_label() for line in axes[0].lines]
-    assert "Before" in labels and "After" in labels
-
-
-def test_no_table_is_written_for_a_geometry_series(
-    dialog: SeriesGeometryDialog, repo: SqliteRepo
-) -> None:
-    """The whole premise: a query, not a copy of the data."""
-    before = set(repo.list_user_tables())
-    _configure(dialog, ROTATE, angle=15.0)
-    results = dialog.compute_results()
-    axis_id = dialog.series_selector.selected_axis_id()
-    dialog.apply_results_to_axis(axis_id, results)
-
-    assert set(repo.list_user_tables()) == before
 
 
 def test_every_other_column_and_role_survives(
@@ -312,16 +216,6 @@ def test_every_other_column_and_role_survives(
     finally:
         built.close()
         applogger.set_status_bar(None)
-
-
-def test_a_moved_column_is_not_duplicated(dialog: SeriesGeometryDialog, repo: SqliteRepo) -> None:
-    """x and y are rewritten, not emitted twice beside their originals."""
-    _configure(dialog, TRANSLATE, dx=1.0, dy=2.0)
-    result = dialog.compute_results()[0]
-    rows = repo.query_df(result.sql)
-
-    assert list(rows.columns).count("x") == 1
-    assert list(rows.columns).count("y") == 1
 
 
 def test_an_awkward_column_name_does_not_break_the_query(

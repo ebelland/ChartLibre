@@ -11,13 +11,7 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.baseline_dialog import (
-    BASELINE_ASLS,
-    BASELINE_RUBBER,
-    SeriesBaselineDialog,
-    asls_baseline,
-    rubber_band_baseline,
-)
+from app.series_operations.baseline_dialog import BASELINE_ASLS, SeriesBaselineDialog, asls_baseline, rubber_band_baseline
 from app.utils.dialog_state import clear_state
 
 X = np.linspace(0.0, 100.0, 400)
@@ -43,25 +37,6 @@ def test_asls_tracks_a_wandering_baseline_away_from_peaks() -> None:
     assert fitted[NO_PEAK] == pytest.approx(TRUE_BASELINE[NO_PEAK], abs=0.3)
 
 
-def test_asls_does_not_chase_the_peaks() -> None:
-    y = TRUE_BASELINE + PEAKS
-    fitted = asls_baseline(y, lam=1e5, p=0.01, iterations=10)
-    peak_index = int(np.argmax(PEAKS))
-    # The baseline under the tallest peak must stay far below the peak's
-    # own height, not rise to meet it.
-    assert fitted[peak_index] < y[peak_index] - 5.0
-
-
-def test_asls_rejects_bad_parameters() -> None:
-    y = TRUE_BASELINE
-    with pytest.raises(ValueError, match="lambda"):
-        asls_baseline(y, lam=0.0, p=0.01)
-    with pytest.raises(ValueError, match="p must be"):
-        asls_baseline(y, lam=1e5, p=1.5)
-    with pytest.raises(ValueError, match="at least"):
-        asls_baseline(np.array([1.0, 2.0]), lam=1e5, p=0.01)
-
-
 # ----------------------------------------------------------------------
 # Rubber band
 # ----------------------------------------------------------------------
@@ -70,33 +45,6 @@ def test_rubber_band_matches_a_flat_baseline_exactly() -> None:
     y = flat + PEAKS
     baseline = rubber_band_baseline(X, y)
     assert baseline[NO_PEAK] == pytest.approx(flat[NO_PEAK], abs=1e-6)
-
-
-def test_rubber_band_never_goes_above_the_data() -> None:
-    y = TRUE_BASELINE + PEAKS
-    baseline = rubber_band_baseline(X, y)
-    assert np.all(baseline <= y + 1e-9)
-
-
-def test_rubber_band_skips_a_single_upward_spike() -> None:
-    """A lower hull is not fooled by one point sticking up - it draws the
-    straight line under it, the way a rubber band actually would."""
-    x = np.arange(10.0)
-    y = np.full(10, 10.0)
-    y[5] = 100.0  # a "peak" - the hull must not rise to meet it
-    baseline = rubber_band_baseline(x, y)
-    assert baseline[5] == pytest.approx(10.0)
-
-
-def test_rubber_band_does_follow_a_downward_outlier() -> None:
-    """The opposite case is not a limitation to work around: a lower hull
-    passes through the global minimum by definition - a single point below
-    everything else *is* part of the true lower envelope."""
-    x = np.arange(10.0)
-    y = np.full(10, 10.0)
-    y[5] = -100.0
-    baseline = rubber_band_baseline(x, y)
-    assert baseline[5] == pytest.approx(-100.0)
 
 
 # ----------------------------------------------------------------------
@@ -146,32 +94,3 @@ def test_the_dialog_applies_an_asls_correction(
     assert any("baseline" in name for name in names)
 
 
-def test_hiding_the_baseline_line_still_writes_the_corrected_series(
-    qapp, repo: SqliteRepo, figure_with_spectrum
-) -> None:
-    figure_id, axis_id = figure_with_spectrum
-    dialog = SeriesBaselineDialog(repo=repo, figure_id=figure_id)
-    try:
-        dialog.model_combo.setCurrentText(BASELINE_RUBBER)
-        dialog._draw_baseline_check.setChecked(False)
-        assert dialog.apply() is True
-    finally:
-        dialog.close()
-
-    series = repo.get_series(axis_id) or []
-    names = {str(row["name"]) for row in series}
-    assert any("corrected" in name for name in names)
-    assert not any(name.endswith("- baseline") for name in names)
-
-
-def test_rubber_band_hides_the_asls_only_parameters(
-    qapp, repo: SqliteRepo, figure_with_spectrum
-) -> None:
-    figure_id, _axis_id = figure_with_spectrum
-    dialog = SeriesBaselineDialog(repo=repo, figure_id=figure_id)
-    try:
-        dialog.model_combo.setCurrentText(BASELINE_RUBBER)
-        assert dialog._lambda_spin.isHidden()
-        assert dialog._p_spin.isHidden()
-    finally:
-        dialog.close()

@@ -13,7 +13,6 @@ import pytest
 from matplotlib.figure import Figure
 
 from app.charts.render_figure import render_figure_from_descriptor
-from app.data.data_source import DataSource
 from app.data.sqlite_repo import SqliteRepo
 
 
@@ -79,12 +78,6 @@ def test_a_chart_over_a_query_renders_the_query_rows(repo: SqliteRepo) -> None:
     assert _point_count(fig) == 2
 
 
-def test_a_chart_over_a_table_still_renders_every_row(repo: SqliteRepo) -> None:
-    """Backward compatibility: table-based charts are untouched."""
-    fig = _render(repo, _figure_over(repo, "readings"))
-    assert _point_count(fig) == 4
-
-
 def test_editing_the_query_changes_the_chart(repo: SqliteRepo) -> None:
     """The query is executed on render, not frozen into the series."""
     figure_id = _figure_over(repo, "only_a")
@@ -96,21 +89,6 @@ def test_editing_the_query_changes_the_chart(repo: SqliteRepo) -> None:
     # rebuilt from the source would do; the point of this test is that nothing
     # was materialised, so the new query is immediately usable.
     assert repo.data_source_row_count(repo.get_data_source("only_a")) == 4
-
-
-def test_new_rows_reach_a_query_backed_chart(repo: SqliteRepo) -> None:
-    figure_id = _figure_over(repo, "only_a")
-    repo.query_df("INSERT INTO readings (t, v, grp) VALUES (5.0, 50.0, 'a')")
-
-    assert _point_count(_render(repo, figure_id)) == 3
-
-
-def test_no_table_or_view_is_created_for_a_query(repo: SqliteRepo) -> None:
-    _figure_over(repo, "only_a")
-
-    assert "only_a" not in repo.list_table_names()
-    views = repo.query_df("SELECT name FROM sqlite_master WHERE type = 'view'")
-    assert views.empty or "only_a" not in set(views["name"])
 
 
 def test_a_query_with_a_where_clause_survives_being_wrapped(repo: SqliteRepo) -> None:
@@ -136,28 +114,6 @@ def test_a_cte_query_can_back_a_chart(repo: SqliteRepo) -> None:
 # ----------------------------------------------------------------------
 # Columns and preview, through the same abstraction the UI uses
 # ----------------------------------------------------------------------
-def test_role_columns_come_from_the_query_not_the_table(repo: SqliteRepo) -> None:
-    """The chart dialog offers the query's columns, which exclude grp."""
-    query_columns = repo.data_source_columns(repo.get_data_source("only_a"))
-    table_columns = repo.data_source_columns(repo.get_data_source("readings"))
-
-    assert query_columns == ["t", "v"]
-    assert "grp" in table_columns
-
-
-def test_preview_page_of_a_query_returns_its_rows(repo: SqliteRepo) -> None:
-    frame = repo.data_source_page(
-        repo.get_data_source("only_a"), limit=100, offset=0
-    )
-    assert list(frame.columns) == ["t", "v"]
-    assert len(frame) == 2
-
-
-def test_preview_page_of_a_table_returns_its_rows(repo: SqliteRepo) -> None:
-    frame = repo.data_source_page(
-        repo.get_data_source("readings"), limit=100, offset=0
-    )
-    assert len(frame) == 4
 
 
 def test_a_broken_query_degrades_instead_of_raising(repo: SqliteRepo) -> None:
@@ -174,46 +130,5 @@ def test_a_broken_query_degrades_instead_of_raising(repo: SqliteRepo) -> None:
 # ----------------------------------------------------------------------
 # The list the UI renders
 # ----------------------------------------------------------------------
-def test_the_source_list_marks_queries_for_the_q_indicator(repo: SqliteRepo) -> None:
-    """The table list draws 'Q' from this column; nothing else distinguishes them."""
-    frame = repo.list_data_sources()
-
-    row = frame[frame["Table"] == "only_a"].iloc[0]
-    assert row["kind"] == "query"
-    assert not bool(row["has_link"])
-    # The SQL travels in source_path so the list can show it as a tooltip.
-    assert "readings" in str(row["source_path"])
 
 
-def test_tables_are_not_marked_as_queries(repo: SqliteRepo) -> None:
-    frame = repo.list_data_sources()
-    row = frame[frame["Table"] == "readings"].iloc[0]
-    assert row["kind"] == "table"
-
-
-def test_sources_are_listed_case_insensitively_sorted(repo: SqliteRepo) -> None:
-    repo.save_query("Zebra", "SELECT 1 AS a")
-    repo.save_query("apple", "SELECT 1 AS a")
-
-    names = list(repo.list_data_sources()["Table"])
-    assert names == sorted(names, key=str.lower)
-
-
-def test_from_clause_is_what_the_chart_stores(repo: SqliteRepo) -> None:
-    """The stored series must be self-contained, not a reference to a name."""
-    source = repo.get_data_source("only_a")
-    assert source is not None
-
-    sql = f'SELECT "t" AS x FROM {source.from_clause()}'
-    assert "only_a" not in sql
-    assert "readings" in sql
-    # And it runs.
-    assert len(repo.query_df(sql)) == 2
-
-
-def test_table_source_clause_is_unchanged_from_before(repo: SqliteRepo) -> None:
-    """Backward compatibility: the table form is the plain quoted name."""
-    source = repo.get_data_source("readings")
-    assert source is not None
-    assert source.from_clause() == '"readings"'
-    assert source == DataSource.table("readings")

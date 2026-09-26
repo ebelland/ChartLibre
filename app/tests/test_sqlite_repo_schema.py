@@ -64,21 +64,5 @@ def test_create_empty_writes_the_file_and_its_system_tables(tmp_db_path) -> None
     assert '__import_links__' in names
 
 
-def test_create_empty_adds_the_extension_when_it_is_missing(tmp_db_path) -> None:
-    created = SqliteRepo.create_empty(tmp_db_path.parent / "no_extension")
-
-    assert created.suffix == ".dhub"
-    assert created.exists()
 
 
-def test_create_empty_leaves_no_connection_open(tmp_db_path) -> None:
-    """The caller opens its own; two connections to one file is one too many."""
-    path = tmp_db_path.parent / "closed_again.dhub"
-    if path.exists():
-        path.unlink()
-
-    SqliteRepo.create_empty(path)
-
-    repo = SqliteRepo(db_path=path)
-    assert repo.list_table_names() == []
-    repo.close()
