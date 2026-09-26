@@ -61,6 +61,7 @@ from app.styles.style import (
     action_presentation,
     SPACING_DEFAULT,
     SPLITTER_HANDLE_WIDTH,
+    apply_fusion_for_item_view_styling,
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
     CardFrame,
@@ -99,6 +100,8 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
+    QListWidget,
+    QListWidgetItem,
     QLayout,
     QMainWindow,
     QMenu,
@@ -892,50 +895,35 @@ class MainWindow(QMainWindow):
         save_row.addStretch(1)
         layout.addLayout(save_row)
 
+    #: Rows the recent-projects list shows before it scrolls.
+    _RECENT_VISIBLE_ROWS: int = 8
+
     def _fill_recent_card(self, card: CardFrame) -> None:
         self._file_page = card
-        self._recent_list_layout = self._card_layout(card)
-        self._refresh_recent_list()
+        layout = self._card_layout(card)
 
-    def _refresh_recent_list(self) -> None:
-        """(Re)populate the File page's Open Recent list from user.json.
+        self._recent_list = QListWidget(card)
+        self._recent_list.setObjectName("recentProjectsList")
+        apply_fusion_for_item_view_styling(self._recent_list)
+        self._recent_list.setAlternatingRowColors(True)
+        self._recent_list.setFrameShape(QFrame.Shape.NoFrame)
+        self._recent_list.setUniformItemSizes(True)
+        self._recent_list.setIconSize(QSize(20, 20))
+        self._recent_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._recent_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        # One click opens, the way Finder's and Xcode's recent lists do.
+        self._recent_list.itemClicked.connect(self._on_recent_item_clicked)
+        layout.addWidget(self._recent_list)
 
-        A list of one button per line, not the dropdown this used to be -
-        every entry visible at once, the way the rest of this page already
-        reads. Rebuilt on every call rather than cached: user.json's recent
-        list changes between visits to this page (opening or saving a
-        project adds to it), the same reason the native File menu's own
-        Open Recent submenu rebuilds itself on every show.
-        """
-        layout = self._recent_list_layout
-        self._clear_layout(layout)
-
-        recent = get_recent_databases()
-        if not recent:
-            placeholder = QLabel(_("No recent projects"), self._file_page)
-            placeholder.setProperty("muted", True)
-            layout.addWidget(placeholder)
-            return
-
-        open_icon, _open_text, _open_tooltip = action_presentation("open")
-        for path in recent:
-            row = QHBoxLayout()
-            stdSizeAndlayout(row)
-            create_action_button(
-                parent=self._file_page,
-                action_id="open",
-                action=partial(self._on_open_recent, path),
-                layout=row,
-                presentation=(open_icon, path.name, str(path.parent)),
-            )
-            row.addStretch(1)
-            layout.addLayout(row)
+        self._recent_placeholder = QLabel(_("No recent projects"), card)
+        self._recent_placeholder.setProperty("muted", True)
+        layout.addWidget(self._recent_placeholder)
 
         clear_row = QHBoxLayout()
         stdSizeAndlayout(clear_row)
         clear_icon, _clear_text, _clear_tooltip = action_presentation("clear")
-        clear_button = create_action_button(
-            parent=self._file_page,
+        self._recent_clear_button = create_action_button(
+            parent=card,
             action_id="clear",
             action=self._on_clear_recent,
             layout=clear_row,
@@ -945,33 +933,49 @@ class MainWindow(QMainWindow):
                 _("Forget the list of recently opened projects"),
             ),
         )
-        # Red, not just another left-aligned button in the same column as
-        # every recent-project row above it - the whole list otherwise reads
-        # as one undifferentiated stack of rows, with nothing marking this
-        # one as the one a misclick cannot undo.
-        mark_destructive_button(clear_button)
+        # Red: the one button here a misclick cannot undo.
+        mark_destructive_button(self._recent_clear_button)
         clear_row.addStretch(1)
         layout.addLayout(clear_row)
 
-    @staticmethod
-    def _clear_layout(layout: QLayout) -> None:
-        """Empty *layout*, deleting every widget it holds - nested
-        sub-layouts (one QHBoxLayout row per recent entry) included.
-        ``takeAt`` alone only detaches an item; the widget underneath
-        stays alive and parented, so without this each refresh would
-        leave the previous run's buttons sitting invisibly on top of
-        the new ones."""
-        while layout.count():
-            item = layout.takeAt(0)
-            if item is None:
-                continue
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-                continue
-            sub_layout = item.layout()
-            if sub_layout is not None:
-                MainWindow._clear_layout(sub_layout)
+        self._refresh_recent_list()
+
+    def _on_recent_item_clicked(self, item: QListWidgetItem) -> None:
+        path = item.data(Qt.ItemDataRole.UserRole)
+        if path:
+            self._on_open_recent(Path(str(path)))
+
+    def _refresh_recent_list(self) -> None:
+        """(Re)populate the File page's Open Recent list from user.json.
+
+        A list, one project per row: its name, and its folder under it.
+        Rebuilt on every call - user.json's recent list changes between
+        visits to this page, the same reason the native File menu's Open
+        Recent submenu rebuilds itself on every show.
+        """
+        if not hasattr(self, "_recent_list"):
+            return
+        recent = get_recent_databases()
+        self._recent_list.clear()
+        open_icon = action_presentation("open")[0]
+        for path in recent:
+            folder = str(path.parent)
+            home = str(Path.home())
+            if folder.startswith(home):
+                folder = "~" + folder[len(home):]
+            item = QListWidgetItem(open_icon, f"{path.name}\n{folder}")
+            item.setToolTip(str(path))
+            item.setData(Qt.ItemDataRole.UserRole, str(path))
+            self._recent_list.addItem(item)
+
+        has_any = bool(recent)
+        self._recent_list.setVisible(has_any)
+        self._recent_clear_button.setVisible(has_any)
+        self._recent_placeholder.setVisible(not has_any)
+        if has_any:
+            row_height = max(self._recent_list.sizeHintForRow(0), 1)
+            rows = min(len(recent), self._RECENT_VISIBLE_ROWS)
+            self._recent_list.setFixedHeight(row_height * rows + 2)
 
     def _create_database_page(self) -> QWidget:
         """Query Builder, plus the database overview (info/tables/Optimize
