@@ -6562,3 +6562,8 @@ msgstr "Scartare le modifiche?"
 msgid "Every change made in this editor will be undone, and the table put back as it was.\n\nThis cannot be redone."
 msgstr "Tutte le modifiche fatte in questo editor verranno annullate e la tabella tornera' com'era.\n\nL'operazione non puo' essere ripristinata."
 
+msgid "Real case studies - CO2, sunspots, earthquakes and warming"
+msgstr "Casi di studio reali - CO2, macchie solari, terremoti e riscaldamento"
+
+msgid "Four published results, each on the institution's own published data rather than on anything invented here (downloaded by app/data/fetch_case_study_data.py): the Keeling curve breathing once a year on top of its rise from 315 to 428 ppm; 277 years of sunspot counts whose spectrum - computed by the Spectral operation's own FFT - peaks at 11.1 years, the cycle Schwabe read off by eye in 1843; a month of earthquakes obeying Gutenberg-Richter with b = 1.06 above the magnitude the catalogue is complete at, and visibly departing from it below; and 146 years of global temperature anomaly."
+msgstr "Quattro risultati pubblicati, ciascuno sui dati pubblicati dall'istituzione stessa e non su dati inventati qui (scaricati da app/data/fetch_case_study_data.py): la curva di Keeling che respira una volta l'anno sopra la sua salita da 315 a 428 ppm; 277 anni di conteggi delle macchie solari il cui spettro - calcolato dalla FFT dell'operazione Spettrale - ha il picco a 11,1 anni, il ciclo che Schwabe lesse a occhio nel 1843; un mese di terremoti che segue la legge di Gutenberg-Richter con b = 1,06 sopra la magnitudo di completezza del catalogo, e se ne discosta visibilmente al di sotto; e 146 anni di anomalia della temperatura globale."
