@@ -207,9 +207,10 @@ class MainWindow(QMainWindow):
                 self.setWindowFlag(EXPANDED_CLIENT_AREA_HINT, True)
             self.setWindowFlag(Qt.WindowType.NoTitleBarBackgroundHint, True)
             self.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
-        #: Set on the first showEvent: the title is hidden once, when the
-        #: native window exists (see hide_native_macos_window_title).
-        self._native_title_hidden: bool = False
+            # AppKit can bring the title text back (a new native window,
+            # a title change), so it is hidden again whenever that can
+            # happen - see _hide_native_title.
+            self.windowTitleChanged.connect(lambda _title: self._hide_native_title())
         self.resize(1200, 800)
 
         # Debounce for property-driven chart reloads (see _redraw_properties_chart).
@@ -2791,9 +2792,22 @@ class MainWindow(QMainWindow):
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Hide the native title text once the window has a native handle."""
         super().showEvent(event)
-        if IS_MACOS and not self._native_title_hidden:
-            self._native_title_hidden = True
-            hide_native_macos_window_title(self)
+        self._hide_native_title()
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.WindowStateChange:
+            self._hide_native_title()
+
+    def _hide_native_title(self) -> None:
+        """macOS: keep AppKit from drawing the title over the rail.
+
+        Deferred to the next event-loop turn, so the NSWindow exists and has
+        finished whatever it was doing; cheap and idempotent, so it is simply
+        repeated on every show, title change and window-state change.
+        """
+        if IS_MACOS and self.isVisible():
+            QTimer.singleShot(0, self, lambda: hide_native_macos_window_title(self))
 
     def _resize_edge_at(self, pos: QPoint) -> Qt.Edge:
         """Return which edge(s) of _central_host *pos* is within the margin of.
