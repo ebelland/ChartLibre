@@ -16,8 +16,9 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QSizePolicy, QToolButt
 
 from app.styles.style import IS_MACOS, action_presentation
 
-#: Tall enough to sit level with the macOS traffic lights' strip.
-JUMP_BAR_HEIGHT: int = 32
+#: A little taller than the macOS traffic lights' strip, so the 28 px
+#: arrow buttons have room above and below them.
+JUMP_BAR_HEIGHT: int = 36
 
 
 class ChartJumpBar(QFrame):
@@ -65,7 +66,7 @@ class ChartJumpBar(QFrame):
         button.setAutoRaise(True)
         button.setAccessibleName(text)
         button.setToolTip(tooltip)
-        button.setFixedSize(28, 24)
+        button.setFixedSize(28, 28)
         button.clicked.connect(callback)
         return button
 
