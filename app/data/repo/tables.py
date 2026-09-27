@@ -240,6 +240,11 @@ class TablesMixin:
             applogger.exception("Failed to read source '%s'", source.name)
             return pd.DataFrame()
 
+    def visible_rows(self, table_name: str) -> pd.DataFrame:
+        """Every row of a table that is not marked Hide, as the charts see it."""
+        where = ' WHERE COALESCE("Hide", 0) = 0' if "Hide" in self.get_columns(table_name) else ""
+        return self.query_df(f"SELECT * FROM {_quote_ident(table_name)}{where}")
+
     def validate_query(self, sql: str) -> tuple[bool, str]:
         """Return (ok, message) for a candidate saved query.
 

@@ -401,6 +401,18 @@ class DescriptorsMixin:
         self._commit()
         return int(cur.lastrowid or 0)
 
+    @ensure_connection_wrapper
+    def figure_chart_types(self) -> dict[int, str]:
+        """{figure id: chart type of its first axis}, for labelling charts in lists."""
+        assert self._con is not None
+        types: dict[int, str] = {}
+        rows = self._con.execute(
+            "SELECT figure_id, chart_type FROM __axis_descriptors__ ORDER BY axis_index DESC"
+        ).fetchall()
+        for figure_id, chart_type in rows:
+            types[int(figure_id)] = str(chart_type or "")
+        return types
+
     def load_figures_from_db(self) -> list[tuple[int, str]]:
         """Load all figures from database as (id, name) tuples."""
         df = self.query_df("SELECT id, name FROM __figure_descriptors__ ORDER BY id")

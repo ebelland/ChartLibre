@@ -549,8 +549,7 @@ class TablePreviewPanel(QWidget):
                 frame = model.frame
             else:
                 assert self._repo is not None
-                where = ' WHERE COALESCE("Hide", 0) = 0' if "Hide" in self._repo.get_columns(self._table) else ""
-                frame = self._repo.query_df(f"SELECT * FROM {_quote_table(self._table)}{where}")
+                frame = self._repo.visible_rows(self._table)
         except Exception as exc:
             applogger.exception("Export rows failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))

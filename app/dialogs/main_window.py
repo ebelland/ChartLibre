@@ -2003,14 +2003,11 @@ class MainWindow(QMainWindow):
         names = [self._tabs.tabText(i) for i in range(self._tabs.count())]
         current = self._tabs.currentIndex()
         if rebuild:
-            chart_types: dict[int, str] = {}
             try:
-                for figure_id, chart_type in self._repo._con.execute(
-                    "SELECT figure_id, chart_type FROM __axis_descriptors__ ORDER BY axis_index DESC"
-                ):
-                    chart_types[int(figure_id)] = str(chart_type or "")
+                chart_types = self._repo.figure_chart_types()
             except Exception:
                 applogger.debug("Chart types for the sidebar could not be read.", exc_info=True)
+                chart_types = {}
             charts = []
             for i, name in enumerate(names):
                 widget = self._tabs.widget(i)
