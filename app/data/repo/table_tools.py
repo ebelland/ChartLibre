@@ -22,7 +22,7 @@ CAST_TYPES: tuple[str, ...] = ("REAL", "INTEGER", "TEXT")
 FILL_METHODS: tuple[str, ...] = ("constant", "mean", "median", "previous", "linear")
 
 #: Aggregates group_aggregate offers, as SQL function names.
-AGGREGATES: tuple[str, ...] = ("COUNT", "SUM", "AVG", "MIN", "MAX")
+AGGREGATES: tuple[str, ...] = ("COUNT", "SUM", "AVG", "MIN", "MAX", "COUNT_DISTINCT")
 
 
 class TableToolsMixin:
@@ -326,45 +326,105 @@ class TableToolsMixin:
         self._commit()
         return changed
 
+    def _group_select(
+        self,
+        table_name: str,
+        group_by: Sequence[str],
+        measures: Sequence[tuple[str, str | None]],
+        include_hidden: bool = False,
+    ) -> str:
+        """The SELECT behind group_aggregate, checked against the schema.
+
+        *measures* are (aggregate, column) pairs; COUNT with no column counts
+        rows. No grouping column is allowed too: one row of totals.
+        """
+        schema_names = [name for name, _kind in self._schema(table_name)]
+        groups = [g for g in group_by if g in schema_names]
+        if not measures:
+            raise ValueError("add at least one measure")
+        selected: list[str] = [_quote_ident(g) for g in groups]
+        labels: set[str] = {g.lower() for g in groups}
+        for aggregate, column in measures:
+            func = str(aggregate or "").upper()
+            if func not in AGGREGATES:
+                raise ValueError(f"'{aggregate}' is not one of {', '.join(AGGREGATES)}")
+            if column is None and func == "COUNT":
+                measure, label = "COUNT(*)", "count"
+            elif column not in schema_names:
+                raise ValueError(f"choose the column to aggregate with {func}")
+            elif func == "COUNT_DISTINCT":
+                measure, label = f"COUNT(DISTINCT {_quote_ident(str(column))})", f"distinct_{column}"
+            else:
+                measure, label = f"{func}({_quote_ident(str(column))})", f"{func.lower()}_{column}"
+            unique, index = label, 2
+            while unique.lower() in labels:
+                unique, index = f"{label}_{index}", index + 1
+            labels.add(unique.lower())
+            selected.append(f"{measure} AS {_quote_ident(unique)}")
+        where = (
+            'WHERE COALESCE("Hide", 0) = 0'
+            if "Hide" in schema_names and not include_hidden
+            else ""
+        )
+        sql = f"SELECT {', '.join(selected)} FROM {_quote_ident(table_name)} {where}"
+        if groups:
+            group_sql = ", ".join(_quote_ident(g) for g in groups)
+            sql += f" GROUP BY {group_sql} ORDER BY {group_sql}"
+        return sql
+
+    def group_table_name(self, table_name: str, group_by: Sequence[str]) -> str:
+        """The name group_aggregate gives its table when none is asked for."""
+        groups = [str(g) for g in group_by]
+        base = f"{table_name}_by_{'_'.join(groups)}" if groups else f"{table_name}_summary"
+        return self.free_table_name(base)
+
+    def group_aggregate_preview(
+        self,
+        table_name: str,
+        group_by: Sequence[str],
+        measures: Sequence[tuple[str, str | None]],
+        *,
+        include_hidden: bool = False,
+        limit: int = 50,
+    ) -> tuple[pd.DataFrame, int]:
+        """The first *limit* rows group_aggregate would write, and how many in all."""
+        self._connected()
+        assert self._con is not None
+        sql = self._group_select(table_name, group_by, measures, include_hidden)
+        total = int(self._con.execute(f"SELECT COUNT(*) FROM ({sql})").fetchone()[0])
+        frame = pd.read_sql_query(f"SELECT * FROM ({sql}) LIMIT ?", self._con, params=(int(limit),))
+        return frame, total
+
     def group_aggregate(
         self,
         table_name: str,
         group_by: Sequence[str],
-        aggregate: str,
+        aggregate: str | None = None,
         value_column: str | None = None,
         new_name: str | None = None,
+        *,
+        measures: Sequence[tuple[str, str | None]] | None = None,
+        include_hidden: bool = False,
     ) -> str:
-        """Write GROUP BY *group_by* with one aggregate to a new table; return its name.
+        """Write GROUP BY *group_by* to a new table; return its name.
 
-        Rows marked Hide are left out, as they are from the charts.
+        One measure as *aggregate* of *value_column*, or several as
+        *measures*. Rows marked Hide are left out, as they are from the
+        charts, unless *include_hidden*.
         """
-        func = str(aggregate or "").upper()
-        if func not in AGGREGATES:
-            raise ValueError(f"'{aggregate}' is not one of {', '.join(AGGREGATES)}")
-        schema_names = [name for name, _kind in self._schema(table_name)]
-        groups = [g for g in group_by if g in schema_names]
-        if not groups:
-            raise ValueError("choose at least one column to group by")
-        if func != "COUNT" and value_column not in schema_names:
-            raise ValueError("choose the column to aggregate")
-        name = self.free_table_name(new_name or f"{table_name}_by_{'_'.join(groups)}")
+        if measures is None:
+            measures = [(str(aggregate or ""), value_column)]
+        sql = self._group_select(table_name, group_by, measures, include_hidden)
+        name = (new_name or "").strip() or self.group_table_name(
+            table_name, [g for g in group_by if g in {n for n, _k in self._schema(table_name)}]
+        )
         if not _is_ident(name):
             raise ValueError(f"'{name}' is not a usable table name")
+        if name != self.free_table_name(name):
+            raise ValueError(f"a table or query named '{name}' already exists")
         self.snapshot_for_undo([name], label=f"Group '{table_name}' into '{name}'")
         assert self._con is not None
-        group_sql = ", ".join(_quote_ident(g) for g in groups)
-        if func == "COUNT" and value_column not in schema_names:
-            measure, label = "COUNT(*)", "count"
-        else:
-            measure = f"{func}({_quote_ident(str(value_column))})"
-            label = f"{func.lower()}_{value_column}"
-        where = 'WHERE COALESCE("Hide", 0) = 0' if "Hide" in schema_names else ""
-        self._con.execute(
-            f"CREATE TABLE {_quote_ident(name)} AS "
-            f"SELECT {group_sql}, {measure} AS {_quote_ident(label)} "
-            f"FROM {_quote_ident(table_name)} {where} "
-            f"GROUP BY {group_sql} ORDER BY {group_sql}"
-        )
+        self._con.execute(f"CREATE TABLE {_quote_ident(name)} AS {sql}")
         self._commit()
         return name
 

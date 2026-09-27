@@ -1409,25 +1409,70 @@ class TablesMixin:
         return int(cur.rowcount or 0)
 
 
+    def preview_expression(
+        self,
+        table_name: str,
+        expression: str,
+        limit: int = 10,
+    ) -> list[Any]:
+        """Evaluate *expression* on the first *limit* rows, writing nothing.
+
+        What the computed-column form shows while the expression is typed,
+        and the check add_column_from_expression makes before it alters the
+        table: an expression naming a column that does not exist fails here,
+        with SQLite's own message, instead of after the new column is added.
+        """
+        if not self._is_connected or self._con is None:
+            self._connect()
+        assert self._con is not None
+        expr = str(expression or "").strip()
+        check_sql_expression(expr)
+        with read_only(self._con) as con:
+            rows = con.execute(
+                f"SELECT {expr} FROM {_quote_ident(table_name)} ORDER BY rowid LIMIT ?",
+                (max(1, int(limit)),),
+            ).fetchall()
+        return [row[0] for row in rows]
+
     def add_column_from_expression(
         self,
         table_name: str,
         column_name: str,
         expression: str,
+        column_type: str | None = None,
+        *,
+        undo_entry: int | None = None,
     ) -> None:
-        """Add a column and populate it from a SQL expression evaluated per row."""
+        """Add a column and populate it from a SQL expression evaluated per row.
+
+        *column_type* is the declared type (REAL, INTEGER, TEXT); None leaves
+        it undeclared, so each value keeps the type the expression gave it.
+        """
         if not self._is_connected or self._con is None:
             self._connect()
         assert self._con is not None
+        name = str(column_name or "").strip()
+        if not name:
+            raise ValueError("a column needs a name")
+        if not _is_ident(name):
+            raise ValueError(f"'{name}' is not a usable column name")
+        if name in set(self.get_columns(table_name)):
+            raise ValueError(f"'{name}' is already a column of this table")
+        declared = str(column_type or "").strip().upper()
+        if declared not in ("", "REAL", "INTEGER", "TEXT"):
+            raise ValueError(f"'{column_type}' is not a column type")
         expr = str(expression or "").strip()
-        if not expr:
-            applogger.error("SQL expression is required.")
-        # Spliced into an UPDATE below: one expression, nothing that writes.
-        check_sql_expression(expr)
-        if column_name in set(self.get_columns(table_name)):
-            applogger.error(f"Column already exists: {column_name}")
+        # Spliced into an UPDATE below: one expression, nothing that writes -
+        # and evaluated once read-only first, so a typo fails before ALTER.
+        self.preview_expression(table_name, expr, limit=1)
+
+        self.snapshot_for_undo(
+            [table_name],
+            label=f"Add column '{name}' to '{table_name}'",
+            entry_id=undo_entry,
+        )
         table_sql = _quote_ident(table_name)
-        column_sql = _quote_ident(column_name)
-        self._con.execute(f"ALTER TABLE {table_sql} ADD COLUMN {column_sql}")
+        column_sql = _quote_ident(name)
+        self._con.execute(f"ALTER TABLE {table_sql} ADD COLUMN {column_sql} {declared}".rstrip())
         self._con.execute(f"UPDATE {table_sql} SET {column_sql} = {expr}")
         self._commit()

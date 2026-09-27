@@ -605,7 +605,7 @@
       "SegoeFluent": "E9D2",
       "ThemeIcon": "view-statistics"
     },
-    "group_aggregate": {
+    "table_group_aggregate": {
       "text": "Group and aggregate...",
       "description": "Summarise this table by one or more columns into a new table",
       "SFSymbol": "square.stack.3d.up",
@@ -667,6 +667,13 @@
       "SFSymbol": "pencil",
       "SegoeFluent": "E70F",
       "ThemeIcon": "document-edit"
+    },
+    "table_computed_column": {
+      "text": "Add computed column...",
+      "description": "Add a column computed for every row from a SQL expression",
+      "SFSymbol": "function",
+      "SegoeFluent": "E8EF",
+      "ThemeIcon": "accessories-calculator"
     },
     "table_delete_column": {
       "text": "Delete column",
@@ -997,21 +1004,6 @@
       "level": "warning",
       "title": "User manual",
       "text": "The user manual could not be opened:\n{path}"
-    },
-    "preview.add_column_failed": {
-      "level": "error",
-      "title": "Add computed column failed",
-      "text": "{error}"
-    },
-    "preview.confirm_delete_column": {
-      "level": "question",
-      "title": "Delete column",
-      "text": "Delete the column '{column}'? This cannot be undone."
-    },
-    "preview.delete_column_failed": {
-      "level": "error",
-      "title": "Delete column failed",
-      "text": "{error}"
     },
     "preview.hide_rows_failed": {
       "level": "error",

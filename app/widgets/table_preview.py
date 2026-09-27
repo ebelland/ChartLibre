@@ -25,7 +25,7 @@ from app.styles.style import (
     create_menu,
     create_menu_item,
 )
-from app.utils.messages import ask, show_message
+from app.utils.messages import show_message
 from app.utils.i18n import _
 
 
@@ -295,15 +295,6 @@ class TablePreviewPanel(QWidget):
             )
         )
         items.append(None)
-        if column:
-            items.append(
-                MenuItem(
-                    text=_("Delete column '{column}'...").format(column=column),
-                    tooltip=_("Delete the selected column"),
-                    callback=lambda _=False, col=column: self._delete_column(col),
-                    icon="delete",
-                )
-            )
 
         menu = create_menu(self, items)
 
@@ -364,10 +355,10 @@ class TablePreviewPanel(QWidget):
         # Table-writing actions need a real, LazyTableModel-backed table: a
         # saved query has no rowid and nothing in the repo to hide/cluster/add
         # a column to. A query preview keeps only the model-agnostic reload.
-        # "Edit table..." replaces the five Hide/ClusterId items that used to
-        # sit here. They are edits, and they now live with the rest of the
-        # editing - see TableEditorDialog, which also gained the row and
-        # column operations this menu never had.
+        # "Edit table..." replaces the Hide/ClusterId items, Delete column,
+        # Add column from SQL expression and Group and aggregate that used
+        # to sit here. They are edits, and they now live with the rest of
+        # the editing - see TableEditorDialog.
         trailing_items: tuple[MenuItem | None, ...] = (
             MenuItem(
                 _("Edit table..."),
@@ -379,13 +370,7 @@ class TablePreviewPanel(QWidget):
                 ),
             ),
             None,
-            MenuItem(
-                            _("Add column from SQL expression..."),
-                            callback=self._add_column_from_expression,
-                            icon="add",
-                        ),
             MenuItem(_("Duplicate table"), callback=self._duplicate_table, icon="duplicate_table"),
-            MenuItem(_("Group and aggregate..."), callback=self._group_aggregate, icon="group_aggregate"),
             MenuItem(_("Export rows..."), callback=self._export_rows, icon="export_rows"),
             None,
             MenuItem(_("Refresh data table"), callback=self._reload_model, icon="reload"),
@@ -503,30 +488,6 @@ class TablePreviewPanel(QWidget):
         applogger.info("Table '%s' duplicated as '%s'.", self._table, name)
         self.refresh.emit()
 
-    def _group_aggregate(self) -> None:
-        if self._repo is None or not self._table:
-            return
-        from app.dialogs.table_tools_dialogs import GroupAggregateDialog
-
-        columns = [c for c in self._repo.get_columns(self._table) if c != "Hide"]
-        dialog = GroupAggregateDialog(self._table, columns, self)
-        if not dialog.exec():
-            return
-        try:
-            name = self._repo.group_aggregate(
-                self._table,
-                dialog.chosen_groups(),
-                str(dialog.aggregate.currentData()),
-                dialog.value.currentData(),
-                dialog.name.text().strip() or None,
-            )
-        except Exception as exc:
-            applogger.exception("Group and aggregate failed: %s", exc)
-            QMessageBox.warning(self, _("Could not do that"), str(exc))
-            return
-        applogger.info("Grouped '%s' into '%s'.", self._table, name)
-        self.refresh.emit()
-
     def _export_rows(self) -> None:
         """Save the selected block, or every visible row, as CSV or Excel."""
         model = self.view.model()
@@ -576,18 +537,6 @@ class TablePreviewPanel(QWidget):
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
         applogger.info("Exported %d rows to %s.", len(frame), target)
-
-    def _delete_column(self, column: str) -> None:
-        if self._repo is None or not self._table:
-            return
-        if not ask(self, "preview.confirm_delete_column", column=column):
-            return
-        try:
-            self._repo.delete_table_column(self._table, column)
-            self._reload_model()
-        except Exception as exc:
-            applogger.exception("Delete column failed: %s", exc)
-            show_message(self, "preview.delete_column_failed", error=exc)
 
     def _edit_table(self) -> None:
         """Open the hand editor on this table, and show its result.
@@ -652,33 +601,6 @@ class TablePreviewPanel(QWidget):
         except Exception as exc:
             applogger.exception("Hide selected value failed: %s", exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
-
-    def _add_column_from_expression(self) -> None:
-        if self._repo is None or not self._table:
-            return
-        column_name, ok = QInputDialog.getText(self, _("Add computed column"), _("New column name:"), QLineEdit.EchoMode.Normal, "new_column")
-        if not ok:
-            return
-        column_name = (column_name or "").strip()
-        if not column_name:
-            return
-        expression, ok = QInputDialog.getMultiLineText(
-            self,
-            "SQL expression",
-            "Expression used in UPDATE, e.g. 2 * salary_eur or age / 10.0:",
-            "",
-        )
-        if not ok:
-            return
-        expression = (expression or "").strip()
-        if not expression:
-            return
-        try:
-            self._repo.add_column_from_expression(self._table, column_name, expression)
-            self._reload_model()
-        except Exception as exc:
-            applogger.exception("Add computed column failed: %s", exc)
-            show_message(self, "preview.add_column_failed", error=exc)
 
 
 class LazyTableModel(QAbstractTableModel):

@@ -26,8 +26,8 @@ would have been, and editing a message no longer means touching a .py.
 Call sites name the situation and supply the values, never the wording::
 
     show_message(self, "import.no_table_name")
-    show_message(self, "preview.delete_column_failed", error=exc)
-    if ask(self, "preview.confirm_delete_column", column=name):
+    show_message(self, "preview.hide_rows_failed", error=exc)
+    if ask(self, "query.confirm_delete", name=name):
         ...
 
 ``text`` may contain ``{name}`` placeholders filled from the keyword

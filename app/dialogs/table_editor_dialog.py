@@ -284,12 +284,15 @@ class TableEditorDialog(QDialog):
         self._tool(row, "table_insert_column", self._insert_column)
         self._tool(row, "table_rename_column", self._rename_column)
         self._tool(row, "table_cast_column", self._cast_column)
+        self._tool(row, "table_computed_column", self._computed_column)
         self._tool(row, "table_delete_column", self._delete_column)
         self._gap(row)
         self._tool(row, "table_sort_ascending", lambda: self._sort(descending=False))
         self._tool(row, "table_sort_descending", lambda: self._sort(descending=True))
         self._tool(row, "table_fill_missing", self._fill_missing)
         self._tool(row, "table_find_replace", self._find_replace)
+        self._gap(row)
+        self._tool(row, "table_group_aggregate", self._group_aggregate)
         row.addStretch(1)
 
         # Hide and ClusterId: the columns the application maintains - used
@@ -523,6 +526,22 @@ class TableEditorDialog(QDialog):
 
         self._guarded(run)
 
+    def _computed_column(self) -> None:
+        from app.dialogs.table_tools_dialogs import ComputedColumnDialog
+
+        dialog = ComputedColumnDialog(self._repo, self._table, self)
+        if not dialog.exec():
+            return
+        name, kind, expression = dialog.column_name(), dialog.column_type(), dialog.expression_text()
+
+        def run() -> None:
+            self._repo.add_column_from_expression(
+                self._table, name, expression, kind, undo_entry=self._ensure_undo_entry()
+            )
+            self._columns_added += 1
+
+        self._guarded(run)
+
     def _delete_column(self) -> None:
         column = self._need_column()
         if column is None:
@@ -612,6 +631,34 @@ class TableEditorDialog(QDialog):
             self._say(_("{count} cell(s) changed.").format(count=count))
 
         self._guarded(run)
+
+    def _group_aggregate(self) -> None:
+        """Summarise this table into a new one.
+
+        This table is not changed, so the new one is not part of the
+        session's undo entry: Cancel here keeps it, and Undo removes it.
+        """
+        from app.dialogs.table_tools_dialogs import GroupAggregateDialog
+
+        dialog = GroupAggregateDialog(
+            self._repo, self._table, self, initial_group=self._selected_column()
+        )
+        if not dialog.exec():
+            return
+        try:
+            name = self._repo.group_aggregate(
+                self._table,
+                dialog.chosen_groups(),
+                measures=dialog.measures(),
+                new_name=dialog.name.text().strip() or None,
+                include_hidden=dialog.include_hidden.isChecked(),
+            )
+        except Exception as exc:
+            applogger.exception("Group and aggregate failed: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return
+        applogger.info("Grouped '%s' into '%s'.", self._table, name)
+        self._say(_("Table '{name}' created.").format(name=name))
 
     # ------------------------------------------------------------------
     # Shared plumbing

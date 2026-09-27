@@ -6888,3 +6888,87 @@ msgstr "Carica nell'editor"
 
 msgid "Compute the stack's differences and load them into the parameter editor"
 msgstr "Calcola le differenze della pila di stili e le carica nell'editor dei parametri"
+
+msgid "'{name}' is already a column of this table."
+msgstr "'{name}' è già una colonna di questa tabella."
+
+msgid "A table or query named '{name}' already exists."
+msgstr "Esiste già una tabella o una query di nome '{name}'."
+
+msgid "Add another column to the summary"
+msgstr "Aggiungi un'altra colonna al riepilogo"
+
+msgid "Add measure"
+msgstr "Aggiungi misura"
+
+msgid "Automatic keeps each value as the expression gives it."
+msgstr "Automatico mantiene ogni valore come lo produce l'espressione."
+
+msgid "Columns:"
+msgstr "Colonne:"
+
+msgid "Count"
+msgstr "Conteggio"
+
+msgid "Create table"
+msgstr "Crea tabella"
+
+msgid "Distinct values"
+msgstr "Valori distinti"
+
+msgid "Double-click a column to insert it at the cursor."
+msgstr "Fai doppio clic su una colonna per inserirla nel punto del cursore."
+
+msgid "Include hidden rows"
+msgstr "Includi le righe nascoste"
+
+msgid "Maximum"
+msgstr "Massimo"
+
+msgid "Mean"
+msgstr "Media"
+
+msgid "Measures:"
+msgstr "Misure:"
+
+msgid "Minimum"
+msgstr "Minimo"
+
+msgid "One row per distinct combination. None checked: one row of totals."
+msgstr "Una riga per ogni combinazione distinta. Nessuna selezionata: una riga di totali."
+
+msgid "Preview (first rows):"
+msgstr "Anteprima (prime righe):"
+
+msgid "Preview:"
+msgstr "Anteprima:"
+
+msgid "Remove this measure"
+msgstr "Rimuovi questa misura"
+
+msgid "Rows marked Hide are left out unless this is checked, as they are from the charts."
+msgstr "Le righe marcate Hide sono escluse, come dai grafici, a meno che questa opzione sia selezionata."
+
+msgid "Sum"
+msgstr "Somma"
+
+msgid "Table '{name}' created."
+msgstr "Tabella '{name}' creata."
+
+msgid "The first {count} are shown."
+msgstr "Sono mostrate le prime {count}."
+
+msgid "Type an expression; it is evaluated once for every row."
+msgstr "Scrivi un'espressione: viene calcolata una volta per ogni riga."
+
+msgid "of"
+msgstr "di"
+
+msgid "{count} row(s) in the new table."
+msgstr "{count} riga/e nella nuova tabella."
+
+msgid "Add computed column..."
+msgstr "Aggiungi colonna calcolata..."
+
+msgid "Add a column computed for every row from a SQL expression"
+msgstr "Aggiungi una colonna calcolata per ogni riga da un'espressione SQL"
