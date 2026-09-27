@@ -33,6 +33,7 @@ from collections.abc import Callable, Iterable
 import os
 import re
 import tempfile
+from enum import Enum
 from typing import Any, cast
 from pathlib import Path
 
@@ -130,11 +131,80 @@ _EXPLICIT_KINDS: dict[str, str] = {
     "font.fantasy": "fontlist",
     "text.color": "color",
     "legend.loc": "loc",
+    "contour.negative_linestyle": "linestyle",
     "legend.frameon": "bool",
     "image.cmap": "cmap",
     # curated enums → 'enum'
     **{k: "enum" for k in _ENUM_CHOICES.keys()},
 }
+
+_FONT_SIZES: list[str] = [
+    "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "larger", "smaller",
+]
+_FONT_WEIGHTS: list[str] = [
+    "ultralight", "light", "normal", "regular", "book", "medium", "roman",
+    "semibold", "demibold", "demi", "bold", "heavy", "extra bold", "black",
+]
+_FONT_STRETCHES: list[str] = [
+    "ultra-condensed", "extra-condensed", "condensed", "semi-condensed", "normal",
+    "semi-expanded", "expanded", "extra-expanded", "ultra-expanded",
+]
+
+#: Choices for rcParams whose Matplotlib validator is a function rather than
+#: a list of strings, by the validator's name: (choices, editable). Editable
+#: when the parameter also takes a number - a font size is "large" or 12.
+_VALIDATOR_CHOICES: dict[str, tuple[list[str], bool]] = {
+    "validate_fontweight": (_FONT_WEIGHTS, True),
+    "validate_fontsize": (_FONT_SIZES, True),
+    "validate_fontstretch": (_FONT_STRETCHES, True),
+    "validate_bbox": (["tight", "standard"], False),
+    "validate_aspect": (["auto", "equal"], True),
+    "validate_axisbelow": (["line", "True", "False"], False),
+    "validate_hist_bins": (["auto", "sturges", "fd", "doane", "scott", "stone", "rice", "sqrt"], True),
+}
+
+#: Plain string rcParams that still only take a few words.
+_KEY_CHOICES: dict[str, list[str]] = {
+    "font.style": ["normal", "italic", "oblique"],
+    "font.variant": ["normal", "small-caps"],
+}
+
+
+def _rc_enum_choices(key: str) -> tuple[list[str], bool] | None:
+    """The values *key* accepts, if it accepts a fixed set, and whether a
+    number may be typed instead. None for a free value.
+
+    From, in order: the hand-kept lists above, the validator's own list of
+    strings (Matplotlib's ValidateInStrings - 28 rcParams), and the table of
+    function validators. The editor shows these as a drop-down list.
+    """
+    lower = (key or "").strip().lower()
+    if lower in _ENUM_CHOICES:
+        choices = list(_ENUM_CHOICES[lower])
+        if lower == "savefig.format":
+            try:
+                choices = sorted(plt.gcf().canvas.get_supported_filetypes().keys()) or choices
+            except Exception:
+                pass
+        return choices, False
+    if lower in _KEY_CHOICES:
+        return list(_KEY_CHOICES[lower]), False
+    if lower == "image.cmap":
+        return sorted(mpl.colormaps, key=str.lower), False
+    try:
+        from matplotlib import rcsetup
+
+        validator = rcsetup._validators.get(key)
+    except Exception:
+        return None
+    if isinstance(validator, type) and issubclass(validator, Enum):
+        # JoinStyle, CapStyle: the members' own values.
+        return [str(member.value) for member in validator], False
+    valid = getattr(validator, "valid", None)
+    if isinstance(valid, dict) and valid:
+        return [str(v) for v in dict.fromkeys(valid.values())], False
+    return _VALIDATOR_CHOICES.get(getattr(validator, "__name__", ""))
+
 
 _SUFFIX_KIND_RULES: list[tuple[str, str]] = [
     (".color", "color"),
@@ -190,8 +260,10 @@ def _rcparam_kind(key: str) -> str:
     if not k:
         return "string"
     lower = k.lower()
-    if lower in _EXPLICIT_KINDS:
+    if lower in _EXPLICIT_KINDS and _EXPLICIT_KINDS[lower] not in ("cmap", "enum"):
         return _EXPLICIT_KINDS[lower]
+    if _rc_enum_choices(k) is not None:
+        return "enum"
     if lower in ("axes.prop_cycle", "prop_cycle"):
         return "cycler"
     for suffix, kind in _SUFFIX_KIND_RULES:
@@ -918,15 +990,11 @@ class MplStyleEditorDialog(QDialog):
             meta["kind"] = "loc"
             meta["choices"] = _LOC_CHOICES
         elif kind == "enum":
-            choices = list(_ENUM_CHOICES.get(key.lower(), []))
-            if key.lower() == "savefig.format":
-                try:
-                    choices = sorted(plt.gcf().canvas.get_supported_filetypes().keys()) or choices
-                except Exception:
-                    pass
+            choices, editable = _rc_enum_choices(key) or ([], False)
             meta["type"] = choices
             meta["kind"] = "enum"
             meta["choices"] = choices
+            meta["editable"] = editable
         elif kind == "fontlist":
             meta["type"] = list
             meta["kind"] = "fontlist"

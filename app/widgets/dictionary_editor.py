@@ -277,6 +277,8 @@ class DictValueDelegate(QStyledItemDelegate):
                 choices = list(meta.get("choices", meta.get("type", [])) or [])
             for choice in choices:
                 editor.addItem("" if choice is None else str(choice), choice)
+            # A list that also takes a number (a font size is "large" or 12).
+            editor.setEditable(bool(meta.get("editable")))
         else:
             editor = QLineEdit(parent)
 
@@ -322,6 +324,9 @@ class DictValueDelegate(QStyledItemDelegate):
             if text:
                 editor.setValue(int(text))
             return
+        if isinstance(editor, QComboBox) and editor.isEditable():
+            editor.setCurrentText(text)
+            return
         if isinstance(editor, QComboBox):
             idx = editor.findData(value)
             if idx < 0:
@@ -360,6 +365,8 @@ class DictValueDelegate(QStyledItemDelegate):
             rest = [str(v) for v in previous] if isinstance(previous, (list, tuple)) else []
             # The chosen family first; the rest stay as fallbacks.
             value = [chosen] + [v for v in rest if v != chosen] if chosen else rest
+        elif isinstance(editor, QComboBox) and editor.isEditable():
+            value = _parse_text_value(editor.currentText())
         elif isinstance(editor, QComboBox):
             value = editor.currentData()
         elif isinstance(editor, QLineEdit):
