@@ -46,6 +46,7 @@ from app.styles.style import (
 )
 from app.utils.config import MPLSTYLES_DIR
 from app.widgets.base_properties import BaseProperties
+from app.widgets.font_scale_control import FontScaleControl
 from app.widgets.chart_panel import RESIZE_MODE_CHOICES
 from app.utils.figure_metrics import (
     CM_PER_INCH,
@@ -252,6 +253,7 @@ class FigurePropertiesWidget(BaseProperties):
         ):
             spin.valueChanged.connect(self._queue_auto_apply)
         self._fig_frameon.toggled.connect(self._queue_auto_apply)
+        self._font_scale.value_changed.connect(self._queue_auto_apply)
 
     def _shared_space_spin(self, parent: QWidget) -> QDoubleSpinBox:
         """A spin box for one shared-axis gap, in Matplotlib's own units.
@@ -464,6 +466,8 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_height_cm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self._fig_frameon = QCheckBox(_("Draw figure frame"), opts_section)
+        # Every font of the figure at once, on top of its style (todo N-12).
+        self._font_scale = FontScaleControl(opts_section)
 
         # How the panel shows this figure - it used to be three checkable
         # entries in ChartPanel's own context menu, kept in sync by comparing
@@ -533,6 +537,7 @@ class FigurePropertiesWidget(BaseProperties):
         form.addRow(_("DPI"), self._fig_dpi)
         form.addRow(_("Width"), size_row)
         form.addRow(_("Frame on"), self._fig_frameon)
+        form.addRow(_("Font size"), self._font_scale)
         form.addRow(_("Display"), self._resize_mode_combo)
         form.addRow(_("Figure layout"), self._fig_layout_mode)
         form.addRow(_("Downsample"), self._downsample_combo)
@@ -686,6 +691,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_width_cm.setValue(width_cm)
         self._fig_height_cm.setValue(height_cm)
         self._fig_frameon.setChecked(True)
+        self._font_scale.set_value(1.0)
         self._select_layout_mode(self.DEFAULT_LAYOUT_MODE)
         self._select_downsample_threshold(self.DEFAULT_DOWNSAMPLE_THRESHOLD)
         self._reset_layout_preset_combo()
@@ -709,6 +715,7 @@ class FigurePropertiesWidget(BaseProperties):
             self._fig_width_cm,
             self._fig_height_cm,
             self._fig_frameon,
+            self._font_scale,
             self._fig_layout_mode,
             self._downsample_combo,
         ):
@@ -775,6 +782,7 @@ class FigurePropertiesWidget(BaseProperties):
             self._fig_width_cm.setValue(width_cm)
             self._fig_height_cm.setValue(height_cm)
             self._fig_frameon.setChecked(True)
+            self._font_scale.set_value(1.0)
             self._select_layout_mode(self.DEFAULT_LAYOUT_MODE)
             self._select_downsample_threshold(self.DEFAULT_DOWNSAMPLE_THRESHOLD)
             self._reset_layout_preset_combo()
@@ -817,6 +825,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._load_shared_spacing_into_spins(fig_opts)
         self._load_margins_into_spins(fig_opts)
         self._fig_frameon.setChecked(bool(fig_opts.get("frameon", True)))
+        self._font_scale.set_value(fig_opts.get("font_scale", 1.0))
 
         current_layout = str(
             fig_opts.get("layout_mode", fig_opts.get("layout", self.DEFAULT_LAYOUT_MODE))
@@ -1202,6 +1211,7 @@ class FigurePropertiesWidget(BaseProperties):
         payload = {
             "name": self._name_edit.text().strip(),
             "frameon": bool(self._fig_frameon.isChecked()),
+            "font_scale": float(self._font_scale.value()),
             "layout_mode": str(
                 self._fig_layout_mode.currentData() or self.DEFAULT_LAYOUT_MODE
             ),

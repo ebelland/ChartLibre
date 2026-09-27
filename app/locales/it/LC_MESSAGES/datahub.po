@@ -6759,3 +6759,15 @@ msgstr "Il valore precedente"
 
 msgid "Linear interpolation"
 msgstr "Interpolazione lineare"
+
+msgid "Font size"
+msgstr "Dimensione font"
+
+msgid "Make every font smaller"
+msgstr "Rimpicciolisci tutti i font"
+
+msgid "Make every font larger"
+msgstr "Ingrandisci tutti i font"
+
+msgid "Double-click to reset to 100 %"
+msgstr "Doppio clic per tornare al 100 %"

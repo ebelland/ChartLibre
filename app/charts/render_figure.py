@@ -194,6 +194,7 @@ def render_figure_from_descriptor(
 
         _apply_shared_z_ranges(all_axes, ax_by_id)
         _clear_redundant_shared_axis_labels(shared_axes)
+        _apply_font_scale(figure, descriptor, all_axes, ax_by_id)
         _apply_layout(figure, descriptor)
         _normalize_axes_fill_policy(figure, descriptor)
 
@@ -801,6 +802,79 @@ def _apply_figure_options(figure: Figure, fig_desc: FigureDescriptor) -> None:
     suptitle = options.get("suptitle")
     if isinstance(suptitle, str) and suptitle.strip():
         figure.suptitle(suptitle.strip())
+
+
+#: Allowed range for the "font_scale" option of a figure and of an axis.
+FONT_SCALE_RANGE: tuple[float, float] = (0.5, 3.0)
+
+
+def font_scale_option(options: Any) -> float:
+    """The "font_scale" of a figure's or an axis's options, clamped; 1.0 when unset."""
+    try:
+        value = float((options or {}).get("font_scale", 1.0))
+    except (TypeError, ValueError, AttributeError):
+        return 1.0
+    low, high = FONT_SCALE_RANGE
+    return min(max(value, low), high) if value == value else 1.0
+
+
+def _scale_axes_text(ax: Any, factor: float) -> None:
+    """Multiply the size of every piece of text an axes draws by *factor*."""
+    texts = [ax.title, getattr(ax, "_left_title", None), getattr(ax, "_right_title", None)]
+    for axis_name in ("xaxis", "yaxis", "zaxis"):
+        axis = getattr(ax, axis_name, None)
+        if axis is None:
+            continue
+        texts.append(axis.label)
+        texts.append(axis.get_offset_text())
+        for which in ("major", "minor"):
+            ticks = axis.get_major_ticks() if which == "major" else axis.get_minor_ticks()
+            if ticks:
+                size = ticks[0].label1.get_fontsize()
+                axis.set_tick_params(which=which, labelsize=size * factor)
+    texts.extend(ax.texts)
+    legend = ax.get_legend()
+    if legend is not None:
+        texts.extend(legend.get_texts())
+        texts.append(legend.get_title())
+    for text in texts:
+        if text is not None:
+            text.set_fontsize(text.get_fontsize() * factor)
+
+
+def _apply_font_scale(
+    figure: Figure,
+    descriptor: FigureDescriptor,
+    axes: list[AxisDescriptor],
+    ax_by_id: dict[int, Any],
+) -> None:
+    """Grow or shrink all text: the figure's "font_scale" times each axis's own.
+
+    Applied once per render, on a figure that render_figure_from_descriptor
+    has just cleared and rebuilt, so the factor never compounds. Axes the
+    descriptor does not know (a colorbar's) take the figure's factor.
+    """
+    figure_factor = font_scale_option(descriptor.options)
+    known: set[int] = set()
+    for axis_desc in axes:
+        ax = ax_by_id.get(int(axis_desc.id))
+        if ax is None or id(ax) in known:
+            continue
+        known.add(id(ax))
+        factor = figure_factor * font_scale_option(axis_desc.options)
+        if abs(factor - 1.0) > 1e-9:
+            try:
+                _scale_axes_text(ax, factor)
+            except Exception:
+                applogger.exception("Failed to scale the fonts of axis id=%r", axis_desc.id)
+    if abs(figure_factor - 1.0) <= 1e-9:
+        return
+    for ax in figure.axes:
+        if id(ax) not in known:
+            _scale_axes_text(ax, figure_factor)
+    # figure.texts already holds the suptitle; each text is scaled once.
+    for text in {id(t): t for t in figure.texts}.values():
+        text.set_fontsize(text.get_fontsize() * figure_factor)
 
 
 def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:

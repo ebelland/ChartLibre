@@ -125,7 +125,8 @@ N-11  DONE 2026-09-27. Altre funzioni per table preview / Modifica tabella.
       - Esporta la selezione (o le righe visibili) in CSV/Excel.
       - Crea una serie o un grafico dalle colonne selezionate.
 
-N-12  Opzioni grafico, sezioni Axis e Figure: "Aumenta/diminuisci la
+N-12  DONE 2026-09-27 ("Dimensione font": A- 100 % A+ in Figura e Asse;
+      i due fattori si moltiplicano). Opzioni grafico, sezioni Axis e Figure: "Aumenta/diminuisci la
       dimensione di tutti i font" dell'Axis o della Figure, in un colpo
       solo.
 

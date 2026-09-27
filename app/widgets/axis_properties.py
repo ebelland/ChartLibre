@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.widgets.font_scale_control import FontScaleControl
 from app.logs.logger import applogger
 from app.charts import axis_options
 from app.charts.render_figure import (
@@ -150,6 +151,7 @@ class AxisPropertiesWidget(BaseProperties):
                 widget.valueChanged.connect(self._queue_auto_apply)
             elif isinstance(widget, QDoubleSpinBox):
                 widget.valueChanged.connect(self._queue_auto_apply)
+        self._font_scale.value_changed.connect(self._queue_auto_apply)
 
     # ------------------------------------------------------------------
     # Setup helpers
@@ -328,6 +330,8 @@ class AxisPropertiesWidget(BaseProperties):
               "The selected axis provides the Z limits; 2D axes are ignored.")
         )
         self._hide_axis_check = QCheckBox(_("Hide axis"), section)
+        # Every font of this axis at once, times the figure's (todo N-12).
+        self._font_scale = FontScaleControl(section)
 
         share_row = QWidget(section)
         share_layout = QHBoxLayout(share_row)
@@ -349,6 +353,7 @@ class AxisPropertiesWidget(BaseProperties):
         form.addRow(_("X label"), self._x_label_edit)
         form.addRow(_("Y label"), self._y_label_edit)
         form.addRow(_("Z label"), self._z_label_edit)
+        form.addRow(_("Font size"), self._font_scale)
         layout.addLayout(form)
 
         layout.addWidget(create_section_title(_("Position"), section))
@@ -1275,6 +1280,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._hide_axis_check.setChecked(
                 bool(options.get("hide_axis", options.get("hidden", False)))
             )
+            self._font_scale.set_value(options.get("font_scale", 1.0))
             self._load_extended_axis_options(options)
 
         # Translated for reading; the raw chart_type is what the signal
@@ -1324,6 +1330,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._sharey_check.setChecked(False)
             self._sharez_check.setChecked(False)
             self._hide_axis_check.setChecked(False)
+            self._font_scale.set_value(1.0)
             self._clear_extended_axis_options()
         self._renderer_value.clear()
         self.renderer_changed.emit("")
@@ -1475,6 +1482,7 @@ class AxisPropertiesWidget(BaseProperties):
             "sharey": bool(self._sharey_check.isChecked()),
             "sharez": bool(self._sharez_check.isChecked()),
             "hide_axis": bool(self._hide_axis_check.isChecked()),
+            "font_scale": float(self._font_scale.value()),
             "renderer": self._renderer_value.text().strip(),
         }
         payload.update(self._extended_axis_options_payload())
