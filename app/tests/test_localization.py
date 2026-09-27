@@ -70,7 +70,13 @@ def test_the_catalogue_defines_each_message_once() -> None:
     import re
     from collections import Counter
 
-    ids = re.findall(r'^msgid "(.*)"$', PO_PATH.read_text(encoding="utf-8"), re.M)
+    # A long msgid is written over several lines (msgid "" then "..."
+    # continuations), as Poedit saves it: join them before counting.
+    ids = [
+        "".join(re.findall(r'"(.*)"', block))
+        for block in re.findall(r'^msgid (".*"(?:\n".*")*)', PO_PATH.read_text(encoding="utf-8"), re.M)
+    ]
+    ids = [message for message in ids if message]  # the header's own empty msgid
     repeated = sorted(message for message, count in Counter(ids).items() if count > 1)
 
     assert repeated == []

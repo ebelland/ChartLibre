@@ -119,6 +119,13 @@ def _parse_text_value(text: str) -> object:
         return text
 
 
+def _truthy(value: Any) -> bool:
+    """A boolean read from a style file or a box: "False" is false, not a non-empty string."""
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "1", "yes", "on"}
+    return bool(value)
+
+
 def _make_check_item(item: QTreeWidgetItem, value: Any) -> None:
     """Turn one row's value column into an always-visible checkbox.
 
@@ -137,7 +144,7 @@ def _make_check_item(item: QTreeWidgetItem, value: Any) -> None:
     )
     item.setText(1, "")
     item.setCheckState(
-        1, Qt.CheckState.Checked if bool(value) else Qt.CheckState.Unchecked
+        1, Qt.CheckState.Checked if _truthy(value) else Qt.CheckState.Unchecked
     )
 
 
@@ -249,6 +256,12 @@ class DictValueDelegate(QStyledItemDelegate):
                 )
                 editor.setDecimals(int(str(meta.get("decimals", 6))))
                 editor.setSingleStep(float(str(meta.get("step", 0.1))))
+        elif kind == "fontlist":
+            # Font families: an editable list of the ones Matplotlib can use,
+            # typed names still accepted.
+            editor = QComboBox(parent)
+            editor.setEditable(True)
+            editor.addItems([str(choice) for choice in meta.get("choices", [])])
         elif kind in {"enum", "joinstyle", "capstyle", "loc"}:
             editor = QComboBox(parent)
             if kind == "joinstyle":
@@ -285,7 +298,11 @@ class DictValueDelegate(QStyledItemDelegate):
             editor.set_current_marker(text)
             return
         if isinstance(editor, QCheckBox):
-            editor.setChecked(bool(value))
+            editor.setChecked(_truthy(value))
+            return
+        if isinstance(editor, QComboBox) and editor.isEditable() and self._panel.kind_for_key(key) == "fontlist":
+            first = value[0] if isinstance(value, (list, tuple)) and value else text.split(",")[0]
+            editor.setCurrentText(str(first).strip())
             return
         if isinstance(editor, QDoubleSpinBox):
             if text:
@@ -327,6 +344,12 @@ class DictValueDelegate(QStyledItemDelegate):
             value = editor.value()
         elif isinstance(editor, QSpinBox):
             value = editor.value()
+        elif isinstance(editor, QComboBox) and editor.isEditable() and self._panel.kind_for_key(key) == "fontlist":
+            chosen = editor.currentText().strip()
+            previous = self._panel.value_for_key(key)
+            rest = [str(v) for v in previous] if isinstance(previous, (list, tuple)) else []
+            # The chosen family first; the rest stay as fallbacks.
+            value = [chosen] + [v for v in rest if v != chosen] if chosen else rest
         elif isinstance(editor, QComboBox):
             value = editor.currentData()
         elif isinstance(editor, QLineEdit):
@@ -335,7 +358,7 @@ class DictValueDelegate(QStyledItemDelegate):
             value = None
 
         self._panel.set_value_for_key(key, value)
-        model.setData(index, _value_to_text(value), Qt.ItemDataRole.DisplayRole)
+        model.setData(index, self._panel._display_text(key, value), Qt.ItemDataRole.DisplayRole)
         model.setData(index, value, Qt.ItemDataRole.UserRole)
 
 
@@ -392,10 +415,11 @@ class DictEditorPanel(QWidget):
         self.tree.setUniformRowHeights(False)
         self.tree.setIconSize(QSize(20, 20))
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
-        self.tree.setEditTriggers(
-            QTreeWidget.EditTrigger.DoubleClicked
-            | QTreeWidget.EditTrigger.EditKeyPressed
-        )
+        # A single click edits (see _on_item_clicked); only the value column
+        # is ever edited, so the property names cannot be changed by mistake.
+        self.tree.setEditTriggers(QTreeWidget.EditTrigger.EditKeyPressed)
+        self.tree.itemPressed.connect(self._on_item_pressed)
+        self.tree.itemClicked.connect(self._on_item_clicked)
         self.tree.setItemDelegateForColumn(1, DictValueDelegate(self, self.tree))
         self._configure_header()
         self.tree.itemChanged.connect(self._on_item_changed)
@@ -552,7 +576,7 @@ class DictEditorPanel(QWidget):
                 meta = self.config[key]
                 value = self._values.get(key)
                 label = str(meta.get("label", key))
-                item = QTreeWidgetItem(group_item, [label, _value_to_text(value)])
+                item = QTreeWidgetItem(group_item, [label, self._display_text(key, value)])
                 item.setData(0, Qt.ItemDataRole.UserRole, key)
                 item.setData(1, Qt.ItemDataRole.UserRole, value)
                 item.setToolTip(0, str(meta.get("description", "")))
@@ -578,9 +602,44 @@ class DictEditorPanel(QWidget):
         if self.kind_for_key(key) == "bool":
             _make_check_item(item, value)
         else:
-            item.setText(1, _value_to_text(value))
+            item.setText(1, self._display_text(key, value))
         item.setData(1, Qt.ItemDataRole.UserRole, value)
         self.tree.blockSignals(False)
+
+    def _display_text(self, key: str, value: object) -> str:
+        """A font list reads as "serif, DejaVu Serif", not as a Python list."""
+        if self.kind_for_key(key) == "fontlist":
+            if isinstance(value, str):
+                parsed = _parse_text_value(value)
+                value = parsed if isinstance(parsed, (list, tuple)) else value
+            if isinstance(value, (list, tuple)):
+                return ", ".join(str(v) for v in value)
+        return _value_to_text(value)
+
+    def _on_item_pressed(self, item: QTreeWidgetItem, _column: int) -> None:
+        self._pressed_check_state = item.checkState(1)
+
+    def _on_item_clicked(self, item: QTreeWidgetItem, column: int) -> None:
+        """One click edits: a yes/no toggles, anything else opens its editor.
+
+        The view already toggles a checkbox when the click lands on the box
+        itself; a click elsewhere on the row did nothing, which read as "this
+        cannot be edited". The state at press time tells the two apart, so a
+        click on the box is not toggled twice.
+        """
+        key = item.data(0, Qt.ItemDataRole.UserRole)
+        if not key:
+            return
+        if self.kind_for_key(str(key)) == "bool":
+            if item.checkState(1) == getattr(self, "_pressed_check_state", None):
+                item.setCheckState(
+                    1,
+                    Qt.CheckState.Unchecked
+                    if item.checkState(1) == Qt.CheckState.Checked
+                    else Qt.CheckState.Checked,
+                )
+            return
+        self.tree.editItem(item, 1)
 
     def _on_item_changed(self, item: QTreeWidgetItem, column: int) -> None:
         if self._updating or column != 1:
@@ -610,6 +669,11 @@ class DictEditorPanel(QWidget):
             return text.strip().lower() in {"true", "1", "yes", "on"}
         if kind == "number":
             return int(text) if meta.get("type") is int else float(text)
+        if kind == "fontlist":
+            parsed = _parse_text_value(text)
+            if isinstance(parsed, (list, tuple)):
+                return [str(v) for v in parsed]
+            return [part.strip() for part in text.split(",") if part.strip()]
         return _parse_text_value(text)
 
     def _apply_filter(self) -> None:

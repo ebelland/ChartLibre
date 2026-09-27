@@ -123,6 +123,11 @@ _ENUM_CHOICES: dict[str, list[str]] = {
 
 _EXPLICIT_KINDS: dict[str, str] = {
     "font.family": "fontlist",
+    "font.serif": "fontlist",
+    "font.sans-serif": "fontlist",
+    "font.monospace": "fontlist",
+    "font.cursive": "fontlist",
+    "font.fantasy": "fontlist",
     "text.color": "color",
     "legend.loc": "loc",
     "legend.frameon": "bool",
@@ -157,6 +162,27 @@ _NON_STYLE_KEYS = frozenset({
     "webagg.address", "webagg.open_in_browser", "webagg.port",
     "webagg.port_retries",
 })
+
+#: The generic families font.family can name; each resolves through its
+#: own font.<generic> list.
+_GENERIC_FONT_FAMILIES: tuple[str, ...] = ("sans-serif", "serif", "monospace", "cursive", "fantasy")
+
+
+def _font_choices(*, generic: bool) -> list[str]:
+    """Font families for the font helpers: the generic ones first (for
+    font.family), then every family Matplotlib has found on this machine."""
+    try:
+        from matplotlib import font_manager
+
+        # Names starting with "." are macOS's private system fonts.
+        installed = sorted(
+            {entry.name for entry in font_manager.fontManager.ttflist if not entry.name.startswith(".")},
+            key=str.lower,
+        )
+    except Exception:
+        installed = []
+    return [*(_GENERIC_FONT_FAMILIES if generic else ()), *installed]
+
 
 def _rcparam_kind(key: str) -> str:
     """Return a value-type tag for *key*."""
@@ -901,6 +927,10 @@ class MplStyleEditorDialog(QDialog):
             meta["type"] = choices
             meta["kind"] = "enum"
             meta["choices"] = choices
+        elif kind == "fontlist":
+            meta["type"] = list
+            meta["kind"] = "fontlist"
+            meta["choices"] = _font_choices(generic=key.lower() == "font.family")
         elif kind == "cmap":
             try:
                 choices = [str(name) for name in plt.colormaps()]
