@@ -750,11 +750,74 @@ QComboBox QAbstractItemView::item:selected {
   color: palette(highlighted-text);
 }
 
-/* Spin boxes: taller, so the native stepper arrows are easier to hit.
-   Only a size - no border or background - so Qt keeps drawing them
-   natively. */
+/* Spin boxes: a field like an editable combo, with the stepper drawn as
+   the same small grey badge the pop-up buttons carry - up and down halves
+   of one rounded square, with the system's chevrons - instead of the
+   native stepper, which is larger and looked like another control. */
 QAbstractSpinBox {
-  min-height: 24px;
+  background: palette(base);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.22);
+  border-radius: 6px;
+  padding: 3px 26px 3px 6px;
+  min-height: 20px;
+  color: palette(text);
+}
+
+QAbstractSpinBox::up-button,
+QAbstractSpinBox::down-button {
+  subcontrol-origin: border;
+  width: 20px;
+  height: 10px;
+  right: 4px;
+  border: none;
+  background: rgba(@SHADOW_RGB@, 0.09);
+}
+
+QAbstractSpinBox::up-button {
+  subcontrol-position: top right;
+  top: 4px;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+QAbstractSpinBox::down-button {
+  subcontrol-position: bottom right;
+  bottom: 4px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+QAbstractSpinBox::up-button:hover,
+QAbstractSpinBox::down-button:hover {
+  background: rgba(@SHADOW_RGB@, 0.16);
+}
+
+QAbstractSpinBox::up-button:pressed,
+QAbstractSpinBox::down-button:pressed {
+  background: rgba(@SHADOW_RGB@, 0.24);
+}
+
+/* The two chevrons sit close together, as the pop-up button's one
+   up-and-down glyph does, rather than each in the middle of its half. */
+QAbstractSpinBox::up-arrow {
+  image: url(@ICON:chevron_up@);
+  width: 8px;
+  height: 5px;
+  top: 1px;
+}
+
+QAbstractSpinBox::down-arrow {
+  image: url(@ICON:chevron_down@);
+  width: 8px;
+  height: 5px;
+  bottom: 1px;
+}
+
+QAbstractSpinBox::up-arrow:disabled,
+QAbstractSpinBox::up-arrow:off,
+QAbstractSpinBox::down-arrow:disabled,
+QAbstractSpinBox::down-arrow:off {
+  image: none;
 }
 
 /* The Edit table dialog's "more" button opens a menu; its icon already

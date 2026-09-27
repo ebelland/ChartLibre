@@ -1146,6 +1146,7 @@ def icon_from_svg_source(
 QSS_SYMBOLS: dict[str, tuple[str, str, str]] = {
     "combo_chevrons": ("chevron.up.chevron.down", "E70D", "go-down"),
     "chevron_down": ("chevron.down", "E70D", "go-down"),
+    "chevron_up": ("chevron.up", "E70E", "go-up"),
 }
 
 _QSS_SYMBOL_RE = re.compile(r"@ICON:([A-Za-z0-9_]+)@")
