@@ -238,6 +238,13 @@ class ScatterAxisRenderer(BaseAxisRenderer):
         **ERROR_BAR_KWARGS,
     }
 
+    @staticmethod
+    def _all_color_like(values: pd.Series) -> bool:
+        """Whether every distinct non-empty value is a Matplotlib colour spec."""
+        from matplotlib.colors import is_color_like
+
+        return all(is_color_like(value) for value in pd.unique(values.dropna()))
+
     def render_axis(self, ax, series: list[SeriesData], options: dict) -> None:
         """Render all scatter series onto a single axis."""
         base_kwargs = self.get_kwargs(options)
@@ -271,6 +278,15 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 color_source is not None
                 and not pd.api.types.is_numeric_dtype(color_source.dtype)
             )
+            if color_is_literal and not self._all_color_like(color_source):
+                # Text that is not colour specs ("major"/"minor", species
+                # names) is a category: number the labels in order of first
+                # appearance and let the discrete palette path colour them.
+                codes, _labels = pd.factorize(color_source)
+                # Integer ids, 1-based: the palette path takes id-1 modulo its
+                # length, and an empty cell (code -1 -> 0) gets the fallback.
+                color_source = pd.Series(codes + 1, index=color_source.index, dtype="int64")
+                color_is_literal = False
             if color_is_literal:
                 color = color_source
             else:
