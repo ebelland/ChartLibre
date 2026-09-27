@@ -6573,3 +6573,189 @@ msgstr "Nascondi la barra laterale"
 
 msgid "Show the sidebar"
 msgstr "Mostra la barra laterale"
+
+msgid "(rows)"
+msgstr "(righe)"
+
+msgid "Aggregate:"
+msgstr "Aggregazione:"
+
+msgid "CSV (*.csv);;Excel (*.xlsx)"
+msgstr "CSV (*.csv);;Excel (*.xlsx)"
+
+msgid "Change type"
+msgstr "Cambia tipo"
+
+msgid "Column '{column}'"
+msgstr "Colonna '{column}'"
+
+msgid "Count, empty cells, distinct values, and min, max, mean and median"
+msgstr "Conteggio, celle vuote, valori distinti e minimo, massimo, media e mediana"
+
+msgid "Distinct values: {n}"
+msgstr "Valori distinti: {n}"
+
+msgid "Duplicate table"
+msgstr "Duplica tabella"
+
+msgid "Empty: {n}"
+msgstr "Vuote: {n}"
+
+msgid "Export rows"
+msgstr "Esporta righe"
+
+msgid "Export rows..."
+msgstr "Esporta righe..."
+
+msgid "Fill empty cells in '{column}'"
+msgstr "Riempi le celle vuote di '{column}'"
+
+msgid "Fill with:"
+msgstr "Riempi con:"
+
+msgid "Find and replace"
+msgstr "Trova e sostituisci"
+
+msgid "Group and aggregate '{table}'"
+msgstr "Raggruppa e aggrega '{table}'"
+
+msgid "Group and aggregate..."
+msgstr "Raggruppa e aggrega..."
+
+msgid "Group by:"
+msgstr "Raggruppa per:"
+
+msgid "In:"
+msgstr "In:"
+
+msgid "Maximum: {v:.6g}"
+msgstr "Massimo: {v:.6g}"
+
+msgid "Mean: {v:.6g}"
+msgstr "Media: {v:.6g}"
+
+msgid "Median: {v:.6g}"
+msgstr "Mediana: {v:.6g}"
+
+msgid "Minimum: {v:.6g}"
+msgstr "Minimo: {v:.6g}"
+
+msgid "Name of the new column:"
+msgstr "Nome della nuova colonna:"
+
+msgid "New chart from selected columns"
+msgstr "Nuovo grafico dalle colonne selezionate"
+
+msgid "New name for '{column}':"
+msgstr "Nuovo nome per '{column}':"
+
+msgid "New table name:"
+msgstr "Nome della nuova tabella:"
+
+msgid "New type for '{column}':"
+msgstr "Nuovo tipo per '{column}':"
+
+msgid "Of column:"
+msgstr "Della colonna:"
+
+msgid "Only cells that match exactly"
+msgstr "Solo le celle che corrispondono esattamente"
+
+msgid "Open New plot with the selected columns as x, y and z"
+msgstr "Apre Nuovo grafico con le colonne selezionate come x, y e z"
+
+msgid "Rename column"
+msgstr "Rinomina colonna"
+
+msgid "Replace with:"
+msgstr "Sostituisci con:"
+
+msgid "Restore the table?"
+msgstr "Ripristinare la tabella?"
+
+msgid "Rows: {n}"
+msgstr "Righe: {n}"
+
+msgid "Rows: {ra} added, {rr} removed, {rm} modified  ·  Columns: {ca} added, {cr} removed, {cm} modified"
+msgstr "Righe: {ra} aggiunte, {rr} rimosse, {rm} modificate  ·  Colonne: {ca} aggiunte, {cr} rimosse, {cm} modificate"
+
+msgid "Statistics of '{column}'"
+msgstr "Statistiche di '{column}'"
+
+msgid "Value:"
+msgstr "Valore:"
+
+msgid "Whole table"
+msgstr "Tutta la tabella"
+
+msgid "{count} cell(s) changed."
+msgstr "{count} celle modificate."
+
+msgid "{count} value(s) could not be read as {kind} and were left empty."
+msgstr "{count} valori non si possono leggere come {kind} e sono stati lasciati vuoti."
+
+msgid "Copy this table, rows and columns, under a new name"
+msgstr "Copia questa tabella, righe e colonne, con un nuovo nome"
+
+msgid "Column statistics"
+msgstr "Statistiche della colonna"
+
+msgid "Summarise this table by one or more columns into a new table"
+msgstr "Riassume questa tabella per una o più colonne in una nuova tabella"
+
+msgid "Save the selected cells, or every visible row, as CSV or Excel"
+msgstr "Salva le celle selezionate, o tutte le righe visibili, come CSV o Excel"
+
+msgid "Insert column before"
+msgstr "Inserisci colonna prima"
+
+msgid "Rename the selected column (or double-click its header)"
+msgstr "Rinomina la colonna selezionata (o fai doppio clic sulla sua intestazione)"
+
+msgid "Convert the selected column to another type"
+msgstr "Converte la colonna selezionata in un altro tipo"
+
+msgid "Sort ascending"
+msgstr "Ordina crescente"
+
+msgid "Reorder the rows by the selected column, smallest first"
+msgstr "Riordina le righe secondo la colonna selezionata, dal più piccolo"
+
+msgid "Sort descending"
+msgstr "Ordina decrescente"
+
+msgid "Reorder the rows by the selected column, largest first"
+msgstr "Riordina le righe secondo la colonna selezionata, dal più grande"
+
+msgid "Fill empty cells..."
+msgstr "Riempi celle vuote..."
+
+msgid "Fill the selected column's empty cells: a value, the mean or median, the previous value, or by interpolation"
+msgstr "Riempie le celle vuote della colonna selezionata: con un valore, la media o la mediana, il valore precedente o per interpolazione"
+
+msgid "Find and replace..."
+msgstr "Trova e sostituisci..."
+
+msgid "Replace text in the selected column or in the whole table"
+msgstr "Sostituisce il testo nella colonna selezionata o in tutta la tabella"
+
+msgid "Restore"
+msgstr "Ripristina"
+
+msgid "Put the table back as it was when this editor was opened"
+msgstr "Riporta la tabella com'era quando è stato aperto l'editor"
+
+msgid "A value"
+msgstr "Un valore"
+
+msgid "The column mean"
+msgstr "La media della colonna"
+
+msgid "The column median"
+msgstr "La mediana della colonna"
+
+msgid "The previous value"
+msgstr "Il valore precedente"
+
+msgid "Linear interpolation"
+msgstr "Interpolazione lineare"

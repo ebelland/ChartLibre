@@ -243,6 +243,7 @@ class MainWindow(QMainWindow):
         self._table_panel.tableSelected.connect(self._on_table_selected)
         self._preview = TablePreviewPanel(parent=self, repo=self._repo)
         self._preview.refresh.connect(self.refresh)
+        self._preview.chart_requested.connect(self._on_chart_from_columns)
         # Left-side pages.
         self._data_page = self._create_data_page()
         self._properties_control = self._create_properties_control()
@@ -2546,7 +2547,17 @@ class MainWindow(QMainWindow):
             self._reload_tabs()
 
 
-    def _on_new_plot_tab(self, icon: QIcon | None = None) -> None:
+    def _on_chart_from_columns(self, table: str, columns: list) -> None:
+        """New plot on *table*, with the preview's selected columns as x, y, z."""
+        self._on_new_plot_tab(table=table, columns=[str(c) for c in columns])
+
+    def _on_new_plot_tab(
+        self,
+        icon: QIcon | None = None,
+        *,
+        table: str | None = None,
+        columns: list[str] | None = None,
+    ) -> None:
         """Create a chart tab, optionally using the operation-list icon.
 
         ``TableListPanel`` invokes this callback without arguments, while the
@@ -2558,7 +2569,8 @@ class MainWindow(QMainWindow):
             current_figure_id=(
                 int(panel.figure_id) if panel is not None else None
             ),
-            current_table=self._table_panel.current,
+            current_table=table or self._table_panel.current,
+            preferred_columns=columns,
             parent=self,
         )
 
@@ -2591,7 +2603,9 @@ class MainWindow(QMainWindow):
         panel, id = self._get_current_figure_id()
         if id is not None and panel is not None:
             panel.reload()
-            self._table_panel.reload()
+        # Always: a duplicated or grouped table must appear in the list
+        # even when no chart is open.
+        self._table_panel.reload()
         self._refresh_undo_item()
 
     def refresh2(self):

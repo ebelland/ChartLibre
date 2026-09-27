@@ -56,6 +56,7 @@ from app.data.repo.descriptors import DescriptorsMixin
 from app.data.repo.editing import EditingMixin
 from app.data.repo.maintenance import MaintenanceMixin
 from app.data.repo.queries import QueriesMixin
+from app.data.repo.table_tools import TableToolsMixin
 from app.data.repo.tables import TablesMixin
 
 
@@ -68,6 +69,7 @@ _SERIES_CACHE_DEFAULT_MAX_ENTRIES = 64
 class SqliteRepo(
     TablesMixin,
     EditingMixin,
+    TableToolsMixin,
     DescriptorsMixin,
     QueriesMixin,
     MaintenanceMixin,

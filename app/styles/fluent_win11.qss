@@ -1127,3 +1127,16 @@ QLabel#operationHint {
 #seriesOperationsContent {
     background: palette(base);
 }
+
+/* The Edit table dialog's "more" button opens a menu; its icon already
+   says so, so no drop-down arrow beside it. */
+QToolButton#tableEditorMore {
+  border: none;
+  background: transparent;
+  padding: 4px;
+}
+
+QToolButton#tableEditorMore::menu-indicator {
+  image: none;
+  width: 0px;
+}

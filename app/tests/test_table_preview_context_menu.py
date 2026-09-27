@@ -18,7 +18,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-from PySide6.QtCore import QPoint
+from PySide6.QtCore import QItemSelectionModel, QPoint
 from PySide6.QtWidgets import QWidget
 
 from app.data.sqlite_repo import SqliteRepo
@@ -73,3 +73,23 @@ def test_context_menu_still_appears_for_a_saved_query(qapp, tmp_db_path: Path) -
     # "cluster" column for it.
     assert "Edit table..." not in texts
     assert "Add column from SQL expression..." not in texts
+
+
+def test_the_table_tools_are_in_the_menu_and_copy_writes_the_clipboard(qapp, tmp_db_path: Path) -> None:
+    repo = _repo_with_table_and_query(tmp_db_path)
+    host = QWidget()
+    panel = TablePreviewPanel(parent=host, repo=repo)
+    panel.set_context(repo, "t1")
+    model = panel.view.model()
+    panel.view.setCurrentIndex(model.index(0, 0))
+
+    menu = panel._build_context_menu(QPoint(0, 0))
+    texts = {action.text() for action in menu.actions() if not action.isSeparator()}
+    assert {"Copy", "Duplicate table", "Group and aggregate...", "Export rows..."} <= texts
+
+    selection = panel.view.selectionModel()
+    for row in (0, 1):
+        for col in (0, 1):
+            selection.select(model.index(row, col), QItemSelectionModel.SelectionFlag.Select)
+    panel._copy_selection()
+    assert qapp.clipboard().text() == "1\t4\n2\t5"

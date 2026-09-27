@@ -9,8 +9,12 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from pathlib import Path
+
+import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, Qt, Signal
-from PySide6.QtWidgets import QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu
+from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu
 from app.data.data_source import quote_identifier as _quote_table
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -100,6 +104,8 @@ class DataFrameTableModel(QAbstractTableModel):
 class TablePreviewPanel(QWidget):
     """Reusable table preview panel with a context-sensitive right-click menu."""
     refresh = Signal()
+    #: "New chart from selected columns": the source and its picked columns.
+    chart_requested = Signal(str, list)
 
     def __init__(self, parent: QWidget, repo:SqliteRepo) -> None:
         super().__init__(parent)
@@ -143,6 +149,10 @@ class TablePreviewPanel(QWidget):
         layout.setSpacing(0)
         layout.addWidget(self.view, 1)
         self.setLayout(layout)
+
+        copy = QShortcut(QKeySequence(QKeySequence.StandardKey.Copy), self.view)
+        copy.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        copy.activated.connect(self._copy_selection)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched in (self.view, self.view.viewport()):
@@ -261,7 +271,30 @@ class TablePreviewPanel(QWidget):
             self.view.setCurrentIndex(clicked)
 
         column = self._current_column_name() if lazy_model is not None else None
-        items: list[MenuItem | None] = []
+        items: list[MenuItem | None] = [
+            # No shortcut on the item: Cmd/Ctrl+C is the view's own QShortcut
+            # (see __init__), and a second binding would make both ambiguous.
+            MenuItem(_("Copy"), callback=self._copy_selection, icon="copy"),
+            None,
+        ]
+        if column:
+            items.append(
+                MenuItem(
+                    _("Statistics of '{column}'").format(column=column),
+                    callback=lambda _=False, col=column: self._show_column_stats(col),
+                    icon="column_stats",
+                    tooltip=_("Count, empty cells, distinct values, and min, max, mean and median"),
+                )
+            )
+        items.append(
+            MenuItem(
+                _("New chart from selected columns"),
+                callback=self._request_chart,
+                icon="chart_from_columns",
+                tooltip=_("Open New plot with the selected columns as x, y and z"),
+            )
+        )
+        items.append(None)
         if column:
             items.append(
                 MenuItem(
@@ -351,9 +384,14 @@ class TablePreviewPanel(QWidget):
                             callback=self._add_column_from_expression,
                             icon="add",
                         ),
+            MenuItem(_("Duplicate table"), callback=self._duplicate_table, icon="duplicate_table"),
+            MenuItem(_("Group and aggregate..."), callback=self._group_aggregate, icon="group_aggregate"),
+            MenuItem(_("Export rows..."), callback=self._export_rows, icon="export_rows"),
             None,
             MenuItem(_("Refresh data table"), callback=self._reload_model, icon="reload"),
         ) if lazy_model is not None else (
+            MenuItem(_("Export rows..."), callback=self._export_rows, icon="export_rows"),
+            None,
             MenuItem(_("Refresh data table"), callback=self._reload_model, icon="reload"),
         )
 
@@ -373,6 +411,172 @@ class TablePreviewPanel(QWidget):
             )
 
         return menu
+
+    # ------------------------------------------------------------------
+    # Selection helpers
+    # ------------------------------------------------------------------
+    def _selected_block(self) -> tuple[list[int], list[int]]:
+        """Rows and columns that hold a selected cell, in view order."""
+        indexes = self.view.selectedIndexes()
+        if not indexes and self.view.currentIndex().isValid():
+            indexes = [self.view.currentIndex()]
+        rows = sorted({index.row() for index in indexes})
+        columns = sorted({index.column() for index in indexes})
+        return rows, columns
+
+    def _column_names(self, positions: list[int]) -> list[str]:
+        model = self.view.model()
+        names: list[str] = []
+        for position in positions:
+            getter = getattr(model, "column_name", None)
+            name = getter(position) if getter is not None else None
+            if name:
+                names.append(str(name))
+        return names
+
+    def _copy_selection(self) -> None:
+        """Copy the selected cells as tab-separated text, rows on lines."""
+        model = self.view.model()
+        if model is None:
+            return
+        selected = {(i.row(), i.column()) for i in self.view.selectedIndexes()}
+        if not selected and self.view.currentIndex().isValid():
+            current = self.view.currentIndex()
+            selected = {(current.row(), current.column())}
+        if not selected:
+            return
+        rows = sorted({row for row, _col in selected})
+        columns = sorted({col for _row, col in selected})
+        lines = []
+        for row in rows:
+            cells = []
+            for col in columns:
+                value = model.data(model.index(row, col)) if (row, col) in selected else ""
+                cells.append("" if value is None else str(value))
+            lines.append("\t".join(cells))
+        QApplication.clipboard().setText("\n".join(lines))
+
+    # ------------------------------------------------------------------
+    # Table tools
+    # ------------------------------------------------------------------
+    def _show_column_stats(self, column: str) -> None:
+        if self._repo is None or not self._table:
+            return
+        try:
+            stats = self._repo.column_stats(self._table, column)
+        except Exception as exc:
+            applogger.exception("Column statistics failed: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return
+        lines = [
+            _("Rows: {n}").format(n=stats["rows"]),
+            _("Empty: {n}").format(n=stats["empty"]),
+            _("Distinct values: {n}").format(n=stats["distinct"]),
+        ]
+        if "mean" in stats:
+            lines += [
+                "",
+                _("Minimum: {v:.6g}").format(v=stats["min"]),
+                _("Maximum: {v:.6g}").format(v=stats["max"]),
+                _("Mean: {v:.6g}").format(v=stats["mean"]),
+                _("Median: {v:.6g}").format(v=stats["median"]),
+            ]
+        QMessageBox.information(
+            self, _("Statistics of '{column}'").format(column=column), "\n".join(lines)
+        )
+
+    def _request_chart(self) -> None:
+        if not self._table:
+            return
+        _rows, positions = self._selected_block()
+        self.chart_requested.emit(str(self._table), self._column_names(positions))
+
+    def _duplicate_table(self) -> None:
+        if self._repo is None or not self._table:
+            return
+        try:
+            name = self._repo.duplicate_table(self._table)
+        except Exception as exc:
+            applogger.exception("Duplicate table failed: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return
+        applogger.info("Table '%s' duplicated as '%s'.", self._table, name)
+        self.refresh.emit()
+
+    def _group_aggregate(self) -> None:
+        if self._repo is None or not self._table:
+            return
+        from app.dialogs.table_tools_dialogs import GroupAggregateDialog
+
+        columns = [c for c in self._repo.get_columns(self._table) if c != "Hide"]
+        dialog = GroupAggregateDialog(self._table, columns, self)
+        if not dialog.exec():
+            return
+        try:
+            name = self._repo.group_aggregate(
+                self._table,
+                dialog.chosen_groups(),
+                str(dialog.aggregate.currentData()),
+                dialog.value.currentData(),
+                dialog.name.text().strip() or None,
+            )
+        except Exception as exc:
+            applogger.exception("Group and aggregate failed: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return
+        applogger.info("Grouped '%s' into '%s'.", self._table, name)
+        self.refresh.emit()
+
+    def _export_rows(self) -> None:
+        """Save the selected block, or every visible row, as CSV or Excel."""
+        model = self.view.model()
+        if model is None or not self._table:
+            return
+        rows, positions = self._selected_block()
+        several = len(rows) * len(positions) > 1
+        try:
+            if several:
+                names = self._column_names(positions)
+                frame = pd.DataFrame(
+                    [[model.data(model.index(r, c)) for c in positions] for r in rows],
+                    columns=names,
+                )
+                for name in names:
+                    converted = pd.to_numeric(frame[name], errors="coerce")
+                    if converted.notna().sum() == frame[name].replace("", None).notna().sum():
+                        frame[name] = converted
+            elif isinstance(model, DataFrameTableModel):
+                frame = model.frame
+            else:
+                assert self._repo is not None
+                where = ' WHERE COALESCE("Hide", 0) = 0' if "Hide" in self._repo.get_columns(self._table) else ""
+                frame = self._repo.query_df(f"SELECT * FROM {_quote_table(self._table)}{where}")
+        except Exception as exc:
+            applogger.exception("Export rows failed: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return
+
+        path, chosen = QFileDialog.getSaveFileName(
+            self,
+            _("Export rows"),
+            f"{self._table}.csv",
+            _("CSV (*.csv);;Excel (*.xlsx)"),
+        )
+        if not path:
+            return
+        target = Path(path)
+        if target.suffix.lower() not in (".csv", ".xlsx"):
+            target = target.with_suffix(".xlsx" if "xlsx" in chosen else ".csv")
+        try:
+            if target.suffix.lower() == ".xlsx":
+                frame.to_excel(target, index=False, engine="openpyxl")
+            else:
+                frame.to_csv(target, index=False)
+        except Exception as exc:
+            applogger.exception("Export rows failed: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return
+        applogger.info("Exported %d rows to %s.", len(frame), target)
 
     def _delete_column(self, column: str) -> None:
         if self._repo is None or not self._table:

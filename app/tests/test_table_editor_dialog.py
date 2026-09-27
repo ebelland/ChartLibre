@@ -131,12 +131,9 @@ def test_delete_rows_removes_every_selected_one(
 
 
 def test_add_column_appends_it(dialog: TableEditorDialog, repo: SqliteRepo) -> None:
-    dialog._new_column_name.setText("score")
-    dialog._new_column_type.setCurrentText("REAL")
-    dialog._add_column()
+    dialog._add_column(name="score", kind="REAL")
 
     assert _columns(repo) == ["name", "value", "score"]
-    assert dialog._new_column_name.text() == ""
 
 
 def test_delete_column_removes_it(
@@ -153,11 +150,13 @@ def test_delete_column_removes_it(
     assert _columns(repo) == ["name"]
 
 
-def test_rename_column_uses_the_name_box(
-    dialog: TableEditorDialog, repo: SqliteRepo
+def test_rename_column_asks_for_the_new_name(
+    dialog: TableEditorDialog, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from PySide6.QtWidgets import QInputDialog
+
+    monkeypatch.setattr(QInputDialog, "getText", staticmethod(lambda *_a, **_k: ("amount", True)))
     _select_cell(dialog, 0, 1)
-    dialog._new_column_name.setText("amount")
     dialog._rename_column()
 
     assert _columns(repo) == ["name", "amount"]
@@ -172,8 +171,7 @@ def test_a_duplicate_column_name_is_refused_not_applied(
     monkeypatch.setattr(
         QMessageBox, "warning", lambda _p, _t, message, *a, **k: warned.append(message)
     )
-    dialog._new_column_name.setText("value")
-    dialog._add_column()
+    dialog._add_column(name="value", kind="REAL")
 
     assert _columns(repo) == ["name", "value"]
     assert warned and "already a column" in warned[0]
@@ -237,8 +235,7 @@ def test_cancel_puts_the_table_back(
 
     dialog._model.setData(dialog._model.index(0, 0), "LOST", Qt.ItemDataRole.EditRole)
     dialog._add_row()
-    dialog._new_column_name.setText("scratch")
-    dialog._add_column()
+    dialog._add_column(name="scratch", kind="REAL")
     assert _rows(repo) != original
 
     dialog.reject()
@@ -247,3 +244,27 @@ def test_cancel_puts_the_table_back(
     assert _columns(repo) == original_columns
 
 
+
+
+def test_restore_puts_the_table_back_and_keeps_the_editor_open(
+    dialog: TableEditorDialog, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from PySide6.QtWidgets import QInputDialog, QMessageBox
+
+    monkeypatch.setattr(
+        QMessageBox, "question", staticmethod(lambda *_a, **_k: QMessageBox.StandardButton.Yes)
+    )
+    monkeypatch.setattr(
+        QInputDialog, "getText", staticmethod(lambda *_a, **_k: ("label", True))
+    )
+    dialog._add_row()
+    dialog._rename_from_header(0)
+    assert _columns(repo)[0] == "label"
+    assert "1 added" in dialog._status.text() and "1 modified" in dialog._status.text()
+
+    dialog._restore()
+
+    assert _rows(repo) == [tuple(r) for r in FRAME.itertuples(index=False)]
+    assert _columns(repo)[0] == "name"
+    assert "0 added" in dialog._status.text()
+    assert not dialog._restore_button.isEnabled()

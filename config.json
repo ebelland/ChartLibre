@@ -590,6 +590,174 @@
       "SFSymbol": "arrow.up.left.and.arrow.down.right",
       "SegoeFluent": "E9A6",
       "ThemeIcon": "zoom-fit-best"
+    },
+    "duplicate_table": {
+      "text": "Duplicate table",
+      "description": "Copy this table, rows and columns, under a new name",
+      "SFSymbol": "plus.square.on.square",
+      "SegoeFluent": "E8C8",
+      "ThemeIcon": "edit-copy"
+    },
+    "column_stats": {
+      "text": "Column statistics",
+      "description": "Count, empty cells, distinct values, and min, max, mean and median",
+      "SFSymbol": "chart.bar.xaxis",
+      "SegoeFluent": "E9D2",
+      "ThemeIcon": "view-statistics"
+    },
+    "group_aggregate": {
+      "text": "Group and aggregate...",
+      "description": "Summarise this table by one or more columns into a new table",
+      "SFSymbol": "square.stack.3d.up",
+      "SegoeFluent": "E8FD",
+      "ThemeIcon": "view-list-tree"
+    },
+    "export_rows": {
+      "text": "Export rows...",
+      "description": "Save the selected cells, or every visible row, as CSV or Excel",
+      "SFSymbol": "square.and.arrow.up",
+      "SegoeFluent": "EDE1",
+      "ThemeIcon": "document-export"
+    },
+    "chart_from_columns": {
+      "text": "New chart from selected columns",
+      "description": "Open New plot with the selected columns as x, y and z",
+      "SFSymbol": "chart.xyaxis.line",
+      "SegoeFluent": "E9D9",
+      "ThemeIcon": "office-chart-line"
+    },
+    "table_add_row": {
+      "text": "Add row",
+      "description": "Add an empty row at the end of the table",
+      "SFSymbol": "plus.rectangle",
+      "SegoeFluent": "E710",
+      "ThemeIcon": "list-add"
+    },
+    "table_insert_row": {
+      "text": "Insert row above",
+      "description": "Add an empty row above the selected one",
+      "SFSymbol": "arrow.up.to.line",
+      "SegoeFluent": "E74A",
+      "ThemeIcon": "go-up"
+    },
+    "table_delete_rows": {
+      "text": "Delete rows",
+      "description": "Delete every row with a selected cell",
+      "SFSymbol": "minus.rectangle",
+      "SegoeFluent": "E738",
+      "ThemeIcon": "list-remove"
+    },
+    "table_add_column": {
+      "text": "Add column",
+      "description": "Add the named column at the end of the table",
+      "SFSymbol": "plus.square",
+      "SegoeFluent": "E710",
+      "ThemeIcon": "list-add"
+    },
+    "table_insert_column": {
+      "text": "Insert column before",
+      "description": "Add the named column immediately before the selected one",
+      "SFSymbol": "arrow.left.to.line",
+      "SegoeFluent": "E72B",
+      "ThemeIcon": "go-previous"
+    },
+    "table_rename_column": {
+      "text": "Rename column",
+      "description": "Rename the selected column (or double-click its header)",
+      "SFSymbol": "pencil",
+      "SegoeFluent": "E70F",
+      "ThemeIcon": "document-edit"
+    },
+    "table_delete_column": {
+      "text": "Delete column",
+      "description": "Delete the selected column and everything in it",
+      "SFSymbol": "minus.square",
+      "SegoeFluent": "E738",
+      "ThemeIcon": "list-remove"
+    },
+    "table_cast_column": {
+      "text": "Change type",
+      "description": "Convert the selected column to another type",
+      "SFSymbol": "textformat",
+      "SegoeFluent": "E8D2",
+      "ThemeIcon": "format-text-bold"
+    },
+    "table_sort_ascending": {
+      "text": "Sort ascending",
+      "description": "Reorder the rows by the selected column, smallest first",
+      "SFSymbol": "arrow.up",
+      "SegoeFluent": "E74A",
+      "ThemeIcon": "view-sort-ascending"
+    },
+    "table_sort_descending": {
+      "text": "Sort descending",
+      "description": "Reorder the rows by the selected column, largest first",
+      "SFSymbol": "arrow.down",
+      "SegoeFluent": "E74B",
+      "ThemeIcon": "view-sort-descending"
+    },
+    "table_fill_missing": {
+      "text": "Fill empty cells...",
+      "description": "Fill the selected column's empty cells: a value, the mean or median, the previous value, or by interpolation",
+      "SFSymbol": "square.and.pencil",
+      "SegoeFluent": "E70F",
+      "ThemeIcon": "document-edit"
+    },
+    "table_find_replace": {
+      "text": "Find and replace...",
+      "description": "Replace text in the selected column or in the whole table",
+      "SFSymbol": "magnifyingglass",
+      "SegoeFluent": "E721",
+      "ThemeIcon": "edit-find-replace"
+    },
+    "table_restore": {
+      "text": "Restore",
+      "description": "Put the table back as it was when this editor was opened",
+      "SFSymbol": "arrow.uturn.backward",
+      "SegoeFluent": "E7A7",
+      "ThemeIcon": "edit-undo"
+    },
+    "table_hide_ensure": {
+      "text": "Ensure Hide",
+      "description": "Add the Hide column if this table does not have one",
+      "SFSymbol": "eye.slash",
+      "SegoeFluent": "ED1A",
+      "ThemeIcon": "view-hidden"
+    },
+    "table_hide_reset": {
+      "text": "Reset Hide",
+      "description": "Set Hide back to 0 on every row, so nothing is hidden",
+      "SFSymbol": "eye",
+      "SegoeFluent": "E7B3",
+      "ThemeIcon": "view-visible"
+    },
+    "table_hide_invert": {
+      "text": "Invert Hide",
+      "description": "Swap hidden and shown rows",
+      "SFSymbol": "arrow.left.arrow.right",
+      "SegoeFluent": "E8AB",
+      "ThemeIcon": "object-flip-horizontal"
+    },
+    "table_cluster_ensure": {
+      "text": "Ensure ClusterId",
+      "description": "Add the ClusterId column if this table does not have one",
+      "SFSymbol": "circle.grid.3x3",
+      "SegoeFluent": "E80A",
+      "ThemeIcon": "view-grid"
+    },
+    "table_cluster_reset": {
+      "text": "Reset clusters",
+      "description": "Clear every cluster label",
+      "SFSymbol": "circle.slash",
+      "SegoeFluent": "E894",
+      "ThemeIcon": "edit-clear"
+    },
+    "table_more": {
+      "text": "Managed columns",
+      "description": "Hide marks rows the charts skip; ClusterId is written by the Clustering operation.",
+      "SFSymbol": "ellipsis.circle",
+      "SegoeFluent": "E712",
+      "ThemeIcon": "view-more"
     }
   },
   "messages": {

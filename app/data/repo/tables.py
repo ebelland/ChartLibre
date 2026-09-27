@@ -1298,7 +1298,9 @@ class TablesMixin:
     # These are attached after the SqliteRepo class definition so the file remains
     # drop-in even if the class layout changes.
 
-    def delete_table_column(self, table_name: str, column_name: str) -> None:
+    def delete_table_column(
+        self, table_name: str, column_name: str, *, undo_entry: int | None = None
+    ) -> None:
         """Delete a column from a user table."""
         if not self._is_connected or self._con is None:
             self._connect()
@@ -1313,7 +1315,9 @@ class TablesMixin:
         # A dropped column takes its data with it and SQLite has no way back,
         # which is what makes this worth a snapshot of the whole table.
         self.snapshot_for_undo(
-            [table_name], label=f"Delete column '{column_name}' from '{table_name}'"
+            [table_name],
+            label=f"Delete column '{column_name}' from '{table_name}'",
+            entry_id=undo_entry,
         )
 
         self._con.execute(

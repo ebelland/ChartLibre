@@ -12,7 +12,7 @@ scatter plot next to the words "Scatter Plot" is decoration, not information.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any, Sequence, cast
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QSplitter, QToolBox
@@ -80,11 +80,15 @@ class NewPlotTabDialog(QDialog):
         *,
         current_figure_id: int | None = None,
         current_table: str | None = None,
+        preferred_columns: Sequence[str] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
 
         self._repo = repo
+        #: Columns picked in the table preview, mapped onto x, y and z in
+        #: that order the first time the role combos are filled.
+        self._preferred_columns: list[str] = [str(c) for c in (preferred_columns or [])]
         self._current_figure_id = current_figure_id
         self._current_table = current_table
         self._result: NewPlotTabResult | None = None
@@ -1190,6 +1194,10 @@ class NewPlotTabDialog(QDialog):
 
         # Keep convenient defaults for common X/Y role names.
         lower_to_role = {role.lower(): role for role in self._role_combos}
+        for role_name, column in zip(("x", "y", "z"), self._preferred_columns):
+            role = lower_to_role.get(role_name)
+            if role and column in cols and self._role_combos[role].currentData() is None:
+                self._role_combos[role].setCurrentIndex(self._role_combos[role].findData(column))
         if cols:
             x_role = lower_to_role.get("x")
             if x_role and self._role_combos[x_role].currentData() is None:

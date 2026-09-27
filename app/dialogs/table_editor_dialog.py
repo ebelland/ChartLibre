@@ -30,26 +30,30 @@ from typing import Any
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
     QDialog,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
+    QPushButton,
     QTableView,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.data.repo.table_tools import CAST_TYPES
 from app.styles.style import (
     CardFrame,
     action_presentation,
     apply_dialog_shell,
     apply_fusion_for_item_view_styling,
     create_action_button,
-    icon_from_svg_source,
+    mark_destructive_button,
     mark_icon_only,
     stdSizeAndlayout,
 )
@@ -59,25 +63,6 @@ from app.widgets.table_preview import LazyTableModel
 #: What a new column can be declared as. SQLite's own storage classes, in
 #: the order they are actually wanted: a measured quantity first.
 COLUMN_TYPES: tuple[str, ...] = ("REAL", "INTEGER", "TEXT")
-
-# Stroke-only 24x24 glyphs, the same shape language as the rest of the
-# application's inline artwork. Each one has to be distinguishable from its
-# neighbours at 20px, which is what the pairing of a mark (plus, minus,
-# arrow) with an orientation (a horizontal bar for a row, a vertical one
-# for a column) is for.
-_ROW_ADD = '<path d="M3 7h18"/><path d="M3 12h18"/><path d="M7 18h8"/><path d="M11 14v8"/>'
-_ROW_INSERT = '<path d="M3 14h18"/><path d="M3 19h18"/><path d="M12 3v8"/><path d="M8.5 6.5L12 3l3.5 3.5"/>'
-_ROW_DELETE = '<path d="M3 7h18"/><path d="M3 12h18"/><path d="M7 18h8"/>'
-_COL_ADD = '<path d="M7 3v18"/><path d="M12 3v18"/><path d="M18 7h4"/><path d="M20 5v4"/>'
-_COL_INSERT = '<path d="M14 3v18"/><path d="M19 3v18"/><path d="M3 12h8"/><path d="M6.5 8.5L3 12l3.5 3.5"/>'
-_COL_DELETE = '<path d="M7 3v18"/><path d="M12 3v18"/><path d="M18 12h4"/>'
-_PENCIL = '<path d="M4 20h4L20 8l-4-4L4 16z"/>'
-_EYE_OFF = '<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 20L20 4"/>'
-_EYE = '<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/>'
-_SWAP = '<path d="M4 9h13"/><path d="M13.5 5.5L17 9l-3.5 3.5"/><path d="M20 15H7"/><path d="M10.5 11.5L7 15l3.5 3.5"/>'
-_CLUSTER = '<circle cx="7" cy="8" r="2"/><circle cx="16" cy="7" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="18" cy="16" r="2"/>'
-_CLUSTER_OFF = '<circle cx="7" cy="8" r="2"/><circle cx="16" cy="7" r="2"/><circle cx="12" cy="15" r="2"/><path d="M4 20L20 4"/>'
-
 
 class EditableTableModel(LazyTableModel):
     """The preview's own lazy model, with the cells writable.
@@ -97,6 +82,8 @@ class EditableTableModel(LazyTableModel):
         #: Set by the dialog, so a cell edit joins the session's own undo
         #: entry rather than copying the table again for every keystroke.
         self.undo_entry_for: Any = lambda: None
+        #: Set by the dialog: told (rowid, column) after each written cell.
+        self.cell_written: Any = lambda _rowid, _column: None
         super().__init__(repo, table, parent)
 
     def _fetch_chunk(self, chunk_index: int) -> list[list[Any]]:
@@ -155,6 +142,7 @@ class EditableTableModel(LazyTableModel):
             applogger.exception("Could not write the cell: %s", exc)
             return False
 
+        self.cell_written(rowid, column)
         # Only this chunk is stale; re-reading the whole table to show one
         # changed cell would defeat the point of reading it in chunks.
         self._cache.pop(index.row() // self._chunk_size, None)
@@ -189,7 +177,7 @@ class EditableTableModel(LazyTableModel):
 
 
 class TableEditorDialog(QDialog):
-    """Hand editing for one table: cells, rows, columns."""
+    """Hand editing for one table: cells, rows, columns, and the data tools."""
 
     def __init__(
         self,
@@ -208,17 +196,17 @@ class TableEditorDialog(QDialog):
         self.view.setAlternatingRowColors(True)
         self.view.setSortingEnabled(False)
         apply_fusion_for_item_view_styling(self.view)
+        # Rename a column where it is named: double-click its header.
+        self.view.horizontalHeader().sectionDoubleClicked.connect(self._rename_from_header)
 
         #: One undo entry for everything done while this dialog is open.
         #: See the repository's hand-editing section: a snapshot copies the
         #: whole table, so an entry per cell would copy it per keystroke.
-        #: The cost is that Undo steps back over the whole session at once,
-        #: which is also how it reads to the person who did it - "I was
-        #: editing that table".
+        #: It is also what Cancel and Restore roll back.
         self._undo_entry: int | None = None
+        self._reset_counts()
 
-        self._model = EditableTableModel(self._repo, self._table, self)
-        self._model.undo_entry_for = self._ensure_undo_entry
+        self._model = self._new_model()
         self.view.setModel(self._model)
 
         root = QVBoxLayout(self)
@@ -230,8 +218,17 @@ class TableEditorDialog(QDialog):
         root.addWidget(self._build_toolbar(), 0)
         root.addWidget(self.view, 1)
 
+        self._status = QLabel(self)
+        self._status.setProperty("muted", True)
+        root.addWidget(self._status, 0)
+        self._show_counts()
+
         closing = QHBoxLayout()
         stdSizeAndlayout(closing)
+        self._restore_button = create_action_button(
+            parent=self, action_id="table_restore", action=self._restore, layout=closing
+        )
+        mark_destructive_button(self._restore_button)
         closing.addStretch(1)
         create_action_button(
             parent=self,
@@ -258,134 +255,107 @@ class TableEditorDialog(QDialog):
         root.addLayout(closing, 0)
 
     # ------------------------------------------------------------------
-    # The three groups of actions
+    # The toolbar: one row of icons, grouped; names are in the tooltips
     # ------------------------------------------------------------------
 
-    def _group_label(self, text: str, parent: QWidget) -> QLabel:
-        """A small heading inside the toolbar rather than above it."""
-        label = QLabel(text, parent)
-        label.setProperty("muted", True)
-        return label
-
-    def _icon_button(
-        self, row: QHBoxLayout, glyph: str, name: str, tooltip: str, action
-    ) -> None:
-        """One square icon button, with the words in its tooltip.
-
-        Icon-only on purpose: three labelled rows of buttons put about 230
-        pixels of chrome above the table, which on a laptop screen left
-        barely enough of the dialog to see the data it is for. mark_icon_only
-        is the application's own answer - both stylesheets already carry the
-        [iconOnly] rule, and the macOS sheet hides icons on an ordinary
-        QPushButton (icon-size: 0) precisely so that only the buttons meant
-        to be icons are.
-        """
-        button = create_action_button(
-            parent=self,
-            action_id="",
-            action=action,
-            layout=row,
-            presentation=(icon_from_svg_source(glyph, size=20), name, tooltip),
-        )
-        button.setAccessibleName(name)
+    def _tool(self, row: QHBoxLayout, action_id: str, action) -> QPushButton:
+        """One square icon button from the action catalogue (SF Symbols on
+        macOS, Segoe Fluent on Windows); its name is in the tooltip."""
+        button = create_action_button(parent=self, action_id=action_id, action=action, layout=row)
+        button.setAccessibleName(action_presentation(action_id)[1])
         mark_icon_only(button)
+        return button
+
+    @staticmethod
+    def _gap(row: QHBoxLayout) -> None:
+        row.addSpacing(18)
 
     def _build_toolbar(self) -> CardFrame:
-        """Every action, in two rows of icons above the table."""
         card = CardFrame(self, "tableEditorCard")
-        layout = card.layout()
+        row = QHBoxLayout()
+        stdSizeAndlayout(row)
+        card.layout().addLayout(row)
 
-        structure = QHBoxLayout()
-        stdSizeAndlayout(structure)
-        structure.addWidget(self._group_label(_("Rows"), card), 0)
-        self._icon_button(
-            structure, _ROW_ADD, _("Add row"),
-            _("Add an empty row at the end of the table"), self._add_row,
-        )
-        self._icon_button(
-            structure, _ROW_INSERT, _("Insert row above"),
-            _("Add an empty row above the selected one"), self._insert_row,
-        )
-        self._icon_button(
-            structure, _ROW_DELETE, _("Delete rows"),
-            _("Delete every row with a selected cell"), self._delete_rows,
-        )
+        self._tool(row, "table_add_row", self._add_row)
+        self._tool(row, "table_insert_row", self._insert_row)
+        self._tool(row, "table_delete_rows", self._delete_rows)
+        self._gap(row)
+        self._tool(row, "table_add_column", self._add_column)
+        self._tool(row, "table_insert_column", self._insert_column)
+        self._tool(row, "table_rename_column", self._rename_column)
+        self._tool(row, "table_cast_column", self._cast_column)
+        self._tool(row, "table_delete_column", self._delete_column)
+        self._gap(row)
+        self._tool(row, "table_sort_ascending", lambda: self._sort(descending=False))
+        self._tool(row, "table_sort_descending", lambda: self._sort(descending=True))
+        self._tool(row, "table_fill_missing", self._fill_missing)
+        self._tool(row, "table_find_replace", self._find_replace)
+        row.addStretch(1)
 
-        structure.addSpacing(12)
-        structure.addWidget(self._group_label(_("Columns"), card), 0)
-
-        self._new_column_name = QLineEdit(self)
-        self._new_column_name.setPlaceholderText(_("New column name"))
-        stdSizeAndlayout(self._new_column_name)
-        structure.addWidget(self._new_column_name, 1)
-
-        self._new_column_type = QComboBox(self)
-        self._new_column_type.addItems(COLUMN_TYPES)
-        # The length matters: stdSizeAndlayout defaults a combo's minimum
-        # contents length to 0, which collapsed the box to "I" and an arrow.
-        stdSizeAndlayout(
-            self._new_column_type,
-            minimum_contents_length=max(len(name) for name in COLUMN_TYPES),
-        )
-        structure.addWidget(self._new_column_type, 0)
-
-        self._icon_button(
-            structure, _COL_ADD, _("Add column"),
-            _("Add the named column at the end of the table"), self._add_column,
-        )
-        self._icon_button(
-            structure, _COL_INSERT, _("Insert before selected"),
-            _("Add the named column immediately before the selected one"),
-            self._insert_column,
-        )
-        self._icon_button(
-            structure, _PENCIL, _("Rename selected"),
-            _("Rename the selected column to the name in the box"), self._rename_column,
-        )
-        self._icon_button(
-            structure, _COL_DELETE, _("Delete selected"),
-            _("Delete the selected column and everything in it"), self._delete_column,
-        )
-        layout.addLayout(structure)
-
-        managed = QHBoxLayout()
-        stdSizeAndlayout(managed)
-        managed.addWidget(self._group_label(_("Managed columns"), card), 0)
-        self._icon_button(
-            managed, _EYE_OFF, _("Ensure Hide"),
-            _("Add the Hide column if this table does not have one"),
-            lambda: self._managed(self._repo.ensure_hide_column, _("Hide column ensured")),
-        )
-        self._icon_button(
-            managed, _EYE, _("Reset Hide"),
-            _("Set Hide back to 0 on every row, so nothing is hidden"),
-            lambda: self._managed(self._repo.clear_hide_column, _("Hide reset")),
-        )
-        self._icon_button(
-            managed, _SWAP, _("Invert Hide"),
-            _("Swap hidden and shown rows"),
-            lambda: self._managed(self._repo.invert_hide, _("Hide inverted")),
-        )
-        managed.addSpacing(12)
-        self._icon_button(
-            managed, _CLUSTER, _("Ensure ClusterId"),
-            _("Add the ClusterId column if this table does not have one"),
-            lambda: self._managed(self._repo.ensure_cluster_column, _("ClusterId column ensured")),
-        )
-        self._icon_button(
-            managed, _CLUSTER_OFF, _("Reset clusters"),
-            _("Clear every cluster label"),
-            lambda: self._managed(self._repo.clear_cluster_column, _("Clusters reset")),
-        )
-        managed.addWidget(
-            self._group_label(
-                _("Hide marks rows the charts skip; ClusterId is written by the Clustering operation."),
-                card,
-            ),
-            1,
-        )
-        layout.addLayout(managed)
+        # Hide and ClusterId: the columns the application maintains - used
+        # rarely, so behind one button rather than five.
+        more = QToolButton(card)
+        more.setObjectName("tableEditorMore")
+        more_icon, more_text, more_tip = action_presentation("table_more")
+        more.setIcon(more_icon)
+        more.setAccessibleName(more_text)
+        more.setToolTip(f"{more_text}: {more_tip}")
+        more.setAutoRaise(True)
+        more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu = QMenu(more)
+        for action_id, action in (
+            ("table_hide_ensure", self._repo.ensure_hide_column),
+            ("table_hide_reset", self._repo.clear_hide_column),
+            ("table_hide_invert", self._repo.invert_hide),
+            (None, None),
+            ("table_cluster_ensure", self._repo.ensure_cluster_column),
+            ("table_cluster_reset", self._repo.clear_cluster_column),
+        ):
+            if action_id is None:
+                menu.addSeparator()
+                continue
+            icon, text, tooltip = action_presentation(action_id)
+            item = menu.addAction(icon, text)
+            item.setToolTip(tooltip)
+            item.triggered.connect(lambda _checked=False, run=action: self._managed(run))
+        more.setMenu(menu)
+        row.addWidget(more, 0)
         return card
+
+    # ------------------------------------------------------------------
+    # What changed: the status line
+    # ------------------------------------------------------------------
+
+    def _reset_counts(self) -> None:
+        self._rows_added = 0
+        self._rows_removed = 0
+        self._rows_modified: set[int] = set()
+        self._cells_bulk = 0
+        self._columns_added = 0
+        self._columns_removed = 0
+        self._columns_modified: set[str] = set()
+
+    def _show_counts(self) -> None:
+        self._status.setText(
+            _(
+                "Rows: {ra} added, {rr} removed, {rm} modified  \u00b7  "
+                "Columns: {ca} added, {cr} removed, {cm} modified"
+            ).format(
+                ra=self._rows_added,
+                rr=self._rows_removed,
+                rm=len(self._rows_modified) + self._cells_bulk,
+                ca=self._columns_added,
+                cr=self._columns_removed,
+                cm=len(self._columns_modified),
+            )
+        )
+        button = getattr(self, "_restore_button", None)
+        if button is not None:
+            button.setEnabled(self._undo_entry is not None)
+
+    def _on_cell_written(self, rowid: int, column: str) -> None:
+        self._rows_modified.add(int(rowid))
+        self._show_counts()
 
     # ------------------------------------------------------------------
     # Selection
@@ -403,21 +373,36 @@ class TableEditorDialog(QDialog):
         found = [self._model.rowid_at(row) for row in rows]
         return [rowid for rowid in found if rowid is not None]
 
+    def _need_column(self) -> str | None:
+        column = self._selected_column()
+        if column is None:
+            self._say(_("Select a column first."))
+        return column
+
     # ------------------------------------------------------------------
     # Row actions
     # ------------------------------------------------------------------
 
     def _add_row(self) -> None:
-        self._guarded(lambda: self._repo.append_table_row(self._table, undo_entry=self._ensure_undo_entry()))
+        def run() -> None:
+            self._repo.append_table_row(self._table, undo_entry=self._ensure_undo_entry())
+            self._rows_added += 1
+
+        self._guarded(run)
 
     def _insert_row(self) -> None:
         rowids = self._selected_rowids()
         if not rowids:
             self._say(_("Select the row to insert above first."))
             return
-        self._guarded(lambda: self._repo.insert_table_row_before(
+
+        def run() -> None:
+            self._repo.insert_table_row_before(
                 self._table, rowids[0], undo_entry=self._ensure_undo_entry()
-            ))
+            )
+            self._rows_added += 1
+
+        self._guarded(run)
 
     def _delete_rows(self) -> None:
         rowids = self._selected_rowids()
@@ -431,20 +416,34 @@ class TableEditorDialog(QDialog):
         )
         if confirmed != QMessageBox.StandardButton.Yes:
             return
-        self._guarded(lambda: self._repo.delete_table_rows(
-                self._table, rowids, undo_entry=self._ensure_undo_entry()
-            ))
+
+        def run() -> None:
+            self._repo.delete_table_rows(self._table, rowids, undo_entry=self._ensure_undo_entry())
+            self._rows_removed += len(rowids)
+
+        self._guarded(run)
 
     # ------------------------------------------------------------------
     # Column actions
     # ------------------------------------------------------------------
 
-    def _add_column(self, before: str | None = None) -> None:
-        name = self._new_column_name.text().strip()
+    def _add_column(
+        self, before: str | None = None, *, name: str | None = None, kind: str | None = None
+    ) -> None:
+        if name is None:
+            name, ok = QInputDialog.getText(self, _("Add column"), _("Name of the new column:"))
+            if not ok:
+                return
+        name = (name or "").strip()
         if not name:
-            self._say(_("Type a name for the new column first."))
             return
-        column_type = self._new_column_type.currentText()
+        if kind is None:
+            kind, ok = QInputDialog.getItem(
+                self, _("Add column"), _("Type:"), list(COLUMN_TYPES), 0, False
+            )
+            if not ok:
+                return
+        column_type = str(kind)
 
         def run() -> None:
             self._repo.insert_table_column(
@@ -454,7 +453,7 @@ class TableEditorDialog(QDialog):
                 before=before,
                 undo_entry=self._ensure_undo_entry(),
             )
-            self._new_column_name.clear()
+            self._columns_added += 1
 
         self._guarded(run)
 
@@ -466,25 +465,64 @@ class TableEditorDialog(QDialog):
         self._add_column(before=before)
 
     def _rename_column(self) -> None:
-        column = self._selected_column()
-        if column is None:
+        index = self.view.currentIndex()
+        if not index.isValid():
             self._say(_("Select a column first."))
             return
-        name = self._new_column_name.text().strip()
-        if not name:
-            self._say(_("Type the new name in the box first."))
+        self._rename_from_header(index.column())
+
+    def _rename_from_header(self, section: int) -> None:
+        column = self._model.column_name(section)
+        if column is None:
+            return
+        name, ok = QInputDialog.getText(
+            self, _("Rename column"), _("New name for '{column}':").format(column=column),
+            QLineEdit.EchoMode.Normal, column,
+        )
+        name = (name or "").strip()
+        if ok and name and name != column:
+            self._rename(column, name)
+
+    def _rename(self, column: str, name: str) -> None:
+        def run() -> None:
+            self._ensure_undo_entry()
+            self._repo.rename_table_column(self._table, column, name)
+            self._columns_modified.discard(column)
+            self._columns_modified.add(name)
+
+        self._guarded(run)
+
+    def _cast_column(self, kind: str | None = None) -> None:
+        column = self._need_column()
+        if column is None:
+            return
+        if kind is None:
+            kind, ok = QInputDialog.getItem(
+                self, _("Change type"), _("New type for '{column}':").format(column=column),
+                list(CAST_TYPES), 0, False,
+            )
+            if not ok:
+                return
+        if kind not in CAST_TYPES:
             return
 
         def run() -> None:
-            self._repo.rename_table_column(self._table, column, name)
-            self._new_column_name.clear()
+            failed = self._repo.cast_column(
+                self._table, column, kind, undo_entry=self._ensure_undo_entry()
+            )
+            self._columns_modified.add(column)
+            if failed:
+                self._say(
+                    _("{count} value(s) could not be read as {kind} and were left empty.").format(
+                        count=failed, kind=kind
+                    )
+                )
 
         self._guarded(run)
 
     def _delete_column(self) -> None:
-        column = self._selected_column()
+        column = self._need_column()
         if column is None:
-            self._say(_("Select a column first."))
             return
         confirmed = QMessageBox.question(
             self,
@@ -495,18 +533,91 @@ class TableEditorDialog(QDialog):
         )
         if confirmed != QMessageBox.StandardButton.Yes:
             return
-        self._guarded(lambda: self._repo.delete_table_column(self._table, column))
+
+        def run() -> None:
+            self._repo.delete_table_column(
+                self._table, column, undo_entry=self._ensure_undo_entry()
+            )
+            self._columns_removed += 1
+            self._columns_modified.discard(column)
+
+        self._guarded(run)
+
+    # ------------------------------------------------------------------
+    # Data tools
+    # ------------------------------------------------------------------
+
+    def _sort(self, *, descending: bool) -> None:
+        column = self._need_column()
+        if column is None:
+            return
+        self._guarded(lambda: self._repo.sort_table(
+            self._table, column, descending=descending, undo_entry=self._ensure_undo_entry()
+        ))
+
+    def _fill_missing(self) -> None:
+        column = self._need_column()
+        if column is None:
+            return
+        from app.dialogs.table_tools_dialogs import FillMissingDialog
+
+        dialog = FillMissingDialog(column, self)
+        if not dialog.exec():
+            return
+        method = str(dialog.method.currentData())
+        value = dialog.value.text()
+
+        def run() -> None:
+            count = self._repo.fill_missing(
+                self._table, column, method, _number_or_text(value),
+                undo_entry=self._ensure_undo_entry(),
+            )
+            self._cells_bulk += count
+            if count:
+                self._columns_modified.add(column)
+
+        self._guarded(run)
+
+    def _find_replace(self) -> None:
+        from app.dialogs.table_tools_dialogs import FindReplaceDialog
+
+        dialog = FindReplaceDialog(self._selected_column(), self)
+        if not dialog.exec():
+            return
+        scope = dialog.scope.currentData()
+        find, replace = dialog.find.text(), dialog.replace.text()
+        whole = dialog.whole_cell.isChecked()
+
+        def run() -> None:
+            count = self._repo.find_replace(
+                self._table, find, replace,
+                columns=[scope] if scope else None,
+                whole_cell=whole,
+                undo_entry=self._ensure_undo_entry(),
+            )
+            self._cells_bulk += count
+            if count and scope:
+                self._columns_modified.add(str(scope))
+            self._say(_("{count} cell(s) changed.").format(count=count))
+
+        self._guarded(run)
 
     # ------------------------------------------------------------------
     # Shared plumbing
     # ------------------------------------------------------------------
 
-    def _managed(self, action, done: str) -> None:
+    def _managed(self, action) -> None:
         def run() -> None:
+            self._ensure_undo_entry()
             action(self._table)
-            applogger.info("%s on '%s'.", done, self._table)
 
         self._guarded(run)
+
+    def _new_model(self) -> EditableTableModel:
+        model = EditableTableModel(self._repo, self._table, self)
+        model.undo_entry_for = self._ensure_undo_entry
+        model.cell_written = self._on_cell_written
+        return model
 
     def _ensure_undo_entry(self) -> int | None:
         """Open this session's undo entry if it has not been opened yet."""
@@ -531,9 +642,42 @@ class TableEditorDialog(QDialog):
             QMessageBox.warning(self, _("Could not do that"), str(exc))
         finally:
             self.reload()
+            self._show_counts()
 
     def _say(self, message: str) -> None:
         QMessageBox.information(self, _("Edit table"), message)
+
+    def _roll_back(self) -> bool:
+        """Undo this session's entry. True when the table is back as it was."""
+        if self._undo_entry is None:
+            return True
+        try:
+            self._repo.undo_entry(self._undo_entry)
+        except Exception as exc:
+            applogger.exception("Could not undo the table edits: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return False
+        self._undo_entry = None
+        return True
+
+    def _restore(self) -> None:
+        """Put the table back as it was when this editor opened, and stay open."""
+        if self._undo_entry is None:
+            return
+        confirmed = QMessageBox.question(
+            self,
+            _("Restore the table?"),
+            _(
+                "Every change made in this editor will be undone, and the "
+                "table put back as it was.\n\nThis cannot be redone."
+            ),
+        )
+        if confirmed != QMessageBox.StandardButton.Yes:
+            return
+        if self._roll_back():
+            self._reset_counts()
+        self.reload()
+        self._show_counts()
 
     def accept(self) -> None:
         """Keep the changes. They are already written; just stop asking."""
@@ -543,21 +687,11 @@ class TableEditorDialog(QDialog):
     def reject(self) -> None:
         """Put the table back as it was, once the person confirms.
 
-        Cancel has to mean something here even though every edit was
-        written as it was made: what it means is this session's undo entry,
-        restored. That is why the whole session shares one entry - it is
-        both what keeps a large table editable and what Cancel rolls back.
-
-        Restoring is itself not undoable, hence the confirmation. And
-        because it restores the snapshot taken when this dialog was first
-        edited, anything else that changed the same table meanwhile would
-        go with it - which nothing can, the dialog being modal, but it is
-        the reason this undoes *its own* entry by id rather than whatever
-        happens to be last.
+        Every edit was written as it was made, so Cancel means this
+        session's undo entry, restored - by id, not whatever happens to be
+        last. Restoring is itself not undoable, hence the confirmation.
         """
         if self._undo_entry is None:
-            # Nothing was changed, so there is nothing to lose and nothing
-            # worth interrupting anybody about.
             super().reject()
             return
 
@@ -571,21 +705,24 @@ class TableEditorDialog(QDialog):
         )
         if confirmed != QMessageBox.StandardButton.Yes:
             return
-
-        try:
-            self._repo.undo_entry(self._undo_entry)
-        except Exception as exc:
-            applogger.exception("Could not undo the table edits: %s", exc)
-            QMessageBox.warning(self, _("Could not do that"), str(exc))
-            return
-
-        self._undo_entry = None
-        super().reject()
+        if self._roll_back():
+            super().reject()
 
     def reload(self) -> None:
         """Rebuild the model, because a column change alters the schema."""
         previous = self._model
-        self._model = EditableTableModel(self._repo, self._table, self)
-        self._model.undo_entry_for = self._ensure_undo_entry
+        self._model = self._new_model()
         self.view.setModel(self._model)
         previous.deleteLater()
+
+
+def _number_or_text(text: str):
+    """A typed fill value: a number when it reads as one, text otherwise."""
+    stripped = (text or "").strip()
+    if stripped == "":
+        return None
+    try:
+        number = float(stripped)
+    except ValueError:
+        return stripped
+    return int(number) if number.is_integer() and "." not in stripped else number
