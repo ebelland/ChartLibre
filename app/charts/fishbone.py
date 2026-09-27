@@ -76,7 +76,7 @@ class FishboneAxisRenderer(BaseAxisRenderer):
     #: Layout units: each bone column is this wide, bones rise this high.
     _COLUMN_WIDTH: float = 6.0
     _BONE_HEIGHT: float = 4.0
-    _HEAD_WIDTH: float = 4.0
+    _HEAD_WIDTH: float = 5.0
 
     def render_axis(
         self,
@@ -112,7 +112,7 @@ class FishboneAxisRenderer(BaseAxisRenderer):
             arrowprops={"arrowstyle": "-|>", "color": bone_color, "linewidth": 2.5},
         )
         ax.text(
-            spine_end + 0.4, 0.0, _wrap(problem, 16),
+            spine_end + 0.4, 0.0, _wrap(problem, 12),
             ha="left", va="center", fontsize=fontsize * 1.3, fontweight="bold",
             bbox={"boxstyle": "round,pad=0.6", "facecolor": head_color, "edgecolor": bone_color},
         )
@@ -132,22 +132,35 @@ class FishboneAxisRenderer(BaseAxisRenderer):
                 bbox={"boxstyle": "round,pad=0.35", "facecolor": category_color, "edgecolor": bone_color},
             )
             for position, (cause, subcauses) in enumerate(causes):
-                # Spread along the bone, the first cause nearest its tip.
-                t = 1.0 - (position + 0.75) / (len(causes) + 0.5)
+                # Spread along the outer part of the bone, the first cause
+                # nearest its tip: the part near the spine is left for the
+                # finer causes written toward it.
+                t = 0.9 - 0.5 * position / max(len(causes) - 1, 1) if len(causes) > 1 else 0.7
                 x = base_x + (tip_x - base_x) * t
                 y = tip_y * t
                 twig_start = x - 0.42 * width
                 ax.plot([twig_start, x], [y, y], color=bone_color, linewidth=0.9, zorder=1)
-                # Cause above its twig, subcauses under it, all ending at the bone.
-                ax.text(x - 0.1, y + 0.08, _wrap(cause, 18), ha="right", va="bottom", fontsize=fontsize)
+                # Text goes on the spine side of its twig: there the bone
+                # slopes away from it instead of cutting through the words.
+                # Offsets are in points so lines never overlap at any size.
+                toward_spine = -side
+                cause_text = _wrap(cause, 18)
+                cause_lines = cause_text.count("\n") + 1
+                va = "top" if toward_spine < 0 else "bottom"
+                ax.annotate(
+                    cause_text, xy=(x - 0.12, y), xytext=(0, 3 * toward_spine),
+                    textcoords="offset points", ha="right", va=va, fontsize=fontsize,
+                )
                 if subcauses:
-                    ax.text(
-                        x - 0.1, y - 0.08,
-                        "\n".join(f"\u2013 {_wrap(sub, 20)}" for sub in subcauses),
-                        ha="right", va="top", fontsize=fontsize * 0.8, color=bone_color,
+                    sub_text = "\n".join(f"\u2013 {_wrap(sub, 20)}" for sub in subcauses)
+                    offset = (4 + cause_lines * fontsize * 1.25) * toward_spine
+                    ax.annotate(
+                        sub_text, xy=(x - 0.12, y), xytext=(0, offset),
+                        textcoords="offset points", ha="right", va=va,
+                        fontsize=fontsize * 0.8, color=bone_color,
                     )
 
-        ax.set_xlim(-0.2 * width, spine_end + 0.4 + self._HEAD_WIDTH)
+        ax.set_xlim(-0.2 * width, spine_end + 1.2 + self._HEAD_WIDTH)
         ax.set_ylim(-self._BONE_HEIGHT - 1.4, self._BONE_HEIGHT + 1.4)
         ax.set_axis_off()
         ax._dhub_axis_off = True  # noqa: SLF001 - read by render_figure
