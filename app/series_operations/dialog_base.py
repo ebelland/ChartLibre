@@ -1013,7 +1013,10 @@ class SeriesOperationDialogBase(QDialog):
         semantics.  The default uses common attributes when available.
         """
         source_name = str(getattr(result, "source_name", "Series") or "Series")
-        raw = f"{self.__class__.__name__}_axis{axis_id}_{source_name}_{result.model}"
+        # "model" on most results, "method" on the clustering one: a result
+        # without either used to make Apply fail outright.
+        variant = getattr(result, "model", None) or getattr(result, "method", None) or "result"
+        raw = f"{self.__class__.__name__}_axis{axis_id}_{source_name}_{variant}"
         return generated_table_name(raw, fallback="Series_Result")
 
     def format_results(self, results: Sequence[Any]) -> str:

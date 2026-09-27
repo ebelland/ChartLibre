@@ -895,6 +895,13 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         """Accept previewed Hide flags, then remove _Hide/_ClusterId."""
         self._ensure_preview_state_attrs()
         if self._preview_active or self.preview():
+            # Like every other operation's Apply: the report goes to the
+            # chart's results pane once the change is kept.
+            results = list(getattr(self, "_last_results", None) or [])
+            if results:
+                formatted = self.format_results(results) or ""
+                if formatted:
+                    self.results_published.emit(self.results_report_html(formatted, results))
             for table_name in list(self._preview_state_tables):
                 self._repo.drop_preview_state_columns(table_name)
             self._preview_active = False
