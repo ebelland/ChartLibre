@@ -303,6 +303,13 @@ class ChartPanel(QFrame):
             QSizePolicy.Policy.Expanding,
         )
 
+        # The chart area changes size on its own whenever the results pane
+        # below it opens, closes or has its divider dragged - the panel
+        # itself stays the same size then, so its resizeEvent never fires.
+        # FIT follows the canvas's own resize, but FIT_PROPORTIONAL gives
+        # the canvas a fixed size and would keep the stale one.
+        self._chart_area.installEventFilter(self)
+
         self._main_layout = QVBoxLayout(self._chart_area)
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self._main_layout.setSpacing(0)
@@ -1771,28 +1778,31 @@ class ChartPanel(QFrame):
         return top_row
 
     def _zoom_best_fit(self) -> None:
-        """PowerPoint-style fit to window.
+        """Fit the whole figure in the visible area - width *and* height.
 
-        Fill the available viewport width. Vertical scrollbars are acceptable.
+        It used to fill the width only, which was fine while the chart had
+        the panel to itself; with the HTML results pane open below, the
+        height left over is much smaller and a width fit pushed the bottom
+        of the figure out of sight. The size used is the scroll area's
+        without scrollbars, since a fit leaves none to show.
         """
         if self._resize_mode != "FIXED":
             return
 
-        viewport = self._fixed_scroll_area.viewport().size()
-        if viewport.width() <= 0:
+        available = self._fixed_scroll_area.maximumViewportSize()
+        if available.width() <= 0 or available.height() <= 0:
             return
 
         base_size = self._current_figure_pixel_size(apply_zoom=False)
-        if base_size.width() <= 0:
+        if base_size.width() <= 0 or base_size.height() <= 0:
             return
 
-        available_width = max(1, viewport.width())
-
+        # Floor, not round: rounding up by one percent is enough to bring
+        # back the scrollbars this is meant to remove.
         zoom_percent = int(
-            round(
-                available_width
-                * 100.0
-                / float(base_size.width())
+            min(
+                available.width() * 100.0 / float(base_size.width()),
+                available.height() * 100.0 / float(base_size.height()),
             )
         )
 
@@ -2190,7 +2200,7 @@ class ChartPanel(QFrame):
             self._schedule_canvas_geometry_sync(redraw=True)
             return super().eventFilter(watched, event)
 
-        if watched is self._fixed_scroll_area.viewport():
+        if watched is self._fixed_scroll_area.viewport() or watched is self._chart_area:
             self._schedule_canvas_geometry_sync(redraw=True)
 
         return super().eventFilter(watched, event)
