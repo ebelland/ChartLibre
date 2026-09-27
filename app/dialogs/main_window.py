@@ -1629,6 +1629,10 @@ class MainWindow(QMainWindow):
         if not _pyobjc_core_is_safe_to_import():
             return
 
+        # Offscreen (tests, scripts) there is no native menu bar to rename.
+        if QApplication.platformName() != "cocoa":
+            return
+
         try:
             import AppKit  # type: ignore[import-not-found]
         except Exception:
