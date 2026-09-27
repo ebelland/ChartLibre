@@ -2465,6 +2465,10 @@ class DemoProject:
     file_name: str
     summary: str
     figures: tuple[str, ...]
+    #: "module:function" that writes this file itself, for a demo that is
+    #: not a selection of figures - the Series Operations one runs the
+    #: operations' dialogs. Empty: built from ``figures`` as usual.
+    builder: str = ""
 
     @property
     def path_name(self) -> str:
@@ -2709,6 +2713,17 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "chart - the two quality tools that are used together.",
         ("defect_root_causes_fishbone", "defect_causes_pareto"),
     ),
+    DemoProject(
+        "Series operations - fifteen operations, each with its report",
+        "Fifteen Series Operations run for real, one per chart, each on a "
+        "dataset suited to it - smoothing, spectrum, filtering, baseline, "
+        "peaks, roots, calculus, fit, interpolation, statistics, outliers, "
+        "clustering, a control chart, a robust regression and a transform - "
+        "with the result drawn on the chart and the operation's own report in "
+        "the results pane below it, exactly as the operation leaves them.",
+        (),
+        builder="app.data.demo_operations:build_operations_demo",
+    ),
 )
 
 
@@ -2795,6 +2810,14 @@ def build_demo_projects(directory: Path) -> list[Path]:
 
     written: list[Path] = []
     for demo in DEMO_PROJECTS:
+        if demo.builder:
+            import importlib
+
+            module_name, function_name = demo.builder.split(":")
+            path = getattr(importlib.import_module(module_name), function_name)(target)
+            applogger.info("Demo: wrote %s - %s", path.name, demo.summary)
+            written.append(path)
+            continue
         path = build_demo_project(target / demo.path_name, demo.figures)
         applogger.info("Demo: wrote %s - %s", path.name, demo.summary)
         written.append(path)
