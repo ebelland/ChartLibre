@@ -77,7 +77,6 @@ N-03 NOT done yet, on purpose - see P2-21 and P2-22 below: vector fields
 (x, y, u, v - curl, divergence) and parametric 3D curves
 (x(t), y(t), z(t)).
 
-N-04  Preview editable
 
 N-05: wherever there is an SQL SELECT user text, avoid SQL injections and unsafe operations (usually it must start with SELECT and should not contain UPDATE or DELETE)
 
@@ -87,16 +86,20 @@ N-06  Table preview, menu contestuale -> editor della tabella
       tabella (Modifica tabella). Replica anche "Nascondi righe..."
       nell'editor.
 
-N-07  Table preview: aggiungi "Copia" al menu contestuale.
+N-07  DONE 2026-09-27. Table preview: aggiungi "Copia" al menu contestuale.
+      Anche Cmd/Ctrl+C; copia le celle selezionate separate da tab.
 
-N-08  Table preview: aggiungi "Duplica tabella" al menu contestuale.
+N-08  DONE 2026-09-27. Table preview: aggiungi "Duplica tabella" al menu contestuale.
+      La copia si chiama <tabella>_copy (poi _copy_2...); Annulla la toglie.
 
 N-09  "Colora in base al valore": apre un dialogo per colorare con una
       palette (Viridis o altre) in base a minimo/massimo, percentili o
       media. Colorazione discreta, con varie categorie. Aggiunge alla
       tabella una colonna "Colore" con il valore numerico del colore.
 
-N-10  Dialogo "Modifica tabella"
+N-10  DONE 2026-09-27. Dialogo "Modifica tabella"
+      Poi semplificato su richiesta: una sola riga di icone, nome e tipo
+      chiesti al momento, Hide/ClusterId nel menu "...".
       - Usa sempre SF Symbols e i font dell'app.
       - Righe separate per l'aggiunta di una colonna e di una riga.
       - Riga di stato con il numero di colonne e righe aggiunte, rimosse
@@ -104,8 +107,12 @@ N-10  Dialogo "Modifica tabella"
       - Tasto "Ripristina" per tornare alla tabella originale (chiede
         conferma).
 
-N-11  Altre funzioni proposte per table preview / Modifica tabella
-      (da valutare, non ancora concordate):
+N-11  DONE 2026-09-27. Altre funzioni per table preview / Modifica tabella.
+      Nel menu dell'anteprima: statistiche della colonna, nuovo grafico
+      dalle colonne selezionate, raggruppa e aggrega, esporta righe.
+      In Modifica tabella: rinomina (anche doppio clic sull'intestazione),
+      cambia tipo, ordina, riempi celle vuote, trova e sostituisci.
+      Tutto con Annulla (app/data/repo/table_tools.py).
       - Rinomina colonna, direttamente dall'intestazione.
       - Cambia tipo della colonna (cast) - vedi N-01.
       - Ordina crescente/decrescente per la colonna selezionata.
