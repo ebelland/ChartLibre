@@ -681,37 +681,57 @@ QLabel#operationHint {
    on the one combo that should read this way.
    ---------------------------------------------------------- */
 
-QComboBox[flat="true"] {
-  background: transparent;
-  border: 1px solid transparent;
+/* Every read-only combo now takes this look, not only [flat="true"]:
+   recent macOS pop-up buttons (System Settings) show the value and a
+   chevron in a small grey rounded badge, and the full highlight only on
+   hover or while open. Editable combos keep the native field. */
+QComboBox {
+  /* No border at all (a transparent one made Qt fall back to the native
+     grey bezel); the background is see-through, so the combo sits on
+     whatever card it is in. */
+  background-color: rgba(0, 0, 0, 0);
+  border: none;
   border-radius: 6px;
-  padding: 2px 26px 2px 6px;
+  padding: 3px 30px 3px 8px;
+  min-height: 20px;
   color: palette(text);
 }
 
-QComboBox[flat="true"]:hover {
+QComboBox:hover {
   background: rgba(@SHADOW_RGB@, 0.06);
 }
 
-QComboBox[flat="true"]:on {
+QComboBox:on {
   background: rgba(@SHADOW_RGB@, 0.10);
-  border-color: rgba(@SHADOW_RGB@, 0.14);
 }
 
-QComboBox[flat="true"]::drop-down {
+QComboBox::drop-down {
   subcontrol-origin: padding;
-  subcontrol-position: top right;
+  subcontrol-position: center right;
   width: 20px;
+  height: 20px;
+  right: 3px;
   border: none;
-  background: transparent;
+  border-radius: 6px;
+  background: rgba(@SHADOW_RGB@, 0.09);
 }
 
-/* No image on down-arrow: Qt draws the platform's own arrow, same
-   reasoning as fluent_win11.qss's own QComboBox rule - a url() here
-   would need a file on disk, and a Qt stylesheet cannot be handed one
-   of this app's own themed QIcons. */
+/* A combo you can type into reads as a field, not as a pop-up button. */
+QComboBox:editable {
+  background: palette(base);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.22);
+  border-radius: 6px;
+}
 
-QComboBox[flat="true"] QAbstractItemView {
+/* A styled drop-down no longer gets the native arrow, so the sheet asks
+   for macOS's own pop-up chevrons: the SF Symbol, rendered at startup. */
+QComboBox::down-arrow {
+  image: url(@ICON:combo_chevrons@);
+  width: 8px;
+  height: 11px;
+}
+
+QComboBox QAbstractItemView {
   background: palette(base);
   border: 1px solid rgba(@SHADOW_RGB@, 0.14);
   border-radius: 8px;
@@ -719,15 +739,22 @@ QComboBox[flat="true"] QAbstractItemView {
   outline: none;
 }
 
-QComboBox[flat="true"] QAbstractItemView::item {
+QComboBox QAbstractItemView::item {
   padding: 5px 10px;
   border-radius: 6px;
 }
 
-QComboBox[flat="true"] QAbstractItemView::item:hover,
-QComboBox[flat="true"] QAbstractItemView::item:selected {
+QComboBox QAbstractItemView::item:hover,
+QComboBox QAbstractItemView::item:selected {
   background: palette(highlight);
   color: palette(highlighted-text);
+}
+
+/* Spin boxes: taller, so the native stepper arrows are easier to hit.
+   Only a size - no border or background - so Qt keeps drawing them
+   natively. */
+QAbstractSpinBox {
+  min-height: 24px;
 }
 
 /* The Edit table dialog's "more" button opens a menu; its icon already
@@ -799,6 +826,18 @@ QToolButton#chartJumpTitle {
 QToolButton#chartJumpTitle {
   font-size: 13pt;
   font-weight: 600;
+  padding-right: 16px;
+}
+
+/* A thin chevron after the chart's name, as Claude and recent Mac apps
+   mark a title that opens a menu - not Qt's heavy default arrow. */
+QToolButton#chartJumpTitle::menu-indicator {
+  image: url(@ICON:chevron_down@);
+  width: 9px;
+  height: 6px;
+  subcontrol-origin: padding;
+  subcontrol-position: center right;
+  right: 4px;
 }
 
 QToolButton#chartJumpArrow:hover,

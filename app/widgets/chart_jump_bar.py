@@ -61,7 +61,7 @@ class ChartJumpBar(QFrame):
         button = QToolButton(self)
         button.setObjectName("chartJumpArrow")
         button.setIcon(icon)
-        button.setIconSize(QSize(16, 16))
+        button.setIconSize(QSize(20, 20))
         button.setAutoRaise(True)
         button.setAccessibleName(text)
         button.setToolTip(tooltip)

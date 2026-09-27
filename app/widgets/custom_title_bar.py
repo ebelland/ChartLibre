@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.styles.style import icon_from_svg_source
+from app.styles.style import action_presentation
 from app.utils.i18n import _
 
 if TYPE_CHECKING:
@@ -37,13 +37,6 @@ MAC_TITLE_BAR_HEIGHT: int = 32
 #: the gap macOS apps leave before the sidebar button.
 MAC_TRAFFIC_LIGHTS_END: int = 69
 _MAC_SIDEBAR_BUTTON_GAP: int = 12
-
-#: The sidebar toggle's own glyph: a panel with its left column divided
-#: off, the same shape every macOS app uses for "hide/show the sidebar".
-_SIDEBAR_ICON = (
-    '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/>'
-    '<line x1="9.5" y1="4.5" x2="9.5" y2="19.5"/>'
-)
 
 class CustomTitleBar(QFrame):
     """Custom chrome that delegates movement/resizing to the window system.
@@ -185,7 +178,7 @@ class CustomTitleBar(QFrame):
         button.setObjectName("titleBarSidebarButton")
         button.setAutoRaise(True)
         button.setCheckable(True)
-        button.setIcon(icon_from_svg_source(_SIDEBAR_ICON, size=18))
+        button.setIcon(action_presentation("sidebar_toggle")[0])
         button.setIconSize(QSize(16, 16))
         button.setFixedSize(26, 22)
         button.setCursor(Qt.CursorShape.ArrowCursor)

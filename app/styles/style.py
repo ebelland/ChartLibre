@@ -18,6 +18,7 @@ from __future__ import annotations
 import html
 import platform
 import re
+import tempfile
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -1140,6 +1141,50 @@ def icon_from_svg_source(
     return icon
 
 
+#: Images a stylesheet asks for as url(@ICON:name@): (SF Symbol, Segoe
+#: Fluent glyph, theme icon), rendered to a PNG when the sheet is applied.
+QSS_SYMBOLS: dict[str, tuple[str, str, str]] = {
+    "combo_chevrons": ("chevron.up.chevron.down", "E70D", "go-down"),
+    "chevron_down": ("chevron.down", "E70D", "go-down"),
+}
+
+_QSS_SYMBOL_RE = re.compile(r"@ICON:([A-Za-z0-9_]+)@")
+
+
+def _qss_symbol_file(name: str) -> str | None:
+    """Render one QSS_SYMBOLS entry to a PNG and return its path, or None."""
+    spec = QSS_SYMBOLS.get(name)
+    if spec is None:
+        return None
+    sf_symbol, fluent, theme = spec
+    icon = QIcon()
+    if _IS_MACOS:
+        icon = _create_sf_symbol_icon(sf_symbol, size=24)
+    elif _IS_WINDOWS and _is_fluent_glyph(fluent):
+        icon = _create_fluent_icon(fluent, color=_symbol_tint())
+    if icon.isNull():
+        icon = symbol_icon("", theme)
+    if icon.isNull():
+        return None
+    target = Path(tempfile.gettempdir()) / "chartlibre-qss" / f"{name}.png"
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not icon.pixmap(QSize(48, 48)).save(str(target), "PNG"):
+            return None
+    except Exception:
+        applogger.debug("Could not render the QSS symbol %s.", name, exc_info=True)
+        return None
+    return target.as_posix()
+
+
+def _substitute_qss_symbols(qss: str) -> str:
+    """Replace every url(@ICON:name@) with a rendered PNG, or drop the image."""
+    def image(match: re.Match[str]) -> str:
+        return _qss_symbol_file(match.group(1)) or ""
+
+    return _QSS_SYMBOL_RE.sub(image, qss) if "@ICON:" in qss else qss
+
+
 def symbol_icon(sf_symbol: str, theme_icon: str = "") -> QIcon:
     """An SF Symbol on macOS, else a theme icon, else an empty icon.
 
@@ -1496,6 +1541,9 @@ def apply_platform_style(
     # colours through Qt.
     themed, palette = themed_qss(qss or "", palette_key)
     themed = substitute_ui_font(themed)
+    # Images a sheet needs (a combo's chevrons): url(@ICON:name@), drawn from
+    # the system's own symbols rather than shipped as artwork.
+    themed = _substitute_qss_symbols(themed)
     _ACTIVE_THEME_IS_DARK = palette.dark
     app.setPalette(palette.qpalette())
 

@@ -86,51 +86,6 @@ _MACOS_ROW_HEIGHT = 34
 #: its sidebar toggle hides the rail outright (MainWindow).
 _WINDOWS_COMPACT_WIDTH = 56
 
-_HOME_ICON = (
-    '<path d="M3 11.5 12 4l9 7.5"/>'
-    '<path d="M5.5 10.5V21h13V10.5"/>'
-    '<path d="M9.5 21v-6h5v6"/>'
-)
-_TABLE_ICON = (
-    '<rect x="3" y="4" width="18" height="16" rx="2"/>'
-    '<line x1="3" y1="9" x2="21" y2="9"/>'
-    '<line x1="9" y1="4" x2="9" y2="20"/>'
-    '<line x1="15" y1="4" x2="15" y2="20"/>'
-    '<line x1="3" y1="14.5" x2="21" y2="14.5"/>'
-)
-_SLIDERS_ICON = (
-    '<line x1="4" y1="6" x2="20" y2="6"/>'
-    '<circle cx="9" cy="6" r="2"/>'
-    '<line x1="4" y1="12" x2="20" y2="12"/>'
-    '<circle cx="15" cy="12" r="2"/>'
-    '<line x1="4" y1="18" x2="20" y2="18"/>'
-    '<circle cx="11" cy="18" r="2"/>'
-)
-#: Drawn here, not taken from the action catalogue: the catalogue's glyph
-#: is a typeset "f(x)" that renders visibly smaller than the outline icons
-#: around it.
-_FUNCTION_ICON = (
-    '<path d="M10 4.2c-1.6-.7-3.3.1-3.6 1.9L4.6 18c-.3 1.8-2 2.6-3.6 1.9"/>'
-    '<line x1="3.2" y1="9.5" x2="9" y2="9.5"/>'
-    '<path d="M13.6 6.5c-1.4 1.6-2.1 3.4-2.1 5.5s.7 3.9 2.1 5.5"/>'
-    '<path d="M20.4 6.5c1.4 1.6 2.1 3.4 2.1 5.5s-.7 3.9-2.1 5.5"/>'
-    '<line x1="15" y1="9.5" x2="19" y2="14.5"/>'
-    '<line x1="19" y1="9.5" x2="15" y2="14.5"/>'
-)
-_DATABASE_ICON = (
-    '<ellipse cx="12" cy="5" rx="8" ry="3"/>'
-    '<path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/>'
-    '<path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>'
-)
-_FILE_ICON = (
-    '<path d="M6 2h9l5 5v15H6z"/>'
-    '<path d="M15 2v5h5"/>'
-)
-_DEVELOPER_ICON = (
-    '<polyline points="16 18 22 12 16 6"/>'
-    '<polyline points="8 6 2 12 8 18"/>'
-)
-
 #: This application's own rail. Passed as a default rather than built
 #: inside the class, so the class itself carries no knowledge of what
 #: ChartLibre's pages are - see the module docstring for reuse. The
@@ -138,16 +93,15 @@ _DEVELOPER_ICON = (
 #: main_window._create_left_stack): File first, directly under Workspace,
 #: since that is where a session starts.
 DEFAULT_PAGES: tuple[NavPage, ...] = (
-    NavPage("nav_file", "File", "New, open, import and save", _FILE_ICON),
-    NavPage("nav_data", "Tables", "Show data tables", _TABLE_ICON),
-    NavPage("nav_chart_options", "", "", _SLIDERS_ICON),
-    NavPage("nav_series_operations", "", "", _FUNCTION_ICON),
-    NavPage("nav_database", "Database", "Show database tools", _DATABASE_ICON),
+    NavPage("nav_file", "File", "New, open, import and save"),
+    NavPage("nav_data", "Tables", "Show data tables"),
+    NavPage("nav_chart_options", "", ""),
+    NavPage("nav_series_operations", "", ""),
+    NavPage("nav_database", "Database", "Show database tools"),
     NavPage(
         "nav_developer",
         "Developer",
         "Scaffolding tools and the translation catalogue",
-        _DEVELOPER_ICON,
     ),
 )
 
@@ -264,14 +218,9 @@ class NavigationBar(QFrame):
         layout.addWidget(self._tools_title)
 
         self.workspace_button = self._tile(
-            (
-                icon_from_svg_source(_HOME_ICON, size=20)
-                if self._is_macos
-                # Windows: the catalogue's own Fluent glyph (config.json's
-                # nav_workspace), same source every other Windows tile below
-                # reads from - macOS keeps its own hand-drawn outline icon.
-                else action_presentation("nav_workspace")[0]
-            ),
+            # The catalogue's own icon: an SF Symbol on macOS, a Segoe
+            # Fluent glyph on Windows (config.json's nav_workspace).
+            action_presentation("nav_workspace")[0],
             _("Workspace"),
             _("Hide the left panel"),
             checkable=True,

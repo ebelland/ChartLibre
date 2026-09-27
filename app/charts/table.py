@@ -153,6 +153,8 @@ class TableAxisRenderer(BaseAxisRenderer):
         df = self._rows_to_draw(df, merged)
         self._draw_table(ax, df, headers, merged)
         ax.axis("off")
+        # Kept off after the axis options run (see render_figure).
+        ax._dhub_axis_off = True  # noqa: SLF001
         self.apply_annotations(ax, axis_options)
 
     def _columns_to_draw(self, sd: SeriesData) -> tuple[Any, list[str]]:

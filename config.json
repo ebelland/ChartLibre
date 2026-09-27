@@ -309,7 +309,7 @@
     "nav_data": {
       "text": "Data",
       "description": "Show data tables",
-      "SFSymbol": "table",
+      "SFSymbol": "tablecells",
       "SegoeFluent": "f232",
       "ThemeIcon": "x-office-spreadsheet"
     },
@@ -763,7 +763,7 @@
       "text": "Previous chart",
       "description": "Show the chart above this one in the list",
       "shortcut": "Ctrl+[",
-      "SFSymbol": "chevron.left",
+      "SFSymbol": "arrow.left.circle",
       "SegoeFluent": "E76B",
       "ThemeIcon": "go-previous"
     },
@@ -771,7 +771,7 @@
       "text": "Next chart",
       "description": "Show the chart below this one in the list",
       "shortcut": "Ctrl+]",
-      "SFSymbol": "chevron.right",
+      "SFSymbol": "arrow.right.circle",
       "SegoeFluent": "E76C",
       "ThemeIcon": "go-next"
     },
@@ -781,6 +781,13 @@
       "SFSymbol": "chevron.up.chevron.down",
       "SegoeFluent": "E70D",
       "ThemeIcon": "view-list-details"
+    },
+    "sidebar_toggle": {
+      "text": "Sidebar",
+      "description": "Show or hide the sidebar",
+      "SFSymbol": "sidebar.left",
+      "SegoeFluent": "E8A0",
+      "ThemeIcon": "view-sidebar"
     }
   },
   "messages": {
