@@ -461,6 +461,30 @@ def _defect_causes() -> pd.DataFrame:
     )
 
 
+def _defect_root_causes() -> pd.DataFrame:
+    """Where the rejected boards' defects come from, by the six Ms.
+
+    The Ishikawa counterpart of ``_defect_causes``: that table counts what
+    went wrong, this one asks why - the brainstorm a quality team writes on
+    a fishbone before deciding which cause to measure first.
+    """
+    rows = [
+        ("Method", "Reflow profile not validated", "Copied from the previous board"),
+        ("Method", "No first-article inspection", None),
+        ("Machine", "Stencil worn", "Apertures clogged after 5000 prints"),
+        ("Machine", "Pick-and-place nozzle drift", None),
+        ("Material", "Solder paste past shelf life", "Stored at room temperature"),
+        ("Material", "Pad finish oxidised", None),
+        ("Manpower", "Night shift short-staffed", None),
+        ("Manpower", "Rework done without training", "No IPC-7711 certification"),
+        ("Measurement", "AOI threshold too loose", None),
+        ("Measurement", "Gauge R&R never done", None),
+        ("Environment", "Humidity above 60 %", "Summer, no dehumidifier"),
+        ("Environment", "Dust near the line", None),
+    ]
+    return pd.DataFrame(rows, columns=["category", "cause", "subcause"])
+
+
 def _release_events() -> pd.DataFrame:
     """Ten software release dates and version labels - a small, realistic
     Timeline table: a date, a label, and a channel (major/minor) to colour
@@ -836,6 +860,7 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "vector_field_grid": _vector_field_grid,
     "daily_temperature_range": _daily_temperature_range,
     "defect_causes": _defect_causes,
+    "defect_root_causes": _defect_root_causes,
     "release_events": _release_events,
     "sparse_calibration": _sparse_calibration,
     "surface_bump_grid": _surface_bump_grid,
@@ -2032,6 +2057,25 @@ def _figure_specs() -> list[FigureSpec]:
                 ),
             ],
         ),
+        FigureSpec(
+            name="58 · Defect root causes - Ishikawa diagram",
+            key="defect_root_causes_fishbone",
+            tables=("defect_root_causes",),
+            queries=(),
+            chart_type="Fishbone Diagram",
+            title="Why are boards rejected? The six Ms",
+            x_label="",
+            y_label="",
+            axis_options={"problem": "Rejected circuit boards"},
+            series=[
+                SeriesSpec(
+                    name="Rejected circuit boards",
+                    sql="SELECT category, cause, subcause FROM defect_root_causes",
+                    roles={"category": "category", "cause": "cause", "subcause": "subcause"},
+                    style={},
+                ),
+            ],
+        ),
     ]
 
 
@@ -2655,6 +2699,15 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
             "gutenberg_richter",
             "global_temperature",
         ),
+    ),
+    DemoProject(
+        "Root cause analysis - an Ishikawa diagram and its Pareto chart",
+        "Why circuit boards are rejected, twice over: the possible causes "
+        "brainstormed on a fishbone by the six Ms (method, machine, "
+        "material, manpower, measurement, environment), with finer causes "
+        "under some of them, and the defects actually counted as a Pareto "
+        "chart - the two quality tools that are used together.",
+        ("defect_root_causes_fishbone", "defect_causes_pareto"),
     ),
 )
 

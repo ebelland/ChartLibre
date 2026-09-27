@@ -899,7 +899,9 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
     if isinstance(zlabel, str) and zlabel.strip() and hasattr(ax, "set_zlabel"):
         ax.set_zlabel(zlabel)
 
-    if bool(options.get("hide_axis", options.get("hidden", False))):
+    # A renderer that is a drawing rather than a plot (the fishbone) marks
+    # its axes so the frame and ticks it switched off stay off.
+    if bool(options.get("hide_axis", options.get("hidden", False))) or getattr(ax, "_dhub_axis_off", False):
         ax.set_axis_off()
     else:
         ax.set_axis_on()

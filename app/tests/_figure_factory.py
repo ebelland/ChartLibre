@@ -55,6 +55,7 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Event Plot",
     "3D Line Plot",
     "3D Bar Chart",
+    "Fishbone Diagram",
 )
 
 
@@ -91,7 +92,22 @@ def _create_source_tables(cur: sqlite3.Cursor, rng: np.random.Generator, n: int)
         -- The same field sampled at scattered (non-gridded) points, for the
         -- two renderers that triangulate instead of pivoting.
         CREATE TABLE src_scatter3d (x REAL, y REAL, z REAL);
+        -- Causes for the fishbone renderer: category, cause, optional subcause.
+        CREATE TABLE src_causes (category TEXT, cause TEXT, subcause TEXT);
         """
+    )
+    cur.executemany(
+        "INSERT INTO src_causes VALUES (?, ?, ?)",
+        [
+            ("Method", "Unclear procedure", "No checklist"),
+            ("Method", "Rushed setup", None),
+            ("Machine", "Worn spindle", None),
+            ("Machine", "Uncalibrated gauge", "Overdue by 3 months"),
+            ("Material", "Supplier batch variation", None),
+            ("Manpower", "New operator", "Training not finished"),
+            ("Measurement", "Resolution too coarse", None),
+            ("Environment", "Temperature swings", None),
+        ],
     )
 
     # Scatter: two visually distinct clouds with continuous colour and size.
@@ -281,6 +297,19 @@ def _showcase_definitions() -> list[dict[str, Any]]:
                     "releases",
                     "SELECT happened AS x, title AS label FROM src_events",
                     {"marker": "o"},
+                ),
+            ],
+        },
+        {
+            "chart_type": "Fishbone Diagram",
+            "name": "Fishbone showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Fishbone Diagram"},
+            "series": [
+                (
+                    "Parts out of tolerance",
+                    "SELECT category, cause, subcause FROM src_causes",
+                    {},
                 ),
             ],
         },

@@ -6798,3 +6798,42 @@ msgstr "Rifiuta l'SQL che modificherebbe il database"
 
 msgid "Checked when a query is saved or typed, and when a project is opened: UPDATE, DELETE, DROP and the like are refused. Charts are never slowed down by it."
 msgstr "Controllato quando una query viene salvata o scritta, e quando si apre un progetto: UPDATE, DELETE, DROP e simili vengono rifiutati. Non rallenta mai i grafici."
+
+msgid "Fishbone Diagram"
+msgstr "Diagramma a lisca di pesce"
+
+msgid "Ishikawa cause-and-effect diagram: one row per cause, grouped by category on bones that lead to the problem."
+msgstr "Diagramma causa-effetto di Ishikawa: una riga per causa, raggruppate per categoria su rami che portano al problema."
+
+msgid "Fishbone"
+msgstr "Lisca di pesce"
+
+msgid "The problem written in the head. Empty uses the series name."
+msgstr "Il problema scritto nella testa. Se vuoto si usa il nome della serie."
+
+msgid "Size of the cause text; categories and the problem are drawn larger."
+msgstr "Dimensione del testo delle cause; categorie e problema sono più grandi."
+
+msgid "Colour of the spine and the bones."
+msgstr "Colore della spina e dei rami."
+
+msgid "Fill of the problem box at the head."
+msgstr "Riempimento del riquadro del problema nella testa."
+
+msgid "Fill of the category boxes at the ends of the bones."
+msgstr "Riempimento dei riquadri delle categorie in cima ai rami."
+
+msgid "category"
+msgstr "categoria"
+
+msgid "cause"
+msgstr "causa"
+
+msgid "subcause"
+msgstr "sotto-causa"
+
+msgid "Root cause analysis - an Ishikawa diagram and its Pareto chart"
+msgstr "Analisi delle cause - un diagramma di Ishikawa e il suo Pareto"
+
+msgid "Why circuit boards are rejected, twice over: the possible causes brainstormed on a fishbone by the six Ms (method, machine, material, manpower, measurement, environment), with finer causes under some of them, and the defects actually counted as a Pareto chart - the two quality tools that are used together."
+msgstr "Perché le schede elettroniche vengono scartate, visto due volte: le possibili cause raccolte su una lisca di pesce secondo le sei M (metodo, macchina, materiale, manodopera, misura, ambiente), con cause più fini sotto alcune di esse, e i difetti effettivamente contati in un diagramma di Pareto - i due strumenti della qualità che si usano insieme."
