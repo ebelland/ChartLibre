@@ -813,10 +813,10 @@ QAbstractSpinBox::down-arrow {
   bottom: 1px;
 }
 
+/* Both chevrons stay, even at the minimum or maximum, as the pop-up
+   button's glyph always shows both; only a disabled box loses them. */
 QAbstractSpinBox::up-arrow:disabled,
-QAbstractSpinBox::up-arrow:off,
-QAbstractSpinBox::down-arrow:disabled,
-QAbstractSpinBox::down-arrow:off {
+QAbstractSpinBox::down-arrow:disabled {
   image: none;
 }
 

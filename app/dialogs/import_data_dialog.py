@@ -32,7 +32,6 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -42,14 +41,13 @@ from app.widgets.table_preview import TablePreviewPanel
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.styles.style import (
-    action_presentation,
     apply_dialog_shell,
-    CardFrame,
     create_action_button,
-    create_compact_section_title,
     load_icon,
     mark_editor_panel,
+    mark_icon_only,
     stdSizeAndlayout,
+    TitledCard,
 )
 from app.utils.i18n import _
 
@@ -266,160 +264,127 @@ class ImportDataDialog(QDialog):
         cfg = get_import_data_dialog_config()
         self._desired_sheet = str(cfg.get("sheet", "") or "").strip()
 
-        # ---------------- Left panel (compact) ----------------
-        left = CardFrame(self, "importOptionsCard")
-        left_layout = left.layout()
+        # ---------------- Left panel ----------------
+        # The side panels' own layout: a title above each card (TitledCard),
+        # not inside it, and each row short enough for the panel's width -
+        # a row of five controls ran off the right edge and was cut off,
+        # since the panel does not scroll sideways.
+        left = QWidget(self)
+        left.setProperty("toolboxPage", True)
+        left.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        left_layout = QVBoxLayout(left)
+        stdSizeAndlayout(left_layout)
+        # Room on the right for macOS's overlay scroll bar, which otherwise
+        # sits on top of the cards' right edge.
+        left_layout.setContentsMargins(0, 0, 14, 0)
 
-        left_layout.addWidget(create_compact_section_title(_("Source"), left))
-
-        form = QFormLayout()
-        stdSizeAndlayout(form)
-
-        # Source row: two rows of two buttons, rather than one row of four -
-        # four action buttons at their normal width do not fit the dialog's
-        # default size in one line, and this dialog does not own that width
-        # (the shared "medium" shell size does).
-        src_row = QWidget(left)
-        src_lay = QVBoxLayout(src_row)
-        stdSizeAndlayout(src_lay)
-
-        src_top = QWidget(src_row)
-        src_top_lay = QHBoxLayout(src_top)
-        stdSizeAndlayout(src_top_lay)
-
+        # -- Source: a file, the clipboard, another database; Excel's sheet.
+        source = TitledCard(left, _("Source"), "importSourceCard")
+        source_layout = source.card.layout()
+        src_row = QHBoxLayout()
+        stdSizeAndlayout(src_row)
         self._btn_browse = create_action_button(
-                               parent=src_top,
-                               action_id="open",
-                               action=self._on_browse,
-                               layout=src_top_lay,
-                           )
+            parent=source.card, action_id="open", action=self._on_browse, layout=src_row
+        )
         self._btn_clip = create_action_button(
-                             parent=src_top,
-                             action_id="paste",
-                             action=self._on_load_clipboard,
-                             layout=src_top_lay,
-                         )
-        src_lay.addWidget(src_top)
-
-        src_bottom = QWidget(src_row)
-        src_bottom_lay = QHBoxLayout(src_bottom)
-        stdSizeAndlayout(src_bottom_lay)
-
+            parent=source.card, action_id="paste", action=self._on_load_clipboard, layout=src_row
+        )
         self._btn_database = create_action_button(
-                                  parent=src_bottom,
-                                  action_id="import_database",
-                                  action=self._on_import_database,
-                                  layout=src_bottom_lay,
-                              )
-        src_lay.addWidget(src_bottom)
-
-        form.addRow(_("Source"), src_row)
-
-        # Web row: a quick-pick source (fills the URL field below), the URL
-        # itself, and Fetch - its own labeled row rather than folded into
-        # "Source" above, since it is a second way to name a source, not one
-        # of the buttons for the first.
-        src_web = QWidget(left)
-        src_web_lay = QHBoxLayout(src_web)
-        stdSizeAndlayout(src_web_lay)
-
-        # A chevron-down button rather than a combo box: a combo shows one
-        # flat list in a fixed-height popup, which is what made the earlier
-        # catalogue feel cramped as it grew. A QToolButton's menu has no such
-        # limit, and QMenu.addSection groups entries by category with a
-        # visible heading instead of the "(Category)" suffix a combo needed.
-        icon, text, tooltip = action_presentation("web_sources")
-        self._web_source_button = QToolButton(src_web)
-        self._web_source_button.setObjectName("webSourceButton")
-        self._web_source_button.setText(text)
-        self._web_source_button.setIcon(icon)
-        self._web_source_button.setToolTip(tooltip)
-        self._web_source_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self._web_source_menu = QMenu(self._web_source_button)
-        self._web_source_button.setMenu(self._web_source_menu)
-        stdSizeAndlayout(self._web_source_button)
-        src_web_lay.addWidget(self._web_source_button)
-        self._rebuild_web_source_menu()
-
-        self._url = QLineEdit(src_web)
-        self._url.setPlaceholderText(_("https://example.com/data.csv"))
-        stdSizeAndlayout(self._url)
-        src_web_lay.addWidget(self._url, 1)
-
-        self._btn_fetch = create_action_button(
-                               parent=src_web,
-                               action_id="fetch_url",
-                               action=self._on_fetch_url,
-                               layout=src_web_lay,
-                           )
-        self._btn_add_web_source = create_action_button(
-                                        parent=src_web,
-                                        action_id="web_source_add",
-                                        action=self._on_add_web_source,
-                                        layout=src_web_lay,
-                                    )
-        self._btn_delete_web_source = create_action_button(
-                                           parent=src_web,
-                                           action_id="web_source_delete",
-                                           action=self._on_delete_web_source,
-                                           layout=src_web_lay,
-                                       )
-        self._btn_delete_web_source.setEnabled(False)
-        form.addRow(_("Web"), src_web)
+            parent=source.card,
+            action_id="import_database",
+            action=self._on_import_database,
+            layout=src_row,
+        )
+        src_row.addStretch(1)
+        source_layout.addLayout(src_row)
 
         # Excel worksheet selector (shown only for Excel files)
-        self._sheet = QComboBox(left)
+        form = QFormLayout()
+        stdSizeAndlayout(form)
+        self._sheet = QComboBox(source.card)
         self._sheet.setEnabled(False)
         self._sheet.setVisible(False)
-        self._sheet.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self._sheet.setToolTip(_("Worksheet (for Excel sources)"))
         stdSizeAndlayout(self._sheet)
         form.addRow(_("Sheet"), self._sheet)
         self._sheet_label = form.labelForField(self._sheet)
         if self._sheet_label is not None:
             self._sheet_label.setVisible(False)
+        source_layout.addLayout(form)
+        left_layout.addWidget(source)
 
-        left_layout.addLayout(form)
+        # -- Web: a quick-pick source or an address, then Fetch.
+        web = TitledCard(left, _("Web"), "importWebCard")
+        web_layout = web.card.layout()
+        pick_row = QHBoxLayout()
+        stdSizeAndlayout(pick_row)
+        # A push button with a menu, not a combo: QMenu.addSection groups the
+        # catalogue by category, and the list is not held to a combo popup's
+        # fixed height.
+        self._web_source_button = create_action_button(
+            parent=web.card, action_id="web_sources", action=None, layout=pick_row
+        )
+        self._web_source_button.setEnabled(True)
+        self._web_source_menu = QMenu(self._web_source_button)
+        self._web_source_button.setMenu(self._web_source_menu)
+        self._rebuild_web_source_menu()
+        pick_row.addStretch(1)
+        self._btn_add_web_source = create_action_button(
+            parent=web.card, action_id="web_source_add", action=self._on_add_web_source, layout=pick_row
+        )
+        mark_icon_only(self._btn_add_web_source)
+        self._btn_delete_web_source = create_action_button(
+            parent=web.card,
+            action_id="web_source_delete",
+            action=self._on_delete_web_source,
+            layout=pick_row,
+        )
+        mark_icon_only(self._btn_delete_web_source)
+        self._btn_delete_web_source.setEnabled(False)
+        web_layout.addLayout(pick_row)
 
-        left_layout.addWidget(create_compact_section_title(_("Read options"), left))
+        url_row = QHBoxLayout()
+        stdSizeAndlayout(url_row)
+        self._url = QLineEdit(web.card)
+        self._url.setPlaceholderText(_("https://example.com/data.csv"))
+        stdSizeAndlayout(self._url)
+        url_row.addWidget(self._url, 1)
+        self._btn_fetch = create_action_button(
+            parent=web.card, action_id="fetch_url", action=self._on_fetch_url, layout=url_row
+        )
+        web_layout.addLayout(url_row)
+        left_layout.addWidget(web)
+
+        # -- Read options
+        read = TitledCard(left, _("Read options"), "importReadCard")
         options_form = QFormLayout()
         stdSizeAndlayout(options_form)
 
-        # Table name
-        self._table = QLineEdit(left)
+        self._table = QLineEdit(read.card)
         self._table.setText(str(cfg.get("table", "")))
         stdSizeAndlayout(self._table)
         options_form.addRow(_("Table"), self._table)
 
-        # Header
-        self._has_header = QCheckBox(_("First row is header"), left)
+        self._has_header = QCheckBox(_("First row is header"), read.card)
         self._has_header.setChecked(bool(cfg.get("header", True)))
-        stdSizeAndlayout(self._has_header)
         options_form.addRow("", self._has_header)
 
-        # Skip rows (top)
-        self._skip_rows = QSpinBox(left)
+        self._skip_rows = QSpinBox(read.card)
         self._skip_rows.setRange(0, 1_000_000)
         self._skip_rows.setValue(int(cfg.get("skip_rows", 0) or 0))
         self._skip_rows.setKeyboardTracking(False)
         self._skip_rows.setAccelerated(True)
-        self._skip_rows.setButtonSymbols(QSpinBox.ButtonSymbols.UpDownArrows)
-        # If global QSS breaks hit-testing, neutralize for this widget
-        stdSizeAndlayout(self._skip_rows)
         options_form.addRow(_("Skip top rows"), self._skip_rows)
 
-        # Skip rows (bottom)
-        self._skip_last = QSpinBox(left)
+        self._skip_last = QSpinBox(read.card)
         self._skip_last.setRange(0, 1_000_000)
         self._skip_last.setValue(int(cfg.get("skip_last", 0) or 0))
         self._skip_last.setKeyboardTracking(False)
         self._skip_last.setAccelerated(True)
-        self._skip_last.setButtonSymbols(QSpinBox.ButtonSymbols.UpDownArrows)
-        stdSizeAndlayout(self._skip_last)
         options_form.addRow(_("Skip last rows"), self._skip_last)
 
         # Delimiter dropdown (editable)
-        self._delim = QComboBox(left)
+        self._delim = QComboBox(read.card)
         self._delim.setEditable(True)
         self._delim.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self._delim.addItem(_("auto"), userData=None)
@@ -430,14 +395,14 @@ class ImportDataDialog(QDialog):
         self._delim.addItem("|", userData="|")
         self._delim.addItem(_("space"), userData=" ")
         saved_delim = (cfg.get("delim", "") or "").strip()
-        self._delim.setCurrentIndex(0 if not saved_delim else 0)
+        self._delim.setCurrentIndex(0)
         if saved_delim:
             self._delim.setEditText(saved_delim)
         stdSizeAndlayout(self._delim)
         options_form.addRow(_("Delimiter"), self._delim)
 
         # Encoding dropdown (editable)
-        self._encoding = QComboBox(left)
+        self._encoding = QComboBox(read.card)
         self._encoding.setEditable(True)
         self._encoding.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         for e in self.ENCODINGS:
@@ -447,44 +412,26 @@ class ImportDataDialog(QDialog):
         stdSizeAndlayout(self._encoding)
         options_form.addRow(_("Encoding"), self._encoding)
 
-        left_layout.addLayout(options_form)
+        read.card.layout().addLayout(options_form)
+        left_layout.addWidget(read)
 
-        # Column mapping table
-        left_layout.addWidget(create_compact_section_title(_("Columns"), left))
-        self._col_table = QTableWidget(left)
+        # -- Columns: what the preview found, and the type each will get.
+        columns = TitledCard(left, _("Columns"), "importColumnsCard")
+        self._col_table = QTableWidget(columns.card)
         self._col_table.setColumnCount(2)
-        self._col_table.setHorizontalHeaderLabels(["Column", "Type"])
+        self._col_table.setHorizontalHeaderLabels([_("Column"), _("Type")])
         self._col_table.verticalHeader().setVisible(False)
         self._col_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._col_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self._col_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._col_table.horizontalHeader().setStretchLastSection(True)
+        self._col_table.setMinimumHeight(140)
         mark_editor_panel(self._col_table)
-        left_layout.addWidget(self._col_table, 1)
-
-        # Buttons row.  There is no Preview button: the preview already
-        # refreshes itself on Browse, on paste, and a moment after any option
-        # changes, so pressing it could only ever repeat what just happened.
-        btn_row = QWidget(left)
-        btn_lay = QHBoxLayout(btn_row)
-        stdSizeAndlayout(btn_lay)
-
-        self._btn_ok = create_action_button(
-                           parent=btn_row,
-                           action_id="apply",
-                           action=self._on_accept,
-                           layout=btn_lay,
-                       )
-        self._btn_cancel = create_action_button(
-                               parent=btn_row,
-                               action_id="close",
-                               action=self.reject,
-                               layout=btn_lay,
-                           )
-        self._btn_ok.setDefault(True)
-        btn_lay.addStretch(1)
-
-        left_layout.addWidget(btn_row, 0)
+        columns.card.layout().addWidget(self._col_table, 1)
+        columns_layout = columns.layout()
+        if columns_layout is not None:
+            columns_layout.setStretch(columns_layout.count() - 1, 1)
+        left_layout.addWidget(columns, 1)
 
         # Make left scrollable for smaller screens
         left_scroll = QScrollArea(self)
@@ -500,11 +447,27 @@ class ImportDataDialog(QDialog):
         splitter.addWidget(self._preview)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([360, 620])
+        splitter.setSizes([420, 560])
+
+        # OK and Cancel at the foot of the dialog, right-aligned, as every
+        # other dialog has them - not at the bottom of the left panel.
+        # There is no Preview button: the preview already refreshes itself
+        # on Browse, on paste, and a moment after any option changes.
+        btn_lay = QHBoxLayout()
+        stdSizeAndlayout(btn_lay)
+        btn_lay.addStretch(1)
+        self._btn_ok = create_action_button(
+            parent=self, action_id="apply", action=self._on_accept, layout=btn_lay
+        )
+        self._btn_cancel = create_action_button(
+            parent=self, action_id="close", action=self.reject, layout=btn_lay
+        )
+        self._btn_ok.setDefault(True)
 
         root = QVBoxLayout(self)
         apply_dialog_shell(self, root, size="medium")
         root.addWidget(splitter, 1)
+        root.addLayout(btn_lay, 0)
         self.setLayout(root)
 
         # ---------------- Events & shortcuts ----------------

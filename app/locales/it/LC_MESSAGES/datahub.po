@@ -6984,3 +6984,6 @@ msgstr "Progetto recente"
 
 msgid "Open this project"
 msgstr "Apri questo progetto"
+
+msgid "Column"
+msgstr "Colonna"

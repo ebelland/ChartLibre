@@ -5830,3 +5830,6 @@ msgstr "Projet récent"
 
 msgid "Open this project"
 msgstr "Ouvrir ce projet"
+
+msgid "Column"
+msgstr "Colonne"

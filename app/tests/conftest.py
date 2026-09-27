@@ -20,6 +20,29 @@ from app.data.sqlite_repo import SqliteRepo
 matplotlib.use("Agg")
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _private_user_config(tmp_path_factory: pytest.TempPathFactory):
+    """Point user.json at a copy for the whole run.
+
+    Dialogs and the main window remember their state in user.json when they
+    close - splitter sizes, the last connection, the last import - and the
+    tests close a great many of them. Against the real file that left the
+    developer's own window with its panels 47 px wide after a test run.
+    A copy, so tests still start from realistic settings.
+    """
+    from app.utils import config
+
+    real = config.USER_CONFIG_PATH
+    copy = tmp_path_factory.mktemp("user_config") / "user.json"
+    if real.exists():
+        copy.write_bytes(real.read_bytes())
+    config.USER_CONFIG_PATH = copy
+    try:
+        yield copy
+    finally:
+        config.USER_CONFIG_PATH = real
+
+
 def _artifacts_root() -> Path:
     """Return the directory that receives test artifacts.
 
