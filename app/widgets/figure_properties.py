@@ -1178,6 +1178,13 @@ class FigurePropertiesWidget(BaseProperties):
             self._figure.set_size_inches(float(width_in), float(height_in), forward=False)
         except Exception:
             return
+        # The chart panel owns how the figure is shown (its FIXED-mode zoom
+        # lives in the dpi just overwritten): let it put that back.
+        widget = self._figure.canvas
+        while widget is not None and not hasattr(widget, "reapply_view_geometry"):
+            widget = widget.parent() if hasattr(widget, "parent") else None
+        if widget is not None:
+            widget.reapply_view_geometry()
 
     def _apply_persisted_metrics_to_rcparams(self) -> None:
         """Push the connected figure's own metrics into rcParams.

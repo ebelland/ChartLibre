@@ -245,6 +245,18 @@ class ChartPanel(QFrame):
         else:
             self.reload()
 
+    def reapply_view_geometry(self) -> None:
+        """Put this panel's own view sizing back after someone else set metrics.
+
+        The Figure properties panel writes the configured size and dpi onto
+        the figure it is connected to; in FIXED mode that dpi has the zoom
+        folded in, so without this the zoom was lost and the figure drawn at
+        a fraction of its canvas.
+        """
+        if self._resize_mode == "FIXED":
+            self._apply_fixed_mode_pixel_size()
+        self._schedule_canvas_geometry_sync(redraw=True)
+
     def ensure_rendered(self) -> None:
         """Run the deferred first render, once, if ``defer_render`` skipped it.
 

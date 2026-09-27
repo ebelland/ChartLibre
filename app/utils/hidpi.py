@@ -61,6 +61,14 @@ def apply_configured_dpi(figure: Any, canvas: Any, configured_dpi: float) -> flo
     Returns the device dpi actually set, for callers that want to log it.
     """
     device_dpi = max(1.0, float(configured_dpi) * canvas_pixel_ratio(canvas))
+    # Matplotlib keeps its own copy of the "unscaled" dpi and rebuilds the
+    # figure's dpi from it whenever the display ratio changes - which happens
+    # when a canvas is first shown, i.e. every time a chart tab is opened for
+    # the first time. Left at the figure's construction value, that rebuild
+    # threw away the FIXED-mode zoom (dpi fell from 374 to 200 at 187 %) and
+    # the figure was drawn at half the canvas, with stale pixels around it.
+    if hasattr(figure, "_original_dpi"):
+        figure._original_dpi = max(1.0, float(configured_dpi))  # noqa: SLF001
     figure.set_dpi(device_dpi)
     return device_dpi
 
