@@ -51,6 +51,7 @@ from app.data.repo._common import (  # noqa: F401 - re-export
     _RETURNS_ROWS_RE,
     ensure_connection_wrapper,
     is_read_only_select,
+    read_only,
 )
 from app.data.repo.descriptors import DescriptorsMixin
 from app.data.repo.editing import EditingMixin
@@ -350,9 +351,14 @@ class SqliteRepo(
 
     def _read_series_frame(self, sql_text: str) -> SeriesFrame:
         assert self._con is not None
-        cursor = self._con.execute(sql_text)
-        names = tuple(str(d[0]) for d in cursor.description or ())
-        rows = cursor.fetchall()
+        # A series' SQL can be edited by hand: it is run read-only.
+        ok, reason = is_read_only_select(sql_text)
+        if not ok:
+            raise ValueError(f"Series query refused: {reason}")
+        with read_only(self._con):
+            cursor = self._con.execute(sql_text)
+            names = tuple(str(d[0]) for d in cursor.description or ())
+            rows = cursor.fetchall()
         return SeriesFrame.from_rows(names, rows)
 
     def series_df(self, sql: str) -> pd.DataFrame:
@@ -391,7 +397,8 @@ class SqliteRepo(
         if cached is not None:
             return cached
 
-        row = self._con.execute(f"SELECT COUNT(*) FROM ({sql_text})").fetchone()
+        with read_only(self._con):
+            row = self._con.execute(f"SELECT COUNT(*) FROM ({sql_text})").fetchone()
         count = int(row[0]) if row and row[0] is not None else 0
         self._series_row_count_cache[sql_text] = count
         return count

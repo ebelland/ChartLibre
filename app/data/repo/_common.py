@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import re
+import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
@@ -104,12 +106,11 @@ _SAVED_QUERY_OPENER_RE = re.compile(r"^\s*(select|with)\b", re.IGNORECASE)
 #: ``replace`` is deliberately absent: it is also SQLite's string function, and
 #: ``SELECT replace(name, 'a', 'b')`` is perfectly read-only.  The statement
 #: form is caught by _REPLACE_INTO_RE instead.
+#: Permissive on purpose (todo N-05): the point is that nothing a person
+#: types can change or damage the database, not to police what they read -
+#: so PRAGMA reads, ATTACH, transactions and every function stay allowed.
 _WRITE_KEYWORDS: frozenset[str] = frozenset(
-    {
-        "alter", "analyze", "attach", "begin", "commit", "create", "delete",
-        "detach", "drop", "insert", "pragma", "reindex", "release", "rollback",
-        "savepoint", "update", "vacuum",
-    }
+    {"alter", "create", "delete", "drop", "insert", "reindex", "update", "vacuum"}
 )
 
 _REPLACE_INTO_RE = re.compile(r"\breplace\s+into\b", re.IGNORECASE)
@@ -163,6 +164,93 @@ def is_read_only_select(sql: str) -> tuple[bool, str]:
         )
 
     return True, ""
+
+
+def ensure_read_only_select(sql: str) -> None:
+    """Raise ValueError unless *sql* is a single statement that only reads."""
+    ok, reason = is_read_only_select(sql)
+    if not ok:
+        raise ValueError(reason)
+
+
+def check_sql_expression(expression: str) -> None:
+    """Raise ValueError unless *expression* is a single SQL expression.
+
+    For the places where a person types a fragment that the application
+    splices into a larger statement ("Add column from SQL expression"): no
+    statement separator, and none of the keywords that write. A subquery
+    that reads is allowed.
+    """
+    code = _sql_without_comments_and_literals(str(expression or "")).strip()
+    if not code:
+        raise ValueError("The expression is empty.")
+    if ";" in code:
+        raise ValueError("An expression cannot contain ';'.")
+    found = {word.lower() for word in _SQL_WORD_RE.findall(code)} & _WRITE_KEYWORDS
+    if _REPLACE_INTO_RE.search(code):
+        found = found | {"replace"}
+    if found:
+        raise ValueError(f"An expression must only compute a value, but this one uses: {', '.join(sorted(found))}.")
+
+
+#: What a statement run under ``read_only`` may NOT do: anything that
+#: changes the database's contents or schema. Everything else is allowed -
+#: this guards the data, it does not restrict what can be read.
+_WRITE_ACTIONS: frozenset[int] = frozenset(
+    getattr(sqlite3, name)
+    for name in (
+        "SQLITE_INSERT", "SQLITE_UPDATE", "SQLITE_DELETE",
+        "SQLITE_CREATE_INDEX", "SQLITE_CREATE_TABLE", "SQLITE_CREATE_TEMP_INDEX",
+        "SQLITE_CREATE_TEMP_TABLE", "SQLITE_CREATE_TEMP_TRIGGER", "SQLITE_CREATE_TEMP_VIEW",
+        "SQLITE_CREATE_TRIGGER", "SQLITE_CREATE_VIEW", "SQLITE_CREATE_VTABLE",
+        "SQLITE_DROP_INDEX", "SQLITE_DROP_TABLE", "SQLITE_DROP_TEMP_INDEX",
+        "SQLITE_DROP_TEMP_TABLE", "SQLITE_DROP_TEMP_TRIGGER", "SQLITE_DROP_TEMP_VIEW",
+        "SQLITE_DROP_TRIGGER", "SQLITE_DROP_VIEW", "SQLITE_DROP_VTABLE",
+        "SQLITE_ALTER_TABLE", "SQLITE_REINDEX", "SQLITE_ANALYZE",
+    )
+    if hasattr(sqlite3, name)
+)
+
+#: Pragmas whose argument names what to read (a table, an index), never
+#: a value to set - so they are allowed with one.
+_READING_PRAGMAS: frozenset[str] = frozenset(
+    {
+        "table_info", "table_xinfo", "table_list", "index_list", "index_info",
+        "index_xinfo", "foreign_key_list", "foreign_key_check", "integrity_check",
+        "quick_check", "database_list", "collation_list", "function_list",
+        "module_list", "pragma_list", "compile_options",
+    }
+)
+
+#: The one function refused: it loads native code that can do anything.
+_DENIED_FUNCTIONS: frozenset[str] = frozenset({"load_extension"})
+
+
+def _read_only_authorizer(action: int, arg1: Any, arg2: Any, _db: Any, _source: Any) -> int:
+    if action in _WRITE_ACTIONS:
+        return sqlite3.SQLITE_DENY
+    if action == sqlite3.SQLITE_PRAGMA and arg2 is not None and str(arg1 or "").lower() not in _READING_PRAGMAS:
+        # "PRAGMA name = value" sets something; "PRAGMA name" only reads,
+        # and so does every pragma in _READING_PRAGMAS whatever its argument.
+        return sqlite3.SQLITE_DENY
+    if action == sqlite3.SQLITE_FUNCTION and str(arg2 or "").lower() in _DENIED_FUNCTIONS:
+        return sqlite3.SQLITE_DENY
+    return sqlite3.SQLITE_OK
+
+
+@contextmanager
+def read_only(con: sqlite3.Connection):
+    """Run user-written SQL on *con* with SQLite refusing anything that writes.
+
+    The text checks (is_read_only_select) catch the obvious cases with a
+    readable message; this is the backstop that does not depend on parsing
+    the SQL correctly - a statement that writes fails with "not authorized".
+    """
+    con.set_authorizer(_read_only_authorizer)
+    try:
+        yield con
+    finally:
+        con.set_authorizer(None)
 
 
 def _loads_json(text: str | None) -> dict[str, Any]:

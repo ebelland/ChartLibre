@@ -98,6 +98,9 @@ class QueriesMixin:
             applogger.error("Query name is required")
         if not clean_sql:
             applogger.error("Query SQL is required")
+        ok, reason = is_read_only_select(clean_sql)
+        if not ok:
+            raise ValueError(reason)
 
         self._con.execute(
             """

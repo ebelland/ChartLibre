@@ -32,7 +32,9 @@ from app.data.repo._common import (
     _loads_json,
     _quote_ident,
     ensure_connection_wrapper,
+    check_sql_expression,
     is_read_only_select,
+    read_only,
 )
 from app.logs.logger import applogger
 
@@ -204,7 +206,8 @@ class TablesMixin:
             return self.get_columns(source.name)
 
         try:
-            cursor = self._con.execute(source.columns_sql())
+            with read_only(self._con):
+                cursor = self._con.execute(source.columns_sql())
             if cursor.description is None:
                 return []
             return [str(item[0]) for item in cursor.description if item and item[0]]
@@ -217,7 +220,8 @@ class TablesMixin:
         """Return how many rows a source yields, or 0 when it cannot run."""
         assert self._con is not None
         try:
-            row = self._con.execute(source.count_sql()).fetchone()
+            with read_only(self._con):
+                row = self._con.execute(source.count_sql()).fetchone()
             return int(row[0]) if row else 0
         except Exception:
             applogger.exception("Failed to count rows of source '%s'", source.name)
@@ -228,7 +232,8 @@ class TablesMixin:
         """Return one page of a source's rows."""
         assert self._con is not None
         try:
-            return pd.read_sql_query(source.page_sql(limit=limit, offset=offset), self._con)
+            with read_only(self._con):
+                return pd.read_sql_query(source.page_sql(limit=limit, offset=offset), self._con)
         except Exception:
             applogger.exception("Failed to read source '%s'", source.name)
             return pd.DataFrame()
@@ -251,7 +256,8 @@ class TablesMixin:
         assert self._con is not None
 
         try:
-            cursor = self._con.execute(f"SELECT * FROM ({text}) AS _probe LIMIT 0")
+            with read_only(self._con):
+                cursor = self._con.execute(f"SELECT * FROM ({text}) AS _probe LIMIT 0")
         except Exception as exc:
             return False, str(exc)
 
@@ -443,6 +449,12 @@ class TablesMixin:
         assert self._con is not None
 
         if _RETURNS_ROWS_RE.match(sql_text):
+            # SELECT/WITH may be user-written (a series, a saved query): run
+            # them where SQLite refuses to write. PRAGMA/EXPLAIN are the
+            # application's own and keep running as they are.
+            if sql_text.lstrip()[:4].lower() in ("sele", "with"):
+                with read_only(self._con):
+                    return pd.read_sql_query(sql_text, self._con, params=params or ())
             return pd.read_sql_query(sql_text, self._con, params=params or ())
         else:
             self._con.execute(sql_text, params or ())
@@ -1407,6 +1419,8 @@ class TablesMixin:
         expr = str(expression or "").strip()
         if not expr:
             applogger.error("SQL expression is required.")
+        # Spliced into an UPDATE below: one expression, nothing that writes.
+        check_sql_expression(expr)
         if column_name in set(self.get_columns(table_name)):
             applogger.error(f"Column already exists: {column_name}")
         table_sql = _quote_ident(table_name)

@@ -43,6 +43,7 @@ from urllib.parse import urlparse
 import pandas as pd
 
 from app import APP_NAME, APP_VERSION
+from app.data.repo._common import ensure_read_only_select, read_only
 from app.logs.logger import applogger
 from app.utils.config import get_constant
 
@@ -301,12 +302,15 @@ def read_sqlite_query(
     ``read_sqlite_table``'s counterpart for someone who wants a join, a
     filter or an aggregate rather than a whole table - the connect dialog's
     "Use a query" option. Whatever *sql* does is on the person who typed it,
-    same as any other SQL box in this application; nothing here restricts it
-    beyond running it read-only would already restrict a SELECT.
+    same as any other SQL box in this application; it has to be one SELECT
+    (or WITH), and it runs on a read-only connection with SQLite itself
+    refusing anything that writes (todo N-05).
     """
-    conn = sqlite3.connect(str(path))
+    ensure_read_only_select(sql)
+    conn = sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
     try:
-        df = pd.read_sql_query(sql, conn)
+        with read_only(conn):
+            df = pd.read_sql_query(sql, conn)
     finally:
         conn.close()
 
@@ -518,6 +522,20 @@ def read_postgres_table(
     return df.reset_index(drop=True)
 
 
+def _server_session_read_only(connection, statement: str) -> None:
+    """Ask the server to refuse writes for this session, when it can.
+
+    A second line behind ensure_read_only_select: not every account may set
+    it, so a refusal here is logged, not fatal - the text check still holds.
+    """
+    try:
+        cursor = connection.cursor()
+        cursor.execute(statement)
+        cursor.close()
+    except Exception:
+        applogger.debug("Could not make the server session read-only.", exc_info=True)
+
+
 def read_postgres_query(
     conn: DatabaseConnection,
     sql: str,
@@ -525,7 +543,8 @@ def read_postgres_query(
     skiprows: int = 0,
     skipfooter: int = 0,
 ) -> pd.DataFrame:
-    """Read the result of *sql* against a PostgreSQL database."""
+    """Read the result of *sql* against a PostgreSQL database, read-only."""
+    ensure_read_only_select(sql)
     import pg8000.dbapi
 
     connection = pg8000.dbapi.connect(
@@ -536,6 +555,7 @@ def read_postgres_query(
         password=conn.password,
     )
     try:
+        _server_session_read_only(connection, "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY")
         df = pd.read_sql_query(sql, connection)
     finally:
         connection.close()
@@ -602,7 +622,8 @@ def read_mysql_query(
     skiprows: int = 0,
     skipfooter: int = 0,
 ) -> pd.DataFrame:
-    """Read the result of *sql* against a MySQL database."""
+    """Read the result of *sql* against a MySQL database, read-only."""
+    ensure_read_only_select(sql)
     import pymysql
 
     connection = pymysql.connect(
@@ -613,6 +634,7 @@ def read_mysql_query(
         password=conn.password,
     )
     try:
+        _server_session_read_only(connection, "SET SESSION TRANSACTION READ ONLY")
         df = pd.read_sql_query(sql, connection)
     finally:
         connection.close()

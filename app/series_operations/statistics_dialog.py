@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.data.repo._common import read_only
 from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
 from app.data.sqlite_repo import SqliteRepo
@@ -514,7 +515,8 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         try:
             with self._repo.connect() as con:
                 if sql.lower().startswith(("select", "with")):
-                    return pd.read_sql_query(sql, con)
+                    with read_only(con):
+                        return pd.read_sql_query(sql, con)
 
                 # Treat a bare descriptor value as a physical table name.
                 table_name = sql.strip().strip('"')
