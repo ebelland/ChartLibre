@@ -6861,3 +6861,6 @@ msgstr "Mostra il grafico sotto questo nell'elenco"
 
 msgid "Jump to any chart in this project"
 msgstr "Vai a un altro grafico di questo progetto"
+
+msgid "Make every font larger or smaller at once; 100 % is the style's own size."
+msgstr "Ingrandisce o rimpicciolisce tutti i font insieme; 100 % è la dimensione dello stile."

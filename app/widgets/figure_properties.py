@@ -468,6 +468,8 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_frameon = QCheckBox(_("Draw figure frame"), opts_section)
         # Every font of the figure at once, on top of its style (todo N-12).
         self._font_scale = FontScaleControl(opts_section)
+        self._font_scale.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)
+        self._font_scale.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # How the panel shows this figure - it used to be three checkable
         # entries in ChartPanel's own context menu, kept in sync by comparing
@@ -691,7 +693,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_width_cm.setValue(width_cm)
         self._fig_height_cm.setValue(height_cm)
         self._fig_frameon.setChecked(True)
-        self._font_scale.set_value(1.0)
+        self._font_scale.set_factor(1.0)
         self._select_layout_mode(self.DEFAULT_LAYOUT_MODE)
         self._select_downsample_threshold(self.DEFAULT_DOWNSAMPLE_THRESHOLD)
         self._reset_layout_preset_combo()
@@ -782,7 +784,7 @@ class FigurePropertiesWidget(BaseProperties):
             self._fig_width_cm.setValue(width_cm)
             self._fig_height_cm.setValue(height_cm)
             self._fig_frameon.setChecked(True)
-            self._font_scale.set_value(1.0)
+            self._font_scale.set_factor(1.0)
             self._select_layout_mode(self.DEFAULT_LAYOUT_MODE)
             self._select_downsample_threshold(self.DEFAULT_DOWNSAMPLE_THRESHOLD)
             self._reset_layout_preset_combo()
@@ -825,7 +827,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._load_shared_spacing_into_spins(fig_opts)
         self._load_margins_into_spins(fig_opts)
         self._fig_frameon.setChecked(bool(fig_opts.get("frameon", True)))
-        self._font_scale.set_value(fig_opts.get("font_scale", 1.0))
+        self._font_scale.set_factor(fig_opts.get("font_scale", 1.0))
 
         current_layout = str(
             fig_opts.get("layout_mode", fig_opts.get("layout", self.DEFAULT_LAYOUT_MODE))
@@ -1218,7 +1220,7 @@ class FigurePropertiesWidget(BaseProperties):
         payload = {
             "name": self._name_edit.text().strip(),
             "frameon": bool(self._fig_frameon.isChecked()),
-            "font_scale": float(self._font_scale.value()),
+            "font_scale": float(self._font_scale.factor()),
             "layout_mode": str(
                 self._fig_layout_mode.currentData() or self.DEFAULT_LAYOUT_MODE
             ),

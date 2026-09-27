@@ -1,86 +1,50 @@
-"""A− / 100 % / A+: grow or shrink every font of a figure or an axis at once.
+"""A percentage spin box: grow or shrink every font of a figure or an axis at once.
 
 The value is a factor, stored as the "font_scale" option and applied by
 render_figure._apply_font_scale after the renderers have drawn - so it
 scales whatever sizes the style and the kwargs chose, rather than
-replacing them.
+replacing them. A spin box like the Width/Height ones beside it, so the
+panel reads as one set of controls.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QSpinBox, QWidget
 
 from app.utils.i18n import _
 
-#: The steps A− and A+ move through; 1.0 is "as the style says".
-FONT_SCALE_STEPS: tuple[float, ...] = (
-    0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0,
-)
+#: Allowed range, in percent; 100 is "as the style says".
+FONT_SCALE_MIN_PERCENT: int = 50
+FONT_SCALE_MAX_PERCENT: int = 300
+FONT_SCALE_STEP_PERCENT: int = 10
 
 
-class FontScaleControl(QWidget):
-    """Two buttons and the current percentage between them."""
+class FontScaleControl(QSpinBox):
+    """The font scale as a percentage; factor() and value_changed speak factors."""
 
     value_changed = Signal(float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._value = 1.0
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        self.setRange(FONT_SCALE_MIN_PERCENT, FONT_SCALE_MAX_PERCENT)
+        self.setSingleStep(FONT_SCALE_STEP_PERCENT)
+        self.setSuffix(" %")
+        self.setValue(100)
+        self.setToolTip(_("Make every font larger or smaller at once; 100 % is the style's own size."))
+        self.valueChanged.connect(lambda percent: self.value_changed.emit(percent / 100.0))
 
-        self._smaller = QToolButton(self)
-        self._smaller.setText("A−")
-        self._smaller.setToolTip(_("Make every font smaller"))
-        self._smaller.clicked.connect(lambda: self._step(-1))
-        self._label = QLabel(self)
-        self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._label.setMinimumWidth(44)
-        self._label.setToolTip(_("Double-click to reset to 100 %"))
-        self._larger = QToolButton(self)
-        self._larger.setText("A+")
-        self._larger.setToolTip(_("Make every font larger"))
-        self._larger.clicked.connect(lambda: self._step(+1))
+    def factor(self) -> float:
+        """The factor, 1.0 for 100 %."""
+        return self.value() / 100.0
 
-        layout.addWidget(self._smaller)
-        layout.addWidget(self._label)
-        layout.addWidget(self._larger)
-        layout.addStretch(1)
-        self._show()
-
-    def value(self) -> float:
-        return self._value
-
-    def set_value(self, value: float) -> None:
-        """Show *value* without announcing it (used when a panel reloads)."""
+    def set_factor(self, value: float) -> None:
+        """Show factor *value* without announcing it (used when a panel reloads)."""
         try:
-            number = float(value)
+            percent = int(round(float(value) * 100))
         except (TypeError, ValueError):
-            number = 1.0
-        self._value = min(max(number, FONT_SCALE_STEPS[0]), FONT_SCALE_STEPS[-1])
-        self._show()
-
-    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802
-        if self._value != 1.0:
-            self._value = 1.0
-            self._show()
-            self.value_changed.emit(self._value)
-        super().mouseDoubleClickEvent(event)
-
-    def _step(self, direction: int) -> None:
-        if direction > 0:
-            larger = [s for s in FONT_SCALE_STEPS if s > self._value + 1e-9]
-            new = larger[0] if larger else self._value
-        else:
-            smaller = [s for s in FONT_SCALE_STEPS if s < self._value - 1e-9]
-            new = smaller[-1] if smaller else self._value
-        if new != self._value:
-            self._value = new
-            self._show()
-            self.value_changed.emit(self._value)
-
-    def _show(self) -> None:
-        self._label.setText(f"{round(self._value * 100):d} %")
-        self._smaller.setEnabled(self._value > FONT_SCALE_STEPS[0] + 1e-9)
-        self._larger.setEnabled(self._value < FONT_SCALE_STEPS[-1] - 1e-9)
+            percent = 100
+        self.blockSignals(True)
+        try:
+            self.setValue(percent)
+        finally:
+            self.blockSignals(False)

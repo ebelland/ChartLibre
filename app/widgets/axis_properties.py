@@ -1280,7 +1280,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._hide_axis_check.setChecked(
                 bool(options.get("hide_axis", options.get("hidden", False)))
             )
-            self._font_scale.set_value(options.get("font_scale", 1.0))
+            self._font_scale.set_factor(options.get("font_scale", 1.0))
             self._load_extended_axis_options(options)
 
         # Translated for reading; the raw chart_type is what the signal
@@ -1330,7 +1330,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._sharey_check.setChecked(False)
             self._sharez_check.setChecked(False)
             self._hide_axis_check.setChecked(False)
-            self._font_scale.set_value(1.0)
+            self._font_scale.set_factor(1.0)
             self._clear_extended_axis_options()
         self._renderer_value.clear()
         self.renderer_changed.emit("")
@@ -1482,7 +1482,7 @@ class AxisPropertiesWidget(BaseProperties):
             "sharey": bool(self._sharey_check.isChecked()),
             "sharez": bool(self._sharez_check.isChecked()),
             "hide_axis": bool(self._hide_axis_check.isChecked()),
-            "font_scale": float(self._font_scale.value()),
+            "font_scale": float(self._font_scale.factor()),
             "renderer": self._renderer_value.text().strip(),
         }
         payload.update(self._extended_axis_options_payload())
