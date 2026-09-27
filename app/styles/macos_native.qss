@@ -747,3 +747,61 @@ QToolButton#tableEditorMore::menu-indicator {
 QCheckBox[destructive="true"] {
   color: #FF3B30;
 }
+
+/* ---- Sidebar sections and the chart list (the charts used to be tabs) ----
+   Recent Mac sidebars: small grey section headings, rows with an icon and
+   a rounded selection - the same look as the tool rows above. */
+QLabel#navSectionTitle {
+  color: rgba(@SHADOW_RGB@, 0.45);
+  font-size: 11pt;
+  font-weight: 600;
+  padding: 6px 10px 2px 10px;
+}
+
+QListWidget#chartList {
+  background: transparent;
+  border: none;
+  outline: 0;
+  font-size: 13pt;
+}
+
+QListWidget#chartList::item {
+  min-height: 30px;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: palette(text);
+}
+
+QListWidget#chartList::item:hover {
+  background: rgba(@SHADOW_RGB@, 0.06);
+}
+
+QListWidget#chartList::item:selected {
+  background: rgba(@ACCENT_RGB@, 0.16);
+  color: palette(highlight);
+}
+
+/* The strip above the chart: back/forward and the chart's name. */
+QFrame#chartJumpBar {
+  background: palette(base);
+  border: none;
+  border-bottom: 1px solid rgba(@SHADOW_RGB@, 0.08);
+}
+
+QToolButton#chartJumpArrow,
+QToolButton#chartJumpTitle {
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+
+QToolButton#chartJumpTitle {
+  font-size: 13pt;
+  font-weight: 600;
+}
+
+QToolButton#chartJumpArrow:hover,
+QToolButton#chartJumpTitle:hover {
+  background: rgba(@SHADOW_RGB@, 0.08);
+}

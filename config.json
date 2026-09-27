@@ -758,6 +758,29 @@
       "SFSymbol": "ellipsis.circle",
       "SegoeFluent": "E712",
       "ThemeIcon": "view-more"
+    },
+    "chart_previous": {
+      "text": "Previous chart",
+      "description": "Show the chart above this one in the list",
+      "shortcut": "Ctrl+[",
+      "SFSymbol": "chevron.left",
+      "SegoeFluent": "E76B",
+      "ThemeIcon": "go-previous"
+    },
+    "chart_next": {
+      "text": "Next chart",
+      "description": "Show the chart below this one in the list",
+      "shortcut": "Ctrl+]",
+      "SFSymbol": "chevron.right",
+      "SegoeFluent": "E76C",
+      "ThemeIcon": "go-next"
+    },
+    "chart_jump": {
+      "text": "Charts",
+      "description": "Jump to any chart in this project",
+      "SFSymbol": "chevron.up.chevron.down",
+      "SegoeFluent": "E70D",
+      "ThemeIcon": "view-list-details"
     }
   },
   "messages": {

@@ -27,7 +27,17 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtWidgets import QButtonGroup, QFrame, QSizePolicy, QToolButton, QVBoxLayout
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QButtonGroup,
+    QFrame,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QSizePolicy,
+    QToolButton,
+    QVBoxLayout,
+)
 
 from app.styles.style import action_presentation, icon_from_svg_source
 from app.utils.i18n import _
@@ -182,6 +192,9 @@ class NavigationBar(QFrame):
     #: A footer tile was clicked, by key ("settings" here). Footer tiles
     #: are actions rather than pages, so they carry no index.
     action_triggered = Signal(str)
+    #: A chart was picked in the Charts section - its row, which is its
+    #: index among the chart pages the host shows.
+    chart_selected = Signal(int)
 
     def __init__(
         self,
@@ -244,6 +257,12 @@ class NavigationBar(QFrame):
             layout.addWidget(self.title_bar)
             layout.addSpacing(4)
 
+        # Two sections, the way a recent Mac sidebar is laid out (Music's
+        # Library and Playlists, SF Symbols' own): the tools, then the
+        # project's charts - which used to be tabs above the chart.
+        self._tools_title = self._section_title(_("Tools"))
+        layout.addWidget(self._tools_title)
+
         self.workspace_button = self._tile(
             (
                 icon_from_svg_source(_HOME_ICON, size=20)
@@ -275,7 +294,20 @@ class NavigationBar(QFrame):
             self.buttons.append(button)
             layout.addWidget(button)
 
-        layout.addStretch(1)
+        layout.addSpacing(10)
+        self._charts_title = self._section_title(_("Charts"))
+        layout.addWidget(self._charts_title)
+        self.chart_list = QListWidget(self)
+        self.chart_list.setObjectName("chartList")
+        self.chart_list.setFrameShape(QFrame.Shape.NoFrame)
+        self.chart_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.chart_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.chart_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.chart_list.setIconSize(_MACOS_ICON_SIZE if is_macos else QSize(16, 16))
+        self.chart_list.setUniformItemSizes(True)
+        self.chart_list.setMinimumHeight(0)
+        self.chart_list.currentRowChanged.connect(self._on_chart_row_changed)
+        layout.addWidget(self.chart_list, 1)
 
         if not is_macos:
             self.settings_button = self._catalogue_tile(
@@ -302,6 +334,38 @@ class NavigationBar(QFrame):
         # macos_native.qss (Apple Music/Finder-style sidebar rows) instead,
         # the same split every other piece of bespoke chrome in this app
         # already follows - see that file's own PLATFORM PARITY NOTES.
+
+    def _section_title(self, text: str) -> QLabel:
+        label = QLabel(text, self)
+        label.setObjectName("navSectionTitle")
+        return label
+
+    def set_charts(self, charts: list[tuple[str, object]], current: int) -> None:
+        """Show *charts* - (name, icon) - in the Charts section, *current* selected."""
+        self.chart_list.blockSignals(True)
+        try:
+            self.chart_list.clear()
+            for name, icon in charts:
+                item = QListWidgetItem(name, self.chart_list)
+                if icon is not None:
+                    item.setIcon(icon)
+                item.setToolTip(name)
+            if 0 <= current < self.chart_list.count():
+                self.chart_list.setCurrentRow(current)
+        finally:
+            self.chart_list.blockSignals(False)
+
+    def select_chart(self, index: int) -> None:
+        """Mark row *index* as the current chart without announcing it."""
+        self.chart_list.blockSignals(True)
+        try:
+            self.chart_list.setCurrentRow(index)
+        finally:
+            self.chart_list.blockSignals(False)
+
+    def _on_chart_row_changed(self, row: int) -> None:
+        if row >= 0:
+            self.chart_selected.emit(row)
 
     def _on_group_clicked(self, button_id: int) -> None:
         """Report the click; what it means is the host's business."""
@@ -342,6 +406,9 @@ class NavigationBar(QFrame):
         self._compact = compact
 
         self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else NAV_BAR_WIDTH)
+
+        for widget in (self._tools_title, self._charts_title, self.chart_list):
+            widget.setVisible(not compact)
 
         for button in self._all_tiles():
             self._apply_tile_mode(button)

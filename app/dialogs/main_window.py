@@ -26,10 +26,13 @@ from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
     QIcon,
+    QKeySequence,
     QMouseEvent,
+    QShortcut,
 )
 from app import APP_ICON, APP_NAME
 from app.charts import layout_presets
+from app.widgets.chart_jump_bar import ChartJumpBar
 from app.widgets.custom_title_bar import CustomTitleBar
 from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.data.repo._common import ensure_read_only_select
@@ -75,6 +78,7 @@ from app.styles.style import (
     mark_destructive_button,
     relax_minimum_width,
     stdSizeAndlayout,
+    symbol_icon,
     _pyobjc_core_is_safe_to_import,
 )
 from app.widgets.table_list import TableListPanel
@@ -255,6 +259,11 @@ class MainWindow(QMainWindow):
         self._build_app_menu()
         self._left_stack = self._create_left_stack()
         self._left_rail: NavigationBar = self._create_activity_rail()
+        self._left_rail.chart_selected.connect(self._tabs.setCurrentIndex)
+        # Cmd+[ / Cmd+] on macOS (Qt maps Ctrl to Command), as in Xcode.
+        for keys, step in (("Ctrl+[", -1), ("Ctrl+]", +1)):
+            shortcut = QShortcut(QKeySequence(keys), self)
+            shortcut.activated.connect(lambda s=step: self._step_chart(s))
         self._left_panel = self._create_left_panel()
         self._configure_left_panel()
 
@@ -559,6 +568,10 @@ class MainWindow(QMainWindow):
         # Without this the bar still asks for the full width of every title.
         tab_bar.setMinimumWidth(300)
         tab_bar.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
+        # The charts are chosen from the sidebar's Charts section and the
+        # jump bar above the chart now (see _sync_chart_navigation); the
+        # QTabWidget stays as the page stack, its own bar hidden.
+        tab_bar.hide()
 
     def _configure_properties_control(self) -> None:
         """Keep the properties control shrink-friendly.
@@ -1798,6 +1811,11 @@ class MainWindow(QMainWindow):
         chart_layout = self._chart_surface.layout()
         if not isinstance(chart_layout, QBoxLayout):
             raise RuntimeError("CardFrame did not create a box layout")
+        self._jump_bar = ChartJumpBar(self._chart_surface)
+        self._jump_bar.previous_requested.connect(lambda: self._step_chart(-1))
+        self._jump_bar.next_requested.connect(lambda: self._step_chart(+1))
+        self._jump_bar.chart_chosen.connect(self._tabs.setCurrentIndex)
+        chart_layout.addWidget(self._jump_bar, 0)
         chart_layout.addWidget(self._tabs, 1)
 
         split.addWidget(self._left_panel)
@@ -1922,6 +1940,7 @@ class MainWindow(QMainWindow):
             self._tabs.blockSignals(False)
 
         if self._tabs.count() == 0:
+            self._sync_chart_navigation()
             self._clear_property_widgets()
             return
 
@@ -1930,6 +1949,7 @@ class MainWindow(QMainWindow):
         else:
             self._tabs.setCurrentIndex(0)
 
+        self._sync_chart_navigation()
         self._update_properties_for_current_chart()
 
     def _on_chart_panel_deleted(self, figure_id: int) -> None:
@@ -1944,7 +1964,68 @@ class MainWindow(QMainWindow):
     def _on_chart_tab_changed(self, index: int) -> None:
         """Rebind the properties control when the selected chart tab changes."""
         applogger.debug("Chart tab changed to index %s", index)
+        self._sync_chart_navigation(rebuild=False)
         self._update_properties_for_current_chart()
+
+    #: Chart type -> (SF Symbol, theme icon) for the sidebar's Charts list.
+    _CHART_TYPE_SYMBOLS: tuple[tuple[str, str, str], ...] = (
+        ("Pie", "chart.pie", "office-chart-pie"),
+        ("Fishbone", "arrow.triangle.branch", "office-chart-line"),
+        ("Pareto", "chart.bar.xaxis", "office-chart-bar"),
+        ("Histogram", "chart.bar", "office-chart-bar"),
+        ("Bar", "chart.bar", "office-chart-bar"),
+        ("3D", "cube", "office-chart-area"),
+        ("Surface", "cube", "office-chart-area"),
+        ("Heatmap", "square.grid.3x3", "office-chart-area"),
+        ("Contour", "circle.dotted.circle", "office-chart-area"),
+        ("Hexbin", "hexagon", "office-chart-area"),
+        ("Table", "tablecells", "x-office-spreadsheet"),
+        ("Text", "textformat", "text-x-generic"),
+        ("Box", "square.split.1x2", "office-chart-bar"),
+        ("Violin", "waveform.path", "office-chart-area"),
+        ("Scatter", "chart.dots.scatter", "office-chart-scatter"),
+        ("Time", "clock", "office-chart-line"),
+        ("Timeline", "calendar.day.timeline.left", "office-chart-line"),
+    )
+
+    def _chart_icon(self, chart_type: str) -> QIcon:
+        for key, sf_name, theme in self._CHART_TYPE_SYMBOLS:
+            if key.lower() in chart_type.lower():
+                return symbol_icon(sf_name, theme)
+        return symbol_icon("chart.xyaxis.line", "office-chart-line")
+
+    def _sync_chart_navigation(self, *, rebuild: bool = True) -> None:
+        """Mirror the chart pages into the sidebar list and the jump bar."""
+        rail = getattr(self, "_left_rail", None)
+        jump = getattr(self, "_jump_bar", None)
+        if rail is None or jump is None:
+            return
+        names = [self._tabs.tabText(i) for i in range(self._tabs.count())]
+        current = self._tabs.currentIndex()
+        if rebuild:
+            chart_types: dict[int, str] = {}
+            try:
+                for figure_id, chart_type in self._repo._con.execute(
+                    "SELECT figure_id, chart_type FROM __axis_descriptors__ ORDER BY axis_index DESC"
+                ):
+                    chart_types[int(figure_id)] = str(chart_type or "")
+            except Exception:
+                applogger.debug("Chart types for the sidebar could not be read.", exc_info=True)
+            charts = []
+            for i, name in enumerate(names):
+                widget = self._tabs.widget(i)
+                figure_id = int(widget.figure_id) if isinstance(widget, ChartPanel) else -1
+                charts.append((name, self._chart_icon(chart_types.get(figure_id, ""))))
+            rail.set_charts(charts, current)
+        else:
+            rail.select_chart(current)
+        jump.set_charts(names, current)
+
+    def _step_chart(self, step: int) -> None:
+        """Show the chart *step* rows above (-1) or below (+1) the current one."""
+        target = self._tabs.currentIndex() + step
+        if 0 <= target < self._tabs.count():
+            self._tabs.setCurrentIndex(target)
 
     def _update_properties_for_current_chart(self) -> None:
         """Connect the properties control to the currently selected chart."""
@@ -2244,6 +2325,7 @@ class MainWindow(QMainWindow):
             if isinstance(widget, ChartPanel) and int(widget.figure_id) == figure_id:
                 self._tabs.setTabText(index, name)
                 self._tabs.setTabToolTip(index, name)
+                self._sync_chart_navigation()
                 return
 
     def _on_axis_selected(self, axis_id: int) -> None:

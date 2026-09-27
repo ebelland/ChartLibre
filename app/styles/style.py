@@ -1140,6 +1140,23 @@ def icon_from_svg_source(
     return icon
 
 
+def symbol_icon(sf_symbol: str, theme_icon: str = "") -> QIcon:
+    """An SF Symbol on macOS, else a theme icon, else an empty icon.
+
+    For icons chosen from data rather than from the action catalogue - one
+    per chart type in the navigation list.
+    """
+    if _IS_MACOS and sf_symbol:
+        icon = _create_sf_symbol_icon(sf_symbol)
+        if not icon.isNull():
+            return icon
+    for name in _theme_icon_names(theme_icon):
+        icon = _create_theme_icon(name)
+        if not icon.isNull():
+            return icon
+    return QIcon()
+
+
 def icon_from_action_spec(spec: "ActionSpec") -> QIcon:
     """Return the icon for an action using the catalogue priority order.
 

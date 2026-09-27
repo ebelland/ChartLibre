@@ -6843,3 +6843,21 @@ msgstr "Operazioni sulle serie - quindici operazioni, ognuna con il suo rapporto
 
 msgid "Fifteen Series Operations run for real, one per chart, each on a dataset suited to it - smoothing, spectrum, filtering, baseline, peaks, roots, calculus, fit, interpolation, statistics, outliers, clustering, a control chart, a robust regression and a transform - with the result drawn on the chart and the operation's own report in the results pane below it, exactly as the operation leaves them."
 msgstr "Quindici operazioni sulle serie eseguite davvero, una per grafico, ognuna su dati adatti - smussatura, spettro, filtro, linea di base, picchi, radici, calcolo, fit, interpolazione, statistiche, valori anomali, clustering, una carta di controllo, una regressione robusta e una trasformazione - con il risultato disegnato sul grafico e il rapporto dell'operazione nel pannello dei risultati sotto, esattamente come li lascia l'operazione."
+
+msgid "Tools"
+msgstr "Strumenti"
+
+msgid "Previous chart"
+msgstr "Grafico precedente"
+
+msgid "Next chart"
+msgstr "Grafico successivo"
+
+msgid "Show the chart above this one in the list"
+msgstr "Mostra il grafico sopra questo nell'elenco"
+
+msgid "Show the chart below this one in the list"
+msgstr "Mostra il grafico sotto questo nell'elenco"
+
+msgid "Jump to any chart in this project"
+msgstr "Vai a un altro grafico di questo progetto"
