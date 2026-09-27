@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QDoubleSpinBox
 from app.widgets.color_combo import MatplotlibColorCombo
 from app.widgets.line_combo import LineStyleCombo
 from app.widgets.marker_combo import MarkerStyleCombo
-from app.styles.style import mark_editor_panel, stdSizeAndlayout
+from app.styles.style import apply_fusion_for_item_view_styling, mark_editor_panel, stdSizeAndlayout
 from app.utils.i18n import _
 
 
@@ -138,9 +138,14 @@ def _make_check_item(item: QTreeWidgetItem, value: Any) -> None:
     not anything is being edited, and one click toggles it on every platform.
     The text is cleared because the box already says True or False, and a
     label beside it would only be a second answer to the same question.
+
+    Not ItemIsUserCheckable: the view drawing the box needs only the check
+    state. With the flag, a click on the box itself was toggled by the view
+    and again by the row's own click handler, so it changed nothing; now the
+    handler is the one place a click toggles, wherever on the row it lands.
     """
     item.setFlags(
-        (item.flags() | Qt.ItemFlag.ItemIsUserCheckable) & ~Qt.ItemFlag.ItemIsEditable
+        item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable & ~Qt.ItemFlag.ItemIsEditable
     )
     item.setText(1, "")
     item.setCheckState(
@@ -276,6 +281,11 @@ class DictValueDelegate(QStyledItemDelegate):
             editor = QLineEdit(parent)
 
         editor.setMinimumHeight(_EDITOR_MIN_HEIGHT)
+        if isinstance(editor, QComboBox):
+            # The sheets draw a read-only combo see-through; over a cell that
+            # let the cell's own text show through the editor's. See the
+            # [cellEditor="true"] rule in the stylesheets.
+            editor.setProperty("cellEditor", True)
         return editor
 
     def setEditorData(self, editor, index) -> None:  # noqa: N802, ANN001
@@ -407,6 +417,9 @@ class DictEditorPanel(QWidget):
         self.tree = QTreeWidget(self)
         self.tree.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         mark_editor_panel(self.tree)
+        # Fusion draws the boolean rows' check boxes: the native macOS
+        # style drew an unchecked one as nothing at all.
+        apply_fusion_for_item_view_styling(self.tree)
         self.tree.setMinimumHeight(_DEFAULT_MIN_PANEL_HEIGHT - 32)
         self.tree.setColumnCount(2)
         self.tree.setHeaderLabels(["Property", "Value"])
@@ -418,7 +431,6 @@ class DictEditorPanel(QWidget):
         # A single click edits (see _on_item_clicked); only the value column
         # is ever edited, so the property names cannot be changed by mistake.
         self.tree.setEditTriggers(QTreeWidget.EditTrigger.EditKeyPressed)
-        self.tree.itemPressed.connect(self._on_item_pressed)
         self.tree.itemClicked.connect(self._on_item_clicked)
         self.tree.setItemDelegateForColumn(1, DictValueDelegate(self, self.tree))
         self._configure_header()
@@ -616,28 +628,22 @@ class DictEditorPanel(QWidget):
                 return ", ".join(str(v) for v in value)
         return _value_to_text(value)
 
-    def _on_item_pressed(self, item: QTreeWidgetItem, _column: int) -> None:
-        self._pressed_check_state = item.checkState(1)
-
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int) -> None:
         """One click edits: a yes/no toggles, anything else opens its editor.
 
-        The view already toggles a checkbox when the click lands on the box
-        itself; a click elsewhere on the row did nothing, which read as "this
-        cannot be edited". The state at press time tells the two apart, so a
-        click on the box is not toggled twice.
+        The only place a boolean row is toggled (see _make_check_item), so
+        a click on the box and a click beside it do the same thing.
         """
         key = item.data(0, Qt.ItemDataRole.UserRole)
         if not key:
             return
         if self.kind_for_key(str(key)) == "bool":
-            if item.checkState(1) == getattr(self, "_pressed_check_state", None):
-                item.setCheckState(
-                    1,
-                    Qt.CheckState.Unchecked
-                    if item.checkState(1) == Qt.CheckState.Checked
-                    else Qt.CheckState.Checked,
-                )
+            item.setCheckState(
+                1,
+                Qt.CheckState.Unchecked
+                if item.checkState(1) == Qt.CheckState.Checked
+                else Qt.CheckState.Checked,
+            )
             return
         self.tree.editItem(item, 1)
 

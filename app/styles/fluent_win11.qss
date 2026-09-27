@@ -1216,3 +1216,12 @@ QToolButton#chartJumpTitle {
   max-height: 28px;
   padding: 0 6px;
 }
+
+
+/* A combo opened as a cell editor (the property editors): opaque, or the
+   cell's own text shows through the see-through pop-up button above. */
+QComboBox[cellEditor="true"],
+QComboBox[cellEditor="true"]:hover,
+QComboBox[cellEditor="true"]:on {
+  background-color: palette(base);
+}

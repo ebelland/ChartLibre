@@ -844,3 +844,12 @@ QToolButton#chartJumpArrow:hover,
 QToolButton#chartJumpTitle:hover {
   background: rgba(@SHADOW_RGB@, 0.08);
 }
+
+
+/* A combo opened as a cell editor (the property editors): opaque, or the
+   cell's own text shows through the see-through pop-up button above. */
+QComboBox[cellEditor="true"],
+QComboBox[cellEditor="true"]:hover,
+QComboBox[cellEditor="true"]:on {
+  background-color: palette(base);
+}

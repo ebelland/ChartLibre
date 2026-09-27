@@ -9,11 +9,13 @@ from __future__ import annotations
 
 from typing import Any
 
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
+from app.charts import kwarg_spec
 from app.charts.base import BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
@@ -58,7 +60,9 @@ class BoxAxisRenderer(BaseAxisRenderer):
     
     Kwargs: dict[str, object] = {
         "notch": {
-            "default": False,
+            "default": None,
+            kwarg_spec.STYLE_DEFAULT: True,
+            kwarg_spec.RCPARAM: "boxplot.notch",
             "type": bool,
             "description": "Draw notched boxes indicating the confidence interval around the median.",
         },
@@ -98,12 +102,16 @@ class BoxAxisRenderer(BaseAxisRenderer):
             "description": "Fill boxes with a face color instead of drawing them as outlines only.",
         },
         "showmeans": {
-            "default": False,
+            "default": None,
+            kwarg_spec.STYLE_DEFAULT: True,
+            kwarg_spec.RCPARAM: "boxplot.showmeans",
             "type": bool,
             "description": "Show the arithmetic mean of each box.",
         },
         "meanline": {
-            "default": False,
+            "default": None,
+            kwarg_spec.STYLE_DEFAULT: True,
+            kwarg_spec.RCPARAM: "boxplot.meanline",
             "type": bool,
             "description": "Draw the mean as a line instead of a point (requires showmeans).",
         },
@@ -440,9 +448,12 @@ class BoxAxisRenderer(BaseAxisRenderer):
                 widths=box_width,
                 orientation="vertical" if vert else "horizontal",
                 patch_artist=base_kwargs.get("patch_artist", True),
-                shownotches=bool(base_kwargs.get("notch", False)),
-                showmeans=base_kwargs.get("showmeans", False),
-                meanline=base_kwargs.get("meanline", False),
+                # ax.bxp, unlike ax.boxplot, never reads rcParams: an option
+                # the chart leaves unset has to be looked up here, or the
+                # style's boxplot.notch / showmeans / meanline do nothing.
+                shownotches=_style_bool(base_kwargs, "notch", "boxplot.notch"),
+                showmeans=_style_bool(base_kwargs, "showmeans", "boxplot.showmeans"),
+                meanline=_style_bool(base_kwargs, "meanline", "boxplot.meanline"),
                 showcaps=base_kwargs.get("showcaps", True),
                 showbox=base_kwargs.get("showbox", True),
                 showfliers=base_kwargs.get("showfliers", True),
@@ -773,3 +784,11 @@ class BoxAxisRenderer(BaseAxisRenderer):
             "cilo": float(median - notch_half_width),
             "cihi": float(median + notch_half_width),
         }
+
+
+def _style_bool(kwargs: dict, key: str, rcparam: str) -> bool:
+    """The chart's own *key* when it sets one, else the style's *rcparam*."""
+    value = kwargs.get(key)
+    if value is None:
+        return bool(mpl.rcParams[rcparam])
+    return bool(value)
