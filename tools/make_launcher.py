@@ -31,20 +31,42 @@ from app import APP_ICON, APP_NAME, APP_VERSION  # noqa: E402
 
 
 def _render_icon_pngs(sizes: list[int]) -> dict[int, bytes]:
-    """The application icon as PNG bytes at each size, drawn by Qt."""
+    """The application icon as PNG bytes at each size, drawn by Qt.
+
+    APP_ICON is bare stroke path data, so it is wrapped in the standard SVG
+    document first - handed over on its own it is not an SVG at all, and
+    the renderer draws nothing. The mark goes in white on a blue rounded
+    square laid out on Apple's app-icon grid (an 824 body on a 1024 canvas),
+    so it reads in the Dock and the Finder the way other Mac apps do.
+    """
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-    from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt
-    from PySide6.QtGui import QGuiApplication, QImage, QPainter
+    from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QRectF, Qt
+    from PySide6.QtGui import QColor, QGuiApplication, QImage, QLinearGradient, QPainter
     from PySide6.QtSvg import QSvgRenderer
 
+    from app.styles.style import svg_icon_document
+
     app = QGuiApplication.instance() or QGuiApplication([])
-    renderer = QSvgRenderer(QByteArray(APP_ICON.encode("utf-8")))
+    mark = svg_icon_document(APP_ICON, "#ffffff").replace('stroke-width="1.8"', 'stroke-width="2.2"')
+    renderer = QSvgRenderer(QByteArray(mark.encode("utf-8")))
+    if not renderer.isValid():
+        raise SystemExit("The application icon could not be read as SVG.")
     images: dict[int, bytes] = {}
     for size in sizes:
         image = QImage(size, size, QImage.Format.Format_ARGB32)
         image.fill(Qt.GlobalColor.transparent)
         painter = QPainter(image)
-        renderer.render(painter)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        unit = size / 1024
+        body = QRectF(100 * unit, 100 * unit, 824 * unit, 824 * unit)
+        gradient = QLinearGradient(body.topLeft(), body.bottomLeft())
+        gradient.setColorAt(0.0, QColor("#4C8DF6"))
+        gradient.setColorAt(1.0, QColor("#1F4FD1"))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(gradient)
+        painter.drawRoundedRect(body, 185 * unit, 185 * unit)
+        inset = 150 * unit
+        renderer.render(painter, body.adjusted(inset, inset, -inset, -inset))
         painter.end()
         buffer = QBuffer()
         buffer.open(QIODevice.OpenModeFlag.WriteOnly)
