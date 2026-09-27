@@ -48,6 +48,7 @@ from app.styles.style import (
     CardFrame,
     action_presentation,
     create_action_button,
+    mark_icon_only,
     create_section_title,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -277,6 +278,36 @@ _ICON_SIZE = 14  # pixels, square
 # ---------------------------------------------------------------------------
 # RcParam Tree Picker
 # ---------------------------------------------------------------------------
+#: rcParams groups that are the running program's, not a chart's style:
+#: backends, key bindings, GUI toolkits, internals. Left out of the picker.
+SYSTEM_RC_GROUPS: frozenset[str] = frozenset(
+    {
+        "_internal", "agg", "animation", "backend", "backend_fallback",
+        "docstring", "interactive", "keymap", "macosx", "tk", "toolbar",
+        "webagg",
+    }
+)
+
+
+def style_rc_keys() -> list[str]:
+    """Every rcParam that styles a chart, sorted - the picker's contents."""
+    return sorted(key for key in mpl.rcParamsDefault if key.split(".")[0] not in SYSTEM_RC_GROUPS)
+
+
+#: What the preview can draw: (label, key). "this" - the chart being
+#: styled - is offered only when the caller hands the editor a way to draw it.
+PREVIEW_KINDS: tuple[tuple[str, str], ...] = (
+    ("This figure", "this"),
+    ("Lines and scatter", "lines"),
+    ("Bars", "bars"),
+    ("Box plot", "box"),
+    ("Histogram", "hist"),
+    ("Pie", "pie"),
+    ("Heatmap", "heatmap"),
+    ("3D surface", "surface3d"),
+)
+
+
 class RcParamTreePicker(QComboBox):
     """Editable combo whose drop-down is a QTreeView grouping rcParams by
     their dot-prefix category. Each leaf node shows a type-specific icon.
@@ -382,8 +413,12 @@ class MplStyleEditorDialog(QDialog):
         parent: QWidget | None = None,
         apply_callback: Callable[[str], None] | None = None,
         initial_style_text: str = "",
+        figure_drawer: Callable[[Figure], None] | None = None,
     ) -> None:
         super().__init__(parent)
+        #: Draws the chart being styled onto a figure, for the "This figure"
+        #: preview; None when the editor was opened without one.
+        self._figure_drawer = figure_drawer
         self.setWindowTitle(_("Matplotlib Style Editor"))
         # Size and root padding come from the shared dialog shell.
         self.setModal(True)
@@ -392,7 +427,9 @@ class MplStyleEditorDialog(QDialog):
 
         # Root layout: splitter + status bar + Apply.
         root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="large")
+        # "medium": the action rows are icons now, so the editor no longer
+        # needs the large shell's width.
+        apply_dialog_shell(self, root, size="medium")
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setChildrenCollapsible(False)
@@ -428,6 +465,16 @@ class MplStyleEditorDialog(QDialog):
 
         preview_panel, pg = self._create_section("Figure")
         pg.setContentsMargins(0, 0, 0, 0)
+        # What the preview draws: the chart being styled, or a sample of one
+        # chart family, so a style can be judged where it will be used.
+        self.preview_kind = QComboBox()
+        for label, key in PREVIEW_KINDS:
+            if key == "this" and figure_drawer is None:
+                continue
+            self.preview_kind.addItem(_(label), key)
+        stdSizeAndlayout(self.preview_kind, minimum_contents_length=14)
+        self.preview_kind.currentIndexChanged.connect(lambda _i: self._preview_timer.start())
+        pg.addWidget(self.preview_kind, 0)
         self.canvas = self._make_canvas()
         self.preview_card: QWidget = QWidget()
         self.preview_card.setProperty("previewCard", True)
@@ -436,7 +483,7 @@ class MplStyleEditorDialog(QDialog):
         card_lay.setContentsMargins(*MARGIN_CARD)
         card_lay.setSpacing(0)
         card_lay.addWidget(self.canvas, 1)
-        pg.addWidget(self.preview_card, 0, Qt.AlignmentFlag.AlignTop)
+        pg.addWidget(self.preview_card, 1)
         ll.addWidget(preview_panel, 1)
 
         # Right: parameters editor.
@@ -446,7 +493,7 @@ class MplStyleEditorDialog(QDialog):
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([360, 640])
+        splitter.setSizes([420, 480])
 
         # Debounced preview timer.
         self._preview_timer = QTimer(self)
@@ -531,7 +578,7 @@ class MplStyleEditorDialog(QDialog):
             ("down", "Move selected entry down", self._stack_move_down),
             ("delete", "Remove selected entries", self._stack_remove_selected),
             (None, None, None),
-            ("table",
+            ("style_stack_to_editor",
              "Compute stack diff and load into parameter editor",
              self._stack_result_to_table),
         ])
@@ -552,17 +599,19 @@ class MplStyleEditorDialog(QDialog):
 
         self.rc_picker = RcParamTreePicker()
         try:
-            self.rc_picker.populate(sorted(mpl.rcParamsDefault.keys()))
+            self.rc_picker.populate(style_rc_keys())
         except Exception:
             self.rc_picker.populate([])
-        self.rc_picker.setMinimumWidth(200)
         self.rc_picker.setMinimumHeight(28)
-        stdSizeAndlayout(self.rc_picker)
+        stdSizeAndlayout(self.rc_picker, minimum_contents_length=36)
+        self.rc_picker.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
+        # The picker on a row of its own, as wide as the panel - rcParam
+        # names are long - and the buttons on the row below it.
+        lay.addWidget(self.rc_picker)
         row = QHBoxLayout()
         stdSizeAndlayout(row)
         row.setSpacing(4)
-        row.addWidget(self.rc_picker, 1, Qt.AlignmentFlag.AlignVCenter)
 
         # Action ids only: the labels and tooltips live in config.json, which
         # is why these are rcparam_* rather than the generic add/open/save -
@@ -577,6 +626,7 @@ class MplStyleEditorDialog(QDialog):
             (None, None),
             ("rcparam_save", self._save_file),
         ])
+        row.addStretch(1)
 
         self._param_schema: dict[str, object] = {}
         self.editor = DictEditorPanel({}, self)
@@ -635,59 +685,91 @@ class MplStyleEditorDialog(QDialog):
                 icon, label, _catalog_tooltip = action_presentation(action_id)
                 presentation = (icon, label, tooltip)
 
-            create_action_button(
+            button = create_action_button(
                 parent=self,
                 action_id=action_id,
                 action=callback,
                 layout=layout,
                 presentation=presentation,
             )
+            # Icons with the words in the tooltip: two rows of labelled
+            # buttons were what made this dialog so wide.
+            button.setAccessibleName(button.text())
+            mark_icon_only(button)
 
     # ======================================================================
     # Canvas helpers
     # ======================================================================
     def _make_canvas(self) -> FigureCanvas:
         fig: Figure = Figure(
-            figsize=(3.2, 2.2),
-            dpi=50,
+            figsize=(4.0, 3.0),
+            dpi=72,
             tight_layout=True,
             facecolor="none",
         )
         canvas: FigureCanvas = FigureCanvas(fig)
-        canvas.setFixedSize(320, 220)
+        # Follows the panel: drag the splitter or the window to see the style
+        # at the size it will be used at.
+        canvas.setMinimumSize(240, 180)
         canvas.setSizePolicy(
-            QSizePolicy.Policy.Fixed,
-            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
         )
         canvas.setProperty("previewCanvas", True)
         return canvas
 
     def _draw_sample(self, fig: Figure) -> None:
+        """Draw the preview chosen in the combo, under the style being edited."""
         fig.clear()
-        ax = fig.add_subplot(111)
-        # Remove the axes frame for a cleaner preview (Windows 11/Fluent look).
-        for spine in ax.spines.values():
-            spine.set_visible(False)
-        ax.tick_params(top=False, right=False)
-        fig.patch.set_edgecolor('none')
-        fig.patch.set_linewidth(0)
+        kind = self.preview_kind.currentData() if hasattr(self, "preview_kind") else "lines"
+        if kind == "this" and self._figure_drawer is not None:
+            self._figure_drawer(fig)
+            return
 
-        x = np.linspace(0, 2 * np.pi, 200)
         rng = np.random.default_rng(42)
-        ax.plot(x, np.sin(x), label="sin")
-        ax.plot(x, np.cos(x), "--", label="cos")
-        ax.scatter(
-            x[::8],
-            np.sin(x[::8]) + 0.15 * rng.standard_normal(len(x[::8])),
-            s=26, marker="o", alpha=0.8, label="scatter",
-        )
-        ax.bar(np.arange(5), [1.0, 1.6, 1.2, 1.9, 1.3],
-               alpha=0.6, label="bar")
-        ax.set_title("Preview")
-        ax.set_xlabel("X")
-        ax.set_ylabel("Y")
-        ax.grid(True)
-        ax.legend(loc="best", fontsize=8)
+        if kind == "surface3d":
+            ax = fig.add_subplot(111, projection="3d")
+            grid = np.linspace(-3, 3, 40)
+            xx, yy = np.meshgrid(grid, grid)
+            ax.plot_surface(xx, yy, np.exp(-(xx**2 + yy**2) / 3) * np.cos(xx), cmap=None)
+            ax.set_title("3D surface")
+            return
+
+        ax = fig.add_subplot(111)
+        if kind == "bars":
+            ax.bar(["A", "B", "C", "D", "E"], [3, 5, 2, 6, 4], label="2025")
+            ax.bar(["A", "B", "C", "D", "E"], [2, 3, 1, 4, 2], label="2024", alpha=0.8)
+            ax.set_title("Bars")
+            ax.legend()
+        elif kind == "box":
+            ax.boxplot([rng.normal(m, 1.0, 80) for m in (0, 1, 0.5, 2)], tick_labels=["A", "B", "C", "D"])
+            ax.set_title("Box plot")
+        elif kind == "hist":
+            ax.hist(rng.normal(0, 1, 800), bins=30, alpha=0.8, label="a")
+            ax.hist(rng.normal(1.5, 0.7, 800), bins=30, alpha=0.8, label="b")
+            ax.set_title("Histogram")
+            ax.legend()
+        elif kind == "pie":
+            ax.pie([35, 25, 20, 12, 8], labels=["A", "B", "C", "D", "E"], autopct="%1.0f%%")
+            ax.set_title("Pie")
+        elif kind == "heatmap":
+            image = ax.imshow(rng.random((12, 16)), aspect="auto")
+            fig.colorbar(image, ax=ax)
+            ax.set_title("Heatmap")
+        else:
+            x = np.linspace(0, 2 * np.pi, 200)
+            ax.plot(x, np.sin(x), label="sin")
+            ax.plot(x, np.cos(x), "--", label="cos")
+            ax.scatter(
+                x[::8], np.sin(x[::8]) + 0.15 * rng.standard_normal(len(x[::8])),
+                s=26, marker="o", alpha=0.8, label="scatter",
+            )
+            ax.set_title("Lines and scatter")
+            ax.legend(loc="best")
+        if kind not in ("pie",):
+            ax.set_xlabel("X")
+            ax.set_ylabel("Y")
+            ax.grid(True)
 
     # ======================================================================
     # Style-stack actions

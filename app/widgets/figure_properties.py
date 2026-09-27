@@ -996,10 +996,29 @@ class FigurePropertiesWidget(BaseProperties):
             )
             dialog.accept()
 
+        repo, figure_id = self._repo, int(self._figure_id)
+
+        def draw_this_figure(figure: Any) -> None:
+            """The chart being styled, without its saved style, so the
+            editor's own rcParams are what it is drawn with."""
+            from dataclasses import replace
+
+            from app.charts.render_figure import render_figure_from_descriptor
+
+            descriptor = repo.load_figure_descriptor(figure_id)
+            if descriptor is None:
+                return
+            options = dict(descriptor.options or {})
+            options.pop("mpl_style", None)
+            render_figure_from_descriptor(
+                figure=figure, descriptor=replace(descriptor, options=options), repo=repo
+            )
+
         dialog = MplStyleEditorDialog(
             parent=self,
             apply_callback=capture_style,
             initial_style_text=style_text,
+            figure_drawer=draw_this_figure,
         )
         if not dialog.exec():
             return

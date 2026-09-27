@@ -6864,3 +6864,27 @@ msgstr "Vai a un altro grafico di questo progetto"
 
 msgid "Make every font larger or smaller at once; 100 % is the style's own size."
 msgstr "Ingrandisce o rimpicciolisce tutti i font insieme; 100 % è la dimensione dello stile."
+
+msgid "This figure"
+msgstr "Questo grafico"
+
+msgid "Lines and scatter"
+msgstr "Linee e punti"
+
+msgid "Bars"
+msgstr "Barre"
+
+msgid "Box plot"
+msgstr "Box plot"
+
+msgid "Pie"
+msgstr "Torta"
+
+msgid "3D surface"
+msgstr "Superficie 3D"
+
+msgid "Load into editor"
+msgstr "Carica nell'editor"
+
+msgid "Compute the stack's differences and load them into the parameter editor"
+msgstr "Calcola le differenze della pila di stili e le carica nell'editor dei parametri"

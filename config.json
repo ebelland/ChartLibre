@@ -788,6 +788,13 @@
       "SFSymbol": "sidebar.left",
       "SegoeFluent": "E8A0",
       "ThemeIcon": "view-sidebar"
+    },
+    "style_stack_to_editor": {
+      "text": "Load into editor",
+      "description": "Compute the stack's differences and load them into the parameter editor",
+      "SFSymbol": "arrow.right.square",
+      "SegoeFluent": "E72A",
+      "ThemeIcon": "go-next"
     }
   },
   "messages": {
