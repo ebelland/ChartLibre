@@ -1185,6 +1185,24 @@ def _substitute_qss_symbols(qss: str) -> str:
     return _QSS_SYMBOL_RE.sub(image, qss) if "@ICON:" in qss else qss
 
 
+def colored_icon(icon: QIcon, color: QColor | str, size: int = 20) -> QIcon:
+    """*icon* repainted in one colour, at the display's pixel density.
+
+    For the few places where an icon carries meaning by its colour - a
+    recent project drawn as a blue document, the way Finder shows one -
+    rather than taking the ink every other glyph shares.
+    """
+    if icon.isNull():
+        return icon
+    ratio = _icon_device_pixel_ratio()
+    physical = max(1, int(round(size * ratio)))
+    source = icon.pixmap(QSize(physical, physical))
+    if source.isNull():
+        return icon
+    name = color.name() if isinstance(color, QColor) else str(color)
+    return QIcon(_tinted_pixmap(source, size, name, ratio=ratio))
+
+
 def symbol_icon(sf_symbol: str, theme_icon: str = "") -> QIcon:
     """An SF Symbol on macOS, else a theme icon, else an empty icon.
 

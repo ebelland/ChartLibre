@@ -15,10 +15,12 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -42,6 +44,9 @@ class LoadDemoDialog(QDialog):
     Modal, and read through ``chosen`` rather than a signal: the caller wants
     one answer before it goes on to load it, not an ongoing conversation.
     """
+
+    #: Lines of summary shown below the list; a longer one scrolls.
+    _SUMMARY_LINES: int = 7
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -70,7 +75,19 @@ class LoadDemoDialog(QDialog):
         self._summary = QLabel("", card)
         self._summary.setWordWrap(True)
         self._summary.setProperty("muted", True)
-        card_layout.addWidget(self._summary, 0)
+        self._summary.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        # A fixed box, scrolling if a summary is longer: a word-wrapped label
+        # grows and shrinks with the window's width, and the list above it
+        # used to change height every time the dialog was resized.
+        summary_box = QScrollArea(card)
+        summary_box.setWidget(self._summary)
+        summary_box.setWidgetResizable(True)
+        summary_box.setFrameShape(QFrame.Shape.NoFrame)
+        summary_box.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        summary_box.viewport().setAutoFillBackground(False)
+        self._summary.setAutoFillBackground(False)
+        summary_box.setFixedHeight(self._summary.fontMetrics().lineSpacing() * self._SUMMARY_LINES + 4)
+        card_layout.addWidget(summary_box, 0)
         self._update_summary(0)
 
         root.addWidget(card, 1)

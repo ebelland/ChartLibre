@@ -6972,3 +6972,15 @@ msgstr "Aggiungi colonna calcolata..."
 
 msgid "Add a column computed for every row from a SQL expression"
 msgstr "Aggiungi una colonna calcolata per ogni riga da un'espressione SQL"
+
+msgid "Import from other sources..."
+msgstr "Importa da altre sorgenti..."
+
+msgid "Import data from a CSV or Excel file, another database, a web address or the clipboard"
+msgstr "Importa dati da un file CSV o Excel, da un altro database, da un indirizzo web o dagli appunti"
+
+msgid "Recent project"
+msgstr "Progetto recente"
+
+msgid "Open this project"
+msgstr "Apri questo progetto"

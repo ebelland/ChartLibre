@@ -28,6 +28,7 @@ from PySide6.QtGui import (
     QIcon,
     QKeySequence,
     QMouseEvent,
+    QPalette,
     QShortcut,
 )
 from app import APP_ICON, APP_NAME
@@ -69,6 +70,7 @@ from app.styles.style import (
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
     CardFrame,
+    colored_icon,
     TitledCard,
     create_action_button,
     create_menu,
@@ -857,12 +859,18 @@ class MainWindow(QMainWindow):
             self._titled_card(page, _("Workspace"), self._fill_workspace_card, object_name="fileWorkspaceCard")
         )
         layout.addWidget(
-            self._titled_card(page, _("Save"), self._fill_save_card, object_name="fileSaveCard")
+            self._titled_card(page, _("Import"), self._fill_import_card, object_name="fileImportCard")
         )
         layout.addWidget(
-            self._titled_card(page, _("Open recent"), self._fill_recent_card, object_name="fileRecentCard")
+            self._titled_card(page, _("Save"), self._fill_save_card, object_name="fileSaveCard")
         )
-        layout.addStretch(1)
+        # The recent list takes whatever height the page has left, rather
+        # than a fixed number of rows above an empty gap.
+        recent = self._titled_card(page, _("Open recent"), self._fill_recent_card, object_name="fileRecentCard")
+        recent_layout = recent.layout()
+        if recent_layout is not None:
+            recent_layout.setStretch(recent_layout.count() - 1, 1)
+        layout.addWidget(recent, 1)
         return page
 
     def _titled_card(
@@ -893,7 +901,6 @@ class MainWindow(QMainWindow):
         stdSizeAndlayout(new_open_row)
         create_action_button(parent=card, action_id="new", action=self._on_new_file, layout=new_open_row)
         create_action_button(parent=card, action_id="open", action=self._on_open_database, layout=new_open_row)
-        create_action_button(parent=card, action_id="import", action=self._on_import_data, layout=new_open_row)
         new_open_row.addStretch(1)
         layout.addLayout(new_open_row)
 
@@ -902,6 +909,16 @@ class MainWindow(QMainWindow):
         create_action_button(parent=card, action_id="load_demo", action=self._on_load_demo, layout=demo_row)
         demo_row.addStretch(1)
         layout.addLayout(demo_row)
+
+    def _fill_import_card(self, card: CardFrame) -> None:
+        """Import on its own: it adds tables to the open project, where New
+        and Open beside it replace the project - a different kind of step."""
+        layout = self._card_layout(card)
+        row = QHBoxLayout()
+        stdSizeAndlayout(row)
+        create_action_button(parent=card, action_id="import", action=self._on_import_data, layout=row)
+        row.addStretch(1)
+        layout.addLayout(row)
 
     def _fill_save_card(self, card: CardFrame) -> None:
         layout = self._card_layout(card)
@@ -912,8 +929,8 @@ class MainWindow(QMainWindow):
         save_row.addStretch(1)
         layout.addLayout(save_row)
 
-    #: Rows the recent-projects list shows before it scrolls.
-    _RECENT_VISIBLE_ROWS: int = 8
+    #: Rows the recent-projects list keeps even on a short window.
+    _RECENT_MINIMUM_ROWS: int = 3
 
     def _fill_recent_card(self, card: CardFrame) -> None:
         self._file_page = card
@@ -928,9 +945,10 @@ class MainWindow(QMainWindow):
         self._recent_list.setIconSize(QSize(20, 20))
         self._recent_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._recent_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self._recent_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         # One click opens, the way Finder's and Xcode's recent lists do.
         self._recent_list.itemClicked.connect(self._on_recent_item_clicked)
-        layout.addWidget(self._recent_list)
+        layout.addWidget(self._recent_list, 1)
 
         self._recent_placeholder = QLabel(_("No recent projects"), card)
         self._recent_placeholder.setProperty("muted", True)
@@ -974,7 +992,13 @@ class MainWindow(QMainWindow):
             return
         recent = get_recent_databases()
         self._recent_list.clear()
-        open_icon = action_presentation("open")[0]
+        # A document, in the accent blue, as Finder draws a file - the
+        # folder this used to show read as "open a folder".
+        open_icon = colored_icon(
+            action_presentation("recent_project")[0],
+            QApplication.palette().color(QPalette.ColorRole.Highlight),
+            20,
+        )
         for path in recent:
             folder = str(path.parent)
             home = str(Path.home())
@@ -991,8 +1015,8 @@ class MainWindow(QMainWindow):
         self._recent_placeholder.setVisible(not has_any)
         if has_any:
             row_height = max(self._recent_list.sizeHintForRow(0), 1)
-            rows = min(len(recent), self._RECENT_VISIBLE_ROWS)
-            self._recent_list.setFixedHeight(row_height * rows + 2)
+            rows = min(len(recent), self._RECENT_MINIMUM_ROWS)
+            self._recent_list.setMinimumHeight(row_height * rows + 2)
 
     def _create_database_page(self) -> QWidget:
         """Query Builder, plus the database overview (info/tables/Optimize

@@ -203,8 +203,8 @@
       "ThemeIcon": "list-remove"
     },
     "import": {
-      "text": "Import",
-      "description": "Import data into the database",
+      "text": "Import from other sources...",
+      "description": "Import data from a CSV or Excel file, another database, a web address or the clipboard",
       "SFSymbol": "square.and.arrow.down",
       "SegoeFluent": "E8B5",
       "ThemeIcon": "document-open"
@@ -351,6 +351,13 @@
         "office-chart-line",
         "x-office-spreadsheet"
       ]
+    },
+    "recent_project": {
+      "text": "Recent project",
+      "description": "Open this project",
+      "SFSymbol": "doc.fill",
+      "SegoeFluent": "E8A5",
+      "ThemeIcon": "text-x-generic"
     },
     "open": {
       "text": "Open",
