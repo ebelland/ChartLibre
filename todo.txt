@@ -78,13 +78,14 @@ N-03 NOT done yet, on purpose - see P2-21 and P2-22 below: vector fields
 (x(t), y(t), z(t)).
 
 
-N-05  DONE 2026-09-27. Guardiano permissivo: blocca solo cio' che scrive o
+N-05  DONE 2026-09-27. Guardiano SQL permissivo: blocca solo cio' che scrive o
       rovina il database (INSERT, UPDATE, DELETE, DROP, ALTER, CREATE,
-      REPLACE INTO, VACUUM, REINDEX, PRAGMA che impostano, load_extension);
-      letture, PRAGMA di lettura, ATTACH e funzioni passano. Doppio
-      controllo: testo (is_read_only_select) + authorizer SQLite (read_only)
-      su serie, query salvate, query_df, file SQLite esterni (aperti in sola
-      lettura), server (sessione READ ONLY) e "colonna da espressione SQL".
+      REPLACE INTO, VACUUM, REINDEX, PRAGMA che impostano, load_extension).
+      Agisce solo quando l'utente scrive SQL (query salvate, SQL di una serie
+      in Proprieta' serie e Nuovo grafico, colonna da espressione, query su
+      file SQLite/server esterni) e all'apertura di un progetto (le query
+      pericolose vengono bloccate e segnalate). Mai mentre si disegna.
+      Si spegne da Impostazioni > Sicurezza (user.json "sql_guard": false).
       Testo originale: wherever there is an SQL SELECT user text, avoid SQL injections and unsafe operations (usually it must start with SELECT and should not contain UPDATE or DELETE)
 
 N-06  Table preview, menu contestuale -> editor della tabella

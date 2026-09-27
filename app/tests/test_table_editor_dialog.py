@@ -268,3 +268,22 @@ def test_restore_puts_the_table_back_and_keeps_the_editor_open(
     assert _columns(repo)[0] == "name"
     assert "0 added" in dialog._status.text()
     assert not dialog._restore_button.isEnabled()
+
+
+def test_the_last_row_and_the_last_column_cannot_be_deleted(
+    dialog: TableEditorDialog, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from PySide6.QtWidgets import QMessageBox
+
+    said: list[str] = []
+    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda _p, _t, text, *a, **k: said.append(text)))
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *_a, **_k: QMessageBox.StandardButton.Yes))
+    dialog.view.selectAll()
+    dialog._delete_rows()
+    assert len(_rows(repo)) == 4 and said
+
+    _select_cell(dialog, 0, 1)
+    dialog._delete_column()
+    _select_cell(dialog, 0, 0)
+    dialog._delete_column()
+    assert _columns(repo) == ["name"]

@@ -21,6 +21,7 @@ from app.data.repo._common import (
     _loads_json,
     _quote_ident,
     ensure_connection_wrapper,
+    ensure_read_only_select,
     is_read_only_select,
 )
 from app.logs.logger import applogger
@@ -98,9 +99,7 @@ class QueriesMixin:
             applogger.error("Query name is required")
         if not clean_sql:
             applogger.error("Query SQL is required")
-        ok, reason = is_read_only_select(clean_sql)
-        if not ok:
-            raise ValueError(reason)
+        ensure_read_only_select(clean_sql)
 
         self._con.execute(
             """

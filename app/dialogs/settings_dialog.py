@@ -29,6 +29,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -54,6 +55,7 @@ from app.styles.style import (
     resolve_app_style,
     stdSizeAndlayout,
 )
+from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
 from app.utils.config import get_language, get_value, set_value
 from app.utils.i18n import (
     AUTO_LANGUAGE,
@@ -196,6 +198,22 @@ class SettingsDialog(QDialog):
         )
         form.addRow(tr("Default export format"), self._format_combo)
 
+        form.addRow(create_section_title(tr("Safety"), card))
+        # Red: switching it off lets typed SQL change the database.
+        self._sql_guard_check = QCheckBox(
+            tr("Refuse SQL that would change the database"), card
+        )
+        self._sql_guard_check.setProperty("destructive", True)
+        self._sql_guard_check.setToolTip(
+            tr(
+                "Checked when a query is saved or typed, and when a project is "
+                "opened: UPDATE, DELETE, DROP and the like are refused. Charts "
+                "are never slowed down by it."
+            )
+        )
+        self._sql_guard_check.setChecked(sql_guard_enabled())
+        form.addRow(tr("SQL guard"), self._sql_guard_check)
+
         card_layout.addLayout(form)
 
         note = QLabel(
@@ -337,6 +355,7 @@ class SettingsDialog(QDialog):
         set_value(CONFIG_APP_STYLE, style_key)
         set_value("language", self._value(self._language_combo))
         set_value(CONFIG_SAVE_FORMAT, self._value(self._format_combo))
+        set_value(SQL_GUARD_KEY, bool(self._sql_guard_check.isChecked()))
 
         applogger.info(
             "Settings saved: style=%s language=%s format=%s",

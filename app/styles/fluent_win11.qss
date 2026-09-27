@@ -1140,3 +1140,8 @@ QToolButton#tableEditorMore::menu-indicator {
   image: none;
   width: 0px;
 }
+
+/* A setting whose "off" is risky (Settings > SQL guard): red text. */
+QCheckBox[destructive="true"] {
+  color: #FF3B30;
+}

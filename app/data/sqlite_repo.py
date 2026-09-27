@@ -51,7 +51,7 @@ from app.data.repo._common import (  # noqa: F401 - re-export
     _RETURNS_ROWS_RE,
     ensure_connection_wrapper,
     is_read_only_select,
-    read_only,
+    sql_guard_enabled,
 )
 from app.data.repo.descriptors import DescriptorsMixin
 from app.data.repo.editing import EditingMixin
@@ -117,6 +117,9 @@ class SqliteRepo(
     # Row counts behind series_row_count(), invalidated the same way and at
     # the same time as _series_cache - see that field's docstring.
     _series_row_count_cache: dict[str, int] = field(default_factory=dict)
+    #: SQL texts found to write when this project was opened (scan_user_sql);
+    #: they are refused wherever they would run, until edited.
+    _blocked_sql: set[str] = field(default_factory=set)
 
     # Built on first use rather than in __post_init__: a repository is
     # created for a great many things that never change a table, and the
@@ -351,15 +354,55 @@ class SqliteRepo(
 
     def _read_series_frame(self, sql_text: str) -> SeriesFrame:
         assert self._con is not None
-        # A series' SQL can be edited by hand: it is run read-only.
-        ok, reason = is_read_only_select(sql_text)
-        if not ok:
-            raise ValueError(f"Series query refused: {reason}")
-        with read_only(self._con):
-            cursor = self._con.execute(sql_text)
-            names = tuple(str(d[0]) for d in cursor.description or ())
-            rows = cursor.fetchall()
+        self.refuse_if_blocked(sql_text)
+        cursor = self._con.execute(sql_text)
+        names = tuple(str(d[0]) for d in cursor.description or ())
+        rows = cursor.fetchall()
         return SeriesFrame.from_rows(names, rows)
+
+    # =====================================================================
+    # SQL guard (todo N-05): only at open and where SQL is written by hand
+    # =====================================================================
+    def refuse_if_blocked(self, sql: str | None) -> None:
+        """Raise ValueError for SQL that the opening scan found would write."""
+        if self._blocked_sql and str(sql or "").strip() in self._blocked_sql:
+            raise ValueError("This query would change the database and has been blocked.")
+
+    def scan_user_sql(self) -> list[str]:
+        """Check every saved query and series SQL; block and return the unsafe ones.
+
+        Run once when a project is opened: a file made elsewhere can carry a
+        query that writes. Returns "kind 'name': reason" lines for a message;
+        nothing is blocked when the guard is switched off in user.json.
+        """
+        self._blocked_sql.clear()
+        if not sql_guard_enabled():
+            return []
+        if not self._is_connected or self._con is None:
+            self._connect()
+        assert self._con is not None
+        found: list[str] = []
+        candidates: list[tuple[str, str, str]] = []
+        for table, kind, name_col in (("__queries__", "Query", "name"), ("__series_descriptors__", "Series", "name")):
+            exists = self._con.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+            ).fetchone()
+            if not exists:
+                continue
+            column = "sql" if table == "__queries__" else "sql_query"
+            try:
+                for name, sql in self._con.execute(f'SELECT "{name_col}", "{column}" FROM "{table}"'):
+                    candidates.append((kind, str(name or ""), str(sql or "").strip()))
+            except Exception:
+                applogger.exception("Could not read %s for the SQL check.", table)
+        for kind, name, sql in candidates:
+            if not sql or " " not in sql:
+                continue  # empty, or a bare table name
+            ok, reason = is_read_only_select(sql)
+            if not ok:
+                self._blocked_sql.add(sql)
+                found.append(f"{kind} '{name}': {reason}")
+        return found
 
     def series_df(self, sql: str) -> pd.DataFrame:
         """``series_frame`` as a DataFrame, for the callers still built on one.
@@ -397,8 +440,8 @@ class SqliteRepo(
         if cached is not None:
             return cached
 
-        with read_only(self._con):
-            row = self._con.execute(f"SELECT COUNT(*) FROM ({sql_text})").fetchone()
+        self.refuse_if_blocked(sql_text)
+        row = self._con.execute(f"SELECT COUNT(*) FROM ({sql_text})").fetchone()
         count = int(row[0]) if row and row[0] is not None else 0
         self._series_row_count_cache[sql_text] = count
         return count

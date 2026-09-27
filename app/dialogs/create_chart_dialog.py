@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Sequence, cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QSplitter, QToolBox
+from PySide6.QtWidgets import QDialog, QMessageBox, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QSplitter, QToolBox
 
 from app.scanners.axis_renderer_scanner import (
     get_renderer,
@@ -24,6 +24,7 @@ from app.scanners.axis_renderer_scanner import (
 )
 from app.charts.base import BaseAxisRenderer
 from app.logs.logger import applogger
+from app.data.repo._common import ensure_read_only_select
 from app.data.sqlite_repo import SqliteRepo
 from app.data.data_source import quote_identifier
 from app.utils.messages import show_message
@@ -1368,6 +1369,16 @@ class NewPlotTabDialog(QDialog):
 
         for draft in drafts:
             if not self._validate_series(chart_type, draft):
+                return
+        # SQL typed here by hand: the SQL guard's moment (todo N-05).
+        for draft in drafts:
+            sql = str(draft.sql or "").strip()
+            if " " not in sql:
+                continue
+            try:
+                ensure_read_only_select(sql)
+            except ValueError as exc:
+                QMessageBox.warning(self, _("SQL blocked"), f"{draft.name}: {exc}")
                 return
 
         if self._rb_current_figure.isChecked():

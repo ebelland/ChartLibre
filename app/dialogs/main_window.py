@@ -32,6 +32,7 @@ from app import APP_ICON, APP_NAME
 from app.charts import layout_presets
 from app.widgets.custom_title_bar import CustomTitleBar
 from app.dialogs.log_viewer_dialog import LogViewerDialog
+from app.data.repo._common import ensure_read_only_select
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.chart_panel import ChartPanel
 from app.widgets.nav_bar import NavigationBar
@@ -102,6 +103,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
     QLayout,
     QMainWindow,
     QMenu,
@@ -277,6 +279,7 @@ class MainWindow(QMainWindow):
         # rail. File sits above them now, and opening onto an empty file
         # page would hide the data the window was just opened on.
         self._set_nav_index(self._left_rail.action_ids.index("nav_data"))
+        self._check_project_sql()
         self._table_panel.reload()
         self._reload_tabs()
         self._update_properties_for_current_chart()
@@ -1815,6 +1818,31 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Database switching / reload
     # ------------------------------------------------------------------
+    def _check_project_sql(self) -> None:
+        """Check the opened project's saved queries and series SQL, once.
+
+        Anything that would write is blocked (see SqliteRepo.scan_user_sql)
+        and listed in a warning shown once the window is up. Nothing is
+        changed in the file: fixing or deleting the query is the person's
+        call. user.json "sql_guard": false switches this off.
+        """
+        try:
+            found = self._repo.scan_user_sql()
+        except Exception:
+            applogger.exception("The project SQL check failed.")
+            return
+        if not found:
+            return
+        listed = "\n".join(f"\u2022 {line}" for line in found[:12])
+        more = len(found) - 12
+        if more > 0:
+            listed += "\n" + _("...and {count} more.").format(count=more)
+        text = _(
+            "This project contains SQL that would change the database. It has been "
+            "blocked and will not run until it is edited:\n\n{items}"
+        ).format(items=listed)
+        QTimer.singleShot(0, self, lambda: QMessageBox.warning(self, _("SQL blocked"), text))
+
     def _switch_database(self, db_path: Path) -> None:
         """Switch the UI to another database and rebind all dependent widgets."""
         applogger.info("Switching database to %s", db_path)
@@ -1836,6 +1864,7 @@ class MainWindow(QMainWindow):
             self._update_window_title()
             set_last_database(db_path)
 
+            self._check_project_sql()
             self._table_panel.reload()
             self._reload_tabs()
             self._update_properties_for_current_chart()
@@ -2374,7 +2403,14 @@ class MainWindow(QMainWindow):
 
         sql_query = str(payload.get("sql_query", "") or "").strip()
         self._repo.update_series_style(series_id, style)
-        self._repo.update_series_sql_query(series_id, sql_query)
+        try:
+            # Typed by hand in the Series properties: the SQL guard's moment.
+            if " " in sql_query:
+                ensure_read_only_select(sql_query)
+        except ValueError as exc:
+            QMessageBox.warning(self, _("SQL blocked"), str(exc))
+        else:
+            self._repo.update_series_sql_query(series_id, sql_query)
         self._reload_property_widgets()
         self._redraw_properties_chart()
 

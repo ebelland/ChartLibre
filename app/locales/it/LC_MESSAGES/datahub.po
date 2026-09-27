@@ -6771,3 +6771,30 @@ msgstr "Ingrandisci tutti i font"
 
 msgid "Double-click to reset to 100 %"
 msgstr "Doppio clic per tornare al 100 %"
+
+msgid "...and {count} more."
+msgstr "...e altri {count}."
+
+msgid "SQL blocked"
+msgstr "SQL bloccato"
+
+msgid "This project contains SQL that would change the database. It has been blocked and will not run until it is edited:\n\n{items}"
+msgstr "Questo progetto contiene SQL che modificherebbe il database. È stato bloccato e non verrà eseguito finché non viene modificato:\n\n{items}"
+
+msgid "A table needs at least one row. Add another row before deleting this one."
+msgstr "Una tabella deve avere almeno una riga. Aggiungine un'altra prima di eliminare questa."
+
+msgid "A table needs at least one column. Add another column before deleting this one."
+msgstr "Una tabella deve avere almeno una colonna. Aggiungine un'altra prima di eliminare questa."
+
+msgid "Safety"
+msgstr "Sicurezza"
+
+msgid "SQL guard"
+msgstr "Guardiano SQL"
+
+msgid "Refuse SQL that would change the database"
+msgstr "Rifiuta l'SQL che modificherebbe il database"
+
+msgid "Checked when a query is saved or typed, and when a project is opened: UPDATE, DELETE, DROP and the like are refused. Charts are never slowed down by it."
+msgstr "Controllato quando una query viene salvata o scritta, e quando si apre un progetto: UPDATE, DELETE, DROP e simili vengono rifiutati. Non rallenta mai i grafici."

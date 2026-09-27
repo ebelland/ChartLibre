@@ -166,8 +166,26 @@ def is_read_only_select(sql: str) -> tuple[bool, str]:
     return True, ""
 
 
+#: user.json key: set to false to switch the SQL guard off entirely.
+SQL_GUARD_KEY: str = "sql_guard"
+
+
+def sql_guard_enabled() -> bool:
+    """Whether the SQL guard is on (the default); user.json "sql_guard": false turns it off.
+
+    The guard acts only where a person writes SQL - saving a query, editing
+    a series' SQL, an expression, a query on another database - and when a
+    project is opened; never while charts are drawn.
+    """
+    from app.utils.config import get_value  # late: config imports the logger stack
+
+    return bool(get_value(SQL_GUARD_KEY, True))
+
+
 def ensure_read_only_select(sql: str) -> None:
     """Raise ValueError unless *sql* is a single statement that only reads."""
+    if not sql_guard_enabled():
+        return
     ok, reason = is_read_only_select(sql)
     if not ok:
         raise ValueError(reason)
@@ -184,6 +202,8 @@ def check_sql_expression(expression: str) -> None:
     code = _sql_without_comments_and_literals(str(expression or "")).strip()
     if not code:
         raise ValueError("The expression is empty.")
+    if not sql_guard_enabled():
+        return
     if ";" in code:
         raise ValueError("An expression cannot contain ';'.")
     found = {word.lower() for word in _SQL_WORD_RE.findall(code)} & _WRITE_KEYWORDS
@@ -246,6 +266,9 @@ def read_only(con: sqlite3.Connection):
     readable message; this is the backstop that does not depend on parsing
     the SQL correctly - a statement that writes fails with "not authorized".
     """
+    if not sql_guard_enabled():
+        yield con
+        return
     con.set_authorizer(_read_only_authorizer)
     try:
         yield con

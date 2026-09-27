@@ -409,6 +409,9 @@ class TableEditorDialog(QDialog):
         if not rowids:
             self._say(_("Select the rows to delete first."))
             return
+        if len(rowids) >= self._model.rowCount():
+            self._say(_("A table needs at least one row. Add another row before deleting this one."))
+            return
         confirmed = QMessageBox.question(
             self,
             _("Delete rows"),
@@ -523,6 +526,14 @@ class TableEditorDialog(QDialog):
     def _delete_column(self) -> None:
         column = self._need_column()
         if column is None:
+            return
+        # Hide and ClusterId are the application's; one column of data must stay.
+        data_columns = [
+            c for c in (self._model.column_name(i) for i in range(self._model.columnCount()))
+            if c not in (None, "Hide", "ClusterId")
+        ]
+        if column in data_columns and len(data_columns) <= 1:
+            self._say(_("A table needs at least one column. Add another column before deleting this one."))
             return
         confirmed = QMessageBox.question(
             self,
