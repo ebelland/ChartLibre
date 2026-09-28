@@ -14,7 +14,7 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.utils.dialog_state import clear_state
-from app.series_operations.filter_dialog import ANALYTIC_ENVELOPE, DETREND_LINEAR, FILTER_IIR, RESP_LOWPASS, SeriesFilterDialog, analytic_signal, apply_detrend, apply_fir_filter, apply_iir_filter
+from app.series_operations.filter_dialog import FILTER_IIR, SeriesFilterDialog, analytic_signal, apply_detrend, apply_fir_filter, apply_iir_filter
 
 FS = 200.0
 T = np.arange(0.0, 10.0, 1.0 / FS)
@@ -29,7 +29,7 @@ EDGE = slice(150, -150)  # away from the filters' settling transients
 # ----------------------------------------------------------------------
 def test_iir_lowpass_recovers_the_low_tone_from_a_mix() -> None:
     filtered = apply_iir_filter(
-        MIXED, FS, family="butter", response=RESP_LOWPASS, order=4, cutoff=10.0
+        MIXED, FS, family="butter", response="lowpass", order=4, cutoff=10.0
     )
     assert filtered[EDGE] == pytest.approx(LOW_TONE[EDGE], abs=0.05)
 
@@ -39,7 +39,7 @@ def test_iir_lowpass_recovers_the_low_tone_from_a_mix() -> None:
 # ----------------------------------------------------------------------
 def test_fir_lowpass_recovers_the_low_tone_from_a_mix() -> None:
     filtered = apply_fir_filter(
-        MIXED, FS, numtaps=201, window="hamming", response=RESP_LOWPASS, cutoff=10.0
+        MIXED, FS, numtaps=201, window="hamming", response="lowpass", cutoff=10.0
     )
     assert filtered[EDGE] == pytest.approx(LOW_TONE[EDGE], abs=0.05)
 
@@ -50,7 +50,7 @@ def test_fir_lowpass_recovers_the_low_tone_from_a_mix() -> None:
 def test_the_envelope_of_an_am_signal_tracks_its_modulation() -> None:
     modulation = 1.0 + 0.5 * np.sin(2.0 * np.pi * 1.0 * T)
     carrier = np.sin(2.0 * np.pi * 20.0 * T)
-    envelope = analytic_signal(modulation * carrier, FS, ANALYTIC_ENVELOPE)
+    envelope = analytic_signal(modulation * carrier, FS, "envelope")
     assert np.corrcoef(envelope[EDGE], modulation[EDGE])[0, 1] > 0.99
 
 
@@ -59,7 +59,7 @@ def test_the_envelope_of_an_am_signal_tracks_its_modulation() -> None:
 # ----------------------------------------------------------------------
 def test_linear_detrend_removes_a_ramp() -> None:
     ramp = np.linspace(0.0, 5.0, T.size)
-    residual = apply_detrend(ramp, DETREND_LINEAR)
+    residual = apply_detrend(ramp, "linear")
     assert np.std(residual) < 1e-6
 
 

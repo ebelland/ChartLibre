@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -51,63 +51,91 @@ from app.series_operations.dialog_base import (
 from app.styles.style import create_doc_link, set_doc_link
 from app.utils.i18n import _
 
+_SCIPY_DOCS = "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.{}.html"
+
+
+@dataclass(frozen=True, slots=True)
+class FilterModel:
+    """What one of the four operations is, and what it asks the user for."""
+
+    #: The scipy.signal function behind it, which is also its docs page.
+    function: str
+    #: Short name for the result series and table: "IIR", "FIR", ...
+    tag: str
+    #: Reads a sampling rate fs, rather than working sample by sample.
+    needs_fs: bool = False
+    #: Has a response shape: lowpass, highpass, bandpass or bandstop.
+    has_response: bool = False
+
+    @property
+    def doc(self) -> tuple[str, str]:
+        """(title, url) for the Docs link."""
+        return f"scipy.signal.{self.function}", _SCIPY_DOCS.format(self.function)
+
+
+class Response(NamedTuple):
+    label: str
+    #: Two for a band (bandpass, bandstop): the second cutoff row appears.
+    cutoffs: int
+
+
+class IirFamily(NamedTuple):
+    label: str
+    #: Takes a passband ripple, iirfilter's ``rp``.
+    ripple: bool = False
+    #: Takes a stopband attenuation, iirfilter's ``rs``.
+    attenuation: bool = False
+
+
 FILTER_IIR = "IIR filter"
 FILTER_FIR = "FIR filter"
 FILTER_ANALYTIC = "Analytic signal (Hilbert)"
 FILTER_DETREND = "Detrend"
-FILTER_MODELS = (FILTER_IIR, FILTER_FIR, FILTER_ANALYTIC, FILTER_DETREND)
 
-#: Models that read fs (a sampling rate) rather than a bare sample count.
-NEEDS_FS = frozenset({FILTER_IIR, FILTER_FIR, FILTER_ANALYTIC})
-#: Models with a response shape (lowpass/highpass/bandpass/bandstop).
-NEEDS_RESPONSE = frozenset({FILTER_IIR, FILTER_FIR})
+#: The operations, in the order the Operation combo lists them.
+FILTERS: dict[str, FilterModel] = {
+    FILTER_IIR: FilterModel("iirfilter", "IIR", needs_fs=True, has_response=True),
+    FILTER_FIR: FilterModel("firwin", "FIR", needs_fs=True, has_response=True),
+    FILTER_ANALYTIC: FilterModel("hilbert", "Analytic", needs_fs=True),
+    FILTER_DETREND: FilterModel("detrend", "Detrend"),
+}
 
-RESP_LOWPASS, RESP_HIGHPASS, RESP_BANDPASS, RESP_BANDSTOP = (
-    "lowpass", "highpass", "bandpass", "bandstop",
-)
-#: (label, value) - value is passed straight through to iirfilter's ``btype``
-#: and firwin's ``pass_zero``, both of which accept these same four strings.
-RESPONSES = (
-    (_("Lowpass"), RESP_LOWPASS),
-    (_("Highpass"), RESP_HIGHPASS),
-    (_("Bandpass"), RESP_BANDPASS),
-    (_("Bandstop"), RESP_BANDSTOP),
-)
-TWO_CUTOFF_RESPONSES = frozenset({RESP_BANDPASS, RESP_BANDSTOP})
+#: The key goes straight to iirfilter's ``btype`` and firwin's ``pass_zero``,
+#: which both accept these four strings.
+RESPONSES: dict[str, Response] = {
+    "lowpass": Response(_("Lowpass"), 1),
+    "highpass": Response(_("Highpass"), 1),
+    "bandpass": Response(_("Bandpass"), 2),
+    "bandstop": Response(_("Bandstop"), 2),
+}
 
-#: value is iirfilter's ``ftype``.
-IIR_FAMILIES = (
-    (_("Butterworth"), "butter"),
-    (_("Chebyshev I"), "cheby1"),
-    (_("Chebyshev II"), "cheby2"),
-    (_("Bessel"), "bessel"),
-    (_("Elliptic"), "ellip"),
-)
-NEEDS_RIPPLE = frozenset({"cheby1", "ellip"})  # passband ripple, rp
-NEEDS_ATTEN = frozenset({"cheby2", "ellip"})  # stopband attenuation, rs
+#: The key is iirfilter's ``ftype``.
+IIR_FAMILIES: dict[str, IirFamily] = {
+    "butter": IirFamily(_("Butterworth")),
+    "cheby1": IirFamily(_("Chebyshev I"), ripple=True),
+    "cheby2": IirFamily(_("Chebyshev II"), attenuation=True),
+    "bessel": IirFamily(_("Bessel")),
+    "ellip": IirFamily(_("Elliptic"), ripple=True, attenuation=True),
+}
 
 FIR_WINDOWS = ("hamming", "hann", "blackman", "bartlett", "boxcar")
 
-ANALYTIC_ENVELOPE, ANALYTIC_PHASE, ANALYTIC_FREQUENCY = "envelope", "phase", "frequency"
-ANALYTIC_OUTPUTS = (
-    (_("Amplitude envelope"), ANALYTIC_ENVELOPE),
-    (_("Instantaneous phase"), ANALYTIC_PHASE),
-    (_("Instantaneous frequency"), ANALYTIC_FREQUENCY),
-)
-
-DETREND_LINEAR, DETREND_CONSTANT = "linear", "constant"
-DETREND_TYPES = ((_("Linear"), DETREND_LINEAR), (_("Constant"), DETREND_CONSTANT))
-
-FILTER_DOCS = {
-    FILTER_IIR: ("scipy.signal.iirfilter",
-                 "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.iirfilter.html"),
-    FILTER_FIR: ("scipy.signal.firwin",
-                 "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.firwin.html"),
-    FILTER_ANALYTIC: ("scipy.signal.hilbert",
-                       "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.hilbert.html"),
-    FILTER_DETREND: ("scipy.signal.detrend",
-                      "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.detrend.html"),
+#: What the analytic signal gives back; the key is analytic_signal's ``output``.
+ANALYTIC_OUTPUTS: dict[str, str] = {
+    "envelope": _("Amplitude envelope"),
+    "phase": _("Instantaneous phase"),
+    "frequency": _("Instantaneous frequency"),
 }
+
+#: The key is scipy.signal.detrend's ``type``.
+DETREND_TYPES: dict[str, str] = {
+    "linear": _("Linear"),
+    "constant": _("Constant"),
+}
+
+
+def _two_cutoffs(response: str) -> bool:
+    return response in RESPONSES and RESPONSES[response].cutoffs == 2
 
 
 @dataclass(slots=True)
@@ -123,7 +151,7 @@ class FilterResult:
 
     def to_frame(self) -> pd.DataFrame:
         return pd.DataFrame({"x": self.x, "y": self.y})
-
+    
 
 # ----------------------------------------------------------------------
 # The numerics - pure, no Qt, so a test can call them directly
@@ -145,7 +173,7 @@ def apply_iir_filter(
     """Zero-phase IIR filter: ``iirfilter`` designs it, ``sosfiltfilt`` runs it."""
     _check_cutoff(cutoff, fs)
     wn: float | list[float] = cutoff
-    if response in TWO_CUTOFF_RESPONSES:
+    if _two_cutoffs(response):
         if cutoff2 is None:
             raise ValueError(f"{response} needs a second cutoff")
         _check_cutoff(cutoff2, fs)
@@ -153,13 +181,11 @@ def apply_iir_filter(
             raise ValueError("the second cutoff must be higher than the first")
         wn = [cutoff, cutoff2]
 
-    kwargs: dict[str, float] = {}
-    if family in NEEDS_RIPPLE:
-        kwargs["rp"] = float(ripple) if ripple is not None else 1.0
-    if family in NEEDS_ATTEN:
-        kwargs["rs"] = float(atten) if atten is not None else 40.0
+    spec = IIR_FAMILIES[family]
+    rp = (float(ripple) if ripple is not None else 1.0) if spec.ripple else None
+    rs = (float(atten) if atten is not None else 40.0) if spec.attenuation else None
 
-    sos = iirfilter(order, wn, btype=response, ftype=family, output="sos", fs=fs, **kwargs)
+    sos = iirfilter(order, wn, rp=rp, rs=rs, btype=response, ftype=family, output="sos", fs=fs)
     return np.asarray(sosfiltfilt(sos, y), dtype=float)
 
 
@@ -170,7 +196,7 @@ def apply_fir_filter(
     """Zero-phase FIR filter: ``firwin`` designs it, ``filtfilt`` runs it."""
     _check_cutoff(cutoff, fs)
     cutoff_arg: float | list[float] = cutoff
-    if response in TWO_CUTOFF_RESPONSES:
+    if _two_cutoffs(response):
         if cutoff2 is None:
             raise ValueError(f"{response} needs a second cutoff")
         _check_cutoff(cutoff2, fs)
@@ -181,7 +207,7 @@ def apply_fir_filter(
     # firwin requires an odd tap count for a filter that must pass Nyquist
     # (highpass, bandstop) - an even one has a zero response there instead.
     taps = int(numtaps)
-    if response in (RESP_HIGHPASS, RESP_BANDSTOP) and taps % 2 == 0:
+    if response in ("highpass", "bandstop") and taps % 2 == 0:
         taps += 1
 
     coefficients = firwin(taps, cutoff_arg, window=window, pass_zero=response, fs=fs)
@@ -196,11 +222,11 @@ def analytic_signal(y: np.ndarray, fs: float, output: str) -> np.ndarray:
     still lines up with the source's x column.
     """
     analytic = hilbert(y)
-    if output == ANALYTIC_ENVELOPE:
+    if output == "envelope":
         return np.abs(analytic)
 
     phase = np.unwrap(np.angle(analytic))
-    if output == ANALYTIC_PHASE:
+    if output == "phase":
         return phase
 
     frequency = np.diff(phase) / (2.0 * np.pi) * fs
@@ -275,7 +301,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         form.setContentsMargins(0, 0, 0, 0)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
 
-        self.model_combo.addItems(FILTER_MODELS)
+        self.model_combo.addItems(list(FILTERS))
         self.model_combo.setToolTip(_("Choose the operation."))
         form.addRow(_("Operation:"), self.model_combo)
         form.addRow(_("Docs:"), self._doc_link)
@@ -301,14 +327,14 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         self._fs_spin.setToolTip(_("Samples per unit of x, used when not derived."))
         self._parameter_form.addRow(_("fs:"), self._fs_spin)
 
-        for label, value in IIR_FAMILIES:
-            self._family_combo.addItem(label, value)
+        for value, family in IIR_FAMILIES.items():
+            self._family_combo.addItem(family.label, value)
         self._family_combo.setToolTip(_("The filter family. Butterworth is maximally flat; "
                                          "Chebyshev/Elliptic trade ripple for a sharper roll-off."))
         self._parameter_form.addRow(_("Family:"), self._family_combo)
 
-        for label, value in RESPONSES:
-            self._response_combo.addItem(label, value)
+        for value, response in RESPONSES.items():
+            self._response_combo.addItem(response.label, value)
         self._response_combo.setToolTip(_("Which band the filter keeps."))
         self._parameter_form.addRow(_("Response:"), self._response_combo)
 
@@ -352,12 +378,12 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         self._atten_spin.setToolTip(_("Minimum stopband attenuation, in dB (Chebyshev II / Elliptic)."))
         self._parameter_form.addRow(_("Attenuation (dB):"), self._atten_spin)
 
-        for label, value in ANALYTIC_OUTPUTS:
+        for value, label in ANALYTIC_OUTPUTS.items():
             self._analytic_combo.addItem(label, value)
         self._analytic_combo.setToolTip(_("What to derive from the analytic signal."))
         self._parameter_form.addRow(_("Output:"), self._analytic_combo)
 
-        for label, value in DETREND_TYPES:
+        for value, label in DETREND_TYPES.items():
             self._detrend_combo.addItem(label, value)
         self._detrend_combo.setToolTip(_("Linear removes a best-fit line; "
                                           "constant removes only the mean."))
@@ -388,15 +414,15 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
 
     def _refresh_visibility(self) -> None:
         model = self._model()
+        spec = FILTERS[model]
         is_iir = model == FILTER_IIR
         is_fir = model == FILTER_FIR
-        needs_response = model in NEEDS_RESPONSE
-        response = self._response_combo.currentData()
-        needs_second_cutoff = needs_response and response in TWO_CUTOFF_RESPONSES
-        family = self._family_combo.currentData()
+        needs_response = spec.has_response
+        needs_second_cutoff = needs_response and _two_cutoffs(str(self._response_combo.currentData()))
+        family = IIR_FAMILIES.get(str(self._family_combo.currentData()), IirFamily(""))
 
-        self.set_row_visible(self._fs_auto_check, model in NEEDS_FS)
-        self.set_row_visible(self._fs_spin, model in NEEDS_FS and not self._fs_auto_check.isChecked())
+        self.set_row_visible(self._fs_auto_check, spec.needs_fs)
+        self.set_row_visible(self._fs_spin, spec.needs_fs and not self._fs_auto_check.isChecked())
         self.set_row_visible(self._family_combo, is_iir)
         self.set_row_visible(self._response_combo, needs_response)
         self.set_row_visible(self._order_spin, is_iir)
@@ -404,13 +430,12 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         self.set_row_visible(self._window_combo, is_fir)
         self.set_row_visible(self._cutoff1_spin, needs_response)
         self.set_row_visible(self._cutoff2_spin, needs_second_cutoff)
-        self.set_row_visible(self._ripple_spin, is_iir and family in NEEDS_RIPPLE)
-        self.set_row_visible(self._atten_spin, is_iir and family in NEEDS_ATTEN)
+        self.set_row_visible(self._ripple_spin, is_iir and family.ripple)
+        self.set_row_visible(self._atten_spin, is_iir and family.attenuation)
         self.set_row_visible(self._analytic_combo, model == FILTER_ANALYTIC)
         self.set_row_visible(self._detrend_combo, model == FILTER_DETREND)
 
-        title, url = FILTER_DOCS.get(model, ("", ""))
-        set_doc_link(self._doc_link, title, url)
+        set_doc_link(self._doc_link, *spec.doc)
 
     # ------------------------------------------------------------------
     # Input
@@ -448,13 +473,13 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         if model == FILTER_IIR:
             family = str(self._family_combo.currentData())
             response = str(self._response_combo.currentData())
-            cutoff2 = float(self._cutoff2_spin.value()) if response in TWO_CUTOFF_RESPONSES else None
+            cutoff2 = float(self._cutoff2_spin.value()) if _two_cutoffs(response) else None
             y_out = apply_iir_filter(
                 y, fs, family=family, response=response,
                 order=int(self._order_spin.value()),
                 cutoff=float(self._cutoff1_spin.value()), cutoff2=cutoff2,
-                ripple=float(self._ripple_spin.value()) if family in NEEDS_RIPPLE else None,
-                atten=float(self._atten_spin.value()) if family in NEEDS_ATTEN else None,
+                ripple=float(self._ripple_spin.value()) if IIR_FAMILIES[family].ripple else None,
+                atten=float(self._atten_spin.value()) if IIR_FAMILIES[family].attenuation else None,
             )
             meta = {
                 "family": self._family_combo.currentText(),
@@ -466,7 +491,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
 
         if model == FILTER_FIR:
             response = str(self._response_combo.currentData())
-            cutoff2 = float(self._cutoff2_spin.value()) if response in TWO_CUTOFF_RESPONSES else None
+            cutoff2 = float(self._cutoff2_spin.value()) if _two_cutoffs(response) else None
             y_out = apply_fir_filter(
                 y, fs, numtaps=int(self._numtaps_spin.value()),
                 window=self._window_combo.currentText(), response=response,
@@ -499,7 +524,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
                 x_values, y_values = self.series_xy(row, name)
-                fs = self._sampling_frequency(x_values, name) if model in NEEDS_FS else 1.0
+                fs = self._sampling_frequency(x_values, name) if FILTERS[model].needs_fs else 1.0
                 y_out, meta = self._apply_model(model, y_values, fs)
                 if y_out.size != x_values.size:
                     raise ValueError(
@@ -509,7 +534,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
                 results.append(
                     FilterResult(
                         source_name=name,
-                        result_name=f"{name} - {model.split(' ')[0]}",
+                        result_name=f"{name} - {FILTERS[model].tag}",
                         model=model,
                         x=x_values,
                         y=y_out,
@@ -549,7 +574,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
 
     def result_table_name(self, axis_id: int, result: FilterResult) -> str:
         return generated_table_name(
-            f"Filter_axis{axis_id}_{result.source_name}_{result.model.split(' ')[0]}",
+            f"Filter_axis{axis_id}_{result.source_name}_{FILTERS[result.model].tag}",
             fallback="Filter_Result",
         )
 
