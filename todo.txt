@@ -148,7 +148,10 @@ dei dati, guardiano SQL, fit con catalogo di modelli e stime iniziali,
 carte di controllo con regole di Nelson, plugin scritti dall'utente
 (grafici, operazioni, funzioni), due lingue complete.
 
-R-01  P1 Separare i calcoli dalle finestre.
+R-01  P1 IN CORSO. Separare i calcoli dalle finestre.
+      2026-09-28: fatto per Statistiche -> app/analysis/statistics.py
+      (nessun import di Qt; test in test_analysis_statistics.py). Restano
+      le altre 19 operazioni, a cominciare da fit, smoothing e spectral.
       Tutte le 20 operazioni calcolano dentro la classe Qt del dialogo
       (compute_results in app/series_operations/*_dialog.py, 20.000 righe).
       Estrarre il calcolo in funzioni pure, per esempio
@@ -173,7 +176,15 @@ R-03  P1 Riproducibilita': ogni operazione applicata resta nel progetto.
         con ogni rapporto; SPSS: syntax nel file .sps);
       - esportare uno script Python equivalente (vedi N-02).
 
-R-04  P1 Statistica che manca rispetto a SPSS e JMP.
+R-04  P1 IN CORSO. Statistica che manca rispetto a SPSS e JMP.
+      2026-09-28 fatti (dialogo Statistiche, due modelli nuovi):
+      "Test per campioni indipendenti" (Welch, Student, Mann-Whitney,
+      Levene, d di Cohen) e "Confronto tra gruppi (ANOVA)" (ANOVA a una via
+      con eta^2, ANOVA di Welch, Kruskal-Wallis con epsilon^2, Levene,
+      Tukey HSD con IC 95%). Verificati contro l'esempio pubblicato di
+      SciPy (F = 7,1210) e contro statsmodels. Restano: chi-quadro/Fisher,
+      regressione multipla e logistica, Kaplan-Meier, ANOVA a due vie -
+      servono una colonna "fattore" (R-08).
       Oggi statistics_dialog offre descrittive, normalita', t a un
       campione, t appaiato, Wilcoxon appaiato, correlazione. Mancano i test
       piu' usati nei corsi e nei laboratori:

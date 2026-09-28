@@ -5,8 +5,13 @@ create generated chart series and does not write result tables. It reports:
 
 - descriptive statistics for every checked series;
 - one-sample tests for every checked series;
-- paired-sample tests for every pair when multiple series are checked;
+- paired-sample and independent-sample tests for every pair when multiple
+  series are checked, and a comparison of all of them as groups (ANOVA,
+  Welch's ANOVA, Kruskal-Wallis, Tukey HSD);
 - optional normality and correlation sections, controlled by the model combo.
+
+The arithmetic is in app.analysis.statistics; this module reads the series,
+collects the parameters and lays the results out.
 """
 from __future__ import annotations
 
@@ -14,12 +19,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import html
 import itertools
-import warnings
 from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -32,6 +35,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.analysis import statistics as st
 from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
 from app.data.sqlite_repo import SqliteRepo
@@ -87,6 +91,8 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
     - one_sample: one-sample tests only;
     - normality: normality/shape tests only;
     - paired: paired-sample tests only;
+    - independent: two-sample tests for every pair (Welch, Student, Mann-Whitney);
+    - groups: all checked series as groups (ANOVA, Kruskal-Wallis, Tukey HSD);
     - correlation: paired correlation/association tests only.
     """
     Name: str = "Statistics"
@@ -154,6 +160,8 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         self.model_combo.addItem(_("One-sample tests"), "one_sample")
         self.model_combo.addItem(_("Normality / shape tests"), "normality")
         self.model_combo.addItem(_("Paired-sample tests"), "paired")
+        self.model_combo.addItem(_("Independent-sample tests"), "independent")
+        self.model_combo.addItem(_("Group comparison (ANOVA)"), "groups")
         self.model_combo.addItem(_("Correlation / association"), "correlation")
         self.model_combo.addItem(_("Distribution fit"), "distribution")
         self.model_combo.setToolTip(_("Choose which statistics section to display."))
@@ -254,8 +262,9 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         layout.addWidget(self.model_combo)
         note = QLabel(
             _("Check one or more series. One-sample tests are calculated for "
-            "each checked series. Paired tests are calculated for every pair "
-            "when two or more series are checked."),
+            "each checked series. Paired and independent tests are calculated "
+            "for every pair, and the group comparison for all of them, when "
+            "two or more series are checked."),
             panel,
         )
         note.setWordWrap(True)
@@ -573,78 +582,6 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         return np.arange(1, int(np.sum(finite_y)) + 1, dtype=float)
 
     # ------------------------------------------------------------------
-    # SciPy result helpers, Pylance-safe
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _result_statistic(result: Any) -> float:
-        return float(result[0])
-
-    @staticmethod
-    def _result_pvalue(result: Any) -> float:
-        return float(result[1])
-
-    @staticmethod
-    def _named_pvalue(result: Any) -> float:
-        return float(getattr(result, "pvalue", np.nan))
-
-    # ------------------------------------------------------------------
-    # Statistics
-    # ------------------------------------------------------------------
-    def _describe(self, sample: np.ndarray, *, trim_percent: float) -> dict[str, Any]:
-        values = np.asarray(sample, dtype=float)
-        values = values[np.isfinite(values)]
-        n = int(values.size)
-        if n == 0:
-            return {"n": 0}
-
-        q1, median, q3 = np.percentile(values, [25, 50, 75])
-        sem = float(stats.sem(values, nan_policy="omit")) if n > 1 else np.nan
-        ci_low = ci_high = np.nan
-        if n > 1 and np.isfinite(sem):
-            ci = stats.t.interval(0.95, df=n - 1, loc=float(np.mean(values)), scale=sem)
-            ci_low, ci_high = float(ci[0]), float(ci[1])
-
-        mode_res = stats.mode(values, keepdims=False)
-        try:
-            mode_value = float(mode_res.mode)
-            mode_count = int(mode_res.count)
-        except Exception:
-            mode_value = np.nan
-            mode_count = 0
-
-        positive = values[values > 0]
-        entropy = np.nan
-        if positive.size > 0 and float(np.sum(positive)) > 0:
-            probs = positive / float(np.sum(positive))
-            entropy = float(stats.entropy(probs))
-
-        return {
-            "n": n,
-            "mean": float(np.mean(values)),
-            "trimmed_mean": float(stats.trim_mean(values, proportiontocut=trim_percent)) if n else np.nan,
-            "gmean": float(stats.gmean(positive)) if positive.size == n else np.nan,
-            "hmean": float(stats.hmean(positive)) if positive.size == n else np.nan,
-            "median": float(median),
-            "mode": mode_value,
-            "mode_count": mode_count,
-            "std": float(np.std(values, ddof=1)) if n > 1 else np.nan,
-            "var": float(np.var(values, ddof=1)) if n > 1 else np.nan,
-            "sem": sem,
-            "min": float(np.min(values)),
-            "q1": float(q1),
-            "q3": float(q3),
-            "max": float(np.max(values)),
-            "range": float(np.max(values) - np.min(values)),
-            "iqr": float(stats.iqr(values)),
-            "mad": float(stats.median_abs_deviation(values, scale=1.4826)),
-            "skewness": float(stats.skew(values, bias=False)) if n > 2 else np.nan,
-            "kurtosis": float(stats.kurtosis(values, bias=False)) if n > 3 else np.nan,
-            "entropy": entropy,
-            "ci95_low": ci_low,
-            "ci95_high": ci_high,
-        }
-
-    # ------------------------------------------------------------------
     # Distribution fit
     # ------------------------------------------------------------------
     def _distribution_fits(
@@ -742,228 +679,18 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         )
         return "".join(blocks)
 
-    def _one_sample_tests(
-        self,
-        values: np.ndarray,
-        *,
-        popmean: float,
-        alternative: str,
-    ) -> list[dict[str, Any]]:
-        values = np.asarray(values, dtype=float)
-        values = values[np.isfinite(values)]
-        tests: list[dict[str, Any]] = []
+    def _anderson_options(self) -> dict[str, Any]:
+        """The Anderson-Darling p-value settings, as the engine takes them."""
+        batch = int(self.monte_carlo_batch_spin.value())
+        return {
+            "anderson_method": str(self.anderson_method_combo.currentData() or "interpolate"),
+            "resamples": int(self.monte_carlo_resamples_spin.value()),
+            "batch": None if batch <= 0 else batch,
+        }
 
-        if values.size > 1:
-            t_res = stats.ttest_1samp(values, popmean=popmean, alternative=alternative)
-            tests.append(_test_row(_("One-sample t-test"), values.size, self._result_statistic(t_res), self._result_pvalue(t_res), f"mean = {popmean:g}"))
-
-        diff = values - float(popmean)
-        nonzero = diff[np.isfinite(diff) & (np.abs(diff) > 0)]
-        if nonzero.size > 0:
-            try:
-                w_res = stats.wilcoxon(nonzero, alternative=alternative, zero_method="wilcox")
-                tests.append(_test_row(_("Wilcoxon signed-rank"), nonzero.size, self._result_statistic(w_res), self._result_pvalue(w_res), f"median = {popmean:g}"))
-            except ValueError as exc:
-                tests.append(_note_row(_("Wilcoxon signed-rank"), nonzero.size, str(exc)))
-
-            positives = int(np.sum(diff > 0))
-            negatives = int(np.sum(diff < 0))
-            trials = positives + negatives
-            if trials > 0:
-                b_res = stats.binomtest(positives, trials, p=0.5, alternative=alternative)
-                tests.append(_test_row(_("Sign test"), trials, positives, self._named_pvalue(b_res), "positive signs"))
-
-        return tests
-
-    def _normality_tests(self, values: np.ndarray) -> list[dict[str, Any]]:
-        values = np.asarray(values, dtype=float)
-        values = values[np.isfinite(values)]
-        n = int(values.size)
-        tests: list[dict[str, Any]] = []
-
-        if n >= 3:
-            try:
-                res = stats.shapiro(values)
-                tests.append(_test_row(_("Shapiro-Wilk normality"), n, self._result_statistic(res), self._result_pvalue(res)))
-            except Exception as exc:
-                tests.append(_note_row(_("Shapiro-Wilk normality"), n, str(exc)))
-
-        if n >= 8:
-            for name, func in (
-                ("D'Agostino-Pearson normality", stats.normaltest),
-                ("Skewness test", stats.skewtest),
-            ):
-                try:
-                    res = func(values)
-                    tests.append(_test_row(name, n, self._result_statistic(res), self._result_pvalue(res)))
-                except Exception as exc:
-                    tests.append(_note_row(name, n, str(exc)))
-
-        if n >= 5:
-            try:
-                res = stats.kurtosistest(values)
-                tests.append(_test_row(_("Kurtosis test"), n, self._result_statistic(res), self._result_pvalue(res)))
-            except Exception as exc:
-                tests.append(_note_row(_("Kurtosis test"), n, str(exc)))
-
-        if n >= 2:
-            try:
-                res = stats.jarque_bera(values)
-                tests.append(_test_row(_("Jarque-Bera normality"), n, self._result_statistic(res), self._result_pvalue(res)))
-            except Exception as exc:
-                tests.append(_note_row(_("Jarque-Bera normality"), n, str(exc)))
-
-            std = float(np.std(values, ddof=1))
-            if std > 0:
-                z = (values - float(np.mean(values))) / std
-                try:
-                    res = stats.kstest(z, "norm")
-                    tests.append(_test_row(_("Kolmogorov-Smirnov vs normal"), n, self._result_statistic(res), self._result_pvalue(res), "standardized sample"))
-                except Exception as exc:
-                    tests.append(_note_row(_("Kolmogorov-Smirnov vs normal"), n, str(exc)))
-
-            try:
-                res, note = self._anderson_result(values)
-                tests.append(
-                    {
-                        "test": "Anderson-Darling normality",
-                        "n": n,
-                        "statistic": float(getattr(res, "statistic", np.nan)),
-                        "pvalue": float(getattr(res, "pvalue", np.nan)),
-                        "note": note,
-                    }
-                )
-            except Exception as exc:
-                tests.append(_note_row(_("Anderson-Darling normality"), n, str(exc)))
-
-        return tests
-
-    def _anderson_result(self, values: np.ndarray) -> tuple[Any, str]:
-        """Return Anderson-Darling result using selected p-value method."""
-        method_name = str(self.anderson_method_combo.currentData() or "interpolate")
-
-        if method_name == "monte_carlo":
-            n_resamples = int(self.monte_carlo_resamples_spin.value())
-            batch_value = int(self.monte_carlo_batch_spin.value())
-            batch = None if batch_value <= 0 else batch_value
-            monte_carlo_method = stats.MonteCarloMethod(
-                n_resamples=n_resamples,
-                batch=batch,
-            )
-            return (
-                stats.anderson(values, dist="norm", method=monte_carlo_method),
-                f"Monte Carlo p-value; resamples={n_resamples:,}; batch={batch or 'Auto'}",
-            )
-
-        try:
-            return (
-                stats.anderson(values, dist="norm", method="interpolate"),
-                "Interpolated p-value",
-            )
-        except ValueError:
-            return (
-                stats.anderson(values, dist="norm", method="interpolated"),
-                "Interpolated p-value",
-            )
-        except TypeError:
-            # Older SciPy versions do not have the method parameter.
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", FutureWarning)
-                return (
-                    stats.anderson(values, dist="norm"),
-                    "Critical values only; installed SciPy does not support p-value method",
-                )
-
-    def _paired_values(self, left: SeriesStatsSample, right: SeriesStatsSample) -> tuple[np.ndarray, np.ndarray, str]:
-        left_by_x: dict[float, float] = {}
-        for x_value, y_value in zip(left.x, left.y, strict=False):
-            if np.isfinite(x_value) and np.isfinite(y_value):
-                left_by_x.setdefault(float(x_value), float(y_value))
-
-        paired_left: list[float] = []
-        paired_right: list[float] = []
-        for x_value, y_value in zip(right.x, right.y, strict=False):
-            key = float(x_value)
-            if key in left_by_x and np.isfinite(y_value):
-                paired_left.append(left_by_x[key])
-                paired_right.append(float(y_value))
-
-        if paired_left:
-            return np.asarray(paired_left), np.asarray(paired_right), "common X values"
-
-        n = min(left.y.size, right.y.size)
-        return left.y[:n], right.y[:n], "row order, truncated to common length"
-
-    def _paired_tests(self, left: SeriesStatsSample, right: SeriesStatsSample, *, alternative: str) -> list[dict[str, Any]]:
-        a, b, alignment = self._paired_values(left, right)
-        finite = np.isfinite(a) & np.isfinite(b)
-        a = a[finite]
-        b = b[finite]
-        n = int(a.size)
-        if n == 0:
-            return [_note_row(_("Paired tests"), 0, "No paired observations.")]
-
-        diff = a - b
-        tests: list[dict[str, Any]] = [
-            _test_row(_("Paired difference summary"), n, float(np.mean(diff)), np.nan, f"mean difference; {alignment}")
-        ]
-
-        if n > 1:
-            res = stats.ttest_rel(a, b, alternative=alternative)
-            tests.append(_test_row(_("Paired t-test"), n, self._result_statistic(res), self._result_pvalue(res), alignment))
-
-        nonzero = diff[np.isfinite(diff) & (np.abs(diff) > 0)]
-        if nonzero.size > 0:
-            try:
-                res = stats.wilcoxon(a, b, alternative=alternative, zero_method="wilcox")
-                tests.append(_test_row(_("Wilcoxon signed-rank paired test"), nonzero.size, self._result_statistic(res), self._result_pvalue(res), alignment))
-            except ValueError as exc:
-                tests.append(_note_row(_("Wilcoxon signed-rank paired test"), nonzero.size, str(exc)))
-
-            positives = int(np.sum(diff > 0))
-            negatives = int(np.sum(diff < 0))
-            trials = positives + negatives
-            if trials > 0:
-                res = stats.binomtest(positives, trials, p=0.5, alternative=alternative)
-                tests.append(_test_row(_("Sign test"), trials, positives, self._named_pvalue(res), f"positive signs; {alignment}"))
-
-        if n >= 3:
-            try:
-                res = stats.shapiro(diff)
-                tests.append(_test_row(_("Normality of paired differences"), n, self._result_statistic(res), self._result_pvalue(res), alignment))
-            except Exception as exc:
-                tests.append(_note_row(_("Normality of paired differences"), n, str(exc)))
-
-        return tests
-
-    def _correlation_tests(self, left: SeriesStatsSample, right: SeriesStatsSample) -> list[dict[str, Any]]:
-        a, b, alignment = self._paired_values(left, right)
-        finite = np.isfinite(a) & np.isfinite(b)
-        a = a[finite]
-        b = b[finite]
-        n = int(a.size)
-        if n < 2:
-            return [_note_row(_("Correlation tests"), n, "Need at least two paired observations.")]
-
-        tests: list[dict[str, Any]] = []
-        for name, func in (
-            ("Pearson correlation", stats.pearsonr),
-            ("Spearman rank correlation", stats.spearmanr),
-            ("Kendall tau", stats.kendalltau),
-        ):
-            try:
-                res = func(a, b)
-                tests.append(_test_row(name, n, self._result_statistic(res), self._result_pvalue(res), alignment))
-            except Exception as exc:
-                tests.append(_note_row(name, n, str(exc)))
-
-        try:
-            res = stats.linregress(a, b)
-            tests.append(_test_row(_("Linear regression slope"), n, float(getattr(res, "slope", np.nan)), float(getattr(res, "pvalue", np.nan)), alignment))
-        except Exception as exc:
-            tests.append(_note_row(_("Linear regression slope"), n, str(exc)))
-
-        return tests
+    @staticmethod
+    def _paired(left: SeriesStatsSample, right: SeriesStatsSample) -> tuple[np.ndarray, np.ndarray, str]:
+        return st.paired_values(left.x, left.y, right.x, right.y)
 
     # ------------------------------------------------------------------
     # HTML formatting
@@ -999,7 +726,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         Text columns stay left-aligned; everything else is right-aligned, so a
         column of numbers can be read down the page.
         """
-        text_columns = {"series", "pair", "test", "note", "alignment"}
+        text_columns = {"series", "pair", "groups", "test", "note", "alignment"}
         align = [
             "left" if str(header).strip().lower() in text_columns else "right"
             for header in headers
@@ -1040,7 +767,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         if self._show_section(result.model, "descriptive"):
             desc_rows = []
             for sample in result.samples:
-                desc = self._describe(sample.y, trim_percent=result.trim_percent)
+                desc = st.describe(sample.y, trim_proportion=result.trim_percent)
                 desc_rows.append([
                     html.escape(sample.name), str(desc.get("n", "")),
                     self._format_number(desc.get("mean")), self._format_number(desc.get("trimmed_mean")),
@@ -1064,7 +791,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         if self._show_section(result.model, "one_sample"):
             rows = []
             for sample in result.samples:
-                for test in self._one_sample_tests(sample.y, popmean=result.popmean, alternative=result.alternative):
+                for test in st.one_sample_tests(sample.y, popmean=result.popmean, alternative=result.alternative):
                     rows.append(_html_test_row(sample.name, test, self._format_number, self._format_pvalue))
             parts.append(report_html.section(
                 _("One-sample tests"),
@@ -1074,7 +801,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         if self._show_section(result.model, "normality"):
             rows = []
             for sample in result.samples:
-                for test in self._normality_tests(sample.y):
+                for test in st.normality_tests(sample.y, **self._anderson_options()):
                     rows.append(_html_test_row(sample.name, test, self._format_number, self._format_pvalue))
             parts.append(report_html.section(
                 _("Normality / shape tests"),
@@ -1085,18 +812,61 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             rows = []
             for left, right in itertools.combinations(result.samples, 2):
                 pair_name = f"{left.name} vs {right.name}"
-                for test in self._paired_tests(left, right, alternative=result.alternative):
+                a, b, alignment = self._paired(left, right)
+                for test in st.paired_tests(a, b, alignment=alignment, alternative=result.alternative):
                     rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
             parts.append(report_html.section(
                 _("Paired-sample tests"),
                 self._table(["Pair", "Test", "n", "Statistic", "p-value", "Note"], rows),
             ))
 
+        if len(result.samples) > 1 and self._show_section(result.model, "independent"):
+            rows = []
+            for left, right in itertools.combinations(result.samples, 2):
+                pair_name = f"{left.name} vs {right.name}"
+                for test in st.independent_tests(left.y, right.y, alternative=result.alternative):
+                    rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
+            parts.append(report_html.section(
+                _("Independent-sample tests"),
+                self._table(["Pair", "Test", "n", "Statistic", "p-value", "Note"], rows),
+            ))
+
+        if len(result.samples) > 1 and self._show_section(result.model, "groups"):
+            groups = {sample.name: sample.y for sample in result.samples}
+            rows = [
+                _html_test_row(_("All checked series"), test, self._format_number, self._format_pvalue)
+                for test in st.group_tests(groups)
+            ]
+            section = self._table(["Groups", "Test", "n", "Statistic", "p-value", "Note"], rows)
+            tukey = st.tukey_hsd(groups)
+            if tukey:
+                section += self._table(
+                    ["Pair", "Difference", "p (Tukey)", "95% CI low", "95% CI high"],
+                    [
+                        [
+                            html.escape(row["pair"]),
+                            self._format_number(row["difference"]),
+                            self._format_pvalue(row["pvalue"]),
+                            self._format_number(row["ci_low"]),
+                            self._format_number(row["ci_high"]),
+                        ]
+                        for row in tukey
+                    ],
+                )
+                section += report_html.note(
+                    "Tukey's p-values are already adjusted for the number of "
+                    "pairs, so each can be read against 0.05 on its own. Where "
+                    "Levene says the variances differ, read Welch's ANOVA rather "
+                    "than the classical one."
+                )
+            parts.append(report_html.section(_("Group comparison (ANOVA)"), section))
+
         if len(result.samples) > 1 and self._show_section(result.model, "correlation"):
             rows = []
             for left, right in itertools.combinations(result.samples, 2):
                 pair_name = f"{left.name} vs {right.name}"
-                for test in self._correlation_tests(left, right):
+                a, b, alignment = self._paired(left, right)
+                for test in st.correlation_tests(a, b, alignment=alignment):
                     rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
             parts.append(report_html.section(
                 _("Correlation / association"),
@@ -1110,11 +880,12 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
                 )
             )
 
-        if len(result.samples) < 2 and result.model in {"all", "paired", "correlation"}:
+        if len(result.samples) < 2 and result.model in {"all", "paired", "independent", "groups", "correlation"}:
             parts.append(
                 report_html.note(
-                    "Paired-sample and correlation sections need at least two "
-                    "selected series; check another one in the Series list."
+                    "Paired, independent, group and correlation sections need "
+                    "at least two selected series; check another one in the "
+                    "Series list."
                 )
             )
 
@@ -1190,6 +961,9 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         # Both of these are about two samples together, so the picture is one
         # plotted against the other - every pair of them.
         "paired": (("Scatter Plot", "Paired samples"),),
+        # Groups side by side: a box per series is what the tests compare.
+        "independent": (("Box Plot", "Independent samples"),),
+        "groups": (("Box Plot", "Group comparison"),),
         "correlation": (("Scatter Plot", "Correlation"),),
         "distribution": (("Histogram", "Distribution fit"),),
     }
@@ -1412,14 +1186,6 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             roles=axis_roles,
             style={**dict(self.generated_style_filter), "label": name, "marker": "."},
         )
-
-
-def _test_row(test: str, n: int, statistic: Any, pvalue: Any, note: str = "") -> dict[str, Any]:
-    return {"test": test, "n": int(n), "statistic": statistic, "pvalue": pvalue, "note": note}
-
-
-def _note_row(test: str, n: int, note: str) -> dict[str, Any]:
-    return {"test": test, "n": int(n), "statistic": np.nan, "pvalue": np.nan, "note": note}
 
 
 def _html_test_row(
