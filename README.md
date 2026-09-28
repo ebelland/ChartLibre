@@ -36,7 +36,9 @@ ChartLibre aims at the first of those without the price tag:
 - **Your file stays yours** — a project is one `.dhub` file (a SQLite database) holding *both* the data and every chart definition built on it. Copy it, email it, commit it to git. No proprietary container, no cloud, no lock-in: any SQLite tool can read the data back out.
 - **Publication output** — export to PNG, JPEG, **SVG** and **PDF** at a DPI you choose.
 
-> **Status: early.** ChartLibre is at version 0.1.0 and under active development. It is genuinely usable — the feature list below is what is implemented and covered by the test suite, not a roadmap — but expect rough edges, and check results that matter.
+> **Status: early, and not thoroughly tested.** ChartLibre is at version 0.1.0 and under active development. The feature list below is what is implemented and covered by the automated test suite, not a roadmap — but it has had little testing by real users on real data yet. Expect rough edges, and check results that matter.
+>
+> **Collaborators wanted.** Testers, bug reports, fixes, translations, a Linux check, packaging: see [Contributing](#contributing).
 
 > **How it was made.** ChartLibre was written mostly by [Claude](https://www.anthropic.com/claude), Anthropic's AI model, working in conversation with the author, who designed it, set its direction and tested it. The *Credits* window in the application says the same.
 
@@ -157,7 +159,15 @@ The same list, with every library's installed version and licence, is in the app
 
 ## Contributing
 
-Issues and pull requests are welcome. The test suite runs with:
+ChartLibre is looking for collaborators. The most useful help right now:
+
+- **Use it on your own data** and [open an issue](https://github.com/ebelland/ChartLibre/issues) for anything wrong, confusing or missing.
+- **Check results** against another tool you trust — a fit, a test, a filter.
+- **Try it on Linux**, where it has never been launched.
+- **Translate** it: the catalogue editor is built in (*Developer → Edit Localization*).
+- **Package it** as a real installer for macOS and Windows.
+
+Pull requests are welcome too. The test suite runs with:
 
 ```bash
 python -m pytest dev/tests -q          # add QT_QPA_PLATFORM=offscreen when headless
@@ -167,7 +177,7 @@ Please read [`dev/DEVELOPMENT.md`](dev/DEVELOPMENT.md) first — it explains the
 
 ## Notes
 
-¹ **Linux has not been tested.** ChartLibre is Python and Qt, so it may well run from source (`python3 main.py` after `pip install -r requirements.txt`); on a minimal system Qt may also need `sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1`. Reports either way are welcome.
+¹ **Linux: ChartLibre has never been launched on it.** It is Python and Qt, so it may well run from source (`python3 main.py` after `pip install -r requirements.txt`); on a minimal system Qt may also need `sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1`. Reports either way are welcome.
 
 ## Licence
 

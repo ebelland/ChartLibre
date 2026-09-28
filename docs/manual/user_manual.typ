@@ -60,7 +60,7 @@
 
 = Introduction
 
-ChartLibre is a desktop application for Windows and macOS that lets you import tabular data, query it with SQL, and turn it into scientific charts — from histograms to 3D surfaces — without writing code. It was written mostly by Claude, Anthropic's AI model, in conversation with its author, who designed it, set its direction and tested it. Linux has not been tested.
+ChartLibre is a desktop application for Windows and macOS that lets you import tabular data, query it with SQL, and turn it into scientific charts — from histograms to 3D surfaces — without writing code. It was written mostly by Claude, Anthropic's AI model, in conversation with its author, who designed it, set its direction and tested it. It has not yet been tested thoroughly, and it has never been launched on Linux.
 
 Every project is a single file with the extension `.dhub`: a SQLite database that holds both the imported data and the definitions of every chart (figures, axes, series and their drawing options). The file is therefore self-contained and portable — moving or sharing it carries both the data and every visualization built on top of it.
 
