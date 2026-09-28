@@ -499,11 +499,11 @@ class SeriesPropertiesWidget(BaseProperties):
 
     def _series_style(self, series_desc: SeriesDescriptorLike) -> dict[str, Any]:
         """Return a mutable series style dictionary."""
-        if series_desc.style is None:
+        if series_desc.options is None:
             return {}
 
-        if isinstance(series_desc.style, dict):
-            return dict(series_desc.style)
+        if isinstance(series_desc.options, dict):
+            return dict(series_desc.options)
 
         applogger.error(
             f"Series id={series_desc.id!r} has invalid style. Editing stopped; "

@@ -1260,9 +1260,9 @@ class TablesMixin(RepoHost):
         for a in axis_rows:
             axis = app.data.descriptors.AxisDescriptor(
                 id=int(a["id"]),
-                figure_id=int(a["figure_id"]),
-                axis_index=int(a["axis_index"]),
-                chart_type=str(a["chart_type"]),
+                parent_id=int(a["figure_id"]),
+                index=int(a["axis_index"]),
+                name=str(a["chart_type"]),
                 title=str(a["title"] or ""),
                 x_label=str(a["x_label"] or ""),
                 y_label=str(a["y_label"] or ""),
@@ -1271,12 +1271,12 @@ class TablesMixin(RepoHost):
                 series=[
                     app.data.descriptors.SeriesDescriptor(
                         id=int(s["id"]),
-                        axis_id=int(s["axis_id"]),
-                        series_index=int(s["series_index"]),
+                        parent_id=int(s["axis_id"]),
+                        index=int(s["series_index"]),
                         name=str(s["name"] or f"Series {s['series_index']}"),
                         sql_query=str(s["sql_query"]),
                         roles=s["roles"],
-                        style=json.loads(s["style_json"]) if s["style_json"] is not None else None,
+                        options=json.loads(s["style_json"]) if s["style_json"] is not None else None,
                     )
                     for s in series_by_axis.get(int(a["id"]), [])
                 ],

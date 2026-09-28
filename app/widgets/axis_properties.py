@@ -1357,7 +1357,7 @@ class AxisPropertiesWidget(BaseProperties):
         renderer = (
             options.get("renderer")
             or options.get("renderer_name")
-            or getattr(axis_desc, "chart_type", "")
+            or getattr(axis_desc, "name", "")
             or ""
         )
         return str(renderer).strip()

@@ -2490,10 +2490,10 @@ class MainWindow(QMainWindow):
             applogger.error("Series descriptor id=%r not found.", series_id)
             return
         series_desc = cast(Any, raw_series_desc)
-        if series_desc.style is None:
+        if series_desc.options is None:
             style: dict[str, Any] = {}
-        elif isinstance(series_desc.style, dict):
-            style = dict(series_desc.style)
+        elif isinstance(series_desc.options, dict):
+            style = dict(series_desc.options)
         else:
             applogger.error("Series id=%r has invalid style.", series_desc.id)
             return

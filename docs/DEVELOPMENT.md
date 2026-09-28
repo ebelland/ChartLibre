@@ -79,22 +79,33 @@ docs/manual/          The user manual: user_manual.typ is the source, built
 
 ## 3. The descriptor model
 
-Three dataclasses in `app/charts/descriptors.py` mirror the three
-descriptor tables one-for-one:
+Three dataclasses in `app/data/descriptors.py` mirror the three
+descriptor tables one-for-one, on a common base:
 
 ```
-FigureDescriptor(id, name, nrows, ncols, options, axes: list[AxisDescriptor])
-AxisDescriptor(id, figure_id, axis_index, chart_type, title,
-               x_label, y_label, z_label, options, series: list[SeriesDescriptor])
-SeriesDescriptor(id, axis_id, series_index, name, sql_query, roles, style)
+Descriptor(id, name, index, parent_id, options)
+FigureDescriptor(Descriptor) + nrows, ncols, axes: list[AxisDescriptor]
+AxisDescriptor(Descriptor)   + title, x_label, y_label, z_label, series: list[SeriesDescriptor]
+SeriesDescriptor(Descriptor) + sql_query, roles
 ```
+
+What the base fields hold at each level:
+
+| Field | Figure | Axis | Series |
+| --- | --- | --- | --- |
+| `name` | its title | the chart type (a renderer's `Name`; the `chart_type` column) | its label |
+| `index` | 0 | its slot in the grid (`axis_index`) | its draw order (`series_index`) |
+| `parent_id` | None | its figure (`figure_id`) | its axis (`axis_id`) |
+| `options` | `options_json` | `options_json` | its style (`style_json`) |
+
+The table columns keep their names; only the dataclasses share them.
 
 `SqliteRepo.load_figure_descriptor(figure_id)` is the *only* place that
 assembles the tree; every other reader goes through it (or through the
 narrower `get_axis_options`/`get_*` helpers) rather than querying the tables
 directly.
 
-`options` on both `FigureDescriptor` and `AxisDescriptor` is a free-form
+`options` on every descriptor is a free-form
 `dict[str, Any]`, persisted as one JSON column. This is deliberate: adding a
 new figure- or axis-level setting almost never needs a schema migration —
 put it in `options`, read it with `.get(key, default)` on the render side,

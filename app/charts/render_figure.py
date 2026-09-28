@@ -163,7 +163,7 @@ def render_figure_from_descriptor(
             # for one (base axes, then their twins).
             ax._dhub_axis_id = int(axis_desc.id)  # noqa: SLF001 - our own attribute, not matplotlib's
 
-            chart_type = str(axis_desc.chart_type or "").strip()
+            chart_type = str(axis_desc.name or "").strip()
             series_list = _build_series_data_list(
                 repo=repo,
                 axis_desc=axis_desc,
@@ -332,7 +332,7 @@ def _normalized_axes_for_grid(
     valid_layout = True
 
     for axis_desc in axes:
-        axis_index = int(axis_desc.axis_index)
+        axis_index = int(axis_desc.index)
         if axis_index < 0 or axis_index >= rows * cols:
             valid_layout = False
             break
@@ -346,11 +346,11 @@ def _normalized_axes_for_grid(
         used |= footprint
 
     if valid_layout:
-        return [(axis_desc, int(axis_desc.axis_index)) for axis_desc in axes], rows, cols, True
+        return [(axis_desc, int(axis_desc.index)) for axis_desc in axes], rows, cols, True
 
     ordered_axes = sorted(
         axes,
-        key=lambda axis_desc: (int(axis_desc.axis_index), int(axis_desc.id)),
+        key=lambda axis_desc: (int(axis_desc.index), int(axis_desc.id)),
     )
     rows, cols = _compact_grid_for_axis_count(len(ordered_axes))
     normalized = [(axis_desc, index) for index, axis_desc in enumerate(ordered_axes)]
@@ -360,7 +360,7 @@ def _normalized_axes_for_grid(
         descriptor.id,
         rows,
         cols,
-        [(int(axis.id), int(axis.axis_index), new_index) for axis, new_index in normalized],
+        [(int(axis.id), int(axis.index), new_index) for axis, new_index in normalized],
     )
 
     return normalized, rows, cols, False
@@ -806,7 +806,7 @@ def _load_series_df(
 
 def _series_style(series_desc: SeriesDescriptor) -> dict[str, Any]:
     """Return a normalized series style dictionary."""
-    style = series_desc.style
+    style = series_desc.options
     if isinstance(style, dict):
         return dict(style)
     return {}
