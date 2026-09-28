@@ -96,7 +96,7 @@ def _leading_comment(path: Path) -> str:
 
 def _translate_available() -> bool:
     try:
-        import translate  # noqa: F401
+        import translate  # noqa: F401  # pyright: ignore[reportMissingImports]
     except ImportError:
         return False
     return True
@@ -109,7 +109,7 @@ def _auto_translate(text: str, *, to_lang: str) -> str | None:
     occurrence for a tool like this, not a bug to surface as a crash.
     """
     try:
-        from translate import Translator
+        from translate import Translator  # pyright: ignore[reportMissingImports]
     except ImportError:
         return None
     try:

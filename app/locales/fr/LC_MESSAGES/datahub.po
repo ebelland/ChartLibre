@@ -6022,3 +6022,6 @@ msgstr "Domaine public"
 
 msgid "Published data"
 msgstr "Données publiées"
+
+msgid "ChartLibre project (*.dhub);;All files (*.*)"
+msgstr "Projet ChartLibre (*.dhub);;Tous les fichiers (*.*)"

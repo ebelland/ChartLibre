@@ -8,11 +8,6 @@ from app.data.sqlite_repo import SqliteRepo
 
 
 @pytest.fixture
-
-def _con(repo: SqliteRepo):
-    assert repo._con is not None
-    return repo._con
-
 def repo(tmp_path) -> SqliteRepo:
     repo = SqliteRepo(db_path=tmp_path / "tools.dhub")
     repo.import_dataframe(
@@ -75,3 +70,8 @@ def test_group_aggregate_writes_a_new_table(repo) -> None:
     repo.import_dataframe(pd.DataFrame({"k": ["a", "b", "a"], "v": [1, 2, 3]}), table_name="g")
     name = repo.group_aggregate("g", ["k"], "SUM", "v")
     assert repo.query_df(f'SELECT * FROM "{name}"').values.tolist() == [["a", 4], ["b", 2]]
+
+
+def _con(repo: SqliteRepo):
+    assert repo._con is not None
+    return repo._con

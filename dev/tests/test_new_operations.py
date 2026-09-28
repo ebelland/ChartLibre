@@ -9,7 +9,7 @@ ones a smoke test would not catch.
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 import numpy as np
 import pytest
@@ -239,7 +239,7 @@ def _calculus_with_axis(destination: str) -> tuple[SeriesCalculusDialog, _AxisSp
     dialog._result_axis_id = None
     dialog._result_figure_id = None
     dialog._applied = False
-    dialog._repo = spy
+    dialog._repo = cast(Any, spy)
     dialog.create_result_axis = spy.create_result_axis
     dialog.create_result_figure = spy.create_result_figure
     dialog.parameter_values = lambda: {"destination": destination}

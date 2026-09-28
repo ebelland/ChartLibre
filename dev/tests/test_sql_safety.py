@@ -15,11 +15,6 @@ from app.utils.data_sources import read_sqlite_query
 
 
 @pytest.fixture
-
-def _con(repo: SqliteRepo):
-    assert repo._con is not None
-    return repo._con
-
 def repo(tmp_path) -> SqliteRepo:
     repo = SqliteRepo(db_path=tmp_path / "safe.dhub")
     repo.import_dataframe(pd.DataFrame({"a": [1, 2, 3]}), table_name="t", normalize_columns=False)
@@ -79,3 +74,8 @@ def test_the_guard_can_be_switched_off(repo, monkeypatch) -> None:
     repo.save_query("allowed", "SELECT a FROM t WHERE a > 1")
     _con(repo).execute("UPDATE __queries__ SET sql = 'DELETE FROM t' WHERE name = 'allowed'")
     assert repo.scan_user_sql() == []
+
+
+def _con(repo: SqliteRepo):
+    assert repo._con is not None
+    return repo._con

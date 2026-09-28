@@ -1,6 +1,8 @@
 """Operations that declare MODELS get the standard Model combo and Docs link."""
 from __future__ import annotations
 
+from typing import Any, cast
+
 import importlib
 import inspect
 import pkgutil
@@ -87,7 +89,7 @@ def test_the_combo_lists_the_models_and_the_link_follows(qapp, figure, cls) -> N
 def test_interpolation_start_parameters_are_offered_for_the_fitted_models(qapp, figure) -> None:
     """They are curve_fit's p0: a fitted model takes them, an interpolant has none."""
     repo, figure_id = figure
-    dialog = SeriesInterpolateDialog(repo=repo, figure_id=figure_id)
+    dialog = SeriesInterpolateDialog(repo=repo, figure_id=figure_id, parent=cast(Any, None))
     try:
         dialog.show()
         dialog.model_combo.setCurrentText(MODEL_EXPONENTIAL)

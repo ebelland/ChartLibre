@@ -34,7 +34,8 @@ def _adjust_text_function():
     """
     global _ADJUST_TEXT_WARNED
     try:
-        from adjustText import adjust_text
+        # Optional (requirements.txt): absent, labels are simply not spread.
+        from adjustText import adjust_text  # pyright: ignore[reportMissingImports]
         return adjust_text
     except Exception:
         if not _ADJUST_TEXT_WARNED:

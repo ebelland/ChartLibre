@@ -15,7 +15,7 @@ from __future__ import annotations
 import itertools
 import warnings
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from scipy import stats
@@ -315,7 +315,7 @@ def correlation_tests(a: Any, b: Any, *, alignment: str = "") -> list[dict[str, 
         res = stats.linregress(a, b)
         # LinregressResult: slope is [0], p-value [3] - its fields are not
         # annotated, so they are read by position.
-        tests.append(result_row(_("Linear regression slope"), n, float(res[0]), float(res[3]), alignment))
+        tests.append(result_row(_("Linear regression slope"), n, float(cast(float, res[0])), float(cast(float, res[3])), alignment))
     except Exception as exc:
         tests.append(note_row(_("Linear regression slope"), n, str(exc)))
     return tests

@@ -28,11 +28,6 @@ FRAME = pd.DataFrame(
 
 
 @pytest.fixture
-
-def _con(repo: SqliteRepo):
-    assert repo._con is not None
-    return repo._con
-
 def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     # The undo sidecar too, not just the database: it lives beside the
     # .dhub and outlives it, so a test that counts undo entries would be
@@ -294,3 +289,8 @@ def test_the_last_row_and_the_last_column_cannot_be_deleted(
     _select_cell(dialog, 0, 0)
     dialog._delete_column()
     assert _columns(repo) == ["name"]
+
+
+def _con(repo: SqliteRepo):
+    assert repo._con is not None
+    return repo._con
