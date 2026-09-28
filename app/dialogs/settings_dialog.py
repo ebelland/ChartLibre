@@ -92,6 +92,9 @@ DEFAULT_SAVE_FORMAT: str = "PNG"
 LANGUAGE_NAMES: dict[str, str] = {
     "en": "English",
     "it": "Italiano",
+    "fr": "Français",
+    "es": "Español",    
+    "de": "Deutsch",
 }
 
 
