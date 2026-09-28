@@ -89,3 +89,25 @@ def test_multi_peak_model_recovers_two_gaussians() -> None:
     y = model(x, truth)
     result = fit.fit_curve(model, x, y, np.array([2.5, 2.8, 0.6, 1.5, 6.3, 1.0, 0.0]))
     np.testing.assert_allclose(result.params, truth, rtol=1e-5, atol=1e-7)
+
+
+def test_a_band_series_is_drawn_as_a_filled_region() -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    from matplotlib.collections import PolyCollection
+    from matplotlib.figure import Figure
+
+    from app.charts.base import SeriesData
+    from app.charts.render_figure import _draw_band
+    from app.data.series_frame import SeriesFrame
+
+    ax = Figure().add_subplot()
+    frame = SeriesFrame({"x": [3.0, 1.0, 2.0], "ci_low": [0.0, 0.0, 0.0], "ci_high": [1.0, 2.0, 3.0]})
+    band = SeriesData(
+        name="band", df=frame, style={"draw_as": "band", "label": "95% band"},
+        roles={"x": "x", "y": "ci_low", "y2": "ci_high"},
+    )
+    _draw_band(ax, band)
+    fills = [c for c in ax.collections if isinstance(c, PolyCollection)]
+    assert len(fills) == 1 and fills[0].get_label() == "95% band"

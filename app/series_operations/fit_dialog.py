@@ -300,6 +300,22 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                 "quality, independent of what x means."
             )
         )
+        self._confidence_band_check = QCheckBox(_("95% confidence band"), self)
+        self._confidence_band_check.setToolTip(
+            _(
+                "Shade where the true curve lies with 95% confidence, given "
+                "the parameters' uncertainty. Narrow where the data pin the "
+                "curve down, wide where they do not."
+            )
+        )
+        self._prediction_band_check = QCheckBox(_("95% prediction band"), self)
+        self._prediction_band_check.setToolTip(
+            _(
+                "Shade where a new measurement would fall with 95% "
+                "probability: the confidence band plus the scatter of the "
+                "points around the curve."
+            )
+        )
         self._residual_axis_id: int | None = None
         self._fit_vs_measured_axis_id: int | None = None
         self._accessory_table_name: str | None = None
@@ -478,6 +494,10 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         layout.addWidget(QLabel(_("Output table:"), outer))
         self._output_table_edit.setToolTip(_("Name of the SQLite table where fitted values/residuals are saved."))
         layout.addWidget(self._output_table_edit)
+
+        layout.addWidget(QLabel(_("Bands on the fit:"), outer))
+        layout.addWidget(self._confidence_band_check)
+        layout.addWidget(self._prediction_band_check)
 
         layout.addWidget(QLabel(_("Extra charts:"), outer))
         layout.addWidget(self._residual_chart_check)
@@ -1046,6 +1066,23 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             p_opt, fit_values, residual = outcome.params, outcome.fit_values, outcome.residual
             metrics, success, message = outcome.metrics, outcome.success, outcome.message
             frame = self._build_output_frame(clean, fit_values, residual)
+            if not self._is_2d_fit() and outcome.dof > 0 and len(frame):
+                # The band columns ride in the result table like fit and
+                # residual do, so a saved result can be redrawn without the
+                # dialog; they are drawn only when their box is checked.
+                x_band = frame["x"].to_numpy(float)
+                for kind, prediction in (("ci", False), ("pi", True)):
+                    low, high = fit_engine.confidence_band(
+                        model,
+                        x_band,
+                        outcome.params,
+                        outcome.cov,
+                        dof=outcome.dof,
+                        residual_variance=outcome.metrics.get("reduced_chi2", 0.0),
+                        prediction=prediction,
+                    )
+                    frame[f"{kind}_low"] = low
+                    frame[f"{kind}_high"] = high
             x_col, x2_col, target_col = self._selected_column_names()
             self._last_result = SeriesFitResult(
                 source_table=self._current_table(),
@@ -1509,6 +1546,42 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             roles=roles,
             style=style,
         )
+
+    def result_series_specs(
+        self, axis_id: int, table_name: str, result: SeriesFitResult
+    ) -> Sequence[ResultSeriesSpec]:
+        """The fitted curve, plus the bands whose boxes are checked (1D only)."""
+        specs = [self.result_series_spec(axis_id, table_name, result)]
+        if result.fit_mode == "2D" or "ci_low" not in result.frame:
+            return specs
+        for check, kind, label, alpha in (
+            (self._prediction_band_check, "pi", "95% prediction band", 0.12),
+            (self._confidence_band_check, "ci", "95% confidence band", 0.25),
+        ):
+            if not check.isChecked():
+                continue
+            specs.append(
+                ResultSeriesSpec(
+                    name=f"{label}: {result.source_table} [{result.model_name}]",
+                    # Aliased to x/y/y2 rather than mapped through roles:
+                    # the axis's own chart type (a scatter) keeps only the
+                    # roles it knows, and y2 is not one of them.
+                    sql_query=(
+                        f'SELECT x, {kind}_low AS y, {kind}_high AS y2 '
+                        f'FROM "{table_name}" ORDER BY x'
+                    ),
+                    roles={"x": "x", "y": "y", "y2": "y2"},
+                    style={
+                        "draw_as": "band",
+                        "alpha": alpha,
+                        "label": label,
+                        "generated_fit": True,
+                        "fit_dialog": "series_fit",
+                        "fit_model": result.model_name,
+                    },
+                )
+            )
+        return specs
 
     def format_results(self, results: Sequence[SeriesFitResult]) -> str:
         """Return the fit report as an HTML table."""

@@ -5872,3 +5872,18 @@ msgstr "ANOVA de Welch (variances inégales)"
 
 msgid "Welch t-test"
 msgstr "Test t de Welch"
+
+msgid "95% confidence band"
+msgstr "Bande de confiance à 95 %"
+
+msgid "95% prediction band"
+msgstr "Bande de prédiction à 95 %"
+
+msgid "Bands on the fit:"
+msgstr "Bandes sur l'ajustement :"
+
+msgid "Shade where the true curve lies with 95% confidence, given the parameters' uncertainty. Narrow where the data pin the curve down, wide where they do not."
+msgstr "Ombre la zone où se trouve la vraie courbe avec 95 % de confiance, compte tenu de l'incertitude des paramètres. Étroite là où les données fixent bien la courbe, large ailleurs."
+
+msgid "Shade where a new measurement would fall with 95% probability: the confidence band plus the scatter of the points around the curve."
+msgstr "Ombre la zone où tomberait une nouvelle mesure avec 95 % de probabilité : la bande de confiance plus la dispersion des points autour de la courbe."

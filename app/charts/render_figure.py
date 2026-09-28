@@ -23,6 +23,8 @@ from typing import Any, Literal
 import math
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.ticker import NullLocator
 
@@ -174,6 +176,17 @@ def render_figure_from_descriptor(
             if renderer is None:
                 applogger.error("Renderer not found for chart_type=%r.", chart_type)
                 return
+
+            # A band (a fit's confidence or prediction band) is a filled
+            # region between two columns, whatever the axis draws: the chart
+            # type belongs to the axis, and a band has to sit on the same axis
+            # as the curve and the points it describes. Drawn first, so the
+            # data stays on top of it.
+            bands = [sd for sd in series_list if sd.style.get("draw_as") == "band"]
+            if bands:
+                series_list = [sd for sd in series_list if sd.style.get("draw_as") != "band"]
+                for band in bands:
+                    _draw_band(ax, band)
 
             try:
                 renderer_instance = import_class_from_file(renderer)()  # type: ignore
@@ -727,6 +740,30 @@ def _build_series_data_list(
         )
 
     return output
+
+
+def _draw_band(ax: Any, series: SeriesData) -> None:
+    """Fill between the series' ``y`` and ``y2`` columns over ``x``."""
+    roles, style, frame = series.roles, series.style, series.df
+    columns = [str(roles.get(role) or role) for role in ("x", "y", "y2")]
+    if not all(column in frame for column in columns):
+        applogger.warning("Band %r needs x, y and y2 columns; not drawn.", series.name)
+        return
+    x, low, high = (
+        pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=float) for column in columns
+    )
+    keep = np.isfinite(x) & np.isfinite(low) & np.isfinite(high)
+    order = np.argsort(x[keep], kind="stable")
+    ax.fill_between(
+        x[keep][order],
+        low[keep][order],
+        high[keep][order],
+        color=style.get("color") or "0.45",
+        alpha=float(style.get("alpha", 0.2)),
+        linewidth=0,
+        label=style.get("label") or series.name,
+        zorder=float(style.get("zorder", 0.8)),
+    )
 
 
 def _load_series_df(

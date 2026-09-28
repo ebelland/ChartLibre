@@ -208,7 +208,9 @@ R-05  P2 IN CORSO. Fit al livello di Origin.
       2026-09-28 fatti: t, p e IC 95% per ogni parametro e varianza
       residua (chi-quadro ridotto) nel rapporto; fit.confidence_band calcola
       le bande di confidenza e di previsione (verificate con statsmodels),
-      ma non sono ancora disegnate nel grafico.
+      disegnate sul grafico dalle caselle "Bande sul fit" (serie con
+      draw_as = "band", disegnate da render_figure su qualunque tipo di asse).
+      Restano: pesi da una colonna di errori, fit globale su piu' serie.
       Gia' presenti: errori standard, covarianza e correlazione dei
       parametri (fit_dialog._param_uncertainty), parametri legati tra i
       picchi. Mancano:
