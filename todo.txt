@@ -150,8 +150,11 @@ carte di controllo con regole di Nelson, plugin scritti dall'utente
 
 R-01  P1 IN CORSO. Separare i calcoli dalle finestre.
       2026-09-28: fatto per Statistiche -> app/analysis/statistics.py
-      (nessun import di Qt; test in test_analysis_statistics.py). Restano
-      le altre 19 operazioni, a cominciare da fit, smoothing e spectral.
+      (nessun import di Qt; test in test_analysis_statistics.py).
+      2026-09-28: fatto per Fit -> app/analysis/fit.py (fit_curve,
+      multi_peak_model, errori, bande). Validato sul dataset certificato
+      NIST StRD Misra1a da entrambi i punti di partenza (test_analysis_fit.py).
+      Restano le altre 18 operazioni, a cominciare da smoothing e spectral.
       Tutte le 20 operazioni calcolano dentro la classe Qt del dialogo
       (compute_results in app/series_operations/*_dialog.py, 20.000 righe).
       Estrarre il calcolo in funzioni pure, per esempio
@@ -201,7 +204,11 @@ R-04  P1 IN CORSO. Statistica che manca rispetto a SPSS e JMP.
       Serve anche un modo di indicare i gruppi: una colonna "fattore" come
       ruolo (vedi R-08).
 
-R-05  P2 Fit al livello di Origin.
+R-05  P2 IN CORSO. Fit al livello di Origin.
+      2026-09-28 fatti: t, p e IC 95% per ogni parametro e varianza
+      residua (chi-quadro ridotto) nel rapporto; fit.confidence_band calcola
+      le bande di confidenza e di previsione (verificate con statsmodels),
+      ma non sono ancora disegnate nel grafico.
       Gia' presenti: errori standard, covarianza e correlazione dei
       parametri (fit_dialog._param_uncertainty), parametri legati tra i
       picchi. Mancano:

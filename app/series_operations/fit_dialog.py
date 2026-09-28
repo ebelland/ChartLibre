@@ -5,6 +5,10 @@ The dialog is intentionally table-oriented:
 - Scanned function catalog, parameter table, bounds, fixed parameters
 - Explicit error handling when selected source columns are missing/stale
 - Save fitted values/residuals back to a normal SQLite table
+
+The fitting itself - optimisation, errors, t/p values, intervals - is in
+app.analysis.fit; this dialog builds the model from the catalogue, reads the
+series and the parameter table, and lays the result out.
 """
 
 from __future__ import annotations
@@ -39,12 +43,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from app.analysis import fit as fit_engine
 from app.functions.optimizers import (
     DEFAULT_OPTIMIZER,
     LOSSES,
     OPTIMIZERS,
     BY_KEY,
-    run_optimizer,
 )
 from app.functions.starting_point import (
     FROM_DECLARED,
@@ -75,14 +79,6 @@ from app.styles.style import (
 from app.utils.i18n import _
 from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
 
-
-def _primary_x(value: np.ndarray) -> np.ndarray:
-    arr = np.asarray(value, dtype=float)
-    if arr.ndim == 2:
-        if arr.shape[1] < 1:
-            applogger.error("2D model input has no columns.")
-        return arr[:, 0]
-    return arr
 
 def _split_xy(value: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     arr = np.asarray(value, dtype=float)
@@ -131,6 +127,13 @@ class SeriesFitResult:
     output_table: str
     frame: pd.DataFrame
     message: str
+    #: t value, p value (is the parameter zero?) and 95% interval per
+    #: parameter, from Student's t with the residual degrees of freedom.
+    param_t: np.ndarray | None = None
+    param_p: np.ndarray | None = None
+    param_ci_low: np.ndarray | None = None
+    param_ci_high: np.ndarray | None = None
+    dof: int = 0
 
 
 class SeriesFitDialog(SeriesOperationDialogBase):
@@ -924,57 +927,15 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             return item.text(0)
         return str(self._selected_model.get("name", "Custom"))
 
-    def _make_multi_peak_model(self, payload: dict[str, Any]) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
+    @staticmethod
+    def _make_multi_peak_model(payload: dict[str, Any]) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
         """Return a callable for the inline multi-peak model."""
-        family = str(payload.get("family", "Gaussian"))
-        count = int(payload.get("count", 1))
-        tie_width = bool(payload.get("tie_width", False))
-        tie_eta = bool(payload.get("tie_eta", False))
-
-        def model(x_or_xy: np.ndarray, p: np.ndarray) -> np.ndarray:
-            x = _primary_x(x_or_xy)
-            values = np.asarray(p, dtype=float)
-            idx = 0
-            peaks: list[tuple[float, float, float, float]] = []
-            for _i in range(count):
-                amp = float(values[idx]); idx += 1
-                center = float(values[idx]); idx += 1
-                width_value = 1.0
-                eta_value = 0.5
-                if not tie_width:
-                    width_value = max(abs(float(values[idx])), 1e-12); idx += 1
-                if family == "Pseudo-Voigt" and not tie_eta:
-                    eta_value = float(np.clip(values[idx], 0.0, 1.0)); idx += 1
-                peaks.append((amp, center, width_value, eta_value))
-
-            shared_width = 1.0
-            if tie_width:
-                shared_width = max(abs(float(values[idx])), 1e-12)
-                idx += 1
-            shared_eta = 0.5
-            if family == "Pseudo-Voigt" and tie_eta:
-                shared_eta = float(np.clip(values[idx], 0.0, 1.0))
-                idx += 1
-            offset = float(values[idx]) if idx < values.size else 0.0
-
-            y = np.full_like(x, offset, dtype=float)
-            for amp, center, width_value, eta_value in peaks:
-                w = shared_width if tie_width else width_value
-                w = max(w, 1e-12)
-                if family == "Gaussian":
-                    y += amp * np.exp(-((x - center) ** 2) / (2.0 * w * w))
-                elif family == "Lorentzian":
-                    g2 = (0.5 * w) ** 2
-                    y += amp * g2 / (((x - center) ** 2) + g2)
-                else:
-                    e = shared_eta if tie_eta else eta_value
-                    e = float(np.clip(e, 0.0, 1.0))
-                    g = np.exp(-((x - center) ** 2) / (2.0 * w * w))
-                    l = (0.5 * w) ** 2 / (((x - center) ** 2) + (0.5 * w) ** 2)
-                    y += amp * (e * l + (1.0 - e) * g)
-            return y
-
-        return model
+        return fit_engine.multi_peak_model(
+            str(payload.get("family", "Gaussian")),
+            int(payload.get("count", 1)),
+            tie_width=bool(payload.get("tie_width", False)),
+            tie_eta=bool(payload.get("tie_eta", False)),
+        )
 
     def _build_model(self, x_data: np.ndarray, target_data: np.ndarray) -> tuple[Callable[[np.ndarray, np.ndarray], np.ndarray], np.ndarray] | None:
         """Build the selected scanned function model."""
@@ -1068,60 +1029,22 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             model, _model_p0 = built
 
             p0, lb, ub, fixed = self._collect_params_from_table()
-
-
-            free = ~fixed if optimise else np.zeros_like(fixed, dtype=bool)
-            if not np.any(free):
-                p_opt = p0.copy()
-                residual = target_data - model(x_data, p_opt)
-                jac_free = np.empty((target_data.size, 0))
-                success = True
-                message = (
-                    "Evaluated at the current parameters."
-                    if not optimise
-                    else "All parameters fixed; evaluated model only."
-                )
-            else:
-                sigma = self._weights_sigma(target_data) if self._weighted_check.isChecked() else None
-
-                def residual_fun(p_free: np.ndarray) -> np.ndarray:
-                    p = p0.copy()
-                    p[free] = p_free
-                    r = target_data - model(x_data, p)
-                    if sigma is not None:
-                        r = r / sigma
-                    return np.asarray(r, dtype=float)
-
-                max_nfev = max(1, int(float(self._max_nfev_edit.text().strip() or "800")))
-                outcome = run_optimizer(
-                    self._optimizer_key(),
-                    residual_fun,
-                    p0[free],
-                    lb[free],
-                    ub[free],
-                    max_nfev=max_nfev,
-                    loss=self._loss_key(),
-                )
-                p_opt = p0.copy()
-                p_opt[free] = outcome.params
-                residual = target_data - model(x_data, p_opt)
-                jac_free = (
-                    outcome.jac
-                    if outcome.jac is not None
-                    # A method that reports no Jacobian still owes the user
-                    # error bars; the numerical one is what the evaluate path
-                    # already uses.
-                    else self._numerical_jacobian(model, x_data, p_opt)[:, free]
-                )
-                success = bool(outcome.success)
-                message = f"{BY_KEY[outcome.optimizer].label}: {outcome.message}"
-            fit_values = model(x_data, p_opt)
-            uncertainty_free = free.copy()
-            if not optimise and p0.size:
-                jac_free = self._numerical_jacobian(model, x_data, p_opt)
-                uncertainty_free = np.ones_like(fixed, dtype=bool)
-            metrics = self._metrics(target_data, fit_values, int(np.count_nonzero(uncertainty_free)))
-            std, _cov, corr = self._param_uncertainty(jac_free, residual, uncertainty_free, len(p0))
+            outcome = fit_engine.fit_curve(
+                model,
+                x_data,
+                target_data,
+                p0,
+                lb,
+                ub,
+                fixed,
+                optimise=optimise,
+                optimizer=self._optimizer_key(),
+                loss=self._loss_key(),
+                max_nfev=int(float(self._max_nfev_edit.text().strip() or "800")),
+                weighted=self._weighted_check.isChecked(),
+            )
+            p_opt, fit_values, residual = outcome.params, outcome.fit_values, outcome.residual
+            metrics, success, message = outcome.metrics, outcome.success, outcome.message
             frame = self._build_output_frame(clean, fit_values, residual)
             x_col, x2_col, target_col = self._selected_column_names()
             self._last_result = SeriesFitResult(
@@ -1132,8 +1055,8 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                 fit_mode="2D" if self._is_2d_fit() else "1D",
                 model_name=self._model_name(),
                 params=p_opt,
-                param_std=std,
-                param_corr=corr,
+                param_std=outcome.std,
+                param_corr=outcome.corr,
                 param_names=[self._param_label(row) for row in range(len(p_opt))],
                 expression=str(self._selected_model.get("expression", "")).strip(),
                 evaluated_expression=self._evaluated_expression_html(p_opt),
@@ -1141,6 +1064,11 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                 output_table=self._output_table_name(),
                 frame=frame,
                 message=message,
+                param_t=outcome.tvalues,
+                param_p=outcome.pvalues,
+                param_ci_low=outcome.ci_low,
+                param_ci_high=outcome.ci_high,
+                dof=outcome.dof,
             )
             applogger.info(
                 "%s %s: %s",
@@ -1308,74 +1236,6 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             cost=f"{cost:.6g}"
         )
 
-    def _weights_sigma(self, data: np.ndarray) -> np.ndarray:
-        return np.maximum(np.abs(data), np.nanmedian(np.abs(data)) * 1e-6 + 1e-12).astype(float)
-
-    def _metrics(self, target: np.ndarray, fit: np.ndarray, p_count: int) -> dict[str, float]:
-        residual = target - fit
-        n = int(target.size)
-        ss_res = float(np.nansum(np.square(residual)))
-        ss_tot = float(np.nansum(np.square(target - np.nanmean(target))))
-        return {
-            "rmse": float(np.sqrt(np.nanmean(np.square(residual)))),
-            "r2": 1.0 - ss_res / ss_tot if ss_tot > 0.0 else math.nan,
-            "ss_res": ss_res,
-            "aic": n * math.log(max(ss_res / max(n, 1), 1e-300)) + 2.0 * p_count,
-            "bic": n * math.log(max(ss_res / max(n, 1), 1e-300)) + p_count * math.log(max(n, 1)),
-        }
-
-    def _numerical_jacobian(
-        self,
-        model: Callable[[np.ndarray, np.ndarray], np.ndarray],
-        x_data: np.ndarray,
-        p: np.ndarray,
-    ) -> np.ndarray:
-        """Central-difference Jacobian of model residuals with respect to all parameters."""
-        params = np.asarray(p, dtype=float)
-        base = np.asarray(model(x_data, params), dtype=float)
-        jac = np.empty((base.size, params.size), dtype=float)
-        for col in range(params.size):
-            step = 1e-6 * max(1.0, abs(float(params[col])))
-            p_plus = params.copy(); p_plus[col] += step
-            p_minus = params.copy(); p_minus[col] -= step
-            y_plus = np.asarray(model(x_data, p_plus), dtype=float)
-            y_minus = np.asarray(model(x_data, p_minus), dtype=float)
-            jac[:, col] = -(y_plus - y_minus) / (2.0 * step)
-        return jac
-
-    def _param_uncertainty(
-        self,
-        jac_free: np.ndarray,
-        residual: np.ndarray,
-        free: np.ndarray,
-        n_params: int,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Return parameter standard errors, covariance and correlation matrix."""
-        std = np.full(n_params, np.nan, dtype=float)
-        cov_full = np.full((n_params, n_params), np.nan, dtype=float)
-        corr_full = np.full((n_params, n_params), np.nan, dtype=float)
-        if jac_free.size == 0 or jac_free.shape[1] == 0:
-            return std, cov_full, corr_full
-        try:
-            dof = max(1, residual.size - jac_free.shape[1])
-            cov = np.linalg.pinv(jac_free.T @ jac_free) * float(np.dot(residual, residual) / dof)
-            free_idx = np.flatnonzero(free)
-            for i, row in enumerate(free_idx):
-                for j, col in enumerate(free_idx):
-                    cov_full[row, col] = cov[i, j]
-            diag = np.maximum(np.diag(cov), 0.0)
-            std_free = np.sqrt(diag)
-            std[free_idx] = std_free
-            denom = np.outer(std_free, std_free)
-            with np.errstate(divide="ignore", invalid="ignore"):
-                corr = np.divide(cov, denom, out=np.full_like(cov, np.nan), where=denom > 0.0)
-            for i, row in enumerate(free_idx):
-                for j, col in enumerate(free_idx):
-                    corr_full[row, col] = corr[i, j]
-        except Exception:
-            pass
-        return std, cov_full, corr_full
-
     def _build_output_frame(self, clean: pd.DataFrame, fit_values: np.ndarray, residual: np.ndarray) -> pd.DataFrame:
         x_col, x2_col, target_col = self._selected_column_names()
         data: dict[str, Any] = {
@@ -1432,11 +1292,25 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         std = np.asarray(result.param_std, dtype=float)
         names = result.param_names or [self._param_label(row) for row in range(params.size)]
 
+        def column(values: np.ndarray | None, row: int) -> float:
+            if values is None or row >= np.asarray(values).size:
+                return math.nan
+            return float(np.asarray(values, dtype=float)[row])
+
+        def number(value: float) -> str:
+            return report_html.format_number(value) if np.isfinite(value) else ""
+
         parameter_rows = [
             (
                 html_escape(names[row] if row < len(names) else f"p[{row}]"),
                 report_html.format_number(value, digits=8),
                 self._std_text(std, row),
+                number(column(result.param_t, row)),
+                report_html.format_p_value(column(result.param_p, row))
+                if np.isfinite(column(result.param_p, row))
+                else "",
+                number(column(result.param_ci_low, row)),
+                number(column(result.param_ci_high, row)),
             )
             for row, value in enumerate(params)
         ]
@@ -1447,10 +1321,11 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             "ss_res": "SS residual",
             "aic": "AIC",
             "bic": "BIC",
+            "reduced_chi2": "Residual variance (reduced &chi;&sup2;)",
         }
         metric_rows = [
             (metric_labels[key], report_html.format_number(result.metrics[key]))
-            for key in ("r2", "rmse", "ss_res", "aic", "bic")
+            for key in ("r2", "rmse", "ss_res", "reduced_chi2", "aic", "bic")
             if key in result.metrics and np.isfinite(result.metrics[key])
         ]
 
@@ -1494,8 +1369,13 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             report_html.section(
                 _("Parameter estimates"),
                 report_html.table(
-                    ["Parameter", "Estimate", "Std. error"],
+                    ["Parameter", "Estimate", "Std. error", "t", "p", "95% CI low", "95% CI high"],
                     parameter_rows,
+                )
+                + report_html.note(
+                    f"t and p test whether each parameter is zero, with "
+                    f"{result.dof} residual degrees of freedom. Fixed "
+                    "parameters have no error, so none is shown."
                 ),
             ),
             report_html.section(
