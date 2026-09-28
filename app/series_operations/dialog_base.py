@@ -344,7 +344,7 @@ class SeriesOperationDialogBase(QDialog):
         combo = getattr(self, "model_combo", None)
         if combo is None:
             return {}
-        return {"model": combo.currentText()}
+        return {"model": self.current_model()}
 
     def parameter_values(self) -> dict[str, Any]:
         """Return the declared parameters' current values, keyed by name.
@@ -401,7 +401,15 @@ class SeriesOperationDialogBase(QDialog):
         return None
 
     def current_model(self, default: str = "") -> str:
-        """The selected model's name, or *default* while none is selected."""
+        """The selected model's key, or *default* while none is selected.
+
+        The item's data when it has any - a combo that shows translated names
+        keeps the untranslated one there, and that is what visible_for rules
+        and the code compare against - otherwise its text.
+        """
+        data = self.model_combo.currentData()
+        if data is not None and str(data):
+            return str(data)
         return self.model_combo.currentText() or default
 
     # ------------------------------------------------------------------

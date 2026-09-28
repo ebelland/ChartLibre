@@ -7062,3 +7062,57 @@ msgstr "Calcolo in corso... premi Ferma per interromperlo."
 
 msgid "Stop the calculation at its next step; nothing is changed"
 msgstr "Ferma il calcolo al passo successivo; non viene cambiato nulla"
+
+msgid "1 leaves z alone; 2 doubles it about the centre below."
+msgstr "1 lascia z invariato; 2 lo raddoppia attorno al centro qui sotto."
+
+msgid "Added to every x, after any rotation. Negative moves left."
+msgstr "Aggiunto a ogni x, dopo l'eventuale rotazione. Negativo sposta a sinistra."
+
+msgid "Added to every y, after any rotation. Negative moves down."
+msgstr "Aggiunto a ogni y, dopo l'eventuale rotazione. Negativo sposta in basso."
+
+msgid "Added to every z, after any rotation."
+msgstr "Aggiunto a ogni z, dopo l'eventuale rotazione."
+
+msgid "Applied first. Positive turns y towards z (right-hand rule)."
+msgstr "Applicata per prima. Positiva porta y verso z (regola della mano destra)."
+
+msgid "Applied last. Positive turns x towards y - the 2D rotation."
+msgstr "Applicata per ultima. Positiva porta x verso y - la rotazione 2D."
+
+msgid "Applied second. Positive turns z towards x."
+msgstr "Applicata per seconda. Positiva porta z verso x."
+
+msgid "Centre z:"
+msgstr "Centro z:"
+
+msgid "Draws a square mesh (a box in 3D) over the source's extent and the same mesh after the transform. A rotation turns it, a scale stretches it, a shear leans it over - which is easier to read off the mesh than off the points."
+msgstr "Disegna una griglia quadrata (una scatola in 3D) sull'estensione della sorgente e la stessa griglia dopo la trasformazione. Una rotazione la gira, una scala la allunga, un taglio la inclina - cose più facili da leggere sulla griglia che sui punti."
+
+msgid "Move z by:"
+msgstr "Sposta z di:"
+
+msgid "Rotation about x (degrees):"
+msgstr "Rotazione attorno a x (gradi):"
+
+msgid "Rotation about y (degrees):"
+msgstr "Rotazione attorno a y (gradi):"
+
+msgid "Rotation about z (degrees):"
+msgstr "Rotazione attorno a z (gradi):"
+
+msgid "Roto-translation"
+msgstr "Rototraslazione"
+
+msgid "Scale z by:"
+msgstr "Scala z di:"
+
+msgid "The fixed point's z."
+msgstr "La z del punto fisso."
+
+msgid "The line to reflect in, through the centre below. In 3D, z is left alone."
+msgstr "La retta di riflessione, passante per il centro qui sotto. In 3D z resta invariato."
+
+msgid "Use the middle of the series' own extent as the fixed point instead of the values above - which is what is wanted when the intent is 'turn this shape', not 'turn it about the origin'."
+msgstr "Usa il centro dell'estensione della serie come punto fisso invece dei valori sopra - che è ciò che serve quando l'intento è 'gira questa forma', non 'girala attorno all'origine'."

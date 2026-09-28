@@ -1409,6 +1409,21 @@ class TablesMixin:
         return int(cur.rowcount or 0)
 
 
+    def supports_sql_math(self) -> bool:
+        """Whether this SQLite can evaluate cos(), radians() and friends.
+
+        Only builds with SQLITE_ENABLE_MATH_FUNCTIONS have them - most now,
+        not all - and a query written with them fails outright elsewhere.
+        """
+        if not self._is_connected or self._con is None:
+            self._connect()
+        assert self._con is not None
+        try:
+            self._con.execute("SELECT cos(radians(0.0))").fetchone()
+        except sqlite3.OperationalError:
+            return False
+        return True
+
     def preview_expression(
         self,
         table_name: str,

@@ -19,6 +19,7 @@ from app.logs.logger import applogger
 from app.series_operations.geometry_dialog import (
     MIRROR,
     ROTATE,
+    ROTO_TRANSLATE,
     SCALE,
     SHEAR,
     TRANSLATE,
@@ -69,7 +70,7 @@ def dialog(qapp, repo: SqliteRepo):
 
 
 def _configure(dialog: SeriesGeometryDialog, model: str, **values) -> None:
-    dialog.model_combo.setCurrentText(model)
+    dialog.model_combo.setCurrentIndex(dialog.model_combo.findData(model))
     form = dialog._parameter_form_spec
     current = dict(form.values())
     current.update(values)
@@ -86,6 +87,7 @@ def _sql_result(repo: SqliteRepo, sql: str) -> pd.DataFrame:
         (ROTATE, {"angle": 30.0, "use_data_centre": False, "cx": 0.0, "cy": 0.0}),
         (ROTATE, {"angle": -90.0, "use_data_centre": True}),
         (TRANSLATE, {"dx": 3.5, "dy": -2.25}),
+        (ROTO_TRANSLATE, {"angle": 45.0, "dx": 10.0, "dy": -4.0, "use_data_centre": True}),
         (SCALE, {"sx": 2.0, "sy": 0.5, "use_data_centre": False, "cx": 1.0, "cy": 1.0}),
         (MIRROR, {"mirror_line": 0.0, "use_data_centre": False, "cx": 0.0, "cy": 0.0}),
         (MIRROR, {"mirror_line": 90.0, "use_data_centre": True}),
@@ -131,7 +133,7 @@ def test_four_right_angles_return_the_shape_to_itself(
     sql = result.sql
     for _turn in range(3):
         rebuilt = dialog._build_sql(
-            sql, result.transform, result.x_role, result.y_role, []
+            sql, result.transform, [result.x_role, result.y_role], []
         )
         sql = rebuilt
 
@@ -256,3 +258,88 @@ def test_an_awkward_column_name_does_not_break_the_query(
     finally:
         built.close()
         applogger.set_status_bar(None)
+
+
+CUBE = pd.DataFrame(
+    {
+        "x": [0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.3],
+        "y": [0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.6],
+        "z": [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.8],
+        "label": list("abcdefghi"),
+    }
+)
+
+
+@pytest.fixture
+def dialog_3d(qapp, repo: SqliteRepo):
+    repo.import_dataframe(CUBE, table_name="cube", normalize_columns=False)
+    figure_id = repo.create_figure_descriptor(name="Geometry 3D")
+    axis_id = repo.create_axis_descriptor(
+        figure_id=figure_id, axis_index=0, chart_type="Scatter Plot (3D)",
+        title="cube", x_label="x", y_label="y", options={},
+    )
+    repo.create_series_descriptor(
+        axis_id=axis_id, series_index=0, name="cube",
+        sql_query='SELECT * FROM "cube"', roles={"x": "x", "y": "y", "z": "z"}, style={},
+    )
+    built = SeriesGeometryDialog(repo=repo, figure_id=figure_id, parent=None)
+    built.series_selector.reload(select_all_series=True)
+    yield built
+    built.close()
+    applogger.set_status_bar(None)
+
+
+@pytest.mark.parametrize(
+    ("model", "values"),
+    [
+        (ROTATE, {"angle_x": 20.0, "angle_y": -35.0, "angle_z": 50.0, "use_data_centre": True}),
+        (ROTO_TRANSLATE, {"angle_x": 90.0, "angle_y": 0.0, "angle_z": 30.0, "dx": 1.0, "dy": 2.0, "dz": -3.0, "use_data_centre": False, "cx": 0.0, "cy": 0.0, "cz": 0.0}),
+        (TRANSLATE, {"dx": 1.0, "dy": 2.0, "dz": 3.0}),
+        (SCALE, {"sx": 2.0, "sy": 1.0, "sz": 0.5, "use_data_centre": True}),
+    ],
+)
+def test_3d_the_database_computes_what_the_preview_drew(
+    dialog_3d: SeriesGeometryDialog, repo: SqliteRepo, model: str, values: dict
+) -> None:
+    _configure(dialog_3d, model, **values)
+    result = dialog_3d.compute_results()[0]
+    assert result.is_3d
+    rows = repo.query_df(result.sql)
+    assert list(rows.columns)[:4] == ["x", "y", "z", "label"]  # z moved, label carried through
+    np.testing.assert_allclose(rows["x"].to_numpy(), result.after_x, atol=1e-9)
+    np.testing.assert_allclose(rows["y"].to_numpy(), result.after_y, atol=1e-9)
+    np.testing.assert_allclose(rows["z"].to_numpy(), result.after_z, atol=1e-9)
+    assert dialog_3d.result_series_spec(0, "", result).roles["z"] == "z"
+
+
+def test_a_3d_series_shows_three_angles_and_a_2d_one_does_not(
+    dialog: SeriesGeometryDialog, dialog_3d: SeriesGeometryDialog
+) -> None:
+    def visible(d: SeriesGeometryDialog) -> set[str]:
+        form = d._parameter_form_spec
+        form.refresh_visibility()
+        return {name for name, widget in form._widgets.items() if not widget.isHidden()}
+
+    _configure(dialog_3d, ROTO_TRANSLATE)
+    shown_3d = visible(dialog_3d)
+    assert {"angle_x", "angle_y", "angle_z", "dx", "dy", "dz", "cz"} <= shown_3d
+    assert "angle" not in shown_3d
+
+    _configure(dialog, ROTO_TRANSLATE)
+    shown_2d = visible(dialog)
+    assert {"angle", "dx", "dy", "cx", "cy"} <= shown_2d
+    assert not shown_2d & {"angle_x", "angle_y", "angle_z", "dz", "cz"}
+
+
+def test_translated_model_names_still_show_their_parameters(
+    dialog: SeriesGeometryDialog,
+) -> None:
+    """The bug: in Italian the combo said "Ruota", the rules said "Rotate",
+    and every model-dependent parameter was hidden."""
+    combo = dialog.model_combo
+    index = combo.findData(ROTATE)
+    combo.setItemText(index, "Ruota")
+    combo.setCurrentIndex(index)
+    form = dialog._parameter_form_spec
+    form.refresh_visibility()
+    assert not form._widgets["angle"].isHidden()

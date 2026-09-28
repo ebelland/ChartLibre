@@ -5908,3 +5908,57 @@ msgstr "Calcul en cours... appuyez sur Arrêter pour l'interrompre."
 
 msgid "Stop the calculation at its next step; nothing is changed"
 msgstr "Arrête le calcul à l'étape suivante ; rien n'est modifié"
+
+msgid "1 leaves z alone; 2 doubles it about the centre below."
+msgstr "1 laisse z inchangé ; 2 le double autour du centre ci-dessous."
+
+msgid "Added to every x, after any rotation. Negative moves left."
+msgstr "Ajouté à chaque x, après une éventuelle rotation. Négatif déplace vers la gauche."
+
+msgid "Added to every y, after any rotation. Negative moves down."
+msgstr "Ajouté à chaque y, après une éventuelle rotation. Négatif déplace vers le bas."
+
+msgid "Added to every z, after any rotation."
+msgstr "Ajouté à chaque z, après une éventuelle rotation."
+
+msgid "Applied first. Positive turns y towards z (right-hand rule)."
+msgstr "Appliquée en premier. Positive tourne y vers z (règle de la main droite)."
+
+msgid "Applied last. Positive turns x towards y - the 2D rotation."
+msgstr "Appliquée en dernier. Positive tourne x vers y - la rotation 2D."
+
+msgid "Applied second. Positive turns z towards x."
+msgstr "Appliquée en deuxième. Positive tourne z vers x."
+
+msgid "Centre z:"
+msgstr "Centre z :"
+
+msgid "Draws a square mesh (a box in 3D) over the source's extent and the same mesh after the transform. A rotation turns it, a scale stretches it, a shear leans it over - which is easier to read off the mesh than off the points."
+msgstr "Dessine un maillage carré (une boîte en 3D) sur l'étendue de la source et le même maillage après la transformation. Une rotation le fait tourner, une mise à l'échelle l'étire, un cisaillement l'incline - plus facile à lire sur le maillage que sur les points."
+
+msgid "Move z by:"
+msgstr "Déplacer z de :"
+
+msgid "Rotation about x (degrees):"
+msgstr "Rotation autour de x (degrés) :"
+
+msgid "Rotation about y (degrees):"
+msgstr "Rotation autour de y (degrés) :"
+
+msgid "Rotation about z (degrees):"
+msgstr "Rotation autour de z (degrés) :"
+
+msgid "Roto-translation"
+msgstr "Roto-translation"
+
+msgid "Scale z by:"
+msgstr "Mettre z à l'échelle par :"
+
+msgid "The fixed point's z."
+msgstr "Le z du point fixe."
+
+msgid "The line to reflect in, through the centre below. In 3D, z is left alone."
+msgstr "La ligne de réflexion, passant par le centre ci-dessous. En 3D, z reste inchangé."
+
+msgid "Use the middle of the series' own extent as the fixed point instead of the values above - which is what is wanted when the intent is 'turn this shape', not 'turn it about the origin'."
+msgstr "Utiliser le milieu de l'étendue de la série comme point fixe au lieu des valeurs ci-dessus - ce qu'on veut quand l'intention est « tourner cette forme », pas « la tourner autour de l'origine »."
