@@ -413,6 +413,7 @@ What the base also supplies, so an operation only overrides what differs:
 
 | Hook | Default |
 | --- | --- |
+| `MODELS` / `build_model_selector` | Set `MODELS = {name: OperationModel(doc_title=..., doc_url=...)}` and the base builds the Model combo (a line between models of different `group`) and keeps the Docs link on the selected model; `MODEL_LABEL`/`MODEL_TOOLTIP` word it. Whatever else differs per model goes in a subclass's fields (`ControlChartModel.subgrouped`, `SpectralMethod.welch`...) rather than in a separate set of names - see `filter_dialog.FILTERS`. |
 | `generated_style_filter` | `{"generated_<stem>": True, "<stem>_dialog": "series_<stem>"}` from the module name. Clustering, Interpolation, Outliers and Statistics keep older values, which are stored in existing projects - do not change them. |
 | `result_table_name` | `<RESULT_TABLE_PREFIX>_axis<id>_<series>[_<variant>]`, the variant being the result attribute named by `RESULT_TABLE_VARIANT` (`"model"` by default, None for none). A re-run replaces the table of the same name, so keep an operation's names stable. |
 | `result_to_frame` | `result.to_df()`. |
