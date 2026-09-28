@@ -465,7 +465,10 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_height_cm.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)
         self._fig_height_cm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        self._fig_frameon = QCheckBox(_("Draw figure frame"), opts_section)
+        # No text of its own: the row's label already says "Frame", and a
+        # sentence beside the box ran off the edge of the panel.
+        self._fig_frameon = QCheckBox(opts_section)
+        self._fig_frameon.setToolTip(_("Draw figure frame"))
         # Every font of the figure at once, on top of its style (todo N-12).
         self._font_scale = FontScaleControl(opts_section)
         self._font_scale.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)

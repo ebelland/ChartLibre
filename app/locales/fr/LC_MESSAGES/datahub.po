@@ -1066,10 +1066,10 @@ msgid "Fields:"
 msgstr "Champs :"
 
 msgid "Figure layout"
-msgstr "Disposition de la figure"
+msgstr "Disposition"
 
 msgid "Downsample"
-msgstr "Réduction des points"
+msgstr "Points max"
 
 msgid "Draw at most this many points per series, sampling the rest away."
 msgstr "Dessiner au plus ce nombre de points par série, en échantillonnant le reste."
@@ -1213,7 +1213,7 @@ msgid "Fraction of each segment shared with the next."
 msgstr "Fraction de chaque segment partagée avec le suivant."
 
 msgid "Frame on"
-msgstr "Cadre activé"
+msgstr "Cadre"
 
 msgid "Freundlich"
 msgstr "Freundlich"
@@ -1273,7 +1273,7 @@ msgid "Layout"
 msgstr "Disposition"
 
 msgid "Shared gap"
-msgstr "Espacement partagé"
+msgstr "Espacement"
 
 msgid "V"
 msgstr "V"
@@ -5601,7 +5601,7 @@ msgid "Linear interpolation"
 msgstr "Interpolation linéaire"
 
 msgid "Font size"
-msgstr "Taille de police"
+msgstr "Police"
 
 msgid "Make every font smaller"
 msgstr "Réduire toutes les polices"
@@ -6025,3 +6025,27 @@ msgstr "Données publiées"
 
 msgid "ChartLibre project (*.dhub);;All files (*.*)"
 msgstr "Projet ChartLibre (*.dhub);;Tous les fichiers (*.*)"
+
+msgid "Column gap"
+msgstr "Entre colonnes"
+
+msgid "Row gap"
+msgstr "Entre lignes"
+
+msgid "Left edge of the axes area, as a fraction of figure width."
+msgstr "Bord gauche de la zone des axes, en fraction de la largeur de la figure."
+
+msgid "Right edge of the axes area, as a fraction of figure width."
+msgstr "Bord droit de la zone des axes, en fraction de la largeur de la figure."
+
+msgid "Bottom edge of the axes area, as a fraction of figure height."
+msgstr "Bord inférieur de la zone des axes, en fraction de la hauteur de la figure."
+
+msgid "Top edge of the axes area, as a fraction of figure height."
+msgstr "Bord supérieur de la zone des axes, en fraction de la hauteur de la figure."
+
+msgid "Width of the gap between columns, as a fraction of the average axis width."
+msgstr "Espace entre les colonnes, en fraction de la largeur moyenne des axes."
+
+msgid "Height of the gap between rows, as a fraction of the average axis height."
+msgstr "Espace entre les lignes, en fraction de la hauteur moyenne des axes."

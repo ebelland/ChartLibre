@@ -868,7 +868,7 @@ msgid "Direction"
 msgstr "Direzione"
 
 msgid "Display"
-msgstr "Visualizzazione"
+msgstr "Vista"
 
 msgid "Distribution fit"
 msgstr "Fit della distribuzione"
@@ -1066,10 +1066,10 @@ msgid "Fields:"
 msgstr "Campi:"
 
 msgid "Figure layout"
-msgstr "Disposizione della figura"
+msgstr "Disposizione"
 
 msgid "Downsample"
-msgstr "Riduzione punti"
+msgstr "Punti max"
 
 msgid "Draw at most this many points per series, sampling the rest away."
 msgstr "Disegna al massimo questo numero di punti per serie, scartando il resto."
@@ -1213,7 +1213,7 @@ msgid "Fraction of each segment shared with the next."
 msgstr "Frazione di ciascun segmento condivisa con il successivo."
 
 msgid "Frame on"
-msgstr "Cornice attiva"
+msgstr "Cornice"
 
 msgid "Freundlich"
 msgstr "Freundlich"
@@ -1273,7 +1273,7 @@ msgid "Layout"
 msgstr "Layout"
 
 msgid "Shared gap"
-msgstr "Spazio tra assi condivisi"
+msgstr "Spazio assi"
 
 msgid "V"
 msgstr "V"
@@ -5604,7 +5604,7 @@ msgid "Linear interpolation"
 msgstr "Interpolazione lineare"
 
 msgid "Font size"
-msgstr "Dimensione font"
+msgstr "Font"
 
 msgid "Make every font smaller"
 msgstr "Rimpicciolisci tutti i font"
@@ -6028,3 +6028,27 @@ msgstr "Dati pubblicati"
 
 msgid "ChartLibre project (*.dhub);;All files (*.*)"
 msgstr "Progetto ChartLibre (*.dhub);;Tutti i file (*.*)"
+
+msgid "Column gap"
+msgstr "Tra colonne"
+
+msgid "Row gap"
+msgstr "Tra righe"
+
+msgid "Left edge of the axes area, as a fraction of figure width."
+msgstr "Bordo sinistro dell'area degli assi, come frazione della larghezza della figura."
+
+msgid "Right edge of the axes area, as a fraction of figure width."
+msgstr "Bordo destro dell'area degli assi, come frazione della larghezza della figura."
+
+msgid "Bottom edge of the axes area, as a fraction of figure height."
+msgstr "Bordo inferiore dell'area degli assi, come frazione dell'altezza della figura."
+
+msgid "Top edge of the axes area, as a fraction of figure height."
+msgstr "Bordo superiore dell'area degli assi, come frazione dell'altezza della figura."
+
+msgid "Width of the gap between columns, as a fraction of the average axis width."
+msgstr "Spazio tra le colonne, come frazione della larghezza media degli assi."
+
+msgid "Height of the gap between rows, as a fraction of the average axis height."
+msgstr "Spazio tra le righe, come frazione dell'altezza media degli assi."

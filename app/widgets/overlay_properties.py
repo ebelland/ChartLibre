@@ -43,6 +43,7 @@ from app.styles.style import (
     MARGIN_PANEL,
     CardFrame,
     TitledCard,
+    mark_destructive_button,
     stdSizeAndlayout,
 )
 from app.utils.config import get_constant
@@ -249,8 +250,14 @@ class OverlayPropertiesWidget(BaseProperties):
         row = QWidget(card)
         row_layout = QHBoxLayout(row)
         stdSizeAndlayout(row_layout)
-        add = QPushButton(add_text, row)
-        delete = QPushButton(_("Delete selected"), row)
+        # Short labels: the tab already says what is added or deleted, and
+        # "Add annotation" / "Delete selected" were cut off in a narrow
+        # panel. The full wording stays in the tooltip.
+        add = QPushButton(_("Add"), row)
+        add.setToolTip(add_text)
+        delete = QPushButton(_("Delete"), row)
+        delete.setToolTip(_("Delete selected"))
+        mark_destructive_button(delete)
         add.clicked.connect(lambda: self._add_row(table, cols))
         delete.clicked.connect(lambda: self._delete_selected_rows(table))
         row_layout.addWidget(add)
