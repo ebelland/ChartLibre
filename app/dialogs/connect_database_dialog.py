@@ -96,8 +96,8 @@ ENGINE_MYSQL = "mysql"
 #: (kind, display label). The label goes through tr() at the call site, not
 #: here, so it is a plain literal that xgettext's sweep can still find.
 _ENGINE_CHOICES: tuple[tuple[str, str], ...] = (
-    (ENGINE_SQLITE, "SQLite file"),
-    (ENGINE_DHUB, "Another ChartLibre project (.dhub)"),
+    (ENGINE_SQLITE, _("SQLite file")),
+    (ENGINE_DHUB, _("Another ChartLibre project (.dhub)")),
     (ENGINE_POSTGRES, "PostgreSQL"),
     (ENGINE_MYSQL, "MySQL"),
 )
@@ -106,7 +106,7 @@ _SQLITE_LIKE_ENGINES: frozenset[str] = frozenset({ENGINE_SQLITE, ENGINE_DHUB})
 #: The file dialog filter for ENGINE_DHUB - narrower than data_sources.
 #: DATABASE_FILE_FILTER's four-extension SQLite filter, because picking this
 #: engine already said the file being looked for is a ChartLibre project.
-_DHUB_FILE_FILTER: str = "ChartLibre project (*.dhub);;All files (*.*)"
+_DHUB_FILE_FILTER: str = _("ChartLibre project (*.dhub);;All files (*.*)")
 
 #: How wide the connection column is allowed to get. The form is fixed-length
 #: content - a host, a port, a name - so anything past this is width the

@@ -210,7 +210,8 @@ def apply_fir_filter(
     if response in ("highpass", "bandstop") and taps % 2 == 0:
         taps += 1
 
-    coefficients = firwin(taps, cutoff_arg, window=window, pass_zero=response, fs=fs)
+    pass_zero = response in ("lowpass", "bandstop")
+    coefficients = firwin(taps, cutoff_arg, window=window, pass_zero=pass_zero, fs=fs)
     return np.asarray(filtfilt(coefficients, [1.0], y), dtype=float)
 
 
@@ -225,7 +226,7 @@ def analytic_signal(y: np.ndarray, fs: float, output: str) -> np.ndarray:
     if output == "envelope":
         return np.abs(analytic)
 
-    phase = np.unwrap(np.angle(analytic))
+    phase = np.unwrap(np.angle(np.asarray(analytic, dtype=np.complex128)))
     if output == "phase":
         return phase
 
@@ -235,6 +236,9 @@ def analytic_signal(y: np.ndarray, fs: float, output: str) -> np.ndarray:
 
 def apply_detrend(y: np.ndarray, kind: str) -> np.ndarray:
     """Remove a linear or constant trend (against sample index, not x)."""
+    if kind not in ("linear", "constant"):
+        applogger.error(f"unsupported detrend type: {kind}")
+        raise ValueError(f"unsupported detrend type: {kind}")
     return np.asarray(scipy_detrend(y, type=kind), dtype=float)
 
 

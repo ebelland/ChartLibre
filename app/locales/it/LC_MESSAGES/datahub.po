@@ -3,218 +3,177 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChartLibre\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid " cm"
 msgstr " cm"
 
-
-msgid "'{name}' is already a table name.\n\nA query with that name could never be selected, because a table of the same name always wins."
-msgstr "'{name}' è già il nome di una tabella.\n\nUna query con quel nome non sarebbe mai selezionabile, perché una tabella con lo stesso nome ha sempre la precedenza."
-
+msgid ""
+"'{name}' is already a table name.\n"
+"\n"
+"A query with that name could never be selected, because a table of the same name always wins."
+msgstr ""
+"'{name}' è già un nome di tabella.\n"
+"\n"
+"Una query con quel nome non potrebbe mai essere selezionata, perché una tabella con lo stesso nome ha sempre la precedenza."
 
 msgid "(Default)"
 msgstr "(Predefinito)"
 
-
 msgid "(Embedded style)"
 msgstr "(Stile incorporato)"
-
 
 msgid "(auto)"
 msgstr "(auto)"
 
-
 msgid "(none)"
 msgstr "(nessuno)"
-
 
 msgid "0 interpolates every point exactly; larger values allow the spline to depart from noisy data."
 msgstr "0 interpola esattamente ogni punto; valori maggiori permettono alla spline di discostarsi da dati rumorosi."
 
-
 msgid "1 for the slope, 2 for the curvature."
 msgstr "1 per la pendenza, 2 per la curvatura."
-
 
 msgid "1, 2.5, 10 or one per line"
 msgstr "1, 2.5, 10 oppure uno per riga"
 
-
 msgid "3 is the Shewhart convention: on a stable normal process it gives about one false alarm per 370 points, which balances missed signals against chasing noise."
 msgstr "3 è la convenzione di Shewhart: su un processo normale e stabile dà circa un falso allarme ogni 370 punti, il che bilancia i segnali mancati e le false segnalazioni."
-
 
 msgid "A JOIN needs at least two tables."
 msgstr "Servono almeno due tabelle per un JOIN."
 
-
 msgid "A UNION needs at least two tables."
 msgstr "Servono almeno due tabelle per una UNION."
-
 
 msgid "A calibration run with uncertainty in what was applied and in what was measured."
 msgstr "Una serie di calibrazione con incertezza sia su ciò che è stato applicato sia su ciò che è stato misurato."
 
-
 msgid "A daily average that is computed on every read rather than stored, so editing the query updates the chart."
 msgstr "Una media giornaliera calcolata a ogni lettura invece che salvata, quindi modificare la query aggiorna il grafico."
-
 
 msgid "A derivative or an integral rarely shares a scale with the series it came from - d/dx of a slow drift is near zero beside data in the thousands - so a new axis is the default. Same axis overlays them when the ranges are comparable; a new figure keeps the result out of this chart entirely."
 msgstr "Una derivata o un integrale raramente condivide la scala della serie di origine - la d/dx di una deriva lenta è quasi zero accanto a dati dell'ordine delle migliaia - quindi l'impostazione predefinita è un nuovo asse. Stesso asse sovrappone le curve quando gli intervalli sono confrontabili; nuova figura tiene il risultato del tutto fuori da questo grafico."
 
-
 msgid "A derivative or an integral rarely shares a scale with the series it came from - d/dx of a slow drift is near zero beside data in the thousands. On by default for that reason; turn it off to overlay when the ranges happen to be comparable."
 msgstr "Una derivata o un integrale raramente condivide la scala della serie di origine: la d/dx di una deriva lenta è quasi zero accanto a dati dell'ordine delle migliaia. Per questo è attivo per impostazione predefinita; disattivalo per sovrapporre le curve quando gli intervalli sono confrontabili."
-
 
 msgid "A drawn function is usually meant to be compared with the data, so the same axis is the default here. A new axis or figure keeps it separate when the scales do not match."
 msgstr "Una funzione tracciata di solito serve a essere confrontata con i dati, quindi qui l'impostazione predefinita è lo stesso asse. Un nuovo asse o una nuova figura la tengono separata quando le scale non corrispondono."
 
-
 msgid "A new language is applied the next time the app starts."
 msgstr "La nuova lingua verrà applicata al prossimo avvio dell'applicazione."
-
 
 msgid "A process that shifts part-way through. Run Series operations, Control Chart on the series to see the shift caught."
 msgstr "Un processo che si sposta a metà percorso. Esegui Operazioni sulle serie, Carta di controllo sulla serie per vedere lo spostamento rilevato."
 
-
 msgid "A query named '{name}' already exists. Replace it?"
 msgstr "Esiste già una query di nome '{name}'. Sostituirla?"
-
 
 msgid "A query needs a name."
 msgstr "La query deve avere un nome."
 
-
 msgid "AIC (penalises free parameters)"
 msgstr "AIC (penalizza i parametri liberi)"
-
 
 msgid "Add"
 msgstr "Aggiungi"
 
-
 msgid "Add a chart"
 msgstr "Aggiungi un grafico"
-
 
 msgid "Add a series to the selected axis"
 msgstr "Aggiunge una serie all'asse selezionato"
 
-
 msgid "Add a web source of your own to the quick-pick list"
 msgstr "Aggiunge una fonte web personale all'elenco rapido"
-
 
 msgid "Add an axis to the current figure showing the analysed series. Preview draws it; closing without applying removes it again."
 msgstr "Aggiunge alla figura corrente un asse che mostra le serie analizzate. L'anteprima lo disegna; chiudendo senza applicare viene rimosso."
 
-
 msgid "Add an item"
 msgstr "Aggiunge un elemento"
-
 
 msgid "Add annotation"
 msgstr "Aggiungi annotazione"
 
-
 msgid "Add at least one series before applying."
 msgstr "Aggiungi almeno una serie prima di applicare."
-
 
 msgid "Add column from SQL expression..."
 msgstr "Aggiungi colonna da espressione SQL..."
 
-
 msgid "Add computed column"
 msgstr "Aggiungi colonna calcolata"
-
 
 msgid "Add computed column failed"
 msgstr "Impossibile aggiungere la colonna calcolata"
 
-
 msgid "Add new axis"
-msgstr "Aggiungi nuovo asse"
-
+msgstr "Aggiungi un nuovo asse"
 
 msgid "Add series"
 msgstr "Aggiungi serie"
 
-
 msgid "Add source"
 msgstr "Aggiungi fonte"
-
 
 msgid "Additional kwargs editor can be inserted here by the host."
 msgstr "Un editor di kwargs aggiuntivo può essere inserito qui dall'host."
 
-
 msgid "Adsorption and surface"
 msgstr "Adsorbimento e superfici"
-
 
 msgid "Algorithm:"
 msgstr "Algoritmo:"
 
-
 msgid "All columns are empty or set to Ignore."
 msgstr "Tutte le colonne sono vuote o impostate su Ignora."
-
 
 msgid "All statistics"
 msgstr "Tutte le statistiche"
 
-
 msgid "Allow evaluation outside source data X range."
 msgstr "Consenti la valutazione fuori dall'intervallo X dei dati di origine."
-
 
 msgid "Allow extrapolation"
 msgstr "Consenti estrapolazione"
 
-
 msgid "Alternative hypothesis for supported tests."
 msgstr "Ipotesi alternativa per i test supportati."
-
 
 msgid "Alternative:"
 msgstr "Alternativa:"
 
-
 msgid "Analyse frequencies"
 msgstr "Analizza le frequenze"
-
 
 msgid "Anderson method:"
 msgstr "Metodo di Anderson:"
 
-
 msgid "Anderson p-value: Monte Carlo"
 msgstr "p-value di Anderson: Monte Carlo"
-
 
 msgid "Anderson p-value: interpolated"
 msgstr "p-value di Anderson: interpolato"
 
-
 msgid "Anderson-Darling normality"
 msgstr "Normalità di Anderson-Darling"
-
 
 msgid "Annotation"
 msgstr "Annotazione"
 
-
 msgid "Annotation added at x: {x}, y: {y}"
 msgstr "Annotazione aggiunta a x: {x}, y: {y}"
-
 
 msgid "Annotations"
 msgstr "Annotazioni"
@@ -231,10 +190,8 @@ msgstr "Kwargs"
 msgid "Position"
 msgstr "Posizione"
 
-
 msgid "Annotations are stored in axis options. Kwargs must be JSON, for example: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
 msgstr "Le annotazioni sono salvate nelle opzioni dell'asse. I kwargs devono essere in JSON, per esempio: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
-
 
 msgid "App style"
 msgstr "Stile dell'applicazione"
@@ -245,1058 +202,868 @@ msgstr "Seleziona un foglio di stile"
 msgid "Qt Stylesheet (*.qss);;All Files (*)"
 msgstr "Foglio di stile Qt (*.qss);;Tutti i file (*)"
 
-
 msgid "Appearance"
 msgstr "Aspetto"
-
 
 msgid "Application Log"
 msgstr "Log dell'applicazione"
 
-
 msgid "Application preferences"
 msgstr "Preferenze dell'applicazione"
-
 
 msgid "Apply"
 msgstr "Applica"
 
-
 msgid "Apply Nelson rules:"
 msgstr "Applica le regole di Nelson:"
-
 
 msgid "Apply multi-peak"
 msgstr "Applica multi-picco"
 
-
 msgid "Apply the changes"
 msgstr "Applica le modifiche"
-
 
 msgid "Arctan (very robust)"
 msgstr "Arcotangente (molto robusta)"
 
-
 msgid "Arctan sigmoid"
 msgstr "Sigmoide arcotangente"
-
 
 msgid "Arrhenius Kelvin"
 msgstr "Arrhenius in Kelvin"
 
-
 msgid "Arrhenius-type temperature dependence. X is temperature in Kelvin."
 msgstr "Dipendenza dalla temperatura di tipo Arrhenius. La X è la temperatura in Kelvin."
-
 
 msgid "As a fraction of the signal's full range. 0.1 keeps peaks standing at least a tenth of the range above their surroundings."
 msgstr "Come frazione dell'intervallo completo del segnale. 0,1 mantiene i picchi che si elevano almeno di un decimo dell'intervallo rispetto a ciò che li circonda."
 
-
 msgid "Asymmetric Gaussian"
 msgstr "Gaussiana asimmetrica"
-
 
 msgid "Asymmetric growth curve."
 msgstr "Curva di crescita asimmetrica."
 
-
 msgid "Author"
 msgstr "Autore"
-
 
 msgid "Auto"
 msgstr "Auto"
 
-
 msgid "Automatic"
 msgstr "Automatico"
-
 
 msgid "Automatic (both axes)"
 msgstr "Automatici (entrambi gli assi)"
 
-
 msgid "Automatic x, manual y"
 msgstr "X automatico, Y manuale"
-
 
 msgid "Automatic y, manual x"
 msgstr "Y automatico, X manuale"
 
-
 msgid "Axis / Series"
 msgstr "Asse / Serie"
-
 
 msgid "Axis drawing (kwargs)"
 msgstr "Disegno dell'asse (kwargs)"
 
-
 msgid "Axis name"
 msgstr "Nome dell'asse"
-
 
 msgid "Axis name:"
 msgstr "Nome dell'asse:"
 
-
 msgid "Axis options"
 msgstr "Opzioni dell'asse"
-
 
 msgid "Axis properties"
 msgstr "Proprietà dell'asse"
 
-
 msgid "Axis:"
 msgstr "Asse:"
-
 
 msgid "BIC (penalises them harder)"
 msgstr "BIC (li penalizza più severamente)"
 
-
 msgid "Baseline:"
 msgstr "Linea di base:"
-
 
 msgid "Basic functions"
 msgstr "Funzioni di base"
 
-
 msgid "Basin hopping"
 msgstr "Basin hopping"
-
 
 msgid "Batch size for Monte Carlo resampling. Auto lets SciPy choose."
 msgstr "Dimensione del lotto per il ricampionamento Monte Carlo. Auto lascia scegliere a SciPy."
 
-
 msgid "Batch yields - distributions compared"
 msgstr "Rese dei lotti - distribuzioni a confronto"
-
 
 msgid "Best fit"
 msgstr "Fit migliore"
 
-
 msgid "Beta CDF scaled"
 msgstr "CDF beta scalata"
-
 
 msgid "Beta PDF scaled"
 msgstr "PDF beta scalata"
 
-
 msgid "Both sides"
 msgstr "Su entrambi i lati"
-
 
 msgid "Bottom"
 msgstr "Basso"
 
-
 msgid "Boundary:"
 msgstr "Condizione al contorno:"
-
 
 msgid "Bounded least squares, often better when a parameter sits on a bound."
 msgstr "Minimi quadrati con vincoli, spesso migliori quando un parametro si appoggia a un limite."
 
-
 msgid "Bounded least squares. The right answer for most fits."
 msgstr "Minimi quadrati con vincoli. La scelta giusta per la maggior parte dei fit."
-
 
 msgid "Browse…"
 msgstr "Sfoglia…"
 
-
 msgid "Build a JOIN"
 msgstr "Crea JOIN"
-
 
 msgid "Build a UNION"
 msgstr "Crea UNION"
 
-
 msgid "Build a multi-peak expression"
 msgstr "Costruisci un’espressione multi-picco"
-
 
 msgid "Load one of the shipped demo projects and open it"
 msgstr "Carica uno dei progetti dimostrativi inclusi e aprilo"
 
-
 msgid "Builds a 1D multi-peak expression. Edit generated parameters before fitting."
 msgstr "Costruisce un'espressione multipicco 1D. Modifica i parametri generati prima del fit."
-
 
 msgid "Calculus"
 msgstr "Derivate/Integrali"
 
-
 msgid "Calibration - error bars on both axes"
 msgstr "Calibrazione - barre d'errore su entrambi gli assi"
-
 
 msgid "Cancel"
 msgstr "Annulla"
 
-
 msgid "Cauchy (very robust)"
 msgstr "Cauchy (molto robusta)"
-
 
 msgid "Cauchy CDF"
 msgstr "CDF di Cauchy"
 
-
 msgid "Cauchy PDF"
 msgstr "PDF di Cauchy"
-
 
 msgid "Centre line"
 msgstr "Linea centrale"
 
-
 msgid "Chart"
 msgstr "Carta"
-
 
 msgid "Chart Options"
 msgstr "Opzioni grafico"
 
-
 msgid "Chart name"
 msgstr "Nome del grafico"
-
 
 msgid "Chart settings"
 msgstr "Impostazioni grafico"
 
-
 msgid "Chart sizing"
 msgstr "Dimensionamento del grafico"
-
 
 msgid "Chart:"
 msgstr "Grafico:"
 
-
 msgid "Charts"
 msgstr "Grafici"
-
 
 msgid "Check one or more series. One-sample tests are calculated for each checked series. Paired tests are calculated for every pair when two or more series are checked."
 msgstr "Seleziona una o più serie. I test a un campione sono calcolati per ogni serie selezionata. I test appaiati sono calcolati per ogni coppia quando sono selezionate due o più serie."
 
-
 msgid "Check the database, report problems, and compact it"
 msgstr "Controlla il database, segnala i problemi e compattalo"
-
 
 msgid "Choose how Anderson-Darling p-values are calculated when supported by SciPy."
 msgstr "Scegli come calcolare i p-value di Anderson-Darling quando SciPy lo supporta."
 
-
 msgid "Choose how generated X values are built."
 msgstr "Scegli come vengono costruiti i valori X generati."
-
 
 msgid "Choose the calculation."
 msgstr "Scegli il calcolo da eseguire."
 
-
 msgid "Choose the clustering algorithm family."
 msgstr "Scegli la famiglia di algoritmi di clustering."
-
 
 msgid "Choose the control chart."
 msgstr "Scegli la carta di controllo."
 
-
 msgid "Choose the exact scipy.cluster function/workflow to use."
 msgstr "Scegli l'esatta funzione o procedura di scipy.cluster da usare."
-
 
 msgid "Choose the fitting/interpolation model."
 msgstr "Scegli il modello di fit o interpolazione."
 
-
 msgid "Choose the outlier detection method."
 msgstr "Scegli il metodo di rilevamento degli outlier."
-
 
 msgid "Choose the smoothing/filtering method."
 msgstr "Scegli il metodo di smoothing o filtraggio."
 
-
 msgid "Choose the spectral or correlation estimator."
 msgstr "Scegli lo stimatore spettrale o di correlazione."
-
 
 msgid "Choose whether clusters are rendered as one point-colored series or as separate series."
 msgstr "Scegli se i cluster sono resi come un'unica serie con punti colorati o come serie separate."
 
-
 msgid "Choose whether the source series is 1D, 2D, or 3D data."
 msgstr "Scegli se la serie di origine è un dato 1D, 2D o 3D."
-
 
 msgid "Choose which numeric columns are used as clustering features."
 msgstr "Scegli quali colonne numeriche usare come feature di clustering."
 
-
 msgid "Choose which statistics section to display."
 msgstr "Scegli quale sezione di statistiche visualizzare."
-
 
 msgid "Clear"
 msgstr "Svuota"
 
-
 msgid "Clear the content"
 msgstr "Svuota il contenuto"
-
 
 msgid "Clipboard"
 msgstr "Appunti"
 
-
 msgid "Clipboard is empty or not tabular text."
 msgstr "Gli appunti sono vuoti o non contengono testo tabellare."
-
 
 msgid "Close"
 msgstr "Chiudi"
 
-
 msgid "Close the current window"
 msgstr "Chiudi la finestra corrente"
-
 
 msgid "Close this window"
 msgstr "Chiudi questa finestra"
 
-
 msgid "Clustering"
 msgstr "Clustering"
-
 
 msgid "Clustering is an unsupervised learning technique used to group data points into clusters based on similarity. There is no pre-labeled output; the goal is to discover structure in the data."
 msgstr "Il clustering è una tecnica di apprendimento non supervisionato che raggruppa i dati in cluster in base alla somiglianza. Non esiste un output etichettato in partenza: l'obiettivo è scoprire la struttura dei dati."
 
-
 msgid "Color"
 msgstr "Colore"
-
 
 msgid "Cols"
 msgstr "Colonne"
 
-
 msgid "Columns"
 msgstr "Colonne"
-
 
 msgid "Completions throughout, and the first draft of much of the dialog plumbing."
 msgstr "Completamenti ovunque, e la prima stesura di buona parte dell'impalcatura dei dialoghi."
 
-
 msgid "Compute descriptive statistics, distributions, correlations, and summary metrics."
 msgstr "Calcola statistiche descrittive, distribuzioni, correlazioni e metriche di sintesi."
-
 
 msgid "Compute metrics"
 msgstr "Calcola le metriche"
 
-
 msgid "Consecutive points averaged into each plotted subgroup. Rational subgrouping: choose it so variation within a subgroup is only common-cause noise."
 msgstr "Punti consecutivi mediati in ogni sottogruppo tracciato. Sottogruppi razionali: scegli la dimensione in modo che la variazione interna al sottogruppo sia solo rumore di causa comune."
-
 
 msgid "Constant"
 msgstr "Costante"
 
-
 msgid "Constant baseline."
 msgstr "Linea di base costante."
-
 
 msgid "Contribution"
 msgstr "Contributo"
 
-
 msgid "Control Chart"
 msgstr "Carta di controllo"
-
 
 msgid "Convert to decibels"
 msgstr "Converti in decibel"
 
-
 msgid "Convolution-like Gaussian/Lorentzian Voigt profile."
 msgstr "Profilo di Voigt, convoluzione di gaussiana e lorentziana."
-
 
 msgid "Cooperative saturation curve."
 msgstr "Curva di saturazione cooperativa."
 
-
 msgid "Connect"
 msgstr "Connetti"
-
 
 msgid "Connect to the database and list its tables"
 msgstr "Connettiti al database ed elenca le sue tabelle"
 
-
 msgid "Connect to database"
 msgstr "Connetti a un database"
-
 
 msgid "Copy"
 msgstr "Copia"
 
-
 msgid "Copy figure"
 msgstr "Copia figura"
-
 
 msgid "Copy parameters"
 msgstr "Copia i parametri"
 
-
 msgid "Copy to the clipboard"
 msgstr "Copia negli appunti"
-
 
 msgid "Correlation / association"
 msgstr "Correlazione / associazione"
 
-
 msgid "Correlation matrix"
 msgstr "Matrice di correlazione"
-
 
 msgid "Correlation tests"
 msgstr "Test di correlazione"
 
-
 msgid "Cosine"
 msgstr "Coseno"
-
 
 msgid "Cosine oscillation."
 msgstr "Oscillazione cosinusoidale."
 
+msgid ""
+"Could not build the preview:\n"
+"{error}"
+msgstr ""
+"Impossibile costruire l’anteprima:\n"
+"{error}"
 
-msgid "Could not build the preview:\n{error}"
-msgstr "Impossibile costruire l’anteprima:\n{error}"
+msgid ""
+"Could not build the temporary style:\n"
+"{error}"
+msgstr ""
+"Impossibile costruire lo stile temporaneo:\n"
+"{error}"
 
+msgid ""
+"Could not compute the stacked parameters:\n"
+"{error}"
+msgstr ""
+"Impossibile calcolare i parametri della pila:\n"
+"{error}"
 
-msgid "Could not build the temporary style:\n{error}"
-msgstr "Impossibile costruire lo stile temporaneo:\n{error}"
+msgid ""
+"Could not create the database:\n"
+"{error}"
+msgstr ""
+"Impossibile creare il database:\n"
+"{error}"
 
+msgid ""
+"Could not load the style:\n"
+"{error}"
+msgstr ""
+"Impossibile caricare lo stile:\n"
+"{error}"
 
-msgid "Could not compute the stacked parameters:\n{error}"
-msgstr "Impossibile calcolare i parametri della pila:\n{error}"
+msgid ""
+"Could not open a browser. The documentation is at:\n"
+"{url}"
+msgstr ""
+"Impossibile aprire il browser. La documentazione è su:\n"
+"{url}"
 
+msgid ""
+"Could not open the database:\n"
+"{error}"
+msgstr ""
+"Impossibile aprire il database:\n"
+"{error}"
 
-msgid "Could not create the database:\n{error}"
-msgstr "Impossibile creare il database:\n{error}"
+msgid ""
+"Could not read the clipboard:\n"
+"{error}"
+msgstr ""
+"Impossibile leggere gli appunti:\n"
+"{error}"
 
+msgid ""
+"Could not read from the database:\n"
+"{error}"
+msgstr ""
+"Impossibile leggere dal database:\n"
+"{error}"
 
-msgid "Could not load the style:\n{error}"
-msgstr "Impossibile caricare lo stile:\n{error}"
+msgid ""
+"Could not fetch the data:\n"
+"{error}"
+msgstr ""
+"Impossibile scaricare i dati:\n"
+"{error}"
 
-
-msgid "Could not open a browser. The documentation is at:\n{url}"
-msgstr "Impossibile aprire il browser. La documentazione è su:\n{url}"
-
-
-msgid "Could not open the database:\n{error}"
-msgstr "Impossibile aprire il database:\n{error}"
-
-
-msgid "Could not read the clipboard:\n{error}"
-msgstr "Impossibile leggere gli appunti:\n{error}"
-
-
-msgid "Could not read from the database:\n{error}"
-msgstr "Impossibile leggere dal database:\n{error}"
-
-
-msgid "Could not fetch the data:\n{error}"
-msgstr "Impossibile scaricare i dati:\n{error}"
-
-
-msgid "Could not render the preview:\n{error}"
-msgstr "Impossibile disegnare l’anteprima:\n{error}"
-
+msgid ""
+"Could not render the preview:\n"
+"{error}"
+msgstr ""
+"Impossibile disegnare l’anteprima:\n"
+"{error}"
 
 msgid "Could not save the chart."
 msgstr "Impossibile salvare il grafico."
 
+msgid ""
+"Could not save the query:\n"
+"{error}"
+msgstr ""
+"Impossibile salvare la query:\n"
+"{error}"
 
-msgid "Could not save the query:\n{error}"
-msgstr "Impossibile salvare la query:\n{error}"
-
-
-msgid "Could not save the style:\n{error}"
-msgstr "Impossibile salvare lo stile:\n{error}"
-
+msgid ""
+"Could not save the style:\n"
+"{error}"
+msgstr ""
+"Impossibile salvare lo stile:\n"
+"{error}"
 
 msgid "Count, average, min and max, grouped by a column"
 msgstr "Conteggio, media, minimo e massimo, raggruppati per colonna"
 
-
 msgid "Create a new database"
 msgstr "Crea un nuovo database"
-
 
 msgid "Create a new plot tab"
 msgstr "Crea una nuova scheda grafico"
 
-
 msgid "Create a new plot tab for the current table"
 msgstr "Crea una nuova scheda grafico per la tabella corrente"
-
 
 msgid "Create a new plot tab from the current data context."
 msgstr "Crea una nuova scheda grafico dal contesto dati corrente."
 
-
 msgid "Load demo"
 msgstr "Carica demo"
-
 
 msgid "Create new figure (new tab)"
 msgstr "Crea una nuova figura (nuova scheda)"
 
-
 msgid "Credits"
 msgstr "Riconoscimenti"
-
 
 msgid "Cubic"
 msgstr "Cubica"
 
-
 msgid "Curve"
 msgstr "Curva"
-
 
 msgid "Cut threshold for distance/inconsistent criteria. Leave at auto for median linkage distance."
 msgstr "Soglia di taglio per i criteri distance/inconsistent. Lascia auto per la distanza di linkage mediana."
 
-
 msgid "DPI"
 msgstr "DPI"
-
 
 msgid "Damped sine"
 msgstr "Sinusoide smorzata"
 
-
 msgid "Damping (sigma):"
 msgstr "Smorzamento (sigma):"
-
 
 msgid "Damping sigma of the Laplace variable s = sigma + i*omega. Zero reduces the transform to the Fourier transform; increasing it weights early samples more and suppresses late ones, which is what makes a decaying or unstable signal integrable."
 msgstr "Smorzamento sigma della variabile di Laplace s = sigma + i*omega. Zero riduce la trasformata a quella di Fourier; aumentandolo si pesano di più i campioni iniziali e si attenuano quelli finali, ed è ciò che rende integrabile un segnale smorzato o instabile."
 
-
 msgid "Dark"
 msgstr "Scuro"
-
 
 msgid "Dash-dot"
 msgstr "Tratto-punto"
 
-
 msgid "Dashed"
 msgstr "Tratteggiata"
-
 
 msgid "Data"
 msgstr "Dati"
 
-
 msgid "Data source:"
 msgstr "Sorgente dati:"
-
 
 msgid "Data type:"
 msgstr "Tipo di dato:"
 
-
 msgid "Database"
 msgstr "Database"
-
 
 msgid "Database check"
 msgstr "Controllo del database"
 
-
 msgid "Default export format"
 msgstr "Formato di esportazione predefinito"
-
 
 msgid "Degree:"
 msgstr "Grado:"
 
-
 msgid "Delete"
 msgstr "Elimina"
-
 
 msgid "Delete axis"
 msgstr "Elimina asse"
 
-
 msgid "Delete chart"
 msgstr "Elimina grafico"
-
 
 msgid "Delete column"
 msgstr "Elimina colonna"
 
-
 msgid "Delete column failed"
 msgstr "Eliminazione della colonna non riuscita"
-
 
 msgid "Delete query"
 msgstr "Elimina query"
 
-
 msgid "Delete selected"
 msgstr "Elimina selezionati"
-
 
 msgid "Delete selected items…"
 msgstr "Elimina gli elementi selezionati…"
 
-
 msgid "Delete selected tables…"
 msgstr "Elimina le tabelle selezionate…"
-
 
 msgid "Delete series"
 msgstr "Elimina serie"
 
-
 msgid "Delete source"
 msgstr "Elimina fonte"
-
 
 msgid "Delete table"
 msgstr "Elimina tabella"
 
-
 msgid "Delete tables"
 msgstr "Elimina tabelle"
-
 
 msgid "Delete the axis '{axis}'?"
 msgstr "Eliminare l'asse '{axis}'?"
 
-
 msgid "Delete the column '{column}'? This cannot be undone."
 msgstr "Eliminare la colonna '{column}'? L’operazione non può essere annullata."
 
-
-msgid "Delete the saved query '{name}'?\n\nCharts built on it will stop finding their data."
-msgstr "Eliminare la query salvata '{name}'?\n\nI grafici che la usano non troveranno più i loro dati."
-
+msgid ""
+"Delete the saved query '{name}'?\n"
+"\n"
+"Charts built on it will stop finding their data."
+msgstr ""
+"Eliminare la query salvata '{name}'?\n"
+"\n"
+"I grafici che la usano non troveranno più i loro dati."
 
 msgid "Delete the selected saved query"
 msgstr "Elimina la query salvata selezionata"
 
-
 msgid "Delete the selected table"
 msgstr "Elimina la tabella selezionata"
-
 
 msgid "Delete the selection"
 msgstr "Elimina la selezione"
 
-
 msgid "Delete the series '{series}'?"
 msgstr "Eliminare la serie '{series}'?"
-
 
 msgid "Delete the table '{table}'?"
 msgstr "Eliminare la tabella '{table}'?"
 
-
 msgid "Delete this chart"
 msgstr "Elimina questo grafico"
-
 
 msgid "Delete this chart?"
 msgstr "Eliminare questo grafico?"
 
-
 msgid "Delete this figure"
 msgstr "Elimina questa figura"
-
 
 msgid "Delete {count} selected items"
 msgstr "Elimina {count} elementi selezionati"
 
-
-msgid "Delete {count} selected items?\n\n{sources}\n\nCharts built on a saved query will stop finding their data."
-msgstr "Eliminare {count} elementi selezionati?\n\n{sources}\n\nI grafici costruiti su una query salvata non troveranno più i loro dati."
-
+msgid ""
+"Delete {count} selected items?\n"
+"\n"
+"{sources}\n"
+"\n"
+"Charts built on a saved query will stop finding their data."
+msgstr ""
+"Eliminare {count} elementi selezionati?\n"
+"\n"
+"{sources}\n"
+"\n"
+"I grafici costruiti su una query salvata non troveranno più i loro dati."
 
 msgid "Delete {count} selected tables"
 msgstr "Elimina {count} tabelle selezionate"
 
-
-msgid "Delete {count} selected tables?\n\n{tables}"
-msgstr "Eliminare le {count} tabelle selezionate?\n\n{tables}"
-
+msgid ""
+"Delete {count} selected tables?\n"
+"\n"
+"{tables}"
+msgstr ""
+"Eliminare le {count} tabelle selezionate?\n"
+"\n"
+"{tables}"
 
 msgid "Delete…"
 msgstr "Elimina…"
 
-
 msgid "Delimiter"
 msgstr "Delimitatore"
-
 
 msgid "Derivative order:"
 msgstr "Ordine della derivata:"
 
-
 msgid "Derivative-free line searches; often reaches a valley a simplex crawls to."
 msgstr "Ricerche lungo direzioni, senza derivate; spesso raggiunge una valle a cui il simplesso arriva strisciando."
-
 
 msgid "Derivative-free. Slow, but unbothered by a rough or noisy surface."
 msgstr "Senza derivate. Lento, ma indifferente a una superficie irregolare o rumorosa."
 
-
 msgid "Derive from the x role"
 msgstr "Ricava dal ruolo x"
-
 
 msgid "Description"
 msgstr "Descrizione"
 
-
 msgid "Descriptive statistics"
 msgstr "Statistiche descrittive"
-
 
 msgid "Design, direction, and the domain this exists for."
 msgstr "Progettazione, direzione e il dominio per cui esiste."
 
-
 msgid "Detail"
 msgstr "Dettaglio"
-
 
 msgid "Detect and hide outliers in a series"
 msgstr "Rileva e nascondi gli outlier di una serie"
 
-
 msgid "Detect anomalies"
 msgstr "Rileva le anomalie"
-
 
 msgid "Detect outliers in the series."
 msgstr "Rileva gli outlier della serie."
 
-
 msgid "Detect the parameter count from the expression"
 msgstr "Rileva il numero di parametri dall’espressione"
-
 
 msgid "Detrend:"
 msgstr "Detrend:"
 
-
 msgid "Differential evolution"
 msgstr "Evoluzione differenziale"
-
 
 msgid "Differentiate or integrate"
 msgstr "Deriva o integra"
 
-
 msgid "Direction"
 msgstr "Direzione"
-
 
 msgid "Display"
 msgstr "Visualizzazione"
 
-
 msgid "Distribution fit"
 msgstr "Fit della distribuzione"
-
 
 msgid "Distribution:"
 msgstr "Distribuzione:"
 
-
 msgid "Docs:"
 msgstr "Documentazione:"
-
 
 msgid "Documentation"
 msgstr "Documentazione"
 
-
 msgid "Dogleg box"
 msgstr "Dogleg box"
-
 
 msgid "Dose response power"
 msgstr "Risposta alla dose (legge di potenza)"
 
-
 msgid "Dotted"
 msgstr "Punteggiata"
-
 
 msgid "Double exponential decay"
 msgstr "Decadimento biesponenziale"
 
-
 msgid "Double logistic pulse"
 msgstr "Impulso a doppia logistica"
-
 
 msgid "Down"
 msgstr "Giù"
 
-
 msgid "Draw figure frame"
 msgstr "Disegna la cornice della figura"
-
 
 msgid "Draw on a new axis:"
 msgstr "Disegna su un nuovo asse:"
 
-
 msgid "Draw on:"
 msgstr "Disegna su:"
-
 
 msgid "Draw the centre line:"
 msgstr "Traccia la linea centrale:"
 
-
 msgid "Draw the control limits:"
 msgstr "Traccia i limiti di controllo:"
-
 
 msgid "Draw the located peaks as markers rather than writing a table of measurements."
 msgstr "Disegna i picchi individuati come marcatori invece di scrivere una tabella di misure."
 
-
 msgid "Draw the one and two sigma lines:"
 msgstr "Traccia le linee a uno e due sigma:"
-
 
 msgid "Draws the signalling points again as separate markers."
 msgstr "Ridisegna i punti che segnalano come marcatori separati."
 
-
 msgid "Dual annealing"
 msgstr "Ricottura duale"
-
 
 msgid "Each library is used under its own licence, named above and shipped with the package it belongs to. Versions are the ones installed here, not the ones pinned."
 msgstr "Ogni libreria è usata secondo la propria licenza, indicata qui sopra e distribuita insieme al pacchetto a cui appartiene. Le versioni sono quelle installate su questa macchina, non quelle fissate nel file delle dipendenze."
 
-
 msgid "Edit"
 msgstr "Modifica"
-
 
 msgid "Edit the chart display settings"
 msgstr "Modifica le impostazioni di visualizzazione"
 
-
 msgid "Empirical adsorption isotherm."
 msgstr "Isoterma di adsorbimento empirica."
-
 
 msgid "Encoding"
 msgstr "Codifica"
 
-
 msgid "Engine"
 msgstr "Motore"
-
 
 msgid "Enter the path to a SQLite database file."
 msgstr "Inserisci il percorso di un file di database SQLite."
 
-
 msgid "End of the range to evaluate over."
 msgstr "Fine dell'intervallo su cui valutare la funzione."
-
 
 msgid "Ensure ClusterId column"
 msgstr "Garantisci la colonna ClusterId"
 
-
 msgid "Ensure Hide column"
 msgstr "Garantisci la colonna Hide"
-
 
 msgid "Error-function sigmoid"
 msgstr "Sigmoide con funzione errore"
 
-
 msgid "Estimate"
 msgstr "Stima"
-
 
 msgid "Estimate missing values and resample data using interpolation techniques."
 msgstr "Stima i valori mancanti e ricampiona i dati con tecniche di interpolazione."
 
-
 msgid "Estimates"
 msgstr "Stime"
-
 
 msgid "Estimator"
 msgstr "Stimatore"
 
-
 msgid "Eval X:"
 msgstr "X di valutazione:"
-
 
 msgid "Every chart type in the set, over six tables and two saved queries."
 msgstr "Ogni tipo di grafico dell'insieme, su sei tabelle e due query salvate."
 
-
 msgid "Example user-defined linear function. Edit or replace this class."
 msgstr "Esempio di funzione lineare definita dall'utente. Modificala o sostituisci la classe."
-
 
 msgid "Example: {\"a\": 1.0, \"b\": 0.1}"
 msgstr "Esempio: {\"a\": 1.0, \"b\": 0.1}"
 
-
 msgid "Exclude flagged points from the limits:"
 msgstr "Escludi dai limiti i punti segnalati:"
-
 
 msgid "Explicit X values where Y is evaluated."
 msgstr "Valori X espliciti in cui viene valutata Y."
 
-
 msgid "Exponential decay"
 msgstr "Decadimento esponenziale"
-
 
 msgid "Exponential growth"
 msgstr "Crescita esponenziale"
 
-
 msgid "Exponential increase with offset."
 msgstr "Crescita esponenziale con offset."
-
 
 msgid "Exponential survival"
 msgstr "Sopravvivenza esponenziale"
 
-
 msgid "Exponentially damped sinusoid."
 msgstr "Sinusoide smorzata esponenzialmente."
-
 
 msgid "Export CSV"
 msgstr "Esporta CSV"
 
-
 msgid "Export Excel"
 msgstr "Esporta Excel"
-
 
 msgid "Export as Excel"
 msgstr "Esporta come Excel"
 
-
 msgid "Export as text file"
 msgstr "Esporta come file di Testo"
-
 
 msgid "Export XLSX"
 msgstr "Esporta XLSX"
 
-
 msgid "Export as a CSV file"
 msgstr "Esporta come file CSV"
-
 
 msgid "Export as an Excel workbook"
 msgstr "Esporta come cartella di lavoro Excel"
 
-
 msgid "Export current table as Excel file"
 msgstr "Esporta la tabella corrente come file Excel"
-
 
 msgid "Export current table as comma separated text file"
 msgstr "Esporta la tabella corrente come file di testo separato da virgole"
 
-
 msgid "Export → CSV…"
 msgstr "Esporta → CSV…"
-
 
 msgid "Export → XLSX…"
 msgstr "Esporta → XLSX…"
 
-
 msgid "Express the result as 10*log10 of the value."
 msgstr "Esprime il risultato come 10*log10 del valore."
-
 
 msgid "Expression:"
 msgstr "Espressione:"
 
-
 msgid "Extend automatic data range by this percent on both sides."
 msgstr "Estende di questa percentuale, su entrambi i lati, l'intervallo automatico dei dati."
-
 
 msgid "Extend:"
 msgstr "Estensione:"
 
-
 msgid "Failed to load renderer kwargs schema."
 msgstr "Impossibile caricare lo schema dei kwargs del renderer."
-
 
 msgid "Family:"
 msgstr "Famiglia:"
 
-
 msgid "Features:"
 msgstr "Feature:"
-
 
 msgid "Field to join on:"
 msgstr "Campo da unire:"
 
-
 msgid "Fields:"
-msgstr "campi:"
-
+msgstr "Campi:"
 
 msgid "Figure layout"
 msgstr "Disposizione della figura"
@@ -1334,226 +1101,170 @@ msgstr "Riduci una serie oltre 100.000 punti a circa quel numero."
 msgid "Decimate a series past 500,000 points to roughly that many."
 msgstr "Riduci una serie oltre 500.000 punti a circa quel numero."
 
-
 msgid "Figure name"
 msgstr "Nome della figura"
-
 
 msgid "Figure options"
 msgstr "Opzioni della figura"
 
-
 msgid "Figure properties"
 msgstr "Proprietà della figura"
-
 
 msgid "Figure:"
 msgstr "Figura:"
 
-
 msgid "Fill missing values"
 msgstr "Riempi i valori mancanti"
-
 
 msgid "Fill the Initial column from the data: the function's own estimator when it has one, a Monte Carlo search of the parameter space when it does not."
 msgstr "Riempi la colonna Iniziale a partire dai dati: con lo stimatore della funzione se ne ha uno, con una ricerca Monte Carlo nello spazio dei parametri se non ce l'ha."
 
-
 msgid "Filter"
 msgstr "Filtra"
-
 
 msgid "Filter by name or category. Sections with no match are hidden."
 msgstr "Filtra per nome o categoria. Le sezioni senza corrispondenze vengono nascoste."
 
-
 msgid "Filter by:"
 msgstr "Filtra per:"
-
 
 msgid "Filter the model catalog by name."
 msgstr "Filtra il catalogo dei modelli per nome."
 
-
 msgid "Find and measure peaks"
 msgstr "Trova e misura i picchi"
-
 
 msgid "Find:"
 msgstr "Cerca:"
 
-
 msgid "First row is header"
 msgstr "La prima riga è l'intestazione"
-
 
 msgid "First table:"
 msgstr "Prima tabella:"
 
-
 msgid "First-order approach to a plateau."
 msgstr "Avvicinamento del primo ordine a un plateau."
-
 
 msgid "Fit"
 msgstr "Fit"
 
-
 msgid "Fit a model to a series"
 msgstr "Adatta un modello a una serie"
-
 
 msgid "Fit all ~100 continuous distributions instead of the 15 common ones. Considerably slower - seconds per refresh - and many of the extra candidates fit no real measurement."
 msgstr "Adatta tutte le ~100 distribuzioni continue invece delle 15 più comuni. Molto più lento - secondi a ogni aggiornamento - e molte delle candidate aggiuntive non descrivono alcuna misura reale."
 
-
 msgid "Fit chart keeping proportions"
 msgstr "Adatta il grafico mantenendo le proporzioni"
-
 
 msgid "Fit chart without keeping proportions"
 msgstr "Adatta il grafico senza mantenere le proporzioni"
 
-
 msgid "Fit data models"
 msgstr "Adatta modelli ai dati"
-
 
 msgid "Fit mathematical models to the selected data and compare their performance."
 msgstr "Adatta modelli matematici ai dati selezionati e confronta le loro prestazioni."
 
-
 msgid "Fit proportional"
 msgstr "Adatta proporzionale"
-
 
 msgid "Fit the whole chart in the panel"
 msgstr "Adatta l'intero grafico al pannello"
 
-
 msgid "Fit, ignoring proportions"
 msgstr "Adatta ignorando le proporzioni"
-
 
 msgid "Fit, keeping proportions"
 msgstr "Adatta mantenendo le proporzioni"
 
-
 msgid "Five-parameter logistic curve with asymmetry."
 msgstr "Curva logistica a cinque parametri con asimmetria."
-
 
 msgid "Fixed"
 msgstr "Fisso"
 
-
 msgid "Fixed size with zoom and scrollbars"
 msgstr "Dimensione fissa con zoom e barre di scorrimento"
-
 
 msgid "Fixed size, with zoom and scrollbars"
 msgstr "Dimensione fissa, con zoom e barre di scorrimento"
 
-
 msgid "Flags runs, trends and other patterns that stay inside the limits - the signals a limits-only chart misses."
 msgstr "Segnala sequenze, tendenze e altri andamenti che restano entro i limiti: i segnali che una carta basata solo sui limiti non vede."
-
 
 msgid "Flexible peak shape between Gaussian-like and Lorentzian-like profiles."
 msgstr "Forma di picco flessibile tra profili gaussiani e lorentziani."
 
-
 msgid "Flow against pressure, with energy as colour and weight as marker size: four variables on two axes."
 msgstr "Portata rispetto alla pressione, con l'energia come colore e il peso come dimensione del marcatore: quattro variabili su due assi."
-
 
 msgid "Fluent (Windows 11)"
 msgstr "Fluent (Windows 11)"
 
-
 msgid "Fold the negative frequencies onto the positive ones. Correct for real-valued signals."
 msgstr "Ripiega le frequenze negative su quelle positive. Corretto per segnali a valori reali."
-
 
 msgid "Four-parameter logistic curve."
 msgstr "Curva logistica a quattro parametri."
 
-
 msgid "Fraction of each segment shared with the next."
 msgstr "Frazione di ciascun segmento condivisa con il successivo."
-
 
 msgid "Frame on"
 msgstr "Cornice attiva"
 
-
 msgid "Freundlich"
 msgstr "Freundlich"
-
 
 msgid "From the style"
 msgstr "Dallo stile"
 
-
 msgid "Default"
 msgstr "Predefinito"
-
 
 msgid "From x:"
 msgstr "Da x:"
 
-
 msgid "Function"
 msgstr "Funzione"
-
 
 msgid "Function expression"
 msgstr "Espressione della funzione"
 
-
 msgid "Function expression with evaluated parameters"
 msgstr "Espressione della funzione con i parametri valutati"
-
 
 msgid "Gamma CDF"
 msgstr "CDF gamma"
 
-
 msgid "Gamma PDF"
 msgstr "PDF gamma"
-
 
 msgid "Gaussian peak"
 msgstr "Picco gaussiano"
 
-
 msgid "Gaussian peak with different left and right widths."
 msgstr "Picco gaussiano con larghezze diverse a sinistra e a destra."
-
 
 msgid "Gaussian process window"
 msgstr "Finestra di processo gaussiana"
 
-
 msgid "Generalized logistic with an additional shape parameter."
 msgstr "Logistica generalizzata con un parametro di forma aggiuntivo."
-
 
 msgid "Getting started - a bit of everything"
 msgstr "Per iniziare - un po' di tutto"
 
-
 msgid "Gompertz growth"
 msgstr "Crescita di Gompertz"
-
 
 msgid "Goodness of fit"
 msgstr "Bontà del fit"
 
-
 msgid "Greater"
 msgstr "Maggiore"
-
 
 msgid "Grid"
 msgstr "Griglia"
@@ -1591,1178 +1302,898 @@ msgstr "Principale + secondari (griglia)"
 msgid "Overlapping (twin Y)"
 msgstr "Sovrapposti (Y gemello)"
 
-
 msgid "Grid axis"
 msgstr "Asse della griglia"
-
 
 msgid "Grid cells this axis spans from its position, so it can take up more room than the other axes in the figure."
 msgstr "Celle della griglia occupate da questo asse a partire dalla sua posizione, così da poter occupare più spazio degli altri assi della figura."
 
-
 msgid "Grid position"
 msgstr "Posizione nella griglia"
-
 
 msgid "Grid ticks"
 msgstr "Tacche della griglia"
 
-
 msgid "Group similar data"
 msgstr "Raggruppa dati simili"
-
 
 msgid "Group similar data points into clusters"
 msgstr "Raggruppa i punti simili in cluster"
 
-
 msgid "Growth and saturation"
 msgstr "Crescita e saturazione"
-
 
 msgid "Guess starting parameters"
 msgstr "Stima i parametri iniziali"
 
-
 msgid "Guess starting parameters for nonlinear models."
 msgstr "Stima i parametri iniziali per i modelli non lineari."
-
 
 msgid "Half-prominence bounds"
 msgstr "Limiti a metà prominenza"
 
-
 msgid "Height"
 msgstr "Altezza"
-
 
 msgid "Height (absolute)"
 msgstr "Altezza (assoluta)"
 
-
 msgid "Hide axis"
 msgstr "Nascondi asse"
-
 
 msgid "Hide rows"
 msgstr "Nascondi righe"
 
-
 msgid "Hide rows failed"
 msgstr "Impossibile nascondere le righe"
-
 
 msgid "Hide spines"
 msgstr "Nascondi i bordi degli assi"
 
-
 msgid "Highlight the flagged points:"
 msgstr "Evidenzia i punti segnalati:"
-
 
 msgid "Hill"
 msgstr "Hill"
 
-
 msgid "How a large residual is weighted. Least squares trusts every point; the robust losses cap what one bad point can do to the fit. Only the least-squares algorithms use it."
 msgstr "Come viene pesato un residuo grande. I minimi quadrati si fidano di ogni punto; le perdite robuste limitano quanto un punto sbagliato può influenzare il fit. La usano solo gli algoritmi ai minimi quadrati."
-
 
 msgid "How densely to sample. A curve with sharp features needs more; a straight line needs two."
 msgstr "Densità di campionamento. Una curva con dettagli marcati ne richiede di più; una retta ne richiede due."
 
-
 msgid "How knots are distributed along X."
 msgstr "Come i nodi sono distribuiti lungo X."
-
 
 msgid "How many scales to evaluate between the longest period the record supports and the Nyquist frequency, spaced logarithmically."
 msgstr "Quante scale valutare, con spaziatura logaritmica, tra il periodo più lungo consentito dal record e la frequenza di Nyquist."
 
-
 msgid "How the candidates are ordered. AIC is the default because the KS statistic alone always favours the distributions with the most free parameters, whatever the data really is."
 msgstr "Come vengono ordinate le candidate. AIC è il valore predefinito perché la sola statistica KS favorisce sempre le distribuzioni con più parametri liberi, qualunque siano davvero i dati."
-
 
 msgid "Huber (robust)"
 msgstr "Huber (robusta)"
 
-
 msgid "Hyperbolic saturation."
 msgstr "Saturazione iperbolica."
-
 
 msgid "Hyperbolic tangent transition."
 msgstr "Transizione con tangente iperbolica."
 
-
 msgid "IQR multiplier:"
 msgstr "Moltiplicatore IQR:"
-
 
 msgid "Import"
 msgstr "Importa"
 
-
 msgid "Import data"
 msgstr "Importa dati"
-
 
 msgid "Import data into the database"
 msgstr "Importa dati nel database"
 
-
 msgid "Import a table from another SQLite database"
 msgstr "Importa una tabella da un altro database SQLite"
-
 
 msgid "Import data from a URL"
 msgstr "Importa dati da un URL"
 
-
 msgid "Import from web"
 msgstr "Importa dal web"
-
 
 msgid "Import from database"
 msgstr "Importa da database"
 
-
-msgid "Import failed:\n{error}"
-msgstr "Importazione non riuscita:\n{error}"
-
+msgid ""
+"Import failed:\n"
+"{error}"
+msgstr ""
+"Importazione non riuscita:\n"
+"{error}"
 
 msgid "Infer"
 msgstr "Deduci"
 
-
 msgid "Infer from expr"
 msgstr "Deduci dall’espressione"
-
 
 msgid "Info"
 msgstr "Informazioni"
 
-
 msgid "Initial value, bounds and fixed flag for each function parameter. Apply runs the fit with these settings."
 msgstr "Valore iniziale, limiti e blocco per ogni parametro della funzione. Applica esegue il fit con queste impostazioni."
-
 
 msgid "Initial value, bounds and fixed flag for each parameter. Apply runs the fit with these settings."
 msgstr "Valore iniziale, limiti e flag di blocco per ogni parametro. Applica esegue il fit con queste impostazioni."
 
-
 msgid "Initial values found by searching the parameter space at random: this function has no estimator of its own."
 msgstr "Valori iniziali trovati cercando a caso nello spazio dei parametri: questa funzione non ha uno stimatore proprio."
-
 
 msgid "Initial values read off the data by the function's own estimator."
 msgstr "Valori iniziali ricavati dai dati dallo stimatore della funzione."
 
-
 msgid "Initial values updated."
 msgstr "Valori iniziali aggiornati."
-
 
 msgid "Insert"
 msgstr "Inserisci"
 
-
 msgid "Insert a SELECT over this table at the cursor."
 msgstr "Inserisce nel punto del cursore una SELECT su questa tabella."
-
 
 msgid "Insert at the cursor"
 msgstr "Inserisci alla posizione del cursore"
 
-
 msgid "Insert the selected rcParam into the editor"
 msgstr "Inserisce nell'editor il rcParam selezionato"
-
 
 msgid "Inside"
 msgstr "Interni"
 
-
 msgid "Interpolate"
 msgstr "Interpola"
-
 
 msgid "Interpolate a series"
 msgstr "Interpola una serie"
 
-
 msgid "Interpolation"
 msgstr "Interpolazione"
-
 
 msgid "Invalid entries"
 msgstr "Voci non valide"
 
-
 msgid "Inverse relation with offset."
 msgstr "Relazione inversa con offset."
-
 
 msgid "Inverse temperature linear"
 msgstr "Lineare in temperatura inversa"
 
-
 msgid "Invert Hide 0 <-> 1"
 msgstr "Inverti Hide 0 <-> 1"
-
 
 msgid "Invert X"
 msgstr "Inverti X"
 
-
 msgid "Invert Y"
 msgstr "Inverti Y"
-
 
 msgid "JOIN type:"
 msgstr "Tipo di JOIN:"
 
-
 msgid "JSON starting parameters for nonlinear series_fit models."
 msgstr "Parametri iniziali in JSON per i modelli series_fit non lineari."
-
 
 msgid "Jarque-Bera normality"
 msgstr "Normalità di Jarque-Bera"
 
-
 msgid "Join"
 msgstr "Join"
-
 
 msgid "K-means convergence threshold."
 msgstr "Soglia di convergenza di k-means."
 
-
 msgid "KS statistic (closest curve)"
 msgstr "Statistica KS (curva più vicina)"
-
 
 msgid "Keeps the most prominent peaks when many are found."
 msgstr "Mantiene i picchi più prominenti quando ne vengono trovati molti."
 
-
 msgid "Kind"
 msgstr "Tipo"
-
 
 msgid "Knots:"
 msgstr "Nodi:"
 
-
 msgid "Kolmogorov-Smirnov vs normal"
 msgstr "Kolmogorov-Smirnov contro normale"
-
 
 msgid "Kurtosis test"
 msgstr "Test di curtosi"
 
-
 msgid "Kwargs JSON"
 msgstr "Kwargs JSON"
-
 
 msgid "LEFT JOIN keeping every row of the chosen table"
 msgstr "LEFT JOIN che mantiene tutte le righe della tabella scelta"
 
-
 msgid "Langmuir"
 msgstr "Langmuir"
-
 
 msgid "Langmuir adsorption/saturation model."
 msgstr "Modello di adsorbimento/saturazione di Langmuir."
 
-
 msgid "Language"
 msgstr "Lingua"
-
 
 msgid "Largest lag to keep. 0 keeps every lag."
 msgstr "Ritardo massimo da conservare. 0 li conserva tutti."
 
-
 msgid "Least squares"
 msgstr "Minimi quadrati"
-
 
 msgid "Left"
 msgstr "Sinistra"
 
-
 msgid "Legend label"
 msgstr "Etichetta di legenda"
-
 
 msgid "Less"
 msgstr "Minore"
 
-
 msgid "Levenberg-Marquardt"
 msgstr "Levenberg-Marquardt"
-
 
 msgid "Libraries"
 msgstr "Librerie"
 
-
 msgid "Library"
 msgstr "Libreria"
-
 
 msgid "Licence"
 msgstr "Licenza"
 
-
 msgid "Licences"
 msgstr "Licenze"
-
 
 msgid "Limits"
 msgstr "Limiti"
 
-
 msgid "Limits at sigma:"
 msgstr "Limiti a sigma:"
-
 
 msgid "Line style"
 msgstr "Stile della linea"
 
-
 msgid "Linear"
 msgstr "Lineare"
-
 
 msgid "Linear chirp"
 msgstr "Chirp lineare"
 
-
 msgid "Linear regression slope"
 msgstr "Pendenza della regressione lineare"
-
 
 msgid "Linear relation versus inverse temperature."
 msgstr "Relazione lineare rispetto all'inverso della temperatura."
 
-
 msgid "Load a .mplstyle file into the editor"
 msgstr "Carica un file .mplstyle nell'editor"
-
 
 msgid "Load error"
 msgstr "Errore di caricamento"
 
-
 msgid "Loaded current style into editor."
 msgstr "Stile corrente caricato nell'editor."
-
 
 msgid "Log viewer"
 msgstr "Visualizzatore log"
 
-
 msgid "Logarithmic"
 msgstr "Logaritmica"
-
 
 msgid "Logarithmic adsorption-like response."
 msgstr "Risposta logaritmica di tipo adsorbimento."
 
-
 msgid "Logarithmic puts equal numbers of points in each decade, which is what a curve plotted on a log axis needs. It requires a range strictly above zero."
 msgstr "La spaziatura logaritmica mette lo stesso numero di punti in ogni decade, come richiede una curva tracciata su un asse logaritmico. Richiede un intervallo strettamente maggiore di zero."
-
 
 msgid "Logistic 4P"
 msgstr "Logistica a 4 parametri"
 
-
 msgid "Logistic 5P asymmetric"
 msgstr "Logistica a 5 parametri asimmetrica"
-
 
 msgid "Lognormal CDF"
 msgstr "CDF lognormale"
 
-
 msgid "Lognormal PDF"
 msgstr "PDF lognormale"
-
 
 msgid "Lorentzian peak"
 msgstr "Picco lorentziano"
 
-
 msgid "Lorentzian peak with full width at half maximum."
 msgstr "Picco lorentziano con larghezza totale a metà altezza."
-
 
 msgid "Loss:"
 msgstr "Perdita:"
 
-
 msgid "Lower control limit"
 msgstr "Limite di controllo inferiore"
-
 
 msgid "MC batch:"
 msgstr "Lotto MC:"
 
-
 msgid "MC resamples:"
 msgstr "Ricampionamenti MC:"
-
 
 msgid "Main field:"
 msgstr "Campo principale:"
 
-
 msgid "Main table:"
 msgstr "Tabella principale:"
-
 
 msgid "Major"
 msgstr "Principali"
 
-
 msgid "Manual (both axes)"
 msgstr "Manuali (entrambi gli assi)"
-
 
 msgid "Manual spacing"
 msgstr "Spaziatura manuale"
 
-
 msgid "Mark peaks only:"
 msgstr "Segna solo i picchi:"
-
 
 msgid "Marker"
 msgstr "Marcatore"
 
-
 msgid "Match the model"
 msgstr "Segui il modello"
-
 
 msgid "Matplotlib Style (*.mplstyle);;All Files (*)"
 msgstr "Stile Matplotlib (*.mplstyle);;Tutti i file (*)"
 
-
 msgid "Matplotlib Style Editor"
 msgstr "Editor di stili Matplotlib"
-
 
 msgid "Max evals:"
 msgstr "Valutazioni max:"
 
-
 msgid "Max lags:"
 msgstr "Ritardi max:"
-
 
 msgid "Maximum k-means iterations."
 msgstr "Numero massimo di iterazioni di k-means."
 
-
 msgid "Maximum number of function evaluations for the optimizer."
 msgstr "Numero massimo di valutazioni della funzione per l'ottimizzatore."
-
 
 msgid "Maximum seconds to wait for clustering. Use 0 for no timeout."
 msgstr "Secondi massimi di attesa per il clustering. Usa 0 per nessun timeout."
 
-
 msgid "Menu"
 msgstr "Menu"
-
 
 msgid "Method:"
 msgstr "Metodo:"
 
-
 msgid "Michaelis-Menten"
 msgstr "Michaelis-Menten"
-
 
 msgid "Minimum samples for DBSCAN/OPTICS core points."
 msgstr "Campioni minimi per i punti core di DBSCAN/OPTICS."
 
-
 msgid "Minimum separation:"
 msgstr "Separazione minima:"
-
 
 msgid "Minimum width:"
 msgstr "Larghezza minima:"
 
-
 msgid "Minimum:"
 msgstr "Minimo:"
-
 
 msgid "Minor"
 msgstr "Secondari"
 
-
 msgid "Minor ticks"
 msgstr "Tacche secondarie"
-
 
 msgid "Model"
 msgstr "Modello"
 
-
 msgid "Model expression using x (or xy), parameters p[0], p[1]... and helpers.<n>(x, p)."
 msgstr "Espressione del modello che usa x (o xy), i parametri p[0], p[1]... e helpers.<n>(x, p)."
-
 
 msgid "Model:"
 msgstr "Modello:"
 
-
 msgid "Monitor process stability"
 msgstr "Monitora la stabilità del processo"
-
 
 msgid "Monte Carlo"
 msgstr "Monte Carlo"
 
-
 msgid "Monthly throughput per line, with the spread on each bar."
 msgstr "Produttività mensile per linea, con la dispersione su ogni barra."
-
 
 msgid "More accurate on smooth data than the trapezoidal rule. Assumes the curve is well approximated by parabolas."
 msgstr "Più accurata del metodo dei trapezi su dati regolari. Presuppone che la curva sia ben approssimata da parabole."
 
-
 msgid "Morlet central frequency w0. Higher values resolve frequency more finely at the cost of time resolution; 6 is the usual compromise and the value at which the wavelet is near-admissible."
 msgstr "Frequenza centrale w0 di Morlet. Valori più alti risolvono meglio la frequenza a scapito della risoluzione temporale; 6 è il compromesso abituale ed è il valore a cui la wavelet è quasi ammissibile."
-
 
 msgid "Morlet w0:"
 msgstr "w0 di Morlet:"
 
-
 msgid "Multi-peak builder"
 msgstr "Costruttore multipicco"
-
 
 msgid "Multi-peak..."
 msgstr "Multi-picco..."
 
-
 msgid "Multiplier applied to IQR outlier bounds."
 msgstr "Moltiplicatore applicato ai limiti IQR degli outlier."
-
 
 msgid "Name"
 msgstr "Nome"
 
-
 msgid "Name of the SQLite table where fitted values/residuals are saved."
 msgstr "Nome della tabella SQLite in cui vengono salvati valori stimati e residui."
-
 
 msgid "Name of this figure. Also the title of its chart tab."
 msgstr "Nome di questa figura. È anche il titolo della sua scheda grafico."
 
-
 msgid "Name:"
 msgstr "Nome:"
-
 
 msgid "Neighborhood radius for DBSCAN. 0 uses the default 0.5."
 msgstr "Raggio di vicinato per DBSCAN. 0 usa il valore predefinito 0.5."
 
-
 msgid "Nelder-Mead simplex"
 msgstr "Simplesso di Nelder-Mead"
-
 
 msgid "New"
 msgstr "Nuovo"
 
-
 msgid "New axis in this figure"
 msgstr "Nuovo asse in questa figura"
-
 
 msgid "New column name:"
 msgstr "Nome della nuova colonna:"
 
-
 msgid "New database"
 msgstr "Nuovo database"
-
 
 msgid "New figure"
 msgstr "Nuova figura"
 
-
 msgid "New plot"
 msgstr "Nuovo grafico"
-
 
 msgid "New query"
 msgstr "Aggiungi query"
 
-
 msgid "New query, not saved yet."
 msgstr "Query nuova, non ancora salvata."
-
 
 msgid "No axes found"
 msgstr "Nessun asse trovato"
 
-
 msgid "No axis selected."
 msgstr "Nessun asse selezionato."
-
 
 msgid "No current figure selected."
 msgstr "Nessuna figura corrente selezionata."
 
-
 msgid "No descriptor axis found for annotation."
 msgstr "Nessun asse del descrittore trovato per l'annotazione."
-
 
 msgid "No fit results"
 msgstr "Nessun risultato di fit"
 
-
 msgid "No kwargs available for this renderer."
 msgstr "Nessun kwarg disponibile per questo renderer."
-
 
 msgid "No p[i] parameters found in expression."
 msgstr "Nessun parametro p[i] trovato nell’espressione."
 
-
 msgid "No parameters"
 msgstr "Nessun parametro"
-
 
 msgid "No peaks passed the filter. Lower the minimum, or switch from height to prominence if the baseline is not at zero."
 msgstr "Nessun picco ha superato il filtro. Abbassa il minimo, oppure passa da altezza a prominenza se la linea di base non è a zero."
 
-
 msgid "No points signal. The process is in statistical control - which says it is stable, not that it meets any specification."
 msgstr "Nessun punto segnala. Il processo è in controllo statistico: significa che è stabile, non che rispetti una specifica."
-
 
 msgid "No renderer roles declared."
 msgstr "Nessun ruolo del renderer dichiarato."
 
-
 msgid "No results for this selection."
 msgstr "Nessun risultato per questa selezione."
-
 
 msgid "No results."
 msgstr "Nessun risultato."
 
-
 msgid "No series selected."
 msgstr "Nessuna serie selezionata."
-
 
 msgid "None"
 msgstr "Nessuna"
 
-
 msgid "Normal CDF"
 msgstr "CDF normale"
-
 
 msgid "Normal PDF"
 msgstr "PDF normale"
 
-
 msgid "Normal-CDF-like transition."
 msgstr "Transizione simile alla CDF normale."
-
 
 msgid "Normalisation:"
 msgstr "Normalizzazione:"
 
-
 msgid "Normality / shape tests"
 msgstr "Test di normalità e forma"
-
 
 msgid "Normality of paired differences"
 msgstr "Normalità delle differenze appaiate"
 
-
 msgid "Normalize features by standard deviation before k-means."
 msgstr "Normalizza le feature per deviazione standard prima di k-means."
-
 
 msgid "Nothing to import."
 msgstr "Non c’è nulla da importare."
 
-
 msgid "Number of Monte Carlo resamples for Anderson-Darling p-values."
 msgstr "Numero di ricampionamenti Monte Carlo per i p-value di Anderson-Darling."
-
 
 msgid "Number of clusters to request."
 msgstr "Numero di cluster da richiedere."
 
-
 msgid "Number of generated points for continuous spacing modes."
 msgstr "Numero di punti generati per le modalità di spaziatura continua."
-
 
 msgid "Number of knots (for knot-based spline models)."
 msgstr "Numero di nodi (per i modelli spline basati su nodi)."
 
-
 msgid "Number of parameters p[0]..p[n-1] in the expression."
 msgstr "Numero di parametri p[0]..p[n-1] nell'espressione."
-
 
 msgid "OK"
 msgstr "OK"
 
-
 msgid "ORDER BY with an explicit direction"
 msgstr "ORDER BY con direzione esplicita"
-
 
 msgid "Off"
 msgstr "Disattivata"
 
-
 msgid "On"
 msgstr "Attiva"
-
 
 msgid "One Gaussian peak on a sloping baseline. Run Series operations, Fit and pick Gaussian peak: the starting values come from the data."
 msgstr "Un picco gaussiano su una linea di base inclinata. Esegui Operazioni sulle serie, Fit e scegli picco gaussiano: i valori iniziali vengono dai dati."
 
-
 msgid "One-sample t-test"
 msgstr "Test t a un campione"
-
 
 msgid "One-sample tests"
 msgstr "Test a un campione"
 
-
 msgid "One-sided spectrum"
 msgstr "Spettro unilatero"
-
 
 msgid "Open"
 msgstr "Apri"
 
-
 msgid "Open Matplotlib Style"
 msgstr "Apri stile Matplotlib"
-
 
 msgid "Open NumPy/SciPy documentation for the model."
 msgstr "Apri la documentazione NumPy/SciPy del modello."
 
-
 msgid "Open a database"
 msgstr "Apri un database"
-
 
 msgid "Open database"
 msgstr "Apri database"
 
-
 msgid "Open documentation for the selected method."
 msgstr "Apri la documentazione del metodo selezionato."
-
 
 msgid "Open the application log viewer"
 msgstr "Apri il log dell'applicazione"
 
-
 msgid "Open the application settings"
 msgstr "Apri le impostazioni dell'applicazione"
-
 
 msgid "Open the user manual"
 msgstr "Apri il manuale utente"
 
-
 msgid "Operating points - scatter coloured by a third variable"
 msgstr "Punti operativi - dispersione colorata da una terza variabile"
-
 
 msgid "Optimise the parameters and preview the result"
 msgstr "Ottimizza i parametri e mostra l’anteprima del risultato"
 
-
 msgid "Optimize DB"
 msgstr "Ottimizza DB"
-
 
 msgid "Optional range as 'start, stop'. Empty = data range plus Extend."
 msgstr "Intervallo facoltativo come 'inizio, fine'. Vuoto = intervallo dei dati più Estensione."
 
-
 msgid "Order"
 msgstr "Ordina"
-
 
 msgid "Order of the polynomial fitted over each window."
 msgstr "Grado del polinomio adattato su ogni finestra."
 
-
-msgid "Outlier detection needs a table, and these series read from a saved query:\n\n{series}\n\nHiding an outlier marks a row in the source table, which a query result does not have. Import the query result as a table first."
-msgstr "Il rilevamento degli outlier richiede una tabella, e queste serie leggono da una query salvata:\n\n{series}\n\nNascondere un outlier marca una riga nella tabella di origine, che il risultato di una query non ha. Importa prima il risultato della query come tabella."
-
+msgid ""
+"Outlier detection needs a table, and these series read from a saved query:\n"
+"\n"
+"{series}\n"
+"\n"
+"Hiding an outlier marks a row in the source table, which a query result does not have. Import the query result as a table first."
+msgstr ""
+"Il rilevamento degli outlier richiede una tabella, e queste serie leggono da una query salvata:\n"
+"\n"
+"{series}\n"
+"\n"
+"Nascondere un outlier marca una riga nella tabella di origine, che il risultato di una query non ha. Importa prima il risultato della query come tabella."
 
 msgid "Outliers"
 msgstr "Outlier"
 
-
 msgid "Output table:"
 msgstr "Tabella di output:"
-
 
 msgid "Outside"
 msgstr "Esterni"
 
-
 msgid "PSD, CSD, coherence, spectra and correlations"
 msgstr "PSD, CSD, coerenza, spettri e correlazioni"
-
 
 msgid "Paired difference summary"
 msgstr "Riepilogo delle differenze appaiate"
 
-
 msgid "Paired t-test"
 msgstr "Test t appaiato"
-
 
 msgid "Paired tests"
 msgstr "Test appaiati"
 
-
 msgid "Paired-sample tests"
 msgstr "Test a campioni appaiati"
-
 
 msgid "Parameter"
 msgstr "Parametro"
 
-
 msgid "Parameter estimates"
 msgstr "Stime dei parametri"
-
 
 msgid "Parameters"
 msgstr "Parametri"
 
-
 msgid "Particle sizes - histogram of two populations"
 msgstr "Dimensioni delle particelle - istogramma di due popolazioni"
-
 
 msgid "Paste"
 msgstr "Incolla"
 
-
 msgid "Paste from the clipboard"
 msgstr "Incolla dagli appunti"
-
 
 msgid "Peak family:"
 msgstr "Famiglia di picchi:"
 
-
 msgid "Peak functions"
 msgstr "Funzioni di picco"
-
 
 msgid "Peak scan - ready for the Fit operation"
 msgstr "Scansione di picco - pronta per l'operazione Fit"
 
-
 msgid "Peaks"
 msgstr "Picchi"
-
 
 msgid "Peaks:"
 msgstr "Picchi:"
 
-
 msgid "Pearson VII peak"
 msgstr "Picco Pearson VII"
-
 
 msgid "Periodic functions"
 msgstr "Funzioni periodiche"
 
-
 msgid "Pick a built-in model to populate the expression and parameters."
 msgstr "Scegli un modello predefinito per popolare espressione e parametri."
-
 
 msgid "Pick a saved query."
 msgstr "Seleziona una query salvata."
 
-
 msgid "Pick a scanned function model to populate the formula and parameters."
 msgstr "Scegli un modello di funzione rilevato per compilare la formula e i parametri."
-
 
 msgid "Pick a table and a field."
 msgstr "Seleziona una tabella e un campo."
 
-
 msgid "Pick radius"
 msgstr "Raggio di selezione"
-
 
 msgid "Pick rcParam…"
 msgstr "Scegli rcParam…"
 
-
 msgid "Please enter a table name."
 msgstr "Inserisci il nome della tabella."
-
 
 msgid "Plot"
 msgstr "Grafico"
 
-
 msgid "Plot a function"
 msgstr "Traccia una funzione"
-
 
 msgid "Point"
 msgstr "Punto"
 
-
 msgid "Points"
 msgstr "Punti"
-
 
 msgid "Points at half prominence. Raise it to reject single-sample spikes, which are usually instrument artefacts rather than features."
 msgstr "Punti a metà prominenza. Aumentalo per scartare i picchi di un solo campione, che di solito sono artefatti dello strumento e non caratteristiche del segnale."
 
-
 msgid "Points per polynomial fit. Larger smooths more and rounds sharp features; must exceed the polynomial order."
 msgstr "Punti per ogni adattamento polinomiale. Valori maggiori levigano di più e arrotondano i dettagli marcati; deve essere maggiore del grado del polinomio."
-
 
 msgid "Points plotted"
 msgstr "Punti tracciati"
 
-
 msgid "Points. Of any two peaks closer than this, the more prominent is kept - which is how a single noisy peak stops being reported as several."
 msgstr "Punti. Fra due picchi più vicini di così viene mantenuto il più prominente: è così che un singolo picco rumoroso non viene riportato come più picchi."
-
 
 msgid "Points:"
 msgstr "Punti:"
 
-
 msgid "Poisson yield"
 msgstr "Resa di Poisson"
-
 
 msgid "Polynomial degree (for polynomial-family models)."
 msgstr "Grado del polinomio (per i modelli della famiglia polinomiale)."
 
-
 msgid "Polynomial degree for NumPy polyfit."
 msgstr "Grado del polinomio per polyfit di NumPy."
-
 
 msgid "Polynomial order:"
 msgstr "Grado del polinomio:"
 
-
 msgid "Powell"
 msgstr "Powell"
-
 
 msgid "Power law"
 msgstr "Legge di potenza"
 
-
 msgid "Power relation with offset."
 msgstr "Relazione di potenza con offset."
-
 
 msgid "Power-law process response to dose or time."
 msgstr "Risposta di processo a legge di potenza rispetto a dose o tempo."
 
-
 msgid "Preview"
 msgstr "Anteprima"
-
 
 msgid "Preview error"
 msgstr "Errore di anteprima"
 
-
 msgid "Preview failed"
 msgstr "Anteprima non riuscita"
-
 
 msgid "Preview failed — see error dialog."
 msgstr "Anteprima non riuscita — vedi la finestra di errore."
 
-
 msgid "Preview the result"
 msgstr "Anteprima del risultato"
-
 
 msgid "Process response with an optimum x value and symmetric fall-off."
 msgstr "Risposta di processo con un valore ottimo di x e calo simmetrico."
 
-
 msgid "Process run - ready for a control chart"
 msgstr "Serie di processo - pronta per una carta di controllo"
-
 
 msgid "Projection"
 msgstr "Proiezione"
 
-
 msgid "Prominence"
 msgstr "Prominenza"
-
 
 msgid "Prominence (relative)"
 msgstr "Prominenza (relativa)"
 
-
 msgid "Prominence measures a peak against its own surroundings and survives a sloping baseline. Height compares it to zero, which only means something when the baseline is at zero."
 msgstr "La prominenza misura un picco rispetto a ciò che lo circonda e regge anche con una linea di base inclinata. L'altezza lo confronta con lo zero, il che ha senso solo se la linea di base è a zero."
-
 
 msgid "Pseudo-Voigt peak"
 msgstr "Picco pseudo-Voigt"
 
-
 msgid "Pulse with separate rising and falling logistic edges."
 msgstr "Impulso con fronti di salita e di discesa logistici distinti."
-
 
 msgid "Quadratic"
 msgstr "Quadratica"
 
-
 msgid "Query Builder"
 msgstr "Query Builder"
-
 
 msgid "Query name:"
 msgstr "Nome della query:"
 
-
 msgid "Query:"
 msgstr "Query:"
-
 
 msgid "Range"
 msgstr "Intervallo"
 
-
 msgid "Rank by:"
 msgstr "Ordina per:"
-
 
 msgid "Rational 2/1"
 msgstr "Razionale 2/1"
 
-
 msgid "Read options"
 msgstr "Opzioni di lettura"
-
 
 msgid "Reciprocal"
 msgstr "Reciproca"
 
-
 msgid "Recomputes the limits without the points they flagged. Use only when the flagged points have an assigned cause you have removed; otherwise it hides the problem."
 msgstr "Ricalcola i limiti senza i punti che hanno segnalato. Usalo solo quando i punti segnalati hanno una causa identificata che hai rimosso; altrimenti nasconde il problema."
-
 
 msgid "Reduce noise"
 msgstr "Riduci il rumore"
 
-
 msgid "Reduce noise and highlight underlying trends through signal smoothing."
 msgstr "Riduci il rumore ed evidenzia gli andamenti di fondo tramite lo smoothing del segnale."
-
 
 msgid "Reference value for one-sample location tests."
 msgstr "Valore di riferimento per i test di posizione a un campione."
 
-
 msgid "Reference value:"
 msgstr "Valore di riferimento:"
-
 
 msgid "Refresh data table"
 msgstr "Aggiorna la tabella dati"
 
-
 msgid "Reliability models"
 msgstr "Modelli di affidabilità"
-
 
 msgid "Reload"
 msgstr "Ricarica"
 
-
 msgid "Reload chart"
 msgstr "Ricarica il grafico"
-
 
 msgid "Reload database tables"
 msgstr "Ricarica le tabelle del database"
 
-
 msgid "Reload from the source"
 msgstr "Ricarica dalla sorgente"
-
 
 msgid "Reload tables"
 msgstr "Ricarica tabelle"
 
-
 msgid "Remove"
 msgstr "Rimuovi"
-
 
 msgid "Remove a constant or linear trend from each segment first. A trend leaks into the lowest frequency bins and hides everything near it."
 msgstr "Rimuove prima da ogni segmento un trend costante o lineare. Un trend si riversa nei bin di frequenza più bassi e nasconde tutto ciò che vi sta vicino."
 
-
 msgid "Remove the selected property"
 msgstr "Rimuove la proprieta selezionata"
-
 
 msgid "Remove the selected web source from the quick-pick list"
 msgstr "Rimuove dall'elenco rapido la fonte web selezionata"
 
-
 msgid "Removed before integrating. Without this, a raised baseline contributes its offset times the width to the area."
 msgstr "Rimossa prima di integrare. Senza questo, una linea di base sollevata contribuisce all'area con il suo scostamento moltiplicato per la larghezza."
-
 
 msgid "Rename"
 msgstr "Rinomina"
@@ -2773,323 +2204,242 @@ msgstr "Ripristina lo stile"
 msgid "Reset every drawing option here to what the active style sheet says"
 msgstr "Ripristina ogni opzione di disegno a ciò che dice il foglio di stile attivo"
 
-
 msgid "Rename current table"
 msgstr "Rinomina la tabella corrente"
-
 
 msgid "Rename table"
 msgstr "Rinomina tabella"
 
-
 msgid "Rename the selection"
 msgstr "Rinomina la selezione"
-
 
 msgid "New name for table '{table}':"
 msgstr "Nuovo nome per la tabella '{table}':"
 
-
 msgid "Rename…"
 msgstr "Rinomina…"
-
 
 msgid "Render as:"
 msgstr "Rendi come:"
 
-
 msgid "Renderer not found."
 msgstr "Renderer non trovato."
-
 
 msgid "Renderers"
 msgstr "Renderer"
 
-
 msgid "Repeated local fits from perturbed starts. Good when minima are many but shallow."
 msgstr "Fit locali ripetuti da punti di partenza perturbati. Utile quando i minimi sono molti ma poco profondi."
-
 
 msgid "Replace previous smoothing preview in chart"
 msgstr "Sostituisci nel grafico l'anteprima di smoothing precedente"
 
-
 msgid "Report at most:"
 msgstr "Riporta al massimo:"
-
 
 msgid "Reset"
 msgstr "Reimposta"
 
-
 msgid "Reset Clusters"
 msgstr "Reimposta i cluster"
-
 
 msgid "Reset Hide to 0"
 msgstr "Reimposta Hide a 0"
 
-
 msgid "Reset parameters"
 msgstr "Reimposta i parametri"
-
 
 msgid "Reset the parameter table to the selected model's defaults."
 msgstr "Riporta la tabella dei parametri ai valori predefiniti del modello selezionato."
 
-
 msgid "Reset the selected property to the Matplotlib default"
 msgstr "Ripristina la proprieta selezionata al valore predefinito di Matplotlib"
-
 
 msgid "Residual sum of squares: {cost}"
 msgstr "Somma dei quadrati dei residui: {cost}"
 
-
 msgid "Result preview"
 msgstr "Anteprima del risultato"
 
-
 msgid "Result preview:"
-msgstr "anteprima:"
-
+msgstr "Anteprima dei risultati:"
 
 msgid "Results"
 msgstr "Risultati"
 
-
 msgid "Reveal periodic patterns, dominant frequencies and spectral structure"
 msgstr "Rivela pattern periodici, frequenze dominanti e struttura spettrale"
-
 
 msgid "Reveal periodic patterns, dominant frequencies, and spectral characteristics of the data."
 msgstr "Individua schemi periodici, frequenze dominanti e caratteristiche spettrali dei dati."
 
-
 msgid "Richards generalized logistic"
 msgstr "Logistica generalizzata di Richards"
-
 
 msgid "Right"
 msgstr "Destra"
 
-
 msgid "Role"
 msgstr "Ruolo"
-
 
 msgid "Roles"
 msgstr "Ruoli"
 
-
 msgid "Rolling window size, in points, used to compute the local median."
 msgstr "Ampiezza della finestra mobile, in punti, usata per calcolare la mediana locale."
-
 
 msgid "Rows"
 msgstr "Righe"
 
-
 msgid "Rule"
 msgstr "Regola"
-
 
 msgid "Run"
 msgstr "Esegui"
 
-
 msgid "Run Fit first, then use this button to update the initial parameters."
 msgstr "Esegui prima il fit, poi usa questo pulsante per aggiornare i parametri iniziali."
-
 
 msgid "Run the query"
 msgstr "Esegui la query"
 
-
 msgid "SELECT ... FROM ..."
 msgstr "SELECT ... FROM ..."
-
 
 msgid "SELECT over the chosen table"
 msgstr "SELECT sulla tabella scelta"
 
-
 msgid "SELECT x, y FROM my_table WHERE ..."
 msgstr "SELECT x, y FROM mia_tabella WHERE ..."
-
 
 msgid "SHGO"
 msgstr "SHGO"
 
-
 msgid "SQL"
 msgstr "SQL"
-
 
 msgid "SQL query"
 msgstr "Query SQL"
 
-
 msgid "SQL query (SELECT / WITH ...)"
 msgstr "Query SQL (SELECT / WITH ...)"
-
 
 msgid "SQL:"
 msgstr "sql:"
 
-
 msgid "Same axis as the source"
 msgstr "Stesso asse dell'origine"
-
 
 msgid "Sample user linear"
 msgstr "Esempio di lineare utente"
 
-
 msgid "Samples per Welch segment. Longer segments resolve finer frequency detail; shorter ones average away more noise."
 msgstr "Campioni per segmento di Welch. Segmenti più lunghi risolvono dettagli in frequenza più fini; segmenti più corti mediano via più rumore."
-
 
 msgid "Samples per unit of x, used when not derived."
 msgstr "Campioni per unità di x, usati quando non è ricavata."
 
-
 msgid "Sampling rate:"
 msgstr "Frequenza di campionamento:"
-
 
 msgid "Saturating exponential"
 msgstr "Esponenziale saturante"
 
-
 msgid "Save"
 msgstr "Salva"
-
 
 msgid "Save HTML"
 msgstr "Salva HTML"
 
-
 msgid "Save Matplotlib Style"
 msgstr "Salva stile Matplotlib"
-
 
 msgid "Save as CSV"
 msgstr "Salva come CSV"
 
-
 msgid "Save as picture"
 msgstr "Salva come immagine"
-
 
 msgid "Save chart as"
 msgstr "Salva il grafico come"
 
-
-
 msgid "Save error"
 msgstr "Errore di salvataggio"
-
 
 msgid "Save failed"
 msgstr "Salvataggio non riuscito"
 
-
 msgid "Save parameters as CSV"
 msgstr "Salva i parametri come CSV"
-
 
 msgid "Save query"
 msgstr "Salva query"
 
-
 msgid "Save the overrides as a .mplstyle file"
 msgstr "Salva le modifiche come file .mplstyle"
-
 
 msgid "Save to a file"
 msgstr "Salva su file"
 
-
 msgid "Saved queries"
 msgstr "Query salvate"
 
-
 msgid "Saved queries:"
-msgstr "query salvate:"
-
+msgstr "Query salvate:"
 
 msgid "Saved query - a chart built on a query"
 msgstr "Query salvata - un grafico costruito su una query"
 
-
 msgid "Scale and direction"
 msgstr "Scala e direzione"
-
 
 msgid "Scaled Cauchy cumulative distribution plus offset."
 msgstr "Distribuzione cumulata di Cauchy scalata più offset."
 
-
 msgid "Scaled Cauchy density plus offset."
 msgstr "Densità di Cauchy scalata più offset."
-
 
 msgid "Scaled Weibull cumulative distribution plus offset."
 msgstr "Distribuzione cumulata di Weibull scalata più offset."
 
-
 msgid "Scaled Weibull density plus offset."
 msgstr "Densità di Weibull scalata più offset."
-
 
 msgid "Scaled beta cumulative distribution over a finite interval."
 msgstr "Distribuzione cumulata beta scalata su un intervallo finito."
 
-
 msgid "Scaled beta density over a finite x interval."
 msgstr "Densità beta scalata su un intervallo finito di x."
-
 
 msgid "Scaled gamma cumulative distribution plus offset."
 msgstr "Distribuzione cumulata gamma scalata più offset."
 
-
 msgid "Scaled gamma density plus offset."
 msgstr "Densità gamma scalata più offset."
-
 
 msgid "Scaled lognormal cumulative distribution plus offset."
 msgstr "Distribuzione cumulata lognormale scalata più offset."
 
-
 msgid "Scaled lognormal density plus offset."
 msgstr "Densità lognormale scalata più offset."
-
 
 msgid "Scaled natural logarithm plus offset.  X is clipped positive for numerical safety."
 msgstr "Logaritmo naturale scalato più offset.  La X è limitata ai valori positivi per sicurezza numerica."
 
-
 msgid "Scaled normal cumulative distribution plus offset."
 msgstr "Distribuzione cumulata normale scalata più offset."
-
 
 msgid "Scaled normal probability density plus offset."
 msgstr "Densità di probabilità normale scalata più offset."
 
-
 msgid "Scales:"
 msgstr "Scale:"
-
 
 msgid "Scaling:"
 msgstr "Scalatura:"
 
-
 msgid "Search chart types..."
 msgstr "Cerca tipi di grafico..."
-
 
 msgid "Search source or translation…"
 msgstr "Cerca per originale o traduzione…"
@@ -3097,579 +2447,454 @@ msgstr "Cerca per originale o traduzione…"
 msgid "Search models..."
 msgstr "Cerca modelli..."
 
-
 msgid "Search properties..."
 msgstr "Cerca proprietà..."
-
 
 msgid "Searches the whole box with a population, then fits locally. Use when the starting point is a guess."
 msgstr "Esplora tutto il dominio con una popolazione, poi fa un fit locale. Da usare quando il punto di partenza è solo un'ipotesi."
 
-
 msgid "Second table:"
 msgstr "Seconda tabella:"
-
 
 msgid "Second-order numerator over first-order denominator."
 msgstr "Numeratore di secondo grado su denominatore di primo grado."
 
-
 msgid "Second-order polynomial."
 msgstr "Polinomio di secondo grado."
-
 
 msgid "Segment length:"
 msgstr "Lunghezza del segmento:"
 
-
 msgid "Segment overlap:"
 msgstr "Sovrapposizione dei segmenti:"
-
 
 msgid "Select"
 msgstr "Seleziona"
 
-
 msgid "Select Matplotlib Style"
 msgstr "Seleziona uno stile Matplotlib"
-
 
 msgid "Select a function."
 msgstr "Seleziona una funzione."
 
-
 msgid "Select a property first."
 msgstr "Seleziona prima una proprietà."
-
 
 msgid "Select all"
 msgstr "Seleziona tutto"
 
-
 msgid "Select all items"
 msgstr "Seleziona tutti gli elementi"
-
 
 msgid "Select an axis to edit kwargs."
 msgstr "Seleziona un asse per modificarne i kwargs."
 
-
 msgid "Select file"
 msgstr "Seleziona file"
-
 
 msgid "Select one or more source series."
 msgstr "Seleziona una o più serie di origine."
 
-
 msgid "Semiconductor and process"
 msgstr "Semiconduttori e processo"
-
 
 msgid "Sensor network - time series with a gap"
 msgstr "Rete di sensori - serie temporale con un'interruzione"
 
-
 msgid "Series"
 msgstr "Serie"
-
 
 msgid "Series '{series}' has no SQL."
 msgstr "La serie '{series}' non ha SQL."
 
-
 msgid "Series '{series}' is missing the required roles: {roles}."
 msgstr "Alla serie '{series}' mancano i ruoli richiesti: {roles}."
-
 
 msgid "Series '{series}': select the required role '{role}'."
 msgstr "Serie '{series}': seleziona il ruolo richiesto '{role}'."
 
-
 msgid "Series '{series}': the renderer could not be loaded."
 msgstr "Serie '{series}': impossibile caricare il renderer."
-
 
 msgid "Series Operations"
 msgstr "Operazioni sulle serie"
 
-
 msgid "Series name"
 msgstr "Nome della serie"
-
 
 msgid "Series name:"
 msgstr "Nome della serie:"
 
-
 msgid "Series operation"
 msgstr "Operazione sulla serie"
-
 
 msgid "Most of the code: the interface, the analysis engines, the renderers and the test suite, written in conversation with the author."
 msgstr "La maggior parte del codice: l'interfaccia, i motori di analisi, i renderer e la suite di test, scritti in conversazione con l'autore."
 
-
 msgid "Series properties"
 msgstr "Proprietà della serie"
-
 
 msgid "Series:"
 msgstr "Serie:"
 
-
 msgid "Set Figure layout to Manual to edit spacing by hand."
 msgstr "Imposta il layout della figura su Manuale per modificare la spaziatura a mano."
-
 
 msgid "Settings"
 msgstr "Impostazioni"
 
-
 msgid "Shapiro-Wilk normality"
 msgstr "Normalità di Shapiro-Wilk"
-
 
 msgid "Share X"
 msgstr "Condividi X"
 
-
 msgid "Share Y"
 msgstr "Condividi Y"
-
 
 msgid "Sharing"
 msgstr "Condivisione"
 
-
 msgid "Sheet"
 msgstr "Foglio"
-
 
 msgid "Show chart options"
 msgstr "Mostra le opzioni del grafico"
 
-
 msgid "Show data tables"
 msgstr "Mostra le tabelle dati"
-
 
 msgid "Show details"
 msgstr "Mostra i dettagli"
 
-
 msgid "Show generated tables"
 msgstr "Mostra le tabelle generate"
-
 
 msgid "Show grid"
 msgstr "Mostra la griglia"
 
-
 msgid "Show in legend"
 msgstr "Mostra in legenda"
-
 
 msgid "Show main menu"
 msgstr "Mostra il menu principale"
 
-
 msgid "Show series operations"
 msgstr "Mostra le operazioni sulle serie"
-
 
 msgid "Show the tables written by fits, smoothing, outlier and spectral operations. Their names start with an underscore."
 msgstr "Mostra le tabelle scritte dalle operazioni di fit, smoothing, outlier e spettrali. I loro nomi iniziano con un trattino basso."
 
-
 msgid "Sigma estimate"
 msgstr "Stima di sigma"
-
 
 msgid "Sigmoidal curves"
 msgstr "Curve sigmoidali"
 
-
 msgid "Sign test"
 msgstr "Test dei segni"
-
 
 msgid "Signal"
 msgstr "Segnale"
 
-
 msgid "Simple Poisson yield relation versus area or defect opportunity."
 msgstr "Relazione di resa di Poisson rispetto all'area o alle opportunità di difetto."
-
 
 msgid "Simulated annealing over the box, then a local fit. Escapes deep local minima."
 msgstr "Ricottura simulata sul dominio, poi un fit locale. Esce dai minimi locali profondi."
 
-
 msgid "Sine"
 msgstr "Seno"
-
 
 msgid "Sine with linearly changing frequency."
 msgstr "Sinusoide con frequenza che varia linearmente."
 
-
 msgid "Single exponential decay with offset."
 msgstr "Decadimento esponenziale singolo con offset."
-
 
 msgid "Sinusoidal oscillation."
 msgstr "Oscillazione sinusoidale."
 
-
 msgid "Skip last rows"
 msgstr "Salta le ultime righe"
-
 
 msgid "Skip top rows"
 msgstr "Salta le prime righe"
 
-
 msgid "Smooth"
 msgstr "Smoothing"
-
 
 msgid "Smooth a series"
 msgstr "Applica uno smoothing a una serie"
 
-
 msgid "Smooth s:"
-msgstr "s di smoothing:"
-
+msgstr "Smussa s:"
 
 msgid "Smooth transition with heavier tails than logistic."
 msgstr "Transizione morbida con code più pesanti della logistica."
 
-
 msgid "Smoothing"
 msgstr "Smoothing"
-
 
 msgid "Smoothing window:"
 msgstr "Finestra di lisciamento:"
 
-
 msgid "Snippets"
 msgstr "Frammenti"
 
-
 msgid "Snippets:"
-msgstr "frammenti:"
-
+msgstr "Frammento di codice:"
 
 msgid "Soft L1 (robust)"
 msgstr "Soft L1 (robusta)"
 
-
 msgid "Solid"
 msgstr "Continua"
 
-
-msgid "Some series could not be processed:\n\n{errors}"
-msgstr "Alcune serie non sono state elaborate:\n\n{errors}"
-
+msgid ""
+"Some series could not be processed:\n"
+"\n"
+"{errors}"
+msgstr ""
+"Alcune serie non sono state elaborate:\n"
+"\n"
+"{errors}"
 
 msgid "Sort"
 msgstr "Ordina"
 
-
 msgid "Sort by X ascending"
 msgstr "Ordina per X crescente"
-
 
 msgid "Source"
 msgstr "Origine"
 
-
 msgid "Source table"
 msgstr "Tabella di origine"
-
 
 msgid "Table to read from the other database"
 msgstr "Tabella da leggere dall'altro database"
 
-
 msgid "Select database"
 msgstr "Seleziona database"
-
 
 msgid "Select a table to import."
 msgstr "Seleziona una tabella da importare."
 
-
 msgid "SQLite file"
 msgstr "File SQLite"
-
 
 msgid "PostgreSQL"
 msgstr "PostgreSQL"
 
-
 msgid "MySQL"
 msgstr "MySQL"
-
 
 msgid "Host"
 msgstr "Host"
 
-
 msgid "Port"
 msgstr "Porta"
-
 
 msgid "Username"
 msgstr "Nome utente"
 
-
 msgid "Password"
 msgstr "Password"
-
 
 msgid "URL:"
 msgstr "URL:"
 
-
 msgid "URL"
 msgstr "URL"
-
 
 msgid "Enter a valid http:// or https:// URL."
 msgstr "Inserisci un URL http:// o https:// valido."
 
-
 msgid "Enter both a name and a URL."
 msgstr "Inserisci sia un nome che un URL."
-
 
 msgid "Spacing"
 msgstr "Spaziatura"
 
-
 msgid "Spacing:"
 msgstr "Spaziatura:"
-
 
 msgid "Span"
 msgstr "Estensione"
 
-
 msgid "Spectral"
 msgstr "Spettrale"
-
 
 msgid "Spectral Analysis"
 msgstr "Analisi spettrale"
 
-
 msgid "Spline algorithm for SciPy spline family."
 msgstr "Algoritmo spline per la famiglia di spline di SciPy."
-
 
 msgid "Spline boundary condition."
 msgstr "Condizione al contorno della spline."
 
-
 msgid "Spline degree k for UnivariateSpline/B-spline."
 msgstr "Grado k della spline per UnivariateSpline/B-spline."
 
-
 msgid "Spline k:"
-msgstr "k della spline:"
-
+msgstr "k della Spline:"
 
 msgid "Spline smoothing:"
 msgstr "Lisciamento della spline:"
 
-
 msgid "Spline:"
 msgstr "Spline:"
-
 
 msgid "Start of the range to evaluate over."
 msgstr "Inizio dell'intervallo su cui valutare la funzione."
 
-
 msgid "Start params:"
 msgstr "Parametri iniziali:"
-
 
 msgid "Statistical distributions"
 msgstr "Distribuzioni statistiche"
 
-
 msgid "Statistics"
 msgstr "Statistiche"
-
 
 msgid "Step size used by integer/fixed-step spacing."
 msgstr "Passo usato dalle spaziature a passo intero o fisso."
 
-
 msgid "Step:"
 msgstr "Passo:"
-
 
 msgid "Straight line between endpoints"
 msgstr "Retta fra gli estremi"
 
-
 msgid "Straight line with intercept and slope."
 msgstr "Retta con intercetta e pendenza."
-
 
 msgid "Style"
 msgstr "Stile"
 
-
 msgid "Style stack"
 msgstr "Pila degli stili"
-
 
 msgid "Subgroup size"
 msgstr "Dimensione del sottogruppo"
 
-
 msgid "Subgroup size:"
 msgstr "Dimensione del sottogruppo:"
-
 
 msgid "Subtract minimum"
 msgstr "Sottrai il minimo"
 
-
 msgid "Summary"
 msgstr "Riepilogo"
-
 
 msgid "Survival/reliability curve for constant hazard rate."
 msgstr "Curva di sopravvivenza/affidabilità a tasso di guasto costante."
 
-
 msgid "Symlog threshold"
 msgstr "Soglia symlog"
-
 
 msgid "Symmetric Gaussian peak with offset."
 msgstr "Picco gaussiano simmetrico con offset."
 
-
 msgid "Systematic sampling of the box; finds every basin rather than sampling at random."
 msgstr "Campionamento sistematico del dominio: trova ogni bacino invece di campionare a caso."
-
 
 msgid "Table"
 msgstr "Tabella"
 
-
 msgid "Table (selected table)"
 msgstr "Tabella (tabella selezionata)"
-
 
 msgid "Table to join:"
 msgstr "Tabella da unire:"
 
-
 msgid "Tables"
 msgstr "Tabelle"
 
-
 msgid "Tables:"
-msgstr "tabelle:"
-
+msgstr "Tabelle:"
 
 msgid "Take the sampling frequency from the spacing of the x role."
 msgstr "Ricava la frequenza di campionamento dalla spaziatura del ruolo x."
 
-
 msgid "Tanh sigmoid"
 msgstr "Sigmoide a tangente iperbolica"
-
 
 msgid "Taper applied to each segment before the FFT."
 msgstr "Finestra applicata a ogni segmento prima della FFT."
 
-
 msgid "Target"
 msgstr "Destinazione"
-
 
 msgid "Temkin"
 msgstr "Temkin"
 
-
 msgid "Text"
 msgstr "Testo"
-
 
 msgid "The A/B/C zones the run rules are phrased in: \"two of three beyond two sigma\" is a statement about a line worth seeing."
 msgstr "Le zone A/B/C in cui sono formulate le regole di sequenza: \"due su tre oltre due sigma\" parla di una linea che vale la pena vedere."
 
-
-msgid "The apply callback failed:\n{error}"
-msgstr "Il callback di applicazione non è riuscito:\n{error}"
-
+msgid ""
+"The apply callback failed:\n"
+"{error}"
+msgstr ""
+"Il callback di applicazione non è riuscito:\n"
+"{error}"
 
 msgid "The classic unbounded least squares. Bounds are ignored."
 msgstr "I classici minimi quadrati senza vincoli. I limiti vengono ignorati."
 
-
 msgid "The dependency list is not available in this build."
 msgstr "L'elenco delle dipendenze non è disponibile in questa build."
-
 
 msgid "The field the SQL buttons below act on."
 msgstr "Seleziona il campo usato dai comandi SQL."
 
-
 msgid "The latest fit has no parameters to copy."
 msgstr "L’ultimo fit non ha parametri da copiare."
-
 
 msgid "The operation runs on the figure it was opened from."
 msgstr "L'operazione viene eseguita sulla figura da cui è stata aperta."
 
-
 msgid "The process mean the limits are built around."
 msgstr "La media del processo attorno alla quale sono costruiti i limiti."
 
-
-msgid "The query is not valid and was not saved:\n\n{error}"
-msgstr "La query non è valida e non è stata salvata:\n\n{error}"
-
+msgid ""
+"The query is not valid and was not saved:\n"
+"\n"
+"{error}"
+msgstr ""
+"La query non è valida e non è stata salvata:\n"
+"\n"
+"{error}"
 
 msgid "The same four batches as a violin plot and as a box plot: one shows the shape, the other the summary, and batch D is why that matters."
 msgstr "Gli stessi quattro lotti come grafico a violino e come box plot: uno mostra la forma, l'altro la sintesi, e il lotto D è il motivo per cui questo conta."
 
-
 msgid "The search found nothing better than the declared values, which are unchanged."
 msgstr "La ricerca non ha trovato niente di meglio dei valori dichiarati, che restano invariati."
-
 
 msgid "The style and the language are applied the next time the app starts."
 msgstr "Lo stile e la lingua vengono applicati al prossimo avvio dell'applicazione."
 
-
 msgid "The style stack is empty."
 msgstr "La pila degli stili è vuota."
-
 
 msgid "The tables have no fields in common to UNION."
 msgstr "Le tabelle non hanno campi comuni per la UNION."
 
-
-msgid "The user manual could not be opened:\n{path}"
-msgstr "Non è stato possibile aprire il manuale utente:\n{path}"
-
+msgid ""
+"The user manual could not be opened:\n"
+"{path}"
+msgstr ""
+"Non è stato possibile aprire il manuale utente:\n"
+"{path}"
 
 msgid "The upper and lower limits. Without them the chart is a run chart - the points, but nothing to judge them against."
 msgstr "I limiti superiore e inferiore. Senza di essi la carta è un semplice grafico dei valori: i punti, ma nulla con cui confrontarli."
-
-
 
 msgid "About"
 msgstr "Informazioni"
@@ -3680,13 +2905,15 @@ msgstr "File"
 msgid "Hide"
 msgstr "Nascondi"
 
-msgid "These entries are not valid and were not applied:\n{entries}"
-msgstr "Queste voci non sono valide e non sono state applicate:\n{entries}"
-
+msgid ""
+"These entries are not valid and were not applied:\n"
+"{entries}"
+msgstr ""
+"Queste voci non sono valide e non sono state applicate:\n"
+"{entries}"
 
 msgid "Third-order polynomial."
 msgstr "Polinomio di terzo grado."
-
 
 msgid "This database has no tables to import."
 msgstr "Questo database non contiene tabelle da importare."
@@ -3697,450 +2924,352 @@ msgstr "Il server non ha indicato database che puoi aprire. Digita il nome se lo
 msgid "Connection"
 msgstr "Connessione"
 
-
 msgid "This function takes no parameters."
 msgstr "Questa funzione non ha parametri."
-
 
 msgid "This operation needs both an x and a y role. Map them first."
 msgstr "Questa operazione richiede sia il ruolo x sia il ruolo y. Assegnali prima di procedere."
 
-
-msgid "This operation needs both an x and a y role.\n\nThese series cannot be processed:\n\n{series}\n\nSet the missing roles in Series properties, then try again."
-msgstr "Questa operazione richiede sia il ruolo x sia il ruolo y.\n\nQueste serie non possono essere elaborate:\n\n{series}\n\nImposta i ruoli mancanti in Proprietà serie e riprova."
-
+msgid ""
+"This operation needs both an x and a y role.\n"
+"\n"
+"These series cannot be processed:\n"
+"\n"
+"{series}\n"
+"\n"
+"Set the missing roles in Series properties, then try again."
+msgstr ""
+"Questa operazione richiede sia il ruolo x sia il ruolo y.\n"
+"\n"
+"Queste serie non possono essere elaborate:\n"
+"\n"
+"{series}\n"
+"\n"
+"Imposta i ruoli mancanti in Proprietà serie e riprova."
 
 msgid "Three sensors sampled hourly. One loses power, and the chart draws the outage as a gap rather than a line through it."
 msgstr "Tre sensori campionati ogni ora. Uno perde alimentazione, e il grafico disegna l'interruzione come un vuoto invece che come una linea che la attraversa."
 
-
 msgid "Threshold multiplier applied to the method's spread estimate."
 msgstr "Moltiplicatore di soglia applicato alla stima di dispersione del metodo."
-
 
 msgid "Threshold:"
 msgstr "Soglia:"
 
-
 msgid "Throughput - bar chart with error bars"
 msgstr "Produttività - grafico a barre con barre d'errore"
-
 
 msgid "Tick direction"
 msgstr "Direzione delle tacche"
 
-
 msgid "Tick length"
 msgstr "Lunghezza delle tacche"
-
 
 msgid "Ticks"
 msgstr "Tacche"
 
-
 msgid "Ticks, grid and spines"
 msgstr "Tacche, griglia e bordi degli assi"
-
 
 msgid "Tie eta"
 msgstr "Vincola eta"
 
-
 msgid "Tie eta across pseudo-Voigt peaks"
 msgstr "Vincola eta tra i picchi pseudo-Voigt"
-
 
 msgid "Tie width"
 msgstr "Vincola la larghezza"
 
-
 msgid "Tie width/sigma across peaks"
 msgstr "Vincola larghezza/sigma tra i picchi"
-
 
 msgid "Title"
 msgstr "Titolo"
 
-
 msgid "To x:"
 msgstr "A x:"
-
 
 msgid "Top"
 msgstr "Alto"
 
-
 msgid "Total"
 msgstr "Totale"
-
 
 msgid "Trim percentage used for trimmed mean."
 msgstr "Percentuale di troncamento usata per la media troncata."
 
-
 msgid "Trimmed mean:"
 msgstr "Media troncata:"
-
 
 msgid "Trust region (default)"
 msgstr "Regione di fiducia (predefinito)"
 
-
 msgid "Try every SciPy distribution"
 msgstr "Prova tutte le distribuzioni di SciPy"
-
 
 msgid "Two exponential time constants plus offset."
 msgstr "Due costanti di tempo esponenziali più offset."
 
-
 msgid "Two overlapping populations in one histogram."
 msgstr "Due popolazioni sovrapposte in un unico istogramma."
-
 
 msgid "Two-sided"
 msgstr "Bilaterale"
 
-
 msgid "Type"
 msgstr "Tipo"
-
 
 msgid "Type:"
 msgstr "Tipo:"
 
-
 msgid "UNION ALL of two tables with the same columns"
 msgstr "UNION ALL di due tabelle con le stesse colonne"
-
 
 msgid "Undefined points"
 msgstr "Punti non definiti"
 
-
 msgid "Uniform random sampling, then a local fit. Assumes nothing about the model."
 msgstr "Campionamento casuale uniforme, poi un fit locale. Non assume nulla sul modello."
-
 
 msgid "Union"
 msgstr "Unione"
 
-
 msgid "UnivariateSpline smoothing factor s."
 msgstr "Fattore di smoothing s di UnivariateSpline."
-
 
 msgid "Up"
 msgstr "Su"
 
-
 msgid "Update current table from its link"
 msgstr "Aggiorna la tabella corrente dal suo collegamento"
-
 
 msgid "Update link"
 msgstr "Aggiorna collegamento"
 
-
 msgid "Password for {username}@{host}:"
 msgstr "Password per {username}@{host}:"
-
 
 msgid "Upper control limit"
 msgstr "Limite di controllo superiore"
 
-
 msgid "Use Simpson's rule:"
 msgstr "Usa il metodo di Simpson:"
-
 
 msgid "Use a query"
 msgstr "Usa una query"
 
-
 msgid "Use current figure"
 msgstr "Usa la figura corrente"
-
 
 msgid "Use existing axis"
 msgstr "Usa un asse esistente"
 
-
 msgid "Use latest fitted parameters"
 msgstr "Usa gli ultimi parametri ottimizzati"
-
 
 msgid "User functions"
 msgstr "Funzioni utente"
 
-
 msgid "User manual"
 msgstr "Manuale utente"
-
 
 msgid "Value"
 msgstr "Valore"
 
-
 msgid "Values used to evaluate the function. Nothing is fitted here."
 msgstr "Valori usati per valutare la funzione. Qui non viene eseguito alcun fit."
-
 
 msgid "Version"
 msgstr "Versione"
 
-
 msgid "View statistical information about the data"
 msgstr "Mostra informazioni statistiche sui dati"
-
 
 msgid "Visibility"
 msgstr "Visibilità"
 
-
 msgid "Visible"
 msgstr "Visibile"
-
 
 msgid "Voigt peak"
 msgstr "Picco di Voigt"
 
-
 msgid "WHERE with the comparisons spelled out"
 msgstr "WHERE con i confronti esplicitati"
-
 
 msgid "Web"
 msgstr "Web"
 
-
 msgid "Weibull CDF"
 msgstr "CDF di Weibull"
-
 
 msgid "Weibull PDF"
 msgstr "PDF di Weibull"
 
-
 msgid "Weibull hazard"
 msgstr "Tasso di guasto di Weibull"
-
 
 msgid "Weibull instantaneous hazard model."
 msgstr "Modello del tasso di guasto istantaneo di Weibull."
 
-
 msgid "Weibull reliability/survival curve."
 msgstr "Curva di affidabilità/sopravvivenza di Weibull."
-
 
 msgid "Weibull survival"
 msgstr "Sopravvivenza di Weibull"
 
-
 msgid "Weight residuals by magnitude when computing RMSE/R²."
 msgstr "Pesa i residui in base alla grandezza nel calcolo di RMSE/R²."
-
 
 msgid "Weighted RMSE/R²"
 msgstr "RMSE/R² pesati"
 
-
 msgid "Weighted blend of Gaussian and Lorentzian components."
 msgstr "Miscela pesata di componente gaussiana e lorentziana."
-
 
 msgid "Welcome"
 msgstr "Benvenuto"
 
-
 msgid "What it does"
 msgstr "A cosa serve"
-
 
 msgid "When enabled, applying this dialog again replaces the previously generated preview series."
 msgstr "Se attivo, applicando di nuovo questa finestra la serie di anteprima generata in precedenza viene sostituita."
 
-
 msgid "Which chart to add. 'Match the model' picks the one that shows what the selected statistics measure."
 msgstr "Quale grafico aggiungere. 'Segui il modello' sceglie quello che mostra ciò che misurano le statistiche selezionate."
-
 
 msgid "Which fitted distribution the histogram draws. Best fit follows whichever candidate ranks first for the series."
 msgstr "Quale distribuzione adattata viene disegnata sull'istogramma. Fit migliore segue la candidata che risulta prima in classifica per la serie."
 
-
 msgid "Which turning points to look for."
 msgstr "Quali punti di inversione cercare."
-
 
 msgid "Who made this, and what it is made of"
 msgstr "Chi l'ha fatto e di cosa è fatto"
 
-
 msgid "Width"
 msgstr "Larghezza"
-
 
 msgid "Width of the linear region around zero, for the symlog scale."
 msgstr "Ampiezza della regione lineare attorno allo zero, per la scala symlog."
 
-
 msgid "Wilcoxon signed-rank"
 msgstr "Wilcoxon dei ranghi con segno"
-
 
 msgid "Wilcoxon signed-rank paired test"
 msgstr "Test appaiato di Wilcoxon dei ranghi con segno"
 
-
 msgid "Window size:"
 msgstr "Ampiezza della finestra:"
-
 
 msgid "Window:"
 msgstr "Finestra:"
 
-
 msgid "Worksheet (for Excel sources)"
 msgstr "Foglio di lavoro (per sorgenti Excel)"
-
 
 msgid "Write, validate and save SQL queries"
 msgstr "Scrivi, valida e salva query SQL"
 
-
 msgid "Written by"
 msgstr "Scritto da"
-
 
 msgid "X"
 msgstr "X"
 
-
 msgid "X label"
 msgstr "Etichetta X"
-
 
 msgid "X log base"
 msgstr "Base del logaritmo X"
 
-
 msgid "X range"
 msgstr "Intervallo X"
-
 
 msgid "X range:"
 msgstr "Intervallo X:"
 
-
 msgid "X scale"
 msgstr "Scala X"
-
 
 msgid "X spacing:"
 msgstr "Spaziatura X:"
 
-
 msgid "X tick rotation"
 msgstr "Rotazione delle tacche X"
-
 
 msgid "Y"
 msgstr "Y"
 
-
 msgid "Y label"
 msgstr "Etichetta Y"
-
 
 msgid "Y log base"
 msgstr "Base del logaritmo Y"
 
-
 msgid "Y range"
 msgstr "Intervallo Y"
-
 
 msgid "Y scale"
 msgstr "Scala Y"
 
-
 msgid "Z label"
 msgstr "Etichetta Z"
-
 
 msgid "Zoom to fit"
 msgstr "Adatta alla finestra"
 
-
 msgid "all"
 msgstr "tutti"
-
 
 msgid "all lags"
 msgstr "tutti i ritardi"
 
-
 msgid "auto"
 msgstr "auto"
-
 
 msgid "auto, or start, stop"
 msgstr "auto, oppure inizio, fine"
 
-
 msgid "bar"
 msgstr "barra"
-
 
 msgid "density: power per unit frequency. spectrum: power per segment."
 msgstr "density: potenza per unità di frequenza. spectrum: potenza per segmento."
 
-
 msgid "fs:"
 msgstr "fs:"
-
 
 msgid "macOS native"
 msgstr "macOS nativo"
 
-
 msgid "maximum"
 msgstr "massimo"
-
 
 msgid "minimum"
 msgstr "minimo"
 
-
 msgid "no timeout"
 msgstr "nessun timeout"
-
 
 msgid "not installed"
 msgstr "non installata"
 
-
 msgid "query"
 msgstr "query"
-
 
 msgid "series"
 msgstr "serie"
 
-
 msgid "slice"
 msgstr "fetta"
-
 
 msgid "space"
 msgstr "spazio"
 
-
 msgid "unbiased divides by the overlap at each lag; biased divides by N; none returns the raw sum of products."
 msgstr "unbiased divide per la sovrapposizione a ogni ritardo; biased divide per N; none restituisce la somma grezza dei prodotti."
-
 
 msgid "y range"
 msgstr "Intervallo di y"
@@ -4148,65 +3277,62 @@ msgstr "Intervallo di y"
 msgid "z range"
 msgstr "Intervallo di z"
 
-
 msgid "{count} of {total} points signal. The process is not in statistical control."
 msgstr "{count} punti su {total} segnalano. Il processo non è in controllo statistico."
-
 
 msgid "{count} rows are now hidden."
 msgstr "Ora sono nascoste {count} righe."
 
-
 msgid "{entries} invalid row(s) will be skipped."
 msgstr "{entries} riga/righe non valide saranno ignorate."
-
 
 msgid "{error}"
 msgstr "{error}"
 
-
 msgid "{label}: {value}"
 msgstr "{label}: {value}"
 
-
-msgid "{method} needs two series.\n\nSelect the reference series first, then the one to compare it with."
-msgstr "{method} richiede due serie.\n\nSeleziona prima la serie di riferimento, poi quella da confrontare."
-
+msgid ""
+"{method} needs two series.\n"
+"\n"
+"Select the reference series first, then the one to compare it with."
+msgstr ""
+"{method} richiede due serie.\n"
+"\n"
+"Seleziona prima la serie di riferimento, poi quella da confrontare."
 
 msgid "{reason}"
 msgstr "{reason}"
 
-
 msgid "{report}"
 msgstr "{report}"
-
 
 msgid "{series} hidden"
 msgstr "{series} nascosta"
 
-
 msgid "{series} shown"
 msgstr "{series} mostrata"
-
 
 msgid "{series} — x: {x}, y: {y}"
 msgstr "{series} — x: {x}, y: {y}"
 
-
 msgid "{series} — {count} points, mean x: {x}, mean y: {y}"
 msgstr "{series} — {count} punti, media x: {x}, media y: {y}"
-
 
 msgid "{series} — {percent:.1f}% of the total"
 msgstr "{series} — {percent:.1f}% del totale"
 
-
 msgid "{series}: {error}"
 msgstr "{series}: {error}"
 
-
-msgid "{series}\nx: {x}\ny: {y}"
-msgstr "{series}\nx: {x}\ny: {y}"
+msgid ""
+"{series}\n"
+"x: {x}\n"
+"y: {y}"
+msgstr ""
+"{series}\n"
+"x: {x}\n"
+"y: {y}"
 
 msgid "Extra charts:"
 msgstr "Grafici accessori:"
@@ -4370,11 +3496,23 @@ msgstr "Mappe di contorno - gli stessi campi disegnati in piano"
 msgid "The wafer and the survey again as 2D contour maps, gridded and triangulated. The gridded one is labelled and equal-aspect; the scattered one stops at the hull of the points, which is as far as the survey actually went."
 msgstr "Il wafer e il rilievo di nuovo come mappe di contorno 2D, a griglia e triangolata. Quella a griglia è etichettata e con aspetto uguale; quella sparsa si ferma all'inviluppo convesso dei punti, che è fin dove il rilievo è arrivato davvero."
 
-msgid "Could not create a database in your home folder:\n{error}\n\nPick one to open instead."
-msgstr "Impossibile creare un database nella cartella home:\n{error}\n\nScegline uno da aprire."
+msgid ""
+"Could not create a database in your home folder:\n"
+"{error}\n"
+"\n"
+"Pick one to open instead."
+msgstr ""
+"Impossibile creare un database nella cartella home:\n"
+"{error}\n"
+"\n"
+"Scegline uno da aprire."
 
-msgid "Could not load the demo project:\n{error}"
-msgstr "Impossibile caricare il progetto dimostrativo:\n{error}"
+msgid ""
+"Could not load the demo project:\n"
+"{error}"
+msgstr ""
+"Impossibile caricare il progetto dimostrativo:\n"
+"{error}"
 
 msgid "...and {count} more, under Show Details."
 msgstr "...e altri {count}, sotto Mostra dettagli."
@@ -4412,7 +3550,6 @@ msgstr "{chart} disegna una serie per asse: le {count} qui sotto avranno ciascun
 msgid "{chart} draws up to {limit} series per axis: the {count} below will be split across {axes} axes."
 msgstr "{chart} disegna fino a {limit} serie per asse: le {count} qui sotto saranno distribuite su {axes} assi."
 
-
 msgid "{chart} draws {limit} series per axis, and this axis already has {existing}. Choose 'Add new axis' instead, or remove {wanted} series."
 msgstr "{chart} disegna {limit} serie per asse e questo asse ne ha già {existing}. Scegli 'Aggiungi nuovo asse' oppure rimuovi {wanted} serie."
 
@@ -4425,8 +3562,12 @@ msgstr "Salva il database corrente con un nuovo nome e passa ad esso"
 msgid "Save database as"
 msgstr "Salva database con nome"
 
-msgid "Could not save the database as a new file:\n{error}"
-msgstr "Impossibile salvare il database come nuovo file:\n{error}"
+msgid ""
+"Could not save the database as a new file:\n"
+"{error}"
+msgstr ""
+"Impossibile salvare il database come nuovo file:\n"
+"{error}"
 
 msgid "Web source"
 msgstr "Fonte web"
@@ -4446,539 +3587,408 @@ msgstr "Scarica i dati da questo indirizzo web"
 msgid "Web import"
 msgstr "Importazione dal web"
 
-msgid "Could not fetch {url}:\n{error}"
-msgstr "Impossibile scaricare {url}:\n{error}"
+msgid ""
+"Could not fetch {url}:\n"
+"{error}"
+msgstr ""
+"Impossibile scaricare {url}:\n"
+"{error}"
 
 msgid "{url} does not look like a web address. It should start with http:// or https://."
 msgstr "{url} non sembra un indirizzo web. Deve iniziare con http:// o https://."
 
-
-
 msgid "Roots"
 msgstr "Radici"
-
 
 msgid "Find where a series crosses a level"
 msgstr "Trova dove una serie attraversa un livello"
 
-
 msgid "Solver"
 msgstr "Risolutore"
-
 
 msgid "Solver:"
 msgstr "Risolutore:"
 
-
 msgid "Iterations"
 msgstr "Iterazioni"
-
 
 msgid "Residual"
 msgstr "Residuo"
 
-
 msgid "rising"
 msgstr "in salita"
-
 
 msgid "falling"
 msgstr "in discesa"
 
-
 msgid "truncated"
 msgstr "troncato"
-
 
 msgid "level {level}"
 msgstr "livello {level}"
 
-
 msgid "How each bracketed crossing is refined. The three bracketing solvers cannot leave the interval they were given; Newton can, and is checked afterwards."
 msgstr "Come viene raffinato ogni attraversamento delimitato. I tre risolutori con intervallo non possono uscire dall'intervallo ricevuto; Newton si', e per questo il risultato viene verificato."
-
 
 msgid "The series never crosses this level. Check the level against the data's range - a crossing no two samples straddle cannot be found from these samples."
 msgstr "La serie non attraversa mai questo livello. Controlla il livello rispetto all'intervallo dei dati: un attraversamento che nessuna coppia di campioni delimita non e' individuabile da questi campioni."
 
-
 msgid "Level:"
 msgstr "Livello:"
-
 
 msgid "The y value to solve for. 0 finds the zeros; any other value finds where the series crosses that level, which is the same problem shifted."
 msgstr "Il valore di y da risolvere. 0 trova gli zeri; qualsiasi altro valore trova dove la serie attraversa quel livello, che e' lo stesso problema traslato."
 
-
 msgid "Between samples:"
 msgstr "Tra i campioni:"
-
 
 msgid "What the series is assumed to do between two points. Linear claims nothing the samples do not; the two curved options fit a smooth signal better and can overshoot a noisy one into crossings that are not there."
 msgstr "Cosa si assume che la serie faccia tra due punti. La retta non afferma nulla oltre ai campioni; le due opzioni curve seguono meglio un segnale regolare e possono oltrepassare un segnale rumoroso creando attraversamenti inesistenti."
 
-
 msgid "Straight line"
 msgstr "Retta"
-
 
 msgid "Cubic spline"
 msgstr "Spline cubica"
 
-
 msgid "Monotone cubic (PCHIP)"
 msgstr "Cubica monotona (PCHIP)"
-
 
 msgid "Tolerance (digits):"
 msgstr "Tolleranza (cifre):"
 
-
 msgid "How many decimal places of x the solver has to settle before it stops. Nine is far below the precision of any measured x; the cost of raising it is a few iterations."
 msgstr "Quante cifre decimali di x il risolutore deve stabilizzare prima di fermarsi. Nove e' ben sotto la precisione di qualsiasi x misurata; alzarla costa qualche iterazione."
-
 
 msgid "Maximum iterations:"
 msgstr "Iterazioni massime:"
 
-
 msgid "Per crossing. Brent and TOMS 748 rarely need ten; the limit is what stops a pathological bracket from hanging the dialog."
 msgstr "Per attraversamento. Brent e TOMS 748 raramente ne servono dieci; il limite serve a evitare che un intervallo patologico blocchi la finestra."
-
 
 msgid "Keeps the first crossings in x order when a noisy series crosses the level hundreds of times."
 msgstr "Mantiene i primi attraversamenti in ordine di x quando una serie rumorosa attraversa il livello centinaia di volte."
 
-
 msgid "Overlay properties"
 msgstr "Proprieta' sovrapposizioni"
-
 
 msgid "Axis"
 msgstr "Asse"
 
-
 msgid "Axis {id}"
 msgstr "Asse {id}"
-
 
 msgid "No axis selected"
 msgstr "Nessun asse selezionato"
 
-
 msgid "Lines"
 msgstr "Linee"
-
 
 msgid "Add line"
 msgstr "Aggiungi linea"
 
-
 msgid "Orientation"
 msgstr "Orientamento"
 
-
 msgid "A vertical or horizontal line across the whole axes, at a value in data coordinates. Kwargs must be JSON, for example: {\"color\": \"red\", \"linestyle\": \"--\", \"label\": \"limit\"}."
-msgstr "Una linea verticale o orizzontale su tutti gli assi, a un valore in coordinate dati. I kwargs devono essere JSON, per esempio: {"color": "red", "linestyle": "--", "label": "limit"}."
-
+msgstr "Una linea verticale o orizzontale che attraversa l'intero asse, in corrispondenza di un valore nelle coordinate dei dati. I parametri kwargs devono essere in formato JSON, ad esempio: {\"color\": \"red\", \"linestyle\": \"--\", \"label\": \"limit\"}."
 
 msgid "Open recent"
 msgstr "Apri recenti"
 
-
 msgid "Clear menu"
 msgstr "Svuota il menu"
-
 
 msgid "Undo"
 msgstr "Annulla"
 
-
 msgid "Take back the last change to the database"
 msgstr "Annulla l'ultima modifica al database"
-
 
 msgid "Undo: {what}"
 msgstr "Annulla: {what}"
 
-
 msgid "Axis: {action}"
 msgstr "Asse: {action}"
-
 
 msgid "Reorder series"
 msgstr "Riordina le serie"
 
-
 msgid "Add vertical line at x = {value}"
 msgstr "Aggiungi linea verticale a x = {value}"
-
 
 msgid "Add horizontal line at y = {value}"
 msgstr "Aggiungi linea orizzontale a y = {value}"
 
-
 msgid "A line across the whole axes, at this x."
 msgstr "Una linea su tutta l'area del grafico, a questa x."
-
 
 msgid "A line along the whole axes, at this y."
 msgstr "Una linea lungo tutta l'area del grafico, a questa y."
 
-
 msgid "Add {orientation} line"
 msgstr "Aggiungi linea {orientation}"
-
 
 msgid "Add annotation here…"
 msgstr "Aggiungi annotazione qui…"
 
-
 msgid "A text note pinned to this point: x = {x}, y = {y}."
 msgstr "Una nota di testo fissata a questo punto: x = {x}, y = {y}."
-
 
 msgid "Annotation text:"
 msgstr "Testo dell'annotazione:"
 
-
 msgid "Font"
 msgstr "Carattere"
-
 
 msgid "Size"
 msgstr "Dimensione"
 
-
 msgid "Annotations are stored in axis options. Color, font and size have their own columns; anything else goes in Kwargs JSON, for example: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
 msgstr "Le annotazioni sono salvate nelle opzioni dell'asse. Colore, carattere e dimensione hanno una colonna dedicata; tutto il resto va in Kwargs JSON, per esempio: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
-
 
 msgid "A vertical or horizontal line across the whole axes, at a value in data coordinates. Color and style have their own columns; anything else goes in Kwargs JSON, for example: {\"linewidth\": 2, \"label\": \"limit\"}."
 msgstr "Una linea verticale o orizzontale attraverso tutta l'area del grafico, a un valore in coordinate dati. Colore e stile hanno una colonna dedicata; tutto il resto va in Kwargs JSON, per esempio: {\"linewidth\": 2, \"label\": \"limit\"}."
 
-
 msgid "Choose the attribute chart."
 msgstr "Scegli la carta per attributi."
-
 
 msgid "The column holding the sample size (units inspected) at each point."
 msgstr "La colonna con la dimensione del campione (unità ispezionate) in ogni punto."
 
-
 msgid "Sample size column:"
 msgstr "Colonna dimensione campione:"
-
 
 msgid "3 is the Shewhart convention (about one false alarm per 370 points)."
 msgstr "3 è la convenzione di Shewhart (circa un falso allarme ogni 370 punti)."
 
-
 msgid "Also flag eight points in a row on one side of the centre line."
 msgstr "Segnala anche otto punti consecutivi dallo stesso lato della linea centrale."
-
 
 msgid "Flag long runs:"
 msgstr "Segnala sequenze lunghe:"
 
-
 msgid "Draw the centre line."
 msgstr "Disegna la linea centrale."
-
 
 msgid "Draw the upper and lower control limits."
 msgstr "Disegna i limiti di controllo superiore e inferiore."
 
-
 msgid "Redraw the signalling points as markers."
 msgstr "Ridisegna i punti che segnalano come marcatori."
-
 
 msgid "Attribute Chart"
 msgstr "Carta per attributi"
 
-
 msgid "No points signal. The process is in statistical control."
 msgstr "Nessun punto segnala. Il processo è in controllo statistico."
-
 
 msgid "Mean upper limit"
 msgstr "Limite superiore medio"
 
-
 msgid "above UCL"
 msgstr "sopra UCL"
-
 
 msgid "below LCL"
 msgstr "sotto LCL"
 
-
 msgid "run"
 msgstr "sequenza"
-
 
 msgid "Control chart for counts (p, np, c, u)"
 msgstr "Carta di controllo per conteggi (p, np, c, u)"
 
-
 msgid "Lowpass"
 msgstr "Passa-basso"
-
 
 msgid "Highpass"
 msgstr "Passa-alto"
 
-
 msgid "Bandpass"
 msgstr "Passa-banda"
-
 
 msgid "Bandstop"
 msgstr "Elimina-banda"
 
-
 msgid "Butterworth"
 msgstr "Butterworth"
-
 
 msgid "Chebyshev I"
 msgstr "Chebyshev I"
 
-
 msgid "Chebyshev II"
 msgstr "Chebyshev II"
-
 
 msgid "Bessel"
 msgstr "Bessel"
 
-
 msgid "Elliptic"
 msgstr "Ellittico"
-
 
 msgid "Amplitude envelope"
 msgstr "Inviluppo di ampiezza"
 
-
 msgid "Instantaneous phase"
 msgstr "Fase istantanea"
-
 
 msgid "Instantaneous frequency"
 msgstr "Frequenza istantanea"
 
-
 msgid "Choose the operation."
 msgstr "Scegli l'operazione."
-
 
 msgid "Operation:"
 msgstr "Operazione:"
 
-
 msgid "The filter family. Butterworth is maximally flat; Chebyshev/Elliptic trade ripple for a sharper roll-off."
 msgstr "La famiglia del filtro. Butterworth è massimamente piatto; Chebyshev/Ellittico scambiano ripple per una pendenza più ripida."
-
 
 msgid "Which band the filter keeps."
 msgstr "Quale banda mantiene il filtro."
 
-
 msgid "Response:"
 msgstr "Risposta:"
-
 
 msgid "Filter order. Higher is a sharper roll-off and more phase distortion before sosfiltfilt cancels it."
 msgstr "Ordine del filtro. Più alto significa una pendenza più ripida e più distorsione di fase, prima che sosfiltfilt la annulli."
 
-
 msgid "Order:"
 msgstr "Ordine:"
-
 
 msgid "Number of FIR coefficients. More taps sharpen the transition band at the cost of needing more samples."
 msgstr "Numero di coefficienti FIR. Più taps rendono più netta la banda di transizione, a costo di richiedere più campioni."
 
-
 msgid "Taps:"
 msgstr "Taps:"
-
 
 msgid "Taper applied to the FIR coefficients."
 msgstr "Finestra applicata ai coefficienti FIR."
 
-
 msgid "Cutoff frequency (same units as fs)."
 msgstr "Frequenza di taglio (stesse unità di fs)."
-
 
 msgid "Cutoff:"
 msgstr "Taglio:"
 
-
 msgid "Second cutoff, for a bandpass/bandstop response."
 msgstr "Secondo taglio, per una risposta passa-banda/elimina-banda."
-
 
 msgid "Second cutoff:"
 msgstr "Secondo taglio:"
 
-
 msgid "Passband ripple, in dB (Chebyshev I / Elliptic)."
 msgstr "Ripple in banda passante, in dB (Chebyshev I / Ellittico)."
-
 
 msgid "Ripple (dB):"
 msgstr "Ripple (dB):"
 
-
 msgid "Minimum stopband attenuation, in dB (Chebyshev II / Elliptic)."
 msgstr "Attenuazione minima in banda oscura, in dB (Chebyshev II / Ellittico)."
-
 
 msgid "Attenuation (dB):"
 msgstr "Attenuazione (dB):"
 
-
 msgid "What to derive from the analytic signal."
 msgstr "Cosa ricavare dal segnale analitico."
-
 
 msgid "Output:"
 msgstr "Uscita:"
 
-
 msgid "Linear removes a best-fit line; constant removes only the mean."
 msgstr "Lineare rimuove una retta di regressione; costante rimuove solo la media."
-
 
 msgid "Trend:"
 msgstr "Tendenza:"
 
-
 msgid "Filtering"
 msgstr "Filtraggio"
-
 
 msgid "Filter, detrend or demodulate a series (scipy.signal)"
 msgstr "Filtra, detrenda o demodula una serie (scipy.signal)"
 
-
 msgid "Choose the baseline estimator."
 msgstr "Scegli lo stimatore della linea di base."
-
 
 msgid "Smoothness. Larger makes the baseline stiffer, so it bends less to follow narrow peaks."
 msgstr "Levigatezza. Più alto rende la linea di base più rigida, così si piega meno per seguire i picchi stretti."
 
-
 msgid "Lambda:"
 msgstr "Lambda:"
-
 
 msgid "Asymmetry. Smaller pushes the baseline further below the peaks; it should stay well under 0.5."
 msgstr "Asimmetria. Più basso spinge la linea di base più sotto i picchi; deve restare ben sotto 0.5."
 
-
 msgid "p:"
 msgstr "p:"
-
 
 msgid "Re-weighting passes."
 msgstr "Passaggi di riponderazione."
 
-
 msgid "Iterations:"
 msgstr "Iterazioni:"
-
 
 msgid "Draw the estimated baseline itself."
 msgstr "Disegna la linea di base stimata."
 
-
 msgid "Draw the baseline:"
 msgstr "Disegna la linea di base:"
-
 
 msgid "Baseline Correction"
 msgstr "Correzione della linea di base"
 
-
 msgid "Subtract a spectrum's background (AsLS or rubber band)"
 msgstr "Sottrae lo sfondo di uno spettro (AsLS o rubber band)"
-
-
-
 
 msgid "Three teaching examples from mathematics, physics and signal processing: Anscombe's quartet on a shared-scale grid (the matplotlib gallery's own multi-axis example), four Lissajous figures at different frequency ratios, and a noisy signal beside the frequency spectrum that recovers its three true tones - the same signal the Filtering operation's IIR/FIR/Hilbert models can run on directly (its 5, 20 and 50 Hz tones are exact targets for a lowpass, a bandpass, or an envelope)."
 msgstr "Tre esempi didattici da matematica, fisica ed elaborazione dei segnali: il quartetto di Anscombe su una griglia a scala condivisa (l'esempio multi-asse della stessa galleria di matplotlib), quattro figure di Lissajous a diversi rapporti di frequenza, e un segnale rumoroso accanto allo spettro di frequenza che ne recupera i tre toni veri - lo stesso segnale su cui i modelli IIR/FIR/Hilbert dell'operazione Filtraggio possono lavorare direttamente (i suoi toni a 5, 20 e 50 Hz sono bersagli esatti per un passa-basso, un passa-banda o un inviluppo)."
 
-
 msgid "Quality and spectroscopy - two new series operations"
 msgstr "Qualità e spettroscopia - due nuove operazioni sulle serie"
-
 
 msgid "Textbook defective-unit counts for the Attribute Chart operation (p/np/c/u), and a synthetic spectrum with a drifting, wandering background for Baseline Correction (AsLS or rubber band) - both figures already carry an annotation and a reference line with an explicit colour, so opening Overlay properties shows its colour/line/font/size editors populated rather than empty."
 msgstr "Conteggi di unità difettose da manuale per l'operazione Carta per attributi (p/np/c/u), e uno spettro sintetico con uno sfondo che deriva e ondeggia per la Correzione della linea di base (AsLS o rubber band) - entrambe le figure portano già un'annotazione e una linea di riferimento con un colore esplicito, cosi' aprendo le proprietà delle sovrapposizioni si vedono gli editor di colore/linea/carattere/dimensione già popolati invece che vuoti."
 
-
 msgid "ChartLibre"
 msgstr "ChartLibre"
-
 
 msgid "Measurements above the line, counts below it."
 msgstr "Le misure sopra la riga, i conteggi sotto."
 
-
 msgid "The limits move with the sample size, so the zone rules (Nelson 5-8) do not apply and were not run."
 msgstr "I limiti cambiano con la dimensione del campione, quindi le regole di zona (Nelson 5-8) non si applicano e non sono state eseguite."
-
 
 msgid "Mean lower limit"
 msgstr "Limite inferiore medio"
 
-
 msgid "Monitor process stability (I-MR, X-bar, p, np, c, u)"
 msgstr "Monitora la stabilità del processo (I-MR, X-bar, p, np, c, u)"
-
 
 msgid "Flags runs, trends and other patterns that stay inside the limits - the signals a limits-only chart misses. The zone rules switch themselves off on a chart whose limits move."
 msgstr "Segnala sequenze, tendenze e altri andamenti che restano dentro i limiti - i segnali che una carta con i soli limiti non vede. Le regole di zona si disattivano da sole su una carta i cui limiti cambiano."
 
-
 msgid "Recomputes the limits without the points they flagged - the trial-limits-then-revised-limits pass every SPC text runs. Use only when the flagged points have an assigned cause you have removed; otherwise it hides the problem."
 msgstr "Ricalcola i limiti senza i punti che ha segnalato - il passaggio limiti di prova poi limiti rivisti che ogni testo di SPC esegue. Usalo solo quando ai punti segnalati è stata assegnata una causa che hai rimosso; altrimenti nasconde il problema."
-
 
 msgid "Textbook defective-unit counts for the Control Chart operation's attribute charts (p/np/c/u), and a synthetic spectrum with a drifting, wandering background for Baseline Correction (AsLS or rubber band) - both figures already carry an annotation and a reference line with an explicit colour, so opening Overlay properties shows its colour/line/font/size editors populated rather than empty."
 msgstr "Conteggi di unità difettose da manuale per le carte per attributi dell'operazione Carta di controllo (p/np/c/u), e uno spettro sintetico con uno sfondo che deriva e ondeggia per la Correzione della linea di base (AsLS o rubber band) - entrambe le figure portano già un'annotazione e una linea di riferimento con un colore esplicito, cosi' aprendo le proprietà delle sovrapposizioni si vedono gli editor di colore/linea/carattere/dimensione già popolati invece che vuoti."
 
-
 msgid "Select project"
 msgstr "Seleziona progetto"
-
 
 msgid "Another ChartLibre project (.dhub)"
 msgstr "Un altro progetto ChartLibre (.dhub)"
 
-
 msgid "Analysis"
 msgstr "Analisi"
-
 
 msgid "Modeling"
 msgstr "Modellazione"
 
-
 msgid "Other"
 msgstr "Altro"
 
-
 msgid "Point at an operation for details"
 msgstr "Punta un'operazione per i dettagli"
-
 
 msgid "Signal Processing"
 msgstr "Elaborazione del segnale"
@@ -4986,239 +3996,179 @@ msgstr "Elaborazione del segnale"
 # --- Chart types: renderer names, descriptions and categories -------
 # Shown in the chart picker (create_chart_dialog) and in the axis
 # properties panel. Swept by test_the_italian_locale_covers_every_renderer.
-
-
 msgid "Pairwise data"
 msgstr "Dati a coppie"
-
 
 msgid "Gridded data"
 msgstr "Dati su griglia"
 
-
 msgid "Irregularly gridded data"
 msgstr "Dati su griglia irregolare"
-
 
 msgid "3D and volumetric data"
 msgstr "Dati 3D e volumetrici"
 
-
 msgid "Bar Chart"
 msgstr "Grafico a barre"
-
 
 msgid "Horizontal Bar Chart"
 msgstr "Grafico a barre orizzontali"
 
-
 msgid "Broken Bar"
 msgstr "Barre a intervalli"
-
 
 msgid "Broken Bar (Vertical)"
 msgstr "Barre a intervalli (verticali)"
 
-
 msgid "Scatter Plot"
 msgstr "Grafico a dispersione"
-
 
 msgid "Scatter Plot (3D)"
 msgstr "Grafico a dispersione (3D)"
 
-
 msgid "Fill Between"
 msgstr "Area tra due curve"
-
 
 msgid "Stack Plot"
 msgstr "Aree impilate"
 
-
 msgid "Stem Plot"
 msgstr "Grafico a steli"
-
 
 msgid "Stairs"
 msgstr "Gradini"
 
-
 msgid "Time Series"
 msgstr "Serie temporale"
-
 
 msgid "Timeline"
 msgstr "Linea del tempo"
 
-
 msgid "Histogram"
 msgstr "Istogramma"
-
 
 msgid "Box Plot"
 msgstr "Box plot"
 
-
 msgid "Violin Plot"
 msgstr "Grafico a violino"
-
 
 msgid "ECDF"
 msgstr "ECDF"
 
-
 msgid "Pareto Chart"
 msgstr "Diagramma di Pareto"
-
 
 msgid "Pie Chart"
 msgstr "Grafico a torta"
 
-
 msgid "Contour Plot"
 msgstr "Grafico di contorno"
-
 
 msgid "Contour Plot (Scattered)"
 msgstr "Grafico di contorno (dati sparsi)"
 
-
 msgid "Surface Plot"
 msgstr "Superficie 3D"
-
 
 msgid "Surface Plot (Scattered)"
 msgstr "Superficie 3D (dati sparsi)"
 
-
 msgid "Triangular Mesh"
 msgstr "Mesh triangolare"
-
 
 msgid "Triangular Color Mesh"
 msgstr "Mesh triangolare a colori"
 
-
 msgid "Quiver"
 msgstr "Campo di vettori"
-
 
 msgid "Stream Plot"
 msgstr "Linee di flusso"
 
-
 msgid "Wind Barbs"
 msgstr "Barbe del vento"
-
 
 msgid "Vertical bar chart"
 msgstr "Grafico a barre verticali"
 
-
 msgid "Horizontal bar chart"
 msgstr "Grafico a barre orizzontali"
-
 
 msgid "Interval bars grouped by category (Gantt-style)."
 msgstr "Barre a intervalli raggruppate per categoria (stile Gantt)."
 
-
 msgid "Interval bars grouped by category, stacked in columns."
 msgstr "Barre a intervalli raggruppate per categoria, impilate in colonne."
-
 
 msgid "Text labels at data points, spread apart to avoid overlap."
 msgstr "Etichette di testo nei punti dati, distanziate per evitare sovrapposizioni."
 
-
 msgid "A data table, rows and columns of text rather than a plot."
 msgstr "Una tabella di dati, righe e colonne di testo invece di un grafico."
-
 
 msgid "Time series"
 msgstr "Serie temporale"
 
-
 msgid "Dated events on a baseline, each on a stem with its label, for release histories and anything else that is a list of moments."
 msgstr "Eventi datati su una linea di base, ognuno su uno stelo con la sua etichetta, per storici di versioni e ogni altro elenco di momenti."
-
 
 msgid "The region between two y curves over a shared x, for confidence bands and tolerance limits."
 msgstr "La regione tra due curve y su una x condivisa, per bande di confidenza e limiti di tolleranza."
 
-
 msgid "Series stacked into filled bands over a shared x, for showing how a total divides between its parts."
 msgstr "Serie impilate in bande piene su una x condivisa, per mostrare come un totale si divide tra le sue parti."
-
 
 msgid "A stem from a baseline to each value, for impulses, spectra and anything else sampled at discrete x."
 msgstr "Uno stelo dalla linea di base a ogni valore, per impulsi, spettri e qualsiasi altra cosa campionata a x discrete."
 
-
 msgid "A step outline over bin edges, for values that hold constant between them rather than sloping."
 msgstr "Un profilo a gradini sui bordi dei bin, per valori che restano costanti tra un bordo e l'altro invece di variare con pendenza."
-
 
 msgid "Histogram supporting multiple data sets."
 msgstr "Istogramma con supporto per più insiemi di dati."
 
-
 msgid "Draw a box and whisker plot."
 msgstr "Disegna un box plot (scatola e baffi)."
-
 
 msgid "Show the estimated distribution of one or more samples."
 msgstr "Mostra la distribuzione stimata di uno o più campioni."
 
-
 msgid "Empirical cumulative distribution function."
 msgstr "Funzione di distribuzione cumulativa empirica."
-
 
 msgid "Categories sorted by descending magnitude with a cumulative percentage line, for finding the few causes behind most of an effect."
 msgstr "Categorie ordinate per grandezza decrescente con una linea di percentuale cumulata, per trovare le poche cause dietro la maggior parte di un effetto."
 
-
 msgid "Pie or donut chart of one series."
 msgstr "Grafico a torta o a ciambella di una singola serie."
-
 
 msgid "Filled or line contours of z over a regular x/y grid."
 msgstr "Contorni pieni o a linee di z su una griglia x/y regolare."
 
-
 msgid "Filled or line contours for scattered (non-gridded) x/y/z data."
 msgstr "Contorni pieni o a linee per dati x/y/z sparsi (non su griglia)."
-
 
 msgid "3D surface over a regular x/y grid."
 msgstr "Superficie 3D su una griglia x/y regolare."
 
-
 msgid "3D triangulated surface for scattered (non-gridded) x/y/z data."
 msgstr "Superficie 3D triangolata per dati x/y/z sparsi (non su griglia)."
-
 
 msgid "Points in three dimensions, optionally coloured and sized by further columns - a cloud read for its shape rather than a surface."
 msgstr "Punti in tre dimensioni, facoltativamente colorati e dimensionati da altre colonne - una nuvola letta per la sua forma piuttosto che una superficie."
 
-
 msgid "The triangulation of scattered points, drawn as edges and vertices. Shows where the samples are and what an interpolating renderer will assume between them."
 msgstr "La triangolazione di punti sparsi, disegnata come spigoli e vertici. Mostra dove sono i campioni e cosa un renderer interpolante assumerà tra di essi."
-
 
 msgid "Scattered samples triangulated and filled by value - the unstructured answer to a pcolormesh, for a field measured wherever it could be measured."
 msgstr "Campioni sparsi triangolati e riempiti in base al valore - la risposta non strutturata a un pcolormesh, per un campo misurato ovunque fosse possibile misurarlo."
 
-
 msgid "An arrow at each sample showing a vector field's direction and magnitude, read from u and v components. Draws wherever the samples are; use Stream Plot for the flow through an even grid."
 msgstr "Una freccia per ogni campione che mostra direzione e intensità di un campo vettoriale, lette dalle componenti u e v. Disegna dove sono i campioni; usa Linee di flusso per il flusso attraverso una griglia regolare."
 
-
 msgid "Streamlines traced through a vector field, for seeing where a flow goes rather than what it does at each sample. Needs an evenly spaced grid; use Quiver for scattered samples."
 msgstr "Linee di corrente tracciate attraverso un campo vettoriale, per vedere dove va un flusso invece di cosa fa in ogni campione. Richiede una griglia a spaziatura regolare; usa Campo di vettori per campioni sparsi."
-
 
 msgid "A barb per point showing the direction and strength of a vector field, read from u and v components. Barbs encode speed in flags, so they stay readable where a field of arrows does not."
 msgstr "Una barba per punto che mostra direzione e intensità di un campo vettoriale, lette dalle componenti u e v. Le barbe codificano la velocità con le bandierine, quindi restano leggibili dove un campo di frecce non lo sarebbe."
@@ -5226,42 +4176,32 @@ msgstr "Una barba per punto che mostra direzione e intensità di un campo vettor
 msgid "Database Info"
 msgstr "Informazioni database"
 
-
 msgid "Tables, size and import links for the current database"
 msgstr "Tabelle, dimensione e collegamenti di importazione del database corrente"
-
 
 msgid "Path:"
 msgstr "Percorso:"
 
-
 msgid "Size on disk:"
 msgstr "Dimensione su disco:"
-
 
 msgid "unknown"
 msgstr "sconosciuta"
 
-
 msgid "Yes"
 msgstr "Sì"
-
 
 msgid "Refresh the selected table from its import link"
 msgstr "Aggiorna la tabella selezionata dal suo collegamento di importazione"
 
-
 msgid "Window"
 msgstr "Finestra"
-
 
 msgid "Minimize"
 msgstr "Riduci a icona"
 
-
 msgid "Zoom"
 msgstr "Zoom"
-
 
 msgid "Copy the current chart to the clipboard"
 msgstr "Copia il grafico corrente negli appunti"
@@ -5272,7 +4212,6 @@ msgstr "Database salvato."
 msgid "Help"
 msgstr "Aiuto"
 
-
 msgid "Linked"
 msgstr "Collegata"
 
@@ -5282,42 +4221,32 @@ msgstr "Sviluppatore"
 msgid "Scaffolding tools and the translation catalogue"
 msgstr "Strumenti di scaffolding e catalogo delle traduzioni"
 
-
 msgid "Edit Localization"
 msgstr "Modifica localizzazione"
-
 
 msgid "Browse and edit the translation catalogue without a .po editor"
 msgstr "Sfoglia e modifica il catalogo delle traduzioni senza un editor .po"
 
-
 msgid "Series Operation Builder"
 msgstr "Costruttore di operazioni sulle serie"
-
 
 msgid "Scaffold a new series-operation dialog from a template"
 msgstr "Genera una nuova finestra di operazione sulle serie da un modello"
 
-
 msgid "Function Creator"
 msgstr "Creatore di funzioni"
-
 
 msgid "Scaffold a new curve-fit / analytic function"
 msgstr "Genera una nuova funzione di fit / analitica"
 
-
 msgid "Renderer Helper"
 msgstr "Assistente renderer"
-
 
 msgid "Scaffold a new chart-type axis renderer from a template"
 msgstr "Genera un nuovo renderer di tipo grafico da un modello"
 
-
 msgid "Developer tools"
 msgstr "Strumenti sviluppatore"
-
 
 msgid "{feature} is not implemented yet - see todo.txt for the design sketch."
 msgstr "{feature} non è ancora implementato - vedi todo.txt per la bozza di progettazione."
@@ -5325,13 +4254,11 @@ msgstr "{feature} non è ancora implementato - vedi todo.txt per la bozza di pro
 msgid "Heatmap"
 msgstr "Mappa di calore"
 
-
 msgid "Raw per-cell colour over a regular x/y grid, no interpolation between cells - the value actually measured in each one."
 msgstr "Colore grezzo per cella su una griglia x/y regolare, senza interpolazione tra le celle - il valore effettivamente misurato in ciascuna."
 
 msgid "Hexbin"
 msgstr "Binning esagonale"
-
 
 msgid "2D density of x/y pairs binned into hexagons - where a scatter with too many points to read individually actually piles up."
 msgstr "Densità 2D di coppie x/y raggruppate in esagoni - dove uno scatter con troppi punti da leggere individualmente si accumula davvero."
@@ -5339,21 +4266,17 @@ msgstr "Densità 2D di coppie x/y raggruppate in esagoni - dove uno scatter con 
 msgid "Event Plot"
 msgstr "Grafico eventi"
 
-
 msgid "A row of tick marks per series at each x where an event happened - a digital signal's edges, an error log, a spike train."
 msgstr "Una riga di trattini per serie in ogni x in cui è avvenuto un evento - i fronti di un segnale digitale, un log di errori, un treno di impulsi."
 
 msgid "3D Line Plot"
 msgstr "Grafico a linee 3D"
 
-
 msgid "A trajectory or parametric curve through three dimensions, points connected in row order rather than drawn as an unconnected cloud."
 msgstr "Una traiettoria o curva parametrica in tre dimensioni, con i punti collegati nell'ordine delle righe invece di essere disegnati come una nuvola sconnessa."
 
-
 msgid "3D Bar Chart"
 msgstr "Grafico a barre 3D"
-
 
 msgid "Bars rising from the x/y plane to z - categorical data in three dimensions, where a Heatmap's flat colour alone is not enough."
 msgstr "Barre che si innalzano dal piano x/y fino a z - dati categoriali in tre dimensioni, dove il solo colore piatto di una mappa di calore non basta."
@@ -5361,52 +4284,47 @@ msgstr "Barre che si innalzano dal piano x/y fino a z - dati categoriali in tre 
 msgid "Measure"
 msgstr "Misura"
 
-
 msgid "Measure the distance and slope between two points"
 msgstr "Misura la distanza e la pendenza tra due punti"
 
 msgid "Measure from here"
 msgstr "Misura da qui"
 
-
 msgid "Measure to here"
 msgstr "Misura fino a qui"
-
 
 msgid "Clear measurement"
 msgstr "Cancella misura"
 
-
 msgid "Start measuring the distance and slope to another point."
 msgstr "Inizia a misurare distanza e pendenza verso un altro punto."
-
 
 msgid "Finish the measurement at this point."
 msgstr "Termina la misura a questo punto."
 
-
 msgid "Remove the ruler from the chart."
 msgstr "Rimuovi il righello dal grafico."
-
 
 msgid "undefined (Δx = 0)"
 msgstr "indefinita (Δx = 0)"
 
-
-msgid "Δx: {dx}\nΔy: {dy}\nslope: {slope}"
-msgstr "Δx: {dx}\nΔy: {dy}\npendenza: {slope}"
+msgid ""
+"Δx: {dx}\n"
+"Δy: {dy}\n"
+"slope: {slope}"
+msgstr ""
+"Δx: {dx}\n"
+"Δy: {dy}\n"
+"pendenza: {slope}"
 
 msgid "Crosshair"
 msgstr "Mirino"
 
-
 msgid "A guide line under the pointer, shared across every axes of this figure."
 msgstr "Una linea guida sotto il puntatore, condivisa tra tutti gli assi di questa figura."
 
-
 msgid "Link zoom/pan across axes"
 msgstr "Collega zoom/panoramica tra gli assi"
-
 
 msgid "Zooming or panning one axes' x range applies it to every other axes of this figure too."
 msgstr "Zoomare o spostare l'intervallo x di un asse lo applica anche a tutti gli altri assi di questa figura."
@@ -5414,34 +4332,26 @@ msgstr "Zoomare o spostare l'intervallo x di un asse lo applica anche a tutti gl
 msgid "Measurements"
 msgstr "Misure"
 
-
 msgid "A ruler between two points, with its dx/dy/slope written beside it - the same thing a chart's own \"Measure from here\" / \"Measure to here\" right-click actions create. Color has its own column; anything else goes in Kwargs JSON."
 msgstr "Un righello tra due punti, con dx/dy/pendenza scritti accanto - la stessa cosa che creano le azioni del menu contestuale \"Misura da qui\" / \"Misura fino a qui\". Il colore ha una colonna propria; il resto va nel JSON Kwargs."
-
 
 msgid "Add measurement"
 msgstr "Aggiungi misura"
 
-
 msgid "Start X"
 msgstr "X iniziale"
-
 
 msgid "Start Y"
 msgstr "Y iniziale"
 
-
 msgid "End X"
 msgstr "X finale"
-
 
 msgid "End Y"
 msgstr "Y finale"
 
-
 msgid "Cancel measurement"
 msgstr "Annulla misura"
-
 
 msgid "Forget the pending point without finishing the measurement."
 msgstr "Dimentica il punto in sospeso senza completare la misura."
@@ -5956,8 +4866,22 @@ msgstr "Traduzione"
 msgid "Two-letter language code (e.g. \"fr\", \"de\"):"
 msgstr "Codice lingua di due lettere (es. \"fr\", \"de\"):"
 
-msgid "docs/manual/user_manual.typ is not translated by this tool - it is prose inside Typst markup, not a string catalogue. To produce a translated copy:\n\n1. Copy user_manual.typ to user_manual_<lang>.typ (e.g. user_manual_it.typ).\n2. Translate the prose, leaving every #-command, code block and image reference untouched.\n3. Compile it: typst compile user_manual_<lang>.typ.\n\nThe application text itself does not need this step - it comes from the catalogue this dialog edits."
-msgstr "docs/manual/user_manual.typ non viene tradotto da questo strumento - è prosa dentro markup Typst, non un catalogo di stringhe. Per produrre una copia tradotta:\n\n1. Copia user_manual.typ in user_manual_<lang>.typ (es. user_manual_it.typ).\n2. Traduci la prosa, lasciando invariati ogni comando #, blocco di codice e riferimento a immagini.\n3. Compilalo: typst compile user_manual_<lang>.typ.\n\nIl testo dell'applicazione stesso non richiede questo passaggio - proviene dal catalogo che questo dialogo modifica."
+msgid ""
+"docs/manual/user_manual.typ is not translated by this tool - it is prose inside Typst markup, not a string catalogue. To produce a translated copy:\n"
+"\n"
+"1. Copy user_manual.typ to user_manual_<lang>.typ (e.g. user_manual_it.typ).\n"
+"2. Translate the prose, leaving every #-command, code block and image reference untouched.\n"
+"3. Compile it: typst compile user_manual_<lang>.typ.\n"
+"\n"
+"The application text itself does not need this step - it comes from the catalogue this dialog edits."
+msgstr ""
+"docs/manual/user_manual.typ non viene tradotto da questo strumento - è prosa dentro markup Typst, non un catalogo di stringhe. Per produrre una copia tradotta:\n"
+"\n"
+"1. Copia user_manual.typ in user_manual_<lang>.typ (es. user_manual_it.typ).\n"
+"2. Traduci la prosa, lasciando invariati ogni comando #, blocco di codice e riferimento a immagini.\n"
+"3. Compilalo: typst compile user_manual_<lang>.typ.\n"
+"\n"
+"Il testo dell'applicazione stesso non richiede questo passaggio - proviene dal catalogo che questo dialogo modifica."
 
 msgid "{count} string(s), {missing} missing translation."
 msgstr "{count} stringa/e, {missing} traduzione/i mancante/i."
@@ -6214,353 +5138,272 @@ msgstr "Mostra le etichette di navigazione"
 msgid "Geometry"
 msgstr "Geometria"
 
-
 msgid "Rotate, move, scale or mirror a series' coordinates"
 msgstr "Ruota, sposta, scala o specchia le coordinate di una serie"
-
 
 msgid "Angle (degrees):"
 msgstr "Angolo (gradi):"
 
-
 msgid "Counter-clockwise, about the centre below. The query spells this out as cos(radians(...)) rather than as a decimal, so it can be read and edited afterwards."
 msgstr "In senso antiorario, attorno al centro indicato sotto. La query lo scrive come cos(radians(...)) invece che come numero decimale, cosi' resta leggibile e modificabile in seguito."
-
 
 msgid "Mirror across:"
 msgstr "Specchia rispetto a:"
 
-
 msgid "The line to reflect in, through the centre below."
 msgstr "La retta di riflessione, passante per il centro indicato sotto."
-
 
 msgid "Horizontal line (flip up/down)"
 msgstr "Retta orizzontale (ribalta sopra/sotto)"
 
-
 msgid "Vertical line (flip left/right)"
 msgstr "Retta verticale (ribalta destra/sinistra)"
-
 
 msgid "Diagonal y = x"
 msgstr "Diagonale y = x"
 
-
 msgid "Diagonal y = -x"
 msgstr "Diagonale y = -x"
-
 
 msgid "Move x by:"
 msgstr "Sposta x di:"
 
-
 msgid "Added to every x. Negative moves left."
 msgstr "Aggiunto a ogni x. Un valore negativo sposta a sinistra."
-
 
 msgid "Move y by:"
 msgstr "Sposta y di:"
 
-
 msgid "Added to every y. Negative moves down."
 msgstr "Aggiunto a ogni y. Un valore negativo sposta in basso."
-
 
 msgid "Scale x by:"
 msgstr "Scala x di:"
 
-
 msgid "1 leaves x alone; 2 doubles it about the centre below."
 msgstr "1 lascia x invariata; 2 la raddoppia rispetto al centro indicato sotto."
-
 
 msgid "Scale y by:"
 msgstr "Scala y di:"
 
-
 msgid "1 leaves y alone; 2 doubles it about the centre below."
 msgstr "1 lascia y invariata; 2 la raddoppia rispetto al centro indicato sotto."
-
 
 msgid "Shear x per y:"
 msgstr "Taglio di x per unita' di y:"
 
-
 msgid "Adds this much x for each unit of y above the centre."
 msgstr "Aggiunge questa quantita' di x per ogni unita' di y sopra il centro."
-
 
 msgid "Shear y per x:"
 msgstr "Taglio di y per unita' di x:"
 
-
 msgid "Adds this much y for each unit of x right of the centre."
 msgstr "Aggiunge questa quantita' di y per ogni unita' di x a destra del centro."
-
 
 msgid "Centre x:"
 msgstr "Centro x:"
 
-
 msgid "The fixed point. Rotation, scaling, mirroring and shearing all leave this point exactly where it is; a translation ignores it."
 msgstr "Il punto fisso. Rotazione, scalatura, specchiatura e taglio lasciano questo punto esattamente dov'e'; la traslazione lo ignora."
-
 
 msgid "Centre y:"
 msgstr "Centro y:"
 
-
 msgid "The other half of the fixed point."
 msgstr "L'altra meta' del punto fisso."
-
 
 msgid "Centre on the data"
 msgstr "Centra sui dati"
 
-
 msgid "Use the middle of the series' own extent as the fixed point instead of the two values above - which is what is wanted when the intent is 'turn this shape', not 'turn it about the origin'."
 msgstr "Usa il centro dell'estensione della serie come punto fisso invece dei due valori sopra - che e' cio' che serve quando si vuole 'ruotare questa forma', non 'ruotarla attorno all'origine'."
-
 
 msgid "Show the deformation grid"
 msgstr "Mostra la griglia di deformazione"
 
-
 msgid "Draws a square mesh over the source's extent and the same mesh after the transform. A rotation turns it, a scale stretches it, a shear leans it over - which is easier to read off the mesh than off the points."
 msgstr "Disegna una maglia quadrata sull'estensione della sorgente e la stessa maglia dopo la trasformazione. Una rotazione la ruota, una scalatura la allunga, un taglio la inclina - piu' facile da leggere sulla maglia che sui punti."
-
 
 msgid "Rotate"
 msgstr "Ruota"
 
-
 msgid "Translate"
 msgstr "Trasla"
-
 
 msgid "Mirror"
 msgstr "Specchia"
 
-
 msgid "Shear"
 msgstr "Taglia"
-
 
 msgid "Before"
 msgstr "Prima"
 
-
 msgid "After"
 msgstr "Dopo"
-
 
 msgid "Choose a series, then press Preview."
 msgstr "Scegli una serie, poi premi Anteprima."
 
-
 msgid "Press Preview to see where the points move."
 msgstr "Premi Anteprima per vedere dove si spostano i punti."
-
 
 msgid "Add row"
 msgstr "Aggiungi riga"
 
-
 msgid "Add an empty row at the end of the table"
 msgstr "Aggiunge una riga vuota in fondo alla tabella"
-
 
 msgid "Insert row above"
 msgstr "Inserisci riga sopra"
 
-
 msgid "Add an empty row above the selected one"
 msgstr "Aggiunge una riga vuota sopra quella selezionata"
-
 
 msgid "Delete rows"
 msgstr "Elimina righe"
 
-
 msgid "Delete every row with a selected cell"
 msgstr "Elimina ogni riga che ha una cella selezionata"
-
 
 msgid "New column name"
 msgstr "Nome della nuova colonna"
 
-
 msgid "Add column"
 msgstr "Aggiungi colonna"
-
 
 msgid "Add the named column at the end of the table"
 msgstr "Aggiunge la colonna indicata in fondo alla tabella"
 
-
 msgid "Insert before selected"
 msgstr "Inserisci prima della selezionata"
-
 
 msgid "Add the named column immediately before the selected one"
 msgstr "Aggiunge la colonna indicata subito prima di quella selezionata"
 
-
 msgid "Rename selected"
 msgstr "Rinomina selezionata"
-
 
 msgid "Rename the selected column"
 msgstr "Rinomina la colonna selezionata"
 
-
 msgid "Delete the selected column and everything in it"
 msgstr "Elimina la colonna selezionata e tutto il suo contenuto"
-
 
 msgid "Managed columns"
 msgstr "Colonne gestite"
 
-
 msgid "Ensure Hide"
 msgstr "Crea Hide"
-
 
 msgid "Add the Hide column if this table does not have one"
 msgstr "Aggiunge la colonna Hide se questa tabella non ce l'ha"
 
-
 msgid "Reset Hide"
 msgstr "Azzera Hide"
-
 
 msgid "Set Hide back to 0 on every row, so nothing is hidden"
 msgstr "Riporta Hide a 0 su ogni riga, cosi' non e' nascosto niente"
 
-
 msgid "Invert Hide"
 msgstr "Inverti Hide"
-
 
 msgid "Swap hidden and shown rows"
 msgstr "Scambia le righe nascoste con quelle mostrate"
 
-
 msgid "Ensure ClusterId"
 msgstr "Crea ClusterId"
-
 
 msgid "Add the ClusterId column if this table does not have one"
 msgstr "Aggiunge la colonna ClusterId se questa tabella non ce l'ha"
 
-
 msgid "Reset clusters"
 msgstr "Azzera i cluster"
-
 
 msgid "Clear every cluster label"
 msgstr "Cancella tutte le etichette dei cluster"
 
-
 msgid "Edit table"
 msgstr "Modifica tabella"
-
 
 msgid "Hide marks rows the charts skip; ClusterId is written by the Clustering operation."
 msgstr "Hide segna le righe che i grafici saltano; ClusterId e' scritta dall'operazione Clustering."
 
-
 msgid "Select the row to insert above first."
 msgstr "Seleziona prima la riga sopra cui inserire."
-
 
 msgid "Select the rows to delete first."
 msgstr "Seleziona prima le righe da eliminare."
 
-
 msgid "Type a name for the new column first."
 msgstr "Scrivi prima un nome per la nuova colonna."
-
 
 msgid "Select the column to insert before first."
 msgstr "Seleziona prima la colonna prima della quale inserire."
 
-
 msgid "Select a column first."
 msgstr "Seleziona prima una colonna."
-
 
 msgid "Type the new name in the box first."
 msgstr "Scrivi prima il nuovo nome nella casella."
 
-
 msgid "Edit table '{table}'"
 msgstr "Modifica la tabella '{table}'"
-
 
 msgid "Close the editor. Every change has already been saved."
 msgstr "Chiude l'editor. Ogni modifica e' gia' stata salvata."
 
-
 msgid "Hide column ensured"
 msgstr "Colonna Hide creata"
-
 
 msgid "Hide reset"
 msgstr "Hide azzerata"
 
-
 msgid "Hide inverted"
 msgstr "Hide invertita"
-
 
 msgid "ClusterId column ensured"
 msgstr "Colonna ClusterId creata"
 
-
 msgid "Clusters reset"
 msgstr "Cluster azzerati"
-
 
 msgid "Delete {count} row(s)? This can be undone."
 msgstr "Eliminare {count} riga/e? L'operazione puo' essere annullata."
 
-
 msgid "Delete '{column}' and everything in it? This can be undone."
 msgstr "Eliminare '{column}' e tutto il suo contenuto? L'operazione puo' essere annullata."
-
 
 msgid "Could not do that"
 msgstr "Operazione non riuscita"
 
-
 msgid "Edit table..."
 msgstr "Modifica tabella..."
-
 
 msgid "Edit cells, add or delete rows and columns, and manage the Hide and ClusterId columns"
 msgstr "Modifica le celle, aggiunge o elimina righe e colonne, e gestisce le colonne Hide e ClusterId"
 
-
 msgid "Rename the selected column to the name in the box"
 msgstr "Rinomina la colonna selezionata con il nome scritto nella casella"
-
 
 msgid "Keep every change made here"
 msgstr "Mantieni tutte le modifiche fatte qui"
 
-
 msgid "Undo every change made here and close"
 msgstr "Annulla tutte le modifiche fatte qui e chiudi"
-
 
 msgid "Discard the changes?"
 msgstr "Scartare le modifiche?"
 
-
-msgid "Every change made in this editor will be undone, and the table put back as it was.\n\nThis cannot be redone."
-msgstr "Tutte le modifiche fatte in questo editor verranno annullate e la tabella tornera' com'era.\n\nL'operazione non puo' essere ripristinata."
+msgid ""
+"Every change made in this editor will be undone, and the table put back as it was.\n"
+"\n"
+"This cannot be redone."
+msgstr ""
+"Tutte le modifiche fatte in questo editor verranno annullate e la tabella tornera' com'era.\n"
+"\n"
+"L'operazione non puo' essere ripristinata."
 
 msgid "Real case studies - CO2, sunspots, earthquakes and warming"
 msgstr "Casi di studio reali - CO2, macchie solari, terremoti e riscaldamento"
@@ -6778,8 +5621,14 @@ msgstr "...e altri {count}."
 msgid "SQL blocked"
 msgstr "SQL bloccato"
 
-msgid "This project contains SQL that would change the database. It has been blocked and will not run until it is edited:\n\n{items}"
-msgstr "Questo progetto contiene SQL che modificherebbe il database. È stato bloccato e non verrà eseguito finché non viene modificato:\n\n{items}"
+msgid ""
+"This project contains SQL that would change the database. It has been blocked and will not run until it is edited:\n"
+"\n"
+"{items}"
+msgstr ""
+"Questo progetto contiene SQL che modificherebbe il database. È stato bloccato e non verrà eseguito finché non viene modificato:\n"
+"\n"
+"{items}"
 
 msgid "A table needs at least one row. Add another row before deleting this one."
 msgstr "Una tabella deve avere almeno una riga. Aggiungine un'altra prima di eliminare questa."

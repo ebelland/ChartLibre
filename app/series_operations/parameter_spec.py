@@ -193,6 +193,3 @@ class TextParam(Param):
 def defaults(params: Sequence[Param]) -> dict[str, Any]:
     """Return every parameter's default, keyed by name."""
     return {param.name: param.default for param in params}
-
-
-
