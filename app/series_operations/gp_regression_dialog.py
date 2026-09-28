@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -243,12 +243,13 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
         model.fit(x_values.reshape(-1, 1), y_values)
 
         x_grid = np.linspace(float(x_values.min()), float(x_values.max()), GRID_POINTS)
-        mean, std = model.predict(x_grid.reshape(-1, 1), return_std=True)
+        # With return_std=True, predict returns exactly (mean, std).
+        mean, std = cast(tuple[np.ndarray, np.ndarray], model.predict(x_grid.reshape(-1, 1), return_std=True))
         upper = mean + 2.0 * std
         lower = mean - 2.0 * std
 
         try:
-            log_likelihood = float(model.log_marginal_likelihood())
+            log_likelihood = float(cast(float, model.log_marginal_likelihood()))
         except Exception:  # noqa: BLE001 - diagnostic only, never fatal
             log_likelihood = float("nan")
 

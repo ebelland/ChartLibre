@@ -252,14 +252,14 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
                     "Box-Cox requires every value to be strictly positive; "
                     "use Yeo-Johnson instead, or subtract a baseline first."
                 )
-            transformer = PowerTransformer(method=method)
+            transformer = PowerTransformer(method="box-cox" if method == POWER_BOX_COX else "yeo-johnson")
             transformed = transformer.fit_transform(column)
             metadata["method"] = method
 
         elif model == TRANSFORM_QUANTILE:
             n_quantiles = min(int(params.get("n_quantiles", 1000)), y_values.size)
             transformer = QuantileTransformer(
-                output_distribution=str(params.get("output_distribution", "uniform")),
+                output_distribution="normal" if params.get("output_distribution") == "normal" else "uniform",
                 n_quantiles=max(2, n_quantiles),
                 random_state=0,
             )

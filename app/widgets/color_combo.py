@@ -26,10 +26,10 @@ from PySide6.QtWidgets import QWidget
 
 from matplotlib import rcParams
 from matplotlib.colors import (
-    BASE_COLORS,
-    CSS4_COLORS,
-    TABLEAU_COLORS,
-    XKCD_COLORS,
+    BASE_COLORS,  # pyright: ignore[reportAttributeAccessIssue]
+    CSS4_COLORS,  # pyright: ignore[reportAttributeAccessIssue]
+    TABLEAU_COLORS,  # pyright: ignore[reportAttributeAccessIssue]
+    XKCD_COLORS,  # pyright: ignore[reportAttributeAccessIssue]
     to_hex,
 )
 

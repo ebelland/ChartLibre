@@ -28,7 +28,7 @@ def showcase(tmp_path_factory: pytest.TempPathFactory) -> tuple[SqliteRepo, dict
 def _save(fig: Figure, path: Path) -> None:
     """Save a figure, creating the parent directory."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=110, bbox_inches="tight")
+    fig.savefig(str(path), dpi=110, bbox_inches="tight")
 
 
 def test_every_discovered_renderer_is_covered() -> None:
@@ -76,7 +76,7 @@ def test_renderer_draws_and_saves(
         len(axis.lines)
         + len(axis.collections)
         + len(axis.patches)
-        + len(axis.containers)
+        + len(axis.containers)  # pyright: ignore[reportAttributeAccessIssue]
         # Axes.table() tracks its own artist in ax.tables - none of the four
         # collections above, so the Table renderer needs this one counted
         # too or it always reads as an empty axis.

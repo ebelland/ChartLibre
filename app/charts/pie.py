@@ -321,7 +321,7 @@ class PieAxisRenderer(BaseAxisRenderer):
     @staticmethod
     def _colormap_colors(name: str, count: int) -> Any:
         """Sample *count* evenly spaced colours from a named colormap."""
-        from matplotlib import colormaps
+        from matplotlib import colormaps  # pyright: ignore[reportAttributeAccessIssue]
 
         try:
             colormap = colormaps[name]

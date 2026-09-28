@@ -32,7 +32,7 @@ MAX_GRID_CELLS: int = get_constant("max_grid_cells", 4_000_000)
 
 
 def pivot_to_grid(
-    df: SeriesFrame,
+    df: SeriesFrame | pd.DataFrame,
     *,
     x_role: str = "x",
     y_role: str = "y",

@@ -126,7 +126,7 @@ class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
             coerced, is_temporal = coerce_axis(sd.df["x"])
             temporal = temporal or is_temporal
             x = (
-                mdates.date2num(coerced.to_numpy())
+                np.asarray(mdates.date2num(coerced.to_numpy()), dtype=float)
                 if is_temporal
                 else to_numbers(coerced).to_numpy(dtype=float)
             )

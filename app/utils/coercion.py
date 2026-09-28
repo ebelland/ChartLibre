@@ -87,7 +87,7 @@ def parse_datetimes(values: pd.Series) -> pd.Series:
     best_lost = -1
     present = values.notna()
 
-    for attempt in ({"format": "ISO8601"}, {}, {"format": "mixed"}):
+    for date_format in ("ISO8601", None, "mixed"):
         try:
             with warnings.catch_warnings():
                 # "Could not infer format, so each element will be parsed
@@ -95,7 +95,7 @@ def parse_datetimes(values: pd.Series) -> pd.Series:
                 # what it is here to do. Warning about a fallback that was
                 # asked for tells the user nothing they can act on.
                 warnings.simplefilter("ignore", UserWarning)
-                parsed = pd.to_datetime(values, errors="coerce", **attempt)
+                parsed = pd.to_datetime(values, errors="coerce", format=date_format)
         except (TypeError, ValueError):
             continue
 

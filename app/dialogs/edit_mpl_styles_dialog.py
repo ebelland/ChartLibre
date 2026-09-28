@@ -190,11 +190,11 @@ def _rc_enum_choices(key: str) -> tuple[list[str], bool] | None:
     if lower in _KEY_CHOICES:
         return list(_KEY_CHOICES[lower]), False
     if lower == "image.cmap":
-        return sorted(mpl.colormaps, key=str.lower), False
+        return sorted(mpl.colormaps, key=str.lower), False  # pyright: ignore[reportAttributeAccessIssue]
     try:
         from matplotlib import rcsetup
 
-        validator = rcsetup._validators.get(key)
+        validator = rcsetup._validators.get(key)  # pyright: ignore[reportAttributeAccessIssue]
     except Exception:
         return None
     if isinstance(validator, type) and issubclass(validator, Enum):
@@ -323,7 +323,7 @@ def _coerce_rc_color(value: object) -> object:
     if isinstance(value, str):
         text = value.strip()
         candidate = _add_hash(text)
-        to_rgba(candidate)
+        to_rgba(candidate)  # pyright: ignore[reportArgumentType]
         return candidate
     if isinstance(value, tuple) and len(value) in (3, 4) and all(isinstance(v, (int, float)) for v in value):
         rgba_tuple = cast(tuple[float, ...], value)
@@ -840,7 +840,7 @@ class MplStyleEditorDialog(QDialog):
             ax.set_title("Bars")
             ax.legend()
         elif kind == "box":
-            ax.boxplot([rng.normal(m, 1.0, 80) for m in (0, 1, 0.5, 2)], tick_labels=["A", "B", "C", "D"])
+            ax.boxplot([rng.normal(m, 1.0, 80) for m in (0, 1, 0.5, 2)], tick_labels=["A", "B", "C", "D"])  # pyright: ignore[reportCallIssue]
             ax.set_title("Box plot")
         elif kind == "hist":
             ax.hist(rng.normal(0, 1, 800), bins=30, alpha=0.8, label="a")
@@ -860,7 +860,7 @@ class MplStyleEditorDialog(QDialog):
             ax.plot(x, np.cos(x), "--", label="cos")
             ax.scatter(
                 x[::8], np.sin(x[::8]) + 0.15 * rng.standard_normal(len(x[::8])),
-                s=26, marker="o", alpha=0.8, label="scatter",
+                s=26, marker="o", alpha=0.8, label="scatter",  # pyright: ignore[reportArgumentType]
             )
             ax.set_title("Lines and scatter")
             ax.legend(loc="best")
@@ -928,7 +928,7 @@ class MplStyleEditorDialog(QDialog):
             return
         try:
             with mpl.rc_context():
-                mplstyle.use(self.style_stack)
+                mplstyle.use(cast(Any, self.style_stack))
                 final = dict(mpl.rcParams)
                 defaults = dict(mpl.rcParamsDefault)
                 diffs = {
@@ -1001,7 +1001,7 @@ class MplStyleEditorDialog(QDialog):
             meta["choices"] = _font_choices(generic=key.lower() == "font.family")
         elif kind == "cmap":
             try:
-                choices = [str(name) for name in plt.colormaps()]
+                choices = [str(name) for name in plt.colormaps()]  # pyright: ignore[reportAttributeAccessIssue]
                 choices.sort()
             except Exception:
                 choices = []
@@ -1058,7 +1058,7 @@ class MplStyleEditorDialog(QDialog):
             with tmp:
                 tmp.write(sanitized_text)
             params = mpl.rc_params_from_file(
-                tmp_path,
+                str(tmp_path),
                 use_default_template=False,
             )
         finally:
@@ -1105,7 +1105,7 @@ class MplStyleEditorDialog(QDialog):
         try:
             with mpl.rc_context():
                 if self.style_stack:
-                    mplstyle.use(self.style_stack)
+                    mplstyle.use(cast(Any, self.style_stack))
                 overlay, _unused = self._collect_overrides()
                 for k, v in overlay.items():
                     cast(Any, mpl.rcParams)[k] = v
@@ -1226,7 +1226,7 @@ class MplStyleEditorDialog(QDialog):
                         self.status.setText(
                             f"Warning: {len(missing)} stack file(s) missing;"
                             " preview uses available ones.")
-                    mplstyle.use(self.style_stack)
+                    mplstyle.use(cast(Any, self.style_stack))
                 for k, v in style_dict.items():
                     cast(Any, mpl.rcParams)[k] = v
 
@@ -1309,7 +1309,7 @@ class MplStyleEditorDialog(QDialog):
         with mpl.rc_context():
             if self.style_stack:
                 try:
-                    mplstyle.use(self.style_stack)
+                    mplstyle.use(cast(Any, self.style_stack))
                 except Exception:
                     pass
             overrides: dict[str, object]

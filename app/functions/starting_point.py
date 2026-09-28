@@ -24,7 +24,8 @@ user guess which one they have.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from collections.abc import Iterable
+from typing import Any, Callable, cast
 
 import numpy as np
 
@@ -84,7 +85,7 @@ def ask_the_function(
     if guess is None:
         return None
 
-    values = np.asarray(list(guess), dtype=float).ravel()
+    values = np.asarray(list(cast(Iterable[float], guess)), dtype=float).ravel()
     if values.size != expected or not np.all(np.isfinite(values)):
         return None
     return values

@@ -377,7 +377,7 @@ class DatabaseConnection:
         return cls(
             kind=kind,
             host=str(settings.get("host") or ""),
-            port=int(settings.get("port") or DEFAULT_PORTS.get(kind, 0)),
+            port=int(str(settings.get("port") or DEFAULT_PORTS.get(kind, 0))),
             database=str(settings.get("database") or ""),
             username=str(settings.get("username") or ""),
             password=password,

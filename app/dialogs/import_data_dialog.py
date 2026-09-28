@@ -657,13 +657,18 @@ class ImportDataDialog(QDialog):
 
     def _read_clipboard_source(self) -> pd.DataFrame:
         """Parse the remembered clipboard text with the current options."""
-        return read_clipboard_text(
+        frame = read_clipboard_text(
             self._clipboard_text,
             skiprows=int(self._skip_rows.value()),
             skipfooter=int(self._skip_last.value()),
             header=bool(self._has_header.isChecked()),
             delimiter=self._current_delim(),
         )
+        if frame is None:
+            # Said here rather than left to fail further on, where an empty
+            # clipboard read as a confusing error about a missing table.
+            raise ValueError("The clipboard holds no text to import.")
+        return frame
 
     def _read_database_source(self) -> pd.DataFrame:
         """Read the currently selected table, or query, from the other database."""

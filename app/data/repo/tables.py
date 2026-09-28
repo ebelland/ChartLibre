@@ -40,7 +40,7 @@ from app.data.repo._common import (
 from app.logs.logger import applogger
 
 
-def coerce_numeric_array(values: Sequence[Any]) -> np.ndarray:
+def coerce_numeric_array(values: Sequence[Any] | np.ndarray) -> np.ndarray:
     """A float64 array, NaN for anything that will not parse.
 
     The same rule ``pd.to_numeric(series, errors="coerce")`` applies, on the

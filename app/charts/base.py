@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar, Protocol
 import numpy as np
 import pandas as pd
-from matplotlib import colormaps, rcParams
+from matplotlib import colormaps, rcParams  # pyright: ignore[reportAttributeAccessIssue]
 from matplotlib.colors import to_rgba
 
 from app.charts import kwarg_spec
@@ -865,7 +865,7 @@ class BaseAxisRenderer(Protocol):
         """
         numeric = np.asarray(pd.to_numeric(values, errors="coerce"), dtype=float)
         palette = self.palette_colors()
-        fallback = to_rgba(fallback_color or palette[0])
+        fallback = to_rgba(fallback_color or palette[0])  # pyright: ignore[reportArgumentType]
         finite = np.isfinite(numeric)
 
         if not finite.any():

@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QDoubleSpinBox, QHBoxLayout, QHeaderView, QLineEdit, QSizePolicy, QSpinBox, QStyledItemDelegate, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QBoxLayout, QCheckBox, QComboBox, QDoubleSpinBox, QHBoxLayout, QHeaderView, QLineEdit, QSizePolicy, QSpinBox, QStyledItemDelegate, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from app.widgets.color_combo import MatplotlibColorCombo
 from app.widgets.line_combo import LineStyleCombo
@@ -467,7 +467,9 @@ class DictEditorPanel(QWidget):
         it and the two cannot drift apart.
         """
         widget.setParent(self._search_row)
-        self._search_row.layout().addWidget(widget, 0)
+        row_layout = self._search_row.layout()
+        if isinstance(row_layout, QBoxLayout):
+            row_layout.addWidget(widget, 0)
 
     def set_config(self, config: Mapping[str, object]) -> None:
         self.commit_pending_edits()

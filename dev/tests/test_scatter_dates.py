@@ -22,7 +22,8 @@ def test_dates_as_text_are_drawn_as_dates() -> None:
 
     points = ax.collections[0].get_offsets()
     assert len(points) == 3
-    expected = mdates.date2num(np.array(["2015-01-02", "2015-01-05", "2015-01-06"], dtype="datetime64[D]"))
+    days = np.array(["2015-01-02", "2015-01-05", "2015-01-06"], dtype="datetime64[D]")
+    expected = [mdates.date2num(day) for day in days]
     np.testing.assert_allclose(np.asarray(points)[:, 0], expected)
     assert isinstance(ax.xaxis.get_major_formatter(), mdates.ConciseDateFormatter)
 

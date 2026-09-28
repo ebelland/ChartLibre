@@ -75,6 +75,12 @@ def _point_count(fig: Figure) -> int:
 # ----------------------------------------------------------------------
 # Charts over a saved query
 # ----------------------------------------------------------------------
+
+def _source(repo: SqliteRepo, name: str):
+    source = repo.get_data_source(name)
+    assert source is not None, name
+    return source
+
 def test_a_chart_over_a_query_renders_the_query_rows(repo: SqliteRepo) -> None:
     fig = _render(repo, _figure_over(repo, "only_a"))
     assert _point_count(fig) == 2
@@ -90,7 +96,7 @@ def test_editing_the_query_changes_the_chart(repo: SqliteRepo) -> None:
     # The stored series embeds the *old* SQL, so re-deriving it is what a chart
     # rebuilt from the source would do; the point of this test is that nothing
     # was materialised, so the new query is immediately usable.
-    assert repo.data_source_row_count(repo.get_data_source("only_a")) == 4
+    assert repo.data_source_row_count(_source(repo, "only_a")) == 4
 
 
 def test_a_query_with_a_where_clause_survives_being_wrapped(repo: SqliteRepo) -> None:

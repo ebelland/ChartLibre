@@ -351,13 +351,13 @@ def _search_globally(
     try:
         if optimizer.key == DIFFERENTIAL_EVOLUTION:
             result = differential_evolution(
-                cost, box, seed=seed, maxiter=max(5, int(max_nfev) // 10), polish=False,
+                cost, box, rng=seed, maxiter=max(5, int(max_nfev) // 10), polish=False,
             )
             return np.asarray(result.x, dtype=float), "Differential evolution:"
 
         if optimizer.key == DUAL_ANNEALING:
             result = dual_annealing(
-                cost, box, seed=seed, maxiter=max(5, int(max_nfev) // 10),
+                cost, box, rng=seed, maxiter=max(5, int(max_nfev) // 10),
             )
             return np.asarray(result.x, dtype=float), "Dual annealing:"
 
@@ -366,7 +366,7 @@ def _search_globally(
                 cost,
                 start,
                 niter=max(5, int(max_nfev) // 100),
-                seed=seed,
+                rng=seed,
                 minimizer_kwargs={"method": "L-BFGS-B", "bounds": box},
             )
             return np.asarray(result.x, dtype=float), "Basin hopping:"

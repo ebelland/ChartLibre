@@ -71,7 +71,7 @@ def _compact_grid(count: int) -> tuple[int, int]:
 
 def _cleared(**overrides: object) -> dict[str, object]:
     """Every owned key set to None (cleared), then *overrides* applied."""
-    options: dict[str, object] = dict.fromkeys(_OWNED_KEYS)
+    options: dict[str, object] = {key: None for key in _OWNED_KEYS}
     options.update(overrides)
     return options
 

@@ -8,6 +8,11 @@ from app.data.sqlite_repo import SqliteRepo
 
 
 @pytest.fixture
+
+def _con(repo: SqliteRepo):
+    assert repo._con is not None
+    return repo._con
+
 def repo(tmp_path) -> SqliteRepo:
     repo = SqliteRepo(db_path=tmp_path / "tools.dhub")
     repo.import_dataframe(
@@ -18,7 +23,7 @@ def repo(tmp_path) -> SqliteRepo:
 
 
 def column(repo: SqliteRepo, name: str, table: str = "t") -> list:
-    return [row[0] for row in repo._con.execute(f'SELECT "{name}" FROM "{table}" ORDER BY rowid')]
+    return [row[0] for row in _con(repo).execute(f'SELECT "{name}" FROM "{table}" ORDER BY rowid')]
 
 
 def test_duplicate_copies_rows_and_undo_drops_the_copy(repo) -> None:

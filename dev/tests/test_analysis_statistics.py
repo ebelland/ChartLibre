@@ -5,6 +5,8 @@ app.analysis (todo.txt R-01).
 """
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pytest
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
@@ -37,8 +39,11 @@ def test_one_way_anova_matches_the_published_example() -> None:
 
 def test_welch_anova_agrees_with_statsmodels() -> None:
     arrays = [np.asarray(v) for v in MUSSELS.values()]
-    f_value, df1, df2, p_value = st.welch_anova(arrays)
-    reference = anova_oneway(arrays, use_var="unequal")
+    welch = st.welch_anova(arrays)
+    assert welch is not None
+    f_value, df1, df2, p_value = welch
+    # statsmodels' HolderTuple sets its fields at run time; nothing declares them.
+    reference: Any = anova_oneway(arrays, use_var="unequal")
     assert f_value == pytest.approx(reference.statistic, rel=1e-9)
     assert df2 == pytest.approx(reference.df[1], rel=1e-9)
     assert p_value == pytest.approx(reference.pvalue, rel=1e-9)
@@ -50,7 +55,7 @@ def test_tukey_hsd_agrees_with_statsmodels() -> None:
     assert len(rows) == 10  # five groups, every pair once
     values = np.concatenate([np.asarray(v) for v in MUSSELS.values()])
     labels = np.concatenate([[name] * len(v) for name, v in MUSSELS.items()])
-    reference = pairwise_tukeyhsd(values, labels)
+    reference: Any = pairwise_tukeyhsd(values, labels)
     ours = {tuple(sorted(row["pair"].split(" - "))): row["pvalue"] for row in rows}
     for group1, group2, p_adj in zip(
         reference.groupsunique[reference._multicomp.pairindices[0]],

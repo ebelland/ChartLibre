@@ -77,9 +77,7 @@ def fetch_co2() -> pd.DataFrame:
     frame = frame.rename(
         columns={"average": "co2_ppm", "deseasonalized": "co2_trend_ppm"}
     )
-    frame["date"] = pd.to_datetime(
-        dict(year=frame["year"], month=frame["month"], day=15)
-    )
+    frame["date"] = pd.to_datetime(frame[["year", "month"]].assign(day=15))
     for column in ("co2_ppm", "co2_trend_ppm"):
         frame.loc[frame[column] < 0, column] = pd.NA
     out = frame[["date", "co2_ppm", "co2_trend_ppm"]].dropna(subset=["co2_ppm"])
@@ -108,9 +106,7 @@ def fetch_sunspots() -> pd.DataFrame:
         ],
     )
     frame = frame[frame["sunspot_number"] >= 0].copy()
-    frame["date"] = pd.to_datetime(
-        dict(year=frame["year"], month=frame["month"], day=15)
-    )
+    frame["date"] = pd.to_datetime(frame[["year", "month"]].assign(day=15))
     out = frame[["date", "sunspot_number"]]
     return out.reset_index(drop=True)
 

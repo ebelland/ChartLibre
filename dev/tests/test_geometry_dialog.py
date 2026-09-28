@@ -310,6 +310,7 @@ def test_3d_the_database_computes_what_the_preview_drew(
     assert list(rows.columns)[:4] == ["x", "y", "z", "label"]  # z moved, label carried through
     np.testing.assert_allclose(rows["x"].to_numpy(), result.after_x, atol=1e-9)
     np.testing.assert_allclose(rows["y"].to_numpy(), result.after_y, atol=1e-9)
+    assert result.after_z is not None
     np.testing.assert_allclose(rows["z"].to_numpy(), result.after_z, atol=1e-9)
     assert dialog_3d.result_series_spec(0, "", result).roles["z"] == "z"
 

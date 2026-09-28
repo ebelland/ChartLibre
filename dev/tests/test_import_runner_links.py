@@ -35,6 +35,7 @@ def test_refresh_link_forces_replace_even_if_append(tmp_db_path: Path, test_resu
     repo.query_df('CREATE TABLE IF NOT EXISTS t_link (a INTEGER, b INTEGER, c INTEGER)')
     repo.query_df('INSERT INTO t_link (a,b,c) VALUES (999,999,999)')
 
+    assert link_id is not None
     refresh_link(repo, link_id=link_id)
 
     db_path = repo.ensure_dhub_extension(tmp_db_path)
@@ -57,6 +58,7 @@ def test_ignore_column_not_imported(tmp_db_path: Path, test_results_dir: Path) -
     }
 
     link_id = repo.upsert_link(table_name='t_ignore', source_path=str(csv_path), settings=settings)
+    assert link_id is not None
     refresh_link(repo, link_id=link_id)
 
     db_path = repo.ensure_dhub_extension(tmp_db_path)

@@ -550,7 +550,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             result_name=result_name,
             model=model,
             x=x_values,
-            y=derivative,
+            y=np.asarray(derivative, dtype=float),
             metadata={"order": order, "detail": detail, "per": unit_label},
         )
 

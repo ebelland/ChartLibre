@@ -1120,7 +1120,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
 
         # Rule 1: outside the control limits.
         for index in np.flatnonzero((values > upper) | (values < lower)):
-            flag(index, 1, "beyond the control limits")
+            flag(int(index), 1, "beyond the control limits")
 
         if not use_nelson or not sigma.size or float(np.max(sigma)) <= 0.0:
             return self._deduplicate(found)

@@ -59,6 +59,7 @@ def test_the_gradient_of_a_plane_is_its_constant_coefficients() -> None:
 
     result = _bare()._gradient_surface("s", X, Y, Z, False)
 
+    assert result.dz_dx is not None and result.dz_dy is not None and result.z is not None
     assert np.allclose(result.dz_dx, 2.0)
     assert np.allclose(result.dz_dy, 3.0)
     assert np.allclose(result.z, np.hypot(2.0, 3.0))
@@ -140,6 +141,7 @@ def test_gradient_end_to_end_on_a_plane_series(qapp, repo: SqliteRepo) -> None:
     assert len(results) == 1
     result = results[0]
     assert result.model == DERIV_GRADIENT_SURFACE
+    assert result.z is not None
     assert np.allclose(result.z, np.hypot(2.0, 3.0))
 
     frame = result.to_df()

@@ -9,6 +9,8 @@ ones a smoke test would not catch.
 
 from __future__ import annotations
 
+from typing import TypeVar
+
 import numpy as np
 import pytest
 
@@ -22,7 +24,10 @@ from app.series_operations.function_dialog import (
 from app.series_operations.peaks_dialog import PEAKS_MAXIMA, SeriesPeaksDialog
 
 
-def _bare(cls):
+T = TypeVar("T")
+
+
+def _bare(cls: type[T]) -> T:
     """Build an instance without its Qt dialog.
 
     The numerics are plain methods on the class and need no window; going

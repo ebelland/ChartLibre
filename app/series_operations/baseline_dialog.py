@@ -103,7 +103,9 @@ def asls_baseline(y: np.ndarray, lam: float, p: float, iterations: int = 10) -> 
 
     y = np.asarray(y, dtype=float)
     # The discrete second-difference operator: (D @ D.T) penalises curvature.
-    diagonals = sparse.diags([1.0, -2.0, 1.0], [0, -1, -2], shape=(size, size - 2))
+    # scipy does not annotate diags; Pylance guesses offsets is an int from
+    # its default (0), but a list of offsets is what it takes.
+    diagonals = sparse.diags([1.0, -2.0, 1.0], [0, -1, -2], shape=(size, size - 2))  # pyright: ignore[reportArgumentType]
     penalty = float(lam) * diagonals.dot(diagonals.transpose())
 
     weights = np.ones(size)

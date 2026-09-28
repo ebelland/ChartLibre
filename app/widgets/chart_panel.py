@@ -663,7 +663,7 @@ class ChartPanel(QFrame):
             series = ""
 
         if isinstance(patch, Wedge):
-            share = abs(patch.theta2 - patch.theta1) / 360.0
+            share = abs(patch.theta2 - patch.theta1) / 360.0  # pyright: ignore[reportAttributeAccessIssue]
             name = series or _("slice")
             self.selection_changed.emit(
                 _("{series} — {percent:.1f}% of the total").format(
@@ -937,12 +937,12 @@ class ChartPanel(QFrame):
                 # the background and smear across the plot as the pointer moves.
                 annotation.set_visible(False)
                 canvas.draw()
-                self._hover_background = canvas.copy_from_bbox(self._figure.bbox)
+                self._hover_background = canvas.copy_from_bbox(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
                 annotation.set_visible(True)
 
             canvas.restore_region(self._hover_background)
             axes.draw_artist(annotation)
-            canvas.blit(self._figure.bbox)
+            canvas.blit(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
         except Exception:
             # Any backend that cannot blit still gets a correct, slower chart.
             self._hover_background = None
@@ -958,7 +958,7 @@ class ChartPanel(QFrame):
         try:
             if self._hover_background is not None:
                 self._canvas.restore_region(self._hover_background)
-                self._canvas.blit(self._figure.bbox)
+                self._canvas.blit(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
                 return
         except Exception:
             self._hover_background = None
@@ -1084,7 +1084,7 @@ class ChartPanel(QFrame):
         """
         for axes in self._figure.axes:
             if hasattr(axes, "_dhub_axis_id"):
-                axes.callbacks.connect("xlim_changed", self._on_axes_xlim_changed)
+                axes.callbacks.connect("xlim_changed", self._on_axes_xlim_changed)  # pyright: ignore[reportAttributeAccessIssue]
 
     def _on_axes_xlim_changed(self, changed_axes: Any) -> None:
         """Apply one axes' new x range to every other chart axes.
@@ -2060,7 +2060,7 @@ class ChartPanel(QFrame):
         # is the one on top, so it is the one a click belongs to.
         for axes in reversed(list(self._figure.axes)):
             axis_id = getattr(axes, "_dhub_axis_id", None)
-            if axis_id is None or not axes.bbox.contains(x_pixels, y_pixels):
+            if axis_id is None or not axes.bbox.contains(x_pixels, y_pixels):  # pyright: ignore[reportAttributeAccessIssue]
                 continue
             try:
                 x_value, y_value = axes.transData.inverted().transform(
@@ -2646,7 +2646,7 @@ class ChartPanel(QFrame):
             )
             self._canvas.setMinimumSize(0, 0)
             self._canvas.setMaximumSize(16777215, 16777215)
-            self._canvas.resize(target_size)
+            self._canvas.resize(target_size.width(), target_size.height())
 
         self._apply_figure_size_from_canvas(target_size)
         self._last_canvas_size = QSize(target_size)
@@ -3007,7 +3007,8 @@ class ChartPanel(QFrame):
 
         try:
             with open(file_path, "w", newline="", encoding="utf-8") as handle:
-                writer = csv.DictWriter(handle, fieldnames=("axis", "series", "x", "y"))
+                fieldnames: list[str] = ["axis", "series", "x", "y"]
+                writer = csv.DictWriter(handle, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(rows)
             applogger.info(

@@ -74,6 +74,7 @@ def test_every_series_in_every_file_returns_rows(demo_set: list[Path]) -> None:
         try:
             for figure_id, _name in repo.get_figures():
                 descriptor = repo.load_figure_descriptor(figure_id=int(figure_id))
+                assert descriptor is not None
                 for axis in descriptor.axes:
                     for series in axis.series:
                         frame = repo.query_df(series.sql_query)

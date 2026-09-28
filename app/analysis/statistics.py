@@ -313,7 +313,9 @@ def correlation_tests(a: Any, b: Any, *, alignment: str = "") -> list[dict[str, 
             tests.append(note_row(name, n, str(exc)))
     try:
         res = stats.linregress(a, b)
-        tests.append(result_row(_("Linear regression slope"), n, float(res.slope), float(res.pvalue), alignment))
+        # LinregressResult: slope is [0], p-value [3] - its fields are not
+        # annotated, so they are read by position.
+        tests.append(result_row(_("Linear regression slope"), n, float(res[0]), float(res[3]), alignment))
     except Exception as exc:
         tests.append(note_row(_("Linear regression slope"), n, str(exc)))
     return tests
@@ -361,7 +363,8 @@ def independent_tests(a: Any, b: Any, *, alternative: str = "two-sided") -> list
         )
     ]
     res = stats.ttest_ind(a, b, equal_var=False, alternative=alternative)
-    tests.append(result_row(_("Welch t-test"), n, _statistic(res), _pvalue(res), f"df = {float(res.df):.4g}"))
+    welch_df = float(getattr(res, "df"))  # TtestResult.df is real; its stub does not list it
+    tests.append(result_row(_("Welch t-test"), n, _statistic(res), _pvalue(res), f"df = {welch_df:.4g}"))
     res = stats.ttest_ind(a, b, equal_var=True, alternative=alternative)
     tests.append(result_row(_("Student t-test (equal variances)"), n, _statistic(res), _pvalue(res), f"df = {na + nb - 2}"))
     try:

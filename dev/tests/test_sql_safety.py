@@ -15,6 +15,11 @@ from app.utils.data_sources import read_sqlite_query
 
 
 @pytest.fixture
+
+def _con(repo: SqliteRepo):
+    assert repo._con is not None
+    return repo._con
+
 def repo(tmp_path) -> SqliteRepo:
     repo = SqliteRepo(db_path=tmp_path / "safe.dhub")
     repo.import_dataframe(pd.DataFrame({"a": [1, 2, 3]}), table_name="t", normalize_columns=False)
@@ -22,7 +27,7 @@ def repo(tmp_path) -> SqliteRepo:
 
 
 def rows(repo: SqliteRepo) -> int:
-    return int(repo._con.execute('SELECT COUNT(*) FROM "t"').fetchone()[0])
+    return int(_con(repo).execute('SELECT COUNT(*) FROM "t"').fetchone()[0])
 
 
 def guard(monkeypatch, on: bool) -> None:
@@ -39,10 +44,10 @@ def test_a_saved_query_that_writes_is_refused(repo) -> None:
 
 
 def test_opening_a_project_blocks_sql_that_would_write(repo) -> None:
-    repo._con.execute(
+    _con(repo).execute(
         "CREATE TABLE IF NOT EXISTS __queries__ (id INTEGER PRIMARY KEY, name TEXT UNIQUE, sql TEXT, settings_json TEXT)"
     )
-    repo._con.execute("INSERT INTO __queries__ (name, sql) VALUES ('evil', 'DELETE FROM t')")
+    _con(repo).execute("INSERT INTO __queries__ (name, sql) VALUES ('evil', 'DELETE FROM t')")
     found = repo.scan_user_sql()
     assert found and "evil" in found[0]
     with pytest.raises(ValueError):
@@ -72,5 +77,5 @@ def test_a_query_on_another_sqlite_file_is_read_only(tmp_path) -> None:
 def test_the_guard_can_be_switched_off(repo, monkeypatch) -> None:
     guard(monkeypatch, False)
     repo.save_query("allowed", "SELECT a FROM t WHERE a > 1")
-    repo._con.execute("UPDATE __queries__ SET sql = 'DELETE FROM t' WHERE name = 'allowed'")
+    _con(repo).execute("UPDATE __queries__ SET sql = 'DELETE FROM t' WHERE name = 'allowed'")
     assert repo.scan_user_sql() == []

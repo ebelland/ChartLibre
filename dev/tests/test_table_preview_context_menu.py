@@ -47,6 +47,7 @@ def test_context_menu_appears_for_a_real_table(qapp, tmp_db_path: Path) -> None:
     # part a headless test can call directly.
     menu = panel._build_context_menu(QPoint(0, 0))
     assert menu is not None
+    assert menu is not None
 
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
     assert "Refresh data table" in texts
@@ -64,6 +65,7 @@ def test_context_menu_still_appears_for_a_saved_query(qapp, tmp_db_path: Path) -
     panel.set_context(repo, "q1")
 
     menu = panel._build_context_menu(QPoint(0, 0))
+    assert menu is not None
 
     assert menu is not None, "the context menu must not disappear for a saved query"
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
@@ -84,6 +86,7 @@ def test_the_table_tools_are_in_the_menu_and_copy_writes_the_clipboard(qapp, tmp
     panel.view.setCurrentIndex(model.index(0, 0))
 
     menu = panel._build_context_menu(QPoint(0, 0))
+    assert menu is not None
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
     assert {"Copy", "Duplicate table", "Export rows..."} <= texts
     # Moved into Edit table..., with the rest of the editing.

@@ -39,6 +39,12 @@ def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
 # ----------------------------------------------------------------------
 # Resolution
 # ----------------------------------------------------------------------
+
+def _source(repo: SqliteRepo, name: str):
+    source = repo.get_data_source(name)
+    assert source is not None, name
+    return source
+
 def test_a_table_resolves_to_a_table_source(repo: SqliteRepo) -> None:
     source = repo.get_data_source("measurements")
     assert source is not None and not source.is_query
@@ -57,7 +63,7 @@ def test_a_saved_query_resolves_to_a_query_source(repo: SqliteRepo) -> None:
 
 def test_new_rows_appear_in_a_saved_query(repo: SqliteRepo) -> None:
     repo.query_df("INSERT INTO measurements (x, y, grp) VALUES (5.0, 50.0, 'a')")
-    assert repo.data_source_row_count(repo.get_data_source("group_a")) == 3
+    assert repo.data_source_row_count(_source(repo, "group_a")) == 3
 
 
 # ----------------------------------------------------------------------

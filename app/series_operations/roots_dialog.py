@@ -45,7 +45,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -165,7 +165,7 @@ class RootResult(TableResult):
                     curve_indices.append(last_curve)
                 xs.append(root.x)
                 ys.append(root.y)
-                zs.append(root.z)
+                zs.append(root.z if root.z is not None else float("nan"))
                 curve_indices.append(root.curve_index)
                 last_curve = root.curve_index
             return pd.DataFrame({"x": xs, "y": ys, "z": zs, "curve_index": curve_indices})
@@ -502,13 +502,14 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
 
             polylines: list[tuple[np.ndarray, np.ndarray]] = []
             if hasattr(contour_set, "allsegs"):
-                segments = contour_set.allsegs[0] if contour_set.allsegs else []
+                # allsegs and get_paths are real; the bundled stubs predate them.
+                segments = contour_set.allsegs[0] if contour_set.allsegs else []  # pyright: ignore[reportAttributeAccessIssue]
                 for segment in segments:
                     segment = np.asarray(segment, dtype=float)
                     if segment.shape[0] >= 1:
                         polylines.append((segment[:, 0], segment[:, 1]))
             else:
-                for path in contour_set.get_paths():
+                for path in contour_set.get_paths():  # pyright: ignore[reportAttributeAccessIssue]
                     vertices = np.asarray(path.vertices, dtype=float)
                     if vertices.shape[0] >= 1:
                         polylines.append((vertices[:, 0], vertices[:, 1]))
@@ -687,14 +688,15 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         different crossing, or none - it is not the root of *this* interval,
         so it is refused rather than reported at the wrong x.
         """
-        root, result = newton(
+        # full_output=True: newton returns (root, RootResults).
+        root, result = cast(tuple[float, Any], newton(
             evaluate,
             0.5 * (left + right),
             tol=xtol,
             maxiter=max_iter,
             full_output=True,
             disp=False,
-        )
+        ))
         if not result.converged:
             raise RuntimeError("the secant iteration did not converge")
         if not (min(left, right) <= float(root) <= max(left, right)):

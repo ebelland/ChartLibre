@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -289,7 +290,7 @@ class NavigationBar(QFrame):
         label.setObjectName("navSectionTitle")
         return label
 
-    def set_charts(self, charts: list[tuple[str, object]], current: int) -> None:
+    def set_charts(self, charts: list[tuple[str, QIcon | None]], current: int) -> None:
         """Show *charts* - (name, icon) - in the Charts section, *current* selected."""
         self.chart_list.blockSignals(True)
         try:

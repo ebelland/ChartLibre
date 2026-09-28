@@ -74,7 +74,7 @@ def _figure_style_context(
             handle.write(style_text)
             temp_path = Path(handle.name)
 
-        with plt.style.context(str(temp_path)):
+        with plt.style.context(str(temp_path)):  # pyright: ignore[reportGeneralTypeIssues]
             yield
     finally:
         if temp_path is not None:
@@ -910,7 +910,7 @@ def _apply_font_scale(
         if id(ax) not in known:
             _scale_axes_text(ax, figure_factor)
     # figure.texts already holds the suptitle; each text is scaled once.
-    for text in {id(t): t for t in figure.texts}.values():
+    for text in {id(t): t for t in figure.texts}.values():  # pyright: ignore[reportAttributeAccessIssue]
         text.set_fontsize(text.get_fontsize() * figure_factor)
 
 
@@ -1434,7 +1434,7 @@ def _set_layout_engine_safely(figure: Figure, mode: LayoutMode) -> None:
     from that point on.
     """
     try:
-        figure.set_layout_engine(None if mode == "none" else mode)
+        figure.set_layout_engine(None if mode == "none" else mode)  # pyright: ignore[reportArgumentType]
     except Exception:
         applogger.exception("Failed to set Matplotlib layout engine: %s", mode)
 

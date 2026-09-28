@@ -69,7 +69,7 @@ def _render_icon_pngs(sizes: list[int]) -> dict[int, bytes]:
         buffer.open(QIODevice.OpenModeFlag.WriteOnly)
         # A str, whatever the stubs say: PySide6 refuses b"PNG" at run time.
         image.save(buffer, "PNG")  # pyright: ignore[reportArgumentType, reportCallIssue]
-        images[size] = buffer.data().data()
+        images[size] = bytes(buffer.data().data())
     del app
     return images
 

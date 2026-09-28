@@ -87,7 +87,7 @@ def test_the_combo_lists_the_models_and_the_link_follows(qapp, figure, cls) -> N
 def test_interpolation_start_parameters_are_offered_for_the_fitted_models(qapp, figure) -> None:
     """They are curve_fit's p0: a fitted model takes them, an interpolant has none."""
     repo, figure_id = figure
-    dialog = SeriesInterpolateDialog(repo=repo, figure_id=figure_id, parent=None)
+    dialog = SeriesInterpolateDialog(repo=repo, figure_id=figure_id)
     try:
         dialog.show()
         dialog.model_combo.setCurrentText(MODEL_EXPONENTIAL)

@@ -28,6 +28,11 @@ FRAME = pd.DataFrame(
 
 
 @pytest.fixture
+
+def _con(repo: SqliteRepo):
+    assert repo._con is not None
+    return repo._con
+
 def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     # The undo sidecar too, not just the database: it lives beside the
     # .dhub and outlives it, so a test that counts undo entries would be
@@ -52,7 +57,7 @@ def dialog(qapp, repo: SqliteRepo):
 def _rows(repo: SqliteRepo) -> list[tuple]:
     return [
         tuple(row)
-        for row in repo._con.execute('SELECT name, value FROM "people" ORDER BY rowid')
+        for row in _con(repo).execute('SELECT name, value FROM "people" ORDER BY rowid')
     ]
 
 
@@ -86,7 +91,7 @@ def test_an_emptied_cell_becomes_null_not_an_empty_string(
     """In a numeric column, "" would quietly make the column text."""
     dialog._model.setData(dialog._model.index(0, 1), "", Qt.ItemDataRole.EditRole)
 
-    stored = repo._con.execute(
+    stored = _con(repo).execute(
         'SELECT value FROM "people" ORDER BY rowid LIMIT 1'
     ).fetchone()[0]
     assert stored is None

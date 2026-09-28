@@ -13,7 +13,7 @@ from dev.tests._large_db_factory import create_large_db
 def _save(fig: Figure, path: Path) -> None:
     """Save figure to disk (always creates parent dirs)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path)
+    fig.savefig(str(path))
 
 
 def test_render_multi_descriptor_multiple_figures(
