@@ -5,50 +5,20 @@ Ranked by priority. P0 = wrong results or blocked work, P3 = nice to have.
 ================================================================
 P0 - BUGS: wrong output, or work that cannot proceed
 ================================================================
-      Nota: chart_panel (2.214), style (1.939), fit_dialog (1.760) e
-      cluster_dialog (1.722) restano sopra le 1.500 righe.
-
-P1-1 DONE 2026-09-21. 2026-09-17 08:52:55 | WARNING  | AppLogger._handle_qt_message | Qt warning: Populating font family aliases took 200 ms. Replace uses of missing font family "Segoe UI Variable" with one that exists to avoid this cost.
-      No Windows installs a family by that name - Windows 11 registers the
-      variable UI face under three optical sizes ("Segoe UI Variable Small"
-      / "Text" / "Display") and nothing under the bare one, so the sheet's
-      first choice was always a miss and the 200 ms was spent on every run
-      reaching its second. fluent_win11.qss now carries @UI_FONT_FAMILY@
-      instead of a list of guesses, resolved at load time against
-      QFontDatabase by style.ui_font_family() - the same rule
-      _best_fluent_font_family() already applied to the icon font - so the
-      name that reaches Qt is one the machine has: Segoe UI Variable Text
-      on 11, Segoe UI on 10, the system UI font anywhere else.
-      Tests: test_ui_font_family.py.
-
-P1-2 DONE (already fixed by eaa3623, 2026-09-17 20:34, a few hours after
-      this was written - the entry was just never struck off).
-      QToolButton#navigationItem was 8pt against the sheet's own 10pt body
-      base; it is 10.5pt now. Nothing further changed here.
-
-P1-3 DONE 2026-09-21. Status bar: no padding on left end right edges
-      MainWindow._configure_status_bar now sets contentsMargins
-      (SPACING_DEFAULT either side) on the bar. Deliberately not a rule in
-      the sheet: QStatusBar is one of the widgets Qt honours only
-      background and border for, so a "padding" there is parsed, accepted
-      and ignored - it looks like a working fix in the diff and changes
-      nothing on screen. test_status_bar_padding.py pins that down so it
-      does not get "simplified" back into the QSS.
-      Known residue, recorded rather than left to be rediscovered: text
-      from showMessage() - "Database saved.", and everything AppLogger
-      routes here - is painted by QStatusBar itself at an offset
-      hard-coded in Qt (6px), which no margin or sheet reaches, so a
-      transient message sits a few pixels left of the project label it
-      replaces. Moving it means not using showMessage() at all (route
-      those messages into _status_context and drive the timeout here),
-      which is a bigger change than the padding it would be tidying.
+P0-1  Filtro su dati con date: la frequenza di taglio predefinita (1)
+      supera la frequenza di Nyquist (fs ricavata dalle date, in secondi),
+      quindi Anteprima fallisce finche' l'utente non la cambia. Proporre un
+      taglio relativo a fs (per esempio fs/10). Preesistente, trovato il
+      2026-09-28 verificando R-01b.
 
 
 
 ================================================================
 UI - reported while testing (2026-09)
 ================================================================
-N-01  Database panel: add possibility to change columns data type (cast), replicate menu voices in table preview. Duplicate table.
+N-01  Pannello Database: le voci gia' presenti nell'anteprima e in Modifica
+      tabella (cambia tipo, duplica tabella) anche dall'elenco tabelle del
+      pannello Database.
 
 N-02
       Broader, beyond the chart itself - things a data scientist, an
@@ -78,64 +48,13 @@ N-03 NOT done yet, on purpose - see P2-21 and P2-22 below: vector fields
 (x(t), y(t), z(t)).
 
 
-N-05  DONE 2026-09-27. Guardiano SQL permissivo: blocca solo cio' che scrive o
-      rovina il database (INSERT, UPDATE, DELETE, DROP, ALTER, CREATE,
-      REPLACE INTO, VACUUM, REINDEX, PRAGMA che impostano, load_extension).
-      Agisce solo quando l'utente scrive SQL (query salvate, SQL di una serie
-      in Proprieta' serie e Nuovo grafico, colonna da espressione, query su
-      file SQLite/server esterni) e all'apertura di un progetto (le query
-      pericolose vengono bloccate e segnalate). Mai mentre si disegna.
-      Si spegne da Impostazioni > Sicurezza (user.json "sql_guard": false).
-      Testo originale: wherever there is an SQL SELECT user text, avoid SQL injections and unsafe operations (usually it must start with SELECT and should not contain UPDATE or DELETE)
-
-N-06  QUASI FATTO 2026-09-27. Table preview, menu contestuale -> editor della tabella
-      Fatto: "Elimina colonna", "Aggiungi colonna calcolata" (con anteprima)
-      e "Raggruppa e aggrega" (piu' misure, anteprima) sono nell'editor e
-      non piu' nel menu. Resta: replicare "Nascondi righe..." nell'editor.
-
-N-07  DONE 2026-09-27. Table preview: aggiungi "Copia" al menu contestuale.
-      Anche Cmd/Ctrl+C; copia le celle selezionate separate da tab.
-
-N-08  DONE 2026-09-27. Table preview: aggiungi "Duplica tabella" al menu contestuale.
-      La copia si chiama <tabella>_copy (poi _copy_2...); Annulla la toglie.
+N-06  Modifica tabella: replicare "Nascondi righe..." (oggi solo nel menu
+      dell'anteprima).
 
 N-09  "Colora in base al valore": apre un dialogo per colorare con una
       palette (Viridis o altre) in base a minimo/massimo, percentili o
       media. Colorazione discreta, con varie categorie. Aggiunge alla
       tabella una colonna "Colore" con il valore numerico del colore.
-
-N-10  DONE 2026-09-27. Dialogo "Modifica tabella"
-      Poi semplificato su richiesta: una sola riga di icone, nome e tipo
-      chiesti al momento, Hide/ClusterId nel menu "...".
-      - Usa sempre SF Symbols e i font dell'app.
-      - Righe separate per l'aggiunta di una colonna e di una riga.
-      - Riga di stato con il numero di colonne e righe aggiunte, rimosse
-        e modificate.
-      - Tasto "Ripristina" per tornare alla tabella originale (chiede
-        conferma).
-
-N-11  DONE 2026-09-27. Altre funzioni per table preview / Modifica tabella.
-      Nel menu dell'anteprima: statistiche della colonna, nuovo grafico
-      dalle colonne selezionate, raggruppa e aggrega, esporta righe.
-      In Modifica tabella: rinomina (anche doppio clic sull'intestazione),
-      cambia tipo, ordina, riempi celle vuote, trova e sostituisci.
-      Tutto con Annulla (app/data/repo/table_tools.py).
-      - Rinomina colonna, direttamente dall'intestazione.
-      - Cambia tipo della colonna (cast) - vedi N-01.
-      - Ordina crescente/decrescente per la colonna selezionata.
-      - Statistiche della colonna: min, max, media, mediana, numero di
-        NULL e di valori distinti, in un tooltip o in un pannellino.
-      - Riempi valori mancanti: costante, media/mediana, valore
-        precedente, interpolazione lineare.
-      - Trova e sostituisci nella colonna o nella tabella.
-      - Raggruppa e aggrega (GROUP BY) in una nuova tabella.
-      - Esporta la selezione (o le righe visibili) in CSV/Excel.
-      - Crea una serie o un grafico dalle colonne selezionate.
-
-N-12  DONE 2026-09-27 ("Dimensione font": A- 100 % A+ in Figura e Asse;
-      i due fattori si moltiplicano). Opzioni grafico, sezioni Axis e Figure: "Aumenta/diminuisci la
-      dimensione di tutti i font" dell'Axis o della Figure, in un colpo
-      solo.
 
 ================================================================
 R - REVISIONE DEL CODICE E CONFRONTO CON JMP, SPSS, ORIGIN (2026-09-28)
@@ -149,45 +68,22 @@ carte di controllo con regole di Nelson, plugin scritti dall'utente
 (grafici, operazioni, funzioni), due lingue complete.
 
 R-01  P1 IN CORSO. Separare i calcoli dalle finestre.
-      2026-09-28: fatto per Statistiche -> app/analysis/statistics.py
-      (nessun import di Qt; test in test_analysis_statistics.py).
-      2026-09-28: fatto per Fit -> app/analysis/fit.py (fit_curve,
-      multi_peak_model, errori, bande). Validato sul dataset certificato
-      NIST StRD Misra1a da entrambi i punti di partenza (test_analysis_fit.py).
-      Restano le altre 18 operazioni, a cominciare da smoothing e spectral.
-      Tutte le 20 operazioni calcolano dentro la classe Qt del dialogo
-      (compute_results in app/series_operations/*_dialog.py, 20.000 righe).
-      Estrarre il calcolo in funzioni pure, per esempio
-      app/analysis/<operazione>.py: DataFrame + parametri -> risultato.
-      E' la base di R-02, R-03 e R-13: test senza Qt, calcolo in un thread,
-      script e ricalcolo. JMP (JSL), SPSS (syntax) e Origin (LabTalk/Python)
-      separano tutti il motore dall'interfaccia.
+      Fatto per Statistiche, Fit e Geometria (app/analysis/statistics.py,
+      fit.py, geometry.py: niente Qt, test propri). Restano le altre 17
+      operazioni, a cominciare da smoothing e spectral: estrarre il calcolo
+      da compute_results in app/analysis/<operazione>.py (DataFrame +
+      parametri -> risultato). E' la base di R-02, R-03 e R-13.
 
-R-01b 2026-09-28 FATTO in parte: "sposta tutto il possibile nella classe
-      base". SeriesOperationDialogBase ora fornisce: evaluate() con task in
-      background e pulsante Ferma, prepare_job/finish_job, compute_results
-      predefinito, generated_style_filter ricavato dal nome del modulo,
-      result_to_frame (result.to_frame()), discard_operation_artifacts
-      (discard_result_target), apply che segna _applied, il collegamento
-      del combo del modello e current_model(). Tolti 59 metodi duplicati
-      da 19 dialoghi. Candidati rimasti: result_table_name (15 varianti
-      dello stesso schema), _refresh_visibility (14), build_model_selector
-      (18 layout simili), _result_figure_name/_label_result_axis (3).
-      Trovato durante la verifica, preesistente: Filtro su dati con date -
-      la frequenza di taglio predefinita (1) supera la frequenza di Nyquist
-      (fs derivata dalle date in secondi), quindi Anteprima fallisce finche'
-      l'utente non la cambia. Proporre un taglio relativo a fs.
+R-01b P3 Classe base delle operazioni: candidati rimasti da spostare in
+      SeriesOperationDialogBase - _refresh_visibility (14 varianti),
+      build_model_selector (18 layout simili), _result_figure_name /
+      _label_result_axis (3).
 
-R-02  P1 IN CORSO. Calcoli lunghi in background, con barra di avanzamento e Annulla.
-      2026-09-28 fatto per il Fit: app/utils/background.py (QThreadPool,
-      risultato consegnato sul thread dell'interfaccia) e stop con
-      fit_curve(should_stop=...). Il pulsante Fit diventa Ferma; chiudere la
-      finestra ferma il fit. Da estendere alle altre operazioni man mano che
-      il loro calcolo esce dal dialogo (R-01). Manca ancora una barra di
-      avanzamento vera (oggi solo un messaggio).
-      Solo il clustering usa un thread (cluster_dialog.py); un fit,
-      un'analisi spettrale o un lisciamento su molti punti bloccano
-      l'interfaccia. QThreadPool + segnale di fine, dopo R-01.
+R-02  P1 IN CORSO. Calcoli lunghi in background.
+      La classe base offre gia' evaluate() in background con pulsante Ferma
+      (app/utils/background.py); oggi lo usa il Fit. Restano: attivarlo per
+      le altre operazioni man mano che il loro calcolo esce dal dialogo
+      (R-01), e una barra di avanzamento vera al posto del messaggio.
 
 R-03  P1 Riproducibilita': ogni operazione applicata resta nel progetto.
       Oggi il risultato e' salvato nel progetto; i parametri no (restano
@@ -201,42 +97,25 @@ R-03  P1 Riproducibilita': ogni operazione applicata resta nel progetto.
       - esportare uno script Python equivalente (vedi N-02).
 
 R-04  P1 IN CORSO. Statistica che manca rispetto a SPSS e JMP.
-      2026-09-28 fatti (dialogo Statistiche, due modelli nuovi):
-      "Test per campioni indipendenti" (Welch, Student, Mann-Whitney,
-      Levene, d di Cohen) e "Confronto tra gruppi (ANOVA)" (ANOVA a una via
-      con eta^2, ANOVA di Welch, Kruskal-Wallis con epsilon^2, Levene,
-      Tukey HSD con IC 95%). Verificati contro l'esempio pubblicato di
-      SciPy (F = 7,1210) e contro statsmodels. Restano: chi-quadro/Fisher,
-      regressione multipla e logistica, Kaplan-Meier, ANOVA a due vie -
-      servono una colonna "fattore" (R-08).
-      Oggi statistics_dialog offre descrittive, normalita', t a un
-      campione, t appaiato, Wilcoxon appaiato, correlazione. Mancano i test
-      piu' usati nei corsi e nei laboratori:
-      - t per campioni indipendenti (Student e Welch), Mann-Whitney;
-      - ANOVA a una e due vie, con post-hoc (Tukey HSD, Games-Howell,
-        Bonferroni); Kruskal-Wallis con Dunn;
+      Gia' fatti: descrittive, normalita', t a un campione e appaiato,
+      Wilcoxon, correlazione, campioni indipendenti (Welch, Student,
+      Mann-Whitney, Levene, d di Cohen), ANOVA a una via con Welch,
+      Kruskal-Wallis e Tukey HSD. Mancano:
+      - ANOVA a due vie; post-hoc Games-Howell e Bonferroni; Dunn dopo
+        Kruskal-Wallis;
       - chi-quadro e Fisher su tabelle di contingenza (con la tabella
         stessa come risultato);
       - regressione multipla con tabella dei coefficienti (coefficiente,
         errore standard, t, p, IC 95%), R2 corretto, VIF e diagnostica dei
         residui; regressione logistica per un esito si'/no;
       - Kaplan-Meier con log-rank (sopravvivenza/affidabilita').
-      statsmodels e' gia' tra le dipendenze e copre quasi tutto.
-      Serve anche un modo di indicare i gruppi: una colonna "fattore" come
-      ruolo (vedi R-08).
+      statsmodels copre quasi tutto. Serve una colonna "fattore" per
+      indicare i gruppi (R-08).
 
 R-05  P2 IN CORSO. Fit al livello di Origin.
-      2026-09-28 fatti: t, p e IC 95% per ogni parametro e varianza
-      residua (chi-quadro ridotto) nel rapporto; fit.confidence_band calcola
-      le bande di confidenza e di previsione (verificate con statsmodels),
-      disegnate sul grafico dalle caselle "Bande sul fit" (serie con
-      draw_as = "band", disegnate da render_figure su qualunque tipo di asse).
-      Restano: pesi da una colonna di errori, fit globale su piu' serie.
-      Gia' presenti: errori standard, covarianza e correlazione dei
-      parametri (fit_dialog._param_uncertainty), parametri legati tra i
-      picchi. Mancano:
-      - bande di confidenza e di previsione attorno alla curva;
-      - t, p e IC 95% per ogni parametro, chi-quadro ridotto;
+      Gia' fatti: errori standard, covarianza e correlazione, t, p e IC 95%
+      dei parametri, chi-quadro ridotto, bande di confidenza e previsione.
+      Mancano:
       - pesi del fit da una colonna di errori (1/sigma^2): oggi "Weighted"
         pesa solo RMSE/R2, non il fit;
       - fit globale su piu' serie con parametri condivisi (Origin "Global
@@ -279,13 +158,13 @@ R-10  P2 Manutenibilita': file troppo grandi.
       fogli di stile, widget di base; demo_project in un file per demo.
 
 R-11  P2 SQL residuo fuori da app/data (regola del progetto).
-      - statistics_dialog.py (righe ~523 e 1346-1402): query per i test
-        appaiati e le sorgenti, e una connessione usata direttamente;
-      - chart_panel.py (~1431-1485), create_chart_dialog.py (~1098),
-        geometry_dialog.py (~458, sonda di cos/radians);
+      Statistiche e Geometria sono a posto. Restano:
       - table_preview.py e table_editor_dialog.py leggono i blocchi di
         righe con repo._con (LazyTableModel): serve un metodo del
-        repository per leggere un blocco dopo un rowid.
+        repository per leggere un blocco dopo un rowid;
+      - SELECT composte nei widget: chart_panel.py (~1431-1485),
+        create_chart_dialog.py (~1098), table_list.py e
+        database_info_panel.py (esportazione), peaks_dialog.py (~545).
       Il Query Builder e' un'eccezione legittima: il suo compito e'
       scrivere SQL per l'utente.
 
@@ -378,7 +257,7 @@ P2-20 .dhub HTML chart viewer - export a project's charts to a static
 
 P2-21 3D roadmap, step 2: vector field series operations (curl,
       divergence)
-      Builds on the 3D surface work above (see DONE (2026-09)) - same
+      Builds on the 3D surface work (Fit, Peaks, Roots, Calculus on surfaces, already in the app) - same
       pattern, one dimension family over. Not yet scoped in code, only
       designed.
       - Series roles: x, y, u, v - already read by the existing Quiver/
@@ -446,16 +325,4 @@ P2-22 3D roadmap, step 3: parametric 3D curves (x(t), y(t), z(t))
 P3 - LATER
 ================================================================
 
-P3-21 Minor follow-ups noticed while building the 3D surface work (see
-      DONE (2026-09) above)
-      - peaks_dialog.py's 2D "prominence" is neighbourhood-local (height
-        above the local minimum within the search radius), not a true
-        topographic prominence (which needs a flood-fill over the whole
-        basin) - fine for now, documented in the code, but worth
-        revisiting if it misfires on real data with nested bumps.
-      - function_dialog.py's surface mode reuses the same From/To/Points
-        range for both X and Y (a square domain only) - a second Y range
-        control would let it evaluate a rectangular domain instead.
-      - smoothing_dialog.py's _on_axis_changed looks like dead code (not
-        connected to any signal) - noticed during the no-auto-calc pass,
-        left alone as out of scope for that change.
+
