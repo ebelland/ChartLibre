@@ -15,7 +15,7 @@ __pycache__/
 *.zip
 .DS_Store
 .vscode/
-app/test_results/
+dev/test_results/
 *.dhub-wal
 *.dhub-shm
 .fuse_hidden*

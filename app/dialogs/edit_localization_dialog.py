@@ -3,14 +3,14 @@
 
 Every row is a source string ``_()``/``tr()`` wraps somewhere in the app
 (``i18n.source_translator_calls()`` - the same AST sweep
-app/tests/test_localization.py's own safety net runs) unioned with
+dev/tests/test_localization.py's own safety net runs) unioned with
 whatever the selected language's catalogue already has, so a string that
 is translated but no longer used anywhere still shows up to edit or
 remove by hand, and a string used but never added to the catalogue shows
 up with an empty translation rather than silently failing the next full
 test run instead. "Missing only" filters to exactly that empty-
 translation case - what would otherwise only surface at
-`python -m pytest app/tests/test_localization.py`.
+`python -m pytest dev/tests/test_localization.py`.
 
 Saving writes through :func:`app.utils.i18n._write_po` (round-trips
 losslessly with :func:`app.utils.i18n._parse_po`, see that function's own

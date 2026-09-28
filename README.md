@@ -96,7 +96,7 @@ sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
 | | |
 |---|---|
 | [**User manual**](docs/manual/user_manual.pdf) | The whole application, chapter by chapter (PDF). |
-| [**Developer guide**](docs/DEVELOPMENT.md) | Architecture, the render pipeline, and how to add a chart type or an operation. |
+| [**Developer guide**](dev/DEVELOPMENT.md) | Architecture, the render pipeline, and how to add a chart type or an operation. |
 | [`todo.txt`](todo.txt) | Known issues and what is being worked on, ranked. |
 
 ## Built with
@@ -110,7 +110,7 @@ ChartLibre also ships, or draws on, other people's work:
 - **[SciencePlots](https://github.com/garrettj403/SciencePlots)** by John D. Garrett — the Matplotlib styles in `mplstyles/` (MIT, see [`mplstyles/LICENSE-SciencePlots`](mplstyles/LICENSE-SciencePlots)).
 - **[QSS](https://github.com/GTRONICK/QSS)** by Jaime A. Quiroga P. (GTRONICK) — the optional Qt themes in `app/styles/` (MIT, see [`app/styles/LICENSE-GTRONICK-QSS`](app/styles/LICENSE-GTRONICK-QSS)).
 - **Icons**: [SF Symbols](https://developer.apple.com/sf-symbols/) on macOS, [Segoe Fluent Icons](https://learn.microsoft.com/windows/apps/design/style/segoe-fluent-icons-font) on Windows and the freedesktop themes (Adwaita, Breeze, Papirus) on Linux, all drawn from the system rather than shipped.
-- **Demo data** in `sample data/`:
+- **Demo data** in `dev/demo/sample data/`:
   [Palmer penguins](https://allisonhorst.github.io/palmerpenguins/) (Horst, Hill & Gorman; Palmer Station LTER, CC0) ·
   [Mauna Loa CO₂](https://gml.noaa.gov/ccgg/trends/) (NOAA GML and Scripps) ·
   [sunspot number](https://www.sidc.be/SILSO/) (WDC-SILSO, Royal Observatory of Belgium, Brussels, CC BY-NC 4.0) ·
@@ -127,10 +127,10 @@ The same list, with every library's installed version and licence, is in the app
 Issues and pull requests are welcome. The test suite runs with:
 
 ```bash
-python -m pytest app/tests -q          # add QT_QPA_PLATFORM=offscreen when headless
+python -m pytest dev/tests -q          # add QT_QPA_PLATFORM=offscreen when headless
 ```
 
-Please read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) first — it explains the conventions the codebase actually follows.
+Please read [`dev/DEVELOPMENT.md`](dev/DEVELOPMENT.md) first — it explains the conventions the codebase actually follows.
 
 ## Licence
 

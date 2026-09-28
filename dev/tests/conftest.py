@@ -3,7 +3,7 @@
 Artifacts (databases, saved figures) go to the directory chosen by
 ``_artifacts_root``; set ``DHUB_TEST_ARTIFACTS`` to redirect them.
 """
-# app/tests/conftest.py
+# dev/tests/conftest.py
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -51,7 +51,7 @@ def _artifacts_root() -> Path:
     Resolution order:
       1. ``DHUB_TEST_ARTIFACTS`` environment variable, when set;
       2. ``C:/bin/dhub`` on Windows, the fixed location used on the dev machine;
-      3. an in-repo ``app/test_results`` folder;
+      3. an in-repo ``dev/test_results`` folder;
       4. the system temp directory.
 
     Why: the previous implementation referenced ``root`` before assignment and

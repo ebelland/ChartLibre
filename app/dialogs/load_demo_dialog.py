@@ -1,7 +1,7 @@
 """Pick one of the shipped demo projects, and load it on request.
 
 The set itself - what each project shows, which figures and tables it needs -
-is app/data/demo_project.py's; this dialog only presents the choice. Loading
+is app/data/demos.py's; this dialog only presents the choice. Loading
 it, unlike "New" or "Open", asks nothing about where: see
 MainWindow._on_load_demo for why a fixed, well-known name needs no dialog of
 its own.
@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.data.demo_project import DEMO_PROJECTS, DemoProject
+from app.data.demos import DEMO_PROJECTS, DemoProject
 from app.styles.style import (
     apply_dialog_shell,
     CardFrame,

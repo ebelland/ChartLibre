@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-APP_DIR = Path(__file__).resolve().parent.parent
+APP_DIR = Path(__file__).resolve().parents[2] / "app"
 FIT_SOURCE = (APP_DIR / "series_operations" / "fit_dialog.py").read_text(
     encoding="utf-8"
 )

@@ -1,7 +1,7 @@
 """Make a double-clickable launcher for ChartLibre, for the machine it runs on.
 
-    python3 tools/make_launcher.py            # into dist/
-    python3 tools/make_launcher.py ~/Applications
+    python3 dev/tools/make_launcher.py            # into dist/
+    python3 dev/tools/make_launcher.py ~/Applications
 
 macOS: ``ChartLibre.app`` - a small bundle whose executable starts main.py
 with the Python that ran this script, and whose icon is the application's
@@ -24,7 +24,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_DIR = Path(__file__).resolve().parents[1]
+PROJECT_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_DIR))
 
 from app import APP_ICON, APP_NAME, APP_VERSION  # noqa: E402
@@ -70,7 +70,8 @@ def _render_icon_pngs(sizes: list[int]) -> dict[int, bytes]:
         painter.end()
         buffer = QBuffer()
         buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-        image.save(buffer, b"PNG")
+        # A str, whatever the stubs say: PySide6 refuses b"PNG" at run time.
+        image.save(buffer, "PNG")  # pyright: ignore[reportArgumentType, reportCallIssue]
         images[size] = buffer.data().data()
     del app
     return images

@@ -209,7 +209,7 @@ def _write_po(
 def source_translator_calls(root: Path | None = None) -> set[str]:
     """Every literal string passed to ``_()``/``tr()`` anywhere under *root*.
 
-    The same AST sweep app/tests/test_localization.py's own safety net
+    The same AST sweep dev/tests/test_localization.py's own safety net
     runs (its "every translated string is in the catalogue" test), exposed
     here so a tool that wants to know what *should* be in a catalogue -
     Edit Localization, the Developer-menu tool - has one implementation to

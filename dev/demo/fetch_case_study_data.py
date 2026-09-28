@@ -1,18 +1,18 @@
 """Download the real datasets behind the case-study demo, once.
 
 The other demo tables are either shipped CSVs or exact-by-construction
-synthetic data (see demo_project.py). These four are neither: they are
+synthetic data (see build_demos.py). These four are neither: they are
 the actual published observations behind four results a physicist, a
 climatologist or a seismologist would recognise, pulled from the
 institutions that maintain them.
 
 Run once, from the repository root::
 
-    python -m app.data.fetch_case_study_data
+    python -m dev.demo.fetch_case_study_data
 
-It writes tidy CSVs into ``sample data/`` - one per subject, already
+It writes tidy CSVs into ``dev/demo/sample data/`` - one per subject, already
 cleaned of each source's own sentinel values and header preamble - and
-:mod:`app.data.demo_project` then builds from those files offline, like
+:mod:`dev.demo.build_demos` then builds from those files offline, like
 every other demo. Downloading at build time instead would make a demo
 that cannot be rebuilt on a train, and would silently change under
 whoever rebuilt it: three of these series grow every month.
@@ -46,7 +46,7 @@ from app.logs.logger import applogger
 
 #: Where the cleaned CSVs land - the same folder every other demo table
 #: is read from.
-SAMPLE_DATA_DIR: Path = Path(__file__).resolve().parents[2] / "sample data"
+SAMPLE_DATA_DIR: Path = Path(__file__).resolve().parent / "sample data"
 
 CO2_URL = "https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_mlo.csv"
 SUNSPOTS_URL = "https://www.sidc.be/SILSO/INFO/snmtotcsv.php"

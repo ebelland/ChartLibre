@@ -15,7 +15,7 @@ from app.series_operations.dialog_base import (
     generated_table_name,
 )
 
-APP_DIR = Path(__file__).resolve().parent.parent
+APP_DIR = Path(__file__).resolve().parents[2] / "app"
 
 
 # ----------------------------------------------------------------------

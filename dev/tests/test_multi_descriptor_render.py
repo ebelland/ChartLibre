@@ -7,7 +7,7 @@ from matplotlib.figure import Figure
 
 from app.data.sqlite_repo import SqliteRepo
 from app.charts.render_figure import render_figure_from_descriptor
-from app.tests._large_db_factory import create_large_db
+from dev.tests._large_db_factory import create_large_db
 
 
 def _save(fig: Figure, path: Path) -> None:

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from app.utils import i18n
 
-APP_DIR = Path(__file__).resolve().parent.parent
+APP_DIR = Path(__file__).resolve().parents[2] / "app"
 PO_PATH = i18n.LOCALES_DIR / "it" / "LC_MESSAGES" / f"{i18n.DOMAIN}.po"
 
 
@@ -120,7 +120,7 @@ def test_the_demo_project_names_and_summaries_are_translated() -> None:
     Same blind spot as the fit-mode choices above: no literal at the call
     site, so xgettext and the main sweep cannot see them.
     """
-    from app.data.demo_project import DEMO_PROJECTS
+    from app.data.demos import DEMO_PROJECTS
 
     catalog = i18n._parse_po(PO_PATH)
     missing = {

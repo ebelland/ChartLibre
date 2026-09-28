@@ -12,7 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from app.data.demo_project import DEMO_PROJECTS, build_demo_project, build_demo_projects, _figure_specs, _multi_axis_figure_specs
+from app.data.demos import DEMO_PROJECTS
+from dev.demo.build_demos import build_demo_project, build_demo_projects, _figure_specs, _multi_axis_figure_specs
 from app.data.sqlite_repo import SqliteRepo
 
 

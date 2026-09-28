@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 from app.scanners.axis_renderer_scanner import get_renderer, renderers
 from app.charts.render_figure import render_figure_from_descriptor
 from app.data.sqlite_repo import SqliteRepo
-from app.tests._figure_factory import SHOWCASE_CHART_TYPES, create_renderer_showcase_db
+from dev.tests._figure_factory import SHOWCASE_CHART_TYPES, create_renderer_showcase_db
 
 
 @pytest.fixture(scope="module")

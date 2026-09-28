@@ -7,7 +7,7 @@ the dataset needs), and Applied. What the file ends up holding is therefore
 what the application itself produced: the result series drawn on the chart,
 any result tables, and the HTML report in the chart's results pane.
 
-Run ``python -m app.data.demo_operations`` to rebuild the file into
+Run ``python -m dev.demo.demo_operations`` to rebuild the file into
 ``demo/``. It needs a QApplication (the dialogs are widgets) and runs
 offscreen; the dialogs' remembered settings are written to a throwaway
 user.json, never to the real one.
@@ -21,7 +21,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from app.data.demo_project import DEMO_DIR, DEMO_PROJECTS, TABLE_SOURCES, DemoProject, demo_style
+from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject
+from dev.demo.build_demos import TABLE_SOURCES, demo_style
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 

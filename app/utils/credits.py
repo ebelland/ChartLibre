@@ -108,7 +108,7 @@ ICONS: tuple[Work, ...] = (
     ),
 )
 
-#: The real datasets under ``sample data/`` that the demo projects are
+#: The real datasets under ``dev/demo/sample data/`` that the demo projects are
 #: built from. The made-up ones - Lissajous curves, the synthetic signals,
 #: the invented employees - are nobody's to credit.
 DATA: tuple[Work, ...] = (

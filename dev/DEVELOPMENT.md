@@ -43,10 +43,8 @@ app/
                       renderer actually receives, see §4.1), sqlite_repo.py and
                       repo/ - SqliteRepo split by subject: tables.py,
                       descriptors.py, queries.py, maintenance.py - plus
-                      demo_project.py, which builds every shipped demo
-                      through SqliteRepo itself, so a demo cannot drift from
-                      the real schema. Run `python -m app.data.demo_project`
-                      to regenerate them after a schema or renderer change.
+                      demos.py, the catalogue "Load demo" offers and the
+                      copy it makes (the demos are built in dev/demo/).
   analysis/           The calculations behind the series operations, with no
                       Qt: statistics.py, fit.py, geometry.py so far. Plain
                       arrays in, plain results out - testable against
@@ -73,8 +71,25 @@ app/
                       background.py (running a job off the GUI thread).
   locales/            gettext-style .po catalogues (see §9).
 mplstyles/            The bundled Matplotlib style library (see §7.3).
+demo/                 The built demo projects "Load demo" copies from.
 docs/manual/          The user manual: user_manual.typ is the source, built
-                      with `typst compile user_manual.typ`.
+                      with `typst compile user_manual.typ`; its figures are
+                      made by dev/manual/make_screenshots.py.
+dev/                  Everything a developer needs and an end user never
+                      runs - none of it is imported by the application:
+  DEVELOPMENT.md      This guide.
+  demo/               build_demos.py builds every shipped demo through
+                      SqliteRepo itself, so a demo cannot drift from the
+                      real schema: `python -m dev.demo.build_demos` after a
+                      schema or renderer change. demo_operations.py builds
+                      the Series Operations demo, fetch_case_study_data.py
+                      downloads the case-study data, and "sample data/"
+                      holds every source dataset.
+  manual/             make_screenshots.py, the manual's figures from the
+                      running application.
+  tests/              The test suite (`python -m pytest dev/tests -q`);
+                      results and artefacts go to dev/test_results/.
+  tools/              make_launcher.py, the double-clickable launchers.
 ```
 
 ## 3. The descriptor model
@@ -208,7 +223,7 @@ An axis can occupy more than one cell by setting `row_span` and/or
 `col_span: 2` in a 2×2 grid spans the whole top row, with two narrower axes
 below it. This is exposed in the UI as **Grid position → Span** on the Axis
 panel (`app/widgets/axis_properties.py`), one spin box per dimension.
-`_make_demo_project.py`'s `_create_layout_showcase_figure` is a worked
+`dev/demo/build_demos.py`'s `_create_layout_showcase_figure` is a worked
 example: a scatter plot spanning both columns of a 2×2 grid over a histogram
 and a box plot, combined with `frameon: False` and explicit margins.
 
@@ -231,7 +246,7 @@ Internals, in `render_figure.py`:
 - A 1×1 span (the default) produces the exact same geometry as the old
   numbered-subplot code, so no existing figure changes.
 
-Tests: `app/tests/test_figure_layout_and_frame.py`.
+Tests: `dev/tests/test_figure_layout_and_frame.py`.
 
 ### 5.1 Layout engine and manual spacing
 
@@ -518,7 +533,7 @@ x, and `pd.to_numeric(errors="coerce")` turning a text column into an
 all-NaN array with no complaint.
 
 The check itself is `app/utils/series_validation.py`: pure numpy, no Qt, no
-pandas. Tests in `app/tests/test_series_validation.py`, about half of which
+pandas. Tests in `dev/tests/test_series_validation.py`, about half of which
 assert what it must **not** reject.
 
 #### The operations that ship
@@ -607,7 +622,7 @@ registration. Its range controls are declared in `PARAMS`; the function's own
 parameters are a table, because their number and names change with the
 selection and a declaration cannot express that.
 
-Tests: `app/tests/test_new_operations.py` for Calculus/Peaks/Control
+Tests: `dev/tests/test_new_operations.py` for Calculus/Peaks/Control
 Chart/Function, `test_attribute_chart.py` for the p/np/c/u limits and which
 Nelson rules survive a varying sigma, `test_filter_dialog.py` and
 `test_baseline_dialog.py` for the two scipy ones, and
@@ -680,8 +695,8 @@ artists — a line plus its error bars — toggles as one. The entry dims instea
 of disappearing, so a hidden series still has something to click. Hidden
 series are skipped by the hover hit test.
 
-Tests: `app/tests/test_chart_panel_selection.py`,
-`app/tests/test_chart_panel_buffer.py`.
+Tests: `dev/tests/test_chart_panel_selection.py`,
+`dev/tests/test_chart_panel_buffer.py`.
 
 ## 8. Styling (`app/styles/`)
 
@@ -808,8 +823,8 @@ text, dialog titles — must go through `_()`/`tr()`. A popup menu (or any
 other UI) built from bare Python strings will simply not translate; this is
 a common regression when a new menu is added by copying an existing
 `MenuItem(text="...", ...)` block without noticing the sibling entries
-already wrap `text` in `_()`. `app/tests/test_localization.py` and
-`app/tests/test_messages.py` check catalogue coverage; a string added to the
+already wrap `text` in `_()`. `dev/tests/test_localization.py` and
+`dev/tests/test_messages.py` check catalogue coverage; a string added to the
 code needs a matching `msgid`/`msgstr` pair appended to
 `app/locales/it/LC_MESSAGES/datahub.po` (any position — the file is not
 order-sensitive, blank-line-separated blocks — see the existing entries for
@@ -833,7 +848,7 @@ properties panel translate at the display site and keep the raw English name
 in `UserRole`/the signal, since that string is also the `chart_type` stored
 in the database. Translate what is read; never translate what is looked up.
 
-`app/tests/test_messages.py` additionally checks that a translation keeps
+`dev/tests/test_messages.py` additionally checks that a translation keeps
 every `{placeholder}` its English original had — a dropped one is a silently
 wrong sentence, not a crash.
 
@@ -873,7 +888,7 @@ the machine.
 
 ## 11. Testing
 
-- `matplotlib.use("Agg")` is set in `app/tests/conftest.py`, so the render
+- `matplotlib.use("Agg")` is set in `dev/tests/conftest.py`, so the render
   pipeline (`render_figure.py` and everything under `app/charts/`) is fully
   testable without a display — most of the suite runs this way.
 - Widget tests need a `QApplication`; use the shared `qapp` session fixture
@@ -908,7 +923,7 @@ the machine.
 - `tmp_db_path` / `test_results_dir` / `plots_dir` fixtures give each test an
   isolated `.dhub` path and a directory for saved plots
   (`DHUB_TEST_ARTIFACTS` env var to redirect).
-- Run the suite: `python -m pytest app/tests -q` (add
+- Run the suite: `python -m pytest dev/tests -q` (add
   `QT_QPA_PLATFORM=offscreen` in a headless environment). The suite is
   deliberately small: one or two tests per feature, on results, saved data
   and crashes - not on layout details.

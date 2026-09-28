@@ -150,12 +150,12 @@ R-09  P2 Esportazione per la pubblicazione.
         figura a un'altra (Origin "graph template", .otpu).
 
 R-10  P2 Manutenibilita': file troppo grandi.
-      chart_panel.py 3.285 righe, main_window.py 3.136, demo_project.py
+      chart_panel.py 3.285 righe, main_window.py 3.136, build_demos.py
       2.968, style.py 2.503; fit, cluster, smoothing, statistics e
       control_chart tra 1.400 e 1.900. Dividerli per responsabilita':
       main_window in un modulo per pagina della barra laterale; chart_panel
       in zoom/geometria, barra strumenti, interazioni; style in icone,
-      fogli di stile, widget di base; demo_project in un file per demo.
+      fogli di stile, widget di base; build_demos in un file per demo.
 
 R-11  P2 SQL residuo fuori da app/data (regola del progetto).
       Statistiche e Geometria sono a posto. Restano:
@@ -181,7 +181,7 @@ R-13  P3 Test di validazione numerica.
       di regressione non lineare con risultati certificati).
 
 R-14  P3 Distribuzione per chi non usa Python.
-      Il launcher (tools/make_launcher.py) usa il Python gia' installato.
+      Il launcher (dev/tools/make_launcher.py) usa il Python gia' installato.
       Per utenti non tecnici serve un pacchetto autonomo (Briefcase o
       PyInstaller), firmato e notarizzato su macOS, con installer su
       Windows e un controllo degli aggiornamenti.

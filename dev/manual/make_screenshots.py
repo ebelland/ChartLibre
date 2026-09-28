@@ -2,9 +2,9 @@
 
 Run it from the project root::
 
-    python docs/manual/make_screenshots.py
+    python dev/manual/make_screenshots.py
 
-and it rewrites the ``screenshot_*.png`` files beside ``user_manual.typ``.
+and it rewrites the ``screenshot_*.png`` files beside ``docs/manual/user_manual.typ``.
 Nothing else reads them; the manual does, by name.
 
 Why a script rather than a person with a screen-capture key: the figures
@@ -34,7 +34,7 @@ real application, driven through its real entry points.
 On a headless Linux box it needs a display for Matplotlib's Qt backend and
 an offscreen platform for Qt itself::
 
-    QT_QPA_PLATFORM=offscreen xvfb-run -a python docs/manual/make_screenshots.py
+    QT_QPA_PLATFORM=offscreen xvfb-run -a python dev/manual/make_screenshots.py
 """
 from __future__ import annotations
 
@@ -71,13 +71,14 @@ from PySide6.QtCore import QCoreApplication, QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
 import app.dialogs.main_window as main_window_module  # noqa: E402
-from app.data.demo_project import DEMO_PROJECTS, copy_demo_project  # noqa: E402
+from app.data.demos import DEMO_PROJECTS, copy_demo_project  # noqa: E402
 from app.data.sqlite_repo import SqliteRepo  # noqa: E402
 from app.logs.logger import applogger  # noqa: E402
 
 main_window_module.IS_MACOS = True
 
-OUTPUT_DIR = Path(__file__).resolve().parent
+#: The manual's own folder: the figures sit beside the .typ that names them.
+OUTPUT_DIR = PROJECT_ROOT / "docs" / "manual"
 
 #: Logical size. QT_SCALE_FACTOR above makes the saved file twice this, so
 #: this is the window as a person would size it, not the pixel count.

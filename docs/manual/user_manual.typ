@@ -111,7 +111,7 @@ A SQLite database writes its own changes straight to disk on every operation, so
   the same and in the same place, but the navigation rail is a column of
   square tiles rather than a sidebar of rows, and the window carries its own
   title bar rather than the traffic lights. Regenerate the figures with
-  `python docs/manual/make_screenshots.py`.
+  `python dev/manual/make_screenshots.py`.
 ]
 
 The main window splits into two areas.

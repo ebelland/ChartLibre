@@ -80,7 +80,7 @@ def credits_html() -> str:
             report_html.note(
                 _(
                     "The demo projects are built from these datasets, saved "
-                    "under sample data/. Thanks to their authors for making "
+                    "under dev/demo/sample data/. Thanks to their authors for making "
                     "them freely available."
                 )
             ),

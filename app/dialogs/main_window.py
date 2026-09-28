@@ -42,7 +42,7 @@ from app.widgets.chart_panel import ChartPanel
 from app.widgets.nav_bar import NavigationBar
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.import_data_dialog import ImportDataDialog, is_importable
-from app.data.demo_project import PROJECTS_DIR, copy_demo_project
+from app.data.demos import PROJECTS_DIR, copy_demo_project
 from app.dialogs.load_demo_dialog import LoadDemoDialog
 from app.dialogs.credits_dialog import CreditsDialog
 from app.widgets.database_info_panel import DatabaseInfoPanel
@@ -2583,7 +2583,7 @@ class MainWindow(QMainWindow):
         that nobody is expected to keep - the same reasoning that lets a first
         run open straight into a fixed, well-known path with no dialog of its
         own (see app.utils.startup.DEFAULT_DATABASE_NAME). The copy lands in
-        ``projects/`` beside the application (demo_project.PROJECTS_DIR), not
+        ``projects/`` beside the application (demos.PROJECTS_DIR), not
         loose in the home directory: the copies are throwaway and one folder
         holds all of them. Loading the same demo again overwrites its previous
         copy in place, which is the point: it puts back the pristine version

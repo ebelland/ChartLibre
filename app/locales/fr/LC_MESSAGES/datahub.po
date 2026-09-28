@@ -5405,8 +5405,8 @@ msgstr ""
 msgid "Real case studies - CO2, sunspots, earthquakes and warming"
 msgstr "Études de cas réelles - CO2, taches solaires, séismes et réchauffement"
 
-msgid "Four published results, each on the institution's own published data rather than on anything invented here (downloaded by app/data/fetch_case_study_data.py): the Keeling curve breathing once a year on top of its rise from 315 to 428 ppm; 277 years of sunspot counts whose spectrum - computed by the Spectral operation's own FFT - peaks at 11.1 years, the cycle Schwabe read off by eye in 1843; a month of earthquakes obeying Gutenberg-Richter with b = 1.06 above the magnitude the catalogue is complete at, and visibly departing from it below; and 146 years of global temperature anomaly."
-msgstr "Quatre résultats publiés, chacun sur les données publiées par l'institution elle-même plutôt que sur quoi que ce soit inventé ici (téléchargées par app/data/fetch_case_study_data.py) : la courbe de Keeling qui respire une fois par an au-dessus de sa hausse de 315 à 428 ppm ; 277 ans de comptages de taches solaires dont le spectre - calculé par la FFT de l'opération Spectrale elle-même - culmine à 11,1 ans, le cycle que Schwabe a lu à l'œil nu en 1843 ; un mois de séismes obéissant à Gutenberg-Richter avec b = 1,06 au-dessus de la magnitude à partir de laquelle le catalogue est complet, et s'en écartant visiblement en dessous ; et 146 ans d'anomalie de température mondiale."
+msgid "Four published results, each on the institution's own published data rather than on anything invented here (downloaded by dev/demo/fetch_case_study_data.py): the Keeling curve breathing once a year on top of its rise from 315 to 428 ppm; 277 years of sunspot counts whose spectrum - computed by the Spectral operation's own FFT - peaks at 11.1 years, the cycle Schwabe read off by eye in 1843; a month of earthquakes obeying Gutenberg-Richter with b = 1.06 above the magnitude the catalogue is complete at, and visibly departing from it below; and 146 years of global temperature anomaly."
+msgstr "Quatre résultats publiés, chacun sur les données publiées par l'institution elle-même plutôt que sur quoi que ce soit inventé ici (téléchargées par dev/demo/fetch_case_study_data.py) : la courbe de Keeling qui respire une fois par an au-dessus de sa hausse de 315 à 428 ppm ; 277 ans de comptages de taches solaires dont le spectre - calculé par la FFT de l'opération Spectrale elle-même - culmine à 11,1 ans, le cycle que Schwabe a lu à l'œil nu en 1843 ; un mois de séismes obéissant à Gutenberg-Richter avec b = 1,06 au-dessus de la magnitude à partir de laquelle le catalogue est complet, et s'en écartant visiblement en dessous ; et 146 ans d'anomalie de température mondiale."
 
 msgid "Hide the sidebar"
 msgstr "Masquer la barre latérale"
@@ -5969,8 +5969,8 @@ msgstr "Œuvres incluses et icônes"
 msgid "Demo data"
 msgstr "Données de démonstration"
 
-msgid "The demo projects are built from these datasets, saved under sample data/. Thanks to their authors for making them freely available."
-msgstr "Les projets de démonstration sont construits à partir de ces jeux de données, enregistrés dans sample data/. Merci à leurs auteurs de les avoir rendus librement disponibles."
+msgid "The demo projects are built from these datasets, saved under dev/demo/sample data/. Thanks to their authors for making them freely available."
+msgstr "Les projets de démonstration sont construits à partir de ces jeux de données, enregistrés dans dev/demo/sample data/. Merci à leurs auteurs de les avoir rendus librement disponibles."
 
 msgid "Work"
 msgstr "Œuvre"
