@@ -36,6 +36,7 @@ from matplotlib import rcParams
 
 from app.data.sqlite_repo import SqliteRepo
 from app.styles.style import (
+    apply_fusion_for_item_view_styling,
     create_action_button,
     create_hidpi_pixmap,
     mark_editor_panel,
@@ -166,6 +167,13 @@ class AxisSeriesSelector(QWidget):
         )
 
         mark_editor_panel(self.series_list)
+        # Fusion draws the check boxes: the native macOS style drew only some
+        # of the checked ones, so four checked series looked like one. After
+        # mark_editor_panel, not before: its repolish unpolishes whatever style
+        # the list has, and doing that to a Fusion set a moment earlier
+        # crashed the application (SIGSEGV) - the order the property editor
+        # already uses.
+        apply_fusion_for_item_view_styling(self.series_list)
         stdSizeAndlayout(self.figure_combo)
         stdSizeAndlayout(self.axis_combo)
 

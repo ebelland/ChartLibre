@@ -5833,3 +5833,42 @@ msgstr "Ouvrir ce projet"
 
 msgid "Column"
 msgstr "Colonne"
+
+msgid "All checked series"
+msgstr "Toutes les séries cochées"
+
+msgid "Check one or more series. One-sample tests are calculated for each checked series. Paired and independent tests are calculated for every pair, and the group comparison for all of them, when two or more series are checked."
+msgstr "Cochez une ou plusieurs séries. Les tests à un échantillon sont calculés pour chaque série cochée. Les tests appariés et indépendants sont calculés pour chaque paire, et la comparaison de groupes pour toutes ensemble, lorsque deux séries ou plus sont cochées."
+
+msgid "Difference of means"
+msgstr "Différence des moyennes"
+
+msgid "Group comparison"
+msgstr "Comparaison de groupes"
+
+msgid "Group comparison (ANOVA)"
+msgstr "Comparaison de groupes (ANOVA)"
+
+msgid "Independent-sample tests"
+msgstr "Tests pour échantillons indépendants"
+
+msgid "Kruskal-Wallis"
+msgstr "Kruskal-Wallis"
+
+msgid "Levene equal variances"
+msgstr "Levene, égalité des variances"
+
+msgid "Mann-Whitney U"
+msgstr "U de Mann-Whitney"
+
+msgid "One-way ANOVA"
+msgstr "ANOVA à un facteur"
+
+msgid "Student t-test (equal variances)"
+msgstr "Test t de Student (variances égales)"
+
+msgid "Welch ANOVA (unequal variances)"
+msgstr "ANOVA de Welch (variances inégales)"
+
+msgid "Welch t-test"
+msgstr "Test t de Welch"
