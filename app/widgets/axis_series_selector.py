@@ -372,11 +372,6 @@ class AxisSeriesSelector(QWidget):
         self._rebuild_series(select_all_series=select_all_series)
         self._emit_selection_changed()
 
-    def selected_figure_id(self) -> int | None:
-        """Return the selected figure database id."""
-        figure_id = self.figure_combo.currentData(_FIGURE_ROLE)
-        return None if figure_id is None else int(figure_id)
-
     def selected_axis_name(self) -> str:
         """Return the selected axis label."""
         axis_name = self.axis_combo.currentData(_AXIS_ROLE)
@@ -393,13 +388,6 @@ class AxisSeriesSelector(QWidget):
             self.series_list.item(row).data(_SERIES_ROLE)
             for row in range(self.series_list.count())
             if self.series_list.item(row).checkState() == Qt.CheckState.Checked
-        ]
-
-    def current_axis_series(self) -> list[Any]:
-        """Return visible series descriptor rows for the selected axis."""
-        return [
-            self.series_list.item(row).data(_SERIES_ROLE)
-            for row in range(self.series_list.count())
         ]
 
     def has_axes(self) -> bool:

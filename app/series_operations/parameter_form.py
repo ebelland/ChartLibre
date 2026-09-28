@@ -188,10 +188,6 @@ class ParameterForm:
 
         self.refresh_visibility()
 
-    def widget_for(self, name: str) -> QWidget | None:
-        """Return one parameter's control, for the rare hand-tuned case."""
-        return self._widgets.get(name)
-
     # ------------------------------------------------------------------
     # Visibility
     # ------------------------------------------------------------------

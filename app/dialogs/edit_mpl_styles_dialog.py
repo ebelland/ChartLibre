@@ -541,13 +541,13 @@ class MplStyleEditorDialog(QDialog):
         self.status.setContentsMargins(0, 0, 0, 0)
         status_row.addWidget(self.status, 1)
 
-        self.btn_apply = create_action_button(
+        create_action_button(
                              parent=self,
                              action_id="apply",
                              action=self._on_apply_clicked,
                              layout=status_row,
                          )
-        self.btn_close = create_action_button(
+        create_action_button(
                              parent=self,
                              action_id="close",
                              action=self._on_close,
@@ -1072,10 +1072,6 @@ class MplStyleEditorDialog(QDialog):
         )
         self.status.setText(_("Loaded current style into editor."))
         self._preview_timer.start()
-
-    def _apply_row_filter(self) -> None:
-        # DictEditorPanel owns filtering internally. Kept for compatibility.
-        self.editor.set_filter_text(self.editor.filter_text())
 
     def _reset_selected_to_defaults(self) -> None:
         key: str = self.editor.current_key() or ""

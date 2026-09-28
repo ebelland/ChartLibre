@@ -24,7 +24,6 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.ticker import NullLocator
 

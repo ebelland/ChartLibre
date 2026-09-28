@@ -48,7 +48,6 @@ from app.utils.figure_metrics import (
 )
 from app.utils.hidpi import (
     apply_configured_dpi,
-    canvas_pixel_ratio,
     inches_to_logical,
     logical_to_inches,
 )
@@ -2372,20 +2371,6 @@ class ChartPanel(QFrame):
         """Return the background colour used around the chart canvas."""
         return self._background_color
 
-    def set_background_color(self, color: str, *, persist: bool = True) -> None:
-        """Set the panel, viewport, and figure background colour."""
-        qcolor = PySide6.QtGui.QColor(str(color))
-        if not qcolor.isValid():
-            applogger.warning("Invalid chart panel background color: %s", color)
-            return
-
-        self._background_color = qcolor.name()
-        self._apply_background_color_to_widgets()
-
-        if persist:
-            self._persist_chart_panel_config()
-            self._persist_view_state()
-
     def _apply_background_color_to_widgets(self) -> None:
         """Apply the panel background without changing the Matplotlib figure.
 
@@ -2529,14 +2514,6 @@ class ChartPanel(QFrame):
         width = max(0, contents.width())
         height = max(0, contents.height() - top_row_height - layout_spacing)
         return QSize(width, height)
-
-    def _device_pixel_ratio(self) -> float:
-        """Return the canvas's pixel ratio, never zero.
-
-        ``getattr``: the constructor touches the figure before it builds the
-        canvas, and a missing canvas means "no scaling known yet", not a crash.
-        """
-        return canvas_pixel_ratio(getattr(self, "_canvas", None))
 
     def _apply_figure_size_from_canvas(self, canvas_size: QSize) -> None:
         """Make Matplotlib's figure size match the canvas.

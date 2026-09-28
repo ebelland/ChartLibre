@@ -23,7 +23,6 @@ from scipy import stats
 from app.utils.i18n import _
 
 #: The alternatives SciPy's tests accept.
-ALTERNATIVES: tuple[str, ...] = ("two-sided", "greater", "less")
 
 
 # ----------------------------------------------------------------------

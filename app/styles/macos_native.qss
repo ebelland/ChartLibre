@@ -455,44 +455,6 @@ QLabel#chartCoordLabel {
   padding: 0 6px;
 }
 
-/* -------------------------------
-   Properties split control
-   Each CollapsiblePanel reads as a single rounded card (same
-   language as ChartPanel/TableListPanel below), with a flat
-   disclosure-triangle header — like the Format inspector in
-   Pages/Keynote — instead of a bezeled push button. The toggle
-   button is set autoRaise=True in Python so macOS doesn't draw
-   its native button bezel/font over this; the rules below just
-   add the rounded-card chrome and hover feedback.
--------------------------------- */
-
-QFrame#collapsiblePanel {
-  background: palette(base);
-  border: 1px solid rgba(@SHADOW_RGB@, 0.08);
-  border-radius: 10px;
-}
-
-QToolButton#panelToggleButton {
-  text-align: left;
-  padding: 8px 10px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  font-weight: 600;
-}
-
-QToolButton#panelToggleButton:hover {
-  background: rgba(@SHADOW_RGB@, 0.05);
-}
-
-QToolButton#panelToggleButton:pressed {
-  background: rgba(@SHADOW_RGB@, 0.09);
-}
-
-QWidget#panelBody {
-  background: transparent;
-}
-
 /* leftPanelCard: the activity rail plus the content stack beside it
    (Tables/Properties/Database/...), flush against the chart panel to
    its right — not a floating rounded card. White, with a hairline on

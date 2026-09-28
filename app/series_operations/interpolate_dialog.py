@@ -21,7 +21,7 @@ from typing import Any, Final, cast
 
 import numpy as np
 import pandas as pd
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -240,8 +240,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
 
     def init_operation_widgets(self) -> None:
         """Create interpolation controls before base builder hooks run."""
-
-        self._series_choices: list[SeriesChoice] = []
         self._last_results: list[FitResult] = []
         self._settings_form: QFormLayout | None = None
 

@@ -23,7 +23,6 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-import pandas as pd
 from matplotlib import rcParams
 
 from app.charts.base import (

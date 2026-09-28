@@ -99,7 +99,7 @@ class _MeasureRow(QWidget):
         for column in columns:
             self.column.addItem(column, column)
         remove = QToolButton(self)
-        icon, text, tooltip = action_presentation("delete")
+        icon, text, _tooltip = action_presentation("delete")
         remove.setIcon(icon)
         remove.setToolTip(_("Remove this measure"))
         remove.setAccessibleName(text)

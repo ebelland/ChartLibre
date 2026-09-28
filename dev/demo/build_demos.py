@@ -27,7 +27,6 @@ output need pandas' read_csv/read_excel machinery.
 from __future__ import annotations
 
 import argparse
-import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,7 +36,7 @@ import numpy as np
 import pandas as pd
 
 from app.charts import layout_presets
-from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject
+from app.data.demos import DEMO_DIR, DEMO_PROJECTS
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 

@@ -37,7 +37,6 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QSpinBox,
-    QVBoxLayout,
     QWidget,
 )
 from scipy import signal as scipy_signal

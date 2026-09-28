@@ -195,25 +195,4 @@ def defaults(params: Sequence[Param]) -> dict[str, Any]:
     return {param.name: param.default for param in params}
 
 
-def coerce_all(
-    params: Sequence[Param],
-    values: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Return ``values`` with every parameter coerced to its own type.
 
-    Missing names fall back to the default, so a saved state written before a
-    parameter existed still loads instead of raising - which is what makes it
-    safe to add a parameter to a shipped operation.
-    """
-    return {
-        param.name: param.coerce(values.get(param.name, param.default))
-        for param in params
-    }
-
-
-def visible_names(
-    params: Sequence[Param],
-    values: Mapping[str, Any],
-) -> tuple[str, ...]:
-    """Return the names of the parameters visible for the current values."""
-    return tuple(param.name for param in params if param.is_visible(values))

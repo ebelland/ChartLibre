@@ -88,10 +88,6 @@ class MessageSpec:
             text=str(entry.get("text") or ""),
         )
 
-    def to_config(self) -> dict[str, Any]:
-        """Return the JSON form of this spec, as ``config.json`` stores it."""
-        return {"level": self.level, "title": self.title, "text": self.text}
-
     @staticmethod
     def _normalize_format_fields(fields: dict[str, Any]) -> dict[str, Any]:
         """Return the mapping passed to ``str.format(**mapping)``.

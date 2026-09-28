@@ -76,12 +76,8 @@ ShortcutLike = QKeySequence.StandardKey | QKeySequence | str | int | None
 # One scale for the whole app.  Before this existed there were seven different
 # margin conventions across 58 hand-written call sites, so two sibling dialogs
 # could not be made to line up without editing both.
-SPACING_NONE: int = 0
-SPACING_TIGHT: int = 4
 SPACING_DEFAULT: int = 8
-SPACING_LOOSE: int = 12
 
-MARGIN_NESTED: tuple[int, int, int, int] = (0, 0, 0, 0)
 MARGIN_CARD: tuple[int, int, int, int] = (10, 10, 10, 10)
 MARGIN_DIALOG: tuple[int, int, int, int] = (12, 12, 12, 12)
 MARGIN_PANEL: tuple[int, int, int, int] = (6, 6, 6, 6)
@@ -340,90 +336,10 @@ def _best_fluent_font_family() -> str | None:
 # the icon theme the desktop is already using, so the application's Open
 # looks like every other Open on that machine.
 #
-# The names are freedesktop's, from config.json's ThemeIcon field, and are
-# checked against the two sets below rather than trusted: a typo in a theme
-# name is silent - fromTheme returns a null icon and the SVG quietly takes
-# over - so the mistake would only ever show up as "why is this one icon
-# still the old drawing?".
-
-#: The names Qt itself standardises, taken from QIcon.ThemeIcon rather than
-#: typed out: this list grows with Qt, and a hand-written copy would not.
-#: "DocumentOpen" is the enum member; "document-open" is what it resolves to.
-def _standard_theme_icon_names() -> frozenset[str]:
-    """Return every freedesktop name QIcon.ThemeIcon knows, as strings."""
-    names: set[str] = set()
-    theme_icon = getattr(QIcon, "ThemeIcon", None)
-    if theme_icon is None:  # pragma: no cover - Qt older than 6.7
-        return frozenset()
-
-    for member in theme_icon.__members__:
-        if member == "NThemeIcons":
-            # A count, not an icon: Qt ends the enum with the number of
-            # entries in it, and asking a theme for "n-theme-icons" finds
-            # nothing.
-            continue
-        names.add(_camel_to_kebab(member))
-    return frozenset(names)
-
-
-def _camel_to_kebab(name: str) -> str:
-    """Turn ``DocumentOpen`` into ``document-open``."""
-    return re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-
-
-#: Names outside Qt's enum that this application uses anyway.  Each one is in
-#: the freedesktop Icon Naming Specification or is shipped by every major icon
-#: theme (Adwaita, Breeze, Papirus) - which is the bar for adding one.  Listed
-#: rather than allowed implicitly so that a typo is still caught: the test
-#: suite checks every configured name against these two sets together.
-EXTRA_THEME_ICON_NAMES: frozenset[str] = frozenset(
-    {
-        "accessories-calculator",
-        "applications-system",
-        "document-edit",
-        # The user manual: freedesktop's own name for "open the help
-        # document", which is exactly what this action does.
-        "help-contents",
-        # Connecting to a server database: the freedesktop Status icon for
-        # network activity, the closest standard name to what this does.
-        "network-transmit-receive",
-        # No Qt ThemeIcon enum member covers "fetch this from the web" -
-        # GoDown is a plain navigation arrow, not a download. Breeze,
-        # Papirus and Adwaita all ship this Icon Naming Specification
-        # emblem, originally for a downloads folder.
-        "emblem-downloads",
-        "object-select",
-        # No icon theme has a chart, and a plotting application's Plot button
-        # is the one place a drawing of our own is the honest answer. Breeze
-        # and Papirus ship this name; Adwaita does not, and there the SVG in
-        # app/icons takes over - which is the fallback doing its job rather
-        # than a gap.
-        "office-chart-line",
-        "open-menu",
-        "preferences-system",
-        "system-run",
-        # Likewise: Breeze has it, Adwaita dropped it, and "the rows matching
-        # a condition" has no better standard name.
-        "view-filter",
-        "view-sort-ascending",
-        # Import from another database: the same MIME-type naming family as
-        # "x-office-spreadsheet" above, this one for LibreOffice Base's .odb.
-        "x-office-database",
-        "x-office-spreadsheet",
-        # Developer-menu stubs (todo.txt P3-4/P3-5/P3-6): freedesktop Icon
-        # Naming Specification categories, not covered by Qt's own smaller
-        # ThemeIcon enum.
-        "applications-development",
-        "applications-graphics",
-        "preferences-desktop-locale",
-    }
-)
-
-
-def known_theme_icon_names() -> frozenset[str]:
-    """Return every theme icon name this application is allowed to ask for."""
-    return _standard_theme_icon_names() | EXTRA_THEME_ICON_NAMES
-
+# The names are freedesktop's, from config.json's ThemeIcon field; the test
+# suite checks each one (dev/tests/test_theme_icon_names.py), because a typo
+# in a theme name is silent - fromTheme returns a null icon and the SVG
+# quietly takes over.
 
 _THEME_ICON_CACHE: dict[str, QIcon] = {}
 
@@ -2453,12 +2369,6 @@ def _catalog() -> dict[str, ActionSpec]:
     }
     return _cache
 
-
-def reload_actions() -> None:
-    """Forget the cached catalogue; the next lookup re-reads config.json."""
-    global _cache, _cache_source
-    _cache = None
-    _cache_source = None
 
 
 def action(action_id: str) -> ActionSpec:

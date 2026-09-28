@@ -700,14 +700,6 @@ class SeriesPropertiesWidget(BaseProperties):
 
         self.series_order_requested.emit(ordered_ids)
 
-    def _emit_series_delete_requested(self) -> None:
-        """Emit the current series delete request."""
-        series_id = self._series_combo.itemData(self._series_combo.currentIndex())
-        if series_id is None:
-            return
-
-        self.series_delete_requested.emit(int(series_id))
-
     def _emit_series_options_requested(self) -> None:
         """Emit the current form payload."""
         self.series_options_requested.emit(

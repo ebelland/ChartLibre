@@ -140,7 +140,6 @@ class TableListPanel(QWidget):
     """Panel: list of user tables with Table / Link / File / Notes columns."""
 
     tableSelected = PySide6.QtCore.Signal(str)
-    actionRequested = PySide6.QtCore.Signal(str, str)
 
     COL_TABLE = 0
     COL_HAS_LINK = 1
@@ -827,7 +826,6 @@ class TableListPanel(QWidget):
         
     def update_parent(self) -> None:
         """Update the parent window's table list and tabs, if they exist."""
-        table, _unused = self._selected_row_info()
         parent = self._top_level_parent()
         if self._repo is None or parent is None:
             return

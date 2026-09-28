@@ -22,9 +22,7 @@ import app.data.descriptors
 from app.data.repo._common import (
     RepoHost,
     _dumps_json,
-    _is_ident,
     _loads_json,
-    _quote_ident,
     descriptor_write_wrapper,
     ensure_connection_wrapper,
 )
@@ -301,18 +299,6 @@ class DescriptorsMixin(RepoHost):
             return int(row[0]) if row is not None else 0
         except Exception:
             return 0
-
-    def build_series_select_sql(self, table: str, columns: list[str]) -> str:
-        """Build safe SELECT statement with validated columns.
-        
-        Only includes columns passing identifier validation.
-        Falls back to SELECT * if no valid columns.
-        """
-        cols = [c for c in columns if _is_ident(c)]
-        if not cols:
-            return f"SELECT * FROM {_quote_ident(table)}"
-        cols_sql = ", ".join(_quote_ident(c) for c in cols)
-        return f"SELECT {cols_sql} FROM {_quote_ident(table)}"
 
     # =====================================================================
     # Descriptor creation

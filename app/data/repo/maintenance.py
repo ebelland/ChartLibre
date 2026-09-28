@@ -17,7 +17,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import app.data.descriptors
 from app.data.repo._common import (
     RepoHost,
     DatabasePragmaInfo,

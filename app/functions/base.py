@@ -19,7 +19,7 @@ worth testing on their own.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, List
+from typing import ClassVar, List
 
 import numpy as np
 from scipy.signal import find_peaks
@@ -37,15 +37,6 @@ def _pos(value: float | np.ndarray, eps: float = 1e-12) -> np.ndarray:
 
 def _positive_x(x: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     return np.maximum(x, eps)
-
-def _finite(x: Any, y: Any) -> tuple[np.ndarray, np.ndarray]:
-    """Return the pairs where both coordinates are finite."""
-    x_array = np.asarray(x, dtype=float).ravel()
-    y_array = np.asarray(y, dtype=float).ravel()
-    size = min(x_array.size, y_array.size)
-    x_array, y_array = x_array[:size], y_array[:size]
-    keep = np.isfinite(x_array) & np.isfinite(y_array)
-    return x_array[keep], y_array[keep]
 
 def _peak_shape(x: np.ndarray, y: np.ndarray) -> tuple[float, float, float, float] | None:
     """Return (amplitude, centre, width, offset) for a peak-like series.

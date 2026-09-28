@@ -67,7 +67,7 @@ def test_p_chart_limits_match_the_textbook() -> None:
 # c chart
 # ----------------------------------------------------------------------
 def test_c_chart_limits_match_the_textbook() -> None:
-    stat, center, upper, lower, meta = attribute_limits(
+    stat, _center, upper, lower, meta = attribute_limits(
         CHART_C, C_DEFECTS, np.ones_like(C_DEFECTS), 3.0
     )
     assert meta["c-bar"] == pytest.approx(19.85, abs=0.01)
@@ -84,7 +84,7 @@ def test_c_chart_limits_match_the_textbook() -> None:
 def test_u_chart_is_defects_over_units_with_a_per_point_band() -> None:
     counts = np.array([5, 3, 8, 4, 6], dtype=float)
     sizes = np.array([10, 12, 11, 9, 10], dtype=float)
-    stat, center, upper, lower, meta = attribute_limits(CHART_U, counts, sizes, 3.0)
+    stat, center, upper, _lower, meta = attribute_limits(CHART_U, counts, sizes, 3.0)
     assert stat == pytest.approx(counts / sizes)
     assert center == pytest.approx(counts.sum() / sizes.sum())
     assert meta["u-bar"] == pytest.approx(center)

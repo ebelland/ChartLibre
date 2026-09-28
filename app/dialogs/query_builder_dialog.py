@@ -115,7 +115,7 @@ class QueryBuilderDialog(QDialog):
         apply_dialog_shell(self, root, size="large")
 
         # Kept on self so that restore_dialog_state can remember its sizes.
-        splitter = self._splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.addWidget(self._build_side_panel())
         splitter.addWidget(self._build_editor_panel())
         splitter.setStretchFactor(0, 0)

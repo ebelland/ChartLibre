@@ -26,7 +26,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFormLayout, QWidget
 from scipy.ndimage import maximum_filter, minimum_filter
 from scipy.signal import find_peaks, peak_prominences, peak_widths
 
@@ -354,7 +354,7 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         # rel_height=0.5 is the width at half prominence, not at half height:
         # on a raised baseline those differ, and the half-prominence width is
         # the one that describes the peak rather than the background.
-        widths, _heights, left_ips, right_ips = peak_widths(
+        _widths, _heights, left_ips, right_ips = peak_widths(
             signal, indices, rel_height=0.5
         )
 

@@ -339,9 +339,6 @@ class NavigationBar(QFrame):
         self.workspace_button.setStatusTip(tooltip)
         self.workspace_button.setAccessibleName(tooltip)
 
-    def is_compact(self) -> bool:
-        return self._compact
-
     def set_compact(self, compact: bool) -> None:
         """Show the tiles as icons only, and narrow the rail to match (Windows).
 

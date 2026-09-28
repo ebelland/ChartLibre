@@ -58,7 +58,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QComboBox, QFormLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QFormLayout, QWidget
 
 from app.data.data_source import parse_roles, row_value
 from app.data.repo.tables import QueryColumns, coerce_numeric_array
@@ -186,7 +186,6 @@ SPC_CONSTANTS: dict[int, tuple[float, float, float, float, float, float, float, 
 #: Applied when the subgroup size is outside the table. c4 has a closed form,
 #: and d2 tends to a slow logarithmic growth; a large-n approximation is
 #: better than refusing to draw the chart, but it is reported as approximate.
-LARGEST_TABULATED = max(SPC_CONSTANTS)
 
 #: Below this an attribute chart's limits are too soft to trust; the report
 #: says so rather than refusing to draw them.
@@ -877,7 +876,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
                 # second pass over the same estimator rather than a trimmed
                 # sigma: the point is to exclude assignable causes, not to
                 # make the estimator robust to them.
-                sub_x, sub_y = plot_x[keep], plot_y[keep]
+                sub_y = plot_y[keep]
                 if CONTROL_CHARTS[chart].subgrouped:
                     center, upper, lower, sigma = self._limits_from_subgroup_stats(
                         sub_y, meta.get("dispersion_kept", sub_y), subgroup, sigma_limit, chart

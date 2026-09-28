@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import (
     QFormLayout,
-    QVBoxLayout,
     QWidget,
 )
 from scipy.ndimage import median_filter

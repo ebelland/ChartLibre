@@ -238,10 +238,6 @@ class HtmlResultsView(QWidget):
         """Return the plain-text form, or HTML when HTML was set directly."""
         return self._plain_text if self._plain_text else self._html
 
-    def toHtml(self) -> str:
-        """Return the current markup."""
-        return self._html
-
     def setWordWrap(self, _enabled: bool) -> None:
         """Accepted for QLabel compatibility; the viewer always wraps."""
         return None

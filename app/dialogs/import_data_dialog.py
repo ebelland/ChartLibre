@@ -64,11 +64,8 @@ from app.utils.i18n import _
 # existing external imports of these names from this module - the test suite
 # and app.dialogs.main_window - keep working unchanged.
 # -----------------------------------------------------------------------------
-from app.utils.data_sources import (  # noqa: E402
+from app.utils.data_sources import (
     CLIPBOARD_SOURCE_NAME,
-    DATABASE_FILE_FILTER,
-    DEFAULT_PORTS,
-    IMPORTABLE_SUFFIXES,
     IMPORT_FILE_FILTER,
     DatabaseConnection,
     WebDataSource,
@@ -76,20 +73,13 @@ from app.utils.data_sources import (  # noqa: E402
     filename_from_url,
     is_importable,
     is_valid_web_url,
-    list_mysql_tables,
-    list_postgres_tables,
-    list_sqlite_tables,
     load_web_data_sources,
     read_any_file,
     read_clipboard_text,
-    read_mysql_table,
-    read_postgres_table,
-    read_sqlite_table,
     read_web_url,
     remove_user_web_source,
     SERVER_DATABASE_QUERY_READERS,
     SERVER_DATABASE_READERS,
-    _extension_for_web_source,
 )
 from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
 from app.utils.coercion import to_numbers
@@ -100,7 +90,6 @@ from app.utils.coercion import to_numbers
 #: app.utils.data_sources.WebDataSource for the shape of one.  Kept as a
 #: module-level name here too since the test suite and (previously) this
 #: dialog both import it from this module.
-WEB_DATA_SOURCES: tuple[WebDataSource, ...] = load_web_data_sources()
 
 
 # -----------------------------------------------------------------------------
@@ -285,13 +274,13 @@ class ImportDataDialog(QDialog):
         source_layout = source.card.layout()
         src_row = QHBoxLayout()
         stdSizeAndlayout(src_row)
-        self._btn_browse = create_action_button(
+        create_action_button(
             parent=source.card, action_id="open", action=self._on_browse, layout=src_row
         )
-        self._btn_clip = create_action_button(
+        create_action_button(
             parent=source.card, action_id="paste", action=self._on_load_clipboard, layout=src_row
         )
-        self._btn_database = create_action_button(
+        create_action_button(
             parent=source.card,
             action_id="import_database",
             action=self._on_import_database,
@@ -351,7 +340,7 @@ class ImportDataDialog(QDialog):
         self._url.setPlaceholderText(_("https://example.com/data.csv"))
         stdSizeAndlayout(self._url)
         url_row.addWidget(self._url, 1)
-        self._btn_fetch = create_action_button(
+        create_action_button(
             parent=web.card, action_id="fetch_url", action=self._on_fetch_url, layout=url_row
         )
         web_layout.addLayout(url_row)
@@ -461,7 +450,7 @@ class ImportDataDialog(QDialog):
         self._btn_ok = create_action_button(
             parent=self, action_id="apply", action=self._on_accept, layout=btn_lay
         )
-        self._btn_cancel = create_action_button(
+        create_action_button(
             parent=self, action_id="close", action=self.reject, layout=btn_lay
         )
         self._btn_ok.setDefault(True)

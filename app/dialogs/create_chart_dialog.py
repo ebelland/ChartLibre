@@ -240,13 +240,13 @@ class NewPlotTabDialog(QDialog):
         series_title.setStyleSheet("font-weight: 700;")
         series_header_layout.addWidget(series_title)
         series_header_layout.addStretch(1)
-        self._btn_add_series = create_action_button(
+        create_action_button(
             parent=series_header,
             action_id="add_series",
             action=self._on_add_series,
             layout=series_header_layout,
         )
-        self._btn_remove_series = create_action_button(
+        create_action_button(
                                       parent=series_header,
                                       action_id="delete",
                                       action=self._on_remove_series,
@@ -515,7 +515,7 @@ class NewPlotTabDialog(QDialog):
         if self._select_renderer_by_name(self.DEFAULT_RENDERER):
             return
 
-        for index, (category, renderer_list) in enumerate(self._lists_by_category.items()):
+        for index, renderer_list in enumerate(self._lists_by_category.values()):
             if renderer_list.count() == 0 or renderer_list.isHidden():
                 continue
             for row in range(renderer_list.count()):
@@ -536,7 +536,7 @@ class NewPlotTabDialog(QDialog):
         not - a renderer this dialog no longer ships must not be a reason to
         select nothing at all.
         """
-        for index, (category, renderer_list) in enumerate(self._lists_by_category.items()):
+        for index, renderer_list in enumerate(self._lists_by_category.values()):
             if renderer_list.isHidden():
                 continue
             for row in range(renderer_list.count()):

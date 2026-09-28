@@ -573,16 +573,6 @@ class OverlayPropertiesWidget(BaseProperties):
             return {}
         return cast("dict[str, Any]", parsed)
 
-    # Kept for callers/tests that add one row at a time.
-    def _add_annotation_row(self, annotation: dict[str, Any] | None = None) -> None:
-        self._add_row(self._annotations_table, _ANNOTATION_COLS, annotation)
-
-    def _add_line_row(self, line: dict[str, Any] | None = None) -> None:
-        self._add_row(self._lines_table, _LINE_COLS, line)
-
-    def _add_measurement_row(self, measurement: dict[str, Any] | None = None) -> None:
-        self._add_row(self._measurements_table, _MEASUREMENT_COLS, measurement)
-
     # ------------------------------------------------------------------
     # Saving
     # ------------------------------------------------------------------

@@ -427,12 +427,6 @@ class SeriesOperationDialogBase(QDialog):
             return defaults(self.PARAMS)
         return form.values()
 
-    def set_parameter_values(self, values: Mapping[str, Any]) -> None:
-        """Restore declared parameters from saved state."""
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.set_values(values)
-
     def build_results_pane(self) -> QWidget:
         """Return the shared HTML results widget."""
         return self._results_view
@@ -1272,14 +1266,6 @@ class SeriesOperationDialogBase(QDialog):
         Subclasses may override to reuse their richer preview formatting.
         """
         return f"{len(results)} result(s)"
-
-    def load_cached_results(self) -> Sequence[Any] | None:
-        """Return cached preview results when a subclass keeps them.
-
-        Existing dialogs commonly store ``self._last_results``; the base uses
-        that convention when present.
-        """
-        return getattr(self, "_last_results", None)
 
 
     def store_cached_results(self, results: Sequence[Any]) -> None:

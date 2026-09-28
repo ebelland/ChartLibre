@@ -767,11 +767,10 @@ Tests: `dev/tests/test_chart_panel_selection.py`,
   `ThemeIcon` may be a list, tried best-first: no single freedesktop name is
   in every theme (`office-chart-line` is Breeze's and Papirus's; GNOME ships
   no chart icon at all), so the Plot button names the chart first and a
-  spreadsheet second. Names are validated against `QIcon.ThemeIcon` — read
-  from Qt at import by `_standard_theme_icon_names`, so the list grows with
-  Qt — plus `style.EXTRA_THEME_ICON_NAMES`. Validation matters because the
-  failure is silent: `fromTheme` returns a null icon on a typo and says
-  nothing.
+  spreadsheet second. `dev/tests/test_theme_icon_names.py` checks every name
+  against `QIcon.ThemeIcon` — read from Qt, so the list grows with Qt — plus
+  its own `EXTRA_THEME_ICON_NAMES`. Validation matters because the failure
+  is silent: `fromTheme` returns a null icon on a typo and says nothing.
 
   `ensure_icon_theme()` (called from `main.py`) makes step 3 work on a desktop
   that names no theme. GNOME and KDE set one through their platform

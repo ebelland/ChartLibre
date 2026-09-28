@@ -76,7 +76,7 @@ def test_the_combo_lists_the_models_and_the_link_follows(qapp, figure, cls) -> N
             if not name:
                 continue
             dialog.model_combo.setCurrentIndex(index)
-            title, url = cls.MODELS[name].doc
+            url = cls.MODELS[name].doc_url
             if url:
                 assert url in dialog._doc_link.text(), name
     finally:

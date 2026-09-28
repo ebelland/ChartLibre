@@ -391,10 +391,6 @@ class TablesMixin(RepoHost):
         """Return figure descriptors as (id, name) tuples."""
         return self._get_sys_table_tuples("__figure_descriptors__")
 
-    def get_links(self) -> list[tuple[int, str]]:
-        """Return import links as (id, table_name) tuples."""
-        return self._get_sys_table_tuples("__import_links__")
-    
     @ensure_connection_wrapper
     def col_count(self, table: str) -> int:
         """Return column count for a table (or 0 on error)."""
@@ -1080,10 +1076,6 @@ class TablesMixin(RepoHost):
             self._con.execute(f"DROP TABLE IF EXISTS {_quote_ident(table)}")
             self._propagate_table_name(table, None, mode="delete")
 
-    def has_uncommitted_changes(self) -> bool:
-        """Check if connection has an open transaction."""
-        return bool(self._con is not None and self._con.in_transaction)
-
     @ensure_connection_wrapper
     def _propagate_table_name(
         self,
@@ -1341,16 +1333,6 @@ class TablesMixin(RepoHost):
         )
         self._commit()
 
-
-    def reset_hide(self, table_name: str) -> int:
-        """Ensure Hide exists and set all values to 0."""
-        if not self._is_connected or self._con is None:
-            self._connect()
-        assert self._con is not None
-        self.ensure_hide_column(table_name)
-        cur = self._con.execute(f'UPDATE {_quote_ident(table_name)} SET "Hide" = 0')
-        self._commit()
-        return int(cur.rowcount or 0)
 
 
     def invert_hide(self, table_name: str) -> int:

@@ -23,7 +23,6 @@ from PySide6.QtGui import (
     QAction,
     QCloseEvent,
     QColor,
-    QCursor,
     QDesktopServices,
     QIcon,
     QKeySequence,
@@ -75,7 +74,6 @@ from app.styles.style import (
     create_action_button,
     create_menu,
     create_menu_item,
-    create_section_title,
     icon_from_svg_source,
     mark_destructive_button,
     relax_minimum_width,
@@ -101,7 +99,6 @@ from app.utils.i18n import _
 from PySide6.QtWidgets import (
     QApplication,
     QBoxLayout,
-    QButtonGroup,
     QFileDialog,
     QFrame,
     QGraphicsDropShadowEffect,
@@ -110,7 +107,6 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMessageBox,
-    QLayout,
     QMainWindow,
     QMenu,
     QMenuBar,
@@ -120,7 +116,6 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QTabWidget,
     QToolBox,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -500,17 +495,17 @@ class MainWindow(QMainWindow):
             self._figure_widget,
             _("Figure properties"),
         )
-        self._axis_properties_index = control.addItem(
+        control.addItem(
             self._axis_widget,
             _("Axis properties"),
         )
-        self._series_properties_index = control.addItem(
+        control.addItem(
             self._series_widget,
             _("Series properties"),
         )
         # Last: annotations and reference lines are the finishing pass on a
         # chart, done once the data, the axes and the series are right.
-        self._overlay_properties_index = control.addItem(
+        control.addItem(
             self._overlay_widget,
             _("Overlay properties"),
         )
@@ -933,7 +928,6 @@ class MainWindow(QMainWindow):
     _RECENT_MINIMUM_ROWS: int = 3
 
     def _fill_recent_card(self, card: CardFrame) -> None:
-        self._file_page = card
         layout = self._card_layout(card)
 
         self._recent_list = QListWidget(card)
@@ -1699,11 +1693,6 @@ class MainWindow(QMainWindow):
         rail.workspace_toggled.connect(self._on_workspace_tile_clicked)
         rail.action_triggered.connect(self._on_rail_action)
         rail.set_help_menu(self._help_menu)
-        self._nav_group = rail.button_group
-        self._nav_buttons = rail.buttons
-        self._nav_action_ids = rail.action_ids
-        self._settings_button = rail.settings_button
-        self._help_button = rail.help_button
         return rail
 
     def _on_workspace_tile_clicked(self) -> None:

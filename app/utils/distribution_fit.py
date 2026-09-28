@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 from scipy import stats
@@ -184,7 +183,6 @@ def fit_one(values: np.ndarray, name: str) -> DistributionFit | None:
 
 #: How the ranking is ordered.  AIC is the default deliberately - see
 #: ``fit_distributions``.
-RANK_CRITERIA: tuple[str, ...] = ("aic", "bic", "ks")
 DEFAULT_RANK: str = "aic"
 
 _RANK_KEYS = {

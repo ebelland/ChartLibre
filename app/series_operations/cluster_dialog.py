@@ -890,7 +890,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self._initial_table = table
         self._last_results: list[ClusterResult] = []
         self._field_rows: dict[str, tuple[QWidget, QWidget]] = {}
-        self._last_report_html = ""
 
         # source table -> did a ClusterId column exist before the preview.
         self._cluster_snapshots: dict[str, bool] = {}
@@ -1540,14 +1539,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             },
         )
 
-
-    def _order_columns(self, result: ClusterResult) -> list[str]:
-        order_cols = [result.x_col]
-        if result.y_col and result.y_col != result.x_col:
-            order_cols.append(result.y_col)
-        if result.z_col and result.z_col not in order_cols:
-            order_cols.append(result.z_col)
-        return order_cols
 
     def _base_roles(self, result: ClusterResult) -> dict[str, Any]:
         roles: dict[str, Any] = dict(result.metadata.get("roles", {}))

@@ -11,7 +11,6 @@ that used to apply an edit per widget on every axis change.
 """
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any, Final, TypeAlias, cast
 
 from PySide6.QtCore import QEvent, QObject, QSignalBlocker, Qt, Signal
@@ -37,11 +36,7 @@ from PySide6.QtWidgets import (
 from app.widgets.font_scale_control import FontScaleControl
 from app.logs.logger import applogger
 from app.charts import axis_options
-from app.charts.render_figure import (
-    GRID_AXES,
-    GRID_WHICH,
-    SUPPORTED_AXIS_SCALES,
-)
+from app.charts.render_figure import SUPPORTED_AXIS_SCALES
 from app.styles.style import (
     MARGIN_PANEL,
     CardFrame,
@@ -58,7 +53,6 @@ from app.widgets.dictionary_editor import DictEditorPanel
 AxisDescriptorLike: TypeAlias = Any
 RendererConfig: TypeAlias = dict[str, Any]
 AxisPayload: TypeAlias = dict[str, Any]
-ButtonSlot: TypeAlias = Callable[..., Any]
 
 from app.scanners.axis_renderer_scanner import get_renderer,import_class_from_file
 from app.utils.i18n import _, tr
@@ -70,8 +64,6 @@ AXIS_SCALES: Final[tuple[str, ...]] = SUPPORTED_AXIS_SCALES
 #: Kept for the figure options elsewhere in this module; the axis grid and
 #: tick controls now come from app.charts.axis_options, which is the same
 #: vocabulary the renderer applies.
-GRID_WHICH_CHOICES: Final[tuple[str, ...]] = GRID_WHICH
-GRID_AXIS_CHOICES: Final[tuple[str, ...]] = GRID_AXES
 # The empty entry means "leave the Matplotlib default alone".
 
 def _plain_options(value: object) -> dict[str, Any]:
@@ -93,11 +85,6 @@ class AxisPropertiesWidget(BaseProperties):
     renderer_changed = Signal(str)
 
     KWARGS_PANEL_MIN_HEIGHT: Final[int] = 120
-
-    #: Where the kwargs editor sits in the tab strip. Named because callers
-    #: and tests reach for that page directly, and it has moved once already
-    #: (the single "Axis options" page became Labels/Scale/Ticks).
-    KWARGS_TAB_INDEX: Final[int] = 3
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -945,12 +932,6 @@ class AxisPropertiesWidget(BaseProperties):
     def current_axis_id(self) -> int | None:
         """Return the currently selected axis id."""
         return self._current_axis_id
-
-    def set_renderer_options_widget(self, widget: QWidget) -> None:
-        """Compatibility no-op for removed renderer-options UI."""
-        if widget.parent() is None:
-            widget.setParent(self)
-        widget.hide()
 
     def set_kwargs_widget(self, widget: QWidget) -> None:
         """Replace kwargs host content."""

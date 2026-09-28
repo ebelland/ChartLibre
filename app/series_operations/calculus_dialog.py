@@ -35,7 +35,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFormLayout, QWidget
 from scipy.integrate import cumulative_trapezoid, simpson, trapezoid
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import savgol_filter

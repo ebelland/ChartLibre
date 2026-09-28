@@ -28,7 +28,6 @@ def test_every_rcparam_toggles_or_opens_an_editor(qapp, tmp_path, monkeypatch) -
         item = editor._key_items[key]
         if editor.kind_for_key(key) == "bool":
             before = item.checkState(1)
-            editor._pressed_check_state = before
             editor._on_item_clicked(item, 1)
             if item.checkState(1) == before:
                 stuck.append(key)

@@ -12,7 +12,6 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from types import ModuleType
 
 import matplotlib
 import pytest
@@ -138,25 +137,6 @@ def show_plots(request: pytest.FixtureRequest) -> bool:
     return bool(request.config.getoption("--show-plots"))
 
 
-class _TestLogger:
-    def debug(self, *_args, **_kwargs) -> None: ...
-    def info(self, *_args, **_kwargs) -> None: ...
-    def warning(self, *_args, **_kwargs) -> None: ...
-    def error(self, *_args, **_kwargs) -> None: ...
-    def exception(self, *_args, **_kwargs) -> None: ...
-
-
-def _install_logger_stub() -> None:
-    module = ModuleType("app.utils.logger")
-    module.__dict__.update(
-        {
-            "AppLogger": object,
-        }
-    )
-    sys.modules["app.utils.logger"] = module
-
-
-_install_logger_stub()
 
 
 @pytest.fixture(scope="session")

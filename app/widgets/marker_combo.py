@@ -319,17 +319,6 @@ def _draw_tick_left(p: QPainter, cx: float, cy: float, r: float) -> None:
     p.drawLine(QPointF(cx - r, cy), QPointF(cx + r * 0.45, cy))
 
 
-def _draw_caret_left(p: QPainter, cx: float, cy: float, r: float) -> None:
-    p.drawPolyline(
-        QPolygonF(
-            [
-                QPointF(cx + r * 0.55, cy - r),
-                QPointF(cx - r * 0.55, cy),
-                QPointF(cx + r * 0.55, cy + r),
-            ]
-        )
-    )
-
 
 def _draw_caret_right(p: QPainter, cx: float, cy: float, r: float) -> None:
     p.drawPolyline(

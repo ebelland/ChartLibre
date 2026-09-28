@@ -26,7 +26,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFormLayout, QWidget
 from sklearn.decomposition import PCA, FastICA, NMF
 from sklearn.manifold import Isomap, LocallyLinearEmbedding, TSNE
 

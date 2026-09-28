@@ -10,7 +10,6 @@ from typing import Any, Literal
 
 import math
 import numpy as np
-import pandas as pd
 
 from app.charts import kwarg_spec
 from app.charts.base import (

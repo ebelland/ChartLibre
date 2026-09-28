@@ -34,7 +34,6 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QSpinBox,
-    QVBoxLayout,
     QWidget,
 )
 from scipy.signal import detrend as scipy_detrend

@@ -163,10 +163,7 @@ QWidget#sideBar,
 /* Transparent main containers */
 QWidget#centralWidget,
 QWidget#contentView,
-QFrame#contentView,
-QFrame#collapsiblePanel,
-QFrame#CollapsiblePanel,
-QWidget#panelBody {
+QFrame#contentView {
     background: transparent;
     border: none;
 }
