@@ -311,6 +311,9 @@ def copy_demo_project(demo: DemoProject, target: Path) -> Path:
     demo" feel like it had hung. Run ``python -m dev.demo.build_demos``
     once to populate :data:`DEMO_DIR`; after that, "Load demo" is just a
     file copy.
+
+    *target* must not be open: close its repository first (see
+    MainWindow._on_load_demo).
     """
     source = demo.source_path
     if not source.is_file():
@@ -322,7 +325,21 @@ def copy_demo_project(demo: DemoProject, target: Path) -> Path:
 
     target = SqliteRepo.ensure_dhub_extension(Path(target))
     target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists():
-        target.unlink()
+    # The files beside the previous copy go with it. SQLite replays a
+    # leftover -wal onto whatever file now has its name, so the edits made
+    # to the last copy came back on top of the pristine one; and its undo
+    # history would "restore" tables from a project that is no longer there.
+    for path in (target, *project_side_files(target)):
+        path.unlink(missing_ok=True)
     shutil.copy2(source, target)
     return target
+
+
+def project_side_files(project: Path) -> tuple[Path, ...]:
+    """The files SQLite and the undo store keep beside *project*."""
+    undo = project.with_name(project.name + ".undo.db")
+    return tuple(
+        base.with_name(base.name + suffix)
+        for base in (project, undo)
+        for suffix in ("-wal", "-shm")
+    ) + (undo,)

@@ -119,3 +119,47 @@ def test_building_twice_gives_the_same_data(tmp_path: Path) -> None:
 # ----------------------------------------------------------------------
 
 
+
+
+# ----------------------------------------------------------------------
+# Loading a demo again
+# ----------------------------------------------------------------------
+def test_loading_a_demo_again_gives_the_pristine_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The last copy's -wal and undo history go with it.
+
+    A -wal left beside the old copy - by a connection still open, or a crash
+    - was replayed by SQLite onto the fresh file, so a demo loaded again
+    came back with the edits made to it last time.
+    """
+    import sqlite3
+
+    import app.data.demos as demos
+
+    source_dir = tmp_path / "built"
+    source_dir.mkdir()
+    demo = demos.DemoProject("Tiny", "One table.", ())
+    with sqlite3.connect(source_dir / demo.path_name) as con:
+        con.execute("CREATE TABLE t (v INTEGER)")
+        con.execute("INSERT INTO t VALUES (1)")
+    monkeypatch.setattr(demos, "DEMO_DIR", source_dir)
+
+    target = demos.copy_demo_project(demo, tmp_path / "projects" / demo.path_name)
+    con = sqlite3.connect(target)
+    con.execute("PRAGMA journal_mode=WAL")
+    con.execute("PRAGMA wal_autocheckpoint=0")
+    con.execute("DELETE FROM t")
+    con.commit()
+    wal = target.with_name(target.name + "-wal")
+    pending = wal.read_bytes()
+    con.close()
+    wal.write_bytes(pending)  # the edit, still waiting in the log
+    undo = target.with_name(target.name + ".undo.db")
+    undo.write_bytes(b"old history")
+
+    demos.copy_demo_project(demo, target)
+
+    with sqlite3.connect(target) as con:
+        assert con.execute("SELECT v FROM t").fetchall() == [(1,)]
+    assert not undo.exists()

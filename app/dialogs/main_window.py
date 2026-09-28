@@ -1878,8 +1878,17 @@ class MainWindow(QMainWindow):
         ).format(items=listed)
         QTimer.singleShot(0, self, lambda: QMessageBox.warning(self, _("SQL blocked"), text))
 
-    def _switch_database(self, db_path: Path) -> None:
-        """Switch the UI to another database and rebind all dependent widgets."""
+    def _switch_database(
+        self, db_path: Path, prepare: Callable[[], object] | None = None
+    ) -> None:
+        """Switch the UI to another database and rebind all dependent widgets.
+
+        *prepare* runs once the current database is closed and before
+        *db_path* is opened - the moment a file that may be the open one can
+        safely be replaced (Load demo, reloading the demo already open). If
+        it fails, the database that was open is opened again and the error
+        goes to the caller.
+        """
         applogger.info("Switching database to %s", db_path)
         self.setUpdatesEnabled(False)
         try:
@@ -1891,6 +1900,17 @@ class MainWindow(QMainWindow):
             gc.collect()
 
             QApplication.processEvents()
+
+            if prepare is not None:
+                try:
+                    prepare()
+                except Exception:
+                    self._repo = SqliteRepo(db_path=self._db_path)
+                    self._table_panel.set_repo(self._repo)
+                    self._database_info_panel.set_repo(self._repo)
+                    self._table_panel.reload()
+                    self._reload_tabs()
+                    raise
 
             self._repo = SqliteRepo(db_path=db_path)
             self._db_path = db_path
@@ -2585,16 +2605,17 @@ class MainWindow(QMainWindow):
             return
         demo = picker.chosen
 
-        target = PROJECTS_DIR / demo.path_name
+        target = SqliteRepo.ensure_dhub_extension(PROJECTS_DIR / demo.path_name)
         applogger.info("Loading demo project %r into %s", demo.file_name, target)
+        # The copy is made with the current project closed: it may be this
+        # very file - loading the open demo again, to start over - and
+        # replacing a database under its own open connection left that
+        # connection's pending changes to be replayed onto the fresh copy.
         try:
-            copy_demo_project(demo, target)
+            self._switch_database(target, prepare=lambda: copy_demo_project(demo, target))
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Failed to load demo project: %s", exc)
             show_message(self, "demo.build_failed", error=exc)
-            return
-
-        self._switch_database(target)
 
     def _on_open_database(self) -> None:
         """Open an existing database and switch the current UI."""
