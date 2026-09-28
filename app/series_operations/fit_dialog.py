@@ -44,6 +44,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from app.analysis import fit as fit_engine
+from app.utils.background import run_in_background
 from app.functions.optimizers import (
     DEFAULT_OPTIMIZER,
     LOSSES,
@@ -72,6 +73,7 @@ from app.utils import report_html
 
 from app.styles.style import (
     CardFrame,
+    action_presentation,
     create_action_button,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -134,6 +136,56 @@ class SeriesFitResult:
     param_ci_low: np.ndarray | None = None
     param_ci_high: np.ndarray | None = None
     dof: int = 0
+
+
+@dataclass(slots=True)
+class _FitJob:
+    """Everything one fit needs, read off the window before it starts.
+
+    A fit may run in the background while the window stays usable, so what
+    was selected when Fit was pressed - model, columns, names - is captured
+    here rather than read again when the result comes back.
+    """
+
+    model: Callable[[np.ndarray, np.ndarray], np.ndarray]
+    x: np.ndarray
+    target: np.ndarray
+    clean: pd.DataFrame
+    p0: np.ndarray
+    lower: np.ndarray
+    upper: np.ndarray
+    fixed: np.ndarray
+    optimizer: str
+    loss: str
+    max_nfev: int
+    weighted: bool
+    source_table: str
+    x_col: str
+    x2_col: str | None
+    target_col: str
+    is_2d: bool
+    model_name: str
+    param_names: list[str]
+    expression: str
+    output_table: str
+
+    def run(self, *, optimise: bool, should_stop: Callable[[], bool] | None = None) -> fit_engine.CurveFit:
+        """The calculation alone - no Qt, safe on a worker thread."""
+        return fit_engine.fit_curve(
+            self.model,
+            self.x,
+            self.target,
+            self.p0,
+            self.lower,
+            self.upper,
+            self.fixed,
+            optimise=optimise,
+            optimizer=self.optimizer,
+            loss=self.loss,
+            max_nfev=self.max_nfev,
+            weighted=self.weighted,
+            should_stop=should_stop,
+        )
 
 
 class SeriesFitDialog(SeriesOperationDialogBase):
@@ -1007,19 +1059,42 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                 self._params_table.setItem(row, 1, QTableWidgetItem(f"{float(value):.12g}"))
 
     def on_fit(self) -> None:
-        """Optimise the parameters, show the result, and preview it.
+        """Optimise the parameters in the background, then show and preview them.
 
         Fit and Preview are deliberately different acts.  Preview draws the
         parameters currently in the table - which is how you try a starting
         guess, or hand-tune one, and see it immediately.  Fit is what changes
         those parameters: it optimises, writes the optimum back into the table
         so the table always says what is drawn, and then previews that.
-        """
-        self._evaluate(optimise=True)
 
-        result = self._last_result
-        if result is None:
+        The optimisation runs on a worker thread, so the window stays usable
+        and the Fit button becomes Stop while it runs. Pressed again, it asks
+        the fit to stop at its next evaluation of the model.
+        """
+        task = getattr(self, "_fit_task", None)
+        if task is not None and task.running:
+            task.cancel()
             return
+
+        job = self._prepare_job()
+        if job is None:
+            return
+        self._fit_job = job
+        self._set_fitting(True)
+        self._fit_task = run_in_background(
+            lambda cancel: job.run(optimise=True, should_stop=cancel.is_set),
+            self._on_fit_finished,
+            self._on_fit_failed,
+        )
+
+    def _on_fit_finished(self, outcome: fit_engine.CurveFit) -> None:
+        """Back on the GUI thread with the optimum: table, report, preview."""
+        self._set_fitting(False)
+        job = self._fit_job
+        if job is None:
+            return
+        self._last_result = self._result_from(job, outcome, optimise=True)
+        result = self._last_result
 
         # The table is the single source of truth for what gets drawn, so the
         # optimum has to land in it rather than only in the report.
@@ -1031,89 +1106,144 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         # A fit nobody can see is only half an answer.
         self.preview()
 
+    def _on_fit_failed(self, error: BaseException) -> None:
+        self._set_fitting(False)
+        if isinstance(error, fit_engine.FitStopped):
+            self.set_results_text(_("Fit stopped. The parameters in the table are unchanged."))
+            return
+        applogger.error("Fit failed: %s", error, show_dialog=True)
+
+    def _set_fitting(self, running: bool) -> None:
+        """Fit becomes Stop while a fit runs; what would race with it is off."""
+        _icon, text, tooltip = action_presentation("run_fit")
+        self.fit_button.setText(_("Stop") if running else text)
+        self.fit_button.setToolTip(
+            _("Stop the fit at its next step; the parameters stay as they were.")
+            if running
+            else tooltip
+        )
+        for widget in (self.preview_button, self.apply_button, self._btn_estimate):
+            widget.setEnabled(not running)
+        if running:
+            self.set_results_text(_("Fitting... press Stop to end it early."))
+
+    def _stop_fit(self) -> None:
+        """Stop a background fit whose window is going away."""
+        task = getattr(self, "_fit_task", None)
+        if task is not None and task.running:
+            task.cancel()
+        self._fit_job = None
+
+    def reject(self) -> None:
+        self._stop_fit()
+        super().reject()
+
+    def closeEvent(self, event) -> None:  # noqa: N802
+        self._stop_fit()
+        super().closeEvent(event)
+
+    def _prepare_job(self) -> _FitJob | None:
+        """Read the data, the model and the parameter table into a job."""
+        x_data, target_data, clean = self._load_fit_data()
+        if x_data is None or target_data is None:
+            return None
+        built = self._build_model(x_data, target_data)
+        if built is None:
+            return None
+        model, _model_p0 = built
+        p0, lb, ub, fixed = self._collect_params_from_table()
+        x_col, x2_col, target_col = self._selected_column_names()
+        return _FitJob(
+            model=model,
+            x=x_data,
+            target=target_data,
+            clean=clean,
+            p0=p0,
+            lower=lb,
+            upper=ub,
+            fixed=fixed,
+            optimizer=self._optimizer_key(),
+            loss=self._loss_key(),
+            max_nfev=int(float(self._max_nfev_edit.text().strip() or "800")),
+            weighted=self._weighted_check.isChecked(),
+            source_table=self._current_table(),
+            x_col=x_col,
+            x2_col=x2_col,
+            target_col=target_col,
+            is_2d=self._is_2d_fit(),
+            model_name=self._model_name(),
+            param_names=[self._param_label(row) for row in range(len(p0))],
+            expression=str(self._selected_model.get("expression", "")).strip(),
+            output_table=self._output_table_name(),
+        )
+
+    def _result_from(
+        self, job: _FitJob, outcome: fit_engine.CurveFit, *, optimise: bool
+    ) -> SeriesFitResult:
+        """Turn the engine's outcome into the dialog's result: frame, bands, report."""
+        frame = self._build_output_frame(job, outcome.fit_values, outcome.residual)
+        if not job.is_2d and outcome.dof > 0 and len(frame):
+            # The band columns ride in the result table like fit and
+            # residual do, so a saved result can be redrawn without the
+            # dialog; they are drawn only when their box is checked.
+            x_band = frame["x"].to_numpy(float)
+            for kind, prediction in (("ci", False), ("pi", True)):
+                low, high = fit_engine.confidence_band(
+                    job.model,
+                    x_band,
+                    outcome.params,
+                    outcome.cov,
+                    dof=outcome.dof,
+                    residual_variance=outcome.metrics.get("reduced_chi2", 0.0),
+                    prediction=prediction,
+                )
+                frame[f"{kind}_low"] = low
+                frame[f"{kind}_high"] = high
+        applogger.info(
+            "%s %s: %s",
+            "Fit" if optimise else "Evaluation",
+            "success" if outcome.success else "warning",
+            outcome.message,
+        )
+        applogger.info(self._format_metrics(outcome.metrics))
+        return SeriesFitResult(
+            source_table=job.source_table,
+            x_col=job.x_col,
+            x2_col=job.x2_col,
+            target_col=job.target_col,
+            fit_mode="2D" if job.is_2d else "1D",
+            model_name=job.model_name,
+            params=outcome.params,
+            param_std=outcome.std,
+            param_corr=outcome.corr,
+            param_names=list(job.param_names),
+            expression=job.expression,
+            evaluated_expression=_evaluated_expression_html(
+                job.expression, job.model_name, job.param_names, outcome.params
+            ),
+            metrics=outcome.metrics,
+            output_table=job.output_table,
+            frame=frame,
+            message=outcome.message,
+            param_t=outcome.tvalues,
+            param_p=outcome.pvalues,
+            param_ci_low=outcome.ci_low,
+            param_ci_high=outcome.ci_high,
+            dof=outcome.dof,
+        )
+
     def _evaluate(self, *, optimise: bool) -> None:
-        """Run the model once and store the outcome in ``_last_result``.
+        """Run the model once, here and now, and store it in ``_last_result``.
 
         ``optimise=False`` evaluates the model at the parameters as they are,
-        which is what Preview and Apply do; the code path is otherwise shared
-        with the fit, so the residuals, metrics and output frame are computed
-        exactly the same way in both cases.
+        which is what Preview and Apply do - quick, so it stays on this
+        thread; the Fit button's optimisation goes through on_fit instead.
         """
         try:
-            x_data, target_data, clean = self._load_fit_data()
-            if x_data is None or target_data is None:
+            job = self._prepare_job()
+            if job is None:
                 return
-            built = self._build_model(x_data, target_data)
-            if built is None:
-                return
-            model, _model_p0 = built
-
-            p0, lb, ub, fixed = self._collect_params_from_table()
-            outcome = fit_engine.fit_curve(
-                model,
-                x_data,
-                target_data,
-                p0,
-                lb,
-                ub,
-                fixed,
-                optimise=optimise,
-                optimizer=self._optimizer_key(),
-                loss=self._loss_key(),
-                max_nfev=int(float(self._max_nfev_edit.text().strip() or "800")),
-                weighted=self._weighted_check.isChecked(),
-            )
-            p_opt, fit_values, residual = outcome.params, outcome.fit_values, outcome.residual
-            metrics, success, message = outcome.metrics, outcome.success, outcome.message
-            frame = self._build_output_frame(clean, fit_values, residual)
-            if not self._is_2d_fit() and outcome.dof > 0 and len(frame):
-                # The band columns ride in the result table like fit and
-                # residual do, so a saved result can be redrawn without the
-                # dialog; they are drawn only when their box is checked.
-                x_band = frame["x"].to_numpy(float)
-                for kind, prediction in (("ci", False), ("pi", True)):
-                    low, high = fit_engine.confidence_band(
-                        model,
-                        x_band,
-                        outcome.params,
-                        outcome.cov,
-                        dof=outcome.dof,
-                        residual_variance=outcome.metrics.get("reduced_chi2", 0.0),
-                        prediction=prediction,
-                    )
-                    frame[f"{kind}_low"] = low
-                    frame[f"{kind}_high"] = high
-            x_col, x2_col, target_col = self._selected_column_names()
-            self._last_result = SeriesFitResult(
-                source_table=self._current_table(),
-                x_col=x_col,
-                x2_col=x2_col,
-                target_col=target_col,
-                fit_mode="2D" if self._is_2d_fit() else "1D",
-                model_name=self._model_name(),
-                params=p_opt,
-                param_std=outcome.std,
-                param_corr=outcome.corr,
-                param_names=[self._param_label(row) for row in range(len(p_opt))],
-                expression=str(self._selected_model.get("expression", "")).strip(),
-                evaluated_expression=self._evaluated_expression_html(p_opt),
-                metrics=metrics,
-                output_table=self._output_table_name(),
-                frame=frame,
-                message=message,
-                param_t=outcome.tvalues,
-                param_p=outcome.pvalues,
-                param_ci_low=outcome.ci_low,
-                param_ci_high=outcome.ci_high,
-                dof=outcome.dof,
-            )
-            applogger.info(
-                "%s %s: %s",
-                "Fit" if optimise else "Evaluation",
-                "success" if success else "warning",
-                message,
-            )
-            applogger.info(self._format_metrics(metrics))
+            self._last_result = self._result_from(job, job.run(optimise=optimise), optimise=optimise)
         except Exception as exc:
             applogger.exception("Table fit failed")
             self._last_result = None
@@ -1273,28 +1403,29 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             cost=f"{cost:.6g}"
         )
 
-    def _build_output_frame(self, clean: pd.DataFrame, fit_values: np.ndarray, residual: np.ndarray) -> pd.DataFrame:
-        x_col, x2_col, target_col = self._selected_column_names()
+    @staticmethod
+    def _build_output_frame(job: _FitJob, fit_values: np.ndarray, residual: np.ndarray) -> pd.DataFrame:
+        clean = job.clean
         data: dict[str, Any] = {
             "x": clean["x"].to_numpy(float),
             "target": clean["target"].to_numpy(float),
             "fit": np.asarray(fit_values, dtype=float),
             "residual": np.asarray(residual, dtype=float),
-            "source_table": self._current_table(),
-            "source_x_col": x_col,
-            "source_target_col": target_col,
-            "fit_mode": "2D" if self._is_2d_fit() else "1D",
-            "model": self._model_name(),
+            "source_table": job.source_table,
+            "source_x_col": job.x_col,
+            "source_target_col": job.target_col,
+            "fit_mode": "2D" if job.is_2d else "1D",
+            "model": job.model_name,
         }
-        if self._is_2d_fit():
+        if job.is_2d:
             data["y"] = clean["y"].to_numpy(float)
             data["z"] = data["target"]
             data["z_fit"] = data["fit"]
-            data["source_y_col"] = x2_col or ""
+            data["source_y_col"] = job.x2_col or ""
         else:
             data["y"] = data["target"]
             data["y_fit"] = data["fit"]
-            data["source_y_col"] = target_col
+            data["source_y_col"] = job.target_col
         return pd.DataFrame(data)
 
     def _fill_results_table(self, params: np.ndarray, std: np.ndarray) -> None:
@@ -1309,19 +1440,6 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                 QTableWidgetItem("" if not np.isfinite(std[row]) else f"{float(std[row]):.6g}"),
             )
         self._results_table.resizeColumnsToContents()
-
-    def _evaluated_expression_html(self, params: np.ndarray) -> str:
-        """Return the expression plus evaluated parameter values."""
-        expression = str(self._selected_model.get("expression", "")).strip()
-        if not expression:
-            expression = html_escape(self._model_name())
-        rows = []
-        for row, value in enumerate(np.asarray(params, dtype=float)):
-            rows.append(f"{html_escape(self._param_label(row))} = {float(value):.8g}")
-        values = "<br>".join(rows)
-        if not values:
-            return expression
-        return f"{expression}<br><br><b>Evaluated parameters</b><br>{values}"
 
     def _results_html(self, result: SeriesFitResult) -> str:
         """Return the fit report in the shared house style."""
@@ -1852,3 +1970,17 @@ class SeriesFitDialog(SeriesOperationDialogBase):
     def on_reset_params(self) -> None:
         self._populate_params_defaults()
         applogger.info("Parameter table reset to model defaults.")
+
+
+def _evaluated_expression_html(
+    expression: str, model_name: str, names: Sequence[str], params: np.ndarray
+) -> str:
+    """The expression plus the value each parameter took."""
+    expression = expression or html_escape(model_name)
+    rows = [
+        f"{html_escape(names[row] if row < len(names) else f'p[{row}]')} = {float(value):.8g}"
+        for row, value in enumerate(np.asarray(params, dtype=float))
+    ]
+    if not rows:
+        return expression
+    return f"{expression}<br><br><b>Evaluated parameters</b><br>" + "<br>".join(rows)

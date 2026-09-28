@@ -7041,3 +7041,15 @@ msgstr "Ombreggia dove si trova la curva vera con il 95% di confidenza, data l'i
 
 msgid "Shade where a new measurement would fall with 95% probability: the confidence band plus the scatter of the points around the curve."
 msgstr "Ombreggia dove cadrebbe una nuova misura con il 95% di probabilità: la banda di confidenza più la dispersione dei punti attorno alla curva."
+
+msgid "Fit stopped. The parameters in the table are unchanged."
+msgstr "Fit interrotto. I parametri nella tabella non sono cambiati."
+
+msgid "Fitting... press Stop to end it early."
+msgstr "Fit in corso... premi Ferma per interromperlo."
+
+msgid "Stop"
+msgstr "Ferma"
+
+msgid "Stop the fit at its next step; the parameters stay as they were."
+msgstr "Ferma il fit al passo successivo; i parametri restano com'erano."

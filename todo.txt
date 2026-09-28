@@ -163,7 +163,13 @@ R-01  P1 IN CORSO. Separare i calcoli dalle finestre.
       script e ricalcolo. JMP (JSL), SPSS (syntax) e Origin (LabTalk/Python)
       separano tutti il motore dall'interfaccia.
 
-R-02  P1 Calcoli lunghi in background, con barra di avanzamento e Annulla.
+R-02  P1 IN CORSO. Calcoli lunghi in background, con barra di avanzamento e Annulla.
+      2026-09-28 fatto per il Fit: app/utils/background.py (QThreadPool,
+      risultato consegnato sul thread dell'interfaccia) e stop con
+      fit_curve(should_stop=...). Il pulsante Fit diventa Ferma; chiudere la
+      finestra ferma il fit. Da estendere alle altre operazioni man mano che
+      il loro calcolo esce dal dialogo (R-01). Manca ancora una barra di
+      avanzamento vera (oggi solo un messaggio).
       Solo il clustering usa un thread (cluster_dialog.py); un fit,
       un'analisi spettrale o un lisciamento su molti punti bloccano
       l'interfaccia. QThreadPool + segnale di fine, dopo R-01.

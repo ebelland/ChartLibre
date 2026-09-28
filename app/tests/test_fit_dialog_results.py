@@ -37,9 +37,11 @@ def test_fit_optimises() -> None:
 
 
 def test_fit_writes_the_optimum_into_the_parameter_table() -> None:
-    """Otherwise Preview would immediately draw the old guess again."""
-    body = _body(FIT_SOURCE, "on_fit")
-    assert "_set_initial_params" in body
+    """Otherwise Preview would immediately draw the old guess again.
+
+    The fit runs in the background, so this happens when it finishes."""
+    assert "_on_fit_finished" in _body(FIT_SOURCE, "on_fit")
+    assert "_set_initial_params" in _body(FIT_SOURCE, "_on_fit_finished")
 
 
 # ----------------------------------------------------------------------

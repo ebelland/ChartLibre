@@ -111,3 +111,21 @@ def test_a_band_series_is_drawn_as_a_filled_region() -> None:
     _draw_band(ax, band)
     fills = [c for c in ax.collections if isinstance(c, PolyCollection)]
     assert len(fills) == 1 and fills[0].get_label() == "95% band"
+
+
+@pytest.mark.parametrize("optimizer", ["trf", "nelder-mead", "monte-carlo", "differential-evolution"])
+def test_a_stop_request_ends_the_fit(optimizer) -> None:
+    """Every family: least squares, a simplex, and the global searches that
+    catch every error a sample raises - the stop has to get through them."""
+    calls = {"n": 0}
+
+    def stop_after_five() -> bool:
+        calls["n"] += 1
+        return calls["n"] > 5
+
+    with pytest.raises(fit.FitStopped):
+        fit.fit_curve(
+            misra1a, MISRA1A_X, MISRA1A_Y, np.array([500.0, 1e-4]),
+            optimizer=optimizer, should_stop=stop_after_five,
+        )
+    assert calls["n"] == 6

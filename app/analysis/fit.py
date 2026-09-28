@@ -23,6 +23,16 @@ from app.functions.optimizers import BY_KEY, DEFAULT_OPTIMIZER, run_optimizer
 Model = Callable[[np.ndarray, np.ndarray], np.ndarray]
 
 
+class FitStopped(BaseException):
+    """The fit was asked to stop before it finished.
+
+    A BaseException, like KeyboardInterrupt, on purpose: the optimisers
+    catch Exception around every model evaluation - a random sample the
+    model cannot evaluate is "bad, move on" - and would swallow a stop
+    request as one more bad sample.
+    """
+
+
 @dataclass(slots=True)
 class CurveFit:
     """One fitted (or merely evaluated) model."""
@@ -248,12 +258,17 @@ def fit_curve(
     loss: str = "linear",
     max_nfev: int = 800,
     weighted: bool = False,
+    should_stop: Callable[[], bool] | None = None,
 ) -> CurveFit:
     """Fit *model* to (x, target) starting from *p0*, or just evaluate it.
 
     ``optimise=False`` evaluates the model at *p0* as it stands - what the
     dialog's Preview and Apply do - with the errors of every parameter
     computed at that point, so a hand-tuned curve still gets error bars.
+
+    *should_stop* is polled before every evaluation of the model; when it
+    returns True the fit raises :class:`FitStopped` - how a fit running in
+    the background is stopped.
     """
     p0 = np.asarray(p0, dtype=float)
     n_params = p0.size
@@ -276,6 +291,8 @@ def fit_curve(
         sigma = weights_sigma(target) if weighted else None
 
         def residual_fun(p_free: np.ndarray) -> np.ndarray:
+            if should_stop is not None and should_stop():
+                raise FitStopped("The fit was stopped.")
             p = p0.copy()
             p[free] = p_free
             r = target - model(x, p)

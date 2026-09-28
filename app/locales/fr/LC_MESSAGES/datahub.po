@@ -5887,3 +5887,15 @@ msgstr "Ombre la zone où se trouve la vraie courbe avec 95 % de confiance, comp
 
 msgid "Shade where a new measurement would fall with 95% probability: the confidence band plus the scatter of the points around the curve."
 msgstr "Ombre la zone où tomberait une nouvelle mesure avec 95 % de probabilité : la bande de confiance plus la dispersion des points autour de la courbe."
+
+msgid "Fit stopped. The parameters in the table are unchanged."
+msgstr "Ajustement arrêté. Les paramètres du tableau sont inchangés."
+
+msgid "Fitting... press Stop to end it early."
+msgstr "Ajustement en cours... appuyez sur Arrêter pour l'interrompre."
+
+msgid "Stop"
+msgstr "Arrêter"
+
+msgid "Stop the fit at its next step; the parameters stay as they were."
+msgstr "Arrête l'ajustement à l'étape suivante ; les paramètres restent tels quels."
