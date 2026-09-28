@@ -8,6 +8,21 @@ It is built on Matplotlib, so the charts are Matplotlib charts: the same output 
 
 ![The ChartLibre main window](docs/manual/screenshot_main_window.png)
 
+<table>
+  <tr>
+    <td><img src="docs/images/gallery_keeling.png" alt="The Keeling curve, CO2 at Mauna Loa since 1958"></td>
+    <td><img src="docs/images/gallery_anscombe.png" alt="Anscombe's quartet on a 2x2 grid"></td>
+    <td><img src="docs/images/gallery_ishikawa.png" alt="An Ishikawa (fishbone) diagram"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/gallery_spectrum.png" alt="The sunspot record's amplitude spectrum, peaking at 11 years"></td>
+    <td><img src="docs/images/gallery_penguins.png" alt="Violin plots of penguin flipper length by species"></td>
+    <td><img src="docs/images/gallery_surface.png" alt="A 3D surface on a regular grid"></td>
+  </tr>
+</table>
+
+<sub>All six are demo projects that ship with the application, drawn by ChartLibre itself in its default style.</sub>
+
 ---
 
 ## Why it exists
@@ -27,7 +42,7 @@ ChartLibre aims at the first of those without the price tag:
 
 ## What it does
 
-### Charts — 34 types
+### Charts — 35 types
 
 | Family | Types |
 |---|---|
@@ -36,16 +51,23 @@ ChartLibre aims at the first of those without the price tag:
 | **Gridded data** | Contour, Heatmap, Quiver, Stream Plot, Wind Barbs |
 | **Irregularly gridded** | Contour (scattered), Triangular Mesh, Triangular Colour Mesh |
 | **3D and volumetric** | Surface, Surface (scattered), 3D Scatter, 3D Line, 3D Bar |
+| **Diagrams** | Fishbone (Ishikawa) |
 
 Multiple axes per figure, multi-axis layout presets (shared scale, main + secondary, overlapping), annotations and reference lines, and an interactive canvas for measuring, annotating and selecting points.
 
-### Analysis — 18 series operations
+### Analysis — 19 series operations
 
-Peaks · Roots · Calculus · Statistics · Outliers · Clustering · Regression · GP Regression · Transform · Decomposition · Control Chart · Smoothing · Spectral Analysis · Filtering · Baseline Correction · Fit · Interpolation · Function
+Peaks · Roots · Calculus · Statistics · Outliers · Clustering · Regression · GP Regression · Transform · Decomposition · Control Chart · Geometry · Smoothing · Spectral Analysis · Filtering · Baseline Correction · Fit · Interpolation · Function
 
-Each previews its result on the chart before anything is committed. Highlights:
+Each previews its result on the chart before anything is committed, and a long calculation runs in the background with a *Stop* button.
 
-- **Fit** — Gaussian, exponential, polynomial, your own functions; optional residual and measured-vs-fit charts.
+![The Series Operations page](docs/manual/screenshot_series_operations.png)
+
+Highlights:
+
+- **Fit** — Gaussian, exponential, polynomial, your own functions; standard errors, t, p and 95 % intervals for every parameter, confidence and prediction bands on the chart, residual and measured-vs-fit charts. Validated against the NIST StRD certified values.
+- **Statistics** — descriptive statistics, normality, one-sample and paired tests, independent samples (Welch, Student, Mann-Whitney, Cohen's d), one-way ANOVA with Welch, Kruskal-Wallis and Tukey HSD, correlation, distribution fitting.
+- **Geometry** — rotate, translate, roto-translate, scale, mirror or shear a series in 2D or 3D; the result is a live query on the original data, not a copy.
 - **Filtering / Spectral Analysis** — Butterworth, Chebyshev, Bessel, FIR; PSD, coherence, cross-correlation, Hilbert envelope.
 - **Control Chart** — I-MR, X-bar-R, X-bar-S, p, np, c, u with rule violations flagged.
 - **Outliers / Regression / Clustering** — classical criteria plus scikit-learn models (Isolation Forest, LOF, One-Class SVM, RANSAC, Huber, Random Forest, k-means, DBSCAN).
@@ -62,7 +84,7 @@ Each previews its result on the chart before anything is committed. Highlights:
 
 - **Matplotlib style editor** — edit rcParams and save `.mplstyle` files.
 - **Extensible without forking** — drop a Python file into `user/charts/`, `user/series_operations/` or `user/functions/` and it appears in the application. GUI scaffolding tools generate a working skeleton for each.
-- **Localisation** — English and Italian (complete), with a built-in catalogue editor for adding more.
+- **Localisation** — English, Italian and French (complete), with a built-in catalogue editor for adding more.
 
 ---
 
@@ -77,7 +99,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-On first launch ChartLibre asks whether to create a new project, open an existing one, or **load a demo**. Twenty-one demo projects ship with it, each a complete worked example — start there.
+On first launch ChartLibre asks whether to create a new project, open an existing one, or **load a demo**. Twenty-four demo projects ship with it, each a complete worked example — start there.
 
 <details>
 <summary>Linux: extra system packages</summary>
