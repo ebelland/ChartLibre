@@ -418,7 +418,7 @@ Every setting shows a contextual description, so reading Matplotlib's own docume
 
 *Series Operations* applies statistical or mathematical transformations to an existing series' data, previewing the result before it is committed to the chart. Every operation dialog shares the same layout: on the left, the source axis/series, a model and its parameters; on the right, a preview of the result and a log of the computation.
 
-The panel itself is a grid of square buttons grouped by what they are for — *Plot*, *Analysis*, *Statistics*, *Signal Processing*, *Modeling* — with a bar along the bottom that describes whichever button the pointer (or the keyboard focus) is on.
+The panel itself is a grid of square buttons grouped by what they are for — *Plot*, *Analysis*, *Statistics*, *Geometry*, *Signal Processing*, *Modeling* — with a bar along the bottom that describes whichever button the pointer (or the keyboard focus) is on.
 
 A calculation that can take a while — a *Fit*, above all — runs in the background: the window stays usable, *Preview* and *OK* are switched off while it runs, and a *Stop* button appears beside *Preview*. *Stop* ends the calculation at its next step and changes nothing; closing the window stops it too.
 

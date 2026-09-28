@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -50,10 +51,13 @@ if str(PROJECT_ROOT) not in sys.path:
 # the manual has always carried were 2x Retina captures (2400x1600 for a
 # 1200x800 window), and an A4 page at 100% width is about 280 dpi of that -
 # a 1x grab prints visibly soft. On a Mac with a Retina display this is
-# already what the screen does; this makes every host match it.
+# already what the screen does - and a second factor on top of it would
+# double it again, shrinking the window to half the screen and the text to
+# twice its size - so only the other hosts are scaled.
 import os  # noqa: E402
 
-os.environ.setdefault("QT_SCALE_FACTOR", "2")
+if sys.platform != "darwin":
+    os.environ.setdefault("QT_SCALE_FACTOR", "2")
 
 # Before *anything* imports these names: the macOS branches are chosen by
 # module-level constants read at import time, so flipping them afterwards
@@ -89,18 +93,26 @@ DEMO_INDEX = 0
 
 #: Which of that demo's ~50 figures to show. Matched on the tab's own text.
 #: Wanted: one axis (a multi-axis figure shrinks to nothing once it is
-#: fitted to the panel) and a title short enough not to be elided, so the
+#: fitted to the panel), titles short enough to fit the ~690 px the chart
+#: panel gets - the tab's, and the chart's own, which Matplotlib never
+#: wraps - and no category labels to collide along the x axis, so the
 #: figure shows a chart rather than a demonstration of clipping.
-COVER_FIGURE = "Defect causes"
+COVER_FIGURE = "Penguin bill dimensions"
 
 
 def _settle(app: QApplication, rounds: int = 12) -> None:
     """Let deferred work finish before the pixels are read.
 
     ChartPanel renders on a timer rather than during construction, so a grab
-    taken too early catches an empty canvas.
+    taken too early catches an empty canvas. Timers with a delay - the one
+    that resizes a fitted figure to its panel, among them - only fire once
+    that much real time has passed, so each round waits a little as well
+    as draining the queue; without it a figure fitted to the panel's
+    previous width is grabbed hanging off the edge.
     """
     for _unused in range(rounds):
+        app.processEvents()
+        time.sleep(0.03)
         app.processEvents()
 
 
@@ -149,12 +161,29 @@ def _grab(app: QApplication, widget: QWidget, name: str) -> Path:
     return target
 
 
+def _private_user_config(scratch: Path) -> None:
+    """Point user.json at a copy, as the test suite does.
+
+    The window remembers what this script does to it - splitter sizes, the
+    zoom it fits the chart to - and a figure run should leave the user's own
+    settings exactly as it found them. A copy rather than an empty file, so
+    the figures still start from realistic settings.
+    """
+    from app.utils import config
+
+    copy = scratch / "user.json"
+    if config.USER_CONFIG_PATH.exists():
+        copy.write_bytes(config.USER_CONFIG_PATH.read_bytes())
+    config.USER_CONFIG_PATH = copy
+
+
 def main() -> int:
     app = QApplication(sys.argv)
     style.ensure_icon_theme()
     style.apply_platform_style(app, preference="macos_native")
 
     scratch = tempfile.TemporaryDirectory(prefix="chartlibre-shots-")
+    _private_user_config(Path(scratch.name))
     window, repo = _open_demo(Path(scratch.name))
     _hide_in_window_menu_bar(window)
     _settle(app)
@@ -164,7 +193,7 @@ def main() -> int:
 
     # 1. The main window, on the Tables page: the list, a preview and a
     #    finished chart, which is what the manual's own caption promises.
-    window._set_nav_index(0)
+    _show_page(window, "nav_data")
     _lay_out_data_page(window)
     _select_figure(window, COVER_FIGURE)
     _settle(app)
@@ -174,13 +203,13 @@ def main() -> int:
     _grab(app, window, "screenshot_main_window.png")
 
     # 2. Chart Options: the figure/axis/series property panels.
-    window._set_nav_index(1)
+    _show_page(window, "nav_chart_options")
     _settle(app)
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_chart_options.png")
 
     # 3. Series Operations: the grid of operations and its hint bar.
-    window._set_nav_index(2)
+    _show_page(window, "nav_series_operations")
     _settle(app)
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_series_operations.png")
@@ -193,6 +222,14 @@ def main() -> int:
     # The window is gone; nothing below should be kept alive by a timer.
     QTimer.singleShot(0, app.quit)
     return 0
+
+
+def _show_page(window, action_id: str) -> None:
+    """Switch the nav rail to a page by its id, not its position.
+
+    Positions move whenever the rail gains a page; ids do not.
+    """
+    window._set_nav_index(window._left_rail.action_ids.index(action_id))
 
 
 def _select_figure(window, needle: str) -> bool:
