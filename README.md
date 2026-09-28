@@ -103,6 +103,25 @@ sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
 
 [PySide6](https://doc.qt.io/qtforpython/) (Qt 6) · [Matplotlib](https://matplotlib.org/) · [NumPy](https://numpy.org/) · [pandas](https://pandas.pydata.org/) · [SciPy](https://scipy.org/) · [scikit-learn](https://scikit-learn.org/) · [statsmodels](https://www.statsmodels.org/) · SQLite
 
+## Credits
+
+ChartLibre also ships, or draws on, other people's work:
+
+- **[SciencePlots](https://github.com/garrettj403/SciencePlots)** by John D. Garrett — the Matplotlib styles in `mplstyles/` (MIT, see [`mplstyles/LICENSE-SciencePlots`](mplstyles/LICENSE-SciencePlots)).
+- **[QSS](https://github.com/GTRONICK/QSS)** by Jaime A. Quiroga P. (GTRONICK) — the optional Qt themes in `app/styles/` (MIT, see [`app/styles/LICENSE-GTRONICK-QSS`](app/styles/LICENSE-GTRONICK-QSS)).
+- **Icons**: [SF Symbols](https://developer.apple.com/sf-symbols/) on macOS, [Segoe Fluent Icons](https://learn.microsoft.com/windows/apps/design/style/segoe-fluent-icons-font) on Windows and the freedesktop themes (Adwaita, Breeze, Papirus) on Linux, all drawn from the system rather than shipped.
+- **Demo data** in `sample data/`:
+  [Palmer penguins](https://allisonhorst.github.io/palmerpenguins/) (Horst, Hill & Gorman; Palmer Station LTER, CC0) ·
+  [Mauna Loa CO₂](https://gml.noaa.gov/ccgg/trends/) (NOAA GML and Scripps) ·
+  [sunspot number](https://www.sidc.be/SILSO/) (WDC-SILSO, Royal Observatory of Belgium, Brussels, CC BY-NC 4.0) ·
+  [GISTEMP v4](https://data.giss.nasa.gov/gistemp/) (NASA GISS) ·
+  [earthquake catalogue](https://earthquake.usgs.gov/earthquakes/feed/) (USGS) ·
+  [Yeast](https://archive.ics.uci.edu/dataset/110/yeast) (Kenta Nakai, UCI Machine Learning Repository, CC BY 4.0) ·
+  [Anscombe's quartet](https://doi.org/10.1080/00031305.1973.10478966) (F. J. Anscombe, 1973) ·
+  antibiotic effectiveness (Will Burtin, 1951).
+
+The same list, with every library's installed version and licence, is in the application under *Credits*.
+
 ## Contributing
 
 Issues and pull requests are welcome. The test suite runs with:

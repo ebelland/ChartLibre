@@ -21,6 +21,7 @@ import re
 from typing import cast
 
 from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -55,6 +56,27 @@ _HTML_TAG_RE = re.compile(
 _HTML_ENTITY_RE = re.compile(
     r"&(?:nbsp|amp|lt|gt|quot|apos|#[0-9]+|#x[0-9a-fA-F]+);"
 )
+
+
+try:
+    from PySide6.QtWebEngineCore import QWebEnginePage
+
+    class _ExternalLinksPage(QWebEnginePage):
+        """A page whose links open in the system browser, not in the pane.
+
+        What QTextBrowser.setOpenExternalLinks does for the fallback viewer.
+        Without it a clicked link - the Credits page is made of them -
+        replaces the report with the website, in a pane with no back button.
+        """
+
+        def acceptNavigationRequest(self, url, navigation_type, is_main_frame):  # noqa: N802 - Qt override
+            if navigation_type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
+                QDesktopServices.openUrl(url)
+                return False
+            return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
+
+except ImportError:  # QtWebEngine is optional; QTextBrowser needs no page.
+    pass
 
 
 def looks_like_html(value: str) -> bool:
@@ -168,7 +190,9 @@ class HtmlResultsView(QWidget):
         try:
             from PySide6.QtWebEngineWidgets import QWebEngineView
 
-            return cast(QWidget, QWebEngineView(self))
+            view = QWebEngineView(self)
+            view.setPage(_ExternalLinksPage(view))
+            return cast(QWidget, view)
         except Exception:
             pass
 

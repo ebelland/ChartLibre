@@ -7116,3 +7116,66 @@ msgstr "La retta di riflessione, passante per il centro qui sotto. In 3D z resta
 
 msgid "Use the middle of the series' own extent as the fixed point instead of the values above - which is what is wanted when the intent is 'turn this shape', not 'turn it about the origin'."
 msgstr "Usa il centro dell'estensione della serie come punto fisso invece dei valori sopra - che è ciò che serve quando l'intento è 'gira questa forma', non 'girala attorno all'origine'."
+
+msgid "Included works and icons"
+msgstr "Opere incluse e icone"
+
+msgid "Demo data"
+msgstr "Dati demo"
+
+msgid "The demo projects are built from these datasets, saved under sample data/. Thanks to their authors for making them freely available."
+msgstr "I progetti demo sono costruiti con questi dataset, salvati in sample data/. Grazie ai loro autori per averli resi liberamente disponibili."
+
+msgid "Work"
+msgstr "Opera"
+
+msgid "The Matplotlib styles in mplstyles/: science, journals, colours, languages."
+msgstr "Gli stili Matplotlib in mplstyles/: science, riviste, colori, lingue."
+
+msgid "Toolbar, menu and navigation icons on macOS."
+msgstr "Le icone di barre, menu e navigazione su macOS."
+
+msgid "The same icons on Windows."
+msgstr "Le stesse icone su Windows."
+
+msgid "The same icons on Linux (Adwaita, Breeze, Papirus)."
+msgstr "Le stesse icone su Linux (Adwaita, Breeze, Papirus)."
+
+msgid "Apple's SF Symbols licence"
+msgstr "Licenza SF Symbols di Apple"
+
+msgid "Part of Windows"
+msgstr "Parte di Windows"
+
+msgid "Bill, flipper and body-mass measurements of three species."
+msgstr "Misure di becco, pinne e massa corporea di tre specie."
+
+msgid "The Keeling curve, monthly since 1958."
+msgstr "La curva di Keeling, mensile dal 1958."
+
+msgid "Monthly mean sunspot number since 1749."
+msgstr "Numero medio mensile di macchie solari dal 1749."
+
+msgid "Global land-ocean temperature anomaly since 1880."
+msgstr "Anomalia della temperatura globale terra-oceano dal 1880."
+
+msgid "One month of the global feed, for the Gutenberg-Richter law."
+msgstr "Un mese del catalogo globale, per la legge di Gutenberg-Richter."
+
+msgid "Protein localisation measurements."
+msgstr "Misure di localizzazione delle proteine."
+
+msgid "Four datasets with the same statistics and different pictures."
+msgstr "Quattro dataset con le stesse statistiche e grafici diversi."
+
+msgid "Sixteen bacteria against penicillin, streptomycin and neomycin."
+msgstr "Sedici batteri contro penicillina, streptomicina e neomicina."
+
+msgid "Public domain"
+msgstr "Pubblico dominio"
+
+msgid "Published data"
+msgstr "Dati pubblicati"
+
+msgid "The optional Qt themes in app/styles/ and their images."
+msgstr "I temi Qt opzionali in app/styles/ e le loro immagini."

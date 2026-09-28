@@ -71,6 +71,21 @@ def credits_html() -> str:
         report_html.section(_("Written by"), _people_table()),
         report_html.section(_("Libraries"), _libraries_table()),
         report_html.section(
+            _("Included works and icons"),
+            _works_table(credits.BUNDLED + credits.ICONS),
+        ),
+        report_html.section(
+            _("Demo data"),
+            _works_table(credits.DATA),
+            report_html.note(
+                _(
+                    "The demo projects are built from these datasets, saved "
+                    "under sample data/. Thanks to their authors for making "
+                    "them freely available."
+                )
+            ),
+        ),
+        report_html.section(
             _("Licences"),
             report_html.note(
                 _(
@@ -104,6 +119,7 @@ def _people_table() -> str:
         (_("Name"), _("Contribution")),
         rows,
         align=("left", "left"),
+        wrap=True,
     )
 
 
@@ -134,6 +150,33 @@ def _libraries_table() -> str:
         rows,
         align=("left", "left", "left"),
         empty_message=_("The dependency list is not available in this build."),
+        wrap=True,
+    )
+
+
+def _works_table(works: tuple[credits.Work, ...]) -> str:
+    """Return works by others: what each is, whose it is, and its licence.
+
+    Two columns, the licence apart and everything else stacked under the
+    name, as the libraries table does with a package's summary: a third
+    column of authors squeezed the descriptions into a narrow strip of
+    wrapped lines. The name links to the work's own page, the one place its licence and
+    the right way to cite it are stated in full.
+    """
+    rows = [
+        (
+            f"<b><a href='{html.escape(work.url, quote=True)}'>{html.escape(work.name)}</a></b>"
+            f"<br>{html.escape(work.author)}"
+            f"<br><span style='color:#6b7280;'>{html.escape(_(work.use))}</span>",
+            html.escape(_(work.license)),
+        )
+        for work in works
+    ]
+    return report_html.table(
+        (_("Work"), _("Licence")),
+        rows,
+        align=("left", "left"),
+        wrap=True,
     )
 
 

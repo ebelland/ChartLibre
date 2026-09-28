@@ -78,14 +78,14 @@ def format_number(value: Any, *, digits: int = 6) -> str:
     return f"{number:.{digits}g}"
 
 
-def _cell(content: str, *, align: str, header: bool, stripe: bool) -> str:
+def _cell(content: str, *, align: str, header: bool, stripe: bool, wrap: bool = False) -> str:
     tag = "th" if header else "td"
     background = _HEADER_BG if header else (_STRIPE_BG if stripe else "#ffffff")
     weight = "600" if header else "400"
     return (
         f"<{tag} style='background:{background};color:{_TEXT};font-weight:{weight};"
         f"text-align:{align};padding:4px 10px;border-bottom:1px solid {_RULE};"
-        f"white-space:nowrap;'>{content}</{tag}>"
+        f"white-space:{'normal;vertical-align:top' if wrap else 'nowrap'};'>{content}</{tag}>"
     )
 
 
@@ -95,6 +95,7 @@ def table(
     *,
     align: Sequence[str] | None = None,
     empty_message: str = "No results for this selection.",
+    wrap: bool = False,
 ) -> str:
     """Return a headed table in the house style.
 
@@ -104,6 +105,11 @@ def table(
 
     Cells are inserted as given, so a caller may pass markup produced by
     :func:`format_p_value`; anything else must be escaped by the caller.
+
+    Cells never wrap by default - a number broken over two lines is not
+    read as one. ``wrap=True`` is for tables of prose, such as the credits:
+    they then fill the pane's width and wrap inside it, rather than pushing
+    their last column out of sight.
     """
     rows = list(rows)
     if not rows:
@@ -113,14 +119,14 @@ def table(
     alignment = list(align) if align else ["left"] + ["right"] * (columns - 1)
 
     head = "".join(
-        _cell(html.escape(str(header)), align=alignment[index], header=True, stripe=False)
+        _cell(html.escape(str(header)), align=alignment[index], header=True, stripe=False, wrap=wrap)
         for index, header in enumerate(headers)
     )
     body = "".join(
         "<tr>"
         + "".join(
             _cell(str(cell), align=alignment[index] if index < len(alignment) else "right",
-                  header=False, stripe=row_index % 2 == 1)
+                  header=False, stripe=row_index % 2 == 1, wrap=wrap)
             for index, cell in enumerate(row)
         )
         + "</tr>"
@@ -128,7 +134,7 @@ def table(
     )
     return (
         "<table cellspacing='0' cellpadding='0' "
-        f"style='border-collapse:collapse;margin:0 0 10px 0;{_FONT}'>"
+        f"style='border-collapse:collapse;margin:0 0 10px 0;{'width:100%;' if wrap else ''}{_FONT}'>"
         f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
     )
 

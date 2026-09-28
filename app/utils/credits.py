@@ -7,6 +7,10 @@ it would name a version nobody has installed, or miss a dependency added
 last week - and being wrong is worse than being absent, because a credits
 page is a licence statement as much as a thank-you.
 
+The exception is what has no metadata to read - the style files copied into
+the tree, the demo data, the system icons - listed by hand in ``BUNDLED``,
+``ICONS`` and ``DATA`` because nothing else would name them at all.
+
 No Qt here.  The dialog that shows it is one screen of formatting; what is
 worth testing is this.
 """
@@ -41,6 +45,131 @@ ASSISTANTS: tuple[tuple[str, str, str], ...] = (
         "plumbing.",
     ),
 )
+
+@dataclass(frozen=True, slots=True)
+class Work:
+    """Someone else's work that ships inside this project, or that it draws.
+
+    The one list here that *is* written down: none of these is a package
+    with metadata to read. The style files and themes were copied into the
+    tree, the demo data was downloaded once and saved as CSV, and the icons
+    are the operating system's own - so nothing else would ever name them.
+    """
+
+    name: str
+    author: str
+    use: str
+    license: str
+    url: str
+
+
+#: Copied into the source tree, under their authors' licences. The MIT ones
+#: ask for their notice to travel with the files; it does, beside them.
+BUNDLED: tuple[Work, ...] = (
+    Work(
+        "SciencePlots",
+        "John D. Garrett",
+        "The Matplotlib styles in mplstyles/: science, journals, colours, "
+        "languages.",
+        "MIT",
+        "https://github.com/garrettj403/SciencePlots",
+    ),
+    Work(
+        "QSS themes",
+        "Jaime A. Quiroga P. (GTRONICK)",
+        "The optional Qt themes in app/styles/ and their images.",
+        "MIT",
+        "https://github.com/GTRONICK/QSS",
+    ),
+)
+
+#: Drawn by name from the system at run time; nothing is copied.
+ICONS: tuple[Work, ...] = (
+    Work(
+        "SF Symbols",
+        "Apple",
+        "Toolbar, menu and navigation icons on macOS.",
+        "Apple's SF Symbols licence",
+        "https://developer.apple.com/sf-symbols/",
+    ),
+    Work(
+        "Segoe Fluent Icons",
+        "Microsoft",
+        "The same icons on Windows.",
+        "Part of Windows",
+        "https://learn.microsoft.com/windows/apps/design/style/segoe-fluent-icons-font",
+    ),
+    Work(
+        "freedesktop icon themes",
+        "The GNOME, KDE and Papirus projects",
+        "The same icons on Linux (Adwaita, Breeze, Papirus).",
+        "LGPL / GPL",
+        "https://specifications.freedesktop.org/icon-naming-spec/latest/",
+    ),
+)
+
+#: The real datasets under ``sample data/`` that the demo projects are
+#: built from. The made-up ones - Lissajous curves, the synthetic signals,
+#: the invented employees - are nobody's to credit.
+DATA: tuple[Work, ...] = (
+    Work(
+        "Palmer penguins",
+        "Horst, Hill and Gorman; Palmer Station LTER",
+        "Bill, flipper and body-mass measurements of three species.",
+        "CC0 1.0",
+        "https://allisonhorst.github.io/palmerpenguins/",
+    ),
+    Work(
+        "Mauna Loa CO2",
+        "NOAA GML and Scripps Institution of Oceanography",
+        "The Keeling curve, monthly since 1958.",
+        "Public domain",
+        "https://gml.noaa.gov/ccgg/trends/",
+    ),
+    Work(
+        "Sunspot number",
+        "WDC-SILSO, Royal Observatory of Belgium, Brussels",
+        "Monthly mean sunspot number since 1749.",
+        "CC BY-NC 4.0",
+        "https://www.sidc.be/SILSO/",
+    ),
+    Work(
+        "GISTEMP v4",
+        "NASA Goddard Institute for Space Studies",
+        "Global land-ocean temperature anomaly since 1880.",
+        "Public domain",
+        "https://data.giss.nasa.gov/gistemp/",
+    ),
+    Work(
+        "Earthquake catalogue",
+        "U.S. Geological Survey",
+        "One month of the global feed, for the Gutenberg-Richter law.",
+        "Public domain",
+        "https://earthquake.usgs.gov/earthquakes/feed/",
+    ),
+    Work(
+        "Yeast",
+        "Kenta Nakai; UCI Machine Learning Repository",
+        "Protein localisation measurements.",
+        "CC BY 4.0",
+        "https://archive.ics.uci.edu/dataset/110/yeast",
+    ),
+    Work(
+        "Anscombe's quartet",
+        "F. J. Anscombe, The American Statistician, 1973",
+        "Four datasets with the same statistics and different pictures.",
+        "Published data",
+        "https://doi.org/10.1080/00031305.1973.10478966",
+    ),
+    Work(
+        "Antibiotic effectiveness",
+        "Will Burtin, 1951",
+        "Sixteen bacteria against penicillin, streptomycin and neomycin.",
+        "Published data",
+        "https://en.wikipedia.org/wiki/Will_Burtin",
+    ),
+)
+
 
 #: A requirement line: name, optional extras, optional specifier, optional
 #: environment marker after a semicolon.
