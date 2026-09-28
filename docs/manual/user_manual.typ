@@ -420,6 +420,8 @@ Every setting shows a contextual description, so reading Matplotlib's own docume
 
 The panel itself is a grid of square buttons grouped by what they are for — *Plot*, *Analysis*, *Statistics*, *Signal Processing*, *Modeling* — with a bar along the bottom that describes whichever button the pointer (or the keyboard focus) is on.
 
+A calculation that can take a while — a *Fit*, above all — runs in the background: the window stays usable, *Preview* and *OK* are switched off while it runs, and a *Stop* button appears beside *Preview*. *Stop* ends the calculation at its next step and changes nothing; closing the window stops it too.
+
 #figure(
   image("screenshot_series_operations.png", width: 100%),
   caption: [The Series Operations page, with the hint bar along the bottom.],
@@ -432,7 +434,7 @@ The panel itself is a grid of square buttons grouped by what they are for — *P
   [*Peaks*], [Find and measure peaks], [Detects peaks in a series and reports their position, height and width.],
   [*Roots*], [Find where a series crosses a level], [Locates the x values at which a series crosses a chosen level — zero by default — by interpolating between the samples either side.],
   [*Calculus*], [Differentiate or integrate], [Computes the numerical derivative or the cumulative integral of a series, with smoothing built into the first and baseline subtraction into the second. On a dated x axis, the result is scaled against the sample spacing's own natural unit (day, hour, ...) rather than raw seconds, so "dy/dx" reads as "per day" for daily data instead of a tiny per-second number.],
-  [*Statistics*], [Compute metrics], [Reports summary statistics (mean, standard deviation, quantiles, ...) for a series.],
+  [*Statistics*], [Compute metrics], [Reports descriptive statistics and hypothesis tests for the checked series: one-sample, normality, paired and independent-sample tests, a comparison of all of them as groups (ANOVA, Welch's ANOVA, Kruskal-Wallis, Tukey), correlation and distribution fitting. See @statistics.],
   [*Outliers*], [Detect anomalies], [Flags points that deviate from the rest of a series, by a chosen statistical criterion (Z-score, IQR, ...) or a shape-aware model (Isolation Forest, Local Outlier Factor, One-Class SVM, Elliptic Envelope) that judges a point by where it sits relative to its neighbours rather than by its value alone.],
   [*Clustering*], [Group similar data], [Groups a series' points into clusters (k-means, DBSCAN, ...) and labels each point by cluster.],
   [*Regression*], [Robust and ML regression], [Fits a curve through noisy or outlier-heavy data with a model that does not assume a known shape: RANSAC and Huber (robust linear, tolerant of gross outliers), Isotonic (guaranteed monotone), or Random Forest / Gradient Boosting (flexible, nonparametric).],
@@ -444,10 +446,10 @@ The panel itself is a grid of square buttons grouped by what they are for — *P
   [*Spectral Analysis*], [Analyse frequencies], [Power spectral density, cross-spectral density, coherence, magnitude/phase spectra and auto/cross-correlation, on their own new axis.],
   [*Filtering*], [Filter, detrend or demodulate], [Low/high/band-pass and band-stop filtering (Butterworth, Chebyshev, Bessel, FIR), trend removal, and the Hilbert envelope of a signal.],
   [*Baseline Correction*], [Subtract a background], [Removes a drifting background from a spectrum — asymmetric least squares or a rubber band — and keeps the baseline it removed as its own series.],
-  [*Fit*], [Fit data models], [Fits a mathematical model (Gaussian, exponential, polynomial, a user function, ...) to a series by least squares, and adds the fitted curve alongside the data. Optionally adds a residuals chart and a measured-vs-fit chart.],
+  [*Fit*], [Fit data models], [Fits a mathematical model (Gaussian, exponential, polynomial, a user function, ...) to a series by least squares, and adds the fitted curve alongside the data. Reports each parameter with its standard error, t, p and 95% confidence interval, can shade the 95% confidence and prediction bands around the curve, and optionally adds a residuals chart and a measured-vs-fit chart.],
   [*Interpolation*], [Fill missing values], [Fills gaps in a series (linear, spline, nearest, ...), producing a complete curve from a sparse one.],
   [*Function*], [Plot a function], [Evaluates a function over a range and plots it — the one operation that reads no source series at all.],
-  [*Geometry*], [Move a series' coordinates], [Rotates, translates, scales, mirrors or shears a series in the x/y plane. Alone among these, it computes nothing and stores nothing: the result is the source series' own query wrapped in the affine expressions, so the moved series follows its source rather than being a copy of it. See @geometry.],
+  [*Geometry*], [Move a series' coordinates], [Rotates, translates, roto-translates, scales, mirrors or shears a series — in the plane, or in space for a series with a z column. Alone among these, it computes nothing and stores nothing: the result is the source series' own query wrapped in the affine expressions, so the moved series follows its source rather than being a copy of it. See @geometry.],
 )
 
 A typical workflow is: select the axis and series to operate on, choose a model and its parameters, click *Preview* to see the result superimposed on the chart, adjust the parameters if needed, then confirm to add the result as a new series (or table) permanently. See @advanced-operation for how a new operation is added.
@@ -489,6 +491,26 @@ What each of the four does with a surface:
   [*Calculus*], [Reports the surface's gradient — its magnitude at each sample, with the dz/dx and dz/dy components carried alongside — and the volume under it, in place of the derivative and the integral of a curve.],
 )
 
+== Testing hypotheses: Statistics <statistics>
+
+*Statistics* reports on the series checked in its list; it draws a chart only if asked (*Add a chart*). The *Model* chooses what is reported:
+
+#table(
+  columns: (auto, 1fr),
+  stroke: none,
+  inset: 6pt,
+  [*Descriptive statistics*], [Mean, trimmed, geometric and harmonic means, median, mode, spread (standard deviation, IQR, MAD), shape (skewness, kurtosis) and the 95% confidence interval of the mean.],
+  [*One-sample tests*], [Is the centre of a series equal to a reference value? t-test, Wilcoxon signed-rank and sign test.],
+  [*Normality / shape tests*], [Shapiro-Wilk, D'Agostino, Anderson-Darling, Jarque-Bera and more.],
+  [*Paired-sample tests*], [Two series measured on the same units (before/after on the same parts): paired t, Wilcoxon, sign test — for every pair of checked series.],
+  [*Independent-sample tests*], [Two groups of different units: Welch's t (the default reading: it does not assume equal variances), Student's t, Mann-Whitney U, Levene's test for equal variances, and Cohen's d as the size of the difference — for every pair.],
+  [*Group comparison (ANOVA)*], [All checked series as groups: one-way ANOVA with η², Welch's ANOVA, Kruskal-Wallis with ε², Levene's test, and Tukey's HSD for every pair with its adjusted p-value and 95% interval. Where Levene says the variances differ, read Welch's ANOVA.],
+  [*Correlation / association*], [Pearson, Spearman, Kendall and the regression slope, for every pair.],
+  [*Distribution fit*], [Ranks candidate distributions for each series by AIC, BIC or the KS statistic.],
+)
+
+The results have been checked against published reference values: SciPy's documented ANOVA example and, for the fit, the certified NIST StRD data sets.
+
 == Moving a series: Geometry <geometry>
 
 *Geometry* answers "put this where that is": rotate a scan onto a reference frame, shift a baseline, flip a profile, scale a model onto measured units. Pick a transform, set its numbers, and *Preview* draws where the points were and where they went.
@@ -498,18 +520,21 @@ What each of the four does with a surface:
   stroke: none,
   inset: 6pt,
   [*Rotate*], [Turns the series about a centre, counter-clockwise, by an angle in degrees.],
-  [*Translate*], [Adds a fixed amount to every x and y. The one transform with no centre — moving something does not leave any point of it where it was.],
-  [*Scale*], [Stretches x and y by their own factors about the centre. Different factors change the shape, not only the size.],
+  [*Translate*], [Adds a fixed amount to every x and y (and z). The one transform with no centre — moving something does not leave any point of it where it was.],
+  [*Roto-translation*], [A rotation about the centre followed by a translation: a rigid motion, the way a part is placed on a reference frame. Shape and size never change.],
+  [*Scale*], [Stretches x and y (and z) by their own factors about the centre. Different factors change the shape, not only the size.],
   [*Mirror*], [Reflects across a horizontal, vertical or diagonal line through the centre.],
   [*Shear*], [Leans the series over: so much x added per unit of y, or the other way about.],
 )
+
+*In 3D.* A series with a z column (a 3D scatter, a 3D line, a surface) is moved in space. Its rotation takes three angles — about x, then about y, then about z, each counter-clockwise looking down that axis (right-hand rule) — and translation, scale and centre gain a z value. *Mirror* and *Shear* act in the x-y plane and leave z as it is. The dialog shows only the values that apply to the selected series: one angle for a 2D series, three for a 3D one. The preview is then a 3D view, with the series' bounding box drawn as a cage before and after.
 
 *Centre on the data* — on by default — uses the middle of the series' own extent as the fixed point, which is what "turn this shape" usually means. Turn it off to name a centre explicitly, and the origin is then just one choice of centre among others.
 
 The results panel is a picture rather than a table, because a rotation is one: the source in blue, the result in red, and — with *Show the deformation grid* — a square mesh over the source's extent drawn before and after, which is what makes a shear or an uneven scale legible at a glance.
 
 #note[
-  Nothing is computed, and no table is written. The series this creates carries a SQL query: the source series' query, wrapped in the transform's own arithmetic, with the rotation spelled out as `cos(radians(30))` rather than as a decimal. Three things follow. The moved series *follows its source* — change the source query and the transform applies to whatever it now returns. A large series costs a query rather than a second copy of itself in the project file. And the transform can be read and adjusted afterwards in the Query Builder, which is where anyone wanting 30.5° instead of 30° will end up.
+  Nothing is computed, and no table is written. The series this creates carries a SQL query: the source series' query, wrapped in the transform's own arithmetic, with a 2D rotation spelled out as `cos(radians(30))` rather than as a decimal (a 3D rotation, whose coefficients mix three angles, is written with its numbers). Three things follow. The moved series *follows its source* — change the source query and the transform applies to whatever it now returns. A large series costs a query rather than a second copy of itself in the project file. And the transform can be read and adjusted afterwards in the Query Builder, which is where anyone wanting 30.5° instead of 30° will end up.
 ]
 
 #note[
@@ -623,8 +648,8 @@ The base class supplies the whole dialog shell (series picker, parameter form, p
   stroke: none,
   inset: 6pt,
   [`build_parameter_selector()`], [Build the parameter form. Simple operations describe their parameters declaratively with the helpers in `app.series_operations.parameter_spec` (`FloatParam`, `IntParam`, `ChoiceParam`, ...) rather than laying out widgets by hand.],
-  [`compute_results()`], [Run the actual computation over the selected series and return its results.],
-  [`result_to_frame()` / `result_series_spec(s)()`], [Turn a result into the DataFrame and series metadata (name, roles, style) the base class writes to the chart.],
+  [`prepare_job()` / `finish_job()`], [Read the widgets into a *job* whose `run()` does the calculation without touching the window, and turn its outcome into results. With these two, *Preview* and *OK* work unchanged, and `evaluate(..., background=True)` runs the job on a worker thread with the shared *Stop* button — see the developer guide. An operation that does not need that can override `compute_results()` instead.],
+  [`result_series_spec(s)()`], [The series metadata (name, roles, style) the base class writes to the chart. The DataFrame comes from the result's own `to_frame()`, and the table name from the `RESULT_TABLE_PREFIX` class attribute, unless you override them.],
   [`format_results()`], [Render the results as the text/HTML shown in the preview pane.],
   [`refresh_results()`], [Recompute and redraw the preview after a parameter changes.],
 )
@@ -634,7 +659,7 @@ The base class supplies the whole dialog shell (series picker, parameter form, p
 + Create `app/series_operations/my_operation_dialog.py`.
 + Subclass `SeriesOperationDialogBase`, set `Name`, `Description`, `Icon`.
 + Declare parameters (e.g. with `FloatParam`/`IntParam`/`ChoiceParam`) and implement `build_parameter_selector`.
-+ Implement `compute_results`, `result_to_frame`/`result_series_spec`, and `format_results`.
++ Implement `prepare_job`/`finish_job` (or `compute_results`), `result_series_spec`, and `format_results`. Put the arithmetic in a Qt-free module under `app/analysis/`, so it can be tested on its own.
 + Restart the application — the operation appears in the Series Operations list.
 
 `app/series_operations/function_dialog.py` is the smallest complete dialog and a reasonable starting template; `app/series_operations/calculus_dialog.py` is a good second read for an operation that consumes an existing series rather than generating one from scratch.

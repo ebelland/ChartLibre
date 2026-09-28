@@ -47,6 +47,12 @@ app/
                       through SqliteRepo itself, so a demo cannot drift from
                       the real schema. Run `python -m app.data.demo_project`
                       to regenerate them after a schema or renderer change.
+  analysis/           The calculations behind the series operations, with no
+                      Qt: statistics.py, fit.py, geometry.py so far. Plain
+                      arrays in, plain results out - testable against
+                      reference values and runnable on a worker thread
+                      (see §7.2, "Computing"). __init__.Stopped is the
+                      shared stop signal.
   dialogs/            Top-level QDialog/QMainWindow windows.
   widgets/            Panels embedded in dialogs/the main window
                       (properties editors, table list/preview, chart panel).
@@ -63,7 +69,8 @@ app/
   utils/              config.json access, i18n, coercion, messages, dialog
                       state persistence, DPI handling, LaTeX detection,
                       data_sources.py (every way data arrives), startup.py,
-                      figure_metrics.py (§5.2), series_validation.py (§7.2).
+                      figure_metrics.py (§5.2), series_validation.py (§7.2),
+                      background.py (running a job off the GUI thread).
   locales/            gettext-style .po catalogues (see §9).
 mplstyles/            The bundled Matplotlib style library (see §7.3).
 docs/manual/          The user manual: user_manual.typ is the source, built
@@ -342,6 +349,58 @@ Operations write their result back as a new table prefixed with `_`
 (`generated_table_name`) so the source list can group/hide generated tables
 separately from imported ones.
 
+#### Computing: engines, jobs and background runs
+
+The arithmetic of an operation belongs in `app/analysis/`, not in its
+dialog: a module there takes arrays and parameters and returns results, and
+imports nothing from Qt or the repository. The dialog reads the window,
+calls the engine and shows what comes back. Statistics, Fit and Geometry
+are split this way; the other operations still compute inside their
+dialogs and move over one at a time (todo.txt R-01).
+
+`SeriesOperationDialogBase` gives every operation one way to compute:
+
+- `prepare_job(**options)` runs on the GUI thread and reads everything the
+  calculation needs - data, parameters, and the names the result will need
+  later - into a *job*: any object with `run(should_stop=None)`. Capturing
+  the names here matters: the window stays usable during a background run,
+  and a model changed mid-run must not end up labelling the other one's
+  result.
+- `job.run(should_stop)` is the calculation alone. It polls `should_stop`
+  where it can and raises `app.analysis.Stopped` when told to.
+- `finish_job(job, outcome)` runs on the GUI thread and turns the outcome
+  into the dialog's results.
+- `evaluate(on_results, background=None, **options)` ties them together:
+  here and now, or on a worker thread when `background` (default
+  `RUN_IN_BACKGROUND`, False) says so. In the background the base shows its
+  own *Stop* button (catalogue action `operation_stop`), switches off
+  `busy_widgets()` (Preview and Apply; add your own buttons), reports a
+  stopped run as "Stopped. Nothing was changed.", and stops the run when
+  the window is closed.
+- `compute_results()` defaults to prepare/run/finish on the GUI thread, so
+  Preview and Apply need nothing more. The Fit dialog is the example: its
+  Fit button is `evaluate(self._after_fit, background=True, optimise=True)`
+  while Preview goes through `compute_results()`.
+
+`app/utils/background.py` is the runner: a `QRunnable` on the global
+thread pool, the result delivered by a signal on the GUI thread, the task
+kept alive in a module-level set until then. The job must not touch any Qt
+object. `Stopped` is a `BaseException` on purpose: the optimisers and
+searches catch `Exception` around every model evaluation (a sample the
+model cannot evaluate is "bad, move on") and would swallow a stop request.
+
+What the base also supplies, so an operation only overrides what differs:
+
+| Hook | Default |
+| --- | --- |
+| `generated_style_filter` | `{"generated_<stem>": True, "<stem>_dialog": "series_<stem>"}` from the module name. Clustering, Interpolation, Outliers and Statistics keep older values, which are stored in existing projects - do not change them. |
+| `result_table_name` | `<RESULT_TABLE_PREFIX>_axis<id>_<series>[_<variant>]`, the variant being the result attribute named by `RESULT_TABLE_VARIANT` (`"model"` by default, None for none). A re-run replaces the table of the same name, so keep an operation's names stable. |
+| `result_to_frame` | `result.to_frame()`. |
+| `discard_operation_artifacts` | `discard_result_target()`: remove the axis or figure the dialog made, unless Apply ran. |
+| `apply` | records `self._applied`. |
+| `connect_operation_signals` | model combo -> `_refresh_visibility` and `mark_results_stale`; call `super()` first when you connect more. |
+| `current_model(default)` / `parameter_context()` | the selected model's **key**: the item's data when it has one, else its text. A combo that shows translated model names must store the untranslated name as the item data (`addItem(_(name), name)`), or `visible_for` rules compare against a translation and hide every parameter - which is what happened to Geometry in Italian. |
+
 #### Declaring parameters instead of building them
 
 Set `PARAMS` on the class and the base builds the form, wires every control
@@ -434,7 +493,7 @@ assert what it must **not** reject.
 
 | Operation | Reads | Produces |
 | --- | --- | --- |
-| Fit | one series | fitted curve + parameters, optional residual / measured-vs-fit axes |
+| Fit | one series | fitted curve + parameters with standard error, t, p and 95% interval; optional confidence/prediction bands (`draw_as: "band"` series) and residual / measured-vs-fit axes; runs in the background |
 | Interpolation | one series | resampled curve |
 | Smoothing | one series | smoothed curve |
 | Filtering | one series | filtered/detrended/demodulated curve |
@@ -442,12 +501,13 @@ assert what it must **not** reject.
 | Outliers | one series | `Hide` flags on the source rows |
 | Spectral Analysis | one or two series | spectrum / correlation on a new axis |
 | Clustering | one series | cluster labels / split series |
-| Statistics | one series | a report, no series |
+| Statistics | the checked series | a report (descriptive, one-sample, normality, paired, independent, group comparison with Tukey, correlation, distribution fit), optionally a chart |
 | Calculus | one series | derivative or integral |
 | Peaks | one series | located peaks + measurements |
 | Roots | one series | the x where it crosses a level |
 | Control Chart | one series | chart values, limits, violations |
 | Function | *nothing* | an evaluated function |
+| Geometry | one series, 2D or 3D | a *query* that moves it (rotate, translate, roto-translate, scale, mirror, shear) - no table |
 
 An operation that reads a series reads **one**: `dialog_base.
 _selected_series_row()` takes the first selected row and warns (in the log
@@ -802,6 +862,17 @@ the machine.
   outcomes a user must acknowledge — never on a path that runs per keystroke,
   per preview or per redraw. A WARNING already reaches the status bar without
   it (`AppLogger._log_with_policy`).
+- `conftest.py` points `user.json` at a copy for the whole session: dialogs
+  save their state when they close, and against the real file a test run
+  used to leave the developer's own window with its panels 47 px wide.
+  Scripts that start the real app for a manual check should snapshot and
+  restore `user.json` the same way.
+- Engines in `app/analysis/` are checked against reference results, not
+  against themselves: NIST StRD Misra1a for the fit (certified estimates,
+  standard errors and residual sum of squares, from both starting points),
+  SciPy's documented one-way ANOVA example and statsmodels for Welch's
+  ANOVA, Tukey and OLS bands, scipy's `Rotation` for 3D rotations, and
+  SQLite itself for the SQL Geometry writes.
 - `tmp_db_path` / `test_results_dir` / `plots_dir` fixtures give each test an
   isolated `.dhub` path and a directory for saved plots
   (`DHUB_TEST_ARTIFACTS` env var to redirect).
