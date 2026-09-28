@@ -571,7 +571,7 @@ The *Log viewer* shows the history of the application's internal operations (sta
 
 = Credits
 
-*Credits* lists the application, the version in use, and the open-source libraries it is built on (including Qt/PySide6, Matplotlib, NumPy, pandas, SciPy, statsmodels and scikit-learn). It also names the work of others that ships with it or that it draws on — the SciencePlots Matplotlib styles by John D. Garrett, the optional Qt themes by Jaime A. Quiroga P. (GTRONICK), the system icon sets — and the sources of the demo data: the Palmer penguins, NOAA's Mauna Loa CO₂ record, WDC-SILSO's sunspot number, NASA's GISTEMP, the USGS earthquake catalogue, the UCI Yeast dataset, Anscombe's quartet and Will Burtin's antibiotic data. Each name links to its source.
+*Credits* lists the application, the version in use, and the open-source libraries it is built on (including Qt/PySide6, Matplotlib, NumPy, pandas, SciPy, statsmodels and scikit-learn). It also names the work of others that ships with it or that it draws on — the SciencePlots Matplotlib styles by John D. Garrett, the system icon sets — and the sources of the demo data: the Palmer penguins, NOAA's Mauna Loa CO₂ record, WDC-SILSO's sunspot number, NASA's GISTEMP, the USGS earthquake catalogue, the UCI Yeast dataset, Anscombe's quartet and Will Burtin's antibiotic data. Each name links to its source.
 
 = Advanced: extending ChartLibre <advanced>
 

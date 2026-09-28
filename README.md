@@ -108,7 +108,6 @@ sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
 ChartLibre also ships, or draws on, other people's work:
 
 - **[SciencePlots](https://github.com/garrettj403/SciencePlots)** by John D. Garrett — the Matplotlib styles in `mplstyles/` (MIT, see [`mplstyles/LICENSE-SciencePlots`](mplstyles/LICENSE-SciencePlots)).
-- **[QSS](https://github.com/GTRONICK/QSS)** by Jaime A. Quiroga P. (GTRONICK) — the optional Qt themes in `app/styles/` (MIT, see [`app/styles/LICENSE-GTRONICK-QSS`](app/styles/LICENSE-GTRONICK-QSS)).
 - **Icons**: [SF Symbols](https://developer.apple.com/sf-symbols/) on macOS, [Segoe Fluent Icons](https://learn.microsoft.com/windows/apps/design/style/segoe-fluent-icons-font) on Windows and the freedesktop themes (Adwaita, Breeze, Papirus) on Linux, all drawn from the system rather than shipped.
 - **Demo data** in `dev/demo/sample data/`:
   [Palmer penguins](https://allisonhorst.github.io/palmerpenguins/) (Horst, Hill & Gorman; Palmer Station LTER, CC0) ·

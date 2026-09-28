@@ -51,8 +51,8 @@ class Work:
     """Someone else's work that ships inside this project, or that it draws.
 
     The one list here that *is* written down: none of these is a package
-    with metadata to read. The style files and themes were copied into the
-    tree, the demo data was downloaded once and saved as CSV, and the icons
+    with metadata to read. The style files were copied into the tree, the
+    demo data was downloaded once and saved as CSV, and the icons
     are the operating system's own - so nothing else would ever name them.
     """
 
@@ -63,8 +63,8 @@ class Work:
     url: str
 
 
-#: Copied into the source tree, under their authors' licences. The MIT ones
-#: ask for their notice to travel with the files; it does, beside them.
+#: Copied into the source tree, under their authors' licences. MIT asks for
+#: the notice to travel with the files; it does, beside them.
 BUNDLED: tuple[Work, ...] = (
     Work(
         "SciencePlots",
@@ -73,13 +73,6 @@ BUNDLED: tuple[Work, ...] = (
         "languages.",
         "MIT",
         "https://github.com/garrettj403/SciencePlots",
-    ),
-    Work(
-        "QSS themes",
-        "Jaime A. Quiroga P. (GTRONICK)",
-        "The optional Qt themes in app/styles/ and their images.",
-        "MIT",
-        "https://github.com/GTRONICK/QSS",
     ),
 )
 

@@ -18,7 +18,7 @@ def test_every_work_says_whose_it_is_and_where_to_find_it(work: credits.Work) ->
 
 @pytest.mark.parametrize(
     "notice",
-    ["mplstyles/LICENSE-SciencePlots", "app/styles/LICENSE-GTRONICK-QSS"],
+    ["mplstyles/LICENSE-SciencePlots"],
 )
 def test_mit_notices_travel_with_the_copied_files(notice: str) -> None:
     text = (ROOT / notice).read_text(encoding="utf-8")

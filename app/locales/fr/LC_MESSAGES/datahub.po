@@ -6022,6 +6022,3 @@ msgstr "Domaine public"
 
 msgid "Published data"
 msgstr "Données publiées"
-
-msgid "The optional Qt themes in app/styles/ and their images."
-msgstr "Les thèmes Qt facultatifs de app/styles/ et leurs images."

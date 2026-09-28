@@ -7176,6 +7176,3 @@ msgstr "Pubblico dominio"
 
 msgid "Published data"
 msgstr "Dati pubblicati"
-
-msgid "The optional Qt themes in app/styles/ and their images."
-msgstr "I temi Qt opzionali in app/styles/ e le loro immagini."
