@@ -459,7 +459,7 @@ A typical workflow is: select the axis and series to operate on, choose a model 
 ]
 
 #note[
-  An operation reads *one* source series. If several are ticked, the first one is used and the others are ignored — the status bar says which one it took. To operate on a different series, untick the others, or move the one you want to the top of the list. *Decomposition* is the exception: it is built to read several series together.
+  An operation reads *one* source series. If several are ticked, the first one is used and the others are ignored — the status bar says which one it took. To operate on a different series, untick the others, or move the one you want to the top of the list. *Decomposition* and *Statistics* are the exceptions: Decomposition is built to read several series together, and Statistics reports on every ticked series - and compares them, pair by pair or as groups.
 ]
 
 == Operating on a surface
