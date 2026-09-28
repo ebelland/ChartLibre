@@ -395,12 +395,22 @@ class OperationSection(QWidget):
         columns = max(1, columns)
         if columns == self._columns:
             return
+        previous = self._columns
         self._columns = columns
         while self._grid.count():
             self._grid.takeAt(0)
         for index, tile in enumerate(self._tiles):
             row, col = divmod(index, columns)
             self._grid.addWidget(tile, row, col, Qt.AlignmentFlag.AlignLeft)
+        # One empty column after the last takes all the spare width. Without
+        # it the grid shared that width out between the tile columns, and a
+        # section of three tiles in a wide panel came out spread across it
+        # with a gap between every two - an icon view packs to the left.
+        if previous:
+            self._grid.setColumnStretch(previous, 0)
+        for col in range(columns):
+            self._grid.setColumnStretch(col, 0)
+        self._grid.setColumnStretch(columns, 1)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)

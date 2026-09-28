@@ -60,7 +60,7 @@
 
 = Introduction
 
-ChartLibre is a desktop application for Windows, macOS and Linux that lets you import tabular data, query it with SQL, and turn it into scientific charts — from histograms to 3D surfaces — without writing code.
+ChartLibre is a desktop application for Windows and macOS that lets you import tabular data, query it with SQL, and turn it into scientific charts — from histograms to 3D surfaces — without writing code. It was written mostly by Claude, Anthropic's AI model, in conversation with its author, who designed it, set its direction and tested it. Linux has not been tested.
 
 Every project is a single file with the extension `.dhub`: a SQLite database that holds both the imported data and the definitions of every chart (figures, axes, series and their drawing options). The file is therefore self-contained and portable — moving or sharing it carries both the data and every visualization built on top of it.
 
@@ -79,6 +79,8 @@ This manual describes the application as it presents itself to a user: the main 
 - *Renderer*: the piece of code behind a chart type — it turns a series' data into a Matplotlib drawing. See @renderers.
 
 = Starting up and managing databases
+
+ChartLibre needs Python 3.11 or newer, installed once from python.org. The `ChartLibre` folder can then be copied anywhere and started by double-clicking `ChartLibre.app` on macOS or `ChartLibre.bat` on Windows. The first launch asks before installing the libraries it needs inside that same folder, which takes a few minutes and an internet connection; after that it starts straight away. Nothing is installed outside the folder, so deleting it removes ChartLibre completely.
 
 On first launch, or whenever no file is given, ChartLibre asks which database to open:
 
@@ -106,7 +108,7 @@ A SQLite database writes its own changes straight to disk on every operation, so
 
 #note[
   The figures in this manual are taken in the *macOS native* style, which is
-  what the application wears on a Mac. On Windows and Linux the same screens
+  what the application wears on a Mac. On Windows the same screens
   wear the Fluent style instead: the panels, the pages and every control are
   the same and in the same place, but the navigation rail is a column of
   square tiles rather than a sidebar of rows, and the window carries its own

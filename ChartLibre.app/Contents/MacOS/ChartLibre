@@ -1,0 +1,41 @@
+#!/bin/bash
+# ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
+# the ChartLibre folder is: the first launch installs the libraries into
+# .venv inside that folder, every later one just starts the application.
+HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
+cd "$HERE" || exit 1
+VENV="$HERE/.venv"
+LOG="$HERE/.venv-setup.log"
+
+ask() {  # ask "message" "button" -> exit status 0 when the button was pressed
+  local answer
+  answer=$(osascript -e "button returned of (display dialog \"$1\" buttons {\"Cancel\", \"$2\"} default button 2 with title \"ChartLibre\")" 2>/dev/null)
+  [ "$answer" = "$2" ]
+}
+
+if [ ! -x "$VENV/bin/python3" ]; then
+  PY=""
+  CANDIDATES=$(ls -d /Library/Frameworks/Python.framework/Versions/3.*/bin/python3 2>/dev/null | sort -t. -k2,2nr)
+  for c in $CANDIDATES /opt/homebrew/bin/python3 /usr/local/bin/python3 $(command -v python3); do
+    if [ -x "$c" ] && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
+      PY="$c"
+      break
+    fi
+  done
+  if [ -z "$PY" ]; then
+    if ask "ChartLibre needs Python 3.11 or newer.\n\nInstall it from python.org, then open ChartLibre again." "Open python.org"; then
+      open "https://www.python.org/downloads/"
+    fi
+    exit 1
+  fi
+  ask "First launch: ChartLibre will install the libraries it needs into its own folder.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
+  osascript -e 'display notification "Installing... ChartLibre opens when it is ready." with title "ChartLibre"'
+  if ! { "$PY" -m venv "$VENV" \
+         && "$VENV/bin/python3" -m pip install --upgrade pip \
+         && "$VENV/bin/python3" -m pip install -r "$HERE/requirements.txt"; } >"$LOG" 2>&1; then
+    rm -rf "$VENV"
+    osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
+    exit 1
+  fi
+fi
+exec "$VENV/bin/python3" "$HERE/main.py" "$@"

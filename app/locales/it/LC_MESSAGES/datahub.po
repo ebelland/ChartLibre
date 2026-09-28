@@ -3206,8 +3206,8 @@ msgid "Series operation"
 msgstr "Operazione sulla serie"
 
 
-msgid "Series operations, the fit engine, the renderers and most of the test suite, written in conversation."
-msgstr "Le operazioni sulle serie, il motore di fit, i renderer e gran parte della suite di test, scritti in conversazione."
+msgid "Most of the code: the interface, the analysis engines, the renderers and the test suite, written in conversation with the author."
+msgstr "La maggior parte del codice: l'interfaccia, i motori di analisi, i renderer e la suite di test, scritti in conversazione con l'autore."
 
 
 msgid "Series properties"

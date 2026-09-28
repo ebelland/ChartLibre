@@ -1,24 +1,21 @@
-"""Make a double-clickable launcher for ChartLibre, for the machine it runs on.
+"""Make the double-clickable launchers that ship in the project folder.
 
-    python3 dev/tools/make_launcher.py            # into dist/
-    python3 dev/tools/make_launcher.py ~/Applications
+    python3 dev/tools/make_launcher.py        # into the project folder
+    python3 dev/tools/make_launcher.py DIR    # somewhere else
 
-macOS: ``ChartLibre.app`` - a small bundle whose executable starts main.py
-with the Python that ran this script, and whose icon is the application's
-own. Drag it to Applications or the Dock.
+``ChartLibre.app`` (macOS) and ``ChartLibre.bat`` (Windows) find the folder
+they sit in, so the whole folder can be copied anywhere and started from
+there. The first time, each one looks for Python 3.11 or newer, asks, and
+installs requirements.txt into ``.venv`` inside the folder; after that it
+just starts the application. Nothing is written outside the folder.
 
-Windows: ``ChartLibre.bat`` - starts main.py with pythonw, so no console
-window stays open; pin a shortcut to it on the Start menu or the taskbar.
-
-This is a launcher, not a standalone build: it uses the Python and the
-packages already installed (see requirements.txt). A self-contained
-executable would need PyInstaller and bundle PySide6, SciPy and the rest -
-well over a gigabyte.
+These are launchers, not a standalone build: a self-contained executable
+would need PyInstaller and would bundle PySide6, SciPy and the rest - well
+over a gigabyte per platform.
 """
 from __future__ import annotations
 
 import os
-import platform
 import shutil
 import subprocess
 import sys
@@ -77,6 +74,91 @@ def _render_icon_pngs(sizes: list[int]) -> dict[int, bytes]:
     return images
 
 
+#: The macOS launcher. $HERE is the folder the .app sits in.
+MACOS_SCRIPT = r"""#!/bin/bash
+# ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
+# the ChartLibre folder is: the first launch installs the libraries into
+# .venv inside that folder, every later one just starts the application.
+HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
+cd "$HERE" || exit 1
+VENV="$HERE/.venv"
+LOG="$HERE/.venv-setup.log"
+
+ask() {  # ask "message" "button" -> exit status 0 when the button was pressed
+  local answer
+  answer=$(osascript -e "button returned of (display dialog \"$1\" buttons {\"Cancel\", \"$2\"} default button 2 with title \"ChartLibre\")" 2>/dev/null)
+  [ "$answer" = "$2" ]
+}
+
+if [ ! -x "$VENV/bin/python3" ]; then
+  PY=""
+  CANDIDATES=$(ls -d /Library/Frameworks/Python.framework/Versions/3.*/bin/python3 2>/dev/null | sort -t. -k2,2nr)
+  for c in $CANDIDATES /opt/homebrew/bin/python3 /usr/local/bin/python3 $(command -v python3); do
+    if [ -x "$c" ] && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
+      PY="$c"
+      break
+    fi
+  done
+  if [ -z "$PY" ]; then
+    if ask "ChartLibre needs Python 3.11 or newer.\n\nInstall it from python.org, then open ChartLibre again." "Open python.org"; then
+      open "https://www.python.org/downloads/"
+    fi
+    exit 1
+  fi
+  ask "First launch: ChartLibre will install the libraries it needs into its own folder.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
+  osascript -e 'display notification "Installing... ChartLibre opens when it is ready." with title "ChartLibre"'
+  if ! { "$PY" -m venv "$VENV" \
+         && "$VENV/bin/python3" -m pip install --upgrade pip \
+         && "$VENV/bin/python3" -m pip install -r "$HERE/requirements.txt"; } >"$LOG" 2>&1; then
+    rm -rf "$VENV"
+    osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
+    exit 1
+  fi
+fi
+exec "$VENV/bin/python3" "$HERE/main.py" "$@"
+"""
+
+#: The Windows launcher. %~dp0 is the folder the .bat sits in.
+WINDOWS_SCRIPT = r"""@echo off
+rem ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
+rem the ChartLibre folder is: the first launch installs the libraries into
+rem .venv inside that folder, every later one just starts the application.
+setlocal
+cd /d "%~dp0"
+if exist ".venv\Scripts\pythonw.exe" goto run
+
+set "PY="
+py -3 -c "import sys; sys.exit(sys.version_info < (3, 11))" >nul 2>&1 && set "PY=py -3"
+if not defined PY python -c "import sys; sys.exit(sys.version_info < (3, 11))" >nul 2>&1 && set "PY=python"
+if not defined PY (
+  echo ChartLibre needs Python 3.11 or newer.
+  echo Install it from https://www.python.org/downloads/ ^(tick "Add python.exe to PATH"^),
+  echo then open ChartLibre again.
+  start "" "https://www.python.org/downloads/"
+  pause
+  exit /b 1
+)
+
+echo First launch: installing the libraries ChartLibre needs into this folder.
+echo This needs an internet connection and takes a few minutes.
+echo.
+%PY% -m venv .venv || goto failed
+".venv\Scripts\python.exe" -m pip install --upgrade pip || goto failed
+".venv\Scripts\python.exe" -m pip install -r requirements.txt || goto failed
+
+:run
+start "" ".venv\Scripts\pythonw.exe" "%~dp0main.py" %*
+exit /b 0
+
+:failed
+echo.
+echo The installation did not complete; the messages above say why.
+if exist .venv rmdir /s /q .venv
+pause
+exit /b 1
+"""
+
+
 def make_macos_app(target_dir: Path) -> Path:
     app_dir = target_dir / f"{APP_NAME}.app"
     if app_dir.exists():
@@ -87,26 +169,21 @@ def make_macos_app(target_dir: Path) -> Path:
     resources.mkdir(parents=True)
 
     executable = macos / APP_NAME
-    executable.write_text(
-        "#!/bin/bash\n"
-        "# Made by tools/make_launcher.py: starts ChartLibre from its project folder.\n"
-        f'cd "{PROJECT_DIR}" || exit 1\n'
-        f'exec "{sys.executable}" "{PROJECT_DIR / "main.py"}" "$@"\n',
-        encoding="utf-8",
-    )
+    executable.write_text(MACOS_SCRIPT, encoding="utf-8")
     executable.chmod(0o755)
 
-    iconset = target_dir / f"{APP_NAME}.iconset"
-    iconset.mkdir(exist_ok=True)
-    pngs = _render_icon_pngs([16, 32, 64, 128, 256, 512, 1024])
-    for size in (16, 32, 128, 256, 512):
-        (iconset / f"icon_{size}x{size}.png").write_bytes(pngs[size])
-        (iconset / f"icon_{size}x{size}@2x.png").write_bytes(pngs[size * 2])
-    subprocess.run(
-        ["iconutil", "-c", "icns", str(iconset), "-o", str(resources / f"{APP_NAME}.icns")],
-        check=True,
-    )
-    shutil.rmtree(iconset)
+    if shutil.which("iconutil"):
+        iconset = target_dir / f"{APP_NAME}.iconset"
+        iconset.mkdir(exist_ok=True)
+        pngs = _render_icon_pngs([16, 32, 64, 128, 256, 512, 1024])
+        for size in (16, 32, 128, 256, 512):
+            (iconset / f"icon_{size}x{size}.png").write_bytes(pngs[size])
+            (iconset / f"icon_{size}x{size}@2x.png").write_bytes(pngs[size * 2])
+        subprocess.run(
+            ["iconutil", "-c", "icns", str(iconset), "-o", str(resources / f"{APP_NAME}.icns")],
+            check=True,
+        )
+        shutil.rmtree(iconset)
 
     (app_dir / "Contents" / "Info.plist").write_text(
         f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -132,31 +209,19 @@ def make_macos_app(target_dir: Path) -> Path:
 
 
 def make_windows_launcher(target_dir: Path) -> Path:
-    pythonw = Path(sys.executable).with_name("pythonw.exe")
-    interpreter = pythonw if pythonw.exists() else Path(sys.executable)
     launcher = target_dir / f"{APP_NAME}.bat"
-    launcher.write_text(
-        "@echo off\r\n"
-        "rem Made by tools/make_launcher.py: starts ChartLibre without a console window.\r\n"
-        f'cd /d "{PROJECT_DIR}"\r\n'
-        f'start "" "{interpreter}" "{PROJECT_DIR / "main.py"}" %*\r\n',
-        encoding="utf-8",
-    )
-    (target_dir / f"{APP_NAME}.png").write_bytes(_render_icon_pngs([256])[256])
+    # CRLF: cmd.exe reads a .bat line by line and a bare LF confuses its
+    # labels and goto.
+    launcher.write_bytes(WINDOWS_SCRIPT.replace("\n", "\r\n").encode("utf-8"))
     return launcher
 
 
 def main() -> None:
-    target_dir = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else PROJECT_DIR / "dist"
+    target_dir = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else PROJECT_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
-    system = platform.system()
-    if system == "Darwin":
-        made = make_macos_app(target_dir)
-    elif system == "Windows":
-        made = make_windows_launcher(target_dir)
-    else:
-        raise SystemExit("Linux: run `python3 main.py`, or add a .desktop entry pointing at it.")
-    print(made)
+    # Both, whatever this machine is: the folder ships to either platform.
+    print(make_macos_app(target_dir))
+    print(make_windows_launcher(target_dir))
 
 
 if __name__ == "__main__":

@@ -35,8 +35,8 @@ ASSISTANTS: tuple[tuple[str, str, str], ...] = (
     (
         "Claude",
         "Anthropic",
-        "Series operations, the fit engine, the renderers and most of the "
-        "test suite, written in conversation.",
+        "Most of the code: the interface, the analysis engines, the "
+        "renderers and the test suite, written in conversation with the author.",
     ),
     (
         "GitHub Copilot",

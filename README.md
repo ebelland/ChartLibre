@@ -2,7 +2,7 @@
 
 **A free, open-source desktop application for turning data into scientific charts — without writing code, and without a licence fee.**
 
-Scientific charting software is usually the expensive part of a small lab's or a student's toolchain. ChartLibre covers the everyday ground those packages are bought for — import a dataset, query it, plot it, fit it, export it at publication resolution — as a plain MIT-licensed desktop application you install and use for free, on Windows and macOS.
+Scientific charting software is usually the expensive part of a small lab's or a student's toolchain. ChartLibre covers the everyday ground those packages are bought for — import a dataset, query it, plot it, fit it, export it at publication resolution — as a plain MIT-licensed desktop application you install and use for free, on Windows and macOS.¹
 
 It is built on Matplotlib, so the charts are Matplotlib charts: the same output a Python script would produce, reached through a GUI instead of code.
 
@@ -37,6 +37,8 @@ ChartLibre aims at the first of those without the price tag:
 - **Publication output** — export to PNG, JPEG, **SVG** and **PDF** at a DPI you choose.
 
 > **Status: early.** ChartLibre is at version 0.1.0 and under active development. It is genuinely usable — the feature list below is what is implemented and covered by the test suite, not a roadmap — but expect rough edges, and check results that matter.
+
+> **How it was made.** ChartLibre was written mostly by [Claude](https://www.anthropic.com/claude), Anthropic's AI model, working in conversation with the author, who designed it, set its direction and tested it. The *Credits* window in the application says the same.
 
 ---
 
@@ -90,7 +92,25 @@ Highlights:
 
 ## Installation
 
-Requires **Python 3.11+**.
+No installer and no terminal needed:
+
+1. **Install Python 3.11 or newer** from [python.org](https://www.python.org/downloads/), once. On Windows, tick *Add python.exe to PATH*.
+2. **Download ChartLibre** — the green *Code* button, then *Download ZIP* — and unzip it. The `ChartLibre` folder can live anywhere: copy it where you like, as it is.
+3. **Double-click** `ChartLibre.app` on macOS or `ChartLibre.bat` on Windows.
+
+The first launch asks before installing the libraries ChartLibre needs, then does it inside the folder itself (it needs an internet connection and takes a few minutes); every launch after that opens the application straight away. Nothing is installed anywhere else, so deleting the folder removes ChartLibre completely.
+
+<details>
+<summary>If the system will not open it the first time</summary>
+
+The launchers are not signed, so the first time:
+
+- **macOS** may say it cannot check the app. Open *System Settings → Privacy & Security* and click *Open Anyway* (or right-click the app and choose *Open*).
+- **Windows** may show *Windows protected your PC*. Click *More info*, then *Run anyway*.
+</details>
+
+<details>
+<summary>From the terminal instead</summary>
 
 ```bash
 git clone https://github.com/ebelland/ChartLibre.git
@@ -98,17 +118,10 @@ cd ChartLibre
 pip install -r requirements.txt
 python main.py
 ```
+</details>
 
 On first launch ChartLibre asks whether to create a new project, open an existing one, or **load a demo**. Twenty-four demo projects ship with it, each a complete worked example — start there.
 
-<details>
-
-Qt needs a few libraries that may not be present on a minimal install:
-
-```bash
-sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
-```
-</details>
 
 ---
 
@@ -129,7 +142,7 @@ sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
 ChartLibre also ships, or draws on, other people's work:
 
 - **[SciencePlots](https://github.com/garrettj403/SciencePlots)** by John D. Garrett — the Matplotlib styles in `mplstyles/` (MIT, see [`mplstyles/LICENSE-SciencePlots`](mplstyles/LICENSE-SciencePlots)).
-- **Icons**: [SF Symbols](https://developer.apple.com/sf-symbols/) on macOS, [Segoe Fluent Icons](https://learn.microsoft.com/windows/apps/design/style/segoe-fluent-icons-font) on Windows all drawn from the system rather than shipped.
+- **Icons**: [SF Symbols](https://developer.apple.com/sf-symbols/) on macOS and [Segoe Fluent Icons](https://learn.microsoft.com/windows/apps/design/style/segoe-fluent-icons-font) on Windows, both drawn from the system rather than shipped.
 - **Demo data** in `dev/demo/sample data/`:
   [Palmer penguins](https://allisonhorst.github.io/palmerpenguins/) (Horst, Hill & Gorman; Palmer Station LTER, CC0) ·
   [Mauna Loa CO₂](https://gml.noaa.gov/ccgg/trends/) (NOAA GML and Scripps) ·
@@ -152,8 +165,12 @@ python -m pytest dev/tests -q          # add QT_QPA_PLATFORM=offscreen when head
 
 Please read [`dev/DEVELOPMENT.md`](dev/DEVELOPMENT.md) first — it explains the conventions the codebase actually follows.
 
+## Notes
+
+¹ **Linux has not been tested.** ChartLibre is Python and Qt, so it may well run from source (`python3 main.py` after `pip install -r requirements.txt`); on a minimal system Qt may also need `sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1`. Reports either way are welcome.
+
 ## Licence
 
-[MIT](LICENSE) © 2026 Enrico Bellandi. Free to use, modify and redistribute, including commercially.
+[MIT](LICENSE) © 2026 Enrico Bellandi. Free to use, modify and redistribute.
 
 *Product names mentioned above are trademarks of their respective owners and are named only to describe the kind of tool ChartLibre is an alternative to.*

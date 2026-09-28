@@ -209,8 +209,12 @@ def main() -> int:
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_chart_options.png")
 
-    # 3. Series Operations: the grid of operations and its hint bar.
+    # 3. Series Operations: the grid of operations and its hint bar, in a
+    #    panel as wide as four tiles rather than the Tables page's width,
+    #    which left most of it empty.
     _show_page(window, "nav_series_operations")
+    _settle(app)
+    _fit_operations_panel(window, columns=4)
     _settle(app)
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_series_operations.png")
@@ -231,6 +235,21 @@ def _show_page(window, action_id: str) -> None:
     Positions move whenever the rail gains a page; ids do not.
     """
     window._set_nav_index(window._left_rail.action_ids.index(action_id))
+
+
+def _fit_operations_panel(window, *, columns: int) -> None:
+    """Narrow the left column to *columns* operation tiles."""
+    from app.widgets.series_operation import SeriesOperationWidget, _TILE_MIN_WIDTH
+
+    panel = window.findChild(SeriesOperationWidget)
+    if panel is None:
+        return
+    sizes = window._main_split.sizes()
+    # Everything left of the tiles - the rail, margins, the scrollbar - is
+    # what the column has beyond the panel itself.
+    around = sizes[0] - panel.width()
+    left = around + columns * _TILE_MIN_WIDTH + 24
+    window._main_split.setSizes([left, max(sum(sizes) - left, 1)])
 
 
 def _select_figure(window, needle: str) -> bool:

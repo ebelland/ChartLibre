@@ -2528,8 +2528,8 @@ msgstr "Nom de la série :"
 msgid "Series operation"
 msgstr "Opération sur les séries"
 
-msgid "Series operations, the fit engine, the renderers and most of the test suite, written in conversation."
-msgstr "Les opérations sur les séries, le moteur d'ajustement, les moteurs de rendu et la plupart des tests, écrits en conversation."
+msgid "Most of the code: the interface, the analysis engines, the renderers and the test suite, written in conversation with the author."
+msgstr "La plus grande partie du code : l'interface, les moteurs d'analyse, les moteurs de rendu et la suite de tests, écrits en conversation avec l'auteur."
 
 msgid "Series properties"
 msgstr "Propriétés de la série"

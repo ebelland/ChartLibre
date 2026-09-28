@@ -65,3 +65,6 @@ user.json
 
 # Launchers made by tools/make_launcher.py - local to each machine.
 dist/
+
+.venv/
+.venv-setup.log
