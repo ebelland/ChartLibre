@@ -46,7 +46,6 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSpinBox,
-    QVBoxLayout,
     QWidget,
 )
 from scipy.cluster import hierarchy

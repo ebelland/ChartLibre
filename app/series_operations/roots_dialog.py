@@ -330,10 +330,6 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         layout.addWidget(container)
         return panel
 
-    def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
-
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
@@ -342,7 +338,7 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
-        return self.model_combo.currentText() or ROOT_BRENT
+        return self.current_model(ROOT_BRENT)
 
 
     # ------------------------------------------------------------------
@@ -755,9 +751,6 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
     # Results
     # ------------------------------------------------------------------
 
-    def result_to_frame(self, result: RootResult) -> pd.DataFrame:
-        return result.to_frame()
-
     def result_series_spec(
         self,
         axis_id: int,
@@ -804,10 +797,6 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
                 "markersize": 7.0,
             },
         )
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_roots": True, "roots_dialog": "series_roots"}
 
     def result_table_name(self, axis_id: int, result: RootResult) -> str:
         return generated_table_name(

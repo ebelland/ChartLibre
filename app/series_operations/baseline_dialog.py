@@ -23,7 +23,7 @@ Two estimators, in order of how much they assume:
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -243,14 +243,13 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         return widget
 
     def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
+        super().connect_operation_signals()
         self._draw_baseline_check.toggled.connect(self.mark_results_stale)
         for spin in (self._lambda_spin, self._p_spin, self._iterations_spin):
             spin.valueChanged.connect(self.mark_results_stale)
 
     def _model(self) -> str:
-        return self.model_combo.currentText() or BASELINE_ASLS
+        return self.current_model(BASELINE_ASLS)
 
     def _refresh_visibility(self) -> None:
         is_asls = self._model() == BASELINE_ASLS
@@ -313,9 +312,6 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-    def result_to_frame(self, result: BaselineResult) -> pd.DataFrame:
-        return result.to_frame()
-
     def _series_style(self, result: BaselineResult, **overrides: Any) -> dict[str, Any]:
         style: dict[str, Any] = {
             "generated_baseline": True,
@@ -354,10 +350,6 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
             )
         specs.append(self.result_series_spec(axis_id, table_name, result))
         return specs
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_baseline": True, "baseline_dialog": "series_baseline"}
 
     def result_table_name(self, axis_id: int, result: BaselineResult) -> str:
         return generated_table_name(

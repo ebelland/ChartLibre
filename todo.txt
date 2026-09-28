@@ -163,6 +163,21 @@ R-01  P1 IN CORSO. Separare i calcoli dalle finestre.
       script e ricalcolo. JMP (JSL), SPSS (syntax) e Origin (LabTalk/Python)
       separano tutti il motore dall'interfaccia.
 
+R-01b 2026-09-28 FATTO in parte: "sposta tutto il possibile nella classe
+      base". SeriesOperationDialogBase ora fornisce: evaluate() con task in
+      background e pulsante Ferma, prepare_job/finish_job, compute_results
+      predefinito, generated_style_filter ricavato dal nome del modulo,
+      result_to_frame (result.to_frame()), discard_operation_artifacts
+      (discard_result_target), apply che segna _applied, il collegamento
+      del combo del modello e current_model(). Tolti 59 metodi duplicati
+      da 19 dialoghi. Candidati rimasti: result_table_name (15 varianti
+      dello stesso schema), _refresh_visibility (14), build_model_selector
+      (18 layout simili), _result_figure_name/_label_result_axis (3).
+      Trovato durante la verifica, preesistente: Filtro su dati con date -
+      la frequenza di taglio predefinita (1) supera la frequenza di Nyquist
+      (fs derivata dalle date in secondi), quindi Anteprima fallisce finche'
+      l'utente non la cambia. Proporre un taglio relativo a fs.
+
 R-02  P1 IN CORSO. Calcoli lunghi in background, con barra di avanzamento e Annulla.
       2026-09-28 fatto per il Fit: app/utils/background.py (QThreadPool,
       risultato consegnato sul thread dell'interfaccia) e stop con

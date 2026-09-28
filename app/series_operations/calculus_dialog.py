@@ -40,7 +40,7 @@ from scipy.integrate import cumulative_trapezoid, simpson, trapezoid
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import savgol_filter
 
-from app.data.data_source import parse_roles, row_value
+from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
@@ -344,10 +344,6 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         layout.addWidget(container)
         return panel
 
-    def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
-
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
@@ -356,7 +352,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
-        return self.model_combo.currentText() or DERIV_SAVGOL
+        return self.current_model(DERIV_SAVGOL)
 
     # ------------------------------------------------------------------
     # Computation
@@ -725,13 +721,6 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
     # Where the results are drawn
     # ------------------------------------------------------------------
 
-    def apply(self) -> bool:
-        """Apply, and keep any axis this dialog created."""
-        applied = super().apply()
-        # Only now is the new axis the user's rather than this dialog's.
-        self._applied = self._applied or applied
-        return applied
-
     def resolve_target_axis_id(
         self,
         selected_axis_id: int,
@@ -815,16 +804,9 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         except Exception:
             applogger.exception("Failed to label the calculus result axis")
 
-    def discard_operation_artifacts(self) -> None:
-        """Remove the axis or figure this dialog made, when Apply never ran."""
-        self.discard_result_target()
-
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-
-    def result_to_frame(self, result: CalculusResult) -> pd.DataFrame:
-        return result.to_frame()
 
     def result_series_spec(
         self,
@@ -859,10 +841,6 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
                 "marker": "",
             },
         )
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_calculus": True, "calculus_dialog": "series_calculus"}
 
     def result_table_name(self, axis_id: int, result: CalculusResult) -> str:
         return generated_table_name(

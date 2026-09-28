@@ -25,7 +25,7 @@ other data.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -396,8 +396,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
 
     def connect_operation_signals(self) -> None:
         """Mark the preview stale whenever a parameter changes."""
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
+        super().connect_operation_signals()
         self._fs_auto_check.toggled.connect(self._refresh_visibility)
         self._fs_auto_check.toggled.connect(self.mark_results_stale)
 
@@ -937,18 +936,6 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # Base-class hooks
     # ------------------------------------------------------------------
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        """Identify the series this dialog generates, for cleanup on re-apply."""
-        return {"generated_spectral": True, "spectral_dialog": "series_spectral"}
-
-    def apply(self) -> bool:
-        """Apply, and keep the figure the results were written to."""
-        applied = super().apply()
-        # Only now is the new chart the user's rather than this dialog's.
-        self._applied = self._applied or applied
-        return applied
-
     # ------------------------------------------------------------------
     # The results get a chart of their own
     # ------------------------------------------------------------------
@@ -1023,9 +1010,6 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
             applogger.info("Discarded the unapplied spectral axis %s.", axis_id)
         except Exception:
             applogger.exception("Failed to discard spectral axis %s", axis_id)
-
-    def result_to_frame(self, result: SpectralResult) -> pd.DataFrame:
-        return result.to_frame()
 
     def result_series_spec(
         self,

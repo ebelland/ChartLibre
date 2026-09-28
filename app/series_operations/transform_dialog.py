@@ -223,10 +223,6 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
         layout.addWidget(container)
         return panel
 
-    def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
-
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
@@ -235,7 +231,7 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
         set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
-        return self.model_combo.currentText() or TRANSFORM_POWER
+        return self.current_model(TRANSFORM_POWER)
 
     # ------------------------------------------------------------------
     # Computation
@@ -319,11 +315,6 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
     # Where the result is drawn
     # ------------------------------------------------------------------
 
-    def apply(self) -> bool:
-        applied = super().apply()
-        self._applied = self._applied or applied
-        return applied
-
     def resolve_target_axis_id(
         self,
         selected_axis_id: int,
@@ -339,16 +330,9 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
             options={"grid": True, "linestyle": "-", "marker": ""},
         )
 
-    def discard_operation_artifacts(self) -> None:
-        """Remove the axis or figure this dialog made, when Apply never ran."""
-        self.discard_result_target()
-
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-
-    def result_to_frame(self, result: TransformResult) -> pd.DataFrame:
-        return result.to_frame()
 
     def result_series_spec(
         self,
@@ -371,10 +355,6 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
                 "marker": "",
             },
         )
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_transform": True, "transform_dialog": "series_transform"}
 
     def result_table_name(self, axis_id: int, result: TransformResult) -> str:
         return generated_table_name(

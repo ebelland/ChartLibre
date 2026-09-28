@@ -939,9 +939,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
     def generated_style_filter(self) -> Mapping[str, Any]:
         return {"generated": True, "dialog": "series_interpolation"}
 
-    def result_to_frame(self, result: FitResult) -> pd.DataFrame:
-        return result.to_frame()
-
     def result_table_name(self, axis_id: int, result: FitResult) -> str:
         return result.table_name
 

@@ -260,10 +260,6 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         layout.addWidget(container)
         return panel
 
-    def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
-
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
@@ -272,7 +268,7 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
-        return self.model_combo.currentText() or PEAKS_MAXIMA
+        return self.current_model(PEAKS_MAXIMA)
 
     # ------------------------------------------------------------------
     # Computation
@@ -533,9 +529,6 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
     # Results
     # ------------------------------------------------------------------
 
-    def result_to_frame(self, result: PeakResult) -> pd.DataFrame:
-        return result.to_frame()
-
     def result_series_spec(
         self,
         axis_id: int,
@@ -572,10 +565,6 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
                 "markersize": 8.0,
             },
         )
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_peaks": True, "peaks_dialog": "series_peaks"}
 
     def result_table_name(self, axis_id: int, result: PeakResult) -> str:
         return generated_table_name(

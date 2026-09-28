@@ -287,12 +287,6 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         layout.addWidget(form_container)
         return panel
 
-    def connect_operation_signals(self) -> None:
-        # Only the model combo: ParameterForm connects every declared
-        # parameter to mark_results_stale when it builds them.
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
-
     def _populate_axes(self) -> None:
         self.series_selector.reload(select_all_series=True)
 
@@ -780,9 +774,6 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             lines.append(f"Rows marked Hide=True on apply: {result.outlier_count}")
             lines.append("")
         return "\n".join(lines).strip()
-
-    def result_to_frame(self, result: OutlierResult) -> pd.DataFrame:
-        return result.to_frame()
 
     def result_series_spec(self, axis_id: int, table_name: str, result: OutlierResult) -> ResultSeriesSpec:
         del axis_id, table_name, result

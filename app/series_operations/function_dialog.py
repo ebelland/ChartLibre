@@ -551,10 +551,6 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
             options=options,
         )
 
-    def discard_operation_artifacts(self) -> None:
-        """Remove the axis or figure this dialog made, when Apply never ran."""
-        self.discard_result_target()
-
     def selected_series(self) -> list[Any]:
         """No source series: this operation generates one.
 
@@ -562,15 +558,6 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         empty selection is the normal state here rather than an error.
         """
         return []
-
-    def apply(self) -> bool:
-        """Apply, and keep any axis or figure this dialog created."""
-        applied = super().apply()
-        self._applied = self._applied or applied
-        return applied
-
-    def result_to_frame(self, result: FunctionResult) -> pd.DataFrame:
-        return result.to_frame()
 
     def result_series_spec(
         self,
@@ -606,10 +593,6 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
                 "marker": "",
             },
         )
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_function": True, "function_dialog": "series_function"}
 
     def result_table_name(self, axis_id: int, result: FunctionResult) -> str:
         return generated_table_name(

@@ -26,7 +26,7 @@ from app.series_operations.dialog_base import (
     SeriesOperationDialogBase,
     generated_table_name,
 )
-from app.series_operations.parameter_spec import ChoiceParam, FloatParam
+from app.series_operations.parameter_spec import FloatParam
 from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
 from app.utils.i18n import _
@@ -204,10 +204,6 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
         layout.addWidget(container)
         return panel
 
-    def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
-
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
@@ -323,15 +319,9 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
         except Exception:
             applogger.exception("Failed to label the GP regression result axis")
 
-    def discard_operation_artifacts(self) -> None:
-        self.discard_result_target()
-
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-
-    def result_to_frame(self, result: GPRegressionResult) -> pd.DataFrame:
-        return result.to_frame()
 
     def result_series_specs(
         self,
@@ -373,10 +363,6 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
                 style=dict(band_style),
             ),
         ]
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_gp_regression": True, "gp_regression_dialog": "series_gp_regression"}
 
     def result_table_name(self, axis_id: int, result: GPRegressionResult) -> str:
         return generated_table_name(

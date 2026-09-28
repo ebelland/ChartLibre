@@ -666,10 +666,6 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
     # Writing the series
     # ------------------------------------------------------------------
 
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_geometry": True, "geometry_dialog": "series_geometry"}
-
     def result_to_frame(self, result: GeometryResult) -> pd.DataFrame:
         """The transformed rows.
 

@@ -239,10 +239,6 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
         layout.addWidget(container)
         return panel
 
-    def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
-
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
@@ -251,7 +247,7 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
         set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
-        return self.model_combo.currentText() or DECOMP_PCA
+        return self.current_model(DECOMP_PCA)
 
 
     # ------------------------------------------------------------------
@@ -452,15 +448,9 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
         source = "+".join(result.source_names) if results else ""
         return f"{source} - {result.model}".strip(" -") or "Decomposition"
 
-    def discard_operation_artifacts(self) -> None:
-        self.discard_result_target()
-
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-
-    def result_to_frame(self, result: DecompositionResult) -> pd.DataFrame:
-        return result.to_frame()
 
     def result_series_specs(
         self,
@@ -492,13 +482,6 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
             )
             for name in result.component_names
         ]
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {
-            "generated_decomposition": True,
-            "decomposition_dialog": "series_decomposition",
-        }
 
     def result_table_name(self, axis_id: int, result: DecompositionResult) -> str:
         label = "_".join(result.source_names)[:60]

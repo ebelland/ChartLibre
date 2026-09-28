@@ -531,8 +531,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         self.mark_results_stale()
 
     def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
+        super().connect_operation_signals()
         self._size_column_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self) -> None:
@@ -1210,9 +1209,6 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
     # Results
     # ------------------------------------------------------------------
 
-    def result_to_frame(self, result: ControlChartResult) -> pd.DataFrame:
-        return result.to_frame()
-
     #: Shared by every series this operation draws, so that
     #: remove_previous_generated_series takes the whole chart away rather than
     #: leaving orphaned limit lines behind when it is re-applied.
@@ -1328,13 +1324,6 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
             )
 
         return specs
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {
-            "generated_control_chart": True,
-            "control_chart_dialog": "series_control_chart",
-        }
 
     def result_table_name(self, axis_id: int, result: ControlChartResult) -> str:
         return generated_table_name(

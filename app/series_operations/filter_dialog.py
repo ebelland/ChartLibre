@@ -22,7 +22,7 @@ including the same warning when the spacing is not uniform enough to trust.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -384,7 +384,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
             spin.valueChanged.connect(self.mark_results_stale)
 
     def _model(self) -> str:
-        return self.model_combo.currentText() or FILTER_IIR
+        return self.current_model(FILTER_IIR)
 
     def _refresh_visibility(self) -> None:
         model = self._model()
@@ -528,9 +528,6 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-    def result_to_frame(self, result: FilterResult) -> pd.DataFrame:
-        return result.to_frame()
-
     def result_series_spec(
         self, axis_id: int, table_name: str, result: FilterResult,
     ) -> ResultSeriesSpec:
@@ -549,10 +546,6 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
                 "marker": "",
             },
         )
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_filter": True, "filter_dialog": "series_filter"}
 
     def result_table_name(self, axis_id: int, result: FilterResult) -> str:
         return generated_table_name(

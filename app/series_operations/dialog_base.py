@@ -179,6 +179,10 @@ class SeriesOperationDialogBase(QDialog):
         self._preview_axis_ids: set[int] = set()
         self._preview_table_names: set[str] = set()
         self._preview_active = False
+        #: True once Apply has written the results; discard_result_target and
+        #: the dialogs' own cleanup leave an applied result alone. Kept when a
+        #: subclass set it before calling this constructor.
+        self._applied: bool = getattr(self, "_applied", False)
         # Source series name -> was its x a timestamp column? Filled by
         # series_xy as each series is read, and read back by
         # restore_temporal_x when the result is written, so a result lands
@@ -383,8 +387,22 @@ class SeriesOperationDialogBase(QDialog):
         self._update_origin_label()
     
     def connect_operation_signals(self) -> None:
-        """Subclasses connect model/parameter widgets here."""
+        """Connect the model selector; subclasses add their own widgets.
+
+        A different model shows different parameters and makes the results
+        on screen stale - true of every operation, so wired here once. An
+        override that connects more calls super() first.
+        """
+        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
+        self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
+
+    def _refresh_visibility(self, *_ignored: Any) -> None:
+        """Show the parameters the selected model uses. Nothing by default."""
         return None
+
+    def current_model(self, default: str = "") -> str:
+        """The selected model's name, or *default* while none is selected."""
+        return self.model_combo.currentText() or default
 
     # ------------------------------------------------------------------
     # Common layout
@@ -646,8 +664,13 @@ class SeriesOperationDialogBase(QDialog):
 
         ``remove_previous_generated_series`` deletes only descriptors whose
         ``style_json`` contains all these key/value pairs.
+
+        Derived from the module name by default - smoothing_dialog.py gives
+        the example above. Four operations predate the rule and keep their
+        own values, which are stored in existing projects.
         """
-        raise NotImplementedError
+        stem = type(self).__module__.rsplit(".", 1)[-1].removesuffix("_dialog")
+        return {f"generated_{stem}": True, f"{stem}_dialog": f"series_{stem}"}
 
     def compute_results(self) -> Sequence[Any]:
         """Return operation-specific result objects for the selected series.
@@ -1103,8 +1126,15 @@ class SeriesOperationDialogBase(QDialog):
         return to_numeric_axis(column)
 
     def result_to_frame(self, result: Any) -> Any:
-        """Return the pandas DataFrame to save for one result."""
-        raise NotImplementedError
+        """Return the pandas DataFrame to save for one result.
+
+        The result's own ``to_frame()`` by default, which is what almost
+        every operation's result class provides.
+        """
+        to_frame = getattr(result, "to_frame", None)
+        if callable(to_frame):
+            return to_frame()
+        raise NotImplementedError(f"{type(result).__name__} has no to_frame()")
 
     def result_series_spec(self, axis_id: int, table_name: str, result: Any) -> ResultSeriesSpec:
         """Build the chart-series descriptor for one saved result table."""
@@ -1465,8 +1495,11 @@ class SeriesOperationDialogBase(QDialog):
         writing a result table commits (pandas' to_sql does), so a dialog that
         creates its own figure has to remove it here or an abandoned chart is
         left behind.
+
+        By default, the axis or figure a result was drawn on when this dialog
+        made it (see discard_result_target); nothing when Apply ran.
         """
-        return None
+        self.discard_result_target()
 
     def apply_results_to_axis(self, axis_id: int, results: Sequence[Any]) -> None:
         """Write every result as a table plus a chart series on *axis_id*.
@@ -1828,7 +1861,9 @@ class SeriesOperationDialogBase(QDialog):
     def apply(self) -> bool:
         """Run the operation and commit it; remembers the entries either way."""
         self._remember_state()
-        return self._run_operation(commit=True)
+        applied = self._run_operation(commit=True)
+        self._applied = self._applied or applied
+        return applied
 
     def reject(self) -> None:
         """Close/Cancel rejects temporary Preview changes."""

@@ -32,7 +32,6 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSpinBox,
-    QVBoxLayout,
     QWidget,
 )
 from app.data.data_source import parse_roles, row_value
@@ -1545,10 +1544,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
                 "marker": "",
             },
         )
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_smoothing": True, "smoothing_dialog": "series_smoothing"}
 
     def result_table_name(self, axis_id: int, result: SmoothResult) -> str:
         raw = f"Smoothing_axis{axis_id}_{result.source_name}_{result.method}"

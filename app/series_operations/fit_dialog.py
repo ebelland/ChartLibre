@@ -14,7 +14,6 @@ series and the parameter table, and lays the result out.
 from __future__ import annotations
 
 from html import escape as html_escape
-from collections.abc import Mapping
 import math
 from dataclasses import dataclass
 from typing import Any, Callable, Sequence, cast
@@ -1536,10 +1535,6 @@ class SeriesFitDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # SeriesOperationDialogBase hooks
     # ------------------------------------------------------------------
-
-    @property
-    def generated_style_filter(self) -> Mapping[str, Any]:
-        return {"generated_fit": True, "fit_dialog": "series_fit"}
 
     def compute_results(self) -> Sequence[SeriesFitResult]:
         """Evaluate the model at the parameters currently in the table.
