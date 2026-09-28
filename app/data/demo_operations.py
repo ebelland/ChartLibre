@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from app.data.demo_project import DEMO_DIR, DEMO_PROJECTS, DEMO_STYLE, TABLE_SOURCES, DemoProject
+from app.data.demo_project import DEMO_DIR, DEMO_PROJECTS, TABLE_SOURCES, DemoProject, demo_style
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 
@@ -178,7 +178,7 @@ def _create_source_figure(repo: SqliteRepo, demo: OperationDemo) -> int:
     figure_id = int(
         repo.create_figure_descriptor(
             name=demo.name, nrows=1, ncols=1,
-            options={"mpl_style": DEMO_STYLE, "layout_mode": "constrained"},
+            options={"mpl_style": demo_style(), "layout_mode": "constrained"},
         )
     )
     axis_id = int(

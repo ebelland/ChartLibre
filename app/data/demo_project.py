@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -58,37 +59,20 @@ DEMO_DIR: Path = REPO_ROOT / "demo"
 #: ``demo/``.
 PROJECTS_DIR: Path = REPO_ROOT / "projects"
 
-# A calm, print-friendly style applied to every figure in the demo.
-DEMO_STYLE = """
-figure.facecolor: FBFBFD
-axes.facecolor: FFFFFF
-axes.edgecolor: C8CCD4
-axes.linewidth: 1.0
-axes.grid: True
-axes.axisbelow: True
-axes.titlesize: 13
-# bold, not 600: DejaVu Sans (Matplotlib's bundled fallback) ships only
-# normal/bold weights, so a numeric 600 request always misses and silently
-# substitutes bold anyway - "findfont: Failed to find font weight 600, now
-# using 700" on every render. Asking for what is actually there renders
-# identically without the warning.
-axes.titleweight: bold
-axes.labelcolor: 3C4250
-axes.labelsize: 10
-grid.color: E4E7EC
-grid.linewidth: 0.8
-xtick.color: 6B7280
-ytick.color: 6B7280
-xtick.labelsize: 9
-ytick.labelsize: 9
-legend.frameon: True
-legend.framealpha: 0.9
-legend.edgecolor: E4E7EC
-legend.fontsize: 9
-lines.linewidth: 1.8
-font.size: 10
-axes.prop_cycle: cycler('color', ['4C78A8', 'F58518', '54A24B', 'E45756', '72B7B2', 'B279A2'])
-"""
+#: The style every demo figure carries: the application's own default,
+#: mplstyles/ChartLibreDefault.mplstyle, embedded in each figure's options.
+#: Embedded as the editor would save it, so Figure properties recognises it
+#: and shows "ChartLibreDefault" rather than "(Embedded style)".
+DEMO_STYLE_FILE: Path = REPO_ROOT / "mplstyles" / "ChartLibreDefault.mplstyle"
+
+
+def demo_style() -> str:
+    """The demo style's text, read when the demo set is built."""
+    # Imported here: only building the demo set needs the editor's sanitiser,
+    # and "Load demo" imports this module without building anything.
+    from app.dialogs.edit_mpl_styles_dialog import _sanitize_mplstyle_text
+
+    return _sanitize_mplstyle_text(DEMO_STYLE_FILE.read_text(encoding="utf-8"))
 
 
 @dataclass(slots=True)
@@ -2856,7 +2840,7 @@ def _create_figure(repo: SqliteRepo, spec: FigureSpec) -> int:
         name=spec.name,
         nrows=1,
         ncols=1,
-        options={"mpl_style": DEMO_STYLE, "layout_mode": "constrained"},
+        options={"mpl_style": demo_style(), "layout_mode": "constrained"},
     )
     axis_id = repo.create_axis_descriptor(
         figure_id=figure_id,
@@ -2894,7 +2878,7 @@ def _create_multi_axis_figure(repo: SqliteRepo, spec: MultiAxisFigureSpec) -> in
         name=spec.name,
         nrows=1,
         ncols=1,
-        options={"mpl_style": DEMO_STYLE, "layout_mode": "constrained"},
+        options={"mpl_style": demo_style(), "layout_mode": "constrained"},
     )
 
     axis_ids: list[int] = []
@@ -2954,6 +2938,17 @@ def main() -> None:
         help=f"Write every demo project into DIRECTORY (default: {DEMO_DIR}).",
     )
     args = parser.parse_args()
+
+    # Building runs real operation dialogs, and a dialog remembers its
+    # settings and window geometry in user.json when it closes: pointed at
+    # a copy, so a build leaves the developer's own settings as they were.
+    from app.utils import config
+
+    scratch = tempfile.TemporaryDirectory(prefix="chartlibre-demo-")
+    private = Path(scratch.name) / "user.json"
+    if config.USER_CONFIG_PATH.exists():
+        private.write_bytes(config.USER_CONFIG_PATH.read_bytes())
+    config.USER_CONFIG_PATH = private
 
     if args.output:
         written = build_demo_project(Path(args.output))
