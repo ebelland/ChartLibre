@@ -649,7 +649,7 @@ The base class supplies the whole dialog shell (series picker, parameter form, p
   inset: 6pt,
   [`build_parameter_selector()`], [Build the parameter form. Simple operations describe their parameters declaratively with the helpers in `app.series_operations.parameter_spec` (`FloatParam`, `IntParam`, `ChoiceParam`, ...) rather than laying out widgets by hand.],
   [`prepare_job()` / `finish_job()`], [Read the widgets into a *job* whose `run()` does the calculation without touching the window, and turn its outcome into results. With these two, *Preview* and *OK* work unchanged, and `evaluate(..., background=True)` runs the job on a worker thread with the shared *Stop* button — see the developer guide. An operation that does not need that can override `compute_results()` instead.],
-  [`result_series_spec(s)()`], [The series metadata (name, roles, style) the base class writes to the chart. The DataFrame comes from the result's own `to_frame()`, and the table name from the `RESULT_TABLE_PREFIX` class attribute, unless you override them.],
+  [`result_series_spec(s)()`], [The series metadata (name, roles, style) the base class writes to the chart. The DataFrame comes from the result's own `to_df()`, and the table name from the `RESULT_TABLE_PREFIX` class attribute, unless you override them.],
   [`format_results()`], [Render the results as the text/HTML shown in the preview pane.],
   [`refresh_results()`], [Recompute and redraw the preview after a parameter changes.],
 )

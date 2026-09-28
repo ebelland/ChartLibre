@@ -49,6 +49,7 @@ import html
 
 from app.utils.messages import show_message
 from app.utils import report_html
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -164,7 +165,7 @@ METHOD_DOCS: dict[str, tuple[str, str]] = {
 
 
 @dataclass(slots=True)
-class SpectralResult:
+class SpectralResult(TableResult):
     """One spectral or correlation estimate, ready to save and plot."""
 
     source_name: str
@@ -176,7 +177,7 @@ class SpectralResult:
     y_label: str
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         """Return the two-column frame written to the result table."""
         return pd.DataFrame({self.x_label: self.x, self.y_label: self.y})
 

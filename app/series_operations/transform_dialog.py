@@ -27,6 +27,7 @@ from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -78,7 +79,7 @@ DEST_NEW_FIGURE = SeriesOperationDialogBase.DEST_NEW_FIGURE
 
 
 @dataclass(slots=True)
-class TransformResult:
+class TransformResult(TableResult):
     """One reshaped series for one source series."""
 
     source_name: str
@@ -88,7 +89,7 @@ class TransformResult:
     y: np.ndarray
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         return pd.DataFrame({"x": self.x, "y": self.y})
 
 

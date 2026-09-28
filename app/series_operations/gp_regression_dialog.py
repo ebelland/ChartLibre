@@ -21,6 +21,7 @@ from sklearn.gaussian_process.kernels import Matern, RBF, RationalQuadratic, Whi
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -81,7 +82,7 @@ def _build_kernel(name: str, *, length_scale: float, noise_level: float):
 
 
 @dataclass(slots=True)
-class GPRegressionResult:
+class GPRegressionResult(TableResult):
     """One source series' Gaussian-process fit: a mean curve and its band."""
 
     source_name: str
@@ -93,7 +94,7 @@ class GPRegressionResult:
     lower: np.ndarray
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {"x": self.x, "mean": self.mean, "upper": self.upper, "lower": self.lower}
         )

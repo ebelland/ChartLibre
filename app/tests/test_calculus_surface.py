@@ -142,7 +142,7 @@ def test_gradient_end_to_end_on_a_plane_series(qapp, repo: SqliteRepo) -> None:
     assert result.model == DERIV_GRADIENT_SURFACE
     assert np.allclose(result.z, np.hypot(2.0, 3.0))
 
-    frame = result.to_frame()
+    frame = result.to_df()
     assert set(frame.columns) == {"x", "y", "z", "dz_dx", "dz_dy"}
 
 

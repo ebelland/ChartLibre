@@ -48,6 +48,7 @@ from scipy.ndimage import gaussian_filter, gaussian_filter1d, median_filter
 from scipy.signal import butter, medfilt, savgol_filter, wiener
 
 from app.data.sqlite_repo import SqliteRepo
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -145,7 +146,7 @@ class SeriesChoice:
 
 
 @dataclass(slots=True)
-class SmoothResult:
+class SmoothResult(TableResult):
     """Result returned by the smoothing dialog."""
 
     source_name: str
@@ -156,6 +157,9 @@ class SmoothResult:
     z: np.ndarray | None
     values: np.ndarray | None
     metadata: dict[str, Any]
+
+    def to_df(self) -> pd.DataFrame:
+        return SeriesSmoothingDialog.results_to_dataframe([self])
 
 
 
@@ -1513,9 +1517,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
             table_name=table_name,
             normalize_columns=False,
         )
-
-    def result_to_frame(self, result: SmoothResult) -> pd.DataFrame:
-        return self.results_to_dataframe([result])
 
     def result_series_spec(self, axis_id: int, table_name: str, result: SmoothResult) -> ResultSeriesSpec:
         del axis_id

@@ -56,6 +56,7 @@ from scipy.optimize import brentq, newton, toms748
 from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -139,7 +140,7 @@ class Root:
 
 
 @dataclass(slots=True)
-class RootResult:
+class RootResult(TableResult):
     """Every crossing found in one source series."""
 
     source_name: str
@@ -149,7 +150,7 @@ class RootResult:
     roots: list[Root] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         if self.metadata.get("is_3d"):
             # A NaN row between two curve_index groups: several disconnected
             # level curves (a saddle's z=0 set is two crossing lines) are

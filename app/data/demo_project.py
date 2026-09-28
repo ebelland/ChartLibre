@@ -781,7 +781,7 @@ def _surface_bump_peaks_result() -> pd.DataFrame:
         peaks=peaks,
         metadata={"found": len(peaks), "is_3d": True, "interpolated": False},
     )
-    return result.to_frame()
+    return result.to_df()
 
 
 def _surface_saddle_roots_result() -> pd.DataFrame:
@@ -815,7 +815,7 @@ def _surface_saddle_roots_result() -> pd.DataFrame:
             "curves": len(polylines),
         },
     )
-    return result.to_frame()
+    return result.to_df()
 
 
 def _surface_bump_gradient_result() -> pd.DataFrame:
@@ -828,7 +828,7 @@ def _surface_bump_gradient_result() -> pd.DataFrame:
     xx, yy, zz = _bump_grid_arrays()
     dialog = SeriesCalculusDialog.__new__(SeriesCalculusDialog)
     result = dialog._gradient_surface("Bump", xx, yy, zz, False)
-    return result.to_frame()
+    return result.to_df()
 
 
 #: Table name -> the function that loads it. A demo file writes only the

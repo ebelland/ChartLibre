@@ -37,6 +37,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from app.analysis import geometry as geo
 from app.data.data_source import parse_roles, quote_identifier, row_value
 from app.logs.logger import applogger
+from app.series_operations.results import OperationResult
 from app.series_operations.dialog_base import ResultSeriesSpec, SeriesOperationDialogBase
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
 from app.styles.style import CardFrame, create_doc_link
@@ -70,7 +71,7 @@ AFTER_COLOUR = "#DC2626"
 
 
 @dataclass
-class GeometryResult:
+class GeometryResult(OperationResult):
     """One transformed series: the query to create, and what it looks like."""
 
     source_name: str
@@ -92,6 +93,25 @@ class GeometryResult:
     @property
     def is_3d(self) -> bool:
         return self.z_role is not None
+
+    def to_df(self) -> pd.DataFrame:
+        """The transformed rows.
+
+        Nothing in this operation's own path calls this - it writes a query,
+        not a table - but any result can be asked for its numbers.
+        """
+        data = {self.x_role: self.after_x, self.y_role: self.after_y}
+        if self.z_role is not None and self.after_z is not None:
+            data[self.z_role] = self.after_z
+        return pd.DataFrame(data)
+
+    # A series and no table: its own query carries the transform, so the
+    # descriptor is the only thing to write.
+    def preview(self, dialog: Any, axis_id: int) -> None:
+        dialog.create_preview_series(axis_id, "", self)
+
+    def apply(self, dialog: Any, axis_id: int) -> None:
+        dialog.create_result_series(axis_id, "", self)
 
 
 class _BeforeAfterView(QWidget):
@@ -683,18 +703,6 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
     # Writing the series
     # ------------------------------------------------------------------
 
-    def result_to_frame(self, result: GeometryResult) -> pd.DataFrame:
-        """The transformed rows.
-
-        Nothing in this operation's own path calls this - it writes a query,
-        not a table - but the base class offers it to anything that wants
-        the numbers, and computing them here beats raising.
-        """
-        data = {result.x_role: result.after_x, result.y_role: result.after_y}
-        if result.z_role is not None and result.after_z is not None:
-            data[result.z_role] = result.after_z
-        return pd.DataFrame(data)
-
     def result_series_spec(
         self, axis_id: int, table_name: str, result: GeometryResult
     ) -> ResultSeriesSpec:
@@ -719,20 +727,3 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
             roles=roles,
             style=style,
         )
-
-    def apply_results_to_axis(self, axis_id: int, results: Sequence[GeometryResult]) -> None:
-        """Create the series, and no table.
-
-        The base writes each result to a table and points a series at it.
-        There is nothing to write here: the series' own query carries the
-        transform, so the only artifact is the descriptor.
-        """
-        self.remove_previous_generated_series(axis_id)
-        for result in results:
-            self.create_result_series(axis_id, "", result)
-
-    def preview_results_to_axis(self, axis_id: int, results: Sequence[GeometryResult]) -> None:
-        """Same again for the preview: a descriptor, no table."""
-        self.remove_preview_artifacts(axis_id)
-        for result in results:
-            self.create_preview_series(axis_id, "", result)

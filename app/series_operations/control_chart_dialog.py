@@ -65,6 +65,7 @@ from app.data.repo.tables import QueryColumns, coerce_numeric_array
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, FloatParam, IntParam
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -186,7 +187,7 @@ class Violation:
 
 
 @dataclass(slots=True)
-class ControlChartResult:
+class ControlChartResult(TableResult):
     """One control chart - of either family - for one source series.
 
     ``upper``/``lower``/``sigma`` are scalars: the constant value on every
@@ -217,12 +218,16 @@ class ControlChartResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
+    def model_name(self) -> str:
+        return self.chart
+
+    @property
     def limits_vary(self) -> bool:
         """True when the band moves point to point (a p or u chart on an
         uneven sample size), which is what makes the zone rules illegal."""
         return bool(self.sigma_band.size and np.ptp(self.sigma_band) > 0.0)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         """Every line the chart may draw, as columns of one table.
 
         Written whether or not the corresponding checkbox is ticked: the

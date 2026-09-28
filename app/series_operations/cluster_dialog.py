@@ -56,6 +56,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers, to_numeric_axis
 from app.utils.messages import show_message
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -190,7 +191,7 @@ class ClusterSeriesChoice:
 
 
 @dataclass(slots=True)
-class ClusterResult:
+class ClusterResult(TableResult):
     """Clustering output for one source series or one generated cluster series."""
 
     source_name: str
@@ -202,6 +203,19 @@ class ClusterResult:
     z_col: str | None
     feature_columns: list[str]
     metadata: dict[str, Any]
+
+    def to_df(self) -> pd.DataFrame:
+        return self.frame
+
+    # Not a table of its own: clustering writes ClusterId into the source
+    # table and recolours or splits the source series, as a batch - see
+    # SeriesClusterDialog.apply_results_to_axis, which both of these use.
+    def preview(self, dialog: Any, axis_id: int) -> None:
+        dialog.apply_results_to_axis(axis_id, [self])
+
+    def apply(self, dialog: Any, axis_id: int) -> None:
+        dialog.apply_results_to_axis(axis_id, [self])
+
 
 def _source_table_from_sql(sql_query: str) -> str:
     match = re.search(

@@ -389,13 +389,33 @@ object. `Stopped` is a `BaseException` on purpose: the optimisers and
 searches catch `Exception` around every model evaluation (a sample the
 model cannot evaluate is "bad, move on") and would swallow a stop request.
 
+#### Results
+
+Every operation's result class derives from `OperationResult`
+(`app/series_operations/results.py`):
+
+| Member | What it is |
+| --- | --- |
+| `model_name`, `parameters`, `series` | Which model ran, with what settings, on which series. Read from the fields `model` (or `method`), `metadata` and `source_name`; a result that names them otherwise overrides the property. |
+| `to_df()` | Abstract: the numbers, as the table Apply saves. |
+| `to_html()` | A summary of the three above, in the report style. |
+| `preview(dialog, axis_id)` / `apply(dialog, axis_id)` | Abstract: put the result on the chart, temporarily or for good. |
+
+`TableResult` implements the last two for the usual case - save `to_df()`
+as a table and draw the series `result_series_spec(s)` describes - and is
+what nearly every result derives from. Geometry (a query, no table),
+Statistics (a report, nothing saved) and Clustering (ClusterId written into
+the source table) implement them themselves. The dialog base calls
+`result.apply`/`result.preview` and no longer needs to know which kind it
+has; a user-written result that predates the class still goes the old way.
+
 What the base also supplies, so an operation only overrides what differs:
 
 | Hook | Default |
 | --- | --- |
 | `generated_style_filter` | `{"generated_<stem>": True, "<stem>_dialog": "series_<stem>"}` from the module name. Clustering, Interpolation, Outliers and Statistics keep older values, which are stored in existing projects - do not change them. |
 | `result_table_name` | `<RESULT_TABLE_PREFIX>_axis<id>_<series>[_<variant>]`, the variant being the result attribute named by `RESULT_TABLE_VARIANT` (`"model"` by default, None for none). A re-run replaces the table of the same name, so keep an operation's names stable. |
-| `result_to_frame` | `result.to_frame()`. |
+| `result_to_frame` | `result.to_df()`. |
 | `discard_operation_artifacts` | `discard_result_target()`: remove the axis or figure the dialog made, unless Apply ran. |
 | `apply` | records `self._applied`. |
 | `connect_operation_signals` | model combo -> `_refresh_visibility` and `mark_results_stale`; call `super()` first when you connect more. |

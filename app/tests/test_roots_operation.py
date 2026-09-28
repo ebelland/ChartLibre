@@ -107,7 +107,7 @@ def test_bisection_converges_to_within_the_tolerance() -> None:
 # ======================================================================
 def test_the_result_frame_carries_every_root_and_its_measurements() -> None:
     result = _solve(SINE_X, SINE_Y)
-    frame = result.to_frame()
+    frame = result.to_df()
 
     assert list(frame.columns) == [
         "x", "y", "level", "rising", "method", "iterations"

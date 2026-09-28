@@ -60,6 +60,7 @@ from app.functions.starting_point import (
 
 from app.data.data_source import row_value , parse_roles
 from app.data.sqlite_repo import SqliteRepo
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -109,13 +110,13 @@ class _SurfaceInitialGuessAdapter:
         return self._cls.initial_guess(arr[:, 0], arr[:, 1], np.asarray(z, dtype=float))
 
 @dataclass(slots=True)
-class SeriesFitResult:
+class SeriesFitResult(TableResult):
     source_table: str
     x_col: str
     target_col: str
     x2_col: str | None
     fit_mode: str
-    model_name: str
+    model: str
     params: np.ndarray
     param_std: np.ndarray
     param_corr: np.ndarray
@@ -133,6 +134,17 @@ class SeriesFitResult:
     param_ci_low: np.ndarray | None = None
     param_ci_high: np.ndarray | None = None
     dof: int = 0
+
+    @property
+    def parameters(self) -> dict[str, Any]:
+        return {name: float(value) for name, value in zip(self.param_names, self.params)}
+
+    @property
+    def series(self) -> tuple[str, ...]:
+        return (self.source_table,)
+
+    def to_df(self) -> pd.DataFrame:
+        return self.frame
 
 
 @dataclass(slots=True)
@@ -1169,7 +1181,7 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             x2_col=job.x2_col,
             target_col=job.target_col,
             fit_mode="2D" if job.is_2d else "1D",
-            model_name=job.model_name,
+            model=job.model_name,
             params=outcome.params,
             param_std=outcome.std,
             param_corr=outcome.corr,
@@ -1546,9 +1558,6 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         """
         self._last_result = None
         return super().compute_results()
-
-    def result_to_frame(self, result: SeriesFitResult) -> pd.DataFrame:
-        return result.frame
 
     def result_table_name(self, axis_id: int, result: SeriesFitResult) -> str:
         return self._output_table_name()

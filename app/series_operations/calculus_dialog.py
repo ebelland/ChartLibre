@@ -44,6 +44,7 @@ from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -153,7 +154,7 @@ def _pick_time_unit(median_spacing_seconds: float) -> tuple[str, float]:
 
 
 @dataclass(slots=True)
-class CalculusResult:
+class CalculusResult(TableResult):
     """Derivative or integral of one source series."""
 
     source_name: str
@@ -175,7 +176,7 @@ class CalculusResult:
     dz_dx: np.ndarray | None = None
     dz_dy: np.ndarray | None = None
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         if self.z is not None:
             data: dict[str, np.ndarray] = {"x": self.x, "y": self.y, "z": self.z}
             if self.dz_dx is not None:

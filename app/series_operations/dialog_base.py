@@ -51,6 +51,7 @@ from app.utils.series_validation import (
     validate_xy,
 )
 from app.series_operations.parameter_form import ParameterForm
+from app.series_operations.results import OperationResult
 from app.series_operations.parameter_spec import ChoiceParam, Param, defaults
 from app.utils.messages import show_message
 from app.utils.dialog_state import (
@@ -1134,15 +1135,16 @@ class SeriesOperationDialogBase(QDialog):
         return to_numeric_axis(column)
 
     def result_to_frame(self, result: Any) -> Any:
-        """Return the pandas DataFrame to save for one result.
+        """Return the pandas DataFrame to save for one result: its to_df().
 
-        The result's own ``to_frame()`` by default, which is what almost
-        every operation's result class provides.
+        ``to_frame()`` is still accepted from a user-written result that
+        predates OperationResult.
         """
-        to_frame = getattr(result, "to_frame", None)
-        if callable(to_frame):
-            return to_frame()
-        raise NotImplementedError(f"{type(result).__name__} has no to_frame()")
+        for name in ("to_df", "to_frame"):
+            method = getattr(result, name, None)
+            if callable(method):
+                return method()
+        raise NotImplementedError(f"{type(result).__name__} has no to_df()")
 
     def result_series_spec(self, axis_id: int, table_name: str, result: Any) -> ResultSeriesSpec:
         """Build the chart-series descriptor for one saved result table."""
@@ -1536,6 +1538,10 @@ class SeriesOperationDialogBase(QDialog):
         """
         self.remove_previous_generated_series(axis_id)
         for result in results:
+            if isinstance(result, OperationResult):
+                result.apply(self, axis_id)
+                continue
+            # A user-written operation whose result predates OperationResult.
             table_name = self.result_table_name(axis_id, result)
             self.write_result_table(table_name, result)
             applogger.info(f"Saved result table: {table_name}")
@@ -1605,10 +1611,17 @@ class SeriesOperationDialogBase(QDialog):
     def preview_results_to_axis(self, axis_id: int, results: Sequence[Any]) -> None:
         self.remove_preview_artifacts(axis_id)
         for result in results:
+            if isinstance(result, OperationResult):
+                result.preview(self, axis_id)
+                continue
             table_name = self.preview_table_name(axis_id, result)
             self.write_result_table(table_name, result)
-            self._preview_table_names.add(table_name)
+            self.remember_preview_table(table_name)
             self.create_preview_series(axis_id, table_name, result)
+
+    def remember_preview_table(self, table_name: str) -> None:
+        """Note a table a preview wrote, so closing the dialog removes it."""
+        self._preview_table_names.add(table_name)
         # No optimize_db() here: a preview also runs inside the savepoint, and
         # VACUUM cannot run in a transaction (see apply_results_to_axis).
     # TO IMPLEMENT!!!!

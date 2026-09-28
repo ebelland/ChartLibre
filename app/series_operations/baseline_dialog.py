@@ -36,6 +36,7 @@ from scipy.sparse.linalg import spsolve
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -63,7 +64,7 @@ ASLS_MINIMUM_POINTS = 5
 
 
 @dataclass(slots=True)
-class BaselineResult:
+class BaselineResult(TableResult):
     """One source series, its estimated baseline, and the corrected series."""
 
     source_name: str
@@ -74,7 +75,7 @@ class BaselineResult:
     baseline: np.ndarray
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {"x": self.x, "corrected": self.corrected, "baseline": self.baseline}
         )

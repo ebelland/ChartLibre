@@ -38,6 +38,7 @@ from app.analysis import statistics as st
 from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
 from app.data.sqlite_repo import SqliteRepo
+from app.series_operations.results import OperationResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -69,7 +70,7 @@ class SeriesStatsSample:
 
 
 @dataclass(slots=True)
-class SeriesStatsResult:
+class SeriesStatsResult(OperationResult):
     """Complete statistics result for one dialog run."""
 
     samples: list[SeriesStatsSample]
@@ -80,6 +81,39 @@ class SeriesStatsResult:
     distribution: str = "best"
     exhaustive: bool = False
     rank_by: str = DEFAULT_RANK
+
+    @property
+    def parameters(self) -> dict[str, Any]:
+        return {
+            "popmean": self.popmean,
+            "alternative": self.alternative,
+            "trim_percent": self.trim_percent,
+            "distribution": self.distribution,
+        }
+
+    @property
+    def series(self) -> tuple[str, ...]:
+        return tuple(sample.name for sample in self.samples)
+
+    def to_df(self) -> pd.DataFrame:
+        """The values that were tested, one row per point."""
+        return pd.DataFrame(
+            {
+                "series": np.concatenate([[sample.name] * sample.y.size for sample in self.samples])
+                if self.samples else [],
+                "x": np.concatenate([sample.x for sample in self.samples]) if self.samples else [],
+                "y": np.concatenate([sample.y for sample in self.samples]) if self.samples else [],
+            }
+        )
+
+    # A report, not a table: the dialog publishes format_results and, when
+    # asked, draws the chart the model describes (see _run_statistics).
+    # Nothing is saved per result.
+    def preview(self, dialog: Any, axis_id: int) -> None:
+        del dialog, axis_id
+
+    def apply(self, dialog: Any, axis_id: int) -> None:
+        del dialog, axis_id
 
 
 class SeriesStatisticsDialog(SeriesOperationDialogBase):
@@ -367,9 +401,6 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
     @property
     def generated_style_filter(self) -> Mapping[str, Any]:
         return {"statistics_dialog": "series_statistics"}
-
-    def result_to_frame(self, result: Any) -> Any:
-        raise NotImplementedError("Statistics results are read-only and are not saved as tables.")
 
     def result_series_spec(self, axis_id: int, table_name: str, result: Any) -> ResultSeriesSpec:
         raise NotImplementedError("Statistics results are read-only and do not create chart series.")

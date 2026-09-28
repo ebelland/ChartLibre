@@ -29,6 +29,7 @@ from sklearn.svm import OneClassSVM
 from app.data.data_source import parse_roles, quote_identifier, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.parameter_spec import FloatParam, IntParam
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -116,7 +117,7 @@ OUTLIER_DOCS = {
 }
 
 @dataclass(slots=True)
-class OutlierResult:
+class OutlierResult(TableResult):
     """Outlier detection result for one source series."""
 
     source_name: str
@@ -134,7 +135,7 @@ class OutlierResult:
     outlier_count: int
     message: str
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         """Return a small preview frame; not used for persistence."""
         return pd.DataFrame(
             {

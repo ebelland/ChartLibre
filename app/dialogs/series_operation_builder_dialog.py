@@ -100,11 +100,17 @@ from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
+from app.series_operations.results import TableResult
 
 
 @dataclass(slots=True)
-class {class_name}Result:
-    """One computed result for one source series."""
+class {class_name}Result(TableResult):
+    """One computed result for one source series.
+
+    TableResult saves to_df() as a table and draws it through
+    result_series_spec below; model, metadata and source_name are what
+    its model_name, parameters and series report.
+    """
 
     source_name: str
     model: str
@@ -112,7 +118,7 @@ class {class_name}Result:
     y: Any
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         return pd.DataFrame({{"x": self.x, "y": self.y}})
 
 
@@ -172,9 +178,6 @@ class {class_name}(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-    def result_to_frame(self, result: {class_name}Result) -> pd.DataFrame:
-        return result.to_frame()
-
     def result_series_spec(
         self, axis_id: int, table_name: str, result: {class_name}Result
     ) -> ResultSeriesSpec:

@@ -34,6 +34,7 @@ from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -85,7 +86,7 @@ class Peak:
 
 
 @dataclass(slots=True)
-class PeakResult:
+class PeakResult(TableResult):
     """Every peak found in one source series."""
 
     source_name: str
@@ -94,7 +95,7 @@ class PeakResult:
     peaks: list[Peak] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         if self.metadata.get("is_3d"):
             return pd.DataFrame(
                 {

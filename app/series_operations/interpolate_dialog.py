@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 
 from app.data.data_source import parse_roles
 from app.data.sqlite_repo import SqliteRepo
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -171,7 +172,7 @@ class SeriesChoice:
 
 
 @dataclass(slots=True)
-class FitResult:
+class FitResult(TableResult):
     """interpolation output for one source series."""
 
     source: SeriesChoice
@@ -184,7 +185,15 @@ class FitResult:
     metrics: dict[str, float]
     message: str
 
-    def to_frame(self) -> pd.DataFrame:
+    @property
+    def parameters(self) -> dict[str, Any]:
+        return dict(self.params)
+
+    @property
+    def series(self) -> tuple[str, ...]:
+        return (self.source.name,)
+
+    def to_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
                 "source_series_id": self.source.series_id,

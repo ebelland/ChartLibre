@@ -43,6 +43,7 @@ from scipy.signal import filtfilt, firwin, hilbert, iirfilter, sosfiltfilt
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -139,7 +140,7 @@ def _two_cutoffs(response: str) -> bool:
 
 
 @dataclass(slots=True)
-class FilterResult:
+class FilterResult(TableResult):
     """One filtered/derived series for one source series."""
 
     source_name: str
@@ -149,7 +150,7 @@ class FilterResult:
     y: np.ndarray
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         return pd.DataFrame({"x": self.x, "y": self.y})
     
 
