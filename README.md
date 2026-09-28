@@ -96,7 +96,7 @@ No installer and no terminal needed:
 
 1. **Install Python 3.11 or newer** from [python.org](https://www.python.org/downloads/), once. On Windows, tick *Add python.exe to PATH*.
 2. **Download ChartLibre** — the green *Code* button, then *Download ZIP* — and unzip it. The `ChartLibre` folder can live anywhere: copy it where you like, as it is.
-3. **Double-click** `ChartLibre.app` on macOS or `ChartLibre.bat` on Windows.
+3. **Double-click** `ChartLibre.app` on macOS or `ChartLibre.exe` on Windows (`ChartLibre.bat` does the same).
 
 The first launch asks before installing the libraries ChartLibre needs, then does it inside the folder itself (it needs an internet connection and takes a few minutes); every launch after that opens the application straight away. Nothing is installed anywhere else, so deleting the folder removes ChartLibre completely.
 

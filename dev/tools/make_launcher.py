@@ -216,12 +216,56 @@ def make_windows_launcher(target_dir: Path) -> Path:
     return launcher
 
 
+LAUNCHER_SOURCE = Path(__file__).resolve().parent / "launcher"
+
+
+def make_windows_exe(target_dir: Path) -> Path | None:
+    """ChartLibre.exe: the .bat's job without a console window after setup.
+
+    Built with Zig, which cross-compiles for Windows from any system:
+    ``ZIG=/path/to/zig`` or a ``zig`` on the PATH. Without one the .exe is
+    left as it is - the .bat does the same job.
+    """
+    zig = os.environ.get("ZIG") or shutil.which("zig")
+    if not zig:
+        print("zig not found: ChartLibre.exe not rebuilt (set ZIG=/path/to/zig).")
+        return None
+    import tempfile
+    from io import BytesIO
+
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as work:
+        build = Path(work)
+        pngs = _render_icon_pngs([256])
+        Image.open(BytesIO(pngs[256])).save(
+            build / f"{APP_NAME}.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+        )
+        for name in ("chartlibre_launcher.c", "chartlibre_launcher.rc"):
+            shutil.copy(LAUNCHER_SOURCE / name, build / name)
+        exe = target_dir / f"{APP_NAME}.exe"
+        subprocess.run(
+            [
+                zig, "cc", "-target", "x86_64-windows-gnu", "-Os", "-s", "-municode", "-Wl,--subsystem,windows",
+                "chartlibre_launcher.c", "chartlibre_launcher.rc", "-o", str(exe),
+            ],
+            cwd=build,
+            check=True,
+        )
+    for leftover in target_dir.glob(f"{APP_NAME}.pdb"):
+        leftover.unlink()
+    return exe
+
+
 def main() -> None:
     target_dir = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else PROJECT_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
     # Both, whatever this machine is: the folder ships to either platform.
     print(make_macos_app(target_dir))
     print(make_windows_launcher(target_dir))
+    exe = make_windows_exe(target_dir)
+    if exe is not None:
+        print(exe)
 
 
 if __name__ == "__main__":

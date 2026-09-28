@@ -80,7 +80,7 @@ This manual describes the application as it presents itself to a user: the main 
 
 = Starting up and managing databases
 
-ChartLibre needs Python 3.11 or newer, installed once from python.org. The `ChartLibre` folder can then be copied anywhere and started by double-clicking `ChartLibre.app` on macOS or `ChartLibre.bat` on Windows. The first launch asks before installing the libraries it needs inside that same folder, which takes a few minutes and an internet connection; after that it starts straight away. Nothing is installed outside the folder, so deleting it removes ChartLibre completely.
+ChartLibre needs Python 3.11 or newer, installed once from python.org. The `ChartLibre` folder can then be copied anywhere and started by double-clicking `ChartLibre.app` on macOS or `ChartLibre.exe` on Windows (`ChartLibre.bat` does the same). The first launch asks before installing the libraries it needs inside that same folder, which takes a few minutes and an internet connection; after that it starts straight away. Nothing is installed outside the folder, so deleting it removes ChartLibre completely.
 
 On first launch, or whenever no file is given, ChartLibre asks which database to open:
 
