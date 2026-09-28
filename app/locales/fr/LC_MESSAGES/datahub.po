@@ -5899,3 +5899,12 @@ msgstr "Arrêter"
 
 msgid "Stop the fit at its next step; the parameters stay as they were."
 msgstr "Arrête l'ajustement à l'étape suivante ; les paramètres restent tels quels."
+
+msgid "Stopped. Nothing was changed."
+msgstr "Arrêté. Rien n'a été modifié."
+
+msgid "Working... press Stop to end it early."
+msgstr "Calcul en cours... appuyez sur Arrêter pour l'interrompre."
+
+msgid "Stop the calculation at its next step; nothing is changed"
+msgstr "Arrête le calcul à l'étape suivante ; rien n'est modifié"

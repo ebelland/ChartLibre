@@ -26,10 +26,6 @@ from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 from app.logs.logger import applogger
 
 
-class Cancelled(Exception):
-    """Raised inside a task's function when ``cancel()`` was asked for."""
-
-
 class _Runner(QRunnable):
     def __init__(self, task: "BackgroundTask") -> None:
         super().__init__()
@@ -50,8 +46,8 @@ class _Runner(QRunnable):
 class BackgroundTask(QObject):
     """One calculation on the thread pool.
 
-    ``function`` receives a ``threading.Event``; a long loop checks it (or
-    raises :class:`Cancelled` when it is set) so Stop takes effect.
+    ``function`` receives a ``threading.Event``; a long loop checks it and
+    raises app.analysis.Stopped when it is set, so Stop takes effect.
     """
 
     finished = Signal(object)

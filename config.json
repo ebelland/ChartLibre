@@ -460,6 +460,13 @@
       "SegoeFluent": "e768",
       "ThemeIcon": "media-playback-start"
     },
+    "operation_stop": {
+      "text": "Stop",
+      "description": "Stop the calculation at its next step; nothing is changed",
+      "SFSymbol": "stop.circle",
+      "SegoeFluent": "E71A",
+      "ThemeIcon": "process-stop"
+    },
     "run_fit": {
       "text": "Fit",
       "description": "Optimise the parameters and preview the result",

@@ -7053,3 +7053,12 @@ msgstr "Ferma"
 
 msgid "Stop the fit at its next step; the parameters stay as they were."
 msgstr "Ferma il fit al passo successivo; i parametri restano com'erano."
+
+msgid "Stopped. Nothing was changed."
+msgstr "Interrotto. Non è stato cambiato nulla."
+
+msgid "Working... press Stop to end it early."
+msgstr "Calcolo in corso... premi Ferma per interromperlo."
+
+msgid "Stop the calculation at its next step; nothing is changed"
+msgstr "Ferma il calcolo al passo successivo; non viene cambiato nulla"

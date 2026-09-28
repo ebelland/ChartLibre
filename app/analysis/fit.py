@@ -18,19 +18,14 @@ from dataclasses import dataclass
 import numpy as np
 from scipy import stats
 
+from app.analysis import Stopped
 from app.functions.optimizers import BY_KEY, DEFAULT_OPTIMIZER, run_optimizer
 
 Model = Callable[[np.ndarray, np.ndarray], np.ndarray]
 
 
-class FitStopped(BaseException):
-    """The fit was asked to stop before it finished.
-
-    A BaseException, like KeyboardInterrupt, on purpose: the optimisers
-    catch Exception around every model evaluation - a random sample the
-    model cannot evaluate is "bad, move on" - and would swallow a stop
-    request as one more bad sample.
-    """
+class FitStopped(Stopped):
+    """The fit was asked to stop before it finished. See app.analysis.Stopped."""
 
 
 @dataclass(slots=True)

@@ -44,7 +44,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from app.analysis import fit as fit_engine
-from app.utils.background import run_in_background
 from app.functions.optimizers import (
     DEFAULT_OPTIMIZER,
     LOSSES,
@@ -73,7 +72,6 @@ from app.utils import report_html
 
 from app.styles.style import (
     CardFrame,
-    action_presentation,
     create_action_button,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -168,8 +166,10 @@ class _FitJob:
     param_names: list[str]
     expression: str
     output_table: str
+    #: Fit (optimise the parameters) or merely evaluate them.
+    optimise: bool = False
 
-    def run(self, *, optimise: bool, should_stop: Callable[[], bool] | None = None) -> fit_engine.CurveFit:
+    def run(self, should_stop: Callable[[], bool] | None = None) -> fit_engine.CurveFit:
         """The calculation alone - no Qt, safe on a worker thread."""
         return fit_engine.fit_curve(
             self.model,
@@ -179,7 +179,7 @@ class _FitJob:
             self.lower,
             self.upper,
             self.fixed,
-            optimise=optimise,
+            optimise=self.optimise,
             optimizer=self.optimizer,
             loss=self.loss,
             max_nfev=self.max_nfev,
@@ -1067,35 +1067,16 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         those parameters: it optimises, writes the optimum back into the table
         so the table always says what is drawn, and then previews that.
 
-        The optimisation runs on a worker thread, so the window stays usable
-        and the Fit button becomes Stop while it runs. Pressed again, it asks
-        the fit to stop at its next evaluation of the model.
+        The optimisation goes through the base class's evaluate() on a worker
+        thread, with its Stop button and its stop on close.
         """
-        task = getattr(self, "_fit_task", None)
-        if task is not None and task.running:
-            task.cancel()
-            return
+        self.evaluate(self._after_fit, background=True, optimise=True)
 
-        job = self._prepare_job()
-        if job is None:
-            return
-        self._fit_job = job
-        self._set_fitting(True)
-        self._fit_task = run_in_background(
-            lambda cancel: job.run(optimise=True, should_stop=cancel.is_set),
-            self._on_fit_finished,
-            self._on_fit_failed,
-        )
-
-    def _on_fit_finished(self, outcome: fit_engine.CurveFit) -> None:
+    def _after_fit(self, results: Sequence[SeriesFitResult]) -> None:
         """Back on the GUI thread with the optimum: table, report, preview."""
-        self._set_fitting(False)
-        job = self._fit_job
-        if job is None:
+        if not results:
             return
-        self._last_result = self._result_from(job, outcome, optimise=True)
-        result = self._last_result
-
+        result = results[0]
         # The table is the single source of truth for what gets drawn, so the
         # optimum has to land in it rather than only in the report.
         self._set_initial_params(np.asarray(result.params, dtype=float))
@@ -1106,43 +1087,10 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         # A fit nobody can see is only half an answer.
         self.preview()
 
-    def _on_fit_failed(self, error: BaseException) -> None:
-        self._set_fitting(False)
-        if isinstance(error, fit_engine.FitStopped):
-            self.set_results_text(_("Fit stopped. The parameters in the table are unchanged."))
-            return
-        applogger.error("Fit failed: %s", error, show_dialog=True)
+    def busy_widgets(self) -> list[QWidget]:
+        return [*super().busy_widgets(), self.fit_button, self._btn_estimate]
 
-    def _set_fitting(self, running: bool) -> None:
-        """Fit becomes Stop while a fit runs; what would race with it is off."""
-        _icon, text, tooltip = action_presentation("run_fit")
-        self.fit_button.setText(_("Stop") if running else text)
-        self.fit_button.setToolTip(
-            _("Stop the fit at its next step; the parameters stay as they were.")
-            if running
-            else tooltip
-        )
-        for widget in (self.preview_button, self.apply_button, self._btn_estimate):
-            widget.setEnabled(not running)
-        if running:
-            self.set_results_text(_("Fitting... press Stop to end it early."))
-
-    def _stop_fit(self) -> None:
-        """Stop a background fit whose window is going away."""
-        task = getattr(self, "_fit_task", None)
-        if task is not None and task.running:
-            task.cancel()
-        self._fit_job = None
-
-    def reject(self) -> None:
-        self._stop_fit()
-        super().reject()
-
-    def closeEvent(self, event) -> None:  # noqa: N802
-        self._stop_fit()
-        super().closeEvent(event)
-
-    def _prepare_job(self) -> _FitJob | None:
+    def prepare_job(self, *, optimise: bool = False) -> _FitJob | None:
         """Read the data, the model and the parameter table into a job."""
         x_data, target_data, clean = self._load_fit_data()
         if x_data is None or target_data is None:
@@ -1175,7 +1123,17 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             param_names=[self._param_label(row) for row in range(len(p0))],
             expression=str(self._selected_model.get("expression", "")).strip(),
             output_table=self._output_table_name(),
+            optimise=optimise,
         )
+
+    def finish_job(self, job: _FitJob, outcome: fit_engine.CurveFit) -> list[SeriesFitResult]:
+        """The engine's outcome as this dialog's result; kept as _last_result."""
+        try:
+            self._last_result = self._result_from(job, outcome, optimise=job.optimise)
+        except Exception:
+            self._last_result = None
+            raise
+        return [self._last_result]
 
     def _result_from(
         self, job: _FitJob, outcome: fit_engine.CurveFit, *, optimise: bool
@@ -1231,24 +1189,6 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             param_ci_high=outcome.ci_high,
             dof=outcome.dof,
         )
-
-    def _evaluate(self, *, optimise: bool) -> None:
-        """Run the model once, here and now, and store it in ``_last_result``.
-
-        ``optimise=False`` evaluates the model at the parameters as they are,
-        which is what Preview and Apply do - quick, so it stays on this
-        thread; the Fit button's optimisation goes through on_fit instead.
-        """
-        try:
-            job = self._prepare_job()
-            if job is None:
-                return
-            self._last_result = self._result_from(job, job.run(optimise=optimise), optimise=optimise)
-        except Exception as exc:
-            applogger.exception("Table fit failed")
-            self._last_result = None
-            applogger.warning(f"Fit failed: {exc}")
-            raise
 
     def build_extra_action_buttons(self, layout) -> None:
         """Add the Fit button next to Preview."""
@@ -1609,8 +1549,8 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         hand-edited starting guess could never be seen - the optimiser
         overwrote it before anything was drawn.
         """
-        self._evaluate(optimise=False)
-        return [self._last_result] if self._last_result is not None else []
+        self._last_result = None
+        return super().compute_results()
 
     def result_to_frame(self, result: SeriesFitResult) -> pd.DataFrame:
         return result.frame

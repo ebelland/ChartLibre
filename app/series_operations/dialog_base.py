@@ -11,12 +11,12 @@ Subclasses provide operation-specific controls by overriding the builder hooks.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 import html
 import json
 import re
-from typing import Any
+from typing import Any, Protocol
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
@@ -26,6 +26,7 @@ import pandas as pd
 
 from scipy.interpolate import griddata
 
+from app.analysis import Stopped
 from app.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
@@ -59,6 +60,7 @@ from app.utils.dialog_state import (
     save_window_geometry,
 )
 from app.widgets.html_results import HtmlResultsView, looks_like_html, plain_to_html
+from app.utils.background import BackgroundTask, run_in_background
 from app.utils.i18n import _
 
 _TABLE_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
@@ -87,6 +89,17 @@ class ResultSeriesSpec:
     sql_query: str
     roles: Mapping[str, Any]
     style: Mapping[str, Any]
+
+class OperationJob(Protocol):
+    """What prepare_job returns: an operation's inputs, read off the window.
+
+    ``run`` is the calculation alone - no widget, no repository - so it can
+    run on a worker thread. It polls *should_stop* where it can and raises
+    app.analysis.Stopped when told to.
+    """
+
+    def run(self, should_stop: Callable[[], bool] | None = None) -> Any: ...
+
 
 class SeriesOperationDialogBase(QDialog):
     """Abstract shell for all chart-series operation dialogs.
@@ -478,6 +491,16 @@ class SeriesOperationDialogBase(QDialog):
                                   layout=action_row,
                               )
 
+        # Shown only while a calculation runs in the background: every
+        # operation gets the same Stop, in the same place. See evaluate().
+        self.stop_button = create_action_button(
+                               parent=self,
+                               action_id="operation_stop",
+                               action=self.stop_evaluation,
+                               layout=action_row,
+                           )
+        self.stop_button.setVisible(False)
+
         # Operation-specific buttons go next to Preview, on the left: they act
         # on the dialog's own state, unlike Apply/Close which end it.
         self.build_extra_action_buttons(action_row)
@@ -627,8 +650,109 @@ class SeriesOperationDialogBase(QDialog):
         raise NotImplementedError
 
     def compute_results(self) -> Sequence[Any]:
-        """Return operation-specific result objects for the selected series."""
-        raise NotImplementedError
+        """Return operation-specific result objects for the selected series.
+
+        Preview and Apply call this, on the GUI thread. An operation that
+        implements prepare_job/finish_job gets it for free; one that has not
+        been split that way yet overrides this instead.
+        """
+        job = self.prepare_job()
+        if job is None:
+            return []
+        return self.finish_job(job, job.run())
+
+    # ------------------------------------------------------------------
+    # Evaluation: one way to compute, here or on a worker thread
+    # ------------------------------------------------------------------
+
+    #: Whether evaluate() runs the job on a worker thread when the caller
+    #: does not say. Off by default: most operations finish in milliseconds,
+    #: and a thread for those only adds a flicker of disabled buttons.
+    RUN_IN_BACKGROUND: bool = False
+
+    def prepare_job(self, **options: Any) -> OperationJob | None:
+        """Read the widgets into a job, on the GUI thread; None when there is nothing to do.
+
+        The job carries everything the calculation needs - data, parameters,
+        and whatever names the result will need later - so the window can be
+        changed while it runs without mixing two runs. *options* are the
+        operation's own (the fit's ``optimise``, for one).
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} implements neither prepare_job nor compute_results"
+        )
+
+    def finish_job(self, job: OperationJob, outcome: Any) -> Sequence[Any]:
+        """Turn a job's outcome into this dialog's results, on the GUI thread."""
+        del job
+        return list(outcome) if isinstance(outcome, (list, tuple)) else [outcome]
+
+    def busy_widgets(self) -> list[QWidget]:
+        """What is switched off while a background calculation runs.
+
+        Everything that would start a second run or act on stale results;
+        subclasses add their own buttons (the fit's Fit and Estimate).
+        """
+        return [self.preview_button, self.apply_button]
+
+    @property
+    def evaluating(self) -> bool:
+        task = getattr(self, "_evaluation_task", None)
+        return task is not None and task.running
+
+    def evaluate(
+        self,
+        on_results: Callable[[Sequence[Any]], None],
+        *,
+        background: bool | None = None,
+        **options: Any,
+    ) -> None:
+        """Compute the results and hand them to *on_results*, on the GUI thread.
+
+        In the background when *background* says so (RUN_IN_BACKGROUND when
+        it does not): Stop appears, busy_widgets() are off, and closing the
+        window stops the run. *on_results* is not called when the run is
+        stopped or fails; the reason is shown instead.
+        """
+        if self.evaluating:
+            return
+        job = self.prepare_job(**options)
+        if job is None:
+            return
+        if not (self.RUN_IN_BACKGROUND if background is None else background):
+            on_results(self.finish_job(job, job.run()))
+            return
+
+        def finished(outcome: Any) -> None:
+            self._set_evaluating(False)
+            on_results(self.finish_job(job, outcome))
+
+        self._set_evaluating(True)
+        self._evaluation_task = run_in_background(
+            lambda cancel: job.run(should_stop=cancel.is_set),
+            finished,
+            self._on_evaluation_failed,
+        )
+
+    def stop_evaluation(self) -> None:
+        """Ask a background calculation to stop at its next step."""
+        task: BackgroundTask | None = getattr(self, "_evaluation_task", None)
+        if task is not None and task.running:
+            task.cancel()
+
+    def _on_evaluation_failed(self, error: BaseException) -> None:
+        self._set_evaluating(False)
+        if isinstance(error, Stopped):
+            self.set_results_text(_("Stopped. Nothing was changed."))
+            return
+        applogger.error(f"{self.operation_label} failed: {error}", show_dialog=True)
+
+    def _set_evaluating(self, running: bool) -> None:
+        self.stop_button.setVisible(running)
+        for widget in self.busy_widgets():
+            widget.setEnabled(not running)
+        if running:
+            self.set_results_text(_("Working... press Stop to end it early."))
 
     # ------------------------------------------------------------------
     # Input validation
@@ -1708,6 +1832,7 @@ class SeriesOperationDialogBase(QDialog):
 
     def reject(self) -> None:
         """Close/Cancel rejects temporary Preview changes."""
+        self.stop_evaluation()
         self._remember_state()
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
@@ -1715,6 +1840,7 @@ class SeriesOperationDialogBase(QDialog):
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Window close button also rejects temporary Preview changes."""
+        self.stop_evaluation()
         self._remember_state()
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
