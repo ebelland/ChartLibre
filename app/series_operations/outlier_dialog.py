@@ -31,6 +31,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.parameter_spec import FloatParam, IntParam
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
     generated_table_name,
@@ -42,10 +43,6 @@ from app.utils.coercion import to_numeric_axis
 # deviation over two points says nothing about either of them.
 MIN_POINTS: int = 3
 from app.utils.messages import show_message
-from app.styles.style import (
-    create_doc_link,
-    set_doc_link,
-)
 from app.utils.i18n import _
 
 
@@ -58,61 +55,54 @@ OUTLIER_LOCAL_OUTLIER_FACTOR = "Local Outlier Factor"
 OUTLIER_ONE_CLASS_SVM = "One-Class SVM"
 OUTLIER_ELLIPTIC_ENVELOPE = "Elliptic Envelope"
 
-OUTLIER_METHODS = (
-    OUTLIER_ZSCORE,
-    OUTLIER_IQR,
-    OUTLIER_MAD,
-    OUTLIER_ROLLING,
-    OUTLIER_ISOLATION_FOREST,
-    OUTLIER_LOCAL_OUTLIER_FACTOR,
-    OUTLIER_ONE_CLASS_SVM,
-    OUTLIER_ELLIPTIC_ENVELOPE,
-)
 
-#: The four statistical methods above test y alone - a residual, a z-score,
-#: a spread. These four are shape-aware: they fit the joint (x, y) point
-#: cloud as a 2D feature space, which is what lets them catch an outlier a
-#: pure-y test misses - a point that sits at a perfectly ordinary y value
-#: but far from the curve everything else traces at that x.
-SKLEARN_OUTLIER_METHODS = (
-    OUTLIER_ISOLATION_FOREST,
-    OUTLIER_LOCAL_OUTLIER_FACTOR,
-    OUTLIER_ONE_CLASS_SVM,
-    OUTLIER_ELLIPTIC_ENVELOPE,
-)
+@dataclass(frozen=True, slots=True, kw_only=True)
+class OutlierModel(OperationModel):
+    #: The first four methods test y alone - a residual, a z-score, a
+    #: spread. The shape-aware ones (scikit-learn) fit the joint (x, y)
+    #: point cloud as a 2D feature space, which is what lets them catch an
+    #: outlier a pure-y test misses - a point at a perfectly ordinary y value
+    #: but far from the curve everything else traces at that x.
+    shape_aware: bool = False
 
-OUTLIER_DOCS = {
-    OUTLIER_ZSCORE: (
-        "Z-score outlier detection",
-        "https://en.wikipedia.org/wiki/Standard_score",
+
+#: The methods offered, in combo order.
+OUTLIER_METHODS: dict[str, OutlierModel] = {
+    OUTLIER_ZSCORE: OutlierModel(
+        doc_title="Z-score outlier detection",
+        doc_url="https://en.wikipedia.org/wiki/Standard_score",
     ),
-    OUTLIER_IQR: (
-        "IQR outlier detection",
-        "https://en.wikipedia.org/wiki/Interquartile_range",
+    OUTLIER_IQR: OutlierModel(
+        doc_title="IQR outlier detection",
+        doc_url="https://en.wikipedia.org/wiki/Interquartile_range",
     ),
-    OUTLIER_MAD: (
-        "Median absolute deviation",
-        "https://en.wikipedia.org/wiki/Median_absolute_deviation",
+    OUTLIER_MAD: OutlierModel(
+        doc_title="Median absolute deviation",
+        doc_url="https://en.wikipedia.org/wiki/Median_absolute_deviation",
     ),
-    OUTLIER_ROLLING: (
-        "Rolling median residuals",
-        "https://en.wikipedia.org/wiki/Moving_average#Median_filter",
+    OUTLIER_ROLLING: OutlierModel(
+        doc_title="Rolling median residuals",
+        doc_url="https://en.wikipedia.org/wiki/Moving_average#Median_filter",
     ),
-    OUTLIER_ISOLATION_FOREST: (
-        "Isolation Forest",
-        "https://en.wikipedia.org/wiki/Isolation_forest",
+    OUTLIER_ISOLATION_FOREST: OutlierModel(
+        doc_title="Isolation Forest",
+        doc_url="https://en.wikipedia.org/wiki/Isolation_forest",
+        shape_aware=True,
     ),
-    OUTLIER_LOCAL_OUTLIER_FACTOR: (
-        "Local Outlier Factor",
-        "https://en.wikipedia.org/wiki/Local_outlier_factor",
+    OUTLIER_LOCAL_OUTLIER_FACTOR: OutlierModel(
+        doc_title="Local Outlier Factor",
+        doc_url="https://en.wikipedia.org/wiki/Local_outlier_factor",
+        shape_aware=True,
     ),
-    OUTLIER_ONE_CLASS_SVM: (
-        "One-Class SVM",
-        "https://scikit-learn.org/stable/modules/outlier_detection.html#one-class-svm",
+    OUTLIER_ONE_CLASS_SVM: OutlierModel(
+        doc_title="One-Class SVM",
+        doc_url="https://scikit-learn.org/stable/modules/outlier_detection.html#one-class-svm",
+        shape_aware=True,
     ),
-    OUTLIER_ELLIPTIC_ENVELOPE: (
-        "Elliptic Envelope (Minimum Covariance Determinant)",
-        "https://scikit-learn.org/stable/modules/outlier_detection.html#fitting-an-elliptic-envelope",
+    OUTLIER_ELLIPTIC_ENVELOPE: OutlierModel(
+        doc_title="Elliptic Envelope (Minimum Covariance Determinant)",
+        doc_url="https://scikit-learn.org/stable/modules/outlier_detection.html#fitting-an-elliptic-envelope",
+        shape_aware=True,
     ),
 }
 
@@ -149,6 +139,9 @@ class OutlierResult(TableResult):
 
 class SeriesOutlierDialog(SeriesOperationDialogBase):
     """Dialog to detect outliers and mark source rows with Hide=True."""
+
+    MODELS = OUTLIER_METHODS
+    MODEL_TOOLTIP = "Choose the outlier detection method."
     Name: str = "Outliers"
     Description = "Detect anomalies"
 
@@ -260,60 +253,20 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         self.setModal(True)
         self.series_selector.set_series_filter(self._has_query)
         self._populate_axes()
-        self._refresh_methods()
         self._refresh_visibility()
         self.mark_results_stale()
 
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        form_container = QWidget(panel)
-        form_layout = QFormLayout(form_container)
-        form_layout.setContentsMargins(0, 0, 0, 0)
-        form_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(OUTLIER_METHODS)
-        self.model_combo.setToolTip(_("Choose the outlier detection method."))
-        form_layout.addRow(_("Model:"), self.model_combo)
-
-        form_layout.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(form_container)
-        return panel
 
     def _populate_axes(self) -> None:
         self.series_selector.reload(select_all_series=True)
 
-    def _refresh_methods(self) -> None:
-        current = self.model_combo.currentText()
-        self.model_combo.blockSignals(True)
-        self.model_combo.clear()
-        self.model_combo.addItems(OUTLIER_METHODS)
-        index = self.model_combo.findText(current)
-        self.model_combo.setCurrentIndex(index if index >= 0 else 0)
-        self.model_combo.blockSignals(False)
-        self._refresh_visibility()
-
     def _refresh_visibility(self) -> None:
-        """Re-evaluate the declared visibility rules, and update the doc link.
-
-        The rows are handled by the parameter form from the ``visible_for``
-        declarations; only the documentation link, which is not a parameter,
-        is still set here.
-        """
-        model = self.model_combo.currentText()
+        """Re-evaluate the declared visibility rules (``visible_for``)."""
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.refresh_visibility()
-        title, url = OUTLIER_DOCS[model]
-        set_doc_link(self._doc_link, title, url)
 
     def compute_results(self) -> list[OutlierResult]:
         """Detect outliers for each selected source series.
@@ -652,7 +605,7 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
     def _outlier_mask(
         self, x_data: np.ndarray, y_data: np.ndarray, model: str, params: Mapping[str, Any]
     ) -> np.ndarray:
-        if model in SKLEARN_OUTLIER_METHODS:
+        if OUTLIER_METHODS[model].shape_aware:
             return self._sklearn_outlier_mask(x_data, y_data, model, params)
 
         threshold = float(params.get("threshold", 3.0))

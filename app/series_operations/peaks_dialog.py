@@ -36,10 +36,10 @@ from app.logs.logger import applogger
 from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -47,20 +47,19 @@ PEAKS_MAXIMA = "Maxima"
 PEAKS_MINIMA = "Minima"
 PEAKS_BOTH = "Maxima and minima"
 
-PEAK_MODELS = (PEAKS_MAXIMA, PEAKS_MINIMA, PEAKS_BOTH)
-
-PEAK_DOCS = {
-    PEAKS_MAXIMA: (
-        "Topographic prominence",
-        "https://en.wikipedia.org/wiki/Topographic_prominence",
+#: The models offered, in combo order, with their documentation.
+PEAK_MODELS: dict[str, OperationModel] = {
+    PEAKS_MAXIMA: OperationModel(
+        doc_title="Topographic prominence",
+        doc_url="https://en.wikipedia.org/wiki/Topographic_prominence",
     ),
-    PEAKS_MINIMA: (
-        "Topographic prominence",
-        "https://en.wikipedia.org/wiki/Topographic_prominence",
+    PEAKS_MINIMA: OperationModel(
+        doc_title="Topographic prominence",
+        doc_url="https://en.wikipedia.org/wiki/Topographic_prominence",
     ),
-    PEAKS_BOTH: (
-        "Topographic prominence",
-        "https://en.wikipedia.org/wiki/Topographic_prominence",
+    PEAKS_BOTH: OperationModel(
+        doc_title="Topographic prominence",
+        doc_url="https://en.wikipedia.org/wiki/Topographic_prominence",
     ),
 }
 
@@ -121,6 +120,10 @@ class PeakResult(TableResult):
 
 class SeriesPeaksDialog(SeriesOperationDialogBase):
     """Locate and measure peaks in a chart series."""
+
+    MODELS = PEAK_MODELS
+    MODEL_TOOLTIP = "Which turning points to look for."
+    MODEL_LABEL = "Find:"
 
     Name: str = "Peaks"
     Description = "Find and measure peaks"
@@ -238,34 +241,12 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        container = QWidget(panel)
-        form = QFormLayout(container)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(PEAK_MODELS)
-        self.model_combo.setToolTip(_("Which turning points to look for."))
-        form.addRow(_("Find:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(container)
-        return panel
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.refresh_visibility()
-        title, url = PEAK_DOCS[self._model()]
-        set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
         return self.current_model(PEAKS_MAXIMA)

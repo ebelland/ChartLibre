@@ -35,12 +35,12 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
     generated_table_name,
 )
 from app.series_operations.parameter_spec import FloatParam, IntParam
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -51,36 +51,50 @@ MANIFOLD_TSNE = "t-SNE"
 MANIFOLD_ISOMAP = "Isomap"
 MANIFOLD_LLE = "Locally Linear Embedding"
 
-DECOMPOSITION_MODELS = (DECOMP_PCA, DECOMP_FASTICA, DECOMP_NMF)
-MANIFOLD_MODELS = (MANIFOLD_TSNE, MANIFOLD_ISOMAP, MANIFOLD_LLE)
-DECOMPOSITION_ALL_MODELS = DECOMPOSITION_MODELS + MANIFOLD_MODELS
 
-DECOMPOSITION_DOCS = {
-    DECOMP_PCA: (
-        "Principal component analysis",
-        "https://en.wikipedia.org/wiki/Principal_component_analysis",
+@dataclass(frozen=True, slots=True, kw_only=True)
+class DecompositionModel(OperationModel):
+    #: A manifold embedding: the result is a 2D scatter of the samples, not
+    #: a curve per component.
+    manifold: bool = False
+
+
+#: The models offered, in combo order: the decompositions, a line, then the
+#: manifold embeddings.
+DECOMPOSITION_ALL_MODELS: dict[str, DecompositionModel] = {
+    DECOMP_PCA: DecompositionModel(
+        doc_title="Principal component analysis",
+        doc_url="https://en.wikipedia.org/wiki/Principal_component_analysis",
     ),
-    DECOMP_FASTICA: (
-        "Independent component analysis",
-        "https://en.wikipedia.org/wiki/Independent_component_analysis",
+    DECOMP_FASTICA: DecompositionModel(
+        doc_title="Independent component analysis",
+        doc_url="https://en.wikipedia.org/wiki/Independent_component_analysis",
     ),
-    DECOMP_NMF: (
-        "Non-negative matrix factorization",
-        "https://en.wikipedia.org/wiki/Non-negative_matrix_factorization",
+    DECOMP_NMF: DecompositionModel(
+        doc_title="Non-negative matrix factorization",
+        doc_url="https://en.wikipedia.org/wiki/Non-negative_matrix_factorization",
     ),
-    MANIFOLD_TSNE: (
-        "t-distributed stochastic neighbor embedding",
-        "https://en.wikipedia.org/wiki/T-distributed_stochastic_neighbor_embedding",
+    MANIFOLD_TSNE: DecompositionModel(
+        doc_title="t-distributed stochastic neighbor embedding",
+        doc_url="https://en.wikipedia.org/wiki/T-distributed_stochastic_neighbor_embedding",
+        group="manifold",
+        manifold=True,
     ),
-    MANIFOLD_ISOMAP: (
-        "Isomap",
-        "https://en.wikipedia.org/wiki/Isomap",
+    MANIFOLD_ISOMAP: DecompositionModel(
+        doc_title="Isomap",
+        doc_url="https://en.wikipedia.org/wiki/Isomap",
+        group="manifold",
+        manifold=True,
     ),
-    MANIFOLD_LLE: (
-        "Locally linear embedding",
-        "https://en.wikipedia.org/wiki/Nonlinear_dimensionality_reduction#Locally-linear_embedding",
+    MANIFOLD_LLE: DecompositionModel(
+        doc_title="Locally linear embedding",
+        doc_url="https://en.wikipedia.org/wiki/Nonlinear_dimensionality_reduction#Locally-linear_embedding",
+        group="manifold",
+        manifold=True,
     ),
 }
+DECOMPOSITION_MODELS = tuple(name for name, model in DECOMPOSITION_ALL_MODELS.items() if not model.manifold)
+
 
 
 @dataclass(slots=True)
@@ -121,6 +135,9 @@ class DecompositionResult(TableResult):
 
 class SeriesDecompositionDialog(SeriesOperationDialogBase):
     """Decompose or embed several selected series, resampled onto one grid."""
+
+    MODELS = DECOMPOSITION_ALL_MODELS
+    MODEL_TOOLTIP = "Choose a decomposition (a curve per component) or a manifold embedding (a 2D scatter)."
 
     Name: str = "Decomposition"
     Description = "Decompose or embed several series together (PCA, ICA, NMF, t-SNE, ...)"
@@ -219,37 +236,12 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        container = QWidget(panel)
-        form = QFormLayout(container)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(DECOMPOSITION_ALL_MODELS)
-        self.model_combo.insertSeparator(len(DECOMPOSITION_MODELS))
-        self.model_combo.setToolTip(
-            _("Choose a decomposition (a curve per component) or a manifold embedding (a 2D scatter).")
-        )
-        form.addRow(_("Model:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(container)
-        return panel
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.refresh_visibility()
-        title, url = DECOMPOSITION_DOCS[self._model()]
-        set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
         return self.current_model(DECOMP_PCA)
@@ -293,7 +285,7 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
             [np.interp(grid, x_values, y_values) for x_values, y_values in xy_pairs]
         )
 
-        if model in MANIFOLD_MODELS:
+        if DECOMPOSITION_ALL_MODELS[model].manifold:
             return [self._embed(names, feature_matrix, model, params)]
         return [self._decompose(names, grid, feature_matrix, model, params)]
 

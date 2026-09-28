@@ -67,10 +67,10 @@ from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, FloatParam, IntParam
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils.config import get_constant
 from app.utils.i18n import _
 from app.utils import report_html
@@ -87,46 +87,76 @@ CHART_NP = "np (count defective)"
 CHART_C = "c (defects per unit)"
 CHART_U = "u (defects per unit, variable size)"
 
-VARIABLES_CHARTS = (
-    CHART_INDIVIDUALS,
-    CHART_MOVING_RANGE,
-    CHART_XBAR_R,
-    CHART_XBAR_S,
-)
-ATTRIBUTE_CHARTS = (CHART_P, CHART_NP, CHART_C, CHART_U)
-CONTROL_CHARTS = VARIABLES_CHARTS + ATTRIBUTE_CHARTS
 
-#: Charts averaging several readings into each plotted point.
-SUBGROUPED = (CHART_XBAR_R, CHART_XBAR_S)
-#: Charts that read a sample-size column.  ``c`` is the exception among the
-#: attribute charts - it assumes a constant area of opportunity, so there is
-#: nothing to divide by.
-NEEDS_SIZE_COLUMN = frozenset({CHART_P, CHART_NP, CHART_U})
-#: Charts on the binomial (a proportion, bounded above by its sample size).
-BINOMIAL = frozenset({CHART_P, CHART_NP})
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ControlChartModel(OperationModel):
+    #: An attribute chart - a count per point - rather than a variables
+    #: chart, a measurement per point. The combo lists measurements above a
+    #: line and counts below it: picking a chart is one decision, and a user
+    #: who knows they have counts should not have to say so twice.
+    attribute: bool = False
+    #: Averages several readings into each plotted point.
+    subgrouped: bool = False
+    #: Reads a sample-size column. ``c`` is the exception among the
+    #: attribute charts - it assumes a constant area of opportunity, so there
+    #: is nothing to divide by.
+    needs_size_column: bool = False
+    #: On the binomial: a proportion, bounded above by its sample size.
+    binomial: bool = False
 
-CONTROL_DOCS = {
-    CHART_INDIVIDUALS: (
-        "Individuals control chart",
-        "https://en.wikipedia.org/wiki/Shewhart_individuals_control_chart",
+
+#: The charts offered, in combo order.
+CONTROL_CHARTS: dict[str, ControlChartModel] = {
+    CHART_INDIVIDUALS: ControlChartModel(
+        doc_title="Individuals control chart",
+        doc_url="https://en.wikipedia.org/wiki/Shewhart_individuals_control_chart",
     ),
-    CHART_MOVING_RANGE: (
-        "Moving range",
-        "https://en.wikipedia.org/wiki/Shewhart_individuals_control_chart",
+    CHART_MOVING_RANGE: ControlChartModel(
+        doc_title="Moving range",
+        doc_url="https://en.wikipedia.org/wiki/Shewhart_individuals_control_chart",
     ),
-    CHART_XBAR_R: (
-        "X-bar and R chart",
-        "https://en.wikipedia.org/wiki/X%CC%84_and_R_chart",
+    CHART_XBAR_R: ControlChartModel(
+        doc_title="X-bar and R chart",
+        doc_url="https://en.wikipedia.org/wiki/X%CC%84_and_R_chart",
+        subgrouped=True,
     ),
-    CHART_XBAR_S: (
-        "X-bar and s chart",
-        "https://en.wikipedia.org/wiki/X%CC%84_and_s_chart",
+    CHART_XBAR_S: ControlChartModel(
+        doc_title="X-bar and s chart",
+        doc_url="https://en.wikipedia.org/wiki/X%CC%84_and_s_chart",
+        subgrouped=True,
     ),
-    CHART_P: ("p-chart", "https://en.wikipedia.org/wiki/P-chart"),
-    CHART_NP: ("np-chart", "https://en.wikipedia.org/wiki/Np-chart"),
-    CHART_C: ("c-chart", "https://en.wikipedia.org/wiki/C-chart"),
-    CHART_U: ("u-chart", "https://en.wikipedia.org/wiki/U-chart"),
+    CHART_P: ControlChartModel(
+        doc_title="p-chart",
+        doc_url="https://en.wikipedia.org/wiki/P-chart",
+        group="attributes",
+        attribute=True,
+        needs_size_column=True,
+        binomial=True,
+    ),
+    CHART_NP: ControlChartModel(
+        doc_title="np-chart",
+        doc_url="https://en.wikipedia.org/wiki/Np-chart",
+        group="attributes",
+        attribute=True,
+        needs_size_column=True,
+        binomial=True,
+    ),
+    CHART_C: ControlChartModel(
+        doc_title="c-chart",
+        doc_url="https://en.wikipedia.org/wiki/C-chart",
+        group="attributes",
+        attribute=True,
+    ),
+    CHART_U: ControlChartModel(
+        doc_title="u-chart",
+        doc_url="https://en.wikipedia.org/wiki/U-chart",
+        group="attributes",
+        attribute=True,
+        needs_size_column=True,
+    ),
 }
+SUBGROUPED = tuple(name for name, chart in CONTROL_CHARTS.items() if chart.subgrouped)
+
 
 #: Unbiasing constants by subgroup size, from the standard SPC tables.
 #: n -> (d2, d3, c4, A2, D3, D4, B3, B4)
@@ -340,6 +370,10 @@ def attribute_limits(
 class SeriesControlChartDialog(SeriesOperationDialogBase):
     """Draw a Shewhart control chart - variables or attributes - for a series."""
 
+    MODELS = CONTROL_CHARTS
+    MODEL_LABEL = "Chart:"
+    MODEL_TOOLTIP = "Measurements above the line, counts below it."
+
     Name: str = "Control Chart"
     Description = "Monitor process stability (I-MR, X-bar, p, np, c, u)"
 
@@ -472,35 +506,8 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._size_column_combo = QComboBox(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        container = QWidget(panel)
-        form = QFormLayout(container)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(VARIABLES_CHARTS)
-        # A separator, not two combos or a family radio above them: picking a
-        # chart is one decision, and a user who knows they have counts rather
-        # than measurements should not have to say so twice.
-        self.model_combo.insertSeparator(self.model_combo.count())
-        self.model_combo.addItems(ATTRIBUTE_CHARTS)
-        self.model_combo.setToolTip(
-            _("Measurements above the line, counts below it.")
-        )
-        form.addRow(_("Chart:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(container)
-        return panel
 
     def build_parameter_selector(self) -> QWidget:
         """The declared parameters, plus the one that cannot be declared.
@@ -543,10 +550,8 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         if form is not None:
             form.refresh_visibility()
         self.set_row_visible(
-            self._size_column_combo, self._chart() in NEEDS_SIZE_COLUMN
+            self._size_column_combo, CONTROL_CHARTS[self._chart()].needs_size_column
         )
-        title, url = CONTROL_DOCS.get(self._chart(), ("", ""))
-        set_doc_link(self._doc_link, title, url)
 
     def _refresh_size_columns(self) -> None:
         """Fill the sample-size combo with the selected series' columns."""
@@ -631,7 +636,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
             else np.arange(counts.size, dtype=float)
         )
 
-        if chart in NEEDS_SIZE_COLUMN:
+        if CONTROL_CHARTS[chart].needs_size_column:
             size_col = self._size_column_combo.currentText().strip()
             size_col = size_col or str(roles.get("n") or roles.get("sample_size") or "")
             if size_col not in columns:
@@ -652,7 +657,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
             )
         if np.any(counts < 0):
             raise ValueError("the count column has negative values")
-        if chart in BINOMIAL and np.any(counts > sizes):
+        if CONTROL_CHARTS[chart].binomial and np.any(counts > sizes):
             raise ValueError("a subgroup has more defectives than its sample size")
 
         order = np.argsort(x_values, kind="stable")
@@ -672,7 +677,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         for row in self.selected_series():
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
-                if chart in ATTRIBUTE_CHARTS:
+                if CONTROL_CHARTS[chart].attribute:
                     x_values, counts, sizes = self._series_counts(row, name, chart)
                     results.append(
                         self._build_attribute_chart(
@@ -767,7 +772,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
                 f"only {x_values.size} subgroups; "
                 f"{RECOMMENDED_SUBGROUPS}+ give trustworthy limits"
             )
-        if chart in NEEDS_SIZE_COLUMN:
+        if CONTROL_CHARTS[chart].needs_size_column:
             meta["mean sample size"] = float(np.mean(sizes))
             if float(sizes.min()) != float(sizes.max()):
                 meta["limits"] = "vary with the sample size"
@@ -848,7 +853,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         sigma_limit = float(params.get("sigma_limit", 3.0))
         use_nelson = bool(params.get("nelson", True))
 
-        if chart in SUBGROUPED:
+        if CONTROL_CHARTS[chart].subgrouped:
             built = self._subgrouped_chart(x_values, y_values, chart, params, sigma_limit)
         elif chart == CHART_MOVING_RANGE:
             built = self._moving_range_chart(x_values, y_values, sigma_limit)
@@ -873,7 +878,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
                 # sigma: the point is to exclude assignable causes, not to
                 # make the estimator robust to them.
                 sub_x, sub_y = plot_x[keep], plot_y[keep]
-                if chart in SUBGROUPED:
+                if CONTROL_CHARTS[chart].subgrouped:
                     center, upper, lower, sigma = self._limits_from_subgroup_stats(
                         sub_y, meta.get("dispersion_kept", sub_y), subgroup, sigma_limit, chart
                     )
@@ -1349,7 +1354,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
                 (_("Chart"), result.chart),
                 (_("Points plotted"), result.y.size),
             ]
-            if result.chart not in ATTRIBUTE_CHARTS:
+            if not CONTROL_CHARTS[result.chart].attribute:
                 summary_rows.append((_("Subgroup size"), result.subgroup_size))
             summary_rows.append(
                 (_("Centre line"), report_html.format_number(result.center))

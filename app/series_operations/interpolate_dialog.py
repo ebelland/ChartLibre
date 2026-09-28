@@ -41,6 +41,7 @@ from app.data.data_source import parse_roles
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
     generated_table_name,
@@ -71,85 +72,73 @@ MODEL_SCIPY_CUBIC: Final[str] = "SciPy CubicSpline"
 MODEL_SCIPY_SPLINE: Final[str] = "SciPy spline family"
 MODEL_SCIPY_AKIMA: Final[str] = "SciPy Akima"
 
-MODEL_NAMES: Final[tuple[str, ...]] = (
-    MODEL_POLYNOMIAL,
-    MODEL_LINEAR,
-    MODEL_EXPONENTIAL,
-    MODEL_LOGARITHMIC,
-    MODEL_POWER,
-    MODEL_GAUSSIAN,
-    MODEL_SIGMOID,
-    MODEL_NUMPY_INTERP,
-    MODEL_SCIPY_PCHIP,
-    MODEL_SCIPY_AKIMA,
-    MODEL_SCIPY_CUBIC,
-    MODEL_SCIPY_SPLINE,
-)
 
-INTERPOLATION_MODELS: Final[set[str]] = {
-    MODEL_NUMPY_INTERP,
-    MODEL_SCIPY_PCHIP,
-    MODEL_SCIPY_AKIMA,
-    MODEL_SCIPY_CUBIC,
-    MODEL_SCIPY_SPLINE,
-}
+@dataclass(frozen=True, slots=True, kw_only=True)
+class InterpolationModel(OperationModel):
+    #: Fitted by scipy.optimize.curve_fit from starting parameters, which the
+    #: user may guess or type in.
+    curve_fit: bool = False
 
-CURVE_FIT_MODELS: Final[set[str]] = {
-    MODEL_EXPONENTIAL,
-    MODEL_LOGARITHMIC,
-    MODEL_POWER,
-    MODEL_GAUSSIAN,
-    MODEL_SIGMOID,
-}
 
-MODEL_DOCS: Final[dict[str, tuple[str, str]]] = {
-    MODEL_POLYNOMIAL: (
-        "NumPy polyfit",
-        "https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html",
+#: The models offered, in combo order.
+MODEL_NAMES: dict[str, InterpolationModel] = {
+    MODEL_POLYNOMIAL: InterpolationModel(
+        doc_title="NumPy polyfit",
+        doc_url="https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html",
     ),
-    MODEL_LINEAR: (
-        "NumPy polyfit",
-        "https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html",
+    MODEL_LINEAR: InterpolationModel(
+        doc_title="NumPy polyfit",
+        doc_url="https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html",
     ),
-    MODEL_NUMPY_INTERP: (
-        "NumPy interp",
-        "https://numpy.org/doc/stable/reference/generated/numpy.interp.html",
+    MODEL_EXPONENTIAL: InterpolationModel(
+        doc_title="SciPy curve_fit",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+        curve_fit=True,
     ),
-    MODEL_SCIPY_PCHIP: (
-        "SciPy PchipInterpolator",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.PchipInterpolator.html",
+    MODEL_LOGARITHMIC: InterpolationModel(
+        doc_title="SciPy curve_fit",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+        curve_fit=True,
     ),
-    MODEL_SCIPY_AKIMA: (
-        "SciPy Akima1DInterpolator",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Akima1DInterpolator.html",
+    MODEL_POWER: InterpolationModel(
+        doc_title="SciPy curve_fit",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+        curve_fit=True,
     ),
-    MODEL_SCIPY_CUBIC: (
-        "SciPy CubicSpline",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicSpline.html",
+    MODEL_GAUSSIAN: InterpolationModel(
+        doc_title="SciPy curve_fit",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+        curve_fit=True,
     ),
-    MODEL_SCIPY_SPLINE: (
-        "SciPy interpolation",
-        "https://docs.scipy.org/doc/scipy/tutorial/interpolate.html",
+    MODEL_SIGMOID: InterpolationModel(
+        doc_title="SciPy curve_fit",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+        curve_fit=True,
     ),
-    MODEL_EXPONENTIAL: (
-        "SciPy curve_fit",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+    MODEL_NUMPY_INTERP: InterpolationModel(
+        doc_title="NumPy interp",
+        doc_url="https://numpy.org/doc/stable/reference/generated/numpy.interp.html",
+        group="interpolation",
     ),
-    MODEL_LOGARITHMIC: (
-        "SciPy curve_fit",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+    MODEL_SCIPY_PCHIP: InterpolationModel(
+        doc_title="SciPy PchipInterpolator",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.PchipInterpolator.html",
+        group="interpolation",
     ),
-    MODEL_POWER: (
-        "SciPy curve_fit",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+    MODEL_SCIPY_AKIMA: InterpolationModel(
+        doc_title="SciPy Akima1DInterpolator",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Akima1DInterpolator.html",
+        group="interpolation",
     ),
-    MODEL_GAUSSIAN: (
-        "SciPy curve_fit",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+    MODEL_SCIPY_CUBIC: InterpolationModel(
+        doc_title="SciPy CubicSpline",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicSpline.html",
+        group="interpolation",
     ),
-    MODEL_SIGMOID: (
-        "SciPy curve_fit",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html",
+    MODEL_SCIPY_SPLINE: InterpolationModel(
+        doc_title="SciPy interpolation",
+        doc_url="https://docs.scipy.org/doc/scipy/tutorial/interpolate.html",
+        group="interpolation",
     ),
 }
 
@@ -207,6 +196,9 @@ class FitResult(TableResult):
 
 class SeriesInterpolateDialog(SeriesOperationDialogBase):
     """Compact series fitting/interpolation dialog for one chart panel."""
+
+    MODELS = MODEL_NAMES
+    MODEL_TOOLTIP = "Choose the fitting/interpolation model."
     Name: str  = "Interpolation"
     Description = "Fill missing values"
 
@@ -253,7 +245,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         self._last_results: list[FitResult] = []
         self._settings_form: QFormLayout | None = None
 
-        self._doc_link = QLabel(self)
         self._degree_spin = QSpinBox(self)
         self._points_spin = QSpinBox(self)
         self._spacing_combo = QComboBox(self)
@@ -275,18 +266,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # UI
     # ------------------------------------------------------------------
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        form = QFormLayout(panel)
-        form.setContentsMargins(4, 4, 4, 4)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-        self.model_combo.addItems(MODEL_NAMES)
-        form.addRow(_("Model:"), self.model_combo)
-        self._doc_link.setOpenExternalLinks(True)
-        self._doc_link.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-        form.addRow(_("Docs:"), self._doc_link)
-        return panel
 
     def build_parameter_selector(self) -> QWidget:
         settings = QWidget(self)
@@ -397,7 +376,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         self._params_edit.textChanged.connect(self.mark_results_stale)
 
     def _set_setting_tooltips(self) -> None:
-        self.model_combo.setToolTip(_("Choose the fitting/interpolation model."))
         self._doc_link.setToolTip(_("Open NumPy/SciPy documentation for the model."))
         self._degree_spin.setToolTip(_("Polynomial degree for NumPy polyfit."))
         self._points_spin.setToolTip(_("Number of generated points for continuous spacing modes."))
@@ -458,7 +436,9 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         spacing = self._spacing_combo.currentText()
         spline_type = self._spline_type_combo.currentText()
 
-        uses_interpolation = model in INTERPOLATION_MODELS
+        # Starting parameters are curve_fit's p0: the fitted models take them,
+        # interpolation has none to take.
+        uses_start_params = MODEL_NAMES[model].curve_fit
         uses_poly_degree = model == MODEL_POLYNOMIAL
         uses_spline_menu = model == MODEL_SCIPY_SPLINE
         uses_spline_k = uses_spline_menu and spline_type in {
@@ -497,17 +477,12 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         self._set_form_row_visible(self._spline_degree_spin, uses_spline_k)
         self._set_form_row_visible(self._cubic_bc_combo, uses_boundary)
         self._set_form_row_visible(self._smoothing_spin, uses_smoothing)
-        self._set_form_row_visible(self._guess_check, uses_interpolation)
-        self._set_form_row_visible(self._params_edit, uses_interpolation)
-        self._params_label.setVisible(uses_interpolation)
+        self._set_form_row_visible(self._guess_check, uses_start_params)
+        self._set_form_row_visible(self._params_edit, uses_start_params)
+        self._params_label.setVisible(uses_start_params)
 
-        title, url = MODEL_DOCS.get(
-            model,
-            ("SciPy interpolation", "https://docs.scipy.org/doc/scipy/tutorial/interpolate.html"),
-        )
-        self.set_doc_link(title, url)
 
-        if uses_interpolation and self._guess_check.isChecked():
+        if uses_start_params and self._guess_check.isChecked():
             self._params_edit.blockSignals(True)
             self._params_edit.setPlainText(
                 json.dumps(self._default_params_for_model(model), indent=2)
@@ -523,7 +498,7 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
     def _start_params(self) -> dict[str, float]:
-        if self._model_name() not in INTERPOLATION_MODELS:
+        if not MODEL_NAMES[self._model_name()].curve_fit:
             return {}
         text = self._params_edit.toPlainText().strip()
         if not text:

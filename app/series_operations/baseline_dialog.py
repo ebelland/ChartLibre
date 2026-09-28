@@ -38,24 +38,23 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils.i18n import _
 
 BASELINE_ASLS = "Asymmetric Least Squares (AsLS)"
 BASELINE_RUBBER = "Rubber band"
-BASELINE_MODELS = (BASELINE_ASLS, BASELINE_RUBBER)
-
-BASELINE_DOCS = {
-    BASELINE_ASLS: (
-        "Eilers & Boelens (2005), Asymmetric Least Squares Smoothing",
-        "https://www.researchgate.net/publication/228961729_Asymmetric_least_squares_smoothing",
+#: The models offered, in combo order, with their documentation.
+BASELINE_MODELS: dict[str, OperationModel] = {
+    BASELINE_ASLS: OperationModel(
+        doc_title="Eilers & Boelens (2005), Asymmetric Least Squares Smoothing",
+        doc_url="https://www.researchgate.net/publication/228961729_Asymmetric_least_squares_smoothing",
     ),
-    BASELINE_RUBBER: (
-        "Rubber-band / convex-hull baseline",
-        "https://en.wikipedia.org/wiki/Convex_hull",
+    BASELINE_RUBBER: OperationModel(
+        doc_title="Rubber-band / convex-hull baseline",
+        doc_url="https://en.wikipedia.org/wiki/Convex_hull",
     ),
 }
 
@@ -148,6 +147,10 @@ def rubber_band_baseline(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 class SeriesBaselineDialog(SeriesOperationDialogBase):
     """Estimate and subtract the slow background under a series."""
 
+    MODELS = BASELINE_MODELS
+    MODEL_TOOLTIP = "Choose the baseline estimator."
+    MODEL_LABEL = "Method:"
+
     Name: str = "Baseline Correction"
     Description = "Subtract a spectrum's background (AsLS or rubber band)"
 
@@ -179,29 +182,10 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._lambda_spin = QDoubleSpinBox(self)
         self._p_spin = QDoubleSpinBox(self)
         self._iterations_spin = QSpinBox(self)
         self._draw_baseline_check = QCheckBox("", self)
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        form = QFormLayout()
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(BASELINE_MODELS)
-        self.model_combo.setToolTip(_("Choose the baseline estimator."))
-        form.addRow(_("Method:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addLayout(form)
-        return panel
 
     def build_parameter_selector(self) -> QWidget:
         widget = QWidget(self)
@@ -256,8 +240,6 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         self.set_row_visible(self._lambda_spin, is_asls)
         self.set_row_visible(self._p_spin, is_asls)
         self.set_row_visible(self._iterations_spin, is_asls)
-        title, url = BASELINE_DOCS.get(self._model(), ("", ""))
-        set_doc_link(self._doc_link, title, url)
 
 
     # ------------------------------------------------------------------

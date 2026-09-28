@@ -51,10 +51,10 @@ from app.utils.messages import show_message
 from app.utils import report_html
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils.i18n import _
 from app.utils.coercion import to_numbers
 
@@ -72,40 +72,74 @@ METHOD_XCORR = "Cross-correlation"
 METHOD_LAPLACE = "Laplace transform (damped FFT)"
 METHOD_WAVELET = "Wavelet power spectrum (Morlet)"
 
-SPECTRAL_METHODS: tuple[str, ...] = (
-    METHOD_PSD,
-    METHOD_CSD,
-    METHOD_COHERENCE,
-    METHOD_MAGNITUDE,
-    METHOD_PHASE,
-    METHOD_ANGLE,
-    METHOD_LAPLACE,
-    METHOD_WAVELET,
-    METHOD_ACORR,
-    METHOD_XCORR,
-)
 
-# Methods that consume a pair of signals rather than one.
-PAIRED_METHODS: frozenset[str] = frozenset(
-    {METHOD_CSD, METHOD_COHERENCE, METHOD_XCORR}
-)
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SpectralMethod(OperationModel):
+    #: Reads a pair of signals rather than one.
+    paired: bool = False
+    #: Its output lives in the frequency domain.
+    frequency: bool = False
+    #: Uses Welch segmentation (nperseg / overlap / window).
+    welch: bool = False
 
-# Methods whose output lives in the frequency domain.
-FREQUENCY_METHODS: frozenset[str] = frozenset(
-    {
-        METHOD_PSD,
-        METHOD_CSD,
-        METHOD_COHERENCE,
-        METHOD_MAGNITUDE,
-        METHOD_PHASE,
-        METHOD_ANGLE,
-        METHOD_LAPLACE,
-        METHOD_WAVELET,
-    }
-)
 
-# Methods that use Welch segmentation (nperseg / overlap / window).
-WELCH_METHODS: frozenset[str] = frozenset({METHOD_PSD, METHOD_CSD, METHOD_COHERENCE})
+#: The models offered, in combo order.
+SPECTRAL_METHODS: dict[str, SpectralMethod] = {
+    METHOD_PSD: SpectralMethod(
+        doc_title="scipy.signal.welch",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.welch.html",
+        frequency=True,
+        welch=True,
+    ),
+    METHOD_CSD: SpectralMethod(
+        doc_title="scipy.signal.csd",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.csd.html",
+        paired=True,
+        frequency=True,
+        welch=True,
+    ),
+    METHOD_COHERENCE: SpectralMethod(
+        doc_title="scipy.signal.coherence",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.coherence.html",
+        paired=True,
+        frequency=True,
+        welch=True,
+    ),
+    METHOD_MAGNITUDE: SpectralMethod(
+        doc_title="Magnitude spectrum",
+        doc_url="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.magnitude_spectrum.html",
+        frequency=True,
+    ),
+    METHOD_PHASE: SpectralMethod(
+        doc_title="Phase spectrum",
+        doc_url="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.phase_spectrum.html",
+        frequency=True,
+    ),
+    METHOD_ANGLE: SpectralMethod(
+        doc_title="Angle spectrum",
+        doc_url="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.angle_spectrum.html",
+        frequency=True,
+    ),
+    METHOD_LAPLACE: SpectralMethod(
+        doc_title="Laplace transform",
+        doc_url="https://en.wikipedia.org/wiki/Laplace_transform",
+        frequency=True,
+    ),
+    METHOD_WAVELET: SpectralMethod(
+        doc_title="Continuous wavelet transform",
+        doc_url="https://en.wikipedia.org/wiki/Continuous_wavelet_transform",
+        frequency=True,
+    ),
+    METHOD_ACORR: SpectralMethod(
+        doc_title="Autocorrelation",
+        doc_url="https://numpy.org/doc/stable/reference/generated/numpy.correlate.html",
+    ),
+    METHOD_XCORR: SpectralMethod(
+        doc_title="Cross-correlation",
+        doc_url="https://numpy.org/doc/stable/reference/generated/numpy.correlate.html",
+        paired=True,
+    ),
+}
 
 WINDOWS: tuple[str, ...] = (
     "hann",
@@ -119,49 +153,6 @@ WINDOWS: tuple[str, ...] = (
 DETREND_MODES: tuple[str, ...] = ("constant", "linear", "none")
 
 CORRELATION_NORMALISATIONS: tuple[str, ...] = ("unbiased", "biased", "none")
-
-METHOD_DOCS: dict[str, tuple[str, str]] = {
-    METHOD_PSD: (
-        "scipy.signal.welch",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.welch.html",
-    ),
-    METHOD_CSD: (
-        "scipy.signal.csd",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.csd.html",
-    ),
-    METHOD_COHERENCE: (
-        "scipy.signal.coherence",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.coherence.html",
-    ),
-    METHOD_MAGNITUDE: (
-        "Magnitude spectrum",
-        "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.magnitude_spectrum.html",
-    ),
-    METHOD_PHASE: (
-        "Phase spectrum",
-        "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.phase_spectrum.html",
-    ),
-    METHOD_ANGLE: (
-        "Angle spectrum",
-        "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.angle_spectrum.html",
-    ),
-    METHOD_ACORR: (
-        "Autocorrelation",
-        "https://numpy.org/doc/stable/reference/generated/numpy.correlate.html",
-    ),
-    METHOD_XCORR: (
-        "Cross-correlation",
-        "https://numpy.org/doc/stable/reference/generated/numpy.correlate.html",
-    ),
-    METHOD_LAPLACE: (
-        "Laplace transform",
-        "https://en.wikipedia.org/wiki/Laplace_transform",
-    ),
-    METHOD_WAVELET: (
-        "Continuous wavelet transform",
-        "https://en.wikipedia.org/wiki/Continuous_wavelet_transform",
-    ),
-}
 
 
 @dataclass(slots=True)
@@ -184,6 +175,10 @@ class SpectralResult(TableResult):
 
 class SeriesSpectralDialog(SeriesOperationDialogBase):
     """Compute spectra and correlations and attach them to the chart."""
+
+    MODELS = SPECTRAL_METHODS
+    MODEL_TOOLTIP = "Choose the spectral or correlation estimator."
+    MODEL_LABEL = "Method:"
 
     # format_results builds a table; without this the pane would show the
     # markup as literal text.
@@ -250,7 +245,6 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     def init_operation_widgets(self) -> None:
         """Create the controls before the base class builds the panels."""
-        self._doc_link = create_doc_link(self)
         self._fs_auto_check = QCheckBox(_("Derive from the x role"), self)
         self._fs_spin = QDoubleSpinBox(self)
         self._nperseg_spin = QSpinBox(self)
@@ -266,26 +260,6 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         self._wavelet_scales_spin = QSpinBox(self)
         self._corr_norm_combo = QComboBox(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        """Method combo plus a documentation link for the selected method."""
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        form = QFormLayout()
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(SPECTRAL_METHODS)
-        self.model_combo.setToolTip(_("Choose the spectral or correlation estimator."))
-        form.addRow(_("Method:"), self.model_combo)
-
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addLayout(form)
-        return panel
 
     def build_parameter_selector(self) -> QWidget:
         """Parameters, shown and hidden per method by _refresh_visibility."""
@@ -431,12 +405,9 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
             return
 
         method = self.model_combo.currentText()
-        is_welch = method in WELCH_METHODS
-        is_frequency = method in FREQUENCY_METHODS
+        is_welch = SPECTRAL_METHODS[method].welch
+        is_frequency = SPECTRAL_METHODS[method].frequency
         is_correlation = not is_frequency
-
-        name, url = METHOD_DOCS.get(method, ("", ""))
-        set_doc_link(self._doc_link, name, url)
 
         self.set_row_visible(self._fs_auto_check, is_frequency)
         self.set_row_visible(self._fs_spin, is_frequency and not self._fs_auto_check.isChecked())
@@ -705,7 +676,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
             return []
 
         method = self.model_combo.currentText()
-        paired = method in PAIRED_METHODS
+        paired = SPECTRAL_METHODS[method].paired
 
         if paired and len(selected) < 2:
             show_message(

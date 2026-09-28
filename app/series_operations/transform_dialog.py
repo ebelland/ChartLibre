@@ -15,7 +15,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFormLayout, QWidget
 from sklearn.preprocessing import (
     PowerTransformer,
     QuantileTransformer,
@@ -29,10 +29,10 @@ from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -43,29 +43,23 @@ TRANSFORM_QUANTILE = "Quantile transform"
 TRANSFORM_STANDARD = "Standard scaler"
 TRANSFORM_ROBUST = "Robust scaler"
 
-TRANSFORM_MODELS = (
-    TRANSFORM_POWER,
-    TRANSFORM_QUANTILE,
-    TRANSFORM_STANDARD,
-    TRANSFORM_ROBUST,
-)
-
-TRANSFORM_DOCS = {
-    TRANSFORM_POWER: (
-        "scikit-learn PowerTransformer",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PowerTransformer.html",
+#: The models offered, in combo order, with their documentation.
+TRANSFORM_MODELS: dict[str, OperationModel] = {
+    TRANSFORM_POWER: OperationModel(
+        doc_title="scikit-learn PowerTransformer",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PowerTransformer.html",
     ),
-    TRANSFORM_QUANTILE: (
-        "scikit-learn QuantileTransformer",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.QuantileTransformer.html",
+    TRANSFORM_QUANTILE: OperationModel(
+        doc_title="scikit-learn QuantileTransformer",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.QuantileTransformer.html",
     ),
-    TRANSFORM_STANDARD: (
-        "scikit-learn StandardScaler",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html",
+    TRANSFORM_STANDARD: OperationModel(
+        doc_title="scikit-learn StandardScaler",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html",
     ),
-    TRANSFORM_ROBUST: (
-        "scikit-learn RobustScaler",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html",
+    TRANSFORM_ROBUST: OperationModel(
+        doc_title="scikit-learn RobustScaler",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html",
     ),
 }
 
@@ -95,6 +89,9 @@ class TransformResult(TableResult):
 
 class SeriesTransformDialog(SeriesOperationDialogBase):
     """Rescale or reshape a chart series' Y values."""
+
+    MODELS = TRANSFORM_MODELS
+    MODEL_TOOLTIP = 'Choose the transform.'
 
     Name: str = "Transform"
     Description = "Rescale or reshape a series' distribution"
@@ -201,34 +198,12 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        container = QWidget(panel)
-        form = QFormLayout(container)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(TRANSFORM_MODELS)
-        self.model_combo.setToolTip(_("Choose the transform."))
-        form.addRow(_("Model:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(container)
-        return panel
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.refresh_visibility()
-        title, url = TRANSFORM_DOCS[self._model()]
-        set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
         return self.current_model(TRANSFORM_POWER)

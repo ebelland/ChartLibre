@@ -38,9 +38,9 @@ from app.analysis import geometry as geo
 from app.data.data_source import parse_roles, quote_identifier, row_value
 from app.logs.logger import applogger
 from app.series_operations.results import OperationResult
-from app.series_operations.dialog_base import ResultSeriesSpec, SeriesOperationDialogBase
+from app.series_operations.dialog_base import OperationModel, ResultSeriesSpec, SeriesOperationDialogBase
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
-from app.styles.style import CardFrame, create_doc_link
+from app.styles.style import CardFrame
 from app.utils.i18n import _
 
 ROTATE = "Rotate"
@@ -50,12 +50,30 @@ SCALE = "Scale"
 MIRROR = "Mirror"
 SHEAR = "Shear"
 
-MODELS: tuple[str, ...] = (ROTATE, TRANSLATE, ROTO_TRANSLATE, SCALE, MIRROR, SHEAR)
 
-#: Models that turn about a centre, and those that move by an offset.
-_ROTATING = (ROTATE, ROTO_TRANSLATE)
-_MOVING = (TRANSLATE, ROTO_TRANSLATE)
-_CENTRED = (ROTATE, ROTO_TRANSLATE, SCALE, MIRROR, SHEAR)
+@dataclass(frozen=True, slots=True, kw_only=True)
+class GeometryModel(OperationModel):
+    #: Turns by an angle (or three, in 3D).
+    rotates: bool = False
+    #: Moves by an offset.
+    moves: bool = False
+    #: Works about a fixed point: every model but a plain translation.
+    centred: bool = True
+
+
+#: The motions offered, in combo order.
+GEOMETRY_MODELS: dict[str, GeometryModel] = {
+    ROTATE: GeometryModel(rotates=True),
+    TRANSLATE: GeometryModel(moves=True, centred=False),
+    ROTO_TRANSLATE: GeometryModel(rotates=True, moves=True),
+    SCALE: GeometryModel(),
+    MIRROR: GeometryModel(),
+    SHEAR: GeometryModel(),
+}
+#: The same, as the name lists visible_for rules compare against.
+_ROTATING = tuple(name for name, model in GEOMETRY_MODELS.items() if model.rotates)
+_MOVING = tuple(name for name, model in GEOMETRY_MODELS.items() if model.moves)
+_CENTRED = tuple(name for name, model in GEOMETRY_MODELS.items() if model.centred)
 
 #: Mirror axes, as the angle (degrees) of the mirror line through the centre.
 MIRROR_LINES: tuple[tuple[str, float], ...] = (
@@ -441,7 +459,7 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         )
         # Shown translated, keyed by the untranslated name: the parameters'
         # visible_for rules read the key (see parameter_context).
-        for name in MODELS:
+        for name in GEOMETRY_MODELS:
             self.model_combo.addItem(_(name), name)
         self.series_selector.reload(select_all_series=True)
         self._on_model_changed()
@@ -449,9 +467,6 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # UI
     # ------------------------------------------------------------------
-
-    def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
 
     def build_results_pane(self) -> QWidget:
         card = CardFrame(self, "operationResultsCard")
@@ -520,7 +535,7 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         """The motion the parameters describe, and how to spell its matrix in SQL."""
         model = self._current_model()
         spell = None
-        if model in _ROTATING:
+        if GEOMETRY_MODELS[model].rotates:
             if is_3d:
                 matrix = geo.rotation_3d(
                     float(values.get("angle_x", 0.0)),

@@ -50,6 +50,7 @@ from scipy.signal import butter, medfilt, savgol_filter, wiener
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
@@ -780,65 +781,184 @@ def smooth_3d(
 # Model registry
 # ---------------------------------------------------------------------------
 
-@dataclass(slots=True)
-class ModelSpec:
-    """UI and documentation metadata for one smoothing model."""
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ModelSpec(OperationModel):
+    """One smoothing model: the data it works on and the parameters it shows."""
+
+    #: DIM_1D, DIM_2D or DIM_3D: the Data type the model is listed under.
     dimension: str
-    doc_title: str
-    doc_url: str
+    #: The parameter rows the model shows.
     fields: frozenset[str]
 
 
-def _field_set(*names: str) -> frozenset[str]:
-    return frozenset(names)
+#: Every smoothing model, in the Method combo's order within each data type.
+_ALL_MODELS: dict[str, ModelSpec] = {
+    SMOOTH_MOVING_AVERAGE: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="NumPy convolve",
+        doc_url="https://numpy.org/doc/stable/reference/generated/numpy.convolve.html",
+        fields=frozenset(("window", "centered")),
+    ),
+    SMOOTH_SAVGOL: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="SciPy savgol_filter",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html",
+        fields=frozenset(("window", "polyorder", "deriv", "delta", "savgol_mode")),
+    ),
+    SMOOTH_GAUSSIAN: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="SciPy gaussian_filter1d",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter1d.html",
+        fields=frozenset(("sigma", "truncate", "mode")),
+    ),
+    SMOOTH_MEDIAN: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="SciPy medfilt",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.medfilt.html",
+        fields=frozenset(("kernel",)),
+    ),
+    SMOOTH_WIENER: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="SciPy wiener",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.wiener.html",
+        fields=frozenset(("window", "noise")),
+    ),
+    SMOOTH_SPLINE: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="SciPy UnivariateSpline",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.UnivariateSpline.html",
+        fields=frozenset(("spline_s", "spline_k")),
+    ),
+    SMOOTH_LOWESS: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="Statsmodels LOWESS",
+        doc_url="https://www.statsmodels.org/stable/generated/statsmodels.nonparametric.smoothers_lowess.lowess.html",
+        fields=frozenset(("lowess_frac", "lowess_it")),
+    ),
+    SMOOTH_KALMAN: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="Kalman smoothing",
+        doc_url="https://en.wikipedia.org/wiki/Kalman_filter",
+        fields=frozenset(("kalman_process_variance", "kalman_measurement_variance", "kalman_initial_covariance")),
+    ),
+    SMOOTH_FFT: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="SciPy FFT",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/fft.html",
+        fields=frozenset(("fft_cutoff_ratio",)),
+    ),
+    SMOOTH_BUTTERWORTH: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="SciPy butter",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html",
+        fields=frozenset(("butter_fs", "butter_cutoff", "butter_high_cutoff", "butter_order", "butter_type")),
+    ),
+    SMOOTH_WAVELET: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="PyWavelets",
+        doc_url="https://pywavelets.readthedocs.io/",
+        fields=frozenset(("wavelet", "wavelet_level", "wavelet_threshold_factor", "wavelet_threshold_mode")),
+    ),
+    SMOOTH_WHITTAKER: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="Whittaker smoothing",
+        doc_url="https://pybaselines.readthedocs.io/",
+        fields=frozenset(("whittaker_lambda", "whittaker_order")),
+    ),
+    SMOOTH_HP: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="Statsmodels hpfilter",
+        doc_url="https://www.statsmodels.org/stable/generated/statsmodels.tsa.filters.hp_filter.hpfilter.html",
+        fields=frozenset(("hp_lambda",)),
+    ),
+    SMOOTH_TV: ModelSpec(
+        dimension=DIM_1D,
+        doc_title="scikit-image total variation",
+        doc_url="https://scikit-image.org/docs/stable/api/skimage.restoration.html",
+        fields=frozenset(("tv_weight",)),
+    ),
+    SMOOTH2D_GAUSSIAN: ModelSpec(
+        dimension=DIM_2D,
+        doc_title="SciPy gaussian_filter",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html",
+        fields=frozenset(("sigma_x", "sigma_y", "truncate", "mode")),
+    ),
+    SMOOTH2D_MEDIAN: ModelSpec(
+        dimension=DIM_2D,
+        doc_title="SciPy median_filter",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.median_filter.html",
+        fields=frozenset(("kernel_x", "kernel_y", "mode")),
+    ),
+    SMOOTH2D_SPLINE: ModelSpec(
+        dimension=DIM_2D,
+        doc_title="SciPy SmoothBivariateSpline",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.SmoothBivariateSpline.html",
+        fields=frozenset(("spline_s", "kx", "ky")),
+    ),
+    SMOOTH2D_RECT_SPLINE: ModelSpec(
+        dimension=DIM_2D,
+        doc_title="SciPy RectBivariateSpline",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RectBivariateSpline.html",
+        fields=frozenset(("spline_s", "kx", "ky")),
+    ),
+    SMOOTH2D_RBF: ModelSpec(
+        dimension=DIM_2D,
+        doc_title="SciPy RBFInterpolator",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RBFInterpolator.html",
+        fields=frozenset(("rbf_kernel", "rbf_smoothing", "rbf_epsilon", "rbf_neighbors")),
+    ),
+    SMOOTH2D_TV: ModelSpec(
+        dimension=DIM_2D,
+        doc_title="scikit-image total variation",
+        doc_url="https://scikit-image.org/docs/stable/api/skimage.restoration.html",
+        fields=frozenset(("tv_weight",)),
+    ),
+    SMOOTH3D_GAUSSIAN: ModelSpec(
+        dimension=DIM_3D,
+        doc_title="SciPy gaussian_filter",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html",
+        fields=frozenset(("sigma_x", "sigma_y", "sigma_z", "truncate", "mode")),
+    ),
+    SMOOTH3D_MEDIAN: ModelSpec(
+        dimension=DIM_3D,
+        doc_title="SciPy median_filter",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.median_filter.html",
+        fields=frozenset(("kernel_x", "kernel_y", "kernel_z", "mode")),
+    ),
+    SMOOTH3D_FFT: ModelSpec(
+        dimension=DIM_3D,
+        doc_title="SciPy FFT",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/fft.html",
+        fields=frozenset(("fft_cutoff_ratio",)),
+    ),
+    SMOOTH3D_RBF: ModelSpec(
+        dimension=DIM_3D,
+        doc_title="SciPy RBFInterpolator",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RBFInterpolator.html",
+        fields=frozenset(("rbf_kernel", "rbf_smoothing", "rbf_epsilon", "rbf_neighbors")),
+    ),
+    SMOOTH3D_TV: ModelSpec(
+        dimension=DIM_3D,
+        doc_title="scikit-image total variation",
+        doc_url="https://scikit-image.org/docs/stable/api/skimage.restoration.html",
+        fields=frozenset(("tv_weight",)),
+    ),
+}
 
+#: The models an optional dependency makes available only when installed.
+_NEEDS = {
+    SMOOTH_LOWESS: sm_lowess,
+    SMOOTH_HP: hpfilter,
+    SMOOTH_TV: denoise_tv_chambolle,
+    SMOOTH2D_TV: denoise_tv_chambolle,
+    SMOOTH3D_TV: denoise_tv_chambolle,
+    SMOOTH_WAVELET: pywt,
+}
 
-_MODEL_DEFS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
-    (SMOOTH_MOVING_AVERAGE, DIM_1D, "NumPy convolve", "https://numpy.org/doc/stable/reference/generated/numpy.convolve.html", ("window", "centered")),
-    (SMOOTH_SAVGOL, DIM_1D, "SciPy savgol_filter", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html", ("window", "polyorder", "deriv", "delta", "savgol_mode")),
-    (SMOOTH_GAUSSIAN, DIM_1D, "SciPy gaussian_filter1d", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter1d.html", ("sigma", "truncate", "mode")),
-    (SMOOTH_MEDIAN, DIM_1D, "SciPy medfilt", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.medfilt.html", ("kernel",)),
-    (SMOOTH_WIENER, DIM_1D, "SciPy wiener", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.wiener.html", ("window", "noise")),
-    (SMOOTH_SPLINE, DIM_1D, "SciPy UnivariateSpline", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.UnivariateSpline.html", ("spline_s", "spline_k")),
-    (SMOOTH_LOWESS, DIM_1D, "Statsmodels LOWESS", "https://www.statsmodels.org/stable/generated/statsmodels.nonparametric.smoothers_lowess.lowess.html", ("lowess_frac", "lowess_it")),
-    (SMOOTH_KALMAN, DIM_1D, "Kalman smoothing", "https://en.wikipedia.org/wiki/Kalman_filter", ("kalman_process_variance", "kalman_measurement_variance", "kalman_initial_covariance")),
-    (SMOOTH_FFT, DIM_1D, "SciPy FFT", "https://docs.scipy.org/doc/scipy/reference/fft.html", ("fft_cutoff_ratio",)),
-    (SMOOTH_BUTTERWORTH, DIM_1D, "SciPy butter", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html", ("butter_fs", "butter_cutoff", "butter_high_cutoff", "butter_order", "butter_type")),
-    (SMOOTH_WAVELET, DIM_1D, "PyWavelets", "https://pywavelets.readthedocs.io/", ("wavelet", "wavelet_level", "wavelet_threshold_factor", "wavelet_threshold_mode")),
-    (SMOOTH_WHITTAKER, DIM_1D, "Whittaker smoothing", "https://pybaselines.readthedocs.io/", ("whittaker_lambda", "whittaker_order")),
-    (SMOOTH_HP, DIM_1D, "Statsmodels hpfilter", "https://www.statsmodels.org/stable/generated/statsmodels.tsa.filters.hp_filter.hpfilter.html", ("hp_lambda",)),
-    (SMOOTH_TV, DIM_1D, "scikit-image total variation", "https://scikit-image.org/docs/stable/api/skimage.restoration.html", ("tv_weight",)),
-    (SMOOTH2D_GAUSSIAN, DIM_2D, "SciPy gaussian_filter", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html", ("sigma_x", "sigma_y", "truncate", "mode")),
-    (SMOOTH2D_MEDIAN, DIM_2D, "SciPy median_filter", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.median_filter.html", ("kernel_x", "kernel_y", "mode")),
-    (SMOOTH2D_SPLINE, DIM_2D, "SciPy SmoothBivariateSpline", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.SmoothBivariateSpline.html", ("spline_s", "kx", "ky")),
-    (SMOOTH2D_RECT_SPLINE, DIM_2D, "SciPy RectBivariateSpline", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RectBivariateSpline.html", ("spline_s", "kx", "ky")),
-    (SMOOTH2D_RBF, DIM_2D, "SciPy RBFInterpolator", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RBFInterpolator.html", ("rbf_kernel", "rbf_smoothing", "rbf_epsilon", "rbf_neighbors")),
-    (SMOOTH2D_TV, DIM_2D, "scikit-image total variation", "https://scikit-image.org/docs/stable/api/skimage.restoration.html", ("tv_weight",)),
-    (SMOOTH3D_GAUSSIAN, DIM_3D, "SciPy gaussian_filter", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html", ("sigma_x", "sigma_y", "sigma_z", "truncate", "mode")),
-    (SMOOTH3D_MEDIAN, DIM_3D, "SciPy median_filter", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.median_filter.html", ("kernel_x", "kernel_y", "kernel_z", "mode")),
-    (SMOOTH3D_FFT, DIM_3D, "SciPy FFT", "https://docs.scipy.org/doc/scipy/reference/fft.html", ("fft_cutoff_ratio",)),
-    (SMOOTH3D_RBF, DIM_3D, "SciPy RBFInterpolator", "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RBFInterpolator.html", ("rbf_kernel", "rbf_smoothing", "rbf_epsilon", "rbf_neighbors")),
-    (SMOOTH3D_TV, DIM_3D, "scikit-image total variation", "https://scikit-image.org/docs/stable/api/skimage.restoration.html", ("tv_weight",)),
-)
-
-def _available_model_defs() -> tuple[tuple[str, str, str, str, tuple[str, ...]], ...]:
-    available: list[tuple[str, str, str, str, tuple[str, ...]]] = []
-    for name, dimension, doc_title, doc_url, fields in _MODEL_DEFS:
-        if name == SMOOTH_LOWESS and sm_lowess is None:
-            continue
-        if name == SMOOTH_HP and hpfilter is None:
-            continue
-        if name in {SMOOTH_TV, SMOOTH2D_TV, SMOOTH3D_TV} and denoise_tv_chambolle is None:
-            continue
-        if name == SMOOTH_WAVELET and pywt is None:
-            continue
-        available.append((name, dimension, doc_title, doc_url, fields))
-    return tuple(available)
-
+#: The models offered here: every one whose dependency is installed.
 MODEL_REGISTRY: dict[str, ModelSpec] = {
-    name: ModelSpec(dimension, doc_title, doc_url, _field_set(*fields))
-    for name, dimension, doc_title, doc_url, fields in _available_model_defs()
+    name: spec for name, spec in _ALL_MODELS.items() if name not in _NEEDS or _NEEDS[name] is not None
 }
 
 

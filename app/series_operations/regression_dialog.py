@@ -25,7 +25,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFormLayout, QWidget
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import HuberRegressor, RANSACRegressor
@@ -36,10 +36,10 @@ from app.logs.logger import applogger
 from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -51,34 +51,27 @@ REGRESSION_ISOTONIC = "Isotonic (monotone)"
 REGRESSION_RANDOM_FOREST = "Random Forest"
 REGRESSION_GRADIENT_BOOSTING = "Gradient Boosting"
 
-REGRESSION_MODELS = (
-    REGRESSION_RANSAC,
-    REGRESSION_HUBER,
-    REGRESSION_ISOTONIC,
-    REGRESSION_RANDOM_FOREST,
-    REGRESSION_GRADIENT_BOOSTING,
-)
-
-REGRESSION_DOCS = {
-    REGRESSION_RANSAC: (
-        "scikit-learn RANSACRegressor",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.RANSACRegressor.html",
+#: The models offered, in combo order, with their documentation.
+REGRESSION_MODELS: dict[str, OperationModel] = {
+    REGRESSION_RANSAC: OperationModel(
+        doc_title="scikit-learn RANSACRegressor",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.RANSACRegressor.html",
     ),
-    REGRESSION_HUBER: (
-        "scikit-learn HuberRegressor",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.HuberRegressor.html",
+    REGRESSION_HUBER: OperationModel(
+        doc_title="scikit-learn HuberRegressor",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.HuberRegressor.html",
     ),
-    REGRESSION_ISOTONIC: (
-        "Isotonic regression",
-        "https://en.wikipedia.org/wiki/Isotonic_regression",
+    REGRESSION_ISOTONIC: OperationModel(
+        doc_title="Isotonic regression",
+        doc_url="https://en.wikipedia.org/wiki/Isotonic_regression",
     ),
-    REGRESSION_RANDOM_FOREST: (
-        "Random forest",
-        "https://en.wikipedia.org/wiki/Random_forest",
+    REGRESSION_RANDOM_FOREST: OperationModel(
+        doc_title="Random forest",
+        doc_url="https://en.wikipedia.org/wiki/Random_forest",
     ),
-    REGRESSION_GRADIENT_BOOSTING: (
-        "Gradient boosting",
-        "https://en.wikipedia.org/wiki/Gradient_boosting",
+    REGRESSION_GRADIENT_BOOSTING: OperationModel(
+        doc_title="Gradient boosting",
+        doc_url="https://en.wikipedia.org/wiki/Gradient_boosting",
     ),
 }
 
@@ -108,6 +101,9 @@ class RegressionResult(TableResult):
 
 class SeriesRegressionDialog(SeriesOperationDialogBase):
     """Fit a robust or non-parametric regression model to a chart series."""
+
+    MODELS = REGRESSION_MODELS
+    MODEL_TOOLTIP = 'Choose the regression model.'
 
     Name: str = "Regression"
     Description = "Robust and ML regression models"
@@ -237,34 +233,12 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        container = QWidget(panel)
-        form = QFormLayout(container)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(REGRESSION_MODELS)
-        self.model_combo.setToolTip(_("Choose the regression model."))
-        form.addRow(_("Model:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(container)
-        return panel
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.refresh_visibility()
-        title, url = REGRESSION_DOCS[self._model()]
-        set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
         return self.current_model(REGRESSION_RANSAC)

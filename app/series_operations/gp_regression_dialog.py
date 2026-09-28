@@ -23,11 +23,11 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
 from app.series_operations.parameter_spec import FloatParam
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -36,24 +36,23 @@ KERNEL_MATERN_32 = "Matern (nu=1.5)"
 KERNEL_MATERN_52 = "Matern (nu=2.5)"
 KERNEL_RATIONAL_QUADRATIC = "Rational Quadratic"
 
-GP_KERNELS = (KERNEL_RBF, KERNEL_MATERN_32, KERNEL_MATERN_52, KERNEL_RATIONAL_QUADRATIC)
-
-GP_DOCS = {
-    KERNEL_RBF: (
-        "RBF kernel",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.RBF.html",
+#: The models offered, in combo order, with their documentation.
+GP_KERNELS: dict[str, OperationModel] = {
+    KERNEL_RBF: OperationModel(
+        doc_title="RBF kernel",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.RBF.html",
     ),
-    KERNEL_MATERN_32: (
-        "Matern kernel (nu=1.5)",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.Matern.html",
+    KERNEL_MATERN_32: OperationModel(
+        doc_title="Matern kernel (nu=1.5)",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.Matern.html",
     ),
-    KERNEL_MATERN_52: (
-        "Matern kernel (nu=2.5)",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.Matern.html",
+    KERNEL_MATERN_52: OperationModel(
+        doc_title="Matern kernel (nu=2.5)",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.Matern.html",
     ),
-    KERNEL_RATIONAL_QUADRATIC: (
-        "Rational Quadratic kernel",
-        "https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.RationalQuadratic.html",
+    KERNEL_RATIONAL_QUADRATIC: OperationModel(
+        doc_title="Rational Quadratic kernel",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.RationalQuadratic.html",
     ),
 }
 
@@ -102,6 +101,10 @@ class GPRegressionResult(TableResult):
 
 class SeriesGPRegressionDialog(SeriesOperationDialogBase):
     """Fit a Gaussian process to a series and draw its mean +/-2 sigma band."""
+
+    MODELS = GP_KERNELS
+    MODEL_TOOLTIP = "Choose the kernel."
+    MODEL_LABEL = "Kernel:"
 
     Name: str = "GP Regression"
     Description = "Gaussian process regression with an uncertainty band"
@@ -182,34 +185,12 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        container = QWidget(panel)
-        form = QFormLayout(container)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(GP_KERNELS)
-        self.model_combo.setToolTip(_("Choose the kernel."))
-        form.addRow(_("Kernel:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(container)
-        return panel
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.refresh_visibility()
-        title, url = GP_DOCS[self._kernel()]
-        set_doc_link(self._doc_link, title, url)
 
     def _kernel(self) -> str:
         return self.model_combo.currentText() or KERNEL_RBF

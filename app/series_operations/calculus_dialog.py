@@ -46,10 +46,10 @@ from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -71,50 +71,61 @@ INTEGRAL_DEFINITE = "Integral (total area)"
 DERIV_GRADIENT_SURFACE = "Derivative (surface gradient)"
 INTEGRAL_VOLUME_SURFACE = "Integral (surface volume)"
 
-CALCULUS_MODELS = (
-    DERIV_SAVGOL,
-    DERIV_GRADIENT,
-    DERIV_SPLINE,
-    DERIV_GRADIENT_SURFACE,
-    INTEGRAL_CUMULATIVE,
-    INTEGRAL_DEFINITE,
-    INTEGRAL_VOLUME_SURFACE,
-)
 
-DERIVATIVES = (DERIV_SAVGOL, DERIV_GRADIENT, DERIV_SPLINE)
-INTEGRALS = (INTEGRAL_CUMULATIVE, INTEGRAL_DEFINITE)
-SURFACE_MODELS = (DERIV_GRADIENT_SURFACE, INTEGRAL_VOLUME_SURFACE)
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CalculusModel(OperationModel):
+    #: "derivative" or "integral".
+    kind: str
+    #: Works on a surface (a series with a z role) rather than on y(x).
+    surface: bool = False
 
-CALCULUS_DOCS = {
-    DERIV_SAVGOL: (
-        "Savitzky-Golay filter",
-        "https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter",
+
+#: The calculations offered, in combo order.
+CALCULUS_MODELS: dict[str, CalculusModel] = {
+    DERIV_SAVGOL: CalculusModel(
+        doc_title="Savitzky-Golay filter",
+        doc_url="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter",
+        kind="derivative",
     ),
-    DERIV_GRADIENT: (
-        "Finite difference",
-        "https://en.wikipedia.org/wiki/Finite_difference",
+    DERIV_GRADIENT: CalculusModel(
+        doc_title="Finite difference",
+        doc_url="https://en.wikipedia.org/wiki/Finite_difference",
+        kind="derivative",
     ),
-    DERIV_SPLINE: (
-        "Smoothing spline",
-        "https://en.wikipedia.org/wiki/Smoothing_spline",
+    DERIV_SPLINE: CalculusModel(
+        doc_title="Smoothing spline",
+        doc_url="https://en.wikipedia.org/wiki/Smoothing_spline",
+        kind="derivative",
     ),
-    INTEGRAL_CUMULATIVE: (
-        "Trapezoidal rule",
-        "https://en.wikipedia.org/wiki/Trapezoidal_rule",
+    DERIV_GRADIENT_SURFACE: CalculusModel(
+        doc_title="Gradient",
+        doc_url="https://en.wikipedia.org/wiki/Gradient",
+        kind="derivative",
+        surface=True,
     ),
-    INTEGRAL_DEFINITE: (
-        "Simpson's rule",
-        "https://en.wikipedia.org/wiki/Simpson%27s_rule",
+    INTEGRAL_CUMULATIVE: CalculusModel(
+        doc_title="Trapezoidal rule",
+        doc_url="https://en.wikipedia.org/wiki/Trapezoidal_rule",
+        kind="integral",
     ),
-    DERIV_GRADIENT_SURFACE: (
-        "Gradient",
-        "https://en.wikipedia.org/wiki/Gradient",
+    INTEGRAL_DEFINITE: CalculusModel(
+        doc_title="Simpson's rule",
+        doc_url="https://en.wikipedia.org/wiki/Simpson%27s_rule",
+        kind="integral",
     ),
-    INTEGRAL_VOLUME_SURFACE: (
-        "Simpson's rule",
-        "https://en.wikipedia.org/wiki/Simpson%27s_rule",
+    INTEGRAL_VOLUME_SURFACE: CalculusModel(
+        doc_title="Simpson's rule",
+        doc_url="https://en.wikipedia.org/wiki/Simpson%27s_rule",
+        kind="integral",
+        surface=True,
     ),
 }
+
+#: The one-dimensional integrals: the models the baseline choice applies to.
+INTEGRALS = tuple(
+    name for name, model in CALCULUS_MODELS.items() if model.kind == "integral" and not model.surface
+)
+
 
 # Re-exported from the base so this module's callers and tests can name them
 # without reaching through the class.
@@ -189,6 +200,9 @@ class CalculusResult(TableResult):
 
 class SeriesCalculusDialog(SeriesOperationDialogBase):
     """Differentiate or integrate a chart series."""
+
+    MODELS = CALCULUS_MODELS
+    MODEL_TOOLTIP = "Choose the calculation."
 
     Name: str = "Calculus"
     Description = "Differentiate or integrate"
@@ -322,34 +336,12 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._parameter_form = None
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        container = QWidget(panel)
-        form = QFormLayout(container)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(CALCULUS_MODELS)
-        self.model_combo.setToolTip(_("Choose the calculation."))
-        form.addRow(_("Model:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(container)
-        return panel
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.refresh_visibility()
-        title, url = CALCULUS_DOCS[self._model()]
-        set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
         return self.current_model(DERIV_SAVGOL)
@@ -368,7 +360,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         for row in self.selected_series():
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
-                if model in SURFACE_MODELS:
+                if CALCULUS_MODELS[model].surface:
                     results.append(self._compute_one_3d(row, name, model))
                 else:
                     x_values, y_values = self.series_xy(row, name)
@@ -391,7 +383,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         model: str,
         params: Mapping[str, Any],
     ) -> CalculusResult:
-        if model in DERIVATIVES:
+        if CALCULUS_MODELS[model].kind == "derivative":
             return self._differentiate(name, x_values, y_values, model, params)
         return self._integrate(name, x_values, y_values, model, params)
 
@@ -782,7 +774,8 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
 
         first = results[0]
         order = int(first.metadata.get("order", 1) or 1)
-        if first.model in DERIVATIVES:
+        spec = CALCULUS_MODELS.get(first.model)
+        if spec is not None and spec.kind == "derivative" and not spec.surface:
             y_label = "d\u00b2y/dx\u00b2" if order == 2 else "dy/dx"
         elif first.model == DERIV_GRADIENT_SURFACE:
             y_label = "|\u2207z|"

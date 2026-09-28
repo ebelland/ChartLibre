@@ -45,18 +45,18 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
     generated_table_name,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils.i18n import _
 
 _SCIPY_DOCS = "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.{}.html"
 
 
-@dataclass(frozen=True, slots=True)
-class FilterModel:
+@dataclass(frozen=True, slots=True, kw_only=True)
+class FilterModel(OperationModel):
     """What one of the four operations is, and what it asks the user for."""
 
     #: The scipy.signal function behind it, which is also its docs page.
@@ -95,10 +95,10 @@ FILTER_DETREND = "Detrend"
 
 #: The operations, in the order the Operation combo lists them.
 FILTERS: dict[str, FilterModel] = {
-    FILTER_IIR: FilterModel("iirfilter", "IIR", needs_fs=True, has_response=True),
-    FILTER_FIR: FilterModel("firwin", "FIR", needs_fs=True, has_response=True),
-    FILTER_ANALYTIC: FilterModel("hilbert", "Analytic", needs_fs=True),
-    FILTER_DETREND: FilterModel("detrend", "Detrend"),
+    FILTER_IIR: FilterModel(function="iirfilter", tag="IIR", needs_fs=True, has_response=True),
+    FILTER_FIR: FilterModel(function="firwin", tag="FIR", needs_fs=True, has_response=True),
+    FILTER_ANALYTIC: FilterModel(function="hilbert", tag="Analytic", needs_fs=True),
+    FILTER_DETREND: FilterModel(function="detrend", tag="Detrend"),
 }
 
 #: The key goes straight to iirfilter's ``btype`` and firwin's ``pass_zero``,
@@ -248,6 +248,10 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
     Name: str = "Filtering"
     Description = "Filter, detrend or demodulate a series (scipy.signal)"
 
+    MODELS = FILTERS
+    MODEL_LABEL = "Operation:"
+    MODEL_TOOLTIP = "Choose the operation."
+
     INPUT_REQUIRES_SORTED_X = True
     INPUT_REQUIRES_UNIQUE_X = True
     INPUT_MINIMUM_POINTS = 8
@@ -277,7 +281,6 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
     def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
         self._fs_auto_check = QCheckBox("", self)
         self._fs_spin = QDoubleSpinBox(self)
         self._family_combo = QComboBox(self)
@@ -291,24 +294,6 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         self._atten_spin = QDoubleSpinBox(self)
         self._analytic_combo = QComboBox(self)
         self._detrend_combo = QComboBox(self)
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        form = QFormLayout()
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(list(FILTERS))
-        self.model_combo.setToolTip(_("Choose the operation."))
-        form.addRow(_("Operation:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addLayout(form)
-        return panel
 
     def build_parameter_selector(self) -> QWidget:
         widget = QWidget(self)
@@ -436,7 +421,6 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         self.set_row_visible(self._analytic_combo, model == FILTER_ANALYTIC)
         self.set_row_visible(self._detrend_combo, model == FILTER_DETREND)
 
-        set_doc_link(self._doc_link, *spec.doc)
 
     # ------------------------------------------------------------------
     # Input

@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import html
 import json
 import re
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
@@ -33,6 +33,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.styles.style import (
     apply_dialog_shell,
+    create_doc_link,
     icon_from_svg_source,
     set_doc_link,
     apply_toolbox_header_metrics,
@@ -81,6 +82,29 @@ def generated_table_name(raw: str, *, fallback: str = "Result") -> str:
     """
     safe = _TABLE_SAFE_RE.sub("_", str(raw).strip()).strip("_") or fallback
     return f"{GENERATED_TABLE_PREFIX}{safe}"
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class OperationModel:
+    """One model an operation offers, as the Model combo lists it.
+
+    The base needs only where its documentation is. An operation that needs
+    more per model - which parameters it shows, which function it calls -
+    subclasses this and adds the fields (FilterModel, smoothing's ModelSpec),
+    so everything about one model sits in one entry of the MODELS dict
+    rather than in a tuple of names beside a dict of links beside a set of
+    the models that need an extra row.
+    """
+
+    doc_title: str = ""
+    doc_url: str = ""
+    #: Models of different groups are separated by a line in the combo.
+    group: str = ""
+
+    @property
+    def doc(self) -> tuple[str, str]:
+        """(title, url) for the Docs link."""
+        return self.doc_title, self.doc_url
 
 
 @dataclass(slots=True)
@@ -281,13 +305,57 @@ class SeriesOperationDialogBase(QDialog):
         """
         return None
 
+    #: The models this operation offers, in the order the Model combo lists
+    #: them: name -> OperationModel. Setting it gives the operation the
+    #: standard selector - "Model:" with the combo, "Docs:" with a link kept
+    #: on the selected model - without writing build_model_selector.
+    MODELS: ClassVar[Mapping[str, OperationModel]] = {}
+    #: The combo's tooltip, when MODELS builds it.
+    MODEL_TOOLTIP: ClassVar[str] = "Choose the model."
+    #: The combo's label, when MODELS builds it ("Operation:", "Method:"...).
+    MODEL_LABEL: ClassVar[str] = "Model:"
+
     def build_model_selector(self) -> QWidget:
-        """Default model selector using the shared model_combo."""
-        panel = CardFrame(self, "operationModelCard")
-        layout = panel.layout()
-        stdSizeAndlayout(self.model_combo)
-        layout.addWidget(self.model_combo)
+        """The Model combo and its Docs link, from MODELS.
+
+        Without MODELS, just the shared model_combo, for an operation that
+        fills it itself.
+        """
+        if not self.MODELS:
+            panel = CardFrame(self, "operationModelCard")
+            layout = panel.layout()
+            stdSizeAndlayout(self.model_combo)
+            layout.addWidget(self.model_combo)
+            return panel
+
+        if getattr(self, "_doc_link", None) is None:
+            self._doc_link = create_doc_link(self)
+        panel = QWidget(self)
+        form = QFormLayout(panel)
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        # Connected before the items go in: the first addItems selects item 0
+        # and emits, which is what puts the first model's link in place.
+        self.model_combo.currentIndexChanged.connect(self._update_doc_link)
+        self.model_combo.addItems(list(self.MODELS))
+        # A line between groups, inserted from the end so earlier indices hold.
+        groups = [model.group for model in self.MODELS.values()]
+        for index in range(len(groups) - 1, 0, -1):
+            if groups[index] != groups[index - 1]:
+                self.model_combo.insertSeparator(index)
+        self.model_combo.setToolTip(_(self.MODEL_TOOLTIP))
+        form.addRow(_(self.MODEL_LABEL), self.model_combo)
+        form.addRow(_("Docs:"), self._doc_link)
         return panel
+
+    def model_spec(self) -> OperationModel | None:
+        """The OperationModel of the selected model, when MODELS has it."""
+        return self.MODELS.get(self.current_model())
+
+    def _update_doc_link(self, *_ignored: Any) -> None:
+        spec = self.model_spec()
+        if spec is not None:
+            self.set_doc_link(*spec.doc)
 
     
     #: Whether the figure combo is disabled. True for every operation so far;

@@ -58,6 +58,7 @@ from app.utils.coercion import to_numbers, to_numeric_axis
 from app.utils.messages import show_message
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
@@ -96,18 +97,6 @@ TOOL_FCLUSTER: Final[str] = "hierarchy.fcluster"
 TOOL_FCLUSTERDATA: Final[str] = "hierarchy.fclusterdata"
 TOOL_LEADERS: Final[str] = "hierarchy.leaders"
 
-KMEANS_TOOLS: Final[tuple[str, ...]] = (
-    TOOL_WHITEN,
-    TOOL_VQ,
-    TOOL_KMEANS,
-    TOOL_KMEANS2,
-)
-HIERARCHY_TOOLS: Final[tuple[str, ...]] = (
-    TOOL_FCLUSTER,
-    TOOL_FCLUSTERDATA,
-    TOOL_LEADERS,
-)
-
 SKLEARN_KMEANS: Final[str] = "sklearn.KMeans"
 SKLEARN_MINIBATCH_KMEANS: Final[str] = "sklearn.MiniBatchKMeans"
 SKLEARN_BISECTING_KMEANS: Final[str] = "sklearn.BisectingKMeans"
@@ -118,19 +107,6 @@ SKLEARN_BIRCH: Final[str] = "sklearn.Birch"
 SKLEARN_MEANSHIFT: Final[str] = "sklearn.MeanShift"
 SKLEARN_SPECTRAL: Final[str] = "sklearn.SpectralClustering"
 SKLEARN_GAUSSIAN_MIXTURE: Final[str] = "sklearn.GaussianMixture"
-
-SKLEARN_TOOLS: Final[tuple[str, ...]] = (
-    SKLEARN_KMEANS,
-    SKLEARN_MINIBATCH_KMEANS,
-    SKLEARN_BISECTING_KMEANS,
-    SKLEARN_AGGLOMERATIVE,
-    SKLEARN_DBSCAN,
-    SKLEARN_OPTICS,
-    SKLEARN_BIRCH,
-    SKLEARN_MEANSHIFT,
-    SKLEARN_SPECTRAL,
-    SKLEARN_GAUSSIAN_MIXTURE,
-)
 
 HIERARCHY_METHODS: Final[tuple[str, ...]] = (
     "single",
@@ -157,20 +133,57 @@ HIERARCHY_CRITERIA: Final[tuple[str, ...]] = (
     "inconsistent",
 )
 
-CLUSTER_DOCS: Final[dict[str, tuple[str, str]]] = {
-    CLUSTER_KMEANS: (
-        "SciPy k-means / vector quantization",
-        "https://docs.scipy.org/doc/scipy/reference/cluster.vq.html",
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ClusterMethod(OperationModel):
+    #: The functions of this family, in the Function combo's order, each
+    #: with its own documentation page.
+    tools: Mapping[str, str]
+
+
+#: The clustering families, in the Method combo's order.
+CLUSTER_METHODS: dict[str, ClusterMethod] = {
+    CLUSTER_KMEANS: ClusterMethod(
+        doc_title="SciPy k-means / vector quantization",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/cluster.vq.html",
+        tools={
+            TOOL_WHITEN: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.whiten.html",
+            TOOL_VQ: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.vq.html",
+            TOOL_KMEANS: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.kmeans.html",
+            TOOL_KMEANS2: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.kmeans2.html",
+        },
     ),
-    CLUSTER_HIERARCHICAL: (
-        "SciPy hierarchical clustering",
-        "https://docs.scipy.org/doc/scipy/reference/cluster.hierarchy.html",
+    CLUSTER_HIERARCHICAL: ClusterMethod(
+        doc_title="SciPy hierarchical clustering",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/cluster.hierarchy.html",
+        tools={
+            TOOL_FCLUSTER: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.fcluster.html",
+            TOOL_FCLUSTERDATA: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.fclusterdata.html",
+            TOOL_LEADERS: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.leaders.html",
+        },
     ),
-    CLUSTER_SKLEARN: (
-        "scikit-learn clustering",
-        "https://scikit-learn.org/stable/modules/clustering.html",
+    CLUSTER_SKLEARN: ClusterMethod(
+        doc_title="scikit-learn clustering",
+        doc_url="https://scikit-learn.org/stable/modules/clustering.html",
+        tools={
+            SKLEARN_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html",
+            SKLEARN_MINIBATCH_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html",
+            SKLEARN_BISECTING_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.BisectingKMeans.html",
+            SKLEARN_AGGLOMERATIVE: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html",
+            SKLEARN_DBSCAN: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html",
+            SKLEARN_OPTICS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.OPTICS.html",
+            SKLEARN_BIRCH: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.Birch.html",
+            SKLEARN_MEANSHIFT: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MeanShift.html",
+            SKLEARN_SPECTRAL: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.SpectralClustering.html",
+            SKLEARN_GAUSSIAN_MIXTURE: "https://scikit-learn.org/stable/modules/mixture.html",
+        },
     ),
 }
+#: Every function's documentation, whatever its family.
+TOOL_DOCS: dict[str, str] = {
+    tool: url for method in CLUSTER_METHODS.values() for tool, url in method.tools.items()
+}
+
 
 
 
@@ -908,7 +921,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         layout = panel.layout()
 
         self.method_combo = QComboBox(self)
-        self.method_combo.addItems([CLUSTER_KMEANS, CLUSTER_HIERARCHICAL, CLUSTER_SKLEARN])
+        self.method_combo.addItems(list(CLUSTER_METHODS))
         self.method_combo.setToolTip(_("Choose the clustering algorithm family."))
 
         self.scipy_tool_combo = QComboBox(self)
@@ -1074,12 +1087,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         """Refresh the SciPy function list for the selected clustering family."""
         current = self.scipy_tool_combo.currentText()
         method = self.method_combo.currentText()
-        if method == CLUSTER_KMEANS:
-            tools = KMEANS_TOOLS
-        elif method == CLUSTER_HIERARCHICAL:
-            tools = HIERARCHY_TOOLS
-        else:
-            tools = SKLEARN_TOOLS
+        tools = CLUSTER_METHODS.get(method, CLUSTER_METHODS[CLUSTER_SKLEARN]).tools
         self.scipy_tool_combo.blockSignals(True)
         self.scipy_tool_combo.clear()
         self.scipy_tool_combo.addItems(list(tools))
@@ -1119,52 +1127,14 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
 
     def _update_description_link(self) -> None:
         tool = self.scipy_tool_combo.currentText() if hasattr(self, "scipy_tool_combo") else ""
-        url_by_tool = {
-            TOOL_WHITEN: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.whiten.html",
-            TOOL_VQ: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.vq.html",
-            TOOL_KMEANS: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.kmeans.html",
-            TOOL_KMEANS2: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.kmeans2.html",
-            TOOL_FCLUSTER: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.fcluster.html",
-            TOOL_FCLUSTERDATA: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.fclusterdata.html",
-            TOOL_LEADERS: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.leaders.html",
-            SKLEARN_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html",
-            SKLEARN_MINIBATCH_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html",
-            SKLEARN_BISECTING_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.BisectingKMeans.html",
-            SKLEARN_AGGLOMERATIVE: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html",
-            SKLEARN_DBSCAN: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html",
-            SKLEARN_OPTICS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.OPTICS.html",
-            SKLEARN_BIRCH: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.Birch.html",
-            SKLEARN_MEANSHIFT: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MeanShift.html",
-            SKLEARN_SPECTRAL: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.SpectralClustering.html",
-            SKLEARN_GAUSSIAN_MIXTURE: "https://scikit-learn.org/stable/modules/mixture.html",
-        }
         title = tool or "SciPy clustering"
-        url = url_by_tool.get(tool, "https://scikit-learn.org/stable/modules/clustering.html" if str(tool).startswith("sklearn.") else "https://docs.scipy.org/doc/scipy/reference/cluster.html")
+        url = TOOL_DOCS.get(tool, "https://scikit-learn.org/stable/modules/clustering.html" if str(tool).startswith("sklearn.") else "https://docs.scipy.org/doc/scipy/reference/cluster.html")
         self.set_doc_link(title, url)
 
     def _open_description(self, _link: str = "") -> None:
         tool = self.scipy_tool_combo.currentText()
-        url_by_tool = {
-            TOOL_WHITEN: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.whiten.html",
-            TOOL_VQ: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.vq.html",
-            TOOL_KMEANS: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.kmeans.html",
-            TOOL_KMEANS2: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.vq.kmeans2.html",
-            TOOL_FCLUSTER: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.fcluster.html",
-            TOOL_FCLUSTERDATA: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.fclusterdata.html",
-            TOOL_LEADERS: "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.leaders.html",
-            SKLEARN_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html",
-            SKLEARN_MINIBATCH_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html",
-            SKLEARN_BISECTING_KMEANS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.BisectingKMeans.html",
-            SKLEARN_AGGLOMERATIVE: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html",
-            SKLEARN_DBSCAN: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html",
-            SKLEARN_OPTICS: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.OPTICS.html",
-            SKLEARN_BIRCH: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.Birch.html",
-            SKLEARN_MEANSHIFT: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MeanShift.html",
-            SKLEARN_SPECTRAL: "https://scikit-learn.org/stable/modules/generated/sklearn.cluster.SpectralClustering.html",
-            SKLEARN_GAUSSIAN_MIXTURE: "https://scikit-learn.org/stable/modules/mixture.html",
-        }
         title = tool or "SciPy clustering"
-        url = url_by_tool.get(tool, "https://scikit-learn.org/stable/modules/clustering.html" if str(tool).startswith("sklearn.") else "https://docs.scipy.org/doc/scipy/reference/cluster.html")
+        url = TOOL_DOCS.get(tool, "https://scikit-learn.org/stable/modules/clustering.html" if str(tool).startswith("sklearn.") else "https://docs.scipy.org/doc/scipy/reference/cluster.html")
         try:
             webbrowser.open(url)
         except Exception:

@@ -215,7 +215,9 @@ def source_translator_calls(root: Path | None = None) -> set[str]:
     Edit Localization, the Developer-menu tool - has one implementation to
     read rather than a second copy that can drift from the test's own.
     Only a literal string argument counts, same restriction as that test:
-    ``_(some_variable)`` cannot be swept statically either way.
+    ``_(some_variable)`` cannot be swept statically either way. The one
+    exception is the class attributes a series operation's base translates
+    for it (``MODEL_LABEL``, ``MODEL_TOOLTIP``), collected by name.
     """
     app_dir = root or Path(__file__).resolve().parent.parent
     found: set[str] = set()
@@ -236,7 +238,22 @@ def source_translator_calls(root: Path | None = None) -> set[str]:
                 and isinstance(node.args[0].value, str)
             ):
                 found.add(node.args[0].value)
+            elif (
+                isinstance(node, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name) and target.id in TRANSLATED_ATTRIBUTES
+                    for target in node.targets
+                )
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            ):
+                found.add(node.value.value)
     return found
+
+
+#: Class attributes whose string value is passed through ``_()`` by the code
+#: that reads them (SeriesOperationDialogBase.build_model_selector).
+TRANSLATED_ATTRIBUTES: frozenset[str] = frozenset({"MODEL_LABEL", "MODEL_TOOLTIP"})
 
 
 def _mo_path(language: str) -> Path:

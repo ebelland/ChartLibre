@@ -58,6 +58,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
 )
@@ -66,7 +67,6 @@ from app.series_operations.parameter_spec import (
     FloatParam,
     IntParam,
 )
-from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -77,28 +77,23 @@ ROOT_BISECT = "Bisection"
 ROOT_TOMS748 = "TOMS 748"
 ROOT_NEWTON = "Newton (secant)"
 
-ROOT_MODELS = (ROOT_BRENT, ROOT_BISECT, ROOT_TOMS748, ROOT_NEWTON)
-
-#: The bracketing solvers, which cannot return an x outside the interval they
-#: were handed. Newton is the exception, and is checked afterwards.
-BRACKETED_MODELS = (ROOT_BRENT, ROOT_BISECT, ROOT_TOMS748)
-
-ROOT_DOCS = {
-    ROOT_BRENT: (
-        "Brent's method",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brentq.html",
+#: The models offered, in combo order.
+ROOT_MODELS: dict[str, OperationModel] = {
+    ROOT_BRENT: OperationModel(
+        doc_title="Brent's method",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brentq.html",
     ),
-    ROOT_BISECT: (
-        "Bisection method",
-        "https://en.wikipedia.org/wiki/Bisection_method",
+    ROOT_BISECT: OperationModel(
+        doc_title="Bisection method",
+        doc_url="https://en.wikipedia.org/wiki/Bisection_method",
     ),
-    ROOT_TOMS748: (
-        "TOMS 748",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.toms748.html",
+    ROOT_TOMS748: OperationModel(
+        doc_title="TOMS 748",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.toms748.html",
     ),
-    ROOT_NEWTON: (
-        "Secant method",
-        "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.newton.html",
+    ROOT_NEWTON: OperationModel(
+        doc_title="Secant method",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.newton.html",
     ),
 }
 
@@ -188,6 +183,14 @@ class RootResult(TableResult):
 
 class SeriesRootsDialog(SeriesOperationDialogBase):
     """Solve y(x) = level for x, on every crossing the samples bracket."""
+
+    MODELS = ROOT_MODELS
+    MODEL_LABEL = "Solver:"
+    MODEL_TOOLTIP = (
+        "How each bracketed crossing is refined. The three bracketing "
+        "solvers cannot leave the interval they were given; Newton "
+        "can, and is checked afterwards."
+    )
 
     Name: str = "Roots"
     Description = "Find where a series crosses a level"
@@ -302,40 +305,11 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-    def init_operation_widgets(self) -> None:
-        self._doc_link = create_doc_link(self)
-
-    def build_model_selector(self) -> QWidget:
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-
-        container = QWidget(panel)
-        form = QFormLayout(container)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.model_combo.addItems(ROOT_MODELS)
-        self.model_combo.setToolTip(
-            _(
-                "How each bracketed crossing is refined. The three bracketing "
-                "solvers cannot leave the interval they were given; Newton "
-                "can, and is checked afterwards."
-            )
-        )
-        form.addRow(_("Solver:"), self.model_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(container)
-        return panel
 
     def _refresh_visibility(self) -> None:
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.refresh_visibility()
-        title, url = ROOT_DOCS[self._model()]
-        set_doc_link(self._doc_link, title, url)
 
     def _model(self) -> str:
         return self.current_model(ROOT_BRENT)
