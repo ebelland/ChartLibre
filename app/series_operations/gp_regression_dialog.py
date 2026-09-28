@@ -24,7 +24,6 @@ from app.logs.logger import applogger
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
-    generated_table_name,
 )
 from app.series_operations.parameter_spec import FloatParam
 from app.styles.style import create_doc_link, set_doc_link
@@ -364,11 +363,8 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
             ),
         ]
 
-    def result_table_name(self, axis_id: int, result: GPRegressionResult) -> str:
-        return generated_table_name(
-            f"GP_axis{axis_id}_{result.source_name}_{result.model}",
-            fallback="GP_Result",
-        )
+    RESULT_TABLE_PREFIX = 'GP'
+    RESULT_TABLE_VARIANT = 'model'
 
     @property
     def operation_label(self) -> str:

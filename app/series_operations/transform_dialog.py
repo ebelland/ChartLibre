@@ -30,7 +30,6 @@ from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntPara
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
-    generated_table_name,
 )
 from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
@@ -356,11 +355,8 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
             },
         )
 
-    def result_table_name(self, axis_id: int, result: TransformResult) -> str:
-        return generated_table_name(
-            f"Transform_axis{axis_id}_{result.source_name}_{result.model}",
-            fallback="Transform_Result",
-        )
+    RESULT_TABLE_PREFIX = 'Transform'
+    RESULT_TABLE_VARIANT = 'model'
 
     @property
     def operation_label(self) -> str:

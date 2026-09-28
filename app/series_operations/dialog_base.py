@@ -1160,12 +1160,27 @@ class SeriesOperationDialogBase(QDialog):
         """
         return [self.result_series_spec(axis_id, table_name, result)]
 
-    def result_table_name(self, axis_id: int, result: Any) -> str:
-        """Return a safe default table name for one result.
+    #: Result tables are named ``<prefix>_axis<id>_<series>[_<variant>]``,
+    #: where the variant is this attribute of the result (its model, its
+    #: method...) or nothing when None. An operation sets the two instead of
+    #: overriding result_table_name; the names are kept as they always were,
+    #: since a re-run replaces the table of the same name.
+    RESULT_TABLE_PREFIX: str = ""
+    RESULT_TABLE_VARIANT: str | None = "model"
 
-        Subclasses should override when they already have stable table naming
-        semantics.  The default uses common attributes when available.
+    def result_table_name(self, axis_id: int, result: Any) -> str:
+        """Return a safe table name for one result.
+
+        From RESULT_TABLE_PREFIX/RESULT_TABLE_VARIANT when the operation sets
+        a prefix; otherwise the class name and whatever model or method the
+        result carries.
         """
+        prefix = self.RESULT_TABLE_PREFIX
+        if prefix:
+            raw = f"{prefix}_axis{axis_id}_{result.source_name}"
+            if self.RESULT_TABLE_VARIANT is not None:
+                raw += f"_{getattr(result, self.RESULT_TABLE_VARIANT)}"
+            return generated_table_name(raw, fallback=f"{prefix}_Result")
         source_name = str(getattr(result, "source_name", "Series") or "Series")
         # "model" on most results, "method" on the clustering one: a result
         # without either used to make Apply fail outright.

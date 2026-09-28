@@ -59,7 +59,6 @@ from app.logs.logger import applogger
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
-    generated_table_name,
 )
 from app.series_operations.parameter_spec import (
     ChoiceParam,
@@ -798,11 +797,8 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
             },
         )
 
-    def result_table_name(self, axis_id: int, result: RootResult) -> str:
-        return generated_table_name(
-            f"Roots_axis{axis_id}_{result.source_name}",
-            fallback="Roots_Result",
-        )
+    RESULT_TABLE_PREFIX = 'Roots'
+    RESULT_TABLE_VARIANT = None
 
     @property
     def operation_label(self) -> str:

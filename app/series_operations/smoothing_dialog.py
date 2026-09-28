@@ -51,7 +51,6 @@ from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
-    generated_table_name,
 )
 from app.logs.logger import applogger
 from app.utils.messages import show_message
@@ -1545,9 +1544,8 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
             },
         )
 
-    def result_table_name(self, axis_id: int, result: SmoothResult) -> str:
-        raw = f"Smoothing_axis{axis_id}_{result.source_name}_{result.method}"
-        return generated_table_name(raw, fallback="Smoothing_Result")
+    RESULT_TABLE_PREFIX = 'Smoothing'
+    RESULT_TABLE_VARIANT = 'method'
 
     def format_results(self, results: Sequence[SmoothResult]) -> str:
         if not results:

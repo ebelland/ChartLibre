@@ -47,7 +47,6 @@ from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntPara
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
-    generated_table_name,
 )
 from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
@@ -842,11 +841,8 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             },
         )
 
-    def result_table_name(self, axis_id: int, result: CalculusResult) -> str:
-        return generated_table_name(
-            f"Calculus_axis{axis_id}_{result.source_name}_{result.model}",
-            fallback="Calculus_Result",
-        )
+    RESULT_TABLE_PREFIX = 'Calculus'
+    RESULT_TABLE_VARIANT = 'model'
 
     @property
     def operation_label(self) -> str:

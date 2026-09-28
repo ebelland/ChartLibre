@@ -68,7 +68,6 @@ from app.series_operations.parameter_spec import BoolParam, FloatParam, IntParam
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
-    generated_table_name,
 )
 from app.styles.style import create_doc_link, set_doc_link
 from app.utils.config import get_constant
@@ -1325,11 +1324,8 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
 
         return specs
 
-    def result_table_name(self, axis_id: int, result: ControlChartResult) -> str:
-        return generated_table_name(
-            f"ControlChart_axis{axis_id}_{result.source_name}_{result.chart}",
-            fallback="ControlChart_Result",
-        )
+    RESULT_TABLE_PREFIX = 'ControlChart'
+    RESULT_TABLE_VARIANT = 'chart'
 
     @property
     def operation_label(self) -> str:

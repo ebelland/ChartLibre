@@ -37,7 +37,6 @@ from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntPar
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
-    generated_table_name,
 )
 from app.styles.style import create_doc_link, set_doc_link
 from app.utils import report_html
@@ -566,11 +565,8 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
             },
         )
 
-    def result_table_name(self, axis_id: int, result: PeakResult) -> str:
-        return generated_table_name(
-            f"Peaks_axis{axis_id}_{result.source_name}",
-            fallback="Peaks_Result",
-        )
+    RESULT_TABLE_PREFIX = 'Peaks'
+    RESULT_TABLE_VARIANT = None
 
     @property
     def operation_label(self) -> str:

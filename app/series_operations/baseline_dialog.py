@@ -39,7 +39,6 @@ from app.logs.logger import applogger
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
-    generated_table_name,
 )
 from app.styles.style import create_doc_link, set_doc_link
 from app.utils.i18n import _
@@ -351,10 +350,8 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         specs.append(self.result_series_spec(axis_id, table_name, result))
         return specs
 
-    def result_table_name(self, axis_id: int, result: BaselineResult) -> str:
-        return generated_table_name(
-            f"Baseline_axis{axis_id}_{result.source_name}", fallback="Baseline_Result"
-        )
+    RESULT_TABLE_PREFIX = 'Baseline'
+    RESULT_TABLE_VARIANT = None
 
     @property
     def operation_label(self) -> str:
