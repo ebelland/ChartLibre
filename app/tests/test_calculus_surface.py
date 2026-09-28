@@ -7,6 +7,8 @@ and a real (interpolated) series.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from pathlib import Path
 
 import numpy as np
@@ -90,7 +92,7 @@ def test_the_volume_under_a_constant_block_is_base_times_height() -> None:
 # ----------------------------------------------------------------------
 
 @pytest.fixture
-def repo(tmp_db_path: Path) -> SqliteRepo:
+def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     for suffix in (".dhub", ".dhub-wal", ".dhub-shm"):
         tmp_db_path.with_suffix(suffix).unlink(missing_ok=True)
     built = SqliteRepo(db_path=tmp_db_path)

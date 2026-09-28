@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
-from typing import Any, ClassVar, Mapping
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping
 
 from app.data.data_source import is_identifier, quote_identifier
 from app.logs.logger import applogger
@@ -462,3 +462,71 @@ class DatabasePragmaInfo:
         size_bytes but holding nothing live."""
         return self.page_size * self.freelist_count
 
+
+# ---------------------------------------------------------------------------
+# What each mixin may call on the repository it is mixed into
+# ---------------------------------------------------------------------------
+# The mixins are halves of one class, SqliteRepo, and call into each other
+# and into it - TablesMixin asks for get_axes (DescriptorsMixin), everything
+# asks for _con. At run time that is just the method resolution order; a
+# type checker looking at one mixin alone sees none of it, and reported
+# every such call as an unknown attribute (~350 errors). RepoHost names
+# those members once, for the checker only: at run time it is ``object``,
+# so nothing here can shadow the real definitions, which sit earlier in the
+# MRO anyway. The signatures are copies - change one with its original.
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from contextlib import AbstractContextManager
+    from pathlib import Path
+
+    import pandas as pd
+
+    from app.data.descriptors import FigureDescriptor
+
+    class RepoHost:
+        db_path: Path
+        _con: sqlite3.Connection | None
+        _is_connected: bool
+
+        def _connect(self) -> None: ...
+        def _connected(self) -> None: ...
+        def _commit(self) -> None: ...
+        def transaction(self, *, immediate: bool = False) -> AbstractContextManager[None]: ...
+        def refuse_if_blocked(self, sql: str | None) -> None: ...
+        def snapshot_for_undo(
+            self,
+            tables: Sequence[str],
+            *,
+            label: str,
+            entry_id: int | None = None,
+        ) -> int | None: ...
+        @staticmethod
+        def ensure_dhub_extension(path: Path) -> Path: ...
+
+        # TablesMixin
+        def list_user_tables(self, *, include_internal: bool = False) -> pd.DataFrame: ...
+        def row_count(self, table: str) -> int: ...
+        def query_df(self, sql: str, params: tuple[Any, ...] | None = None) -> pd.DataFrame: ...
+        def ensure_hide_column(self, table_name: str) -> None: ...
+        def query_source_table(self, sql_query: str) -> str: ...
+        @staticmethod
+        def is_table_backed_sql(sql_query: str) -> bool: ...
+        def sql_with_hide_filter(self, sql_query: str) -> str: ...
+        def list_table_names(self) -> list[str]: ...
+        def check_if_table_exists(self, table_name: str) -> bool: ...
+
+        # EditingMixin
+        def has_integer_primary_key(self, table_name: str) -> bool: ...
+
+        # DescriptorsMixin
+        def get_figure_descriptor(self, figure_id: int) -> FigureDescriptor | None: ...
+        def update_series_sql_query(self, series_id: int, sql_query: str) -> None: ...
+        def list_series_dict(self) -> list[dict[str, Any]]: ...
+        def get_series_for_axes(self, axis_ids: Sequence[int]) -> dict[int, list[sqlite3.Row]]: ...
+        def get_axes(self, figure_id: int) -> list[sqlite3.Row] | None: ...
+
+        # QueriesMixin
+        def get_query(self, name: str) -> SavedQuery | None: ...
+        def list_queries(self) -> list[SavedQuery]: ...
+else:
+    RepoHost = object

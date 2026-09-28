@@ -40,6 +40,7 @@ from app.utils.distribution_fit import (
     curve_points,
     fits_for_spec,
 )
+from app.utils.coercion import to_numbers
 
 
 def ecdf_points(
@@ -123,7 +124,7 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
         {"complementary", "as_percent", "distribution_fit", "distribution_fit_points"}
     )
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "complementary": {
             "default": False,
             "type": bool,
@@ -269,7 +270,7 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
         for sd in series:
             if "value" not in sd.df.columns:
                 continue
-            values = pd.to_numeric(sd.df["value"], errors="coerce").to_numpy(dtype=float)
+            values = to_numbers(sd.df["value"]).to_numpy(dtype=float)
             values = values[np.isfinite(values)]
             if values.size < 3:
                 continue
@@ -316,10 +317,10 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
             )
             return None
 
-        values = pd.to_numeric(sd.df["value"], errors="coerce").to_numpy(dtype=float)
+        values = to_numbers(sd.df["value"]).to_numpy(dtype=float)
         weights = None
         if "weight" in sd.df.columns:
-            weights = pd.to_numeric(sd.df["weight"], errors="coerce").to_numpy(dtype=float)
+            weights = to_numbers(sd.df["weight"]).to_numpy(dtype=float)
 
         x_values, y_values = ecdf_points(
             values,

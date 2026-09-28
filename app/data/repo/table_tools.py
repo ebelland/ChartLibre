@@ -13,7 +13,8 @@ from typing import Any, Sequence
 
 import pandas as pd
 
-from app.data.repo._common import _is_ident, _quote_ident
+from app.data.repo._common import _is_ident, _quote_ident, RepoHost
+from app.utils.coercion import to_numbers
 
 #: The declared types a column can be changed to, in SQLite's own names.
 CAST_TYPES: tuple[str, ...] = ("REAL", "INTEGER", "TEXT")
@@ -25,7 +26,7 @@ FILL_METHODS: tuple[str, ...] = ("constant", "mean", "median", "previous", "line
 AGGREGATES: tuple[str, ...] = ("COUNT", "SUM", "AVG", "MIN", "MAX", "COUNT_DISTINCT")
 
 
-class TableToolsMixin:
+class TableToolsMixin(RepoHost):
     """Table-level tools with undo."""
 
     __slots__ = ()
@@ -210,7 +211,7 @@ class TableToolsMixin:
             "empty": int(empty.sum()),
             "distinct": int(present.astype(str).nunique()),
         }
-        numbers = pd.to_numeric(present, errors="coerce").dropna()
+        numbers = to_numbers(present).dropna()
         if len(numbers):
             stats.update(
                 min=float(numbers.min()),
@@ -253,7 +254,7 @@ class TableToolsMixin:
         if method == "constant":
             filled = raw.where(~empty, value)
         elif method in ("mean", "median", "linear"):
-            numbers = pd.to_numeric(raw.where(~empty), errors="coerce")
+            numbers = to_numbers(raw.where(~empty))
             if method == "mean":
                 filled = numbers.fillna(numbers.mean())
             elif method == "median":

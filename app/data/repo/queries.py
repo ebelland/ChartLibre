@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 import pandas as pd
 
 from app.data.repo._common import (
+    RepoHost,
     SavedQuery,
     _dumps_json,
     _loads_json,
@@ -27,7 +28,7 @@ from app.data.repo._common import (
 from app.logs.logger import applogger
 
 
-class QueriesMixin:
+class QueriesMixin(RepoHost):
     """Saved queries and explicit indexing."""
 
     __slots__ = ()

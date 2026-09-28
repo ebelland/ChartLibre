@@ -14,10 +14,10 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from app.data.repo._common import _is_ident, _quote_ident
+from app.data.repo._common import _is_ident, _quote_ident, RepoHost
 
 
-class EditingMixin:
+class EditingMixin(RepoHost):
     """Cell, row and column edits made by hand."""
 
     __slots__ = ()

@@ -26,6 +26,7 @@ import app.data.descriptors
 from app import APP_NAME
 from app.data.data_source import DataSource
 from app.data.repo._common import (
+    RepoHost,
     _RETURNS_ROWS_RE,
     _dumps_json,
     _is_ident,
@@ -94,7 +95,7 @@ class QueryColumns:
         return self._data.get(column, default)
 
 
-class TablesMixin:
+class TablesMixin(RepoHost):
     """User tables: listing, reading, importing, renaming, deleting."""
 
     __slots__ = ()

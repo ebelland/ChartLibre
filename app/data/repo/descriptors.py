@@ -20,6 +20,7 @@ from typing import Any, Mapping, Sequence
 
 import app.data.descriptors
 from app.data.repo._common import (
+    RepoHost,
     _dumps_json,
     _is_ident,
     _loads_json,
@@ -30,7 +31,7 @@ from app.data.repo._common import (
 from app.logs.logger import applogger
 
 
-class DescriptorsMixin:
+class DescriptorsMixin(RepoHost):
     """Figure, axis and series descriptors, and their stored options."""
 
     __slots__ = ()

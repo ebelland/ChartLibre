@@ -15,6 +15,7 @@ import pandas as pd
 from matplotlib.patches import Rectangle
 
 from app.charts.base import BaseAxisRenderer, SeriesData
+from app.utils.coercion import to_numbers
 
 Orientation = Literal["horizontal", "vertical"]
 
@@ -41,7 +42,7 @@ class BrokenBarAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["category", "start", "duration"]
     OptionalRoles: list[str] = ["color"]
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "band_height": {
             "default": 0.8,
             "type": float,
@@ -128,8 +129,8 @@ class BrokenBarAxisRenderer(BaseAxisRenderer):
         kwargs = self._patch_kwargs(merged_options)
         fallback_color = self.series_color(sd.style or {}, layer_index)
 
-        starts = pd.to_numeric(df["start"], errors="coerce").to_numpy(dtype=float)
-        durations = pd.to_numeric(df["duration"], errors="coerce").to_numpy(dtype=float)
+        starts = to_numbers(df["start"]).to_numpy(dtype=float)
+        durations = to_numbers(df["duration"]).to_numpy(dtype=float)
         colors = (
             self.color_sequence_from_values(df["color"], fallback_color=fallback_color)
             if "color" in df.columns

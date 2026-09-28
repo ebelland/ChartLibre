@@ -31,11 +31,12 @@ from app.charts.base import BaseAxisRenderer, SeriesData
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 #: The options every renderer here understands, borrowed rather than retyped.
 #: Only the ones that describe an artist's appearance: the scatter's colour
 #: mapping and error bars mean nothing to a filled region or a wind barb.
-_SHARED_KWARGS: dict[str, object] = {
+_SHARED_KWARGS: dict[str, Any] = {
     key: value
     for key, value in ScatterAxisRenderer.Kwargs.items()
     if key in {"alpha", "label", "zorder", "picker", "rasterized", "visible"}
@@ -44,7 +45,7 @@ _SHARED_KWARGS: dict[str, object] = {
 
 def _numeric(frame: SeriesFrame, column: str) -> np.ndarray:
     """Return one column as floats, with unparseable entries as NaN."""
-    return pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=float)
+    return to_numbers(frame[column]).to_numpy(dtype=float)
 
 
 class StackplotAxisRenderer(BaseAxisRenderer):
@@ -65,7 +66,7 @@ class StackplotAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["x", "y"]
     OptionalRoles: list[str] = []
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         **_SHARED_KWARGS,
         "baseline": {
             "default": "zero",
@@ -154,7 +155,7 @@ class StairsAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["y"]
     OptionalRoles: list[str] = ["x"]
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         **_SHARED_KWARGS,
         "fill": {
             "default": False,
@@ -256,7 +257,7 @@ class StemAxisRenderer(BaseAxisRenderer):
     #: Only ``label`` of the shared appearance set: ``ax.stem`` takes a fixed
     #: signature and raises on any other keyword - it is a helper that builds
     #: three artists, not a single artist accepting the usual properties.
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "label": _SHARED_KWARGS["label"],
         "linefmt": {
             "default": None,
@@ -352,7 +353,7 @@ class FillBetweenAxisRenderer(BaseAxisRenderer):
     #: which is how "everything above zero" is drawn.
     OptionalRoles: list[str] = ["y2"]
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         **_SHARED_KWARGS,
         "baseline": {
             "default": 0.0,
@@ -453,7 +454,7 @@ class BarbsAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["x", "y", "u", "v"]
     OptionalRoles: list[str] = []
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         **_SHARED_KWARGS,
         "length": {
             "default": 7.0,

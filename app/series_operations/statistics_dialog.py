@@ -53,6 +53,7 @@ from app.utils.distribution_fit import (
     fit_distributions,
 )
 from app.utils.i18n import _
+from app.utils.coercion import to_numbers
 
 _SERIES_ROLE = Qt.ItemDataRole.UserRole
 
@@ -492,7 +493,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         if y_column is None:
             return None
 
-        y = pd.to_numeric(frame[y_column], errors="coerce").to_numpy(dtype=float)
+        y = to_numbers(frame[y_column]).to_numpy(dtype=float)
         finite = np.isfinite(y)
         if not np.any(finite):
             return None
@@ -544,7 +545,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         ]
         for column in preferred:
             if column and column in frame.columns:
-                values = pd.to_numeric(frame[column], errors="coerce")
+                values = to_numbers(frame[column])
                 if values.notna().any():
                     return column
 
@@ -559,7 +560,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         for column in frame.columns:
             if str(column).strip().lower() in excluded:
                 continue
-            values = pd.to_numeric(frame[column], errors="coerce")
+            values = to_numbers(frame[column])
             count = int(values.notna().sum())
             if count > best_count:
                 best_column = str(column)

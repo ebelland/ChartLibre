@@ -615,7 +615,7 @@ class TableEditorDialog(QDialog):
         if not dialog.exec():
             return
         scope = dialog.scope.currentData()
-        find, replace = dialog.find.text(), dialog.replace.text()
+        find, replace = dialog.find_edit.text(), dialog.replace_edit.text()
         whole = dialog.whole_cell.isChecked()
 
         def run() -> None:

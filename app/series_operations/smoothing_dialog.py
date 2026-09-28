@@ -59,6 +59,7 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
+from app.utils.coercion import to_numbers
 
 from scipy.signal import sosfiltfilt
 
@@ -1238,9 +1239,9 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         z_values = None
         values = None
         if z_col:
-            z_values = pd.to_numeric(frame[z_col], errors="coerce").to_numpy(dtype=float)
+            z_values = to_numbers(frame[z_col]).to_numpy(dtype=float)
         if values_col:
-            values = pd.to_numeric(frame[values_col], errors="coerce").to_numpy(dtype=float)
+            values = to_numbers(frame[values_col]).to_numpy(dtype=float)
 
         x_values = np.asarray(x_values, dtype=float).reshape(-1)
         y_values = np.asarray(y_values, dtype=float).reshape(-1)

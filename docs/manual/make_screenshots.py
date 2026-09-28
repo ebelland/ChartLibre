@@ -67,7 +67,7 @@ import app.styles.style as style  # noqa: E402
 style._IS_MACOS = True
 style.IS_MACOS = True
 
-from PySide6.QtCore import QTimer  # noqa: E402
+from PySide6.QtCore import QCoreApplication, QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
 import app.dialogs.main_window as main_window_module  # noqa: E402
@@ -100,7 +100,7 @@ DEMO_INDEX = 0
 COVER_FIGURE = "Penguin bill dimensions"
 
 
-def _settle(app: QApplication, rounds: int = 12) -> None:
+def _settle(app: QCoreApplication, rounds: int = 12) -> None:
     """Let deferred work finish before the pixels are read.
 
     ChartPanel renders on a timer rather than during construction, so a grab

@@ -70,8 +70,8 @@ def _render_icon_pngs(sizes: list[int]) -> dict[int, bytes]:
         painter.end()
         buffer = QBuffer()
         buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-        image.save(buffer, "PNG")
-        images[size] = bytes(buffer.data())
+        image.save(buffer, b"PNG")
+        images[size] = buffer.data().data()
     del app
     return images
 

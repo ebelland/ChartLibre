@@ -43,7 +43,7 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.logs.logger import applogger
-from app.utils.coercion import coerce_axis, to_numeric_axis
+from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
 from app.utils.series_validation import (
     SeriesIssue,
     clean_xy,
@@ -1244,7 +1244,7 @@ class SeriesOperationDialogBase(QDialog):
                 continue
             try:
                 frame[column] = pd.to_datetime(
-                    pd.to_numeric(frame[column], errors="coerce"),
+                    to_numbers(frame[column]),
                     unit="s",
                     errors="coerce",
                 )

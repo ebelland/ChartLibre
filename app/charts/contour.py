@@ -92,7 +92,7 @@ class ContourAxisRenderer(BaseAxisRenderer):
     #: A second scalar field would cover the first, not compare with it.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "levels": {
             "default": "",
             "type": str,
@@ -565,7 +565,7 @@ class ContourScatteredAxisRenderer(ContourAxisRenderer, BaseAxisRenderer):
 
     #: The options are the gridded renderer's, unchanged: everything from the
     #: levels to the labels means the same thing on a triangulation.
-    Kwargs: dict[str, object] = dict(ContourAxisRenderer.Kwargs)
+    Kwargs: dict[str, Any] = dict(ContourAxisRenderer.Kwargs)
 
     def render_axis(
         self,

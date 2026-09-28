@@ -35,6 +35,7 @@ from app.charts.kwarg_spec import (
     pick,
 )
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 #: Kept as aliases of the shared vocabulary, which now owns the conversion.
 _TRUE_WORDS = kwarg_spec.TRUE_WORDS
@@ -113,7 +114,7 @@ ERROR_BAR_ROLES: dict[str, tuple[str, str, str]] = {
 
 # Matplotlib errorbar keywords a renderer may forward, with their editor
 # metadata.  Renderers merge this into their own Kwargs.
-ERROR_BAR_KWARGS: dict[str, object] = {
+ERROR_BAR_KWARGS: dict[str, Any] = {
     "capsize": {
         "default": 0.0,
         "type": float,
@@ -217,7 +218,7 @@ class BaseAxisRenderer(Protocol):
     Link:str=""
     RequiredRoles: list[str] = []
     OptionalRoles: list[str] = []
-    Kwargs: dict[str, object] = {}
+    Kwargs: dict[str, Any] = {}
 
     #: Settings the renderer reads itself, never forwarded to Matplotlib.
     #:
@@ -232,7 +233,7 @@ class BaseAxisRenderer(Protocol):
     #:
     #: A renderer still on the single dict keeps working - :meth:`opt` falls
     #: back to ``Kwargs`` - so the conversion is one renderer at a time.
-    Options: dict[str, object] = {}
+    Options: dict[str, Any] = {}
 
     #: Series this renderer can draw on one axes; None means any number.
     #:
@@ -274,7 +275,7 @@ class BaseAxisRenderer(Protocol):
         found.append(options)
         return found  # pyright: ignore[reportReturnType]
 
-    def opt(self, name: str, options: dict) -> object:
+    def opt(self, name: str, options: dict) -> Any:
         """Resolve one setting the renderer consumes itself.
 
         Reads :attr:`Options` first and falls back to :attr:`Kwargs`, so a
@@ -685,7 +686,7 @@ class BaseAxisRenderer(Protocol):
         def _column(name: str) -> Any:
             if name not in df.columns:
                 return None
-            values = pd.to_numeric(df[name], errors="coerce")
+            values = to_numbers(df[name])
             if mask is not None:
                 values = values[mask]
             return np.clip(np.nan_to_num(values.to_numpy(dtype=float)), 0.0, None)

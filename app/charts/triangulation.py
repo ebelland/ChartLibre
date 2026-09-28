@@ -37,6 +37,7 @@ from app.charts.base import (
 from app.charts.grids import finite_xyz
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 #: The fewest points a triangulation can be built from.
 _MIN_TRIANGULATION_POINTS: int = 3
@@ -48,8 +49,8 @@ def _finite_xy(df: SeriesFrame) -> tuple[np.ndarray, np.ndarray]:
     ``grids.finite_xyz`` without the z, for the one renderer here that has
     no value column to drop rows on.
     """
-    x = pd.to_numeric(df["x"], errors="coerce").to_numpy(dtype=float)
-    y = pd.to_numeric(df["y"], errors="coerce").to_numpy(dtype=float)
+    x = to_numbers(df["x"]).to_numpy(dtype=float)
+    y = to_numbers(df["y"]).to_numpy(dtype=float)
     finite = np.isfinite(x) & np.isfinite(y)
     return x[finite], y[finite]
 
@@ -88,7 +89,7 @@ class TriplotAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["x", "y"]
     OptionalRoles: list[str] = []
 
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
         {
             "color": {
@@ -189,7 +190,7 @@ class TripcolorAxisRenderer(BaseAxisRenderer):
     #: Two filled meshes over one set of axes hide each other.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         pick(ARTIST_KWARGS, "alpha", "zorder", "visible", "rasterized"),
         pick(CMAP_KWARGS, "cmap", "norm", "vmin", "vmax"),
         {
@@ -234,7 +235,7 @@ class TripcolorAxisRenderer(BaseAxisRenderer):
 
     #: Read here and never forwarded: a colorbar is a second Axes, not a
     #: keyword of the drawing call.
-    Options: dict[str, object] = {
+    Options: dict[str, Any] = {
         "colorbar": {
             # Off by default, as on the contour renderers and for their
             # reason: it is a second Axes taken out of this one's space, and

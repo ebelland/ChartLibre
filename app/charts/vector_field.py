@@ -48,6 +48,7 @@ from app.charts.base import (
 from app.charts.grids import pivot_to_grid
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 #: The appearance keywords every field renderer here forwards. Deliberately
 #: not the scatter's whole set: a colour cycle and error bars mean nothing to
@@ -65,7 +66,7 @@ _EVEN_SPACING_TOLERANCE: float = 1e-6
 def _field_columns(df: SeriesFrame) -> tuple[np.ndarray, ...]:
     """Return x, y, u, v as float arrays, unparseable entries as NaN."""
     return tuple(
-        pd.to_numeric(df[role], errors="coerce").to_numpy(dtype=float)
+        to_numbers(df[role]).to_numpy(dtype=float)
         for role in ("x", "y", "u", "v")
     )
 
@@ -116,7 +117,7 @@ class QuiverAxisRenderer(BaseAxisRenderer):
     #: is preferred to barbs.
     OptionalRoles: list[str] = ["color"]
 
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         _FIELD_KWARGS,
         pick(CMAP_KWARGS, "cmap", "norm", "vmin", "vmax"),
         {
@@ -235,7 +236,7 @@ class QuiverAxisRenderer(BaseAxisRenderer):
 
         columns = _field_columns(sd.df)
         mask = np.logical_and.reduce([np.isfinite(column) for column in columns])
-        values = pd.to_numeric(sd.df["color"], errors="coerce").to_numpy(dtype=float)
+        values = to_numbers(sd.df["color"]).to_numpy(dtype=float)
         values = values[mask]
         if values.size != expected or not np.isfinite(values).all():
             applogger.info(
@@ -273,7 +274,7 @@ class StreamAxisRenderer(BaseAxisRenderer):
     #: mean nothing; the second is reported and skipped.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         pick(_FIELD_KWARGS, "zorder"),
         pick(CMAP_KWARGS, "cmap", "norm"),
         {

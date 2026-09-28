@@ -19,6 +19,7 @@ from typing import Any
 
 import app.data.descriptors
 from app.data.repo._common import (
+    RepoHost,
     DatabasePragmaInfo,
     DatabaseReport,
     ensure_connection_wrapper,
@@ -26,7 +27,7 @@ from app.data.repo._common import (
 from app.logs.logger import applogger
 
 
-class MaintenanceMixin:
+class MaintenanceMixin(RepoHost):
     """Integrity checks, compaction, and saving the project elsewhere."""
 
     __slots__ = ()
@@ -98,10 +99,11 @@ class MaintenanceMixin:
         computing anything new, beyond a row count per table which SQLite
         itself has no PRAGMA for.
         """
-        assert self._con is not None
+        con = self._con
+        assert con is not None
 
         def pragma(name: str) -> Any:
-            row = self._con.execute(f"PRAGMA {name}").fetchone()
+            row = con.execute(f"PRAGMA {name}").fetchone()
             return row[0] if row is not None else None
 
         tables = self.list_user_tables()

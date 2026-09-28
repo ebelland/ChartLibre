@@ -30,6 +30,7 @@ from app.charts.base import (
     merge,
 )
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 # Where the percentage labels are placed, as a fraction of the radius.
 _DEFAULT_PCT_DISTANCE: float = 0.6
@@ -58,7 +59,7 @@ class PieAxisRenderer(BaseAxisRenderer):
     #: Forwarded verbatim to ``ax.pie``.  These were already being assembled
     #: one by one into a dict of the same names; the schema now says so, and
     #: the assembly is a single call.
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "autopct": {
             # A deliberate deviation from Matplotlib, which draws no
             # percentages at all: a pie without them is a picture of a ratio
@@ -135,7 +136,7 @@ class PieAxisRenderer(BaseAxisRenderer):
     #: these names is a keyword ``ax.pie`` accepts: the first three become
     #: entries in ``wedgeprops``, the colormap becomes an explicit list of
     #: colours, and the legend is drawn afterwards from the returned wedges.
-    Options: dict[str, object] = merge(
+    Options: dict[str, Any] = merge(
         LEGEND_OPTIONS,
         {
             "show_legend": {
@@ -245,7 +246,7 @@ class PieAxisRenderer(BaseAxisRenderer):
         Non-finite and negative values are dropped: a negative wedge has no
         meaning in a pie, and Matplotlib would draw it as if it were positive.
         """
-        values = pd.to_numeric(sd.df["value"], errors="coerce")
+        values = to_numbers(sd.df["value"])
         keep = values.notna() & (values > 0)
 
         dropped = int((~keep).sum())
@@ -265,7 +266,7 @@ class PieAxisRenderer(BaseAxisRenderer):
         explode: np.ndarray | None = None
         if "explode" in sd.df.columns:
             explode = (
-                pd.to_numeric(sd.df.loc[keep, "explode"], errors="coerce")
+                to_numbers(sd.df.loc[keep, "explode"])
                 .fillna(0.0)
                 .to_numpy(dtype=float)
             )

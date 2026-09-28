@@ -6,6 +6,8 @@ Artifacts (databases, saved figures) go to the directory chosen by
 # app/tests/conftest.py
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import os
 import sys
 import tempfile
@@ -100,7 +102,7 @@ def tmp_db_path(test_results_dir: Path, request: pytest.FixtureRequest) -> Path:
 
 
 @pytest.fixture
-def repo(tmp_db_path: Path) -> SqliteRepo:
+def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     """A fresh, empty SqliteRepo at this test's own tmp_db_path.
 
     The base shape most test modules were redefining by hand: open, yield,

@@ -8,6 +8,8 @@ the pair that can drift apart silently.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from pathlib import Path
 
 import numpy as np
@@ -38,7 +40,7 @@ SQUARE = pd.DataFrame(
 
 
 @pytest.fixture
-def repo(tmp_db_path: Path) -> SqliteRepo:
+def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     for suffix in (".dhub", ".dhub-wal", ".dhub-shm"):
         tmp_db_path.with_suffix(suffix).unlink(missing_ok=True)
     built = SqliteRepo(db_path=tmp_db_path)

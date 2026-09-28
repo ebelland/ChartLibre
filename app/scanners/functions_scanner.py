@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Final
+from typing import Any, Callable, ClassVar
 
 import numpy as np
 
@@ -90,9 +90,10 @@ class FunctionScanner:
     #: so only what actually differs (which base class, which default
     #: category, how many independent variables the model takes) is a class
     #: attribute.
-    BASE_CLASS_NAME: Final[str] = "base_function"
-    DEFAULT_CATEGORY: Final[str] = "Functions"
-    NDIM: Final[int] = 1
+    # ClassVar, not Final: SurfaceFunctionScanner overrides all three.
+    BASE_CLASS_NAME: ClassVar[str] = "base_function"
+    DEFAULT_CATEGORY: ClassVar[str] = "Functions"
+    NDIM: ClassVar[int] = 1
 
     def __init__(
         self, *, root: Path | None = None, extra_roots: tuple[Path, ...] | None = None
@@ -295,6 +296,6 @@ class SurfaceFunctionScanner(FunctionScanner):
     the base-class filter is what keeps the two libraries apart.
     """
 
-    BASE_CLASS_NAME: Final[str] = "base_surface_function"
-    DEFAULT_CATEGORY: Final[str] = "Surfaces"
-    NDIM: Final[int] = 2
+    BASE_CLASS_NAME: ClassVar[str] = "base_surface_function"
+    DEFAULT_CATEGORY: ClassVar[str] = "Surfaces"
+    NDIM: ClassVar[int] = 2

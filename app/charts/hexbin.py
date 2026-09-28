@@ -20,6 +20,7 @@ import pandas as pd
 
 from app.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 #: Options this renderer consumes itself, stripped before the rest reaches
 #: ``ax.hexbin`` - which rejects anything it does not recognise.
@@ -68,7 +69,7 @@ class HexbinAxisRenderer(BaseAxisRenderer):
     #: comparison, just one obscuring the other.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "gridsize": {
             "default": 40,
             "type": int,
@@ -172,13 +173,13 @@ class HexbinAxisRenderer(BaseAxisRenderer):
             )
             return
 
-        x = pd.to_numeric(sd.df["x"], errors="coerce").to_numpy(dtype=float)
-        y = pd.to_numeric(sd.df["y"], errors="coerce").to_numpy(dtype=float)
+        x = to_numbers(sd.df["x"]).to_numpy(dtype=float)
+        y = to_numbers(sd.df["y"]).to_numpy(dtype=float)
         finite = np.isfinite(x) & np.isfinite(y)
 
         value = None
         if "value" in sd.df.columns:
-            value = pd.to_numeric(sd.df["value"], errors="coerce").to_numpy(dtype=float)
+            value = to_numbers(sd.df["value"]).to_numpy(dtype=float)
             finite &= np.isfinite(value)
             value = value[finite]
 

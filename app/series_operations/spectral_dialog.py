@@ -55,6 +55,7 @@ from app.series_operations.dialog_base import (
 )
 from app.styles.style import create_doc_link, set_doc_link
 from app.utils.i18n import _
+from app.utils.coercion import to_numbers
 
 # ----------------------------------------------------------------------
 # Methods
@@ -480,7 +481,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         if y_column not in frame.columns:
             raise ValueError(f"series '{name}' has no y role")
 
-        y_values = pd.to_numeric(frame[y_column], errors="coerce").to_numpy(dtype=float)
+        y_values = to_numbers(frame[y_column]).to_numpy(dtype=float)
 
         x_column = str(roles.get("x", "x") or "x")
         if x_column in frame.columns:

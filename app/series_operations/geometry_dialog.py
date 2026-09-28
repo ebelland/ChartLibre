@@ -607,10 +607,10 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
 
         values = dict(self.parameter_values())
         if bool(values.get("use_data_centre", True)):
-            centre = tuple(
-                float((np.nanmin(v) + np.nanmax(v)) / 2.0) if v is not None else 0.0
-                for v in (before_x, before_y, before_z)
-            )
+            def middle(v: np.ndarray | None) -> float:
+                return float((np.nanmin(v) + np.nanmax(v)) / 2.0) if v is not None else 0.0
+
+            centre = (middle(before_x), middle(before_y), middle(before_z))
         else:
             centre = (
                 float(values.get("cx", 0.0)),

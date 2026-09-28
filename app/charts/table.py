@@ -69,7 +69,7 @@ class TableAxisRenderer(BaseAxisRenderer):
 
     #: Forwarded verbatim to ``ax.table``.  Three keywords, where the schema
     #: used to hold six and remove three again on the way out.
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "loc": {
             "default": "center",
             "type": [
@@ -97,7 +97,7 @@ class TableAxisRenderer(BaseAxisRenderer):
     #: the application: ``ax.table`` has no such keyword, and the size is set
     #: on the returned Table afterwards - together with switching off the
     #: automatic sizing, which is the part that actually makes it take effect.
-    Options: dict[str, object] = {
+    Options: dict[str, Any] = {
         "fontsize": {
             "default": None,
             kwarg_spec.RCPARAM: "font.size",

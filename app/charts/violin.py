@@ -60,7 +60,7 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
         "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.violinplot.html"
     )
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "direction": {
             "default": "vertical",
             "type": ["vertical", "horizontal"],

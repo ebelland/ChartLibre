@@ -14,6 +14,7 @@ is a function rather than one call to ``pd.to_datetime`` is written on it.
 from __future__ import annotations
 
 import warnings
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -22,6 +23,17 @@ import pandas as pd
 # see the note in ``to_numeric_axis``.
 _EPOCH = np.datetime64(0, "s")
 _ONE_SECOND = np.timedelta64(1, "s")
+
+
+def to_numbers(values: pd.Series) -> pd.Series:
+    """``pd.to_numeric(values, errors="coerce")``, for a column.
+
+    What pandas returns for a Series is a Series; its annotations promise
+    only "a scalar, an array or a Series", so a type checker flagged every
+    ``.notna()`` or ``.to_numpy()`` on the result. This says what the call
+    already does, in the one place it can be said.
+    """
+    return cast(pd.Series, pd.to_numeric(values, errors="coerce"))
 
 
 def coerce_axis(values: pd.Series) -> tuple[pd.Series, bool]:
@@ -39,7 +51,7 @@ def coerce_axis(values: pd.Series) -> tuple[pd.Series, bool]:
     if pd.api.types.is_datetime64_any_dtype(values):
         return values, True
 
-    numeric = pd.to_numeric(values, errors="coerce")
+    numeric = to_numbers(values)
     if numeric.notna().any():
         return numeric, False
 

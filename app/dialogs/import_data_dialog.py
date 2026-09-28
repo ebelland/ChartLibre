@@ -18,6 +18,7 @@ import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QApplication,
     QCheckBox,
     QComboBox,
@@ -91,6 +92,7 @@ from app.utils.data_sources import (  # noqa: E402
     _extension_for_web_source,
 )
 from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
+from app.utils.coercion import to_numbers
 
 
 #: The curated "Web source" quick-pick catalogue - see
@@ -429,7 +431,7 @@ class ImportDataDialog(QDialog):
         mark_editor_panel(self._col_table)
         columns.card.layout().addWidget(self._col_table, 1)
         columns_layout = columns.layout()
-        if columns_layout is not None:
+        if isinstance(columns_layout, QBoxLayout):
             columns_layout.setStretch(columns_layout.count() - 1, 1)
         left_layout.addWidget(columns, 1)
 
@@ -1202,9 +1204,9 @@ class ImportDataDialog(QDialog):
             s = out[col]
 
             if tt == "INTEGER":
-                out[col] = pd.to_numeric(s, errors="coerce").astype("Int64")
+                out[col] = to_numbers(s).astype("Int64")
             elif tt == "REAL":
-                out[col] = pd.to_numeric(s, errors="coerce")
+                out[col] = to_numbers(s)
             elif tt in ("DATE", "TIME", "DATETIME"):
                 dt = pd.to_datetime(s, errors="coerce")
                 if tt == "DATE":

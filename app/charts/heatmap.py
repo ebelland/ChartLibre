@@ -64,7 +64,7 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
     #: same reasoning as Contour Plot.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "cmap": {
             "default": "viridis",
             "type": str,

@@ -19,6 +19,7 @@ from app.charts import kwarg_spec
 from app.charts.base import BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 
 class BoxAxisRenderer(BaseAxisRenderer):
@@ -58,7 +59,7 @@ class BoxAxisRenderer(BaseAxisRenderer):
     Description = "Draw a box and whisker plot."
     Link="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html"
     
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "notch": {
             "default": None,
             kwarg_spec.STYLE_DEFAULT: True,
@@ -219,7 +220,7 @@ class BoxAxisRenderer(BaseAxisRenderer):
             if not bool(style.get("visible", True)) or not self.ensure_required_roles(sd.df):
                 continue
 
-            value = pd.to_numeric(sd.df["value"], errors="coerce")
+            value = to_numbers(sd.df["value"])
             if value is None:
                 applogger.warning(
                     "Series '%s' skipped: required numeric 'value' data not found.",

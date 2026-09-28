@@ -7,6 +7,8 @@ selected row" once a rowid no longer matches a position.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from pathlib import Path
 
 import pandas as pd
@@ -26,7 +28,7 @@ FRAME = pd.DataFrame(
 
 
 @pytest.fixture
-def repo(tmp_db_path: Path) -> SqliteRepo:
+def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     # The undo sidecar too, not just the database: it lives beside the
     # .dhub and outlives it, so a test that counts undo entries would be
     # counting the ones a previous run of itself left behind - and the

@@ -612,8 +612,8 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
 
         sections: list[str] = []
         for result in results:
+            values = result.z if result.z is not None else result.y
             is_surface = result.z is not None
-            values = result.z if is_surface else result.y
             finite = np.isfinite(values)
             summary_rows: list[tuple[str, Any]] = [
                 (_("Function"), result.function_name),

@@ -14,6 +14,8 @@ are written to.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from pathlib import Path
 
 import numpy as np
@@ -24,7 +26,7 @@ from app.data.sqlite_repo import SqliteRepo
 
 
 @pytest.fixture
-def repo(tmp_db_path: Path) -> SqliteRepo:
+def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     repo = SqliteRepo(db_path=tmp_db_path)
     yield repo
     repo.close()

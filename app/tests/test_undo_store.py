@@ -15,6 +15,8 @@ touched.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import sqlite3
 from pathlib import Path
 
@@ -26,7 +28,7 @@ from app.data.undo_store import MAX_UNDO_ENTRIES, UndoStore
 
 
 @pytest.fixture
-def connection(tmp_path: Path) -> sqlite3.Connection:
+def connection(tmp_path: Path) -> Iterator[sqlite3.Connection]:
     """A project with one data table and one descriptor table."""
     con = sqlite3.connect(str(tmp_path / "project.dhub"), isolation_level=None)
     con.execute("PRAGMA foreign_keys = ON")

@@ -22,7 +22,7 @@ from app.charts.base import BaseAxisRenderer, SeriesData
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import coerce_axis
+from app.utils.coercion import coerce_axis, to_numbers
 
 
 class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
@@ -50,7 +50,7 @@ class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
     RequiredRoles: list[str] = ["x"]
     OptionalRoles: list[str] = ["label", "y", "color", "size"]
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         **ScatterAxisRenderer.Kwargs,
         "levels": {
             "default": 6,
@@ -129,11 +129,11 @@ class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
             x = (
                 mdates.date2num(coerced.to_numpy())
                 if is_temporal
-                else pd.to_numeric(coerced, errors="coerce").to_numpy(dtype=float)
+                else to_numbers(coerced).to_numpy(dtype=float)
             )
 
             if "y" in sd.df.columns:
-                y = pd.to_numeric(sd.df["y"], errors="coerce").to_numpy(dtype=float)
+                y = to_numbers(sd.df["y"]).to_numpy(dtype=float)
             else:
                 # The alternating heights of the matplotlib example: successive
                 # events land on different levels, so neighbouring labels do

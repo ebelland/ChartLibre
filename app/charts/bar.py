@@ -25,6 +25,7 @@ from app.charts.base import (
     merge,
     pick,
 )
+from app.utils.coercion import to_numbers
 
 
 Orientation = Literal["vertical", "horizontal"]
@@ -66,7 +67,7 @@ class BarAxisRenderer(BaseAxisRenderer):
     #: take them: its error bars are configured through ``ecolor``,
     #: ``capsize`` and nothing else, and the extra three would reach
     #: ``Rectangle.set`` and raise.
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         # label is the renderer's own: it resolves the legend text from the
         # series and passes it separately, so it is an Option, not a keyword.
         pick(ARTIST_KWARGS, "alpha", "zorder", "visible", "rasterized", "picker"),
@@ -122,7 +123,7 @@ class BarAxisRenderer(BaseAxisRenderer):
     #: of one bar.  Forwarding it would make every series as wide as the group
     #: and draw them on top of each other.  That is the difference the single
     #: dict could not express.
-    Options: dict[str, object] = merge(
+    Options: dict[str, Any] = merge(
         LEGEND_OPTIONS,
         {
             "width": {
@@ -298,7 +299,7 @@ class BarAxisRenderer(BaseAxisRenderer):
             [float(category_pos[value]) for value in df["X"].tolist()],
             dtype=float,
         ) + offset
-        values = pd.to_numeric(df["Y"], errors="coerce").to_numpy(dtype=float)
+        values = to_numbers(df["Y"]).to_numpy(dtype=float)
 
         if self.Orientation == "horizontal":
             left = df["Left"].to_numpy(dtype=float) if "Left" in df.columns else self.opt("left", merged_options)

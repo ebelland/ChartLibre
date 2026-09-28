@@ -27,6 +27,7 @@ from app.styles.style import (
 )
 from app.utils.messages import show_message
 from app.utils.i18n import _
+from app.utils.coercion import to_numbers
 
 
 # Rows loaded when previewing a saved query.  A preview is for judging shape
@@ -503,7 +504,7 @@ class TablePreviewPanel(QWidget):
                     columns=names,
                 )
                 for name in names:
-                    converted = pd.to_numeric(frame[name], errors="coerce")
+                    converted = to_numbers(frame[name])
                     if converted.notna().sum() == frame[name].replace("", None).notna().sum():
                         frame[name] = converted
             elif isinstance(model, DataFrameTableModel):

@@ -67,7 +67,7 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
     #: comparison, exactly like the surfaces' MaxSeries.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible"),
         {
             "width": {
@@ -127,7 +127,7 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
     )
 
     #: The camera, read here and applied to the axes rather than forwarded.
-    Options: dict[str, object] = dict(VIEW_OPTIONS)
+    Options: dict[str, Any] = dict(VIEW_OPTIONS)
 
     def render_axis(
         self,

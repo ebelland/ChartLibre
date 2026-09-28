@@ -162,7 +162,8 @@ class CustomTitleBar(QFrame):
             MAC_TRAFFIC_LIGHTS_END - margin + _MAC_SIDEBAR_BUTTON_GAP, 0,
             QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum,
         )
-        self.layout().invalidate()
+        if layout is not None:
+            layout.invalidate()
 
     # ------------------------------------------------------------------
     # Shared: the sidebar toggle

@@ -35,7 +35,7 @@ class FishboneAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["category", "cause"]
     OptionalRoles: list[str] = ["subcause"]
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "problem": {
             "default": "",
             "type": str,

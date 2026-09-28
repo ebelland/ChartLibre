@@ -17,7 +17,7 @@ from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
 from app.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import coerce_axis
+from app.utils.coercion import coerce_axis, to_numbers
 
 
 class TimeSeriesAxisRenderer(BaseAxisRenderer):
@@ -60,7 +60,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
     Name = "Time Series"
     Category: str = "Pairwise data"
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "alpha": {
             "default": 0.8,
             "type": float,
@@ -213,7 +213,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                 continue
 
             x_axis, x_is_temporal = self._coerce_x_axis(sd.df["x"])
-            y_num = pd.to_numeric(sd.df["y"], errors="coerce")
+            y_num = to_numbers(sd.df["y"])
 
             mask = x_axis.notna() & y_num.notna()
             x_axis = x_axis[mask]
@@ -476,7 +476,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
             kwargs["facecolors"] = colors
             kwargs["edgecolors"] = colors
         else:
-            kwargs["c"] = pd.to_numeric(color_values, errors="coerce").to_numpy(dtype=float)
+            kwargs["c"] = to_numbers(color_values).to_numpy(dtype=float)
 
         try:
             ax.scatter(

@@ -31,6 +31,7 @@ from app.utils.distribution_fit import (
     curve_points,
     fits_for_spec,
 )
+from app.utils.coercion import to_numbers
 
 # Matplotlib histtypes, split by whether they draw patches or a line outline.
 _HISTTYPES: tuple[str, ...] = ("bar", "barstacked", "step", "stepfilled")
@@ -59,7 +60,7 @@ class HistogramAxisRenderer(BaseAxisRenderer):
         "https://matplotlib.org/stable/gallery/statistics/histogram_multihist.html"
     )
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "orientation": {
             "default": "vertical",
             "type": list(_ORIENTATIONS),
@@ -233,9 +234,9 @@ class HistogramAxisRenderer(BaseAxisRenderer):
         base_label = str(style.get("label", "") or "").strip() or sd.name.strip()
         color = self.series_color(style, layer_index)
 
-        values = pd.to_numeric(sd.df["value"], errors="coerce")
+        values = to_numbers(sd.df["value"])
         weights = (
-            pd.to_numeric(sd.df["weight"], errors="coerce")
+            to_numbers(sd.df["weight"])
             if "weight" in sd.df.columns
             else None
         )

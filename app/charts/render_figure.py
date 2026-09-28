@@ -37,6 +37,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.utils.config import get_constant
 from app.utils.mpl_latex import filter_latex_style_text
+from app.utils.coercion import to_numbers
 
 
 LayoutMode = Literal["constrained", "compressed", "tight", "none"]
@@ -750,7 +751,7 @@ def _draw_band(ax: Any, series: SeriesData) -> None:
         applogger.warning("Band %r needs x, y and y2 columns; not drawn.", series.name)
         return
     x, low, high = (
-        pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=float) for column in columns
+        to_numbers(frame[column]).to_numpy(dtype=float) for column in columns
     )
     keep = np.isfinite(x) & np.isfinite(low) & np.isfinite(high)
     order = np.argsort(x[keep], kind="stable")

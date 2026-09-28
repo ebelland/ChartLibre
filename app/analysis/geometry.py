@@ -108,7 +108,7 @@ class Motion:
 
     def sql(
         self,
-        columns: tuple[str, str] | tuple[str, str, str],
+        columns: tuple[str, ...],
         spell: Callable[[int, int], str | None] | None = None,
     ) -> tuple[str, ...]:
         """One SQL expression per coordinate, over quoted *columns*.

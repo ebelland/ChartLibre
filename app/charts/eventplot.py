@@ -19,6 +19,7 @@ import pandas as pd
 
 from app.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 #: Options this renderer consumes itself, stripped before the rest reaches
 #: ``ax.eventplot`` - which rejects anything it does not recognise.
@@ -45,7 +46,7 @@ class EventPlotAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["x"]
     OptionalRoles: list[str] = []
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "orientation": {
             "default": "horizontal",
             "type": ["horizontal", "vertical"],
@@ -135,7 +136,7 @@ class EventPlotAxisRenderer(BaseAxisRenderer):
                 )
                 continue
 
-            positions = pd.to_numeric(sd.df["x"], errors="coerce").to_numpy(dtype=float)
+            positions = to_numbers(sd.df["x"]).to_numpy(dtype=float)
             positions = positions[np.isfinite(positions)]
             if positions.size == 0:
                 applogger.info("Series '%s' skipped: no finite events.", sd.name)

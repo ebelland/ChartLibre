@@ -54,7 +54,7 @@ from scipy.cluster import vq
 from app.data.data_source import parse_roles
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.utils.coercion import to_numeric_axis
+from app.utils.coercion import to_numbers, to_numeric_axis
 from app.utils.messages import show_message
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
@@ -1370,7 +1370,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         )
 
     def _split_result_by_cluster(self, result: ClusterResult) -> list[ClusterResult]:
-        ids = pd.to_numeric(result.frame["ClusterId"], errors="coerce")
+        ids = to_numbers(result.frame["ClusterId"])
         cluster_ids = sorted(int(value) for value in ids.dropna().unique())
         split_results: list[ClusterResult] = []
 
@@ -1489,7 +1489,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self._snapshot_cluster_state(source_table)
         self._repo.ensure_cluster_column(source_table)
 
-        cluster_values = pd.to_numeric(result.frame["ClusterId"], errors="coerce")
+        cluster_values = to_numbers(result.frame["ClusterId"])
         x_values = result.frame[result.x_col]
         self._repo.clear_cluster_column(source_table)
         self._repo.set_ClusterId(source_table,source_x_column,x_values,cluster_values)
@@ -1588,7 +1588,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         unique_results = self._unique_report_results(results)
         lines: list[str] = ["Clustering preview"]
         for result in unique_results:
-            ids = pd.to_numeric(result.frame["ClusterId"], errors="coerce")
+            ids = to_numbers(result.frame["ClusterId"])
             valid_ids = ids.dropna().astype(int)
             clusters_found = int(valid_ids.nunique()) if not valid_ids.empty else 0
             total_rows = int(len(result.frame))

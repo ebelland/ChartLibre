@@ -21,6 +21,7 @@ import pandas as pd
 
 from app.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 _ADJUST_TEXT_WARNED = False
 
@@ -59,7 +60,7 @@ class TextAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["x", "y", "text"]
     OptionalRoles: list[str] = ["color"]
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "fontsize": {
             "default": 10.0,
             "type": float,
@@ -140,8 +141,8 @@ class TextAxisRenderer(BaseAxisRenderer):
         layer_index: int,
     ) -> list[Any]:
         df = sd.df
-        xs = pd.to_numeric(df["x"], errors="coerce").to_numpy(dtype=float)
-        ys = pd.to_numeric(df["y"], errors="coerce").to_numpy(dtype=float)
+        xs = to_numbers(df["x"]).to_numpy(dtype=float)
+        ys = to_numbers(df["y"]).to_numpy(dtype=float)
         labels = df["text"].astype(str).tolist()
 
         fallback_color = str(self.opt("color", merged_options) or "") or self.series_color(

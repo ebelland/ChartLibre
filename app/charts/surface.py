@@ -53,6 +53,7 @@ from app.charts.base import (
 )
 from app.charts.grids import finite_xyz, pivot_to_grid
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 
 def _surface_kwargs(renderer: BaseAxisRenderer, options: dict[str, Any]) -> dict[str, Any]:
@@ -102,7 +103,7 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
     MaxSeries: int | None = 1
 
     #: Forwarded verbatim to ``plot_surface``.
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         pick(CMAP_KWARGS, "cmap"),
         pick(ARTIST_KWARGS, "alpha"),
         {
@@ -160,7 +161,7 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
 
     #: Read here and never forwarded: the mask reshapes the data before it is
     #: drawn, and the camera is set on the axes afterwards.
-    Options: dict[str, object] = merge(
+    Options: dict[str, Any] = merge(
         VIEW_OPTIONS,
         {
             "circular_mask": {
@@ -266,7 +267,7 @@ class TriSurfaceAxisRenderer(BaseAxisRenderer):
 
     #: The gridded renderer's, without the two grid-only sampling keywords:
     #: ``plot_trisurf`` walks triangles, not rows and columns.
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         key: value
         for key, value in SurfaceAxisRenderer.Kwargs.items()
         if key not in ("rstride", "cstride")
@@ -284,7 +285,7 @@ class TriSurfaceAxisRenderer(BaseAxisRenderer):
     }
 
     #: No mask: it blanks cells of a grid, and there is no grid here.
-    Options: dict[str, object] = dict(VIEW_OPTIONS)
+    Options: dict[str, Any] = dict(VIEW_OPTIONS)
 
     def render_axis(
         self,
@@ -354,7 +355,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["x", "y", "z"]
     OptionalRoles: list[str] = ["color", "size"]
 
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
         pick(CMAP_KWARGS, "cmap", "norm", "vmin", "vmax"),
         {
@@ -406,7 +407,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
     )
 
     #: The camera, read here and applied to the axes rather than forwarded.
-    Options: dict[str, object] = dict(VIEW_OPTIONS)
+    Options: dict[str, Any] = dict(VIEW_OPTIONS)
 
     def render_axis(
         self,
@@ -480,12 +481,12 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
         finite = np.isfinite(
             np.column_stack(
                 [
-                    pd.to_numeric(frame[name], errors="coerce").to_numpy(dtype=float)
+                    to_numbers(frame[name]).to_numpy(dtype=float)
                     for name in ("x", "y", "z")
                 ]
             )
         ).all(axis=1)
-        values = pd.to_numeric(frame[role], errors="coerce").to_numpy(dtype=float)
+        values = to_numbers(frame[role]).to_numpy(dtype=float)
         values = values[finite]
         if values.size != expected or not np.isfinite(values).all():
             applogger.info(
@@ -524,7 +525,7 @@ class Line3DAxisRenderer(BaseAxisRenderer):
     RequiredRoles: list[str] = ["x", "y", "z"]
     OptionalRoles: list[str] = []
 
-    Kwargs: dict[str, object] = merge(
+    Kwargs: dict[str, Any] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
         LINE_KWARGS,
         {
@@ -547,7 +548,7 @@ class Line3DAxisRenderer(BaseAxisRenderer):
     )
 
     #: The camera, read here and applied to the axes rather than forwarded.
-    Options: dict[str, object] = dict(VIEW_OPTIONS)
+    Options: dict[str, Any] = dict(VIEW_OPTIONS)
 
     def render_axis(
         self,

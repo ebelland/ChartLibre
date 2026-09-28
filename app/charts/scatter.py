@@ -15,6 +15,7 @@ from matplotlib.transforms import Affine2D
 
 from app.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 
 def _reorder_error(error: Any, order: np.ndarray) -> Any:
@@ -110,7 +111,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
         }
     )
 
-    Kwargs: dict[str, object] = {
+    Kwargs: dict[str, Any] = {
         "confidence_ellipse": {
             "default": 0.0,
             "type": float,
@@ -264,8 +265,8 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             if not bool(style.get("visible", True)) or not self.ensure_required_roles(sd.df):
                 continue
 
-            x = pd.to_numeric( sd.df['x'], errors="coerce")
-            y = pd.to_numeric( sd.df['y'], errors="coerce")
+            x = to_numbers(sd.df['x'])
+            y = to_numbers(sd.df['y'])
             color_source = sd.df['color'] if 'color' in sd.df.columns else None
             # A non-numeric colour column (colour names, hex codes - the
             # Pairwise sample demo's own "orange"/"green"/"blue"/"red")
@@ -278,7 +279,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 color_source is not None
                 and not pd.api.types.is_numeric_dtype(color_source.dtype)
             )
-            if color_is_literal and not self._all_color_like(color_source):
+            if color_is_literal and color_source is not None and not self._all_color_like(color_source):
                 # Text that is not colour specs ("major"/"minor", species
                 # names) is a category: number the labels in order of first
                 # appearance and let the discrete palette path colour them.
@@ -290,8 +291,8 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             if color_is_literal:
                 color = color_source
             else:
-                color = pd.to_numeric(color_source, errors="coerce") if color_source is not None else None
-            size = pd.to_numeric(sd.df['size'], errors="coerce") if 'size' in sd.df.columns else None
+                color = to_numbers(color_source) if color_source is not None else None
+            size = to_numbers(sd.df['size']) if 'size' in sd.df.columns else None
 
             if x is None or y is None:
                 applogger.warning(f"Series { sd.name} skipped: required numeric 'x' and 'y' data not found.")
@@ -542,8 +543,8 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 continue
             if not self.ensure_required_roles(sd.df):
                 continue
-            x = pd.to_numeric(sd.df["x"], errors="coerce").to_numpy(dtype=float)
-            y = pd.to_numeric(sd.df["y"], errors="coerce").to_numpy(dtype=float)
+            x = to_numbers(sd.df["x"]).to_numpy(dtype=float)
+            y = to_numbers(sd.df["y"]).to_numpy(dtype=float)
             mask = np.isfinite(x) & np.isfinite(y)
             if mask.sum() >= 3 and self._draw_overlays(
                 ax, x[mask], y[mask], {**options, **(sd.style or {})}

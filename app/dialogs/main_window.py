@@ -868,7 +868,7 @@ class MainWindow(QMainWindow):
         # than a fixed number of rows above an empty gap.
         recent = self._titled_card(page, _("Open recent"), self._fill_recent_card, object_name="fileRecentCard")
         recent_layout = recent.layout()
-        if recent_layout is not None:
+        if isinstance(recent_layout, QBoxLayout):
             recent_layout.setStretch(recent_layout.count() - 1, 1)
         layout.addWidget(recent, 1)
         return page

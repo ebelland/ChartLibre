@@ -7,6 +7,8 @@ because the string being plausible is not the same as the chart drawing.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from pathlib import Path
 
 import pytest
@@ -17,7 +19,7 @@ from app.data.sqlite_repo import SqliteRepo
 
 
 @pytest.fixture
-def repo(tmp_db_path: Path) -> SqliteRepo:
+def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     """A repo with a table and a saved query selecting half of it."""
     repo = SqliteRepo(db_path=tmp_db_path)
     repo.query_df("DROP TABLE IF EXISTS readings")

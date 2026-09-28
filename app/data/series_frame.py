@@ -26,7 +26,7 @@ not a fallback the rest of the type quietly depends on.
 """
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, overload
 
 import numpy as np
 import pandas as pd
@@ -125,6 +125,10 @@ class SeriesFrame:
     def __contains__(self, column: object) -> bool:
         return column in self._data
 
+    @overload
+    def __getitem__(self, key: str) -> pd.Series: ...
+    @overload
+    def __getitem__(self, key: Iterable[str]) -> "SeriesFrame": ...
     def __getitem__(self, key: str | Iterable[str]) -> "pd.Series | SeriesFrame":
         if isinstance(key, str):
             return pd.Series(self._data[key], name=key)
