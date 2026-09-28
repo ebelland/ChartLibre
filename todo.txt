@@ -88,11 +88,10 @@ N-05  DONE 2026-09-27. Guardiano SQL permissivo: blocca solo cio' che scrive o
       Si spegne da Impostazioni > Sicurezza (user.json "sql_guard": false).
       Testo originale: wherever there is an SQL SELECT user text, avoid SQL injections and unsafe operations (usually it must start with SELECT and should not contain UPDATE or DELETE)
 
-N-06  Table preview, menu contestuale -> editor della tabella
-      Sposta "Elimina la colonna..." e "Aggiungi colonna da espressione
-      SQL..." dal menu contestuale di table preview nell'editor della
-      tabella (Modifica tabella). Replica anche "Nascondi righe..."
-      nell'editor.
+N-06  QUASI FATTO 2026-09-27. Table preview, menu contestuale -> editor della tabella
+      Fatto: "Elimina colonna", "Aggiungi colonna calcolata" (con anteprima)
+      e "Raggruppa e aggrega" (piu' misure, anteprima) sono nell'editor e
+      non piu' nel menu. Resta: replicare "Nascondi righe..." nell'editor.
 
 N-07  DONE 2026-09-27. Table preview: aggiungi "Copia" al menu contestuale.
       Anche Cmd/Ctrl+C; copia le celle selezionate separate da tab.
@@ -137,6 +136,144 @@ N-12  DONE 2026-09-27 ("Dimensione font": A- 100 % A+ in Figura e Asse;
       i due fattori si moltiplicano). Opzioni grafico, sezioni Axis e Figure: "Aumenta/diminuisci la
       dimensione di tutti i font" dell'Axis o della Figure, in un colpo
       solo.
+
+================================================================
+R - REVISIONE DEL CODICE E CONFRONTO CON JMP, SPSS, ORIGIN (2026-09-28)
+================================================================
+Stato misurato: 193 file Python, 85.000 righe; 415 test (6.400 righe,
+circa 7% del codice). 29 tipi di grafico, 20 operazioni sulle serie.
+Punti di forza gia' al livello dei prodotti commerciali: progetto in un
+solo file SQLite con le query come sorgenti vive, annulla su ogni modifica
+dei dati, guardiano SQL, fit con catalogo di modelli e stime iniziali,
+carte di controllo con regole di Nelson, plugin scritti dall'utente
+(grafici, operazioni, funzioni), due lingue complete.
+
+R-01  P1 Separare i calcoli dalle finestre.
+      Tutte le 20 operazioni calcolano dentro la classe Qt del dialogo
+      (compute_results in app/series_operations/*_dialog.py, 20.000 righe).
+      Estrarre il calcolo in funzioni pure, per esempio
+      app/analysis/<operazione>.py: DataFrame + parametri -> risultato.
+      E' la base di R-02, R-03 e R-13: test senza Qt, calcolo in un thread,
+      script e ricalcolo. JMP (JSL), SPSS (syntax) e Origin (LabTalk/Python)
+      separano tutti il motore dall'interfaccia.
+
+R-02  P1 Calcoli lunghi in background, con barra di avanzamento e Annulla.
+      Solo il clustering usa un thread (cluster_dialog.py); un fit,
+      un'analisi spettrale o un lisciamento su molti punti bloccano
+      l'interfaccia. QThreadPool + segnale di fine, dopo R-01.
+
+R-03  P1 Riproducibilita': ogni operazione applicata resta nel progetto.
+      Oggi il risultato e' salvato nel progetto; i parametri no (restano
+      solo come ultimo uso del dialogo, in user.json). Una tabella
+      __operations__ (operazione, parametri JSON, sorgente, destinazione,
+      data) permette di:
+      - rieseguire tutto quando i dati cambiano (Origin: "Recalculate"
+        automatico/manuale sugli output di analisi);
+      - vedere la storia di come e' nato un risultato (JMP: script salvato
+        con ogni rapporto; SPSS: syntax nel file .sps);
+      - esportare uno script Python equivalente (vedi N-02).
+
+R-04  P1 Statistica che manca rispetto a SPSS e JMP.
+      Oggi statistics_dialog offre descrittive, normalita', t a un
+      campione, t appaiato, Wilcoxon appaiato, correlazione. Mancano i test
+      piu' usati nei corsi e nei laboratori:
+      - t per campioni indipendenti (Student e Welch), Mann-Whitney;
+      - ANOVA a una e due vie, con post-hoc (Tukey HSD, Games-Howell,
+        Bonferroni); Kruskal-Wallis con Dunn;
+      - chi-quadro e Fisher su tabelle di contingenza (con la tabella
+        stessa come risultato);
+      - regressione multipla con tabella dei coefficienti (coefficiente,
+        errore standard, t, p, IC 95%), R2 corretto, VIF e diagnostica dei
+        residui; regressione logistica per un esito si'/no;
+      - Kaplan-Meier con log-rank (sopravvivenza/affidabilita').
+      statsmodels e' gia' tra le dipendenze e copre quasi tutto.
+      Serve anche un modo di indicare i gruppi: una colonna "fattore" come
+      ruolo (vedi R-08).
+
+R-05  P2 Fit al livello di Origin.
+      Gia' presenti: errori standard, covarianza e correlazione dei
+      parametri (fit_dialog._param_uncertainty), parametri legati tra i
+      picchi. Mancano:
+      - bande di confidenza e di previsione attorno alla curva;
+      - t, p e IC 95% per ogni parametro, chi-quadro ridotto;
+      - pesi del fit da una colonna di errori (1/sigma^2): oggi "Weighted"
+        pesa solo RMSE/R2, non il fit;
+      - fit globale su piu' serie con parametri condivisi (Origin "Global
+        Fit": per esempio una stessa costante di tempo per piu' curve).
+
+R-06  P2 Grafici diagnostici e statistici mancanti.
+      Q-Q plot (e P-P), matrice di scatter (pair plot) con correlazioni,
+      grafico delle interazioni per l'ANOVA, mosaic plot per le tabelle di
+      contingenza, forest plot, curva di Kaplan-Meier.
+
+R-07  P2 Interattivita' alla JMP: selezione collegata.
+      Selezionare punti in un grafico evidenzia le stesse righe nella
+      tabella e in tutti gli altri grafici costruiti su quella tabella, e
+      viceversa ("dynamic linking", la caratteristica che definisce JMP).
+      La selezione a rettangolo esiste gia' (Seleziona punti): manca la
+      propagazione. Poi un filtro dati locale con cursori per colonna
+      (JMP "Local Data Filter").
+
+R-08  P2 Metadati delle colonne.
+      Etichetta, unita' di misura, tipo di misura (continua / ordinale /
+      nominale: JMP "Modeling Type", SPSS "Measure"), codici di valore
+      mancante ed etichette dei valori (1 = "maschio"). Guidano la scelta
+      dei test (R-04) e dei grafici, e mettono le unita' negli assi da sole.
+      Una tabella __column_meta__, modificabile da Modifica tabella.
+
+R-09  P2 Esportazione per la pubblicazione.
+      - Rapporto completo HTML/PDF: grafici e risultati di un progetto in
+        un documento (JMP "Save as report", Origin "Analysis report").
+      - Figura alla larghezza di una colonna di rivista (85 / 180 mm) con
+        font a dimensione fissa, PDF/EPS vettoriale con font incorporati.
+      - Modelli di grafico: applicare stile, assi e disposizione di una
+        figura a un'altra (Origin "graph template", .otpu).
+
+R-10  P2 Manutenibilita': file troppo grandi.
+      chart_panel.py 3.285 righe, main_window.py 3.136, demo_project.py
+      2.968, style.py 2.503; fit, cluster, smoothing, statistics e
+      control_chart tra 1.400 e 1.900. Dividerli per responsabilita':
+      main_window in un modulo per pagina della barra laterale; chart_panel
+      in zoom/geometria, barra strumenti, interazioni; style in icone,
+      fogli di stile, widget di base; demo_project in un file per demo.
+
+R-11  P2 SQL residuo fuori da app/data (regola del progetto).
+      - statistics_dialog.py (righe ~523 e 1346-1402): query per i test
+        appaiati e le sorgenti, e una connessione usata direttamente;
+      - chart_panel.py (~1431-1485), create_chart_dialog.py (~1098),
+        geometry_dialog.py (~458, sonda di cos/radians);
+      - table_preview.py e table_editor_dialog.py leggono i blocchi di
+        righe con repo._con (LazyTableModel): serve un metodo del
+        repository per leggere un blocco dopo un rowid.
+      Il Query Builder e' un'eccezione legittima: il suo compito e'
+      scrivere SQL per l'utente.
+
+R-12  P3 Gestione degli errori.
+      302 "except Exception" nel codice (nessun except nudo). Ai confini
+      dell'interfaccia vanno bene; nei calcoli e nel repository nascondono
+      errori veri. Restringere ai tipi attesi (ValueError, sqlite3.Error,
+      OSError) fuori dall'interfaccia.
+
+R-13  P3 Test di validazione numerica.
+      Dopo R-01: confrontare ogni operazione con valori di riferimento
+      certificati, come fanno i produttori commerciali per la validazione
+      (NIST StRD: Longley e Norris per la regressione, i dataset ANOVA e
+      di regressione non lineare con risultati certificati).
+
+R-14  P3 Distribuzione per chi non usa Python.
+      Il launcher (tools/make_launcher.py) usa il Python gia' installato.
+      Per utenti non tecnici serve un pacchetto autonomo (Briefcase o
+      PyInstaller), firmato e notarizzato su macOS, con installer su
+      Windows e un controllo degli aggiornamenti.
+
+R-15  P3 Accessibilita' e colori.
+      Palette adatta ai daltonici come scelta predefinita (Okabe-Ito per
+      le categorie, viridis/cividis per le mappe), controllo del contrasto
+      nel tema scuro, tutta la barra laterale usabile da tastiera.
+
+R-16  P3 Fuori scopo per ora, da valutare: progettazione degli esperimenti
+      (DOE: fattoriali, superficie di risposta - punto di forza di JMP),
+      modelli misti, analisi della potenza e del numero di campioni.
 
 ================================================================
 P2 - VALUABLE
