@@ -182,20 +182,21 @@ def _odd_window(value: int, n_values: int, minimum: int = 3) -> int:
 
 
 def _moving_average(y_values: np.ndarray, window: int, centered: bool) -> np.ndarray:
-    """Simple moving average with explicit ndarray casts for strict type checkers."""
+    """Moving average whose window shrinks at the ends instead of reading zeros.
+
+    np.convolve pads with zeros, so a plain convolution averaged the first and
+    last half-window of points with nothing and pulled them towards zero - a
+    price series smoothed that way plunged at both ends of the chart. Each
+    output is instead the mean of the points its window actually covers,
+    which is pandas' rolling(..., min_periods=1).
+    """
     safe_window = max(1, int(window))
-    kernel = np.ones(safe_window, dtype=float) / float(safe_window)
-
-    if centered:
-        return np.asarray(np.convolve(y_values, kernel, mode="same"), dtype=float)
-
-    output = np.asarray(
-        np.convolve(y_values, kernel, mode="full")[: y_values.size],
-        dtype=float,
-    )
-    if safe_window > 1:
-        output[: safe_window - 1] = output[min(safe_window - 1, output.size - 1)]
-    return output
+    kernel = np.ones(safe_window, dtype=float)
+    values = np.asarray(y_values, dtype=float)
+    mode = "same" if centered else "full"
+    sums = np.convolve(values, kernel, mode=mode)[: values.size]
+    counts = np.convolve(np.ones_like(values), kernel, mode=mode)[: values.size]
+    return np.asarray(sums / counts, dtype=float)
 
 
 def _fft_low_pass_1d(y_values: np.ndarray, cutoff_ratio: float) -> np.ndarray:
@@ -1628,14 +1629,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
             z=None,
             values=None,
             metadata=metadata,
-        )
-
-    def write_result_table(self, table_name: str, result: SmoothResult) -> None:
-        frame = self.result_to_frame(result)
-        self._repo.import_dataframe(
-            frame,
-            table_name=table_name,
-            normalize_columns=False,
         )
 
     def result_series_spec(self, axis_id: int, table_name: str, result: SmoothResult) -> ResultSeriesSpec:

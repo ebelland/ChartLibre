@@ -620,27 +620,32 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             cat.setExpanded(bool(needle) and any_visible)
 
     def _select_first_model(self) -> None:
-        """Select Linear by default when available."""
-        fallback: QTreeWidgetItem | None = None
+        """Select Linear by default, or the first model when there is none."""
+        if self.select_model("Linear"):
+            return
+        for i in range(self._models_tree.topLevelItemCount()):
+            cat = self._models_tree.topLevelItem(i)
+            if cat is not None and cat.childCount():
+                cat.setExpanded(True)
+                self._models_tree.setCurrentItem(cat.child(0))
+                return
+
+    def select_model(self, name: str) -> bool:
+        """Select the catalogue model called *name*; False when there is none."""
+        wanted = name.strip().lower()
         for i in range(self._models_tree.topLevelItemCount()):
             cat = self._models_tree.topLevelItem(i)
             if cat is None:
                 continue
             for j in range(cat.childCount()):
                 child = cat.child(j)
-                if fallback is None:
-                    fallback = child
                 payload = child.data(0, Qt.ItemDataRole.UserRole)
-                name = str(payload.get("name", child.text(0)) if isinstance(payload, dict) else child.text(0)).strip().lower()
-                if name == "linear":
+                label = payload.get("name", child.text(0)) if isinstance(payload, dict) else child.text(0)
+                if str(label).strip().lower() == wanted:
                     cat.setExpanded(True)
                     self._models_tree.setCurrentItem(child)
-                    return
-        if fallback is not None:
-            parent = fallback.parent()
-            if parent is not None:
-                parent.setExpanded(True)
-            self._models_tree.setCurrentItem(fallback)
+                    return True
+        return False
 
     def _on_model_tree_selection(self) -> None:
         item = self._models_tree.currentItem()
@@ -1139,12 +1144,37 @@ class SeriesFitDialog(SeriesOperationDialogBase):
 
     def finish_job(self, job: _FitJob, outcome: fit_engine.CurveFit) -> list[SeriesFitResult]:
         """The engine's outcome as this dialog's result; kept as _last_result."""
+        if job.optimise and outcome.success:
+            # Remembered so that Preview/OK, which only evaluate the table,
+            # can still say the parameters they draw are a converged fit.
+            self._last_fit = (job.model_name, np.asarray(outcome.params, dtype=float), outcome.message)
+        elif not job.optimise:
+            outcome.message = self._evaluation_message(job, outcome)
         try:
             self._last_result = self._result_from(job, outcome, optimise=job.optimise)
         except Exception:
             self._last_result = None
             raise
         return [self._last_result]
+
+    def _evaluation_message(self, job: _FitJob, outcome: fit_engine.CurveFit) -> str:
+        """What an evaluation reports: the fit's own status while the table
+        still holds that fit's optimum, "evaluated" once anything differs.
+
+        Preview and OK draw the table, never re-fit; after Fit the table is
+        the optimum, and a saved report that said only "evaluated at the
+        current parameters" read as though no fit had been run at all.
+        """
+        last = getattr(self, "_last_fit", None)
+        params = np.asarray(outcome.params, dtype=float)
+        if (
+            last is not None
+            and last[0] == job.model_name
+            and last[1].shape == params.shape
+            and np.allclose(last[1], params, rtol=1e-9, atol=1e-12)
+        ):
+            return last[2]
+        return outcome.message
 
     def _result_from(
         self, job: _FitJob, outcome: fit_engine.CurveFit, *, optimise: bool

@@ -10,12 +10,13 @@ from typing import Any, cast
 
 import numpy as np
 import pandas as pd
+import matplotlib.dates as mdates
 from matplotlib.patches import Ellipse
 from matplotlib.transforms import Affine2D
 
 from app.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import coerce_axis, to_numbers
 
 
 def _reorder_error(error: Any, order: np.ndarray) -> Any:
@@ -246,6 +247,19 @@ class ScatterAxisRenderer(BaseAxisRenderer):
 
         return all(is_color_like(value) for value in pd.unique(values.dropna()))
 
+    @staticmethod
+    def _x_values(column: Any) -> tuple[pd.Series, bool]:
+        """The x column as plottable numbers, and whether it was dates.
+
+        A date column is drawn as dates, the way the Time Series and
+        Timeline renderers read one: pd.to_numeric turned every date into
+        NaN, and the series was dropped as having no points at all.
+        """
+        coerced, is_temporal = coerce_axis(column)
+        if is_temporal:
+            return pd.Series(mdates.date2num(coerced.to_numpy()), index=coerced.index), True
+        return coerced, False
+
     def render_axis(self, ax, series: list[SeriesData], options: dict) -> None:
         """Render all scatter series onto a single axis."""
         base_kwargs = self.get_kwargs(options)
@@ -259,13 +273,15 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             if key not in ERROR_BAR_KWARGS and key not in self.OVERLAY_KWARGS
         }
         legend_handles_found = False
+        temporal = False
 
         for series_index, sd in enumerate(series):
             style = dict(sd.style or {})
             if not bool(style.get("visible", True)) or not self.ensure_required_roles(sd.df):
                 continue
 
-            x = to_numbers(sd.df['x'])
+            x, x_is_temporal = self._x_values(sd.df['x'])
+            temporal = temporal or x_is_temporal
             y = to_numbers(sd.df['y'])
             color_source = sd.df['color'] if 'color' in sd.df.columns else None
             # A non-numeric colour column (colour names, hex codes - the
@@ -346,14 +362,15 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             )
             line_style, has_line = self.series_linestyle(style, options)
 
-            # Nothing to draw for this series.
+            # Neither a marker nor a line would draw nothing at all: small
+            # dots rather than a series that silently disappears.
             if not has_marker and not has_line:
-                applogger.warning(
-                    "Series '%s': ",
+                applogger.info(
+                    "Series '%s' has no marker and no line; drawn as small dots.",
                     sd.name,
                 )
-                marker_style="."
-                has_marker=True
+                marker_style = "."
+                has_marker = True
 
             flat_color = str(style.get("color", "") or "").strip()
 
@@ -536,6 +553,13 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                     ):
                         legend_handles_found = True
 
+        if temporal:
+            # Only on a dated axis: on a numeric one AutoDateLocator would
+            # read the values as days since 1970.
+            locator = mdates.AutoDateLocator()
+            ax.xaxis.set_major_locator(locator)
+            ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+
         # After the points, so the ellipse and the trend sit over the cloud
         # they describe; before the legend, so both can name themselves in it.
         for sd in series:
@@ -543,7 +567,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 continue
             if not self.ensure_required_roles(sd.df):
                 continue
-            x = to_numbers(sd.df["x"]).to_numpy(dtype=float)
+            x = self._x_values(sd.df["x"])[0].to_numpy(dtype=float)
             y = to_numbers(sd.df["y"]).to_numpy(dtype=float)
             mask = np.isfinite(x) & np.isfinite(y)
             if mask.sum() >= 3 and self._draw_overlays(

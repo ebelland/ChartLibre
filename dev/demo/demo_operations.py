@@ -55,6 +55,35 @@ def _set_combo(dialog: Any, attribute: str, text: str) -> None:
             combo.setCurrentIndex(index)
 
 
+def _fit_logistic(dialog: Any) -> None:
+    """Choose the model the points follow, estimate its start, press Fit.
+
+    What a person does before OK: OK draws the parameters in the table, and
+    until Fit has run those are only the model's starting guess - the demo
+    used to save a straight line through nothing but that guess. The points
+    are a logistic curve (10 / (1 + e^-(x - 3))), so that is the model.
+    """
+    if not dialog.select_model("Logistic 4P"):
+        raise RuntimeError("the Logistic 4P model is not in the catalogue")
+    dialog.on_estimate_initial_values()
+    dialog.evaluate(dialog._after_fit, background=False, optimise=True)
+
+
+def _low_pass_at_10_hz(dialog: Any) -> None:
+    """Keep the 5 Hz tone, drop the 20 and 50 Hz ones and the noise.
+
+    The default cutoff (1, in units of fs) sits below every tone this signal
+    has, so the filtered curve came out flat - see todo.txt P0-1.
+    """
+    dialog._cutoff1_spin.setValue(10.0)
+
+
+def _pchip(dialog: Any) -> None:
+    """A curve through every point, which is what this demo promises; the
+    default polynomial fits the points but does not pass through them."""
+    _set_combo(dialog, "model_combo", "SciPy PCHIP")
+
+
 OPERATIONS: tuple[OperationDemo, ...] = (
     OperationDemo(
         "01 · Smoothing - a moving average on a noisy price",
@@ -76,6 +105,7 @@ OPERATIONS: tuple[OperationDemo, ...] = (
         "SELECT t_s AS x, amplitude AS y FROM signal_time_domain ORDER BY t_s",
         {"x": "x", "y": "y"}, "time (s)", "amplitude", "filter_dialog:SeriesFilterDialog",
         style={"linewidth": 0.8, "marker": ""},
+        setup=_low_pass_at_10_hz,
     ),
     OperationDemo(
         "04 · Baseline correction - a drifting background removed",
@@ -111,6 +141,7 @@ OPERATIONS: tuple[OperationDemo, ...] = (
         "SELECT concentration AS x, response AS y FROM sparse_calibration ORDER BY concentration",
         {"x": "x", "y": "y"}, "concentration", "response", "fit_dialog:SeriesFitDialog",
         style={"marker": "o", "markersize": 6, "linestyle": ""},
+        setup=_fit_logistic,
     ),
     OperationDemo(
         "09 · Interpolation - a smooth curve through the same points",
@@ -118,6 +149,7 @@ OPERATIONS: tuple[OperationDemo, ...] = (
         "SELECT concentration AS x, response AS y FROM sparse_calibration ORDER BY concentration",
         {"x": "x", "y": "y"}, "concentration", "response", "interpolate_dialog:SeriesInterpolateDialog",
         style={"marker": "o", "markersize": 6, "linestyle": ""},
+        setup=_pchip,
     ),
     OperationDemo(
         "10 · Statistics - four machines measuring one standard",
