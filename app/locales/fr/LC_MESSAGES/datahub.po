@@ -6068,5 +6068,11 @@ msgstr "{count} non traduites par le service ({error})"
 msgid "{count} discarded because a placeholder such as {{name}} or %s was lost"
 msgstr "{count} écartées car un espace réservé comme {{name}} ou %s a été perdu"
 
-msgid "{count} translation(s) filled in - review them before saving.\n\nThe others were left empty: {reasons}."
-msgstr "{count} traduction(s) remplie(s) - vérifiez-les avant d'enregistrer.\n\nLes autres sont restées vides : {reasons}."
+msgid "{count} translation(s) filled in - review them before saving.\n\nNote: {reasons}."
+msgstr "{count} traduction(s) remplie(s) - vérifiez-les avant d'enregistrer.\n\nRemarque : {reasons}."
+
+msgid "{first} refused the requests, continued with {second}"
+msgstr "{first} a refusé les requêtes, poursuite avec {second}"
+
+msgid "{services} refused for their request limit - Google for a while, MyMemory until tomorrow"
+msgstr "{services} ont refusé à cause de leur limite de requêtes - Google pour un moment, MyMemory jusqu'à demain"

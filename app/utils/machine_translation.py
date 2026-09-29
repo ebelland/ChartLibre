@@ -25,7 +25,7 @@ from __future__ import annotations
 import re
 import threading
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -41,6 +41,9 @@ _MIN_INTERVAL_S: dict[str, float] = {"google": 0.25, "mymemory": 0.0}
 #: Most characters one request carries. MyMemory's free tier takes 500 a
 #: request; Google takes 5000.
 _BLOCK_CHARS: dict[str, int] = {"google": 4000, "mymemory": 450}
+
+#: How long to wait before asking again after "too many requests".
+_RATE_LIMIT_PAUSE_S: float = 2.0
 
 #: Consecutive failures after which the service is taken to be refusing
 #: (rate limit, no network) and the run stops instead of asking again.
@@ -126,11 +129,16 @@ class TranslationRun:
     translations: dict[str, str] = field(default_factory=dict)
     #: Strings the service translated but whose placeholders did not survive.
     rejected: int = 0
-    #: Strings the service did not translate at all, or never got to.
+    #: Strings no service translated, or that were never reached.
     failed: int = 0
-    #: The last error the service gave, for the message at the end.
+    #: The last error a service gave, for the message at the end.
     error: str = ""
     stopped: bool = False
+    #: (service that refused, service that took over), in order.
+    switched: list[tuple[str, str]] = field(default_factory=list)
+    #: Services that refused for their request limit - Google's "too many
+    #: requests", MyMemory's free daily quota - by name, in order.
+    limited: list[str] = field(default_factory=list)
 
 
 def make_blocks(texts: list[str], limit: int) -> list[list[str]]:
@@ -166,10 +174,12 @@ def translate_all(
     *,
     language: str,
     provider: str = "google",
+    fallbacks: Sequence[str] = (),
     cancel_event: threading.Event | None = None,
     progress: Callable[[int, int], None] | None = None,
     on_result: Callable[[str, str], None] | None = None,
     translator: Any = None,
+    make_translator: Callable[[str, str], Any] | None = None,
 ) -> TranslationRun:
     """Translate every text in *texts* from English into *language*.
 
@@ -177,31 +187,98 @@ def translate_all(
     whose answer does not split back into as many lines as it sent is asked
     again one string at a time rather than guessed at. *on_result* hears
     each translation as it arrives, so a caller can show them - and keep
-    them - before the run ends. Never raises for a service problem: stops
-    after :data:`MAX_CONSECUTIVE_FAILURES` failed requests in a row and
-    reports what it has. *translator* is for tests - anything with a
-    ``translate(text) -> str`` method.
+    them - before the run ends.
+
+    Never raises for a service problem. A service that fails
+    :data:`MAX_CONSECUTIVE_FAILURES` requests in a row - Google answering
+    "too many requests" - is left, and what it did not translate goes to
+    the next of *fallbacks*; with none left, the run reports what it has.
+    *translator* and *make_translator* are for tests: anything with a
+    ``translate(text) -> str`` method, and a (provider, language) factory.
     """
     pending = list(dict.fromkeys(text for text in texts if text.strip()))
     run = TranslationRun()
-    if translator is None:
-        translator = _make_translator(provider, language)
+    factory = make_translator or _make_translator
+    chain = [provider, *(name for name in fallbacks if name != provider)]
+    names = dict(PROVIDERS)
+    state = {"done": 0}
+
+    def advance(count: int) -> None:
+        state["done"] += count
+        if progress is not None:
+            progress(state["done"], len(pending))
+
+    def cancelled() -> bool:
+        return cancel_event is not None and cancel_event.is_set()
+
+    todo = pending
+    for position, name in enumerate(chain):
+        if not todo or cancelled():
+            break
+        if position > 0:
+            run.switched.append((names.get(chain[position - 1], chain[position - 1]), names.get(name, name)))
+        try:
+            service = translator if (position == 0 and translator is not None) else factory(name, language)
+        except ValueError as exc:  # this service does not have the language
+            run.error = str(exc)
+            continue
+        todo = _translate_with(service, name, todo, run, cancelled, advance, on_result)
+
+    run.failed += len(todo)
+    run.stopped = cancelled()
+    if progress is not None:
+        progress(len(pending), len(pending))
+    return run
+
+
+def _is_rate_limit(exc: BaseException) -> bool:
+    return "too many requests" in str(exc).lower() or type(exc).__name__ == "TooManyRequests"
+
+
+def _translate_with(
+    translator: Any,
+    provider: str,
+    texts: list[str],
+    run: TranslationRun,
+    cancelled: Callable[[], bool],
+    advance: Callable[[int], None],
+    on_result: Callable[[str, str], None] | None,
+) -> list[str]:
+    """Translate *texts* with one service; return those it did not translate."""
     interval = _MIN_INTERVAL_S.get(provider, 0.0)
+    name = dict(PROVIDERS).get(provider, provider)
     state = {"failures_in_a_row": 0, "last_request": 0.0}
+    unanswered: list[str] = []
 
     def ask(masked: str) -> str | None:
-        wait = interval - (time.monotonic() - state["last_request"])
-        if wait > 0:
-            time.sleep(wait)
-        state["last_request"] = time.monotonic()
-        try:
-            answer = str(translator.translate(masked) or "")
-        except Exception as exc:  # noqa: BLE001 - the service's problem, reported
-            run.error = str(exc).split(".")[0][:160] or type(exc).__name__
-            state["failures_in_a_row"] += 1
-            return None
-        state["failures_in_a_row"] = 0
-        return answer
+        for attempt in (1, 2):
+            wait = interval - (time.monotonic() - state["last_request"])
+            if wait > 0:
+                time.sleep(wait)
+            state["last_request"] = time.monotonic()
+            try:
+                answer = str(translator.translate(masked) or "")
+                # MyMemory can answer its quota warning as if it were the
+                # translation; it must never reach the catalogue.
+                if answer.lstrip().upper().startswith("MYMEMORY WARNING"):
+                    raise RuntimeError("Too many requests: " + answer.strip()[:120])
+            except Exception as exc:  # noqa: BLE001 - the service's problem, reported
+                run.error = str(exc).split(".")[0][:160] or type(exc).__name__
+                if _is_rate_limit(exc) and name not in run.limited:
+                    # deep_translator words every 429 as Google's limit,
+                    # MyMemory's daily quota included: say whose it was.
+                    run.limited.append(name)
+                # One pause and one more try, the first time a service says
+                # it is being asked too often: a burst can trip the limit
+                # without the service refusing for good.
+                if attempt == 1 and state["failures_in_a_row"] == 0 and _is_rate_limit(exc):
+                    time.sleep(_RATE_LIMIT_PAUSE_S)
+                    continue
+                state["failures_in_a_row"] += 1
+                return None
+            state["failures_in_a_row"] = 0
+            return answer
+        return None
 
     def keep(text: str, translated: str, placeholders: list[str]) -> None:
         restored = restore(translated.strip(), placeholders)
@@ -217,47 +294,39 @@ def translate_all(
         if on_result is not None:
             on_result(text, restored)
 
+    def giving_up() -> bool:
+        return state["failures_in_a_row"] >= MAX_CONSECUTIVE_FAILURES or cancelled()
+
     def one_by_one(block: list[str]) -> None:
-        for text in block:
+        for index, text in enumerate(block):
             if giving_up():
+                unanswered.extend(block[index:])
                 return
             masked, placeholders = protect(text)
             answer = ask(masked)
             if answer is None:
-                run.failed += 1
+                unanswered.append(text)
             else:
                 keep(text, answer, placeholders)
+                advance(1)
 
-    def giving_up() -> bool:
-        return (
-            state["failures_in_a_row"] >= MAX_CONSECUTIVE_FAILURES
-            or (cancel_event is not None and cancel_event.is_set())
-        )
-
-    done = 0
-    for block in make_blocks(pending, _BLOCK_CHARS.get(provider, 450)):
+    blocks = make_blocks(texts, _BLOCK_CHARS.get(provider, 450))
+    for number, block in enumerate(blocks):
         if giving_up():
+            unanswered.extend(text for rest in blocks[number:] for text in rest)
             break
-        if progress is not None:
-            progress(done, len(pending))
-        protected = [protect(text) for text in block]
-        before = len(run.translations) + run.rejected + run.failed
         if len(block) == 1:
             one_by_one(block)
+            continue
+        protected = [protect(text) for text in block]
+        answer = ask("\n".join(masked for masked, _placeholders in protected))
+        lines = answer.split("\n") if answer is not None else []
+        if answer is None:
+            unanswered.extend(block)
+        elif len(lines) == len(block):
+            for text, (_masked, placeholders), line in zip(block, protected, lines):
+                keep(text, line, placeholders)
+            advance(len(block))
         else:
-            answer = ask("\n".join(masked for masked, _placeholders in protected))
-            lines = answer.split("\n") if answer is not None else []
-            if answer is None:
-                run.failed += len(block)
-            elif len(lines) == len(block):
-                for text, (_masked, placeholders), line in zip(block, protected, lines):
-                    keep(text, line, placeholders)
-            else:
-                one_by_one(block)
-        done += len(run.translations) + run.rejected + run.failed - before
-
-    run.stopped = cancel_event is not None and cancel_event.is_set()
-    run.failed += len(pending) - done
-    if progress is not None:
-        progress(len(pending), len(pending))
-    return run
+            one_by_one(block)
+    return unanswered

@@ -340,8 +340,11 @@ class EditLocalizationDialog(QDialog):
             return
 
         applogger.info("Edit Localization: saved %s (%d entries).", path, len(entries) - 1)
-        self._reload_table()
-        show_message(self, "dev.localization_saved", language=LANGUAGE_NAMES.get(language, language))
+        # OK saves and closes, like every other OK in the application. A
+        # message box saying so was one more click standing between the
+        # user and the window they came from - and it read as the dialog
+        # refusing to close.
+        self.accept()
 
     # ------------------------------------------------------------------
     # Auto-translate
@@ -380,6 +383,9 @@ class EditLocalizationDialog(QDialog):
                 missing,
                 language=language,
                 provider=provider,
+                # Google refuses addresses that ask too often: what it does
+                # not translate goes to the other service.
+                fallbacks=[key for key, _name in machine_translation.PROVIDERS if key != provider],
                 cancel_event=cancel_event,  # pyright: ignore[reportArgumentType]
                 progress=report,
                 on_result=lambda source, text: arrived.append((source, text)),
@@ -451,17 +457,29 @@ class EditLocalizationDialog(QDialog):
             )
         )
         left = run.failed + run.rejected
+        switched = "; ".join(
+            _("{first} refused the requests, continued with {second}").format(first=first, second=second)
+            for first, second in run.switched
+        )
         if not left and not run.stopped:
-            show_message(self, "dev.localization_auto_translated", count=filled)
+            if switched:
+                show_message(self, "dev.localization_auto_translate_partial", count=filled, reasons=switched)
+            else:
+                show_message(self, "dev.localization_auto_translated", count=filled)
             return
-        reasons: list[str] = []
+        reasons: list[str] = [switched] if switched else []
         if run.stopped:
             reasons.append(_("stopped"))
         if run.failed:
-            reasons.append(
-                _("{count} not translated by the service ({error})").format(
-                    count=run.failed, error=run.error or _("no answer")
+            why = (
+                _("{services} refused for their request limit - Google for a while, MyMemory until tomorrow").format(
+                    services=", ".join(run.limited)
                 )
+                if run.limited
+                else run.error or _("no answer")
+            )
+            reasons.append(
+                _("{count} not translated by the service ({error})").format(count=run.failed, error=why)
             )
         if run.rejected:
             reasons.append(

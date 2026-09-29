@@ -49,13 +49,50 @@ def test_a_service_that_keeps_refusing_is_not_asked_again() -> None:
 
         def translate(self, text: str) -> str:
             Refuses.calls += 1
-            raise RuntimeError("Server Error: You made too many requests. Wait")
+            raise RuntimeError("Connection refused. Check the network")
 
     # One line each with a newline of its own, so each is a request of its own.
     run = mt.translate_all([f"text\n{i}" for i in range(10)], language="it", translator=Refuses())
     assert Refuses.calls == mt.MAX_CONSECUTIVE_FAILURES
     assert run.failed == 10
-    assert run.error == "Server Error: You made too many requests"
+    assert run.error == "Connection refused"
+
+
+def test_a_service_that_refuses_hands_over_to_the_next(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Google answering "too many requests": one pause, then MyMemory."""
+    monkeypatch.setattr(mt, "_RATE_LIMIT_PAUSE_S", 0.0)
+
+    class TooMany:
+        calls = 0
+
+        def translate(self, text: str) -> str:
+            TooMany.calls += 1
+            raise RuntimeError("Server Error: You made too many requests to the server. Wait")
+
+    services = {"google": TooMany(), "mymemory": Echo()}
+    run = mt.translate_all(
+        ["Open", "Close"], language="it", provider="google", fallbacks=["mymemory"],
+        make_translator=lambda provider, language: services[provider],
+    )
+    # One block, one request - asked once more after the pause.
+    assert TooMany.calls == 2
+    assert run.translations == {"Open": "OPEN", "Close": "CLOSE"}
+    assert run.switched == [("Google Translate", "MyMemory")]
+    assert run.limited == ["Google Translate"]
+    assert run.failed == 0
+
+
+def test_a_quota_warning_is_never_kept_as_a_translation(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mt, "_RATE_LIMIT_PAUSE_S", 0.0)
+
+    class Quota:
+        def translate(self, text: str) -> str:
+            return "MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS FOR TODAY"
+
+    run = mt.translate_all(["Open", "Close"], language="it", provider="mymemory", translator=Quota())
+    assert run.translations == {}
+    assert run.failed == 2
+    assert run.limited == ["MyMemory"]
 
 
 def test_stop_ends_the_run_with_what_it_has() -> None:

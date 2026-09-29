@@ -929,11 +929,6 @@
       "title": "Function Creator",
       "text": "{path} was written, but it did not check out as a valid function: {error}. Fix the file directly and reopen it."
     },
-    "dev.localization_saved": {
-      "level": "info",
-      "title": "Edit Localization",
-      "text": "The {language} catalogue was saved and recompiled."
-    },
     "dev.localization_auto_translated": {
       "level": "info",
       "title": "Edit Localization",
@@ -942,7 +937,7 @@
     "dev.localization_auto_translate_partial": {
       "level": "warning",
       "title": "Edit Localization",
-      "text": "{count} translation(s) filled in - review them before saving.\n\nThe others were left empty: {reasons}."
+      "text": "{count} translation(s) filled in - review them before saving.\n\nNote: {reasons}."
     },
     "import.clipboard_empty": {
       "level": "info",
