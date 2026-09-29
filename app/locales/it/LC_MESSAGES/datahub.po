@@ -1288,7 +1288,7 @@ msgid "Gap between shared axes side by side. 0 draws them flush."
 msgstr "Spazio tra assi condivisi affiancati. 0 li disegna attaccati."
 
 msgid "Apply a preset…"
-msgstr "Applica un preset…"
+msgstr "Preset…"
 
 msgid "Arrange every axis in this figure using the chosen layout."
 msgstr "Disponi tutti gli assi di questa figura secondo il layout scelto."
@@ -6082,3 +6082,9 @@ msgstr "{services} hanno rifiutato per il limite di richieste - Google per un po
 
 msgid "Auto is {fraction:g} of the sampling frequency."
 msgstr "Auto è {fraction:g} volte la frequenza di campionamento."
+
+msgid "Shared gap V"
+msgstr "Spazio assi V"
+
+msgid "Shared gap H"
+msgstr "Spazio assi O"

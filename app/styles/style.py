@@ -2116,6 +2116,54 @@ def configure_combo_width(
     return combo
 
 
+def fit_spin_width(spin: QtWidgets.QAbstractSpinBox) -> None:
+    """Give *spin* the least width that shows its widest value in full.
+
+    ``relax_minimum_width`` lets everything in a panel shrink toward nothing
+    so the panel itself can be as narrow as the splitter allows - which
+    squeezed a spin box until its number was cut ("0.00" for 0.040, "16.2"
+    for "16.26 cm"). A number is not something to clip: this sets the width
+    it needs, from the widest of its minimum and maximum as displayed
+    (prefix and suffix included) plus the style's own chrome, and marks the
+    box so ``relax_minimum_width`` leaves it. A caller that would rather
+    reflow than clip (:class:`app.widgets.pair_grid.PairGrid`) reads the
+    result.
+    """
+    spin.ensurePolished()
+    metrics = spin.fontMetrics()
+    candidates = [spin.text()]
+    # A range in the millions is "any number", not a width to reserve.
+    if isinstance(spin, QtWidgets.QDoubleSpinBox):
+        for bound in (spin.minimum(), spin.maximum()):
+            if abs(bound) < 1e6:
+                candidates.append(spin.prefix() + spin.textFromValue(bound) + spin.suffix())
+    elif isinstance(spin, QtWidgets.QSpinBox):
+        for whole in (spin.minimum(), spin.maximum()):
+            if abs(whole) < 1e6:
+                candidates.append(spin.prefix() + spin.textFromValue(whole) + spin.suffix())
+    text_width = max(metrics.horizontalAdvance(text) for text in candidates)
+
+    # The chrome is whatever the style takes out of the box besides the
+    # text field: padding, border and the stepper.
+    option = QtWidgets.QStyleOptionSpinBox()
+    spin.initStyleOption(option)
+    option.rect = QRect(0, 0, 200, max(spin.sizeHint().height(), 24))
+    field = spin.style().subControlRect(
+        QtWidgets.QStyle.ComplexControl.CC_SpinBox,
+        option,
+        QtWidgets.QStyle.SubControl.SC_SpinBoxEditField,
+        spin,
+    )
+    chrome = 200 - field.width()
+    spin.setMinimumWidth(text_width + chrome + 4)
+    spin.setProperty(KEEP_MINIMUM_WIDTH, True)
+
+
+#: Property that makes ``relax_minimum_width`` skip a widget whose minimum
+#: was set to what its content needs (see ``fit_spin_width``).
+KEEP_MINIMUM_WIDTH = "keepMinimumWidth"
+
+
 def relax_minimum_width(root: QWidget, *, minimum: int = 0) -> QWidget:
     """Let *root* and everything inside it shrink to *minimum* pixels wide.
 
@@ -2146,6 +2194,8 @@ def relax_minimum_width(root: QWidget, *, minimum: int = 0) -> QWidget:
     """
     for widget in [root, *root.findChildren(QWidget)]:
         if widget.minimumWidth() == widget.maximumWidth():
+            continue
+        if widget.property(KEEP_MINIMUM_WIDTH):
             continue
         widget.setMinimumWidth(max(minimum, 1))
         if isinstance(widget, QComboBox):

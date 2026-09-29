@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -41,12 +40,14 @@ from app.styles.style import (
     MARGIN_PANEL,
     TitledCard,
     create_action_button,
+    fit_spin_width,
     stdSizeAndlayout,
     configure_combo_width,
 )
 from app.utils.config import MPLSTYLES_DIR
 from app.widgets.base_properties import BaseProperties
 from app.widgets.font_scale_control import FontScaleControl
+from app.widgets.pair_grid import PairGrid
 from app.widgets.chart_panel import RESIZE_MODE_CHOICES
 from app.utils.figure_metrics import (
     CM_PER_INCH,
@@ -101,12 +102,6 @@ class FigurePropertiesWidget(BaseProperties):
     # style. Keeps "browse anywhere" available even though the dropdown itself
     # can only ever show what MPLSTYLES_DIR contains.
     _BROWSE_SENTINEL = "__browse_mplstyle__"
-
-    # macOS Aqua draws wider spin-box stepper buttons than Fusion/Windows,
-    # so a plain Expanding size policy can still leave DPI/width/height
-    # visually cramped and mismatched. A shared minimum width keeps all
-    # three the same size and readable on every platform.
-    FIGURE_SPIN_MIN_WIDTH = 110
 
     #: (label, descriptor value, tooltip) for Matplotlib's layout engines.
     #:
@@ -268,7 +263,7 @@ class FigurePropertiesWidget(BaseProperties):
         spin.setDecimals(3)
         spin.setSingleStep(0.01)
         spin.setValue(0.0)
-        spin.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)
+        fit_spin_width(spin)
         spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         return spin
 
@@ -342,13 +337,8 @@ class FigurePropertiesWidget(BaseProperties):
         grid_section = TitledCard(self, _("Grid"), "figureGridCard")
         grid_section_lay = grid_section.card.layout()
 
-        grid_row = QWidget(grid_section)
-        grid_lay = QHBoxLayout(grid_row)
-        grid_lay.setContentsMargins(0, 0, 0, 0)
-        grid_lay.setSpacing(8)
-
-        self._nrows_combo = QComboBox(grid_row)
-        self._ncols_combo = QComboBox(grid_row)
+        self._nrows_combo = QComboBox(grid_section)
+        self._ncols_combo = QComboBox(grid_section)
         self._configure_combo_width(self._nrows_combo)
         self._configure_combo_width(self._ncols_combo)
 
@@ -356,12 +346,15 @@ class FigurePropertiesWidget(BaseProperties):
             self._nrows_combo.addItem(str(i), i)
             self._ncols_combo.addItem(str(i), i)
 
-        grid_lay.addWidget(QLabel(_("Rows"), grid_row))
-        grid_lay.addWidget(self._nrows_combo, 1)
-        grid_lay.addSpacing(8)
-        grid_lay.addWidget(QLabel(_("Cols"), grid_row))
-        grid_lay.addWidget(self._ncols_combo, 1)
-        grid_section_lay.addWidget(grid_row)
+        grid_section_lay.addWidget(
+            PairGrid(
+                [
+                    (QLabel(_("Rows"), grid_section), self._nrows_combo),
+                    (QLabel(_("Cols"), grid_section), self._ncols_combo),
+                ],
+                grid_section,
+            )
+        )
 
         # A preset writes row_span/col_span/sharex/sharey/twin_of across
         # every axis at once - the rows/cols above only ever set a uniform
@@ -412,27 +405,23 @@ class FigurePropertiesWidget(BaseProperties):
         # what makes them a different setting from Manual spacing below:
         # that one is the whole figure's margins under one layout mode,
         # this one is what "attached" means when axes are attached.
-        shared_row = QWidget(grid_section)
-        shared_lay = QHBoxLayout(shared_row)
-        shared_lay.setContentsMargins(0, 0, 0, 0)
-        shared_lay.setSpacing(8)
-
-        self._shared_vspace = self._shared_space_spin(shared_row)
+        self._shared_vspace = self._shared_space_spin(grid_section)
         self._shared_vspace.setToolTip(
             _("Gap between shared axes stacked one above the other. 0 draws them flush.")
         )
-        self._shared_hspace = self._shared_space_spin(shared_row)
+        self._shared_hspace = self._shared_space_spin(grid_section)
         self._shared_hspace.setToolTip(
             _("Gap between shared axes side by side. 0 draws them flush.")
         )
-
-        shared_lay.addWidget(QLabel(_("Shared gap"), shared_row))
-        shared_lay.addWidget(QLabel(_("V"), shared_row))
-        shared_lay.addWidget(self._shared_vspace, 1)
-        shared_lay.addSpacing(8)
-        shared_lay.addWidget(QLabel(_("H"), shared_row))
-        shared_lay.addWidget(self._shared_hspace, 1)
-        grid_section_lay.addWidget(shared_row)
+        grid_section_lay.addWidget(
+            PairGrid(
+                [
+                    (QLabel(_("Shared gap V"), grid_section), self._shared_vspace),
+                    (QLabel(_("Shared gap H"), grid_section), self._shared_hspace),
+                ],
+                grid_section,
+            )
+        )
 
         lay.addWidget(grid_section)
 
@@ -446,7 +435,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_dpi = QSpinBox(opts_section)
         self._fig_dpi.setRange(20, 2400)
         self._fig_dpi.setSingleStep(10)
-        self._fig_dpi.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)
+        fit_spin_width(self._fig_dpi)
         self._fig_dpi.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self._fig_width_cm = QDoubleSpinBox(opts_section)
@@ -454,7 +443,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_width_cm.setDecimals(2)
         self._fig_width_cm.setSingleStep(0.5)
         self._fig_width_cm.setSuffix(_(" cm"))
-        self._fig_width_cm.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)
+        fit_spin_width(self._fig_width_cm)
         self._fig_width_cm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self._fig_height_cm = QDoubleSpinBox(opts_section)
@@ -462,7 +451,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_height_cm.setDecimals(2)
         self._fig_height_cm.setSingleStep(0.5)
         self._fig_height_cm.setSuffix(_(" cm"))
-        self._fig_height_cm.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)
+        fit_spin_width(self._fig_height_cm)
         self._fig_height_cm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # No text of its own: the row's label already says "Frame", and a
@@ -471,7 +460,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_frameon.setToolTip(_("Draw figure frame"))
         # Every font of the figure at once, on top of its style (todo N-12).
         self._font_scale = FontScaleControl(opts_section)
-        self._font_scale.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)
+        fit_spin_width(self._font_scale)
         self._font_scale.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # How the panel shows this figure - it used to be three checkable
@@ -531,16 +520,16 @@ class FigurePropertiesWidget(BaseProperties):
         # Width and height share a row: they are one measurement asked for
         # in two halves, and stacking them cost a whole row of the panel's
         # height to say so twice.
-        size_row = QWidget(opts_section)
-        size_lay = QHBoxLayout(size_row)
-        size_lay.setContentsMargins(0, 0, 0, 0)
-        size_lay.setSpacing(8)
-        size_lay.addWidget(self._fig_width_cm, 1)
-        size_lay.addWidget(QLabel(_("Height"), size_row))
-        size_lay.addWidget(self._fig_height_cm, 1)
+        size_row = PairGrid(
+            [
+                (QLabel(_("Width"), opts_section), self._fig_width_cm),
+                (QLabel(_("Height"), opts_section), self._fig_height_cm),
+            ],
+            opts_section,
+        )
 
         form.addRow(_("DPI"), self._fig_dpi)
-        form.addRow(_("Width"), size_row)
+        form.addRow(size_row)
         form.addRow(_("Frame on"), self._fig_frameon)
         form.addRow(_("Font size"), self._font_scale)
         form.addRow(_("Display"), self._resize_mode_combo)
@@ -569,56 +558,30 @@ class FigurePropertiesWidget(BaseProperties):
 
         # Two fields per row - the natural pairs an edge or a gap already
         # comes in (Left/Right, Bottom/Top, Column gap/Row gap) - rather than
-        # one full-width QFormLayout row each. Six rows of one spin box each
-        # made this the tallest section in the panel for what is, in effect,
-        # three pairs of numbers.
-        #
-        # One QGridLayout rather than three QHBoxLayouts: a row of its own
-        # sized its own label column, so "Left", "Bottom" and "Column gap"
-        # each pushed their spin box to a different x and nothing in the
-        # block lined up with anything else. A grid gives all three rows the
-        # same four columns - label, field, label, field - with only the
-        # field columns stretching, so the two columns of numbers are
-        # actually columns.
+        # one full-width form row each: six rows of one spin box made this
+        # the tallest section in the panel. A PairGrid keeps the two columns
+        # of numbers aligned and drops to one pair per row - never to a
+        # clipped number - when the panel is too narrow for two.
         self._margin_spins = {}
-        grid = QGridLayout()
-        # ``stdSizeAndlayout`` is typed for QWidget/QBoxLayout/QFormLayout/
-        # scroll-area and text-editor widgets, not for a bare QGridLayout.
-        # Set the standard margins/spacing here instead of routing through the
-        # helper so the manual spacing grid keeps the app's spacing rhythm.
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setSpacing(8)
-        for column in (0, 2):
-            grid.setColumnStretch(column, 0)
-        for column in (1, 3):
-            grid.setColumnStretch(column, 1)
+        pairs: list[tuple[QWidget, QWidget]] = []
+        for key, label, default, tooltip in self.MARGIN_FIELDS:
+            spin = QDoubleSpinBox(section)
+            # Fractions of the figure, so 0..1 for edges.  wspace/hspace
+            # are fractions of the average axis size and can legitimately
+            # exceed 1 when axes need to be spread far apart.
+            spin.setRange(0.0, 2.0 if key in ("wspace", "hspace") else 1.0)
+            spin.setDecimals(3)
+            spin.setSingleStep(0.01)
+            spin.setValue(default)
+            spin.setToolTip(_(tooltip))
+            fit_spin_width(spin)
+            self._margin_spins[key] = spin
 
-        field_pairs = (
-            (self.MARGIN_FIELDS[0], self.MARGIN_FIELDS[1]),  # Left, Right
-            (self.MARGIN_FIELDS[2], self.MARGIN_FIELDS[3]),  # Bottom, Top
-            (self.MARGIN_FIELDS[4], self.MARGIN_FIELDS[5]),  # Column gap, Row gap
-        )
-        for row, pair in enumerate(field_pairs):
-            for half, (key, label, default, tooltip) in enumerate(pair):
-                spin = QDoubleSpinBox(section)
-                # Fractions of the figure, so 0..1 for edges.  wspace/hspace
-                # are fractions of the average axis size and can legitimately
-                # exceed 1 when axes need to be spread far apart.
-                spin.setRange(0.0, 2.0 if key in ("wspace", "hspace") else 1.0)
-                spin.setDecimals(3)
-                spin.setSingleStep(0.01)
-                spin.setValue(default)
-                spin.setToolTip(_(tooltip))
-                spin.setMinimumWidth(self.FIGURE_SPIN_MIN_WIDTH)
-                spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-                self._margin_spins[key] = spin
+            text = QLabel(_(label), section)
+            text.setToolTip(_(tooltip))
+            pairs.append((text, spin))
 
-                text = QLabel(_(label), section)
-                text.setToolTip(_(tooltip))
-                grid.addWidget(text, row, half * 2)
-                grid.addWidget(spin, row, half * 2 + 1)
-
-        section_lay.addLayout(grid)
+        section_lay.addWidget(PairGrid(pairs, section))
         self._margins_section = section
         return section
 

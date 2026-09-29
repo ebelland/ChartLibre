@@ -18,8 +18,10 @@ Stato misurato (2026-09-29): 144 file Python in app/, circa 76.500 righe;
 cataloghi it e fr completi, de e es iniziati (vedi A-07). Pyright/Pylance:
 0 errori.
 
-Chiuso il 2026-09-29: P0-1 (taglio del filtro: ora "Auto", un decimo di fs)
-e R-11 (SQL solo in app/data; un test controlla che resti così).
+Chiuso il 2026-09-29: P0-1 (taglio del filtro: ora "Auto", un decimo di fs),
+R-11 (SQL solo in app/data; un test controlla che resti così), A-01 (numeri
+tagliati: i campi si riordinano invece di tagliare) e A-02 (percorso dei
+plugin Qt in main.py).
 
 
 ================================================================
@@ -28,10 +30,64 @@ PIANO D'AZIONE
 Ogni fase si chiude con i test verdi, Pyright a zero e un push. Una fase
 lasciata a metà non fa danni: ogni voce si chiude da sola.
 
-Fase 0 - Subito, quasi senza crediti  (1 sessione S + cose tue)
-  A-01  Numeri tagliati nei campi stretti di Opzioni grafico.
-  A-02  main.py: percorso dei plugin di piattaforma da correggere.
+Fase 0 - Cose tue, senza crediti
   A-03  [TU] Provare ChartLibre.exe e ChartLibre.bat su Windows.
+  A-04  [TU] Spostare il progetto fuori dalla Scrivania di iCloud.
+  A-05  [TU] GitHub: descrizione, argomenti, prima release.
+
+Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
+  Ordine: R-01 un'operazione alla volta, e per ciascuna subito R-02 e i
+  test di R-13; poi R-03. Cominciare da Smoothing e Spectral, le più usate
+  dopo il Fit.
+  R-01  Separare i calcoli dalle finestre (16 operazioni rimaste).
+  R-02  Calcoli lunghi in background con barra di avanzamento.
+  R-13  Test di validazione numerica (NIST), subito per Fit e Statistiche.
+  R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
+
+Fase 2 - Ciò che chiede chi fa analisi  (circa L: 6-8 sessioni)
+  R-08  Metadati delle colonne (serve a R-04 e agli assi con unità).
+  R-04  Statistica mancante rispetto a SPSS e JMP.
+  R-05  Fit: pesi da colonna di errori, fit globale.
+  R-06  Grafici diagnostici (Q-Q, pair plot, Kaplan-Meier...).
+  P2-12 Anteprima grafica accanto ai risultati delle operazioni.
+  R-09  Esportazione per la pubblicazione.
+
+Fase 3 - Arrivare a chi non usa Python  (M-L)
+  R-14  Pacchetto autonomo firmato (macOS) e installer (Windows).
+  A-06  Provare su Linux (mai lanciata) - meglio con un collaboratore.
+  A-07  Completare tedesco e spagnolo (tradotti a macchina: da rileggere).
+  A-08  Traduci mancanti con DeepL (chiave gratuita), oltre a Google e
+        MyMemory.
+
+Fase 4 - Manutenibilità  (M, anche a pezzi tra una fase e l'altra)
+  R-10  Dividere i file troppo grandi.
+  R-01b Classe base delle operazioni: ultimi metodi comuni.
+  R-12  Gestione degli errori più stretta.
+
+Fase 5 - Interattività e comodità  (M-L)
+  R-07  Selezione collegata tra grafici e tabella (alla JMP).
+  N-01, N-06, N-09  Tabelle: voci mancanti nel pannello Database,
+        Nascondi righe in Modifica tabella, Colora in base al valore.
+  P2-20 Visualizzatore HTML dei grafici di un progetto.
+  R-15  Accessibilità e colori.
+
+Fase 6 - Idee da decidere  (P4)
+  P2-21, P2-22 3D: campi vettoriali, curve parametriche.
+  P2-19 pysym: operazioni scritte dall'utente in Python.
+  N-02  Esportazione script/notebook, unità (pint), incertezze, console.
+  R-16  DOE, modelli misti, analisi della potenza.
+
+
+================================================================
+P0 - RISULTATI SBAGLIATI O LAVORO BLOCCATO
+================================================================
+(nessuna voce aperta)
+
+
+================================================================
+A - PICCOLE CORREZIONI E COSE DA FARE FUORI DAL CODICE
+================================================================
+A-03  [TU] Provare ChartLibre.exe e ChartLibre.bat su Windows.
   A-04  [TU] Spostare il progetto fuori dalla Scrivania di iCloud.
   A-05  [TU] GitHub: descrizione, argomenti, prima release.
 

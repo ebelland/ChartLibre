@@ -1288,7 +1288,7 @@ msgid "Gap between shared axes side by side. 0 draws them flush."
 msgstr "Espace entre les axes partagés côte à côte. 0 les dessine collés."
 
 msgid "Apply a preset…"
-msgstr "Appliquer un préréglage…"
+msgstr "Préréglage…"
 
 msgid "Arrange every axis in this figure using the chosen layout."
 msgstr "Disposer tous les axes de cette figure selon la disposition choisie."
@@ -6079,3 +6079,9 @@ msgstr "{services} ont refusé à cause de leur limite de requêtes - Google pou
 
 msgid "Auto is {fraction:g} of the sampling frequency."
 msgstr "Auto vaut {fraction:g} fois la fréquence d'échantillonnage."
+
+msgid "Shared gap V"
+msgstr "Espacement V"
+
+msgid "Shared gap H"
+msgstr "Espacement H"
