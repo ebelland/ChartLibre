@@ -10,14 +10,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import Matern, RBF, RationalQuadratic, WhiteKernel
-
+from app.analysis import gaussian_process as gp
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -56,28 +54,13 @@ GP_KERNELS: dict[str, OperationModel] = {
     ),
 }
 
-#: How many points the posterior mean/band is evaluated at, evenly spaced
-#: across the source series' own x range.
-GRID_POINTS = 200
-
-
-def _build_kernel(name: str, *, length_scale: float, noise_level: float):
-    """Return a base kernel plus additive white noise, ready to fit.
-
-    The exposed length_scale/noise_level are a starting guess, not a frozen
-    choice: GaussianProcessRegressor re-optimizes both (and every kernel
-    hyperparameter) from here via its own internal likelihood maximization -
-    see the dialog's own tooltips.
-    """
-    if name == KERNEL_MATERN_32:
-        base = Matern(length_scale=length_scale, nu=1.5)
-    elif name == KERNEL_MATERN_52:
-        base = Matern(length_scale=length_scale, nu=2.5)
-    elif name == KERNEL_RATIONAL_QUADRATIC:
-        base = RationalQuadratic(length_scale=length_scale)
-    else:
-        base = RBF(length_scale=length_scale)
-    return base + WhiteKernel(noise_level=noise_level)
+#: The engine's name for each kernel.
+_KERNEL_KEY: dict[str, str] = {
+    KERNEL_RBF: gp.KERNEL_RBF,
+    KERNEL_MATERN_32: gp.KERNEL_MATERN_32,
+    KERNEL_MATERN_52: gp.KERNEL_MATERN_52,
+    KERNEL_RATIONAL_QUADRATIC: gp.KERNEL_RATIONAL_QUADRATIC,
+}
 
 
 @dataclass(slots=True)
@@ -229,41 +212,24 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
         kernel_name: str,
         params: Mapping[str, Any],
     ) -> GPRegressionResult:
-        kernel = _build_kernel(
-            kernel_name,
+        fitted = gp.fit_gaussian_process(
+            _KERNEL_KEY[kernel_name],
+            x_values,
+            y_values,
             length_scale=float(params.get("length_scale", 1.0)),
             noise_level=float(params.get("noise_level", 1.0)),
         )
-        model = GaussianProcessRegressor(
-            kernel=kernel,
-            normalize_y=True,
-            n_restarts_optimizer=3,
-            random_state=0,
-        )
-        model.fit(x_values.reshape(-1, 1), y_values)
-
-        x_grid = np.linspace(float(x_values.min()), float(x_values.max()), GRID_POINTS)
-        # With return_std=True, predict returns exactly (mean, std).
-        mean, std = cast(tuple[np.ndarray, np.ndarray], model.predict(x_grid.reshape(-1, 1), return_std=True))
-        upper = mean + 2.0 * std
-        lower = mean - 2.0 * std
-
-        try:
-            log_likelihood = float(cast(float, model.log_marginal_likelihood()))
-        except Exception:  # noqa: BLE001 - diagnostic only, never fatal
-            log_likelihood = float("nan")
-
         return GPRegressionResult(
             source_name=name,
             result_name=f"{name} - GP ({kernel_name})",
             model=kernel_name,
-            x=x_grid,
-            mean=mean,
-            upper=upper,
-            lower=lower,
+            x=fitted.x,
+            mean=fitted.mean,
+            upper=fitted.upper,
+            lower=fitted.lower,
             metadata={
-                "kernel": repr(model.kernel_),
-                "log_marginal_likelihood": log_likelihood,
+                "kernel": fitted.kernel,
+                "log_marginal_likelihood": fitted.log_marginal_likelihood,
             },
         )
 
