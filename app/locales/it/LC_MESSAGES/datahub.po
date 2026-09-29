@@ -6079,3 +6079,6 @@ msgstr "{first} ha rifiutato le richieste, continuato con {second}"
 
 msgid "{services} refused for their request limit - Google for a while, MyMemory until tomorrow"
 msgstr "{services} hanno rifiutato per il limite di richieste - Google per un po', MyMemory fino a domani"
+
+msgid "Auto is {fraction:g} of the sampling frequency."
+msgstr "Auto è {fraction:g} volte la frequenza di campionamento."

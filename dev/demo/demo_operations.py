@@ -72,8 +72,8 @@ def _fit_logistic(dialog: Any) -> None:
 def _low_pass_at_10_hz(dialog: Any) -> None:
     """Keep the 5 Hz tone, drop the 20 and 50 Hz ones and the noise.
 
-    The default cutoff (1, in units of fs) sits below every tone this signal
-    has, so the filtered curve came out flat - see todo.txt P0-1.
+    Auto (a tenth of fs) would already keep the 5 Hz tone; 10 Hz is chosen
+    so the demo shows a cutoff somebody picked.
     """
     dialog._cutoff1_spin.setValue(10.0)
 

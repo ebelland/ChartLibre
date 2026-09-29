@@ -134,6 +134,12 @@ DETREND_TYPES: dict[str, str] = {
 }
 
 
+#: What "Auto" means for the cutoffs, as fractions of the sampling
+#: frequency: a tenth of it, and - for a band - a quarter (Nyquist is a half).
+AUTO_CUTOFF1: float = 0.1
+AUTO_CUTOFF2: float = 0.25
+
+
 def _two_cutoffs(response: str) -> bool:
     return response in RESPONSES and RESPONSES[response].cutoffs == 2
 
@@ -343,16 +349,22 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         self._window_combo.setToolTip(_("Taper applied to the FIR coefficients."))
         self._parameter_form.addRow(_("Window:"), self._window_combo)
 
-        self._cutoff1_spin.setRange(1e-9, 1e12)
-        self._cutoff1_spin.setDecimals(6)
-        self._cutoff1_spin.setValue(1.0)
-        self._cutoff1_spin.setToolTip(_("Cutoff frequency (same units as fs)."))
+        # 0 is "Auto": a fraction of fs, worked out when the filter runs.
+        # A fixed default (it was 1) is in the units of x, and for a series
+        # dated in seconds fs is about 1e-5 - the default sat far above the
+        # Nyquist frequency and Preview failed until the user found the box.
+        for spin, tip, auto in (
+            (self._cutoff1_spin, _("Cutoff frequency (same units as fs)."), AUTO_CUTOFF1),
+            (self._cutoff2_spin, _("Second cutoff, for a bandpass/bandstop response."), AUTO_CUTOFF2),
+        ):
+            spin.setRange(0.0, 1e12)
+            spin.setDecimals(6)
+            spin.setSpecialValueText(_("Auto"))
+            spin.setValue(0.0)
+            spin.setToolTip(
+                tip + " " + _("Auto is {fraction:g} of the sampling frequency.").format(fraction=auto)
+            )
         self._parameter_form.addRow(_("Cutoff:"), self._cutoff1_spin)
-
-        self._cutoff2_spin.setRange(1e-9, 1e12)
-        self._cutoff2_spin.setDecimals(6)
-        self._cutoff2_spin.setValue(5.0)
-        self._cutoff2_spin.setToolTip(_("Second cutoff, for a bandpass/bandstop response."))
         self._parameter_form.addRow(_("Second cutoff:"), self._cutoff2_spin)
 
         self._ripple_spin.setRange(0.001, 20.0)
@@ -454,6 +466,14 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
             )
         return 1.0 / median_spacing
 
+    def _cutoffs(self, response: str, fs: float) -> tuple[float, float | None]:
+        """The cutoff(s) to filter with: the typed ones, or Auto's fractions of fs."""
+        first = float(self._cutoff1_spin.value()) or AUTO_CUTOFF1 * fs
+        second = None
+        if _two_cutoffs(response):
+            second = float(self._cutoff2_spin.value()) or AUTO_CUTOFF2 * fs
+        return first, second
+
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
@@ -461,11 +481,11 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         if model == FILTER_IIR:
             family = str(self._family_combo.currentData())
             response = str(self._response_combo.currentData())
-            cutoff2 = float(self._cutoff2_spin.value()) if _two_cutoffs(response) else None
+            cutoff, cutoff2 = self._cutoffs(response, fs)
             y_out = apply_iir_filter(
                 y, fs, family=family, response=response,
                 order=int(self._order_spin.value()),
-                cutoff=float(self._cutoff1_spin.value()), cutoff2=cutoff2,
+                cutoff=cutoff, cutoff2=cutoff2,
                 ripple=float(self._ripple_spin.value()) if IIR_FAMILIES[family].ripple else None,
                 atten=float(self._atten_spin.value()) if IIR_FAMILIES[family].attenuation else None,
             )
@@ -473,22 +493,24 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
                 "family": self._family_combo.currentText(),
                 "response": self._response_combo.currentText(),
                 "order": int(self._order_spin.value()),
+                "cutoff": cutoff if cutoff2 is None else f"{cutoff:g} - {cutoff2:g}",
                 "fs": fs,
             }
             return y_out, meta
 
         if model == FILTER_FIR:
             response = str(self._response_combo.currentData())
-            cutoff2 = float(self._cutoff2_spin.value()) if _two_cutoffs(response) else None
+            cutoff, cutoff2 = self._cutoffs(response, fs)
             y_out = apply_fir_filter(
                 y, fs, numtaps=int(self._numtaps_spin.value()),
                 window=self._window_combo.currentText(), response=response,
-                cutoff=float(self._cutoff1_spin.value()), cutoff2=cutoff2,
+                cutoff=cutoff, cutoff2=cutoff2,
             )
             meta = {
                 "response": self._response_combo.currentText(),
                 "taps": int(self._numtaps_spin.value()),
                 "window": self._window_combo.currentText(),
+                "cutoff": cutoff if cutoff2 is None else f"{cutoff:g} - {cutoff2:g}",
                 "fs": fs,
             }
             return y_out, meta
