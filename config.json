@@ -939,6 +939,11 @@
       "title": "Edit Localization",
       "text": "{count} translation(s) filled in - review them before saving."
     },
+    "dev.localization_auto_translate_partial": {
+      "level": "warning",
+      "title": "Edit Localization",
+      "text": "{count} translation(s) filled in - review them before saving.\n\nThe others were left empty: {reasons}."
+    },
     "import.clipboard_empty": {
       "level": "info",
       "title": "Clipboard",

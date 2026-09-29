@@ -6052,3 +6052,24 @@ msgstr "Spazio tra le colonne, come frazione della larghezza media degli assi."
 
 msgid "Height of the gap between rows, as a fraction of the average axis height."
 msgstr "Spazio tra le righe, come frazione dell'altezza media degli assi."
+
+msgid "Translating {done} of {total}…"
+msgstr "Traduzione {done} di {total}…"
+
+msgid "Translation service"
+msgstr "Servizio di traduzione"
+
+msgid "no answer"
+msgstr "nessuna risposta"
+
+msgid "stopped"
+msgstr "interrotta"
+
+msgid "{count} not translated by the service ({error})"
+msgstr "{count} non tradotte dal servizio ({error})"
+
+msgid "{count} discarded because a placeholder such as {{name}} or %s was lost"
+msgstr "{count} scartate perché si è perso un segnaposto come {{name}} o %s"
+
+msgid "{count} translation(s) filled in - review them before saving.\n\nThe others were left empty: {reasons}."
+msgstr "{count} traduzione/i compilata/e - rivedile prima di salvare.\n\nLe altre sono rimaste vuote: {reasons}."
