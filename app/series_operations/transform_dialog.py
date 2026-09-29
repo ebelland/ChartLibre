@@ -16,13 +16,16 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
-from sklearn.preprocessing import (
-    PowerTransformer,
-    QuantileTransformer,
-    RobustScaler,
-    StandardScaler,
+from app.analysis.transform import (
+    KIND_POWER,
+    KIND_QUANTILE,
+    KIND_ROBUST,
+    KIND_STANDARD,
+    POWER_BOX_COX,
+    POWER_YEO_JOHNSON,
+    TransformSettings,
+    transform_values,
 )
-
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -63,8 +66,13 @@ TRANSFORM_MODELS: dict[str, OperationModel] = {
     ),
 }
 
-POWER_YEO_JOHNSON = "yeo-johnson"
-POWER_BOX_COX = "box-cox"
+#: The engine's name for each model.
+_KIND: dict[str, str] = {
+    TRANSFORM_POWER: KIND_POWER,
+    TRANSFORM_QUANTILE: KIND_QUANTILE,
+    TRANSFORM_STANDARD: KIND_STANDARD,
+    TRANSFORM_ROBUST: KIND_ROBUST,
+}
 
 # Re-exported for callers/tests, matching calculus_dialog.py's own convention.
 DEST_SAME_AXIS = SeriesOperationDialogBase.DEST_SAME_AXIS
@@ -242,48 +250,24 @@ class SeriesTransformDialog(SeriesOperationDialogBase):
         model: str,
         params: Mapping[str, Any],
     ) -> TransformResult:
-        column = y_values.reshape(-1, 1)
-        metadata: dict[str, Any] = {}
-
-        if model == TRANSFORM_POWER:
-            method = str(params.get("method", POWER_YEO_JOHNSON))
-            if method == POWER_BOX_COX and not np.all(y_values > 0):
-                raise ValueError(
-                    "Box-Cox requires every value to be strictly positive; "
-                    "use Yeo-Johnson instead, or subtract a baseline first."
-                )
-            transformer = PowerTransformer(method="box-cox" if method == POWER_BOX_COX else "yeo-johnson")
-            transformed = transformer.fit_transform(column)
-            metadata["method"] = method
-
-        elif model == TRANSFORM_QUANTILE:
-            n_quantiles = min(int(params.get("n_quantiles", 1000)), y_values.size)
-            transformer = QuantileTransformer(
-                output_distribution="normal" if params.get("output_distribution") == "normal" else "uniform",
-                n_quantiles=max(2, n_quantiles),
-                random_state=0,
-            )
-            transformed = transformer.fit_transform(column)
-            metadata["n_quantiles"] = max(2, n_quantiles)
-
-        elif model == TRANSFORM_ROBUST:
-            transformer = RobustScaler(
+        transformed = transform_values(
+            _KIND[model],
+            y_values,
+            TransformSettings(
+                method=str(params.get("method", POWER_YEO_JOHNSON)),
+                output_distribution=str(params.get("output_distribution", "uniform")),
+                n_quantiles=int(params.get("n_quantiles", 1000)),
                 with_centering=bool(params.get("with_centering", True)),
                 with_scaling=bool(params.get("with_scaling", True)),
-            )
-            transformed = transformer.fit_transform(column)
-
-        else:
-            transformer = StandardScaler()
-            transformed = transformer.fit_transform(column)
-
+            ),
+        )
         return TransformResult(
             source_name=name,
             result_name=f"{name} - {model}",
             model=model,
             x=x_values,
-            y=np.asarray(transformed, dtype=float).ravel(),
-            metadata=metadata,
+            y=transformed.y,
+            metadata=transformed.details,
         )
 
     # ------------------------------------------------------------------
