@@ -39,8 +39,27 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QWidget,
 )
-from scipy import signal as scipy_signal
-
+from app.analysis.spectral import (
+    CORRELATION_NORMALISATIONS,
+    DETREND_MODES,
+    METHOD_ACORR,
+    METHOD_ANGLE,
+    METHOD_COHERENCE,
+    METHOD_CSD,
+    METHOD_LAPLACE,
+    METHOD_MAGNITUDE,
+    METHOD_PHASE,
+    METHOD_PSD,
+    METHOD_WAVELET,
+    METHOD_XCORR,
+    MIN_PAIR_SAMPLES,
+    WINDOWS,
+    SpectralParams,
+    Spectrum,
+    estimate,
+    estimate_pair,
+    sampling_frequency,
+)
 from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -60,16 +79,7 @@ from app.utils.coercion import to_numbers
 # ----------------------------------------------------------------------
 # Methods
 # ----------------------------------------------------------------------
-METHOD_PSD = "Power spectral density (Welch)"
-METHOD_CSD = "Cross spectral density (Welch)"
-METHOD_COHERENCE = "Coherence"
-METHOD_MAGNITUDE = "Magnitude spectrum"
-METHOD_PHASE = "Phase spectrum (unwrapped)"
-METHOD_ANGLE = "Angle spectrum (wrapped)"
-METHOD_ACORR = "Autocorrelation"
-METHOD_XCORR = "Cross-correlation"
-METHOD_LAPLACE = "Laplace transform (damped FFT)"
-METHOD_WAVELET = "Wavelet power spectrum (Morlet)"
+# The method names, and the windows and modes, are the engine's: app.analysis.spectral.
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -139,20 +149,6 @@ SPECTRAL_METHODS: dict[str, SpectralMethod] = {
         paired=True,
     ),
 }
-
-WINDOWS: tuple[str, ...] = (
-    "hann",
-    "hamming",
-    "blackman",
-    "bartlett",
-    "flattop",
-    "boxcar",
-)
-
-DETREND_MODES: tuple[str, ...] = ("constant", "linear", "none")
-
-CORRELATION_NORMALISATIONS: tuple[str, ...] = ("unbiased", "biased", "none")
-
 
 @dataclass(slots=True)
 class SpectralResult(TableResult):
@@ -470,203 +466,37 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         return name, x_sorted, y_sorted
 
     def _sampling_frequency(self, x_values: np.ndarray, name: str) -> float:
-        """Return fs in samples per unit of x.
-
-        Derived from the median spacing when the user asked for it.  A spectrum
-        of unevenly sampled data is not defined, so a non-uniform x is reported
-        rather than silently averaged: the numbers would look fine and mean
-        nothing.
-        """
+        """Return fs in samples per unit of x: the typed one, or read off the x role."""
         if not self._fs_auto_check.isChecked():
             return float(self._fs_spin.value())
 
-        if x_values.size < 2:
-            return 1.0
-
-        spacing = np.diff(x_values)
-        median_spacing = float(np.median(spacing))
-        if median_spacing <= 0.0:
+        fs, note = sampling_frequency(x_values)
+        if note:
             applogger.warning(
-                "Series '%s' has a non-increasing x role; assuming fs = 1.",
-                name,
-                show_dialog=False,
-                raise_error=False,
+                "Series '%s': %s.", name, note, show_dialog=False, raise_error=False,
             )
-            return 1.0
-
-        deviation = float(np.max(np.abs(spacing - median_spacing)) / median_spacing)
-        if deviation > 0.01:
-            applogger.warning(
-                "Series '%s' is not uniformly sampled (spacing varies by %.1f %%); "
-                "the frequency axis is approximate.",
-                name,
-                deviation * 100.0,
-                show_dialog=False,
-                raise_error=False,
-            )
-
-        return 1.0 / median_spacing
+        return fs
 
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
-    def _welch_kwargs(self, fs: float, sample_count: int) -> dict[str, Any]:
-        """Shared Welch parameters, with nperseg clamped to the data length."""
-        nperseg = min(int(self._nperseg_spin.value()), sample_count)
-        nperseg = max(8, nperseg)
-        overlap = float(self._overlap_spin.value())
-        detrend = self._detrend_combo.currentText()
-
-        return {
-            "fs": fs,
-            "window": self._window_combo.currentText(),
-            "nperseg": nperseg,
-            "noverlap": int(nperseg * overlap),
-            "detrend": False if detrend == "none" else detrend,
-            "return_onesided": bool(self._onesided_check.isChecked()),
-        }
-
-    def _to_decibels(self, values: np.ndarray) -> np.ndarray:
-        """Return 10*log10(values), with zeros floored to the smallest positive.
-
-        Why floor rather than drop: a zero bin is a real measurement and
-        removing it would shift every later point on the frequency axis.
-        """
-        positive = values[values > 0.0]
-        floor = float(positive.min()) if positive.size else 1e-20
-        return 10.0 * np.log10(np.maximum(values, floor))
-
-    def _one_sided_fft(self, y_values: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray]:
-        """Return (frequencies, complex spectrum) for the positive half."""
-        spectrum = np.fft.rfft(y_values - float(np.mean(y_values)))
-        frequencies = np.fft.rfftfreq(y_values.size, d=1.0 / fs)
-        return frequencies, spectrum
-
-    def _laplace_spectrum(
-        self, y_values: np.ndarray, fs: float, sigma: float
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Return (frequencies, |F(sigma + i*omega)|) along a vertical line in s.
-
-        The one-sided Laplace transform of a sampled signal is
-
-            F(s) = dt * sum_k y_k * exp(-s * t_k),   s = sigma + i*omega
-
-        and splitting the exponential turns that into the Fourier transform of
-        a damped signal::
-
-            F(sigma + i*omega) = dt * FFT[ y_k * exp(-sigma * t_k) ]
-
-        so no new machinery is needed - one multiply before the FFT already in
-        use.  What it buys is the part of the s-plane the Fourier transform
-        cannot reach: a growing or non-decaying signal has no Fourier transform,
-        but with sigma large enough the damped signal does, which is the whole
-        reason the Laplace transform exists.
-
-        sigma = 0 is exactly the Fourier magnitude spectrum, which makes the
-        control easy to understand: turn it up and watch the transform become
-        defined.
-        """
-        raw = np.asarray(y_values, dtype=float)
-        times = np.arange(raw.size, dtype=float) / float(fs)
-
-        # exp(-sigma * t) underflows to zero over a long record; that is
-        # arithmetically right - those samples contribute nothing - but it is
-        # worth not letting it produce a NaN through 0 * inf.
-        damping = np.exp(-float(sigma) * times)
-        damped = np.nan_to_num(raw * damping, nan=0.0, posinf=0.0, neginf=0.0)
-
-        # The mean is removed *after* damping, not before.  Removing it first
-        # subtracts the mean of the undamped signal, which for a growing signal
-        # is enormous and leaves a ramp that swamps every real peak - a sine
-        # multiplied by exp(1.5t), damped by exp(-1.5t), came back peaked at
-        # DC instead of at its own frequency.  Damping first and centring the
-        # result leaves exactly the sine, which is the point of choosing that
-        # sigma.
-        damped = damped - float(np.mean(damped))
-
-        spectrum = np.fft.rfft(damped) / float(fs)
-        frequencies = np.fft.rfftfreq(damped.size, d=1.0 / fs)
-        return frequencies, np.abs(spectrum)
-
-    def _wavelet_power(
-        self, y_values: np.ndarray, fs: float, w0: float, n_scales: int
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Return (frequencies, time-averaged power) of a Morlet CWT.
-
-        A scalogram is two-dimensional and this dialog produces (x, y) series,
-        so what is returned is the *global* wavelet spectrum: the power at each
-        scale averaged over time.  That is the standard summary of a scalogram
-        and is directly comparable with a Fourier power spectrum - with the
-        difference that it is computed from a basis localised in time, so a
-        frequency present in only part of the record still shows up without the
-        leakage a single long FFT would spread around it.
-
-        Computed by convolution in the Fourier domain, which is both the fast
-        way and the only way that stays exact for a wavelet defined
-        analytically in frequency::
-
-            psi_hat(s*omega) = pi^-1/4 * H(omega) * exp(-(s*omega - w0)^2 / 2)
-
-        ``H`` being the Heaviside step: the Morlet wavelet is analytic, so it
-        has no negative-frequency content.  No PyWavelets dependency for one
-        wavelet whose transform is four lines of numpy.
-        """
-        centred = np.asarray(y_values, dtype=float) - float(np.mean(y_values))
-        n = centred.size
-
-        # From the longest period the record can support to the Nyquist limit.
-        # Anything outside that is not measurable from this data.
-        lowest = max(float(fs) / float(n), 1e-12)
-        highest = float(fs) / 2.0
-        frequencies = np.logspace(np.log10(lowest), np.log10(highest), int(n_scales))
-
-        # Morlet: the scale that responds to frequency f is w0 / (2*pi*f).
-        scales = float(w0) / (2.0 * np.pi * frequencies)
-
-        transformed = np.fft.fft(centred)
-        omega = 2.0 * np.pi * np.fft.fftfreq(n, d=1.0 / float(fs))
-
-        power = np.empty(frequencies.size, dtype=float)
-        for index, scale in enumerate(scales):
-            scaled = scale * omega
-            wavelet = (np.pi ** -0.25) * np.exp(-0.5 * (scaled - float(w0)) ** 2)
-            wavelet[omega <= 0.0] = 0.0  # analytic: no negative frequencies
-            # sqrt(scale) keeps power comparable across scales; without it the
-            # spectrum slopes purely because wide wavelets integrate more.
-            coefficients = np.fft.ifft(transformed * wavelet) * np.sqrt(scale)
-            power[index] = float(np.mean(np.abs(coefficients) ** 2))
-
-        return frequencies, power
-
-    def _correlate(
-        self,
-        first: np.ndarray,
-        second: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Return (lags, correlation) for two mean-removed signals."""
-        length = min(first.size, second.size)
-        a = first[:length] - float(np.mean(first[:length]))
-        b = second[:length] - float(np.mean(second[:length]))
-
-        raw = np.correlate(a, b, mode="full")
-        lags = np.arange(-length + 1, length)
-
-        mode = self._corr_norm_combo.currentText()
-        if mode == "biased":
-            raw = raw / float(length)
-        elif mode == "unbiased":
-            # Each lag averages a different number of overlapping samples;
-            # dividing by that count removes the artificial taper towards the
-            # extreme lags.
-            raw = raw / (length - np.abs(lags))
-
-        max_lags = int(self._maxlags_spin.value())
-        if max_lags > 0:
-            keep = np.abs(lags) <= max_lags
-            lags = lags[keep]
-            raw = raw[keep]
-
-        return lags.astype(float), raw
+    def _spectral_params(self, fs: float) -> SpectralParams:
+        """The estimate's settings, read off the controls."""
+        return SpectralParams(
+            fs=fs,
+            window=self._window_combo.currentText(),
+            nperseg=int(self._nperseg_spin.value()),
+            overlap=float(self._overlap_spin.value()),
+            detrend=self._detrend_combo.currentText(),
+            one_sided=bool(self._onesided_check.isChecked()),
+            scaling=self._scaling_combo.currentText(),
+            decibels=bool(self._db_check.isChecked()),
+            sigma=float(self._sigma_spin.value()),
+            wavelet_w0=float(self._wavelet_w0_spin.value()),
+            wavelet_scales=int(self._wavelet_scales_spin.value()),
+            correlation_norm=self._corr_norm_combo.currentText(),
+            max_lags=int(self._maxlags_spin.value()),
+        )
 
     def compute_results(self) -> list[SpectralResult]:
         """Compute one result per selected series, or per pair when paired."""
@@ -729,70 +559,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         fs = self._sampling_frequency(x_values, name)
 
         try:
-            if method == METHOD_PSD:
-                frequencies, power = scipy_signal.welch(
-                    y_values,
-                    scaling=self._scaling_combo.currentText(),
-                    **self._welch_kwargs(fs, y_values.size),
-                )
-                values = self._to_decibels(power) if self._db_check.isChecked() else power
-                unit = "dB" if self._db_check.isChecked() else "power"
-                return self._frequency_result(method, name, frequencies, values, unit)
-
-            if method in {METHOD_MAGNITUDE, METHOD_PHASE, METHOD_ANGLE}:
-                frequencies, spectrum = self._one_sided_fft(y_values, fs)
-                if method == METHOD_MAGNITUDE:
-                    values = np.abs(spectrum)
-                    if self._db_check.isChecked():
-                        values = self._to_decibels(values)
-                        unit = "dB"
-                    else:
-                        unit = "magnitude"
-                elif method == METHOD_PHASE:
-                    values = np.unwrap(np.angle(spectrum))
-                    unit = "radians"
-                else:
-                    values = np.angle(spectrum)
-                    unit = "radians"
-                return self._frequency_result(method, name, frequencies, values, unit)
-
-            if method == METHOD_LAPLACE:
-                frequencies, magnitude = self._laplace_spectrum(
-                    y_values, fs, self._sigma_spin.value()
-                )
-                if self._db_check.isChecked():
-                    magnitude = self._to_decibels(magnitude)
-                    unit = "dB"
-                else:
-                    unit = "magnitude"
-                return self._frequency_result(method, name, frequencies, magnitude, unit)
-
-            if method == METHOD_WAVELET:
-                frequencies, power = self._wavelet_power(
-                    y_values,
-                    fs,
-                    self._wavelet_w0_spin.value(),
-                    int(self._wavelet_scales_spin.value()),
-                )
-                if self._db_check.isChecked():
-                    power = self._to_decibels(power)
-                    unit = "dB"
-                else:
-                    unit = "power"
-                return self._frequency_result(method, name, frequencies, power, unit)
-
-            if method == METHOD_ACORR:
-                lags, correlation = self._correlate(y_values, y_values)
-                return SpectralResult(
-                    source_name=name,
-                    result_name=f"{name} - Autocorrelation",
-                    model=method,
-                    x=lags,
-                    y=correlation,
-                    x_label="lag",
-                    y_label="correlation",
-                    metadata={"fs": fs, "points": int(y_values.size)},
-                )
+            spectrum = estimate(method, y_values, self._spectral_params(fs))
         except Exception as exc:
             applogger.exception("Spectral estimate failed for '%s'", name)
             show_message(
@@ -803,9 +570,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
                 error=exc,
             )
             return None
-
-        applogger.error("Unhandled spectral method: %r", method, show_dialog=False, raise_error=False)
-        return None
+        return self._result(method, name, spectrum)
 
     def _compute_pair(
         self,
@@ -818,59 +583,22 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         other_name, _other_x, other_y = other
 
         length = min(reference_y.size, other_y.size)
-        if length < 8:
+        if length < MIN_PAIR_SAMPLES:
             applogger.warning(
-                "Pair '%s' / '%s' skipped: fewer than 8 shared samples.",
+                "Pair '%s' / '%s' skipped: fewer than %d shared samples.",
                 reference_name,
                 other_name,
+                MIN_PAIR_SAMPLES,
             )
             return None
 
-        first = reference_y[:length]
-        second = other_y[:length]
         fs = self._sampling_frequency(reference_x[:length], reference_name)
         pair_label = f"{reference_name} x {other_name}"
 
         try:
-            if method == METHOD_CSD:
-                frequencies, cross = scipy_signal.csd(
-                    first,
-                    second,
-                    scaling=self._scaling_combo.currentText(),
-                    **self._welch_kwargs(fs, length),
-                )
-                values = np.abs(cross)
-                if self._db_check.isChecked():
-                    values = self._to_decibels(values)
-                    unit = "dB"
-                else:
-                    unit = "power"
-                return self._frequency_result(method, pair_label, frequencies, values, unit)
-
-            if method == METHOD_COHERENCE:
-                welch_kwargs = self._welch_kwargs(fs, length)
-                # coherence has no return_onesided or scaling parameter: it is
-                # a ratio, so both would cancel.
-                welch_kwargs.pop("return_onesided", None)
-                frequencies, coherence = scipy_signal.coherence(
-                    first, second, **welch_kwargs
-                )
-                return self._frequency_result(
-                    method, pair_label, frequencies, coherence, "coherence"
-                )
-
-            if method == METHOD_XCORR:
-                lags, correlation = self._correlate(first, second)
-                return SpectralResult(
-                    source_name=pair_label,
-                    result_name=f"{pair_label} - Cross-correlation",
-                    model=method,
-                    x=lags,
-                    y=correlation,
-                    x_label="lag",
-                    y_label="correlation",
-                    metadata={"fs": fs, "points": int(length)},
-                )
+            spectrum = estimate_pair(
+                method, reference_y, other_y, self._spectral_params(fs)
+            )
         except Exception as exc:
             applogger.exception("Spectral estimate failed for '%s'", pair_label)
             show_message(
@@ -881,28 +609,25 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
                 error=exc,
             )
             return None
-
-        applogger.error("Unhandled paired method: %r", method, show_dialog=False, raise_error=False)
-        return None
+        return self._result(method, pair_label, spectrum)
 
     @staticmethod
-    def _frequency_result(
-        method: str,
-        source_name: str,
-        frequencies: np.ndarray,
-        values: np.ndarray,
-        unit: str,
-    ) -> SpectralResult:
-        """Wrap a frequency-domain estimate in a result."""
+    def _result(method: str, source_name: str, spectrum: Spectrum) -> SpectralResult:
+        """Wrap an engine estimate in a result, named the way it always was.
+
+        A frequency-domain estimate is "<source> - <method>"; a correlation
+        is "<source> - Autocorrelation" / "- Cross-correlation".
+        """
+        suffix = {METHOD_ACORR: "Autocorrelation", METHOD_XCORR: "Cross-correlation"}.get(method, method)
         return SpectralResult(
             source_name=source_name,
-            result_name=f"{source_name} - {method}",
+            result_name=f"{source_name} - {suffix}",
             model=method,
-            x=np.asarray(frequencies, dtype=float),
-            y=np.asarray(values, dtype=float),
-            x_label="frequency",
-            y_label=unit,
-            metadata={"points": int(np.size(frequencies))},
+            x=spectrum.x,
+            y=spectrum.y,
+            x_label=spectrum.x_label,
+            y_label=spectrum.y_label,
+            metadata=dict(spectrum.details),
         )
 
     # ------------------------------------------------------------------

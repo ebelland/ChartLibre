@@ -531,22 +531,21 @@ def _sunspots_monthly() -> pd.DataFrame:
 def _sunspot_spectrum() -> pd.DataFrame:
     """The sunspot record's amplitude spectrum, in cycles per year.
 
-    Computed by SeriesSpectralDialog's own ``_one_sided_fft`` - the same
-    code the Spectral operation runs - so the demo cannot drift from
+    Computed by app.analysis.spectral.one_sided_fft - the same code the
+    Spectral operation runs - so the demo cannot drift from
     what the application would draw. Opening the Spectral dialog on the
     series next to this one reproduces it.
 
     Cut at 0.6 cycles/year: everything the eye is here for sits below
     that, and the rest is a long flat tail that squashes the peak.
     """
-    from app.series_operations.spectral_dialog import SeriesSpectralDialog
+    from app.analysis.spectral import one_sided_fft
 
     sunspots = _sunspots_monthly()
     values = sunspots["sunspot_number"].to_numpy(dtype=float)
     # Twelve samples a year, so frequencies come out in cycles/year and
     # the peak can be read as a period in years without converting.
-    dialog = SeriesSpectralDialog.__new__(SeriesSpectralDialog)
-    frequencies, spectrum = dialog._one_sided_fft(values, 12.0)
+    frequencies, spectrum = one_sided_fft(values, 12.0)
     keep = (frequencies > 0.0) & (frequencies <= 0.6)
     return pd.DataFrame(
         {
