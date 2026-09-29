@@ -4,8 +4,8 @@ from __future__ import annotations
 import weakref
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtCore import QPoint, QSize, Qt
+from PySide6.QtGui import QMouseEvent, QMoveEvent, QShowEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -148,22 +148,33 @@ class CustomTitleBar(QFrame):
     def refresh_lights_inset(self) -> None:
         """Leave room on the left so the toggle clears the traffic lights.
 
-        The lights sit at a fixed place in the window, and this strip can
-        sit inside a parent's left margin (the rail's) or flush with the
-        window edge (the panel beside it, while the rail is hidden), so the
-        parent's current margin is taken off. Call again after moving it.
+        The lights sit at a fixed place in the window, and this strip moves
+        between the rail (inside its left margin) and the panel beside it
+        (flush with the window edge) as the rail is hidden and shown. So
+        the room is worked out from where the strip actually is in the
+        window, not from a parent's margin: that guess went stale when the
+        strip moved back into the rail, and the toggle came back 8 pt to
+        the right of where it had been. Runs on every move (moveEvent).
         """
         if self._lights_spacer is None:
             return
-        parent = self.parentWidget()
-        layout = parent.layout() if parent is not None else None
-        margin = layout.contentsMargins().left() if layout is not None else 0
+        window = self.window()
+        left = self.mapTo(window, QPoint(0, 0)).x() if window is not self else 0
         self._lights_spacer.changeSize(
-            MAC_TRAFFIC_LIGHTS_END - margin + _MAC_SIDEBAR_BUTTON_GAP, 0,
+            max(MAC_TRAFFIC_LIGHTS_END + _MAC_SIDEBAR_BUTTON_GAP - left, 0), 0,
             QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum,
         )
+        layout = self.layout()
         if layout is not None:
             layout.invalidate()
+
+    def moveEvent(self, event: QMoveEvent) -> None:  # noqa: N802
+        super().moveEvent(event)
+        self.refresh_lights_inset()
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        self.refresh_lights_inset()
 
     # ------------------------------------------------------------------
     # Shared: the sidebar toggle
@@ -180,8 +191,11 @@ class CustomTitleBar(QFrame):
         button.setAutoRaise(True)
         button.setCheckable(True)
         button.setIcon(action_presentation("sidebar_toggle")[0])
-        button.setIconSize(QSize(16, 16))
-        button.setFixedSize(26, 22)
+        # A little larger than a toolbar glyph: it sits beside the traffic
+        # lights and is read against them. 24 tall in a 32 strip centres it
+        # on their line (y = 16).
+        button.setIconSize(QSize(18, 18))
+        button.setFixedSize(28, 24)
         button.setCursor(Qt.CursorShape.ArrowCursor)
         button.setToolTip(self._sidebar_tooltip(False))
         button.toggled.connect(self._on_sidebar_toggled)
