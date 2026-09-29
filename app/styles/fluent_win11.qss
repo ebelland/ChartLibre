@@ -44,6 +44,39 @@ QToolButton#titleBarSidebarButton:checked {
     background: rgba(@SHADOW_RGB@, 0.14);
 }
 
+/* The caption buttons (minimize / maximize / close) of the custom title
+   strip: as tall as the strip, edge to edge, hover filling the whole button
+   like a native Windows 11 caption - not the generic QToolButton box below
+   (36 px minimum, rounded), which was taller than the strip and cut them off. */
+QToolButton#titleBarButton,
+QToolButton#titleBarCloseButton {
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 30px;
+    max-height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    icon-size: 12px;
+}
+
+QToolButton#titleBarButton:hover {
+    background: rgba(@SHADOW_RGB@, 0.09);
+}
+
+QToolButton#titleBarButton:pressed {
+    background: rgba(@SHADOW_RGB@, 0.14);
+}
+
+QToolButton#titleBarCloseButton:hover {
+    background: #c42b1c;
+}
+
+QToolButton#titleBarCloseButton:pressed {
+    background: #b22a1b;
+}
+
 /* ==========================================================
    Global Base
    ========================================================== */
@@ -825,9 +858,11 @@ TablePreviewPanel QHeaderView::section:last {
 
 /* -------------------------------
    Activity rail / navigation (NavigationBar, app/widgets/nav_bar.py)
-   A column of square icon-over-label tiles (#navigationItem) - the
-   Fluent-2 counterpart to macos_native.qss's own Apple Music/Finder-style
-   sidebar rows under the same object name.
+   A column of rows (#navigationItem): the icon, then its label to the
+   right, left-aligned, in the application's ordinary font - no size of
+   its own, no weight change on the selected row (a bold label is wider than
+   a regular one, and the row's text moved when it was chosen). The Windows
+   11 selection mark: a tinted row with a short accent bar on its left.
 -------------------------------- */
 
 QFrame#activityRail {
@@ -840,12 +875,9 @@ QToolButton#navigationItem {
     background: transparent;
     color: palette(window-text);
     border: none;
-    border-radius: 8px;
-    padding: 6px 4px;
-    /* Was 8pt against this sheet's own 10pt body base (see "* {" above)
-       - visibly smaller than every other label in the app, not a
-       deliberate caption size. */
-    font-size: 10.5pt;
+    border-radius: 6px;
+    padding: 0 10px;
+    text-align: left;
 }
 
 QToolButton#navigationItem:hover {
@@ -859,9 +891,9 @@ QToolButton#navigationItem:pressed {
 QToolButton#navigationItem:checked {
     background: palette(button);
     color: palette(window-text);
-    border-left: 4px solid palette(highlight);
-    padding-left: 0px;
-    font-weight: 600;
+    /* The bar takes 3 px of the 10 px padding, so the icon stays put. */
+    border-left: 3px solid palette(highlight);
+    padding-left: 7px;
 }
 
 QToolButton#navigationItem::menu-indicator {

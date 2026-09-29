@@ -1,4 +1,4 @@
-"""A platform-aware navigation rail: Fluent tiles on Windows, a macOS sidebar.
+"""A platform-aware navigation rail: a sidebar of icon-beside-label rows.
 
 Reusable outside this application. The rail knows how to *look* like the
 platform it is running on and nothing about what its entries mean: the
@@ -67,21 +67,16 @@ class NavPage:
     tooltip: str = ""
     icon_svg: str | None = None
 
-#: Windows/Fluent: a fixed-width column of square icon-over-label tiles.
-#: Widened from the original 104/120 - "Operazioni sulle serie" and
-#: "Area di lavoro" wrapped or clipped badly under an icon in a tile
-#: that narrow, at any font past this sheet's own 10pt base.
-NAV_BAR_WIDTH = 132
-NAV_ICON_SIZE = QSize(20, 20)
-NAV_ITEM_SIZE = QSize(116, 64)
-
-#: macOS: a wider Apple Music/Finder-style sidebar of icon-beside-label
-#: rows, rather than square tiles - there is no native AppKit sidebar
-#: control to defer to (see macos_native.qss's own note on #activityRail),
-#: so this is this app's best approximation of one.
-_MACOS_NAV_BAR_WIDTH = 200
-_MACOS_ICON_SIZE = QSize(20, 20)
+#: Both platforms draw the rail as a list of rows - the icon, then its label
+#: to the right, left-aligned, in the application's ordinary font - the way a
+#: Finder or a File Explorer sidebar reads. Windows used to draw square
+#: icon-over-label tiles, which wrapped long labels onto two lines
+#: ("Operazioni / sulle serie") and set them in a size of their own.
+_NAV_BAR_WIDTH = 200
+_NAV_ICON_SIZE = QSize(20, 20)
+#: Row heights: a little taller on Windows, where the rows are also touch targets.
 _MACOS_ROW_HEIGHT = 34
+_WINDOWS_ROW_HEIGHT = 36
 
 #: Windows: collapsed ("icons only") rail width. macOS has no such mode -
 #: its sidebar toggle hides the rail outright (MainWindow).
@@ -107,32 +102,8 @@ DEFAULT_PAGES: tuple[NavPage, ...] = (
 )
 
 
-def _wrap_tile_label(text: str) -> str:
-    """Break a tile label onto two lines at its middlemost space.
-
-    QToolButton has no word-wrap of its own (a Qt limitation, not a
-    missed setting) - left alone, a label past the tile's own width just
-    elides ("Series ...rations"), unreadable. Breaking it explicitly is
-    the same thing WinUI3's own longer tile labels do. Only ever applied
-    to this button's own text, never to the shared catalogue string
-    (spec.translated_text()) that menus and tooltips reuse unwrapped.
-    """
-    if " " not in text:
-        return text
-    words = text.split(" ")
-    lengths = [len(word) for word in words]
-    total = sum(lengths) + len(words) - 1
-    best_index, best_gap, running = 0, total, 0
-    for index, length in enumerate(lengths[:-1]):
-        running += length + 1
-        gap = abs(running - total / 2)
-        if gap < best_gap:
-            best_index, best_gap = index, gap
-    return " ".join(words[: best_index + 1]) + "\n" + " ".join(words[best_index + 1 :])
-
-
 class NavigationBar(QFrame):
-    """A navigation rail: Fluent tiles on Windows, a sidebar list on macOS.
+    """A navigation rail: icon-beside-label rows, styled per platform.
 
     Host-agnostic: it reports what was clicked and never acts on the
     window itself. See the module docstring for how to reuse it.
@@ -163,13 +134,14 @@ class NavigationBar(QFrame):
         # to parent the help menu - never to call back into it.
         self._window = window
         self._is_macos = is_macos
+        self._row_height = _MACOS_ROW_HEIGHT if is_macos else _WINDOWS_ROW_HEIGHT
         self._compact = False
         self.pages: tuple[NavPage, ...] = tuple(
             DEFAULT_PAGES if pages is None else pages
         )
         self.setObjectName("activityRail")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setFixedWidth(_MACOS_NAV_BAR_WIDTH if is_macos else NAV_BAR_WIDTH)
+        self.setFixedWidth(_NAV_BAR_WIDTH)
         # Vertical Ignored, not Expanding: the tiles below are each
         # setFixedSize (64px tall, deliberately - Fluent-style tiles, not
         # accidental), and stacked vertically that sums to well over the
@@ -253,11 +225,17 @@ class NavigationBar(QFrame):
         self.chart_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.chart_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.chart_list.setTextElideMode(Qt.TextElideMode.ElideRight)
-        self.chart_list.setIconSize(_MACOS_ICON_SIZE if is_macos else QSize(16, 16))
+        self.chart_list.setIconSize(_NAV_ICON_SIZE if is_macos else QSize(16, 16))
         self.chart_list.setUniformItemSizes(True)
         self.chart_list.setMinimumHeight(0)
         self.chart_list.currentRowChanged.connect(self._on_chart_row_changed)
         layout.addWidget(self.chart_list, 1)
+        # Takes the spare height when the chart list is hidden (compact mode).
+        # Without it Qt shares that height out between the fixed-size rows,
+        # and the icons drift apart down the rail.
+        layout.addStretch(0)
+        self._rail_layout = layout
+        self._compact_stretch_index = layout.count() - 1
 
         if not is_macos:
             self.settings_button = self._catalogue_tile(
@@ -280,8 +258,8 @@ class NavigationBar(QFrame):
             self.help_button = None
 
         # No inline setStyleSheet here: #activityRail/#navigationItem are
-        # styled per platform in fluent_win11.qss (square Fluent tiles) and
-        # macos_native.qss (Apple Music/Finder-style sidebar rows) instead,
+        # styled per platform in fluent_win11.qss and macos_native.qss
+        # (rows in both; the selection mark and the colours differ),
         # the same split every other piece of bespoke chrome in this app
         # already follows - see that file's own PLATFORM PARITY NOTES.
 
@@ -352,7 +330,8 @@ class NavigationBar(QFrame):
             return
         self._compact = compact
 
-        self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else NAV_BAR_WIDTH)
+        self.setFixedWidth(_WINDOWS_COMPACT_WIDTH if compact else _NAV_BAR_WIDTH)
+        self._rail_layout.setStretch(self._compact_stretch_index, 1 if compact else 0)
 
         for widget in (self._tools_title, self._charts_title, self.chart_list):
             widget.setVisible(not compact)
@@ -374,21 +353,20 @@ class NavigationBar(QFrame):
         The icon keeps its size in both modes.
         """
         full_text = str(button.property("navLabel") or button.text())
-        button.setIconSize(_MACOS_ICON_SIZE if self._is_macos else NAV_ICON_SIZE)
+        button.setIconSize(_NAV_ICON_SIZE)
 
         if self._compact:
             button.setText("")
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-            button.setFixedSize(QSize(_WINDOWS_COMPACT_WIDTH - 16, NAV_ITEM_SIZE.height()))
+            button.setFixedSize(QSize(_WINDOWS_COMPACT_WIDTH - 16, self._row_height))
             return
 
-        button.setText(full_text if self._is_macos else _wrap_tile_label(full_text))
-        if self._is_macos:
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-            button.setFixedHeight(_MACOS_ROW_HEIGHT)
-        else:
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-            button.setFixedSize(NAV_ITEM_SIZE)
+        button.setText(full_text)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button.setMinimumWidth(0)
+        button.setMaximumWidth(16777215)  # QWIDGETSIZE_MAX: undo the compact mode's fixed width
+        button.setFixedHeight(self._row_height)
 
     def select_page(self, index: int) -> None:
         if 0 <= index < len(self.buttons):
@@ -426,21 +404,13 @@ class NavigationBar(QFrame):
         button.setObjectName("navigationItem")
         button.setAutoRaise(False)
         button.setIcon(icon)
-        button.setText(text if self._is_macos else _wrap_tile_label(text))
-        if self._is_macos:
-            # A sidebar row - icon beside a left-aligned label, stretched to
-            # the rail's own width - not a square tile: Apple Music/Finder's
-            # sidebar is a list, not a grid of icons.
-            button.setIconSize(_MACOS_ICON_SIZE)
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-            button.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-            )
-            button.setFixedHeight(_MACOS_ROW_HEIGHT)
-        else:
-            button.setIconSize(NAV_ICON_SIZE)
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-            button.setFixedSize(NAV_ITEM_SIZE)
+        button.setText(text)
+        # A sidebar row - icon beside a left-aligned label, stretched to the
+        # rail's own width - not a square tile.
+        button.setIconSize(_NAV_ICON_SIZE)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button.setFixedHeight(self._row_height)
         button.setToolTip(tooltip)
         button.setStatusTip(tooltip)
         button.setAccessibleName(text)

@@ -4,29 +4,33 @@ from __future__ import annotations
 import weakref
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QPoint, QSize, Qt
-from PySide6.QtGui import QMouseEvent, QMoveEvent, QShowEvent
+from PySide6.QtCore import QByteArray, QPoint, QSize, Qt
+from PySide6.QtGui import QIcon, QImage, QMouseEvent, QMoveEvent, QPainter, QPixmap, QShowEvent
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QStyle,
     QSizePolicy,
     QSpacerItem,
     QToolButton,
     QWidget,
 )
 
-from app.styles.style import action_presentation
+from app.styles.style import action_presentation, svg_icon_document
 from app.utils.i18n import _
 
 if TYPE_CHECKING:
     from app.dialogs.main_window import MainWindow
 
-#: Windows: icon + title on the left, square min/max/close on the right,
-#: each this tall. Compacted from an original 40 to match a native Windows
-#: 11 title bar's own height more closely.
-CUSTOM_TITLE_BAR_HEIGHT: int = 24
+#: Windows: icon + title on the left, min/max/close on the right, each as
+#: tall as the strip and CAPTION_BUTTON_WIDTH wide, edge to edge with no gap
+#: between them - a caption button's hover fills the whole button, so a gap
+#: or a taller box than the strip reads as an oversized target.
+CUSTOM_TITLE_BAR_HEIGHT: int = 30
+CAPTION_BUTTON_WIDTH: int = 40
+#: The glyph inside a caption button.
+CAPTION_GLYPH_SIZE: int = 12
 
 #: macOS: the strip at the top of the rail, level with the native traffic
 #: lights. The window is a real NSWindow with a transparent title bar
@@ -37,6 +41,39 @@ MAC_TITLE_BAR_HEIGHT: int = 32
 #: the gap macOS apps leave before the sidebar button.
 MAC_TRAFFIC_LIGHTS_END: int = 69
 _MAC_SIDEBAR_BUTTON_GAP: int = 12
+
+#: The four caption glyphs, as SVG body (24 x 24 box, drawn with the stroke
+#: svg_icon_document gives them).
+_CAPTION_GLYPHS: dict[str, str] = {
+    "minimize": '<path d="M5 12h14"/>',
+    "maximize": '<rect x="5" y="5" width="14" height="14" rx="1"/>',
+    "restore": '<path d="M8 8V5h11v11h-3"/><rect x="5" y="8" width="11" height="11" rx="1"/>',
+    "close": '<path d="M6 6l12 12M18 6L6 18"/>',
+}
+
+
+def caption_icon(kind: str, normal: str, active: str | None = None) -> QIcon:
+    """A caption-button glyph in *normal* ink, and in *active* while hovered.
+
+    Drawn here rather than taken from the style's title-bar pixmaps: those
+    are the Windows style's own size and colour, which no stylesheet can
+    change, and the close button needs a white glyph on its red hover.
+    """
+    icon = QIcon()
+    size = CAPTION_GLYPH_SIZE
+    for mode, colour in ((QIcon.Mode.Normal, normal), (QIcon.Mode.Active, active or normal)):
+        renderer = QSvgRenderer(QByteArray(svg_icon_document(_CAPTION_GLYPHS[kind], colour).encode("utf-8")))
+        ratio = 2  # sharp on a high-density display; Qt scales it down elsewhere
+        image = QImage(size * ratio, size * ratio, QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(0)
+        painter = QPainter(image)
+        renderer.render(painter)
+        painter.end()
+        pixmap = QPixmap.fromImage(image)
+        pixmap.setDevicePixelRatio(ratio)
+        icon.addPixmap(pixmap, mode)
+    return icon
+
 
 class CustomTitleBar(QFrame):
     """Custom chrome that delegates movement/resizing to the window system.
@@ -91,6 +128,7 @@ class CustomTitleBar(QFrame):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.title_label: QLabel | None = None
         self.sidebar_button: QToolButton | None = None
+        self._caption_ink = "#000000"
         self._lights_spacer: QSpacerItem | None = None
 
         if self._is_macos:
@@ -114,21 +152,40 @@ class CustomTitleBar(QFrame):
         self.title_label.setObjectName("titleBarTitle")
         self.title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         layout.addWidget(self.title_label, 1)
-        self.minimize_button = self._window_button(QStyle.StandardPixmap.SP_TitleBarMinButton, self._window.showMinimized, _("Minimize"))
-        self.maximize_button = self._window_button(QStyle.StandardPixmap.SP_TitleBarMaxButton, self._toggle_maximized, _("Maximize"))
-        self.close_button = self._window_button(QStyle.StandardPixmap.SP_TitleBarCloseButton, self._window.close, _("Close"), "titleBarCloseButton")
-        layout.addWidget(self.minimize_button)
-        layout.addWidget(self.maximize_button)
-        layout.addWidget(self.close_button)
+
+        ink = self.palette().windowText().color().name()
+        self._caption_ink = ink
+        self.minimize_button = self._window_button("minimize", ink, self._window.showMinimized, _("Minimize"))
+        self.maximize_button = self._window_button("maximize", ink, self._toggle_maximized, _("Maximize"))
+        self.close_button = self._window_button("close", ink, self._window.close, _("Close"), "titleBarCloseButton", active="#ffffff")
+        # Their own row with no spacing: the strip's 4 px between widgets put
+        # a gap between the three buttons, and a hover box on each.
+        caption = QHBoxLayout()
+        caption.setContentsMargins(0, 0, 0, 0)
+        caption.setSpacing(0)
+        for button in (self.minimize_button, self.maximize_button, self.close_button):
+            caption.addWidget(button)
+        layout.addLayout(caption)
         self._window.windowTitleChanged.connect(self.title_label.setText)
 
-    def _window_button(self, icon: QStyle.StandardPixmap, callback: Any, tooltip: str, object_name: str = "titleBarButton") -> QToolButton:
+    def _window_button(
+        self,
+        kind: str,
+        ink: str,
+        callback: Any,
+        tooltip: str,
+        object_name: str = "titleBarButton",
+        *,
+        active: str | None = None,
+    ) -> QToolButton:
         button = QToolButton(self)
         button.setObjectName(object_name)
         button.setAutoRaise(True)
-        button.setIcon(self.style().standardIcon(icon))
+        button.setIcon(caption_icon(kind, ink, active))
+        button.setIconSize(QSize(CAPTION_GLYPH_SIZE, CAPTION_GLYPH_SIZE))
         button.setToolTip(tooltip)
-        button.setFixedSize(46, CUSTOM_TITLE_BAR_HEIGHT)
+        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        button.setFixedSize(CAPTION_BUTTON_WIDTH, CUSTOM_TITLE_BAR_HEIGHT)
         button.clicked.connect(callback)
         return button
 
@@ -219,8 +276,8 @@ class CustomTitleBar(QFrame):
         self._window.showNormal() if self._window.isMaximized() else self._window.showMaximized()
         if self._is_macos:
             return
-        icon = QStyle.StandardPixmap.SP_TitleBarNormalButton if self._window.isMaximized() else QStyle.StandardPixmap.SP_TitleBarMaxButton
-        self.maximize_button.setIcon(self.style().standardIcon(icon))
+        kind = "restore" if self._window.isMaximized() else "maximize"
+        self.maximize_button.setIcon(caption_icon(kind, self._caption_ink))
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
