@@ -16,11 +16,7 @@ import pytest
 
 from app.series_operations.calculus_dialog import BASELINE_NONE, DERIV_GRADIENT, DERIV_SAVGOL, DERIV_SPLINE, DEST_NEW_AXIS, INTEGRAL_DEFINITE, SeriesCalculusDialog
 from app.series_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SPC_CONSTANTS, SeriesControlChartDialog
-from app.series_operations.function_dialog import (
-    SPACING_LINEAR,
-    SPACING_LOG,
-    SeriesFunctionDialog,
-)
+from app.analysis.function_plot import SPACING_LINEAR, build_range
 from app.series_operations.peaks_dialog import PEAKS_MAXIMA, SeriesPeaksDialog
 
 
@@ -163,20 +159,6 @@ def test_the_run_rules_catch_a_shift_that_stays_inside_the_limits() -> None:
 # Function plotting
 # ======================================================================
 
-def test_a_linear_range_spans_the_requested_endpoints() -> None:
-    values = SeriesFunctionDialog._build_range(
-        {"start": 0.0, "stop": 10.0, "points": 5, "spacing": SPACING_LINEAR}
-    )
-    assert values.tolist() == [0.0, 2.5, 5.0, 7.5, 10.0]
-
-
-def test_a_log_range_is_evenly_spaced_in_decades() -> None:
-    values = SeriesFunctionDialog._build_range(
-        {"start": 1.0, "stop": 1000.0, "points": 4, "spacing": SPACING_LOG}
-    )
-    assert values.tolist() == pytest.approx([1.0, 10.0, 100.0, 1000.0])
-
-
 def test_a_discovered_function_evaluates_over_a_range() -> None:
     """End to end: the scanner's callable applied to a built range."""
     from app.scanners.functions_scanner import FunctionScanner
@@ -189,9 +171,7 @@ def test_a_discovered_function_evaluates_over_a_range() -> None:
         if payload.get("discovery_entry", {}).get("name") == "linear"
     )
     model = scanner.make_model(dict(payload))
-    x = SeriesFunctionDialog._build_range(
-        {"start": 1.0, "stop": 10.0, "points": 7, "spacing": SPACING_LINEAR}
-    )
+    x = build_range(1.0, 10.0, 7, SPACING_LINEAR)
     y = np.asarray(model(x, np.asarray([0.0, 1.0])), dtype=float)
 
     assert y == pytest.approx(x), "intercept 0, slope 1 is the identity"

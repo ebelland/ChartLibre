@@ -39,6 +39,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.analysis.function_plot import (
+    SPACING_LINEAR,
+    SPACING_LOG,
+    build_range,
+    evaluate_curve,
+    evaluate_surface,
+)
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
@@ -53,8 +60,6 @@ from app.styles.style import create_doc_link, mark_editor_panel, set_doc_link
 from app.utils.i18n import _
 from app.utils import report_html
 
-SPACING_LINEAR = "linear"
-SPACING_LOG = "log"
 
 
 @dataclass(slots=True)
@@ -414,39 +419,23 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         names, values = self._function_params()
 
         model = self._scanner.make_model(dict(payload))
-        y_values = np.asarray(model(x_values, values), dtype=float)
-
-        if y_values.shape != x_values.shape:
-            raise ValueError(
-                f"the function returned {y_values.size} value(s) for "
-                f"{x_values.size} input(s)"
-            )
-
-        finite = int(np.count_nonzero(np.isfinite(y_values)))
-        if finite == 0:
-            raise ValueError(
-                "the function is undefined everywhere in this range - check "
-                "the range and the parameter values"
-            )
+        curve = evaluate_curve(model, x_values, values)
 
         metadata: dict[str, Any] = {
             "spacing": str(params.get("spacing", SPACING_LINEAR)),
             "range": f"{x_values[0]:g} .. {x_values[-1]:g}",
         }
-        if finite < y_values.size:
-            # Not an error: many functions are legitimately undefined over
-            # part of a range - a log below zero, a pole in a rational - and
-            # the useful behaviour is to draw the part that exists and say how
-            # much was dropped.
-            metadata["undefined"] = y_values.size - finite
+        if curve.undefined:
+            # Not an error: draw the part that exists and say how much was dropped.
+            metadata["undefined"] = curve.undefined
 
         name = str(payload.get("name", "function"))
         return [
             FunctionResult(
                 function_name=name,
                 result_name=name,
-                x=x_values,
-                y=y_values,
+                x=curve.x,
+                y=curve.y,
                 params=dict(zip(names, (float(value) for value in values))),
                 expression=str(payload.get("expression", "") or ""),
                 metadata=metadata,
@@ -465,36 +454,26 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
         """
         params = self.parameter_values()
         x_lin = self._build_range(params)
-        y_lin = x_lin.copy()
-        x_grid, y_grid = np.meshgrid(x_lin, y_lin)
 
         names, values = self._function_params()
         model = self._surface_scanner.make_model(dict(payload))
-        xy = np.column_stack([x_grid.ravel(), y_grid.ravel()])
-        z_values = np.asarray(model(xy, values), dtype=float)
-
-        finite = int(np.count_nonzero(np.isfinite(z_values)))
-        if finite == 0:
-            raise ValueError(
-                "the function is undefined everywhere in this range - check "
-                "the range and the parameter values"
-            )
+        surface = evaluate_surface(model, x_lin, values)
 
         metadata: dict[str, Any] = {
             "spacing": str(params.get("spacing", SPACING_LINEAR)),
             "range": f"{x_lin[0]:g} .. {x_lin[-1]:g} (both axes)",
         }
-        if finite < z_values.size:
-            metadata["undefined"] = z_values.size - finite
+        if surface.undefined:
+            metadata["undefined"] = surface.undefined
 
         name = str(payload.get("name", "function"))
         return [
             FunctionResult(
                 function_name=name,
                 result_name=name,
-                x=x_grid.ravel(),
-                y=y_grid.ravel(),
-                z=z_values,
+                x=surface.x,
+                y=surface.y,
+                z=surface.z,
                 params=dict(zip(names, (float(value) for value in values))),
                 expression=str(payload.get("expression", "") or ""),
                 metadata=metadata,
@@ -503,22 +482,13 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
 
     @staticmethod
     def _build_range(params: Mapping[str, Any]) -> np.ndarray:
-        """Return the x values to evaluate at."""
-        start = float(params.get("start", 0.0))
-        stop = float(params.get("stop", 10.0))
-        count = max(2, int(params.get("points", 200)))
-
-        if start == stop:
-            raise ValueError("the range is empty - From and To are the same")
-
-        if str(params.get("spacing", SPACING_LINEAR)) == SPACING_LOG:
-            if start <= 0.0 or stop <= 0.0:
-                raise ValueError(
-                    "logarithmic spacing needs a range strictly above zero"
-                )
-            return np.logspace(np.log10(start), np.log10(stop), count)
-
-        return np.linspace(start, stop, count)
+        """The x values to evaluate at, from the From / To / Points / Spacing controls."""
+        return build_range(
+            float(params.get("start", 0.0)),
+            float(params.get("stop", 10.0)),
+            int(params.get("points", 200)),
+            str(params.get("spacing", SPACING_LINEAR)),
+        )
 
     # ------------------------------------------------------------------
     # Results
