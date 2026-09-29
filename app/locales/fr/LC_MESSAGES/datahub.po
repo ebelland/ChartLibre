@@ -6085,3 +6085,12 @@ msgstr "Espacement V"
 
 msgid "Shared gap H"
 msgstr "Espacement H"
+
+msgid "Demo"
+msgstr "Démo"
+
+msgid "Query Builder…"
+msgstr "Générateur de requêtes…"
+
+msgid "Open the Query Builder"
+msgstr "Ouvrir le Générateur de requêtes"

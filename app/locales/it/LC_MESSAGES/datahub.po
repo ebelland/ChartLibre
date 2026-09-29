@@ -6088,3 +6088,12 @@ msgstr "Spazio assi V"
 
 msgid "Shared gap H"
 msgstr "Spazio assi O"
+
+msgid "Demo"
+msgstr "Demo"
+
+msgid "Query Builder…"
+msgstr "Query Builder…"
+
+msgid "Open the Query Builder"
+msgstr "Apri il Query Builder"

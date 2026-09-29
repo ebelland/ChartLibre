@@ -828,14 +828,14 @@ class MainWindow(QMainWindow):
         return scroll
 
     def _create_file_page(self) -> QWidget:
-        """Workspace (New/Open/Import/Load demo), Save, and Open Recent.
+        """Workspace (New/Open), Demo, Import, Save, and Open Recent.
 
         Page index 4, matching NavigationBar.action_ids' "nav_file" - the
         rail's own popup-menu File button (off macOS only) used to be the
         only way to reach these; a page reachable on every platform, same
-        as Database's, replaces it. Load demo lives here, not under Help
-        (see _app_menu_items) - starting from a demo is a way of starting a
-        workspace, not a piece of documentation.
+        as Database's, replaces it. Load demo lives here, in a card of its own
+        beside Workspace, not under Help (see _app_menu_items) - starting from
+        a demo is a way of starting, not a piece of documentation.
         """
         page = QWidget(self)
         # Same "white page the cards float on" convention the properties
@@ -852,6 +852,9 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(
             self._titled_card(page, _("Workspace"), self._fill_workspace_card, object_name="fileWorkspaceCard")
+        )
+        layout.addWidget(
+            self._titled_card(page, _("Demo"), self._fill_demo_card, object_name="fileDemoCard")
         )
         layout.addWidget(
             self._titled_card(page, _("Import"), self._fill_import_card, object_name="fileImportCard")
@@ -899,11 +902,21 @@ class MainWindow(QMainWindow):
         new_open_row.addStretch(1)
         layout.addLayout(new_open_row)
 
-        demo_row = QHBoxLayout()
-        stdSizeAndlayout(demo_row)
-        create_action_button(parent=card, action_id="load_demo", action=self._on_load_demo, layout=demo_row)
-        demo_row.addStretch(1)
-        layout.addLayout(demo_row)
+    def _fill_demo_card(self, card: CardFrame) -> None:
+        """Load demo on its own: it opens a ready-made example, where New and
+        Open beside it start from nothing or from the user's own file - and a
+        button that opens one of twenty-four projects deserves its sentence."""
+        layout = self._card_layout(card)
+        row = QHBoxLayout()
+        stdSizeAndlayout(row)
+        create_action_button(parent=card, action_id="load_demo", action=self._on_load_demo, layout=row)
+        row.addStretch(1)
+        layout.addLayout(row)
+
+        description = QLabel(action_presentation("load_demo")[2], card)
+        description.setWordWrap(True)
+        description.setProperty("muted", True)
+        layout.addWidget(description)
 
     def _fill_import_card(self, card: CardFrame) -> None:
         """Import on its own: it adds tables to the open project, where New
@@ -1075,6 +1088,7 @@ class MainWindow(QMainWindow):
         ("series_operation_builder", "_on_series_operation_builder"),
         ("function_creator", "_on_function_creator"),
         ("renderer_helper", "_on_renderer_helper"),
+        ("log_viewer", "_show_log_viewer"),
     )
 
     def _create_developer_page(self) -> QWidget:
@@ -1083,7 +1097,7 @@ class MainWindow(QMainWindow):
         Page index 5, matching NavigationBar.action_ids' "nav_developer" -
         the old "Developer" menu group, moved here rather than merely
         hidden the way File/Database's own groups still are (see
-        _app_menu_items): none of these four actions carries a shortcut
+        _app_menu_items): none of these actions carries a shortcut
         worth preserving, and off macOS there was no menu bar to begin
         with - only the rail's own flattened popup, which itself no
         longer has a button anywhere pointing at it, making this group
@@ -1198,8 +1212,6 @@ class MainWindow(QMainWindow):
                         [action_menu_item("settings", self._on_settings)]
                         if IS_MACOS else []
                     ),
-                    action_menu_item("log_viewer", self._show_log_viewer),
-                    None,
                     action_menu_item("user_manual", self._on_user_manual),
                     None,
                     action_menu_item("credits", self._on_credits),

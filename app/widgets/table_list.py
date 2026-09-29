@@ -583,16 +583,20 @@ class TableListPanel(QWidget):
             )
         )
 
-        current_source = self._current_source()
-        if len(selected_sources) == 1 and current_source is not None and current_source[1]:
-            items.append(
-                MenuItem(
-                    text=_("Edit…"),
-                    tooltip=_("Open this saved query in the Query Builder"),
-                    callback=self._edit_selected_query,
-                    icon="edit",
-                )
+        # One entry for both: it edits the selected saved query when there is
+        # exactly one, and otherwise opens the Query Builder empty.
+        items.append(
+            MenuItem(
+                text=_("Query Builder…"),
+                tooltip=(
+                    _("Open this saved query in the Query Builder")
+                    if self._single_selected_query() is not None
+                    else _("Open the Query Builder")
+                ),
+                callback=self._open_query_builder,
+                icon="query_builder",
             )
+        )
         if has_link:
             items.append(
                 MenuItem(
@@ -647,6 +651,24 @@ class TableListPanel(QWidget):
 
         menu = create_menu(self, items)
         menu.exec(self._view.viewport().mapToGlobal(pos))
+
+    def _single_selected_query(self) -> str | None:
+        """The name of the selected saved query, when exactly one row is selected and it is one."""
+        sources = self.selected_sources()
+        current = self._current_source()
+        if len(sources) == 1 and current is not None and current[1]:
+            return current[0]
+        return None
+
+    def _open_query_builder(self) -> None:
+        """Edit the selected saved query if there is one, else open the Query Builder empty."""
+        if self._repo is None:
+            return
+        if self._single_selected_query() is not None:
+            self._edit_selected_query()
+            return
+        QueryBuilderDialog(self._repo, parent=self._top_level_parent()).exec()
+        self.reload()
 
     def _edit_selected_query(self) -> None:
         """Open the selected saved query in the Query Builder.
