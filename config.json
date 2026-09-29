@@ -1186,7 +1186,7 @@
     }
   },
   "constants": {
-    "max_recent_databases": 10,
+    "max_recent_databases": 30,
     "max_grid_cells": 4000000,
     "max_table_rows": 200,
     "default_downsample_threshold": 1000,

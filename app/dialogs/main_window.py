@@ -1890,7 +1890,13 @@ class MainWindow(QMainWindow):
         goes to the caller.
         """
         applogger.info("Switching database to %s", db_path)
-        self.setUpdatesEnabled(False)
+        # Updates are held on the window's contents, never on the window
+        # itself: on macOS, turning a top-level window's updates off and on
+        # again around the first switch of a session left it not painting at
+        # all - the new project's charts stayed blank (or showed the old
+        # ones) until the window was resized.
+        contents = self.centralWidget() or self
+        contents.setUpdatesEnabled(False)
         try:
             self._tabs.clear()
             self._preview.clear()
@@ -1930,7 +1936,7 @@ class MainWindow(QMainWindow):
             self._build_app_menu()
             self._refresh_recent_list()
         finally:
-            self.setUpdatesEnabled(True)
+            contents.setUpdatesEnabled(True)
 
 
     def _reload_tabs(self) -> None:

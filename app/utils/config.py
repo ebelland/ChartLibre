@@ -262,9 +262,9 @@ def get_constant(name: str, default: Any = None) -> Any:
     return get_section("constants").get(name, default)
 
 
-#: How many databases the Open recent menu keeps. Ten is what a file menu
-#: can show without becoming a list to search rather than a shortcut.
-MAX_RECENT_DATABASES: int = get_constant("max_recent_databases", 10)
+#: How many databases the Open recent list keeps - the File page's list
+#: scrolls, so it can hold a working set of projects, not just the last few.
+MAX_RECENT_DATABASES: int = get_constant("max_recent_databases", 30)
 
 CONFIG_RECENT_DATABASES: str = "recent_databases"
 
