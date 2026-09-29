@@ -1,524 +1,524 @@
-# de translation for ChartLibre.
+# es translation for ChartLibre.
 # Message ids are the English source strings.
 
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\n"
 
 msgid " cm"
-msgstr " cm"
+msgstr ""
 
 msgid "\"{code}\" already has a catalogue."
-msgstr "\"{code}\"hat bereits einen Katalog."
+msgstr ""
 
 msgid "\"{name}\" is already used by an existing chart type."
-msgstr "\"{name}\" wird bereits von einem vorhandenen Diagrammtyp verwendet."
+msgstr ""
 
 msgid "\"{name}\" is already used by an existing function."
-msgstr "\"{name}\" wird bereits von einer vorhandenen Funktion verwendet."
+msgstr ""
 
 msgid "\"{name}\" is already used by an existing series operation."
-msgstr "\"{name}\" wird bereits von einem bestehenden Serienbetrieb verwendet."
+msgstr ""
 
 msgid "'{name}' is already a column of this table."
-msgstr "'{name}' ist bereits eine Spalte dieser Tabelle."
+msgstr ""
 
 msgid "(Default)"
-msgstr "(Standard)"
+msgstr ""
 
 msgid "(Embedded style)"
-msgstr "(Eingebetteter Stil)"
+msgstr ""
 
 msgid "(auto)"
-msgstr "(Auto)"
+msgstr ""
 
 msgid "(none)"
-msgstr "(keine)"
+msgstr ""
 
 msgid "(rows)"
-msgstr "(Zeilen)"
+msgstr ""
 
 msgid "...and {count} more, under Show Details."
-msgstr "...und {count} weitere, unter Details anzeigen."
+msgstr ""
 
 msgid "...and {count} more."
-msgstr "...und {count} mehr."
+msgstr ""
 
 msgid "1, 2.5, 10 or one per line"
-msgstr "1, 2,5, 10 oder eine pro Zeile"
+msgstr ""
 
 msgid "2D (x, y)"
-msgstr "2D (x, y)"
+msgstr ""
 
 msgid "3D on a grid (x, y, z)"
-msgstr "3D auf einem Raster (x, y, z)"
+msgstr ""
 
 msgid "3D scattered (x, y, z)"
-msgstr "3D gestreut (x, y, z)"
+msgstr ""
 
 msgid "95% confidence band"
-msgstr "95 % c ONFIDENCE-BAND"
+msgstr ""
 
 msgid "95% prediction band"
-msgstr "95% Vorhersageband"
+msgstr ""
 
 msgid "A JOIN needs at least two tables."
-msgstr "Ein JOIN benötigt mindestens zwei Tabellen."
+msgstr ""
 
 msgid "A UNION needs at least two tables."
-msgstr "Eine UNION benötigt mindestens zwei Tische."
+msgstr ""
 
 msgid "A file named \"{file}\" already exists under user/charts/."
-msgstr "Eine Datei namens \"{file}\" existiert bereits unter Benutzer/Diagramme/."
+msgstr ""
 
 msgid "A file named \"{file}\" already exists under user/functions/."
-msgstr "Eine Datei mit dem Namen \"{file}\" existiert bereits unter Benutzer/Funktionen/."
+msgstr ""
 
 msgid "A file named \"{file}\" already exists under user/series_operations/."
-msgstr "Eine Datei namens \"{file}\" existiert bereits unter user/series_operations/."
+msgstr ""
 
 msgid "A guide line under the pointer, shared across every axes of this figure."
-msgstr "Eine Führungslinie unter dem Zeiger, die über alle Achsen dieser Figur hinweg geteilt wird."
+msgstr ""
 
 msgid "A line across the whole axes, at this x."
-msgstr "Eine Linie über die ganzen Achsen, an diesem x."
+msgstr ""
 
 msgid "A line along the whole axes, at this y."
-msgstr "Eine Linie entlang der ganzen Achsen, an diesem y."
+msgstr ""
 
 msgid "A ruler between two points, with its dx/dy/slope written beside it - the same thing a chart's own \"Measure from here\" / \"Measure to here\" right-click actions create. Color has its own column; anything else goes in Kwargs JSON."
-msgstr "Ein Lineal zwischen zwei Punkten, mit seinem dx/dy/slope daneben geschrieben - das gleiche wird durch die \"Measure from here\" / \"Measure to here\" -Rechtsklickaktionen eines Diagramms erzeugt. Farbe hat eine eigene Spalte; alles andere geht in Kwargs json."
+msgstr ""
 
 msgid "A table needs at least one column. Add another column before deleting this one."
-msgstr "Eine Tabelle benötigt mindestens eine Spalte. Fügen Sie eine weitere Spalte hinzu, bevor Sie diese löschen."
+msgstr ""
 
 msgid "A table needs at least one row. Add another row before deleting this one."
-msgstr "Eine Tabelle benötigt mindestens eine Zeile. Fügen Sie eine weitere Zeile hinzu, bevor Sie diese löschen."
+msgstr ""
 
 msgid "A table or query named '{name}' already exists."
-msgstr "Eine Tabelle oder Abfrage mit dem Namen '{name}' ist bereits vorhanden."
+msgstr ""
 
 msgid "A text note pinned to this point: x = {x}, y = {y}."
-msgstr "Eine Textnotiz, die an diesen Punkt angeheftet ist: x = {x}, y = {y}."
+msgstr ""
 
 msgid "A vertical or horizontal line across the whole axes, at a value in data coordinates. Color and style have their own columns; anything else goes in Kwargs JSON, for example: {\"linewidth\": 2, \"label\": \"limit\"}."
-msgstr "Eine vertikale oder horizontale Linie über die gesamten Achsen bei einem Wert in Datenkoordinaten. Farbe und Stil haben ihre eigenen Spalten; alles andere geht in Kwargs json, zum Beispiel: {\"linewidth\": 2, \"label\": \"limit\"}."
+msgstr ""
 
 msgid "AIC (penalises free parameters)"
-msgstr "AIC (bestraft freie Parameter)"
+msgstr ""
 
 msgid "About"
-msgstr "Über"
+msgstr ""
 
 msgid "Add"
-msgstr "Hinzufügen"
+msgstr ""
 
 msgid "Add a chart"
-msgstr "Diagramm hinzufügen"
+msgstr ""
 
 msgid "Add a chart of the fit residuals (measured minus fit) on a new axis in this figure. The classic way to see a fit that looks good but has structure in what it left behind."
-msgstr "Fügen Sie ein Diagramm mit den Passungsresiduen (gemessen minus Passform) auf einer neuen Achse in dieser Abbildung hinzu. Die klassische Art, eine Passform zu sehen, die gut aussieht, aber Struktur in dem hat, was sie hinterlassen hat."
+msgstr ""
 
 msgid "Add a chart of the measured values against the fitted values on a new axis in this figure. A perfect fit falls on the diagonal; how far points stray from it is the fit quality, independent of what x means."
-msgstr "Fügen Sie ein Diagramm der Messwerte gegen die angepassten Werte auf einer neuen Achse in dieser Abbildung hinzu. Eine perfekte Passform fällt auf die Diagonale; wie weit Punkte davon abweichen, ist die Passformqualität, unabhängig davon, was x bedeutet."
+msgstr ""
 
 msgid "Add a new series holding only the selected points."
-msgstr "Fügen Sie eine neue Serie hinzu, die nur die ausgewählten Punkte enthält."
+msgstr ""
 
 msgid "Add an axis to the current figure showing the analysed series. Preview draws it; closing without applying removes it again."
-msgstr "Fügen Sie der aktuellen Abbildung eine Achse hinzu, die die analysierte Serie zeigt. Vorschau zeichnet es; Schließen ohne Anwenden entfernt es erneut."
+msgstr ""
 
 msgid "Add annotation"
-msgstr "Anmerkung hinzufügen"
+msgstr ""
 
 msgid "Add annotation here…"
-msgstr "Anmerkung hier hinzufügen..."
+msgstr ""
 
 msgid "Add another column to the summary"
-msgstr "Fügen Sie der Zusammenfassung eine weitere Spalte hinzu"
+msgstr ""
 
 msgid "Add column"
-msgstr "Spalte hinzufügen"
+msgstr ""
 
 msgid "Add computed column"
-msgstr "Berechnete Spalte hinzufügen"
+msgstr ""
 
 msgid "Add horizontal line at y = {value}"
-msgstr "Horizontale Linie bei y = {value} hinzufügen"
+msgstr ""
 
 msgid "Add line"
-msgstr "Zeile hinzufügen"
+msgstr ""
 
 msgid "Add measure"
-msgstr "Maßnahme hinzufügen"
+msgstr ""
 
 msgid "Add measurement"
-msgstr "Messung hinzufügen"
+msgstr ""
 
 msgid "Add new axis"
-msgstr "Neue Achse hinzufügen"
+msgstr ""
 
 msgid "Add source"
-msgstr "Quelle hinzufügen"
+msgstr ""
 
 msgid "Add vertical line at x = {value}"
-msgstr "Vertikale Linie bei x = {value} hinzufügen"
+msgstr ""
 
 msgid "Add {orientation} line"
-msgstr "{orientation} Zeile hinzufügen"
+msgstr ""
 
 msgid "Additional kwargs editor can be inserted here by the host."
-msgstr "Zusätzlicher kwargs-Editor kann hier vom Host eingefügt werden."
+msgstr ""
 
 msgid "After"
-msgstr "Nach"
+msgstr ""
 
 msgid "Algorithm:"
-msgstr "Algorithmus:"
+msgstr ""
 
 msgid "All checked series"
-msgstr "Alle geprüften Serien"
+msgstr ""
 
 msgid "All statistics"
-msgstr "Alle Statistiken"
+msgstr ""
 
 msgid "Allow evaluation outside source data X range."
-msgstr "Auswertung außerhalb des X-Bereichs der Quelldaten zulassen."
+msgstr ""
 
 msgid "Allow extrapolation"
-msgstr "Extrapolation zulassen"
+msgstr ""
 
 msgid "Alternative hypothesis for supported tests."
-msgstr "Alternative Hypothese für unterstützte Tests."
+msgstr ""
 
 msgid "Alternative:"
-msgstr "Alternativ:"
+msgstr ""
 
 msgid "Amplitude envelope"
-msgstr "Amplitudenhüllkurve"
+msgstr ""
 
 msgid "Anderson method:"
-msgstr "Anderson-Methode:"
+msgstr ""
 
 msgid "Anderson p-value: Monte Carlo"
-msgstr "Anderson p-Wert: Monte Carlo"
+msgstr ""
 
 msgid "Anderson p-value: interpolated"
-msgstr "Anderson p-Wert: interpoliert"
+msgstr ""
 
 msgid "Anderson-Darling normality"
-msgstr "Anderson-Darling-Normalität"
+msgstr ""
 
 msgid "Annotation text:"
-msgstr "Anmerkungstext:"
+msgstr ""
 
 msgid "Annotations"
-msgstr "Anmerkungen"
+msgstr ""
 
 msgid "Annotations are stored in axis options. Color, font and size have their own columns; anything else goes in Kwargs JSON, for example: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
-msgstr "Anmerkungen werden in Achsenoptionen gespeichert. Farbe, Schriftart und Größe haben ihre eigenen Spalten; alles andere geht in Kwargs json, zum Beispiel: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
+msgstr ""
 
 msgid "Another ChartLibre project (.dhub)"
-msgstr "Ein weiteres ChartLibre-Projekt (.dhub)"
+msgstr ""
 
 msgid "App style"
-msgstr "App-Stil"
+msgstr ""
 
 msgid "Appearance"
-msgstr "Erscheinungsbild"
+msgstr ""
 
 msgid "Application Log"
-msgstr "Anwendungsprotokoll"
+msgstr ""
 
 msgid "Apply a preset…"
-msgstr "Wenden Sie eine Voreinstellung an..."
+msgstr ""
 
 msgid "Apply multi-peak"
-msgstr "Multi-Peak anwenden"
+msgstr ""
 
 msgid "Arrange every axis in this figure using the chosen layout."
-msgstr "Ordnen Sie jede Achse in dieser Abbildung mit dem gewählten Layout an."
+msgstr ""
 
 msgid "Asymmetry. Smaller pushes the baseline further below the peaks; it should stay well under 0.5."
-msgstr "Asymmetrie. Kleiner schiebt die Basislinie weiter unter die Peaks; sie sollte deutlich unter 0,5 bleiben."
+msgstr ""
 
 msgid "At least one parameter is needed."
-msgstr "Mindestens ein Parameter wird benötigt."
+msgstr ""
 
 msgid "At least one required role is needed."
-msgstr "Mindestens eine erforderliche Rolle ist erforderlich."
+msgstr ""
 
 msgid "Attenuation (dB):"
-msgstr "Dämpfung (dB):"
+msgstr ""
 
 msgid "Author"
-msgstr "Autor"
+msgstr ""
 
 msgid "Auto"
-msgstr "Auto"
+msgstr ""
 
 msgid "Automatic"
-msgstr "Automatisch"
+msgstr ""
 
 msgid "Automatic keeps each value as the expression gives it."
-msgstr "Automatisch behält jeden Wert, wie der Ausdruck ihn gibt."
+msgstr ""
 
 msgid "Axis"
-msgstr "Achse"
+msgstr ""
 
 msgid "Axis / Series"
-msgstr "Achse / Serie"
+msgstr ""
 
 msgid "Axis name"
-msgstr "Achsenname"
+msgstr ""
 
 msgid "Axis name:"
-msgstr "Achsenname:"
+msgstr ""
 
 msgid "Axis properties"
-msgstr "Achseneigenschaften"
+msgstr ""
 
 msgid "Axis {id}"
-msgstr "Achse {id}"
+msgstr ""
 
 msgid "Axis:"
-msgstr "Achse:"
+msgstr ""
 
 msgid "Axis: {action}"
-msgstr "Achse: {action}"
+msgstr ""
 
 msgid "BIC (penalises them harder)"
-msgstr "BIC (bestraft sie härter)"
+msgstr ""
 
 msgid "Bandpass"
-msgstr "Bandpass"
+msgstr ""
 
 msgid "Bands on the fit:"
-msgstr "Bänder an der Passform:"
+msgstr ""
 
 msgid "Bandstop"
-msgstr "Bandstop"
+msgstr ""
 
 msgid "Batch size for Monte Carlo resampling. Auto lets SciPy choose."
-msgstr "Chargengröße für Monte-Carlo-Resampling. Auto lässt SciPy wählen."
+msgstr ""
 
 msgid "Before"
-msgstr "Vorher"
+msgstr ""
 
 msgid "Bessel"
-msgstr "Bessel"
+msgstr ""
 
 msgid "Bottom"
-msgstr "Unten"
+msgstr ""
 
 msgid "Boundary:"
-msgstr "Grenze:"
+msgstr ""
 
 msgid "Browse…"
-msgstr "Durchsuchen..."
+msgstr ""
 
 msgid "Build a JOIN"
-msgstr "Einen BEITRITT ERSTELLEN"
+msgstr ""
 
 msgid "Build a UNION"
-msgstr "Bauen Sie eine UNION AUF"
+msgstr ""
 
 msgid "Butterworth"
-msgstr "Butterworth"
+msgstr ""
 
 msgid "CSV (*.csv);;Excel (*.xlsx)"
-msgstr "CSV (*.csv);;Excel (*.xlsx)"
+msgstr ""
 
 msgid "CSV files (*.csv)"
-msgstr "CSV-Dateien (*.csv)"
+msgstr ""
 
 msgid "Calculus"
-msgstr "Kalkül"
+msgstr ""
 
 msgid "Cancel"
-msgstr "Abbrechen"
+msgstr ""
 
 msgid "Cancel measurement"
-msgstr "Messung abbrechen"
+msgstr ""
 
 msgid "Category:"
-msgstr "Kategorie:"
+msgstr ""
 
 msgid "Centre line"
-msgstr "Mittellinie"
+msgstr ""
 
 msgid "Change type"
-msgstr "Art der Änderung"
+msgstr ""
 
 msgid "Chart"
-msgstr "Diagramm"
+msgstr ""
 
 msgid "Chart name"
-msgstr "Diagrammname"
+msgstr ""
 
 msgid "Chart:"
-msgstr "Diagramm:"
+msgstr ""
 
 msgid "ChartLibre"
-msgstr "ChartLibre"
+msgstr ""
 
 msgid "ChartLibre project (*.dhub);;All files (*.*)"
-msgstr "ChartLibre-Projekt (* .dhub);;Alle Dateien (*.*)"
+msgstr ""
 
 msgid "Charts"
-msgstr "Diagramme"
+msgstr ""
 
 msgid "Chebyshev I"
-msgstr "Tschebyschew I"
+msgstr ""
 
 msgid "Chebyshev II"
-msgstr "Tschebyschew II"
+msgstr ""
 
 msgid "Check one or more series. One-sample tests are calculated for each checked series. Paired and independent tests are calculated for every pair, and the group comparison for all of them, when two or more series are checked."
-msgstr "Überprüfen Sie eine oder mehrere Serien. Für jede geprüfte Serie werden Einzelmusterprüfungen berechnet. Gepaarte und unabhängige Tests werden für jedes Paar und den Gruppenvergleich für alle berechnet, wenn zwei oder mehr Serien überprüft werden."
+msgstr ""
 
 msgid "Checked when a query is saved or typed, and when a project is opened: UPDATE, DELETE, DROP and the like are refused. Charts are never slowed down by it."
-msgstr "Aktiviert, wenn eine Abfrage gespeichert oder eingegeben wird und wenn ein Projekt geöffnet wird: AKTUALISIEREN, LÖSCHEN, ABLEGEN und dergleichen werden abgelehnt. Charts werden dadurch nie verlangsamt."
+msgstr ""
 
 msgid "Choose a decomposition (a curve per component) or a manifold embedding (a 2D scatter)."
-msgstr "Wählen Sie eine Zerlegung (eine Kurve pro Komponente) oder eine Mehrfacheinbettung (ein 2D-Scatter)."
+msgstr ""
 
 msgid "Choose a series, then press Preview."
-msgstr "Wählen Sie eine Serie aus und drücken Sie dann auf Vorschau."
+msgstr ""
 
 msgid "Choose how Anderson-Darling p-values are calculated when supported by SciPy."
-msgstr "Wählen Sie, wie Anderson-Darling p-Werte berechnet werden, wenn sie von SciPy unterstützt werden."
+msgstr ""
 
 msgid "Choose how generated X values are built."
-msgstr "Wählen Sie aus, wie die generierten X-Werte erstellt werden."
+msgstr ""
 
 msgid "Choose the baseline estimator."
-msgstr "Wählen Sie den Baseline-Schätzer."
+msgstr ""
 
 msgid "Choose the calculation."
-msgstr "Wählen Sie die Berechnung aus."
+msgstr ""
 
 msgid "Choose the clustering algorithm family."
-msgstr "Wählen Sie die Clustering-Algorithmus-Familie."
+msgstr ""
 
 msgid "Choose the exact scipy.cluster function/workflow to use."
-msgstr "Wählen Sie die genaue scipy.cluster-Funktion/den Workflow aus, die/der verwendet werden soll."
+msgstr ""
 
 msgid "Choose the fitting/interpolation model."
-msgstr "Wählen Sie das Anpassungs-/Interpolationsmodell."
+msgstr ""
 
 msgid "Choose the kernel."
-msgstr "Wählen Sie den Kernel."
+msgstr ""
 
 msgid "Choose the operation."
-msgstr "Wählen Sie den Vorgang."
+msgstr ""
 
 msgid "Choose the outlier detection method."
-msgstr "Wählen Sie die Ausreißer-Erkennungsmethode."
+msgstr ""
 
 msgid "Choose the regression model."
-msgstr "Wählen Sie das Regressionsmodell."
+msgstr ""
 
 msgid "Choose the smoothing/filtering method."
-msgstr "Wählen Sie die Glättungs-/Filtermethode."
+msgstr ""
 
 msgid "Choose the spectral or correlation estimator."
-msgstr "Wählen Sie den Spektral- oder Korrelationsschätzer."
+msgstr ""
 
 msgid "Choose the transform."
-msgstr "Wählen Sie die Transformation."
+msgstr ""
 
 msgid "Choose whether clusters are rendered as one point-colored series or as separate series."
-msgstr "Wählen Sie aus, ob Cluster als eine punktfarbige Serie oder als separate Serie gerendert werden."
+msgstr ""
 
 msgid "Choose whether the source series is 1D, 2D, or 3D data."
-msgstr "Wählen Sie aus, ob es sich bei der Quellserie um 1D-, 2D- oder 3D-Daten handelt."
+msgstr ""
 
 msgid "Choose which numeric columns are used as clustering features."
-msgstr "Wählen Sie aus, welche numerischen Spalten als Clustering-Funktionen verwendet werden sollen."
+msgstr ""
 
 msgid "Choose which statistics section to display."
-msgstr "Wählen Sie aus, welcher Statistikabschnitt angezeigt werden soll."
+msgstr ""
 
 msgid "Clear list"
-msgstr "Liste löschen"
+msgstr ""
 
 msgid "Clear menu"
-msgstr "Menü leeren"
+msgstr ""
 
 msgid "Close"
-msgstr "Schließen"
+msgstr ""
 
 msgid "Color"
-msgstr "Farbe"
+msgstr ""
 
 msgid "Cols"
-msgstr "Cols"
+msgstr ""
 
 msgid "Column"
-msgstr "Spalte"
+msgstr ""
 
 msgid "Column '{column}'"
-msgstr "Spalte '{column}'"
+msgstr ""
 
 msgid "Columns"
-msgstr "Spalten"
+msgstr ""
 
 msgid "Columns:"
-msgstr "Spalten:"
+msgstr ""
 
 msgid "Component"
-msgstr "Komponente"
+msgstr ""
 
 msgid "Component 1"
-msgstr "Komponente 1"
+msgstr ""
 
 msgid "Component 2"
-msgstr "Komponente 2"
+msgstr ""
 
 msgid "Connect to database"
-msgstr "Mit Datenbank verbinden"
+msgstr ""
 
 msgid "Connection"
-msgstr "Verbindung"
+msgstr ""
 
 msgid "Constant"
-msgstr "Konstante"
+msgstr ""
 
 msgid "Contribution"
-msgstr "Beitrag"
+msgstr ""
 
 msgid "Control Chart"
-msgstr "Regelkarte"
+msgstr ""
 
 msgid "Convert to decibels"
-msgstr "In Dezibel umrechnen"
+msgstr ""
 
 msgid "Copy"
-msgstr "Kopie"
+msgstr ""
 
 msgid "Copy figure"
-msgstr "Abbildung kopieren"
+msgstr ""
 
 msgid "Copy parameters"
-msgstr "Parameter kopieren"
+msgstr ""
 
 msgid "Correlation / association"
-msgstr "Korrelation / Assoziation"
+msgstr ""
 
 msgid "Correlation matrix"
-msgstr "Korrelationsmatrix"
+msgstr ""
 
 msgid "Correlation tests"
-msgstr "Korrelationstests"
+msgstr ""
 
 msgid "Could not do that"
-msgstr "Konnte das nicht tun"
+msgstr ""
 
 msgid "Count"
-msgstr "Anzahl"
+msgstr ""
 
 msgid "Count, empty cells, distinct values, and min, max, mean and median"
-msgstr "Anzahl, leere Zellen, eindeutige Werte sowie Min, Max, Mittelwert und Median"
+msgstr ""
 
 msgid "Create a new plot tab for the current table"
 msgstr ""
@@ -2738,9 +2738,6 @@ msgid "{count} string(s), {missing} missing translation."
 msgstr ""
 
 msgid "{count} value(s) could not be read as {kind} and were left empty."
-msgstr ""
-
-msgid "{first} refused the requests, continued with {second}"
 msgstr ""
 
 msgid "{label}: {value}"
