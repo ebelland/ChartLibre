@@ -1,9 +1,4 @@
-"""Baseline correction: AsLS and rubber band.
-
-Both estimators are checked against a series built from a known baseline
-plus known peaks: the estimate must track the baseline where there is no
-peak, and must not be pulled up towards a peak where there is one.
-"""
+"""The Baseline dialog end to end (the estimators are in test_analysis_baseline.py)."""
 from __future__ import annotations
 
 import numpy as np
@@ -11,7 +6,7 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.baseline_dialog import BASELINE_ASLS, SeriesBaselineDialog, asls_baseline, rubber_band_baseline
+from app.series_operations.baseline_dialog import BASELINE_ASLS, SeriesBaselineDialog
 from app.utils.dialog_state import clear_state
 
 X = np.linspace(0.0, 100.0, 400)
@@ -25,26 +20,6 @@ def _no_persisted_dialog_state():
     clear_state("SeriesBaselineDialog")
     yield
     clear_state("SeriesBaselineDialog")
-
-
-# ----------------------------------------------------------------------
-# AsLS
-# ----------------------------------------------------------------------
-def test_asls_tracks_a_wandering_baseline_away_from_peaks() -> None:
-    rng = np.random.default_rng(0)
-    y = TRUE_BASELINE + PEAKS + 0.05 * rng.standard_normal(X.size)
-    fitted = asls_baseline(y, lam=1e5, p=0.01, iterations=10)
-    assert fitted[NO_PEAK] == pytest.approx(TRUE_BASELINE[NO_PEAK], abs=0.3)
-
-
-# ----------------------------------------------------------------------
-# Rubber band
-# ----------------------------------------------------------------------
-def test_rubber_band_matches_a_flat_baseline_exactly() -> None:
-    flat = 5.0 + 0.02 * X  # itself convex-hull-flat, so the hull is exact
-    y = flat + PEAKS
-    baseline = rubber_band_baseline(X, y)
-    assert baseline[NO_PEAK] == pytest.approx(flat[NO_PEAK], abs=1e-6)
 
 
 # ----------------------------------------------------------------------

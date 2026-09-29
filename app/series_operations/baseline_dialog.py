@@ -30,9 +30,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QCheckBox, QDoubleSpinBox, QFormLayout, QSpinBox, QWidget
-from scipy import sparse
-from scipy.sparse.linalg import spsolve
-
+from app.analysis.baseline import (
+    ASLS_MINIMUM_POINTS,
+    METHOD_ASLS,
+    METHOD_RUBBER_BAND,
+    correct_baseline,
+)
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -58,10 +61,6 @@ BASELINE_MODELS: dict[str, OperationModel] = {
     ),
 }
 
-#: Below this the second-difference penalty matrix has nothing to act on.
-ASLS_MINIMUM_POINTS = 5
-
-
 @dataclass(slots=True)
 class BaselineResult(TableResult):
     """One source series, its estimated baseline, and the corrected series."""
@@ -78,69 +77,6 @@ class BaselineResult(TableResult):
         return pd.DataFrame(
             {"x": self.x, "corrected": self.corrected, "baseline": self.baseline}
         )
-
-
-# ----------------------------------------------------------------------
-# The numerics - pure, no Qt, so a test can call them directly
-# ----------------------------------------------------------------------
-def asls_baseline(y: np.ndarray, lam: float, p: float, iterations: int = 10) -> np.ndarray:
-    """Eilers & Boelens' asymmetric least squares baseline.
-
-    Fits ``z`` to minimise ``sum(w * (y - z)^2) + lam * sum(diff(z, 2)^2)``,
-    re-weighting after each solve so points above the current curve count
-    for only ``p`` (a peak should not pull the baseline up towards it) and
-    points below count for ``1 - p`` (the background should).
-    """
-    size = int(np.asarray(y).size)
-    if size < ASLS_MINIMUM_POINTS:
-        raise ValueError(
-            f"AsLS needs at least {ASLS_MINIMUM_POINTS} points, got {size}"
-        )
-    if lam <= 0.0:
-        raise ValueError("lambda must be positive")
-    if not (0.0 < p < 1.0):
-        raise ValueError("p must be between 0 and 1")
-
-    y = np.asarray(y, dtype=float)
-    # The discrete second-difference operator: (D @ D.T) penalises curvature.
-    # scipy does not annotate diags; Pylance guesses offsets is an int from
-    # its default (0), but a list of offsets is what it takes.
-    diagonals = sparse.diags([1.0, -2.0, 1.0], [0, -1, -2], shape=(size, size - 2))  # pyright: ignore[reportArgumentType]
-    penalty = float(lam) * diagonals.dot(diagonals.transpose())
-
-    weights = np.ones(size)
-    fitted = y.copy()
-    smoother = sparse.spdiags(weights, 0, size, size)
-    for _iteration in range(max(1, int(iterations))):
-        smoother.setdiag(weights)
-        fitted = spsolve((smoother + penalty).tocsc(), weights * y)
-        weights = p * (y > fitted) + (1.0 - p) * (y <= fitted)
-    return np.asarray(fitted, dtype=float)
-
-
-def rubber_band_baseline(x: np.ndarray, y: np.ndarray) -> np.ndarray:
-    """The lower convex hull of ``(x, y)``, linearly interpolated at every x.
-
-    ``x`` must already be sorted (the caller guarantees this via
-    ``prepare_input_xy``); the hull is built with the standard monotone-
-    chain algorithm restricted to its lower half.
-    """
-    size = x.size
-    hull: list[int] = []
-    for index in range(size):
-        while len(hull) >= 2:
-            ox, oy = x[hull[-2]], y[hull[-2]]
-            ax, ay = x[hull[-1]], y[hull[-1]]
-            bx, by = x[index], y[index]
-            # <= 0: the last hull point does not turn left of O->new - it is
-            # above the segment, so it cannot be part of a *lower* hull.
-            cross = (ax - ox) * (by - oy) - (ay - oy) * (bx - ox)
-            if cross <= 0:
-                hull.pop()
-            else:
-                break
-        hull.append(index)
-    return np.interp(x, x[hull], y[hull])
 
 
 # ----------------------------------------------------------------------
@@ -256,23 +192,21 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
                 x_values, y_values = self.series_xy(row, name)
-                if model == BASELINE_ASLS:
-                    baseline = asls_baseline(
-                        y_values,
-                        lam=float(self._lambda_spin.value()),
-                        p=float(self._p_spin.value()),
-                        iterations=int(self._iterations_spin.value()),
-                    )
-                    meta = {
-                        "lambda": self._lambda_spin.value(),
-                        "p": self._p_spin.value(),
-                    }
-                else:
-                    baseline = rubber_band_baseline(x_values, y_values)
-                    meta = {}
-
-                corrected = y_values - baseline
-                meta["baseline area"] = float(np.trapezoid(baseline, x_values))
+                is_asls = model == BASELINE_ASLS
+                correction = correct_baseline(
+                    METHOD_ASLS if is_asls else METHOD_RUBBER_BAND,
+                    x_values,
+                    y_values,
+                    lam=float(self._lambda_spin.value()),
+                    p=float(self._p_spin.value()),
+                    iterations=int(self._iterations_spin.value()),
+                )
+                meta: dict[str, Any] = (
+                    {"lambda": self._lambda_spin.value(), "p": self._p_spin.value()}
+                    if is_asls else {}
+                )
+                meta["baseline area"] = correction.area
+                baseline, corrected = correction.baseline, correction.corrected
                 results.append(
                     BaselineResult(
                         source_name=name,
