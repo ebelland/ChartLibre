@@ -19,6 +19,8 @@ from typing import Any
 import numpy as np
 from scipy import signal as scipy_signal
 
+from app.analysis.sampling import sampling_frequency  # noqa: F401  (re-exported: spectral's callers use it)
+
 METHOD_PSD = "Power spectral density (Welch)"
 METHOD_CSD = "Cross spectral density (Welch)"
 METHOD_COHERENCE = "Coherence"
@@ -84,32 +86,6 @@ class Spectrum:
     y_label: str
     #: What the estimate was made with, beyond fs (the number of points...).
     details: dict[str, Any]
-
-
-def sampling_frequency(x_values: np.ndarray) -> tuple[float, str]:
-    """Return (fs, note) - samples per unit of x read off the median spacing.
-
-    *note* is empty when there is nothing to say, else why fs is doubtful:
-    a spectrum of unevenly sampled data is not defined, so a non-uniform x
-    is reported rather than silently averaged - the numbers would look fine
-    and mean nothing.
-    """
-    if x_values.size < 2:
-        return 1.0, ""
-
-    spacing = np.diff(x_values)
-    median_spacing = float(np.median(spacing))
-    if median_spacing <= 0.0:
-        return 1.0, "the x role is not increasing; assuming fs = 1"
-
-    deviation = float(np.max(np.abs(spacing - median_spacing)) / median_spacing)
-    note = ""
-    if deviation > 0.01:
-        note = (
-            f"the series is not uniformly sampled (spacing varies by "
-            f"{deviation * 100.0:.1f} %); the frequency axis is approximate"
-        )
-    return 1.0 / median_spacing, note
 
 
 def welch_kwargs(params: SpectralParams, sample_count: int) -> dict[str, Any]:

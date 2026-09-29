@@ -1,11 +1,4 @@
-"""Filtering: IIR/FIR filters, analytic-signal derivatives, detrend.
-
-Every numeric test uses a signal whose answer is known: a filter isolating
-one of two mixed tones is checked against the tone itself, an AM envelope
-against its own modulation, an instantaneous frequency against the tone
-that produced it, so a swapped argument or a wrong Nyquist scaling shows up
-as a wrong number rather than a plausible-looking curve.
-"""
+"""The Filtering dialog end to end (the arithmetic is in test_analysis_filtering.py)."""
 from __future__ import annotations
 
 import numpy as np
@@ -14,7 +7,7 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.utils.dialog_state import clear_state
-from app.series_operations.filter_dialog import FILTER_IIR, SeriesFilterDialog, analytic_signal, apply_detrend, apply_fir_filter, apply_iir_filter
+from app.series_operations.filter_dialog import FILTER_IIR, SeriesFilterDialog
 
 FS = 200.0
 T = np.arange(0.0, 10.0, 1.0 / FS)
@@ -22,45 +15,6 @@ LOW_TONE = np.sin(2 * np.pi * 2.0 * T)
 HIGH_TONE = np.sin(2 * np.pi * 40.0 * T)
 MIXED = LOW_TONE + HIGH_TONE
 EDGE = slice(150, -150)  # away from the filters' settling transients
-
-
-# ----------------------------------------------------------------------
-# IIR
-# ----------------------------------------------------------------------
-def test_iir_lowpass_recovers_the_low_tone_from_a_mix() -> None:
-    filtered = apply_iir_filter(
-        MIXED, FS, family="butter", response="lowpass", order=4, cutoff=10.0
-    )
-    assert filtered[EDGE] == pytest.approx(LOW_TONE[EDGE], abs=0.05)
-
-
-# ----------------------------------------------------------------------
-# FIR
-# ----------------------------------------------------------------------
-def test_fir_lowpass_recovers_the_low_tone_from_a_mix() -> None:
-    filtered = apply_fir_filter(
-        MIXED, FS, numtaps=201, window="hamming", response="lowpass", cutoff=10.0
-    )
-    assert filtered[EDGE] == pytest.approx(LOW_TONE[EDGE], abs=0.05)
-
-
-# ----------------------------------------------------------------------
-# Analytic signal
-# ----------------------------------------------------------------------
-def test_the_envelope_of_an_am_signal_tracks_its_modulation() -> None:
-    modulation = 1.0 + 0.5 * np.sin(2.0 * np.pi * 1.0 * T)
-    carrier = np.sin(2.0 * np.pi * 20.0 * T)
-    envelope = analytic_signal(modulation * carrier, FS, "envelope")
-    assert np.corrcoef(envelope[EDGE], modulation[EDGE])[0, 1] > 0.99
-
-
-# ----------------------------------------------------------------------
-# Detrend
-# ----------------------------------------------------------------------
-def test_linear_detrend_removes_a_ramp() -> None:
-    ramp = np.linspace(0.0, 5.0, T.size)
-    residual = apply_detrend(ramp, "linear")
-    assert np.std(residual) < 1e-6
 
 
 # ----------------------------------------------------------------------
