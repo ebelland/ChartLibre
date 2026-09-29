@@ -14,7 +14,7 @@ Impegno:   S = una sessione di lavoro con Claude
            [TU] = la fai tu, non servono crediti
 
 Stato misurato (2026-09-29): 144 file Python in app/, circa 76.500 righe;
-532 test in 57 file; 19 operazioni sulle serie; circa 29 tipi di grafico;
+591 test in 61 file; 19 operazioni sulle serie; circa 29 tipi di grafico;
 cataloghi it e fr completi, de e es iniziati (vedi A-07). Pyright/Pylance:
 0 errori.
 
@@ -37,9 +37,9 @@ Fase 0 - Cose tue, senza crediti
 
 Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
   Ordine: R-01 un'operazione alla volta, e per ciascuna subito R-02 e i
-  test di R-13; poi R-03. Cominciare da Smoothing e Spectral, le più usate
-  dopo il Fit.
-  R-01  Separare i calcoli dalle finestre (16 operazioni rimaste).
+  test di R-13; poi R-03. Fatti Statistiche, Fit, Geometria, Smoothing e
+  Spectral; proseguire con filter, baseline e peaks.
+  R-01  Separare i calcoli dalle finestre (14 operazioni rimaste).
   R-02  Calcoli lunghi in background con barra di avanzamento.
   R-13  Test di validazione numerica (NIST), subito per Fit e Statistiche.
   R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
@@ -87,72 +87,6 @@ P0 - RISULTATI SBAGLIATI O LAVORO BLOCCATO
 ================================================================
 A - PICCOLE CORREZIONI E COSE DA FARE FUORI DAL CODICE
 ================================================================
-A-03  [TU] Provare ChartLibre.exe e ChartLibre.bat su Windows.
-  A-04  [TU] Spostare il progetto fuori dalla Scrivania di iCloud.
-  A-05  [TU] GitHub: descrizione, argomenti, prima release.
-
-Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
-  Ordine: R-01 un'operazione alla volta, e per ciascuna subito R-02 e i
-  test di R-13; poi R-03. Cominciare da Smoothing e Spectral, le più usate
-  dopo il Fit.
-  R-01  Separare i calcoli dalle finestre (16 operazioni rimaste).
-  R-02  Calcoli lunghi in background con barra di avanzamento.
-  R-13  Test di validazione numerica (NIST), subito per Fit e Statistiche.
-  R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
-
-Fase 2 - Ciò che chiede chi fa analisi  (circa L: 6-8 sessioni)
-  R-08  Metadati delle colonne (serve a R-04 e agli assi con unità).
-  R-04  Statistica mancante rispetto a SPSS e JMP.
-  R-05  Fit: pesi da colonna di errori, fit globale.
-  R-06  Grafici diagnostici (Q-Q, pair plot, Kaplan-Meier...).
-  P2-12 Anteprima grafica accanto ai risultati delle operazioni.
-  R-09  Esportazione per la pubblicazione.
-
-Fase 3 - Arrivare a chi non usa Python  (M-L)
-  R-14  Pacchetto autonomo firmato (macOS) e installer (Windows).
-  A-06  Provare su Linux (mai lanciata) - meglio con un collaboratore.
-  A-07  Completare tedesco e spagnolo (tradotti a macchina: da rileggere).
-  A-08  Traduci mancanti con DeepL (chiave gratuita), oltre a Google e
-        MyMemory.
-
-Fase 4 - Manutenibilità  (M, anche a pezzi tra una fase e l'altra)
-  R-10  Dividere i file troppo grandi.
-  R-01b Classe base delle operazioni: ultimi metodi comuni.
-  R-12  Gestione degli errori più stretta.
-
-Fase 5 - Interattività e comodità  (M-L)
-  R-07  Selezione collegata tra grafici e tabella (alla JMP).
-  N-01, N-06, N-09  Tabelle: voci mancanti nel pannello Database,
-        Nascondi righe in Modifica tabella, Colora in base al valore.
-  P2-20 Visualizzatore HTML dei grafici di un progetto.
-  R-15  Accessibilità e colori.
-
-Fase 6 - Idee da decidere  (P4)
-  P2-21, P2-22 3D: campi vettoriali, curve parametriche.
-  P2-19 pysym: operazioni scritte dall'utente in Python.
-  N-02  Esportazione script/notebook, unità (pint), incertezze, console.
-  R-16  DOE, modelli misti, analisi della potenza.
-
-
-================================================================
-P0 - RISULTATI SBAGLIATI O LAVORO BLOCCATO
-================================================================
-(nessuna voce aperta)
-
-
-================================================================
-A - PICCOLE CORREZIONI E COSE DA FARE FUORI DAL CODICE
-================================================================
-A-01  S  Opzioni grafico, pannello stretto: i numeri nei campi si tagliano
-      ("0.00C" in Spazio assi V/O, "16.2" senza "cm" in Larghezza).
-      Spazio assi con 2 decimali invece di 3 (il passo è 0.01), e una
-      larghezza minima dei campi calcolata dal testo più lungo.
-
-A-02  S  main.py imposta QT_QPA_PLATFORM_PLUGIN_PATH a PySide6/Qt/plugins,
-      ma la variabile vuole la cartella dei plugin di piattaforma
-      (…/plugins/platforms). Oggi è innocuo perché Qt ripiega sui suoi
-      percorsi; correggerlo o toglierlo, e provare l'avvio su Windows.
-
 A-03  [TU] ChartLibre.exe (compilato con Zig) e ChartLibre.bat non sono mai
       stati provati su Windows. Doppio clic da una cartella copiata: deve
       creare .venv, installare i pacchetti e aprire l'app senza finestra
@@ -173,14 +107,22 @@ A-05  [TU] GitHub: descrizione e argomenti del repository, immagine di
 P1 - FONDAMENTA
 ================================================================
 R-01  P1  L  IN CORSO. Separare i calcoli dalle finestre.
-      Fatto per Statistiche, Fit e Geometria (app/analysis/statistics.py,
-      fit.py, geometry.py: niente Qt, test propri). Restano 16 operazioni:
-      smoothing, spectral, filter, baseline, calculus, cluster,
+      Fatto per Statistiche, Fit, Geometria, Smoothing e Spectral
+      (app/analysis/statistics.py, fit.py, geometry.py, smoothing.py,
+      spectral.py: niente Qt, test propri). Per Smoothing e Spectral il
+      confronto col codice vecchio dà risultati identici su tutti i metodi
+      (14 + 22 casi 2D/3D, 60 combinazioni metodo x impostazioni); l'unico
+      cambio voluto: i metodi "solo su griglia" ora rifiutano i punti sparsi
+      invece di restituire un risultato senza senso.
+      Restano 14 operazioni: filter, baseline, calculus, cluster,
       control_chart, decomposition, function, gp_regression, interpolate,
       outlier, peaks, regression, roots, transform. Per ciascuna estrarre
       il calcolo da compute_results in app/analysis/<operazione>.py
-      (DataFrame + parametri -> risultato). È la base di R-02, R-03, R-13.
-      Circa due-tre operazioni per sessione.
+      (array + parametri -> risultato; errori come ValueError, niente
+      applogger), riscrivere i test come test del motore con risposte note
+      (vedi R-13) e confrontare il vecchio e il nuovo codice prima di
+      committare. È la base di R-02, R-03, R-13. Circa due-tre operazioni
+      per sessione. Prossime: filter, baseline, peaks (le più semplici).
 
 R-02  P1  M  IN CORSO. Calcoli lunghi in background.
       La classe base offre già evaluate() in background con pulsante Ferma
@@ -190,7 +132,9 @@ R-02  P1  M  IN CORSO. Calcoli lunghi in background.
       avanzamento vera al posto del messaggio.
 
 R-13  P1  M  Test di validazione numerica.
-      Confrontare ogni operazione con valori di riferimento certificati,
+      Fatto per Smoothing e Spectral (segnali con risposta nota: rampe,
+      polinomi, toni, ritardi). Confrontare ogni operazione con valori di
+      riferimento certificati,
       come fanno i produttori commerciali: NIST StRD (Longley e Norris per
       la regressione lineare, i dataset ANOVA e di regressione non lineare
       con risultati certificati). Si può cominciare subito per Fit e
