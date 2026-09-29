@@ -14,7 +14,7 @@ Impegno:   S = una sessione di lavoro con Claude
            [TU] = la fai tu, non servono crediti
 
 Stato misurato (2026-09-29): 144 file Python in app/, circa 76.500 righe;
-591 test in 61 file; 19 operazioni sulle serie; circa 29 tipi di grafico;
+713 test in 73 file; 19 operazioni sulle serie; circa 29 tipi di grafico;
 cataloghi it e fr completi, de e es iniziati (vedi A-07). Pyright/Pylance:
 0 errori.
 
@@ -37,9 +37,9 @@ Fase 0 - Cose tue, senza crediti
 
 Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
   Ordine: R-01 un'operazione alla volta, e per ciascuna subito R-02 e i
-  test di R-13; poi R-03. Fatti Statistiche, Fit, Geometria, Smoothing e
-  Spectral; proseguire con filter, baseline e peaks.
-  R-01  Separare i calcoli dalle finestre (14 operazioni rimaste).
+  test di R-13; poi R-03. Fatte 13 su 19; restano quelle grosse (calculus, roots,
+  interpolate, outlier, control_chart, cluster).
+  R-01  Separare i calcoli dalle finestre (6 operazioni rimaste).
   R-02  Calcoli lunghi in background con barra di avanzamento.
   R-13  Test di validazione numerica (NIST), subito per Fit e Statistiche.
   R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
@@ -107,22 +107,21 @@ A-05  [TU] GitHub: descrizione e argomenti del repository, immagine di
 P1 - FONDAMENTA
 ================================================================
 R-01  P1  L  IN CORSO. Separare i calcoli dalle finestre.
-      Fatto per Statistiche, Fit, Geometria, Smoothing e Spectral
-      (app/analysis/statistics.py, fit.py, geometry.py, smoothing.py,
-      spectral.py: niente Qt, test propri). Per Smoothing e Spectral il
-      confronto col codice vecchio dà risultati identici su tutti i metodi
-      (14 + 22 casi 2D/3D, 60 combinazioni metodo x impostazioni); l'unico
-      cambio voluto: i metodi "solo su griglia" ora rifiutano i punti sparsi
-      invece di restituire un risultato senza senso.
-      Restano 14 operazioni: filter, baseline, calculus, cluster,
-      control_chart, decomposition, function, gp_regression, interpolate,
-      outlier, peaks, regression, roots, transform. Per ciascuna estrarre
-      il calcolo da compute_results in app/analysis/<operazione>.py
-      (array + parametri -> risultato; errori come ValueError, niente
-      applogger), riscrivere i test come test del motore con risposte note
-      (vedi R-13) e confrontare il vecchio e il nuovo codice prima di
-      committare. È la base di R-02, R-03, R-13. Circa due-tre operazioni
-      per sessione. Prossime: filter, baseline, peaks (le più semplici).
+      Fatto per 13 operazioni su 19: statistiche, fit, geometria, smoothing,
+      spectral, filter, baseline, transform, regression, gp_regression,
+      decomposition, peaks, function (app/analysis/<operazione>.py: niente
+      Qt, niente logger, errori come ValueError, test con risposte note).
+      Per ognuna il vecchio e il nuovo codice sono stati confrontati sui
+      risultati veri e sono identici; i soli cambi voluti: i metodi di
+      smoothing "solo su griglia" ora rifiutano i punti sparsi, e
+      apply_detrend non apre più una finestra prima di sollevare l'errore.
+      Restano 6, tutte grosse (600-1700 righe, logica intrecciata all'interfaccia):
+      calculus (878), roots (890), interpolate (941, 22 punti dove logga),
+      outlier (867), control_chart (1426), cluster (1684, 32 punti dove
+      logga). Stessa procedura: estrarre, confrontare, testare. Circa una
+      per sessione. Roots ha ancora un `__new__` del dialogo nel builder dei
+      demo (_extract_level_curves) che l'estrazione elimina.
+      È la base di R-02, R-03, R-13.
 
 R-02  P1  M  IN CORSO. Calcoli lunghi in background.
       La classe base offre già evaluate() in background con pulsante Ferma
