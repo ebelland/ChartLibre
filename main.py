@@ -10,6 +10,32 @@ os.environ.setdefault(
     "QT_QPA_PLATFORM_PLUGIN_PATH",
     os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt", "plugins"),
 )
+
+
+def _unhide_qt_plugins(plugins_dir: str) -> None:
+    """Clear macOS's "hidden" flag from Qt's plugins.
+
+    iCloud's Desktop & Documents sync marks everything inside a folder whose
+    name starts with a dot as hidden - a .venv on the Desktop included. Qt
+    skips hidden files when it lists a plugin folder, finds no "cocoa"
+    platform plugin, and aborts before a window exists ("Could not find the
+    Qt platform plugin"). Only the plugins are listed that way, so only they
+    need the flag cleared; a few hundred files, done in milliseconds.
+    """
+    hidden = getattr(__import__("stat"), "UF_HIDDEN", 0)
+    if sys.platform != "darwin" or not hidden:
+        return
+    for folder, _dirs, files in os.walk(plugins_dir):
+        for path in (folder, *(os.path.join(folder, name) for name in files)):
+            try:
+                flags = os.lstat(path).st_flags
+                if flags & hidden:
+                    os.chflags(path, flags & ~hidden)
+            except OSError:
+                pass  # read-only install: nothing to fix, and Qt will say why
+
+
+_unhide_qt_plugins(os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt", "plugins"))
 # ----------------------------------------------------------------------
 # Logging
 # ----------------------------------------------------------------------
