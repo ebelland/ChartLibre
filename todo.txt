@@ -1,328 +1,371 @@
 ChartLibre TODO
-Ranked by priority. P0 = wrong results or blocked work, P3 = nice to have.
+In ordine di priorità: prima il piano d'azione, poi le voci, dalla più
+urgente. Rivisto il 2026-09-29.
+
+Priorità:  P0 = risultati sbagliati o lavoro bloccato
+           P1 = fondamenta: il resto dipende da queste
+           P2 = valore alto per chi usa l'app
+           P3 = utile, quando le fondamenta sono pronte
+           P4 = idee, da decidere se farle
+
+Impegno:   S = una sessione di lavoro con Claude
+           M = 2-3 sessioni
+           L = 4 o più sessioni
+           [TU] = la fai tu, non servono crediti
+
+Stato misurato (2026-09-29): 144 file Python in app/, circa 76.000 righe;
+523 test in 56 file; 19 operazioni sulle serie; circa 29 tipi di grafico;
+cataloghi it, fr, de (es manca). Pyright/Pylance: 0 errori.
 
 
 ================================================================
-P0 - BUGS: wrong output, or work that cannot proceed
+PIANO D'AZIONE
 ================================================================
-P0-1  Filtro su dati con date: la frequenza di taglio predefinita (1)
-      supera la frequenza di Nyquist (fs ricavata dalle date, in secondi),
-      quindi Anteprima fallisce finche' l'utente non la cambia. Proporre un
-      taglio relativo a fs (per esempio fs/10). Preesistente, trovato il
-      2026-09-28 verificando R-01b.
+Ogni fase si chiude con i test verdi, Pyright a zero e un push. Una fase
+lasciata a metà non fa danni: ogni voce si chiude da sola.
 
+Fase 0 - Subito, quasi senza crediti  (1 sessione S + cose tue)
+  P0-1  Filtro: taglio predefinito relativo a fs.
+  A-01  Numeri tagliati nei campi stretti di Opzioni grafico.
+  A-02  main.py: percorso dei plugin di piattaforma da correggere.
+  A-03  [TU] Provare ChartLibre.exe e ChartLibre.bat su Windows.
+  A-04  [TU] Spostare il progetto fuori dalla Scrivania di iCloud.
+  A-05  [TU] GitHub: descrizione, argomenti, prima release.
+
+Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
+  Ordine: R-01 un'operazione alla volta, e per ciascuna subito R-02 e i
+  test di R-13; poi R-03. Cominciare da Smoothing e Spectral, le più usate
+  dopo il Fit.
+  R-01  Separare i calcoli dalle finestre (16 operazioni rimaste).
+  R-02  Calcoli lunghi in background con barra di avanzamento.
+  R-13  Test di validazione numerica (NIST), subito per Fit e Statistiche.
+  R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
+
+Fase 2 - Ciò che chiede chi fa analisi  (circa L: 6-8 sessioni)
+  R-08  Metadati delle colonne (serve a R-04 e agli assi con unità).
+  R-04  Statistica mancante rispetto a SPSS e JMP.
+  R-05  Fit: pesi da colonna di errori, fit globale.
+  R-06  Grafici diagnostici (Q-Q, pair plot, Kaplan-Meier...).
+  P2-12 Anteprima grafica accanto ai risultati delle operazioni.
+  R-09  Esportazione per la pubblicazione.
+
+Fase 3 - Arrivare a chi non usa Python  (M-L)
+  R-14  Pacchetto autonomo firmato (macOS) e installer (Windows).
+  A-06  Provare su Linux (mai lanciata) - meglio con un collaboratore.
+  A-07  Catalogo spagnolo; rileggere il tedesco tradotto a macchina.
+  A-08  Traduci mancanti con DeepL (chiave gratuita), oltre a Google e
+        MyMemory.
+
+Fase 4 - Manutenibilità  (M, anche a pezzi tra una fase e l'altra)
+  R-10  Dividere i file troppo grandi.
+  R-11  SQL residuo fuori da app/data.
+  R-01b Classe base delle operazioni: ultimi metodi comuni.
+  R-12  Gestione degli errori più stretta.
+
+Fase 5 - Interattività e comodità  (M-L)
+  R-07  Selezione collegata tra grafici e tabella (alla JMP).
+  N-01, N-06, N-09  Tabelle: voci mancanti nel pannello Database,
+        Nascondi righe in Modifica tabella, Colora in base al valore.
+  P2-20 Visualizzatore HTML dei grafici di un progetto.
+  R-15  Accessibilità e colori.
+
+Fase 6 - Idee da decidere  (P4)
+  P2-21, P2-22 3D: campi vettoriali, curve parametriche.
+  P2-19 pysym: operazioni scritte dall'utente in Python.
+  N-02  Esportazione script/notebook, unità (pint), incertezze, console.
+  R-16  DOE, modelli misti, analisi della potenza.
 
 
 ================================================================
-UI - reported while testing (2026-09)
+P0 - RISULTATI SBAGLIATI O LAVORO BLOCCATO
 ================================================================
-N-01  Pannello Database: le voci gia' presenti nell'anteprima e in Modifica
-      tabella (cambia tipo, duplica tabella) anche dall'elenco tabelle del
-      pannello Database.
+P0-1  S  Filtro su dati con date: il taglio predefinito (1) supera la
+      frequenza di Nyquist quando fs viene ricavata dalle date in secondi,
+      quindi Anteprima fallisce finché l'utente non lo cambia. Proporre un
+      taglio relativo a fs (per esempio fs/10) e aggiornarlo quando fs
+      cambia. Verificato ancora aperto il 2026-09-29 (filter_dialog.py:
+      _cutoff1_spin 1.0, _cutoff2_spin 5.0 fissi).
 
-N-02
-      Broader, beyond the chart itself - things a data scientist, an
-      engineer or a student doing coursework would reach for:
-      - Notebook/script export: a figure's series are already SQL queries
-        plus a style dict, which is most of a pandas+matplotlib script or a
-        .ipynb cell already written - export it for handoff/reproducibility
-        outside this app.
-      - Unit-aware axes (pint): an axis label carries a unit, and a
-        "convert units" action rescales the display without touching the
-        underlying SQL - useful wherever engineering data mixes unit
-        systems.
-      - Uncertainty propagation: a series operation combining two series
-        with error columns (A+-dA op B+-dB) via the standard propagation
-        formulas, output as a value + error series pair.
-      - A one-click "chart + operation reports -> PDF/HTML" bundle -
-        formalizing what results_published/set_notes_html already produce
-        per operation into one exportable document.
-      - A small scripting console (Python or SQL) against the current
-        project's repo, for the point where a power user iterates faster
-        typing than clicking through dialogs - the same repo the series
-        operations already use, just without a dialog in front of it.
-
-
-N-03 NOT done yet, on purpose - see P2-21 and P2-22 below: vector fields
-(x, y, u, v - curl, divergence) and parametric 3D curves
-(x(t), y(t), z(t)).
-
-
-N-06  Modifica tabella: replicare "Nascondi righe..." (oggi solo nel menu
-      dell'anteprima).
-
-N-09  "Colora in base al valore": apre un dialogo per colorare con una
-      palette (Viridis o altre) in base a minimo/massimo, percentili o
-      media. Colorazione discreta, con varie categorie. Aggiunge alla
-      tabella una colonna "Colore" con il valore numerico del colore.
 
 ================================================================
-R - REVISIONE DEL CODICE E CONFRONTO CON JMP, SPSS, ORIGIN (2026-09-28)
+A - PICCOLE CORREZIONI E COSE DA FARE FUORI DAL CODICE
 ================================================================
-Stato misurato: 193 file Python, 85.000 righe; 415 test (6.400 righe,
-circa 7% del codice). 29 tipi di grafico, 20 operazioni sulle serie.
-Punti di forza gia' al livello dei prodotti commerciali: progetto in un
-solo file SQLite con le query come sorgenti vive, annulla su ogni modifica
-dei dati, guardiano SQL, fit con catalogo di modelli e stime iniziali,
-carte di controllo con regole di Nelson, plugin scritti dall'utente
-(grafici, operazioni, funzioni), due lingue complete.
+A-01  S  Opzioni grafico, pannello stretto: i numeri nei campi si tagliano
+      ("0.00C" in Spazio assi V/O, "16.2" senza "cm" in Larghezza).
+      Spazio assi con 2 decimali invece di 3 (il passo è 0.01), e una
+      larghezza minima dei campi calcolata dal testo più lungo.
 
-R-01  P1 IN CORSO. Separare i calcoli dalle finestre.
+A-02  S  main.py imposta QT_QPA_PLATFORM_PLUGIN_PATH a PySide6/Qt/plugins,
+      ma la variabile vuole la cartella dei plugin di piattaforma
+      (…/plugins/platforms). Oggi è innocuo perché Qt ripiega sui suoi
+      percorsi; correggerlo o toglierlo, e provare l'avvio su Windows.
+
+A-03  [TU] ChartLibre.exe (compilato con Zig) e ChartLibre.bat non sono mai
+      stati provati su Windows. Doppio clic da una cartella copiata: deve
+      creare .venv, installare i pacchetti e aprire l'app senza finestra
+      di console.
+
+A-04  [TU] Il progetto sta sulla Scrivania sincronizzata con iCloud. iCloud
+      marca come nascosto tutto ciò che è dentro .venv e .git (causa del
+      crash "Could not find the Qt platform plugin cocoa", ora aggirato
+      all'avvio) e può togliere file dal disco per risparmiare spazio.
+      Spostare la cartella, per esempio in ~/Developer.
+
+A-05  [TU] GitHub: descrizione e argomenti del repository, immagine di
+      anteprima (docs/images/social_preview.png è pronta), una prima
+      release con le note. Richiede l'accesso al tuo account.
+
+
+================================================================
+P1 - FONDAMENTA
+================================================================
+R-01  P1  L  IN CORSO. Separare i calcoli dalle finestre.
       Fatto per Statistiche, Fit e Geometria (app/analysis/statistics.py,
-      fit.py, geometry.py: niente Qt, test propri). Restano le altre 17
-      operazioni, a cominciare da smoothing e spectral: estrarre il calcolo
-      da compute_results in app/analysis/<operazione>.py (DataFrame +
-      parametri -> risultato). E' la base di R-02, R-03 e R-13.
+      fit.py, geometry.py: niente Qt, test propri). Restano 16 operazioni:
+      smoothing, spectral, filter, baseline, calculus, cluster,
+      control_chart, decomposition, function, gp_regression, interpolate,
+      outlier, peaks, regression, roots, transform. Per ciascuna estrarre
+      il calcolo da compute_results in app/analysis/<operazione>.py
+      (DataFrame + parametri -> risultato). È la base di R-02, R-03, R-13.
+      Circa due-tre operazioni per sessione.
 
-R-01b P3 Classe base delle operazioni: candidati rimasti da spostare in
-      SeriesOperationDialogBase - _refresh_visibility (14 varianti),
-      build_model_selector (18 layout simili), _result_figure_name /
-      _label_result_axis (3).
+R-02  P1  M  IN CORSO. Calcoli lunghi in background.
+      La classe base offre già evaluate() in background con pulsante Ferma
+      (app/utils/background.py); oggi lo usa il Fit, e Traduci mancanti
+      usa lo stesso meccanismo. Restano: attivarlo per le altre operazioni
+      man mano che il loro calcolo esce dal dialogo (R-01), e una barra di
+      avanzamento vera al posto del messaggio.
 
-R-02  P1 IN CORSO. Calcoli lunghi in background.
-      La classe base offre gia' evaluate() in background con pulsante Ferma
-      (app/utils/background.py); oggi lo usa il Fit. Restano: attivarlo per
-      le altre operazioni man mano che il loro calcolo esce dal dialogo
-      (R-01), e una barra di avanzamento vera al posto del messaggio.
+R-13  P1  M  Test di validazione numerica.
+      Confrontare ogni operazione con valori di riferimento certificati,
+      come fanno i produttori commerciali: NIST StRD (Longley e Norris per
+      la regressione lineare, i dataset ANOVA e di regressione non lineare
+      con risultati certificati). Si può cominciare subito per Fit e
+      Statistiche, già separati; per le altre subito dopo R-01. Alzato da
+      P3: per un'app scientifica un numero sbagliato è il difetto peggiore.
 
-R-03  P1 Riproducibilita': ogni operazione applicata resta nel progetto.
-      Oggi il risultato e' salvato nel progetto; i parametri no (restano
+R-03  P1  M  Riproducibilità: ogni operazione applicata resta nel progetto.
+      Oggi il risultato è salvato nel progetto; i parametri no (restano
       solo come ultimo uso del dialogo, in user.json). Una tabella
       __operations__ (operazione, parametri JSON, sorgente, destinazione,
       data) permette di:
-      - rieseguire tutto quando i dati cambiano (Origin: "Recalculate"
-        automatico/manuale sugli output di analisi);
-      - vedere la storia di come e' nato un risultato (JMP: script salvato
+      - rieseguire tutto quando i dati cambiano (Origin: "Recalculate");
+      - vedere la storia di come è nato un risultato (JMP: script salvato
         con ogni rapporto; SPSS: syntax nel file .sps);
       - esportare uno script Python equivalente (vedi N-02).
 
-R-04  P1 IN CORSO. Statistica che manca rispetto a SPSS e JMP.
-      Gia' fatti: descrittive, normalita', t a un campione e appaiato,
+
+================================================================
+P2 - VALORE ALTO
+================================================================
+R-08  P2  M  Metadati delle colonne.
+      Etichetta, unità di misura, tipo di misura (continua / ordinale /
+      nominale: JMP "Modeling Type", SPSS "Measure"), codici di valore
+      mancante ed etichette dei valori (1 = "maschio"). Guidano la scelta
+      dei test (R-04) e dei grafici, e mettono le unità negli assi da sole.
+      Una tabella __column_meta__, modificabile da Modifica tabella.
+
+R-04  P2  L  IN CORSO. Statistica che manca rispetto a SPSS e JMP.
+      Già fatti: descrittive, normalità, t a un campione e appaiato,
       Wilcoxon, correlazione, campioni indipendenti (Welch, Student,
       Mann-Whitney, Levene, d di Cohen), ANOVA a una via con Welch,
-      Kruskal-Wallis e Tukey HSD. Mancano:
-      - ANOVA a due vie; post-hoc Games-Howell e Bonferroni; Dunn dopo
-        Kruskal-Wallis;
+      Kruskal-Wallis e Tukey HSD. Mancano, in quest'ordine:
       - chi-quadro e Fisher su tabelle di contingenza (con la tabella
         stessa come risultato);
       - regressione multipla con tabella dei coefficienti (coefficiente,
-        errore standard, t, p, IC 95%), R2 corretto, VIF e diagnostica dei
-        residui; regressione logistica per un esito si'/no;
-      - Kaplan-Meier con log-rank (sopravvivenza/affidabilita').
+        errore standard, t, p, IC 95%), R² corretto, VIF e diagnostica dei
+        residui; regressione logistica per un esito sì/no;
+      - ANOVA a due vie; post-hoc Games-Howell e Bonferroni; Dunn dopo
+        Kruskal-Wallis;
+      - Kaplan-Meier con log-rank (sopravvivenza/affidabilità).
       statsmodels copre quasi tutto. Serve una colonna "fattore" per
       indicare i gruppi (R-08).
 
-R-05  P2 IN CORSO. Fit al livello di Origin.
-      Gia' fatti: errori standard, covarianza e correlazione, t, p e IC 95%
+R-05  P2  M  IN CORSO. Fit al livello di Origin.
+      Già fatti: errori standard, covarianza e correlazione, t, p e IC 95%
       dei parametri, chi-quadro ridotto, bande di confidenza e previsione.
       Mancano:
-      - pesi del fit da una colonna di errori (1/sigma^2): oggi "Weighted"
-        pesa solo RMSE/R2, non il fit;
-      - fit globale su piu' serie con parametri condivisi (Origin "Global
-        Fit": per esempio una stessa costante di tempo per piu' curve).
+      - pesi del fit da una colonna di errori (1/sigma²): oggi "Weighted"
+        pesa solo RMSE/R², non il fit;
+      - fit globale su più serie con parametri condivisi (Origin "Global
+        Fit": per esempio una stessa costante di tempo per più curve).
 
-R-06  P2 Grafici diagnostici e statistici mancanti.
+R-06  P2  M  Grafici diagnostici e statistici mancanti.
       Q-Q plot (e P-P), matrice di scatter (pair plot) con correlazioni,
       grafico delle interazioni per l'ANOVA, mosaic plot per le tabelle di
       contingenza, forest plot, curva di Kaplan-Meier.
 
-R-07  P2 Interattivita' alla JMP: selezione collegata.
-      Selezionare punti in un grafico evidenzia le stesse righe nella
-      tabella e in tutti gli altri grafici costruiti su quella tabella, e
-      viceversa ("dynamic linking", la caratteristica che definisce JMP).
-      La selezione a rettangolo esiste gia' (Seleziona punti): manca la
-      propagazione. Poi un filtro dati locale con cursori per colonna
-      (JMP "Local Data Filter").
+P2-12 P2  M  Anteprima grafica accanto ai risultati delle operazioni.
+      publish_results produce solo testo/HTML; un fit o una ricerca di
+      picchi si leggono molto meglio con un piccolo grafico accanto.
+      Serve anche a P2-19.
 
-R-08  P2 Metadati delle colonne.
-      Etichetta, unita' di misura, tipo di misura (continua / ordinale /
-      nominale: JMP "Modeling Type", SPSS "Measure"), codici di valore
-      mancante ed etichette dei valori (1 = "maschio"). Guidano la scelta
-      dei test (R-04) e dei grafici, e mettono le unita' negli assi da sole.
-      Una tabella __column_meta__, modificabile da Modifica tabella.
-
-R-09  P2 Esportazione per la pubblicazione.
+R-09  P2  M  Esportazione per la pubblicazione.
       - Rapporto completo HTML/PDF: grafici e risultati di un progetto in
         un documento (JMP "Save as report", Origin "Analysis report").
       - Figura alla larghezza di una colonna di rivista (85 / 180 mm) con
         font a dimensione fissa, PDF/EPS vettoriale con font incorporati.
       - Modelli di grafico: applicare stile, assi e disposizione di una
-        figura a un'altra (Origin "graph template", .otpu).
+        figura a un'altra (Origin "graph template").
 
-R-10  P2 Manutenibilita': file troppo grandi.
-      chart_panel.py 3.285 righe, main_window.py 3.136, build_demos.py
-      2.968, style.py 2.503; fit, cluster, smoothing, statistics e
-      control_chart tra 1.400 e 1.900. Dividerli per responsabilita':
+R-14  P2  L  Distribuzione per chi non usa Python.
+      Oggi ChartLibre.app / .exe / .bat usano un Python già installato e
+      creano .venv al primo avvio. Per utenti non tecnici serve un
+      pacchetto autonomo (Briefcase o PyInstaller), firmato e notarizzato
+      su macOS (serve un account sviluppatore Apple), con installer su
+      Windows e un controllo degli aggiornamenti. Alzato da P3: l'app è
+      pubblica su GitHub e si cercano utenti e collaboratori.
+
+A-06  P2  S  Linux: ChartLibre non è mai stata lanciata. Provarla (una
+      macchina virtuale basta), sistemare le icone (temi freedesktop) e i
+      percorsi; meglio con un collaboratore che usa Linux.
+
+A-07  P2  S  Lingue: manca il catalogo spagnolo (es è nell'elenco delle
+      Impostazioni). Il tedesco è stato tradotto a macchina: da rileggere.
+      Traduci mancanti usa Google o MyMemory, e passa da solo all'altro
+      quando uno rifiuta. Entrambi gratuiti hanno limiti: Google rifiuta
+      per un po' chi chiede troppo spesso, MyMemory ha una quota di testo
+      al giorno (il 2026-09-29 li avevamo esauriti tutti e due), quindi una
+      lingua intera può richiedere due giorni.
+
+A-08  P2  S  Traduci mancanti: DeepL come terza scelta (deep_translator lo
+      supporta). Con la chiave gratuita "DeepL API Free" (500.000 caratteri
+      al mese) una lingua intera sta in una sessione e la qualità è la
+      migliore dei tre. La chiave va nelle Impostazioni (user.json), mai
+      nel progetto; il campo resta vuoto finché l'utente non la mette.
+
+
+================================================================
+P3 - MANUTENIBILITÀ, INTERATTIVITÀ, COMODITÀ
+================================================================
+R-10  P3  M  File troppo grandi.
+      chart_panel.py 3.263 righe, main_window.py 3.152, build_demos.py
+      2.652, style.py 2.413; fit, cluster, smoothing, statistics e
+      control_chart tra 1.400 e 1.900. Dividerli per responsabilità:
       main_window in un modulo per pagina della barra laterale; chart_panel
       in zoom/geometria, barra strumenti, interazioni; style in icone,
       fogli di stile, widget di base; build_demos in un file per demo.
+      Conviene farlo dopo R-01, che alleggerisce già i dialoghi.
 
-R-11  P2 SQL residuo fuori da app/data (regola del progetto).
+R-11  P3  S  SQL residuo fuori da app/data (regola del progetto).
       Statistiche e Geometria sono a posto. Restano:
       - table_preview.py e table_editor_dialog.py leggono i blocchi di
         righe con repo._con (LazyTableModel): serve un metodo del
         repository per leggere un blocco dopo un rowid;
-      - SELECT composte nei widget: chart_panel.py (~1431-1485),
-        create_chart_dialog.py (~1098), table_list.py e
-        database_info_panel.py (esportazione), peaks_dialog.py (~545).
-      Il Query Builder e' un'eccezione legittima: il suo compito e'
-      scrivere SQL per l'utente.
+      - SELECT composte nei widget: chart_panel.py, create_chart_dialog.py,
+        table_list.py e database_info_panel.py (esportazione),
+        peaks_dialog.py.
+      Il Query Builder è un'eccezione legittima: il suo compito è scrivere
+      SQL per l'utente.
 
-R-12  P3 Gestione degli errori.
-      302 "except Exception" nel codice (nessun except nudo). Ai confini
+R-01b P3  S  Classe base delle operazioni: candidati rimasti da spostare in
+      SeriesOperationDialogBase - _refresh_visibility (14 varianti),
+      build_model_selector (18 layout simili), _result_figure_name /
+      _label_result_axis (3). Più facile dopo R-01.
+
+R-12  P3  M  Gestione degli errori.
+      296 "except Exception" nel codice (nessun except nudo). Ai confini
       dell'interfaccia vanno bene; nei calcoli e nel repository nascondono
       errori veri. Restringere ai tipi attesi (ValueError, sqlite3.Error,
-      OSError) fuori dall'interfaccia.
+      OSError) fuori dall'interfaccia, un modulo alla volta.
 
-R-13  P3 Test di validazione numerica.
-      Dopo R-01: confrontare ogni operazione con valori di riferimento
-      certificati, come fanno i produttori commerciali per la validazione
-      (NIST StRD: Longley e Norris per la regressione, i dataset ANOVA e
-      di regressione non lineare con risultati certificati).
+R-07  P3  L  Interattività alla JMP: selezione collegata.
+      Selezionare punti in un grafico evidenzia le stesse righe nella
+      tabella e in tutti gli altri grafici costruiti su quella tabella, e
+      viceversa ("dynamic linking", la caratteristica che definisce JMP).
+      La selezione a rettangolo esiste già (Seleziona punti): manca la
+      propagazione. Poi un filtro dati locale con cursori per colonna
+      (JMP "Local Data Filter").
 
-R-14  P3 Distribuzione per chi non usa Python.
-      Il launcher (dev/tools/make_launcher.py) usa il Python gia' installato.
-      Per utenti non tecnici serve un pacchetto autonomo (Briefcase o
-      PyInstaller), firmato e notarizzato su macOS, con installer su
-      Windows e un controllo degli aggiornamenti.
+N-01  P3  S  Pannello Database: le voci già presenti nell'anteprima e in
+      Modifica tabella (cambia tipo, duplica tabella) anche dall'elenco
+      tabelle del pannello Database.
 
-R-15  P3 Accessibilita' e colori.
+N-06  P3  S  Modifica tabella: replicare "Nascondi righe..." (oggi solo nel
+      menu dell'anteprima).
+
+N-09  P3  M  "Colora in base al valore": un dialogo per colorare con una
+      palette (Viridis o altre) in base a minimo/massimo, percentili o
+      media, anche in modo discreto per categorie. Aggiunge alla tabella
+      una colonna "Colore" con il valore numerico del colore.
+
+P2-20 P3  M  Visualizzatore HTML dei grafici di un progetto.
+      Per guardare i grafici dove l'app non gira (per esempio un iPad).
+      render_figure.py disegna già una figura dal solo SqliteRepo, senza
+      Qt: uno script apre un .dhub, salva ogni figura in PNG/SVG e le
+      raccoglie in una pagina HTML autonoma (una sezione per figura),
+      visibile con AirDrop/iCloud/Safari. Niente zoom né tooltip in questo
+      passo; se servono, la strada è Plotly, al costo di rifare ogni tipo
+      di grafico.
+
+R-15  P3  M  Accessibilità e colori.
       Palette adatta ai daltonici come scelta predefinita (Okabe-Ito per
       le categorie, viridis/cividis per le mappe), controllo del contrasto
       nel tema scuro, tutta la barra laterale usabile da tastiera.
 
-R-16  P3 Fuori scopo per ora, da valutare: progettazione degli esperimenti
+
+================================================================
+P4 - IDEE DA DECIDERE
+================================================================
+P2-21 P4  M  3D, passo 2: operazioni sui campi vettoriali (rotore,
+      divergenza). Solo progettato. I renderer Quiver/Stream
+      (app/charts/vector_field.py) leggono già i ruoli x, y, u, v, e
+      series_origin() riconosce già un campo vettoriale, ma solo come
+      etichetta.
+      - Funzioni: base_vector_function (app/functions/base.py), execute(x,
+        y, p) -> (u, v), con un VectorFunctionScanner accanto a
+        SurfaceFunctionScanner e un proprio campo `kind`.
+      - Calculus (CALCULUS_MODELS/SURFACE_MODELS sono già guidati dai
+        dati): Divergenza du/dx + dv/dy e Rotore dv/dx - du/dy, disegnati
+        come Contour Plot, con la stessa griglia di _gradient_surface.
+        Leggere u e v in un solo passaggio, senza interrogare due volte
+        l'SQL della serie.
+      - Peaks: massimo del modulo sqrt(u²+v²), con _search_3d.
+        Roots: punti di ristagno (u e v circa zero insieme), un caso nuovo.
+      - Campi 3D veri (x, y, z, u, v, w): nessun renderer, fuori scopo.
+
+P2-22 P4  M  3D, passo 3: curve parametriche (x(t), y(t), z(t)).
+      Solo progettato.
+      - Funzioni: base_parametric3d_function, execute(t, p) -> (x, y, z).
+      - Dialogo Funzione: intervallo in t (i controlli Da/A/Punti vanno già
+        bene), disegno con 3D Line Plot.
+      - Fit di una curva parametrica a punti misurati: problema diverso
+        dal fit di superficie, serve un progetto a parte.
+      - Peaks: estremi della curvatura o di |r(t)|, vicino alla ricerca 1D.
+        Roots: dove una coordinata (o |r(t)|) passa per zero lungo t.
+      - Calculus: derivata = velocità (dx/dt, dy/dt, dz/dt); integrale =
+        lunghezza d'arco (integrale di |r'(t)| dt).
+
+P2-19 P4  L  pysym: operazioni scritte dall'utente in Python/sympy.
+      Una proposta, non ancora decisa. L'utente scrive codice invece di
+      scegliere una trasformazione, lo prova su una serie e lo applica sia
+      a una serie del grafico sia a una tabella con un nome scelto da lui.
+      - Salvataggio: tabella interna __pysym__ (nome, codice, descrizione,
+        date), come __import_links__.
+      - Dialogo: series_operations/pysym_dialog.py sul modello della
+        classe base, con l'anteprima di P2-12.
+      - Doppia uscita: nuova serie (come ogni operazione) e una tabella
+        persistente con il nome scelto (questa parte è nuova).
+      - Sicurezza, da non saltare: un .dhub viene spedito e condiviso senza
+        pensarci; il codice Python non deve mai girare all'apertura del
+        file, solo su un clic esplicito, con globali ristrette (numpy,
+        pandas, math; niente import, open, os, subprocess). Avviso la
+        prima volta che si apre un progetto con codice salvato: è più
+        vicino a una macro di foglio di calcolo che a un filtro salvato.
+
+N-02  P4  Idee oltre al grafico, per chi fa analisi, ingegneria o tesi:
+      - Esportazione script/notebook: le serie di una figura sono già
+        query SQL più uno stile, cioè gran parte di uno script
+        pandas+matplotlib o di una cella .ipynb (va con R-03).
+      - Assi con unità (pint): "converti unità" riscala la vista senza
+        toccare l'SQL (va con R-08).
+      - Propagazione dell'incertezza: A±dA op B±dB con le formule
+        standard, risultato come coppia valore + errore.
+      - Un clic per "grafico + rapporti delle operazioni -> PDF/HTML"
+        (coincide con R-09).
+      - Una piccola console Python o SQL sul progetto aperto, per chi va
+        più veloce scrivendo che cliccando.
+
+R-16  P4  Fuori scopo per ora, da valutare: progettazione degli esperimenti
       (DOE: fattoriali, superficie di risposta - punto di forza di JMP),
       modelli misti, analisi della potenza e del numero di campioni.
-
-================================================================
-P2 - VALUABLE
-================================================================
-
-P2-12 series operations: inline preview plot beside the numeric results
-      publish_results emits text/HTML only; a fit or a peak-find is far more
-      legible with a small plot next to it.
-
-P2-19 pysym: user-authored Python/symbolic series - a suggested design, not
-      yet scoped or agreed
-      The ask: a series operation where the user writes Python/symbolic
-      (sympy-style) code instead of picking one of the built-in transforms,
-      previews it against a chosen series, and applies it to both a chart
-      series and a real table under a name the user gives it.
-      Sketch:
-      - Storage: an internal __pysym__ table (name, code, description,
-        created/modified timestamps), the same pattern __import_links__ and
-        __table_descriptors__ already use - one row per named snippet, so
-        it can be reused across series/figures without retyping it.
-      - Editing: a series_operations/pysym_dialog.py following the existing
-        SeriesOperationDialogBase shape (source series picker, code editor,
-        preview plot, Apply) - reuses P2-12's inline-preview plumbing once
-        that lands, rather than a second copy of it.
-      - Dual output: Apply both draws the result as a new series (the
-        existing ResultSeriesSpec/generated_table_name path every operation
-        already uses) and materializes it into a table under the name the
-        user typed - the second half is new; nothing today lets a series
-        operation name and create a persistent table of its own rather than
-        an auto-named "_generated" one.
-      - Security, the part this cannot skip: a .dhub file is explicitly
-        documented elsewhere in this codebase as something that gets
-        emailed and committed without a second thought (see why credentials
-        never go in one, app/utils/data_sources.py). Embedding arbitrary
-        executable Python in that same file is a materially bigger risk
-        than the saved SQL queries it already carries - SQL against one's
-        own tables is bounded, Python is not. Do not let __pysym__ code run
-        on file open, ever, only on an explicit Apply/Run the user clicks
-        for that specific snippet - the same trust model a saved query
-        already has - and execute it against a restricted globals dict
-        (numpy/pandas/math exposed, no import/open/os/subprocess) rather
-        than a bare exec(). A one-time warning the first time a project
-        with a non-empty __pysym__ table is opened, naming what that means,
-        is worth doing even so - this is closer to a spreadsheet macro than
-        to a saved filter.
-
-P2-20 .dhub HTML chart viewer - export a project's charts to a static
-      HTML page
-      Motivated by wanting to look at a project's charts somewhere the
-      desktop app cannot run (e.g. an iPad, which PySide6 does not target
-      at all). render_figure.py already renders a FigureDescriptor into a
-      matplotlib Figure from nothing but SqliteRepo - no Qt anywhere in
-      that path - so a standalone script could open any .dhub file,
-      iterate its saved figures, savefig each to PNG/SVG, and bundle them
-      into one self-contained HTML page (one tab/section per figure) -
-      viewable via AirDrop/iCloud/Safari, no app install needed. No
-      zoom/pan/tooltip interactivity in this pass; if that turns out to
-      matter, re-rendering with Plotly instead of matplotlib is the
-      upgrade path, at the cost of redoing every chart type in
-      app/charts/.
-
-P2-21 3D roadmap, step 2: vector field series operations (curl,
-      divergence)
-      Builds on the 3D surface work (Fit, Peaks, Roots, Calculus on surfaces, already in the app) - same
-      pattern, one dimension family over. Not yet scoped in code, only
-      designed.
-      - Series roles: x, y, u, v - already read by the existing Quiver/
-        Stream renderers (app/charts/vector_field.py), never by a series
-        operation. A vector-field series is already recognised by
-        series_origin() (SeriesOperationDialogBase,
-        app/series_operations/dialog_base.py - today it only labels it,
-        "vector field (x, y, u, v)"); this step is what makes that label
-        actually usable by an operation instead of just informational.
-      - Function contract: base_vector_function (app/functions/base.py,
-        sibling of base_surface_function), execute(x, y, p) -> (u, v);
-        scanned the same way base_surface_function is (a
-        VectorFunctionScanner alongside SurfaceFunctionScanner in
-        app/scanners/functions_scanner.py - give it its own `kind` field
-        rather than overloading `ndim` again, since both are 2-variable
-        but return different shapes).
-      - Calculus dialog (app/series_operations/calculus_dialog.py):
-        CALCULUS_MODELS/SURFACE_MODELS were deliberately left data-driven
-        for exactly this. Add:
-        - Divergence: du/dx + dv/dy (scalar field, drawn as "Contour
-          Plot") - same np.gradient/grid machinery as the surface
-          gradient (_gradient_surface), called twice, once per component.
-        - Curl (2D/scalar): dv/dx - du/dy (same drawing).
-        Reuse series_grid_xyz() twice (once per component) or give it a
-        variant that reads two z-like columns (u, v) in one pass - decide
-        once this is actually built, whichever avoids querying the
-        series' SQL twice.
-      - Peaks/Roots: "peaks" on a vector field is a search for maximum
-        field magnitude sqrt(u^2+v^2) - the same 2D local-maxima code
-        Peaks already has (_search_3d in peaks_dialog.py), pointed at the
-        magnitude grid instead of z. "Roots" is a stagnation-point search
-        (both u and v approximately zero) - a new case, not a reuse of
-        the existing z=0 contour path (a level curve is not the right
-        shape for two simultaneous conditions); likely a 2D root-finding
-        pass over (u(x,y), v(x,y)) = (0, 0) on the grid.
-      - True 3D fields (x, y, z, u, v, w) have no chart renderer at all
-        today - out of scope until one exists.
-
-P2-22 3D roadmap, step 3: parametric 3D curves (x(t), y(t), z(t))
-      Builds on the same 3D work. Not yet scoped in code, only designed.
-      - Function contract: base_parametric3d_function (app/functions/
-        base.py), execute(t, p) -> (x, y, z); scanned like
-        base_surface_function.
-      - Function dialog: evaluate over a t range (reuses the existing
-        From/To/Points range controls unchanged - it is already a
-        1D-domain problem), draw with "3D Line Plot"
-        (app/charts/surface.py's Line3DAxisRenderer).
-      - Fit: fitting a parametric curve to a series of measured (x, y, z)
-        points ordered by an implicit or explicit parameter is a
-        materially different problem from the surface fit just built
-        (there is no single-valued z = f(x, y) here) - needs its own
-        design pass before touching fit_dialog.py again, not a copy of
-        _load_fit_data_2d.
-      - Peaks: local extrema of curvature, or of |r(t)|, along the curve -
-        closer to the original 1D scipy.signal.find_peaks path
-        (peaks_dialog.py's own 1D _search) than to the 2D grid one just
-        built for surfaces.
-      - Roots: where a chosen coordinate (or |r(t)|) crosses zero along
-        t - same idea, closest to the existing 1D root search in
-        roots_dialog.py.
-      - Calculus: derivative = velocity vector (dx/dt, dy/dt, dz/dt);
-        integral = arc length (integral of |r'(t)| dt, scipy.integrate).
-
-================================================================
-P3 - LATER
-================================================================
-
-
