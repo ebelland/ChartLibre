@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from app.series_operations.smoothing_dialog import _moving_average
+from app.analysis.smoothing import _moving_average
 
 
 @pytest.mark.parametrize("centered", [True, False])
