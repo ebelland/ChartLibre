@@ -27,9 +27,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
-from sklearn.decomposition import PCA, FastICA, NMF
-from sklearn.manifold import Isomap, LocallyLinearEmbedding, TSNE
-
+from app.analysis import decomposition as dc
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -93,6 +91,16 @@ DECOMPOSITION_ALL_MODELS: dict[str, DecompositionModel] = {
         manifold=True,
     ),
 }
+#: The engine's name for each model.
+_KIND: dict[str, str] = {
+    DECOMP_PCA: dc.KIND_PCA,
+    DECOMP_FASTICA: dc.KIND_FASTICA,
+    DECOMP_NMF: dc.KIND_NMF,
+    MANIFOLD_TSNE: dc.KIND_TSNE,
+    MANIFOLD_ISOMAP: dc.KIND_ISOMAP,
+    MANIFOLD_LLE: dc.KIND_LLE,
+}
+
 DECOMPOSITION_MODELS = tuple(name for name, model in DECOMPOSITION_ALL_MODELS.items() if not model.manifold)
 
 
@@ -280,134 +288,59 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
         for message in errors:
             applogger.warning(message, show_dialog=False, raise_error=False)
 
-        grid = self._shared_grid(xy_pairs, n_grid)
-        feature_matrix = np.column_stack(
-            [np.interp(grid, x_values, y_values) for x_values, y_values in xy_pairs]
-        )
+        grid = dc.shared_grid(xy_pairs, n_grid)
+        matrix = dc.feature_matrix(grid, xy_pairs)
 
         if DECOMPOSITION_ALL_MODELS[model].manifold:
-            return [self._embed(names, feature_matrix, model, params)]
-        return [self._decompose(names, grid, feature_matrix, model, params)]
-
-    @staticmethod
-    def _shared_grid(
-        xy_pairs: Sequence[tuple[np.ndarray, np.ndarray]], n_grid: int
-    ) -> np.ndarray:
-        low = max(float(x.min()) for x, _y in xy_pairs)
-        high = min(float(x.max()) for x, _y in xy_pairs)
-        if not (high > low):
-            raise ValueError(
-                "the selected series' x ranges do not overlap; nothing to resample onto a shared grid"
-            )
-        return np.linspace(low, high, max(2, int(n_grid)))
+            return [self._embed(names, matrix, model, params)]
+        return [self._decompose(names, grid, matrix, model, params)]
 
     def _decompose(
         self,
         names: list[str],
         grid: np.ndarray,
-        feature_matrix: np.ndarray,
+        matrix: np.ndarray,
         model: str,
         params: Mapping[str, Any],
     ) -> DecompositionResult:
-        n_series = feature_matrix.shape[1]
-        n_components = max(1, min(int(params.get("n_components", 3)), n_series))
-        explained_variance_ratio: list[float] | None = None
-
-        if model == DECOMP_PCA:
-            estimator = PCA(n_components=n_components, random_state=0)
-            values = estimator.fit_transform(feature_matrix)
-            explained_variance_ratio = [float(v) for v in estimator.explained_variance_ratio_]
-            prefix = "PC"
-        elif model == DECOMP_FASTICA:
-            estimator = FastICA(n_components=n_components, random_state=0, max_iter=1000)
-            values = estimator.fit_transform(feature_matrix)
-            prefix = "IC"
-        else:
-            if float(feature_matrix.min()) < 0.0:
-                raise ValueError(
-                    "NMF requires non-negative data; the selected series include negative values"
-                )
-            estimator = NMF(n_components=n_components, random_state=0, max_iter=1000)
-            values = estimator.fit_transform(feature_matrix)
-            prefix = "Component"
-
-        component_names = [f"{prefix}{index + 1}" for index in range(n_components)]
+        decomposition = dc.decompose(_KIND[model], matrix, int(params.get("n_components", 3)))
         return DecompositionResult(
             source_names=names,
             model=model,
             kind="decomposition",
             x=grid,
-            values=values,
-            component_names=component_names,
+            values=decomposition.values,
+            component_names=decomposition.component_names,
             metadata={
-                "n_series": n_series,
-                "explained_variance_ratio": explained_variance_ratio,
+                "n_series": matrix.shape[1],
+                "explained_variance_ratio": decomposition.explained_variance_ratio,
             },
         )
 
     def _embed(
         self,
         names: list[str],
-        feature_matrix: np.ndarray,
+        matrix: np.ndarray,
         model: str,
         params: Mapping[str, Any],
     ) -> DecompositionResult:
-        n_samples = feature_matrix.shape[0]
-
-        if model == MANIFOLD_TSNE:
-            perplexity = self._clamped_perplexity(params, n_samples)
-            embedding = TSNE(
-                n_components=2, random_state=0, perplexity=perplexity
-            ).fit_transform(feature_matrix)
-        elif model == MANIFOLD_ISOMAP:
-            neighbors = self._clamped_neighbors(params, n_samples)
-            embedding = Isomap(
-                n_components=2, n_neighbors=neighbors
-            ).fit_transform(feature_matrix)
-        else:
-            neighbors = self._clamped_neighbors(params, n_samples)
-            embedding = LocallyLinearEmbedding(
-                n_components=2, n_neighbors=neighbors, random_state=0
-            ).fit_transform(feature_matrix)
-
+        embedding = dc.embed(
+            _KIND[model],
+            matrix,
+            perplexity=float(params.get("perplexity", 30.0)),
+            n_neighbors=int(params.get("n_neighbors", 5)),
+        )
+        for note in embedding.notes:
+            applogger.warning(note, show_dialog=False, raise_error=False)
         return DecompositionResult(
             source_names=names,
             model=model,
             kind="manifold",
-            x=np.asarray(embedding[:, 0], dtype=float),
-            values=np.asarray(embedding[:, 1], dtype=float),
+            x=embedding.x,
+            values=embedding.y,
             component_names=[],
-            metadata={"n_series": feature_matrix.shape[1], "n_samples": n_samples},
+            metadata={"n_series": matrix.shape[1], "n_samples": matrix.shape[0]},
         )
-
-    @staticmethod
-    def _clamped_perplexity(params: Mapping[str, Any], n_samples: int) -> float:
-        requested = float(params.get("perplexity", 30.0))
-        # scikit-learn requires perplexity < n_samples; leave real headroom.
-        limit = max(5.0, (n_samples - 1) / 3.0)
-        if requested >= n_samples or requested > limit:
-            applogger.warning(
-                f"Perplexity {requested:g} does not fit {n_samples} sampled "
-                f"points; using {limit:g} instead.",
-                show_dialog=False,
-                raise_error=False,
-            )
-            return limit
-        return requested
-
-    @staticmethod
-    def _clamped_neighbors(params: Mapping[str, Any], n_samples: int) -> int:
-        requested = int(params.get("n_neighbors", 5))
-        limit = max(2, n_samples - 1)
-        if requested > limit:
-            applogger.warning(
-                f"n_neighbors {requested} does not fit {n_samples} sampled "
-                f"points; using {limit} instead.",
-                show_dialog=False,
-                raise_error=False,
-            )
-            return limit
-        return requested
 
     # ------------------------------------------------------------------
     # Where the result is drawn
