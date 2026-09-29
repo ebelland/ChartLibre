@@ -1,6 +1,6 @@
 ChartLibre TODO
 In ordine di priorità: prima il piano d'azione, poi le voci, dalla più
-urgente. Rivisto il 2026-09-29.
+urgente. Rivisto il 2026-09-29 (dopo la chiusura di P0-1 e R-11).
 
 Priorità:  P0 = risultati sbagliati o lavoro bloccato
            P1 = fondamenta: il resto dipende da queste
@@ -13,9 +13,13 @@ Impegno:   S = una sessione di lavoro con Claude
            L = 4 o più sessioni
            [TU] = la fai tu, non servono crediti
 
-Stato misurato (2026-09-29): 144 file Python in app/, circa 76.000 righe;
-523 test in 56 file; 19 operazioni sulle serie; circa 29 tipi di grafico;
-cataloghi it, fr, de (es manca). Pyright/Pylance: 0 errori.
+Stato misurato (2026-09-29): 144 file Python in app/, circa 76.500 righe;
+532 test in 57 file; 19 operazioni sulle serie; circa 29 tipi di grafico;
+cataloghi it e fr completi, de e es iniziati (vedi A-07). Pyright/Pylance:
+0 errori.
+
+Chiuso il 2026-09-29: P0-1 (taglio del filtro: ora "Auto", un decimo di fs)
+e R-11 (SQL solo in app/data; un test controlla che resti così).
 
 
 ================================================================
@@ -51,7 +55,7 @@ Fase 2 - Ciò che chiede chi fa analisi  (circa L: 6-8 sessioni)
 Fase 3 - Arrivare a chi non usa Python  (M-L)
   R-14  Pacchetto autonomo firmato (macOS) e installer (Windows).
   A-06  Provare su Linux (mai lanciata) - meglio con un collaboratore.
-  A-07  Catalogo spagnolo; rileggere il tedesco tradotto a macchina.
+  A-07  Completare tedesco e spagnolo (tradotti a macchina: da rileggere).
   A-08  Traduci mancanti con DeepL (chiave gratuita), oltre a Google e
         MyMemory.
 
@@ -77,7 +81,7 @@ Fase 6 - Idee da decidere  (P4)
 ================================================================
 P0 - RISULTATI SBAGLIATI O LAVORO BLOCCATO
 ================================================================
-(nessuna voce aperta: P0-1, il taglio del filtro, è stato chiuso il 2026-09-29)
+(nessuna voce aperta)
 
 
 ================================================================
@@ -213,13 +217,14 @@ A-06  P2  S  Linux: ChartLibre non è mai stata lanciata. Provarla (una
       macchina virtuale basta), sistemare le icone (temi freedesktop) e i
       percorsi; meglio con un collaboratore che usa Linux.
 
-A-07  P2  S  Lingue: manca il catalogo spagnolo (es è nell'elenco delle
-      Impostazioni). Il tedesco è stato tradotto a macchina: da rileggere.
-      Traduci mancanti usa Google o MyMemory, e passa da solo all'altro
-      quando uno rifiuta. Entrambi gratuiti hanno limiti: Google rifiuta
-      per un po' chi chiede troppo spesso, MyMemory ha una quota di testo
-      al giorno (il 2026-09-29 li avevamo esauriti tutti e due), quindi una
-      lingua intera può richiedere due giorni.
+A-07  P2  S  Lingue: il catalogo tedesco è tradotto per il 19% (172 frasi
+      su 922) e lo spagnolo è creato ma vuoto (921 frasi); è tutto
+      traduzione automatica da rileggere. Traduci mancanti usa Google o
+      MyMemory, e passa da solo all'altro quando uno rifiuta. Entrambi
+      gratuiti hanno limiti: Google rifiuta per un po' chi chiede troppo
+      spesso, MyMemory ha una quota di testo al giorno (il 2026-09-29 li
+      avevamo esauriti tutti e due), quindi una lingua intera può
+      richiedere due giorni - o A-08.
 
 A-08  P2  S  Traduci mancanti: DeepL come terza scelta (deep_translator lo
       supporta). Con la chiave gratuita "DeepL API Free" (500.000 caratteri
