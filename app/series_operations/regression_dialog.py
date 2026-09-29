@@ -26,10 +26,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
-from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
-from sklearn.isotonic import IsotonicRegression
-from sklearn.linear_model import HuberRegressor, RANSACRegressor
-
+from app.analysis.regression import (
+    KIND_GRADIENT_BOOSTING,
+    KIND_HUBER,
+    KIND_ISOTONIC,
+    KIND_RANDOM_FOREST,
+    KIND_RANSAC,
+    RegressionSettings,
+    fit_regression,
+)
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -75,8 +80,14 @@ REGRESSION_MODELS: dict[str, OperationModel] = {
     ),
 }
 
-#: Points in the dense evaluation grid every model predicts over.
-GRID_POINTS = 200
+#: The engine's name for each model.
+_KIND: dict[str, str] = {
+    REGRESSION_RANSAC: KIND_RANSAC,
+    REGRESSION_HUBER: KIND_HUBER,
+    REGRESSION_ISOTONIC: KIND_ISOTONIC,
+    REGRESSION_RANDOM_FOREST: KIND_RANDOM_FOREST,
+    REGRESSION_GRADIENT_BOOSTING: KIND_GRADIENT_BOOSTING,
+}
 
 # Re-exported for callers/tests, matching calculus_dialog.py's own convention.
 DEST_SAME_AXIS = SeriesOperationDialogBase.DEST_SAME_AXIS
@@ -277,74 +288,27 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
         model: str,
         params: Mapping[str, Any],
     ) -> RegressionResult:
-        x_grid = np.linspace(float(x_values.min()), float(x_values.max()), GRID_POINTS)
-        metadata: dict[str, Any] = {}
-
-        if model == REGRESSION_ISOTONIC:
-            increasing_choice = str(params.get("increasing", "auto"))
-            increasing: bool | str = (
-                increasing_choice
-                if increasing_choice == "auto"
-                else increasing_choice == "true"
-            )
-            estimator = IsotonicRegression(increasing=increasing, out_of_bounds="clip")
-            estimator.fit(x_values, y_values)
-            y_grid = estimator.predict(x_grid)
-        else:
-            X = x_values.reshape(-1, 1)
-            X_grid = x_grid.reshape(-1, 1)
-
-            if model == REGRESSION_RANSAC:
-                estimator = RANSACRegressor(
-                    max_trials=int(params.get("max_trials", 100)), random_state=0
-                )
-                estimator.fit(X, y_values)
-                inlier_mask = getattr(estimator, "inlier_mask_", None)
-                if inlier_mask is not None:
-                    metadata["inliers"] = f"{int(np.count_nonzero(inlier_mask))}/{inlier_mask.size}"
-
-            elif model == REGRESSION_HUBER:
-                estimator = HuberRegressor(
-                    epsilon=float(params.get("epsilon", 1.35)),
-                    alpha=float(params.get("alpha", 0.0001)),
-                )
-                estimator.fit(X, y_values)
-                n_outliers = getattr(estimator, "outliers_", None)
-                if n_outliers is not None:
-                    metadata["outliers"] = int(np.count_nonzero(n_outliers))
-
-            elif model == REGRESSION_RANDOM_FOREST:
-                max_depth = int(params.get("max_depth", 0)) or None
-                estimator = RandomForestRegressor(
-                    n_estimators=int(params.get("n_estimators", 100)),
-                    max_depth=max_depth,
-                    random_state=0,
-                )
-                estimator.fit(X, y_values)
-
-            else:
-                max_depth = int(params.get("max_depth", 0)) or None
-                estimator = GradientBoostingRegressor(
-                    n_estimators=int(params.get("n_estimators", 100)),
-                    learning_rate=float(params.get("learning_rate", 0.1)),
-                    max_depth=max_depth or 3,
-                    random_state=0,
-                )
-                estimator.fit(X, y_values)
-
-            y_grid = estimator.predict(X_grid)
-            try:
-                metadata["r2"] = float(estimator.score(X, y_values))
-            except Exception:  # noqa: BLE001 - not every estimator scores the same way
-                pass
-
+        fitted = fit_regression(
+            _KIND[model],
+            x_values,
+            y_values,
+            RegressionSettings(
+                max_trials=int(params.get("max_trials", 100)),
+                epsilon=float(params.get("epsilon", 1.35)),
+                alpha=float(params.get("alpha", 0.0001)),
+                increasing=str(params.get("increasing", "auto")),
+                n_estimators=int(params.get("n_estimators", 100)),
+                max_depth=int(params.get("max_depth", 0)),
+                learning_rate=float(params.get("learning_rate", 0.1)),
+            ),
+        )
         return RegressionResult(
             source_name=name,
             result_name=f"{name} - {model}",
             model=model,
-            x=x_grid,
-            y=np.asarray(y_grid, dtype=float),
-            metadata=metadata,
+            x=fitted.x,
+            y=fitted.y,
+            metadata=fitted.details,
         )
 
     # ------------------------------------------------------------------
