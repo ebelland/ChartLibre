@@ -27,9 +27,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
-from scipy.ndimage import maximum_filter, minimum_filter
-from scipy.signal import find_peaks, peak_prominences, peak_widths
-
+from app.analysis import peaks as pk
+from app.analysis.peaks import Peak, PeakSettings, find_peaks_1d, find_peaks_2d
 from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -47,6 +46,13 @@ PEAKS_MAXIMA = "Maxima"
 PEAKS_MINIMA = "Minima"
 PEAKS_BOTH = "Maxima and minima"
 
+#: The engine's name for each model.
+_MODE: dict[str, str] = {
+    PEAKS_MAXIMA: pk.MAXIMA,
+    PEAKS_MINIMA: pk.MINIMA,
+    PEAKS_BOTH: pk.BOTH,
+}
+
 #: The models offered, in combo order, with their documentation.
 PEAK_MODELS: dict[str, OperationModel] = {
     PEAKS_MAXIMA: OperationModel(
@@ -62,26 +68,6 @@ PEAK_MODELS: dict[str, OperationModel] = {
         doc_url="https://en.wikipedia.org/wiki/Topographic_prominence",
     ),
 }
-
-
-@dataclass(slots=True)
-class Peak:
-    """One located peak, with the measurements that describe it.
-
-    ``z`` is None for an ordinary 1D peak on a curve. A peak found on a
-    surface (``z`` role present, see ``_find_one_3d``) sets it, and leaves
-    ``width``/``left_x``/``right_x`` as NaN - those describe a 1D half-
-    prominence interval, which a 2D local maximum simply does not have.
-    """
-
-    x: float
-    y: float
-    prominence: float
-    width: float
-    left_x: float
-    right_x: float
-    is_minimum: bool = False
-    z: float | None = None
 
 
 @dataclass(slots=True)
@@ -293,17 +279,7 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         model: str,
         params: Mapping[str, Any],
     ) -> PeakResult:
-        peaks: list[Peak] = []
-
-        if model in (PEAKS_MAXIMA, PEAKS_BOTH):
-            peaks.extend(self._search(x_values, y_values, params, minimum=False))
-        if model in (PEAKS_MINIMA, PEAKS_BOTH):
-            # A minimum is a maximum of the inverted signal. Inverting rather
-            # than writing a second search keeps one implementation of the
-            # prominence and width logic, which is where the subtlety is.
-            peaks.extend(self._search(x_values, y_values, params, minimum=True))
-
-        peaks.sort(key=lambda peak: peak.x)
+        peaks = find_peaks_1d(x_values, y_values, _MODE[model], self._settings(params))
 
         return PeakResult(
             source_name=name,
@@ -316,79 +292,16 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
             },
         )
 
-    def _search(
-        self,
-        x_values: np.ndarray,
-        y_values: np.ndarray,
-        params: Mapping[str, Any],
-        *,
-        minimum: bool,
-    ) -> list[Peak]:
-        """Run find_peaks once, on the signal or on its inverse."""
-        signal = -y_values if minimum else y_values
-
-        # Thresholds are given as a fraction of the signal's range so that one
-        # setting means the same thing on a millivolt trace and on a count
-        # rate. An absolute default would be meaningless on arrival.
-        span = float(np.ptp(y_values))
-        if span <= 0.0:
-            return []
-
-        threshold = float(params.get("threshold", 0.05)) * span
-        distance = max(1, int(params.get("distance", 1)))
-        min_width = float(params.get("min_width", 0.0))
-
-        kwargs: dict[str, Any] = {"distance": distance}
-        if str(params.get("filter_by", "prominence")) == "height":
-            kwargs["height"] = float(np.min(signal)) + threshold
-        else:
-            kwargs["prominence"] = max(threshold, 1e-12)
-        if min_width > 0.0:
-            kwargs["width"] = min_width
-
-        indices, _properties = find_peaks(signal, **kwargs)
-        if indices.size == 0:
-            return []
-
-        prominences = peak_prominences(signal, indices)[0]
-        # rel_height=0.5 is the width at half prominence, not at half height:
-        # on a raised baseline those differ, and the half-prominence width is
-        # the one that describes the peak rather than the background.
-        _widths, _heights, left_ips, right_ips = peak_widths(
-            signal, indices, rel_height=0.5
+    @staticmethod
+    def _settings(params: Mapping[str, Any]) -> PeakSettings:
+        """The filters, read off the parameter values."""
+        return PeakSettings(
+            filter_by=str(params.get("filter_by", "prominence")),
+            threshold=float(params.get("threshold", 0.05)),
+            distance=int(params.get("distance", 1)),
+            min_width=float(params.get("min_width", 0.0)),
+            limit=int(params.get("limit", 50)),
         )
-
-        # peak_widths returns fractional sample positions, so the x bounds have
-        # to be interpolated back onto the real axis rather than indexed.
-        sample_positions = np.arange(x_values.size, dtype=float)
-        left_x = np.interp(left_ips, sample_positions, x_values)
-        right_x = np.interp(right_ips, sample_positions, x_values)
-        width_in_x = right_x - left_x
-
-        found = [
-            Peak(
-                x=float(x_values[index]),
-                y=float(y_values[index]),
-                prominence=float(prominence),
-                width=float(width),
-                left_x=float(left),
-                right_x=float(right),
-                is_minimum=minimum,
-            )
-            for index, prominence, width, left, right in zip(
-                indices, prominences, width_in_x, left_x, right_x
-            )
-        ]
-
-        limit = int(params.get("limit", 50))
-        if len(found) > limit:
-            # Keep the most prominent, not the first: truncating in x order
-            # would discard the strongest peaks whenever they are late in the
-            # series.
-            found.sort(key=lambda peak: peak.prominence, reverse=True)
-            found = found[:limit]
-
-        return found
 
     # ------------------------------------------------------------------
     # Surfaces (a series with a z role): 2D local-maximum search
@@ -410,13 +323,7 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         """
         x_grid, y_grid, z_grid, interpolated = self.series_grid_xyz(row, name)
 
-        peaks: list[Peak] = []
-        if model in (PEAKS_MAXIMA, PEAKS_BOTH):
-            peaks.extend(self._search_3d(x_grid, y_grid, z_grid, params, minimum=False))
-        if model in (PEAKS_MINIMA, PEAKS_BOTH):
-            peaks.extend(self._search_3d(x_grid, y_grid, z_grid, params, minimum=True))
-
-        peaks.sort(key=lambda peak: (peak.x, peak.y))
+        peaks = find_peaks_2d(x_grid, y_grid, z_grid, _MODE[model], self._settings(params))
 
         return PeakResult(
             source_name=name,
@@ -430,81 +337,6 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
                 "interpolated": bool(interpolated),
             },
         )
-
-    def _search_3d(
-        self,
-        x_grid: np.ndarray,
-        y_grid: np.ndarray,
-        z_grid: np.ndarray,
-        params: Mapping[str, Any],
-        *,
-        minimum: bool,
-    ) -> list[Peak]:
-        """2D analogue of ``_search``: a local-maximum filter, not find_peaks.
-
-        ``scipy.signal.find_peaks`` is a 1D algorithm; a surface's local
-        maxima are found with ``scipy.ndimage.maximum_filter`` instead - a
-        cell is a candidate when it equals the maximum of its own
-        neighbourhood, and its "prominence" is how far it stands above the
-        *minimum* of that same neighbourhood (the 2D reading of the 1D
-        prominence idea: height above the nearest lower ground).
-
-        NaN cells - present only in an interpolated grid, outside the convex
-        hull of the original points (see ``series_grid_xyz``) - are pushed to
-        -inf before filtering so they can never win a maximum comparison, and
-        any candidate whose own cell was NaN, or whose neighbourhood touches
-        a NaN (making its "minimum" -inf and its prominence infinite), is
-        discarded rather than reported as a peak.
-        """
-        signal = -z_grid if minimum else z_grid
-        finite_mask = np.isfinite(signal)
-        if not np.any(finite_mask):
-            return []
-
-        finite_values = signal[finite_mask]
-        span = float(np.ptp(finite_values))
-        if span <= 0.0:
-            return []
-
-        threshold = float(params.get("threshold", 0.05)) * span
-        distance = max(1, int(params.get("distance", 1)))
-        neighborhood = 2 * distance + 1
-
-        masked = np.where(finite_mask, signal, -np.inf)
-        local_max = maximum_filter(masked, size=neighborhood, mode="nearest")
-        local_min = minimum_filter(masked, size=neighborhood, mode="nearest")
-        with np.errstate(invalid="ignore"):
-            prominence = masked - local_min
-
-        is_candidate = finite_mask & (masked == local_max) & np.isfinite(prominence)
-
-        if str(params.get("filter_by", "prominence")) == "height":
-            base = float(np.min(finite_values))
-            keep = is_candidate & (masked >= base + threshold)
-        else:
-            keep = is_candidate & (prominence >= max(threshold, 1e-12))
-
-        rows_idx, cols_idx = np.nonzero(keep)
-        found = [
-            Peak(
-                x=float(x_grid[r, c]),
-                y=float(y_grid[r, c]),
-                z=float(z_grid[r, c]),
-                prominence=float(prominence[r, c]),
-                width=float("nan"),
-                left_x=float("nan"),
-                right_x=float("nan"),
-                is_minimum=minimum,
-            )
-            for r, c in zip(rows_idx.tolist(), cols_idx.tolist())
-        ]
-
-        limit = int(params.get("limit", 50))
-        if len(found) > limit:
-            found.sort(key=lambda peak: peak.prominence, reverse=True)
-            found = found[:limit]
-
-        return found
 
     # ------------------------------------------------------------------
     # Results

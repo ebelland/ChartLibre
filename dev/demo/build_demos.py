@@ -729,22 +729,15 @@ def _surface_bump_fit_result() -> pd.DataFrame:
 
 def _surface_bump_peaks_result() -> pd.DataFrame:
     """The bump's single maximum, found by the Peaks operation's own 2D
-    search (SeriesPeaksDialog._search_3d) run directly on the exact grid -
+    search (app.analysis.peaks.find_peaks_2d) run directly on the exact grid -
     reused rather than re-implemented, so this table cannot drift from the
     real algorithm.
     """
-    from app.series_operations.peaks_dialog import PeakResult, SeriesPeaksDialog
+    from app.analysis.peaks import MAXIMA, PeakSettings, find_peaks_2d
+    from app.series_operations.peaks_dialog import PeakResult
 
     xx, yy, zz = _bump_grid_arrays()
-    dialog = SeriesPeaksDialog.__new__(SeriesPeaksDialog)
-    params = {
-        "filter_by": "prominence",
-        "threshold": 0.05,
-        "distance": 5,
-        "min_width": 0.0,
-        "limit": 50,
-    }
-    peaks = dialog._search_3d(xx, yy, zz, params, minimum=False)
+    peaks = find_peaks_2d(xx, yy, zz, MAXIMA, PeakSettings(distance=5))
     result = PeakResult(
         source_name="Bump",
         result_name="Bump - peaks",
