@@ -5,12 +5,6 @@ import sys
 
 from PySide6 import __file__ as PYSIDE6_FILE
 
-# Ensure Qt can locate its platform plugins.
-os.environ.setdefault(
-    "QT_QPA_PLATFORM_PLUGIN_PATH",
-    os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt", "plugins"),
-)
-
 
 def _unhide_qt_plugins(plugins_dir: str) -> None:
     """Clear macOS's "hidden" flag from Qt's plugins.
@@ -34,7 +28,6 @@ def _unhide_qt_plugins(plugins_dir: str) -> None:
             except OSError:
                 pass  # read-only install: nothing to fix, and Qt will say why
 
-
 _unhide_qt_plugins(os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt", "plugins"))
 # ----------------------------------------------------------------------
 # Logging
@@ -53,11 +46,9 @@ from app.utils.config import get_language, set_last_database
 from app.utils.i18n import install_qt_translations, set_language
 from app.utils.startup import select_database
 
-
 # ----------------------------------------------------------------------
 # CLI / bootstrap
 # ----------------------------------------------------------------------
-
 
 def run_app() -> int:
     # Before the QApplication is built: on macOS this is what Cocoa's native
@@ -112,7 +103,6 @@ def run_app() -> int:
         applogger.exception("Application startup failed: %s", exc)
         QMessageBox.critical(None, APP_NAME, f"Application startup failed:\n{exc}")
         return 1
-
 
 if __name__ == "__main__":
     raise SystemExit(run_app())
