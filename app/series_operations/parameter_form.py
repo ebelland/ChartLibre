@@ -29,12 +29,14 @@ from PySide6.QtWidgets import (
 from app.series_operations.parameter_spec import (
     BoolParam,
     ChoiceParam,
+    ColorParam,
     FloatParam,
     IntParam,
     Param,
     TextParam,
 )
 from app.utils.i18n import _
+from app.widgets.color_combo import MatplotlibColorCombo
 
 
 class ParameterForm:
@@ -116,6 +118,12 @@ class ParameterForm:
             widget.setChecked(param.default)
             widget.toggled.connect(self._changed)
 
+        elif isinstance(param, ColorParam):
+            widget = MatplotlibColorCombo(self.widget, include_none=False)
+            if not widget.set_current_hex(param.default):
+                widget.setCurrentIndex(0)
+            widget.currentIndexChanged.connect(self._changed)
+
         elif isinstance(param, TextParam):
             widget = QLineEdit(self.widget)
             widget.setText(param.default)
@@ -155,6 +163,8 @@ class ParameterForm:
 
     @staticmethod
     def _read_widget(widget: QWidget) -> Any:
+        if isinstance(widget, MatplotlibColorCombo):
+            return widget.current_hex()
         if isinstance(widget, QComboBox):
             return widget.currentData()
         if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
@@ -175,7 +185,9 @@ class ParameterForm:
 
             widget.blockSignals(True)
             try:
-                if isinstance(widget, QComboBox):
+                if isinstance(widget, MatplotlibColorCombo):
+                    widget.set_current_hex(str(value))
+                elif isinstance(widget, QComboBox):
                     widget.setCurrentIndex(max(0, widget.findData(value)))
                 elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
                     widget.setValue(value)

@@ -6094,3 +6094,27 @@ msgstr "Générateur de requêtes…"
 
 msgid "Open the Query Builder"
 msgstr "Ouvrir le Générateur de requêtes"
+
+msgid ""{series}" already has {existing}, so the outliers were not coloured and nothing was changed.\n\nRemove that colour first, or choose Hide instead."
+msgstr "« {series} » a déjà {existing} : les valeurs aberrantes n'ont pas été colorées et rien n'a été modifié.\n\nEnlevez d'abord cette couleur, ou choisissez Masquer."
+
+msgid "Outliers:"
+msgstr "Valeurs aberrantes :"
+
+msgid "Hide them"
+msgstr "Les masquer"
+
+msgid "Colour them"
+msgstr "Les colorer"
+
+msgid "Colour:"
+msgstr "Couleur :"
+
+msgid "Hide takes the outliers off the chart (they stay in the table, flagged Hide). Colour keeps them on the chart and draws them in the colour below."
+msgstr "Masquer retire les valeurs aberrantes du graphique (elles restent dans la table, marquées Hide). Colorer les garde sur le graphique et les dessine dans la couleur ci-dessous."
+
+msgid "The colour the outliers are drawn in."
+msgstr "La couleur dans laquelle les valeurs aberrantes sont dessinées."
+
+msgid "a colour column in its query"
+msgstr "une colonne de couleur dans sa requête"

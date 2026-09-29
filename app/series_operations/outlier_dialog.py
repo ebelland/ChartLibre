@@ -1,10 +1,12 @@
-"""Dialog for outlier detection and Hide-column marking on chart series.
+"""Dialog for outlier detection: hide the outliers, or colour them.
 
 The dialog only owns UI, preview and numeric outlier detection.  All database
 management is delegated to SqliteRepo:
 - creating/resetting the Hide column
 - marking rows as hidden
 - updating series SQL with the Hide filter
+- or, to colour instead, writing a colour column and exposing it through the
+  series' "color" projection (which the scatter renderer draws per point)
 """
 from __future__ import annotations
 
@@ -26,8 +28,9 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import OneClassSVM
 
 from app.data.data_source import parse_roles, row_value
+from app.data.select_sql import has_projection_alias, sql_insert_select_expression
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.parameter_spec import FloatParam, IntParam
+from app.series_operations.parameter_spec import ChoiceParam, ColorParam, FloatParam, IntParam
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     OperationModel,
@@ -53,6 +56,15 @@ OUTLIER_ISOLATION_FOREST = "Isolation Forest"
 OUTLIER_LOCAL_OUTLIER_FACTOR = "Local Outlier Factor"
 OUTLIER_ONE_CLASS_SVM = "One-Class SVM"
 OUTLIER_ELLIPTIC_ENVELOPE = "Elliptic Envelope"
+
+#: What is done with the outliers found.
+ACTION_HIDE = "hide"
+ACTION_COLOUR = "colour"
+
+#: The column that holds the colour of each point in the source table, and
+#: the projection that hands it to the renderer.
+COLOUR_COLUMN = "OutlierColor"
+COLOUR_PROJECTION = f'"{COLOUR_COLUMN}" AS "color"'
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -155,6 +167,24 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
     # visibility rules that used to live in code are now the same data the
     # widgets are built from, so the two cannot drift apart.
     PARAMS = (
+        ChoiceParam(
+            "action",
+            "Outliers:",
+            tooltip=(
+                "Hide takes the outliers off the chart (they stay in the table, "
+                "flagged Hide). Colour keeps them on the chart and draws them "
+                "in the colour below."
+            ),
+            choices=(("Hide them", ACTION_HIDE), ("Colour them", ACTION_COLOUR)),
+            default_value=ACTION_HIDE,
+        ),
+        ColorParam(
+            "colour",
+            "Colour:",
+            tooltip="The colour the outliers are drawn in.",
+            default_value="#d62728",
+            visible_for={"action": (ACTION_COLOUR,)},
+        ),
         FloatParam(
             "threshold",
             "Threshold:",
@@ -240,6 +270,7 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         self._preview_hide_snapshots: dict[str, list[int]] = {}
         self._preview_series_sql: dict[int, str] = {}
         self._preview_state_tables: set[str] = set()
+        self._preview_colour_snapshots: dict[str, dict[int, str] | None] = {}
 
         super().__init__(
             repo=repo,
@@ -717,14 +748,20 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
 
 
     @staticmethod
-    def _format_results(results: Sequence[OutlierResult]) -> str:
+    def _format_results(results: Sequence[OutlierResult], colour: str | None = None) -> str:
         lines: list[str] = []
         for result in results:
             lines.append(result.source_name)
-            lines.append(result.message)
+            if colour is None:
+                lines.append(result.message)
+            else:
+                lines.append(f"Detected {result.outlier_count} outlier(s); apply colours them {colour}")
             lines.append(f"Source table: {result.source_table}")
             lines.append(f"Outliers: {result.outlier_count}")
-            lines.append(f"Rows marked Hide=True on apply: {result.outlier_count}")
+            if colour is None:
+                lines.append(f"Rows marked Hide=True on apply: {result.outlier_count}")
+            else:
+                lines.append(f"Points coloured on apply: {result.outlier_count}")
             lines.append("")
         return "\n".join(lines).strip()
 
@@ -741,7 +778,12 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         return generated_table_name("Outlier_Hide_Flags")
 
     def format_results(self, results: Sequence[OutlierResult]) -> str:
-        return self._format_results(results)
+        return self._format_results(results, self._colour_choice())
+
+    def _colour_choice(self) -> str | None:
+        """The colour the outliers will be drawn in, or None when they are to be hidden."""
+        params = self.parameter_values()
+        return str(params.get("colour", "")) if params.get("action") == ACTION_COLOUR else None
 
     def _ensure_preview_state_attrs(self) -> None:
         """Create preview bookkeeping attributes if an older instance lacks them."""
@@ -751,6 +793,8 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             self._preview_series_sql: dict[int, str] = {}
         if not hasattr(self, "_preview_state_tables"):
             self._preview_state_tables: set[str] = set()
+        if not hasattr(self, "_preview_colour_snapshots"):
+            self._preview_colour_snapshots: dict[str, dict[int, str] | None] = {}
 
     def _hidden_rowids(self, table_name: str) -> list[int]:
         if not self._repo.is_open:
@@ -786,6 +830,42 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
                     str(result.metadata.get("source_sql_query", "")),
                 )
 
+    @staticmethod
+    def _foreign_colour(result: OutlierResult) -> str:
+        """What colours the series already, when it is not this operation's own doing.
+
+        Empty when the series has no colour of its own - or has only the one a
+        previous run of this dialog gave it, which a new run may replace.
+        """
+        sql = str(result.metadata.get("source_sql_query", ""))
+        if has_projection_alias(sql, "color") and COLOUR_PROJECTION.lower() not in " ".join(sql.lower().split()):
+            return _("a colour column in its query")
+        return ""
+
+    def _apply_colour_results(self, results: Sequence[OutlierResult], colour: str) -> None:
+        """Colour the outliers' rows and make each series draw that column."""
+        for result in results:
+            table = result.source_table
+            if table not in self._preview_colour_snapshots:
+                self._preview_colour_snapshots[table] = self._repo.colour_snapshot(table, COLOUR_COLUMN)
+            self._repo.set_row_colours(
+                table, COLOUR_COLUMN, [int(rowid) for rowid in result.outlier_rowids], colour
+            )
+            series_id = result.metadata.get("source_series_id")
+            if series_id is not None:
+                self._repo.update_series_sql_query(
+                    int(series_id),
+                    sql_insert_select_expression(
+                        str(result.metadata.get("source_sql_query", "")), COLOUR_PROJECTION
+                    ),
+                )
+
+    def _restore_colour_state(self) -> None:
+        """Undo the colouring a preview did: the column's old values, the series' old query."""
+        for table, snapshot in self._preview_colour_snapshots.items():
+            self._repo.restore_row_colours(table, COLOUR_COLUMN, snapshot)
+        self._preview_colour_snapshots.clear()
+
     def _prepare_preview_state_columns(self, results: Sequence[OutlierResult]) -> None:
         """Snapshot Hide/ClusterId to _Hide/_ClusterId before mutating source tables."""
         self._ensure_preview_state_attrs()
@@ -796,14 +876,18 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
                 self._preview_state_tables.add(table_name)
 
     def preview(self) -> bool:
-        """Temporarily apply Hide flags so the chart updates, without closing."""
+        """Temporarily apply the Hide flags (or the colour) so the chart updates, without closing."""
         self._ensure_preview_state_attrs()
         try:
+            params = self.parameter_values()
+            colour = str(params.get("colour", "")) if params.get("action") == ACTION_COLOUR else None
+
             # If Preview is clicked repeatedly, first restore the source table to
             # the pre-preview snapshot, but keep _Hide/_ClusterId as the original baseline.
             if self._preview_active:
                 for table_name in list(self._preview_state_tables):
                     self._repo.restore_preview_state_columns(table_name)
+                self._restore_colour_state()
                 for series_id, sql_query in self._preview_series_sql.items():
                     self._repo.update_series_sql_query(int(series_id), str(sql_query))
 
@@ -811,13 +895,31 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             if not results:
                 show_message(self, "series.no_series_selected", title=self.operation_label)
                 return False
+
+            if colour is not None:
+                for result in results:
+                    existing = self._foreign_colour(result)
+                    if existing:
+                        # Nothing is applied: colouring would overwrite it.
+                        show_message(
+                            self, "outliers.colour_present",
+                            series=result.source_name, existing=existing,
+                        )
+                        self._preview_active = False
+                        self._preview_series_sql.clear()
+                        return False
+
             self._snapshot_outlier_state(results)
-            self._prepare_preview_state_columns(results)
-            self._apply_hide_results(results)
+            if colour is None:
+                self._prepare_preview_state_columns(results)
+                self._apply_hide_results(results)
+            else:
+                self._apply_colour_results(results, colour)
             self.store_cached_results(results)
             self._preview_active = True
             self.applied.emit()
-            message = f"Preview updated: Hide column updated for {len(results)} series."
+            what = "Hide column updated" if colour is None else f"outliers coloured {colour}"
+            message = f"Preview updated: {what} for {len(results)} series."
             detail = self.format_results(results)
             self.set_results_text(f"{detail}\n\n{message}" if detail else message)
             return True
@@ -843,16 +945,18 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             self._preview_hide_snapshots.clear()
             self._preview_series_sql.clear()
             self._preview_state_tables.clear()
+            self._preview_colour_snapshots.clear()
             self.accept()
 
     def cancel_operation_changes(self, *, refresh: bool = True) -> None:
         """Restore Hide/ClusterId from _Hide/_ClusterId and restore source SQL."""
         self._ensure_preview_state_attrs()
-        if not self._preview_active and not self._preview_state_tables:
+        if not self._preview_active and not self._preview_state_tables and not self._preview_colour_snapshots:
             return
         for table_name in list(self._preview_state_tables):
             self._repo.restore_preview_state_columns(table_name)
             self._repo.drop_preview_state_columns(table_name)
+        self._restore_colour_state()
         for series_id, sql_query in self._preview_series_sql.items():
             self._repo.update_series_sql_query(int(series_id), str(sql_query))
         self._preview_active = False

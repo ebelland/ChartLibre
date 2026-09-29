@@ -1089,6 +1089,11 @@
       "title": "No parameters",
       "text": "The latest fit has no parameters to copy."
     },
+    "outliers.colour_present": {
+      "level": "warning",
+      "title": "Outliers",
+      "text": "\"{series}\" already has {existing}, so the outliers were not coloured and nothing was changed.\n\nRemove that colour first, or choose Hide instead."
+    },
     "series.no_series_selected": {
       "level": "info",
       "title": "Series operation",

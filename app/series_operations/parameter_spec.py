@@ -190,6 +190,21 @@ class TextParam(Param):
         return "" if value is None else str(value)
 
 
+@dataclass(frozen=True, slots=True)
+class ColorParam(Param):
+    """A colour, chosen from the application's colour list; the value is its hex code."""
+
+    default_value: str = "#d62728"
+
+    @property
+    def default(self) -> str:
+        return str(self.default_value)
+
+    def coerce(self, value: Any) -> str:
+        text = "" if value is None else str(value).strip()
+        return text if text else self.default
+
+
 def defaults(params: Sequence[Param]) -> dict[str, Any]:
     """Return every parameter's default, keyed by name."""
     return {param.name: param.default for param in params}

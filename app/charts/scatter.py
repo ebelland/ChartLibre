@@ -245,7 +245,13 @@ class ScatterAxisRenderer(BaseAxisRenderer):
         """Whether every distinct non-empty value is a Matplotlib colour spec."""
         from matplotlib.colors import is_color_like
 
-        return all(is_color_like(value) for value in pd.unique(values.dropna()))
+        # An empty cell is "no colour of its own" (the series' colour), not
+        # a category to number.
+        return all(
+            is_color_like(value)
+            for value in pd.unique(values.dropna())
+            if str(value).strip() != ""
+        )
 
     @staticmethod
     def _x_values(column: Any) -> tuple[pd.Series, bool]:
@@ -327,7 +333,12 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             if color is not None and color_source is not None:
                 masked_color_source = color_source[mask]
                 if color_is_literal:
-                    color_values = color[mask].to_numpy()
+                    # A row with no colour of its own takes the series' -
+                    # what lets a column colour only some of the points
+                    # (the outliers) and leave the rest as they were.
+                    literal = color[mask]
+                    blank = literal.isna() | (literal.astype(str).str.strip() == "")
+                    color_values = literal.where(~blank, self.series_color(style, series_index)).to_numpy()
                 else:
                     color_is_discrete = self.is_discrete_integer_color(masked_color_source)
                     color_values = color[mask].to_numpy(dtype=float)

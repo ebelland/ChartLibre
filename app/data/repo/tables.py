@@ -684,10 +684,15 @@ class TablesMixin(RepoHost):
             for row in self._con.execute(f"PRAGMA table_info({table_sql})").fetchall()
         }
         if col_name not in columns:
+            # An INTEGER column is a flag or an id and starts at 0; any other
+            # kind starts empty. (The conditional used to bind to the whole
+            # expression, so every non-INTEGER column ran an empty statement
+            # and was never added.)
+            default = " NOT NULL DEFAULT 0" if col_type == "INTEGER" else ""
             self._con.execute(
-                f"ALTER TABLE {table_sql} ADD COLUMN {_quote_ident(col_name)} {col_type}" + " NOT NULL DEFAULT 0" if col_type=="INTEGER" else ""     
+                f"ALTER TABLE {table_sql} ADD COLUMN {_quote_ident(col_name)} {col_type}{default}"
             )
-            self._commit()      
+            self._commit()
 
     @ensure_connection_wrapper
     def get_series_sql_query(self, series_id: int) -> str | None:
@@ -919,6 +924,57 @@ class TablesMixin(RepoHost):
         )
         return hidden_count
 
+
+    @ensure_connection_wrapper
+    def colour_snapshot(self, table_name: str, column: str) -> dict[int, str] | None:
+        """The colours held in *column* of a table, by rowid; None when there is no such column."""
+        assert self._con is not None
+        if column not in self.get_columns(table_name):
+            return None
+        rows = self._con.execute(
+            f"SELECT rowid, {_quote_ident(column)} FROM {_quote_ident(table_name)} "
+            f"WHERE {_quote_ident(column)} IS NOT NULL AND {_quote_ident(column)} != ''"
+        ).fetchall()
+        return {int(row[0]): str(row[1]) for row in rows}
+
+    @ensure_connection_wrapper
+    def set_row_colours(self, table_name: str, column: str, rowids: Sequence[int], colour: str) -> int:
+        """Give exactly *rowids* the text *colour* in *column*, and every other row none.
+
+        The column is created (TEXT) when it is not there. The chart reads
+        it as a per-point colour: a row with none is drawn in the series' own.
+        Returns how many rows were coloured.
+        """
+        assert self._con is not None
+        self.ensure_column(table_name, column, "TEXT")
+        table_sql, column_sql = _quote_ident(table_name), _quote_ident(column)
+        self._con.execute(f"UPDATE {table_sql} SET {column_sql} = NULL")
+        coloured = 0
+        for rowid in rowids:
+            cursor = self._con.execute(
+                f"UPDATE {table_sql} SET {column_sql} = ? WHERE rowid = ?", (str(colour), int(rowid))
+            )
+            coloured += max(0, int(cursor.rowcount or 0))
+        self._commit()
+        return coloured
+
+    @ensure_connection_wrapper
+    def restore_row_colours(self, table_name: str, column: str, snapshot: dict[int, str] | None) -> None:
+        """Put *column* back as a :meth:`colour_snapshot` found it: None drops the column."""
+        assert self._con is not None
+        if snapshot is None:
+            if column in self.get_columns(table_name):
+                self._con.execute(
+                    f"ALTER TABLE {_quote_ident(table_name)} DROP COLUMN {_quote_ident(column)}"
+                )
+                self._commit()
+            return
+        self.ensure_column(table_name, column, "TEXT")
+        table_sql, column_sql = _quote_ident(table_name), _quote_ident(column)
+        self._con.execute(f"UPDATE {table_sql} SET {column_sql} = NULL")
+        for rowid, colour in snapshot.items():
+            self._con.execute(f"UPDATE {table_sql} SET {column_sql} = ? WHERE rowid = ?", (colour, int(rowid)))
+        self._commit()
 
     @ensure_connection_wrapper
     def apply_outlier_hide_flags(

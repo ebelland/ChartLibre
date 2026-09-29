@@ -6097,3 +6097,27 @@ msgstr "Query Builder…"
 
 msgid "Open the Query Builder"
 msgstr "Apri il Query Builder"
+
+msgid ""{series}" already has {existing}, so the outliers were not coloured and nothing was changed.\n\nRemove that colour first, or choose Hide instead."
+msgstr ""{series}" ha già {existing}: gli anomali non sono stati colorati e non è stato cambiato nulla.\n\nTogli prima quel colore, oppure scegli Nascondi."
+
+msgid "Outliers:"
+msgstr "Anomali:"
+
+msgid "Hide them"
+msgstr "Nascondili"
+
+msgid "Colour them"
+msgstr "Colorali"
+
+msgid "Colour:"
+msgstr "Colore:"
+
+msgid "Hide takes the outliers off the chart (they stay in the table, flagged Hide). Colour keeps them on the chart and draws them in the colour below."
+msgstr "Nascondi toglie gli anomali dal grafico (restano nella tabella, con il flag Hide). Colora li tiene sul grafico e li disegna nel colore qui sotto."
+
+msgid "The colour the outliers are drawn in."
+msgstr "Il colore con cui vengono disegnati gli anomali."
+
+msgid "a colour column in its query"
+msgstr "una colonna colore nella query"
