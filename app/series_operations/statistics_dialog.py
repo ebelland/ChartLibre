@@ -552,16 +552,13 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             return pd.DataFrame()
 
         try:
-            with self._repo.connect() as con:
-                if sql.lower().startswith(("select", "with")):
-                    return pd.read_sql_query(sql, con)
+            if sql.lower().startswith(("select", "with")):
+                return self._repo.query_df(sql)
 
-                # Treat a bare descriptor value as a physical table name.
-                table_name = sql.strip().strip('"')
-                if table_name:
-                    return pd.read_sql_query(
-                        f"SELECT * FROM {quote_identifier(table_name)}", con
-                    )
+            # Treat a bare descriptor value as a physical table name.
+            table_name = sql.strip().strip('"')
+            if table_name:
+                return self._repo.table_frame(table_name)
         except Exception:
             applogger.debug("Failed to read series data for statistics.", exc_info=True)
         return pd.DataFrame()

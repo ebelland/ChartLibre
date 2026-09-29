@@ -616,7 +616,6 @@ class LazyTableModel(QAbstractTableModel):
         self._chunk_size = 5000
         self._cache: dict[int, list[list[Any]]] = {}
         self._chunk_rowid: dict[int, int] = {}
-        self._select_sql = f"SELECT rowid, * FROM {self._table_q} WHERE rowid > ? ORDER BY rowid LIMIT ?"
         self._load_schema_and_count()
 
     @property
@@ -628,7 +627,7 @@ class LazyTableModel(QAbstractTableModel):
         return self._table
 
     def _load_schema_and_count(self) -> None:
-        if self._repo._con is None:
+        if not self._repo.is_open:
             return
         rows = self._repo.table_info(self._table_q)
         self._columns = [str(row[1]) for row in rows]
@@ -675,10 +674,9 @@ class LazyTableModel(QAbstractTableModel):
 
     def _fetch_chunk(self, chunk_index: int) -> list[list[Any]]:
         last_rowid = self._chunk_rowid.get(chunk_index - 1, 0) if chunk_index > 0 else 0
-        if self._repo._con is None:
+        if not self._repo.is_open:
             return []
-        cursor = self._repo._con.execute(self._select_sql, (last_rowid, self._chunk_size))
-        rows = cursor.fetchall()
+        rows = self._repo.read_rows_after_rowid(self._table, last_rowid, self._chunk_size)
         if not rows:
             return []
         self._chunk_rowid[chunk_index] = int(rows[-1][0])

@@ -25,7 +25,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import OneClassSVM
 
-from app.data.data_source import parse_roles, quote_identifier, row_value
+from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.parameter_spec import FloatParam, IntParam
 from app.series_operations.results import TableResult
@@ -743,11 +743,6 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
     def format_results(self, results: Sequence[OutlierResult]) -> str:
         return self._format_results(results)
 
-    @staticmethod
-    def _quote_ident_local(name: str) -> str:
-        """Kept as a local name; the implementation is the shared one."""
-        return quote_identifier(name)
-
     def _ensure_preview_state_attrs(self) -> None:
         """Create preview bookkeeping attributes if an older instance lacks them."""
         if not hasattr(self, "_preview_hide_snapshots"):
@@ -758,13 +753,9 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             self._preview_state_tables: set[str] = set()
 
     def _hidden_rowids(self, table_name: str) -> list[int]:
-        self._repo.ensure_hide_column(table_name)
-        con = getattr(self._repo, "_con", None)
-        if con is None:
+        if not self._repo.is_open:
             return []
-        quoted = self._quote_ident_local(table_name)
-        rows = con.execute(f'SELECT rowid FROM {quoted} WHERE "Hide" = 1').fetchall()
-        return [int(row[0]) for row in rows]
+        return self._repo.hidden_rowids(table_name)
 
     def _snapshot_outlier_state(self, results: Sequence[OutlierResult]) -> None:
         self._ensure_preview_state_attrs()

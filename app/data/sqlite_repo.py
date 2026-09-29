@@ -616,13 +616,6 @@ class SqliteRepo(
         )
 
 
-    @contextmanager
-    @ensure_connection_wrapper
-    def connect(self):
-        """Context manager yielding the shared SQLite connection."""
-        yield self._con
-
-
     # =====================================================================
     # Preview savepoints
     # =====================================================================

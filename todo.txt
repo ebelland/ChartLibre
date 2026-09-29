@@ -25,7 +25,6 @@ Ogni fase si chiude con i test verdi, Pyright a zero e un push. Una fase
 lasciata a metà non fa danni: ogni voce si chiude da sola.
 
 Fase 0 - Subito, quasi senza crediti  (1 sessione S + cose tue)
-  P0-1  Filtro: taglio predefinito relativo a fs.
   A-01  Numeri tagliati nei campi stretti di Opzioni grafico.
   A-02  main.py: percorso dei plugin di piattaforma da correggere.
   A-03  [TU] Provare ChartLibre.exe e ChartLibre.bat su Windows.
@@ -58,7 +57,6 @@ Fase 3 - Arrivare a chi non usa Python  (M-L)
 
 Fase 4 - Manutenibilità  (M, anche a pezzi tra una fase e l'altra)
   R-10  Dividere i file troppo grandi.
-  R-11  SQL residuo fuori da app/data.
   R-01b Classe base delle operazioni: ultimi metodi comuni.
   R-12  Gestione degli errori più stretta.
 
@@ -79,12 +77,7 @@ Fase 6 - Idee da decidere  (P4)
 ================================================================
 P0 - RISULTATI SBAGLIATI O LAVORO BLOCCATO
 ================================================================
-P0-1  S  Filtro su dati con date: il taglio predefinito (1) supera la
-      frequenza di Nyquist quando fs viene ricavata dalle date in secondi,
-      quindi Anteprima fallisce finché l'utente non lo cambia. Proporre un
-      taglio relativo a fs (per esempio fs/10) e aggiornarlo quando fs
-      cambia. Verificato ancora aperto il 2026-09-29 (filter_dialog.py:
-      _cutoff1_spin 1.0, _cutoff2_spin 5.0 fissi).
+(nessuna voce aperta: P0-1, il taglio del filtro, è stato chiuso il 2026-09-29)
 
 
 ================================================================
@@ -246,17 +239,6 @@ R-10  P3  M  File troppo grandi.
       in zoom/geometria, barra strumenti, interazioni; style in icone,
       fogli di stile, widget di base; build_demos in un file per demo.
       Conviene farlo dopo R-01, che alleggerisce già i dialoghi.
-
-R-11  P3  S  SQL residuo fuori da app/data (regola del progetto).
-      Statistiche e Geometria sono a posto. Restano:
-      - table_preview.py e table_editor_dialog.py leggono i blocchi di
-        righe con repo._con (LazyTableModel): serve un metodo del
-        repository per leggere un blocco dopo un rowid;
-      - SELECT composte nei widget: chart_panel.py, create_chart_dialog.py,
-        table_list.py e database_info_panel.py (esportazione),
-        peaks_dialog.py.
-      Il Query Builder è un'eccezione legittima: il suo compito è scrivere
-      SQL per l'utente.
 
 R-01b P3  S  Classe base delle operazioni: candidati rimasti da spostare in
       SeriesOperationDialogBase - _refresh_visibility (14 varianti),

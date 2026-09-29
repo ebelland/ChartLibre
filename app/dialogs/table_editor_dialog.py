@@ -88,10 +88,9 @@ class EditableTableModel(LazyTableModel):
 
     def _fetch_chunk(self, chunk_index: int) -> list[list[Any]]:
         last_rowid = self._chunk_rowid.get(chunk_index - 1, 0) if chunk_index > 0 else 0
-        if self._repo._con is None:
+        if not self._repo.is_open:
             return []
-        cursor = self._repo._con.execute(self._select_sql, (last_rowid, self._chunk_size))
-        rows = cursor.fetchall()
+        rows = self._repo.read_rows_after_rowid(self._table, last_rowid, self._chunk_size)
         if not rows:
             self._rowids[chunk_index] = []
             return []

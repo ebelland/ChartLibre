@@ -246,6 +246,10 @@ class TablesMixin(RepoHost):
         where = ' WHERE COALESCE("Hide", 0) = 0' if "Hide" in self.get_columns(table_name) else ""
         return self.query_df(f"SELECT * FROM {_quote_ident(table_name)}{where}")
 
+    def table_frame(self, table_name: str) -> pd.DataFrame:
+        """Every row of a table, hidden ones included, as a DataFrame."""
+        return self.query_df(f"SELECT * FROM {_quote_ident(table_name)}")
+
     def validate_query(self, sql: str) -> tuple[bool, str]:
         """Return (ok, message) for a candidate saved query.
 
@@ -400,6 +404,40 @@ class TablesMixin(RepoHost):
             return len(columns)
         except Exception:
             return 0
+
+    @property
+    def is_open(self) -> bool:
+        """True while the connection is open.
+
+        Every other method reopens a closed connection on demand; a widget
+        that outlives a database switch asks this first, so it can show
+        nothing instead of quietly reading the file that replaced its own.
+        """
+        return self._is_connected and self._con is not None
+
+    @ensure_connection_wrapper
+    def read_rows_after_rowid(self, table: str, last_rowid: int, limit: int) -> list[tuple[Any, ...]]:
+        """Return up to *limit* rows of *table* with a rowid above *last_rowid*.
+
+        Each row is ``(rowid, *columns)``, in rowid order. Reading a table in
+        blocks by "the rowid after the last one seen" rather than by OFFSET
+        keeps every block as cheap as the first - the way the table preview
+        and the table editor page through a table of any size.
+        """
+        assert self._con is not None
+        cursor = self._con.execute(
+            f"SELECT rowid, * FROM {_quote_ident(table)} WHERE rowid > ? ORDER BY rowid LIMIT ?",
+            (int(last_rowid), int(limit)),
+        )
+        return [tuple(row) for row in cursor.fetchall()]
+
+    @ensure_connection_wrapper
+    def hidden_rowids(self, table: str) -> list[int]:
+        """Return the rowids of the rows of *table* marked Hide."""
+        self.ensure_hide_column(table)
+        assert self._con is not None
+        rows = self._con.execute(f'SELECT rowid FROM {_quote_ident(table)} WHERE "Hide" = 1').fetchall()
+        return [int(row[0]) for row in rows]
 
     @ensure_connection_wrapper
     def row_count(self, table: str) -> int:
