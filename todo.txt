@@ -1,431 +1,148 @@
 ChartLibre TODO
-In ordine di priorità: prima il piano d'azione, poi le voci, dalla più
-urgente. Rivisto il 2026-10-01.
+Updated 2026-10-01. Highest priority first.
 
-Priorità:  P0 = risultati sbagliati o lavoro bloccato
-           P1 = fondamenta: il resto dipende da queste
-           P2 = valore alto per chi usa l'app
-           P3 = utile, quando le fondamenta sono pronte
-           P4 = idee, da decidere se farle
+Priority  P0 wrong results / blocked   P1 foundations   P2 high value
+          P3 useful later              P4 ideas, undecided
+Effort    S one session   M 2-3 sessions   L 4+ sessions   [YOU] no code needed
 
-Impegno:   S = una sessione di lavoro con Claude
-           M = 2-3 sessioni
-           L = 4 o più sessioni
-           [TU] = la fai tu, non servono crediti
-
-Stato misurato (2026-10-01): 157 file Python in app/, circa 77.700 righe;
-726 test in 73 file; 19 operazioni sulle serie (13 con il calcolo già
-separato, R-01); circa 29 tipi di grafico; cataloghi it e fr completi, de e
-es iniziati (vedi A-07). Pyright/Pylance: 0 errori.
-
-Chiuso il 2026-09-29/30: P0-1 (taglio del filtro "Auto"), R-11 (SQL solo in
-app/data), A-01 (numeri tagliati), A-02 (plugin Qt in main.py), installer
-del venv (install.py), Outlier "Colorali" invece di nasconderli, barra di
-navigazione e tasti finestra di Windows, Log viewer in Sviluppatore, scheda
-Demo nella pagina File, "Query Builder…" nel menu della lista tabelle.
+State: ~78k lines in app/, 1000 tests, Pyright 0 errors, 19 series
+operations, ~29 chart types, it/fr complete, de/es started.
 
 
 ================================================================
-PIANO D'AZIONE
+NEXT
 ================================================================
-Ogni fase si chiude con i test verdi, Pyright a zero e un push. Una fase
-lasciata a metà non fa danni: ogni voce si chiude da sola.
-
-Fase 0 - Segnalazioni aperte, poi cose tue  (1 sessione S)
-  W-01  Windows: riquadri del pannello sinistro attaccati al bordo destro e in basso.
-  W-02  Windows: pannello dei grafici con angoli alti squadrati sopra quelli tondi.
-  W-03  Pagina Sviluppatore: titoli e pulsanti troncati in italiano.
-  O-01  Outlier "non nasconde più": da riprodurre con il caso dell'utente.
-  A-03  [TU] Provare ChartLibre.exe e ChartLibre.bat su Windows.
-  A-04  [TU] Spostare il progetto fuori dalla Scrivania di iCloud.
-  A-05  [TU] GitHub: descrizione, argomenti, prima release.
-
-Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
-  Stato: R-01, R-02 e R-13 fatti (2026-10-01); R-03 in corso.
-  R-02  Calcoli lunghi in background (fatto per 11 operazioni + Fit).
-  R-13  Test di validazione numerica (NIST): fatto per Fit, polinomi, Statistiche.
-  R-03  Riproducibilità: registrazione e cronologia fatte; restano rieseguire ed esportare.
-
-Fase 2 - Ciò che chiede chi fa analisi  (circa L: 6-8 sessioni)
-  R-08  Metadati delle colonne (serve a R-04 e agli assi con unità).
-  R-04  Statistica mancante rispetto a SPSS e JMP.
-  R-05  Fit: pesi da colonna di errori, fit globale.
-  R-06  Grafici diagnostici (Q-Q, pair plot, Kaplan-Meier...).
-  P2-12 Anteprima grafica accanto ai risultati delle operazioni.
-  R-09  Esportazione per la pubblicazione.
-
-Fase 3 - Arrivare a chi non usa Python  (M-L)
-  R-14  Pacchetto autonomo firmato (macOS) e installer (Windows).
-  A-06  Provare su Linux (mai lanciata) - meglio con un collaboratore.
-  A-07  Completare tedesco e spagnolo (tradotti a macchina: da rileggere).
-  A-08  Traduci mancanti con DeepL (chiave gratuita), oltre a Google e
-        MyMemory.
-
-Fase 4 - Manutenibilità  (M, anche a pezzi tra una fase e l'altra)
-  R-10  Dividere i file troppo grandi.
-  R-01b Classe base delle operazioni: ultimi metodi comuni.
-  R-12  Gestione degli errori più stretta.
-
-Fase 5 - Interattività e comodità  (M-L)
-  R-07  Selezione collegata tra grafici e tabella (alla JMP).
-  N-01, N-06, N-09  Tabelle: voci mancanti nel pannello Database,
-        Nascondi righe in Modifica tabella, Colora in base al valore.
-  P2-20 Visualizzatore HTML dei grafici di un progetto.
-  R-15  Accessibilità e colori.
-
-Fase 6 - Idee da decidere  (P4)
-  P2-21, P2-22 3D: campi vettoriali, curve parametriche.
-  P2-19 pysym: operazioni scritte dall'utente in Python.
-  N-02  Esportazione script/notebook, unità (pint), incertezze, console.
-  R-16  DOE, modelli misti, analisi della potenza.
+1. W-01, W-02, W-03   Windows layout fixes
+2. O-01               Outlier hide - needs the user's case
+3. R-03               Reproducibility: re-run, script export
+4. R-08 -> R-04 -> R-05 -> R-06 -> P2-12 -> R-09   Analysis features
+5. R-14, A-06, A-07, A-08                          Reach non-Python users
 
 
 ================================================================
-P0 - RISULTATI SBAGLIATI O LAVORO BLOCCATO
+OPEN BUGS AND SMALL FIXES
 ================================================================
-(nessuna voce aperta)
-
-
-================================================================
-A - PICCOLE CORREZIONI E COSE DA FARE FUORI DAL CODICE
-================================================================
-W-01  S  Windows (segnalato 2026-09-30, con foto): nella pagina File i
-      riquadri (Area di lavoro, Demo, Importa, Salva, Apri recenti) toccano il
-      bordo destro del pannello e quello in basso. Misurato: le schede vanno
-      da x=209 a 439 in un pannello largo 440 e finiscono a y=775 su 776 -
-      margine destro e inferiore zero, anche su macOS (dove non si nota
-      perché il fondo è uguale). Dare alla pagina un margine destro e uno
-      inferiore come quello sinistro (MARGIN_TOOLBOX_PAGE), su tutte le
-      pagine del pannello: File, Database, Sviluppatore, Opzioni grafico.
-
-W-02  S  Windows: il pannello di destra con i grafici (#chartSurfaceCard, un
-      CardFrame con angoli arrotondati da 12 px nello stile Fluent) ha i
-      figli in alto - barra con avanti/indietro e titolo, barra strumenti -
-      con lo sfondo squadrato, che copre gli angoli tondi. O togliere
-      l'arrotondamento a quel riquadro su Windows (è una superficie, non una
-      scheda, come già su macOS) o arrotondare/rendere trasparenti i figli.
-      Verificare con lo stile Fluent reso su macOS e con un test di geometria.
-
-W-03  S  Pagina Sviluppatore in italiano: "Costruttore di operazioni sulle
-      s…" troncato nel titolo e nel pulsante. Accorciare le etichette
-      (it/fr) o far andare a capo il titolo.
-
-O-01  S  Outlier "i dati non sono messi hide" (segnalato 2026-09-30). Riprovato
-      con dati di prova: Anteprima e OK nascondono le righe giuste (58 su 60
-      restano nella query della serie) e i test lo confermano. Serve il caso
-      dell'utente: quale progetto, quale metodo, se la serie aveva già un
-      filtro Hide o una colonna colore, se è stato premuto OK o chiusa la
-      finestra (chiudere senza OK annulla l'anteprima, per scelta).
-
-A-03  [TU] ChartLibre.exe (compilato con Zig) e ChartLibre.bat non sono mai
-      stati provati su Windows. Doppio clic da una cartella copiata: deve
-      creare .venv, installare i pacchetti e aprire l'app senza finestra
-      di console.
-
-A-04  [TU] Il progetto sta sulla Scrivania sincronizzata con iCloud. iCloud
-      marca come nascosto tutto ciò che è dentro .venv e .git (causa del
-      crash "Could not find the Qt platform plugin cocoa", ora aggirato
-      all'avvio) e può togliere file dal disco per risparmiare spazio.
-      Spostare la cartella, per esempio in ~/Developer.
-
-A-05  [TU] GitHub: descrizione e argomenti del repository, immagine di
-      anteprima (docs/images/social_preview.png è pronta), una prima
-      release con le note. Richiede l'accesso al tuo account.
+W-01  S  Windows: left-panel cards touch the right and bottom edges.
+         - Add right/bottom margin = MARGIN_TOOLBOX_PAGE on every page
+           (File, Database, Developer, Chart options).
+W-02  S  Windows: #chartSurfaceCard has square top children over its
+         rounded corners.
+         - Either no rounding on Windows (it is a surface) or round the
+           children. Check with a geometry test.
+W-03  S  Developer page (Italian): "Costruttore di operazioni sulle s…"
+         truncated in title and button. Shorten labels or wrap.
+O-01  S  Outlier "does not hide rows": not reproducible with test data.
+         - Need: project, method, existing Hide/colour column, OK or Close.
+A-03  [YOU] Try ChartLibre.exe and ChartLibre.bat on Windows.
+A-04  [YOU] Move the project out of the iCloud Desktop (e.g. ~/Developer).
+         iCloud hides .venv/.git contents (Qt plugin crash, now worked
+         around) and may evict files.
+A-05  [YOU] GitHub: description, topics, social preview
+         (docs/images/social_preview.png), first release.
 
 
 ================================================================
-P1 - FONDAMENTA
+P1 - FOUNDATIONS
 ================================================================
-R-01  P1  L  FATTO (2026-10-01). Separare i calcoli dalle finestre.
-      Tutte le 19 operazioni hanno il calcolo in app/analysis/<operazione>.py:
-      niente Qt, niente logger, errori come ValueError, ciò che va detto
-      all'utente torna come nota; test con risposte note per ognuna. Il
-      vecchio e il nuovo codice sono stati confrontati sui risultati veri e
-      sono identici; i soli cambi voluti: i metodi di smoothing "solo su
-      griglia" rifiutano i punti sparsi, Akima estrapola quando richiesto,
-      apply_detrend non apre più una finestra prima dell'errore. Il builder
-      dei demo non crea più dialoghi con __new__.
-      Limiti notati durante l'estrazione, non corretti:
-      - Outlier: i rilevatori "di forma" (Isolation Forest, LOF, One-Class
-        SVM, Elliptic Envelope) misurano le distanze nel piano (x, y) così com'è,
-        senza riscalare gli assi: se x va da 0 a 10000 e y da 0 a 1 conta
-        solo x. Da valutare una standardizzazione (opzione o sempre).
-      - Cluster: scipy vq.kmeans non ha seme, quindi due esecuzioni possono
-        dare gruppi diversi (vedi R-03: riproducibilità).
+R-03  P1  M  Reproducibility - IN PROGRESS
+         Done: every Apply recorded in __operations__ (same transaction,
+         undoable); "History…" in the table list context menu.
+         Left:
+         - Outlier and Statistics (own Apply) do not record yet.
+         - Re-run ("Recalculate"): reopen with recorded entries, or re-run
+           everything downstream of a changed table.
+         - Export an equivalent Python script (see N-02).
+         - Project-wide history (today per table only).
+R-02  P1  M  Background computation - MOSTLY DONE
+         Done: 11 operations + Fit; Stop and progress bar after 300 ms.
+         Left:
+         - Outlier (after O-01).
+         - Filter, baseline: snapshot controls in series_settings first.
+         - Stop inside one long computation (t-SNE, hierarchical, big GP):
+           should_stop in engines with a loop.
+R-13  P1  M  Numerical validation - DONE for NIST StRD
+         Report: python3 dev/tools/nist_report.py
+         Left:
+         - Known-answer tests for operations with no NIST dataset.
+         - Multiple regression (Longley) once R-04 adds it.
+         Notes:
+         - No-intercept fits report centred R²; NIST certifies uncentred.
+         - Unknown optimizer key silently falls back to trust region.
 
-R-02  P1  M  QUASI FATTO (2026-10-01). Calcoli lunghi in background.
-      Anteprima e Applica calcolano su un thread di lavoro per 11 operazioni
-      (calculus, cluster, control chart, decomposition, GP, interpolate,
-      peaks, regression, roots, smoothing, transform) oltre al Fit: la
-      finestra resta reattiva, dopo 300 ms compaiono Ferma e una barra
-      (una tacca per serie; animata quando la serie è una sola), chiudere la
-      finestra ferma il calcolo e un risultato arrivato dopo Ferma non
-      viene scritto. OK chiude solo quando il risultato è applicato.
-      Come: la base legge serie e controlli sul thread della GUI
-      (read_series / series_settings) e il calcolo puro gira nel job
-      (compute_series, o CallJob per chi calcola tutte le serie insieme).
-      Corretti per l'occasione: il logger scriveva nella barra di stato dal
-      thread chiamante (ora via segnale); find_level_curve usava una Figure
-      e pyplot (ora contourpy diretto, curve identiche).
-      Test: dev/tests/test_background_operations.py (stessi risultati del
-      thread della GUI per ognuna, Ferma, barra, OK, log da thread).
-      Restano:
-      - Outlier: ha un'anteprima propria legata allo stato Hide; da
-        convertire dopo O-01.
-      - Filter, baseline, spectral, statistics, geometry, function: veloci,
-        restano sul thread della GUI (filter e baseline leggono i controlli
-        dentro il calcolo: prima fotografarli in series_settings).
-      - Ferma dentro un singolo calcolo lungo (t-SNE, clustering
-        gerarchico, GP grande): oggi Ferma agisce tra una serie e l'altra;
-        servirebbe should_stop nei motori che hanno un ciclo.
-
-R-13  P1  M  FATTO per NIST StRD (2026-10-01). Test di validazione numerica.
-      58 dataset NIST originali in dev/tests/data/nist, con i valori
-      certificati; dev/tests/test_nist_validation.py (140 casi, 2 s) e la
-      tabella completa con python3 dev/tools/nist_report.py. Cifre corrette:
-      - Fit non lineare, 27 problemi x 2 partenze, trust region e
-        Levenberg-Marquardt, budget 800: parametri >= 6,5, errori >= 6,0.
-        Eccezioni dichiarate: MGH17 da partenza 1 vuole più valutazioni;
-        Levenberg-Marquardt non converge su BoxBOD da partenza 1; Lanczos1
-        è un fit esatto (residuo 1e-25), errori non confrontabili. Dogbox
-        fallisce da partenza 1 su MGH09/10/17 e Rat43 (non è il predefinito).
-      - Polinomi (Interpolazione, polyfit): >= 6,2 (Filip grado 10: 7,8).
-        Fit con Linear/Quadratic: >= 7,5.
-      - Statistiche: media 15, deviazione >= 8,3. ANOVA: F >= 10, tranne
-        SmLs07-09 (~4: è il limite dei dati in doppia precisione).
-      Corretti grazie ai test (prima: errori standard sbagliati fino a 1e14
-      volte su 6 problemi, Hahn1 a 2 cifre, ENSO a 3): covarianza via SVD
-      invece di pinv(J'J); passo relativo per le differenze finite;
-      Jacobiano a differenze centrali nell'ottimizzatore; tolleranze 1e-15;
-      nel fit pesato Jacobiano e residui ora pesati entrambi.
-      Note: per i modelli senza intercetta il Fit riporta l'R² centrato,
-      NIST certifica quello non centrato (convenzione, da valutare).
-      Una chiave di ottimizzatore sconosciuta ricade in silenzio su trust
-      region (run_optimizer): comodo per impostazioni vecchie, ma nasconde
-      gli errori di battitura.
-      Restano: regressione multipla (Longley: ChartLibre non ne ha una),
-      e test con risposta nota per le operazioni senza dataset NIST.
-
-R-03  P1  M  IN CORSO (2026-10-01). Riproducibilità: ogni operazione applicata resta nel progetto.
-      Fatto il primo passo, la registrazione: ogni Applica di un'operazione
-      di serie aggiunge una riga a __operations__ (app/data/repo/
-      operations.py): operazione, dialogo (modulo:Classe), parametri e voci
-      del dialogo, serie lette (id, nome, SQL, ruoli), tabelle scritte,
-      rapporto, data UTC, versione. Scritta nella stessa transazione dei
-      risultati e inclusa nell'annulla; i dati di partenza sono letti
-      quando l'Applica parte (in background la finestra resta modificabile).
-      Visibile da: elenco tabelle, menu contestuale "Cronologia…"
-      (operazioni che hanno letto o scritto la tabella).
-      Test: dev/tests/test_operation_history.py.
-      Restano:
-      - Outlier e Statistiche hanno un Applica proprio: non registrano ancora.
-      - Rieseguire ("Recalculate", Origin): riaprire il dialogo con le voci
-        registrate e le stesse serie, poi Applica - o direttamente, tutte le
-        operazioni a valle di una tabella cambiata.
-      - Esportare uno script Python equivalente (vedi N-02).
-      - Cronologia dell'intero progetto (oggi solo per tabella).
-
-================================================================
-P2 - VALORE ALTO
-================================================================
-R-08  P2  M  Metadati delle colonne.
-      Etichetta, unità di misura, tipo di misura (continua / ordinale /
-      nominale: JMP "Modeling Type", SPSS "Measure"), codici di valore
-      mancante ed etichette dei valori (1 = "maschio"). Guidano la scelta
-      dei test (R-04) e dei grafici, e mettono le unità negli assi da sole.
-      Una tabella __column_meta__, modificabile da Modifica tabella.
-
-R-04  P2  L  IN CORSO. Statistica che manca rispetto a SPSS e JMP.
-      Già fatti: descrittive, normalità, t a un campione e appaiato,
-      Wilcoxon, correlazione, campioni indipendenti (Welch, Student,
-      Mann-Whitney, Levene, d di Cohen), ANOVA a una via con Welch,
-      Kruskal-Wallis e Tukey HSD. Mancano, in quest'ordine:
-      - chi-quadro e Fisher su tabelle di contingenza (con la tabella
-        stessa come risultato);
-      - regressione multipla con tabella dei coefficienti (coefficiente,
-        errore standard, t, p, IC 95%), R² corretto, VIF e diagnostica dei
-        residui; regressione logistica per un esito sì/no;
-      - ANOVA a due vie; post-hoc Games-Howell e Bonferroni; Dunn dopo
-        Kruskal-Wallis;
-      - Kaplan-Meier con log-rank (sopravvivenza/affidabilità).
-      statsmodels copre quasi tutto. Serve una colonna "fattore" per
-      indicare i gruppi (R-08).
-
-R-05  P2  M  IN CORSO. Fit al livello di Origin.
-      Già fatti: errori standard, covarianza e correlazione, t, p e IC 95%
-      dei parametri, chi-quadro ridotto, bande di confidenza e previsione.
-      Mancano:
-      - pesi del fit da una colonna di errori (1/sigma²): oggi "Weighted"
-        pesa solo RMSE/R², non il fit;
-      - fit globale su più serie con parametri condivisi (Origin "Global
-        Fit": per esempio una stessa costante di tempo per più curve).
-
-R-06  P2  M  Grafici diagnostici e statistici mancanti.
-      Q-Q plot (e P-P), matrice di scatter (pair plot) con correlazioni,
-      grafico delle interazioni per l'ANOVA, mosaic plot per le tabelle di
-      contingenza, forest plot, curva di Kaplan-Meier.
-
-P2-12 P2  M  Anteprima grafica accanto ai risultati delle operazioni.
-      publish_results produce solo testo/HTML; un fit o una ricerca di
-      picchi si leggono molto meglio con un piccolo grafico accanto.
-      Serve anche a P2-19.
-
-R-09  P2  M  Esportazione per la pubblicazione.
-      - Rapporto completo HTML/PDF: grafici e risultati di un progetto in
-        un documento (JMP "Save as report", Origin "Analysis report").
-      - Figura alla larghezza di una colonna di rivista (85 / 180 mm) con
-        font a dimensione fissa, PDF/EPS vettoriale con font incorporati.
-      - Modelli di grafico: applicare stile, assi e disposizione di una
-        figura a un'altra (Origin "graph template").
-
-R-14  P2  L  Distribuzione per chi non usa Python.
-      Oggi ChartLibre.app / .exe / .bat usano un Python già installato e
-      creano .venv al primo avvio. Per utenti non tecnici serve un
-      pacchetto autonomo (Briefcase o PyInstaller), firmato e notarizzato
-      su macOS (serve un account sviluppatore Apple), con installer su
-      Windows e un controllo degli aggiornamenti. Alzato da P3: l'app è
-      pubblica su GitHub e si cercano utenti e collaboratori.
-
-A-06  P2  S  Linux: ChartLibre non è mai stata lanciata. Provarla (una
-      macchina virtuale basta), sistemare le icone (temi freedesktop) e i
-      percorsi; meglio con un collaboratore che usa Linux.
-
-A-07  P2  S  Lingue: il catalogo tedesco è tradotto per il 19% (172 frasi
-      su 922) e lo spagnolo è creato ma vuoto (921 frasi); è tutto
-      traduzione automatica da rileggere. Traduci mancanti usa Google o
-      MyMemory, e passa da solo all'altro quando uno rifiuta. Entrambi
-      gratuiti hanno limiti: Google rifiuta per un po' chi chiede troppo
-      spesso, MyMemory ha una quota di testo al giorno (il 2026-09-29 li
-      avevamo esauriti tutti e due), quindi una lingua intera può
-      richiedere due giorni - o A-08.
-
-A-08  P2  S  Traduci mancanti: DeepL come terza scelta (deep_translator lo
-      supporta). Con la chiave gratuita "DeepL API Free" (500.000 caratteri
-      al mese) una lingua intera sta in una sessione e la qualità è la
-      migliore dei tre. La chiave va nelle Impostazioni (user.json), mai
-      nel progetto; il campo resta vuoto finché l'utente non la mette.
+Known limits (found in R-01, not fixed):
+- Outlier shape-aware detectors do not rescale x/y before distances.
+- Cluster: scipy vq.kmeans is unseeded -> results vary between runs.
 
 
 ================================================================
-P3 - MANUTENIBILITÀ, INTERATTIVITÀ, COMODITÀ
+P2 - HIGH VALUE
 ================================================================
-R-10  P3  M  File troppo grandi.
-      chart_panel.py 3.263 righe, main_window.py 3.152, build_demos.py
-      2.652, style.py 2.413; fit, cluster, smoothing, statistics e
-      control_chart tra 1.400 e 1.900. Dividerli per responsabilità:
-      main_window in un modulo per pagina della barra laterale; chart_panel
-      in zoom/geometria, barra strumenti, interazioni; style in icone,
-      fogli di stile, widget di base; build_demos in un file per demo.
-      Conviene farlo dopo R-01, che alleggerisce già i dialoghi.
-
-R-01b P3  S  Classe base delle operazioni: candidati rimasti da spostare in
-      SeriesOperationDialogBase - _refresh_visibility (14 varianti),
-      build_model_selector (18 layout simili), _result_figure_name /
-      _label_result_axis (3). Più facile dopo R-01.
-
-R-12  P3  M  Gestione degli errori.
-      296 "except Exception" nel codice (nessun except nudo). Ai confini
-      dell'interfaccia vanno bene; nei calcoli e nel repository nascondono
-      errori veri. Restringere ai tipi attesi (ValueError, sqlite3.Error,
-      OSError) fuori dall'interfaccia, un modulo alla volta.
-
-R-07  P3  L  Interattività alla JMP: selezione collegata.
-      Selezionare punti in un grafico evidenzia le stesse righe nella
-      tabella e in tutti gli altri grafici costruiti su quella tabella, e
-      viceversa ("dynamic linking", la caratteristica che definisce JMP).
-      La selezione a rettangolo esiste già (Seleziona punti): manca la
-      propagazione. Poi un filtro dati locale con cursori per colonna
-      (JMP "Local Data Filter").
-
-N-01  P3  S  Pannello Database: le voci già presenti nell'anteprima e in
-      Modifica tabella (cambia tipo, duplica tabella) anche dall'elenco
-      tabelle del pannello Database.
-
-N-06  P3  S  Modifica tabella: replicare "Nascondi righe..." (oggi solo nel
-      menu dell'anteprima).
-
-N-09  P3  M  "Colora in base al valore": un dialogo per colorare con una
-      palette (Viridis o altre) in base a minimo/massimo, percentili o
-      media, anche in modo discreto per categorie. Aggiunge alla tabella
-      una colonna "Colore" con il valore numerico del colore.
-
-P2-20 P3  M  Visualizzatore HTML dei grafici di un progetto.
-      Per guardare i grafici dove l'app non gira (per esempio un iPad).
-      render_figure.py disegna già una figura dal solo SqliteRepo, senza
-      Qt: uno script apre un .dhub, salva ogni figura in PNG/SVG e le
-      raccoglie in una pagina HTML autonoma (una sezione per figura),
-      visibile con AirDrop/iCloud/Safari. Niente zoom né tooltip in questo
-      passo; se servono, la strada è Plotly, al costo di rifare ogni tipo
-      di grafico.
-
-R-15  P3  M  Accessibilità e colori.
-      Palette adatta ai daltonici come scelta predefinita (Okabe-Ito per
-      le categorie, viridis/cividis per le mappe), controllo del contrasto
-      nel tema scuro, tutta la barra laterale usabile da tastiera.
+R-08  P2  M  Column metadata (__column_meta__): label, unit, measure type
+             (continuous/ordinal/nominal), missing codes, value labels.
+             Drives test choice (R-04), units on axes.
+R-04  P2  L  Statistics vs SPSS/JMP - IN PROGRESS. Missing, in order:
+             - chi-square / Fisher on contingency tables
+             - multiple regression (coef table, adj. R², VIF, residuals),
+               logistic regression
+             - two-way ANOVA; Games-Howell, Bonferroni; Dunn
+             - Kaplan-Meier + log-rank
+R-05  P2  M  Fit like Origin. Missing:
+             - weights from an error column (1/sigma²)
+             - global fit with shared parameters
+R-06  P2  M  Diagnostic plots: Q-Q/P-P, pair plot, interaction plot,
+             mosaic, forest, Kaplan-Meier.
+P2-12 P2  M  Small chart beside operation results (also for P2-19).
+R-09  P2  M  Publication export:
+             - full HTML/PDF project report
+             - journal-width figures (85/180 mm), vector PDF/EPS
+             - graph templates
+R-14  P2  L  Standalone signed app (macOS, needs Apple dev account),
+             Windows installer, update check.
+A-06  P2  S  Linux: never run. Try in a VM; icons and paths.
+A-07  P2  S  German 19% done, Spanish empty (machine translated, review).
+A-08  P2  S  DeepL as third translator (free API key in Settings only).
 
 
 ================================================================
-P4 - IDEE DA DECIDERE
+P3 - MAINTENANCE AND COMFORT
 ================================================================
-P2-21 P4  M  3D, passo 2: operazioni sui campi vettoriali (rotore,
-      divergenza). Solo progettato. I renderer Quiver/Stream
-      (app/charts/vector_field.py) leggono già i ruoli x, y, u, v, e
-      series_origin() riconosce già un campo vettoriale, ma solo come
-      etichetta.
-      - Funzioni: base_vector_function (app/functions/base.py), execute(x,
-        y, p) -> (u, v), con un VectorFunctionScanner accanto a
-        SurfaceFunctionScanner e un proprio campo `kind`.
-      - Calculus (CALCULUS_MODELS/SURFACE_MODELS sono già guidati dai
-        dati): Divergenza du/dx + dv/dy e Rotore dv/dx - du/dy, disegnati
-        come Contour Plot, con la stessa griglia di _gradient_surface.
-        Leggere u e v in un solo passaggio, senza interrogare due volte
-        l'SQL della serie.
-      - Peaks: massimo del modulo sqrt(u²+v²), con _search_3d.
-        Roots: punti di ristagno (u e v circa zero insieme), un caso nuovo.
-      - Campi 3D veri (x, y, z, u, v, w): nessun renderer, fuori scopo.
+R-10  P3  M  Split large files: chart_panel, main_window, build_demos,
+             style; fit/cluster/smoothing/statistics dialogs.
+R-01b P3  S  Base class: move _refresh_visibility, build_model_selector,
+             _result_figure_name/_label_result_axis.
+R-12  P3  M  Narrow the ~296 "except Exception" outside the UI.
+R-07  P3  L  JMP-style linked selection across charts and table;
+             then a local data filter.
+N-01  P3  S  Database panel: change type / duplicate table in table list.
+N-06  P3  S  Table editor: "Hide rows…".
+N-09  P3  M  "Colour by value" dialog (palette, percentiles, categories).
+P2-20 P3  M  HTML viewer of a project's charts (PNG/SVG per figure).
+R-15  P3  M  Accessibility: colour-blind palettes by default, dark-theme
+             contrast, keyboard-only sidebar.
 
-P2-22 P4  M  3D, passo 3: curve parametriche (x(t), y(t), z(t)).
-      Solo progettato.
-      - Funzioni: base_parametric3d_function, execute(t, p) -> (x, y, z).
-      - Dialogo Funzione: intervallo in t (i controlli Da/A/Punti vanno già
-        bene), disegno con 3D Line Plot.
-      - Fit di una curva parametrica a punti misurati: problema diverso
-        dal fit di superficie, serve un progetto a parte.
-      - Peaks: estremi della curvatura o di |r(t)|, vicino alla ricerca 1D.
-        Roots: dove una coordinata (o |r(t)|) passa per zero lungo t.
-      - Calculus: derivata = velocità (dx/dt, dy/dt, dz/dt); integrale =
-        lunghezza d'arco (integrale di |r'(t)| dt).
 
-P2-19 P4  L  pysym: operazioni scritte dall'utente in Python/sympy.
-      Una proposta, non ancora decisa. L'utente scrive codice invece di
-      scegliere una trasformazione, lo prova su una serie e lo applica sia
-      a una serie del grafico sia a una tabella con un nome scelto da lui.
-      - Salvataggio: tabella interna __pysym__ (nome, codice, descrizione,
-        date), come __import_links__.
-      - Dialogo: series_operations/pysym_dialog.py sul modello della
-        classe base, con l'anteprima di P2-12.
-      - Doppia uscita: nuova serie (come ogni operazione) e una tabella
-        persistente con il nome scelto (questa parte è nuova).
-      - Sicurezza, da non saltare: un .dhub viene spedito e condiviso senza
-        pensarci; il codice Python non deve mai girare all'apertura del
-        file, solo su un clic esplicito, con globali ristrette (numpy,
-        pandas, math; niente import, open, os, subprocess). Avviso la
-        prima volta che si apre un progetto con codice salvato: è più
-        vicino a una macro di foglio di calcolo che a un filtro salvato.
+================================================================
+P4 - IDEAS
+================================================================
+P2-21 P4  M  3D vector fields: divergence, curl, |v| peaks, stagnation.
+P2-22 P4  M  3D parametric curves x(t), y(t), z(t).
+P2-19 P4  L  pysym: user Python/sympy operations. Never run code on
+             open; restricted globals; warn on first open.
+N-02  P4     Script/notebook export (with R-03), units with pint (R-08),
+             uncertainty propagation, PDF report (R-09), Python/SQL console.
+R-16  P4     DOE, mixed models, power analysis.
 
-N-02  P4  Idee oltre al grafico, per chi fa analisi, ingegneria o tesi:
-      - Esportazione script/notebook: le serie di una figura sono già
-        query SQL più uno stile, cioè gran parte di uno script
-        pandas+matplotlib o di una cella .ipynb (va con R-03).
-      - Assi con unità (pint): "converti unità" riscala la vista senza
-        toccare l'SQL (va con R-08).
-      - Propagazione dell'incertezza: A±dA op B±dB con le formule
-        standard, risultato come coppia valore + errore.
-      - Un clic per "grafico + rapporti delle operazioni -> PDF/HTML"
-        (coincide con R-09).
-      - Una piccola console Python o SQL sul progetto aperto, per chi va
-        più veloce scrivendo che cliccando.
 
-R-16  P4  Fuori scopo per ora, da valutare: progettazione degli esperimenti
-      (DOE: fattoriali, superficie di risposta - punto di forza di JMP),
-      modelli misti, analisi della potenza e del numero di campioni.
+================================================================
+DONE (recent)
+================================================================
+2026-10-01  R-01 all 19 operations compute in app/analysis (old/new
+            results compared identical); R-02 background runs; R-13 NIST
+            validation + 4 Fit accuracy fixes; R-03 operation history;
+            Cluster preview undo error; Qt plugin crash in .venv on iCloud
+            (link mirror in ~/Library/Caches).
+2026-09-29/30  P0-1 "Auto" filter cutoff; R-11 SQL only in app/data;
+            A-01 truncated numbers; A-02 Qt plugins; venv installer;
+            Outlier "colour instead of hide"; Windows nav bar and caption
+            buttons; Log viewer in Developer; Demo card; "Query Builder…"
+            in the table list.
