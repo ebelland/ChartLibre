@@ -187,10 +187,15 @@ def param_uncertainty(
         return std, cov_full, corr_full
     try:
         dof = max(1, residual.size - jac_free.shape[1])
-        _u, singular, vt = np.linalg.svd(jac_free, full_matrices=False)
+        # Columns to unit length first, then back: on NIST Filip the columns
+        # (x^0 ... x^10) differ by ten orders of magnitude and, unscaled, the
+        # rounding-level cut below dropped real directions.
+        norms = np.linalg.norm(jac_free, axis=0)
+        norms[norms == 0.0] = 1.0
+        _u, singular, vt = np.linalg.svd(jac_free / norms, full_matrices=False)
         keep = singular > np.finfo(float).eps * max(jac_free.shape) * singular[0]
         singular, vt = singular[keep], vt[keep]
-        cov = (vt.T / singular**2) @ vt * float(np.dot(residual, residual) / dof)
+        cov = (vt.T / singular**2) @ vt / np.outer(norms, norms) * float(np.dot(residual, residual) / dof)
     except (np.linalg.LinAlgError, ValueError, IndexError):
         return std, cov_full, corr_full
     free_idx = np.flatnonzero(free)
@@ -255,6 +260,56 @@ def confidence_band(
 # ----------------------------------------------------------------------
 # The fit
 # ----------------------------------------------------------------------
+def linear_basis(model: Model, x: np.ndarray, n_params: int) -> np.ndarray | None:
+    """The columns g_i(x) when ``model(x, p) == sum(p_i * g_i(x))``, else None.
+
+    Checked, not assumed: the model must be zero at p = 0 and reproduce two
+    unrelated parameter vectors from the columns to 1e-9. Polynomials of any
+    degree, a line through the origin, a sum of fixed sinusoids pass; a
+    model with a parameter inside an exp or a denominator does not.
+    """
+    if n_params == 0:
+        return None
+    try:
+        with np.errstate(all="ignore"):
+            zero = np.asarray(model(x, np.zeros(n_params)), dtype=float)
+            basis = np.column_stack(
+                [np.asarray(model(x, np.eye(n_params)[i]), dtype=float) for i in range(n_params)]
+            )
+            if not np.all(np.isfinite(basis)) or np.any(zero != 0.0):
+                return None
+            rng = np.random.default_rng(0)
+            for _ in range(2):
+                probe = rng.normal(0.0, 1.0, n_params) * 3.0
+                value = np.asarray(model(x, probe), dtype=float)
+                expected = basis @ probe
+                scale = float(np.max(np.abs(expected))) or 1.0
+                if not np.allclose(value, expected, rtol=1e-9, atol=1e-12 * scale):
+                    return None
+    except (ArithmeticError, ValueError, TypeError, IndexError):
+        return None
+    return basis
+
+
+def _solve_linear(
+    basis: np.ndarray, target: np.ndarray, free: np.ndarray, p0: np.ndarray, sigma: np.ndarray | None
+) -> np.ndarray:
+    """The exact least-squares parameters of a linear model, fixed ones kept."""
+    rhs = target - basis[:, ~free] @ p0[~free]
+    columns = basis[:, free]
+    if sigma is not None:
+        rhs = rhs / sigma
+        columns = columns / sigma[:, None]
+    # Columns scaled to unit length first: x^10 and 1 differ by ten orders of
+    # magnitude on NIST Filip, and an unscaled solve loses those digits.
+    norms = np.linalg.norm(columns, axis=0)
+    norms[norms == 0.0] = 1.0
+    solution, *_ = np.linalg.lstsq(columns / norms, rhs, rcond=None)
+    params = p0.copy()
+    params[free] = solution / norms
+    return params
+
+
 def fit_curve(
     model: Model,
     x: np.ndarray,
@@ -311,23 +366,39 @@ def fit_curve(
                 r = r / sigma
             return np.asarray(r, dtype=float)
 
-        outcome = run_optimizer(
-            optimizer,
-            residual_fun,
-            p0[free],
-            lower[free],
-            upper[free],
-            max_nfev=max(1, int(max_nfev)),
-            loss=loss,
-        )
-        p_opt = p0.copy()
-        p_opt[free] = outcome.params
-        # The model's own central differences rather than the optimiser's
-        # Jacobian: those are forward differences taken at the last step,
-        # good enough to steer by and two digits short for error bars.
-        jac_free = residual_jacobian(model, x, p_opt)[:, free]
-        success = bool(outcome.success)
-        message = f"{BY_KEY[outcome.optimizer].label}: {outcome.message}"
+        # A model linear in its parameters (any polynomial) has an exact
+        # least-squares answer: solved directly, not iterated towards. The
+        # optimiser worsened a good start on high-degree polynomials (NIST
+        # Filip, degree 10: 7.3 correct digits in, 5.4 out, and none in the
+        # errors). Only for plain least squares, and only when the answer
+        # respects the bounds; otherwise the optimiser runs as before.
+        basis = linear_basis(model, x, n_params) if loss == "linear" else None
+        exact = _solve_linear(basis, target, free, p0, sigma) if basis is not None else None
+        if exact is not None and np.all(np.isfinite(exact)) and np.all(
+            (exact[free] >= lower[free]) & (exact[free] <= upper[free])
+        ):
+            p_opt = exact
+            jac_free = -basis[:, free] if basis is not None else np.empty((target.size, 0))
+            success = True
+            message = "Linear least squares: the model is linear in its parameters, solved exactly."
+        else:
+            outcome = run_optimizer(
+                optimizer,
+                residual_fun,
+                p0[free],
+                lower[free],
+                upper[free],
+                max_nfev=max(1, int(max_nfev)),
+                loss=loss,
+            )
+            p_opt = p0.copy()
+            p_opt[free] = outcome.params
+            # The model's own central differences rather than the optimiser's
+            # Jacobian: those are forward differences taken at the last step,
+            # good enough to steer by and two digits short for error bars.
+            jac_free = residual_jacobian(model, x, p_opt)[:, free]
+            success = bool(outcome.success)
+            message = f"{BY_KEY[outcome.optimizer].label}: {outcome.message}"
 
     fit_values = np.asarray(model(x, p_opt), dtype=float)
     residual = target - fit_values

@@ -25,6 +25,7 @@ What was measured, worst case per family:
 from __future__ import annotations
 
 import warnings
+from collections.abc import Callable
 
 import numpy as np
 import pytest
@@ -194,3 +195,42 @@ def test_the_anova_reproduces_the_certified_f_statistic(name: str, floor: float)
     assert anova["n"] == sum(values.size for values in data.groups.values())
     assert f"df = {data.between_df}, {data.within_df}" in anova["note"]
     assert nist.lre(float(anova["statistic"]), data.f_statistic) >= floor
+
+
+# ----------------------------------------------------------------------
+# Polynomials through the Fit engine: solved exactly, from any start
+# ----------------------------------------------------------------------
+def _polynomial(degree: int) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
+    def model(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return np.polynomial.polynomial.polyval(x, p[: degree + 1])
+
+    return model
+
+
+@pytest.mark.parametrize(
+    ("name", "floor"),
+    [("Wampler1", 9.0), ("Wampler2", 13.0), ("Wampler3", 8.5), ("Wampler4", 9.0), ("Wampler5", 7.0), ("Filip", 7.0)],
+)
+def test_the_fit_engine_solves_a_polynomial_exactly_from_any_start(name: str, floor: float) -> None:
+    """Iterated, the optimiser took polyfit's 7.3 digits on Filip down to 5.4
+    and its errors to none; a model linear in its parameters is now solved."""
+    data = nist.linear(name)
+    degree = data.params.size - 1
+    fit = fit_curve(_polynomial(degree), data.x, data.y, np.zeros(degree + 1))
+    assert "solved exactly" in fit.message
+    assert min(nist.lre(value, certified) for value, certified in zip(fit.params, data.params)) >= floor
+    assert min(nist.lre(value, certified) for value, certified in zip(fit.std, data.std)) >= 7.0
+
+
+def test_a_nonlinear_model_is_not_taken_for_a_linear_one() -> None:
+    data = nist.nonlinear("Misra1a")
+    fit = fit_curve(MODELS["Misra1a"], data.x, data.y, data.start1)
+    assert "solved exactly" not in fit.message
+
+
+def test_a_linear_answer_outside_the_bounds_falls_back_to_the_optimiser() -> None:
+    data = nist.linear("Norris")
+    # Certified slope is 1.002; bounded below that, the exact answer is refused.
+    fit = fit_curve(_polynomial(1), data.x, data.y, np.array([0.0, 0.5]), upper=np.array([np.inf, 0.9]))
+    assert "solved exactly" not in fit.message
+    assert fit.params[1] <= 0.9 + 1e-12
