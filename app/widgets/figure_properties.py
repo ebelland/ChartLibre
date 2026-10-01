@@ -230,7 +230,8 @@ class FigurePropertiesWidget(BaseProperties):
         preset in particular is a one-shot rearrangement that deliberately
         does not ride on the panel's apply.
         """
-        self._name_edit.textEdited.connect(self._queue_auto_apply)
+        # Enter or leaving the box applies (editingFinished covers both).
+        self._apply_on_commit(self._name_edit)
         for combo in (
             self._nrows_combo,
             self._ncols_combo,
@@ -293,8 +294,6 @@ class FigurePropertiesWidget(BaseProperties):
         self._name_edit.setToolTip(
             _("Name of this figure. Also the title of its chart tab.")
         )
-        # Enter applies, matching every other rename field in the app.
-        self._name_edit.returnPressed.connect(self._apply_all)
         stdSizeAndlayout(self._name_edit)
         name_section_lay.addWidget(self._name_edit)
         lay.addWidget(name_section)

@@ -21,8 +21,9 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Any, Callable, Iterator
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QSizePolicy, QWidget
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
+from PySide6.QtGui import QKeyEvent
+from PySide6.QtWidgets import QLineEdit, QPlainTextEdit, QSizePolicy, QWidget
 
 from app.utils.config import get_constant
 
@@ -83,6 +84,8 @@ class BaseProperties(QWidget):
         #: setValue/setChecked/setCurrentIndex calls that reload does are not
         #: mistaken for the user editing.
         self._reloading_depth = 0
+        #: Multi-line boxes applied when they lose the focus (see _apply_on_commit).
+        self._commit_on_focus_out: set[QPlainTextEdit] = set()
 
     def _install_auto_apply(self, callback: Callable[[], None]) -> None:
         """Register the method that commits this editor's pending edit."""
@@ -124,6 +127,54 @@ class BaseProperties(QWidget):
         ):
             return
         self._auto_apply_timer.start()
+
+    def _apply_on_commit(self, edit: QLineEdit | QPlainTextEdit) -> None:
+        """Apply a text box when the user is done with it, not at every keystroke.
+
+        Done means Enter, or leaving the box (and Ctrl/Cmd+Enter in a
+        multi-line one, where Enter is a new line). Applying while typing
+        redrew the chart after every pause and reloaded the form, which took
+        the focus out of the box in the middle of a word. Nothing is applied
+        when the text did not change.
+        """
+        if isinstance(edit, QLineEdit):
+            edit.editingFinished.connect(lambda box=edit: self._commit_text_edit(box))
+        else:
+            self._commit_on_focus_out.add(edit)
+            edit.installEventFilter(self)
+
+    def _commit_text_edit(self, edit: QLineEdit | QPlainTextEdit) -> None:
+        """Apply now if *edit* holds a change the user made."""
+        if isinstance(edit, QLineEdit):
+            if not edit.isModified():
+                return
+            edit.setModified(False)
+        else:
+            document = edit.document()
+            if not document.isModified():
+                return
+            document.setModified(False)
+        if (
+            self._auto_apply_callback is None
+            or self._figure_id is None
+            or self._reloading_depth
+        ):
+            return
+        # Whatever else was pending goes in the same apply.
+        self._auto_apply_timer.stop()
+        self._auto_apply_callback()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        if watched in self._commit_on_focus_out and isinstance(watched, QPlainTextEdit):
+            if event.type() == QEvent.Type.FocusOut:
+                self._commit_text_edit(watched)
+            elif event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+                if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and event.modifiers() & (
+                    Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier
+                ):
+                    self._commit_text_edit(watched)
+                    return True
+        return super().eventFilter(watched, event)
 
     def _cancel_auto_apply(self) -> None:
         """Drop a pending auto-apply - the edit target is changing."""

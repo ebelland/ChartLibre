@@ -129,7 +129,7 @@ class AxisPropertiesWidget(BaseProperties):
 
         for widget in widgets:
             if isinstance(widget, QLineEdit):
-                widget.textEdited.connect(self._queue_auto_apply)
+                self._apply_on_commit(widget)
             elif isinstance(widget, QCheckBox):
                 widget.toggled.connect(self._queue_auto_apply)
             elif isinstance(widget, QComboBox):

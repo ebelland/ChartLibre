@@ -135,8 +135,8 @@ class SeriesPropertiesWidget(BaseProperties):
         an edit to one, and its handler repopulates the form under the
         reload guard anyway.
         """
-        self._legend_label_edit.textEdited.connect(self._queue_auto_apply)
-        self._sql_query_edit.textChanged.connect(self._queue_auto_apply)
+        self._apply_on_commit(self._legend_label_edit)
+        self._apply_on_commit(self._sql_query_edit)
         for check in (
             self._visible_check,
             self._show_in_legend_check,
