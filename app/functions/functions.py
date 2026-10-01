@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 import scipy.special as spsp
+
+from app.analysis import NUMERICAL_FAILURES
 from app.functions.base import (
     _baseline,
     _eps,
@@ -85,6 +87,122 @@ class cubic(base_function):
     def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
         return _polynomial_guess(x, y, 3)
 
+class quartic(base_function):
+    name = "Quartic"
+    category = "Basic functions"
+    description = "Fourth-order polynomial."
+    expression = "<b>Quartic</b><br>y = c0 + c1 x + c2 x² + c3 x³ + c4 x⁴"
+    p0 = [0.0, 1.0, 0.0, 0.0, 0.0]
+    params = ["c0", "c1", "c2", "c3", "c4"]
+
+    @staticmethod
+    def execute(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return p[0] + p[1] * x + p[2] * x**2 + p[3] * x**3 + p[4] * x**4
+
+    @staticmethod
+    def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
+        return _polynomial_guess(x, y, 4)
+
+class quintic(base_function):
+    name = "Quintic"
+    category = "Basic functions"
+    description = "Fifth-order polynomial."
+    expression = "<b>Quintic</b><br>y = c0 + c1 x + c2 x² + c3 x³ + c4 x⁴ + c5 x⁵"
+    p0 = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+    params = ["c0", "c1", "c2", "c3", "c4", "c5"]
+
+    @staticmethod
+    def execute(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return p[0] + p[1] * x + p[2] * x**2 + p[3] * x**3 + p[4] * x**4 + p[5] * x**5
+
+    @staticmethod
+    def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
+        return _polynomial_guess(x, y, 5)
+
+class sextic(base_function):
+    name = "Sextic"
+    category = "Basic functions"
+    description = "Sixth-order polynomial."
+    expression = "<b>Sextic</b><br>y = c0 + c1 x + c2 x² + c3 x³ + c4 x⁴ + c5 x⁵ + c6 x⁶"
+    p0 = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    params = ["c0", "c1", "c2", "c3", "c4", "c5", "c6"]
+
+    @staticmethod
+    def execute(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return p[0] + p[1] * x + p[2] * x**2 + p[3] * x**3 + p[4] * x**4 + p[5] * x**5 + p[6] * x**6
+
+    @staticmethod
+    def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
+        return _polynomial_guess(x, y, 6)
+
+class polynomial7(base_function):
+    name = "Seventh-order polynomial"
+    category = "Basic functions"
+    description = "Seventh-order polynomial."
+    expression = "<b>Seventh-order polynomial</b><br>y = c0 + c1 x + c2 x² + c3 x³ + c4 x⁴ + c5 x⁵ + c6 x⁶ + c7 x⁷"
+    p0 = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    params = ["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7"]
+
+    @staticmethod
+    def execute(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return p[0] + p[1] * x + p[2] * x**2 + p[3] * x**3 + p[4] * x**4 + p[5] * x**5 + p[6] * x**6 + p[7] * x**7
+
+    @staticmethod
+    def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
+        return _polynomial_guess(x, y, 7)
+
+
+class polynomial8(base_function):
+    name = "Eighth-order polynomial"
+    category = "Basic functions"
+    description = "Eighth-order polynomial."
+    expression = "<b>Eighth-order polynomial</b><br>y = c0 + c1 x + c2 x² + c3 x³ + c4 x⁴ + c5 x⁵ + c6 x⁶ + c7 x⁷ + c8 x⁸"
+    p0 = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    params = ["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"]
+
+    @staticmethod
+    def execute(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return p[0] + p[1] * x + p[2] * x**2 + p[3] * x**3 + p[4] * x**4 + p[5] * x**5 + p[6] * x**6 + p[7] * x**7 + p[8] * x**8
+
+    @staticmethod
+    def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
+        return _polynomial_guess(x, y, 8)
+
+
+class polynomial9(base_function):
+    name = "Ninth-order polynomial"
+    category = "Basic functions"
+    description = "Ninth-order polynomial."
+    expression = "<b>Ninth-order polynomial</b><br>y = c0 + c1 x + c2 x² + c3 x³ + c4 x⁴ + c5 x⁵ + c6 x⁶ + c7 x⁷ + c8 x⁸ + c9 x⁹"
+    p0 = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    params = ["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"]
+
+    @staticmethod
+    def execute(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return p[0] + p[1] * x + p[2] * x**2 + p[3] * x**3 + p[4] * x**4 + p[5] * x**5 + p[6] * x**6 + p[7] * x**7 + p[8] * x**8 + p[9] * x**9
+
+    @staticmethod
+    def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
+        return _polynomial_guess(x, y, 9)
+
+
+class polynomial10(base_function):
+    name = "Tenth-order polynomial"
+    category = "Basic functions"
+    description = "Tenth-order polynomial."
+    expression = "<b>Tenth-order polynomial</b><br>y = c0 + c1 x + c2 x² + c3 x³ + c4 x⁴ + c5 x⁵ + c6 x⁶ + c7 x⁷ + c8 x⁸ + c9 x⁹ + c10 x¹⁰"
+    p0 = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    params = ["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"]
+
+    @staticmethod
+    def execute(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return p[0] + p[1] * x + p[2] * x**2 + p[3] * x**3 + p[4] * x**4 + p[5] * x**5 + p[6] * x**6 + p[7] * x**7 + p[8] * x**8 + p[9] * x**9 + p[10] * x**10
+
+    @staticmethod
+    def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
+        return _polynomial_guess(x, y, 10)
+
+
 class reciprocal(base_function):
     name = "Reciprocal"
     category = "Basic functions"
@@ -143,7 +261,7 @@ class power_law(base_function):
                 exponent, intercept = np.polyfit(
                     np.log(x[usable]), np.log(above[usable]), 1
                 )
-            except Exception:
+            except NUMERICAL_FAILURES:
                 continue
             if np.isfinite(exponent) and np.isfinite(intercept):
                 candidates.append([float(np.exp(intercept)), float(exponent), float(offset)])
@@ -251,7 +369,7 @@ class michaelis_menten(base_function):
         if int(np.count_nonzero(usable)) >= 2:
             try:
                 slope, intercept = np.polyfit(x[usable], x[usable] / y[usable], 1)
-            except Exception:
+            except NUMERICAL_FAILURES:
                 slope = intercept = 0.0
             if np.isfinite(slope) and np.isfinite(intercept) and slope > 0.0:
                 v_max = float(1.0 / slope)
