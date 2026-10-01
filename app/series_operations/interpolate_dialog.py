@@ -13,11 +13,10 @@ Features:
 from __future__ import annotations
 
 import json
-import math
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Final, cast
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -49,28 +48,31 @@ from app.series_operations.dialog_base import (
 from app.logs.logger import applogger
 from app.utils.i18n import _
 
-from scipy.interpolate import (
-    Akima1DInterpolator,
-    CubicSpline,
-    PchipInterpolator,
-    UnivariateSpline,
-    make_interp_spline,
+from app.analysis.interpolation import (
+    MODEL_EXPONENTIAL,
+    MODEL_GAUSSIAN,
+    MODEL_LINEAR,
+    MODEL_LOGARITHMIC,
+    MODEL_NUMPY_INTERP,
+    MODEL_POLYNOMIAL,
+    MODEL_POWER,
+    MODEL_SCIPY_AKIMA,
+    MODEL_SCIPY_CUBIC,
+    MODEL_SCIPY_PCHIP,
+    MODEL_SCIPY_SPLINE,
+    MODEL_SIGMOID,
+    SPACING_CUSTOM,
+    InterpolationSettings,
+    default_params,
+    evaluation_range,
+    evaluation_x,
+    goodness,
+    interpolate,
+    parse_values,
 )
-from scipy.optimize import curve_fit
 
 
-MODEL_POLYNOMIAL: Final[str] = "Polynomial"
-MODEL_LINEAR: Final[str] = "Linear"
-MODEL_EXPONENTIAL: Final[str] = "Exponential"
-MODEL_LOGARITHMIC: Final[str] = "Logarithmic"
-MODEL_POWER: Final[str] = "Power"
-MODEL_GAUSSIAN: Final[str] = "Gaussian"
-MODEL_SIGMOID: Final[str] = "Sigmoid"
-MODEL_NUMPY_INTERP: Final[str] = "NumPy interp"
-MODEL_SCIPY_PCHIP: Final[str] = "SciPy PCHIP"
-MODEL_SCIPY_CUBIC: Final[str] = "SciPy CubicSpline"
-MODEL_SCIPY_SPLINE: Final[str] = "SciPy spline family"
-MODEL_SCIPY_AKIMA: Final[str] = "SciPy Akima"
+# The model names are the engine's (app.analysis.interpolation).
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -504,24 +506,14 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         try:
             value = json.loads(text)
         except json.JSONDecodeError as exc:
-            applogger.error(f"Invalid parameter JSON: {exc}") 
+            raise ValueError(f"Invalid parameter JSON: {exc}") from exc
         if not isinstance(value, dict):
-            applogger.error("Start parameters must be a JSON object.")
+            raise ValueError("Start parameters must be a JSON object.")
         return {str(k): float(v) for k, v in value.items()}
 
     @staticmethod
     def _default_params_for_model(model: str) -> dict[str, float]:
-        if model == MODEL_EXPONENTIAL:
-            return {"a": 1.0, "b": 0.1, "c": 0.0}
-        if model == MODEL_LOGARITHMIC:
-            return {"a": 1.0, "b": 0.0}
-        if model == MODEL_POWER:
-            return {"a": 1.0, "b": 1.0, "c": 0.0}
-        if model == MODEL_GAUSSIAN:
-            return {"a": 1.0, "mu": 0.0, "sigma": 1.0, "c": 0.0}
-        if model == MODEL_SIGMOID:
-            return {"a": 1.0, "x0": 0.0, "k": 1.0, "c": 0.0}
-        return {}
+        return default_params(model)
 
     def compute_results(self) -> list[FitResult]:
         """Build interpolation results for selected SQLite series rows."""
@@ -605,71 +597,45 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
 
     def _x_eval(self, x_data: np.ndarray) -> np.ndarray:
         spacing = self._spacing_combo.currentText()
-        if spacing == "custom X values":
-            values = self._parse_values(self._custom_x_edit.text())
-            if values.size == 0:
-                applogger.error("Enter at least one Eval X value.")
-            return np.sort(values.astype(float))
-
-        if spacing == "original data X":
-            return np.sort(np.asarray(x_data, dtype=float))
-
+        custom = None
+        if spacing == SPACING_CUSTOM:
+            custom = parse_values(self._custom_x_edit.text())
         start, stop = self._x_range(x_data)
-        count = int(self._points_spin.value())
-        if spacing == "logspace":
-            if start <= 0.0 or stop <= 0.0:
-                applogger.error("logspace requires a positive X range.")
-            return np.logspace(np.log10(start), np.log10(stop), count)
-        if spacing == "geomspace":
-            if start <= 0.0 or stop <= 0.0:
-                applogger.error("geomspace requires a positive X range.")
-            return np.geomspace(start, stop, count)
-        if spacing == "integer step":
-            step = float(self._integer_step_spin.value())
-            first = math.ceil(start / step) * step
-            values = np.arange(first, stop + step * 0.5, step, dtype=float)
-            if values.size == 0:
-                applogger.error("Step spacing produced no X values.")
-            return values
-        if spacing == "chebyshev nodes":
-            k = np.arange(count, dtype=float)
-            nodes = np.cos((2.0 * k + 1.0) * np.pi / (2.0 * count))
-            scaled = 0.5 * (start + stop) + 0.5 * (stop - start) * nodes
-            return np.sort(scaled)
-        return np.linspace(start, stop, count)
+        return evaluation_x(
+            x_data,
+            spacing,
+            start=start,
+            stop=stop,
+            count=int(self._points_spin.value()),
+            step=float(self._integer_step_spin.value()),
+            custom=custom,
+        )
 
     def _x_range(self, x_data: np.ndarray) -> tuple[float, float]:
         text = self._range_edit.text().strip()
+        explicit = None
         if text:
-            values = self._parse_values(text)
+            values = parse_values(text)
             if values.size < 2:
-                applogger.error("X range must contain start and stop.")
-            start = float(values[0])
-            stop = float(values[1])
-        else:
-            x_min = float(np.min(x_data))
-            x_max = float(np.max(x_data))
-            span = x_max - x_min
-            if span <= 0.0:
-                applogger.error("X data must contain more than one unique value.")
-            pad = span * float(self._extend_spin.value()) / 100.0
-            if not self._extrap_check.isChecked():
-                pad = 0.0
-            start = x_min - pad
-            stop = x_max + pad
-        if start == stop:
-            applogger.error("X range start and stop must differ.")
-        if start > stop:
-            start, stop = stop, start
-        return start, stop
+                raise ValueError("X range must contain start and stop.")
+            explicit = (float(values[0]), float(values[1]))
+        return evaluation_range(
+            x_data,
+            explicit=explicit,
+            extend_percent=float(self._extend_spin.value()),
+            extrapolate=self._extrap_check.isChecked(),
+        )
 
-    @staticmethod
-    def _parse_values(text: str) -> np.ndarray:
-        raw = text.replace(";", ",").replace("\n", ",")
-        tokens: list[str] = []
-        for chunk in raw.split(","):
-            tokens.extend(part for part in chunk.split(" ") if part.strip())
-        return np.asarray([float(token) for token in tokens], dtype=float)
+    def _settings(self) -> InterpolationSettings:
+        """The model settings, read off the controls."""
+        return InterpolationSettings(
+            degree=int(self._degree_spin.value()),
+            extrapolate=self._extrap_check.isChecked(),
+            cubic_bc=self._cubic_bc_combo.currentText(),
+            spline_type=self._spline_type_combo.currentText(),
+            spline_degree=int(self._spline_degree_spin.value()),
+            smoothing=float(self._smoothing_spin.value()),
+        )
 
     def _evaluate_model(
         self,
@@ -680,195 +646,8 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         x_eval: np.ndarray,
         start_params: dict[str, float],
     ) -> tuple[np.ndarray, dict[str, float], str]:
-        if model == MODEL_POLYNOMIAL:
-            degree = min(int(self._degree_spin.value()), max(1, x_data.size - 1))
-            coeff = np.polyfit(x_data, y_data, degree)
-            return (
-                np.polyval(coeff, x_eval),
-                {f"c{i}": float(v) for i, v in enumerate(coeff)},
-                f"NumPy polyfit degree={degree}",
-            )
-        if model == MODEL_LINEAR:
-            coeff = np.polyfit(x_data, y_data, 1)
-            return np.polyval(coeff, x_eval), {"m": float(coeff[0]), "b": float(coeff[1])}, "Linear fit"
-        if model == MODEL_NUMPY_INTERP:
-            return np.interp(x_eval, x_data, y_data), {}, "NumPy interpolation"
-        if model == MODEL_SCIPY_PCHIP:
-            pchip_cls = PchipInterpolator
-            if pchip_cls is None:
-                applogger.error("PchipInterpolator is not available. Install scipy.")
-            interp = pchip_cls(x_data, y_data, extrapolate=self._extrap_check.isChecked())
-            return cast(np.ndarray, interp(x_eval)), {}, "SciPy PCHIP"
-        if model == MODEL_SCIPY_AKIMA:
-            akima_cls = Akima1DInterpolator
-            if akima_cls is None:
-                applogger.error("Akima1DInterpolator is not available. Install scipy.")
-            interp = akima_cls(x_data, y_data)
-            y_eval = cast(np.ndarray, interp(x_eval))
-            if self._extrap_check.isChecked():
-                return y_eval, {}, "SciPy Akima1D"
-            return self._mask_extrapolated(x_data, x_eval, y_eval), {}, "SciPy Akima1D"
-        if model == MODEL_SCIPY_CUBIC:
-            cubic_cls = CubicSpline
-            if cubic_cls is None:
-                applogger.error("CubicSpline is not available. Install scipy.")
-            interp = cubic_cls(
-                x_data,
-                y_data,
-                bc_type=self._cubic_bc_combo.currentText(),
-                extrapolate=self._extrap_check.isChecked(),
-            )
-            return cast(np.ndarray, interp(x_eval)), {}, "SciPy CubicSpline"
-        if model == MODEL_SCIPY_SPLINE:
-            return self._evaluate_spline_family(x_data, y_data, x_eval)
-        return self._series_interpolate_model(model, x_data, y_data, x_eval, start_params)
-
-    def _evaluate_spline_family(
-        self,
-        x_data: np.ndarray,
-        y_data: np.ndarray,
-        x_eval: np.ndarray,
-    ) -> tuple[np.ndarray, dict[str, float], str]:
-        spline_type = self._spline_type_combo.currentText()
-        extrapolate = self._extrap_check.isChecked()
-
-        if spline_type == "CubicSpline":
-            cubic_cls = CubicSpline
-            if cubic_cls is None:
-                applogger.error("CubicSpline is not available. Install scipy.")
-            interp = cubic_cls(
-                x_data,
-                y_data,
-                bc_type=self._cubic_bc_combo.currentText(),
-                extrapolate=extrapolate,
-            )
-            return cast(np.ndarray, interp(x_eval)), {}, "SciPy CubicSpline"
-
-        if spline_type == "PCHIP":
-            pchip_cls = PchipInterpolator
-            if pchip_cls is None:
-                applogger.error("PchipInterpolator is not available. Install scipy.")
-            interp = pchip_cls(x_data, y_data, extrapolate=extrapolate)
-            return cast(np.ndarray, interp(x_eval)), {}, "SciPy PCHIP"
-
-        if spline_type == "Akima1D":
-            akima_cls = Akima1DInterpolator
-            if akima_cls is None:
-                applogger.error("Akima1DInterpolator is not available. Install scipy.")
-            interp = akima_cls(x_data, y_data)
-            y_eval = cast(np.ndarray, interp(x_eval))
-            return self._mask_extrapolated(x_data, x_eval, y_eval), {}, "SciPy Akima1D"
-
-        if spline_type == "B-spline":
-            make_spline = make_interp_spline
-            if make_spline is None:
-                applogger.error("make_interp_spline is not available. Install scipy.")
-            k = min(int(self._spline_degree_spin.value()), max(1, x_data.size - 1))
-            interp = make_spline(
-                x_data,
-                y_data,
-                k=k,
-                bc_type=self._cubic_bc_combo.currentText(),
-            )
-            y_eval = cast(np.ndarray, interp(x_eval))
-            return self._mask_extrapolated(x_data, x_eval, y_eval), {"k": float(k)}, "SciPy B-spline"
-
-        spline_cls = UnivariateSpline
-        if spline_cls is None:
-            applogger.error("UnivariateSpline is not available. Install scipy.")
-        k = min(int(self._spline_degree_spin.value()), max(1, x_data.size - 1))
-        interp = spline_cls(
-            x_data,
-            y_data,
-            s=float(self._smoothing_spin.value()),
-            k=k,
-        )
-        y_eval = cast(np.ndarray, interp(x_eval))
-        return self._mask_extrapolated(x_data, x_eval, y_eval), {"k": float(k)}, "SciPy UnivariateSpline"
-
-    def _mask_extrapolated(
-        self,
-        x_data: np.ndarray,
-        x_eval: np.ndarray,
-        y_eval: np.ndarray,
-    ) -> np.ndarray:
-        if self._extrap_check.isChecked():
-            return y_eval
-        mask = (x_eval < float(np.min(x_data))) | (x_eval > float(np.max(x_data)))
-        masked = y_eval.astype(float, copy=True)
-        masked[mask] = np.nan
-        return masked
-
-    def _series_interpolate_model(
-        self,
-        model: str,
-        x_data: np.ndarray,
-        y_data: np.ndarray,
-        x_eval: np.ndarray,
-        start_params: dict[str, float],
-    ) -> tuple[np.ndarray, dict[str, float], str]:
-        series_interp_func = curve_fit
-        if series_interp_func is None:
-            applogger.error("series_fit is not available. Install scipy.")
-            return np.zeros(0),{},""
-        res=self._model_function(model, x_data, y_data, start_params)
-        if not res:
-            return np.zeros(0),{},""
-        func, names, guess = res
-        popt, _unused = series_interp_func(
-            func,
-            x_data,
-            y_data,
-            p0=[guess[name] for name in names],
-            maxfev=50_000,
-        )
-        params = {name: float(value) for name, value in zip(names, popt)}
-        return func(x_eval, *popt), params, f"SciPy series_fit {model}"
-
-    def _model_function(
-        self,
-        model: str,
-        x_data: np.ndarray,
-        y_data: np.ndarray,
-        start_params: dict[str, float],
-    ) -> tuple[Callable[..., np.ndarray], list[str], dict[str, float]]|None:
-        guess = self._guess_params(model, x_data, y_data)
-        guess.update(start_params)
-        if model == MODEL_EXPONENTIAL:
-            return lambda x, a, b, c: a * np.exp(b * x) + c, ["a", "b", "c"], guess
-        if model == MODEL_LOGARITHMIC:
-            return lambda x, a, b: a * np.log(x) + b, ["a", "b"], guess
-        if model == MODEL_POWER:
-            return lambda x, a, b, c: a * np.power(x, b) + c, ["a", "b", "c"], guess
-        if model == MODEL_GAUSSIAN:
-            return (
-                lambda x, a, mu, sigma, c: a * np.exp(-0.5 * np.square((x - mu) / sigma)) + c,
-                ["a", "mu", "sigma", "c"],
-                guess,
-            )
-        if model == MODEL_SIGMOID:
-            return lambda x, a, x0, k, c: a / (1.0 + np.exp(-k * (x - x0))) + c, ["a", "x0", "k", "c"], guess
-        applogger.error(f"Unsupported model: {model}")
-
-    @staticmethod
-    def _guess_params(model: str, x_data: np.ndarray, y_data: np.ndarray) -> dict[str, float]:
-        x_min = float(np.min(x_data))
-        x_max = float(np.max(x_data))
-        y_min = float(np.min(y_data))
-        y_max = float(np.max(y_data))
-        y_span = y_max - y_min if y_max != y_min else 1.0
-        x_mid = float(np.median(x_data))
-        if model == MODEL_EXPONENTIAL:
-            return {"a": y_span, "b": 1.0 / max(abs(x_max - x_min), 1.0), "c": y_min}
-        if model == MODEL_LOGARITHMIC:
-            return {"a": y_span, "b": y_min}
-        if model == MODEL_POWER:
-            return {"a": 1.0, "b": 1.0, "c": y_min}
-        if model == MODEL_GAUSSIAN:
-            return {"a": y_span, "mu": x_mid, "sigma": max((x_max - x_min) / 6.0, 1e-9), "c": y_min}
-        if model == MODEL_SIGMOID:
-            return {"a": y_span, "x0": x_mid, "k": 1.0 / max(abs(x_max - x_min), 1.0), "c": y_min}
-        return {}
+        result = interpolate(model, x_data, y_data, x_eval, self._settings(), start_params)
+        return result.y, result.params, result.message
 
     def _metrics(
         self,
@@ -877,23 +656,7 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         model: str,
         params: Mapping[str, float],
     ) -> dict[str, float]:
-        try:
-            y_hat, _unused, _unused = self._evaluate_model(
-                model=model,
-                x_data=x_data,
-                y_data=y_data,
-                x_eval=x_data,
-                start_params=dict(params),
-            )
-        except Exception:
-            return {}
-        residual = y_data - y_hat
-        ss_res = float(np.nansum(np.square(residual)))
-        ss_tot = float(np.nansum(np.square(y_data - np.nanmean(y_data))))
-        return {
-            "rmse": float(np.sqrt(np.nanmean(np.square(residual)))),
-            "r2": 1.0 - ss_res / ss_tot if ss_tot > 0.0 else math.nan,
-        }
+        return goodness(model, x_data, y_data, params, self._settings())
 
     @staticmethod
     def format_results(results: Sequence[FitResult]) -> str:
