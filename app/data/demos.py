@@ -289,6 +289,17 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         ("defect_root_causes_fishbone", "defect_causes_pareto"),
     ),
     DemoProject(
+        "NIST reference datasets - certified answers for Fit and Statistics",
+        "Ten of the NIST Statistical Reference Datasets, the yardstick "
+        "statistics packages are measured against: five nonlinear "
+        "regressions ready for Fit (their models are in its NIST category), "
+        "a line, a parabola and Filip's tenth-degree polynomial, Michelson's "
+        "speed of light for the summary statistics and five instruments for "
+        "a one-way ANOVA - each with its certified values under the chart.",
+        (),
+        builder="dev.demo.nist_demo:build_nist_demo",
+    ),
+    DemoProject(
         "Series operations - fifteen operations, each with its report",
         "Fifteen Series Operations run for real, one per chart, each on a "
         "dataset suited to it - smoothing, spectrum, filtering, baseline, "

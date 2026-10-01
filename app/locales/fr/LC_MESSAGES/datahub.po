@@ -6187,3 +6187,9 @@ msgstr "Décalage"
 
 msgid "Query"
 msgstr "Requête"
+
+msgid "NIST reference datasets - certified answers for Fit and Statistics"
+msgstr "Jeux de données de référence NIST - réponses certifiées pour Fit et Statistiques"
+
+msgid "Ten of the NIST Statistical Reference Datasets, the yardstick statistics packages are measured against: five nonlinear regressions ready for Fit (their models are in its NIST category), a line, a parabola and Filip's tenth-degree polynomial, Michelson's speed of light for the summary statistics and five instruments for a one-way ANOVA - each with its certified values under the chart."
+msgstr "Dix des Statistical Reference Datasets du NIST, l'étalon auquel on mesure les logiciels statistiques : cinq régressions non linéaires prêtes pour Fit (leurs modèles sont dans sa catégorie NIST), une droite, une parabole et le polynôme de degré dix de Filip, la vitesse de la lumière de Michelson pour les statistiques descriptives et cinq instruments pour une ANOVA à un facteur - chacun avec ses valeurs certifiées sous le graphique."
