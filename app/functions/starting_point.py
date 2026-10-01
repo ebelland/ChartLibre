@@ -29,6 +29,8 @@ from typing import Any, Callable, cast
 
 import numpy as np
 
+from app.logs.logger import applogger
+
 from app.functions.monte_carlo import monte_carlo_p0, sum_of_squares
 from app.utils.config import get_constant
 
@@ -77,9 +79,15 @@ def ask_the_function(
 
     try:
         guess = estimator(np.asarray(x, dtype=float), np.asarray(y, dtype=float))
-    except Exception:
+    except Exception:  # noqa: BLE001 - user-written code: any failure is its own
         # An estimator that raises is a bug in one function, not a reason to
         # refuse the fit: the search below still produces a starting point.
+        # Logged, so the person who wrote it can see why it was not used.
+        applogger.exception(
+            "The starting-point estimate of %s failed; searching instead.",
+            getattr(function_class, "name", function_class),
+            show_dialog=False, raise_error=False,
+        )
         return None
 
     if guess is None:

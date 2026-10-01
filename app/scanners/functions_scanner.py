@@ -274,7 +274,7 @@ class FunctionScanner:
     def _float_tuple(value: Any, *, fallback_length: int = 0) -> tuple[float, ...]:
         try:
             values = tuple(float(item) for item in value)
-        except Exception:
+        except (TypeError, ValueError):
             values = ()
         if values:
             return values

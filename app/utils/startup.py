@@ -24,7 +24,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QFileDialog, QWidget
 
 from app import APP_NAME
-from app.data.sqlite_repo import SqliteRepo
+from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.logs.logger import applogger
 from app.utils.config import get_last_database
 from app.utils.i18n import _
@@ -101,7 +101,7 @@ def _remembered_database() -> Path | None:
     )
     try:
         return SqliteRepo.create_empty(path)
-    except Exception as exc:  # noqa: BLE001
+    except (OSError, DatabaseError, ValueError) as exc:
         # Unwritable directory, read-only volume, a name that is now a folder.
         applogger.exception("Could not create a database at %s: %s", path, exc)
         return None
@@ -128,7 +128,7 @@ def _default_database(parent: QWidget | None) -> Path | None:
     applogger.info("No database remembered; starting on %s", path)
     try:
         return SqliteRepo.create_empty(path)
-    except Exception as exc:  # noqa: BLE001
+    except (OSError, DatabaseError, ValueError) as exc:
         # Read-only home, a full disk, or that name taken by a folder.
         applogger.exception("Could not create a database at %s: %s", path, exc)
         show_message(parent, "startup.default_database_failed", error=exc)

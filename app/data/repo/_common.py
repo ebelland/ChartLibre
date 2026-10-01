@@ -280,7 +280,7 @@ def _loads_json(text: str | None) -> dict[str, Any]:
     """Parse JSON to dict; return {} on empty/invalid/non-dict input."""
     try:
         return {} if not text else dict(json.loads(text))
-    except Exception:
+    except (ValueError, TypeError):  # not JSON, or not an object
         return {}
 
 
@@ -312,6 +312,11 @@ def _is_ident(name: str) -> bool:
 #: widget can catch it without importing sqlite3: SQL and its errors stay in
 #: app/data (dev/tests/test_repo_boundary.py).
 DatabaseError = sqlite3.Error
+
+#: What reading a source can raise: the database refusing (sqlite3.Error),
+#: pandas wrapping that refusal (its DatabaseError is an OSError), or the
+#: guard blocking a query that would write (ValueError).
+READ_FAILURES: tuple[type[Exception], ...] = (sqlite3.Error, OSError, ValueError)
 
 @dataclass(slots=True)
 class SavedQuery:

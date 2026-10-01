@@ -20,6 +20,7 @@ from typing import Any, Mapping, Sequence
 
 import app.data.descriptors
 from app.data.repo._common import (
+    READ_FAILURES,
     RepoHost,
     _dumps_json,
     _loads_json,
@@ -269,7 +270,7 @@ class DescriptorsMixin(RepoHost):
             if cur.description is None:
                 return []
             return [str(d[0]) for d in cur.description if d and d[0] is not None]
-        except Exception:
+        except READ_FAILURES:
             return []
 
     @ensure_connection_wrapper
@@ -283,7 +284,7 @@ class DescriptorsMixin(RepoHost):
                 (int(figure_id),),
             ).fetchone()
             return int(row[0]) if row is not None else 0
-        except Exception:
+        except READ_FAILURES:
             return 0
 
     @ensure_connection_wrapper
@@ -297,7 +298,7 @@ class DescriptorsMixin(RepoHost):
                 (int(axis_id),),
             ).fetchone()
             return int(row[0]) if row is not None else 0
-        except Exception:
+        except READ_FAILURES:
             return 0
 
     # =====================================================================

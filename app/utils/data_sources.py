@@ -82,7 +82,7 @@ def sniff_delimiter(sample: str) -> str:
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=",\t;| ")
         return dialect.delimiter
-    except Exception:  # noqa: BLE001
+    except csv.Error:
         candidates = [",", "\t", ";", "|", " "]
         counts: dict[str, int] = {d: sample.count(d) for d in candidates}
         return max(candidates, key=lambda d: counts[d])
@@ -108,7 +108,7 @@ def read_text_file(
         try:
             sample = raw.decode(enc)
             break
-        except Exception:  # noqa: BLE001
+        except (UnicodeDecodeError, LookupError):
             continue
 
     delim = delimiter or sniff_delimiter(sample)
@@ -126,7 +126,7 @@ def read_text_file(
                 engine="python" if skipfooter else "c",
                 header=hdr,
             )
-        except Exception as exc:  # noqa: BLE001
+        except (ValueError, OSError, csv.Error) as exc:  # parser, decoding, file
             last_exc = exc
 
     applogger.error(f"Failed reading text file: {last_exc}")
@@ -554,7 +554,7 @@ def _server_session_read_only(connection, statement: str) -> None:
         cursor = connection.cursor()
         cursor.execute(statement)
         cursor.close()
-    except Exception:
+    except Exception:  # noqa: BLE001 - any driver's error class
         applogger.debug("Could not make the server session read-only.", exc_info=True)
 
 

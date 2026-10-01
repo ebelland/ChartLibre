@@ -112,7 +112,7 @@ def _read(path: Path) -> dict[str, Any]:
 
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
+    except (OSError, ValueError):  # unreadable, or not JSON (a hand edit gone wrong)
         applogger.exception("Failed to load config: %s", path)
         _cache[path], _cache_stamp[path] = {}, stamp
         return {}
@@ -132,7 +132,7 @@ def _write(path: Path, data: dict[str, Any]) -> bool:
     global _merged
     try:
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    except Exception:
+    except (OSError, TypeError, ValueError):  # unwritable, or a value JSON cannot hold
         applogger.exception("Failed to save config: %s", path)
         return False
 

@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 from typing import Final, cast
 
 import numpy as np
+
+from app.analysis import NUMERICAL_FAILURES
 from scipy.interpolate import (
     Akima1DInterpolator,
     CubicSpline,
@@ -319,7 +321,7 @@ def goodness(
     """
     try:
         y_hat = interpolate(model, x_data, y_data, x_data, settings, dict(params)).y
-    except Exception:  # noqa: BLE001 - a diagnostic, never fatal
+    except NUMERICAL_FAILURES:  # a diagnostic, never fatal
         return {}
     residual = y_data - y_hat
     ss_res = float(np.nansum(np.square(residual)))

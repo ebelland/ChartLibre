@@ -17,6 +17,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy import stats
 
+from app.analysis import NUMERICAL_FAILURES
 from app.logs.logger import applogger
 
 #: What measurement data actually looks like.  Fifteen, in a deliberate order:
@@ -92,7 +93,7 @@ class DistributionFit:
             distribution = getattr(stats, self.name)
             function = distribution.cdf if cumulative else distribution.pdf
             values = np.asarray(function(x, *self.params), dtype=float)
-        except Exception:
+        except NUMERICAL_FAILURES:
             applogger.exception("Could not evaluate the %s curve.", self.name)
             return np.zeros_like(np.asarray(x, dtype=float))
         return np.where(np.isfinite(values), values, 0.0)
@@ -158,7 +159,7 @@ def fit_one(values: np.ndarray, name: str) -> DistributionFit | None:
             log_likelihood = float(
                 np.sum(distribution.logpdf(sample, *params))
             )
-    except Exception:
+    except NUMERICAL_FAILURES:  # SciPy's FitError is a RuntimeError
         applogger.info("The %s distribution could not be fitted to this sample.", name)
         return None
 

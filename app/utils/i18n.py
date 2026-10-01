@@ -279,7 +279,7 @@ def compile_catalog(language: str, *, force: bool = False) -> Path | None:
     try:
         mo_path.parent.mkdir(parents=True, exist_ok=True)
         _write_mo(_parse_po(po_path), mo_path)
-    except Exception:
+    except (OSError, ValueError, SyntaxError):  # unwritable, or a malformed .po
         applogger.exception("Failed to compile locale %s", po_path)
         return mo_path if mo_path.exists() else None
     return mo_path

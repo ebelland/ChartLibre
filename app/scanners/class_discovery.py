@@ -48,7 +48,7 @@ def _load_class(file_path: str, class_name: str, mtime_ns: int, module_prefix: s
 
     try:
         spec.loader.exec_module(module)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - a plugin file: any failure is its own, and reported
         applogger.error(
             "Class %s failed to load from %s (%s: %s).",
             class_name,
@@ -93,6 +93,9 @@ def _resolved_path(raw_path: str) -> Path:
     """
     return Path(raw_path).resolve()
 
+
+#: What ast.literal_eval raises for an expression that is not a literal.
+_NOT_A_LITERAL: tuple[type[Exception], ...] = (ValueError, TypeError, SyntaxError, RecursionError)
 
 def import_class_from_discovery_entry(
     entry: dict[str, Any],
@@ -143,7 +146,7 @@ def extract_class_string_attr(
                 if isinstance(target, ast.Name) and target.id == attr_name:
                     try:
                         value = ast.literal_eval(stmt.value)
-                    except Exception:
+                    except _NOT_A_LITERAL:
                         return None
                     return value if isinstance(value, str) else None
 
@@ -153,7 +156,7 @@ def extract_class_string_attr(
                     return None
                 try:
                     value = ast.literal_eval(stmt.value)
-                except Exception:
+                except _NOT_A_LITERAL:
                     return None
                 return value if isinstance(value, str) else None
 
@@ -197,7 +200,7 @@ def literal_string_list(node: ast.AST) -> list[str] | None:
     """
     try:
         value = ast.literal_eval(node)
-    except Exception:
+    except _NOT_A_LITERAL:
         return None
 
     if not isinstance(value, list):

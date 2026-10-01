@@ -231,7 +231,7 @@ class MaintenanceMixin(RepoHost):
         assert self._con is not None
         try:
             rows = self._con.execute("PRAGMA integrity_check").fetchall()
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report.integrity_errors.append(f"integrity_check failed: {exc}")
             return
 
@@ -245,7 +245,7 @@ class MaintenanceMixin(RepoHost):
         assert self._con is not None
         try:
             rows = self._con.execute("PRAGMA foreign_key_check").fetchall()
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report.integrity_errors.append(f"foreign_key_check failed: {exc}")
             return
 

@@ -268,7 +268,7 @@ class QtLogEventHandler(logging.Handler):
                 int(record.levelno),
                 record.getMessage(),
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - logging.Handler contract: handleError, never raise
             self.handleError(record)
 
 
@@ -289,7 +289,7 @@ class GuiLogHandler(logging.Handler):
             # While it stays disabled, ``show_dialog=True`` on a log call has
             # no visible effect - dialogs come from app.utils.messages instead.
             return
-        except Exception:
+        except Exception:  # noqa: BLE001 - logging.Handler contract: handleError, never raise
             self.handleError(record)
 
 
@@ -398,7 +398,7 @@ class AppLogger:
             logger.removeHandler(handler)
             try:
                 handler.close()
-            except Exception:
+            except (OSError, ValueError):
                 # A handler that fails to close must not block reconfiguration.
                 pass
         cls._logger = None

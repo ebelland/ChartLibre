@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from typing import cast
 
 import numpy as np
+
+from app.analysis import NUMERICAL_FAILURES
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Kernel, Matern, RationalQuadratic, WhiteKernel
 
@@ -81,7 +83,7 @@ def fit_gaussian_process(
 
     try:
         log_likelihood = float(cast(float, model.log_marginal_likelihood()))
-    except Exception:  # noqa: BLE001 - diagnostic only, never fatal
+    except NUMERICAL_FAILURES:  # diagnostic only, never fatal
         log_likelihood = float("nan")
 
     return GaussianProcessFit(

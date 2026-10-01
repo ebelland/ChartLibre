@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+
+from app.analysis import NUMERICAL_FAILURES
 from scipy.ndimage import median_filter
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
@@ -157,7 +159,7 @@ def _shape_aware_mask(
         try:
             estimator = EllipticEnvelope(contamination=contamination, random_state=0)
             labels = estimator.fit(features).predict(features)
-        except Exception as exc:
+        except NUMERICAL_FAILURES as exc:
             # Typically a singular covariance matrix - too few points, or
             # points that are collinear / have (near-)zero variance in x
             # or y. Both are properties of the data, not a bug, so this

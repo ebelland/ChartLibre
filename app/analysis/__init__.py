@@ -17,3 +17,11 @@ class Stopped(BaseException):
     evaluate is "bad, move on" - and would swallow a stop request as one
     more bad sample.
     """
+
+
+#: What a numerical library raises for data it cannot work with: a degenerate
+#: or singular sample (ValueError, numpy's LinAlgError among them), overflow
+#: or a division by zero (ArithmeticError), a solver that does not converge
+#: (RuntimeError). Caught where such data is a normal outcome to report; a
+#: TypeError, AttributeError or NameError is a bug, and propagates (todo R-12).
+NUMERICAL_FAILURES: tuple[type[Exception], ...] = (ValueError, ArithmeticError, RuntimeError)

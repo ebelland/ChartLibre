@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 import numpy as np
+
+from app.analysis import NUMERICAL_FAILURES
 from scipy.interpolate import CubicSpline, PchipInterpolator
 from scipy.optimize import brentq, newton, toms748
 
@@ -206,7 +208,7 @@ def refine(
         if not result.converged:
             raise RuntimeError("the solver did not converge")
         return float(root), int(result.iterations)
-    except Exception as exc:
+    except NUMERICAL_FAILURES as exc:
         if notes is not None:
             notes.append(
                 f"No root in [{left:g}, {right:g}]: {exc}. The samples change sign "
@@ -292,7 +294,7 @@ def is_rising(
     try:
         before = float(interpolant(x_root - step))
         after = float(interpolant(x_root + step))
-    except Exception:  # noqa: BLE001 - outside the interpolant's domain
+    except ValueError:  # outside the interpolant's domain
         return True
     return after >= before
 

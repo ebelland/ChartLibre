@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from app.analysis import NUMERICAL_FAILURES
+
 from app.functions.base import base_surface_function
 
 
@@ -41,7 +43,7 @@ class plane(base_surface_function):
         design = np.column_stack([np.ones_like(x), x, y])
         try:
             coeffs, *_rest = np.linalg.lstsq(design, z, rcond=None)
-        except Exception:
+        except NUMERICAL_FAILURES:
             return None
         if not np.all(np.isfinite(coeffs)):
             return None

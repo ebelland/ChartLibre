@@ -22,6 +22,8 @@ from dataclasses import dataclass
 from typing import ClassVar, List
 
 import numpy as np
+
+from app.analysis import NUMERICAL_FAILURES
 from scipy.signal import find_peaks
 
 def _safe_x(x: np.ndarray, eps: float = 1e-12) -> np.ndarray:
@@ -179,7 +181,7 @@ def _exponential(x: np.ndarray, y: np.ndarray, growth:bool) ->  list[float]|None
         return None
     try:
         slope, intercept = np.polyfit(x[usable], np.log(above[usable]), 1)
-    except Exception:
+    except NUMERICAL_FAILURES:
         return None
     if not np.isfinite(slope) or not np.isfinite(intercept):
         return None
@@ -193,7 +195,7 @@ def _polynomial_guess( x: np.ndarray,y: np.ndarray,degree) ->  List[float]|None:
         return None
     try:
         coefficients = np.polyfit(x, y, degree)
-    except Exception:
+    except NUMERICAL_FAILURES:
         return None
     return [float(value) for value in coefficients[::-1]]
 

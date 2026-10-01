@@ -18,6 +18,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
 import numpy as np
+
+from app.analysis import NUMERICAL_FAILURES
 from scipy import stats
 
 from app.utils.i18n import _
@@ -191,7 +193,7 @@ def normality_tests(
         try:
             res = func(values)
             tests.append(result_row(name, n, _statistic(res), _pvalue(res)))
-        except Exception as exc:  # SciPy raises several types for degenerate samples
+        except NUMERICAL_FAILURES as exc:  # SciPy's ways of refusing a degenerate sample
             tests.append(note_row(name, n, str(exc)))
 
     if n >= 3:
@@ -209,7 +211,7 @@ def normality_tests(
             try:
                 res = stats.kstest(z, "norm")
                 tests.append(result_row(_("Kolmogorov-Smirnov vs normal"), n, _statistic(res), _pvalue(res), "standardized sample"))
-            except Exception as exc:
+            except NUMERICAL_FAILURES as exc:
                 tests.append(note_row(_("Kolmogorov-Smirnov vs normal"), n, str(exc)))
         try:
             res, note = anderson_normality(values, method=anderson_method, resamples=resamples, batch=batch)
@@ -222,7 +224,7 @@ def normality_tests(
                     note,
                 )
             )
-        except Exception as exc:
+        except NUMERICAL_FAILURES as exc:
             tests.append(note_row(_("Anderson-Darling normality"), n, str(exc)))
     return tests
 
@@ -286,7 +288,7 @@ def paired_tests(a: Any, b: Any, *, alignment: str = "", alternative: str = "two
         try:
             res = stats.shapiro(diff)
             tests.append(result_row(_("Normality of paired differences"), n, _statistic(res), _pvalue(res), alignment))
-        except Exception as exc:
+        except NUMERICAL_FAILURES as exc:
             tests.append(note_row(_("Normality of paired differences"), n, str(exc)))
     return tests
 
@@ -309,14 +311,14 @@ def correlation_tests(a: Any, b: Any, *, alignment: str = "") -> list[dict[str, 
         try:
             res = func(a, b)
             tests.append(result_row(name, n, _statistic(res), _pvalue(res), alignment))
-        except Exception as exc:
+        except NUMERICAL_FAILURES as exc:
             tests.append(note_row(name, n, str(exc)))
     try:
         res = stats.linregress(a, b)
         # LinregressResult: slope is [0], p-value [3] - its fields are not
         # annotated, so they are read by position.
         tests.append(result_row(_("Linear regression slope"), n, float(cast(float, res[0])), float(cast(float, res[3])), alignment))
-    except Exception as exc:
+    except NUMERICAL_FAILURES as exc:
         tests.append(note_row(_("Linear regression slope"), n, str(exc)))
     return tests
 

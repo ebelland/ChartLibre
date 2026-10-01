@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+
+from app.analysis import NUMERICAL_FAILURES
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import HuberRegressor, RANSACRegressor
@@ -113,6 +115,6 @@ def fit_regression(
     y_grid = estimator.predict(features_grid)
     try:
         details["r2"] = float(estimator.score(features, y))
-    except Exception:  # noqa: BLE001 - not every estimator scores the same way
+    except NUMERICAL_FAILURES:  # a degenerate sample cannot be scored
         pass
     return Regression(x_grid, np.asarray(y_grid, dtype=float), details)

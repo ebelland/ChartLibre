@@ -318,10 +318,11 @@ def cluster_sklearn(
                 SpectralClustering,
             )
             from sklearn.mixture import GaussianMixture
-        except Exception as exc:
-            raise ValueError("scikit-learn clustering requires the optional dependency 'scikit-learn'. "
-                "Install it in the current Python environment.")
-            raise exc
+        except ImportError as exc:
+            raise ValueError(
+                "scikit-learn clustering requires the optional dependency 'scikit-learn'. "
+                "Install it in the current Python environment."
+            ) from exc
 
         tool = str(sklearn_tool or SKLEARN_KMEANS)
         k = int(np.clip(int(clusters), 1, n_rows))

@@ -128,7 +128,7 @@ def dialog_entries(owner: object, *, inputs_only: bool = False) -> dict[str, Any
             continue
         try:
             state[name] = accessor[0](widget)
-        except Exception:
+        except Exception:  # noqa: BLE001 - any widget, and closing must never fail
             applogger.exception(
                 # A dialog closing must never raise a modal error box.
                 "Could not read %s.%s", type(owner).__name__, name,
@@ -170,7 +170,7 @@ def restore_dialog_state(owner: object, key: str) -> None:
         try:
             widget.blockSignals(True)
             accessor[1](widget, value)
-        except Exception:
+        except Exception:  # noqa: BLE001 - any widget, any stale value: skipped, never fatal
             applogger.exception(
                 "Could not restore %s.%s from config", key, name,
                 show_dialog=False, raise_error=False,

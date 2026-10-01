@@ -251,7 +251,7 @@ def run_optimizer(
     def cost(params: np.ndarray) -> float:
         try:
             values = np.asarray(residual(np.asarray(params, dtype=float)), dtype=float)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user's model on a sampled point: bad, move on
             # A sampler will land on parameters the model cannot evaluate.
             # That is "bad, move on", not a reason to stop the search.
             return float(np.inf)
@@ -328,7 +328,7 @@ def _least_squares(
 
     try:
         result = least_squares(residual, start, **kwargs)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001 - the model is user code; reported as the fit's message
         return FitOutcome(start, None, False, f"{type(exc).__name__}: {exc}", float("nan"), method)
 
     return FitOutcome(
@@ -366,7 +366,7 @@ def _minimize_scalar(
         found = np.asarray(result.x, dtype=float)
         message = str(getattr(result, "message", "")) or method
         success = bool(getattr(result, "success", True))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001 - the model is user code; reported as the fit's message
         return FitOutcome(start, None, False, f"{type(exc).__name__}: {exc}", float("nan"), optimizer.key)
 
     # One least_squares step from the optimum, purely for the Jacobian: these
@@ -428,7 +428,7 @@ def _search_globally(
             cost, start, low, high, iterations=iterations, seed=seed,
         )
         return found, f"Monte Carlo: {done} samples, best cost {score:.6g}."
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001 - the model is user code; the local fit still runs
         # A global method that fails leaves the starting point untouched; the
         # local polish below still runs, so the user gets an ordinary fit and
         # a message saying the search did not happen.

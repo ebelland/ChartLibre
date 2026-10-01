@@ -204,7 +204,7 @@ class SqliteRepo(
                 self._con.execute("PRAGMA wal_autocheckpoint = 1000;")
                 self._con.execute("PRAGMA journal_size_limit = 67108864;")
                 self._con.execute("PRAGMA optimize;")
-        except Exception:
+        except sqlite3.Error:
             applogger.error("Failed to apply performance pragmas", exc_info=True)
         finally:
             applogger.debug(f"Connected to {db_path}")
@@ -244,7 +244,7 @@ class SqliteRepo(
 
         try:
             section = load_config().get("series_cache", {})
-        except Exception:
+        except (AttributeError, TypeError, ValueError):  # a config that is not an object
             applogger.exception("Failed to read series_cache config; using defaults")
             return
 
@@ -400,7 +400,7 @@ class SqliteRepo(
             try:
                 for name, sql in self._con.execute(f'SELECT "{name_col}", "{column}" FROM "{table}"'):
                     candidates.append((kind, str(name or ""), str(sql or "").strip()))
-            except Exception:
+            except sqlite3.Error:
                 applogger.exception("Could not read %s for the SQL check.", table)
         for kind, name, sql in candidates:
             if not sql or " " not in sql:
@@ -744,7 +744,7 @@ class SqliteRepo(
                 self._con.execute("BEGIN IMMEDIATE")  # pyright: ignore[reportOptionalMemberAccess]
                 try:
                     yield
-                except Exception:
+                except Exception:  # noqa: BLE001 - roll back, then re-raise whatever it was
                     self._con.rollback()  # pyright: ignore[reportOptionalMemberAccess]
                     raise
                 else:
@@ -759,7 +759,7 @@ class SqliteRepo(
         self._con.execute(f"SAVEPOINT {sp}")  # pyright: ignore[reportOptionalMemberAccess]
         try:
             yield
-        except Exception:
+        except Exception:  # noqa: BLE001 - roll back, then re-raise whatever it was
             self._con.execute(f"ROLLBACK TO {sp}")  # pyright: ignore[reportOptionalMemberAccess]
             self._con.execute(f"RELEASE {sp}")  # pyright: ignore[reportOptionalMemberAccess]
             raise
@@ -861,11 +861,11 @@ class SqliteRepo(
         if con is not None:
             try:
                 con.commit()
-            except Exception:
-                pass
+            except sqlite3.Error:
+                pass  # nothing left to keep; closing still has to happen
             try:
                 con.close()
-            except Exception:
+            except sqlite3.Error:
                 pass
         self._con = None
         self._is_connected = False

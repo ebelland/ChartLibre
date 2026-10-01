@@ -178,7 +178,7 @@ class UndoStore:
                     self._append_tables(connection, entry_id, wanted)
                 self._prune(connection)
             return entry_id
-        except Exception:  # noqa: BLE001 - never cost the user their action
+        except (sqlite3.Error, OSError, RuntimeError):  # never cost the user their action
             applogger.exception("Could not record an undo snapshot for %r.", label)
             return None
 
@@ -300,7 +300,7 @@ class UndoStore:
         try:
             with self._attached(connection):
                 return self._read_entries(connection)
-        except Exception:  # noqa: BLE001
+        except (sqlite3.Error, OSError, RuntimeError):
             applogger.exception("Could not read the undo history.")
             return []
 
@@ -365,7 +365,7 @@ class UndoStore:
                 finally:
                     connection.execute("PRAGMA foreign_keys = ON")
             return entry
-        except Exception:  # noqa: BLE001
+        except (sqlite3.Error, OSError, RuntimeError):
             applogger.exception("Could not undo the last change.")
             return None
 
@@ -406,7 +406,7 @@ class UndoStore:
             with self._attached(connection):
                 for entry in self._read_entries(connection):
                     self._delete_entry(connection, entry.entry_id)
-        except Exception:  # noqa: BLE001
+        except (sqlite3.Error, OSError, RuntimeError):
             applogger.exception("Could not clear the undo history.")
 
     def discard_file(self) -> None:

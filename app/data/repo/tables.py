@@ -27,6 +27,7 @@ from app import APP_NAME
 from app.data.data_source import DataSource
 from app.data.select_sql import sql_insert_select_expression, top_level_from, top_level_match
 from app.data.repo._common import (
+    READ_FAILURES,
     RepoHost,
     _RETURNS_ROWS_RE,
     _dumps_json,
@@ -213,7 +214,7 @@ class TablesMixin(RepoHost):
             if cursor.description is None:
                 return []
             return [str(item[0]) for item in cursor.description if item and item[0]]
-        except Exception:
+        except READ_FAILURES:
             applogger.exception("Failed to read columns of query '%s'", source.name)
             return []
 
@@ -226,7 +227,7 @@ class TablesMixin(RepoHost):
                 self.refuse_if_blocked(source.sql)
             row = self._con.execute(source.count_sql()).fetchone()
             return int(row[0]) if row else 0
-        except Exception:
+        except READ_FAILURES:
             applogger.exception("Failed to count rows of source '%s'", source.name)
             return 0
 
@@ -238,7 +239,7 @@ class TablesMixin(RepoHost):
             if source.is_query:
                 self.refuse_if_blocked(source.sql)
             return pd.read_sql_query(source.page_sql(limit=limit, offset=offset), self._con)
-        except Exception:
+        except READ_FAILURES:
             applogger.exception("Failed to read source '%s'", source.name)
             return pd.DataFrame()
 
@@ -271,7 +272,7 @@ class TablesMixin(RepoHost):
         try:
             with read_only(self._con):
                 cursor = self._con.execute(f"SELECT * FROM ({text}) AS _probe LIMIT 0")
-        except Exception as exc:
+        except READ_FAILURES as exc:
             return False, str(exc)
 
         columns = [str(item[0]) for item in (cursor.description or []) if item]
@@ -292,7 +293,7 @@ class TablesMixin(RepoHost):
                 f"PRAGMA table_info({_quote_ident(table)})"
             ).fetchall()
             return [str(r[1]) for r in rows if len(r) > 1]
-        except Exception:
+        except READ_FAILURES:
             return []
 
     @ensure_connection_wrapper
@@ -309,7 +310,7 @@ class TablesMixin(RepoHost):
                     f"PRAGMA table_info({table})"
                 ).fetchall()
             )
-        except Exception:
+        except READ_FAILURES:
             applogger.exception("Failed to read table schema for %s", table)
             return []
 
@@ -389,7 +390,7 @@ class TablesMixin(RepoHost):
                 f"SELECT id, name FROM {table_name} ORDER BY id"
             ).fetchall()
             return [(int(r[0]), str(r[1])) for r in rows] if rows else []
-        except Exception:
+        except READ_FAILURES:
             return []
 
     def get_figures(self) -> list[tuple[int, str]]:
@@ -403,7 +404,7 @@ class TablesMixin(RepoHost):
         try:
             columns = self._con.execute(f"PRAGMA table_info({_quote_ident(table)})").fetchall()
             return len(columns)
-        except Exception:
+        except READ_FAILURES:
             return 0
 
     @property
@@ -447,7 +448,7 @@ class TablesMixin(RepoHost):
         try:
             row = self._con.execute(f"SELECT COUNT(*) FROM {_quote_ident(table)}").fetchone()
             return int(row[0]) if row else 0
-        except Exception:
+        except READ_FAILURES:
             return 0
 
     @ensure_connection_wrapper
@@ -476,7 +477,7 @@ class TablesMixin(RepoHost):
                 (table,),
             ).fetchone()
             return row is not None
-        except Exception:
+        except READ_FAILURES:
             return False
 
     @ensure_connection_wrapper
@@ -1350,7 +1351,7 @@ class TablesMixin(RepoHost):
                         return float(struct.unpack("<d", b)[0])
                     if len(b) == 4:
                         return float(struct.unpack("<f", b)[0])
-                except Exception:
+                except struct.error:
                     pass
 
                 # Try UTF-8 decode and numeric conversion
@@ -1361,7 +1362,7 @@ class TablesMixin(RepoHost):
                     if decl_u in ("REAL", "NUMERIC"):
                         return float(s)
                     return s
-                except Exception:
+                except ValueError:  # undecodable bytes, or text that is not a number
                     if decl_u in ("REAL", "INTEGER", "NUMERIC"):
                         return None  # Can't convert to number
                     return b.decode("utf-8", errors="replace")
