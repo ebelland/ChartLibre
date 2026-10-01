@@ -42,6 +42,7 @@ from app.widgets.table_preview import TablePreviewPanel
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.styles.style import (
+    action_presentation,
     apply_dialog_shell,
     create_action_button,
     load_icon,
@@ -76,6 +77,7 @@ from app.utils.data_sources import (
     load_web_data_sources,
     read_any_file,
     read_clipboard_text,
+    transpose_delimited_text,
     read_web_url,
     remove_user_web_source,
     SERVER_DATABASE_QUERY_READERS,
@@ -238,6 +240,8 @@ class ImportDataDialog(QDialog):
         # after opening a file used to do.
         self._source_mode: str = "none"  # none|file|clipboard|database|web
         self._clipboard_text: str = ""
+        #: The clipboard is read with rows and columns swapped.
+        self._clipboard_transposed: bool = False
         self._path: str = ""
         self._db_connection: DatabaseConnection | None = None
         self._db_table_name: str = ""
@@ -274,11 +278,31 @@ class ImportDataDialog(QDialog):
         source_layout = source.card.layout()
         src_row = QHBoxLayout()
         stdSizeAndlayout(src_row)
+        # Named for the source rather than for the verb: "Open" and "Paste"
+        # beside "Database" read as actions on the dialog, not as where the
+        # data comes from.
         create_action_button(
-            parent=source.card, action_id="open", action=self._on_browse, layout=src_row
+            parent=source.card, action_id="open", action=self._on_browse, layout=src_row,
+            presentation=(
+                action_presentation("open")[0], _("File"),
+                _("Import a file: CSV or other delimited text, Excel, JSON"),
+            ),
         )
         create_action_button(
-            parent=source.card, action_id="paste", action=self._on_load_clipboard, layout=src_row
+            parent=source.card, action_id="paste", action=self._on_load_clipboard, layout=src_row,
+            presentation=(
+                action_presentation("paste")[0], _("Clipboard"),
+                _("Import the table on the clipboard"),
+            ),
+        )
+        create_action_button(
+            parent=source.card, action_id="paste_transposed",
+            action=lambda: self._on_load_clipboard(transposed=True), layout=src_row,
+            presentation=(
+                action_presentation("paste")[0], _("Clipboard transposed"),
+                _("Import the table on the clipboard with rows and columns swapped - "
+                  "for data copied one series per row"),
+            ),
         )
         create_action_button(
             parent=source.card,
@@ -657,13 +681,7 @@ class ImportDataDialog(QDialog):
 
     def _read_clipboard_source(self) -> pd.DataFrame:
         """Parse the remembered clipboard text with the current options."""
-        frame = read_clipboard_text(
-            self._clipboard_text,
-            skiprows=int(self._skip_rows.value()),
-            skipfooter=int(self._skip_last.value()),
-            header=bool(self._has_header.isChecked()),
-            delimiter=self._current_delim(),
-        )
+        frame = self._parse_clipboard(self._clipboard_text, self._clipboard_transposed)
         if frame is None:
             # Said here rather than left to fail further on, where an empty
             # clipboard read as a confusing error about a missing table.
@@ -900,7 +918,23 @@ class ImportDataDialog(QDialog):
         # Auto preview immediately: the file was chosen, not typed.
         self._refresh_preview()
 
-    def _on_load_clipboard(self) -> None:
+    def _parse_clipboard(self, text: str, transposed: bool) -> pd.DataFrame | None:
+        """Read *text* with the current options, rows and columns swapped first if asked.
+
+        Transposed, the skip counts and the header refer to the table as it
+        is shown - after the swap - and the delimiter to the text as copied.
+        """
+        if transposed:
+            text = transpose_delimited_text(text, self._current_delim())
+        return read_clipboard_text(
+            text,
+            skiprows=int(self._skip_rows.value()),
+            skipfooter=int(self._skip_last.value()),
+            header=bool(self._has_header.isChecked()),
+            delimiter="\t" if transposed else self._current_delim(),
+        )
+
+    def _on_load_clipboard(self, transposed: bool = False) -> None:
         """Replace whatever is loaded with what is on the clipboard.
 
         *Replace* is the whole job. The clipboard becomes the source, so the
@@ -918,13 +952,7 @@ class ImportDataDialog(QDialog):
         # Parsed before anything is replaced: an empty clipboard must leave
         # the dialog exactly as it was, not clear it and then say why.
         try:
-            probe = read_clipboard_text(
-                text,
-                skiprows=int(self._skip_rows.value()),
-                skipfooter=int(self._skip_last.value()),
-                header=bool(self._has_header.isChecked()),
-                delimiter=self._current_delim(),
-            )
+            probe = self._parse_clipboard(text, transposed)
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Clipboard preview failed: %s", exc)
             show_message(self, "import.clipboard_failed", error=exc)
@@ -936,6 +964,7 @@ class ImportDataDialog(QDialog):
 
         self._source_mode = "clipboard"
         self._clipboard_text = text
+        self._clipboard_transposed = transposed
         self._path = ""
         self._set_file_name_label("")
         self._update_sheet_choices("")

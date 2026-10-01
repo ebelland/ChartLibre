@@ -159,6 +159,28 @@ def read_clipboard_text(
     )
 
 
+def transpose_delimited_text(text: str, delimiter: Optional[str] = None) -> str:
+    """Swap the rows and columns of delimited text; the result is tab-separated.
+
+    For a table copied the other way round - one series per row, as a
+    spreadsheet often lays them out - so it can be read like any other paste:
+    the first column becomes the header row. Quoted fields are kept whole and
+    short rows are padded with empty cells.
+    """
+    body = (text or "").strip("\ufeff\n\r\t ")
+    if not body:
+        return ""
+    delim = delimiter or sniff_delimiter(body[:4096])
+    rows = [row for row in csv.reader(StringIO(body), delimiter=delim)]
+    width = max((len(row) for row in rows), default=0)
+    padded = [row + [""] * (width - len(row)) for row in rows]
+    out = StringIO()
+    writer = csv.writer(out, delimiter="\t", lineterminator="\n")
+    for column in zip(*padded):
+        writer.writerow(column)
+    return out.getvalue()
+
+
 def read_excel_file(
     path: str,
     *,

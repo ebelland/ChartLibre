@@ -156,3 +156,42 @@ def _isolated_user_web_sources(monkeypatch: pytest.MonkeyPatch) -> dict:
     return {"entries": stored}
 
 
+
+
+# ----------------------------------------------------------------------
+# Clipboard transposed
+# ----------------------------------------------------------------------
+def test_a_table_copied_one_series_per_row_is_read_transposed(dialog) -> None:
+    QApplication.clipboard().setText("t\t0\t1\t2\nspeed\t5\t7\t9\n")
+    dialog._on_load_clipboard(transposed=True)
+    frame = dialog._df
+    assert frame is not None
+    assert list(frame.columns) == ["t", "speed"]
+    assert frame["t"].tolist() == [0, 1, 2]
+    assert frame["speed"].tolist() == [5, 7, 9]  # numbers again, not text
+
+
+def test_changing_an_option_after_a_transposed_paste_keeps_it_transposed(dialog) -> None:
+    QApplication.clipboard().setText("a,1,2\nb,3,4\n")
+    dialog._on_load_clipboard(transposed=True)
+    dialog._has_header.setChecked(False)
+    dialog._refresh_preview()
+    frame = dialog._df
+    assert frame is not None and frame.shape == (3, 2)  # a/b is now data, three rows
+
+
+def test_an_ordinary_paste_after_a_transposed_one_is_not_transposed(dialog) -> None:
+    QApplication.clipboard().setText("x\t1\t2\ny\t3\t4\n")
+    dialog._on_load_clipboard(transposed=True)
+    QApplication.clipboard().setText("x\ty\n1\t3\n2\t4\n")
+    dialog._on_load_clipboard()
+    frame = dialog._df
+    assert frame is not None and list(frame.columns) == ["x", "y"] and frame.shape == (2, 2)
+
+
+def test_transposing_text_keeps_quoted_fields_and_pads_short_rows() -> None:
+    from app.utils.data_sources import transpose_delimited_text
+
+    text = 'name,"Smith, J",Lee\nage,40\n'
+    assert transpose_delimited_text(text, ",") == "name\tage\nSmith, J\t40\nLee\t\n"
+    assert transpose_delimited_text("   ") == ""

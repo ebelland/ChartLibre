@@ -6118,3 +6118,15 @@ msgstr "La couleur dans laquelle les valeurs aberrantes sont dessinées."
 
 msgid "a colour column in its query"
 msgstr "une colonne de couleur dans sa requête"
+
+msgid "Clipboard transposed"
+msgstr "Presse-papiers transposé"
+
+msgid "Import a file: CSV or other delimited text, Excel, JSON"
+msgstr "Importer un fichier : CSV ou autre texte délimité, Excel, JSON"
+
+msgid "Import the table on the clipboard"
+msgstr "Importer la table du presse-papiers"
+
+msgid "Import the table on the clipboard with rows and columns swapped - for data copied one series per row"
+msgstr "Importer la table du presse-papiers en échangeant lignes et colonnes - pour des données copiées une série par ligne"

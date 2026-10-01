@@ -6121,3 +6121,15 @@ msgstr "Il colore con cui vengono disegnati gli anomali."
 
 msgid "a colour column in its query"
 msgstr "una colonna colore nella query"
+
+msgid "Clipboard transposed"
+msgstr "Appunti trasposti"
+
+msgid "Import a file: CSV or other delimited text, Excel, JSON"
+msgstr "Importa un file: CSV o altro testo delimitato, Excel, JSON"
+
+msgid "Import the table on the clipboard"
+msgstr "Importa la tabella negli appunti"
+
+msgid "Import the table on the clipboard with rows and columns swapped - for data copied one series per row"
+msgstr "Importa la tabella negli appunti scambiando righe e colonne - per dati copiati una serie per riga"
