@@ -1,6 +1,6 @@
 ChartLibre TODO
 In ordine di priorità: prima il piano d'azione, poi le voci, dalla più
-urgente. Rivisto il 2026-09-29 (dopo la chiusura di P0-1 e R-11).
+urgente. Rivisto il 2026-10-01.
 
 Priorità:  P0 = risultati sbagliati o lavoro bloccato
            P1 = fondamenta: il resto dipende da queste
@@ -13,15 +13,16 @@ Impegno:   S = una sessione di lavoro con Claude
            L = 4 o più sessioni
            [TU] = la fai tu, non servono crediti
 
-Stato misurato (2026-09-29): 144 file Python in app/, circa 76.500 righe;
-713 test in 73 file; 19 operazioni sulle serie; circa 29 tipi di grafico;
-cataloghi it e fr completi, de e es iniziati (vedi A-07). Pyright/Pylance:
-0 errori.
+Stato misurato (2026-10-01): 157 file Python in app/, circa 77.700 righe;
+726 test in 73 file; 19 operazioni sulle serie (13 con il calcolo già
+separato, R-01); circa 29 tipi di grafico; cataloghi it e fr completi, de e
+es iniziati (vedi A-07). Pyright/Pylance: 0 errori.
 
-Chiuso il 2026-09-29: P0-1 (taglio del filtro: ora "Auto", un decimo di fs),
-R-11 (SQL solo in app/data; un test controlla che resti così), A-01 (numeri
-tagliati: i campi si riordinano invece di tagliare) e A-02 (percorso dei
-plugin Qt in main.py).
+Chiuso il 2026-09-29/30: P0-1 (taglio del filtro "Auto"), R-11 (SQL solo in
+app/data), A-01 (numeri tagliati), A-02 (plugin Qt in main.py), installer
+del venv (install.py), Outlier "Colorali" invece di nasconderli, barra di
+navigazione e tasti finestra di Windows, Log viewer in Sviluppatore, scheda
+Demo nella pagina File, "Query Builder…" nel menu della lista tabelle.
 
 
 ================================================================
@@ -30,7 +31,11 @@ PIANO D'AZIONE
 Ogni fase si chiude con i test verdi, Pyright a zero e un push. Una fase
 lasciata a metà non fa danni: ogni voce si chiude da sola.
 
-Fase 0 - Cose tue, senza crediti
+Fase 0 - Segnalazioni aperte, poi cose tue  (1 sessione S)
+  W-01  Windows: riquadri del pannello sinistro attaccati al bordo destro e in basso.
+  W-02  Windows: pannello dei grafici con angoli alti squadrati sopra quelli tondi.
+  W-03  Pagina Sviluppatore: titoli e pulsanti troncati in italiano.
+  O-01  Outlier "non nasconde più": da riprodurre con il caso dell'utente.
   A-03  [TU] Provare ChartLibre.exe e ChartLibre.bat su Windows.
   A-04  [TU] Spostare il progetto fuori dalla Scrivania di iCloud.
   A-05  [TU] GitHub: descrizione, argomenti, prima release.
@@ -87,6 +92,34 @@ P0 - RISULTATI SBAGLIATI O LAVORO BLOCCATO
 ================================================================
 A - PICCOLE CORREZIONI E COSE DA FARE FUORI DAL CODICE
 ================================================================
+W-01  S  Windows (segnalato 2026-09-30, con foto): nella pagina File i
+      riquadri (Area di lavoro, Demo, Importa, Salva, Apri recenti) toccano il
+      bordo destro del pannello e quello in basso. Misurato: le schede vanno
+      da x=209 a 439 in un pannello largo 440 e finiscono a y=775 su 776 -
+      margine destro e inferiore zero, anche su macOS (dove non si nota
+      perché il fondo è uguale). Dare alla pagina un margine destro e uno
+      inferiore come quello sinistro (MARGIN_TOOLBOX_PAGE), su tutte le
+      pagine del pannello: File, Database, Sviluppatore, Opzioni grafico.
+
+W-02  S  Windows: il pannello di destra con i grafici (#chartSurfaceCard, un
+      CardFrame con angoli arrotondati da 12 px nello stile Fluent) ha i
+      figli in alto - barra con avanti/indietro e titolo, barra strumenti -
+      con lo sfondo squadrato, che copre gli angoli tondi. O togliere
+      l'arrotondamento a quel riquadro su Windows (è una superficie, non una
+      scheda, come già su macOS) o arrotondare/rendere trasparenti i figli.
+      Verificare con lo stile Fluent reso su macOS e con un test di geometria.
+
+W-03  S  Pagina Sviluppatore in italiano: "Costruttore di operazioni sulle
+      s…" troncato nel titolo e nel pulsante. Accorciare le etichette
+      (it/fr) o far andare a capo il titolo.
+
+O-01  S  Outlier "i dati non sono messi hide" (segnalato 2026-09-30). Riprovato
+      con dati di prova: Anteprima e OK nascondono le righe giuste (58 su 60
+      restano nella query della serie) e i test lo confermano. Serve il caso
+      dell'utente: quale progetto, quale metodo, se la serie aveva già un
+      filtro Hide o una colonna colore, se è stato premuto OK o chiusa la
+      finestra (chiudere senza OK annulla l'anteprima, per scelta).
+
 A-03  [TU] ChartLibre.exe (compilato con Zig) e ChartLibre.bat non sono mai
       stati provati su Windows. Doppio clic da una cartella copiata: deve
       creare .venv, installare i pacchetti e aprire l'app senza finestra
