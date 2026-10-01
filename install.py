@@ -148,7 +148,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     folder = args.dir.resolve()
 
-    problem = python_problem(sys.version_info)
+    problem = python_problem(tuple(sys.version_info[:3]))
     if problem:
         print(problem)
         print("Install a newer one from https://www.python.org/downloads/ and run this again.")
