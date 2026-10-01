@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 
 import pandas as pd
@@ -22,7 +21,7 @@ from app.dialogs.operation_history_dialog import OperationHistoryDialog
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
 from app.dialogs.table_editor_dialog import TableEditorDialog
 from app.utils.config import get_section, update_section
-from app.data.sqlite_repo import SqliteRepo
+from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.utils.import_runner import refresh_link
 from app.logs.logger import applogger
 from app.utils.messages import ask
@@ -744,7 +743,7 @@ class TableListPanel(QWidget):
             return
         try:
             name = self._repo.duplicate_table(table)
-        except (ValueError, sqlite3.Error) as exc:
+        except (ValueError, DatabaseError) as exc:
             applogger.exception("Duplicate table failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return

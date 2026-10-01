@@ -286,10 +286,6 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
 
-    def _refresh_visibility(self) -> None:
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
 
     def _model(self) -> str:
         return self.current_model(ROOT_BRENT)

@@ -26,23 +26,18 @@ from __future__ import annotations
 
 import html
 import re
-import webbrowser
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Final
 
 import pandas as pd
 from matplotlib import rcParams
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
-    QHBoxLayout,
-    QLabel,
     QScrollArea,
-    QSizePolicy,
     QSpinBox,
     QWidget,
 )
@@ -404,9 +399,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self._create_controls()
 
     def build_model_selector(self) -> QWidget:
-        panel = CardFrame(self, "clusterModelCard")
-        layout = panel.layout()
-
         self.method_combo = QComboBox(self)
         self.method_combo.addItems(list(CLUSTER_METHODS))
         self.method_combo.setToolTip(_("Choose the clustering algorithm family."))
@@ -424,21 +416,15 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             _("Choose whether clusters are rendered as one point-colored series or as separate series.")
         )
 
-        self._doc_link = QLabel(self)
-        self._doc_link.setOpenExternalLinks(True)
-        self._doc_link.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-
-        form_widget = QWidget(panel)
-        form = QFormLayout(form_widget)
-        stdSizeAndlayout(form)
-        form.addRow(_("Family:"), self.method_combo)
-        form.addRow(_("Algorithm:"), self.scipy_tool_combo)
-        form.addRow(_("Features:"), self.feature_combo)
-        form.addRow(_("Render as:"), self.render_mode_combo)
-        form.addRow(_("Docs:"), self._doc_link)
-
-        layout.addWidget(form_widget)
-        return panel
+        return self.model_form_card(
+            "clusterModelCard",
+            [
+                (_("Family:"), self.method_combo),
+                (_("Algorithm:"), self.scipy_tool_combo),
+                (_("Features:"), self.feature_combo),
+                (_("Render as:"), self.render_mode_combo),
+            ],
+        )
 
     def build_parameter_selector(self) -> QWidget:
         settings_widget = CardFrame(self, "clusterParamsCard")
@@ -478,7 +464,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self.sklearn_eps_spin.valueChanged.connect(self.mark_results_stale)
         self.sklearn_min_samples_spin.valueChanged.connect(self.mark_results_stale)
 
-        self._doc_link.linkActivated.connect(self._open_description)
 
     @staticmethod
     def _spin(minimum: int, maximum: int, value: int) -> QSpinBox:
@@ -558,17 +543,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             ("sklearn_min_samples", "Min samples:", self.sklearn_min_samples_spin),
         )
         for key, label, widget in rows:
-            self._add_row(key, label, widget)
-
-    def _add_row(self, key: str, label: str, widget: QWidget) -> None:
-        row_widget = QWidget()
-        row_layout = QHBoxLayout(row_widget)
-        stdSizeAndlayout(row_layout)
-        row_layout.addWidget(widget)
-        row_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        label_widget = QLabel(label)
-        self.form.addRow(label_widget, row_widget)
-        self._field_rows[key] = (label_widget, row_widget)
+            self.add_field_row(self.form, key, label, widget)
 
     def _refresh_tools(self) -> None:
         """Refresh the SciPy function list for the selected clustering family."""
@@ -605,11 +580,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             if tool in {SKLEARN_OPTICS}:
                 visible.update({"metric", "sklearn_min_samples"})
 
-        for key, widgets in self._field_rows.items():
-            is_visible = key in visible
-            widgets[0].setVisible(is_visible)
-            widgets[1].setVisible(is_visible)
-
+        self.show_field_rows(visible)
         self._update_description_link()
 
     def _update_description_link(self) -> None:
@@ -617,15 +588,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         title = tool or "SciPy clustering"
         url = TOOL_DOCS.get(tool, "https://scikit-learn.org/stable/modules/clustering.html" if str(tool).startswith("sklearn.") else "https://docs.scipy.org/doc/scipy/reference/cluster.html")
         self.set_doc_link(title, url)
-
-    def _open_description(self, _link: str = "") -> None:
-        tool = self.scipy_tool_combo.currentText()
-        title = tool or "SciPy clustering"
-        url = TOOL_DOCS.get(tool, "https://scikit-learn.org/stable/modules/clustering.html" if str(tool).startswith("sklearn.") else "https://docs.scipy.org/doc/scipy/reference/cluster.html")
-        try:
-            webbrowser.open(url)
-        except Exception:
-            show_message(self, "series.open_docs_failed", title=title, url=url)
 
     def _params(self) -> dict[str, Any]:
         return {

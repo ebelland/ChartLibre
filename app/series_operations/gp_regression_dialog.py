@@ -172,10 +172,6 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
     def init_operation_widgets(self) -> None:
         self._parameter_form = None
 
-    def _refresh_visibility(self) -> None:
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
 
     def _kernel(self) -> str:
         return self.model_combo.currentText() or KERNEL_RBF
@@ -234,28 +230,12 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
             selected_axis_id,
             chart_type="Scatter Plot",
             title=self._kernel(),
-            figure_name=self._result_figure_name(results),
+            figure_name=self.result_figure_name(results),
             options={"grid": True, "linestyle": "-", "marker": ""},
         )
-        self._label_result_axis(results)
+        if results:
+            self.label_result_axis(title=str(results[0].model or ""))
         return axis_id
-
-    def _result_figure_name(self, results: Sequence[Any]) -> str:
-        source = str(getattr(results[0], "source_name", "")) if results else ""
-        return f"{source} - GP Regression".strip(" -") or "GP Regression"
-
-    def _label_result_axis(self, results: Sequence[Any]) -> None:
-        if self._result_axis_id is None or not results:
-            return
-        try:
-            self._repo.update_axis_descriptor(
-                axis_id=self._result_axis_id,
-                title=str(results[0].model or ""),
-                x_label="x",
-                y_label="y",
-            )
-        except Exception:
-            applogger.exception("Failed to label the GP regression result axis")
 
     # ------------------------------------------------------------------
     # Results

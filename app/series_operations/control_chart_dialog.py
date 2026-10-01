@@ -427,10 +427,8 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         super().connect_operation_signals()
         self._size_column_combo.currentIndexChanged.connect(self.mark_results_stale)
 
-    def _refresh_visibility(self) -> None:
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
+    def _refresh_visibility(self, *_ignored: Any) -> None:
+        super()._refresh_visibility()
         self.set_row_visible(
             self._size_column_combo, CONTROL_CHARTS[self._chart()].needs_size_column
         )

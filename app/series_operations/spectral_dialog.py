@@ -681,15 +681,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         if x_label == "frequency":
             x_label = "frequency [1/x]"
 
-        try:
-            self._repo.update_axis_descriptor(
-                axis_id=self._result_axis_id,
-                title=str(getattr(first, "model", "") or ""),
-                x_label=x_label,
-                y_label=y_label,
-            )
-        except Exception:
-            applogger.exception("Failed to label the spectral result axis")
+        self.label_result_axis(title=str(getattr(first, "model", "") or ""), x_label=x_label, y_label=y_label)
 
     def discard_operation_artifacts(self) -> None:
         """Delete the axis this dialog created, when Apply never happened.

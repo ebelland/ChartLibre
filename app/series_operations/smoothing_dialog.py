@@ -13,23 +13,18 @@ series shown in the dialog and is returned in metadata/callbacks.
 
 from __future__ import annotations
 
-import webbrowser
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
-    QHBoxLayout,
-    QLabel,
     QScrollArea,
-    QSizePolicy,
     QSpinBox,
     QWidget,
 )
@@ -384,9 +379,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         self._create_controls()
 
     def build_model_selector(self) -> QWidget:
-        panel = CardFrame(self, "smoothingModelCard")
-        layout = panel.layout()
-
         self.dimension_combo = QComboBox(self)
         self.dimension_combo.addItems([DIM_1D, DIM_2D, DIM_3D])
         self.dimension_combo.setToolTip(_("Choose whether the source series is 1D, 2D, or 3D data."))
@@ -394,19 +386,11 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         self.method_combo = QComboBox(self)
         self.method_combo.setToolTip(_("Choose the smoothing/filtering method."))
 
-        form_widget = QWidget(panel)
-        form = QFormLayout(form_widget)
-        stdSizeAndlayout(form)
-        form.addRow(_("Data type:"), self.dimension_combo)
-        form.addRow(_("Model:"), self.method_combo)
-
-        self._doc_link = QLabel(self)
-        self._doc_link.setOpenExternalLinks(True)
-        self._doc_link.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        panel = self.model_form_card(
+            "smoothingModelCard",
+            [(_("Data type:"), self.dimension_combo), (_("Model:"), self.method_combo)],
+        )
         self._doc_link.setToolTip(_("Open documentation for the selected method."))
-        form.addRow(_("Docs:"), self._doc_link)
-        layout.addWidget(form_widget)
-
         return panel
 
     def build_parameter_selector(self) -> QWidget:
@@ -432,7 +416,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         self.dimension_combo.currentIndexChanged.connect(self.mark_results_stale)
         self.method_combo.currentIndexChanged.connect(self._refresh_visibility)
         self.method_combo.currentIndexChanged.connect(self.mark_results_stale)
-        self._doc_link.linkActivated.connect(self._open_description)
 
     @staticmethod
     def _spin(minimum: int, maximum: int, value: int) -> QSpinBox:
@@ -657,21 +640,7 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         )
 
         for key, label, widget in rows:
-            self._add_row(key, label, widget)
-
-    def _add_row(self, key: str, label: str, widget: QWidget) -> None:
-        row_widget = QWidget()
-        row_layout = QHBoxLayout(row_widget)
-        stdSizeAndlayout(row_layout)
-        row_layout.addWidget(widget)
-        row_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        label_widget = QLabel(label)
-        tooltip = self._PARAMETER_TOOLTIPS.get(key)
-        if tooltip:
-            widget.setToolTip(tooltip)
-            label_widget.setToolTip(tooltip)
-        self.form.addRow(label_widget, row_widget)
-        self._field_rows[key] = (label_widget, row_widget)
+            self.add_field_row(self.form, key, label, widget, self._PARAMETER_TOOLTIPS.get(key, ""))
 
     def _current_axis_name(self) -> str:
         return self.series_selector.selected_axis_name()
@@ -776,12 +745,7 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
             return
         visible = m.fields if method else frozenset()
 
-        for key, widgets in self._field_rows.items():
-            is_visible = key in visible
-            label_widget, row_widget = widgets
-            label_widget.setVisible(is_visible)
-            row_widget.setVisible(is_visible)
-
+        self.show_field_rows(visible)
         self._update_description_link()
 
     def _update_description_link(self) -> None:
@@ -794,24 +758,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         spec = model_spec(method)
         if spec is not None:
             self.set_doc_link(spec.doc_title, spec.doc_url)
-
-    def _open_description(self, _link: str = "") -> None:
-        """Open the documentation URL from the selected registry entry."""
-        method = self.method_combo.currentText()
-        if not method:
-            return
-
-        spec = model_spec(method)
-        if spec is not None:
-            try:
-                webbrowser.open(spec.doc_url)
-            except Exception:
-                show_message(
-                    self,
-                    "series.open_docs_failed",
-                    title=spec.doc_title,
-                    url=spec.doc_url,
-                )
 
     def _params(self) -> dict[str, Any]:
         """Collect current UI settings into a plain dict for metadata/reuse."""

@@ -231,10 +231,6 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
     def init_operation_widgets(self) -> None:
         self._parameter_form = None
 
-    def _refresh_visibility(self) -> None:
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
 
     def _model(self) -> str:
         return self.current_model(PEAKS_MAXIMA)

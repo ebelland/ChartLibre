@@ -293,11 +293,6 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
     def _populate_axes(self) -> None:
         self.series_selector.reload(select_all_series=True)
 
-    def _refresh_visibility(self) -> None:
-        """Re-evaluate the declared visibility rules (``visible_for``)."""
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
 
     def compute_results(self) -> list[OutlierResult]:
         """Detect outliers for each selected source series.

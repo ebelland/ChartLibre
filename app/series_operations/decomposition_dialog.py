@@ -250,10 +250,6 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
     def init_operation_widgets(self) -> None:
         self._parameter_form = None
 
-    def _refresh_visibility(self) -> None:
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
 
     def _model(self) -> str:
         return self.current_model(DECOMP_PCA)
@@ -376,15 +372,10 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
             selected_axis_id,
             chart_type="Scatter Plot",
             title=result.model,
-            figure_name=self._result_figure_name(results),
+            figure_name=self.result_figure_name(results, result.model, source="+".join(result.source_names)),
             options={"grid": True, "linestyle": "-", "marker": ""},
         )
         return axis_id
-
-    def _result_figure_name(self, results: Sequence[Any]) -> str:
-        result = results[0]
-        source = "+".join(result.source_names) if results else ""
-        return f"{source} - {result.model}".strip(" -") or "Decomposition"
 
     # ------------------------------------------------------------------
     # Results

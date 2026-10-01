@@ -248,10 +248,6 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
     def init_operation_widgets(self) -> None:
         self._parameter_form = None
 
-    def _refresh_visibility(self) -> None:
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
 
     def _model(self) -> str:
         return self.current_model(REGRESSION_RANSAC)
@@ -310,13 +306,12 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
         selected_axis_id: int,
         results: Sequence[Any],
     ) -> int:
-        source = str(getattr(results[0], "source_name", "")) if results else ""
         model = self._model()
         axis_id = self.resolve_destination_axis(
             selected_axis_id,
             chart_type="Scatter Plot",
             title=model,
-            figure_name=f"{source} - {model}".strip(" -") or "Regression",
+            figure_name=self.result_figure_name(results, model),
             options={"grid": True, "linestyle": "-", "marker": ""},
         )
         return axis_id

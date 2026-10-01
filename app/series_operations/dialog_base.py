@@ -20,7 +20,7 @@ from typing import Any, ClassVar, Protocol
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QHBoxLayout, QProgressBar, QSizePolicy, QSplitter, QToolBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSplitter, QToolBox, QVBoxLayout, QWidget
 import numpy as np
 import pandas as pd
 
@@ -31,7 +31,7 @@ from app.analysis import Stopped
 from app.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, row_value
 from app.data.repo.operations import OPERATIONS_TABLE
-from app.data.sqlite_repo import SqliteRepo
+from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.styles.style import (
     apply_dialog_shell,
@@ -522,8 +522,80 @@ class SeriesOperationDialogBase(QDialog):
         self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self, *_ignored: Any) -> None:
-        """Show the parameters the selected model uses. Nothing by default."""
-        return None
+        """Show the parameters the selected model uses: the PARAMS' visible_for rules.
+
+        Eight operations had this same body as their own; one that builds
+        its controls by hand overrides it (or calls this, then adds its own).
+        """
+        form = getattr(self, "_parameter_form_spec", None)
+        if form is not None:
+            form.refresh_visibility()
+
+    # -- For operations that build their own controls ----------------------
+
+    def model_form_card(self, object_name: str, rows: Sequence[tuple[str, QWidget]]) -> CardFrame:
+        """A card with the model choices as a form, and the Docs link last.
+
+        For an operation with more than the one model combo build_model_selector
+        lays out (Cluster's family and algorithm, Smoothing's data type and
+        method).
+        """
+        panel = CardFrame(self, object_name)
+        form_widget = QWidget(panel)
+        form = QFormLayout(form_widget)
+        stdSizeAndlayout(form)
+        for label, widget in rows:
+            form.addRow(label, widget)
+        if getattr(self, "_doc_link", None) is None:
+            self._doc_link = create_doc_link(self)
+        form.addRow(_("Docs:"), self._doc_link)
+        panel.layout().addWidget(form_widget)
+        return panel
+
+    def add_field_row(
+        self, form: QFormLayout, key: str, label: str, widget: QWidget, tooltip: str = ""
+    ) -> None:
+        """Add one parameter row that show_field_rows can show or hide by *key*."""
+        row_widget = QWidget()
+        row_layout = QHBoxLayout(row_widget)
+        stdSizeAndlayout(row_layout)
+        row_layout.addWidget(widget)
+        row_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        label_widget = QLabel(label)
+        if tooltip:
+            widget.setToolTip(tooltip)
+            label_widget.setToolTip(tooltip)
+        form.addRow(label_widget, row_widget)
+        rows: dict[str, tuple[QWidget, QWidget]] = self.__dict__.setdefault("_field_rows", {})
+        rows[key] = (label_widget, row_widget)
+
+    def show_field_rows(self, visible: set[str] | frozenset[str]) -> None:
+        """Show the rows add_field_row made whose key is in *visible*, hide the rest."""
+        for key, (label_widget, row_widget) in getattr(self, "_field_rows", {}).items():
+            label_widget.setVisible(key in visible)
+            row_widget.setVisible(key in visible)
+
+    # -- A result on an axis or figure of its own -------------------------
+
+    def result_figure_name(self, results: Sequence[Any], what: str = "", source: str = "") -> str:
+        """"<source> - <what was done>": what names a figure an operation makes.
+
+        "Calculus 1" in a tab bar says nothing a week later; the series and
+        the operation do. *source* defaults to the first result's source_name.
+        """
+        if not source and results:
+            source = str(getattr(results[0], "source_name", "") or "")
+        return f"{source} - {what or self.operation_label}".strip(" -") or self.operation_label
+
+    def label_result_axis(self, *, title: str, x_label: str = "x", y_label: str = "y") -> None:
+        """Title and label the axis this operation made for its results, if it made one."""
+        axis_id = getattr(self, "_result_axis_id", None)
+        if axis_id is None:
+            return
+        try:
+            self._repo.update_axis_descriptor(axis_id=axis_id, title=title, x_label=x_label, y_label=y_label)
+        except (DatabaseError, ValueError):
+            applogger.exception(f"Failed to label the {self.operation_label} result axis")
 
     def current_model(self, default: str = "") -> str:
         """The selected model's key, or *default* while none is selected.

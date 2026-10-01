@@ -306,6 +306,13 @@ def _is_ident(name: str) -> bool:
     return is_identifier(name)
 
 
+
+#: What the rest of the application catches when the database refuses
+#: something - every error sqlite3 raises. Re-exported by sqlite_repo so a
+#: widget can catch it without importing sqlite3: SQL and its errors stay in
+#: app/data (dev/tests/test_repo_boundary.py).
+DatabaseError = sqlite3.Error
+
 @dataclass(slots=True)
 class SavedQuery:
     """Stored SQL query descriptor."""

@@ -318,10 +318,6 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
     def init_operation_widgets(self) -> None:
         self._parameter_form = None
 
-    def _refresh_visibility(self) -> None:
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
 
     def _model(self) -> str:
         return self.current_model(DERIV_SAVGOL)
@@ -557,21 +553,11 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             selected_axis_id,
             chart_type=chart_type,
             title=self._model(),
-            figure_name=self._result_figure_name(results),
+            figure_name=self.result_figure_name(results, self._model()),
             options=options,
         )
         self._label_result_axis(results)
         return axis_id
-
-    def _result_figure_name(self, results: Sequence[Any]) -> str:
-        """Name the new figure after the series and the calculation.
-
-        "Calculus 1" would tell the user nothing in a tab bar; the source name
-        and the operation are what identifies it a week later.
-        """
-        source = str(getattr(results[0], "source_name", "")) if results else ""
-        model = self._model()
-        return f"{source} - {model}".strip(" -") or "Calculus"
 
     def _label_result_axis(self, results: Sequence[Any]) -> None:
         """Name the axis after what was actually computed.
@@ -598,15 +584,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         if unit_label:
             y_label = f"{y_label} (x in {unit_label}s)"
 
-        try:
-            self._repo.update_axis_descriptor(
-                axis_id=self._result_axis_id,
-                title=str(first.model or ""),
-                x_label="x",
-                y_label=y_label,
-            )
-        except Exception:
-            applogger.exception("Failed to label the calculus result axis")
+        self.label_result_axis(title=str(first.model or ""), y_label=y_label)
 
     # ------------------------------------------------------------------
     # Results
