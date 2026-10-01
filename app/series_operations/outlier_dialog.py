@@ -11,8 +11,7 @@ management is delegated to SqliteRepo:
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
@@ -134,6 +133,9 @@ class OutlierResult(TableResult):
     metadata: dict[str, Any]
     outlier_count: int
     message: str
+    #: Every source row the series draws: what a re-run shows again before
+    #: hiding its own outliers.
+    rowids: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=int))
 
     def to_df(self) -> pd.DataFrame:
         """Return a small preview frame; not used for persistence."""
@@ -404,125 +406,6 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         return usable
 
     @staticmethod
-    def _source_column_for_alias(sql_query: str, alias: str) -> str:
-        """Return the source column projected as ``alias`` in a simple SELECT.
-
-        Some stored roles contain the renderer aliases ``x``/``y`` rather than
-        the physical table column names. When we build a table-writeback query
-        from those roles, SQLite can return the literal strings 'x' and 'y' if
-        no physical columns named x/y exist. This resolver maps aliases back to
-        the real source fields from expressions like ``hour AS x``.
-        """
-        alias_text = str(alias or "").strip()
-        if not alias_text:
-            return ""
-        quoted_alias = re.escape(alias_text)
-        alias_pattern = (
-            r'"' + quoted_alias + r'"'
-            r'|\[' + quoted_alias + r'\]'
-            r'|`' + quoted_alias + r'`'
-            r'|' + quoted_alias + r'(?=\s|,|$)'
-        )
-        identifier = (
-            r'"([^"\\]*(?:\\.[^"\\]*)*)"'
-            r'|\[([^\]]+)\]'
-            r'|`([^`]+)`'
-            r'|([A-Za-z_][A-Za-z0-9_]*)'
-        )
-        pattern = identifier + r'\s+AS\s+(?:' + alias_pattern + r')'
-        match = re.search(pattern, str(sql_query), flags=re.IGNORECASE)
-        if match is None:
-            return ""
-        for group in match.groups():
-            if group:
-                return str(group)
-        return ""
-
-    @staticmethod
-    def _literal_alias_column(series: pd.Series, alias: str) -> bool:
-        """True when a column consists only of the alias text, e.g. 'x'."""
-        values = series.dropna().astype(str).str.strip().head(20)
-        return not values.empty and bool((values == str(alias)).all())
-
-    def _load_outlier_source_frame(self, choice: Any, roles: Mapping[str, Any]) -> pd.DataFrame:
-        """Return source rows with normalized x/y and __rowid__ columns.
-
-        The repository helper is preferred because it knows how to expose rowid
-        for Hide updates. If it returns literal alias values (for example x='x',
-        y='y'), resolve the renderer aliases back to the source columns from the
-        SELECT list and reload directly from the series SQL.
-        """
-        frame = self._repo.query_series_frame_for_hide(
-            sql_query=choice["sql_query"],
-            roles=roles,
-        )
-        if self._frame_has_usable_xy(frame):
-            return frame
-
-        try:
-            direct = self._repo.query_df(str(choice["sql_query"]))
-        except Exception:
-            return frame
-
-        if direct.empty:
-            return frame
-
-        sql_query = str(choice["sql_query"])
-        x_role = str(roles.get("x", "x") or "x").strip()
-        y_role = str(roles.get("y", "y") or "y").strip()
-
-        # Role values are often renderer aliases. Prefer actual role columns
-        # when they exist and are not literal alias text; otherwise resolve the
-        # alias to its physical source projection from the SELECT list.
-        x_col = x_role if x_role in direct.columns else ""
-        y_col = y_role if y_role in direct.columns else ""
-
-        if x_col and self._literal_alias_column(direct[x_col], x_role):
-            x_col = ""
-        if y_col and self._literal_alias_column(direct[y_col], y_role):
-            y_col = ""
-
-        if not x_col:
-            resolved = self._source_column_for_alias(sql_query, x_role)
-            x_col = resolved if resolved in direct.columns else ("x" if "x" in direct.columns else "")
-        if not y_col:
-            resolved = self._source_column_for_alias(sql_query, y_role)
-            y_col = resolved if resolved in direct.columns else ("y" if "y" in direct.columns else "")
-
-        if not x_col or not y_col:
-            return frame
-
-        output = pd.DataFrame({"x": direct[x_col], "y": direct[y_col]})
-        if "__rowid__" in direct.columns:
-            output["__rowid__"] = direct["__rowid__"]
-        elif "rowid" in direct.columns:
-            output["__rowid__"] = direct["rowid"]
-        elif "_rowid_" in direct.columns:
-            output["__rowid__"] = direct["_rowid_"]
-        else:
-            # Last resort: ask the repo helper for rowids but replace only x/y.
-            # This is safe when both frames come from the same ordered series SQL.
-            if "__rowid__" not in frame.columns or len(frame) != len(output):
-                return frame
-            output["__rowid__"] = frame["__rowid__"].to_numpy()
-
-        if self._frame_has_usable_xy(output):
-            return output
-        return frame
-
-    @staticmethod
-    def _frame_has_usable_xy(frame: pd.DataFrame) -> bool:
-        """True when a frame contains at least MIN_POINTS finite x/y pairs."""
-        if frame.empty or "x" not in frame.columns or "y" not in frame.columns:
-            return False
-        try:
-            raw_x = to_numeric_axis(frame["x"])
-            raw_y = to_numeric_axis(frame["y"])
-        except Exception:
-            return False
-        return int(np.count_nonzero(np.isfinite(raw_x) & np.isfinite(raw_y))) >= MIN_POINTS
-
-    @staticmethod
     def _column_diagnostics(frame: pd.DataFrame) -> str:
         """Return compact x/y dtype/sample diagnostics for failure messages."""
         parts: list[str] = []
@@ -544,7 +427,8 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         """Load one source series, compute the outlier mask, and map rowids."""
         roles = parse_roles(choice["roles"])
         source_table = self._repo.query_source_table(choice["sql_query"])
-        source_df = self._load_outlier_source_frame(choice, roles)
+        # The series' own rows, through its own SQL: see the repository.
+        source_df = self._repo.query_series_frame_for_hide(sql_query=choice["sql_query"], roles=roles)
 
         # to_numeric alone would turn a timestamp column into all-NaN, and the
         # only symptom would be this method reporting "not enough points"
@@ -570,7 +454,7 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             diagnostics = self._column_diagnostics(source_df)
             applogger.error(
                 "%s: %d row(s) read, %d usable X/Y pair(s), %d required. "
-                "Rows already hidden are excluded. Check that roles map to the "
+                "Check that roles map to the "
                 "actual source columns and that X/Y are numeric or date-like. %s",
                 self._series_display_name(choice),
                 len(source_df),
@@ -626,6 +510,7 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             },
             outlier_count=outlier_count,
             message=message,
+            rowids=np.asarray(raw_rowids, dtype=int),
         )
 
     def _params(self) -> dict[str, Any]:
@@ -716,16 +601,22 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
                     self._preview_series_sql[series_id] = str(result.metadata.get("source_sql_query", ""))
 
     def _apply_hide_results(self, results: Sequence[OutlierResult]) -> None:
-        cleared_tables: set[str] = set()
+        # One marking per table: the rows of every series processed are shown
+        # again, then every outlier any of them found is hidden. Series on
+        # the same rows (a measurement and its deseasonalised twin) share
+        # them, so marking series by series let the second one show again
+        # what the first had just hidden. Rows of series not in this run keep
+        # their flags.
+        by_table: dict[str, tuple[set[int], set[int]]] = {}
         for result in results:
-            clear_existing = result.source_table not in cleared_tables
+            scope, hidden = by_table.setdefault(str(result.source_table), (set(), set()))
+            scope.update(int(rowid) for rowid in result.rowids)
+            hidden.update(int(rowid) for rowid in result.outlier_rowids)
+        for table_name, (scope, hidden) in by_table.items():
             self._repo.mark_hide_rowids(
-                table_name=result.source_table,
-                rowids=[int(rowid) for rowid in result.outlier_rowids],
-                clear_existing=clear_existing,
+                table_name=table_name, rowids=sorted(hidden), scope_rowids=sorted(scope)
             )
-            cleared_tables.add(result.source_table)
-
+        for result in results:
             source_series_id = result.metadata.get("source_series_id")
             if source_series_id is not None:
                 self._repo.update_series_hide_filter(

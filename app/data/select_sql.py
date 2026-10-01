@@ -36,7 +36,7 @@ def sql_insert_select_expression(sql_query: str, expression: str) -> str:
     DataFrame instead of a Series.
     """
     sql = str(sql_query).strip().rstrip(";")
-    match = re.search(r"\bFROM\b", sql, flags=re.IGNORECASE)
+    match = top_level_from(sql)
     if match is None:
         applogger.error(
             "Selected series SQL must contain a FROM clause.",
@@ -61,6 +61,35 @@ def sql_insert_select_expression(sql_query: str, expression: str) -> str:
         return f"{rewritten_select} {from_part}"
 
     return f"{select_part}, {expression} {from_part}"
+
+
+def top_level_from(sql: str) -> re.Match[str] | None:
+    """The FROM of the outer query: not one inside a subquery or a string.
+
+    A series whose points are a correlated subquery ("SELECT a.minute AS x,
+    (SELECT COUNT(*) FROM events b WHERE ...) AS y FROM events a") has a
+    FROM inside its select list; splitting there put the new expression in
+    the subquery.
+    """
+    depth = 0
+    quote = ""
+    for match in re.finditer(r"""[()'"`\[\]]|\bFROM\b""", sql, flags=re.IGNORECASE):
+        token = match.group(0)
+        if quote:
+            if token == quote:
+                quote = ""
+            continue
+        if token in ("'", '"', "`"):
+            quote = token
+        elif token == "[":
+            quote = "]"
+        elif token == "(":
+            depth += 1
+        elif token == ")":
+            depth = max(0, depth - 1)
+        elif depth == 0:
+            return match
+    return None
 
 
 def select_alias_from_expression(expression: str) -> str:

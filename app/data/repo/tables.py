@@ -25,6 +25,7 @@ from pandas._typing import DtypeArg
 import app.data.descriptors
 from app import APP_NAME
 from app.data.data_source import DataSource
+from app.data.select_sql import sql_insert_select_expression
 from app.data.repo._common import (
     RepoHost,
     _RETURNS_ROWS_RE,
@@ -867,22 +868,41 @@ class TablesMixin(RepoHost):
         sql_query: str,
         roles: Mapping[str, Any],
     ) -> pd.DataFrame:
-        """Return source rowid plus raw X/Y values for outlier detection."""
+        """The rows a series draws, with their source rowid: ``__rowid__``, ``x``, ``y``.
+
+        Read through the series' own SQL, so its WHERE clause holds - one
+        ticker of three in the table, one species - and the roles name the
+        columns it returns, aliases included. The Hide filter is left out:
+        rows an earlier run hid are looked at again, since the new run
+        decides afresh which of the series' rows to hide.
+
+        It used to read the whole table and quote the role names as columns:
+        another series' rows were searched (and could be hidden), and a role
+        naming an alias ("date AS x") was read by SQLite as the text 'x', so
+        no point was usable and nothing was hidden (todo O-01).
+        """
         assert self._con is not None
-        table_name = self.query_source_table(sql_query)
+        base = self.sql_without_hide_filter(sql_query)
+        if re.search(r"\bgroup\s+by\b|\bselect\s+distinct\b", base, flags=re.IGNORECASE):
+            raise ValueError(
+                "this series aggregates its rows (GROUP BY or DISTINCT), so a point "
+                "it draws is not one row of the table that could be hidden"
+            )
+        table_name = self.query_source_table(base)
         self.ensure_hide_column(table_name)
+        frame = self.query_df(sql_insert_select_expression(base, 'rowid AS "__rowid__"'))
+
         x_col = str(roles.get("x", "")).strip()
         y_col = str(roles.get("y", "")).strip()
-        if not x_col or not y_col:
-            applogger.error("Series roles must contain x and y columns for outlier marking.")
-        select_sql = (
-            f"SELECT rowid AS __rowid__, "
-            f"{_quote_ident(x_col)} AS x, "
-            f"{_quote_ident(y_col)} AS y "
-            f"FROM {_quote_ident(table_name)} "
-            f"WHERE \"Hide\" = 0"
+        missing = [role for role, column in (("x", x_col), ("y", y_col)) if column not in frame.columns]
+        if missing:
+            raise ValueError(
+                f"the series' query returns no column for its {' and '.join(missing)} role "
+                f"(it returns {', '.join(str(c) for c in frame.columns if c != '__rowid__')})"
+            )
+        return pd.DataFrame(
+            {"__rowid__": frame["__rowid__"], "x": frame[x_col], "y": frame[y_col]}
         )
-        return pd.read_sql_query(select_sql, self._con)
 
     @ensure_connection_wrapper
     def mark_hide_rowids(
@@ -891,13 +911,25 @@ class TablesMixin(RepoHost):
         table_name: str,
         rowids: Sequence[int],
         clear_existing: bool = False,
+        scope_rowids: Sequence[int] | None = None,
     ) -> int:
-        """Set Hide=True/1 for exact SQLite rowids and report matched totals."""
+        """Set Hide=True/1 for exact SQLite rowids and report matched totals.
+
+        *scope_rowids* are shown again first: the rows of the series being
+        processed, so a re-run replaces its own earlier choice and leaves
+        other series' hidden rows alone. ``clear_existing`` shows every row
+        of the table again instead.
+        """
         assert self._con is not None
         if clear_existing:
             self.clear_hide_column(table_name)
         else:
             self.ensure_hide_column(table_name)
+        if scope_rowids is not None:
+            self._con.executemany(
+                f'UPDATE {_quote_ident(table_name)} SET "Hide" = 0 WHERE rowid = ?',
+                [(int(rowid),) for rowid in scope_rowids],
+            )
         ids = [int(rowid) for rowid in rowids]
         if not ids:
             hidden_count = self.count_hidden_rows(table_name)
@@ -1026,6 +1058,15 @@ class TablesMixin(RepoHost):
         match = re.search(r"\bfrom\s+(.)", sql, flags=re.IGNORECASE)
         return match is not None and match.group(1) != "("
 
+    @staticmethod
+    def sql_without_hide_filter(sql_query: str) -> str:
+        """The series SQL without the Hide filter sql_with_hide_filter adds."""
+        hide = r'"?Hide"?\s*=\s*0\b'
+        sql = str(sql_query or "").strip().rstrip(";")
+        sql = re.sub(rf"\s+AND\s+{hide}", "", sql, flags=re.IGNORECASE)
+        sql = re.sub(rf"\bWHERE\s+{hide}\s+AND\s+", "WHERE ", sql, flags=re.IGNORECASE)
+        return re.sub(rf"\s+WHERE\s+{hide}", "", sql, flags=re.IGNORECASE)
+
     def sql_with_hide_filter(self, sql_query: str) -> str:
         """Return SQL with a Hide=False filter inserted, where that applies."""
         sql = str(sql_query or "").strip().rstrip(";")
@@ -1033,7 +1074,9 @@ class TablesMixin(RepoHost):
             return sql
         if not self.is_table_backed_sql(sql):
             return sql
-        if re.search(r'\bhide\b\s*(?:=\s*0|is\s+false)', sql, flags=re.IGNORECASE):
+        # "Hide" quoted too: the filter this adds is quoted, and the check
+        # missing it appended one more on every run.
+        if re.search(r'"?\bhide\b"?\s*(?:=\s*0|is\s+false)', sql, flags=re.IGNORECASE):
             return sql
         clause = '"Hide" = 0'
         insert_before = re.search(
