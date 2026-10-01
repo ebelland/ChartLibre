@@ -19,7 +19,7 @@ import numpy as np
 from scipy import stats
 
 from app.analysis import Stopped
-from app.functions.optimizers import BY_KEY, DEFAULT_OPTIMIZER, run_optimizer
+from app.functions.optimizers import BY_KEY, DEFAULT_OPTIMIZER, RELATIVE_STEP, run_optimizer
 
 Model = Callable[[np.ndarray, np.ndarray], np.ndarray]
 
@@ -117,12 +117,18 @@ def multi_peak_model(
 
 
 def model_jacobian(model: Model, x: np.ndarray, p: np.ndarray) -> np.ndarray:
-    """Central-difference derivative of the model with respect to each parameter."""
+    """Central-difference derivative of the model with respect to each parameter.
+
+    The step is relative to each parameter (RELATIVE_STEP): the absolute
+    1e-6 it used to have for anything below 1 was larger than a parameter of
+    1e-7, and the NIST Hahn1 errors came out with no correct digit.
+    """
     params = np.asarray(p, dtype=float)
     base = np.asarray(model(x, params), dtype=float)
     jac = np.empty((base.size, params.size), dtype=float)
     for col in range(params.size):
-        step = 1e-6 * max(1.0, abs(float(params[col])))
+        value = float(params[col])
+        step = RELATIVE_STEP * (abs(value) if value != 0.0 else 1.0)
         p_plus = params.copy(); p_plus[col] += step
         p_minus = params.copy(); p_minus[col] -= step
         jac[:, col] = (
@@ -166,6 +172,13 @@ def param_uncertainty(
 
     The usual least-squares estimate: (J'J)^-1 scaled by the residual
     variance. Fixed parameters get NaN everywhere - they have no error.
+
+    (J'J)^-1 is taken through the singular values of J rather than by
+    inverting J'J: forming J'J squares the condition number, and with
+    parameters of very different sizes (NIST Misra1c: 636 and 0.0002) the
+    pseudo-inverse then dropped a direction and reported an error 1e14 times
+    too small. Only directions at rounding level are dropped here, as
+    SciPy's curve_fit does.
     """
     std = np.full(n_params, np.nan, dtype=float)
     cov_full = np.full((n_params, n_params), np.nan, dtype=float)
@@ -174,8 +187,11 @@ def param_uncertainty(
         return std, cov_full, corr_full
     try:
         dof = max(1, residual.size - jac_free.shape[1])
-        cov = np.linalg.pinv(jac_free.T @ jac_free) * float(np.dot(residual, residual) / dof)
-    except (np.linalg.LinAlgError, ValueError):
+        _u, singular, vt = np.linalg.svd(jac_free, full_matrices=False)
+        keep = singular > np.finfo(float).eps * max(jac_free.shape) * singular[0]
+        singular, vt = singular[keep], vt[keep]
+        cov = (vt.T / singular**2) @ vt * float(np.dot(residual, residual) / dof)
+    except (np.linalg.LinAlgError, ValueError, IndexError):
         return std, cov_full, corr_full
     free_idx = np.flatnonzero(free)
     cov_full[np.ix_(free_idx, free_idx)] = cov
@@ -273,6 +289,7 @@ def fit_curve(
     target = np.asarray(target, dtype=float)
 
     free = ~fixed if optimise else np.zeros_like(fixed, dtype=bool)
+    sigma = weights_sigma(target) if weighted else None
     if not np.any(free):
         p_opt = p0.copy()
         jac_free = np.empty((target.size, 0))
@@ -283,7 +300,6 @@ def fit_curve(
             else "All parameters fixed; evaluated model only."
         )
     else:
-        sigma = weights_sigma(target) if weighted else None
 
         def residual_fun(p_free: np.ndarray) -> np.ndarray:
             if should_stop is not None and should_stop():
@@ -306,8 +322,10 @@ def fit_curve(
         )
         p_opt = p0.copy()
         p_opt[free] = outcome.params
-        # A method that reports no Jacobian still owes the user error bars.
-        jac_free = outcome.jac if outcome.jac is not None else residual_jacobian(model, x, p_opt)[:, free]
+        # The model's own central differences rather than the optimiser's
+        # Jacobian: those are forward differences taken at the last step,
+        # good enough to steer by and two digits short for error bars.
+        jac_free = residual_jacobian(model, x, p_opt)[:, free]
         success = bool(outcome.success)
         message = f"{BY_KEY[outcome.optimizer].label}: {outcome.message}"
 
@@ -319,7 +337,15 @@ def fit_curve(
         uncertainty_free = np.ones_like(fixed, dtype=bool)
     estimated = int(np.count_nonzero(uncertainty_free))
     metrics = fit_metrics(target, fit_values, estimated)
-    std, cov, corr = param_uncertainty(jac_free, residual, uncertainty_free, n_params)
+    if sigma is None:
+        std, cov, corr = param_uncertainty(jac_free, residual, uncertainty_free, n_params)
+    else:
+        # The weighted problem is the one solved, so its errors come from it:
+        # Jacobian and residuals both divided by sigma. (The weighted
+        # Jacobian used to meet the unweighted residuals here.)
+        std, cov, corr = param_uncertainty(
+            jac_free / sigma[:, None], residual / sigma, uncertainty_free, n_params
+        )
     dof = int(target.size - estimated)
     tvalues, pvalues, ci_low, ci_high = parameter_inference(p_opt, std, dof)
     if dof > 0:

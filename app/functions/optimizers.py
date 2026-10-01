@@ -178,6 +178,48 @@ class FitOutcome:
 # ----------------------------------------------------------------------
 # Running one
 # ----------------------------------------------------------------------
+
+#: Convergence tolerances of the least-squares methods (ftol, xtol, gtol).
+#: SciPy's 1e-8 stops a badly scaled fit early - on the NIST reference
+#: problems (dev/tests/test_nist_nonlinear.py) the defaults left ENSO with 3
+#: correct digits and Hahn1 with 2; at this setting every one has 6 or more,
+#: for a few more evaluations of the model.
+LEAST_SQUARES_TOLERANCE: float = 1e-15
+
+#: Each parameter's finite-difference step, relative to its own size: an
+#: absolute step is far larger than a parameter of 1e-7 and far smaller than
+#: one of 1e7.
+RELATIVE_STEP: float = 1e-6
+
+
+def central_jacobian(
+    residual: Residual,
+    params: np.ndarray,
+    low: np.ndarray | None = None,
+    high: np.ndarray | None = None,
+) -> np.ndarray:
+    """Central-difference Jacobian of *residual*, one-sided against a bound.
+
+    More accurate than the forward differences ``least_squares`` takes by
+    default - two more correct digits in the parameters' standard errors on
+    the NIST problems - for one more evaluation per parameter.
+    """
+    params = np.asarray(params, dtype=float)
+    columns: list[np.ndarray] = []
+    for index, value in enumerate(params):
+        step = RELATIVE_STEP * (abs(value) if value != 0.0 else 1.0)
+        up = params.copy()
+        down = params.copy()
+        up[index] = value + step if high is None else min(value + step, high[index])
+        down[index] = value - step if low is None else max(value - step, low[index])
+        span = up[index] - down[index]
+        if span <= 0.0:
+            columns.append(np.zeros_like(np.asarray(residual(params), dtype=float)))
+            continue
+        columns.append(
+            (np.asarray(residual(up), dtype=float) - np.asarray(residual(down), dtype=float)) / span
+        )
+    return np.column_stack(columns)
 def run_optimizer(
     key: str,
     residual: Residual,
@@ -260,14 +302,21 @@ def _least_squares(
     bounded: bool = True,
 ) -> FitOutcome:
     """Run ``least_squares`` and report it, whatever it does."""
-    kwargs: dict[str, Any] = {"max_nfev": max(1, int(max_nfev))}
+    kwargs: dict[str, Any] = {
+        "max_nfev": max(1, int(max_nfev)),
+        "ftol": LEAST_SQUARES_TOLERANCE,
+        "xtol": LEAST_SQUARES_TOLERANCE,
+        "gtol": LEAST_SQUARES_TOLERANCE,
+    }
     if bounded:
         kwargs["bounds"] = (low, high)
         kwargs["method"] = method
+        kwargs["jac"] = lambda params: central_jacobian(residual, params, low, high)
     else:
         # SciPy refuses bounds with "lm" rather than ignoring them, so the
         # bounds are dropped here and the choice is documented on the option.
         kwargs["method"] = LEVENBERG
+        kwargs["jac"] = lambda params: central_jacobian(residual, params)
 
     if loss and loss != "linear":
         # f_scale stays at its default: it is the residual magnitude beyond

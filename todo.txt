@@ -43,7 +43,7 @@ Fase 0 - Segnalazioni aperte, poi cose tue  (1 sessione S)
 Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
   Ordine: R-01 (fatto), poi R-02 e i test di R-13; poi R-03.
   R-02  Calcoli lunghi in background (fatto per 11 operazioni + Fit).
-  R-13  Test di validazione numerica (NIST), subito per Fit e Statistiche.
+  R-13  Test di validazione numerica (NIST): fatto per Fit, polinomi, Statistiche.
   R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
 
 Fase 2 - Ciò che chiede chi fa analisi  (circa L: 6-8 sessioni)
@@ -179,15 +179,32 @@ R-02  P1  M  QUASI FATTO (2026-10-01). Calcoli lunghi in background.
         gerarchico, GP grande): oggi Ferma agisce tra una serie e l'altra;
         servirebbe should_stop nei motori che hanno un ciclo.
 
-R-13  P1  M  Test di validazione numerica.
-      Fatto per Smoothing e Spectral (segnali con risposta nota: rampe,
-      polinomi, toni, ritardi). Confrontare ogni operazione con valori di
-      riferimento certificati,
-      come fanno i produttori commerciali: NIST StRD (Longley e Norris per
-      la regressione lineare, i dataset ANOVA e di regressione non lineare
-      con risultati certificati). Si può cominciare subito per Fit e
-      Statistiche, già separati; per le altre subito dopo R-01. Alzato da
-      P3: per un'app scientifica un numero sbagliato è il difetto peggiore.
+R-13  P1  M  FATTO per NIST StRD (2026-10-01). Test di validazione numerica.
+      58 dataset NIST originali in dev/tests/data/nist, con i valori
+      certificati; dev/tests/test_nist_validation.py (140 casi, 2 s) e la
+      tabella completa con python3 dev/tools/nist_report.py. Cifre corrette:
+      - Fit non lineare, 27 problemi x 2 partenze, trust region e
+        Levenberg-Marquardt, budget 800: parametri >= 6,5, errori >= 6,0.
+        Eccezioni dichiarate: MGH17 da partenza 1 vuole più valutazioni;
+        Levenberg-Marquardt non converge su BoxBOD da partenza 1; Lanczos1
+        è un fit esatto (residuo 1e-25), errori non confrontabili. Dogbox
+        fallisce da partenza 1 su MGH09/10/17 e Rat43 (non è il predefinito).
+      - Polinomi (Interpolazione, polyfit): >= 6,2 (Filip grado 10: 7,8).
+        Fit con Linear/Quadratic: >= 7,5.
+      - Statistiche: media 15, deviazione >= 8,3. ANOVA: F >= 10, tranne
+        SmLs07-09 (~4: è il limite dei dati in doppia precisione).
+      Corretti grazie ai test (prima: errori standard sbagliati fino a 1e14
+      volte su 6 problemi, Hahn1 a 2 cifre, ENSO a 3): covarianza via SVD
+      invece di pinv(J'J); passo relativo per le differenze finite;
+      Jacobiano a differenze centrali nell'ottimizzatore; tolleranze 1e-15;
+      nel fit pesato Jacobiano e residui ora pesati entrambi.
+      Note: per i modelli senza intercetta il Fit riporta l'R² centrato,
+      NIST certifica quello non centrato (convenzione, da valutare).
+      Una chiave di ottimizzatore sconosciuta ricade in silenzio su trust
+      region (run_optimizer): comodo per impostazioni vecchie, ma nasconde
+      gli errori di battitura.
+      Restano: regressione multipla (Longley: ChartLibre non ne ha una),
+      e test con risposta nota per le operazioni senza dataset NIST.
 
 R-03  P1  M  Riproducibilità: ogni operazione applicata resta nel progetto.
       Oggi il risultato è salvato nel progetto; i parametri no (restano
