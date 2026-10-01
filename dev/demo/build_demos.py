@@ -750,33 +750,25 @@ def _surface_bump_peaks_result() -> pd.DataFrame:
 
 def _surface_saddle_roots_result() -> pd.DataFrame:
     """The saddle's z=0 level curve (two diagonals), found by the Roots
-    operation's own contour extraction (SeriesRootsDialog._extract_level_
-    curves) run directly on the exact grid.
+    operation's own contour extraction (app.analysis.roots.find_level_curve)
+    run directly on the exact grid.
     """
-    from app.series_operations.roots_dialog import Root, RootResult, SeriesRootsDialog
+    from app.analysis.roots import find_level_curve
+    from app.series_operations.roots_dialog import RootResult
 
     xx, yy, zz = _saddle_grid_arrays()
-    dialog = SeriesRootsDialog.__new__(SeriesRootsDialog)
-    polylines = dialog._extract_level_curves(xx, yy, zz, 0.0)
-    roots = [
-        Root(
-            x=float(px), y=float(py), rising=False, method="contour",
-            z=0.0, curve_index=curve_index,
-        )
-        for curve_index, (xs, ys) in enumerate(polylines)
-        for px, py in zip(xs.tolist(), ys.tolist())
-    ]
+    search = find_level_curve(xx, yy, zz, level=0.0, limit=10**9)
     result = RootResult(
         source_name="Saddle",
         result_name="Saddle - roots",
         model="Contour (matplotlib)",
         level=0.0,
-        roots=roots,
+        roots=search.roots,
         metadata={
-            "found": len(roots),
+            "found": len(search.roots),
             "is_3d": True,
             "interpolated": False,
-            "curves": len(polylines),
+            "curves": search.curves,
         },
     )
     return result.to_df()
@@ -2290,7 +2282,7 @@ def _ops_3d_showcase_spec() -> MultiAxisFigureSpec:
     that now understands a series with a z role.
 
     Every derived panel is computed by the operation's own code
-    (SeriesPeaksDialog._search_3d, SeriesRootsDialog._extract_level_curves,
+    (app.analysis.peaks.find_peaks_2d, app.analysis.roots.find_level_curve,
     SeriesCalculusDialog._gradient_surface - see the *_result table loaders
     above) rather than re-implemented for the demo, so this figure cannot
     silently drift from what the dialogs actually do. The volume figure is

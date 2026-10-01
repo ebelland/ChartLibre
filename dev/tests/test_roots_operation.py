@@ -94,9 +94,9 @@ def test_a_straight_line_crossing_is_exact() -> None:
 
 
 def test_bisection_converges_to_within_the_tolerance() -> None:
-    dialog = _bare()
+    from app.analysis.roots import _refine_bisect
 
-    refined = dialog._refine_bisect(lambda v: v - 0.3, 0.0, 1.0, 1e-9, 200)
+    refined = _refine_bisect(lambda v: v - 0.3, 0.0, 1.0, 1e-9, 200)
     assert refined is not None
     root, iterations = refined
 

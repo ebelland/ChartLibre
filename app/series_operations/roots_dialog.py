@@ -50,9 +50,18 @@ from typing import Any, cast
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QWidget
-from scipy.interpolate import CubicSpline, PchipInterpolator
-from scipy.optimize import brentq, newton, toms748
-
+from app.analysis.roots import (
+    INTERP_CUBIC,
+    INTERP_LINEAR,
+    INTERP_PCHIP,
+    SOLVER_BISECT,
+    SOLVER_BRENT,
+    SOLVER_NEWTON,
+    SOLVER_TOMS748,
+    Root,
+    find_level_curve,
+    find_roots,
+)
 from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -72,10 +81,12 @@ from app.utils.i18n import _
 
 # --- Solvers ----------------------------------------------------------
 
-ROOT_BRENT = "Brent"
-ROOT_BISECT = "Bisection"
-ROOT_TOMS748 = "TOMS 748"
-ROOT_NEWTON = "Newton (secant)"
+# The solver names are the engine's (app.analysis.roots); the dialog's own
+# names for them stay, for the callers and tests that already use them.
+ROOT_BRENT = SOLVER_BRENT
+ROOT_BISECT = SOLVER_BISECT
+ROOT_TOMS748 = SOLVER_TOMS748
+ROOT_NEWTON = SOLVER_NEWTON
 
 #: The models offered, in combo order.
 ROOT_MODELS: dict[str, OperationModel] = {
@@ -97,41 +108,8 @@ ROOT_MODELS: dict[str, OperationModel] = {
     ),
 }
 
-INTERP_LINEAR = "linear"
-INTERP_CUBIC = "cubic"
-INTERP_PCHIP = "pchip"
 
 
-@dataclass(slots=True)
-class Root:
-    """One located crossing.
-
-    For a 2D crossing (a series with a z role, see ``_solve_one_3d``), ``x``
-    and ``y`` are a point's actual coordinates rather than x and a residual,
-    ``z`` holds the level (constant across every point), and
-    ``curve_index`` groups points into the separate polylines
-    ``ax.contour`` returned - a saddle's z=0 level set, for instance, is two
-    unconnected diagonal lines, not one.
-    """
-
-    x: float
-    #: The interpolant's value there. Not exactly the level - it is the
-    #: residual that says how well the solver converged, and a large one is
-    #: the sign of a bracket the interpolant does not really cross.
-    #: For a 2D crossing this is instead the point's own y coordinate.
-    y: float
-    #: True when the series is going up through the level at this x. A
-    #: rising and a falling crossing are different events - a threshold
-    #: being exceeded and a recovery - and the report says which. Meaningless
-    #: for a 2D crossing (a level *curve* has no single "up"), always False
-    #: there.
-    rising: bool
-    #: How the value was arrived at: the solver's name, or "sample" for a
-    #: point that sat on the level to begin with. "contour" for a 2D one.
-    method: str
-    iterations: int = 0
-    z: float | None = None
-    curve_index: int = 0
 
 
 @dataclass(slots=True)
@@ -359,62 +337,29 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         params: Mapping[str, Any],
     ) -> RootResult:
         level = float(params.get("level", 0.0))
-        limit = int(params.get("limit", 100))
-        xtol = self._xtol(params)
-        max_iter = int(params.get("max_iter", 100))
-
-        offset = y_values - level
-        interpolant = self._interpolant(
-            x_values, offset, str(params.get("interpolation", INTERP_LINEAR))
+        interpolation = str(params.get("interpolation", INTERP_LINEAR))
+        search = find_roots(
+            x_values,
+            y_values,
+            level=level,
+            solver=model,
+            interpolation=interpolation,
+            tolerance_digits=params.get("tolerance_digits", 9),
+            max_iter=int(params.get("max_iter", 100)),
+            limit=int(params.get("limit", 100)),
         )
-
-        roots: list[Root] = []
-        for left, right, exact in self._brackets(x_values, offset):
-            if exact is not None:
-                roots.append(
-                    Root(
-                        x=float(exact),
-                        y=level,
-                        rising=self._is_rising(interpolant, float(exact), x_values),
-                        method="sample",
-                    )
-                )
-                continue
-
-            found = self._refine(
-                interpolant, left, right, model, xtol=xtol, max_iter=max_iter
-            )
-            if found is None:
-                continue
-            x_root, iterations = found
-            roots.append(
-                Root(
-                    x=float(x_root),
-                    y=float(interpolant(x_root)) + level,
-                    rising=self._is_rising(interpolant, float(x_root), x_values),
-                    method=model,
-                    iterations=int(iterations),
-                )
-            )
-
-        roots.sort(key=lambda root: root.x)
-        truncated = len(roots) > limit
-        if truncated:
-            # In x order, not by any measure of quality: a crossing is a
-            # crossing, and the first hundred is the only defensible
-            # "first" when they are all equally real.
-            roots = roots[:limit]
-
+        for note in search.notes:
+            applogger.info(note)
         return RootResult(
             source_name=name,
             result_name=f"{name} - roots",
             model=model,
             level=level,
-            roots=roots,
+            roots=search.roots,
             metadata={
-                "found": len(roots),
-                "truncated": truncated,
-                "interpolation": str(params.get("interpolation", INTERP_LINEAR)),
+                "found": len(search.roots),
+                "truncated": search.truncated,
+                "interpolation": interpolation,
                 "samples": int(x_values.size),
             },
         )
@@ -429,299 +374,30 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
     ) -> RootResult:
         """Find the level curve z = level on a gridded (or interpolated) surface.
 
-        The bracket-and-refine machinery above assumes y is single-valued in
-        x, which a surface's level set is not - a saddle's z = 0 set is two
-        crossing lines. Matplotlib's own contour extraction already solves
-        exactly this (it is what draws a Contour chart's lines), so it is
-        reused here rather than re-deriving marching squares by hand: a
-        throwaway, never-shown Figure/Axes builds ``ax.contour`` at a single
-        level and its polylines are read back as (x, y) points.
+        The bracket-and-refine machinery assumes y is single-valued in x,
+        which a surface's level set is not - a saddle's z = 0 set is two
+        crossing lines - so it is matplotlib's contour extraction instead
+        (app.analysis.roots.find_level_curve).
         """
         level = float(params.get("level", 0.0))
-        limit = int(params.get("limit", 100))
-
         x_grid, y_grid, z_grid, interpolated = self.series_grid_xyz(row, name)
-        polylines = self._extract_level_curves(x_grid, y_grid, z_grid, level)
-
-        roots: list[Root] = []
-        truncated = False
-        for curve_index, (xs, ys) in enumerate(polylines):
-            for x_value, y_value in zip(xs.tolist(), ys.tolist()):
-                if len(roots) >= limit:
-                    truncated = True
-                    break
-                roots.append(
-                    Root(
-                        x=float(x_value),
-                        y=float(y_value),
-                        rising=False,
-                        method="contour",
-                        z=level,
-                        curve_index=curve_index,
-                    )
-                )
-            if truncated:
-                break
-
+        search = find_level_curve(
+            x_grid, y_grid, z_grid, level=level, limit=int(params.get("limit", 100))
+        )
         return RootResult(
             source_name=name,
             result_name=f"{name} - roots",
             model="Contour (matplotlib)",
             level=level,
-            roots=roots,
+            roots=search.roots,
             metadata={
-                "found": len(roots),
-                "truncated": truncated,
+                "found": len(search.roots),
+                "truncated": search.truncated,
                 "is_3d": True,
                 "interpolated": bool(interpolated),
-                "curves": len(polylines),
+                "curves": search.curves,
             },
         )
-
-    @staticmethod
-    def _extract_level_curves(
-        x_grid: np.ndarray,
-        y_grid: np.ndarray,
-        z_grid: np.ndarray,
-        level: float,
-    ) -> list[tuple[np.ndarray, np.ndarray]]:
-        """Return the ``z_grid == level`` polylines as ``(xs, ys)`` arrays.
-
-        ``allsegs`` is still present on the ``QuadContourSet`` matplotlib
-        ships in this repo (checked against the installed version); the
-        ``get_paths()``/``Path.vertices`` route is used as a fallback in case
-        a future matplotlib drops it, so this keeps working across an
-        upgrade rather than failing outright.
-        """
-        from matplotlib.figure import Figure
-
-        figure = Figure()
-        axes = figure.add_subplot(111)
-        try:
-            contour_set = axes.contour(x_grid, y_grid, z_grid, levels=[float(level)])
-
-            polylines: list[tuple[np.ndarray, np.ndarray]] = []
-            if hasattr(contour_set, "allsegs"):
-                # allsegs and get_paths are real; the bundled stubs predate them.
-                segments = contour_set.allsegs[0] if contour_set.allsegs else []  # pyright: ignore[reportAttributeAccessIssue]
-                for segment in segments:
-                    segment = np.asarray(segment, dtype=float)
-                    if segment.shape[0] >= 1:
-                        polylines.append((segment[:, 0], segment[:, 1]))
-            else:
-                for path in contour_set.get_paths():  # pyright: ignore[reportAttributeAccessIssue]
-                    vertices = np.asarray(path.vertices, dtype=float)
-                    if vertices.shape[0] >= 1:
-                        polylines.append((vertices[:, 0], vertices[:, 1]))
-            return polylines
-        finally:
-            # A Figure never added to a canvas still holds real Matplotlib
-            # state; close it explicitly rather than count on garbage
-            # collection to do it promptly.
-            import matplotlib.pyplot as plt
-
-            plt.close(figure)
-
-    # --- The bracketing half, which decides what can be found ----------
-
-    def _brackets(
-        self, x_values: np.ndarray, offset: np.ndarray
-    ) -> list[tuple[float, float, float | None]]:
-        """Return the intervals that must contain a crossing.
-
-        ``(left, right, exact)``: *exact* is set when a sample sits on the
-        level, in which case there is nothing to solve. A run of consecutive
-        samples exactly on the level would otherwise be reported as one root
-        each, so only the first of such a run is taken - the series does not
-        cross there, it rests there.
-        """
-        brackets: list[tuple[float, float, float | None]] = []
-        previous_was_zero = False
-
-        for index in range(offset.size):
-            value = float(offset[index])
-            if value == 0.0:
-                if not previous_was_zero:
-                    brackets.append((0.0, 0.0, float(x_values[index])))
-                previous_was_zero = True
-                continue
-            previous_was_zero = False
-
-            if index + 1 >= offset.size:
-                break
-            following = float(offset[index + 1])
-            if following != 0.0 and (value > 0.0) != (following > 0.0):
-                brackets.append(
-                    (float(x_values[index]), float(x_values[index + 1]), None)
-                )
-
-        return brackets
-
-    def _interpolant(
-        self, x_values: np.ndarray, offset: np.ndarray, kind: str
-    ) -> Any:
-        """Return a callable for ``y(x) - level`` between the samples.
-
-        Cubic and PCHIP need four and two points respectively and both need
-        strictly increasing x, which ``prepare_input_xy`` has already
-        guaranteed. A series too short for the chosen interpolant falls back
-        to the straight line rather than failing: the assumption degrades,
-        the answer still exists.
-        """
-        if kind == INTERP_CUBIC and x_values.size >= 4:
-            return CubicSpline(x_values, offset)
-        if kind == INTERP_PCHIP and x_values.size >= 2:
-            return PchipInterpolator(x_values, offset)
-        return lambda value: np.interp(value, x_values, offset)
-
-    # --- The SciPy half ------------------------------------------------
-
-    def _xtol(self, params: Mapping[str, Any]) -> float:
-        """Return the x tolerance, from the number of digits asked for.
-
-        Asked for as digits rather than as a number because that is how
-        anyone thinks about it, and because a spin box showing
-        "0.000000001000" is a control nobody can read or set.
-        """
-        try:
-            digits = int(params.get("tolerance_digits", 9))
-        except (TypeError, ValueError):
-            digits = 9
-        return 10.0 ** -min(max(digits, 1), 15)
-
-    def _refine(
-        self,
-        interpolant: Any,
-        left: float,
-        right: float,
-        model: str,
-        *,
-        xtol: float,
-        max_iter: int,
-    ) -> tuple[float, int] | None:
-        """Solve inside one bracket, or return None with a log line.
-
-        Every solver here is ``scipy.optimize``'s; what differs is what each
-        is allowed to do with the bracket. A failure costs the one crossing
-        rather than the whole series: an interpolant that wanders can leave a
-        bracket its samples did straddle, and the other twenty crossings are
-        still worth reporting.
-        """
-        def evaluate(value: float) -> float:
-            return float(interpolant(value))
-
-        try:
-            if model == ROOT_NEWTON:
-                return self._refine_newton(evaluate, left, right, xtol, max_iter)
-
-            solver = {
-                ROOT_BRENT: brentq,
-                ROOT_TOMS748: toms748,
-            }.get(model)
-            if solver is None:
-                return self._refine_bisect(evaluate, left, right, xtol, max_iter)
-
-            root, result = solver(
-                evaluate,
-                left,
-                right,
-                xtol=xtol,
-                maxiter=max_iter,
-                full_output=True,
-            )
-            if not result.converged:
-                raise RuntimeError("the solver did not converge")
-            return float(root), int(result.iterations)
-        except Exception as exc:
-            applogger.info(
-                "No root in [%g, %g]: %s. The samples change sign across it, "
-                "so the interpolant does not - which is the interpolant "
-                "disagreeing with the data rather than an error.",
-                left,
-                right,
-                exc,
-            )
-            return None
-
-    def _refine_bisect(
-        self,
-        evaluate: Any,
-        left: float,
-        right: float,
-        xtol: float,
-        max_iter: int,
-    ) -> tuple[float, int] | None:
-        """Halve the bracket until it is narrower than the tolerance.
-
-        SciPy's own ``bisect`` would do this; it is written out because it is
-        four lines and because the iteration count it reports is then the
-        real one rather than the solver's internal bookkeeping.
-        """
-        low, high = float(left), float(right)
-        f_low = evaluate(low)
-        iterations = 0
-        while high - low > xtol and iterations < max_iter:
-            middle = 0.5 * (low + high)
-            f_middle = evaluate(middle)
-            if f_middle == 0.0:
-                return middle, iterations + 1
-            if (f_low > 0.0) != (f_middle > 0.0):
-                high = middle
-            else:
-                low, f_low = middle, f_middle
-            iterations += 1
-        return 0.5 * (low + high), iterations
-
-    def _refine_newton(
-        self,
-        evaluate: Any,
-        left: float,
-        right: float,
-        xtol: float,
-        max_iter: int,
-    ) -> tuple[float, int] | None:
-        """Secant from the middle of the bracket, then check it stayed in it.
-
-        ``newton`` is not a bracketing method: with no derivative it runs the
-        secant method, which converges faster than Brent on a smooth curve
-        and is free to step anywhere. A result outside the bracket is a
-        different crossing, or none - it is not the root of *this* interval,
-        so it is refused rather than reported at the wrong x.
-        """
-        # full_output=True: newton returns (root, RootResults).
-        root, result = cast(tuple[float, Any], newton(
-            evaluate,
-            0.5 * (left + right),
-            tol=xtol,
-            maxiter=max_iter,
-            full_output=True,
-            disp=False,
-        ))
-        if not result.converged:
-            raise RuntimeError("the secant iteration did not converge")
-        if not (min(left, right) <= float(root) <= max(left, right)):
-            raise RuntimeError(
-                "the secant iteration left the bracket it started in"
-            )
-        return float(root), int(result.iterations)
-
-    def _is_rising(
-        self, interpolant: Any, x_root: float, x_values: np.ndarray
-    ) -> bool:
-        """Say whether the series goes up through the level at *x_root*.
-
-        Measured over a small step either side rather than from a derivative,
-        so it means the same thing for every interpolant - ``np.interp`` has
-        no derivative to ask for.
-        """
-        span = float(x_values[-1] - x_values[0])
-        step = (span / max(x_values.size - 1, 1)) * 1.0e-3 if span > 0.0 else 1.0e-9
-        try:
-            before = float(interpolant(x_root - step))
-            after = float(interpolant(x_root + step))
-        except Exception:  # noqa: BLE001 - outside the interpolant's domain
-            return True
-        return after >= before
 
     # ------------------------------------------------------------------
     # Results
