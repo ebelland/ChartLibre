@@ -63,17 +63,17 @@ def sql_insert_select_expression(sql_query: str, expression: str) -> str:
     return f"{select_part}, {expression} {from_part}"
 
 
-def top_level_from(sql: str) -> re.Match[str] | None:
-    """The FROM of the outer query: not one inside a subquery or a string.
+def top_level_match(sql: str, pattern: str) -> re.Match[str] | None:
+    """The first match of *pattern* in the outer query: not inside parentheses or quotes.
 
-    A series whose points are a correlated subquery ("SELECT a.minute AS x,
-    (SELECT COUNT(*) FROM events b WHERE ...) AS y FROM events a") has a
-    FROM inside its select list; splitting there put the new expression in
-    the subquery.
+    A keyword inside a subquery or a CTE body ("WITH source AS (SELECT ...
+    WHERE ...)") belongs to that inner query; reading it as the outer one's
+    is how a Hide filter came to be appended as "FROM source AND ...".
     """
     depth = 0
     quote = ""
-    for match in re.finditer(r"""[()'"`\[\]]|\bFROM\b""", sql, flags=re.IGNORECASE):
+    scanner = re.compile(rf"""[()'"`\[\]]|{pattern}""", flags=re.IGNORECASE)
+    for match in scanner.finditer(sql):
         token = match.group(0)
         if quote:
             if token == quote:
@@ -90,6 +90,17 @@ def top_level_from(sql: str) -> re.Match[str] | None:
         elif depth == 0:
             return match
     return None
+
+
+def top_level_from(sql: str) -> re.Match[str] | None:
+    """The FROM of the outer query: not one inside a subquery or a string.
+
+    A series whose points are a correlated subquery ("SELECT a.minute AS x,
+    (SELECT COUNT(*) FROM events b WHERE ...) AS y FROM events a") has a
+    FROM inside its select list; splitting there put the new expression in
+    the subquery.
+    """
+    return top_level_match(sql, r"\bFROM\b")
 
 
 def select_alias_from_expression(expression: str) -> str:

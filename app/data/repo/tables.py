@@ -25,7 +25,7 @@ from pandas._typing import DtypeArg
 import app.data.descriptors
 from app import APP_NAME
 from app.data.data_source import DataSource
-from app.data.select_sql import sql_insert_select_expression
+from app.data.select_sql import sql_insert_select_expression, top_level_from, top_level_match
 from app.data.repo._common import (
     RepoHost,
     _RETURNS_ROWS_RE,
@@ -1054,9 +1054,12 @@ class TablesMixin(RepoHost):
         from a subquery, which has neither a Hide column nor a rowid - adding
         the filter there produces "no such column: Hide" and loses the series.
         """
-        sql = str(sql_query or "")
-        match = re.search(r"\bfrom\s+(.)", sql, flags=re.IGNORECASE)
-        return match is not None and match.group(1) != "("
+        sql = str(sql_query or "").strip()
+        # A WITH query reads from its own named subqueries, not a table.
+        if re.match(r"with\b", sql, flags=re.IGNORECASE):
+            return False
+        match = top_level_from(sql)
+        return match is not None and sql[match.end():].lstrip()[:1] not in ("(", "")
 
     @staticmethod
     def sql_without_hide_filter(sql_query: str) -> str:
@@ -1079,14 +1082,12 @@ class TablesMixin(RepoHost):
         if re.search(r'"?\bhide\b"?\s*(?:=\s*0|is\s+false)', sql, flags=re.IGNORECASE):
             return sql
         clause = '"Hide" = 0'
-        insert_before = re.search(
-            r'\b(order\s+by|group\s+by|limit|offset)\b',
-            sql,
-            flags=re.IGNORECASE,
-        )
+        # The outer query's own clauses only: a WHERE inside a subquery in
+        # the select list is not one this filter can join with AND.
+        insert_before = top_level_match(sql, r"\b(?:order\s+by|group\s+by|limit|offset)\b")
         addition = (
             f" AND {clause}"
-            if re.search(r'\bwhere\b', sql, flags=re.IGNORECASE)
+            if top_level_match(sql, r"\bwhere\b")
             else f" WHERE {clause}"
         )
         if insert_before is None:

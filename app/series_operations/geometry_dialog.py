@@ -24,7 +24,11 @@ because the query is meant to be read.
 """
 from __future__ import annotations
 
+import base64
+import html
+import io
 import math
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
@@ -41,6 +45,7 @@ from app.series_operations.results import OperationResult
 from app.series_operations.dialog_base import OperationModel, ResultSeriesSpec, SeriesOperationDialogBase
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
 from app.styles.style import CardFrame
+from app.utils import report_html
 from app.utils.i18n import _
 
 ROTATE = "Rotate"
@@ -107,6 +112,8 @@ class GeometryResult(OperationResult):
     after_y: np.ndarray = field(default_factory=lambda: np.empty(0))
     after_z: np.ndarray | None = None
     show_grid: bool = True
+    #: What the report lists: the settings that shaped this motion, as text.
+    settings: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def is_3d(self) -> bool:
@@ -150,6 +157,11 @@ class _BeforeAfterView(QWidget):
         self._canvas = FigureCanvasQTAgg(self._figure)
         layout.addWidget(self._canvas)
         self.clear(_("Choose a series, then press Preview."))
+
+    @property
+    def figure(self) -> Figure:
+        """The picture as drawn now - what the report embeds."""
+        return self._figure
 
     def clear(self, message: str) -> None:
         self._figure.clear()
@@ -681,6 +693,7 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
             after_y=after_y,
             after_z=after_z,
             show_grid=bool(values.get("show_grid", True)),
+            settings=self._report_settings(self._current_model(), values, centre, z_col is not None, before_x.size),
         )
         self._last_results = [result]
         return [result]
@@ -711,8 +724,78 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         applogger.info("Geometry query:\n%s", formatted)
 
     def results_report_html(self, formatted: str, results: Sequence[Any]) -> str:
-        del results
-        return formatted
+        """The report under the chart: what was done, the picture, then the query.
+
+        It used to be the query alone, which says what to run but not what
+        happened; the before/after picture is the result of this operation,
+        so it goes in too, as a small embedded image.
+        """
+        del formatted
+        blocks: list[str] = []
+        for result in results:
+            summary = report_html.summary_table(
+                [(_("Motion"), _(result.model)), *result.settings]
+            )
+            image = self._picture_markup()
+            query = (
+                "<pre style='white-space:pre-wrap;font-family:Menlo,Consolas,monospace;"
+                f"font-size:9pt;margin:0;'>{html.escape(result.sql)}</pre>"
+            )
+            blocks.append(
+                report_html.section(result.source_name, summary, image, report_html.section(_("Query"), query))
+            )
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        return (
+            f"<h3 style='margin:0 0 4px 0;'>{html.escape(self.operation_label)}</h3>"
+            f"<p style='margin:0 0 8px 0;color:#666;font-size:9pt;'>{stamp}</p>"
+            + "".join(blocks)
+        )
+
+    def _picture_markup(self) -> str:
+        """The before/after plot now in the results pane, as an embedded PNG."""
+        buffer = io.BytesIO()
+        try:
+            self._plot_view.figure.savefig(buffer, format="png", dpi=80)
+        except Exception:  # noqa: BLE001 - a report without its picture is still a report
+            applogger.exception("Could not render the geometry picture for the report")
+            return ""
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return f"<p><img src='data:image/png;base64,{encoded}' width='400'></p>"
+
+    @staticmethod
+    def _report_settings(
+        model_name: str,
+        values: Mapping[str, Any],
+        centre: tuple[float, float, float],
+        is_3d: bool,
+        points: int,
+    ) -> list[tuple[str, str]]:
+        """The settings of the current model, as label/value rows."""
+        def num(key: str, default: float = 0.0) -> str:
+            return geo.number(float(values.get(key, default)))
+
+        model = GEOMETRY_MODELS.get(model_name)
+        rows: list[tuple[str, str]] = []
+        if model is not None and model.rotates:
+            if is_3d:
+                rows.append((_("Angles (x, y, z)"), f"{num('angle_x')}°, {num('angle_y')}°, {num('angle_z')}°"))
+            else:
+                rows.append((_("Angle"), f"{num('angle')}°"))
+        if model is not None and model.moves:
+            offset = f"{num('dx')}, {num('dy')}" + (f", {num('dz')}" if is_3d else "")
+            rows.append((_("Offset"), offset))
+        if model_name == SCALE:
+            rows.append((_("Scale"), f"{num('sx', 1)}, {num('sy', 1)}" + (f", {num('sz', 1)}" if is_3d else "")))
+        if model_name == SHEAR:
+            rows.append((_("Shear"), f"{num('kx')}, {num('ky')}"))
+        if model_name == MIRROR:
+            line = float(values.get("mirror_line", 0.0))
+            rows.append((_("Mirror line"), next((_(label) for label, angle in MIRROR_LINES if angle == line), f"{line:g}°")))
+        if model is None or model.centred:
+            centre_text = ", ".join(geo.number(v) for v in (centre if is_3d else centre[:2]))
+            rows.append((_("Centre"), centre_text))
+        rows.append((_("Points"), str(points)))
+        return rows
 
     # ------------------------------------------------------------------
     # Writing the series

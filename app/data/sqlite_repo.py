@@ -218,6 +218,10 @@ class SqliteRepo(
 
         # Create system tables
         self._create_system_tables()
+        try:
+            self.repair_misplaced_hide_filters()
+        except sqlite3.Error:
+            applogger.exception("Could not check the series queries", show_dialog=False, raise_error=False)
 
     # =====================================================================
     # Series DataFrame cache

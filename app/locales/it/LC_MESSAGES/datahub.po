@@ -6169,3 +6169,24 @@ msgstr "Tabelle scritte"
 
 msgid "{count} operation(s), oldest first"
 msgstr "{count} operazione/i, dalla più vecchia"
+
+msgid "Angle"
+msgstr "Angolo"
+
+msgid "Angles (x, y, z)"
+msgstr "Angoli (x, y, z)"
+
+msgid "Centre"
+msgstr "Centro"
+
+msgid "Mirror line"
+msgstr "Linea di riflessione"
+
+msgid "Motion"
+msgstr "Trasformazione"
+
+msgid "Offset"
+msgstr "Spostamento"
+
+msgid "Query"
+msgstr "Query"

@@ -31,6 +31,48 @@ class MaintenanceMixin(RepoHost):
 
     __slots__ = ()
 
+    def repair_misplaced_hide_filters(self) -> list[str]:
+        """Take off a Hide filter appended where it broke a series' query; returns the series fixed.
+
+        Before the filter looked at the outer query only, a series written
+        as "WITH source AS (... WHERE ...) SELECT ... FROM source" - what
+        Geometry creates - was given " AND \"Hide\" = 0" at the end, which
+        is not SQL: the series failed and was not drawn. Run when a project
+        opens. Only a query that fails and works without the trailing
+        filter is changed.
+        """
+        assert self._con is not None
+        trailing = re.compile(r'\s+(?:AND|WHERE)\s+"Hide"\s*=\s*0\s*$', re.IGNORECASE)
+        fixed: list[str] = []
+        for row in self._con.execute(
+            "SELECT id, name, sql_query FROM __series_descriptors__"
+        ).fetchall():
+            sql = str(row["sql_query"] or "")
+            if not trailing.search(sql) or self._compiles(sql):
+                continue
+            repaired = trailing.sub("", sql)
+            if self._compiles(repaired):
+                self._con.execute(
+                    "UPDATE __series_descriptors__ SET sql_query = ? WHERE id = ?",
+                    (repaired, int(row["id"])),
+                )
+                fixed.append(str(row["name"]))
+        if fixed:
+            self._commit()
+            applogger.warning(
+                "Repaired the query of %d series broken by a misplaced Hide filter: %s",
+                len(fixed), ", ".join(fixed), show_dialog=False, raise_error=False,
+            )
+        return fixed
+
+    def _compiles(self, sql: str) -> bool:
+        assert self._con is not None
+        try:
+            self._con.execute(f"EXPLAIN {sql}")
+        except sqlite3.Error:
+            return False
+        return True
+
     @ensure_connection_wrapper
     def optimize_db(self) -> DatabaseReport:
         """Check the database, report what is wrong, then compact it.
