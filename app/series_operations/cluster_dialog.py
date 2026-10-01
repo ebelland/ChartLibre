@@ -941,16 +941,15 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         """Undo everything a cluster preview wrote.  Returns True if it did."""
         restored = False
 
-        for source_table, had_column in list(self._cluster_snapshots.items()):
+        for source_table in list(self._cluster_snapshots):
             try:
-                if had_column:
-                    self._repo.restore_column_snapshot(
-                        source_table, CLUSTER_COLUMN, CLUSTER_BACKUP_COLUMN
-                    )
-                elif self._repo.has_column(source_table, CLUSTER_COLUMN):
-                    # There was no ClusterId before the preview, so removing the
-                    # one the preview added is the correct restore.
-                    self._repo.delete_table_column(source_table, CLUSTER_COLUMN)
+                # Without a ClusterId before the preview there is no backup,
+                # and the restore just drops the column the preview added.
+                # Not delete_table_column: that records an undo entry, and a
+                # preview must never reach the undo history.
+                self._repo.restore_column_snapshot(
+                    source_table, CLUSTER_COLUMN, CLUSTER_BACKUP_COLUMN
+                )
                 restored = True
             except Exception:
                 applogger.exception(

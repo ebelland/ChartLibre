@@ -745,7 +745,7 @@ class TablesMixin(RepoHost):
                 show_dialog=False,
                 raise_error=False,
             )
-            self.delete_table_column(table_name, backup_name)
+            self._drop_column(table_name, backup_name)
 
         if not self.has_column(table_name, col_name):
             return False
@@ -764,7 +764,7 @@ class TablesMixin(RepoHost):
         assert self._con is not None
 
         if self.has_column(table_name, col_name):
-            self.delete_table_column(table_name, col_name)
+            self._drop_column(table_name, col_name)
 
         if self.has_column(table_name, backup_name):
             self.rename_table_column(table_name, backup_name, col_name)
@@ -774,7 +774,7 @@ class TablesMixin(RepoHost):
         """Drop a snapshot after the change it protected has been committed."""
         assert self._con is not None
         if self.has_column(table_name, backup_name):
-            self.delete_table_column(table_name, backup_name)
+            self._drop_column(table_name, backup_name)
 
     @ensure_connection_wrapper
     def clear_integer_column(self, table_name: str, col_name:str) -> None:
@@ -1422,6 +1422,18 @@ class TablesMixin(RepoHost):
             entry_id=undo_entry,
         )
 
+        self._drop_column(table_name, column_name)
+
+    @ensure_connection_wrapper
+    def _drop_column(self, table_name: str, column_name: str) -> None:
+        """Drop a column without recording an undo entry.
+
+        For the column snapshots below, which are bookkeeping rather than
+        something the user did: they run while a preview SAVEPOINT is open,
+        where attaching the undo database is not allowed, and a preview is
+        rolled back anyway, so it must never reach the undo history.
+        """
+        assert self._con is not None
         self._con.execute(
             f"ALTER TABLE {_quote_ident(table_name)} DROP COLUMN {_quote_ident(column_name)}"
         )
