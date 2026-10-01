@@ -35,7 +35,6 @@ from app.analysis.regression import (
     RegressionSettings,
     fit_regression,
 )
-from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
@@ -118,6 +117,9 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
 
     Name: str = "Regression"
     Description = "Robust and ML regression models"
+
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
 
     PARAMS = (
         IntParam(
@@ -258,27 +260,15 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def compute_results(self) -> list[RegressionResult]:
-        model = self._model()
-        params = self.parameter_values()
+    def series_settings(self) -> tuple[str, dict[str, Any]]:
+        return self._model(), self.parameter_values()
 
-        results: list[RegressionResult] = []
-        errors: list[str] = []
-
-        for row in self.selected_series():
-            name = str(row_value(row, "name", "series_name", default="Series"))
-            try:
-                x_values, y_values = self.series_xy(row, name)
-                results.append(self._fit_one(name, x_values, y_values, model, params))
-            except Exception as exc:
-                errors.append(f"{name}: {exc}")
-
-        if errors and not results:
-            raise ValueError("; ".join(errors))
-        for message in errors:
-            applogger.warning(message, show_dialog=False, raise_error=False)
-
-        return results
+    def compute_series(
+        self, name: str, data: tuple[np.ndarray, np.ndarray], settings: tuple[str, dict[str, Any]]
+    ) -> RegressionResult:
+        model, params = settings
+        x_values, y_values = data
+        return self._fit_one(name, x_values, y_values, model, params)
 
     def _fit_one(
         self,

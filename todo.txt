@@ -42,7 +42,7 @@ Fase 0 - Segnalazioni aperte, poi cose tue  (1 sessione S)
 
 Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
   Ordine: R-01 (fatto), poi R-02 e i test di R-13; poi R-03.
-  R-02  Calcoli lunghi in background con barra di avanzamento.
+  R-02  Calcoli lunghi in background (fatto per 11 operazioni + Fit).
   R-13  Test di validazione numerica (NIST), subito per Fit e Statistiche.
   R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
 
@@ -153,12 +153,31 @@ R-01  P1  L  FATTO (2026-10-01). Separare i calcoli dalle finestre.
       - Cluster: scipy vq.kmeans non ha seme, quindi due esecuzioni possono
         dare gruppi diversi (vedi R-03: riproducibilità).
 
-R-02  P1  M  IN CORSO. Calcoli lunghi in background.
-      La classe base offre già evaluate() in background con pulsante Ferma
-      (app/utils/background.py); oggi lo usa il Fit, e Traduci mancanti
-      usa lo stesso meccanismo. Restano: attivarlo per le altre operazioni
-      man mano che il loro calcolo esce dal dialogo (R-01), e una barra di
-      avanzamento vera al posto del messaggio.
+R-02  P1  M  QUASI FATTO (2026-10-01). Calcoli lunghi in background.
+      Anteprima e Applica calcolano su un thread di lavoro per 11 operazioni
+      (calculus, cluster, control chart, decomposition, GP, interpolate,
+      peaks, regression, roots, smoothing, transform) oltre al Fit: la
+      finestra resta reattiva, dopo 300 ms compaiono Ferma e una barra
+      (una tacca per serie; animata quando la serie è una sola), chiudere la
+      finestra ferma il calcolo e un risultato arrivato dopo Ferma non
+      viene scritto. OK chiude solo quando il risultato è applicato.
+      Come: la base legge serie e controlli sul thread della GUI
+      (read_series / series_settings) e il calcolo puro gira nel job
+      (compute_series, o CallJob per chi calcola tutte le serie insieme).
+      Corretti per l'occasione: il logger scriveva nella barra di stato dal
+      thread chiamante (ora via segnale); find_level_curve usava una Figure
+      e pyplot (ora contourpy diretto, curve identiche).
+      Test: dev/tests/test_background_operations.py (stessi risultati del
+      thread della GUI per ognuna, Ferma, barra, OK, log da thread).
+      Restano:
+      - Outlier: ha un'anteprima propria legata allo stato Hide; da
+        convertire dopo O-01.
+      - Filter, baseline, spectral, statistics, geometry, function: veloci,
+        restano sul thread della GUI (filter e baseline leggono i controlli
+        dentro il calcolo: prima fotografarli in series_settings).
+      - Ferma dentro un singolo calcolo lungo (t-SNE, clustering
+        gerarchico, GP grande): oggi Ferma agisce tra una serie e l'altra;
+        servirebbe should_stop nei motori che hanno un ciclo.
 
 R-13  P1  M  Test di validazione numerica.
       Fatto per Smoothing e Spectral (segnali con risposta nota: rampe,

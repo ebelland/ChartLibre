@@ -33,6 +33,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    CallJob,
     OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -150,6 +151,9 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
     Name: str = "Decomposition"
     Description = "Decompose or embed several series together (PCA, ICA, NMF, t-SNE, ...)"
 
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
+
     INPUT_REQUIRES_SORTED_X = True
     INPUT_REQUIRES_UNIQUE_X = True
     INPUT_MINIMUM_POINTS = 3
@@ -259,7 +263,9 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def compute_results(self) -> list[DecompositionResult]:
+    def prepare_job(self, **options: Any) -> CallJob:
+        """Read every selected series here; the grid, the matrix and the model run in the job."""
+        del options
         rows = self.selected_series()
         if len(rows) < 2:
             raise ValueError("Select two or more series to decompose or embed together.")
@@ -288,12 +294,14 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
         for message in errors:
             applogger.warning(message, show_dialog=False, raise_error=False)
 
-        grid = dc.shared_grid(xy_pairs, n_grid)
-        matrix = dc.feature_matrix(grid, xy_pairs)
+        def compute() -> list[DecompositionResult]:
+            grid = dc.shared_grid(xy_pairs, n_grid)
+            matrix = dc.feature_matrix(grid, xy_pairs)
+            if DECOMPOSITION_ALL_MODELS[model].manifold:
+                return [self._embed(names, matrix, model, params)]
+            return [self._decompose(names, grid, matrix, model, params)]
 
-        if DECOMPOSITION_ALL_MODELS[model].manifold:
-            return [self._embed(names, matrix, model, params)]
-        return [self._decompose(names, grid, matrix, model, params)]
+        return CallJob(compute)
 
     def _decompose(
         self,

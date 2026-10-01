@@ -256,6 +256,9 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
     Name: str = "Control Chart"
     Description = "Monitor process stability (I-MR, X-bar, p, np, c, u)"
 
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
+
     # The points are a time order, so they must be in x order: every estimator
     # here reads consecutive differences, and a shuffled series produces a
     # moving range that describes the sort order rather than the process.
@@ -546,39 +549,58 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def compute_results(self) -> list[ControlChartResult]:
+    def series_settings(self) -> tuple[str, dict[str, Any]]:
+        return self._chart(), self.parameter_values()
+
+    def read_series(self, row: Any, name: str) -> Any:
         chart = self._chart()
-        params = self.parameter_values()
+        if CONTROL_CHARTS[chart].attribute:
+            return self._series_counts(row, name, chart)
+        return self.series_xy(row, name)
 
-        results: list[ControlChartResult] = []
-        errors: list[str] = []
+    def compute_series(self, name: str, data: Any, settings: tuple[str, dict[str, Any]]) -> ControlChart:
+        chart, params = settings
+        common = {
+            "sigma_limit": float(params.get("sigma_limit", 3.0)),
+            "nelson": bool(params.get("nelson", True)),
+            "exclude_violations": bool(params.get("exclude_violations", False)),
+        }
+        if CONTROL_CHARTS[chart].attribute:
+            x_values, counts, sizes = data
+            return attribute_chart(
+                chart, x_values, counts, sizes, recommended_subgroups=RECOMMENDED_SUBGROUPS, **common
+            )
+        x_values, y_values = data
+        return variables_chart(
+            chart, x_values, y_values, subgroup=int(params.get("subgroup", 5)), **common
+        )
 
-        for row in self.selected_series():
-            name = str(row_value(row, "name", "series_name", default="Series"))
-            try:
-                if CONTROL_CHARTS[chart].attribute:
-                    x_values, counts, sizes = self._series_counts(row, name, chart)
-                    results.append(
-                        self._build_attribute_chart(
-                            name, x_values, counts, sizes, chart, params
-                        )
-                    )
-                else:
-                    x_values, y_values = self.series_xy(row, name)
-                    results.append(
-                        self._build_chart(name, x_values, y_values, chart, params)
-                    )
-            except Exception as exc:  # noqa: BLE001 - collected, then reported
-                errors.append(f"{name}: {exc}")
+    def finish_series(
+        self, name: str, outcome: ControlChart, settings: tuple[str, dict[str, Any]]
+    ) -> ControlChartResult:
+        chart, _params = settings
+        for note in outcome.notes:
+            applogger.warning(f"{name}: {note}", show_dialog=False, raise_error=False)
+        tag = chart.split(" ")[0] if CONTROL_CHARTS[chart].attribute else chart
+        return ControlChartResult(
+            source_name=name,
+            result_name=f"{name} - {tag}",
+            chart=chart,
+            x=outcome.x,
+            y=outcome.y,
+            center=outcome.center,
+            upper=outcome.upper,
+            lower=outcome.lower,
+            sigma=outcome.sigma,
+            upper_band=outcome.upper_band,
+            lower_band=outcome.lower_band,
+            sigma_band=outcome.sigma_band,
+            subgroup_size=outcome.subgroup_size,
+            violations=outcome.violations,
+            metadata=outcome.details,
+        )
 
-        if errors and not results:
-            raise ValueError("; ".join(errors))
-        for message in errors:
-            applogger.warning(message, show_dialog=False, raise_error=False)
-
-        return results
-
-    # -- The charts --------------------------------------------------
+    # -- One chart, without the window (the tests' entry points) -------
 
     def _build_attribute_chart(
         self,
@@ -589,17 +611,8 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         chart: str,
         params: Mapping[str, Any],
     ) -> ControlChartResult:
-        built = attribute_chart(
-            chart,
-            x_values,
-            counts,
-            sizes,
-            sigma_limit=float(params.get("sigma_limit", 3.0)),
-            nelson=bool(params.get("nelson", True)),
-            exclude_violations=bool(params.get("exclude_violations", False)),
-            recommended_subgroups=RECOMMENDED_SUBGROUPS,
-        )
-        return self._result(name, f"{name} - {chart.split(' ')[0]}", chart, built)
+        settings = (chart, dict(params))
+        return self.finish_series(name, self.compute_series(name, (x_values, counts, sizes), settings), settings)
 
     def _build_chart(
         self,
@@ -609,39 +622,8 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         chart: str,
         params: Mapping[str, Any],
     ) -> ControlChartResult:
-        built = variables_chart(
-            chart,
-            x_values,
-            y_values,
-            sigma_limit=float(params.get("sigma_limit", 3.0)),
-            nelson=bool(params.get("nelson", True)),
-            exclude_violations=bool(params.get("exclude_violations", False)),
-            subgroup=int(params.get("subgroup", 5)),
-        )
-        return self._result(name, f"{name} - {chart}", chart, built)
-
-    @staticmethod
-    def _result(name: str, result_name: str, chart: str, built: ControlChart) -> ControlChartResult:
-        for note in built.notes:
-            applogger.warning(f"{name}: {note}", show_dialog=False, raise_error=False)
-        return ControlChartResult(
-            source_name=name,
-            result_name=result_name,
-            chart=chart,
-            x=built.x,
-            y=built.y,
-            center=built.center,
-            upper=built.upper,
-            lower=built.lower,
-            sigma=built.sigma,
-            upper_band=built.upper_band,
-            lower_band=built.lower_band,
-            sigma_band=built.sigma_band,
-            subgroup_size=built.subgroup_size,
-            violations=built.violations,
-            metadata=built.details,
-        )
-
+        settings = (chart, dict(params))
+        return self.finish_series(name, self.compute_series(name, (x_values, y_values), settings), settings)
 
     # ------------------------------------------------------------------
     # Results

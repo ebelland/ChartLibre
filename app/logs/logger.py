@@ -57,6 +57,11 @@ class LogRecordEmitter(QObject):
     """Qt signal bridge emitted for every new application log record."""
 
     record_emitted = Signal(str, int, str)
+    #: What the status bar shows. A signal rather than a call because a
+    #: record can come from a worker thread (a calculation running in the
+    #: background) and a widget may only be touched from the GUI thread:
+    #: Qt queues the delivery there.
+    status_message = Signal(str, int)
 
 
 log_events = LogRecordEmitter()
@@ -239,11 +244,18 @@ class DataHubLogger(logging.Logger):
             raise LoggedError(str(msg) % args if args else str(msg))
 
         if self._status_bar is not None and level > logging.DEBUG:
-            self._status_bar.showMessage(str(msg) % args if args else str(msg), 5000)
+            log_events.status_message.emit(str(msg) % args if args else str(msg), 5000)
 
     def set_status_bar(self, status_bar: QStatusBar | None) -> None:
         """Set the status bar that receives log messages, or None to disable."""
+        if self._status_bar is not None:
+            try:
+                log_events.status_message.disconnect(self._status_bar.showMessage)
+            except (RuntimeError, TypeError):
+                pass  # already gone with its window
         self._status_bar = status_bar
+        if status_bar is not None:
+            log_events.status_message.connect(status_bar.showMessage)
 
 
 class QtLogEventHandler(logging.Handler):

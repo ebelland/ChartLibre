@@ -40,6 +40,7 @@ from app.data.data_source import parse_roles
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
+    CallJob,
     OperationModel,
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -147,6 +148,36 @@ MODEL_NAMES: dict[str, InterpolationModel] = {
 _TABLE_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
 
 
+@dataclass(frozen=True, slots=True)
+class _EvaluationGrid:
+    """Where to evaluate the interpolant, read off the controls once per run."""
+
+    spacing: str
+    custom: np.ndarray | None
+    explicit: tuple[float, float] | None
+    extend_percent: float
+    extrapolate: bool
+    count: int
+    step: float
+
+    def x_for(self, x_data: np.ndarray) -> np.ndarray:
+        start, stop = evaluation_range(
+            x_data,
+            explicit=self.explicit,
+            extend_percent=self.extend_percent,
+            extrapolate=self.extrapolate,
+        )
+        return evaluation_x(
+            x_data,
+            self.spacing,
+            start=start,
+            stop=stop,
+            count=self.count,
+            step=self.step,
+            custom=self.custom,
+        )
+
+
 @dataclass(slots=True)
 class SeriesChoice:
     """Selectable chart series descriptor."""
@@ -210,6 +241,9 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
     # a problem with the data.
     INPUT_REQUIRES_SORTED_X = True
     INPUT_REQUIRES_UNIQUE_X = True
+
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
 
     Icon = """
     <path d="M4 18.5h16"/>
@@ -515,13 +549,28 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
     def _default_params_for_model(model: str) -> dict[str, float]:
         return default_params(model)
 
-    def compute_results(self) -> list[FitResult]:
-        """Build interpolation results for selected SQLite series rows."""
-        selected_rows = self.selected_series()
-        choices = [self._series_choice_from_row(row) for row in selected_rows]
-        return [self._interpolate_one_series(choice) for choice in choices]
+    def prepare_job(self, **options: Any) -> CallJob:
+        """Read the series and every control here; the interpolation runs in the job."""
+        del options
+        model = self._model_name()
+        settings = self._settings()
+        start_params = self._start_params()
+        grid = self._evaluation_grid()
+        axis_id = self.series_selector.selected_axis_id()
+        inputs = [
+            (series, *self._series_data(series))
+            for series in (self._series_choice_from_row(row) for row in self.selected_series())
+        ]
 
-    def _interpolate_one_series(self, series: SeriesChoice) -> FitResult:
+        def compute() -> list[FitResult]:
+            return [
+                self._interpolate_one(series, x_data, y_data, model, settings, start_params, grid, axis_id)
+                for series, x_data, y_data in inputs
+            ]
+
+        return CallJob(compute)
+
+    def _series_data(self, series: SeriesChoice) -> tuple[np.ndarray, np.ndarray]:
         df = self._repo.query_df(series.sql_query)
         x_col, y_col = self._xy_columns(df, series.roles)
 
@@ -530,24 +579,26 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         # x - but says so. The old pair repaired silently, so a series with two
         # readings at one x was interpolated through neither and nothing in the
         # interface ever mentioned it.
-        x_data, y_data = self.prepare_input_xy(
+        return self.prepare_input_xy(
             self.numeric_x(df[x_col], series.name),
             self.numeric_y(df[y_col]),
             label=series.name,
         )
 
-        x_eval = self._x_eval(x_data)
-        model = self._model_name()
-
-        y_eval, params, message = self._evaluate_model(
-            model=model,
-            x_data=x_data,
-            y_data=y_data,
-            x_eval=x_eval,
-            start_params=self._start_params(),
-        )
-
-        metrics = self._metrics(x_data, y_data, model, params)
+    @staticmethod
+    def _interpolate_one(
+        series: SeriesChoice,
+        x_data: np.ndarray,
+        y_data: np.ndarray,
+        model: str,
+        settings: InterpolationSettings,
+        start_params: dict[str, float],
+        grid: _EvaluationGrid,
+        axis_id: int | None,
+    ) -> FitResult:
+        x_eval = grid.x_for(x_data)
+        result = interpolate(model, x_data, y_data, x_eval, settings, start_params)
+        metrics = goodness(model, x_data, y_data, result.params, settings)
 
         safe_model_name = _TABLE_SAFE_RE.sub(
             "_",
@@ -555,7 +606,7 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         ).strip("_") or "series"
 
         table_name = generated_table_name(
-            f"Interpolation_axis{self.series_selector.selected_axis_id()}"
+            f"Interpolation_axis{axis_id}"
             f"_series{series.series_id}_{safe_model_name}",
             fallback="Interpolation_Result",
         )
@@ -566,10 +617,10 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
             table_name=table_name,
             output_name=f"Interpolate: {series.name} [{model}]",
             x_eval=x_eval,
-            y_eval=y_eval,
-            params=params,
+            y_eval=result.y,
+            params=result.params,
             metrics=metrics,
-            message=message,
+            message=result.message,
         )
 
     @staticmethod
@@ -595,23 +646,9 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
 
         return numeric[0], numeric[1]
 
-    def _x_eval(self, x_data: np.ndarray) -> np.ndarray:
+    def _evaluation_grid(self) -> _EvaluationGrid:
         spacing = self._spacing_combo.currentText()
-        custom = None
-        if spacing == SPACING_CUSTOM:
-            custom = parse_values(self._custom_x_edit.text())
-        start, stop = self._x_range(x_data)
-        return evaluation_x(
-            x_data,
-            spacing,
-            start=start,
-            stop=stop,
-            count=int(self._points_spin.value()),
-            step=float(self._integer_step_spin.value()),
-            custom=custom,
-        )
-
-    def _x_range(self, x_data: np.ndarray) -> tuple[float, float]:
+        custom = parse_values(self._custom_x_edit.text()) if spacing == SPACING_CUSTOM else None
         text = self._range_edit.text().strip()
         explicit = None
         if text:
@@ -619,11 +656,14 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
             if values.size < 2:
                 raise ValueError("X range must contain start and stop.")
             explicit = (float(values[0]), float(values[1]))
-        return evaluation_range(
-            x_data,
+        return _EvaluationGrid(
+            spacing=spacing,
+            custom=custom,
             explicit=explicit,
             extend_percent=float(self._extend_spin.value()),
             extrapolate=self._extrap_check.isChecked(),
+            count=int(self._points_spin.value()),
+            step=float(self._integer_step_spin.value()),
         )
 
     def _settings(self) -> InterpolationSettings:
@@ -636,27 +676,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
             spline_degree=int(self._spline_degree_spin.value()),
             smoothing=float(self._smoothing_spin.value()),
         )
-
-    def _evaluate_model(
-        self,
-        *,
-        model: str,
-        x_data: np.ndarray,
-        y_data: np.ndarray,
-        x_eval: np.ndarray,
-        start_params: dict[str, float],
-    ) -> tuple[np.ndarray, dict[str, float], str]:
-        result = interpolate(model, x_data, y_data, x_eval, self._settings(), start_params)
-        return result.y, result.params, result.message
-
-    def _metrics(
-        self,
-        x_data: np.ndarray,
-        y_data: np.ndarray,
-        model: str,
-        params: Mapping[str, float],
-    ) -> dict[str, float]:
-        return goodness(model, x_data, y_data, params, self._settings())
 
     @staticmethod
     def format_results(results: Sequence[FitResult]) -> str:

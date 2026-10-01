@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis import gaussian_process as gp
-from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import TableResult
@@ -95,6 +94,9 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
     INPUT_REQUIRES_SORTED_X = True
     INPUT_REQUIRES_UNIQUE_X = True
     INPUT_MINIMUM_POINTS = 3
+
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
 
     PARAMS = (
         FloatParam(
@@ -182,27 +184,15 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def compute_results(self) -> list[GPRegressionResult]:
-        kernel_name = self._kernel()
-        params = self.parameter_values()
+    def series_settings(self) -> tuple[str, dict[str, Any]]:
+        return self._kernel(), self.parameter_values()
 
-        results: list[GPRegressionResult] = []
-        errors: list[str] = []
-
-        for row in self.selected_series():
-            name = str(row_value(row, "name", "series_name", default="Series"))
-            try:
-                x_values, y_values = self.series_xy(row, name)
-                results.append(self._fit_one(name, x_values, y_values, kernel_name, params))
-            except Exception as exc:
-                errors.append(f"{name}: {exc}")
-
-        if errors and not results:
-            raise ValueError("; ".join(errors))
-        for message in errors:
-            applogger.warning(message, show_dialog=False, raise_error=False)
-
-        return results
+    def compute_series(
+        self, name: str, data: tuple[np.ndarray, np.ndarray], settings: tuple[str, dict[str, Any]]
+    ) -> GPRegressionResult:
+        kernel_name, params = settings
+        x_values, y_values = data
+        return self._fit_one(name, x_values, y_values, kernel_name, params)
 
     def _fit_one(
         self,

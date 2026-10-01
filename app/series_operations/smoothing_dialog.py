@@ -70,7 +70,9 @@ from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
+    SeriesJob,
     SeriesOperationDialogBase,
+    SeriesOutcome,
 )
 from app.logs.logger import applogger
 from app.utils.messages import show_message
@@ -335,6 +337,9 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
     # numbers that look like a result. Duplicate x is harmless here.
     INPUT_REQUIRES_SORTED_X = True
     INPUT_MINIMUM_POINTS = 3
+
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
 
     Icon = """
     <path d="M4 13c1.7-4 3.4 4 5.1 0s3.4-4 5.1 0 3.4 4 5.8-1"/>
@@ -861,36 +866,49 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
             "replace_preview": self.preview_check.isChecked(),
         }
 
-    def compute_results(self) -> list[SmoothResult]:
-        """Compute smoothing results for the current selector state."""
+    def prepare_job(self, **options: Any) -> SeriesJob | None:
+        """Read the selected series and the controls; the smoothing itself runs in the job."""
+        del options
         axis_name = self._current_axis_name()
-        dimension = self.dimension_combo.currentText()
-        method = self.method_combo.currentText()
-        params = self._params()
+        settings = (self.dimension_combo.currentText(), self.method_combo.currentText(), self._params())
         selected_rows = self.selected_series()
         if not selected_rows:
-            return []
+            return None
 
-        results: list[SmoothResult] = []
+        inputs: list[tuple[str, Any]] = []
         errors: list[str] = []
-
         for row in selected_rows:
             try:
                 series = self._series_choice_from_row(row)
                 if series is None:
                     continue
                 metadata = {
-                    **dict(params),
+                    **dict(settings[2]),
                     "figure_id": self._figure_id,
                     "axis_name": axis_name,
                     "source_series_id": self._source_series_id(series),
                 }
-                sm=self._smooth_one_series(series, dimension, method, params, metadata)
-                if sm:
-                    results.append(sm)
+                inputs.append((self._series_display_name(row), (series, metadata)))
             except Exception as exc:
                 errors.append(f"{self._series_display_name(row)}: {exc}")
+        if not inputs and not errors:
+            return None
+        return SeriesJob(inputs, settings, self.compute_series, errors)
 
+    def compute_series(
+        self, name: str, data: tuple[SeriesChoice, dict[str, Any]], settings: tuple[str, str, dict[str, Any]]
+    ) -> SmoothResult | None:
+        del name
+        series, metadata = data
+        dimension, method, params = settings
+        return self._smooth_one_series(series, dimension, method, params, metadata)
+
+    def finish_job(self, job: Any, outcome: Any) -> list[SmoothResult]:
+        """The smoothed series; a failed one is listed in a message, all failed is an error."""
+        if not isinstance(outcome, SeriesOutcome):
+            return list(super().finish_job(job, outcome))
+        results = [result for _name, result in outcome.outcomes if result]
+        errors = outcome.errors
         if errors and not results:
             applogger.error("\n".join(errors))
             return []
@@ -985,12 +1003,10 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         value = getattr(source, "id", None)
         return int(value) if value is not None else None
 
-    def apply(self) -> bool:
-        """Apply smoothing using the shared generated-series workflow."""
-        success = super().apply()
-        if success and self._applied_callback is not None:
+    def operation_succeeded(self, *, commit: bool) -> None:
+        """Tell the owner window once the smoothing is applied."""
+        if commit and self._applied_callback is not None:
             self._applied_callback()
-        return success
 
     @staticmethod
     def results_to_dataframe(results: Sequence[SmoothResult]) -> pd.DataFrame:

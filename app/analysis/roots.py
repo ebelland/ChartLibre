@@ -71,40 +71,30 @@ def extract_level_curves(
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Return the ``z_grid == level`` polylines as ``(xs, ys)`` arrays.
 
-    ``allsegs`` is still present on the ``QuadContourSet`` matplotlib
-    ships in this repo (checked against the installed version); the
-    ``get_paths()``/``Path.vertices`` route is used as a fallback in case
-    a future matplotlib drops it, so this keeps working across an
-    upgrade rather than failing outright.
+    contourpy directly - the generator ``ax.contour`` runs, with the same
+    algorithm and corner masking as matplotlib's defaults, so the curves are
+    the ones a contour plot draws. Not through a Figure: that touched
+    pyplot's global state, which is not safe off the GUI thread, and this
+    runs in the background (todo R-02).
     """
-    from matplotlib.figure import Figure
+    import contourpy
 
-    figure = Figure()
-    axes = figure.add_subplot(111)
-    try:
-        contour_set = axes.contour(x_grid, y_grid, z_grid, levels=[float(level)])
-
-        polylines: list[tuple[np.ndarray, np.ndarray]] = []
-        if hasattr(contour_set, "allsegs"):
-            # allsegs and get_paths are real; the bundled stubs predate them.
-            segments = contour_set.allsegs[0] if contour_set.allsegs else []  # pyright: ignore[reportAttributeAccessIssue]
-            for segment in segments:
-                segment = np.asarray(segment, dtype=float)
-                if segment.shape[0] >= 1:
-                    polylines.append((segment[:, 0], segment[:, 1]))
-        else:
-            for path in contour_set.get_paths():  # pyright: ignore[reportAttributeAccessIssue]
-                vertices = np.asarray(path.vertices, dtype=float)
-                if vertices.shape[0] >= 1:
-                    polylines.append((vertices[:, 0], vertices[:, 1]))
-        return polylines
-    finally:
-        # A Figure never added to a canvas still holds real Matplotlib
-        # state; close it explicitly rather than count on garbage
-        # collection to do it promptly.
-        import matplotlib.pyplot as plt
-
-        plt.close(figure)
+    z_values = np.ma.masked_invalid(np.asarray(z_grid, dtype=float), copy=False)
+    generator = contourpy.contour_generator(
+        x_grid,
+        y_grid,
+        z_values,
+        name="mpl2014",
+        corner_mask=True,
+        line_type=contourpy.LineType.SeparateCode,
+    )
+    lines = cast(tuple[list[np.ndarray], list[Any]], generator.lines(float(level)))
+    polylines: list[tuple[np.ndarray, np.ndarray]] = []
+    for segment in lines[0]:
+        segment = np.asarray(segment, dtype=float)
+        if segment.shape[0] >= 1:
+            polylines.append((segment[:, 0], segment[:, 1]))
+    return polylines
 
 
 def brackets(

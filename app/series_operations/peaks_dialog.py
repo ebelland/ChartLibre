@@ -29,7 +29,6 @@ import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis import peaks as pk
 from app.analysis.peaks import Peak, PeakSettings, find_peaks_1d, find_peaks_2d
-from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
@@ -113,6 +112,9 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
 
     Name: str = "Peaks"
     Description = "Find and measure peaks"
+
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
 
     # A peak is defined by its neighbours, so the points must be in x order.
     INPUT_REQUIRES_SORTED_X = True
@@ -241,35 +243,24 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def compute_results(self) -> list[PeakResult]:
-        model = self._model()
-        params = self.parameter_values()
+    def series_settings(self) -> tuple[str, dict[str, Any]]:
+        return self._model(), self.parameter_values()
 
-        results: list[PeakResult] = []
-        errors: list[str] = []
+    def read_series(self, row: Any, name: str) -> tuple[bool, Any]:
+        # A series with a z role is a surface, not a curve - see
+        # series_origin. The 1D find_peaks search has nothing to say about
+        # it, so it gets its own 2D local-maximum search instead.
+        return self.read_curve_or_surface(row, name)
 
-        for row in self.selected_series():
-            name = str(row_value(row, "name", "series_name", default="Series"))
-            try:
-                roles = parse_roles(row_value(row, "roles", default={}))
-                if roles.get("z"):
-                    # A series with a z role is a surface, not a curve - see
-                    # series_origin. The 1D find_peaks search below has
-                    # nothing to say about it, so it gets its own 2D local-
-                    # maximum search instead; the 1D path is untouched.
-                    results.append(self._find_one_3d(row, name, model, params))
-                else:
-                    x_values, y_values = self.series_xy(row, name)
-                    results.append(self._find_one(name, x_values, y_values, model, params))
-            except Exception as exc:
-                errors.append(f"{name}: {exc}")
-
-        if errors and not results:
-            raise ValueError("; ".join(errors))
-        for message in errors:
-            applogger.warning(message, show_dialog=False, raise_error=False)
-
-        return results
+    def compute_series(
+        self, name: str, data: tuple[bool, Any], settings: tuple[str, dict[str, Any]]
+    ) -> PeakResult:
+        model, params = settings
+        surface, values = data
+        if surface:
+            return self._find_one_3d(values, name, model, params)
+        x_values, y_values = values
+        return self._find_one(name, x_values, y_values, model, params)
 
     def _find_one(
         self,
@@ -309,7 +300,7 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
 
     def _find_one_3d(
         self,
-        row: Any,
+        grid: tuple[np.ndarray, np.ndarray, np.ndarray, bool],
         name: str,
         model: str,
         params: Mapping[str, Any],
@@ -321,7 +312,7 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
         rather than duplicated with new names, so switching a series from a
         curve to a surface does not also mean learning new parameters.
         """
-        x_grid, y_grid, z_grid, interpolated = self.series_grid_xyz(row, name)
+        x_grid, y_grid, z_grid, interpolated = grid
 
         peaks = find_peaks_2d(x_grid, y_grid, z_grid, _MODE[model], self._settings(params))
 

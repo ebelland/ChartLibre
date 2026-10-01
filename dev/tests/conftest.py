@@ -21,6 +21,22 @@ from app.data.sqlite_repo import SqliteRepo
 matplotlib.use("Agg")
 
 
+@pytest.fixture(autouse=True)
+def _operations_compute_in_place(request: pytest.FixtureRequest):
+    """Preview and Apply finish before they return, unless a test asks otherwise.
+
+    The operations that compute on a worker thread would otherwise hand
+    their results back only once the event loop runs, and every test that
+    reads the chart straight after preview() would read it too early. The
+    tests of the background path itself are marked ``background``.
+    """
+    from app.series_operations.dialog_base import SeriesOperationDialogBase
+
+    SeriesOperationDialogBase.BACKGROUND_ENABLED = request.node.get_closest_marker("background") is not None
+    yield
+    SeriesOperationDialogBase.BACKGROUND_ENABLED = True
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _private_user_config(tmp_path_factory: pytest.TempPathFactory):
     """Point user.json at a copy for the whole run.
@@ -120,6 +136,12 @@ def repo(tmp_db_path: Path) -> Iterator[SqliteRepo]:
     built = SqliteRepo(db_path=tmp_db_path)
     yield built
     built.close()
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers", "background: Preview and Apply compute on a worker thread, as in the app"
+    )
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

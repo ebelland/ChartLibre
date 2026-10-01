@@ -12,15 +12,15 @@ Subclasses provide operation-specific controls by overriding the builder hooks.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import html
 import json
 import re
 from typing import Any, ClassVar, Protocol
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QHBoxLayout, QSizePolicy, QSplitter, QToolBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QHBoxLayout, QProgressBar, QSizePolicy, QSplitter, QToolBox, QVBoxLayout, QWidget
 import numpy as np
 import pandas as pd
 
@@ -124,6 +124,65 @@ class OperationJob(Protocol):
     """
 
     def run(self, should_stop: Callable[[], bool] | None = None) -> Any: ...
+
+
+@dataclass(slots=True)
+class CallJob:
+    """A job that is one call: for an operation that computes all its series together.
+
+    ``compute`` is prepared on the GUI thread with everything it needs
+    already read, and must touch neither a widget nor the repository.
+    """
+
+    compute: Callable[[], Any]
+
+    def run(self, should_stop: Callable[[], bool] | None = None) -> Any:
+        if should_stop is not None and should_stop():
+            raise Stopped()
+        return self.compute()
+
+
+@dataclass(slots=True)
+class SeriesOutcome:
+    """What a SeriesJob hands back: one outcome per series that worked, and why the others did not."""
+
+    outcomes: list[tuple[str, Any]]
+    errors: list[str]
+
+
+@dataclass(slots=True)
+class SeriesJob:
+    """The usual job: every selected series read on the GUI thread, each computed on the worker.
+
+    ``inputs`` holds (series name, data) pairs, read off the repository by
+    ``read_series``; ``compute`` is the dialog's ``compute_series``, which
+    must touch neither a widget nor the repository. ``progress`` is written
+    here and read by the dialog's timer - ``[done, total]`` - which is how
+    the bar moves without a signal crossing threads for every series.
+    """
+
+    inputs: list[tuple[str, Any]]
+    settings: Any
+    compute: Callable[[str, Any, Any], Any]
+    errors: list[str] = field(default_factory=list)
+    progress: list[int] = field(default_factory=lambda: [0, 0])
+
+    def run(self, should_stop: Callable[[], bool] | None = None) -> SeriesOutcome:
+        total = len(self.inputs)
+        self.progress[:] = [0, total]
+        outcomes: list[tuple[str, Any]] = []
+        errors = list(self.errors)
+        for done, (name, data) in enumerate(self.inputs):
+            if should_stop is not None and should_stop():
+                raise Stopped()
+            try:
+                outcomes.append((name, self.compute(name, data, self.settings)))
+            except Stopped:
+                raise
+            except Exception as exc:  # noqa: BLE001 - collected, then reported
+                errors.append(f"{name}: {exc}")
+            self.progress[:] = [done + 1, total]
+        return SeriesOutcome(outcomes, errors)
 
 
 class SeriesOperationDialogBase(QDialog):
@@ -589,6 +648,13 @@ class SeriesOperationDialogBase(QDialog):
                                layout=action_row,
                            )
         self.stop_button.setVisible(False)
+        # Beside Stop and shown with it. Busy (no percentage) for one series;
+        # a series at a time for several. See _show_progress.
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setMaximumWidth(160)
+        self.progress_bar.setVisible(False)
+        action_row.addWidget(self.progress_bar)
 
         # Operation-specific buttons go next to Preview, on the left: they act
         # on the dialog's own state, unlike Apply/Close which end it.
@@ -746,9 +812,10 @@ class SeriesOperationDialogBase(QDialog):
     def compute_results(self) -> Sequence[Any]:
         """Return operation-specific result objects for the selected series.
 
-        Preview and Apply call this, on the GUI thread. An operation that
-        implements prepare_job/finish_job gets it for free; one that has not
-        been split that way yet overrides this instead.
+        Preview and Apply call this, on the GUI thread, unless the operation
+        runs in the background (see evaluate). An operation that implements
+        prepare_job/finish_job - or, more simply, compute_series - gets it for
+        free; one that has not been split that way yet overrides this instead.
         """
         job = self.prepare_job()
         if job is None:
@@ -759,10 +826,53 @@ class SeriesOperationDialogBase(QDialog):
     # Evaluation: one way to compute, here or on a worker thread
     # ------------------------------------------------------------------
 
-    #: Whether evaluate() runs the job on a worker thread when the caller
-    #: does not say. Off by default: most operations finish in milliseconds,
-    #: and a thread for those only adds a flicker of disabled buttons.
+    #: Whether Preview and Apply compute on a worker thread. Only for an
+    #: operation that has a job (prepare_job or compute_series): the window
+    #: stays responsive, Stop appears with a progress bar if the run takes
+    #: more than a moment, and closing the window stops it.
     RUN_IN_BACKGROUND: bool = False
+
+    #: Off switch for every operation at once - the tests turn it off so a
+    #: Preview has finished by the time it returns. See dev/tests/conftest.py.
+    BACKGROUND_ENABLED: ClassVar[bool] = True
+
+    #: How long a background run may take before Stop and the progress bar
+    #: appear: a run that ends sooner shows nothing, rather than a flicker.
+    BUSY_DELAY_MS: ClassVar[int] = 300
+
+    # -- Per series: the common case ------------------------------------
+
+    def series_settings(self) -> Any:
+        """Everything compute_series needs besides the data, read on the GUI thread."""
+        return self.parameter_values()
+
+    def read_series(self, row: Any, name: str) -> Any:
+        """One selected series' data, read on the GUI thread; x and y by default."""
+        return self.series_xy(row, name)
+
+    def read_curve_or_surface(self, row: Any, name: str) -> tuple[bool, Any]:
+        """``(True, series_grid_xyz)`` for a series with a z role - a surface -
+        else ``(False, series_xy)``: for the operations that handle both."""
+        if parse_roles(row_value(row, "roles", default={})).get("z"):
+            return True, self.series_grid_xyz(row, name)
+        return False, self.series_xy(row, name)
+
+    def compute_series(self, name: str, data: Any, settings: Any) -> Any:
+        """The calculation for one series, on whatever thread runs the job.
+
+        Must not touch a widget, the repository or the logger's dialogs:
+        everything it needs arrives in *data* and *settings*. Whatever it
+        returns goes to finish_series, back on the GUI thread.
+        """
+        raise NotImplementedError
+
+    def finish_series(self, name: str, outcome: Any, settings: Any) -> Any:
+        """Turn compute_series' outcome into a result, on the GUI thread (notes go to the log here)."""
+        del name, settings
+        return outcome
+
+    def _computes_per_series(self) -> bool:
+        return type(self).compute_series is not SeriesOperationDialogBase.compute_series
 
     def prepare_job(self, **options: Any) -> OperationJob | None:
         """Read the widgets into a job, on the GUI thread; None when there is nothing to do.
@@ -771,13 +881,40 @@ class SeriesOperationDialogBase(QDialog):
         and whatever names the result will need later - so the window can be
         changed while it runs without mixing two runs. *options* are the
         operation's own (the fit's ``optimise``, for one).
+
+        An operation with compute_series gets a SeriesJob: the selected
+        series are read here, one by one, and a series that cannot be read
+        is reported with the ones that fail to compute.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} implements neither prepare_job nor compute_results"
-        )
+        if not self._computes_per_series():
+            raise NotImplementedError(
+                f"{type(self).__name__} implements neither prepare_job nor compute_results"
+            )
+        del options
+        settings = self.series_settings()
+        inputs: list[tuple[str, Any]] = []
+        errors: list[str] = []
+        for row in self.selected_series():
+            name = str(row_value(row, "name", "series_name", default="Series"))
+            try:
+                inputs.append((name, self.read_series(row, name)))
+            except Exception as exc:  # noqa: BLE001 - collected, then reported
+                errors.append(f"{name}: {exc}")
+        if not inputs and not errors:
+            return None
+        return SeriesJob(inputs, settings, self.compute_series, errors)
 
     def finish_job(self, job: OperationJob, outcome: Any) -> Sequence[Any]:
         """Turn a job's outcome into this dialog's results, on the GUI thread."""
+        if isinstance(job, SeriesJob) and isinstance(outcome, SeriesOutcome):
+            results = [self.finish_series(name, value, job.settings) for name, value in outcome.outcomes]
+            # One bad series should not hide the good ones; only when none
+            # worked is it an error.
+            if outcome.errors and not results:
+                raise ValueError("; ".join(outcome.errors))
+            for message in outcome.errors:
+                applogger.warning(message, show_dialog=False, raise_error=False)
+            return results
         del job
         return list(outcome) if isinstance(outcome, (list, tuple)) else [outcome]
 
@@ -804,9 +941,10 @@ class SeriesOperationDialogBase(QDialog):
         """Compute the results and hand them to *on_results*, on the GUI thread.
 
         In the background when *background* says so (RUN_IN_BACKGROUND when
-        it does not): Stop appears, busy_widgets() are off, and closing the
-        window stops the run. *on_results* is not called when the run is
-        stopped or fails; the reason is shown instead.
+        it does not): busy_widgets() are off, Stop and a progress bar appear
+        once the run has taken BUSY_DELAY_MS, and closing the window stops the
+        run. *on_results* is not called when the run is stopped or fails; the
+        reason is shown instead.
         """
         if self.evaluating:
             return
@@ -818,15 +956,28 @@ class SeriesOperationDialogBase(QDialog):
             return
 
         def finished(outcome: Any) -> None:
+            stopped = task.cancel_event.is_set()
             self._set_evaluating(False)
-            on_results(self.finish_job(job, outcome))
+            if stopped:
+                # Asked to stop, but the job finished before it looked: the
+                # window may already be closing, so nothing is written.
+                self._on_evaluation_failed(Stopped())
+                return
+            try:
+                results = self.finish_job(job, outcome)
+            except Exception as exc:  # noqa: BLE001 - shown like a failed run
+                self._on_evaluation_failed(exc)
+                return
+            on_results(results)
 
+        self._evaluation_progress = getattr(job, "progress", None)
         self._set_evaluating(True)
-        self._evaluation_task = run_in_background(
+        task = run_in_background(
             lambda cancel: job.run(should_stop=cancel.is_set),
             finished,
             self._on_evaluation_failed,
         )
+        self._evaluation_task = task
 
     def stop_evaluation(self) -> None:
         """Ask a background calculation to stop at its next step."""
@@ -842,11 +993,41 @@ class SeriesOperationDialogBase(QDialog):
         applogger.error(f"{self.operation_label} failed: {error}", show_dialog=True)
 
     def _set_evaluating(self, running: bool) -> None:
-        self.stop_button.setVisible(running)
+        # The buttons go off at once - a second click must not start a second
+        # run - but Stop and the bar wait: most runs end before they would
+        # have been read.
         for widget in self.busy_widgets():
             widget.setEnabled(not running)
+        timer = getattr(self, "_busy_timer", None)
+        if timer is None:
+            timer = self._busy_timer = QTimer(self)
+            timer.setInterval(100)
+            timer.timeout.connect(self._show_progress)
         if running:
+            self._busy_since = 0
+            timer.start()
+            return
+        timer.stop()
+        self.stop_button.setVisible(False)
+        self.progress_bar.setVisible(False)
+
+    def _show_progress(self) -> None:
+        """Every 100 ms of a background run: Stop and the bar once it is slow, then the count."""
+        self._busy_since = getattr(self, "_busy_since", 0) + 100
+        if self._busy_since < self.BUSY_DELAY_MS:
+            return
+        if not self.stop_button.isVisible():
+            self.stop_button.setVisible(True)
+            self.progress_bar.setVisible(True)
             self.set_results_text(_("Working... press Stop to end it early."))
+        progress = getattr(self, "_evaluation_progress", None)
+        done, total = (progress[0], progress[1]) if progress else (0, 0)
+        if total > 1:
+            self.progress_bar.setRange(0, total)
+            self.progress_bar.setValue(done)
+        else:
+            # One series, or a job that does not count: busy, not a percentage.
+            self.progress_bar.setRange(0, 0)
 
     # ------------------------------------------------------------------
     # Input validation
@@ -1826,21 +2007,73 @@ class SeriesOperationDialogBase(QDialog):
             f"{body}"
         )
 
-    def _run_operation(self, *, commit: bool) -> bool:
+    def _run_operation(
+        self, *, commit: bool, then: Callable[[bool], None] | None = None
+    ) -> bool:
         """Run Preview or Apply through one simple pipeline.
 
         Preview first executes the same cleanup used by Close/Cancel, then writes
         new preview artifacts. Apply first removes any preview artifacts, then
         writes final artifacts and commits/exits through ``ok``.
+
+        In the background (RUN_IN_BACKGROUND) the results are written once the
+        calculation is back, and this returns True for "started"; *then* is
+        told whether the operation went through, in either case, once it is
+        over.
         """
-        action = "Apply" if commit else "Preview"
+        def finish(succeeded: bool) -> bool:
+            if succeeded:
+                self.operation_succeeded(commit=commit)
+            if then is not None:
+                then(succeeded)
+            return succeeded
+
         try:
             axis_id_value = self.series_selector.selected_axis_id()
             if axis_id_value is None:
                 # The catalogue holds the wording; the operation names the box.
                 show_message(self, "series.no_axis_selected", title=self.operation_label)
-                return False
+                return finish(False)
+            if self._runs_in_background():
+                if self.evaluating:
+                    return False
+                started: list[bool] = []
+
+                def deliver(results: Sequence[Any]) -> None:
+                    started.append(True)
+                    finish(self._deliver_results(list(results), int(axis_id_value), commit=commit))
+
+                self.evaluate(deliver, background=True)
+                if not self.evaluating and not started:
+                    # Nothing to compute: the same answer the GUI thread gives.
+                    show_message(self, "series.no_series_selected", title=self.operation_label)
+                    return finish(False)
+                return True
             results = list(self.compute_results())
+        except Exception as exc:
+            return finish(self._operation_failed(exc, commit=commit))
+        return finish(self._deliver_results(results, int(axis_id_value), commit=commit))
+
+    def _runs_in_background(self) -> bool:
+        return bool(
+            self.RUN_IN_BACKGROUND
+            and SeriesOperationDialogBase.BACKGROUND_ENABLED
+            and (self._computes_per_series()
+                 or type(self).prepare_job is not SeriesOperationDialogBase.prepare_job)
+        )
+
+    def _operation_failed(self, exc: Exception, *, commit: bool) -> bool:
+        self.cancel_operation_changes(refresh=True)
+        action = "Apply" if commit else "Preview"
+        if commit:
+            applogger.critical(f"{action} failed: {exc}", show_dialog=True)
+        else:
+            applogger.error(f"{action} failed: {exc}", show_dialog=True)
+        return False
+
+    def _deliver_results(self, results: list[Any], axis_id_value: int, *, commit: bool) -> bool:
+        """Write computed results as a preview, or apply them; on the GUI thread."""
+        try:
             if not results:
                 show_message(self, "series.no_series_selected", title=self.operation_label)
                 return False
@@ -1860,7 +2093,7 @@ class SeriesOperationDialogBase(QDialog):
 
             # Most operations write back onto the axis their inputs came from.
             # One does not: see resolve_target_axis_id.
-            axis_id = self.resolve_target_axis_id(int(axis_id_value), results)
+            axis_id = self.resolve_target_axis_id(axis_id_value, results)
 
             if commit:
                 self._repo.snapshot_for_undo(
@@ -1896,20 +2129,17 @@ class SeriesOperationDialogBase(QDialog):
             return True
 
         except Exception as exc:
-            self.cancel_operation_changes(refresh=True)
-            if commit:
-                applogger.critical(f"{action} failed: {exc}", show_dialog=True)
-            else:
-                applogger.error(f"{action} failed: {exc}", show_dialog=True)
-            return False
+            return self._operation_failed(exc, commit=commit)
+
+    def operation_succeeded(self, *, commit: bool) -> None:
+        """Called once a Preview (commit False) or an Apply has gone through."""
 
     def preview(self) -> bool:
         applogger.debug("Preview")
         return self._run_operation(commit=False)
 
     def ok(self) -> None:
-        if self.apply():
-            self.accept()
+        self.apply(then=lambda applied: self.accept() if applied else None)
 
     def cancel(self) -> None:
         self.cancel_operation_changes()
@@ -1948,12 +2178,20 @@ class SeriesOperationDialogBase(QDialog):
         if refresh:
             self._refresh_after_preview_state_change()
 
-    def apply(self) -> bool:
-        """Run the operation and commit it; remembers the entries either way."""
+    def apply(self, then: Callable[[bool], None] | None = None) -> bool:
+        """Run the operation and commit it; remembers the entries either way.
+
+        *then* is told whether it was applied, once it has been - later, when
+        the calculation runs in the background.
+        """
         self._remember_state()
-        applied = self._run_operation(commit=True)
-        self._applied = self._applied or applied
-        return applied
+
+        def done(applied: bool) -> None:
+            self._applied = self._applied or applied
+            if then is not None:
+                then(applied)
+
+        return self._run_operation(commit=True, then=done)
 
     def reject(self) -> None:
         """Close/Cancel rejects temporary Preview changes."""

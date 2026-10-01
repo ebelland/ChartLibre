@@ -62,7 +62,6 @@ from app.analysis.roots import (
     find_level_curve,
     find_roots,
 )
-from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import TableResult
@@ -172,6 +171,9 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
 
     Name: str = "Roots"
     Description = "Find where a series crosses a level"
+
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
 
     # A crossing is a property of consecutive samples, so x has to be in
     # order and each x can only have one y.
@@ -297,36 +299,25 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def compute_results(self) -> list[RootResult]:
-        model = self._model()
-        params = self.parameter_values()
+    def series_settings(self) -> tuple[str, dict[str, Any]]:
+        return self._model(), self.parameter_values()
 
-        results: list[RootResult] = []
-        errors: list[str] = []
+    def read_series(self, row: Any, name: str) -> tuple[bool, Any]:
+        # A series with a z role is a surface: "the roots" are a whole level
+        # *curve* (z = level), not a handful of x crossings, so it gets its
+        # own path (contour extraction) rather than the bracket-then-SciPy
+        # machinery, which assumes a single-valued y(x).
+        return self.read_curve_or_surface(row, name)
 
-        for row in self.selected_series():
-            name = str(row_value(row, "name", "series_name", default="Series"))
-            try:
-                roles = parse_roles(row_value(row, "roles", default={}))
-                if roles.get("z"):
-                    # A series with a z role is a surface: "the roots" are a
-                    # whole level *curve* (z = level), not a handful of x
-                    # crossings, so it gets its own path (matplotlib's
-                    # contour extraction) rather than the bracket-then-SciPy
-                    # machinery below, which assumes a single-valued y(x).
-                    results.append(self._solve_one_3d(row, name, params))
-                else:
-                    x_values, y_values = self.series_xy(row, name)
-                    results.append(self._solve_one(name, x_values, y_values, model, params))
-            except Exception as exc:
-                errors.append(f"{name}: {exc}")
-
-        if errors and not results:
-            raise ValueError("; ".join(errors))
-        for message in errors:
-            applogger.warning(message, show_dialog=False, raise_error=False)
-
-        return results
+    def compute_series(
+        self, name: str, data: tuple[bool, Any], settings: tuple[str, dict[str, Any]]
+    ) -> RootResult:
+        model, params = settings
+        surface, values = data
+        if surface:
+            return self._solve_one_3d(values, name, params)
+        x_values, y_values = values
+        return self._solve_one(name, x_values, y_values, model, params)
 
     def _solve_one(
         self,
@@ -368,7 +359,7 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
 
     def _solve_one_3d(
         self,
-        row: Any,
+        grid: tuple[np.ndarray, np.ndarray, np.ndarray, bool],
         name: str,
         params: Mapping[str, Any],
     ) -> RootResult:
@@ -380,7 +371,7 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         (app.analysis.roots.find_level_curve).
         """
         level = float(params.get("level", 0.0))
-        x_grid, y_grid, z_grid, interpolated = self.series_grid_xyz(row, name)
+        x_grid, y_grid, z_grid, interpolated = grid
         search = find_level_curve(
             x_grid, y_grid, z_grid, level=level, limit=int(params.get("limit", 100))
         )

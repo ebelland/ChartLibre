@@ -80,7 +80,9 @@ from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
+    SeriesJob,
     SeriesOperationDialogBase,
+    SeriesOutcome,
 )
 from app.styles.style import (
     CardFrame,
@@ -344,6 +346,9 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
     # with the same x are an ordinary pair of observations. Only the universal
     # empty/length/non-finite checks apply.
     INPUT_MINIMUM_POINTS = 2
+
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
 
     Icon = """
     <circle cx="7" cy="8" r="2"/>
@@ -728,25 +733,47 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
 
         return [series.x_col, series.y_col]
 
-    def compute_results(self) -> list[ClusterResult]:
-        axis_name = self._current_axis_name()
-        params = self._params()
+    def prepare_job(self, **options: Any) -> SeriesJob | None:
+        """Read each series and its feature columns here; the clustering runs in the job."""
+        del options
+        settings = (self._current_axis_name(), self._params(), self._figure_id)
         selected_rows = self.selected_series()
         if not selected_rows:
-            return []
+            return None
 
-        results: list[ClusterResult] = []
+        inputs: list[tuple[str, Any]] = []
         errors: list[str] = []
-
         for row in selected_rows:
             try:
-                full_result = self._cluster_one_row(row, axis_name, params)
-                if params["render_mode"] == RENDER_SEPARATE_SERIES:
-                    results.extend(self._split_result_by_cluster(full_result))
-                else:
-                    results.append(full_result)
+                series = self._series_choice_from_row(row)
+                inputs.append((self._series_display_name(row), (series, self._feature_columns(series))))
             except Exception as exc:
                 errors.append(f"{self._series_display_name(row)}: {exc}")
+        return SeriesJob(inputs, settings, self.compute_series, errors)
+
+    def compute_series(
+        self,
+        name: str,
+        data: tuple[ClusterSeriesChoice, list[str]],
+        settings: tuple[str, dict[str, Any], int],
+    ) -> ClusterResult:
+        del name
+        series, feature_columns = data
+        axis_name, params, figure_id = settings
+        return self._cluster_one(series, feature_columns, axis_name, params, figure_id)
+
+    def finish_job(self, job: Any, outcome: Any) -> list[ClusterResult]:
+        """The clustered series - split one per cluster when asked; failures reported together."""
+        if not isinstance(outcome, SeriesOutcome):
+            return list(super().finish_job(job, outcome))
+        _axis_name, params, _figure_id = job.settings
+        results: list[ClusterResult] = []
+        for _name, full_result in outcome.outcomes:
+            if params["render_mode"] == RENDER_SEPARATE_SERIES:
+                results.extend(self._split_result_by_cluster(full_result))
+            else:
+                results.append(full_result)
+        errors = outcome.errors
 
         if errors and not results:
             applogger.error("\n".join(errors), show_dialog=True, raise_error=True)
@@ -761,9 +788,15 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
 
         return results
 
-    def _cluster_one_row(self, row: Any, axis_name: str, params: Mapping[str, Any]) -> ClusterResult:
-        series = self._series_choice_from_row(row)
-        feature_columns = self._feature_columns(series)
+    def _cluster_one(
+        self,
+        series: ClusterSeriesChoice,
+        feature_columns: list[str],
+        axis_name: str,
+        params: Mapping[str, Any],
+        figure_id: int,
+    ) -> ClusterResult:
+        """Cluster one series' rows; no widget, no repository - it runs in the background."""
         features, finite_mask = numeric_matrix(series.frame, feature_columns)
 
         method = str(params["method"])
@@ -807,7 +840,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         metadata.update(
             {
                 **dict(params),
-                "figure_id": self._figure_id,
+                "figure_id": figure_id,
                 "axis_name": axis_name,
                 "source_series_id": self._source_series_id(series),
                 "source_series_name": series.name,
@@ -1117,29 +1150,21 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         """
         self.apply_results_to_axis(int(axis_id), results)
 
-    def preview(self) -> bool:
-        """Preview clustering through the shared pipeline.
+    def operation_succeeded(self, *, commit: bool) -> None:
+        """Tell the owner window, and drop the snapshots once committed.
 
-        The override exists only to notify the owner window afterwards.  It no
-        longer reimplements the pipeline: doing so bypassed
-        ``cancel_operation_changes`` and the preview SAVEPOINT, which is why a
-        cluster preview used to survive Close - it writes ClusterId into the
-        user's own source table and rewrites the selected series' SQL, and
-        neither of those is a removable "preview artifact".
+        Preview goes through the shared pipeline like every other operation:
+        reimplementing it bypassed ``cancel_operation_changes`` and the
+        preview SAVEPOINT, which is why a cluster preview used to survive
+        Close - it writes ClusterId into the user's own source table and
+        rewrites the selected series' SQL, and neither of those is a
+        removable "preview artifact".
         """
-        success = super().preview()
-        if success and self._applied_callback is not None:
-            self._applied_callback()
-        return success
-
-    def apply(self) -> bool:
-        success = super().apply()
-        if success:
+        if commit:
             # Committed: the snapshots are no longer a safety net, just clutter.
             self.discard_operation_snapshots()
-            if self._applied_callback is not None:
-                self._applied_callback()
-        return success
+        if self._applied_callback is not None:
+            self._applied_callback()
 
     def cancel_operation_changes(self, *, refresh: bool = True) -> None:
         """Undo a cluster preview.

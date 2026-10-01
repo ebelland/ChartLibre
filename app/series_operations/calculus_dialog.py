@@ -37,7 +37,6 @@ import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis import calculus as calc
-from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
@@ -185,6 +184,9 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
     Name: str = "Calculus"
     Description = "Differentiate or integrate"
 
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
+
     # Every model here treats the series as y = f(x), so the points have to be
     # in x order and single-valued. Both are repaired and reported.
     INPUT_REQUIRES_SORTED_X = True
@@ -328,30 +330,22 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def compute_results(self) -> list[CalculusResult]:
-        model = self._model()
-        params = self.parameter_values()
+    def series_settings(self) -> tuple[str, dict[str, Any]]:
+        return self._model(), self.parameter_values()
 
-        results: list[CalculusResult] = []
-        errors: list[str] = []
+    def read_series(self, row: Any, name: str) -> Any:
+        if CALCULUS_MODELS[self._model()].surface:
+            return self.series_grid_xyz(row, name)
+        return self.series_xy(row, name)
 
-        for row in self.selected_series():
-            name = str(row_value(row, "name", "series_name", default="Series"))
-            try:
-                if CALCULUS_MODELS[model].surface:
-                    results.append(self._compute_one_3d(row, name, model))
-                else:
-                    x_values, y_values = self.series_xy(row, name)
-                    results.append(self._compute_one(name, x_values, y_values, model, params))
-            except Exception as exc:
-                errors.append(f"{name}: {exc}")
-
-        if errors and not results:
-            raise ValueError("; ".join(errors))
-        for message in errors:
-            applogger.warning(message, show_dialog=False, raise_error=False)
-
-        return results
+    def compute_series(
+        self, name: str, data: Any, settings: tuple[str, dict[str, Any]]
+    ) -> CalculusResult:
+        model, params = settings
+        if CALCULUS_MODELS[model].surface:
+            return self._compute_one_3d(data, name, model)
+        x_values, y_values = data
+        return self._compute_one(name, x_values, y_values, model, params)
 
     def _compute_one(
         self,
@@ -367,8 +361,10 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
 
     # --- Surfaces (a series with a z role): gradient and volume ---------
 
-    def _compute_one_3d(self, row: Any, name: str, model: str) -> CalculusResult:
-        x_grid, y_grid, z_grid, interpolated = self.series_grid_xyz(row, name)
+    def _compute_one_3d(
+        self, grid: tuple[np.ndarray, np.ndarray, np.ndarray, bool], name: str, model: str
+    ) -> CalculusResult:
+        x_grid, y_grid, z_grid, interpolated = grid
         if model == DERIV_GRADIENT_SURFACE:
             return self._gradient_surface(name, x_grid, y_grid, z_grid, interpolated)
         return self._volume_surface(name, x_grid, y_grid, z_grid, interpolated)
