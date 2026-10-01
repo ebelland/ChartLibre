@@ -1,39 +1,28 @@
 ChartLibre TODO
-Updated 2026-10-01. Highest priority first.
+Updated 2026-10-02. Highest priority first.
 
 Priority  P0 wrong results / blocked   P1 foundations   P2 high value
           P3 useful later              P4 ideas, undecided
 Effort    S one session   M 2-3 sessions   L 4+ sessions   [YOU] no code needed
 
-State: ~78k lines in app/, 1000 tests, Pyright 0 errors, 19 series
+State: ~79k lines in app/, 1031 tests, Pyright 0 errors, 19 series
 operations, ~29 chart types, it/fr complete, de/es started.
 
 
 ================================================================
 NEXT
 ================================================================
-1. W-01, W-02, W-03   Windows layout fixes
-2. O-01               Outlier hide - needs the user's case
-3. R-03               Reproducibility: re-run, script export
-4. R-08 -> R-04 -> R-05 -> R-06 -> P2-12 -> R-09   Analysis features
-5. R-14, A-06, A-07, A-08                          Reach non-Python users
+1. W-03               Developer page labels truncated (Italian)
+2. R-03               Reproducibility: re-run, script export
+3. R-08 -> R-04 -> R-05 -> R-06 -> P2-12 -> R-09   Analysis features
+4. R-14, A-06, A-07, A-08                          Reach non-Python users
 
 
 ================================================================
 OPEN BUGS AND SMALL FIXES
 ================================================================
-W-01  S  Windows: left-panel cards touch the right and bottom edges.
-         - Add right/bottom margin = MARGIN_TOOLBOX_PAGE on every page
-           (File, Database, Developer, Chart options).
-W-02  S  Windows: #chartSurfaceCard has square top children over its
-         rounded corners.
-         - Either no rounding on Windows (it is a surface) or round the
-           children. Check with a geometry test.
 W-03  S  Developer page (Italian): "Costruttore di operazioni sulle s…"
          truncated in title and button. Shorten labels or wrap.
-O-01  S  Outlier "does not hide rows": not reproducible with test data.
-         - Need: project, method, existing Hide/colour column, OK or Close.
-A-03  [YOU] Try ChartLibre.exe and ChartLibre.bat on Windows.
 A-04  [YOU] Move the project out of the iCloud Desktop (e.g. ~/Developer).
          iCloud hides .venv/.git contents (Qt plugin crash, now worked
          around) and may evict files.
@@ -56,7 +45,7 @@ R-03  P1  M  Reproducibility - IN PROGRESS
 R-02  P1  M  Background computation - MOSTLY DONE
          Done: 11 operations + Fit; Stop and progress bar after 300 ms.
          Left:
-         - Outlier (after O-01).
+         - Outlier: its own preview pipeline (Hide/colour state).
          - Filter, baseline: snapshot controls in series_settings first.
          - Stop inside one long computation (t-SNE, hierarchical, big GP):
            should_stop in engines with a loop.
@@ -108,13 +97,11 @@ P3 - MAINTENANCE AND COMFORT
 ================================================================
 R-10  P3  M  Split large files: chart_panel, main_window, build_demos,
              style; fit/cluster/smoothing/statistics dialogs.
-R-01b P3  S  Base class: move _refresh_visibility, build_model_selector,
-             _result_figure_name/_label_result_axis.
-R-12  P3  M  Narrow the ~296 "except Exception" outside the UI.
+R-12b P3  M  Narrow "except Exception" in app/charts (42) and review the
+             UI ones (widgets 60, dialogs 56, series_operations 45): keep
+             only true boundaries, each with its reason (see R-12).
 R-07  P3  L  JMP-style linked selection across charts and table;
              then a local data filter.
-N-01  P3  S  Database panel: change type / duplicate table in table list.
-N-06  P3  S  Table editor: "Hide rows…".
 N-09  P3  M  "Colour by value" dialog (palette, percentiles, categories).
 P2-20 P3  M  HTML viewer of a project's charts (PNG/SVG per figure).
 R-15  P3  M  Accessibility: colour-blind palettes by default, dark-theme
@@ -136,6 +123,17 @@ R-16  P4     DOE, mixed models, power analysis.
 ================================================================
 DONE (recent)
 ================================================================
+2026-10-02  O-01 Outlier hid nothing on aliased/filtered series (read the
+            whole table): now reads the series' own SQL, marks per table;
+            Outlier Colour drawn (scatter crashed, time series markers);
+            Geometry series broken by a misplaced Hide filter (repaired on
+            open) + report with picture; W-01 panel insets; W-02 square
+            chart surface; NIST demo project + "NIST reference models" in
+            Fit; Fit solves linear-in-parameters models exactly (polynomials
+            to degree 10); R-01b shared dialog code in the base; R-12 core
+            excepts narrowed (59 of 79; NUMERICAL_FAILURES, READ_FAILURES,
+            DatabaseError); N-01 Edit/Duplicate table in the table list;
+            N-06 Hide rows in the table editor.
 2026-10-01  R-01 all 19 operations compute in app/analysis (old/new
             results compared identical); R-02 background runs; R-13 NIST
             validation + 4 Fit accuracy fixes; R-03 operation history;
