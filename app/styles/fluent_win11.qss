@@ -165,6 +165,15 @@ QWidget[elevated="true"] {
     border-radius: 14px;
 }
 
+/* The chart pane is a surface, not a card: its jump bar and tab strip run
+   flush to its edges with square backgrounds of their own, which covered
+   the rounded top corners and left the card's outline showing round
+   behind square (todo W-02). Square, as macos_native.qss treats the same
+   pane, keeping the outline that separates it from the left panel. */
+QFrame#chartSurfaceCard {
+    border-radius: 0px;
+}
+
 /* Acrylic-style panels.
    For best effect, enable translucent background in Python. */
 QFrame#acrylicPanel,

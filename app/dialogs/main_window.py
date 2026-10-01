@@ -800,7 +800,11 @@ class MainWindow(QMainWindow):
         # "away from the edge" below the title bar strip (see
         # main_window._create_central_host), but a page's own content
         # starting flush against that same edge read as cramped.
-        stack.setContentsMargins(0, 12, 0, 0)
+        # Right and bottom: the same gap the panel's own spacing leaves on the
+        # left, between the rail and the pages - without it every card ran
+        # flush to the panel's right and bottom edges, which showed on
+        # Windows' white page (todo W-01).
+        stack.setContentsMargins(0, 12, SPACING_DEFAULT, SPACING_DEFAULT)
         stack.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding,)
         # Page order follows NavigationBar.action_ids exactly - the rail
         # hands back the index of the tile that was clicked, nothing
