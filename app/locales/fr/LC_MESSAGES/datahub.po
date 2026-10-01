@@ -6130,3 +6130,39 @@ msgstr "Importer la table du presse-papiers"
 
 msgid "Import the table on the clipboard with rows and columns swapped - for data copied one series per row"
 msgstr "Importer la table du presse-papiers en échangeant lignes et colonnes - pour des données copiées une série par ligne"
+
+msgid "Applied"
+msgstr "Appliquée"
+
+msgid "ChartLibre version"
+msgstr "Version de ChartLibre"
+
+msgid "History"
+msgstr "Historique"
+
+msgid "History of {table}"
+msgstr "Historique de {table}"
+
+msgid "History…"
+msgstr "Historique…"
+
+msgid "No operation has been applied to or from this table since the project began recording them."
+msgstr "Aucune opération n'a été appliquée à cette table ou à partir d'elle depuis que le projet les enregistre."
+
+msgid "No settings recorded."
+msgstr "Aucun réglage enregistré."
+
+msgid "Read"
+msgstr "Sources"
+
+msgid "Setting"
+msgstr "Réglage"
+
+msgid "The operations applied to or from this table"
+msgstr "Les opérations appliquées à cette table ou à partir d'elle"
+
+msgid "Wrote"
+msgstr "Tables écrites"
+
+msgid "{count} operation(s), oldest first"
+msgstr "{count} opération(s), de la plus ancienne"

@@ -41,10 +41,10 @@ Fase 0 - Segnalazioni aperte, poi cose tue  (1 sessione S)
   A-05  [TU] GitHub: descrizione, argomenti, prima release.
 
 Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
-  Ordine: R-01 (fatto), poi R-02 e i test di R-13; poi R-03.
+  Stato: R-01, R-02 e R-13 fatti (2026-10-01); R-03 in corso.
   R-02  Calcoli lunghi in background (fatto per 11 operazioni + Fit).
   R-13  Test di validazione numerica (NIST): fatto per Fit, polinomi, Statistiche.
-  R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
+  R-03  Riproducibilità: registrazione e cronologia fatte; restano rieseguire ed esportare.
 
 Fase 2 - Ciò che chiede chi fa analisi  (circa L: 6-8 sessioni)
   R-08  Metadati delle colonne (serve a R-04 e agli assi con unità).
@@ -206,16 +206,24 @@ R-13  P1  M  FATTO per NIST StRD (2026-10-01). Test di validazione numerica.
       Restano: regressione multipla (Longley: ChartLibre non ne ha una),
       e test con risposta nota per le operazioni senza dataset NIST.
 
-R-03  P1  M  Riproducibilità: ogni operazione applicata resta nel progetto.
-      Oggi il risultato è salvato nel progetto; i parametri no (restano
-      solo come ultimo uso del dialogo, in user.json). Una tabella
-      __operations__ (operazione, parametri JSON, sorgente, destinazione,
-      data) permette di:
-      - rieseguire tutto quando i dati cambiano (Origin: "Recalculate");
-      - vedere la storia di come è nato un risultato (JMP: script salvato
-        con ogni rapporto; SPSS: syntax nel file .sps);
-      - esportare uno script Python equivalente (vedi N-02).
-
+R-03  P1  M  IN CORSO (2026-10-01). Riproducibilità: ogni operazione applicata resta nel progetto.
+      Fatto il primo passo, la registrazione: ogni Applica di un'operazione
+      di serie aggiunge una riga a __operations__ (app/data/repo/
+      operations.py): operazione, dialogo (modulo:Classe), parametri e voci
+      del dialogo, serie lette (id, nome, SQL, ruoli), tabelle scritte,
+      rapporto, data UTC, versione. Scritta nella stessa transazione dei
+      risultati e inclusa nell'annulla; i dati di partenza sono letti
+      quando l'Applica parte (in background la finestra resta modificabile).
+      Visibile da: elenco tabelle, menu contestuale "Cronologia…"
+      (operazioni che hanno letto o scritto la tabella).
+      Test: dev/tests/test_operation_history.py.
+      Restano:
+      - Outlier e Statistiche hanno un Applica proprio: non registrano ancora.
+      - Rieseguire ("Recalculate", Origin): riaprire il dialogo con le voci
+        registrate e le stesse serie, poi Applica - o direttamente, tutte le
+        operazioni a valle di una tabella cambiata.
+      - Esportare uno script Python equivalente (vedi N-02).
+      - Cronologia dell'intero progetto (oggi solo per tabella).
 
 ================================================================
 P2 - VALORE ALTO

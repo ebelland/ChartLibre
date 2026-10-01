@@ -56,6 +56,7 @@ from app.data.repo._common import (  # noqa: F401 - re-export
 from app.data.repo.descriptors import DescriptorsMixin
 from app.data.repo.editing import EditingMixin
 from app.data.repo.maintenance import MaintenanceMixin
+from app.data.repo.operations import OperationsMixin
 from app.data.repo.queries import QueriesMixin
 from app.data.repo.table_tools import TableToolsMixin
 from app.data.repo.tables import TablesMixin
@@ -74,6 +75,7 @@ class SqliteRepo(
     DescriptorsMixin,
     QueriesMixin,
     MaintenanceMixin,
+    OperationsMixin,
 ):
     """SQLite repository for ChartLibre.
 
@@ -585,6 +587,9 @@ class SqliteRepo(
             );
             """
         )
+
+        # What was applied, and how: see app/data/repo/operations.py.
+        self.create_operations_table()
 
         # Core indexes for fast descriptor and saved-query lookups
         self._con.executescript(

@@ -6133,3 +6133,39 @@ msgstr "Importa la tabella negli appunti"
 
 msgid "Import the table on the clipboard with rows and columns swapped - for data copied one series per row"
 msgstr "Importa la tabella negli appunti scambiando righe e colonne - per dati copiati una serie per riga"
+
+msgid "Applied"
+msgstr "Applicata"
+
+msgid "ChartLibre version"
+msgstr "Versione di ChartLibre"
+
+msgid "History"
+msgstr "Cronologia"
+
+msgid "History of {table}"
+msgstr "Cronologia di {table}"
+
+msgid "History…"
+msgstr "Cronologia…"
+
+msgid "No operation has been applied to or from this table since the project began recording them."
+msgstr "Nessuna operazione è stata applicata a questa tabella o a partire da essa da quando il progetto ha iniziato a registrarle."
+
+msgid "No settings recorded."
+msgstr "Nessuna impostazione registrata."
+
+msgid "Read"
+msgstr "Sorgenti"
+
+msgid "Setting"
+msgstr "Impostazione"
+
+msgid "The operations applied to or from this table"
+msgstr "Le operazioni applicate a questa tabella o a partire da essa"
+
+msgid "Wrote"
+msgstr "Tabelle scritte"
+
+msgid "{count} operation(s), oldest first"
+msgstr "{count} operazione/i, dalla più vecchia"

@@ -109,13 +109,20 @@ def _accessor(widget: QWidget) -> tuple[Callable[[Any], Any], Callable[[Any, Any
 # ----------------------------------------------------------------------
 # Dialog entries
 # ----------------------------------------------------------------------
-def save_dialog_state(owner: object, key: str) -> dict[str, Any]:
-    """Store the current entries of *owner* under ``dialog_state.<key>``.
+def dialog_entries(owner: object, *, inputs_only: bool = False) -> dict[str, Any]:
+    """The current entries of *owner*, by attribute name, as save_dialog_state stores them.
 
-    Returns what was stored, which is handy in tests and costs nothing.
+    ``inputs_only`` leaves out what only arranges the window (splitter
+    sizes) and the buttons that act rather than hold a choice: what an
+    operation records about how it was run.
     """
     state: dict[str, Any] = {}
     for name, widget in _stateful_widgets(owner).items():
+        if inputs_only and (
+            isinstance(widget, QSplitter)
+            or (isinstance(widget, QAbstractButton) and not widget.isCheckable())
+        ):
+            continue
         accessor = _accessor(widget)
         if accessor is None:
             continue
@@ -124,10 +131,18 @@ def save_dialog_state(owner: object, key: str) -> dict[str, Any]:
         except Exception:
             applogger.exception(
                 # A dialog closing must never raise a modal error box.
-                "Could not read %s.%s for config", key, name,
+                "Could not read %s.%s", type(owner).__name__, name,
                 show_dialog=False, raise_error=False,
             )
+    return state
 
+
+def save_dialog_state(owner: object, key: str) -> dict[str, Any]:
+    """Store the current entries of *owner* under ``dialog_state.<key>``.
+
+    Returns what was stored, which is handy in tests and costs nothing.
+    """
+    state = dialog_entries(owner)
     section = get_section(CONFIG_SECTION)
     section[key] = state
     set_section(CONFIG_SECTION, section)

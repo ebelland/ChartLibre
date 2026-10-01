@@ -26,9 +26,11 @@ import pandas as pd
 
 from scipy.interpolate import griddata
 
+from app import APP_VERSION
 from app.analysis import Stopped
 from app.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, row_value
+from app.data.repo.operations import OPERATIONS_TABLE
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.styles.style import (
@@ -56,6 +58,7 @@ from app.series_operations.results import OperationResult
 from app.series_operations.parameter_spec import ChoiceParam, Param, defaults
 from app.utils.messages import show_message
 from app.utils.dialog_state import (
+    dialog_entries,
     restore_dialog_state,
     restore_window_geometry,
     save_dialog_state,
@@ -2034,6 +2037,9 @@ class SeriesOperationDialogBase(QDialog):
                 # The catalogue holds the wording; the operation names the box.
                 show_message(self, "series.no_axis_selected", title=self.operation_label)
                 return finish(False)
+            # Read now, not when the results are back: the window stays
+            # editable while a background run computes.
+            inputs = self.operation_inputs() if commit else None
             if self._runs_in_background():
                 if self.evaluating:
                     return False
@@ -2041,7 +2047,7 @@ class SeriesOperationDialogBase(QDialog):
 
                 def deliver(results: Sequence[Any]) -> None:
                     started.append(True)
-                    finish(self._deliver_results(list(results), int(axis_id_value), commit=commit))
+                    finish(self._deliver_results(list(results), int(axis_id_value), commit=commit, inputs=inputs))
 
                 self.evaluate(deliver, background=True)
                 if not self.evaluating and not started:
@@ -2052,7 +2058,7 @@ class SeriesOperationDialogBase(QDialog):
             results = list(self.compute_results())
         except Exception as exc:
             return finish(self._operation_failed(exc, commit=commit))
-        return finish(self._deliver_results(results, int(axis_id_value), commit=commit))
+        return finish(self._deliver_results(results, int(axis_id_value), commit=commit, inputs=inputs))
 
     def _runs_in_background(self) -> bool:
         return bool(
@@ -2071,8 +2077,19 @@ class SeriesOperationDialogBase(QDialog):
             applogger.error(f"{action} failed: {exc}", show_dialog=True)
         return False
 
-    def _deliver_results(self, results: list[Any], axis_id_value: int, *, commit: bool) -> bool:
-        """Write computed results as a preview, or apply them; on the GUI thread."""
+    def _deliver_results(
+        self,
+        results: list[Any],
+        axis_id_value: int,
+        *,
+        commit: bool,
+        inputs: Mapping[str, Any] | None = None,
+    ) -> bool:
+        """Write computed results as a preview, or apply them; on the GUI thread.
+
+        An Apply is also recorded in the project (``__operations__``, todo
+        R-03) with the *inputs* read when it started.
+        """
         try:
             if not results:
                 show_message(self, "series.no_series_selected", title=self.operation_label)
@@ -2097,13 +2114,15 @@ class SeriesOperationDialogBase(QDialog):
 
             if commit:
                 self._repo.snapshot_for_undo(
-                    [self.result_table_name(axis_id, result) for result in results],
+                    [self.result_table_name(axis_id, result) for result in results]
+                    + [OPERATIONS_TABLE],
                     label=f"Apply {self.operation_label}",
                     entry_id=undo_entry,
                 )
                 self.cancel_operation_changes(refresh=False)
                 self.begin_preview_transaction()
                 self.apply_results_to_axis(axis_id, results)
+                self.record_operation(axis_id, results, inputs or self.operation_inputs())
                 # Release before optimize_db: VACUUM cannot run inside an open
                 # transaction.
                 self.commit_preview_transaction()
@@ -2130,6 +2149,55 @@ class SeriesOperationDialogBase(QDialog):
 
         except Exception as exc:
             return self._operation_failed(exc, commit=commit)
+
+    def operation_inputs(self) -> dict[str, Any]:
+        """What an applied operation is recorded with: its parameters, entries and source series."""
+        sources = []
+        for row in self.selected_series():
+            sources.append(
+                {
+                    "id": row_value(row, "id", default=None),
+                    "name": str(row_value(row, "name", "series_name", default="")),
+                    "sql_query": str(row_value(row, "sql_query", "query", "sql", default="")),
+                    "roles": parse_roles(row_value(row, "roles", default={})),
+                }
+            )
+        return {
+            "parameters": self.parameter_values(),
+            "entries": dialog_entries(self, inputs_only=True),
+            "sources": sources,
+        }
+
+    def record_operation(self, axis_id: int, results: Sequence[Any], inputs: Mapping[str, Any]) -> None:
+        """Add this Apply to the project's ``__operations__``, inside its transaction.
+
+        A failure is logged, not raised: the record is about the result, and
+        must never be the reason the result is lost.
+        """
+        try:
+            written = [
+                {
+                    "table": self.result_table_name(axis_id, result),
+                    "name": str(getattr(result, "result_name", "") or getattr(result, "output_name", "")),
+                    "axis_id": int(axis_id),
+                }
+                for result in results
+            ]
+            self._repo.record_operation(
+                operation=self.operation_label,
+                dialog=f"{type(self).__module__.rsplit('.', 1)[-1]}:{type(self).__name__}",
+                parameters=dict(inputs.get("parameters", {})),
+                entries=dict(inputs.get("entries", {})),
+                sources=list(inputs.get("sources", [])),
+                results=written,
+                app_version=str(APP_VERSION),
+                report=self.format_results(results) or "",
+            )
+        except Exception:
+            applogger.exception(
+                f"Could not record {self.operation_label} in the project's history",
+                show_dialog=False, raise_error=False,
+            )
 
     def operation_succeeded(self, *, commit: bool) -> None:
         """Called once a Preview (commit False) or an Apply has gone through."""

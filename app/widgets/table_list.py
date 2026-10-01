@@ -17,6 +17,7 @@ from app.styles.style import (
     create_menu,
     load_icon,
 )
+from app.dialogs.operation_history_dialog import OperationHistoryDialog
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
 from app.utils.config import get_section, update_section
 from app.data.sqlite_repo import SqliteRepo
@@ -597,6 +598,15 @@ class TableListPanel(QWidget):
                 icon="query_builder",
             )
         )
+        if len(selected_sources) == 1:
+            items.append(
+                MenuItem(
+                    text=_("History…"),
+                    tooltip=_("The operations applied to or from this table"),
+                    callback=self._show_history,
+                    icon="operation_history",
+                )
+            )
         if has_link:
             items.append(
                 MenuItem(
@@ -683,6 +693,13 @@ class TableListPanel(QWidget):
         name, _is_query = current_source
         QueryBuilderDialog(self._repo, query_name=name, parent=self._top_level_parent()).exec()
         self.reload()
+
+    def _show_history(self) -> None:
+        """Show the recorded operations that read or wrote the selected table."""
+        current = self._current_source()
+        if self._repo is None or current is None:
+            return
+        OperationHistoryDialog(self._repo, current[0], parent=self._top_level_parent()).exec()
 
     def set_generated_visible(self, visible: bool) -> None:
         """Show or hide the tables written by series operations."""
