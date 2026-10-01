@@ -64,6 +64,7 @@ from app.widgets.table_preview import LazyTableModel
 #: the order they are actually wanted: a measured quantity first.
 COLUMN_TYPES: tuple[str, ...] = ("REAL", "INTEGER", "TEXT")
 
+
 class EditableTableModel(LazyTableModel):
     """The preview's own lazy model, with the cells writable.
 
@@ -305,6 +306,32 @@ class TableEditorDialog(QDialog):
         more.setAutoRaise(True)
         more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         menu = QMenu(more)
+        # Hide rows by the selected column: the same comparisons the data
+        # preview offers, so the editor is not the one place they are
+        # missing (todo N-06). Inside this session's undo entry.
+        hide_icon, hide_text, hide_tip = action_presentation("table_hide_rows")
+        hide_menu = menu.addMenu(hide_icon, hide_text)
+        hide_menu.setToolTipsVisible(True)
+        hide_menu.setToolTip(hide_tip)
+        # The operator is the payload; only the label is translated.
+        for label, operator in (
+            (_("Equal to..."), "="),
+            (_("Different from..."), "!="),
+            (_("Lower than..."), "<"),
+            (_("Lower or equal..."), "<="),
+            (_("Higher than..."), ">"),
+            (_("Higher or equal..."), ">="),
+        ):
+            item = hide_menu.addAction(label)
+            item.triggered.connect(lambda _checked=False, op=operator: self._hide_rows(op))
+        hide_menu.addSeparator()
+        hide_menu.addAction(_("Hide NULL / empty values")).triggered.connect(
+            lambda _checked=False: self._hide_rows(None)
+        )
+        hide_menu.addAction(_("Hide rows equal to selected cell")).triggered.connect(
+            lambda _checked=False: self._hide_rows("=", from_cell=True)
+        )
+        menu.addSeparator()
         for action_id, action in (
             ("table_hide_ensure", self._repo.ensure_hide_column),
             ("table_hide_reset", self._repo.clear_hide_column),
@@ -575,6 +602,45 @@ class TableEditorDialog(QDialog):
     # ------------------------------------------------------------------
     # Data tools
     # ------------------------------------------------------------------
+
+    def _hide_rows(self, operator: str | None, *, from_cell: bool = False) -> None:
+        """Hide the rows where the selected column compares to a value.
+
+        *operator* None hides the empty cells; ``from_cell`` takes the value
+        from the selected cell instead of asking for one.
+        """
+        column = self._need_column()
+        if column is None:
+            return
+        value: Any = None
+        if operator is not None:
+            if from_cell:
+                index = self.view.currentIndex()
+                if not index.isValid():
+                    self._say(_("Select a cell first."))
+                    return
+                value = index.data(Qt.ItemDataRole.DisplayRole)
+            else:
+                text, ok = QInputDialog.getText(
+                    self,
+                    _("Hide rows"),
+                    _("Hide rows where {column} {operator}:").format(column=column, operator=operator),
+                )
+                if not ok:
+                    return
+                value = text
+        hidden: list[int] = []
+
+        def run() -> None:
+            self._ensure_undo_entry()
+            if operator is None:
+                hidden.append(self._repo.hide_rows_special(self._table, column, "null_or_empty"))
+            else:
+                hidden.append(self._repo.hide_rows_by_value(self._table, column, operator, value))
+
+        self._guarded(run)
+        if hidden:
+            self._say(_("{count} row(s) hidden.").format(count=hidden[0]))
 
     def _sort(self, *, descending: bool) -> None:
         column = self._need_column()

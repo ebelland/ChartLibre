@@ -6196,3 +6196,15 @@ msgstr "Dataset di riferimento NIST - risposte certificate per Fit e Statistiche
 
 msgid "Ten of the NIST Statistical Reference Datasets, the yardstick statistics packages are measured against: five nonlinear regressions ready for Fit (their models are in its NIST category), a line, a parabola and Filip's tenth-degree polynomial, Michelson's speed of light for the summary statistics and five instruments for a one-way ANOVA - each with its certified values under the chart."
 msgstr "Dieci degli Statistical Reference Datasets del NIST, il metro con cui si misurano i pacchetti statistici: cinque regressioni non lineari pronte per il Fit (i loro modelli sono nella categoria NIST), una retta, una parabola e il polinomio di decimo grado di Filip, la velocità della luce di Michelson per le statistiche descrittive e cinque strumenti per un'ANOVA a una via - ognuno con i valori certificati sotto il grafico."
+
+msgid "Edit cells, add or delete rows and columns, change a column's type, and manage the Hide and ClusterId columns"
+msgstr "Modifica celle, aggiungi o elimina righe e colonne, cambia il tipo di una colonna e gestisci le colonne Hide e ClusterId"
+
+msgid "Hide rows where {column} {operator}:"
+msgstr "Nascondi le righe dove {column} {operator}:"
+
+msgid "Select a cell first."
+msgstr "Seleziona prima una cella."
+
+msgid "{count} row(s) hidden."
+msgstr "{count} riga/e nascosta/e."

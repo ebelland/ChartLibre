@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import pandas as pd
@@ -9,7 +10,7 @@ from pandas import isna
 
 import PySide6.QtCore
 from PySide6.QtGui import QColor, QPainter, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QStyledItemDelegate, QWidget, QStyleOptionViewItem, QVBoxLayout, QTableView, QAbstractItemView, QFrame, QHeaderView, QFileDialog, QLineEdit, QInputDialog
+from PySide6.QtWidgets import QStyledItemDelegate, QWidget, QStyleOptionViewItem, QVBoxLayout, QTableView, QAbstractItemView, QFrame, QHeaderView, QFileDialog, QLineEdit, QInputDialog, QMessageBox
 
 from app.styles.style import (
     MenuItem,
@@ -19,6 +20,7 @@ from app.styles.style import (
 )
 from app.dialogs.operation_history_dialog import OperationHistoryDialog
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
+from app.dialogs.table_editor_dialog import TableEditorDialog
 from app.utils.config import get_section, update_section
 from app.data.sqlite_repo import SqliteRepo
 from app.utils.import_runner import refresh_link
@@ -598,6 +600,29 @@ class TableListPanel(QWidget):
                 icon="query_builder",
             )
         )
+        # The same table edits the data preview offers (todo N-01): change a
+        # column's type and the rest live in the editor. A saved query has no
+        # rows of its own to edit or copy.
+        if len(selected_sources) == 1 and not has_query:
+            items.extend(
+                [
+                    MenuItem(
+                        text=_("Edit table..."),
+                        tooltip=_(
+                            "Edit cells, add or delete rows and columns, change a "
+                            "column's type, and manage the Hide and ClusterId columns"
+                        ),
+                        callback=self._edit_table,
+                        icon="document-edit",
+                    ),
+                    MenuItem(
+                        text=_("Duplicate table"),
+                        tooltip=_("Copy this table, rows and columns, under a new name"),
+                        callback=self._duplicate_table,
+                        icon="duplicate_table",
+                    ),
+                ]
+            )
         if len(selected_sources) == 1:
             items.append(
                 MenuItem(
@@ -693,6 +718,43 @@ class TableListPanel(QWidget):
         name, _is_query = current_source
         QueryBuilderDialog(self._repo, query_name=name, parent=self._top_level_parent()).exec()
         self.reload()
+
+    def _selected_table(self) -> str | None:
+        """The selected table's name, when exactly one table (not a query) is selected."""
+        current = self._current_source()
+        if self._repo is None or current is None or current[1] or len(self.selected_sources()) != 1:
+            return None
+        return current[0]
+
+    def _edit_table(self) -> None:
+        """Open the table editor on the selected table, then refresh what shows it."""
+        table = self._selected_table()
+        if table is None or self._repo is None:
+            return
+        TableEditorDialog(self._repo, table, self._top_level_parent()).exec()
+        self.reload()
+        # A column added, dropped or retyped, or rows hidden: every chart and
+        # the preview built on this table may draw something else now.
+        self.update_parent()
+
+    def _duplicate_table(self) -> None:
+        """Copy the selected table under a new name, and select the copy."""
+        table = self._selected_table()
+        if table is None or self._repo is None:
+            return
+        try:
+            name = self._repo.duplicate_table(table)
+        except (ValueError, sqlite3.Error) as exc:
+            applogger.exception("Duplicate table failed: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return
+        applogger.info("Table '%s' duplicated as '%s'.", table, name)
+        self.reload()
+        self.update_parent()
+        parent = self._top_level_parent()
+        panel = getattr(parent, "_table_panel", None)
+        if panel is not None and hasattr(panel, "select_table"):
+            panel.select_table(name)
 
     def _show_history(self) -> None:
         """Show the recorded operations that read or wrote the selected table."""

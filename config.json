@@ -752,6 +752,13 @@
       "SegoeFluent": "ED1A",
       "ThemeIcon": "view-hidden"
     },
+    "table_hide_rows": {
+      "text": "Hide rows",
+      "description": "Hide the rows where the selected column compares to a value",
+      "SFSymbol": "line.3.horizontal.decrease.circle",
+      "SegoeFluent": "E71C",
+      "ThemeIcon": "view-filter"
+    },
     "table_hide_reset": {
       "text": "Reset Hide",
       "description": "Set Hide back to 0 on every row, so nothing is hidden",
