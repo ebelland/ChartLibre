@@ -41,10 +41,7 @@ Fase 0 - Segnalazioni aperte, poi cose tue  (1 sessione S)
   A-05  [TU] GitHub: descrizione, argomenti, prima release.
 
 Fase 1 - Fondamenta del calcolo  (circa L: 5-7 sessioni)
-  Ordine: R-01 un'operazione alla volta, e per ciascuna subito R-02 e i
-  test di R-13; poi R-03. Fatte 13 su 19; restano quelle grosse (calculus, roots,
-  interpolate, outlier, control_chart, cluster).
-  R-01  Separare i calcoli dalle finestre (6 operazioni rimaste).
+  Ordine: R-01 (fatto), poi R-02 e i test di R-13; poi R-03.
   R-02  Calcoli lunghi in background con barra di avanzamento.
   R-13  Test di validazione numerica (NIST), subito per Fit e Statistiche.
   R-03  Riproducibilità: ogni operazione applicata resta nel progetto.
@@ -139,22 +136,22 @@ A-05  [TU] GitHub: descrizione e argomenti del repository, immagine di
 ================================================================
 P1 - FONDAMENTA
 ================================================================
-R-01  P1  L  IN CORSO. Separare i calcoli dalle finestre.
-      Fatto per 13 operazioni su 19: statistiche, fit, geometria, smoothing,
-      spectral, filter, baseline, transform, regression, gp_regression,
-      decomposition, peaks, function (app/analysis/<operazione>.py: niente
-      Qt, niente logger, errori come ValueError, test con risposte note).
-      Per ognuna il vecchio e il nuovo codice sono stati confrontati sui
-      risultati veri e sono identici; i soli cambi voluti: i metodi di
-      smoothing "solo su griglia" ora rifiutano i punti sparsi, e
-      apply_detrend non apre più una finestra prima di sollevare l'errore.
-      Restano 6, tutte grosse (600-1700 righe, logica intrecciata all'interfaccia):
-      calculus (878), roots (890), interpolate (941, 22 punti dove logga),
-      outlier (867), control_chart (1426), cluster (1684, 32 punti dove
-      logga). Stessa procedura: estrarre, confrontare, testare. Circa una
-      per sessione. Roots ha ancora un `__new__` del dialogo nel builder dei
-      demo (_extract_level_curves) che l'estrazione elimina.
-      È la base di R-02, R-03, R-13.
+R-01  P1  L  FATTO (2026-10-01). Separare i calcoli dalle finestre.
+      Tutte le 19 operazioni hanno il calcolo in app/analysis/<operazione>.py:
+      niente Qt, niente logger, errori come ValueError, ciò che va detto
+      all'utente torna come nota; test con risposte note per ognuna. Il
+      vecchio e il nuovo codice sono stati confrontati sui risultati veri e
+      sono identici; i soli cambi voluti: i metodi di smoothing "solo su
+      griglia" rifiutano i punti sparsi, Akima estrapola quando richiesto,
+      apply_detrend non apre più una finestra prima dell'errore. Il builder
+      dei demo non crea più dialoghi con __new__.
+      Limiti notati durante l'estrazione, non corretti:
+      - Outlier: i rilevatori "di forma" (Isolation Forest, LOF, One-Class
+        SVM, Elliptic Envelope) misurano le distanze nel piano (x, y) così com'è,
+        senza riscalare gli assi: se x va da 0 a 10000 e y da 0 a 1 conta
+        solo x. Da valutare una standardizzazione (opzione o sempre).
+      - Cluster: scipy vq.kmeans non ha seme, quindi due esecuzioni possono
+        dare gruppi diversi (vedi R-03: riproducibilità).
 
 R-02  P1  M  IN CORSO. Calcoli lunghi in background.
       La classe base offre già evaluate() in background con pulsante Ferma
