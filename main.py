@@ -6,29 +6,52 @@ import sys
 from PySide6 import __file__ as PYSIDE6_FILE
 
 
-def _unhide_qt_plugins(plugins_dir: str) -> None:
-    """Clear macOS's "hidden" flag from Qt's plugins.
+def _qt_plugins_outside_dot_folder(plugins_dir: str) -> None:
+    """Point Qt at links to its plugins kept outside a hidden folder.
 
     iCloud's Desktop & Documents sync marks everything inside a folder whose
     name starts with a dot as hidden - a .venv on the Desktop included. Qt
     skips hidden files when it lists a plugin folder, finds no "cocoa"
     platform plugin, and aborts before a window exists ("Could not find the
-    Qt platform plugin"). Only the plugins are listed that way, so only they
-    need the flag cleared; a few hundred files, done in milliseconds.
-    """
-    hidden = getattr(__import__("stat"), "UF_HIDDEN", 0)
-    if sys.platform != "darwin" or not hidden:
-        return
-    for folder, _dirs, files in os.walk(plugins_dir):
-        for path in (folder, *(os.path.join(folder, name) for name in files)):
-            try:
-                flags = os.lstat(path).st_flags
-                if flags & hidden:
-                    os.chflags(path, flags & ~hidden)
-            except OSError:
-                pass  # read-only install: nothing to fix, and Qt will say why
+    Qt platform plugin"); the style and SVG icon plugins vanish the same way.
 
-_unhide_qt_plugins(os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt", "plugins"))
+    Clearing the flag at start-up was not enough: iCloud sets it again within
+    seconds, so whether the application started depended on who won the
+    race. Instead a folder of symbolic links to every plugin is kept in
+    ~/Library/Caches, which iCloud does not touch, and handed to Qt through
+    QT_PLUGIN_PATH; Qt lists the links, which are not hidden, and loads what
+    they point to. A few hundred links, rebuilt in milliseconds when needed.
+    """
+    if sys.platform != "darwin":
+        return
+    plugins = os.path.realpath(plugins_dir)
+    if not any(part.startswith(".") for part in plugins.split(os.sep) if part):
+        return  # not inside a dot-folder: nothing hides it
+
+    import hashlib
+    from PySide6 import __version__ as pyside_version
+
+    key = hashlib.sha1(f"{plugins}|{pyside_version}".encode()).hexdigest()[:12]
+    mirror = os.path.join(os.path.expanduser("~/Library/Caches/ChartLibre/qt-plugins"), key)
+    try:
+        for folder, _dirs, files in os.walk(plugins):
+            target_folder = os.path.join(mirror, os.path.relpath(folder, plugins))
+            os.makedirs(target_folder, exist_ok=True)
+            for name in files:
+                source = os.path.join(folder, name)
+                link = os.path.join(target_folder, name)
+                if os.path.islink(link) and os.readlink(link) == source:
+                    continue
+                if os.path.lexists(link):
+                    os.remove(link)
+                os.symlink(source, link)
+    except OSError:
+        return  # leave Qt to its own plugin folder, and to say why if it fails
+    existing = os.environ.get("QT_PLUGIN_PATH")
+    os.environ["QT_PLUGIN_PATH"] = mirror if not existing else os.pathsep.join([mirror, existing])
+
+
+_qt_plugins_outside_dot_folder(os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt", "plugins"))
 # ----------------------------------------------------------------------
 # Logging
 # ----------------------------------------------------------------------
