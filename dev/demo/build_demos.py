@@ -776,15 +776,17 @@ def _surface_saddle_roots_result() -> pd.DataFrame:
 
 def _surface_bump_gradient_result() -> pd.DataFrame:
     """The bump's gradient magnitude, found by the Calculus operation's own
-    surface gradient (SeriesCalculusDialog._gradient_surface) run directly
+    surface gradient (app.analysis.calculus.surface_gradient) run directly
     on the exact grid.
     """
-    from app.series_operations.calculus_dialog import SeriesCalculusDialog
+    from app.analysis.calculus import surface_gradient
 
     xx, yy, zz = _bump_grid_arrays()
-    dialog = SeriesCalculusDialog.__new__(SeriesCalculusDialog)
-    result = dialog._gradient_surface("Bump", xx, yy, zz, False)
-    return result.to_df()
+    gradient = surface_gradient(xx, yy, zz)
+    return pd.DataFrame({
+        "x": xx.ravel(), "y": yy.ravel(), "z": gradient.magnitude.ravel(),
+        "dz_dx": gradient.dz_dx.ravel(), "dz_dy": gradient.dz_dy.ravel(),
+    })
 
 
 #: Table name -> the function that loads it. A demo file writes only the
@@ -2283,19 +2285,17 @@ def _ops_3d_showcase_spec() -> MultiAxisFigureSpec:
 
     Every derived panel is computed by the operation's own code
     (app.analysis.peaks.find_peaks_2d, app.analysis.roots.find_level_curve,
-    SeriesCalculusDialog._gradient_surface - see the *_result table loaders
+    app.analysis.calculus.surface_gradient - see the *_result table loaders
     above) rather than re-implemented for the demo, so this figure cannot
     silently drift from what the dialogs actually do. The volume figure is
     the one thing with no chart of its own (it is a single number - see
     calculus_dialog's own note on why) so it is folded into that axis's
     title instead.
     """
-    from app.series_operations.calculus_dialog import SeriesCalculusDialog
+    from app.analysis.calculus import surface_volume
 
     xx, yy, zz = _bump_grid_arrays()
-    volume = SeriesCalculusDialog.__new__(SeriesCalculusDialog)._volume_surface(
-        "Bump", xx, yy, zz, False
-    ).total
+    volume = surface_volume(xx, yy, zz).total
 
     return MultiAxisFigureSpec(
         name="24 · Series Operations on 3D data - Fit, Peaks, Roots, Calculus",

@@ -36,10 +36,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
-from scipy.integrate import cumulative_trapezoid, simpson, trapezoid
-from scipy.interpolate import UnivariateSpline
-from scipy.signal import savgol_filter
-
+from app.analysis import calculus as calc
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -133,36 +130,17 @@ DEST_SAME_AXIS = SeriesOperationDialogBase.DEST_SAME_AXIS
 DEST_NEW_AXIS = SeriesOperationDialogBase.DEST_NEW_AXIS
 DEST_NEW_FIGURE = SeriesOperationDialogBase.DEST_NEW_FIGURE
 
-BASELINE_NONE = "none"
-BASELINE_MINIMUM = "minimum"
-BASELINE_ENDPOINTS = "endpoints"
+# The baseline choices are the engine's; re-exported for callers and tests.
+BASELINE_NONE = calc.BASELINE_NONE
+BASELINE_MINIMUM = calc.BASELINE_MINIMUM
+BASELINE_ENDPOINTS = calc.BASELINE_ENDPOINTS
 
-# A dated series' x always arrives here as seconds since the epoch (see
-# SeriesOperationDialogBase.numeric_x) - correct to differentiate/integrate
-# against directly, but a derivative "per second" of daily data is ~86400x
-# smaller than what a person looking at the chart expects, and a definite
-# integral's reported area is inflated by the same factor. Picking the
-# coarsest unit that keeps the median sample spacing at 0.5 or more of it
-# turns "per second"/"y*seconds" into "per day"/"y*days" for the common
-# case without needing the user to say what the data's cadence is.
-_TIME_UNITS: tuple[tuple[str, float], ...] = (
-    ("year", 365.25 * 86400.0),
-    ("week", 7.0 * 86400.0),
-    ("day", 86400.0),
-    ("hour", 3600.0),
-    ("minute", 60.0),
-    ("second", 1.0),
-)
-
-
-def _pick_time_unit(median_spacing_seconds: float) -> tuple[str, float]:
-    """Return (unit name, seconds per unit) for a median sample spacing."""
-    if median_spacing_seconds > 0:
-        for name, seconds in _TIME_UNITS:
-            if median_spacing_seconds >= seconds * 0.5:
-                return name, seconds
-    return "second", 1.0
-
+#: The engine's name for each one-dimensional derivative.
+_DERIVATIVE_METHOD: dict[str, str] = {
+    DERIV_SAVGOL: calc.DERIVATIVE_SAVGOL,
+    DERIV_GRADIENT: calc.DERIVATIVE_GRADIENT,
+    DERIV_SPLINE: calc.DERIVATIVE_SPLINE,
+}
 
 @dataclass(slots=True)
 class CalculusResult(TableResult):
@@ -403,36 +381,17 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         z_grid: np.ndarray,
         interpolated: bool,
     ) -> CalculusResult:
-        """Return the surface's gradient magnitude on the same grid.
-
-        ``np.gradient`` on a 2D array indexed ``Z[row, col]`` returns
-        ``(dZ/d(axis0), dZ/d(axis1))`` - and ``series_grid_xyz`` builds its
-        grids with ``np.meshgrid``'s default ('xy') indexing, where axis 0
-        walks y and axis 1 walks x. So the first array back is dz/dy and the
-        second is dz/dx, not the other way round. This was verified, not
-        assumed: ``np.gradient(Z, y_axis, x_axis)`` on z = 2x + 3y returns a
-        constant (3, 2) pair everywhere - see test_calculus_surface.py.
-
-        NaN cells (only present in an interpolated grid, outside the convex
-        hull of the source points - see series_grid_xyz) propagate into the
-        gradient at that cell and its immediate neighbours, exactly as they
-        should: there is no real slope to report next to a hole in the data.
-        """
-        x_axis = x_grid[0, :]
-        y_axis = y_grid[:, 0]
-        with np.errstate(invalid="ignore"):
-            dz_dy, dz_dx = np.gradient(z_grid, y_axis, x_axis)
-        magnitude = np.sqrt(dz_dx**2 + dz_dy**2)
-
+        """Return the surface's gradient magnitude on the same grid (app.analysis.calculus)."""
+        gradient = calc.surface_gradient(x_grid, y_grid, z_grid)
         return CalculusResult(
             source_name=name,
             result_name=f"{name} - |grad z|",
             model=DERIV_GRADIENT_SURFACE,
             x=x_grid.ravel(),
             y=y_grid.ravel(),
-            z=magnitude.ravel(),
-            dz_dx=dz_dx.ravel(),
-            dz_dy=dz_dy.ravel(),
+            z=gradient.magnitude.ravel(),
+            dz_dx=gradient.dz_dx.ravel(),
+            dz_dy=gradient.dz_dy.ravel(),
             metadata={
                 "detail": "np.gradient over the x/y grid",
                 "interpolated": bool(interpolated),
@@ -447,46 +406,24 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         z_grid: np.ndarray,
         interpolated: bool,
     ) -> CalculusResult:
-        """Return the volume under the surface, by double Simpson integration.
-
-        ``simpson`` is applied along x first (axis=1, one number per row),
-        then the resulting 1D profile is integrated along y - the standard
-        way to turn a 1D quadrature rule into a 2D one on a regular grid.
-
-        NaN cells (an interpolated grid's cells outside the convex hull of
-        the source points) are treated as zero rather than excluded: excising
-        them would leave a hole Simpson's rule cannot integrate around
-        without a much more careful (and here unwarranted) treatment, and
-        zero is the same assumption ``griddata`` already made by refusing to
-        guess there in the first place. This is reported in the metadata
-        the report table shows, not hidden.
-        """
-        x_axis = x_grid[0, :]
-        y_axis = y_grid[:, 0]
-        finite = np.isfinite(z_grid)
-        nan_count = int(z_grid.size - np.count_nonzero(finite))
-        z_filled = np.where(finite, z_grid, 0.0)
-
-        inner = simpson(z_filled, x=x_axis, axis=1)
-        total = float(simpson(inner, x=y_axis))
-
+        """Return the volume under the surface, by double Simpson integration."""
+        volume = calc.surface_volume(x_grid, y_grid, z_grid)
         detail = "double Simpson's rule (x then y)"
-        if nan_count:
+        if volume.missing_cells:
             detail += (
-                f"; {nan_count} of {z_grid.size} interpolated cell(s) outside "
+                f"; {volume.missing_cells} of {z_grid.size} interpolated cell(s) outside "
                 "the data's convex hull were treated as 0"
             )
-
+        x_axis = x_grid[0, :]
         return CalculusResult(
             source_name=name,
             result_name=f"{name} - volume under surface",
             model=INTEGRAL_VOLUME_SURFACE,
-            # Same trick the 1D definite integral uses: a single number is
-            # still reported as a two-point flat line so it can be stored
-            # and drawn like every other result.
+            # A single number is still reported as a two-point flat line so it
+            # can be stored and drawn like every other result.
             x=np.array([float(np.min(x_axis)), float(np.max(x_axis))]),
-            y=np.array([total, total]),
-            total=total,
+            y=np.array([volume.total, volume.total]),
+            total=volume.total,
             metadata={"detail": detail, "interpolated": bool(interpolated)},
         )
 
@@ -502,45 +439,22 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
     ) -> CalculusResult:
         order = int(params.get("order", 1))
         unit_label, unit_seconds = self._temporal_unit(name, x_values)
-        # x_calc is only ever used for the derivative's own math - the
-        # result keeps the original x_values (raw seconds for a dated
-        # series) so it still lands on the axis's real date scale, see
-        # SeriesOperationDialogBase.restore_temporal_x.
+        # x_calc is only for the derivative's own math - the result keeps the
+        # original x_values (raw seconds for a dated series) so it still lands
+        # on the axis's real date scale (restore_temporal_x).
         x_calc = x_values / unit_seconds if unit_label else x_values
 
-        if model == DERIV_GRADIENT:
-            # np.gradient, not np.diff: it takes x explicitly, so it is correct
-            # on unevenly sampled data, and it returns one value per input
-            # point rather than n-1, so the result still lines up with the
-            # source series on the same axis.
-            derivative = np.gradient(y_values, x_calc, edge_order=2)
-            detail = "central difference"
-
-        elif model == DERIV_SPLINE:
-            spline = UnivariateSpline(
-                x_calc,
-                y_values,
-                k=min(5, max(order + 1, 3)),
-                s=float(params.get("smoothing", 0)),
-            )
-            derivative = spline.derivative(n=order)(x_calc)
-            detail = f"spline, s={params.get('smoothing', 0)}"
-
-        else:
-            window, polyorder = self._savgol_window(x_calc.size, params)
-            spacing = self._uniform_spacing(x_calc, name)
-            # delta scales the result into units of y per unit of x. Without
-            # it savgol returns a derivative per sample index, which is off by
-            # a factor of the sampling interval - silently right only when the
-            # step happens to be 1.
-            derivative = savgol_filter(
-                y_values,
-                window_length=window,
-                polyorder=polyorder,
-                deriv=order,
-                delta=spacing,
-            )
-            detail = f"window {window}, order {polyorder}"
+        derivative = calc.differentiate(
+            _DERIVATIVE_METHOD.get(model, calc.DERIVATIVE_SAVGOL),
+            x_calc,
+            y_values,
+            order=order,
+            window=int(params.get("window", 11)),
+            polyorder=int(params.get("polyorder", 3)),
+            smoothing=params.get("smoothing", 0),
+        )
+        for note in derivative.notes:
+            applogger.warning(f"{name}: {note}", show_dialog=False, raise_error=False)
 
         power = "²" if order == 2 else ""
         base_name = f"{name} - d{power}y/dx{power}"
@@ -550,71 +464,21 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             result_name=result_name,
             model=model,
             x=x_values,
-            y=np.asarray(derivative, dtype=float),
-            metadata={"order": order, "detail": detail, "per": unit_label},
+            y=derivative.values,
+            metadata={"order": order, "detail": derivative.detail, "per": unit_label},
         )
 
     def _temporal_unit(self, name: str, x_values: np.ndarray) -> tuple[str, float]:
         """Return (unit name, seconds per unit) for *name*'s x, if temporal.
 
-        ("", 1.0) for a plain numeric x - the empty label is also the
-        signal callers use to skip rescaling entirely. See _TIME_UNITS'
-        own comment for why an untouched "per second" is wrong often
-        enough to be worth picking a coarser unit automatically.
+        ("", 1.0) for a plain numeric x - the empty label is also the signal
+        callers use to skip rescaling entirely.
         """
-        # getattr, not a direct read: tests exercise this dialog's pure
-        # numeric methods on a bare cls.__new__(cls) instance with no
-        # __init__ run, so _temporal_x_sources (set in __init__) may not
-        # exist at all - absent is the same as "nothing is temporal".
+        # getattr, not a direct read: tests run the numeric methods on a bare
+        # cls.__new__(cls) instance, where _temporal_x_sources does not exist.
         if not getattr(self, "_temporal_x_sources", {}).get(name):
             return "", 1.0
-        steps = np.diff(x_values)
-        median_spacing = float(np.median(steps)) if steps.size else 0.0
-        unit_label, unit_seconds = _pick_time_unit(median_spacing)
-        return unit_label, unit_seconds
-
-    def _savgol_window(
-        self,
-        available: int,
-        params: Mapping[str, Any],
-    ) -> tuple[int, int]:
-        """Return a (window, polyorder) savgol_filter will actually accept.
-
-        Both of its constraints are reported from inside SciPy in terms of
-        array shapes rather than of the controls the user moved, so they are
-        resolved here: the window cannot exceed the series, and the polynomial
-        order must be below the window.
-        """
-        window = int(params.get("window", 11))
-        polyorder = int(params.get("polyorder", 3))
-
-        if window > available:
-            window = available if available % 2 == 1 else available - 1
-        window = max(3, window)
-
-        if polyorder >= window:
-            polyorder = window - 1
-        return window, max(1, polyorder)
-
-    def _uniform_spacing(self, x_values: np.ndarray, name: str) -> float:
-        """Return the sample spacing savgol should assume.
-
-        savgol_filter takes a single delta, so it can only be right for evenly
-        spaced data. The median step is the best single answer for data that
-        is nearly even; validate_input_xy has already warned when it is not.
-        """
-        steps = np.diff(x_values)
-        if steps.size == 0:
-            return 1.0
-        spacing = float(np.median(steps))
-        if spacing <= 0.0:
-            applogger.warning(
-                f"{name}: could not determine a sample spacing; assuming 1.",
-                show_dialog=False,
-                raise_error=False,
-            )
-            return 1.0
-        return spacing
+        return calc.time_unit_of(x_values)
 
     # --- Integrals -----------------------------------------------------
 
@@ -626,20 +490,15 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         model: str,
         params: Mapping[str, Any],
     ) -> CalculusResult:
-        corrected, baseline_detail = self._subtract_baseline(
+        corrected, baseline_detail = calc.subtract_baseline(
             x_values, y_values, str(params.get("baseline", BASELINE_NONE))
         )
         unit_label, unit_seconds = self._temporal_unit(name, x_values)
-        # x_calc is only for the integral's own math - see _differentiate's
-        # own comment on why the result keeps x_values (raw seconds for a
-        # dated series) rather than the rescaled x_calc.
         x_calc = x_values / unit_seconds if unit_label else x_values
         unit_suffix = f" (x in {unit_label}s)" if unit_label else ""
 
         if model == INTEGRAL_CUMULATIVE:
-            # initial=0 so the result has one value per input point and starts
-            # at zero, which is what makes it plottable against the source.
-            running = cumulative_trapezoid(corrected, x_calc, initial=0.0)
+            running = calc.cumulative_integral(x_calc, corrected)
             return CalculusResult(
                 source_name=name,
                 result_name=f"{name} - ∫y dx{unit_suffix}",
@@ -650,26 +509,9 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
                 metadata={"baseline": baseline_detail, "per": unit_label},
             )
 
-        use_simpson = bool(params.get("simpson", False))
-        if use_simpson and x_calc.size % 2 == 0:
-            # Simpson's rule pairs intervals, so it needs an odd number of
-            # points. SciPy silently changes method on an even sample rather
-            # than saying so, which makes the reported rule wrong.
-            applogger.warning(
-                f"{name}: Simpson's rule needs an odd number of points; "
-                f"the series has {x_calc.size}, so the trapezoidal rule was "
-                f"used instead.",
-                show_dialog=False,
-                raise_error=False,
-            )
-            use_simpson = False
-
-        total = (
-            float(simpson(corrected, x=x_calc))
-            if use_simpson
-            else float(trapezoid(corrected, x_calc))
-        )
-
+        area = calc.definite_integral(x_calc, corrected, simpson_rule=bool(params.get("simpson", False)))
+        for note in area.notes:
+            applogger.warning(f"{name}: {note}", show_dialog=False, raise_error=False)
         return CalculusResult(
             source_name=name,
             result_name=f"{name} - area{unit_suffix}",
@@ -677,37 +519,10 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             # A single number still has to be a series to be stored and drawn,
             # so it is reported across the range it was computed over.
             x=np.array([float(x_values[0]), float(x_values[-1])]),
-            y=np.array([total, total]),
-            total=total,
-            metadata={
-                "baseline": baseline_detail,
-                "rule": "Simpson" if use_simpson else "trapezoidal",
-                "per": unit_label,
-            },
+            y=np.array([area.total, area.total]),
+            total=area.total,
+            metadata={"baseline": baseline_detail, "rule": area.rule, "per": unit_label},
         )
-
-    @staticmethod
-    def _subtract_baseline(
-        x_values: np.ndarray,
-        y_values: np.ndarray,
-        mode: str,
-    ) -> tuple[np.ndarray, str]:
-        """Return the signal with its baseline removed, and what was done."""
-        if mode == BASELINE_MINIMUM:
-            floor = float(np.min(y_values))
-            return y_values - floor, f"minimum ({floor:g}) subtracted"
-
-        if mode == BASELINE_ENDPOINTS:
-            if x_values.size < 2:
-                return y_values, "none"
-            # The straight line through the first and last points, which is
-            # the usual approximation for a peak sitting on a sloping
-            # background.
-            slope = (y_values[-1] - y_values[0]) / (x_values[-1] - x_values[0])
-            line = y_values[0] + slope * (x_values - x_values[0])
-            return y_values - line, "endpoint line subtracted"
-
-        return y_values, "none"
 
     # ------------------------------------------------------------------
     # Where the results are drawn
