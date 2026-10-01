@@ -8,10 +8,12 @@ line through it.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
+from matplotlib import rcParams
+from matplotlib.colors import to_rgba
 from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
 
 from app.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
@@ -230,7 +232,19 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
             frame = pd.DataFrame({"x": x_axis, "y": y_num})
             color_values_for_points = None
             color_is_discrete = False
-            if "color" in sd.df.columns:
+            # Colour specs on some rows (Outlier "Colour"): the line keeps the
+            # series' colour and those points get a marker of their own.
+            marked_points: tuple[Any, Any, list[Any]] | None = None
+            literal = "color" in sd.df.columns and self.literal_point_colours(sd.df["color"])
+            if literal:
+                specs = sd.df.loc[mask, "color"].reindex(frame.index)
+                marked = specs.notna() & (specs.astype(str).str.strip() != "")
+                marked_points = (
+                    x_axis[marked].to_numpy(),
+                    y_num[marked].to_numpy(dtype=float),
+                    [to_rgba(cast(Any, str(spec).strip())) for spec in specs[marked]],
+                )
+            elif "color" in sd.df.columns:
                 color_values_for_points = sd.df.loc[mask, "color"]
                 color_values_for_points = color_values_for_points.reindex(frame.index)
                 frame["color"] = color_values_for_points
@@ -381,6 +395,16 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                             and raw_artist.get_visible()
                         ):
                             legend_handles_found = True
+
+            if marked_points is not None and len(marked_points[0]):
+                ax.scatter(
+                    marked_points[0],
+                    marked_points[1],
+                    c=marked_points[2],
+                    s=(rcParams["lines.markersize"] * 1.6) ** 2,
+                    zorder=3,
+                    label="_nolegend_",
+                )
 
             if show_rolling:
                 rolling_kwargs = dict(common_line_kwargs)
@@ -567,7 +591,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
 
     def _series_line_color(self, df: SeriesFrame, style: dict[str, Any], layer_index: int) -> Any:
         fallback_color = self.series_color(style, layer_index)
-        if "color" in df.columns:
+        if "color" in df.columns and not self.literal_point_colours(df["color"]):
             return self.first_color_from_values(df["color"], fallback_color=fallback_color)
         return fallback_color
 

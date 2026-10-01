@@ -796,6 +796,21 @@ class BaseAxisRenderer(Protocol):
         value = str(raw or "").strip()
         return value, value != ""
 
+    @staticmethod
+    def literal_point_colours(values: Any) -> bool:
+        """Whether a ``color`` column holds colour specs ("red", "#d62728") rather than numbers.
+
+        What Outlier "Colour" writes: the colour of the rows it found, and
+        nothing on the others, which keep the series' own colour.
+        """
+        from matplotlib.colors import is_color_like
+
+        column = pd.Series(values)
+        if pd.api.types.is_numeric_dtype(column.dtype):
+            return False
+        specs = [str(value).strip() for value in pd.unique(column.dropna()) if str(value).strip()]
+        return bool(specs) and all(is_color_like(spec) for spec in specs)
+
     def is_discrete_integer_color(self, values: Any) -> bool:
         """True only when the color field dtype is integer.
 

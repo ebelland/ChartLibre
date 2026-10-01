@@ -241,19 +241,6 @@ class ScatterAxisRenderer(BaseAxisRenderer):
     }
 
     @staticmethod
-    def _all_color_like(values: pd.Series) -> bool:
-        """Whether every distinct non-empty value is a Matplotlib colour spec."""
-        from matplotlib.colors import is_color_like
-
-        # An empty cell is "no colour of its own" (the series' colour), not
-        # a category to number.
-        return all(
-            is_color_like(value)
-            for value in pd.unique(values.dropna())
-            if str(value).strip() != ""
-        )
-
-    @staticmethod
     def _x_values(column: Any) -> tuple[pd.Series, bool]:
         """The x column as plottable numbers, and whether it was dates.
 
@@ -301,7 +288,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 color_source is not None
                 and not pd.api.types.is_numeric_dtype(color_source.dtype)
             )
-            if color_is_literal and color_source is not None and not self._all_color_like(color_source):
+            if color_is_literal and color_source is not None and not self.literal_point_colours(color_source):
                 # Text that is not colour specs ("major"/"minor", species
                 # names) is a category: number the labels in order of first
                 # appearance and let the discrete palette path colour them.
@@ -336,9 +323,21 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                     # A row with no colour of its own takes the series' -
                     # what lets a column colour only some of the points
                     # (the outliers) and leave the rest as they were.
-                    literal = color[mask]
-                    blank = literal.isna() | (literal.astype(str).str.strip() == "")
-                    color_values = literal.where(~blank, self.series_color(style, series_index)).to_numpy()
+                    # As RGBA, one row per point: the column arrives as a
+                    # pandas string array and the series colour as an RGBA
+                    # tuple, and Series.where between the two raised - the
+                    # whole axis was then left empty.
+                    from matplotlib.colors import to_rgba
+
+                    fallback = to_rgba(cast(Any, self.series_color(style, series_index)))
+                    color_values = np.array(
+                        [
+                            fallback if value is None or pd.isna(value) or not str(value).strip()
+                            else to_rgba(cast(Any, str(value).strip()))
+                            for value in color[mask].astype(object)
+                        ],
+                        dtype=float,
+                    ).reshape(-1, 4)
                 else:
                     color_is_discrete = self.is_discrete_integer_color(masked_color_source)
                     color_values = color[mask].to_numpy(dtype=float)
