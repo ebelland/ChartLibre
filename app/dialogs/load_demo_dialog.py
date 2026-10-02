@@ -12,7 +12,8 @@ the demo is something you go and get rather than something you decline.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
@@ -45,8 +46,12 @@ class LoadDemoDialog(QDialog):
     one answer before it goes on to load it, not an ongoing conversation.
     """
 
-    #: Lines of summary shown below the list; a longer one scrolls.
+    #: Lines of summary shown below the picture at least; a longer one scrolls.
     _SUMMARY_LINES: int = 7
+
+    #: The picture of the selected demo (demo/previews, 640 x 400), shown
+    #: at this size: what it looks like is most of what a choice needs.
+    PREVIEW_SIZE: QSize = QSize(400, 250)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -56,7 +61,7 @@ class LoadDemoDialog(QDialog):
         self.chosen: DemoProject | None = None
 
         root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
+        apply_dialog_shell(self, root, size="medium")
 
         card = CardFrame(self, "loadDemoCard")
         card_layout = card.layout()
@@ -70,15 +75,23 @@ class LoadDemoDialog(QDialog):
             item.setData(Qt.ItemDataRole.UserRole, demo)
         self._list.setCurrentRow(0)
         self._list.currentRowChanged.connect(self._update_summary)
-        card_layout.addWidget(self._list, 1)
+        body = QHBoxLayout()
+        stdSizeAndlayout(body)
+        body.addWidget(self._list, 1)
+        details = QVBoxLayout()
+        stdSizeAndlayout(details)
+        self._preview = QLabel(card)
+        self._preview.setFixedSize(self.PREVIEW_SIZE)
+        self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        details.addWidget(self._preview, 0)
 
         self._summary = QLabel("", card)
         self._summary.setWordWrap(True)
         self._summary.setProperty("muted", True)
         self._summary.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        # A fixed box, scrolling if a summary is longer: a word-wrapped label
-        # grows and shrinks with the window's width, and the list above it
-        # used to change height every time the dialog was resized.
+        # A box of the picture's width, scrolling if a summary is longer: a
+        # word-wrapped label grows and shrinks with its width, and the layout
+        # around it used to move every time the dialog was resized.
         summary_box = QScrollArea(card)
         summary_box.setWidget(self._summary)
         summary_box.setWidgetResizable(True)
@@ -86,8 +99,12 @@ class LoadDemoDialog(QDialog):
         summary_box.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         summary_box.viewport().setAutoFillBackground(False)
         self._summary.setAutoFillBackground(False)
-        summary_box.setFixedHeight(self._summary.fontMetrics().lineSpacing() * self._SUMMARY_LINES + 4)
-        card_layout.addWidget(summary_box, 0)
+        # At least this many lines, and whatever height the list beside it has.
+        summary_box.setMinimumHeight(self._summary.fontMetrics().lineSpacing() * self._SUMMARY_LINES + 4)
+        summary_box.setFixedWidth(self.PREVIEW_SIZE.width())
+        details.addWidget(summary_box, 1)
+        body.addLayout(details, 0)
+        card_layout.addLayout(body, 1)
         self._update_summary(0)
 
         root.addWidget(card, 1)
@@ -105,7 +122,24 @@ class LoadDemoDialog(QDialog):
 
     def _update_summary(self, row: int) -> None:
         item = self._list.item(row)
-        self._summary.setText(_(item.data(Qt.ItemDataRole.UserRole).summary) if item else "")
+        demo: DemoProject | None = item.data(Qt.ItemDataRole.UserRole) if item else None
+        self._summary.setText(_(demo.summary) if demo else "")
+        self._preview.setPixmap(self._picture(demo))
+
+    def _picture(self, demo: DemoProject | None) -> QPixmap:
+        """The demo's preview at the label's size, sharp on a high-density screen;
+        empty when there is none - a clone that has not built them."""
+        if demo is None or not demo.preview_path.exists():
+            return QPixmap()
+        picture = QPixmap(str(demo.preview_path))
+        if picture.isNull():
+            return picture
+        ratio = self.devicePixelRatioF()
+        scaled = picture.scaled(
+            self.PREVIEW_SIZE * ratio, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+        )
+        scaled.setDevicePixelRatio(ratio)
+        return scaled
 
     def _confirm(self) -> None:
         item = self._list.currentItem()

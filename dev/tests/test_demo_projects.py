@@ -8,6 +8,8 @@ anything.
 """
 from __future__ import annotations
 
+import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -163,3 +165,48 @@ def test_loading_a_demo_again_gives_the_pristine_copy(
     with sqlite3.connect(target) as con:
         assert con.execute("SELECT v FROM t").fetchall() == [(1,)]
     assert not undo.exists()
+
+
+# ----------------------------------------------------------------------
+# The pictures Load demo shows
+# ----------------------------------------------------------------------
+def test_every_demo_has_a_preview_and_a_named_one_exists(tmp_path: Path) -> None:
+    """Rebuilt with python3 -m dev.demo.demo_previews after a demo changes."""
+    import shutil
+
+    from PIL import Image
+
+    for demo in DEMO_PROJECTS:
+        assert demo.preview_path.exists(), f"no preview for {demo.file_name}"
+        with Image.open(demo.preview_path) as picture:
+            assert picture.size == (640, 400)
+        if demo.preview:
+            # A copy: even reading a WAL database leaves -shm/-wal files beside
+            # it, and the shipped project must not be touched by a test.
+            copy = Path(shutil.copy(demo.source_path, tmp_path / demo.path_name))
+            with closing(sqlite3.connect(str(copy))) as con:
+                names = [str(name) for (name,) in con.execute("SELECT name FROM __figure_descriptors__")]
+            assert any(demo.preview in name for name in names), f"{demo.file_name}: no figure named {demo.preview!r}"
+
+
+def test_a_preview_is_drawn_from_the_built_project(demo_set: list[Path], tmp_path: Path) -> None:
+    import shutil
+
+    from dev.demo.demo_previews import build_preview
+
+    demo = next(demo for demo in DEMO_PROJECTS if demo.preview)
+    shutil.copy(Path(demo_set[0]).parent / demo.path_name, tmp_path / demo.path_name)
+    written = build_preview(demo, tmp_path)
+    assert written is not None and written == tmp_path / "previews" / f"{demo.file_name}.png"
+    assert written.stat().st_size > 5_000
+
+
+def test_load_demo_shows_the_selected_demos_picture(qapp) -> None:
+    from app.dialogs.load_demo_dialog import LoadDemoDialog
+
+    dialog = LoadDemoDialog()
+    for row in (0, len(DEMO_PROJECTS) - 1):
+        dialog._list.setCurrentRow(row)
+        picture = dialog._preview.pixmap()
+        assert not picture.isNull() and picture.width() / picture.devicePixelRatio() <= dialog.PREVIEW_SIZE.width()
+    dialog.close()

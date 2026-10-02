@@ -2630,6 +2630,11 @@ def main() -> None:
 
     for path in build_demo_projects(Path(args.all)):
         print(f"Demo project written to {path}")
+    # The pictures the Load demo dialog shows, from the projects just built.
+    from dev.demo.demo_previews import build_previews
+
+    for path in build_previews(Path(args.all)):
+        print(f"Demo preview written to {path}")
 
 
 if __name__ == "__main__":
