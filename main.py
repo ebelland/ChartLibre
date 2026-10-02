@@ -98,6 +98,12 @@ def run_app() -> int:
     # the user's language and answered in English until this was installed.
     install_qt_translations(app)
 
+    # Every window fits the screen it opens on - a laptop's included: see
+    # app/utils/screen_fit.py. Kept in a name so the filter lives as long as app.
+    from app.utils import screen_fit
+
+    _screen_fitter = screen_fit.install(app)
+
     apply_platform_style(app)
 
     # Icons come from the desktop's own theme wherever there is one. GNOME and
