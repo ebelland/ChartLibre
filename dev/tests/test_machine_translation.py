@@ -4,7 +4,12 @@ No network: every test hands translate_all a translator of its own.
 """
 from __future__ import annotations
 
+import json
 import threading
+import urllib.error
+import urllib.parse
+import urllib.request
+from email.message import Message
 
 import pytest
 
@@ -187,3 +192,108 @@ def test_the_dialog_fills_only_empty_cells(qapp, monkeypatch: pytest.MonkeyPatch
             ])
     assert shown and shown[-1][0] == "dev.localization_auto_translated"
     dialog.close()
+
+
+# ----------------------------------------------------------------------
+# DeepL (todo A-08)
+# ----------------------------------------------------------------------
+class _Answer:
+    """What urlopen returns, as a context manager."""
+
+    def __init__(self, payload: dict) -> None:
+        self._body = json.dumps(payload).encode("utf-8")
+
+    def __enter__(self) -> "_Answer":
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return self._body
+
+
+def _deepl_opener(sent: list[urllib.request.Request]):
+    def opener(request: urllib.request.Request, timeout: float = 0) -> _Answer:
+        sent.append(request)
+        fields = urllib.parse.parse_qs(bytes(request.data or b"").decode("utf-8"))  # pyright: ignore[reportArgumentType]
+        return _Answer({"translations": [{"text": text.upper()} for text in fields["text"]]})
+
+    return opener
+
+
+def test_deepl_sends_the_key_in_the_header_and_each_line_as_a_text() -> None:
+    sent: list[urllib.request.Request] = []
+    deepl = mt.DeepLTranslator("secret:fx", "IT", opener=_deepl_opener(sent))
+    assert deepl.translate("one\ntwo {0}") == "ONE\nTWO {0}"
+    (request,) = sent
+    assert request.full_url == mt.DEEPL_FREE_URL
+    assert request.get_header("Authorization") == "DeepL-Auth-Key secret:fx"
+    fields = urllib.parse.parse_qs(bytes(request.data or b"").decode("utf-8"))  # pyright: ignore[reportArgumentType]
+    assert fields["text"] == ["one", "two {0}"]
+    assert fields["target_lang"] == ["IT"]
+    assert "secret" not in request.full_url
+
+
+def test_a_paid_deepl_key_goes_to_the_paid_host_and_long_blocks_are_split() -> None:
+    sent: list[urllib.request.Request] = []
+    deepl = mt.DeepLTranslator("paid-key", "FR", opener=_deepl_opener(sent))
+    lines = [f"line {index}" for index in range(120)]
+    assert deepl.translate("\n".join(lines)).split("\n") == [line.upper() for line in lines]
+    assert [request.full_url for request in sent] == [mt.DEEPL_PRO_URL] * 3
+
+
+@pytest.mark.parametrize(
+    ("status", "words", "limited"),
+    [(403, "API key", False), (456, "quota", True), (429, "Too many requests", True)],
+)
+def test_deepl_refusals_are_named(status: int, words: str, limited: bool) -> None:
+    def refuses(request: urllib.request.Request, timeout: float = 0) -> _Answer:
+        raise urllib.error.HTTPError(request.full_url, status, "refused", Message(), None)
+
+    run = mt.translate_all(
+        ["Hello"], language="it", translator=mt.DeepLTranslator("k:fx", "IT", opener=refuses)
+    )
+    assert run.failed == 1 and words in run.error
+    # A test translator runs under the default provider's name.
+    assert bool(run.limited) == limited
+
+
+def test_deepl_is_offered_only_with_a_key_and_needs_no_deep_translator(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mt, "available", lambda: False)
+    assert mt.available_providers("") == []
+    assert mt.available_providers("k:fx") == [("deepl", "DeepL")]
+    monkeypatch.setattr(mt, "available", lambda: True)
+    assert [key for key, _name in mt.available_providers("")] == ["google", "mymemory"]
+
+
+@pytest.mark.parametrize(("language", "target"), [("it", "IT"), ("pt", "PT-BR"), ("zh", "ZH-HANS"), ("en", "EN-GB")])
+def test_deepl_language_codes(language: str, target: str) -> None:
+    deepl = mt._make_translator("deepl", language, deepl_key="k:fx")
+    assert isinstance(deepl, mt.DeepLTranslator) and deepl.target == target
+
+
+def test_deepl_without_a_key_hands_over_to_the_next_service() -> None:
+    made: list[str] = []
+
+    def factory(name: str, language: str):
+        made.append(name)
+        if name == "deepl":
+            return mt._make_translator(name, language, deepl_key="")
+        return Echo()
+
+    run = mt.translate_all(["Hello"], language="it", provider="deepl", fallbacks=["google"], make_translator=factory)
+    assert made == ["deepl", "google"]
+    assert run.translations == {"Hello": "HELLO"}
+
+
+def test_settings_keep_the_deepl_key_in_user_json(qapp) -> None:
+    from app.dialogs.settings_dialog import SettingsDialog
+    from app.utils import config
+
+    dialog = SettingsDialog()
+    dialog._deepl_key_edit.setText("  my-key:fx ")
+    dialog._save()
+    assert config.get_value(mt.DEEPL_KEY_SETTING) == "my-key:fx"
+    assert mt.DEEPL_KEY_SETTING not in json.loads(config.CONFIG_PATH.read_text(encoding="utf-8"))
+    config.set_value(mt.DEEPL_KEY_SETTING, "")

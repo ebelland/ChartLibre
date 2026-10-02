@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -57,6 +58,7 @@ from app.styles.style import (
 )
 from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
 from app.utils.config import get_language, get_value, set_value
+from app.utils.machine_translation import DEEPL_KEY_SETTING
 from app.utils.i18n import (
     AUTO_LANGUAGE,
     available_languages,
@@ -217,6 +219,23 @@ class SettingsDialog(QDialog):
         self._sql_guard_check.setChecked(sql_guard_enabled())
         form.addRow(tr("SQL guard"), self._sql_guard_check)
 
+        # The one secret in here: shown as dots, kept in user.json on this
+        # computer - never in config.json or a project - and sent only to
+        # DeepL. Edit Localization offers DeepL once it is set (todo A-08).
+        form.addRow(create_section_title(tr("Translation"), card))
+        self._deepl_key_edit = QLineEdit(card)
+        self._deepl_key_edit.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
+        self._deepl_key_edit.setPlaceholderText(tr("Free plan keys end in :fx"))
+        self._deepl_key_edit.setToolTip(
+            tr(
+                "Used by Edit Localization to translate with DeepL. Kept on this "
+                "computer only, and sent to nobody but DeepL. Leave it empty to "
+                "translate with Google or MyMemory."
+            )
+        )
+        self._deepl_key_edit.setText(str(get_value(DEEPL_KEY_SETTING, "") or ""))
+        form.addRow(tr("DeepL API key"), self._deepl_key_edit)
+
         card_layout.addLayout(form)
 
         note = QLabel(
@@ -359,6 +378,7 @@ class SettingsDialog(QDialog):
         set_value("language", self._value(self._language_combo))
         set_value(CONFIG_SAVE_FORMAT, self._value(self._format_combo))
         set_value(SQL_GUARD_KEY, bool(self._sql_guard_check.isChecked()))
+        set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
 
         applogger.info(
             "Settings saved: style=%s language=%s format=%s",

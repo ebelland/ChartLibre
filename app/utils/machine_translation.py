@@ -4,10 +4,15 @@ Edit Localization's "Translate missing (auto)" fills empty translations
 with a first draft to review. ``deep_translator`` is a soft dependency:
 the editor works fully without it, just without that one button.
 
-Two services, both free and without an API key: Google Translate, the
-better translation, and MyMemory, which answers when Google does not -
+Three services. Google Translate and MyMemory are free and need no key:
+Google is the better of the two, MyMemory answers when Google does not -
 Google turns away addresses that ask too often, and says so with an HTTP
-429 on the very first request.
+429 on the very first request. DeepL is the best of the three and needs an
+API key - the free plan's will do - typed in Settings and kept in user.json
+on this computer, never in the repository (todo A-08). DeepL is called
+directly rather than through ``deep_translator``, whose DeepL client sends
+the key in the URL, a form DeepL no longer accepts; so DeepL works even
+without ``deep_translator`` installed.
 
 What makes a catalogue string different from prose is its placeholders.
 ``{count}``, ``%s`` and ``<b>`` are code, not words: a service translates
@@ -22,9 +27,15 @@ No Qt here: the dialog runs :func:`translate_all` on a worker thread.
 """
 from __future__ import annotations
 
+import functools
+import json
 import re
+import ssl
 import threading
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -33,14 +44,34 @@ from typing import Any
 PROVIDERS: tuple[tuple[str, str], ...] = (
     ("google", "Google Translate"),
     ("mymemory", "MyMemory"),
+    ("deepl", "DeepL"),
 )
 
+#: The user.json key holding the DeepL API key. Settings writes it; nothing
+#: else stores it, and it never leaves this computer except to DeepL.
+DEEPL_KEY_SETTING: str = "deepl_api_key"
+
 #: Google allows five requests a second; this stays under it.
-_MIN_INTERVAL_S: dict[str, float] = {"google": 0.25, "mymemory": 0.0}
+_MIN_INTERVAL_S: dict[str, float] = {"google": 0.25, "mymemory": 0.0, "deepl": 0.1}
 
 #: Most characters one request carries. MyMemory's free tier takes 500 a
-#: request; Google takes 5000.
-_BLOCK_CHARS: dict[str, int] = {"google": 4000, "mymemory": 450}
+#: request; Google takes 5000; DeepL 128 KiB, but a block is also what a
+#: failure loses, so it stays at Google's size.
+_BLOCK_CHARS: dict[str, int] = {"google": 4000, "mymemory": 450, "deepl": 4000}
+
+#: DeepL's two hosts: a free-plan key ends in ":fx" and only works on the first.
+DEEPL_FREE_URL: str = "https://api-free.deepl.com/v2/translate"
+DEEPL_PRO_URL: str = "https://api.deepl.com/v2/translate"
+
+#: The target languages DeepL translates into, as it spells them.
+DEEPL_TARGETS: tuple[str, ...] = (
+    "AR", "BG", "CS", "DA", "DE", "EL", "EN-GB", "EN-US", "ES", "ET", "FI", "FR",
+    "HU", "ID", "IT", "JA", "KO", "LT", "LV", "NB", "NL", "PL", "PT-BR", "PT-PT",
+    "RO", "RU", "SK", "SL", "SV", "TR", "UK", "ZH-HANS", "ZH-HANT",
+)
+
+#: Most texts DeepL takes in one request.
+_DEEPL_TEXTS_PER_REQUEST: int = 50
 
 #: How long to wait before asking again after "too many requests".
 _RATE_LIMIT_PAUSE_S: float = 2.0
@@ -59,12 +90,97 @@ _TOKEN_RE = re.compile(r"\{\s*(\d+)\s*\}")
 
 
 def available() -> bool:
-    """True when ``deep_translator`` is installed."""
+    """True when ``deep_translator`` is installed (Google and MyMemory)."""
     try:
         import deep_translator  # noqa: F401  # pyright: ignore[reportMissingImports]
     except ImportError:
         return False
     return True
+
+
+def available_providers(deepl_key: str = "") -> list[tuple[str, str]]:
+    """The services that can be asked here: (key, name), in PROVIDERS order.
+
+    Google and MyMemory when ``deep_translator`` is installed, DeepL when
+    there is a key for it.
+    """
+    free = available()
+    return [
+        (key, name)
+        for key, name in PROVIDERS
+        if (key == "deepl" and deepl_key.strip()) or (key != "deepl" and free)
+    ]
+
+
+class DeepLTranslator:
+    """English to one language through DeepL's v2 API; ``translate(text)``.
+
+    Each line of *text* travels as one ``text`` field - up to fifty a
+    request - so the newlines a block is split back on survive whatever
+    DeepL does with sentences. *opener* is ``urllib.request.urlopen``,
+    replaceable in tests.
+    """
+
+    def __init__(self, api_key: str, target: str, *, opener: Callable[..., Any] | None = None) -> None:
+        self.api_key = api_key.strip()
+        self.target = target
+        self.url = DEEPL_FREE_URL if self.api_key.endswith(":fx") else DEEPL_PRO_URL
+        self._open = opener or functools.partial(urllib.request.urlopen, context=_ssl_context())
+
+    def translate(self, text: str) -> str:
+        lines = text.split("\n")
+        translated: list[str] = []
+        for start in range(0, len(lines), _DEEPL_TEXTS_PER_REQUEST):
+            translated.extend(self._request(lines[start:start + _DEEPL_TEXTS_PER_REQUEST]))
+        return "\n".join(translated)
+
+    def _request(self, lines: list[str]) -> list[str]:
+        fields = [("text", line) for line in lines]
+        fields += [("source_lang", "EN"), ("target_lang", self.target), ("preserve_formatting", "1")]
+        request = urllib.request.Request(
+            self.url,
+            data=urllib.parse.urlencode(fields).encode("utf-8"),
+            headers={
+                "Authorization": f"DeepL-Auth-Key {self.api_key}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            method="POST",
+        )
+        try:
+            with self._open(request, timeout=30) as response:
+                answer = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(_deepl_refusal(exc.code)) from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"DeepL could not be reached ({exc.reason})") from exc
+        except ValueError as exc:  # not JSON
+            raise RuntimeError("DeepL sent an answer that is not JSON") from exc
+        texts = [str(item.get("text", "")) for item in answer.get("translations", [])]
+        if len(texts) != len(lines):
+            raise RuntimeError("DeepL answered a different number of lines")
+        return texts
+
+
+def _ssl_context() -> ssl.SSLContext | None:
+    """certifi's CA bundle when installed: a python.org macOS build has no
+    trust store until "Install Certificates.command" is run (the same reason
+    as data_sources._web_fetch_ssl_context)."""
+    try:
+        import certifi
+    except ImportError:
+        return None
+    return ssl.create_default_context(cafile=certifi.where())
+
+
+def _deepl_refusal(status: int) -> str:
+    """What an HTTP error from DeepL means, in words the dialog can show."""
+    if status == 403:
+        return "DeepL refused the API key: check it in Settings"
+    if status == 456:
+        return "Too many requests: DeepL's quota for this month is used up"
+    if status == 429:
+        return "Too many requests to DeepL"
+    return f"DeepL answered HTTP {status}"
 
 
 def protect(text: str) -> tuple[str, list[str]]:
@@ -101,8 +217,15 @@ def provider_code(codes: Iterable[str], language: str) -> str | None:
     return next((code for code in listed if code.lower().startswith(wanted + "-")), None)
 
 
-def _make_translator(provider: str, language: str) -> Any:
-    """Return a deep_translator translator from English to *language*."""
+def _make_translator(provider: str, language: str, *, deepl_key: str = "") -> Any:
+    """Return a translator from English to *language*: DeepL's, or deep_translator's."""
+    if provider == "deepl":
+        target = provider_code(DEEPL_TARGETS, language)
+        if target is None or not deepl_key.strip():
+            raise ValueError(
+                f"DeepL does not translate into {language!r}" if target is None else "DeepL needs an API key in Settings"
+            )
+        return DeepLTranslator(deepl_key, target)
     from deep_translator import (  # pyright: ignore[reportMissingImports]
         GoogleTranslator,
         MyMemoryTranslator,
@@ -180,6 +303,7 @@ def translate_all(
     on_result: Callable[[str, str], None] | None = None,
     translator: Any = None,
     make_translator: Callable[[str, str], Any] | None = None,
+    deepl_key: str = "",
 ) -> TranslationRun:
     """Translate every text in *texts* from English into *language*.
 
@@ -195,10 +319,16 @@ def translate_all(
     the next of *fallbacks*; with none left, the run reports what it has.
     *translator* and *make_translator* are for tests: anything with a
     ``translate(text) -> str`` method, and a (provider, language) factory.
+    *deepl_key* is the DeepL API key, needed only when DeepL is in the chain.
     """
     pending = list(dict.fromkeys(text for text in texts if text.strip()))
     run = TranslationRun()
-    factory = make_translator or _make_translator
+    def default_factory(name: str, code: str) -> Any:
+        if name == "deepl":
+            return _make_translator(name, code, deepl_key=deepl_key)
+        return _make_translator(name, code)
+
+    factory = make_translator or default_factory
     chain = [provider, *(name for name in fallbacks if name != provider)]
     names = dict(PROVIDERS)
     state = {"done": 0}

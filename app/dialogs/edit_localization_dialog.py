@@ -19,8 +19,9 @@ docstring) and recompiles the .mo immediately via
 time that language is selected without restarting the app.
 
 "Translate missing (auto)" is a soft dependency on ``deep_translator``
-(Google Translate or MyMemory, no key needed; see
-app.utils.machine_translation) - offered only when it is importable, run
+(Google Translate or MyMemory, no key needed) or on a DeepL API key in
+Settings (see app.utils.machine_translation) - offered only when one of
+them is there, run
 on a worker thread so the dialog stays usable and can be stopped, and
 always a starting point to review, never treated as a finished translation.
 """
@@ -60,6 +61,7 @@ from app.styles.style import (
 )
 from app.utils import i18n, machine_translation
 from app.utils.background import BackgroundTask, run_in_background
+from app.utils.config import get_value
 from app.utils.i18n import _
 from app.utils.messages import show_message
 
@@ -167,10 +169,12 @@ class EditLocalizationDialog(QDialog):
         )
         self._translate_button: QPushButton | None = None
         self._provider_combo: QComboBox | None = None
-        if machine_translation.available():
+        self._deepl_key = str(get_value(machine_translation.DEEPL_KEY_SETTING, "") or "")
+        self._providers = machine_translation.available_providers(self._deepl_key)
+        if self._providers:
             self._provider_combo = QComboBox(card)
             self._provider_combo.setToolTip(_("Translation service"))
-            for key, name in machine_translation.PROVIDERS:
+            for key, name in self._providers:
                 self._provider_combo.addItem(name, key)
             action_row.addWidget(self._provider_combo)
             self._translate_button = create_action_button(
@@ -385,7 +389,8 @@ class EditLocalizationDialog(QDialog):
                 provider=provider,
                 # Google refuses addresses that ask too often: what it does
                 # not translate goes to the other service.
-                fallbacks=[key for key, _name in machine_translation.PROVIDERS if key != provider],
+                fallbacks=[key for key, _name in self._providers if key != provider],
+                deepl_key=self._deepl_key,
                 cancel_event=cancel_event,  # pyright: ignore[reportArgumentType]
                 progress=report,
                 on_result=lambda source, text: arrived.append((source, text)),

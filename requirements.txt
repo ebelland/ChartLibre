@@ -29,6 +29,7 @@ adjustText==1.3.0
 # (app/utils/machine_translation.py) guards the import the same way
 # adjustText does above - the editor works fully without it, just without
 # that one button. Google Translate or MyMemory, neither needs an API key.
+# DeepL (todo A-08) needs no package, only a key in Settings.
 deep-translator==1.11.4
 
 # Required for "Import - Database" against a PostgreSQL or MySQL server.

@@ -6205,3 +6205,287 @@ msgstr "Sélectionnez d'abord une cellule."
 
 msgid "{count} row(s) hidden."
 msgstr "{count} ligne(s) masquée(s)."
+
+# R-06 diagnostic plots, R-09 publication export, A-08 DeepL
+
+msgid "Apply a template"
+msgstr "Appliquer un modèle"
+
+msgid "Apply a template…"
+msgstr "Appliquer un modèle…"
+
+msgid "Apply template"
+msgstr "Appliquer le modèle"
+
+msgid "Choose where to save the figure"
+msgstr "Choisir où enregistrer la figure"
+
+msgid "Choose where to save the report"
+msgstr "Choisir où enregistrer le rapport"
+
+msgid "Contents"
+msgstr "Contenu"
+
+msgid "Could not export the figure: {reason}"
+msgstr "Impossible d'exporter la figure : {reason}"
+
+msgid "Could not write the report: {reason}"
+msgstr "Impossible d'écrire le rapport : {reason}"
+
+msgid "Custom"
+msgstr "Personnalisée"
+
+msgid "DeepL API key"
+msgstr "Clé API DeepL"
+
+msgid "Delete a template"
+msgstr "Supprimer un modèle"
+
+msgid "Delete a template…"
+msgstr "Supprimer un modèle…"
+
+msgid "Diagnostic plots"
+msgstr "Graphiques de diagnostic"
+
+msgid "Double column"
+msgstr "Double colonne"
+
+msgid "Each figure's series and their SQL"
+msgstr "Les séries de chaque figure et leur SQL"
+
+msgid "Encapsulated PostScript (*.eps)"
+msgstr "PostScript encapsulé (*.eps)"
+
+msgid "Estimates and their confidence intervals, one row per study or effect, against a line of no effect; summary rows as diamonds."
+msgstr "Estimations et leurs intervalles de confiance, une ligne par étude ou effet, face à une ligne d'effet nul ; les lignes de synthèse en losanges."
+
+msgid "Every figure is drawn again, with its notes."
+msgstr "Chaque figure est redessinée, avec ses notes."
+
+msgid "Every numeric variable against every other in one grid, with each one's distribution on the diagonal and the correlations above it."
+msgstr "Chaque variable numérique contre chaque autre dans une grille, avec la distribution de chacune sur la diagonale et les corrélations au-dessus."
+
+msgid "Export"
+msgstr "Exporter"
+
+msgid "Export for publication"
+msgstr "Exporter pour publication"
+
+msgid "Export for publication..."
+msgstr "Exporter pour publication..."
+
+msgid "Export…"
+msgstr "Exporter…"
+
+msgid "Figure {number}. {name}"
+msgstr "Figure {number}. {name}"
+
+msgid "Figures"
+msgstr "Figures"
+
+msgid "Forest Plot"
+msgstr "Forest plot"
+
+msgid "Forget a saved template"
+msgstr "Oublier un modèle enregistré"
+
+msgid "Format"
+msgstr "Format"
+
+msgid "Free plan keys end in :fx"
+msgstr "Les clés du forfait gratuit se terminent par :fx"
+
+msgid "Give this figure the look of a saved template; its data, titles and labels stay"
+msgstr "Donne à cette figure l'aspect d'un modèle enregistré ; ses données, titres et étiquettes restent"
+
+msgid "HTML - one file, opens in any browser"
+msgstr "HTML - un seul fichier, s'ouvre dans tout navigateur"
+
+msgid "HTML page (*.html)"
+msgstr "Page HTML (*.html)"
+
+msgid "Height (mm)"
+msgstr "Hauteur (mm)"
+
+msgid "Interaction Plot"
+msgstr "Graphique d'interaction"
+
+msgid "Kaplan-Meier"
+msgstr "Kaplan-Meier"
+
+msgid "Keep this figure's style, axes and series look under a name"
+msgstr "Conserver sous un nom le style, les axes et l'aspect des séries de cette figure"
+
+msgid "Mean response at each level of one factor, one line per level of another: parallel lines mean no interaction."
+msgstr "Réponse moyenne à chaque niveau d'un facteur, une ligne par niveau d'un autre : des lignes parallèles signifient aucune interaction."
+
+msgid "Mosaic Plot"
+msgstr "Graphique en mosaïque"
+
+msgid "My template"
+msgstr "Mon modèle"
+
+msgid "No template saved yet."
+msgstr "Aucun modèle enregistré pour le moment."
+
+msgid "No template saved yet: save one from a figure first."
+msgstr "Aucun modèle enregistré : enregistrez-en d'abord un depuis une figure."
+
+msgid "One and a half columns"
+msgstr "Une colonne et demie"
+
+msgid "Operation"
+msgstr "Opération"
+
+msgid "Operation history"
+msgstr "Historique des opérations"
+
+msgid "P-P Plot"
+msgstr "Graphique P-P"
+
+msgid "PDF - A4 pages"
+msgstr "PDF - pages A4"
+
+msgid "PDF Document (*.pdf)"
+msgstr "Document PDF (*.pdf)"
+
+msgid "PDF, EPS and SVG stay sharp at any size and keep their text as text, with the fonts embedded. EPS has no transparency: see-through areas come out solid."
+msgstr "PDF, EPS et SVG restent nets à toute taille et gardent le texte en texte, polices incorporées. EPS n'a pas de transparence : les zones transparentes sortent opaques."
+
+msgid "PNG"
+msgstr "PNG"
+
+msgid "PNG Image (*.png)"
+msgstr "Image PNG (*.png)"
+
+msgid "Pair Plot"
+msgstr "Matrice de nuages de points"
+
+msgid "Pictures"
+msgstr "Images"
+
+msgid "Project report"
+msgstr "Rapport du projet"
+
+msgid "Project report..."
+msgstr "Rapport du projet..."
+
+msgid "Q-Q Plot"
+msgstr "Graphique Q-Q"
+
+msgid "Report"
+msgstr "Rapport"
+
+msgid "Report written: {path}"
+msgstr "Rapport écrit : {path}"
+
+msgid "Resolution"
+msgstr "Résolution"
+
+msgid "Resolution of a TIFF or PNG: 300 for photographs, 600 or more for line art."
+msgstr "Résolution d'un TIFF ou PNG : 300 pour les photographies, 600 ou plus pour le dessin au trait."
+
+msgid "Rows × columns"
+msgstr "Lignes × colonnes"
+
+msgid "SVG - sharp at any zoom"
+msgstr "SVG - net à tout zoom"
+
+msgid "SVG Vector (*.svg)"
+msgstr "Vectoriel SVG (*.svg)"
+
+msgid "Sample probabilities against those of a fitted distribution: points on the diagonal mean the distribution fits. Sharpest in the middle."
+msgstr "Probabilités de l'échantillon contre celles d'une loi ajustée : des points sur la diagonale signifient que la loi convient. Plus sensible au centre."
+
+msgid "Sample quantiles against those of a fitted distribution: a straight line means the distribution fits. Sharpest in the tails."
+msgstr "Quantiles de l'échantillon contre ceux d'une loi ajustée : une droite signifie que la loi convient. Plus sensible dans les queues."
+
+msgid "Save as template"
+msgstr "Enregistrer comme modèle"
+
+msgid "Save this figure at a journal column's width, with its text at the size asked for, as PDF, EPS, SVG or TIFF"
+msgstr "Enregistrer cette figure à la largeur d'une colonne de revue, avec le texte à la taille demandée, en PDF, EPS, SVG ou TIFF"
+
+msgid "Save this figure's look - style, axes, series colours and markers - and put it on other figures"
+msgstr "Enregistrer l'aspect de cette figure - style, axes, couleurs et marqueurs des séries - et l'appliquer à d'autres figures"
+
+msgid "Save this look as a template…"
+msgstr "Enregistrer cet aspect comme modèle…"
+
+msgid "Single column"
+msgstr "Simple colonne"
+
+msgid "Starts at the figure's own proportions for the width chosen."
+msgstr "Part des proportions de la figure pour la largeur choisie."
+
+msgid "Survival curves from time-to-event data with censored rows, their confidence bands, and the log-rank test between groups."
+msgstr "Courbes de survie à partir de données de temps jusqu'à l'événement avec lignes censurées, leurs bandes de confiance et le test du log-rank entre groupes."
+
+msgid "TIFF Image (*.tif *.tiff)"
+msgstr "Image TIFF (*.tif *.tiff)"
+
+msgid "Template name (an existing name is replaced):"
+msgstr "Nom du modèle (un nom existant est remplacé) :"
+
+msgid "Template:"
+msgstr "Modèle :"
+
+msgid "Templates"
+msgstr "Modèles"
+
+msgid "Text and file"
+msgstr "Texte et fichier"
+
+msgid "Text size at the printed size. Journals ask for 7 to 9 pt."
+msgstr "Taille du texte à la taille imprimée. Les revues demandent de 7 à 9 pt."
+
+msgid "The PDF always uses PNG."
+msgstr "Le PDF utilise toujours PNG."
+
+msgid "The operation history"
+msgstr "L'historique des opérations"
+
+msgid "The tables, their size and notes"
+msgstr "Les tables, leur taille et leurs notes"
+
+msgid "The template could not be applied; see the log."
+msgstr "Le modèle n'a pas pu être appliqué ; voir le journal."
+
+msgid "The whole project - every figure with its notes, its data and the operation history - as one HTML or PDF file"
+msgstr "Tout le projet - chaque figure avec ses notes, ses données et l'historique des opérations - en un seul fichier HTML ou PDF"
+
+msgid "This figure could not be drawn: {reason}"
+msgstr "Cette figure n'a pas pu être dessinée : {reason}"
+
+msgid "Two categorical variables as tiles whose areas are the share of rows in each pair, optionally shaded by how far each is from independence."
+msgstr "Deux variables catégorielles en tuiles dont l'aire est la part de lignes de chaque paire, éventuellement colorées selon l'écart à l'indépendance."
+
+msgid "Used by Edit Localization to translate with DeepL. Kept on this computer only, and sent to nobody but DeepL. Leave it empty to translate with Google or MyMemory."
+msgstr "Utilisée par Edit Localization pour traduire avec DeepL. Conservée sur cet ordinateur uniquement et envoyée à personne d'autre que DeepL. Laissez vide pour traduire avec Google ou MyMemory."
+
+msgid "Width (mm)"
+msgstr "Largeur (mm)"
+
+msgid "vector, fonts embedded"
+msgstr "vectoriel, polices incorporées"
+
+msgid "{count} could not be drawn"
+msgstr "{count} non dessinées"
+
+msgid "{count} figure(s), {date}"
+msgstr "{count} figure(s), {date}"
+
+msgid "{label} ({width:g} mm)"
+msgstr "{label} ({width:g} mm)"
+
+msgid "{width:g} × {height:g} mm, text {font:g} pt"
+msgstr "{width:g} × {height:g} mm, texte {font:g} pt"
+
+msgid "{w} × {h} pixels"
+msgstr "{w} × {h} pixels"
+
+msgid "Diagnostic plots - Q-Q, survival, forest, mosaic and more"
+msgstr "Graphiques de diagnostic - Q-Q, survie, forest, mosaïque et plus"
+
+msgid "The seven diagnostic charts on the data they were made for: a pair plot, an interaction plot, a mosaic and a normal Q-Q plot of the Palmer penguins, a P-P plot of Michelson's speed of light, Kaplan-Meier curves of the 6-MP leukaemia trial and a forest plot of the thirteen BCG vaccine trials - each with what to look for."
+msgstr "Les sept graphiques de diagnostic sur les données pour lesquelles ils ont été conçus : une matrice de nuages de points, un graphique d'interaction, une mosaïque et un Q-Q normal des manchots de Palmer, un P-P de la vitesse de la lumière de Michelson, les courbes de Kaplan-Meier de l'essai 6-MP sur la leucémie et un forest plot des treize essais du vaccin BCG - chacun avec ce qu'il faut y regarder."
