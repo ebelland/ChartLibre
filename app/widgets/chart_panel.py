@@ -12,11 +12,12 @@ import csv
 from io import BytesIO
 import json
 import math
+import re
 from typing import Any, Final
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
 import PySide6.QtGui
-from PySide6.QtWidgets import QApplication, QAbstractScrollArea, QFileDialog, QFrame, QHBoxLayout, QInputDialog, QLabel, QMenu, QScrollArea, QSizePolicy, QSlider, QSplitter, QToolButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QAbstractScrollArea, QFileDialog, QFrame, QHBoxLayout, QInputDialog, QLabel, QMenu, QMessageBox, QScrollArea, QSizePolicy, QSlider, QSplitter, QToolButton, QVBoxLayout, QWidget
 
 import numpy as np
 from matplotlib import rcParams
@@ -28,13 +29,15 @@ from matplotlib.patches import Patch, Rectangle, Wedge
 from app.charts.descriptor_grid import descriptor_axis_count, descriptor_prepared_for_render
 from app.charts.render_figure import render_figure_from_descriptor
 from app.data.data_source import quote_identifier
-from app.data.sqlite_repo import SqliteRepo
+from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.dialog_base import generated_table_name
 from app.utils.messages import ask, show_message
 from app.styles.style import (
     SPLITTER_HANDLE_WIDTH,
     MenuItem,
+    action as catalogue_action,
+    action_menu_item,
     create_menu,
     create_menu_item,
     create_toolbar_button,
@@ -124,6 +127,11 @@ def axis_text(axis: Any, value: float) -> str:
     except Exception:
         text = ""
     return text or f"{value:g}"
+
+
+def _file_stem(title: str) -> str:
+    """A figure title as a file name: "1 · Penguin bill" -> "1_Penguin_bill"."""
+    return re.sub(r"[^\w\-]+", "_", title).strip("_") or "figure"
 
 
 class ChartPanel(QFrame):
@@ -1847,6 +1855,18 @@ class ChartPanel(QFrame):
                 MenuItem(_("Copy"),_("Copy figure"),PySide6.QtGui.QKeySequence.StandardKey.Copy,self.copy_chart_to_clipboard,False,"copy"),
                 MenuItem(_("Save"),_("Save as picture"), PySide6.QtGui.QKeySequence.StandardKey.SaveAs,self.save_chart_as,False,"save"),
                 MenuItem(_("Export view as CSV…"),_("Save the rows currently on screen as a CSV file"),None,self.export_view_as_csv,False,"export_csv"),
+                action_menu_item("publication_export", self.export_for_publication),
+                MenuItem(
+                    text=catalogue_action("graph_template").translated_text(),
+                    tooltip=catalogue_action("graph_template").translated_description(),
+                    icon="graph_template",
+                    submenu=[
+                        MenuItem(_("Save this look as a template…"), _("Keep this figure's style, axes and series look under a name"), None, self.save_as_template),
+                        MenuItem(_("Apply a template…"), _("Give this figure the look of a saved template; its data, titles and labels stay"), None, self.apply_saved_template),
+                        None,
+                        MenuItem(_("Delete a template…"), _("Forget a saved template"), None, self.delete_saved_template),
+                    ],
+                ),
                 None,
                 MenuItem(
                     text=_("Crosshair"),
@@ -2979,6 +2999,78 @@ class ChartPanel(QFrame):
         except Exception:
             applogger.exception("Failed to save chart (figure_id=%s)", self._figure_id)
             show_message(self, "chart.save_failed")
+
+    def export_for_publication(self) -> None:
+        """Export this figure at a journal column's width (todo R-09)."""
+        from app.dialogs.publication_export_dialog import PublicationExportDialog
+
+        width_in, height_in = self._fixed_figure_size_inches
+        title = self._repo.get_figure_title(self._figure_id) or f"figure_{self._figure_id}"
+        dialog = PublicationExportDialog(
+            self._repo,
+            self._figure_id,
+            aspect=float(height_in) / float(width_in) if width_in else 0.75,
+            default_name=_file_stem(title),
+            parent=self,
+        )
+        dialog.exec()
+
+    def save_as_template(self) -> None:
+        """Save this figure's look as a named graph template."""
+        from app.utils import graph_templates
+
+        names = graph_templates.list_templates()
+        name, accepted = QInputDialog.getItem(
+            self, _("Save as template"), _("Template name (an existing name is replaced):"),
+            names or [self._repo.get_figure_title(self._figure_id) or _("My template")], 0, True,
+        )
+        if not accepted or not str(name).strip():
+            return
+        descriptor = self._repo.load_figure_descriptor(figure_id=self._figure_id)
+        if descriptor is None:
+            return
+        try:
+            path = graph_templates.save_template(str(name), graph_templates.template_from_figure(descriptor))
+        except OSError:
+            applogger.exception("Could not save the template %r", name)
+            show_message(self, "chart.save_failed")
+            return
+        applogger.info("Graph template %r saved: %s", name, path)
+
+    def apply_saved_template(self) -> None:
+        """Give this figure the look of a saved template. Undoable."""
+        from app.utils import graph_templates
+
+        names = graph_templates.list_templates()
+        if not names:
+            QMessageBox.information(self, _("Apply a template"), _("No template saved yet: save one from a figure first."))
+            return
+        name, accepted = QInputDialog.getItem(self, _("Apply a template"), _("Template:"), names, 0, False)
+        if not accepted:
+            return
+        try:
+            template = graph_templates.load_template(str(name))
+            self._repo.snapshot_for_undo(self._repo.DESCRIPTOR_TABLES, label=_("Apply template"))
+            changed = graph_templates.apply_template(self._repo, self._figure_id, template)
+        except (OSError, ValueError, DatabaseError):
+            applogger.exception("Could not apply the template %r", name)
+            QMessageBox.warning(self, _("Apply a template"), _("The template could not be applied; see the log."))
+            return
+        applogger.info("Graph template %r applied to figure %s (%d items).", name, self._figure_id, changed)
+        self.reload()
+        self.figure_edited.emit()
+
+    def delete_saved_template(self) -> None:
+        from app.utils import graph_templates
+
+        names = graph_templates.list_templates()
+        if not names:
+            QMessageBox.information(self, _("Delete a template"), _("No template saved yet."))
+            return
+        name, accepted = QInputDialog.getItem(self, _("Delete a template"), _("Template:"), names, 0, False)
+        if accepted:
+            graph_templates.delete_template(str(name))
+            applogger.info("Graph template %r deleted.", name)
 
     def delete_chart(self) -> None:
         """Ask for confirmation and close/delete the current chart panel."""

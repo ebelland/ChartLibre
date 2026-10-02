@@ -396,6 +396,27 @@
       "SegoeFluent": "F003",
       "ThemeIcon": "edit-find"
     },
+    "project_report": {
+      "text": "Project report...",
+      "description": "The whole project - every figure with its notes, its data and the operation history - as one HTML or PDF file",
+      "SFSymbol": "doc.text.image",
+      "SegoeFluent": "E8A5",
+      "ThemeIcon": "document-export"
+    },
+    "publication_export": {
+      "text": "Export for publication...",
+      "description": "Save this figure at a journal column's width, with its text at the size asked for, as PDF, EPS, SVG or TIFF",
+      "SFSymbol": "doc.badge.arrow.up",
+      "SegoeFluent": "EDE1",
+      "ThemeIcon": "document-export"
+    },
+    "graph_template": {
+      "text": "Templates",
+      "description": "Save this figure's look - style, axes, series colours and markers - and put it on other figures",
+      "SFSymbol": "paintbrush",
+      "SegoeFluent": "E790",
+      "ThemeIcon": "applications-graphics"
+    },
     "operation_history": {
       "text": "History",
       "description": "The operations applied to or from this table",

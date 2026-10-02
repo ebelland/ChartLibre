@@ -866,6 +866,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(
             self._titled_card(page, _("Save"), self._fill_save_card, object_name="fileSaveCard")
         )
+        layout.addWidget(
+            self._titled_card(page, _("Export"), self._fill_export_card, object_name="fileExportCard")
+        )
         # The recent list takes whatever height the page has left, rather
         # than a fixed number of rows above an empty gap.
         recent = self._titled_card(page, _("Open recent"), self._fill_recent_card, object_name="fileRecentCard")
@@ -940,6 +943,23 @@ class MainWindow(QMainWindow):
         create_action_button(parent=card, action_id="save_as", action=self._on_save_as, layout=save_row)
         save_row.addStretch(1)
         layout.addLayout(save_row)
+
+    def _fill_export_card(self, card: CardFrame) -> None:
+        """The project as one report (todo R-09). A single figure goes out
+        for publication from its own menu, where it is."""
+        layout = self._card_layout(card)
+        row = QHBoxLayout()
+        stdSizeAndlayout(row)
+        create_action_button(parent=card, action_id="project_report", action=self._on_project_report, layout=row)
+        row.addStretch(1)
+        layout.addLayout(row)
+
+    def _on_project_report(self) -> None:
+        from app.dialogs.project_report_dialog import ProjectReportDialog
+
+        dialog = ProjectReportDialog(self._repo, self)
+        if dialog.exec() and dialog.written is not None:
+            self.statusBar().showMessage(_("Report written: {path}").format(path=dialog.written), 10_000)
 
     #: Rows the recent-projects list keeps even on a short window.
     _RECENT_MINIMUM_ROWS: int = 3
@@ -1182,6 +1202,8 @@ class MainWindow(QMainWindow):
                     None,
                     action_menu_item("save", self._on_save, shortcut="Ctrl+S"),
                     action_menu_item("save_as", self._on_save_as),
+                    None,
+                    action_menu_item("project_report", self._on_project_report),
                 ],
             ),
             (
