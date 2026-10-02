@@ -158,3 +158,16 @@ def test_the_history_window_lists_what_was_run(qapp, repo: SqliteRepo, figure_id
 
 def test_a_table_with_no_history_says_so(qapp, repo: SqliteRepo, figure_id: int) -> None:
     assert "No operation has been applied" in history_html("data", [])
+
+
+def test_the_project_history_lists_every_table(qapp, repo: SqliteRepo, figure_id: int) -> None:
+    dialog = _dialog(repo, figure_id)
+    assert dialog.apply()
+    dialog.close()
+    [record] = repo.operations()
+    page = history_html(None, repo.operations())
+    assert "Project history" in page and record.operation in page
+    window = OperationHistoryDialog(repo, None)
+    assert window.windowTitle() == "Project history"
+    window.close()
+    assert "in this project" in history_html(None, [])

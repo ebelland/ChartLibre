@@ -4225,7 +4225,7 @@ msgid "Browse and edit the translation catalogue without a .po editor"
 msgstr "Parcourir et modifier le catalogue de traduction sans éditeur .po"
 
 msgid "Series Operation Builder"
-msgstr "Générateur d'opérations sur les séries"
+msgstr "Créateur d'opérations"
 
 msgid "Scaffold a new series-operation dialog from a template"
 msgstr "Créer une nouvelle boîte de dialogue d'opération sur les séries à partir d'un modèle"
@@ -6489,3 +6489,15 @@ msgstr "Graphiques de diagnostic - Q-Q, survie, forest, mosaïque et plus"
 
 msgid "The seven diagnostic charts on the data they were made for: a pair plot, an interaction plot, a mosaic and a normal Q-Q plot of the Palmer penguins, a P-P plot of Michelson's speed of light, Kaplan-Meier curves of the 6-MP leukaemia trial and a forest plot of the thirteen BCG vaccine trials - each with what to look for."
 msgstr "Les sept graphiques de diagnostic sur les données pour lesquelles ils ont été conçus : une matrice de nuages de points, un graphique d'interaction, une mosaïque et un Q-Q normal des manchots de Palmer, un P-P de la vitesse de la lumière de Michelson, les courbes de Kaplan-Meier de l'essai 6-MP sur la leucémie et un forest plot des treize essais du vaccin BCG - chacun avec ce qu'il faut y regarder."
+
+msgid "Project history"
+msgstr "Historique du projet"
+
+msgid "Project history..."
+msgstr "Historique du projet..."
+
+msgid "No operation has been applied in this project since it began recording them."
+msgstr "Aucune opération n'a été appliquée dans ce projet depuis qu'il a commencé à les enregistrer."
+
+msgid "Every operation applied in this project, oldest first: what was run, on which series, with which settings"
+msgstr "Chaque opération appliquée dans ce projet, de la plus ancienne : ce qui a été exécuté, sur quelles séries, avec quels réglages"

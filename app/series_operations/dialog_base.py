@@ -2255,15 +2255,39 @@ class SeriesOperationDialogBase(QDialog):
                 }
                 for result in results
             ]
+            report = self.format_results(results) or ""
+        except Exception:
+            applogger.exception(
+                f"Could not record {self.operation_label} in the project's history",
+                show_dialog=False, raise_error=False,
+            )
+            return
+        self.record_applied(written, report, inputs)
+
+    def record_applied(
+        self,
+        written: Sequence[Mapping[str, Any]],
+        report: str,
+        inputs: Mapping[str, Any] | None = None,
+    ) -> None:
+        """Record an Apply as it is: what it read, wrote and reported.
+
+        The common path above writes result tables; Outlier (rows hidden or
+        coloured in the source tables) and Statistics (a report, nothing
+        written) call this themselves when their own Apply is kept. Logged,
+        never raised, for the same reason as record_operation.
+        """
+        try:
+            inputs = inputs if inputs is not None else self.operation_inputs()
             self._repo.record_operation(
                 operation=self.operation_label,
                 dialog=f"{type(self).__module__.rsplit('.', 1)[-1]}:{type(self).__name__}",
                 parameters=dict(inputs.get("parameters", {})),
                 entries=dict(inputs.get("entries", {})),
                 sources=list(inputs.get("sources", [])),
-                results=written,
+                results=[dict(item) for item in written],
                 app_version=str(APP_VERSION),
-                report=self.format_results(results) or "",
+                report=report,
             )
         except Exception:
             applogger.exception(

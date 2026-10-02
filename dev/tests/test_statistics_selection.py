@@ -98,3 +98,15 @@ def test_only_the_checked_series_is_measured(
 # ----------------------------------------------------------------------
 # Controls that do nothing (todo.txt P3-x)
 # ----------------------------------------------------------------------
+
+
+def test_an_applied_statistics_report_is_in_the_project_history(dialog: SeriesStatisticsDialog, repo: SqliteRepo) -> None:
+    """Todo R-03: nothing is written, but the report and its inputs are kept."""
+    _check_only(dialog, "Penicillin")
+    _use_model(dialog, "descriptive")
+    assert dialog.preview()
+    assert repo.operations() == []
+    assert dialog.apply()
+    [record] = repo.operations()
+    assert record.results == [] and record.report
+    assert [source["name"] for source in record.sources] == ["Penicillin"]

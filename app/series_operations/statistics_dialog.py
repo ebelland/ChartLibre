@@ -943,6 +943,9 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             if verb == "Applied":
                 self._applied = True
                 self.results_published.emit(self.results_report_html(formatted, results))
+                # A report and nothing written: kept in the history all the
+                # same, with the series and settings it came from (todo R-03).
+                self.record_applied([], formatted or "")
                 self.applied.emit()
             return True
         except Exception as exc:

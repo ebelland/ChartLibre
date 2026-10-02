@@ -134,3 +134,15 @@ def test_the_hide_filter_comes_off_for_reading(repo: SqliteRepo) -> None:
     assert strip('SELECT x, y FROM t WHERE "Hide" = 0 AND a = 1') == "SELECT x, y FROM t WHERE a = 1"
     assert strip('SELECT x, y FROM t WHERE "Hide" = 0') == "SELECT x, y FROM t"
     assert repo.sql_with_hide_filter('SELECT x FROM t WHERE "Hide" = 0') == 'SELECT x FROM t WHERE "Hide" = 0'
+
+
+def test_a_kept_outlier_run_is_in_the_project_history(qapp, repo: SqliteRepo) -> None:
+    """Todo R-03: Outlier keeps its preview on OK, outside the common Apply path."""
+    _prices(repo)
+    figure_id = _figure(repo, [("AAA", "SELECT day AS x, price AS y FROM prices WHERE ticker = 'AAA'")])
+    _hide(repo, figure_id)
+    [record] = repo.operations()
+    assert "utlier" in record.operation  # the window title, translated
+    assert record.results == [{"table": "prices", "name": "rows hidden", "rows": 1}]
+    assert [source["name"] for source in record.sources] == ["AAA"]
+    assert repo.operations(table="prices") == [record]

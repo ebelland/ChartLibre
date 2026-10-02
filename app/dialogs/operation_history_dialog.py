@@ -2,7 +2,7 @@
 
 Every Apply of a series operation is kept in ``__operations__`` (see
 ``app/data/repo/operations.py``); this shows the ones that read or wrote one
-table, oldest first - what was run, on which series, with which entries, and
+table - or, without a table, every one in the project - oldest first - what was run, on which series, with which entries, and
 the report it gave - in the house report style, so it can be copied like
 any other report.
 """
@@ -31,11 +31,11 @@ from app.widgets.html_results import HtmlResultsView, looks_like_html, plain_to_
 
 
 class OperationHistoryDialog(QDialog):
-    """The recorded operations that read or wrote *table*."""
+    """The recorded operations that read or wrote *table*; all of them when None."""
 
-    def __init__(self, repo: SqliteRepo, table: str, parent: QWidget | None = None) -> None:
+    def __init__(self, repo: SqliteRepo, table: str | None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle(_("History of {table}").format(table=table))
+        self.setWindowTitle(_("History of {table}").format(table=table) if table else _("Project history"))
         self.setWindowIcon(load_icon("operation_history"))
 
         root = QVBoxLayout(self)
@@ -97,15 +97,17 @@ def _record_section(record: OperationRecord) -> str:
     return report_html.section(f"{record.id}. {record.operation}", summary, parameters, report)
 
 
-def history_html(table: str, records: Sequence[OperationRecord]) -> str:
-    """The history page for *table*."""
+def history_html(table: str | None, records: Sequence[OperationRecord]) -> str:
+    """The history page for *table*, or for the whole project when None."""
+    title = _("History of {table}").format(table=table) if table else _("Project history")
     if not records:
         body = report_html.note(
             _("No operation has been applied to or from this table since the project began recording them.")
+            if table else _("No operation has been applied in this project since it began recording them.")
         )
-        return report_html.document(_("History of {table}").format(table=table), "", body)
+        return report_html.document(title, "", body)
     return report_html.document(
-        _("History of {table}").format(table=table),
+        title,
         _("{count} operation(s), oldest first").format(count=len(records)),
         *(_record_section(record) for record in records),
     )

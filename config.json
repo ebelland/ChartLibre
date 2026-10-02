@@ -417,6 +417,13 @@
       "SegoeFluent": "E790",
       "ThemeIcon": "applications-graphics"
     },
+    "project_history": {
+      "text": "Project history...",
+      "description": "Every operation applied in this project, oldest first: what was run, on which series, with which settings",
+      "SFSymbol": "clock.arrow.circlepath",
+      "SegoeFluent": "E81C",
+      "ThemeIcon": "document-open-recent"
+    },
     "operation_history": {
       "text": "History",
       "description": "The operations applied to or from this table",

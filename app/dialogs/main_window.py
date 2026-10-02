@@ -1070,12 +1070,32 @@ class MainWindow(QMainWindow):
         stdSizeAndlayout(layout)
 
         layout.addWidget(self._create_query_builder_section(page))
+        layout.addWidget(
+            self._titled_card(page, _("History"), self._fill_project_history_card, object_name="projectHistoryCard")
+        )
 
         self._database_info_panel = DatabaseInfoPanel(
             self._repo, page, optimize_action=self._on_optimize_db,
         )
         layout.addWidget(self._database_info_panel, 1)
         return page
+
+    def _fill_project_history_card(self, card: CardFrame) -> None:
+        """Every operation applied in the project (todo R-03); one table's
+        history is in that table's own context menu."""
+        card_layout = self._card_layout(card)
+        button_row = QHBoxLayout()
+        stdSizeAndlayout(button_row)
+        create_action_button(
+            parent=card, action_id="project_history", action=self._on_project_history, layout=button_row,
+        )
+        button_row.addStretch(1)
+        card_layout.addLayout(button_row)
+
+    def _on_project_history(self) -> None:
+        from app.dialogs.operation_history_dialog import OperationHistoryDialog
+
+        OperationHistoryDialog(self._repo, None, self).exec()
 
     def _create_query_builder_section(self, parent: QWidget) -> QWidget:
         """Query Builder, as its own card: one button, with the catalogue's

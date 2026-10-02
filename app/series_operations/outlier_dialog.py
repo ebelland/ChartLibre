@@ -728,6 +728,7 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
                 formatted = self.format_results(results) or ""
                 if formatted:
                     self.results_published.emit(self.results_report_html(formatted, results))
+                self.record_applied(self._written_tables(results), formatted)
             for table_name in list(self._preview_state_tables):
                 self._repo.drop_preview_state_columns(table_name)
             self._preview_active = False
@@ -736,6 +737,17 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             self._preview_state_tables.clear()
             self._preview_colour_snapshots.clear()
             self.accept()
+
+    def _written_tables(self, results: Sequence[OutlierResult]) -> list[dict[str, Any]]:
+        """What an Outlier Apply changed, per source table, for the project's history."""
+        coloured = bool(self._preview_colour_snapshots)
+        rows: dict[str, set[int]] = {}
+        for result in results:
+            rows.setdefault(str(result.source_table), set()).update(int(rowid) for rowid in result.outlier_rowids)
+        return [
+            {"table": table, "name": "rows coloured" if coloured else "rows hidden", "rows": len(marked)}
+            for table, marked in rows.items()
+        ]
 
     def cancel_operation_changes(self, *, refresh: bool = True) -> None:
         """Restore Hide/ClusterId from _Hide/_ClusterId and restore source SQL."""
