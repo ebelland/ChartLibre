@@ -58,6 +58,8 @@ R-13  P1  M  Numerical validation - DONE for NIST StRD
          Notes:
          - No-intercept fits report centred R²; NIST certifies uncentred.
 
+R-14  Multichart templates: ready to use templates with multiple axis.
+
 
 ================================================================
 P2 - HIGH VALUE
@@ -94,8 +96,6 @@ R-12b P3  M  Narrow "except Exception" in app/charts (42) and review the
 R-07  P3  L  JMP-style linked selection across charts and table;
              then a local data filter.
 N-09  P3  M  "Colour by value" dialog (palette, percentiles, categories).
-R-15  P3  M  Accessibility: colour-blind palettes by default, dark-theme
-             contrast, keyboard-only sidebar.
 
 
 ================================================================
@@ -109,42 +109,3 @@ N-02  P4     Script/notebook export (with R-03), units with pint (R-08),
              uncertainty propagation, Python/SQL console.
 R-16  P4     DOE, mixed models, power analysis.
 
-
-================================================================
-DONE (recent)
-================================================================
-2026-10-02  R-04 Statistics: contingency, two-way ANOVA, survival, with
-            their diagnostic charts (Q-Q/P-P for normality); demo notes;
-            Load demo previews; every window fits its screen.
-2026-10-02  Responsiveness: no full redraw per mouse move (toolbar
-            readout -> LayoutRequest -> redraw), none for a tab shown
-            again or hidden; settings files stat'ed once a second.
-            W-03 labels; R-03 project history, Outlier/Statistics
-            recorded; P2-20 covered by the project report; Cluster
-            k-means seeded; unknown optimizer is an error; LOF/SVM
-            outliers in robust units.
-2026-10-02  R-06 diagnostic plots (Q-Q, P-P, pair, interaction, mosaic,
-            forest, Kaplan-Meier + log-rank) and their demo; R-09
-            publication export (85/180 mm PDF/EPS/SVG/TIFF, fonts embedded),
-            project report HTML/PDF, graph templates; A-08 DeepL.
-2026-10-02  O-01 Outlier hid nothing on aliased/filtered series (read the
-            whole table): now reads the series' own SQL, marks per table;
-            Outlier Colour drawn (scatter crashed, time series markers);
-            Geometry series broken by a misplaced Hide filter (repaired on
-            open) + report with picture; W-01 panel insets; W-02 square
-            chart surface; NIST demo project + "NIST reference models" in
-            Fit; Fit solves linear-in-parameters models exactly (polynomials
-            to degree 10); R-01b shared dialog code in the base; R-12 core
-            excepts narrowed (59 of 79; NUMERICAL_FAILURES, READ_FAILURES,
-            DatabaseError); N-01 Edit/Duplicate table in the table list;
-            N-06 Hide rows in the table editor.
-2026-10-01  R-01 all 19 operations compute in app/analysis (old/new
-            results compared identical); R-02 background runs; R-13 NIST
-            validation + 4 Fit accuracy fixes; R-03 operation history;
-            Cluster preview undo error; Qt plugin crash in .venv on iCloud
-            (link mirror in ~/Library/Caches).
-2026-09-29/30  P0-1 "Auto" filter cutoff; R-11 SQL only in app/data;
-            A-01 truncated numbers; A-02 Qt plugins; venv installer;
-            Outlier "colour instead of hide"; Windows nav bar and caption
-            buttons; Log viewer in Developer; Demo card; "Query Builder…"
-            in the table list.
