@@ -62,8 +62,11 @@ def test_renderer_draws_and_saves(
     # data's units and the line is in percent - and a twin shares its parent's
     # position exactly.  What this guards against is a renderer scattering
     # extra subplots across the figure, which is still caught.
+    # Insets - the pair plot's grid of cells - live inside their parent's
+    # area and are counted with it.
+    insets = {id(child) for axes in fig.axes for child in getattr(axes, "child_axes", [])}
     positions = {tuple(round(value, 6) for value in axes.get_position().bounds)
-                 for axes in fig.axes}
+                 for axes in fig.axes if id(axes) not in insets}
     assert len(positions) == 1, (
         f"{chart_type}: expected one plot area, got {len(positions)} "
         f"across {len(fig.axes)} axes"
@@ -81,6 +84,7 @@ def test_renderer_draws_and_saves(
         # collections above, so the Table renderer needs this one counted
         # too or it always reads as an empty axis.
         + len(axis.tables)
+        + sum(len(child.collections) + len(child.patches) + len(child.lines) for child in getattr(axis, "child_axes", []))
     )
     assert drawn > 0, f"{chart_type}: renderer produced an empty axis"
 

@@ -300,6 +300,16 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         builder="dev.demo.nist_demo:build_nist_demo",
     ),
     DemoProject(
+        "Diagnostic plots - Q-Q, survival, forest, mosaic and more",
+        "The seven diagnostic charts on the data they were made for: a "
+        "pair plot, an interaction plot, a mosaic and a normal Q-Q plot of "
+        "the Palmer penguins, a P-P plot of Michelson's speed of light, "
+        "Kaplan-Meier curves of the 6-MP leukaemia trial and a forest plot "
+        "of the thirteen BCG vaccine trials - each with what to look for.",
+        (),
+        builder="dev.demo.diagnostics_demo:build_diagnostics_demo",
+    ),
+    DemoProject(
         "Series operations - fifteen operations, each with its report",
         "Fifteen Series Operations run for real, one per chart, each on a "
         "dataset suited to it - smoothing, spectrum, filtering, baseline, "

@@ -421,6 +421,7 @@ class NewPlotTabDialog(QDialog):
     CATEGORY_ORDER: tuple[str, ...] = (
         "Pairwise data",
         "Statistical distributions",
+        "Diagnostic plots",
         "Gridded data",
         "Irregularly gridded data",
         "3D and volumetric data",

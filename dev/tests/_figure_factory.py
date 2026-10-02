@@ -56,6 +56,13 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "3D Line Plot",
     "3D Bar Chart",
     "Fishbone Diagram",
+    "Q-Q Plot",
+    "P-P Plot",
+    "Kaplan-Meier",
+    "Interaction Plot",
+    "Mosaic Plot",
+    "Forest Plot",
+    "Pair Plot",
 )
 
 
@@ -94,7 +101,38 @@ def _create_source_tables(cur: sqlite3.Cursor, rng: np.random.Generator, n: int)
         CREATE TABLE src_scatter3d (x REAL, y REAL, z REAL);
         -- Causes for the fishbone renderer: category, cause, optional subcause.
         CREATE TABLE src_causes (category TEXT, cause TEXT, subcause TEXT);
+        -- Time to an event in two arms, some rows censored: Kaplan-Meier.
+        CREATE TABLE src_survival (weeks REAL, event INTEGER, arm TEXT);
+        -- A two-factor experiment: the interaction plot and the mosaic.
+        CREATE TABLE src_factorial (dose TEXT, sex TEXT, response REAL);
+        -- Effect estimates with their intervals: the forest plot.
+        CREATE TABLE src_effects (study TEXT, estimate REAL, low REAL, high REAL, n REAL, pooled INTEGER);
         """
+    )
+    # The 6-MP leukaemia trial (Freireich 1963), the textbook Kaplan-Meier example.
+    treated = [(6, 1), (6, 1), (6, 1), (6, 0), (7, 1), (9, 0), (10, 1), (10, 0), (11, 0), (13, 1), (16, 1),
+               (17, 0), (19, 0), (20, 0), (22, 1), (23, 1), (25, 0), (32, 0), (32, 0), (34, 0), (35, 0)]
+    placebo = [(t, 1) for t in (1, 1, 2, 2, 3, 4, 4, 5, 5, 8, 8, 8, 8, 11, 11, 12, 12, 15, 17, 22, 23)]
+    cur.executemany(
+        "INSERT INTO src_survival VALUES (?, ?, ?)",
+        [(t, e, "6-MP") for t, e in treated] + [(t, e, "placebo") for t, e in placebo],
+    )
+    cur.executemany(
+        "INSERT INTO src_factorial VALUES (?, ?, ?)",
+        [
+            (dose, sex, float(10 + 4 * level + (3 * level if sex == "F" else 0) + rng.normal(0, 2)))
+            for level, dose in enumerate(("low", "mid", "high"))
+            for sex in ("F", "M")
+            for _ in range(8 + 6 * level if sex == "F" else 20 - 5 * level)
+        ],
+    )
+    cur.executemany(
+        "INSERT INTO src_effects VALUES (?, ?, ?, ?, ?, ?)",
+        [
+            ("Study A", 0.42, 0.10, 0.74, 120, 0), ("Study B", 0.15, -0.20, 0.50, 80, 0),
+            ("Study C", 0.61, 0.35, 0.87, 210, 0), ("Study D", -0.05, -0.48, 0.38, 45, 0),
+            ("Pooled", 0.38, 0.22, 0.54, None, 1),
+        ],
     )
     cur.executemany(
         "INSERT INTO src_causes VALUES (?, ?, ?)",
@@ -299,6 +337,59 @@ def _showcase_definitions() -> list[dict[str, Any]]:
                     {"marker": "o"},
                 ),
             ],
+        },
+        {
+            "chart_type": "Q-Q Plot",
+            "name": "Q-Q showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Q-Q Plot", "grid": True},
+            "series": [("g2", "SELECT measurement AS value FROM src_samples WHERE grp = 'g2'", {"marker": "."})],
+        },
+        {
+            "chart_type": "P-P Plot",
+            "name": "P-P showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "P-P Plot", "distribution": "gamma"},
+            "series": [("g3", "SELECT measurement AS value FROM src_samples WHERE grp = 'g3'", {"marker": "."})],
+        },
+        {
+            "chart_type": "Kaplan-Meier",
+            "name": "Kaplan-Meier showcase",
+            "labels": ("weeks", ""),
+            "axis_options": {"title": "Kaplan-Meier", "median_line": True},
+            "series": [("trial", 'SELECT weeks AS time, event, arm AS "group" FROM src_survival', {})],
+        },
+        {
+            "chart_type": "Interaction Plot",
+            "name": "Interaction showcase",
+            "labels": ("dose", "response"),
+            "axis_options": {"title": "Interaction Plot", "error_bars": "ci"},
+            "series": [("trial", "SELECT dose AS x, response AS y, sex AS trace FROM src_factorial", {})],
+        },
+        {
+            "chart_type": "Mosaic Plot",
+            "name": "Mosaic showcase",
+            "labels": ("dose", ""),
+            "axis_options": {"title": "Mosaic Plot", "colour_by": "residual"},
+            "series": [("counts", "SELECT dose AS x, sex AS y FROM src_factorial", {})],
+        },
+        {
+            "chart_type": "Forest Plot",
+            "name": "Forest showcase",
+            "labels": ("effect size", ""),
+            "axis_options": {"title": "Forest Plot"},
+            "series": [(
+                "studies",
+                "SELECT study AS label, estimate, low AS lower, high AS upper, n AS weight, pooled AS summary FROM src_effects",
+                {},
+            )],
+        },
+        {
+            "chart_type": "Pair Plot",
+            "name": "Pair showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Pair Plot"},
+            "series": [("cloud", "SELECT x, y, size FROM src_xy", {})],
         },
         {
             "chart_type": "Fishbone Diagram",

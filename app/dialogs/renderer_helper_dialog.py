@@ -64,6 +64,7 @@ EXISTING_CATEGORIES: tuple[str, ...] = (
     "User",
     "Pairwise data",
     "Statistical distributions",
+    "Diagnostic plots",
     "Gridded data",
     "Irregularly gridded data",
     "3D and volumetric data",
