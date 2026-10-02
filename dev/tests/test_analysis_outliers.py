@@ -7,8 +7,6 @@ import pytest
 from app.analysis import outliers as ol
 
 RNG = np.random.default_rng(4)
-#: x and y on comparable scales: the shape-aware detectors measure distances
-#: in the (x, y) plane as given, without rescaling either axis.
 X = np.linspace(0.0, 5.0, 100)
 Y = 2.0 + RNG.normal(0.0, 0.1, X.size)
 PLANTED = [17, 52, 88]
@@ -56,6 +54,21 @@ def test_a_shape_aware_detector_catches_a_point_off_the_curve_that_y_alone_misse
     assert not ol.outlier_mask(ol.OUTLIER_ZSCORE, x, y).any()
     lof = ol.outlier_mask(ol.OUTLIER_LOCAL_OUTLIER_FACTOR, x, y, ol.OutlierSettings(contamination=0.02, n_neighbors=5))
     assert lof[30]
+
+
+@pytest.mark.parametrize("method", sorted(ol.SHAPE_AWARE))
+def test_the_shape_aware_detectors_do_not_depend_on_the_units(method: str) -> None:
+    """The same cloud with x in seconds since 1970: y must still count."""
+    settings = ol.OutlierSettings(contamination=0.03, nu=0.01, n_neighbors=10)
+    found = set(np.flatnonzero(ol.outlier_mask(method, 1.7e9 + X * 86_400.0, Y, settings)).tolist())
+    assert len(found & set(PLANTED)) >= 2
+    assert len(found) <= 8
+
+
+def test_robust_scaling_puts_each_column_on_its_own_spread() -> None:
+    scaled = ol.robust_scaled(np.column_stack([np.arange(9.0) * 1000.0, np.arange(9.0), np.full(9, 5.0)]))
+    np.testing.assert_allclose(scaled[:, 0], scaled[:, 1])
+    assert np.all(scaled[:, 2] == 0.0)
 
 
 def test_an_unknown_method_is_a_value_error() -> None:

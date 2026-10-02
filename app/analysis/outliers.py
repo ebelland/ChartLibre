@@ -116,6 +116,29 @@ def outlier_mask(
     raise ValueError(f"Unsupported outlier detection model: {model}")
 
 
+def robust_scaled(features: np.ndarray) -> np.ndarray:
+    """Each column centred on its median and divided by its interquartile range.
+
+    For the detectors that measure Euclidean distance between points (Local
+    Outlier Factor, One-Class SVM): without it the column with the larger
+    numbers decides alone - x in seconds since 1970 and y in volts, and y
+    stops counting at all. The IQR rather than the standard deviation, so the
+    outliers being looked for do not set the scale. A column with no spread
+    falls back to its standard deviation, then to 1.
+    """
+    scaled = np.array(features, dtype=float, copy=True)
+    for column in range(scaled.shape[1]):
+        values = scaled[:, column]
+        q1, median, q3 = np.percentile(values, [25, 50, 75])
+        spread = q3 - q1
+        if not np.isfinite(spread) or spread <= 0:
+            spread = float(np.std(values))
+        if not np.isfinite(spread) or spread <= 0:
+            spread = 1.0
+        scaled[:, column] = (values - median) / spread
+    return scaled
+
+
 def _shape_aware_mask(
     x_data: np.ndarray, y_data: np.ndarray, model: str, settings: OutlierSettings
 ) -> np.ndarray:
@@ -125,6 +148,10 @@ def _shape_aware_mask(
     outlier, +1 is not - straight from fit_predict/predict, so the four
     branches differ only in which estimator is built and how its own
     parameters are read.
+
+    LOF and the SVM see the cloud through :func:`robust_scaled`; Isolation
+    Forest splits one feature at a time and the Elliptic Envelope measures
+    Mahalanobis distance, so neither depends on the units.
     """
     features = np.column_stack([x_data, y_data])
     n_samples = features.shape[0]
@@ -145,13 +172,14 @@ def _shape_aware_mask(
         n_neighbors = max(1, min(int(settings.n_neighbors), n_samples - 1))
         labels = LocalOutlierFactor(
             n_neighbors=n_neighbors, contamination=contamination
-        ).fit_predict(features)
+        ).fit_predict(robust_scaled(features))
         return labels == -1
 
     if model == OUTLIER_ONE_CLASS_SVM:
         nu = float(settings.nu)
         estimator = OneClassSVM(nu=nu, kernel="rbf", gamma="scale")
-        labels = estimator.fit(features).predict(features)
+        scaled = robust_scaled(features)
+        labels = estimator.fit(scaled).predict(scaled)
         return labels == -1
 
     if model == OUTLIER_ELLIPTIC_ENVELOPE:
