@@ -39,6 +39,7 @@ stale copy of the whole document.
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -79,6 +80,14 @@ APPLICATION_SECTIONS: frozenset[str] = frozenset({"actions", "messages", "consta
 # merged view the readers actually get.  See _read for why this is worth it.
 _cache: dict[Path, dict[str, Any]] = {}
 _cache_stamp: dict[Path, tuple[int, int] | None] = {}
+#: When each file's stamp was last checked (time.monotonic()).
+_checked_at: dict[Path, float] = {}
+
+#: Seconds a checked file is trusted before it is looked at again. Building
+#: the main window asks for settings ~500 times; a stat is microseconds on
+#: macOS but costs far more on Windows - more again with an antivirus or a
+#: synced folder - and a hand edit is still picked up within a second.
+RECHECK_INTERVAL_S: float = 1.0
 _merged: dict[str, Any] | None = None
 _merged_stamp: tuple[Any, Any] | None = None
 _migrated_from: Path | None = None
@@ -103,6 +112,10 @@ def _read(path: Path) -> dict[str, Any]:
     while building.  Keying on the stamp rather than caching forever keeps a
     hand-edit picked up on the next call.
     """
+    now = time.monotonic()
+    if path in _cache and now - _checked_at.get(path, -RECHECK_INTERVAL_S) < RECHECK_INTERVAL_S:
+        return _cache[path]
+    _checked_at[path] = now
     stamp = _file_stamp(path)
     if stamp is None:
         _cache[path], _cache_stamp[path] = {}, None
@@ -139,6 +152,7 @@ def _write(path: Path, data: dict[str, Any]) -> bool:
     # Adopt what was just written instead of invalidating: a save is usually
     # followed by a read, and the writer already holds the whole document.
     _cache[path], _cache_stamp[path] = data, _file_stamp(path)
+    _checked_at[path] = time.monotonic()
     _merged = None
     return True
 

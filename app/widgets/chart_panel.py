@@ -182,6 +182,12 @@ class ChartPanel(QFrame):
         self._pending_canvas_sync = False
         self._pending_canvas_redraw = False
         self._last_canvas_size = QSize()
+        #: Bumped whenever the figure's contents are rebuilt (reload); with
+        #: the figure's size and dpi it is what a draw shows. _drawn_state is
+        #: the same triple at the last draw, so a geometry sync can tell a
+        #: canvas that is already up to date from one that needs drawing.
+        self._content_revision = 0
+        self._drawn_state: tuple[Any, ...] | None = None
 
         self._canvas_sync_timer = QTimer(self)
         self._canvas_sync_timer.setSingleShot(True)
@@ -780,6 +786,29 @@ class ChartPanel(QFrame):
         self._hover_event = event
         if not self._hover_timer.isActive():
             self._hover_timer.start()
+
+    def _draw_state(self) -> tuple[Any, ...]:
+        """What a draw of the figure right now would show: contents, size, dpi."""
+        width, height = self._figure.get_size_inches()
+        return (self._content_revision, round(float(width), 6), round(float(height), 6), float(self._figure.dpi))
+
+    def _on_canvas_drawn(self, _event: Any) -> None:
+        """After every full draw: note what is on screen, and keep it for hovering.
+
+        The pixels just drawn are the background the hover readout blits over,
+        unless the readout or the crosshair is part of them. Taking them now -
+        a copy of the buffer - spares the first hover after every redraw a
+        second full draw of its own.
+        """
+        self._drawn_state = self._draw_state()
+        annotation = self._hover_annotation
+        if self._crosshair_enabled or (annotation is not None and annotation.get_visible()):
+            self._hover_background = None
+            return
+        try:
+            self._hover_background = self._canvas.copy_from_bbox(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
+        except (AttributeError, RuntimeError, ValueError):
+            self._hover_background = None
 
     def _invalidate_hover_background(self) -> None:
         """Drop the cached pixels after anything that repaints the canvas.
@@ -1700,7 +1729,7 @@ class ChartPanel(QFrame):
         self._canvas.mpl_connect("motion_notify_event", self._on_motion)
         # Any of these repaints the canvas, so the cached background that
         # blitting restores is no longer what is underneath.
-        self._canvas.mpl_connect("draw_event", lambda _e: self._invalidate_hover_background())
+        self._canvas.mpl_connect("draw_event", self._on_canvas_drawn)
         self._canvas.mpl_connect("resize_event", lambda _e: self._invalidate_hover_background())
         self._canvas.mpl_connect("axes_leave_event", lambda _e: self._hide_hover_annotation())
         self._canvas.mpl_connect("axes_leave_event", lambda _e: self._hide_crosshair())
@@ -2196,8 +2225,15 @@ class ChartPanel(QFrame):
             event_type = event.type()
         except Exception:
             return handled
-        if event_type in (QEvent.Type.Show, QEvent.Type.LayoutRequest, QEvent.Type.PolishRequest):
+        if event_type == QEvent.Type.Show:
             self._schedule_canvas_geometry_sync(redraw=True, late=True)
+        elif event_type in (QEvent.Type.LayoutRequest, QEvent.Type.PolishRequest):
+            # A check, not a redraw: Qt posts LayoutRequest whenever a child's
+            # size hint changes - the toolbar's "x=…, y=…" readout does on
+            # every mouse move - and redrawing the whole figure for each one
+            # made hovering cost a full draw per move. A real size change
+            # still redraws, in _sync_canvas_geometry.
+            self._schedule_canvas_geometry_sync(redraw=False, late=True)
         return handled
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
@@ -2481,6 +2517,7 @@ class ChartPanel(QFrame):
         fixed figure pixel size.
         """
         self._pending_canvas_sync = False
+        figure_before = (tuple(self._figure.get_size_inches()), self._figure.dpi)
 
         if self._resize_mode == "FIXED":
             target_size = self._current_figure_pixel_size(apply_zoom=True)
@@ -2522,9 +2559,15 @@ class ChartPanel(QFrame):
                 return
             self._apply_figure_size_from_canvas(target_size)
 
-        if redraw or target_size != self._last_canvas_size:
+        figure_changed = (tuple(self._figure.get_size_inches()), self._figure.dpi) != figure_before
+        if redraw or figure_changed or target_size != self._last_canvas_size:
             self._last_canvas_size = QSize(target_size)
-            self._canvas.draw_idle()
+            # Not when the canvas already shows exactly this figure at this
+            # size - a resize Matplotlib redrew for itself, a tab shown again:
+            # each such second draw cost a whole render of the figure.
+            # Nor for a tab nobody can see: showEvent asks again when it is.
+            if self._drawn_state != self._draw_state() and self.isVisible():
+                self._canvas.draw_idle()
 
     def _direct_chart_client_size(self) -> QSize:
         """Return the chart area available below the toolbar row."""
@@ -3221,6 +3264,7 @@ class ChartPanel(QFrame):
     def reload(self) -> None:
         """Reload the latest descriptor from the repository and re-render it."""
         self._figure.clear()
+        self._content_revision += 1
         self._discard_hover_annotation()
         self._discard_ruler()
         self._discard_crosshair()
