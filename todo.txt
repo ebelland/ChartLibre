@@ -5,8 +5,8 @@ Priority  P0 wrong results / blocked   P1 foundations   P2 high value
           P3 useful later              P4 ideas, undecided
 Effort    S one session   M 2-3 sessions   L 4+ sessions   [YOU] no code needed
 
-State: ~79k lines in app/, 1031 tests, Pyright 0 errors, 19 series
-operations, ~29 chart types, it/fr complete, de/es started.
+State: ~82k lines in app/, 1083 tests, Pyright 0 errors, 19 series
+operations, 42 chart types, it/fr complete, de/es started.
 
 
 ================================================================
@@ -14,8 +14,8 @@ NEXT
 ================================================================
 1. W-03               Developer page labels truncated (Italian)
 2. R-03               Reproducibility: re-run, script export
-3. R-08 -> R-04 -> R-05 -> R-06 -> P2-12 -> R-09   Analysis features
-4. R-14, A-06, A-07, A-08                          Reach non-Python users
+3. R-08 -> R-04 -> R-05 -> P2-12                  Analysis features
+4. R-14, A-06, A-07                                Reach non-Python users
 
 
 ================================================================
@@ -74,22 +74,16 @@ R-04  P2  L  Statistics vs SPSS/JMP - IN PROGRESS. Missing, in order:
              - multiple regression (coef table, adj. R², VIF, residuals),
                logistic regression
              - two-way ANOVA; Games-Howell, Bonferroni; Dunn
-             - Kaplan-Meier + log-rank
+             - Kaplan-Meier + log-rank as a Statistics table (the
+               chart and its log-rank test exist since R-06)
 R-05  P2  M  Fit like Origin. Missing:
              - weights from an error column (1/sigma²)
              - global fit with shared parameters
-R-06  P2  M  Diagnostic plots: Q-Q/P-P, pair plot, interaction plot,
-             mosaic, forest, Kaplan-Meier.
 P2-12 P2  M  Small chart beside operation results (also for P2-19).
-R-09  P2  M  Publication export:
-             - full HTML/PDF project report
-             - journal-width figures (85/180 mm), vector PDF/EPS
-             - graph templates
 R-14  P2  L  Standalone signed app (macOS, needs Apple dev account),
              Windows installer, update check.
 A-06  P2  S  Linux: never run. Try in a VM; icons and paths.
 A-07  P2  S  German 19% done, Spanish empty (machine translated, review).
-A-08  P2  S  DeepL as third translator (free API key in Settings only).
 
 
 ================================================================
@@ -123,6 +117,10 @@ R-16  P4     DOE, mixed models, power analysis.
 ================================================================
 DONE (recent)
 ================================================================
+2026-10-02  R-06 diagnostic plots (Q-Q, P-P, pair, interaction, mosaic,
+            forest, Kaplan-Meier + log-rank) and their demo; R-09
+            publication export (85/180 mm PDF/EPS/SVG/TIFF, fonts embedded),
+            project report HTML/PDF, graph templates; A-08 DeepL.
 2026-10-02  O-01 Outlier hid nothing on aliased/filtered series (read the
             whole table): now reads the series' own SQL, marks per table;
             Outlier Colour drawn (scatter crashed, time series markers);
