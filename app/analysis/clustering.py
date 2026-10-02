@@ -24,6 +24,11 @@ TOOL_WHITEN: str = "vq.whiten + kmeans2"
 TOOL_VQ: str = "vq.vq"
 TOOL_KMEANS: str = "vq.kmeans"
 TOOL_KMEANS2: str = "vq.kmeans2"
+
+#: The seed of SciPy's k-means starting points: the same data and settings
+#: give the same clusters every run, as the scikit-learn models' random_state=0
+#: does below. Unseeded, Apply and the preview before it could disagree.
+KMEANS_SEED: int = 0
 TOOL_FCLUSTER: str = "hierarchy.fcluster"
 TOOL_FCLUSTERDATA: str = "hierarchy.fclusterdata"
 TOOL_LEADERS: str = "hierarchy.leaders"
@@ -155,6 +160,7 @@ def cluster_kmeans(
                 iter=iterations_safe,
                 thresh=threshold_safe,
                 check_finite=True,
+                rng=np.random.default_rng(KMEANS_SEED),
             )
             centroids = np.asarray(raw_centroids, dtype=float)
             distortion_values = np.asarray(raw_distortion, dtype=float).reshape(-1)
@@ -171,6 +177,7 @@ def cluster_kmeans(
                 minit="++",
                 missing="warn",
                 check_finite=True,
+                rng=np.random.default_rng(KMEANS_SEED),
             )
             codes = np.asarray(labels, dtype=int)
             _codes_for_distance, distances = vq.vq(obs, centroids, check_finite=True)

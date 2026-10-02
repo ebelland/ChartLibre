@@ -21,9 +21,21 @@ def _agrees_with_truth(labels: np.ndarray) -> bool:
 
 @pytest.mark.parametrize("tool", [cl.TOOL_WHITEN, cl.TOOL_KMEANS2])
 def test_scipy_kmeans_finds_the_three_blobs(tool: str) -> None:
-    np.random.seed(0)
     labels, _meta = cl.cluster_kmeans(F, scipy_tool=tool, clusters=3, use_whiten=False, iterations=20, threshold=1e-5)
     assert _agrees_with_truth(labels)
+
+
+@pytest.mark.parametrize("tool", [cl.TOOL_KMEANS, cl.TOOL_KMEANS2, cl.TOOL_WHITEN])
+def test_scipy_kmeans_gives_the_same_clusters_every_run(tool: str) -> None:
+    """Seeded: one diffuse cloud, where the starting points decide the split."""
+    cloud = np.random.default_rng(5).normal(0.0, 1.0, (300, 2))
+    runs = [
+        cl.cluster_kmeans(cloud, scipy_tool=tool, clusters=4, use_whiten=False, iterations=20, threshold=1e-5)
+        for _ in range(3)
+    ]
+    for labels, meta in runs[1:]:
+        np.testing.assert_array_equal(labels, runs[0][0])
+        assert meta["centroids"] == runs[0][1]["centroids"]
 
 
 def test_hierarchical_clustering_cut_at_three_finds_the_blobs() -> None:
