@@ -5,15 +5,15 @@ Priority  P0 wrong results / blocked   P1 foundations   P2 high value
           P3 useful later              P4 ideas, undecided
 Effort    S one session   M 2-3 sessions   L 4+ sessions   [YOU] no code needed
 
-State: ~82k lines in app/, 1083 tests, Pyright 0 errors, 19 series
+State: ~82k lines in app/, 1101 tests, Pyright 0 errors, 19 series
 operations, 42 chart types, it/fr complete, de/es started.
 
 
 ================================================================
 NEXT
 ================================================================
-1. W-03               Developer page labels truncated (Italian)
-2. R-03               Reproducibility: re-run, script export
+1. R-03               Reproducibility: re-run, script export
+2. W-04               Smoother live window resize
 3. R-08 -> R-04 -> R-05 -> P2-12                  Analysis features
 4. R-14, A-06, A-07                                Reach non-Python users
 
@@ -21,8 +21,10 @@ NEXT
 ================================================================
 OPEN BUGS AND SMALL FIXES
 ================================================================
-W-03  S  Developer page (Italian): "Costruttore di operazioni sulle s…"
-         truncated in title and button. Shorten labels or wrap.
+W-04  M  Dragging the window edge redraws the chart at every step
+         (~90 ms for an ordinary figure, constrained layout included):
+         draw once the drag pauses, without the stale-buffer artefacts
+         Matplotlib's Qt canvas shows if a draw is simply skipped.
 A-04  [YOU] Move the project out of the iCloud Desktop (e.g. ~/Developer).
          iCloud hides .venv/.git contents (Qt plugin crash, now worked
          around) and may evict files.
@@ -35,13 +37,12 @@ P1 - FOUNDATIONS
 ================================================================
 R-03  P1  M  Reproducibility - IN PROGRESS
          Done: every Apply recorded in __operations__ (same transaction,
-         undoable); "History…" in the table list context menu.
+         undoable), Outlier and Statistics included; "History…" in the
+         table list context menu; project history on the Database page.
          Left:
-         - Outlier and Statistics (own Apply) do not record yet.
          - Re-run ("Recalculate"): reopen with recorded entries, or re-run
            everything downstream of a changed table.
          - Export an equivalent Python script (see N-02).
-         - Project-wide history (today per table only).
 R-02  P1  M  Background computation - MOSTLY DONE
          Done: 11 operations + Fit; Stop and progress bar after 300 ms.
          Left:
@@ -56,11 +57,6 @@ R-13  P1  M  Numerical validation - DONE for NIST StRD
          - Multiple regression (Longley) once R-04 adds it.
          Notes:
          - No-intercept fits report centred R²; NIST certifies uncentred.
-         - Unknown optimizer key silently falls back to trust region.
-
-Known limits (found in R-01, not fixed):
-- Outlier shape-aware detectors do not rescale x/y before distances.
-- Cluster: scipy vq.kmeans is unseeded -> results vary between runs.
 
 
 ================================================================
@@ -97,7 +93,6 @@ R-12b P3  M  Narrow "except Exception" in app/charts (42) and review the
 R-07  P3  L  JMP-style linked selection across charts and table;
              then a local data filter.
 N-09  P3  M  "Colour by value" dialog (palette, percentiles, categories).
-P2-20 P3  M  HTML viewer of a project's charts (PNG/SVG per figure).
 R-15  P3  M  Accessibility: colour-blind palettes by default, dark-theme
              contrast, keyboard-only sidebar.
 
@@ -110,13 +105,20 @@ P2-22 P4  M  3D parametric curves x(t), y(t), z(t).
 P2-19 P4  L  pysym: user Python/sympy operations. Never run code on
              open; restricted globals; warn on first open.
 N-02  P4     Script/notebook export (with R-03), units with pint (R-08),
-             uncertainty propagation, PDF report (R-09), Python/SQL console.
+             uncertainty propagation, Python/SQL console.
 R-16  P4     DOE, mixed models, power analysis.
 
 
 ================================================================
 DONE (recent)
 ================================================================
+2026-10-02  Responsiveness: no full redraw per mouse move (toolbar
+            readout -> LayoutRequest -> redraw), none for a tab shown
+            again or hidden; settings files stat'ed once a second.
+            W-03 labels; R-03 project history, Outlier/Statistics
+            recorded; P2-20 covered by the project report; Cluster
+            k-means seeded; unknown optimizer is an error; LOF/SVM
+            outliers in robust units.
 2026-10-02  R-06 diagnostic plots (Q-Q, P-P, pair, interaction, mosaic,
             forest, Kaplan-Meier + log-rank) and their demo; R-09
             publication export (85/180 mm PDF/EPS/SVG/TIFF, fonts embedded),
