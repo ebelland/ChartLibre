@@ -5,7 +5,7 @@ Priority  P0 wrong results / blocked   P1 foundations   P2 high value
           P3 useful later              P4 ideas, undecided
 Effort    S one session   M 2-3 sessions   L 4+ sessions   [YOU] no code needed
 
-State: ~82k lines in app/, 1101 tests, Pyright 0 errors, 19 series
+State: ~83k lines in app/, 1120 tests, Pyright 0 errors, 19 series
 operations, 42 chart types, it/fr complete, de/es started.
 
 
@@ -65,13 +65,14 @@ P2 - HIGH VALUE
 R-08  P2  M  Column metadata (__column_meta__): label, unit, measure type
              (continuous/ordinal/nominal), missing codes, value labels.
              Drives test choice (R-04), units on axes.
-R-04  P2  L  Statistics vs SPSS/JMP - IN PROGRESS. Missing, in order:
-             - chi-square / Fisher on contingency tables
+R-04  P2  L  Statistics vs SPSS/JMP - IN PROGRESS.
+             Done: contingency (chi², G, Fisher, Cramér's V), two-way
+             ANOVA (Type II), survival (KM medians, log-rank).
+             Missing, in order:
              - multiple regression (coef table, adj. R², VIF, residuals),
                logistic regression
-             - two-way ANOVA; Games-Howell, Bonferroni; Dunn
-             - Kaplan-Meier + log-rank as a Statistics table (the
-               chart and its log-rank test exist since R-06)
+             - post hoc: Games-Howell, Bonferroni; Dunn
+             - two-way ANOVA with repeated measures; ANCOVA
 R-05  P2  M  Fit like Origin. Missing:
              - weights from an error column (1/sigma²)
              - global fit with shared parameters
@@ -112,6 +113,9 @@ R-16  P4     DOE, mixed models, power analysis.
 ================================================================
 DONE (recent)
 ================================================================
+2026-10-02  R-04 Statistics: contingency, two-way ANOVA, survival, with
+            their diagnostic charts (Q-Q/P-P for normality); demo notes;
+            Load demo previews; every window fits its screen.
 2026-10-02  Responsiveness: no full redraw per mouse move (toolbar
             readout -> LayoutRequest -> redraw), none for a tab shown
             again or hidden; settings files stat'ed once a second.
