@@ -16,7 +16,7 @@ collects the parameters and lays the results out.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import html
 import itertools
 from typing import Any
@@ -34,9 +34,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.analysis import NUMERICAL_FAILURES
 from app.analysis import statistics as st
 from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
+from app.data.select_sql import projection_source
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.results import OperationResult
 from app.series_operations.dialog_base import (
@@ -70,6 +72,54 @@ class SeriesStatsSample:
 
 
 @dataclass(slots=True)
+class SeriesTable:
+    """One selected series as its query returns it, for the models that read
+    columns by role - categories, factors, times - rather than one sample."""
+
+    name: str
+    frame: pd.DataFrame
+    roles: dict[str, Any]
+    sql: str = ""
+
+    def label(self, column: str) -> str:
+        """The source column behind an alias - "species" for "species AS x"."""
+        return projection_source(self.sql, column) or column
+
+
+#: Models that read a series' columns by role (todo R-04): each checked
+#: series is analysed on its own, and none of them is part of "All".
+FRAME_MODELS: frozenset[str] = frozenset({"contingency", "two_way", "survival"})
+
+#: Where each model finds its columns: role names, tried in order, each as
+#: the role's own column and then as a column of that name.
+MODEL_COLUMNS: Mapping[str, Mapping[str, tuple[str, ...]]] = {
+    "contingency": {"rows": ("x", "group"), "columns": ("y", "trace"), "weight": ("weight",)},
+    "two_way": {"first": ("x",), "second": ("trace", "group"), "response": ("y", "value")},
+    "survival": {"time": ("time", "x"), "event": ("event",), "group": ("group",)},
+}
+
+#: The columns a model cannot do without.
+REQUIRED_COLUMNS: Mapping[str, tuple[str, ...]] = {
+    "contingency": ("rows", "columns"),
+    "two_way": ("first", "second", "response"),
+    "survival": ("time", "event"),
+}
+
+
+def model_columns(model: str, frame: pd.DataFrame, roles: Mapping[str, Any]) -> dict[str, str]:
+    """The frame column for each part *model* reads, found by role then by name."""
+    found: dict[str, str] = {}
+    for part, names in MODEL_COLUMNS.get(model, {}).items():
+        for name in names:
+            mapped = str(roles.get(name, "") or "").strip()
+            column = mapped if mapped in frame.columns else (name if name in frame.columns else "")
+            if column:
+                found[part] = column
+                break
+    return found
+
+
+@dataclass(slots=True)
 class SeriesStatsResult(OperationResult):
     """Complete statistics result for one dialog run."""
 
@@ -81,6 +131,8 @@ class SeriesStatsResult(OperationResult):
     distribution: str = "best"
     exhaustive: bool = False
     rank_by: str = DEFAULT_RANK
+    #: The series as tables, for FRAME_MODELS.
+    tables: list[SeriesTable] = field(default_factory=list)
 
     @property
     def parameters(self) -> dict[str, Any]:
@@ -198,6 +250,9 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         self.model_combo.addItem(_("Group comparison (ANOVA)"), "groups")
         self.model_combo.addItem(_("Correlation / association"), "correlation")
         self.model_combo.addItem(_("Distribution fit"), "distribution")
+        self.model_combo.addItem(_("Contingency table (chi-squared, Fisher)"), "contingency")
+        self.model_combo.addItem(_("Two-way ANOVA"), "two_way")
+        self.model_combo.addItem(_("Survival (Kaplan-Meier, log-rank)"), "survival")
         self.model_combo.setToolTip(_("Choose which statistics section to display."))
 
         # Whether applying also draws a chart, and which one.  Off by default:
@@ -417,11 +472,25 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             self.accept()
 
     def compute_results(self) -> Sequence[SeriesStatsResult]:
-        samples = self._selected_samples()
-        if not samples:
-            raise ValueError("Select at least one source series.")
+        model = str(self.model_combo.currentData() or "all")
+        tables: list[SeriesTable] = []
+        if model in FRAME_MODELS:
+            samples = []
+            for row in self._rows_for_statistics():
+                frame = self._series_frame(str(row["sql_query"]))
+                if not frame.empty:
+                    tables.append(SeriesTable(
+                        str(row["name"] or f"Series {row['id']}"), frame, parse_roles(row["roles"]), str(row["sql_query"] or "")
+                    ))
+            if not tables:
+                raise ValueError("Select at least one source series.")
+        else:
+            samples = self._selected_samples()
+            if not samples:
+                raise ValueError("Select at least one source series.")
         return [
             SeriesStatsResult(
+                tables=tables,
                 samples=samples,
                 popmean=float(self.popmean_spin.value()),
                 alternative=str(self.alternative_combo.currentData() or "two-sided"),
@@ -767,6 +836,8 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         )
 
     def _show_section(self, model: str, section: str) -> bool:
+        if section in FRAME_MODELS:
+            return model == section
         # "distribution" is not part of "all": a sweep costs half a second per
         # series curated and a dozen seconds exhaustive, and All is the default
         # model.  Making it opt-in keeps the default fast.
@@ -776,6 +847,8 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
 
     def _format_statistics_html(self, result: SeriesStatsResult) -> str:
         """Return the report: what was run, then one section per model part."""
+        if result.model in FRAME_MODELS:
+            return self._format_table_models_html(result)
         sections: list[str] = [
             report_html.summary_table(
                 [
@@ -923,6 +996,115 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             *parts,
         )
 
+    # ------------------------------------------------------------------
+    # Models that read columns by role (todo R-04)
+    # ------------------------------------------------------------------
+    MODEL_TITLES: Mapping[str, str] = {
+        "contingency": "Contingency table",
+        "two_way": "Two-way ANOVA",
+        "survival": "Survival",
+    }
+
+    #: What each model looks for, said when a series does not have it.
+    MODEL_NEEDS: Mapping[str, str] = {
+        "contingency": "two categorical columns: the x and y roles (a Mosaic Plot's series), or columns named x and y",
+        "two_way": "two factors and a response: the x, trace (or group) and y roles (an Interaction Plot's series)",
+        "survival": "a time and an event column: the time and event roles (a Kaplan-Meier series), with an optional group",
+    }
+
+    def _format_table_models_html(self, result: SeriesStatsResult) -> str:
+        """One section per checked series, for the models of FRAME_MODELS."""
+        model = result.model
+        parts: list[str] = []
+        for table in result.tables:
+            columns = model_columns(model, table.frame, table.roles)
+            missing = [part for part in REQUIRED_COLUMNS[model] if part not in columns]
+            title = html.escape(table.name)
+            if missing:
+                parts.append(report_html.section(table.name, report_html.note(
+                    _("Not analysed: this model needs {needs}.").format(needs=_(self.MODEL_NEEDS[model]))
+                )))
+                continue
+            try:
+                body = {
+                    "contingency": self._contingency_html,
+                    "two_way": self._two_way_html,
+                    "survival": self._survival_html,
+                }[model](table.frame, columns, {part: table.label(column) for part, column in columns.items()})
+            except NUMERICAL_FAILURES as exc:
+                body = report_html.note(str(exc))
+            parts.append(report_html.section(title, body))
+        return report_html.document(_(self.MODEL_TITLES[model]), f"{len(result.tables)} series", *parts)
+
+    @staticmethod
+    def _count(value: Any) -> str:
+        number = float(value)
+        return f"{int(round(number)):,}" if number == round(number) else f"{number:,.4g}"
+
+    def _contingency_html(self, frame: pd.DataFrame, columns: Mapping[str, str], labels: Mapping[str, str]) -> str:
+        weights = to_numbers(frame[columns["weight"]]).to_numpy(dtype=float) if "weight" in columns else None
+        table = st.contingency_table(frame[columns["rows"]], frame[columns["columns"]], weights)
+        headers = [f"{labels['rows']} / {labels['columns']}", *(str(c) for c in table.columns), _("Total")]
+        rows = [
+            [html.escape(str(index)), *(self._count(value) for value in table.loc[index]),
+             self._count(table.loc[index].sum())]
+            for index in table.index
+        ]
+        rows.append([html.escape(_("Total")), *(self._count(table[c].sum()) for c in table.columns),
+                     self._count(table.to_numpy().sum())])
+        tests = [
+            _html_test_row(labels["rows"] + " × " + labels["columns"], test, self._format_number, self._format_pvalue)
+            for test in st.contingency_tests(table.to_numpy())
+        ]
+        return (
+            self._table(headers, rows)
+            + self._table(["Variables", "Test", "n", "Statistic", "p-value", "Note"], tests)
+        )
+
+    def _two_way_html(self, frame: pd.DataFrame, columns: Mapping[str, str], labels: Mapping[str, str]) -> str:
+        first, second, response = frame[columns["first"]], frame[columns["second"]], to_numbers(frame[columns["response"]])
+        anova = st.two_way_anova(first, second, response)
+        names = {"A": labels["first"], "B": labels["second"], "A × B": f"{labels['first']} × {labels['second']}"}
+        rows = [
+            [html.escape(names.get(row["source"], _(row["source"]))), self._format_number(row["ss"]), str(row["df"]),
+             self._format_number(row["ms"]), self._format_number(row["F"]), self._format_pvalue(row["pvalue"]),
+             self._format_number(row["partial_eta2"])]
+            for row in anova["table"]
+        ]
+        means = pd.DataFrame({"a": first.astype(str), "b": second.astype(str), "y": response}).dropna()
+        cells = means.groupby(["a", "b"])["y"].agg(["count", "mean", "std"]).reset_index()
+        cell_rows = [
+            [html.escape(str(row.a)), html.escape(str(row.b)), str(int(row["count"])),
+             self._format_number(row["mean"]), self._format_number(row["std"])]
+            for _index, row in cells.iterrows()
+        ]
+        return (
+            self._table(["Source", "Sum of squares", "df", "Mean square", "F", "p-value", "Partial eta²"], rows)
+            + report_html.note(f"n = {anova['n']}; {anova['note']}.")
+            + self._table([labels["first"], labels["second"], "n", "Mean", "Std"], cell_rows)
+        )
+
+    def _survival_html(self, frame: pd.DataFrame, columns: Mapping[str, str], labels: Mapping[str, str]) -> str:
+        del labels  # the groups are named by their values
+        groups = frame[columns["group"]] if "group" in columns else None
+        summary = st.survival_summary(
+            to_numbers(frame[columns["time"]]), to_numbers(frame[columns["event"]]), groups
+        )
+        rows = [
+            [html.escape(row["group"] or _("All")), str(row["n"]), str(row["events"]), str(row["censored"]),
+             self._format_number(row["median"]) if np.isfinite(row["median"]) else _("not reached"),
+             f"{self._format_number(row['median_low'])} .. "
+             + (self._format_number(row["median_high"]) if np.isfinite(row["median_high"]) else "∞")]
+            for row in summary["groups"]
+        ]
+        html_out = self._table(["Group", "n", "Events", "Censored", "Median survival", "95% CI median"], rows)
+        if summary["logrank"] is not None:
+            html_out += self._table(
+                ["Groups", "Test", "n", "Statistic", "p-value", "Note"],
+                [_html_test_row(_("All groups"), summary["logrank"], self._format_number, self._format_pvalue)],
+            )
+        return html_out
+
     def _run_statistics(self, *, verb: str) -> bool:
         try:
             results = list(self.compute_results())
@@ -988,6 +1170,8 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         "normality": (
             ("Histogram", "Normality"),
             ("ECDF", "Normality"),
+            ("Q-Q Plot", "Normality"),
+            ("P-P Plot", "Normality"),
         ),
         # Both of these are about two samples together, so the picture is one
         # plotted against the other - every pair of them.
@@ -997,6 +1181,9 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         "groups": (("Box Plot", "Group comparison"),),
         "correlation": (("Scatter Plot", "Correlation"),),
         "distribution": (("Histogram", "Distribution fit"),),
+        "contingency": (("Mosaic Plot", "Contingency table"),),
+        "two_way": (("Interaction Plot", "Two-way ANOVA"),),
+        "survival": (("Kaplan-Meier", "Survival"),),
     }
 
     #: Which distributions the chart may be asked to draw, per model.  The
@@ -1030,6 +1217,12 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         cannot contradict the table beside it.
         """
         options: dict[str, Any] = {"grid": True}
+        if chart_type in ("Q-Q Plot", "P-P Plot"):
+            # The family the normality tests are about; Q-Q's own default
+            # otherwise.
+            if result.distribution in ("norm", "lognorm"):
+                options["distribution"] = result.distribution
+            return options
         if chart_type not in ("Histogram", "ECDF") or not result.distribution:
             return options
 
@@ -1092,6 +1285,10 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         self._result_chart_type = chart_type
         self._result_axis_options = options
         rows = self._rows_for_statistics()
+        if result.model in FRAME_MODELS:
+            for row, table in zip(rows, result.tables):
+                self._attach_table_series(axis_id, row, table, result.model, chart_type)
+            return
         if result.model in ("paired", "correlation") and chart_type == "Scatter Plot":
             # Every pair, not every series.  These two models test one sample
             # against another, and the report already prints a row per pair -
@@ -1170,6 +1367,23 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             },
         )
 
+    def _attach_table_series(self, axis_id: int, row: Any, table: SeriesTable, model: str, chart_type: str) -> None:
+        """Put a FRAME_MODELS series on its chart, its columns renamed to that chart's roles."""
+        found = _table_series_select(model, model_columns(model, table.frame, table.roles))
+        sql = str(row["sql_query"] or "").strip()
+        if found is None or not sql:
+            return
+        select, roles = found
+        self._repo.create_series_descriptor(
+            axis_id=axis_id,
+            series_index=self._repo.next_series_index(axis_id),
+            name=f"{table.name} [statistics]",
+            sql_query=f"{select} FROM ({sql})",
+            roles=roles,
+            style={**dict(self.generated_style_filter), "label": table.name},
+        )
+        del chart_type
+
     def _attach_source_series(self, axis_id: int, row: Any, chart_type: str) -> None:
         """Put one analysed series onto the new axis, in that axis's roles.
 
@@ -1189,7 +1403,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         if chart_type == "Scatter Plot":
             select = f"SELECT {quote_identifier(x_column)} AS x, {quote_identifier(y_column)} AS y"
             axis_roles: dict[str, Any] = {"x": "x", "y": "y"}
-        elif chart_type == "ECDF":
+        elif chart_type in ("ECDF", "Q-Q Plot", "P-P Plot"):
             select = f"SELECT {quote_identifier(y_column)} AS value"
             axis_roles = {"value": "value"}
         elif chart_type == "Histogram":
@@ -1217,6 +1431,20 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             roles=axis_roles,
             style={**dict(self.generated_style_filter), "label": name, "marker": "."},
         )
+
+
+def _table_series_select(model: str, columns: Mapping[str, str]) -> tuple[str, dict[str, str]] | None:
+    """The SELECT list and roles that put a FRAME_MODELS series on its chart."""
+    renames = {
+        "contingency": {"rows": "x", "columns": "y", "weight": "weight"},
+        "two_way": {"first": "x", "second": "trace", "response": "y"},
+        "survival": {"time": "time", "event": "event", "group": "group"},
+    }[model]
+    if any(part not in columns for part in REQUIRED_COLUMNS[model]):
+        return None
+    pairs = [(columns[part], role) for part, role in renames.items() if part in columns]
+    select = ", ".join(f"{quote_identifier(column)} AS {quote_identifier(role)}" for column, role in pairs)
+    return f"SELECT {select}", {role: role for _column, role in pairs}
 
 
 def _html_test_row(

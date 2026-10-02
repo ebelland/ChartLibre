@@ -19,6 +19,7 @@ import pandas as pd
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.analysis import statistics as st
 from app.utils import report_html
 from dev.demo.build_demos import FigureSpec, SeriesSpec, _create_figure, _penguins
 from dev.tests import _nist_strd as nist
@@ -73,17 +74,56 @@ def bcg_table() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _note(repo: SqliteRepo, figure_id: int, title: str, subtitle: str, data: str, read: str) -> None:
+def _note(repo: SqliteRepo, figure_id: int, title: str, subtitle: str, data: str, read: str, statistics: str = "") -> None:
     markup = report_html.document(
         title, subtitle,
         report_html.section("The data", report_html.note(data)),
         report_html.section("What to look for", report_html.raw_note(read)),
+        report_html.section("Try it in Statistics", report_html.raw_note(statistics)) if statistics else "",
     )
     options = repo.get_figure_options(figure_id)
     view = dict(options.get("view") or {})
     view.update({"resize_mode": "FIT", "notes_html": markup, "notes_split": [480, 340]})
     options["view"] = view
     repo.set_figure_options(figure_id, options)
+
+
+def _two_way_steps(penguins: pd.DataFrame) -> str:
+    known = penguins[penguins["sex"] != "unknown"]
+    rows = {row["source"]: row for row in st.two_way_anova(known["species"], known["sex"], known["body_mass_g"])["table"]}
+    interaction = rows["A × B"]
+    return (
+        "Series Operations > <b>Statistics</b>, model <b>Two-way ANOVA</b>: species, sex and their "
+        f"interaction on body mass, Type II. The interaction is real - F = {interaction['F']:.2f}, "
+        f"p = {interaction['pvalue']:.4f} - but small beside the two main effects (partial eta² "
+        f"{interaction['partial_eta2']:.2f} against {rows['A']['partial_eta2']:.2f} for species). "
+        "<b>Add a chart</b> draws this interaction plot."
+    )
+
+
+def _contingency_steps(penguins: pd.DataFrame) -> str:
+    table = st.contingency_table(penguins["island"], penguins["species"])
+    pearson = st.contingency_tests(table.to_numpy())[0]
+    return (
+        "Series Operations > <b>Statistics</b>, model <b>Contingency table</b>: the counts, Pearson's "
+        f"chi-squared ({pearson['statistic']:.1f}, {pearson['note'].split(';')[0]}), the likelihood-ratio "
+        f"test and Fisher's exact test; {pearson['note'].split('; ')[1]} - a strong association."
+    )
+
+
+def _survival_steps() -> str:
+    times = [weeks for rows in LEUKAEMIA.values() for weeks, _event in rows]
+    events = [event for rows in LEUKAEMIA.values() for _weeks, event in rows]
+    arms = [arm for arm, rows in LEUKAEMIA.items() for _row in rows]
+    summary = st.survival_summary(times, events, arms)
+    parts = []
+    for row in summary["groups"]:
+        high = "not reached" if np.isnan(row["median_high"]) else f"{row['median_high']:g}"
+        parts.append(f"{row['group']} {row['median']:g} weeks (95% CI {row['median_low']:g} to {high})")
+    return (
+        "Series Operations > <b>Statistics</b>, model <b>Survival</b>: per arm the patients, relapses, "
+        f"censored and the median remission - {'; '.join(parts)} - and the log-rank test."
+    )
 
 
 def build_diagnostics_demo(directory: Path = DEMO_DIR) -> Path:
@@ -128,7 +168,7 @@ def build_diagnostics_demo(directory: Path = DEMO_DIR) -> Path:
           "Palmer penguins with a recorded sex.",
           "Males are heavier in every species, but by 800 g in Gentoo and only 400 g in Chinstrap: "
           "the lines are not parallel - a <b>species × sex interaction</b>, which a two-way ANOVA "
-          "would test.")
+          "tests.", _two_way_steps(penguins))
 
     figure_id = _create_figure(repo, FigureSpec(
         name="3 · Mosaic plot", chart_type="Mosaic Plot", title="Which species lives on which island",
@@ -139,7 +179,8 @@ def build_diagnostics_demo(directory: Path = DEMO_DIR) -> Path:
           "Palmer penguins: the island each was sampled on.",
           "Columns are as wide as each island's share; tiles as tall as each species' share there. "
           "Gentoo only on Biscoe, Chinstrap only on Dream: the blue tiles hold far more birds than "
-          "independence would put there. Switch <b>colour by</b> to category for the plain mosaic.")
+          "independence would put there. Switch <b>colour by</b> to category for the plain mosaic.",
+          _contingency_steps(penguins))
 
     figure_id = _create_figure(repo, FigureSpec(
         name="4 · Normal Q-Q plot", chart_type="Q-Q Plot", title="Is flipper length normal within each species?",
@@ -154,7 +195,10 @@ def build_diagnostics_demo(directory: Path = DEMO_DIR) -> Path:
           "Palmer penguins' flipper lengths.",
           "Adelie and Chinstrap follow their lines inside the 95% bands. Gentoo's shortest flippers "
           "leave the band at the lower left: a heavier lower tail than a normal - mild, and an ANOVA "
-          "copes with it. The steps are the measurements' 1 mm resolution, not a departure.")
+          "copes with it. The steps are the measurements' 1 mm resolution, not a departure.",
+          "Series Operations > <b>Statistics</b>, the three species checked, model <b>Normality / shape "
+          "tests</b>: Shapiro-Wilk, Anderson-Darling and the rest, per species. Tick <b>Add a chart</b> and "
+          "pick <b>Q-Q Plot</b> or <b>P-P Plot</b> to draw this figure from there.")
 
     figure_id = _create_figure(repo, FigureSpec(
         name="5 · P-P plot", chart_type="P-P Plot", title="Michelson's speed of light against a normal",
@@ -176,7 +220,8 @@ def build_diagnostics_demo(directory: Path = DEMO_DIR) -> Path:
           "relapse = 0 marks a patient still in remission when last seen.",
           "Median remission 23 weeks on 6-MP, 8 on placebo; the log-rank test (χ² = 16.8, "
           "p &lt; 0.0001) says the curves differ by far more than chance. The ticks are the censored "
-          "patients - used for as long as they were followed, never counted as relapses.")
+          "patients - used for as long as they were followed, never counted as relapses.",
+          _survival_steps())
 
     figure_id = _create_figure(repo, FigureSpec(
         name="7 · Forest plot", chart_type="Forest Plot", title="BCG vaccine against tuberculosis: 13 trials",

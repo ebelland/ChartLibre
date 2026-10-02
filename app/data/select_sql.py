@@ -234,3 +234,27 @@ def has_projection_alias(sql_query: str, alias: str) -> bool:
         projection_alias(projection).lower() == str(alias).lower()
         for projection in split_top_level_select_items(select_part[match.end():])
     )
+
+
+def projection_source(sql_query: str, alias: str) -> str:
+    """The expression *sql_query* projects AS *alias*, unquoted when it is a plain column.
+
+    ``SELECT species AS x FROM penguins`` -> "species" for alias "x": what a
+    report names a column by, where the series only knows its role alias.
+    Empty when the alias is not projected at the top level.
+    """
+    sql = str(sql_query).strip().rstrip(";")
+    from_match = top_level_from(sql)
+    select_part = sql[: from_match.start()] if from_match else sql
+    match = re.match(r"(?is)^\s*SELECT\s+(?:DISTINCT\s+)?", select_part)
+    if match is None:
+        return ""
+    for projection in split_top_level_select_items(select_part[match.end():]):
+        if projection_alias(projection).lower() != str(alias).lower():
+            continue
+        expression = re.sub(r"(?is)\s+AS\s+\S+\s*$", "", projection).strip()
+        plain = re.fullmatch(r'"([^"]+)"|\[([^\]]+)\]|`([^`]+)`|([A-Za-z_][A-Za-z0-9_.]*)', expression)
+        if plain is not None:
+            return next(group for group in plain.groups() if group)
+        return expression
+    return ""

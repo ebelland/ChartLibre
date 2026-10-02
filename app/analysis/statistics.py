@@ -18,6 +18,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
 import numpy as np
+import pandas as pd
 
 from app.analysis import NUMERICAL_FAILURES
 from scipy import stats
@@ -488,3 +489,201 @@ def tukey_hsd(groups: Mapping[str, Any]) -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+# ----------------------------------------------------------------------
+# Contingency tables (todo R-04)
+# ----------------------------------------------------------------------
+#: Monte Carlo tables for Fisher's test on tables larger than 2x2, and the
+#: seed that makes its p-value the same every run.
+FISHER_RESAMPLES: int = 9999
+FISHER_SEED: int = 0
+
+
+def contingency_table(rows: Any, columns: Any, weights: Any = None) -> pd.DataFrame:
+    """Counts of every (row, column) pair: a crosstab, missing values left out.
+
+    *weights* counts each line that many times, for a table already counted.
+    Levels are ordered numerically when they are all numbers, else as found.
+    """
+    frame = pd.DataFrame({
+        "row": np.asarray(rows, dtype=object),
+        "column": np.asarray(columns, dtype=object),
+        "weight": 1.0 if weights is None else np.asarray(weights, dtype=float),
+    })
+    frame = frame[frame["row"].notna() & frame["column"].notna() & np.isfinite(frame["weight"].to_numpy(dtype=float))]
+    table = frame.pivot_table(index="row", columns="column", values="weight", aggfunc="sum", fill_value=0.0, sort=False)
+    return table.reindex(index=_level_order(table.index), columns=_level_order(table.columns))
+
+
+def _level_order(levels: Any) -> list[Any]:
+    found = list(levels)
+    try:
+        return sorted(found, key=float)
+    except (TypeError, ValueError):
+        return found
+
+
+def contingency_tests(table: Any) -> list[dict[str, Any]]:
+    """Is the row variable independent of the column variable?
+
+    Pearson's chi-squared (with Yates' correction as well on a 2x2 table),
+    the likelihood-ratio G test, Fisher's exact test, and Cramér's V as the
+    effect size. The note warns when expected counts are too small for the
+    chi-squared approximation - more than a fifth of the cells under 5, or
+    any under 1 (Cochran) - which is when Fisher's row is the one to read.
+    """
+    counts = np.asarray(table, dtype=float)
+    n = int(round(float(counts.sum())))
+    if counts.ndim != 2 or min(counts.shape) < 2:
+        return [note_row(_("Contingency table"), n, "Needs at least two levels of each variable.")]
+    counts = counts[counts.sum(axis=1) > 0][:, counts.sum(axis=0) > 0]
+    if min(counts.shape) < 2:
+        return [note_row(_("Contingency table"), n, "Needs at least two levels of each variable with counts.")]
+
+    rows: list[dict[str, Any]] = []
+    # By position, as the rest of this module reads SciPy's results: the
+    # stubs declare them as tuples.
+    statistic, pvalue, dof_raw, expected_raw = cast(tuple[Any, Any, Any, Any], stats.chi2_contingency(counts, correction=False))
+    expected = np.asarray(expected_raw, dtype=float)
+    small = float(np.mean(expected < 5.0))
+    caution = "; expected counts too small - read Fisher" if small > 0.2 or np.any(expected < 1.0) else ""
+    dof = int(dof_raw)
+    chi2 = float(statistic)
+    cramer = float(np.sqrt(chi2 / (counts.sum() * (min(counts.shape) - 1)))) if counts.sum() > 0 else np.nan
+    rows.append(result_row(
+        _("Pearson chi-squared"), n, chi2, float(pvalue), f"df = {dof}; Cramér's V = {cramer:.3g}{caution}",
+    ))
+    if counts.shape == (2, 2):
+        yates = stats.chi2_contingency(counts, correction=True)
+        rows.append(result_row(_("Chi-squared, Yates' correction"), n, _statistic(yates), _pvalue(yates), "df = 1"))
+    likelihood = stats.chi2_contingency(counts, correction=False, lambda_="log-likelihood")
+    rows.append(result_row(_("Likelihood-ratio G"), n, _statistic(likelihood), _pvalue(likelihood), f"df = {dof}"))
+
+    integers = np.rint(counts)
+    if not np.allclose(integers, counts):
+        rows.append(note_row(_("Fisher exact"), n, "Needs whole counts."))
+    elif counts.shape == (2, 2):
+        fisher = stats.fisher_exact(integers.astype(int))
+        rows.append(result_row(_("Fisher exact"), n, _statistic(fisher), _pvalue(fisher), "statistic: odds ratio"))
+    else:
+        method = stats.MonteCarloMethod(n_resamples=FISHER_RESAMPLES, rng=np.random.default_rng(FISHER_SEED))
+        fisher = stats.fisher_exact(integers.astype(int), method=method)
+        rows.append(result_row(
+            _("Fisher exact"), n, _statistic(fisher), _pvalue(fisher),
+            f"Monte Carlo, {FISHER_RESAMPLES} tables; statistic: probability of the table",
+        ))
+    return rows
+
+
+# ----------------------------------------------------------------------
+# Two-way ANOVA (todo R-04)
+# ----------------------------------------------------------------------
+def two_way_anova(first: Any, second: Any, response: Any) -> dict[str, Any]:
+    """Two factors and their interaction on one response: Type II ANOVA.
+
+    Type II sums of squares - each main effect adjusted for the other, the
+    interaction for both - which are what SPSS-like Type III give on a
+    balanced design and the sound choice on an unbalanced one (car::Anova's
+    default). Returns ``table`` (rows: source, ss, df, ms, F, p, partial
+    eta²), ``n``, ``balanced`` and ``note``; raises ValueError when the
+    design cannot be fitted.
+    """
+    from statsmodels.formula.api import ols
+    from statsmodels.stats.anova import anova_lm
+
+    frame = pd.DataFrame({
+        "a": np.asarray(first, dtype=object),
+        "b": np.asarray(second, dtype=object),
+        "y": np.asarray(response, dtype=float),
+    })
+    frame = frame[frame["a"].notna() & frame["b"].notna() & np.isfinite(frame["y"].to_numpy(dtype=float))]
+    frame["a"] = frame["a"].astype(str)
+    frame["b"] = frame["b"].astype(str)
+    if frame["a"].nunique() < 2 or frame["b"].nunique() < 2:
+        raise ValueError("Each factor needs at least two levels.")
+    cells = frame.groupby(["a", "b"]).size()
+    if len(cells) < frame["a"].nunique() * frame["b"].nunique():
+        raise ValueError("Some combinations of the two factors have no values: the interaction cannot be estimated.")
+    if len(frame) <= len(cells):
+        raise ValueError("Needs more than one value in some cell, to estimate the error.")
+
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            model = ols("y ~ C(a) * C(b)", data=frame).fit()
+            table = anova_lm(model, typ=2)
+    except NUMERICAL_FAILURES as exc:
+        raise ValueError(f"The two-way ANOVA could not be fitted: {exc}") from exc
+
+    # Plain floats by source: the pandas scalars do not type as numbers.
+    values: dict[Any, dict[Any, Any]] = table.astype(float).to_dict(orient="index")
+    residual_ss = float(values["Residual"]["sum_sq"])
+    names = {"C(a)": "A", "C(b)": "B", "C(a):C(b)": "A × B", "Residual": "Residual"}
+    rows = []
+    for key, label in names.items():
+        ss = float(values[key]["sum_sq"])
+        df = float(values[key]["df"])
+        is_error = key == "Residual"
+        rows.append({
+            "source": label,
+            "ss": ss,
+            "df": int(round(df)),
+            "ms": ss / df if df > 0 else np.nan,
+            "F": np.nan if is_error else float(values[key]["F"]),
+            "pvalue": np.nan if is_error else float(values[key]["PR(>F)"]),
+            "partial_eta2": np.nan if is_error else ss / (ss + residual_ss),
+        })
+    balanced = bool(cells.nunique() == 1)
+    return {
+        "table": rows,
+        "n": int(len(frame)),
+        "balanced": balanced,
+        "note": "Type II sums of squares" + ("" if balanced else "; unbalanced design"),
+    }
+
+
+# ----------------------------------------------------------------------
+# Survival (todo R-04)
+# ----------------------------------------------------------------------
+def survival_summary(time: Any, event: Any, groups: Any = None, *, confidence: float = 0.95) -> dict[str, Any]:
+    """Kaplan-Meier per group, with medians, and the log-rank test between them.
+
+    Returns ``groups`` (rows: group, n, events, censored, median, median_low,
+    median_high) and ``logrank`` (a test row, or None with one group). The
+    median's interval is where the curve's confidence band crosses 50%.
+    """
+    from app.analysis.diagnostics import kaplan_meier, log_rank
+
+    times = np.asarray(time, dtype=float)
+    events = np.asarray(event, dtype=float)
+    labels = np.full(times.shape, "", dtype=object) if groups is None else np.asarray(groups, dtype=object)
+    ordered = [value for value in dict.fromkeys(labels.tolist()) if value is not None and value == value]
+    rows: list[dict[str, Any]] = []
+    pairs: list[tuple[np.ndarray, np.ndarray]] = []
+    for value in ordered:
+        mask = np.array([label == value for label in labels.tolist()], dtype=bool)
+        curve = kaplan_meier(times[mask], events[mask], confidence=confidence)
+        rows.append({
+            "group": str(value),
+            "n": curve.n,
+            "events": int(curve.events.sum()),
+            "censored": int(curve.censored_time.size),
+            "median": curve.median,
+            "median_low": _first_time_at_or_below(curve.time, curve.lower, 0.5),
+            "median_high": _first_time_at_or_below(curve.time, curve.upper, 0.5),
+        })
+        pairs.append((times[mask], events[mask]))
+    logrank = None
+    if len(pairs) > 1:
+        try:
+            test = log_rank(pairs)
+            logrank = result_row(_("Log-rank"), int(sum(row["n"] for row in rows)), test.statistic, test.pvalue, f"df = {test.dof}")
+        except ValueError as exc:
+            logrank = note_row(_("Log-rank"), int(sum(row["n"] for row in rows)), str(exc))
+    return {"groups": rows, "logrank": logrank}
+
+
+def _first_time_at_or_below(times: np.ndarray, values: np.ndarray, level: float) -> float:
+    below = np.nonzero(np.asarray(values) <= level)[0]
+    return float(times[below[0]]) if below.size else float("nan")

@@ -6490,8 +6490,8 @@ msgstr "{w} × {h} pixel"
 msgid "Diagnostic plots - Q-Q, survival, forest, mosaic and more"
 msgstr "Grafici diagnostici - Q-Q, sopravvivenza, forest, mosaico e altro"
 
-msgid "The seven diagnostic charts on the data they were made for: a pair plot, an interaction plot, a mosaic and a normal Q-Q plot of the Palmer penguins, a P-P plot of Michelson's speed of light, Kaplan-Meier curves of the 6-MP leukaemia trial and a forest plot of the thirteen BCG vaccine trials - each with what to look for."
-msgstr "I sette grafici diagnostici sui dati per cui sono nati: una matrice di dispersione, un grafico di interazione, un mosaico e un Q-Q normale dei pinguini di Palmer, un P-P della velocità della luce di Michelson, le curve di Kaplan-Meier dello studio 6-MP sulla leucemia e un forest plot dei tredici studi sul vaccino BCG - ciascuno con cosa osservare."
+msgid "The seven diagnostic charts on the data they were made for: a pair plot, an interaction plot, a mosaic and a normal Q-Q plot of the Palmer penguins, a P-P plot of Michelson's speed of light, Kaplan-Meier curves of the 6-MP leukaemia trial and a forest plot of the thirteen BCG vaccine trials - each with what to look for and the Statistics model that tests it."
+msgstr "I sette grafici diagnostici sui dati per cui sono nati: una matrice di dispersione, un grafico di interazione, un mosaico e un Q-Q normale dei pinguini di Palmer, un P-P della velocità della luce di Michelson, le curve di Kaplan-Meier dello studio 6-MP sulla leucemia e un forest plot dei tredici studi sul vaccino BCG - ciascuno con cosa osservare e il modello di Statistics che lo verifica."
 
 msgid "Project history"
 msgstr "Storico del progetto"
@@ -6504,3 +6504,54 @@ msgstr "Nessuna operazione è stata applicata in questo progetto da quando ha in
 
 msgid "Every operation applied in this project, oldest first: what was run, on which series, with which settings"
 msgstr "Ogni operazione applicata in questo progetto, dalla più vecchia: cosa è stato eseguito, su quali serie, con quali impostazioni"
+
+msgid "All"
+msgstr "Tutti"
+
+msgid "All groups"
+msgstr "Tutti i gruppi"
+
+msgid "Chi-squared, Yates' correction"
+msgstr "Chi-quadro, correzione di Yates"
+
+msgid "Contingency table"
+msgstr "Tabella di contingenza"
+
+msgid "Contingency table (chi-squared, Fisher)"
+msgstr "Tabella di contingenza (chi-quadro, Fisher)"
+
+msgid "Fisher exact"
+msgstr "Test esatto di Fisher"
+
+msgid "Likelihood-ratio G"
+msgstr "Rapporto di verosimiglianza G"
+
+msgid "Log-rank"
+msgstr "Log-rank"
+
+msgid "Not analysed: this model needs {needs}."
+msgstr "Non analizzata: questo modello richiede {needs}."
+
+msgid "Pearson chi-squared"
+msgstr "Chi-quadro di Pearson"
+
+msgid "Survival"
+msgstr "Sopravvivenza"
+
+msgid "Survival (Kaplan-Meier, log-rank)"
+msgstr "Sopravvivenza (Kaplan-Meier, log-rank)"
+
+msgid "Two-way ANOVA"
+msgstr "ANOVA a due vie"
+
+msgid "a time and an event column: the time and event roles (a Kaplan-Meier series), with an optional group"
+msgstr "una colonna di tempo e una di evento: i ruoli time ed event (una serie Kaplan-Meier), con un gruppo facoltativo"
+
+msgid "not reached"
+msgstr "non raggiunta"
+
+msgid "two categorical columns: the x and y roles (a Mosaic Plot's series), or columns named x and y"
+msgstr "due colonne di categorie: i ruoli x e y (la serie di un grafico a mosaico), o colonne chiamate x e y"
+
+msgid "two factors and a response: the x, trace (or group) and y roles (an Interaction Plot's series)"
+msgstr "due fattori e una risposta: i ruoli x, trace (o group) e y (la serie di un grafico di interazione)"

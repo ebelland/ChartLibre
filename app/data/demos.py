@@ -44,11 +44,20 @@ class DemoProject:
     #: not a selection of figures - the Series Operations one runs the
     #: operations' dialogs. Empty: built from ``figures`` as usual.
     builder: str = ""
+    #: The figure the Load demo dialog pictures, by (part of) its name; the
+    #: first figure when empty.
+    preview: str = ""
 
     @property
     def path_name(self) -> str:
         """Return the file name with its extension."""
         return f"{self.file_name}.dhub"
+
+    @property
+    def preview_path(self) -> Path:
+        """A picture of the project's first figure, for the Load demo dialog
+        (dev/demo/demo_previews.py)."""
+        return DEMO_DIR / "previews" / f"{self.file_name}.png"
 
     @property
     def source_path(self) -> Path:
@@ -68,6 +77,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "Twenty datasets, twenty-nine figures across every chart type "
         "and six multi-axis layouts, and one saved query.",
         (),
+        preview="Penguin flipper length - spread",
     ),
     DemoProject(
         "Antibiotics - grouped bars from a classic dataset",
@@ -298,6 +308,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "a one-way ANOVA - each with its certified values under the chart.",
         (),
         builder="dev.demo.nist_demo:build_nist_demo",
+        preview="NIST Gauss3",
     ),
     DemoProject(
         "Diagnostic plots - Q-Q, survival, forest, mosaic and more",
@@ -305,7 +316,8 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "pair plot, an interaction plot, a mosaic and a normal Q-Q plot of "
         "the Palmer penguins, a P-P plot of Michelson's speed of light, "
         "Kaplan-Meier curves of the 6-MP leukaemia trial and a forest plot "
-        "of the thirteen BCG vaccine trials - each with what to look for.",
+        "of the thirteen BCG vaccine trials - each with what to look for and "
+        "the Statistics model that tests it.",
         (),
         builder="dev.demo.diagnostics_demo:build_diagnostics_demo",
     ),
