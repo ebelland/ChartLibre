@@ -129,3 +129,9 @@ def test_a_stop_request_ends_the_fit(optimizer) -> None:
             optimizer=optimizer, should_stop=stop_after_five,
         )
     assert calls["n"] == 6
+
+
+def test_an_unknown_optimizer_is_an_error_even_for_a_linear_model() -> None:
+    """A line is solved exactly without an optimiser; a misspelt one is still caught."""
+    with pytest.raises(ValueError, match="Unknown optimizer"):
+        fit.fit_curve(lambda x, p: p[0] * x, MISRA1A_X, MISRA1A_Y, np.array([1.0]), optimizer="levenberg-marquardt")

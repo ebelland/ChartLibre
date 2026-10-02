@@ -232,8 +232,15 @@ def run_optimizer(
     seed: int | None = None,
     iterations: int = 20_000,
 ) -> FitOutcome:
-    """Minimise ``sum(residual(p)**2)`` from *p0*, with the named method."""
-    optimizer = BY_KEY.get(str(key), BY_KEY[DEFAULT_OPTIMIZER])
+    """Minimise ``sum(residual(p)**2)`` from *p0*, with the named method.
+
+    An unknown *key* is a ValueError naming the known ones. It used to fall
+    back to the trust region quietly, so a misspelt method ran - and was
+    reported as - a different one (todo R-13).
+    """
+    optimizer = BY_KEY.get(str(key))
+    if optimizer is None:
+        raise ValueError(f"Unknown optimizer {key!r}: use one of {', '.join(BY_KEY)}.")
     start = np.asarray(p0, dtype=float).ravel()
     low = np.asarray(lower, dtype=float).ravel()
     high = np.asarray(upper, dtype=float).ravel()

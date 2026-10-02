@@ -336,6 +336,9 @@ def fit_curve(
     returns True the fit raises :class:`FitStopped` - how a fit running in
     the background is stopped.
     """
+    if optimizer not in BY_KEY:
+        # Before the exact linear path too, which never reaches an optimiser.
+        raise ValueError(f"Unknown optimizer {optimizer!r}: use one of {', '.join(BY_KEY)}.")
     p0 = np.asarray(p0, dtype=float)
     n_params = p0.size
     lower = np.full(n_params, -np.inf) if lower is None else np.asarray(lower, dtype=float)

@@ -100,6 +100,13 @@ def test_every_algorithm_recovers_a_known_curve(optimizer: str) -> None:
     assert np.allclose(outcome.params, DECAY_TRUTH, atol=1e-4)
 
 
+def test_an_unknown_algorithm_is_named_not_replaced() -> None:
+    """A misspelt key used to run the trust region and report it as such."""
+    _y, residual = _decay_residual()
+    with pytest.raises(ValueError, match="levenberg-marquardt"):
+        run_optimizer("levenberg-marquardt", residual, [1.0, 1.0, 0.0], [-np.inf] * 3, [np.inf] * 3)
+
+
 def test_a_robust_loss_survives_outliers_that_drag_least_squares() -> None:
     """A squared residual weights a point ten times off a hundred times more
     than a point one off, so a handful of bad points move the whole line."""
