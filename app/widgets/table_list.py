@@ -1,4 +1,4 @@
-"""Panel showing the list of user tables (Table / Link / File / Notes)."""
+"""Panel showing the list of user tables (Table / Notes / Link / Source)."""
 
 from __future__ import annotations
 
@@ -139,14 +139,14 @@ class _TableListModel(QStandardItemModel):
 # Panel
 # ---------------------------------------------------------------------------
 class TableListPanel(QWidget):
-    """Panel: list of user tables with Table / Link / File / Notes columns."""
+    """Panel: list of user tables with Table / Notes / Link / Source columns."""
 
     tableSelected = PySide6.QtCore.Signal(str)
 
     COL_TABLE = 0
-    COL_HAS_LINK = 1
-    COL_FILE = 2
-    COL_NOTES = 3
+    COL_NOTES = 1
+    COL_HAS_LINK = 2
+    COL_FILE = 3
 
     ROLE_TABLE_NAME = PySide6.QtCore.Qt.ItemDataRole.UserRole + 1
     ROLE_HAS_LINK = PySide6.QtCore.Qt.ItemDataRole.UserRole
@@ -224,7 +224,7 @@ class TableListPanel(QWidget):
         model = _TableListModel(self)
         model.setColumnCount(4)
         model.setHorizontalHeaderLabels(
-            [_("Table"), _("Link"), _("Source"), _("Notes")]
+            [_("Table"), _("Notes"), _("Link"), _("Source")]
         )
         return model
 
@@ -244,7 +244,7 @@ class TableListPanel(QWidget):
         hh.setSectionResizeMode(self.COL_NOTES, QHeaderView.ResizeMode.Interactive)
         hh.resizeSection(self.COL_TABLE, 180)
         hh.resizeSection(self.COL_FILE, 240)
-        hh.resizeSection(self.COL_NOTES, 260)
+        hh.resizeSection(self.COL_NOTES, 200)
         hh.setMinimumSectionSize(36)
         hh.setSectionsMovable(False)
         hh.setHighlightSections(False)
@@ -371,7 +371,7 @@ class TableListPanel(QWidget):
         for item in (it_table, it_link, it_file, it_notes):
             item.setFlags(item.flags() | PySide6.QtCore.Qt.ItemFlag.ItemIsSelectable | PySide6.QtCore.Qt.ItemFlag.ItemIsEnabled)
 
-        return [it_table, it_link, it_file, it_notes]
+        return [it_table, it_notes, it_link, it_file]
 
     @property
     def current(self) -> str | None:
