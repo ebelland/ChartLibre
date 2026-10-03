@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from app.analysis import outliers as ol
+from dev.tests._cases import check_all
 
 RNG = np.random.default_rng(4)
 X = np.linspace(0.0, 5.0, 100)
@@ -13,20 +14,32 @@ PLANTED = [17, 52, 88]
 Y[PLANTED] += [3.0, -3.5, 2.5]
 
 
-@pytest.mark.parametrize("method", [ol.OUTLIER_ZSCORE, ol.OUTLIER_IQR, ol.OUTLIER_MAD, ol.OUTLIER_ROLLING])
-def test_the_y_detectors_find_exactly_the_planted_points(method: str) -> None:
+_CASES_THE_Y_DETECTORS_FIND_EXACTLY_THE_PLANTED_POINTS = [(case,) for case in [ol.OUTLIER_ZSCORE, ol.OUTLIER_IQR, ol.OUTLIER_MAD, ol.OUTLIER_ROLLING]]
+
+
+def _the_y_detectors_find_exactly_the_planted_points(method: str) -> None:
     settings = ol.OutlierSettings(threshold=4.0, iqr_factor=3.0)
     assert np.flatnonzero(ol.outlier_mask(method, X, Y, settings)).tolist() == PLANTED
 
 
-@pytest.mark.parametrize("method", sorted(ol.SHAPE_AWARE))
-def test_the_shape_aware_detectors_flag_the_planted_points(method: str) -> None:
+def test_the_y_detectors_find_exactly_the_planted_points() -> None:
+    check_all(_the_y_detectors_find_exactly_the_planted_points, _CASES_THE_Y_DETECTORS_FIND_EXACTLY_THE_PLANTED_POINTS)
+
+
+_CASES_THE_SHAPE_AWARE_DETECTORS_FLAG_THE_PLANTED_POINTS = [(case,) for case in sorted(ol.SHAPE_AWARE)]
+
+
+def _the_shape_aware_detectors_flag_the_planted_points(method: str) -> None:
     # nu bounds the One-Class SVM's error fraction from above: kept small, so
     # the planted points are what it gives up.
     settings = ol.OutlierSettings(contamination=0.03, nu=0.01, n_neighbors=10)
     found = set(np.flatnonzero(ol.outlier_mask(method, X, Y, settings)).tolist())
     assert len(found & set(PLANTED)) >= 2
     assert len(found) <= 8
+
+
+def test_the_shape_aware_detectors_flag_the_planted_points() -> None:
+    check_all(_the_shape_aware_detectors_flag_the_planted_points, _CASES_THE_SHAPE_AWARE_DETECTORS_FLAG_THE_PLANTED_POINTS)
 
 
 def test_a_flat_series_has_no_outliers() -> None:
@@ -56,13 +69,19 @@ def test_a_shape_aware_detector_catches_a_point_off_the_curve_that_y_alone_misse
     assert lof[30]
 
 
-@pytest.mark.parametrize("method", sorted(ol.SHAPE_AWARE))
-def test_the_shape_aware_detectors_do_not_depend_on_the_units(method: str) -> None:
+_CASES_THE_SHAPE_AWARE_DETECTORS_DO_NOT_DEPEND_ON_THE_UNITS = [(case,) for case in sorted(ol.SHAPE_AWARE)]
+
+
+def _the_shape_aware_detectors_do_not_depend_on_the_units(method: str) -> None:
     """The same cloud with x in seconds since 1970: y must still count."""
     settings = ol.OutlierSettings(contamination=0.03, nu=0.01, n_neighbors=10)
     found = set(np.flatnonzero(ol.outlier_mask(method, 1.7e9 + X * 86_400.0, Y, settings)).tolist())
     assert len(found & set(PLANTED)) >= 2
     assert len(found) <= 8
+
+
+def test_the_shape_aware_detectors_do_not_depend_on_the_units() -> None:
+    check_all(_the_shape_aware_detectors_do_not_depend_on_the_units, _CASES_THE_SHAPE_AWARE_DETECTORS_DO_NOT_DEPEND_ON_THE_UNITS)
 
 
 def test_robust_scaling_puts_each_column_on_its_own_spread() -> None:

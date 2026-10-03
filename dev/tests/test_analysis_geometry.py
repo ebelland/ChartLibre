@@ -8,6 +8,7 @@ import pytest
 from scipy.spatial.transform import Rotation
 
 from app.analysis import geometry as g
+from dev.tests._cases import check_all
 
 
 def test_3d_rotation_matches_scipy_xyz_euler() -> None:
@@ -39,8 +40,10 @@ def test_composition_equals_applying_one_after_the_other() -> None:
         np.testing.assert_allclose(a, b, atol=1e-10)
 
 
-@pytest.mark.parametrize("dims", [2, 3])
-def test_the_sql_computes_what_numpy_computes(dims: int) -> None:
+_CASES_THE_SQL_COMPUTES_WHAT_NUMPY_COMPUTES = [(case,) for case in [2, 3]]
+
+
+def _the_sql_computes_what_numpy_computes(dims: int) -> None:
     rng = np.random.default_rng(5)
     points = rng.normal(size=(dims, 12)) * 10
     matrix = g.rotation_3d(15, -30, 70) if dims == 3 else g.rotation_2d(33) @ g.shear_xy(0.2, 0)
@@ -53,6 +56,10 @@ def test_the_sql_computes_what_numpy_computes(dims: int) -> None:
     rows = np.array(con.execute(f"SELECT {', '.join(expressions)} FROM p").fetchall()).T
     expected = motion.apply(*points)
     np.testing.assert_allclose(rows, np.vstack(expected), atol=1e-8)
+
+
+def test_the_sql_computes_what_numpy_computes() -> None:
+    check_all(_the_sql_computes_what_numpy_computes, _CASES_THE_SQL_COMPUTES_WHAT_NUMPY_COMPUTES)
 
 
 def test_a_translation_reads_as_a_translation() -> None:

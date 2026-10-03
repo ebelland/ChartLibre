@@ -12,6 +12,7 @@ import pytest
 import app.series_operations as package
 from app.series_operations.filter_dialog import FilterResult
 from app.series_operations.results import OperationResult, TableResult
+from dev.tests._cases import check_all
 
 
 def _result_classes() -> list[type]:
@@ -26,10 +27,16 @@ def _result_classes() -> list[type]:
     return found
 
 
-@pytest.mark.parametrize("cls", _result_classes(), ids=lambda cls: cls.__name__)
-def test_every_result_is_a_complete_operation_result(cls: type) -> None:
+_CASES_EVERY_RESULT_IS_A_COMPLETE_OPERATION_RESULT = [(case,) for case in _result_classes()]
+
+
+def _every_result_is_a_complete_operation_result(cls: type) -> None:
     assert issubclass(cls, OperationResult)
     assert not inspect.isabstract(cls), f"{cls.__name__} leaves {cls.__abstractmethods__} unimplemented"
+
+
+def test_every_result_is_a_complete_operation_result() -> None:
+    check_all(_every_result_is_a_complete_operation_result, _CASES_EVERY_RESULT_IS_A_COMPLETE_OPERATION_RESULT)
 
 
 def test_a_table_result_must_say_what_its_table_is() -> None:

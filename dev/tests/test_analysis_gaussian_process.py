@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from app.analysis import gaussian_process as gp
+from dev.tests._cases import check_all
 
 RNG = np.random.default_rng(6)
 X = np.linspace(0.0, 10.0, 60)
@@ -26,16 +27,19 @@ def _quiet_convergence_warnings():
         yield
 
 
-@pytest.mark.parametrize(
-    "kernel",
-    [gp.KERNEL_RBF, gp.KERNEL_MATERN_32, gp.KERNEL_MATERN_52, gp.KERNEL_RATIONAL_QUADRATIC],
-)
-def test_every_kernel_follows_a_smooth_curve(kernel: str) -> None:
+_CASES_EVERY_KERNEL_FOLLOWS_A_SMOOTH_CURVE = [(case,) for case in [gp.KERNEL_RBF, gp.KERNEL_MATERN_32, gp.KERNEL_MATERN_52, gp.KERNEL_RATIONAL_QUADRATIC]]
+
+
+def _every_kernel_follows_a_smooth_curve(kernel: str) -> None:
     fit = gp.fit_gaussian_process(kernel, X, Y)
     truth = np.sin(fit.x)
     assert np.mean((fit.mean - truth) ** 2) < 0.02
     assert fit.x.size == gp.GRID_POINTS
     assert np.all(fit.upper >= fit.mean) and np.all(fit.lower <= fit.mean)
+
+
+def test_every_kernel_follows_a_smooth_curve() -> None:
+    check_all(_every_kernel_follows_a_smooth_curve, _CASES_EVERY_KERNEL_FOLLOWS_A_SMOOTH_CURVE)
 
 
 def test_the_band_is_two_sigmas_wide_and_holds_the_truth_most_of_the_time() -> None:

@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from app.utils.distribution_fit import best_fit, curve_points, fit_distributions, fit_one
+from dev.tests._cases import check_all
 
 RNG = np.random.default_rng(11)
 
@@ -35,21 +36,24 @@ def test_a_degenerate_sample_is_dropped_not_raised() -> None:
 # ----------------------------------------------------------------------
 # Ranking
 # ----------------------------------------------------------------------
-@pytest.mark.parametrize(
-    ("family", "sample"),
-    [
+_CASES_A_SAMPLE_RANKS_ITS_OWN_FAMILY_AT_THE_TOP = [
         ("norm", RNG.normal(10.0, 2.0, 3000)),
         ("lognorm", RNG.lognormal(1.0, 0.5, 3000)),
         ("expon", RNG.exponential(3.0, 3000)),
         ("uniform", RNG.uniform(0.0, 1.0, 3000)),
-    ],
-)
-def test_a_sample_ranks_its_own_family_at_the_top(family: str, sample) -> None:
+    ]
+
+
+def _a_sample_ranks_its_own_family_at_the_top(family: str, sample) -> None:
     """The one claim the ranking has to earn, and only AIC earns it."""
     fits = fit_distributions(sample)
 
     assert fits, "nothing fitted at all"
     assert fits[0].name == family
+
+
+def test_a_sample_ranks_its_own_family_at_the_top() -> None:
+    check_all(_a_sample_ranks_its_own_family_at_the_top, _CASES_A_SAMPLE_RANKS_ITS_OWN_FAMILY_AT_THE_TOP)
 
 
 # ----------------------------------------------------------------------

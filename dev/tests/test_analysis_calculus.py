@@ -5,14 +5,21 @@ import numpy as np
 import pytest
 
 from app.analysis import calculus as calc
+from dev.tests._cases import check_all
 
 X = np.linspace(0.0, 2.0 * np.pi, 201)
 
 
-@pytest.mark.parametrize("method", [calc.DERIVATIVE_SAVGOL, calc.DERIVATIVE_GRADIENT, calc.DERIVATIVE_SPLINE])
-def test_the_derivative_of_sine_is_cosine(method: str) -> None:
+_CASES_THE_DERIVATIVE_OF_SINE_IS_COSINE = [(case,) for case in [calc.DERIVATIVE_SAVGOL, calc.DERIVATIVE_GRADIENT, calc.DERIVATIVE_SPLINE]]
+
+
+def _the_derivative_of_sine_is_cosine(method: str) -> None:
     derivative = calc.differentiate(method, X, np.sin(X), window=11, polyorder=3)
     np.testing.assert_allclose(derivative.values[10:-10], np.cos(X[10:-10]), atol=2e-3)
+
+
+def test_the_derivative_of_sine_is_cosine() -> None:
+    check_all(_the_derivative_of_sine_is_cosine, _CASES_THE_DERIVATIVE_OF_SINE_IS_COSINE)
 
 
 def test_the_second_derivative_of_a_parabola_is_constant() -> None:

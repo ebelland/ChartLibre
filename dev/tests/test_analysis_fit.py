@@ -11,6 +11,7 @@ import pytest
 import statsmodels.api as sm
 
 from app.analysis import fit
+from dev.tests._cases import check_all
 
 MISRA1A_X = np.array([77.6, 114.9, 141.1, 190.8, 239.9, 289.0, 332.8, 378.4, 434.8, 477.3, 536.8, 593.1, 689.1, 760.0])
 MISRA1A_Y = np.array([10.07, 14.73, 17.94, 23.93, 29.61, 35.18, 40.02, 44.82, 50.76, 55.05, 61.01, 66.40, 75.47, 81.78])
@@ -23,14 +24,20 @@ def misra1a(x: np.ndarray, p: np.ndarray) -> np.ndarray:
     return p[0] * (1.0 - np.exp(-p[1] * np.asarray(x, dtype=float)))
 
 
-@pytest.mark.parametrize("start", [(500.0, 1e-4), (250.0, 5e-4)])
-def test_misra1a_matches_the_certified_values(start) -> None:
+_CASES_MISRA1A_MATCHES_THE_CERTIFIED_VALUES = [(case,) for case in [(500.0, 1e-4), (250.0, 5e-4)]]
+
+
+def _misra1a_matches_the_certified_values(start) -> None:
     result = fit.fit_curve(misra1a, MISRA1A_X, MISRA1A_Y, np.array(start))
     assert result.success
     np.testing.assert_allclose(result.params, CERTIFIED, rtol=1e-6)
     np.testing.assert_allclose(result.std, CERTIFIED_STD, rtol=1e-4)
     assert result.metrics["ss_res"] == pytest.approx(CERTIFIED_SS_RES, rel=1e-6)
     assert result.dof == 12
+
+
+def test_misra1a_matches_the_certified_values() -> None:
+    check_all(_misra1a_matches_the_certified_values, _CASES_MISRA1A_MATCHES_THE_CERTIFIED_VALUES)
 
 
 def test_parameter_inference_uses_student_t() -> None:
@@ -113,8 +120,10 @@ def test_a_band_series_is_drawn_as_a_filled_region() -> None:
     assert len(fills) == 1 and fills[0].get_label() == "95% band"
 
 
-@pytest.mark.parametrize("optimizer", ["trf", "nelder-mead", "monte-carlo", "differential-evolution"])
-def test_a_stop_request_ends_the_fit(optimizer) -> None:
+_CASES_A_STOP_REQUEST_ENDS_THE_FIT = [(case,) for case in ["trf", "nelder-mead", "monte-carlo", "differential-evolution"]]
+
+
+def _a_stop_request_ends_the_fit(optimizer) -> None:
     """Every family: least squares, a simplex, and the global searches that
     catch every error a sample raises - the stop has to get through them."""
     calls = {"n": 0}
@@ -129,6 +138,10 @@ def test_a_stop_request_ends_the_fit(optimizer) -> None:
             optimizer=optimizer, should_stop=stop_after_five,
         )
     assert calls["n"] == 6
+
+
+def test_a_stop_request_ends_the_fit() -> None:
+    check_all(_a_stop_request_ends_the_fit, _CASES_A_STOP_REQUEST_ENDS_THE_FIT)
 
 
 def test_an_unknown_optimizer_is_an_error_even_for_a_linear_model() -> None:

@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 from app.series_operations.roots_dialog import INTERP_LINEAR, ROOT_BRENT, ROOT_MODELS, SeriesRootsDialog
+from dev.tests._cases import check_all
 
 
 def _bare() -> SeriesRootsDialog:
@@ -53,12 +54,18 @@ SINE_ZEROS = np.array([0.0, np.pi, 2.0 * np.pi, 3.0 * np.pi])
 # ======================================================================
 # What is found
 # ======================================================================
-@pytest.mark.parametrize("model", ROOT_MODELS)
-def test_every_solver_finds_the_zeros_of_a_sine(model: str) -> None:
+_CASES_EVERY_SOLVER_FINDS_THE_ZEROS_OF_A_SINE = [(case,) for case in ROOT_MODELS]
+
+
+def _every_solver_finds_the_zeros_of_a_sine(model: str) -> None:
     result = _solve(SINE_X, SINE_Y, model)
 
     assert len(result.roots) == len(SINE_ZEROS)
     assert np.allclose([root.x for root in result.roots], SINE_ZEROS, atol=1e-5)
+
+
+def test_every_solver_finds_the_zeros_of_a_sine() -> None:
+    check_all(_every_solver_finds_the_zeros_of_a_sine, _CASES_EVERY_SOLVER_FINDS_THE_ZEROS_OF_A_SINE)
 
 
 def test_a_series_that_never_reaches_the_level_has_no_roots() -> None:

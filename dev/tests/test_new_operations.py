@@ -18,6 +18,7 @@ from app.series_operations.calculus_dialog import BASELINE_NONE, DERIV_GRADIENT,
 from app.series_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SPC_CONSTANTS, SeriesControlChartDialog
 from app.analysis.function_plot import SPACING_LINEAR, build_range
 from app.series_operations.peaks_dialog import PEAKS_MAXIMA, SeriesPeaksDialog
+from dev.tests._cases import check_all
 
 
 T = TypeVar("T")
@@ -42,17 +43,20 @@ X = np.linspace(0.0, 2.0 * np.pi, 201)
 Y = np.sin(X)
 
 
-@pytest.mark.parametrize(
-    "model, params, tolerance",
-    [
+_CASES_THE_DERIVATIVE_OF_SINE_IS_COSINE = [
         (DERIV_GRADIENT, {"order": 1}, 1e-3),
         (DERIV_SAVGOL, {"order": 1, "window": 11, "polyorder": 3}, 1e-3),
         (DERIV_SPLINE, {"order": 1, "smoothing": 0}, 1e-5),
-    ],
-)
-def test_the_derivative_of_sine_is_cosine(model, params, tolerance) -> None:
+    ]
+
+
+def _the_derivative_of_sine_is_cosine(model, params, tolerance) -> None:
     result = _bare(SeriesCalculusDialog)._differentiate("s", X, Y, model, params)
     assert np.max(np.abs(result.y - np.cos(X))) < tolerance
+
+
+def test_the_derivative_of_sine_is_cosine() -> None:
+    check_all(_the_derivative_of_sine_is_cosine, _CASES_THE_DERIVATIVE_OF_SINE_IS_COSINE)
 
 
 # ======================================================================

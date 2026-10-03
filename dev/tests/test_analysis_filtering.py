@@ -14,6 +14,7 @@ import pytest
 from app.analysis import filtering as flt
 from app.analysis.filtering import analytic_signal, apply_detrend, apply_fir_filter, apply_iir_filter
 from app.analysis.sampling import sampling_frequency
+from dev.tests._cases import check_all
 
 FS = 200.0
 T = np.arange(0.0, 10.0, 1.0 / FS)
@@ -65,11 +66,17 @@ def test_linear_detrend_removes_a_ramp() -> None:
 # ----------------------------------------------------------------------
 # More IIR / FIR
 # ----------------------------------------------------------------------
-@pytest.mark.parametrize("family", list(flt.IIR_FAMILIES))
-def test_every_iir_family_isolates_the_low_tone(family: str) -> None:
+_CASES_EVERY_IIR_FAMILY_ISOLATES_THE_LOW_TONE = [(case,) for case in list(flt.IIR_FAMILIES)]
+
+
+def _every_iir_family_isolates_the_low_tone(family: str) -> None:
     filtered = apply_iir_filter(MIXED, FS, family=family, response="lowpass", order=5, cutoff=10.0,
                                 ripple=0.5, atten=60.0)
     assert filtered[EDGE] == pytest.approx(LOW_TONE[EDGE], abs=0.1)
+
+
+def test_every_iir_family_isolates_the_low_tone() -> None:
+    check_all(_every_iir_family_isolates_the_low_tone, _CASES_EVERY_IIR_FAMILY_ISOLATES_THE_LOW_TONE)
 
 
 def test_a_highpass_keeps_the_fast_tone_and_a_bandpass_only_its_band() -> None:
@@ -89,12 +96,18 @@ def test_a_fir_highpass_with_an_even_tap_count_still_passes_nyquist() -> None:
     assert out[EDGE] == pytest.approx(HIGH_TONE[EDGE], abs=0.1)
 
 
-@pytest.mark.parametrize("cutoff", [0.0, -1.0, FS / 2.0, FS])
-def test_a_cutoff_outside_zero_and_nyquist_is_a_value_error(cutoff: float) -> None:
+_CASES_A_CUTOFF_OUTSIDE_ZERO_AND_NYQUIST_IS_A_VALUE_ERROR = [(case,) for case in [0.0, -1.0, FS / 2.0, FS]]
+
+
+def _a_cutoff_outside_zero_and_nyquist_is_a_value_error(cutoff: float) -> None:
     with pytest.raises(ValueError, match="Nyquist"):
         apply_iir_filter(MIXED, FS, family="butter", response="lowpass", order=2, cutoff=cutoff)
     with pytest.raises(ValueError, match="Nyquist"):
         apply_fir_filter(MIXED, FS, numtaps=51, window="hamming", response="lowpass", cutoff=cutoff)
+
+
+def test_a_cutoff_outside_zero_and_nyquist_is_a_value_error() -> None:
+    check_all(_a_cutoff_outside_zero_and_nyquist_is_a_value_error, _CASES_A_CUTOFF_OUTSIDE_ZERO_AND_NYQUIST_IS_A_VALUE_ERROR)
 
 
 def test_a_band_needs_a_second_cutoff_above_the_first() -> None:

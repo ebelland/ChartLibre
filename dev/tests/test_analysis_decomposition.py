@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from app.analysis import decomposition as dc
+from dev.tests._cases import check_all
 
 GRID = np.linspace(0.0, 10.0, 200)
 SOURCE_A = np.sin(GRID)
@@ -73,11 +74,17 @@ def test_the_reconstruction_from_two_pca_components_is_exact_for_a_rank_two_mixt
     np.testing.assert_allclose(dc.decompose(dc.KIND_PCA, MATRIX, 2).values, scores, atol=1e-9)
 
 
-@pytest.mark.parametrize("kind", sorted(dc.MANIFOLD_KINDS))
-def test_a_manifold_gives_one_2d_point_per_grid_sample(kind: str) -> None:
+_CASES_A_MANIFOLD_GIVES_ONE_2D_POINT_PER_GRID_SAMPLE = [(case,) for case in sorted(dc.MANIFOLD_KINDS)]
+
+
+def _a_manifold_gives_one_2d_point_per_grid_sample(kind: str) -> None:
     embedding = dc.embed(kind, MATRIX)
     assert embedding.x.shape == embedding.y.shape == (200,)
     assert np.all(np.isfinite(embedding.x)) and np.all(np.isfinite(embedding.y))
+
+
+def test_a_manifold_gives_one_2d_point_per_grid_sample() -> None:
+    check_all(_a_manifold_gives_one_2d_point_per_grid_sample, _CASES_A_MANIFOLD_GIVES_ONE_2D_POINT_PER_GRID_SAMPLE)
 
 
 def test_a_perplexity_that_does_not_fit_is_clamped_and_reported() -> None:

@@ -1,17 +1,18 @@
-"""The smoothing engine (app.analysis.smoothing): answers known in advance.
-
-No dialog, no Qt: each method is fed a signal whose smoothed form is known -
-a ramp a moving average must leave alone, a parabola Savitzky-Golay must
-reproduce exactly, a slow tone kept and a fast one removed - so a wrong
-argument or a swapped axis shows up as a wrong number.
-"""
+"""Smoothing: the engine and the moving average."""
 from __future__ import annotations
 
 import numpy as np
 import pytest
-
 from app.analysis import smoothing as sm
+from dev.tests._cases import check_all
+import pandas as pd
+from app.analysis.smoothing import _moving_average
 
+
+# ======================================================================
+# The smoothing engine (app.analysis.smoothing): answers known in advance.
+# (was test_analysis_smoothing.py)
+# ======================================================================
 RNG = np.random.default_rng(11)
 X = np.linspace(0.0, 10.0, 201)
 
@@ -39,14 +40,17 @@ def test_savitzky_golay_reproduces_a_parabola_and_its_derivative() -> None:
     np.testing.assert_allclose(slope[10:-10], 4.0 * X[10:-10] - 1.0, atol=1e-6)
 
 
-@pytest.mark.parametrize(
-    "method",
-    [sm.SMOOTH_GAUSSIAN, sm.SMOOTH_MEDIAN, sm.SMOOTH_MOVING_AVERAGE, sm.SMOOTH_KALMAN,
-     sm.SMOOTH_FFT, sm.SMOOTH_WHITTAKER, sm.SMOOTH_SPLINE],
-)
-def test_a_constant_stays_constant(method: str) -> None:
+_CASES_A_CONSTANT_STAYS_CONSTANT = [(case,) for case in [sm.SMOOTH_GAUSSIAN, sm.SMOOTH_MEDIAN, sm.SMOOTH_MOVING_AVERAGE, sm.SMOOTH_KALMAN,
+     sm.SMOOTH_FFT, sm.SMOOTH_WHITTAKER, sm.SMOOTH_SPLINE]]
+
+
+def _a_constant_stays_constant(method: str) -> None:
     out = _smooth(method, np.full(X.size, 7.5))
     np.testing.assert_allclose(out, 7.5, atol=1e-6)
+
+
+def test_a_constant_stays_constant() -> None:
+    check_all(_a_constant_stays_constant, _CASES_A_CONSTANT_STAYS_CONSTANT)
 
 
 def test_a_median_filter_removes_a_single_spike() -> None:
@@ -92,8 +96,10 @@ def test_whittaker_with_no_penalty_is_the_identity_and_a_huge_one_is_a_line() ->
     np.testing.assert_allclose(stiff, slope * X + intercept, atol=1e-3)
 
 
-@pytest.mark.parametrize("method", [sm.SMOOTH_FFT, sm.SMOOTH_BUTTERWORTH])
-def test_a_low_pass_keeps_the_slow_tone_and_drops_the_fast_one(method: str) -> None:
+_CASES_A_LOW_PASS_KEEPS_THE_SLOW_TONE_AND_DROPS_THE_FAST_ONE = [(case,) for case in [sm.SMOOTH_FFT, sm.SMOOTH_BUTTERWORTH]]
+
+
+def _a_low_pass_keeps_the_slow_tone_and_drops_the_fast_one(method: str) -> None:
     n = 2000
     t = np.arange(n) / n  # one unit long; fs = n
     slow = np.sin(2 * np.pi * 3.0 * t)
@@ -104,6 +110,10 @@ def test_a_low_pass_keeps_the_slow_tone_and_drops_the_fast_one(method: str) -> N
     )
     core = slice(200, -200)
     np.testing.assert_allclose(out[core], slow[core], atol=0.06)
+
+
+def test_a_low_pass_keeps_the_slow_tone_and_drops_the_fast_one() -> None:
+    check_all(_a_low_pass_keeps_the_slow_tone_and_drops_the_fast_one, _CASES_A_LOW_PASS_KEEPS_THE_SLOW_TONE_AND_DROPS_THE_FAST_ONE)
 
 
 def test_wavelet_denoising_lowers_the_error() -> None:
@@ -157,11 +167,10 @@ def test_a_gridded_only_method_refuses_scattered_data() -> None:
         sm.smooth_2d(x, y, x + y, sm.SMOOTH2D_GAUSSIAN, {})
 
 
-@pytest.mark.parametrize(
-    ("dimension", "method"),
-    [(2, sm.SMOOTH2D_TV), (3, sm.SMOOTH3D_FFT), (3, sm.SMOOTH3D_TV)],
-)
-def test_gridded_only_methods_refuse_scattered_points(dimension: int, method: str) -> None:
+_CASES_GRIDDED_ONLY_METHODS_REFUSE_SCATTERED_POINTS = [(2, sm.SMOOTH2D_TV), (3, sm.SMOOTH3D_FFT), (3, sm.SMOOTH3D_TV)]
+
+
+def _gridded_only_methods_refuse_scattered_points(dimension: int, method: str) -> None:
     """These used to report the problem and then smooth the points as if they
     were one long vector - a result with no meaning, drawn as if it had."""
     if method in (sm.SMOOTH2D_TV, sm.SMOOTH3D_TV) and not sm.is_available(method):
@@ -173,6 +182,10 @@ def test_gridded_only_methods_refuse_scattered_points(dimension: int, method: st
             sm.smooth_2d(x, y, values, method, {})
         else:
             sm.smooth_3d(x, y, z, values, method, {})
+
+
+def test_gridded_only_methods_refuse_scattered_points() -> None:
+    check_all(_gridded_only_methods_refuse_scattered_points, _CASES_GRIDDED_ONLY_METHODS_REFUSE_SCATTERED_POINTS)
 
 
 def test_a_3d_gaussian_keeps_a_constant_volume() -> None:
@@ -204,3 +217,32 @@ def test_smooth_series_says_what_a_2d_or_3d_series_lacks() -> None:
 def test_availability_follows_the_optional_packages() -> None:
     assert sm.is_available(sm.SMOOTH_GAUSSIAN)  # SciPy only: always
     assert sm.is_available(sm.SMOOTH_LOWESS) == (sm.sm_lowess is not None)
+
+
+
+# ======================================================================
+# The moving average keeps its level at the ends of the series.
+# (was test_smoothing_moving_average.py)
+# ======================================================================
+_CASES_A_CONSTANT_SERIES_STAYS_CONSTANT_TO_THE_LAST_POINT = [(case,) for case in [True, False]]
+
+
+def _a_constant_series_stays_constant_to_the_last_point(centered: bool) -> None:
+    np.testing.assert_allclose(_moving_average(np.full(30, 120.0), 7, centered), 120.0)
+
+
+def test_a_constant_series_stays_constant_to_the_last_point() -> None:
+    check_all(_a_constant_series_stays_constant_to_the_last_point, _CASES_A_CONSTANT_SERIES_STAYS_CONSTANT_TO_THE_LAST_POINT)
+
+
+_CASES_THE_WINDOW_SHRINKS_AT_THE_ENDS_LIKE_PANDAS = [(case,) for case in [True, False]]
+
+
+def _the_window_shrinks_at_the_ends_like_pandas(centered: bool) -> None:
+    y = np.random.default_rng(3).normal(100.0, 5.0, 60)
+    expected = pd.Series(y).rolling(9, center=centered, min_periods=1).mean().to_numpy()
+    np.testing.assert_allclose(_moving_average(y, 9, centered), expected)
+
+
+def test_the_window_shrinks_at_the_ends_like_pandas() -> None:
+    check_all(_the_window_shrinks_at_the_ends_like_pandas, _CASES_THE_WINDOW_SHRINKS_AT_THE_ENDS_LIKE_PANDAS)

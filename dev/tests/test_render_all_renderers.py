@@ -15,6 +15,7 @@ from app.scanners.axis_renderer_scanner import get_renderer, renderers
 from app.charts.render_figure import render_figure_from_descriptor
 from app.data.sqlite_repo import SqliteRepo
 from dev.tests._figure_factory import SHOWCASE_CHART_TYPES, create_renderer_showcase_db
+from dev.tests._cases import check_all
 
 
 @pytest.fixture(scope="module")
@@ -41,8 +42,10 @@ def test_every_discovered_renderer_is_covered() -> None:
     )
 
 
-@pytest.mark.parametrize("chart_type", SHOWCASE_CHART_TYPES)
-def test_renderer_draws_and_saves(
+_CASES_RENDERER_DRAWS_AND_SAVES = [(case,) for case in SHOWCASE_CHART_TYPES]
+
+
+def _renderer_draws_and_saves(
     chart_type: str,
     showcase: tuple[SqliteRepo, dict[str, int]],
     plots_dir: Path,
@@ -91,3 +94,7 @@ def test_renderer_draws_and_saves(
     if show_plots:
         slug = chart_type.lower().replace(" ", "_")
         _save(fig, plots_dir / "renderers" / f"{slug}.png")
+
+
+def test_renderer_draws_and_saves(showcase, plots_dir, show_plots) -> None:
+    check_all(lambda *case: _renderer_draws_and_saves(**dict(zip(['chart_type'], case)), showcase=showcase, plots_dir=plots_dir, show_plots=show_plots), _CASES_RENDERER_DRAWS_AND_SAVES)

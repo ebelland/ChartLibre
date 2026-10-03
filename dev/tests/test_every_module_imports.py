@@ -14,7 +14,6 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-import pytest
 
 APP_DIR = Path(__file__).resolve().parents[2] / "app"
 
@@ -45,15 +44,20 @@ def test_there_are_modules_to_check() -> None:
     assert len(MODULES) > 20
 
 
-@pytest.mark.parametrize("module_name", MODULES)
-def test_the_module_imports(module_name: str, qapp) -> None:
-    """Import it.
+def test_every_module_imports(qapp) -> None:
+    """Import them all; the failure lists every module that does not import.
 
     ``qapp`` because a few modules touch QtWidgets classes at module scope, and
     constructing those without a QApplication aborts the process rather than
     raising.
     """
-    importlib.import_module(module_name)
+    failures = {}
+    for module_name in MODULES:
+        try:
+            importlib.import_module(module_name)
+        except Exception as exc:  # noqa: BLE001 - collected, reported together
+            failures[module_name] = f"{type(exc).__name__}: {exc}"
+    assert failures == {}
 
 
 def test_no_module_imports_a_deleted_button_factory() -> None:

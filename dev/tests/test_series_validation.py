@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from app.utils.series_validation import DUPLICATE_X, EMPTY, LENGTH_MISMATCH, UNSORTED_X, clean_xy, errors, validate_xy
+from dev.tests._cases import check_all
 
 
 def codes(issues) -> set[str]:
@@ -48,9 +49,15 @@ def test_duplicate_x_is_an_error_for_an_interpolating_operation() -> None:
 # Shape and size
 # ----------------------------------------------------------------------
 
-@pytest.mark.parametrize("x, y", [([], []), (None, None), ([], [1.0])])
-def test_an_empty_series_is_an_error(x, y) -> None:
+_CASES_AN_EMPTY_SERIES_IS_AN_ERROR = [([], []), (None, None), ([], [1.0])]
+
+
+def _an_empty_series_is_an_error(x, y) -> None:
     assert EMPTY in codes(validate_xy(x, y))
+
+
+def test_an_empty_series_is_an_error() -> None:
+    check_all(_an_empty_series_is_an_error, _CASES_AN_EMPTY_SERIES_IS_AN_ERROR)
 
 
 def test_mismatched_lengths_are_an_error() -> None:

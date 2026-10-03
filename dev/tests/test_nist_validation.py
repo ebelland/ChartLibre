@@ -37,6 +37,7 @@ from app.functions.functions import linear, quadratic
 from app.functions.optimizers import LEVENBERG, TRUST_REGION
 from dev.tests import _nist_strd as nist
 from dev.tests._nist_models import LOG_RESPONSE, MODELS
+from dev.tests._cases import check_all
 
 # ----------------------------------------------------------------------
 # Nonlinear regression: the Fit engine
@@ -60,21 +61,17 @@ EXACT_FIT = frozenset({"Lanczos1"})
 DIVERGES = frozenset({("BoxBOD", 1, LEVENBERG)})
 
 
-def _nonlinear_cases() -> list[object]:
-    return [
-        pytest.param(
-            name, start, optimizer,
-            marks=[pytest.mark.xfail(strict=True, reason="does not converge from here")]
-            if (name, start, optimizer) in DIVERGES else [],
-        )
-        for name in MODELS
-        for start in (1, 2)
-        for optimizer in (TRUST_REGION, LEVENBERG)
-    ]
+#: Every (problem, NIST start, optimiser) that converges - all but DIVERGES.
+NONLINEAR_CASES: list[tuple[str, int, str]] = [
+    (name, start, optimizer)
+    for name in MODELS
+    for start in (1, 2)
+    for optimizer in (TRUST_REGION, LEVENBERG)
+    if (name, start, optimizer) not in DIVERGES
+]
 
 
-@pytest.mark.parametrize(("name", "start", "optimizer"), _nonlinear_cases())
-def test_the_fit_engine_reproduces_the_certified_nonlinear_results(name: str, start: int, optimizer: str) -> None:
+def _the_fit_engine_reproduces_the_certified_nonlinear_results(name: str, start: int, optimizer: str) -> None:
     data = nist.nonlinear(name)
     target = np.log(data.y) if name in LOG_RESPONSE else data.y
     with warnings.catch_warnings(), np.errstate(all="ignore"):
@@ -100,12 +97,22 @@ def test_the_fit_engine_reproduces_the_certified_nonlinear_results(name: str, st
     assert nist.lre(fit.metrics["ss_res"], data.rss, digits) >= 9.0
 
 
+def test_the_fit_engine_reproduces_the_certified_nonlinear_results() -> None:
+    check_all(_the_fit_engine_reproduces_the_certified_nonlinear_results, NONLINEAR_CASES)
+
+
+def test_the_known_divergence_still_diverges() -> None:
+    """BoxBOD from its far start under Levenberg-Marquardt: if it starts
+    converging, DIVERGES should lose it and the main test gain it."""
+    for case in DIVERGES:
+        with pytest.raises(AssertionError):
+            _the_fit_engine_reproduces_the_certified_nonlinear_results(*case)
+
+
 # ----------------------------------------------------------------------
 # Linear regression: polynomials, two ways
 # ----------------------------------------------------------------------
-@pytest.mark.parametrize(
-    ("name", "floor"),
-    [
+_CASES_THE_INTERPOLATION_POLYNOMIAL_REPRODUCES_THE_CERTIFIED_COEFFICIENTS = [
         ("Norris", 12.0),
         ("Pontius", 12.0),
         ("Filip", 7.0),
@@ -114,9 +121,10 @@ def test_the_fit_engine_reproduces_the_certified_nonlinear_results(name: str, st
         ("Wampler3", 8.5),
         ("Wampler4", 7.5),
         ("Wampler5", 6.0),
-    ],
-)
-def test_the_interpolation_polynomial_reproduces_the_certified_coefficients(name: str, floor: float) -> None:
+    ]
+
+
+def _the_interpolation_polynomial_reproduces_the_certified_coefficients(name: str, floor: float) -> None:
     data = nist.linear(name)
     degree = data.params.size - 1
     order = np.argsort(data.x, kind="stable")
@@ -132,8 +140,14 @@ def test_the_interpolation_polynomial_reproduces_the_certified_coefficients(name
     assert nist.lre(residual_sd, data.residual_sd) >= 8.0
 
 
-@pytest.mark.parametrize(("name", "function"), [("Norris", linear), ("Pontius", quadratic)])
-def test_the_fit_engine_reproduces_the_certified_linear_fits(name: str, function: type) -> None:
+def test_the_interpolation_polynomial_reproduces_the_certified_coefficients() -> None:
+    check_all(_the_interpolation_polynomial_reproduces_the_certified_coefficients, _CASES_THE_INTERPOLATION_POLYNOMIAL_REPRODUCES_THE_CERTIFIED_COEFFICIENTS)
+
+
+_CASES_THE_FIT_ENGINE_REPRODUCES_THE_CERTIFIED_LINEAR_FITS = [("Norris", linear), ("Pontius", quadratic)]
+
+
+def _the_fit_engine_reproduces_the_certified_linear_fits(name: str, function: type) -> None:
     data = nist.linear(name)
     start = np.asarray(function.initial_guess(data.x, data.y), dtype=float)
     fit = fit_curve(function.execute, data.x, data.y, start)
@@ -143,8 +157,14 @@ def test_the_fit_engine_reproduces_the_certified_linear_fits(name: str, function
     assert nist.lre(fit.metrics["r2"], data.r_squared) >= 12.0
 
 
-@pytest.mark.parametrize("name", ["NoInt1", "NoInt2"])
-def test_a_line_through_the_origin(name: str) -> None:
+def test_the_fit_engine_reproduces_the_certified_linear_fits() -> None:
+    check_all(_the_fit_engine_reproduces_the_certified_linear_fits, _CASES_THE_FIT_ENGINE_REPRODUCES_THE_CERTIFIED_LINEAR_FITS)
+
+
+_CASES_A_LINE_THROUGH_THE_ORIGIN = [(case,) for case in ["NoInt1", "NoInt2"]]
+
+
+def _a_line_through_the_origin(name: str) -> None:
     """y = b1 x. R² is not compared: NIST certifies the uncentred one a model
     without intercept calls for, the Fit reports the usual centred one."""
     data = nist.linear(name)
@@ -153,13 +173,17 @@ def test_a_line_through_the_origin(name: str) -> None:
     assert nist.lre(fit.std[0], data.std[0]) >= 9.0
 
 
+def test_a_line_through_the_origin() -> None:
+    check_all(_a_line_through_the_origin, _CASES_A_LINE_THROUGH_THE_ORIGIN)
+
+
 # ----------------------------------------------------------------------
 # Summary statistics
 # ----------------------------------------------------------------------
-@pytest.mark.parametrize(
-    "name", ["PiDigits", "Lottery", "Lew", "Mavro", "Michelso", "NumAcc1", "NumAcc2", "NumAcc3", "NumAcc4"]
-)
-def test_the_summary_statistics_reproduce_the_certified_mean_and_deviation(name: str) -> None:
+_CASES_THE_SUMMARY_STATISTICS_REPRODUCE_THE_CERTIFIED_MEAN_AND_DEVIATION = [(case,) for case in ["PiDigits", "Lottery", "Lew", "Mavro", "Michelso", "NumAcc1", "NumAcc2", "NumAcc3", "NumAcc4"]]
+
+
+def _the_summary_statistics_reproduce_the_certified_mean_and_deviation(name: str) -> None:
     data = nist.univariate(name)
     summary = describe(data.values)
     assert nist.lre(summary["mean"], data.mean) >= 14.0
@@ -167,12 +191,14 @@ def test_the_summary_statistics_reproduce_the_certified_mean_and_deviation(name:
     assert nist.lre(summary["std"], data.std) >= 8.0
 
 
+def test_the_summary_statistics_reproduce_the_certified_mean_and_deviation() -> None:
+    check_all(_the_summary_statistics_reproduce_the_certified_mean_and_deviation, _CASES_THE_SUMMARY_STATISTICS_REPRODUCE_THE_CERTIFIED_MEAN_AND_DEVIATION)
+
+
 # ----------------------------------------------------------------------
 # One-way analysis of variance
 # ----------------------------------------------------------------------
-@pytest.mark.parametrize(
-    ("name", "floor"),
-    [
+_CASES_THE_ANOVA_REPRODUCES_THE_CERTIFIED_F_STATISTIC = [
         ("SiRstv", 12.0),
         ("SmLs01", 14.0),
         ("SmLs02", 14.0),
@@ -187,14 +213,19 @@ def test_the_summary_statistics_reproduce_the_certified_mean_and_deviation(name:
         ("SmLs07", 4.0),
         ("SmLs08", 4.0),
         ("SmLs09", 4.0),
-    ],
-)
-def test_the_anova_reproduces_the_certified_f_statistic(name: str, floor: float) -> None:
+    ]
+
+
+def _the_anova_reproduces_the_certified_f_statistic(name: str, floor: float) -> None:
     data = nist.anova(name)
     anova = group_tests(data.groups)[0]
     assert anova["n"] == sum(values.size for values in data.groups.values())
     assert f"df = {data.between_df}, {data.within_df}" in anova["note"]
     assert nist.lre(float(anova["statistic"]), data.f_statistic) >= floor
+
+
+def test_the_anova_reproduces_the_certified_f_statistic() -> None:
+    check_all(_the_anova_reproduces_the_certified_f_statistic, _CASES_THE_ANOVA_REPRODUCES_THE_CERTIFIED_F_STATISTIC)
 
 
 # ----------------------------------------------------------------------
@@ -207,11 +238,10 @@ def _polynomial(degree: int) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
     return model
 
 
-@pytest.mark.parametrize(
-    ("name", "floor"),
-    [("Wampler1", 9.0), ("Wampler2", 13.0), ("Wampler3", 8.5), ("Wampler4", 9.0), ("Wampler5", 7.0), ("Filip", 7.0)],
-)
-def test_the_fit_engine_solves_a_polynomial_exactly_from_any_start(name: str, floor: float) -> None:
+_CASES_THE_FIT_ENGINE_SOLVES_A_POLYNOMIAL_EXACTLY_FROM_ANY_START = [("Wampler1", 9.0), ("Wampler2", 13.0), ("Wampler3", 8.5), ("Wampler4", 9.0), ("Wampler5", 7.0), ("Filip", 7.0)]
+
+
+def _the_fit_engine_solves_a_polynomial_exactly_from_any_start(name: str, floor: float) -> None:
     """Iterated, the optimiser took polyfit's 7.3 digits on Filip down to 5.4
     and its errors to none; a model linear in its parameters is now solved."""
     data = nist.linear(name)
@@ -220,6 +250,10 @@ def test_the_fit_engine_solves_a_polynomial_exactly_from_any_start(name: str, fl
     assert "solved exactly" in fit.message
     assert min(nist.lre(value, certified) for value, certified in zip(fit.params, data.params)) >= floor
     assert min(nist.lre(value, certified) for value, certified in zip(fit.std, data.std)) >= 7.0
+
+
+def test_the_fit_engine_solves_a_polynomial_exactly_from_any_start() -> None:
+    check_all(_the_fit_engine_solves_a_polynomial_exactly_from_any_start, _CASES_THE_FIT_ENGINE_SOLVES_A_POLYNOMIAL_EXACTLY_FROM_ANY_START)
 
 
 def test_a_nonlinear_model_is_not_taken_for_a_linear_one() -> None:

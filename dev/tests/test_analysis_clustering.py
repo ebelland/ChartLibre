@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from app.analysis import clustering as cl
+from dev.tests._cases import check_all
 
 RNG = np.random.default_rng(2)
 CENTRES = np.array([[0.0, 0.0], [5.0, 5.0], [0.0, 5.0]])
@@ -19,14 +20,22 @@ def _agrees_with_truth(labels: np.ndarray) -> bool:
     return len(pairs) == 3 and len({b for _a, b in pairs}) == 3
 
 
-@pytest.mark.parametrize("tool", [cl.TOOL_WHITEN, cl.TOOL_KMEANS2])
-def test_scipy_kmeans_finds_the_three_blobs(tool: str) -> None:
+_CASES_SCIPY_KMEANS_FINDS_THE_THREE_BLOBS = [(case,) for case in [cl.TOOL_WHITEN, cl.TOOL_KMEANS2]]
+
+
+def _scipy_kmeans_finds_the_three_blobs(tool: str) -> None:
     labels, _meta = cl.cluster_kmeans(F, scipy_tool=tool, clusters=3, use_whiten=False, iterations=20, threshold=1e-5)
     assert _agrees_with_truth(labels)
 
 
-@pytest.mark.parametrize("tool", [cl.TOOL_KMEANS, cl.TOOL_KMEANS2, cl.TOOL_WHITEN])
-def test_scipy_kmeans_gives_the_same_clusters_every_run(tool: str) -> None:
+def test_scipy_kmeans_finds_the_three_blobs() -> None:
+    check_all(_scipy_kmeans_finds_the_three_blobs, _CASES_SCIPY_KMEANS_FINDS_THE_THREE_BLOBS)
+
+
+_CASES_SCIPY_KMEANS_GIVES_THE_SAME_CLUSTERS_EVERY_RUN = [(case,) for case in [cl.TOOL_KMEANS, cl.TOOL_KMEANS2, cl.TOOL_WHITEN]]
+
+
+def _scipy_kmeans_gives_the_same_clusters_every_run(tool: str) -> None:
     """Seeded: one diffuse cloud, where the starting points decide the split."""
     cloud = np.random.default_rng(5).normal(0.0, 1.0, (300, 2))
     runs = [
@@ -38,6 +47,10 @@ def test_scipy_kmeans_gives_the_same_clusters_every_run(tool: str) -> None:
         assert meta["centroids"] == runs[0][1]["centroids"]
 
 
+def test_scipy_kmeans_gives_the_same_clusters_every_run() -> None:
+    check_all(_scipy_kmeans_gives_the_same_clusters_every_run, _CASES_SCIPY_KMEANS_GIVES_THE_SAME_CLUSTERS_EVERY_RUN)
+
+
 def test_hierarchical_clustering_cut_at_three_finds_the_blobs() -> None:
     labels, _meta = cl.cluster_hierarchical(
         F, scipy_tool=cl.TOOL_FCLUSTER, clusters=3, linkage_method="ward", metric="euclidean",
@@ -46,15 +59,18 @@ def test_hierarchical_clustering_cut_at_three_finds_the_blobs() -> None:
     assert _agrees_with_truth(labels)
 
 
-@pytest.mark.parametrize(
-    "tool",
-    [cl.SKLEARN_KMEANS, cl.SKLEARN_AGGLOMERATIVE, cl.SKLEARN_BIRCH, cl.SKLEARN_GAUSSIAN_MIXTURE, cl.SKLEARN_SPECTRAL],
-)
-def test_scikit_learn_finds_the_three_blobs(tool: str) -> None:
+_CASES_SCIKIT_LEARN_FINDS_THE_THREE_BLOBS = [(case,) for case in [cl.SKLEARN_KMEANS, cl.SKLEARN_AGGLOMERATIVE, cl.SKLEARN_BIRCH, cl.SKLEARN_GAUSSIAN_MIXTURE, cl.SKLEARN_SPECTRAL]]
+
+
+def _scikit_learn_finds_the_three_blobs(tool: str) -> None:
     labels, _meta = cl.cluster_sklearn(
         F, sklearn_tool=tool, clusters=3, linkage_method="ward", metric="euclidean", eps=0.8, min_samples=5
     )
     assert _agrees_with_truth(labels)
+
+
+def test_scikit_learn_finds_the_three_blobs() -> None:
+    check_all(_scikit_learn_finds_the_three_blobs, _CASES_SCIKIT_LEARN_FINDS_THE_THREE_BLOBS)
 
 
 def test_dbscan_finds_the_blobs_without_being_told_how_many() -> None:
@@ -75,14 +91,17 @@ def test_the_feature_matrix_drops_rows_that_are_not_numbers_and_reads_dates() ->
     assert matrix[1, 0] - matrix[0, 0] == pytest.approx(2 * 86400.0)
 
 
-@pytest.mark.parametrize(
-    ("frame", "columns", "match"),
-    [(pd.DataFrame(), ["x"], "no rows"), (pd.DataFrame({"x": [1.0, 2.0]}), ["y"], "Missing"),
-     (pd.DataFrame({"x": [1.0, np.nan]}), ["x"], "two finite rows")],
-)
-def test_a_matrix_that_cannot_be_clustered_is_a_value_error(frame, columns, match) -> None:
+_CASES_A_MATRIX_THAT_CANNOT_BE_CLUSTERED_IS_A_VALUE_ERROR = [(pd.DataFrame(), ["x"], "no rows"), (pd.DataFrame({"x": [1.0, 2.0]}), ["y"], "Missing"),
+     (pd.DataFrame({"x": [1.0, np.nan]}), ["x"], "two finite rows")]
+
+
+def _a_matrix_that_cannot_be_clustered_is_a_value_error(frame, columns, match) -> None:
     with pytest.raises(ValueError, match=match):
         cl.numeric_matrix(frame, columns)
+
+
+def test_a_matrix_that_cannot_be_clustered_is_a_value_error() -> None:
+    check_all(_a_matrix_that_cannot_be_clustered_is_a_value_error, _CASES_A_MATRIX_THAT_CANNOT_BE_CLUSTERED_IS_A_VALUE_ERROR)
 
 
 def test_a_run_past_its_time_limit_is_a_timeout_error() -> None:

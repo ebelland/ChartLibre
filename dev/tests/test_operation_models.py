@@ -22,6 +22,7 @@ from app.series_operations.interpolate_dialog import (
     MODEL_SCIPY_PCHIP,
     SeriesInterpolateDialog,
 )
+from dev.tests._cases import check_all
 
 
 def _operations_with_models() -> list[type[SeriesOperationDialogBase]]:
@@ -67,8 +68,10 @@ def _items(combo) -> list[str]:
     return [combo.itemText(i) for i in range(combo.count()) if combo.itemText(i)]
 
 
-@pytest.mark.parametrize("cls", _operations_with_models(), ids=lambda cls: cls.__name__)
-def test_the_combo_lists_the_models_and_the_link_follows(qapp, figure, cls) -> None:
+_CASES_THE_COMBO_LISTS_THE_MODELS_AND_THE_LINK_FOLLOWS = [(case,) for case in _operations_with_models()]
+
+
+def _the_combo_lists_the_models_and_the_link_follows(qapp, figure, cls) -> None:
     repo, figure_id = figure
     dialog = cls(repo=repo, figure_id=figure_id, parent=None)
     try:
@@ -84,6 +87,10 @@ def test_the_combo_lists_the_models_and_the_link_follows(qapp, figure, cls) -> N
     finally:
         dialog.close()
         applogger.set_status_bar(None)
+
+
+def test_the_combo_lists_the_models_and_the_link_follows(qapp, figure) -> None:
+    check_all(lambda *case: _the_combo_lists_the_models_and_the_link_follows(**dict(zip(['cls'], case)), qapp=qapp, figure=figure), _CASES_THE_COMBO_LISTS_THE_MODELS_AND_THE_LINK_FOLLOWS)
 
 
 def test_interpolation_start_parameters_are_offered_for_the_fitted_models(qapp, figure) -> None:

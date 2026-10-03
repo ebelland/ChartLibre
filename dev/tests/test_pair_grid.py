@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QDoubleSpinBox, QLabel, QWidget
 
 from app.styles.style import KEEP_MINIMUM_WIDTH, fit_spin_width, relax_minimum_width
 from app.widgets.pair_grid import PairGrid
+from dev.tests._cases import check_all
 
 
 def _spin(qapp, suffix: str = "", maximum: float = 500.0) -> QDoubleSpinBox:
@@ -36,11 +37,10 @@ def test_a_huge_range_does_not_reserve_a_huge_width(qapp) -> None:
     assert spin.minimumWidth() < 200
 
 
-@pytest.mark.parametrize(
-    ("width", "per_row", "stacked"),
-    [(900, 2, False), (260, 1, False), (120, 1, True)],
-)
-def test_pairs_take_the_widest_arrangement_that_fits(qapp, width: int, per_row: int, stacked: bool) -> None:
+_CASES_PAIRS_TAKE_THE_WIDEST_ARRANGEMENT_THAT_FITS = [(900, 2, False), (260, 1, False), (120, 1, True)]
+
+
+def _pairs_take_the_widest_arrangement_that_fits(qapp, width: int, per_row: int, stacked: bool) -> None:
     left, right = _spin(qapp, " cm"), _spin(qapp, " cm")
     grid = PairGrid([(QLabel("Width"), left), (QLabel("Height"), right)])
     field = left.minimumWidth()
@@ -58,6 +58,10 @@ def test_pairs_take_the_widest_arrangement_that_fits(qapp, width: int, per_row: 
     else:
         assert grid._pairs[0][0].geometry().bottom() <= grid._pairs[0][1].geometry().top()
     grid.close()
+
+
+def test_pairs_take_the_widest_arrangement_that_fits(qapp) -> None:
+    check_all(lambda *case: _pairs_take_the_widest_arrangement_that_fits(**dict(zip(['width', 'per_row', 'stacked'], case)), qapp=qapp), _CASES_PAIRS_TAKE_THE_WIDEST_ARRANGEMENT_THAT_FITS)
 
 
 def test_the_field_is_never_narrower_than_its_minimum(qapp) -> None:

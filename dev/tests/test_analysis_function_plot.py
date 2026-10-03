@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from app.analysis import function_plot as fp
+from dev.tests._cases import check_all
 
 
 def test_a_linear_range_spans_the_requested_endpoints() -> None:
@@ -20,15 +21,18 @@ def test_a_range_can_run_downwards_and_has_at_least_two_points() -> None:
     assert fp.build_range(0.0, 1.0, 0).tolist() == [0.0, 1.0]
 
 
-@pytest.mark.parametrize(
-    ("args", "match"),
-    [((3.0, 3.0, 10, fp.SPACING_LINEAR), "range is empty"),
+_CASES_AN_EMPTY_RANGE_OR_A_LOG_RANGE_THROUGH_ZERO_IS_REFUSED = [((3.0, 3.0, 10, fp.SPACING_LINEAR), "range is empty"),
      ((0.0, 10.0, 10, fp.SPACING_LOG), "strictly above zero"),
-     ((-1.0, 10.0, 10, fp.SPACING_LOG), "strictly above zero")],
-)
-def test_an_empty_range_or_a_log_range_through_zero_is_refused(args: tuple, match: str) -> None:
+     ((-1.0, 10.0, 10, fp.SPACING_LOG), "strictly above zero")]
+
+
+def _an_empty_range_or_a_log_range_through_zero_is_refused(args: tuple, match: str) -> None:
     with pytest.raises(ValueError, match=match):
         fp.build_range(*args)
+
+
+def test_an_empty_range_or_a_log_range_through_zero_is_refused() -> None:
+    check_all(_an_empty_range_or_a_log_range_through_zero_is_refused, _CASES_AN_EMPTY_RANGE_OR_A_LOG_RANGE_THROUGH_ZERO_IS_REFUSED)
 
 
 def test_a_curve_is_the_function_at_each_x() -> None:

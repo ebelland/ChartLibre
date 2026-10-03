@@ -12,6 +12,7 @@ from __future__ import annotations
 import pytest
 
 from app.charts import layout_presets as lp
+from dev.tests._cases import check_all
 
 
 def _options_by_id(plan: lp.LayoutPlan) -> dict[int, dict[str, object]]:
@@ -37,13 +38,19 @@ def _index_by_id(plan: lp.LayoutPlan) -> dict[int, int]:
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("preset", lp.PRESETS)
-def test_every_axis_id_appears_exactly_once(preset: str) -> None:
+_CASES_EVERY_AXIS_ID_APPEARS_EXACTLY_ONCE = [(case,) for case in lp.PRESETS]
+
+
+def _every_axis_id_appears_exactly_once(preset: str) -> None:
     ids = [10, 20, 30, 40, 50, 60, 70]
     plan = lp.plan_layout(preset, ids)
     placed_ids = [placement.axis_id for placement in plan.axes]
     assert sorted(placed_ids) == sorted(ids)
     assert len(placed_ids) == len(set(placed_ids))
+
+
+def test_every_axis_id_appears_exactly_once() -> None:
+    check_all(_every_axis_id_appears_exactly_once, _CASES_EVERY_AXIS_ID_APPEARS_EXACTLY_ONCE)
 
 
 

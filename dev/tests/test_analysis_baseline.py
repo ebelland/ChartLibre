@@ -11,6 +11,7 @@ import pytest
 
 from app.analysis import baseline as bl
 from app.analysis.baseline import asls_baseline, rubber_band_baseline
+from dev.tests._cases import check_all
 
 X = np.linspace(0.0, 100.0, 400)
 TRUE_BASELINE = 5.0 + 0.02 * X + 3.0 * np.sin(X / 30.0)
@@ -38,14 +39,17 @@ def test_a_stiffer_baseline_bends_less() -> None:
     assert np.std(np.diff(stiff, 2)) < np.std(np.diff(supple, 2))
 
 
-@pytest.mark.parametrize(
-    ("kwargs", "match"),
-    [({"lam": 0.0, "p": 0.01}, "lambda"), ({"lam": 1e5, "p": 0.0}, "between 0 and 1"),
-     ({"lam": 1e5, "p": 1.0}, "between 0 and 1")],
-)
-def test_asls_refuses_bad_parameters(kwargs: dict, match: str) -> None:
+_CASES_ASLS_REFUSES_BAD_PARAMETERS = [({"lam": 0.0, "p": 0.01}, "lambda"), ({"lam": 1e5, "p": 0.0}, "between 0 and 1"),
+     ({"lam": 1e5, "p": 1.0}, "between 0 and 1")]
+
+
+def _asls_refuses_bad_parameters(kwargs: dict, match: str) -> None:
     with pytest.raises(ValueError, match=match):
         asls_baseline(np.arange(20.0), **kwargs)
+
+
+def test_asls_refuses_bad_parameters() -> None:
+    check_all(_asls_refuses_bad_parameters, _CASES_ASLS_REFUSES_BAD_PARAMETERS)
 
 
 def test_asls_needs_five_points() -> None:

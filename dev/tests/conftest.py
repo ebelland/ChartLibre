@@ -183,3 +183,43 @@ def qapp():
         pytest.skip("PySide6 widgets are not usable in this environment")
 
     yield app
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _close_leftover_windows():
+    """After each test module, close and delete the windows it left open.
+
+    Tests build dialogs and panels and rarely destroy them; hundreds piled up
+    over a run, and every stylesheet applied later repolished all of them -
+    20 s for one apply_platform_style by the time the window-chrome tests ran.
+    """
+    yield
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if not isinstance(app, QApplication):
+        return
+    # Deleted, not closed: close() runs closeEvent, where dialogs remember
+    # their entries in user.json - and the next module's dialogs would open
+    # with this module's choices.
+    for widget in app.topLevelWidgets():
+        widget.hide()
+        widget.deleteLater()
+    app.processEvents()
+    app.sendPostedEvents(None, 0)  # the DeferredDelete events
+    app.processEvents()
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _qt_messages_to_stderr_at_exit():
+    """At the end of the run, Qt's messages go back to its own handler.
+
+    Qt warns while the process shuts down (a web page released with its
+    profile), after pytest has closed the streams the application's logger
+    writes to - which printed "--- Logging error ---" tracebacks after the
+    summary for every one of them.
+    """
+    yield
+    from PySide6.QtCore import qInstallMessageHandler
+
+    qInstallMessageHandler(None)

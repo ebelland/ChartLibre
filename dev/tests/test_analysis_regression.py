@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from app.analysis import regression as rg
+from dev.tests._cases import check_all
 
 RNG = np.random.default_rng(2)
 X = np.linspace(0.0, 10.0, 120)
@@ -29,8 +30,10 @@ def test_the_fit_is_predicted_over_a_dense_grid_across_the_x_range() -> None:
     assert fit.y.shape == fit.x.shape
 
 
-@pytest.mark.parametrize("kind", [rg.KIND_RANSAC, rg.KIND_HUBER])
-def test_robust_fits_ignore_wild_points_but_least_squares_does_not(kind: str) -> None:
+_CASES_ROBUST_FITS_IGNORE_WILD_POINTS_BUT_LEAST_SQUARES_DOES_NOT = [(case,) for case in [rg.KIND_RANSAC, rg.KIND_HUBER]]
+
+
+def _robust_fits_ignore_wild_points_but_least_squares_does_not(kind: str) -> None:
     fit = rg.fit_regression(kind, X, WILD)
     assert _slope(fit) == pytest.approx(2.0, abs=0.1)
     # Level of the line: robust stays on the true one, least squares is
@@ -38,6 +41,10 @@ def test_robust_fits_ignore_wild_points_but_least_squares_does_not(kind: str) ->
     truth = float(np.mean(LINE))
     assert float(np.mean(fit.y)) == pytest.approx(truth, abs=0.3)
     assert float(np.mean(np.polyval(np.polyfit(X, WILD, 1), X))) == pytest.approx(truth + 1.0, abs=0.1)
+
+
+def test_robust_fits_ignore_wild_points_but_least_squares_does_not() -> None:
+    check_all(_robust_fits_ignore_wild_points_but_least_squares_does_not, _CASES_ROBUST_FITS_IGNORE_WILD_POINTS_BUT_LEAST_SQUARES_DOES_NOT)
 
 
 def test_ransac_reports_its_inliers_and_huber_its_outliers() -> None:
@@ -56,13 +63,19 @@ def test_isotonic_is_monotone_and_can_be_forced_decreasing() -> None:
     assert "r2" not in up.details  # isotonic reports no score
 
 
-@pytest.mark.parametrize("kind", [rg.KIND_RANDOM_FOREST, rg.KIND_GRADIENT_BOOSTING])
-def test_trees_follow_a_curve_and_report_r2(kind: str) -> None:
+_CASES_TREES_FOLLOW_A_CURVE_AND_REPORT_R2 = [(case,) for case in [rg.KIND_RANDOM_FOREST, rg.KIND_GRADIENT_BOOSTING]]
+
+
+def _trees_follow_a_curve_and_report_r2(kind: str) -> None:
     curve = np.sin(X) * 3.0 + RNG.normal(0.0, 0.1, X.size)
     fit = rg.fit_regression(kind, X, curve, rg.RegressionSettings(n_estimators=60))
     assert fit.details["r2"] > 0.95
     truth = np.sin(fit.x) * 3.0
     assert np.mean((fit.y - truth) ** 2) < 0.15
+
+
+def test_trees_follow_a_curve_and_report_r2() -> None:
+    check_all(_trees_follow_a_curve_and_report_r2, _CASES_TREES_FOLLOW_A_CURVE_AND_REPORT_R2)
 
 
 def test_the_tree_depth_setting_is_used() -> None:

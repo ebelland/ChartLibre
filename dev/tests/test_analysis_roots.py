@@ -5,19 +5,26 @@ import numpy as np
 import pytest
 
 from app.analysis import roots as rt
+from dev.tests._cases import check_all
 
 X = np.linspace(0.0, 4.0 * np.pi, 200)
 SINE = np.sin(X)
 ZEROS = [0.0, np.pi, 2 * np.pi, 3 * np.pi, 4 * np.pi]
 
 
-@pytest.mark.parametrize("solver", [rt.SOLVER_BRENT, rt.SOLVER_BISECT, rt.SOLVER_TOMS748, rt.SOLVER_NEWTON])
-def test_every_solver_finds_the_zeros_of_a_sine(solver: str) -> None:
+_CASES_EVERY_SOLVER_FINDS_THE_ZEROS_OF_A_SINE = [(case,) for case in [rt.SOLVER_BRENT, rt.SOLVER_BISECT, rt.SOLVER_TOMS748, rt.SOLVER_NEWTON]]
+
+
+def _every_solver_finds_the_zeros_of_a_sine(solver: str) -> None:
     search = rt.find_roots(X, SINE, solver=solver, interpolation=rt.INTERP_CUBIC, tolerance_digits=12)
     found = [root.x for root in search.roots]
     assert found == pytest.approx(ZEROS[: len(found)], abs=1e-5)
     assert len(found) >= 4
     assert not search.truncated
+
+
+def test_every_solver_finds_the_zeros_of_a_sine() -> None:
+    check_all(_every_solver_finds_the_zeros_of_a_sine, _CASES_EVERY_SOLVER_FINDS_THE_ZEROS_OF_A_SINE)
 
 
 def test_crossings_say_whether_they_rise_or_fall() -> None:

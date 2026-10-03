@@ -12,6 +12,7 @@ import pytest
 from scipy import stats
 
 from app.analysis import transform as tf
+from dev.tests._cases import check_all
 
 RNG = np.random.default_rng(4)
 SKEWED = RNG.lognormal(mean=0.0, sigma=0.9, size=400)
@@ -56,11 +57,17 @@ def test_the_number_of_quantiles_is_clipped_to_the_series_and_reported() -> None
     assert result.details == {"n_quantiles": 20}
 
 
-@pytest.mark.parametrize("method", [tf.POWER_YEO_JOHNSON, tf.POWER_BOX_COX])
-def test_a_power_transform_makes_a_skewed_sample_more_symmetric(method: str) -> None:
+_CASES_A_POWER_TRANSFORM_MAKES_A_SKEWED_SAMPLE_MORE_SYMMETRIC = [(case,) for case in [tf.POWER_YEO_JOHNSON, tf.POWER_BOX_COX]]
+
+
+def _a_power_transform_makes_a_skewed_sample_more_symmetric(method: str) -> None:
     out = tf.transform_values(tf.KIND_POWER, SKEWED, tf.TransformSettings(method=method))
     assert abs(stats.skew(out.y)) < 0.25 * abs(stats.skew(SKEWED))
     assert out.details == {"method": method}
+
+
+def test_a_power_transform_makes_a_skewed_sample_more_symmetric() -> None:
+    check_all(_a_power_transform_makes_a_skewed_sample_more_symmetric, _CASES_A_POWER_TRANSFORM_MAKES_A_SKEWED_SAMPLE_MORE_SYMMETRIC)
 
 
 def test_box_cox_refuses_a_value_that_is_not_positive_but_yeo_johnson_does_not() -> None:

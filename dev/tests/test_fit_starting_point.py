@@ -15,6 +15,7 @@ import pytest
 from app.functions import functions as library
 from app.functions.optimizers import OPTIMIZERS, TRUST_REGION, run_optimizer
 from app.functions.starting_point import choose_starting_point
+from dev.tests._cases import check_all
 
 X = np.linspace(0.5, 10.0, 240)
 
@@ -22,9 +23,7 @@ X = np.linspace(0.5, 10.0, 240)
 # ======================================================================
 # The functions' own estimators
 # ======================================================================
-@pytest.mark.parametrize(
-    "function, truth, tolerance",
-    [
+_CASES_AN_ESTIMATOR_LANDS_NEAR_THE_PARAMETERS_THAT_MADE_THE_DATA = [
         (library.linear, [3.0, 2.0], 1e-6),
         (library.quadratic, [1.0, -2.0, 0.5], 1e-6),
         (library.cubic, [0.0, 1.0, -0.3, 0.02], 1e-6),
@@ -32,9 +31,10 @@ X = np.linspace(0.5, 10.0, 240)
         (library.michaelis_menten, [10.0, 2.0, 0.0], 0.05),
         (library.logistic4, [1.0, 8.0, 2.0, 5.0], 1.5),
         (library.power_law, [2.0, 1.5, 0.0], 0.2),
-    ],
-)
-def test_an_estimator_lands_near_the_parameters_that_made_the_data(
+    ]
+
+
+def _an_estimator_lands_near_the_parameters_that_made_the_data(
     function, truth, tolerance
 ) -> None:
     """The point of an estimator: the optimiser starts in the right valley."""
@@ -45,6 +45,10 @@ def test_an_estimator_lands_near_the_parameters_that_made_the_data(
     assert guess is not None, "this function declares an estimator"
     assert len(guess) == len(truth)
     assert np.allclose(guess, truth, atol=tolerance, rtol=0.2)
+
+
+def test_an_estimator_lands_near_the_parameters_that_made_the_data() -> None:
+    check_all(_an_estimator_lands_near_the_parameters_that_made_the_data, _CASES_AN_ESTIMATOR_LANDS_NEAR_THE_PARAMETERS_THAT_MADE_THE_DATA)
 
 
 # ======================================================================
@@ -87,8 +91,10 @@ def _decay_residual() -> tuple:
     return y, (lambda p: y - library.exponential_decay.execute(X, p))
 
 
-@pytest.mark.parametrize("optimizer", [o.key for o in OPTIMIZERS])
-def test_every_algorithm_recovers_a_known_curve(optimizer: str) -> None:
+_CASES_EVERY_ALGORITHM_RECOVERS_A_KNOWN_CURVE = [(case,) for case in [o.key for o in OPTIMIZERS]]
+
+
+def _every_algorithm_recovers_a_known_curve(optimizer: str) -> None:
     """Ten ways to the same answer; each one has to actually arrive."""
     _y, residual = _decay_residual()
 
@@ -98,6 +104,10 @@ def test_every_algorithm_recovers_a_known_curve(optimizer: str) -> None:
     )
 
     assert np.allclose(outcome.params, DECAY_TRUTH, atol=1e-4)
+
+
+def test_every_algorithm_recovers_a_known_curve() -> None:
+    check_all(_every_algorithm_recovers_a_known_curve, _CASES_EVERY_ALGORITHM_RECOVERS_A_KNOWN_CURVE)
 
 
 def test_an_unknown_algorithm_is_named_not_replaced() -> None:

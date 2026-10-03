@@ -24,8 +24,10 @@ from app.widgets.custom_title_bar import (
 from app.widgets.nav_bar import NavigationBar
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def fluent(qapp: QApplication):
+    # Once for the file: applying a sheet repolishes every widget the run has
+    # made so far, which took 30 s per test when done per test.
     style.apply_platform_style(qapp, "fluent_win11")
     yield
     style.apply_platform_style(qapp)

@@ -14,6 +14,7 @@ from email.message import Message
 import pytest
 
 from app.utils import machine_translation as mt
+from dev.tests._cases import check_all
 
 
 class Echo:
@@ -140,17 +141,20 @@ def test_blocks_respect_the_size_limit() -> None:
     assert [len(block) for block in blocks] == [2, 1, 1]
 
 
-@pytest.mark.parametrize(
-    ("codes", "language", "expected"),
-    [
+_CASES_EACH_SERVICE_GETS_ITS_OWN_LANGUAGE_CODE = [
         (["it", "fr", "zh-CN", "zh-TW"], "it", "it"),
         (["it", "fr", "zh-CN", "zh-TW"], "zh", "zh-CN"),
         (["it-IT", "en-GB", "pt-PT"], "it", "it-IT"),
         (["it-IT", "en-GB"], "xx", None),
-    ],
-)
-def test_each_service_gets_its_own_language_code(codes: list[str], language: str, expected: str | None) -> None:
+    ]
+
+
+def _each_service_gets_its_own_language_code(codes: list[str], language: str, expected: str | None) -> None:
     assert mt.provider_code(codes, language) == expected
+
+
+def test_each_service_gets_its_own_language_code() -> None:
+    check_all(_each_service_gets_its_own_language_code, _CASES_EACH_SERVICE_GETS_ITS_OWN_LANGUAGE_CODE)
 
 
 def test_the_dialog_fills_only_empty_cells(qapp, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -243,11 +247,10 @@ def test_a_paid_deepl_key_goes_to_the_paid_host_and_long_blocks_are_split() -> N
     assert [request.full_url for request in sent] == [mt.DEEPL_PRO_URL] * 3
 
 
-@pytest.mark.parametrize(
-    ("status", "words", "limited"),
-    [(403, "API key", False), (456, "quota", True), (429, "Too many requests", True)],
-)
-def test_deepl_refusals_are_named(status: int, words: str, limited: bool) -> None:
+_CASES_DEEPL_REFUSALS_ARE_NAMED = [(403, "API key", False), (456, "quota", True), (429, "Too many requests", True)]
+
+
+def _deepl_refusals_are_named(status: int, words: str, limited: bool) -> None:
     def refuses(request: urllib.request.Request, timeout: float = 0) -> _Answer:
         raise urllib.error.HTTPError(request.full_url, status, "refused", Message(), None)
 
@@ -259,6 +262,10 @@ def test_deepl_refusals_are_named(status: int, words: str, limited: bool) -> Non
     assert bool(run.limited) == limited
 
 
+def test_deepl_refusals_are_named() -> None:
+    check_all(_deepl_refusals_are_named, _CASES_DEEPL_REFUSALS_ARE_NAMED)
+
+
 def test_deepl_is_offered_only_with_a_key_and_needs_no_deep_translator(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(mt, "available", lambda: False)
     assert mt.available_providers("") == []
@@ -267,10 +274,16 @@ def test_deepl_is_offered_only_with_a_key_and_needs_no_deep_translator(monkeypat
     assert [key for key, _name in mt.available_providers("")] == ["google", "mymemory"]
 
 
-@pytest.mark.parametrize(("language", "target"), [("it", "IT"), ("pt", "PT-BR"), ("zh", "ZH-HANS"), ("en", "EN-GB")])
-def test_deepl_language_codes(language: str, target: str) -> None:
+_CASES_DEEPL_LANGUAGE_CODES = [("it", "IT"), ("pt", "PT-BR"), ("zh", "ZH-HANS"), ("en", "EN-GB")]
+
+
+def _deepl_language_codes(language: str, target: str) -> None:
     deepl = mt._make_translator("deepl", language, deepl_key="k:fx")
     assert isinstance(deepl, mt.DeepLTranslator) and deepl.target == target
+
+
+def test_deepl_language_codes() -> None:
+    check_all(_deepl_language_codes, _CASES_DEEPL_LANGUAGE_CODES)
 
 
 def test_deepl_without_a_key_hands_over_to_the_next_service() -> None:

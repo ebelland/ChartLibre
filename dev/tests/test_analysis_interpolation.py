@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from app.analysis import interpolation as ip
+from dev.tests._cases import check_all
 
 X = np.linspace(1.0, 10.0, 25)
 
@@ -40,23 +41,35 @@ def test_each_curve_fit_recovers_its_own_parameters(model, truth, params) -> Non
     assert ip.goodness(model, X, truth(X), result.params)["r2"] == pytest.approx(1.0, abs=1e-9)
 
 
-@pytest.mark.parametrize(
-    "model", [ip.MODEL_NUMPY_INTERP, ip.MODEL_SCIPY_PCHIP, ip.MODEL_SCIPY_AKIMA, ip.MODEL_SCIPY_CUBIC]
-)
-def test_an_interpolant_passes_through_every_point(model: str) -> None:
+_CASES_AN_INTERPOLANT_PASSES_THROUGH_EVERY_POINT = [(case,) for case in [ip.MODEL_NUMPY_INTERP, ip.MODEL_SCIPY_PCHIP, ip.MODEL_SCIPY_AKIMA, ip.MODEL_SCIPY_CUBIC]]
+
+
+def _an_interpolant_passes_through_every_point(model: str) -> None:
     y = np.sin(X)
     np.testing.assert_allclose(ip.interpolate(model, X, y, X).y, y, atol=1e-12)
 
 
-@pytest.mark.parametrize("spline_type", ["CubicSpline", "PCHIP", "Akima1D", "B-spline"])
-def test_the_spline_family_passes_through_every_point(spline_type: str) -> None:
+def test_an_interpolant_passes_through_every_point() -> None:
+    check_all(_an_interpolant_passes_through_every_point, _CASES_AN_INTERPOLANT_PASSES_THROUGH_EVERY_POINT)
+
+
+_CASES_THE_SPLINE_FAMILY_PASSES_THROUGH_EVERY_POINT = [(case,) for case in ["CubicSpline", "PCHIP", "Akima1D", "B-spline"]]
+
+
+def _the_spline_family_passes_through_every_point(spline_type: str) -> None:
     y = np.cos(X)
     settings = ip.InterpolationSettings(spline_type=spline_type)
     np.testing.assert_allclose(ip.interpolate(ip.MODEL_SCIPY_SPLINE, X, y, X, settings).y, y, atol=1e-10)
 
 
-@pytest.mark.parametrize("settings", [{}, {"spline_type": "Akima1D"}])
-def test_outside_the_data_is_left_empty_unless_extrapolating(settings: dict) -> None:
+def test_the_spline_family_passes_through_every_point() -> None:
+    check_all(_the_spline_family_passes_through_every_point, _CASES_THE_SPLINE_FAMILY_PASSES_THROUGH_EVERY_POINT)
+
+
+_CASES_OUTSIDE_THE_DATA_IS_LEFT_EMPTY_UNLESS_EXTRAPOLATING = [(case,) for case in [{}, {"spline_type": "Akima1D"}]]
+
+
+def _outside_the_data_is_left_empty_unless_extrapolating(settings: dict) -> None:
     x_eval = np.array([0.0, 5.0, 11.0])
     y = X.copy()
     model = ip.MODEL_SCIPY_SPLINE if settings else ip.MODEL_SCIPY_AKIMA
@@ -65,6 +78,10 @@ def test_outside_the_data_is_left_empty_unless_extrapolating(settings: dict) -> 
     # Akima used to ignore Extrapolate: SciPy leaves the outside empty unless asked.
     opened = ip.interpolate(model, X, y, x_eval, ip.InterpolationSettings(extrapolate=True, **settings))
     assert opened.y.tolist() == pytest.approx([0.0, 5.0, 11.0])
+
+
+def test_outside_the_data_is_left_empty_unless_extrapolating() -> None:
+    check_all(_outside_the_data_is_left_empty_unless_extrapolating, _CASES_OUTSIDE_THE_DATA_IS_LEFT_EMPTY_UNLESS_EXTRAPOLATING)
 
 
 def test_a_smoothing_spline_with_a_large_factor_does_not_pass_through_noise() -> None:
@@ -90,16 +107,19 @@ def test_the_spacings() -> None:
     assert ip.evaluation_x(X, ip.SPACING_CUSTOM, start=0, stop=1, custom=np.array([3.0, 1.0])).tolist() == [1.0, 3.0]
 
 
-@pytest.mark.parametrize(
-    ("spacing", "kwargs", "match"),
-    [(ip.SPACING_LOG, {"start": -1.0, "stop": 2.0}, "positive"),
+_CASES_A_SPACING_THE_RANGE_CANNOT_GIVE_IS_A_VALUE_ERROR = [(ip.SPACING_LOG, {"start": -1.0, "stop": 2.0}, "positive"),
      (ip.SPACING_GEOMETRIC, {"start": 0.0, "stop": 2.0}, "positive"),
      (ip.SPACING_CUSTOM, {"start": 0.0, "stop": 1.0}, "at least one"),
-     (ip.SPACING_INTEGER_STEP, {"start": 0.1, "stop": 0.2, "step": 5.0}, "no X values")],
-)
-def test_a_spacing_the_range_cannot_give_is_a_value_error(spacing, kwargs, match) -> None:
+     (ip.SPACING_INTEGER_STEP, {"start": 0.1, "stop": 0.2, "step": 5.0}, "no X values")]
+
+
+def _a_spacing_the_range_cannot_give_is_a_value_error(spacing, kwargs, match) -> None:
     with pytest.raises(ValueError, match=match):
         ip.evaluation_x(X, spacing, **kwargs)
+
+
+def test_a_spacing_the_range_cannot_give_is_a_value_error() -> None:
+    check_all(_a_spacing_the_range_cannot_give_is_a_value_error, _CASES_A_SPACING_THE_RANGE_CANNOT_GIVE_IS_A_VALUE_ERROR)
 
 
 def test_the_range_is_the_data_widened_only_when_extrapolating() -> None:
