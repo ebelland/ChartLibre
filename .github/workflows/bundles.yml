@@ -53,7 +53,9 @@ jobs:
           asound=$(apt-cache show libasound2t64 >/dev/null 2>&1 && echo libasound2t64 || echo libasound2)
           sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 \
             libfontconfig1 libdbus-1-3 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxtst6 \
-            libxkbfile1 libxshmfence1 libgbm1 "$asound" xvfb xauth
+            libxkbfile1 libxshmfence1 libgbm1 "$asound" xvfb xauth \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 \
+            libxcb-xinput0 libxcb-shape0 libxcb-randr0 libxcb-xfixes0 libxcb-sync1 libxcb-shm0
 
       - name: Inno Setup (Windows)
         if: runner.os == 'Windows'

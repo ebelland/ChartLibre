@@ -154,6 +154,14 @@ LINUX_QT_LIBRARIES: tuple[tuple[str, str], ...] = (
     ("xcb-cursor", "libxcb-cursor0"),
     ("xkbcommon-x11", "libxkbcommon-x11-0"),
     ("EGL", "libegl1"),
+    # Qt's xcb plugin needs these too; a desktop has them, a minimal install
+    # may not, and Qt then names only xcb-cursor whichever one is missing.
+    ("xcb-icccm", "libxcb-icccm4"),
+    ("xcb-image", "libxcb-image0"),
+    ("xcb-keysyms", "libxcb-keysyms1"),
+    ("xcb-render-util", "libxcb-render-util0"),
+    ("xcb-shape", "libxcb-shape0"),
+    ("xcb-randr", "libxcb-randr0"),
 )
 
 
