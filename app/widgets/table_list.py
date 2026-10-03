@@ -1,4 +1,4 @@
-"""Panel showing the list of user tables (Table / Notes / Link / Source)."""
+"""Panel showing the list of user tables (link badge / Table / Notes / Source)."""
 
 from __future__ import annotations
 
@@ -139,14 +139,17 @@ class _TableListModel(QStandardItemModel):
 # Panel
 # ---------------------------------------------------------------------------
 class TableListPanel(QWidget):
-    """Panel: list of user tables with Table / Notes / Link / Source columns."""
+    """Panel: list of user tables with link badge / Table / Notes / Source columns."""
 
     tableSelected = PySide6.QtCore.Signal(str)
 
-    COL_TABLE = 0
-    COL_NOTES = 1
-    COL_HAS_LINK = 2
+    COL_HAS_LINK = 0
+    COL_TABLE = 1
+    COL_NOTES = 2
     COL_FILE = 3
+
+    #: The link column holds only its badge, so it is as narrow as the badge.
+    LINK_COLUMN_WIDTH = 28
 
     ROLE_TABLE_NAME = PySide6.QtCore.Qt.ItemDataRole.UserRole + 1
     ROLE_HAS_LINK = PySide6.QtCore.Qt.ItemDataRole.UserRole
@@ -223,29 +226,28 @@ class TableListPanel(QWidget):
     def _build_model(self) -> _TableListModel:
         model = _TableListModel(self)
         model.setColumnCount(4)
-        model.setHorizontalHeaderLabels(
-            [_("Table"), _("Notes"), _("Link"), _("Source")]
-        )
+        model.setHorizontalHeaderLabels(["", _("Table"), _("Notes"), _("Source")])
+        # No title over the link badges - the column is only as wide as one -
+        # but the header still says what it is when pointed at.
+        link_header = model.horizontalHeaderItem(self.COL_HAS_LINK)
+        if link_header is not None:
+            link_header.setToolTip(_("Link: a chain for a table linked to its source, Q for a saved query"))
         return model
 
     def _configure_headers(self) -> None:
         """Configure manually resizable column headers."""
         hh = self._view.horizontalHeader()
         hh.setSectionResizeMode(self.COL_TABLE, QHeaderView.ResizeMode.Interactive)
-        # Not Fixed: this column was pinned at 40px, which is narrower than
-        # its own heading. "Link" needs 44px at the macOS sheet's 10.5pt
-        # once the stylesheet's 8px of side padding is counted, so the
-        # header read ".in" in English - and the Italian for it is
-        # "Collegamento", which wants about 110px and showed nothing at all.
-        # ResizeToContents sizes it to the wider of the heading and the "Q"
-        # it carries, in whatever language and at whatever font size.
-        hh.setSectionResizeMode(self.COL_HAS_LINK, QHeaderView.ResizeMode.ResizeToContents)
+        # First and untitled, so it is only as wide as the badge it draws
+        # (16 px) and the cell's padding, in every language.
+        hh.setSectionResizeMode(self.COL_HAS_LINK, QHeaderView.ResizeMode.Fixed)
+        hh.resizeSection(self.COL_HAS_LINK, self.LINK_COLUMN_WIDTH)
         hh.setSectionResizeMode(self.COL_FILE, QHeaderView.ResizeMode.Interactive)
         hh.setSectionResizeMode(self.COL_NOTES, QHeaderView.ResizeMode.Interactive)
         hh.resizeSection(self.COL_TABLE, 180)
         hh.resizeSection(self.COL_FILE, 240)
         hh.resizeSection(self.COL_NOTES, 200)
-        hh.setMinimumSectionSize(36)
+        hh.setMinimumSectionSize(self.LINK_COLUMN_WIDTH)
         hh.setSectionsMovable(False)
         hh.setHighlightSections(False)
         hh.setStretchLastSection(True)
@@ -350,7 +352,7 @@ class TableListPanel(QWidget):
         it_link = QStandardItem()
         it_link.setData(has_link, self.ROLE_HAS_LINK)
         it_link.setData(is_query, self.ROLE_IS_QUERY)
-        it_link.setToolTip("Saved query" if is_query else ("Imported from a file" if has_link else ""))
+        it_link.setToolTip(_("Saved query") if is_query else (_("Linked to its source") if has_link else ""))
         it_link.setEditable(False)
         it_link.setFlags(PySide6.QtCore.Qt.ItemFlag.ItemIsEnabled | PySide6.QtCore.Qt.ItemFlag.ItemIsSelectable)
 
@@ -371,7 +373,7 @@ class TableListPanel(QWidget):
         for item in (it_table, it_link, it_file, it_notes):
             item.setFlags(item.flags() | PySide6.QtCore.Qt.ItemFlag.ItemIsSelectable | PySide6.QtCore.Qt.ItemFlag.ItemIsEnabled)
 
-        return [it_table, it_notes, it_link, it_file]
+        return [it_link, it_table, it_notes, it_file]
 
     @property
     def current(self) -> str | None:

@@ -9,9 +9,9 @@ The *Tables* page lists the project's tables and saved queries (marked with a *Q
 The list has four columns:
 
 #defs(
+  [*(no title)*], [A narrow first column with a badge: a chain for a table linked to its source (it can be refreshed with *Update link*), *Q* for a saved query, nothing otherwise.],
   [*Table*], [The table's name.],
   [*Notes*], [Free text: double-click to write what the table is, where it came from, what was done to it. Notes are kept in the project and appear in reports.],
-  [*Link*], [How the table is linked to its source; saved queries show a *Q* here.],
   [*Source*], [Where its data comes from: a file name for a file or web import, "connection → table" for a database import, the SQL itself for a saved query (the full text in the tooltip), nothing for a table with no link.],
 )
 
