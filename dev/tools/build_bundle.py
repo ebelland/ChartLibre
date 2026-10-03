@@ -229,10 +229,25 @@ app.exec()
 """
 
 
+def windowless(command: list[str]) -> tuple[list[str], dict[str, str]]:
+    """*command* and its environment, to run where there may be no screen.
+
+    On a Linux server with no display, matplotlib refuses Qt outright
+    ("headless"), so there the command runs on a virtual X server - which
+    also tries Qt's real Linux platform plugin and the libraries it needs.
+    Elsewhere Qt's own offscreen platform is enough.
+    """
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    if sys.platform.startswith("linux") and not os.environ.get("DISPLAY") and shutil.which("xvfb-run"):
+        return ["xvfb-run", "-a", *command], env
+    env["QT_QPA_PLATFORM"] = "offscreen"
+    return command, env
+
+
 def web_check(python: Path) -> None:
     """Qt's web engine must load a page and run its JavaScript."""
-    env = dict(os.environ, QT_QPA_PLATFORM="offscreen")
-    result = subprocess.run([str(python), "-c", WEB_CHECK], capture_output=True, text=True, env=env, timeout=120)
+    command, env = windowless([str(python), "-c", WEB_CHECK])
+    result = subprocess.run(command, capture_output=True, text=True, env=env, timeout=120)
     if "WEB True web engine works" not in result.stdout:
         print(result.stdout[-3000:], result.stderr[-6000:])
         raise SystemExit("Qt's web engine did not load a page; its output is above.")
@@ -241,10 +256,10 @@ def web_check(python: Path) -> None:
 
 def smoke_test(python: Path, folder: Path, seconds: float = 20.0) -> None:
     """Start ChartLibre without a window; it must still be running after *seconds*."""
-    env = dict(os.environ, QT_QPA_PLATFORM="offscreen", PYTHONDONTWRITEBYTECODE="1")
+    command, env = windowless([str(python), str(folder / "main.py")])
     log = folder.parent / "smoke.log"
     with log.open("w", encoding="utf-8") as out:
-        process = subprocess.Popen([str(python), str(folder / "main.py")], cwd=folder, env=env,
+        process = subprocess.Popen(command, cwd=folder, env=env,
                                    stdout=out, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline and process.poll() is None:
@@ -282,6 +297,7 @@ def clean_runtime_state(folder: Path) -> None:
 def package(folder: Path, key: str, version: str) -> list[Path]:
     """Pack *folder* the way *key*'s system expects; return the files made."""
     stem = f"ChartLibre-{version}-{key}"
+    DIST.mkdir(parents=True, exist_ok=True)  # not in a fresh clone
     made: list[Path] = []
     system = system_of(key)
     if system == "macos":
