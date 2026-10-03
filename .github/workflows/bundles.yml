@@ -70,7 +70,15 @@ jobs:
 
       - name: Build, test and pack
         shell: bash
-        run: python dev/tools/build_bundle.py --version "$VERSION" --work "$RUNNER_TEMP"
+        run: |
+          set -o pipefail
+          if ! python -u dev/tools/build_bundle.py --version "$VERSION" --work "$RUNNER_TEMP" 2>&1 | tee build.log; then
+            # The end of the output as an annotation: unlike the log, it can
+            # be read without signing in to GitHub.
+            message=$(tail -n 60 build.log | tr -d '\r' | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Build failed (${{ matrix.name }})::$message"
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
