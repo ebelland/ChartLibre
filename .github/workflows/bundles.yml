@@ -99,7 +99,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: packages/*
-          draft: true
+          draft: false
           body: |
             Ready-made ChartLibre packages: Python and every library are inside, so nothing needs installing first and no internet is needed.
 

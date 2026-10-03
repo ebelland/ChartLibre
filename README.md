@@ -94,26 +94,51 @@ Highlights:
 
 ## Installation
 
-Nothing to install first — not even Python:
+Nothing to install first — not even Python. Pick the way that suits you:
 
-1. **Download ChartLibre** — the green *Code* button, then *Download ZIP* — and unzip it. The `ChartLibre` folder can live anywhere: copy it where you like, as it is.
-2. **Double-click** `ChartLibre.app` on macOS or `ChartLibre.exe` on Windows (`ChartLibre.bat` does the same). On Linux, open a terminal in the folder and run `./ChartLibre.sh`.
+| | Mac (Apple Silicon: M1, M2, ...) | Windows 10 / 11 | Mac with Intel, Linux |
+|---|---|---|---|
+| **Ready-made package** — opens at once, no internet needed | `ChartLibre-…-macos-arm64.dmg` | `ChartLibre-…-windows-x86_64-setup.exe` (installer) or `…-portable.zip` | — |
+| **Source folder** — downloads what it needs on the first launch | ✓ | ✓ | ✓ |
 
-The first launch asks, then downloads what ChartLibre needs into the folder itself: its own copy of Python (a standalone build from [python-build-standalone](https://github.com/astral-sh/python-build-standalone), checked against its SHA-256 before it runs) and the scientific libraries — about 400 MB to download and 1.7 GB on disk, a few minutes, an internet connection. Every launch after that opens the application straight away, offline. Nothing is installed anywhere else, so deleting the folder removes ChartLibre completely. On Linux the first launch also adds ChartLibre to the applications menu.
+### Ready-made package (macOS Apple Silicon, Windows)
 
-**If ChartLibre stops starting**, delete the `.venv` folder inside it (on macOS press Cmd+Shift+. in Finder to see it) and open ChartLibre again: it reinstalls the libraries.
+Download it from the [**Releases page**](https://github.com/ebelland/ChartLibre/releases/latest) (under *Assets*).
+
+**macOS**
+1. Open the `.dmg` and drag the **ChartLibre** folder onto **Applications**.
+2. Open `Applications/ChartLibre/ChartLibre.app`.
+3. The first time, macOS says it *cannot verify that ChartLibre.app is free of malware* — ChartLibre is not signed with an Apple certificate. Click **Done**, then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to ChartLibre, and confirm with your password. You do this once.
+   Or, in Terminal, once:
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/ChartLibre
+   ```
+
+**Windows**
+1. Run `…-setup.exe`. It installs ChartLibre for your user only, in `%LOCALAPPDATA%\Programs\ChartLibre` — no administrator rights needed — with a Start menu entry and, if you like, a desktop icon. *Settings → Apps* uninstalls it.
+2. If Windows shows *Windows protected your PC*, click **More info**, then **Run anyway**. You do this once.
+
+Prefer no installer? Unzip `…-portable.zip` anywhere and open `ChartLibre.exe` inside it.
+
+### Source folder (every system)
+
+1. **Download ChartLibre** — the green *Code* button above, then *Download ZIP* — and unzip it. The `ChartLibre` folder can live anywhere.
+2. Start it:
+   - **macOS**: double-click `ChartLibre.app` (the first time, allow it as described above);
+   - **Windows**: double-click `ChartLibre.exe` (or `ChartLibre.bat`);
+   - **Linux**: open a terminal in the folder and run `./ChartLibre.sh`. It also adds ChartLibre to the applications menu.
+
+The first launch asks, then downloads what ChartLibre needs into the folder itself: its own copy of Python (a standalone build from [python-build-standalone](https://github.com/astral-sh/python-build-standalone), checked against its SHA-256 before it runs) and the scientific libraries — about 400 MB to download and 1.7 GB on disk, a few minutes, an internet connection. Every launch after that opens the application straight away, offline.
+
+On Linux, Qt needs a few system libraries a desktop usually has; if one is missing, the first launch names it and the command to install it (typically `sudo apt install libxcb-cursor0`).
+
+### Good to know
+
+- **Nothing is installed anywhere else.** Deleting the ChartLibre folder (or uninstalling, on Windows) removes it completely. Your projects (`.dhub` files) are wherever you saved them, and are not touched.
+- **If ChartLibre stops starting**, delete the hidden `.python` folder inside the ChartLibre folder (on macOS, Cmd+Shift+. shows hidden files in Finder) and open it again: a source folder downloads Python and the libraries again. A ready-made package is simplest to download again.
 
 <details>
-<summary>If the system will not open it the first time</summary>
-
-The launchers are not signed, so the first time:
-
-- **macOS** may say it cannot check the app. Open *System Settings → Privacy & Security* and click *Open Anyway* (or right-click the app and choose *Open*).
-- **Windows** may show *Windows protected your PC*. Click *More info*, then *Run anyway*.
-</details>
-
-<details>
-<summary>From the terminal instead</summary>
+<summary>From the terminal, with your own Python</summary>
 
 ```bash
 git clone https://github.com/ebelland/ChartLibre.git
@@ -123,7 +148,7 @@ python3 install.py        # with your own Python 3.11+: creates .venv and instal
 ```
 </details>
 
-On first launch ChartLibre asks whether to create a new project, open an existing one, or **load a demo**. Twenty-four demo projects ship with it, each a complete worked example — start there.
+On first launch ChartLibre asks whether to create a new project, open an existing one, or **load a demo**. Twenty-six demo projects ship with it, each a complete worked example — start there.
 
 
 ---
