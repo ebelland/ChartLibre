@@ -6561,3 +6561,18 @@ msgstr "Écriture de la figure…"
 
 msgid "Search operations"
 msgstr "Rechercher une opération"
+
+msgid "Save figure"
+msgstr "Enregistrer la figure"
+
+msgid "Export report…"
+msgstr "Exporter le rapport…"
+
+msgid "Export report"
+msgstr "Exporter le rapport"
+
+msgid "This chart and its notes as an HTML or PDF report, like File > Export for the whole project"
+msgstr "Ce graphique et ses notes en rapport HTML ou PDF, comme Fichier > Exporter pour tout le projet"
+
+msgid "The chart is drawn again, with its notes."
+msgstr "Le graphique est redessiné, avec ses notes."

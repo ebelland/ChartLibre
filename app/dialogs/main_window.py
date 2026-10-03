@@ -2000,8 +2000,12 @@ class MainWindow(QMainWindow):
             contents.setUpdatesEnabled(True)
 
 
-    def _reload_tabs(self) -> None:
-        """Reload chart tabs from the current repository."""
+    def _reload_tabs(self, select_figure_id: int | None = None) -> None:
+        """Reload chart tabs from the current repository.
+
+        *select_figure_id* makes that figure's tab the current one - a chart
+        just created is shown, not left behind the one that was open.
+        """
         applogger.debug("Reloading chart tabs")
         current_index = self._tabs.currentIndex()
 
@@ -2048,7 +2052,10 @@ class MainWindow(QMainWindow):
             self._clear_property_widgets()
             return
 
-        if 0 <= current_index < self._tabs.count():
+        selected = self._tab_index_of_figure(select_figure_id) if select_figure_id is not None else -1
+        if selected >= 0:
+            self._tabs.setCurrentIndex(selected)
+        elif 0 <= current_index < self._tabs.count():
             self._tabs.setCurrentIndex(current_index)
         else:
             self._tabs.setCurrentIndex(0)
@@ -2121,6 +2128,14 @@ class MainWindow(QMainWindow):
         else:
             rail.select_chart(current)
         jump.set_charts(names, current)
+
+    def _tab_index_of_figure(self, figure_id: int) -> int:
+        """The tab showing figure *figure_id*, or -1."""
+        for index in range(self._tabs.count()):
+            widget = self._tabs.widget(index)
+            if isinstance(widget, ChartPanel) and int(widget.figure_id) == int(figure_id):
+                return index
+        return -1
 
     def _step_chart(self, step: int) -> None:
         """Show the chart *step* rows above (-1) or below (+1) the current one."""
@@ -2809,7 +2824,10 @@ class MainWindow(QMainWindow):
 
         if dialog.exec():
             self._table_panel.reload()
-            self._reload_tabs()
+            # The chart just made becomes the current one - a new figure, or
+            # the figure the new axis went into.
+            result = dialog.chart_result
+            self._reload_tabs(select_figure_id=result.figure_id if result is not None else None)
 
     def _get_current_figure_id(self) -> tuple[ChartPanel | None, int | None]:
         """Return the figure ID of the currently selected chart tab, if any."""
@@ -2880,7 +2898,7 @@ class MainWindow(QMainWindow):
                 append=True,
             )
         )
-        figure_count_before = self._tabs.count()
+        figures_before = {figure_id for figure_id, _name in self._repo.load_figures_from_db()}
         dialog.exec()
         panel.reload()
         self._table_panel.reload()
@@ -2893,8 +2911,10 @@ class MainWindow(QMainWindow):
         # redraw every chart regardless of how many the operation actually
         # touched. Only worth paying for when a figure was actually added;
         # the panel.reload() above already covers the ordinary case.
-        if len(self._repo.load_figures_from_db()) != figure_count_before:
-            self._reload_tabs()
+        created = {figure_id for figure_id, _name in self._repo.load_figures_from_db()} - figures_before
+        if created:
+            # Shown: the figure the operation made is what its Apply produced.
+            self._reload_tabs(select_figure_id=max(created))
         self._update_properties_for_current_chart()
    
 

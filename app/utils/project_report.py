@@ -1,11 +1,12 @@
-"""The whole project as one report: every figure, its notes, its data and history.
+"""The whole project as one report: every figure, its notes, tables and history.
 
 What goes to a supervisor, a reviewer or a lab notebook: each figure drawn
-again at a fixed size, with the notes written beside it and where each of
-its series comes from (the SQL, which is the reproducible part); then the
-tables, with their sizes and notes; then what was done to them - the
-operation history (todo R-03). One HTML file with the pictures inside it,
-or a PDF made from the same page (app/dialogs/project_report_dialog.py).
+again at a fixed size, with the notes written beside it; then the tables,
+with their sizes and notes; then what was done to them - the operation
+history (todo R-03). No SQL: the report is for readers of the results, not
+of the queries. One HTML file with the pictures inside it, or a PDF made
+from the same page (app/dialogs/project_report_dialog.py). The same report
+of one figure alone is the chart's own "Export report".
 
 The pictures are named ``figure-<id>.png`` (or ``.svg``) in the page and
 returned beside it, so the HTML writer can put them inline and the PDF
@@ -14,6 +15,7 @@ writer can hand them to Qt. No Qt here (todo R-09).
 from __future__ import annotations
 
 import base64
+from collections.abc import Sequence
 import html
 import io
 from dataclasses import dataclass, field
@@ -74,24 +76,6 @@ def _figure_notes(repo: SqliteRepo, figure_id: int) -> str:
     return str(view.get("notes_html") or "") if isinstance(view, dict) else ""
 
 
-def _series_block(repo: SqliteRepo, figure_id: int) -> str:
-    """Each series' name and SQL: where every curve on the figure comes from."""
-    descriptor = repo.load_figure_descriptor(figure_id=figure_id)
-    rows = [
-        (series.name or "-", f"<code>{html.escape(series.sql_query)}</code>")
-        for axis in (descriptor.axes if descriptor else [])
-        for series in axis.series
-    ]
-    if not rows:
-        return ""
-    items = "".join(
-        f"<tr><td style='padding:2px 10px 2px 0;vertical-align:top;white-space:nowrap;'>{html.escape(name)}</td>"
-        f"<td style='padding:2px 0;font-size:8pt;'>{sql}</td></tr>"
-        for name, sql in rows
-    )
-    return f"<table cellspacing='0' style='margin:4px 0 10px 0;'>{items}</table>"
-
-
 def _new_page(block: str) -> str:
     """*block* starting a page when printed - the PDF, or a browser's Print -
     so a figure is never split from its title. Nothing changes on screen."""
@@ -111,26 +95,31 @@ def build_project_report(
     title: str = "",
     image_format: str = "png",
     dpi: int = 150,
-    include_data: bool = True,
     include_tables: bool = True,
     include_history: bool = True,
+    figure_ids: Sequence[int] | None = None,
 ) -> ProjectReport:
     """Build the report of the project open in *repo*.
 
     *image_format* "png" or "svg" (SVG keeps the figures vector in the HTML;
-    a PDF needs PNG). *include_data* lists each figure's series and their SQL.
-    A figure that fails to draw is named in the report and in ``failures``
-    rather than stopping it.
+    a PDF needs PNG). *figure_ids* limits the report to those figures - one,
+    for a chart's own "Export report", which is then titled after it and
+    has no list of figures. A figure that fails to draw is named in the
+    report and in ``failures`` rather than stopping it.
     """
     project = Path(str(repo.db_path)).stem if getattr(repo, "db_path", None) else "Project"
-    report = ProjectReport(title=title or project, html="")
     figures = repo.load_figures_from_db()
+    if figure_ids is not None:
+        wanted = {int(figure_id) for figure_id in figure_ids}
+        figures = [(figure_id, name) for figure_id, name in figures if int(figure_id) in wanted]
+    single = figure_ids is not None and len(figures) == 1
+    report = ProjectReport(title=title or (figures[0][1] if single else project), html="")
     sections: list[str] = []
 
     contents = "".join(
         f"<li>{html.escape(name)}</li>" for _figure_id, name in figures
     )
-    if contents:
+    if contents and not single:
         sections.append(report_html.section(_("Figures"), f"<ol style='margin:0 0 6px 18px;'>{contents}</ol>"))
 
     for number, (figure_id, name) in enumerate(figures, start=1):
@@ -145,9 +134,10 @@ def build_project_report(
         notes = _figure_notes(repo, figure_id)
         if notes.strip():
             blocks.append(f"<div style='margin:0 0 8px 0;'>{notes}</div>")
-        if include_data:
-            blocks.append(_series_block(repo, figure_id))
-        sections.append(_new_page(report_html.section(_("Figure {number}. {name}").format(number=number, name=name), *blocks)))
+        if single:
+            sections.append("".join(blocks))
+        else:
+            sections.append(_new_page(report_html.section(_("Figure {number}. {name}").format(number=number, name=name), *blocks)))
 
     if include_tables:
         tables = repo.list_user_tables()

@@ -1882,7 +1882,8 @@ class ChartPanel(QFrame):
             [
                 MenuItem(_("Reload"), _("Reload chart"), None, self.reload,False,"reload"),
                 MenuItem(_("Copy"),_("Copy figure"),PySide6.QtGui.QKeySequence.StandardKey.Copy,self.copy_chart_to_clipboard,False,"copy"),
-                MenuItem(_("Save"),_("Save as picture"), PySide6.QtGui.QKeySequence.StandardKey.SaveAs,self.save_chart_as,False,"save"),
+                MenuItem(_("Save figure"),_("Save as picture"), PySide6.QtGui.QKeySequence.StandardKey.SaveAs,self.save_chart_as,False,"save"),
+                MenuItem(_("Export report…"), _("This chart and its notes as an HTML or PDF report, like File > Export for the whole project"), None, self.export_report, False, "project_report"),
                 MenuItem(_("Export view as CSV…"),_("Save the rows currently on screen as a CSV file"),None,self.export_view_as_csv,False,"export_csv"),
                 action_menu_item("publication_export", self.export_for_publication),
                 MenuItem(
@@ -3057,6 +3058,12 @@ class ChartPanel(QFrame):
             parent=self,
         )
         dialog.exec()
+
+    def export_report(self) -> None:
+        """The project report of this chart alone: its picture and notes."""
+        from app.dialogs.project_report_dialog import ProjectReportDialog
+
+        ProjectReportDialog(self._repo, self, figure_id=self._figure_id).exec()
 
     def save_as_template(self) -> None:
         """Save this figure's look as a named graph template."""

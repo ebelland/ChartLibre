@@ -7,6 +7,7 @@ text engine on A4 pages, with the pictures as PNG.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from PySide6.QtCore import QMarginsF, QSizeF, QUrl
@@ -71,13 +72,19 @@ def write_report_pdf(report: ProjectReport, path: Path | str) -> Path:
 
 
 class ProjectReportDialog(QDialog):
-    """Ask what the report holds and in which format, then write it."""
+    """Ask what the report holds and in which format, then write it.
 
-    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
+    With *figure_id*, the report of that one chart - its picture and notes -
+    which is the chart menu's "Export report": the same dialog and writer,
+    without the project's tables and history.
+    """
+
+    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None, *, figure_id: int | None = None) -> None:
         super().__init__(parent)
         self._repo = repo
+        self._figure_id = figure_id
         self.written: Path | None = None
-        self.setWindowTitle(_("Project report"))
+        self.setWindowTitle(_("Export report") if figure_id is not None else _("Project report"))
         self.setWindowIcon(load_icon("save"))
 
         root = QVBoxLayout(self)
@@ -106,18 +113,26 @@ class ProjectReportDialog(QDialog):
         self._dpi_spin.setSuffix(" dpi")
         form.addRow(_("Resolution"), self._dpi_spin)
 
-        form.addRow(create_section_title(_("Contents"), card))
-        self._data_check = QCheckBox(_("Each figure's series and their SQL"), card)
-        self._data_check.setChecked(True)
         self._tables_check = QCheckBox(_("The tables, their size and notes"), card)
         self._tables_check.setChecked(True)
         self._history_check = QCheckBox(_("The operation history"), card)
         self._history_check.setChecked(True)
-        for check in (self._data_check, self._tables_check, self._history_check):
-            form.addRow("", check)
+        if figure_id is None:
+            form.addRow(create_section_title(_("Contents"), card))
+            for check in (self._tables_check, self._history_check):
+                form.addRow("", check)
+        else:
+            # One chart: its picture and notes; the project's tables and
+            # history are not about it.
+            for check in (self._tables_check, self._history_check):
+                check.hide()
         card_layout.addLayout(form)
 
-        self._status = QLabel(_("Every figure is drawn again, with its notes."), card)
+        self._status = QLabel(
+            _("The chart is drawn again, with its notes.") if figure_id is not None
+            else _("Every figure is drawn again, with its notes."),
+            card,
+        )
         self._status.setProperty("muted", True)
         self._status.setWordWrap(True)
         card_layout.addWidget(self._status)
@@ -144,6 +159,9 @@ class ProjectReportDialog(QDialog):
     def _export(self) -> None:
         kind = str(self._format_combo.currentData() or "html")
         stem = Path(str(self._repo.db_path)).stem if self._repo.db_path else "report"
+        if self._figure_id is not None:
+            title = self._repo.get_figure_title(self._figure_id) or f"figure_{self._figure_id}"
+            stem = re.sub(r"[^\w\-]+", "_", title).strip("_") or "figure"
         file_filter = _("HTML page (*.html)") if kind == "html" else _("PDF Document (*.pdf)")
         path, _filter = QFileDialog.getSaveFileName(self, _("Project report"), f"{stem}.{kind}", file_filter)
         if not path:
@@ -158,9 +176,9 @@ class ProjectReportDialog(QDialog):
                 self._repo,
                 image_format=str(self._image_combo.currentData() or "png") if kind == "html" else "png",
                 dpi=self._dpi_spin.value(),
-                include_data=self._data_check.isChecked(),
-                include_tables=self._tables_check.isChecked(),
-                include_history=self._history_check.isChecked(),
+                include_tables=self._figure_id is None and self._tables_check.isChecked(),
+                include_history=self._figure_id is None and self._history_check.isChecked(),
+                figure_ids=None if self._figure_id is None else [self._figure_id],
             )
             self.written = write_report_html(report, path) if kind == "html" else write_report_pdf(report, path)
         except (OSError, ValueError, DatabaseError) as exc:

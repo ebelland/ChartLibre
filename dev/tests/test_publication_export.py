@@ -150,12 +150,12 @@ def test_applying_from_the_chart_menu_can_be_undone(qapp, showcase, tmp_path: Pa
 # ----------------------------------------------------------------------
 # The project report
 # ----------------------------------------------------------------------
-def test_the_report_has_every_figure_with_its_sql(showcase, tmp_path: Path) -> None:
+def test_the_report_has_every_figure_and_no_sql(showcase, tmp_path: Path) -> None:
     repo, ids = showcase
     report = build_project_report(repo, dpi=60, include_history=False)
     assert not report.failures
     assert len(report.images) == len(repo.load_figures_from_db()) >= len(ids)
-    assert "SELECT weeks AS time" in report.html
+    assert "SELECT" not in report.html
     written = write_report_html(report, tmp_path / "report")
     page = written.read_text(encoding="utf-8")
     assert written.suffix == ".html" and page.count('src="data:image/png;base64,') == len(report.images)
@@ -190,3 +190,27 @@ def test_no_wait_cursor_anywhere() -> None:
         if "setOverrideCursor(" in path.read_text(encoding="utf-8")
     ]
     assert offenders == []
+
+
+def test_a_charts_own_report_has_that_chart_alone(qapp, showcase, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.dialogs.project_report_dialog import ProjectReportDialog
+    from app.widgets.chart_panel import ChartPanel
+
+    repo, ids = showcase
+    report = build_project_report(repo, dpi=60, figure_ids=[ids["Kaplan-Meier"]])
+    assert list(report.images) == [f"figure-{ids['Kaplan-Meier']}.png"]
+    assert report.title == "Kaplan-Meier showcase" and "Operation history" not in report.html
+
+    panel = ChartPanel(repo, ids["Kaplan-Meier"])
+    menu_texts = [action.text() for action in panel._build_actions_menu().actions()]
+    assert "Save figure" in menu_texts and "Export report…" in menu_texts
+    dialogs: list[ProjectReportDialog] = []
+    monkeypatch.setattr(ProjectReportDialog, "exec", lambda self: dialogs.append(self) or 0)
+    panel.export_report()
+    assert dialogs and dialogs[0]._figure_id == ids["Kaplan-Meier"] and dialogs[0].windowTitle() == "Export report"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *_a, **_k: (str(tmp_path / "km.html"), "")))
+    dialogs[0]._format_combo.setCurrentIndex(0)  # HTML; the dialog remembers the last format
+    dialogs[0]._export()
+    page = (tmp_path / "km.html").read_text(encoding="utf-8")
+    assert page.count("data:image/png;base64,") == 1
+    panel.close()
