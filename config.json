@@ -859,6 +859,11 @@
       "title": "Delete axis",
       "text": "Delete the axis '{axis}'?"
     },
+    "log.confirm_clear": {
+      "level": "question",
+      "title": "Clear the log",
+      "text": "Empty the application log? What it holds now cannot be read again."
+    },
     "chart.confirm_delete": {
       "level": "question",
       "title": "Delete chart",

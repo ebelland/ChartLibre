@@ -6576,3 +6576,21 @@ msgstr "Ce graphique et ses notes en rapport HTML ou PDF, comme Fichier > Export
 
 msgid "The chart is drawn again, with its notes."
 msgstr "Le graphique est redessiné, avec ses notes."
+
+msgid "Empty the application log"
+msgstr "Vider le journal de l'application"
+
+msgid "Could not clear the log: {reason}"
+msgstr "Impossible d'effacer le journal : {reason}"
+
+msgid "The log was cleared."
+msgstr "Le journal a été effacé."
+
+msgid "Clear the log"
+msgstr "Effacer le journal"
+
+msgid "Empty the application log? What it holds now cannot be read again."
+msgstr "Vider le journal de l'application ? Son contenu actuel ne pourra plus être lu."
+
+msgid "Clear log"
+msgstr "Effacer"

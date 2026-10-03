@@ -6579,3 +6579,21 @@ msgstr "Questo grafico e le sue note come report HTML o PDF, come File > Esporta
 
 msgid "The chart is drawn again, with its notes."
 msgstr "Il grafico viene ridisegnato, con le sue note."
+
+msgid "Empty the application log"
+msgstr "Svuota il log dell'applicazione"
+
+msgid "Could not clear the log: {reason}"
+msgstr "Impossibile pulire il log: {reason}"
+
+msgid "The log was cleared."
+msgstr "Il log è stato pulito."
+
+msgid "Clear the log"
+msgstr "Pulisci il log"
+
+msgid "Empty the application log? What it holds now cannot be read again."
+msgstr "Svuotare il log dell'applicazione? Quello che contiene ora non si potrà più leggere."
+
+msgid "Clear log"
+msgstr "Pulisci"

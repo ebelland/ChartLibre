@@ -16,17 +16,19 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.logs.logger import LOG_FILE
+from app.logs.logger import LOG_FILE, clear_log_file
 from app.styles.style import (
     apply_dialog_shell,
     CardFrame,
     create_action_button,
     create_section_title,
     load_icon,
+    mark_destructive_button,
     mark_editor_panel,
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
+from app.utils.messages import ask
 
 
 class LogViewerDialog(QDialog):
@@ -95,8 +97,21 @@ class LogViewerDialog(QDialog):
 
         root.addWidget(card, 1)
 
+        self._viewer = viewer
+        self._caption = caption
+
         action_row = QHBoxLayout()
         stdSizeAndlayout(action_row)
+        # Red and on its own at the left, away from Copy and Close: the one
+        # button here whose effect cannot be taken back.
+        clear_button = create_action_button(
+            parent=self,
+            action_id="clear",
+            action=self._clear_log,
+            layout=action_row,
+            presentation=(load_icon("clear"), _("Clear log"), _("Empty the application log")),
+        )
+        mark_destructive_button(clear_button)
         action_row.addStretch(1)
 
         create_action_button(
@@ -114,6 +129,18 @@ class LogViewerDialog(QDialog):
         )
 
         root.addLayout(action_row, 0)
+
+    def _clear_log(self) -> None:
+        """Empty the log file, after asking, and the viewer with it."""
+        if not ask(self, "log.confirm_clear"):
+            return
+        try:
+            clear_log_file()
+        except OSError as exc:
+            self._caption.setText(_("Could not clear the log: {reason}").format(reason=exc))
+            return
+        self._viewer.clear()
+        self._caption.setText(_("The log was cleared."))
 
     def closeEvent(self, event: QCloseEvent) -> None:
         super().closeEvent(event)

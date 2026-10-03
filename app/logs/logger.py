@@ -506,3 +506,28 @@ def get_logger() -> DataHubLogger:
     """Return the singleton application logger."""
     return AppLogger.get_logger()
 
+
+
+def clear_log_file() -> None:
+    """Empty the application log file, through the handler that writes it.
+
+    Truncated in place by the RotatingFileHandler that holds it open, under
+    its lock: replacing the file under an open handle would leave the handle
+    writing to a file nobody reads (and Windows would refuse the delete).
+    Without a file handler, the file is emptied directly.
+    """
+    logger = logging.getLogger(_LOGGER_NAME)
+    for handler in logger.handlers:
+        if isinstance(handler, RotatingFileHandler):
+            handler.acquire()
+            try:
+                if handler.stream is not None:
+                    handler.stream.seek(0)
+                    handler.stream.truncate()
+                    handler.stream.flush()
+                    return
+            finally:
+                handler.release()
+    path = Path(LOG_FILE)
+    if path.exists():
+        path.write_text("", encoding="utf-8")
