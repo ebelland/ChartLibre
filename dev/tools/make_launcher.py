@@ -3,11 +3,14 @@
     python3 dev/tools/make_launcher.py        # into the project folder
     python3 dev/tools/make_launcher.py DIR    # somewhere else
 
-``ChartLibre.app`` (macOS) and ``ChartLibre.bat`` (Windows) find the folder
-they sit in, so the whole folder can be copied anywhere and started from
-there. The first time, each one looks for Python 3.11 or newer, asks, and
-installs requirements.txt into ``.venv`` inside the folder; after that it
-just starts the application. Nothing is written outside the folder.
+``ChartLibre.app`` (macOS), ``ChartLibre.bat``/``ChartLibre.exe`` (Windows)
+and ``ChartLibre.sh`` (Linux) find the folder they sit in, so the whole
+folder can be copied anywhere and started from there. The first time, each
+one downloads a standalone Python into ``.python`` (see PYTHON_ARCHIVES),
+checks its SHA-256, and runs install.py with it, which installs
+requirements.txt into ``.venv``; after that it just starts the application.
+Nobody has to install Python first, and nothing is written outside the
+folder.
 
 These are launchers, not a standalone build: a self-contained executable
 would need PyInstaller and would bundle PySide6, SciPy and the rest - well
@@ -74,14 +77,69 @@ def _render_icon_pngs(sizes: list[int]) -> dict[int, bytes]:
     return images
 
 
+#: The Python every launcher downloads on the first launch, into ``.python``
+#: in the ChartLibre folder: a standalone CPython build from
+#: python-build-standalone (the builds uv installs), so nobody has to install
+#: Python first. Pinned to one release, and each archive is checked against
+#: its SHA-256 before anything in it runs. To move to a newer one, take the
+#: names and digests from the release page and run this file again.
+PYTHON_RELEASE: str = "20261003"
+PYTHON_VERSION: str = "3.13.16"
+PYTHON_BASE_URL: str = (
+    f"https://github.com/astral-sh/python-build-standalone/releases/download/{PYTHON_RELEASE}"
+)
+#: Platform key -> (archive name, sha256).
+PYTHON_ARCHIVES: dict[str, tuple[str, str]] = {
+    "macos-arm64": (
+        f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-aarch64-apple-darwin-install_only.tar.gz",
+        "d8975d7df4f08f7b1c7aafcdfacbddcec3d366415f2c1a72b2466b6850815933",
+    ),
+    "macos-x86_64": (
+        f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-x86_64-apple-darwin-install_only.tar.gz",
+        "8e9cb087305bfb8969f68a905f79f41469d4aa5220c1aa71ada7fc9953bdba0f",
+    ),
+    # Windows on ARM runs this one too, emulated: Qt's own arm64 wheels are
+    # not what PySide6 publishes for every library ChartLibre needs.
+    "windows-x86_64": (
+        f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-x86_64-pc-windows-msvc-install_only.tar.gz",
+        "5e100ee3d592ff500f4408a624f054d202e32d9dba8a12b2226bef81083fd778",
+    ),
+    "linux-x86_64": (
+        f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-x86_64-unknown-linux-gnu-install_only.tar.gz",
+        "0a0272910b10417c659a9312fb3f2d7a6d774da7bd510999be7a3ba83273dc1f",
+    ),
+    "linux-aarch64": (
+        f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "6477121f22904963a066ac8ff89983baae781510815590e894daa3c11ce86652",
+    ),
+}
+
+
+def _archive(key: str) -> tuple[str, str]:
+    """(download URL, sha256) of the Python archive for *key*."""
+    name, digest = PYTHON_ARCHIVES[key]
+    return f"{PYTHON_BASE_URL}/{name}", digest
+
+
+def _fill(template: str) -> str:
+    """Put the pinned archives' URLs and digests into a launcher template."""
+    for key in PYTHON_ARCHIVES:
+        url, digest = _archive(key)
+        marker = key.upper().replace("-", "_")
+        template = template.replace(f"@{marker}_URL@", url).replace(f"@{marker}_SHA@", digest)
+    return template.replace("@PYTHON_VERSION@", PYTHON_VERSION)
+
+
 #: The macOS launcher. $HERE is the folder the .app sits in.
-MACOS_SCRIPT = r"""#!/bin/bash
+MACOS_SCRIPT = _fill(r"""#!/bin/bash
 # ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
-# the ChartLibre folder is: the first launch installs the libraries into
-# .venv inside that folder, every later one just starts the application.
+# the ChartLibre folder is. The first launch downloads Python into .python
+# and the libraries into .venv, both inside that folder; every later launch
+# just starts the application. Nothing needs installing first.
 HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$HERE" || exit 1
 VENV="$HERE/.venv"
+RUNTIME="$HERE/.python"
 LOG="$HERE/.venv-setup.log"
 
 ask() {  # ask "message" "button" -> exit status 0 when the button was pressed
@@ -90,73 +148,88 @@ ask() {  # ask "message" "button" -> exit status 0 when the button was pressed
   [ "$answer" = "$2" ]
 }
 
+say() {  # a notification, so the first launch is not silent; never fails
+  osascript -e "display notification \"$1\" with title \"ChartLibre\"" >/dev/null 2>&1
+  return 0
+}
+
+get_python() {  # download Python @PYTHON_VERSION@ into .python, once
+  [ -x "$RUNTIME/bin/python3" ] && return 0
+  case "$(uname -m)" in
+    arm64) url="@MACOS_ARM64_URL@"; sum="@MACOS_ARM64_SHA@" ;;
+    *)     url="@MACOS_X86_64_URL@"; sum="@MACOS_X86_64_SHA@" ;;
+  esac
+  archive="$HERE/.python-download.tar.gz"
+  echo "Downloading $url"
+  curl -fL --retry 3 -o "$archive" "$url" || return 1
+  echo "$sum  $archive" | shasum -a 256 -c - || { rm -f "$archive"; echo "The download is damaged."; return 1; }
+  rm -rf "$RUNTIME" && mkdir -p "$RUNTIME" || return 1
+  tar -xzf "$archive" -C "$RUNTIME" --strip-components 1 || { rm -rf "$RUNTIME"; return 1; }
+  rm -f "$archive"
+}
+
 if [ ! -x "$VENV/bin/python3" ]; then
-  PY=""
-  CANDIDATES=$(ls -d /Library/Frameworks/Python.framework/Versions/3.*/bin/python3 2>/dev/null | sort -t. -k2,2nr)
-  for c in $CANDIDATES /opt/homebrew/bin/python3 /usr/local/bin/python3 $(command -v python3); do
-    if [ -x "$c" ] && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
-      PY="$c"
-      break
-    fi
-  done
-  if [ -z "$PY" ]; then
-    if ask "ChartLibre needs Python 3.11 or newer.\n\nInstall it from python.org, then open ChartLibre again." "Open python.org"; then
-      open "https://www.python.org/downloads/"
-    fi
-    exit 1
-  fi
-  ask "First launch: ChartLibre will install the libraries it needs into its own folder.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
-  osascript -e 'display notification "Installing... ChartLibre opens when it is ready." with title "ChartLibre"'
-  if ! { "$PY" -m venv "$VENV" \
-         && "$VENV/bin/python3" -m pip install --upgrade pip \
-         && "$VENV/bin/python3" -m pip install -r "$HERE/requirements.txt"; } >"$LOG" 2>&1; then
-    rm -rf "$VENV"
-    osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
+  ask "First launch: ChartLibre will download what it needs into its own folder - Python and its scientific libraries: about 400 MB to download, 1.7 GB on disk.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
+  say "Step 1 of 2: downloading Python..."
+  if ! { get_python \
+         && say "Step 2 of 2: installing the scientific libraries. ChartLibre opens when it is ready." \
+         && "$RUNTIME/bin/python3" "$HERE/install.py"; } >"$LOG" 2>&1; then
+    osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
     exit 1
   fi
 fi
 exec "$VENV/bin/python3" "$HERE/main.py" "$@"
-"""
+""")
 
-#: The Windows launcher. %~dp0 is the folder the .bat sits in.
-WINDOWS_SCRIPT = r"""@echo off
+#: The Windows launcher. %~dp0 is the folder the .bat sits in. curl.exe,
+#: tar.exe and certutil come with Windows 10 (1803 and later) and 11.
+WINDOWS_SCRIPT = _fill(r"""@echo off
 rem ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
-rem the ChartLibre folder is: the first launch installs the libraries into
-rem .venv inside that folder, every later one just starts the application.
+rem the ChartLibre folder is. The first launch downloads Python into .python
+rem and the libraries into .venv, both inside that folder; every later launch
+rem just starts the application. Nothing needs installing first.
 setlocal
 cd /d "%~dp0"
 if exist ".venv\Scripts\pythonw.exe" goto run
 
-set "PY="
-py -3 -c "import sys; sys.exit(sys.version_info < (3, 11))" >nul 2>&1 && set "PY=py -3"
-if not defined PY python -c "import sys; sys.exit(sys.version_info < (3, 11))" >nul 2>&1 && set "PY=python"
-if not defined PY (
-  echo ChartLibre needs Python 3.11 or newer.
-  echo Install it from https://www.python.org/downloads/ ^(tick "Add python.exe to PATH"^),
-  echo then open ChartLibre again.
-  start "" "https://www.python.org/downloads/"
-  pause
-  exit /b 1
-)
-
-echo First launch: installing the libraries ChartLibre needs into this folder.
-echo This needs an internet connection and takes a few minutes.
+echo First launch: ChartLibre downloads what it needs into this folder -
+echo Python and its scientific libraries: about 400 MB to download, 1.7 GB
+echo on disk. This needs an internet connection and takes a few minutes.
 echo.
-%PY% -m venv .venv || goto failed
-".venv\Scripts\python.exe" -m pip install --upgrade pip || goto failed
-".venv\Scripts\python.exe" -m pip install -r requirements.txt || goto failed
+if not exist ".python\python.exe" call :getpython || goto failed
+".python\python.exe" install.py || goto failed
 
 :run
 start "" ".venv\Scripts\pythonw.exe" "%~dp0main.py" %*
 exit /b 0
 
+:getpython
+set "URL=@WINDOWS_X86_64_URL@"
+set "SUM=@WINDOWS_X86_64_SHA@"
+set "ARCHIVE=.python-download.tar.gz"
+echo Downloading Python @PYTHON_VERSION@ ...
+curl.exe -fL --retry 3 -o "%ARCHIVE%" "%URL%" || exit /b 1
+set "GOT="
+for /f "skip=1 delims=" %%h in ('certutil -hashfile "%ARCHIVE%" SHA256') do if not defined GOT set "GOT=%%h"
+set "GOT=%GOT: =%"
+if /i not "%GOT%"=="%SUM%" (
+  echo The download is damaged.
+  del "%ARCHIVE%"
+  exit /b 1
+)
+if exist .python rmdir /s /q .python
+mkdir .python
+tar -xzf "%ARCHIVE%" -C .python --strip-components 1 || exit /b 1
+del "%ARCHIVE%"
+exit /b 0
+
 :failed
 echo.
 echo The installation did not complete; the messages above say why.
-if exist .venv rmdir /s /q .venv
+echo Check the internet connection and open ChartLibre again.
 pause
 exit /b 1
-"""
+""")
 
 
 def make_macos_app(target_dir: Path) -> Path:
@@ -218,19 +291,45 @@ def make_windows_launcher(target_dir: Path) -> Path:
 
 LAUNCHER_SOURCE = Path(__file__).resolve().parent / "launcher"
 
-#: The Linux launcher. Like the .bat: from its own folder, install on the
-#: first run, then start. install.py puts it in the applications menu.
-LINUX_SCRIPT = """#!/bin/sh
+#: The Linux launcher. Like the .bat: from its own folder, download Python and
+#: install on the first run, then start. install.py puts it in the
+#: applications menu.
+LINUX_SCRIPT = _fill(r"""#!/bin/sh
 # ChartLibre launcher for Linux (dev/tools/make_launcher.py). It works from
-# wherever the ChartLibre folder is: the first launch installs the libraries
-# into .venv inside that folder, every later one just starts the application.
-# install.py adds it to the applications menu.
+# wherever the ChartLibre folder is. The first launch downloads Python into
+# .python and the libraries into .venv, both inside that folder; every later
+# launch just starts the application. install.py adds it to the menu.
 cd "$(dirname "$0")" || exit 1
+
+get_python() {  # download Python @PYTHON_VERSION@ into .python, once
+  [ -x .python/bin/python3 ] && return 0
+  case "$(uname -m)" in
+    x86_64|amd64)  url="@LINUX_X86_64_URL@"; sum="@LINUX_X86_64_SHA@" ;;
+    aarch64|arm64) url="@LINUX_AARCH64_URL@"; sum="@LINUX_AARCH64_SHA@" ;;
+    *) echo "ChartLibre has no Python for this processor ($(uname -m))."; return 1 ;;
+  esac
+  archive=.python-download.tar.gz
+  echo "Downloading Python @PYTHON_VERSION@ ..."
+  if command -v curl >/dev/null 2>&1; then
+    curl -fL --retry 3 -o "$archive" "$url" || return 1
+  else
+    wget -O "$archive" "$url" || return 1
+  fi
+  echo "$sum  $archive" | sha256sum -c - || { rm -f "$archive"; echo "The download is damaged."; return 1; }
+  rm -rf .python && mkdir -p .python || return 1
+  tar -xzf "$archive" -C .python --strip-components 1 || { rm -rf .python; return 1; }
+  rm -f "$archive"
+}
+
 if [ ! -x .venv/bin/python3 ]; then
-  python3 install.py || exit 1
+  echo "First launch: ChartLibre downloads what it needs into this folder -"
+  echo "Python and its scientific libraries: about 400 MB to download, 1.7 GB"
+  echo "on disk. This needs an internet connection and takes a few minutes."
+  get_python || exit 1
+  .python/bin/python3 install.py || exit 1
 fi
 exec .venv/bin/python3 main.py "$@"
-"""
+""")
 
 #: The icon the Linux menu entry shows, tracked so install.py needs no Qt.
 LINUX_ICON = LAUNCHER_SOURCE / "chartlibre.png"

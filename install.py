@@ -5,8 +5,9 @@
     python3 install.py --recreate      # throw an existing .venv away and start again
     python3 install.py --dir PATH      # install into PATH instead of this folder
 
-On macOS double-click "Install ChartLibre.command", on Windows
-"Install ChartLibre.bat": both find a suitable Python and run this file. It
+The launchers - ChartLibre.app, ChartLibre.exe/.bat, ChartLibre.sh - run
+this file on the first launch with the Python they download into .python
+(dev/tools/make_launcher.py), so nobody has to install one. Run by hand, it
 needs Python 3.11 or newer and an internet connection, and it uses nothing
 but the standard library, so any Python that is new enough can run it.
 
@@ -15,9 +16,6 @@ and the scientific libraries once as a check, so a broken install is found
 here, with a message, rather than as a crash the first time ChartLibre is
 opened.
 
-ChartLibre.app, ChartLibre.exe and ChartLibre.bat do the same thing by
-themselves on the first launch; this is the explicit way, and the only one
-on Linux.
 """
 from __future__ import annotations
 
@@ -140,10 +138,30 @@ def install_requirements(python: Path, requirements: Path) -> None:
 
 
 def clear_hidden_flag(venv: Path, platform: str = sys.platform) -> None:
-    """Best effort: clear macOS's "hidden" flag from everything in *venv*."""
+    """Best effort: clear macOS's "hidden" flag from everything in *venv*,
+    and from the Python beside it that the launchers download (.python)."""
     if platform != "darwin":
         return
-    subprocess.run(["chflags", "-R", "nohidden", str(venv)], check=False, capture_output=True)
+    for folder in (venv, venv.parent / ".python"):
+        if folder.exists():
+            subprocess.run(["chflags", "-R", "nohidden", str(folder)], check=False, capture_output=True)
+
+
+#: Libraries Qt needs on Linux that a desktop install may lack, with the
+#: Debian/Ubuntu package that provides each. Without libxcb-cursor Qt 6 cannot
+#: open a window at all ("could not load the Qt platform plugin xcb").
+LINUX_QT_LIBRARIES: tuple[tuple[str, str], ...] = (
+    ("xcb-cursor", "libxcb-cursor0"),
+    ("xkbcommon-x11", "libxkbcommon-x11-0"),
+    ("EGL", "libegl1"),
+)
+
+
+def missing_linux_packages(find_library=None) -> list[str]:
+    """The packages to install for the libraries Qt needs and cannot find."""
+    if find_library is None:
+        from ctypes.util import find_library
+    return [package for library, package in LINUX_QT_LIBRARIES if not find_library(library)]
 
 
 def verify(python: Path) -> list[str]:
@@ -166,7 +184,7 @@ def start_hint(folder: Path, platform: str = sys.platform) -> str:
         return "Open ChartLibre.app (double-click it in Finder)."
     if platform == "win32":
         return "Open ChartLibre.exe (or ChartLibre.bat) by double-clicking it."
-    return f"Start it with:  {venv_python(folder / '.venv')} {folder / 'main.py'}"
+    return f"Start it from the applications menu, or with:  {folder / 'ChartLibre.sh'}"
 
 
 def linux_menu_entry(folder: Path) -> str:
@@ -259,6 +277,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     print("\nChartLibre is installed. " + start_hint(folder))
+    if sys.platform.startswith("linux"):
+        packages = missing_linux_packages()
+        if packages:
+            print("\nQt also needs a few system libraries that are missing here. Install them with\n\n"
+                  f"    sudo apt install {' '.join(packages)}\n\n"
+                  "(on Fedora: sudo dnf install xcb-util-cursor libxkbcommon-x11 mesa-libEGL), then start ChartLibre.")
     if sys.platform.startswith("linux") and not args.no_menu:
         entry = write_linux_menu_entry(folder)
         print(f"ChartLibre is in the applications menu now ({entry}).")

@@ -1,10 +1,12 @@
 #!/bin/bash
 # ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
-# the ChartLibre folder is: the first launch installs the libraries into
-# .venv inside that folder, every later one just starts the application.
+# the ChartLibre folder is. The first launch downloads Python into .python
+# and the libraries into .venv, both inside that folder; every later launch
+# just starts the application. Nothing needs installing first.
 HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$HERE" || exit 1
 VENV="$HERE/.venv"
+RUNTIME="$HERE/.python"
 LOG="$HERE/.venv-setup.log"
 
 ask() {  # ask "message" "button" -> exit status 0 when the button was pressed
@@ -13,28 +15,33 @@ ask() {  # ask "message" "button" -> exit status 0 when the button was pressed
   [ "$answer" = "$2" ]
 }
 
+say() {  # a notification, so the first launch is not silent; never fails
+  osascript -e "display notification \"$1\" with title \"ChartLibre\"" >/dev/null 2>&1
+  return 0
+}
+
+get_python() {  # download Python 3.13.16 into .python, once
+  [ -x "$RUNTIME/bin/python3" ] && return 0
+  case "$(uname -m)" in
+    arm64) url="https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16+20261003-aarch64-apple-darwin-install_only.tar.gz"; sum="d8975d7df4f08f7b1c7aafcdfacbddcec3d366415f2c1a72b2466b6850815933" ;;
+    *)     url="https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16+20261003-x86_64-apple-darwin-install_only.tar.gz"; sum="8e9cb087305bfb8969f68a905f79f41469d4aa5220c1aa71ada7fc9953bdba0f" ;;
+  esac
+  archive="$HERE/.python-download.tar.gz"
+  echo "Downloading $url"
+  curl -fL --retry 3 -o "$archive" "$url" || return 1
+  echo "$sum  $archive" | shasum -a 256 -c - || { rm -f "$archive"; echo "The download is damaged."; return 1; }
+  rm -rf "$RUNTIME" && mkdir -p "$RUNTIME" || return 1
+  tar -xzf "$archive" -C "$RUNTIME" --strip-components 1 || { rm -rf "$RUNTIME"; return 1; }
+  rm -f "$archive"
+}
+
 if [ ! -x "$VENV/bin/python3" ]; then
-  PY=""
-  CANDIDATES=$(ls -d /Library/Frameworks/Python.framework/Versions/3.*/bin/python3 2>/dev/null | sort -t. -k2,2nr)
-  for c in $CANDIDATES /opt/homebrew/bin/python3 /usr/local/bin/python3 $(command -v python3); do
-    if [ -x "$c" ] && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
-      PY="$c"
-      break
-    fi
-  done
-  if [ -z "$PY" ]; then
-    if ask "ChartLibre needs Python 3.11 or newer.\n\nInstall it from python.org, then open ChartLibre again." "Open python.org"; then
-      open "https://www.python.org/downloads/"
-    fi
-    exit 1
-  fi
-  ask "First launch: ChartLibre will install the libraries it needs into its own folder.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
-  osascript -e 'display notification "Installing... ChartLibre opens when it is ready." with title "ChartLibre"'
-  if ! { "$PY" -m venv "$VENV" \
-         && "$VENV/bin/python3" -m pip install --upgrade pip \
-         && "$VENV/bin/python3" -m pip install -r "$HERE/requirements.txt"; } >"$LOG" 2>&1; then
-    rm -rf "$VENV"
-    osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
+  ask "First launch: ChartLibre will download what it needs into its own folder - Python and its scientific libraries: about 400 MB to download, 1.7 GB on disk.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
+  say "Step 1 of 2: downloading Python..."
+  if ! { get_python \
+         && say "Step 2 of 2: installing the scientific libraries. ChartLibre opens when it is ready." \
+         && "$RUNTIME/bin/python3" "$HERE/install.py"; } >"$LOG" 2>&1; then
+    osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
     exit 1
   fi
 fi

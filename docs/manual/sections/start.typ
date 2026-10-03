@@ -4,22 +4,22 @@
 
 == Installing ChartLibre
 
-ChartLibre is a Python application. It needs *Python 3.11 or newer*, installed once from #link("https://www.python.org/downloads/")[python.org] (on Windows, tick *Add python.exe to PATH* in the installer).
-
-Copy the `ChartLibre` folder anywhere you like, then start it:
+Nothing needs installing first — not even Python. Copy the `ChartLibre` folder anywhere you like (unzip it, if you downloaded it), then start it:
 
 #defs(
   [*macOS*], [Double-click `ChartLibre.app`.],
   [*Windows*], [Double-click `ChartLibre.exe` (or `ChartLibre.bat`).],
-  [*Linux*], [Run `python3 install.py` once in the folder: it prepares ChartLibre and adds it to the applications menu. Then start it from the menu, or with `./ChartLibre.sh`. On Ubuntu and Debian, Python's `venv` module may need installing first: `sudo apt install python3-venv`.],
+  [*Linux*], [Open a terminal in the folder and run `./ChartLibre.sh`. The first launch also adds ChartLibre to the applications menu, so later it starts from there.],
 )
 
-The first launch asks before installing the libraries ChartLibre needs (Qt, Matplotlib, NumPy, SciPy, ...). It installs them inside the folder itself, which needs an internet connection and takes a few minutes; every later launch starts straight away. Nothing is installed anywhere else, so deleting the folder removes ChartLibre completely.
+The first launch asks, then downloads what ChartLibre needs into the folder itself: its own copy of Python and the scientific libraries (Qt, Matplotlib, NumPy, SciPy, ...) — about 400 MB to download, 1.7 GB on disk. It needs an internet connection and takes a few minutes; ChartLibre opens by itself when it is ready. Every later launch starts straight away and needs no internet. Nothing is installed anywhere else, so deleting the folder removes ChartLibre completely.
 
 #note[
   *The first time*, macOS may say it cannot check the app: open *System Settings → Privacy & Security* and click *Open Anyway* (or right-click the app and choose *Open*). Windows may show *Windows protected your PC*: click *More info*, then *Run anyway*.
 
-  *If ChartLibre stops starting*, run `python3 install.py --recreate` in its folder: it throws away the installed libraries and installs them again.
+  *On Linux*, Qt needs a few system libraries that a desktop usually has. If one is missing, the first launch says which and how to install it — typically `sudo apt install libxcb-cursor0`.
+
+  *If ChartLibre stops starting*, delete the hidden `.venv` folder inside the ChartLibre folder (on macOS, Cmd+Shift+. shows hidden files in Finder) and open ChartLibre again: it reinstalls the libraries.
 ]
 
 == Opening a project

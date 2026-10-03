@@ -45,7 +45,7 @@ def test_only_icloud_places_on_a_mac_get_the_warning(tmp_path: Path) -> None:
 def test_the_start_hint_names_what_to_open(tmp_path: Path) -> None:
     assert "ChartLibre.app" in install.start_hint(tmp_path, "darwin")
     assert "ChartLibre.exe" in install.start_hint(tmp_path, "win32")
-    assert "main.py" in install.start_hint(tmp_path, "linux")
+    assert "ChartLibre.sh" in install.start_hint(tmp_path, "linux")
 
 
 def test_a_venv_is_created_kept_and_recreated(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -161,3 +161,102 @@ def test_a_python_without_ensurepip_is_told_what_to_install(monkeypatch: pytest.
     assert "sudo apt install python3-venv" in install.venv_problem()
     monkeypatch.setattr(builtins, "__import__", real_import)
     assert install.venv_problem() == ""
+
+
+def test_linux_names_the_packages_for_the_libraries_qt_cannot_find() -> None:
+    assert install.missing_linux_packages(lambda name: "lib.so") == []
+    missing = install.missing_linux_packages(lambda name: None if name == "xcb-cursor" else "lib.so")
+    assert missing == ["libxcb-cursor0"]
+
+
+# ----------------------------------------------------------------------
+# The launchers: they download their own Python, so nobody installs one
+# ----------------------------------------------------------------------
+_launcher_spec = importlib.util.spec_from_file_location("make_launcher", ROOT / "dev" / "tools" / "make_launcher.py")
+assert _launcher_spec is not None and _launcher_spec.loader is not None
+make_launcher = importlib.util.module_from_spec(_launcher_spec)
+_launcher_spec.loader.exec_module(make_launcher)
+
+LAUNCHERS = {
+    "macos": ROOT / "ChartLibre.app" / "Contents" / "MacOS" / "ChartLibre",
+    "windows": ROOT / "ChartLibre.bat",
+    "linux": ROOT / "ChartLibre.sh",
+}
+
+
+def test_every_pinned_python_has_a_sha256_and_an_https_url() -> None:
+    import re
+
+    for key in make_launcher.PYTHON_ARCHIVES:
+        url, digest = make_launcher._archive(key)
+        assert url.startswith("https://github.com/astral-sh/python-build-standalone/releases/download/")
+        assert url.endswith("-install_only.tar.gz") and make_launcher.PYTHON_VERSION in url
+        assert re.fullmatch(r"[0-9a-f]{64}", digest)
+
+
+def test_the_shipped_launchers_are_the_generated_ones_with_every_archive_filled_in() -> None:
+    import re
+
+    generated = {"macos": make_launcher.MACOS_SCRIPT, "windows": make_launcher.WINDOWS_SCRIPT,
+                 "linux": make_launcher.LINUX_SCRIPT}
+    wanted = {"macos": ("macos-arm64", "macos-x86_64"), "windows": ("windows-x86_64",),
+              "linux": ("linux-x86_64", "linux-aarch64")}
+    for platform, path in LAUNCHERS.items():
+        shipped = path.read_bytes().decode("utf-8").replace("\r\n", "\n")
+        assert shipped == generated[platform], f"{path.name} is stale: run dev/tools/make_launcher.py"
+        assert not re.search(r"@[A-Z0-9_]+@", shipped), "a placeholder was left in"
+        for key in wanted[platform]:
+            url, digest = make_launcher._archive(key)
+            assert url in shipped and digest in shipped
+        assert "install.py" in shipped and "main.py" in shipped
+
+
+def test_the_unix_launchers_are_valid_shell() -> None:
+    assert subprocess.run(["bash", "-n", str(LAUNCHERS["macos"])], check=False).returncode == 0
+    assert subprocess.run(["sh", "-n", str(LAUNCHERS["linux"])], check=False).returncode == 0
+
+
+def test_the_linux_launcher_downloads_checks_and_unpacks_python(tmp_path: Path) -> None:
+    """The real get_python, fed a local archive: a wrong digest stops it, the right one unpacks."""
+    import hashlib
+    import shutil
+    import tarfile
+
+    if not shutil.which("curl") or not (shutil.which("sha256sum") or shutil.which("shasum")):
+        pytest.skip("needs curl and sha256sum")
+    staging = tmp_path / "staging" / "python" / "bin"
+    staging.mkdir(parents=True)
+    (staging / "python3").write_text("#!/bin/sh\necho fake python \"$@\"\n", encoding="utf-8")
+    (staging / "python3").chmod(0o755)
+    archive = tmp_path / "python.tar.gz"
+    with tarfile.open(archive, "w:gz") as tar:
+        tar.add(tmp_path / "staging" / "python", arcname="python")
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+
+    folder = tmp_path / "ChartLibre"
+    folder.mkdir()
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    found = shutil.which("sha256sum")  # macOS has it as shasum -a 256
+    check = f'exec "{found}" "$@"' if found else 'exec shasum -a 256 "$@"'
+    (bindir / "sha256sum").write_text(f"#!/bin/sh\n{check}\n", encoding="utf-8")
+    (bindir / "sha256sum").chmod(0o755)
+    (bindir / "uname").write_text("#!/bin/sh\necho x86_64\n", encoding="utf-8")
+    (bindir / "uname").chmod(0o755)
+    env = {"PATH": f"{bindir}:/usr/bin:/bin"}
+
+    def launch(sha: str) -> subprocess.CompletedProcess[str]:
+        url, real = make_launcher._archive("linux-x86_64")
+        script = make_launcher.LINUX_SCRIPT.replace(url, archive.as_uri()).replace(real, sha)
+        script = script.replace("exec .venv/bin/python3", "echo started")
+        (folder / "ChartLibre.sh").write_text(script, encoding="utf-8")
+        return subprocess.run(["sh", str(folder / "ChartLibre.sh")], capture_output=True, text=True, env=env)
+
+    bad = launch("0" * 64)
+    assert bad.returncode != 0 and "damaged" in bad.stdout
+    assert not (folder / ".python").exists() and not (folder / ".python-download.tar.gz").exists()
+
+    good = launch(digest)
+    assert good.returncode == 0, good.stdout + good.stderr
+    assert (folder / ".python" / "bin" / "python3").exists()
+    assert "fake python install.py" in good.stdout and not (folder / ".python-download.tar.gz").exists()

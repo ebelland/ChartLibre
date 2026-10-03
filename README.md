@@ -94,15 +94,14 @@ Highlights:
 
 ## Installation
 
-No installer and no terminal needed:
+Nothing to install first — not even Python:
 
-1. **Install Python 3.11 or newer** from [python.org](https://www.python.org/downloads/), once. On Windows, tick *Add python.exe to PATH*.
-2. **Download ChartLibre** — the green *Code* button, then *Download ZIP* — and unzip it. The `ChartLibre` folder can live anywhere: copy it where you like, as it is.
-3. **Double-click** `ChartLibre.app` on macOS or `ChartLibre.exe` on Windows (`ChartLibre.bat` does the same).
+1. **Download ChartLibre** — the green *Code* button, then *Download ZIP* — and unzip it. The `ChartLibre` folder can live anywhere: copy it where you like, as it is.
+2. **Double-click** `ChartLibre.app` on macOS or `ChartLibre.exe` on Windows (`ChartLibre.bat` does the same). On Linux, open a terminal in the folder and run `./ChartLibre.sh`.
 
-The first launch asks before installing the libraries ChartLibre needs, then does it inside the folder itself (it needs an internet connection and takes a few minutes); every launch after that opens the application straight away. Nothing is installed anywhere else, so deleting the folder removes ChartLibre completely.
+The first launch asks, then downloads what ChartLibre needs into the folder itself: its own copy of Python (a standalone build from [python-build-standalone](https://github.com/astral-sh/python-build-standalone), checked against its SHA-256 before it runs) and the scientific libraries — about 400 MB to download and 1.7 GB on disk, a few minutes, an internet connection. Every launch after that opens the application straight away, offline. Nothing is installed anywhere else, so deleting the folder removes ChartLibre completely. On Linux the first launch also adds ChartLibre to the applications menu.
 
-**Prefer to install first, and see what happens?** Double-click `Install ChartLibre.command` (macOS) or `Install ChartLibre.bat` (Windows); on Linux run `python3 install.py`, which also adds ChartLibre to the applications menu (or start `./ChartLibre.sh`). It creates the `.venv` folder, installs the libraries, checks that Qt and the scientific libraries load, and says what to open. `python3 install.py --recreate` throws an existing `.venv` away and starts again — the thing to try if ChartLibre stops starting.
+**If ChartLibre stops starting**, delete the `.venv` folder inside it (on macOS press Cmd+Shift+. in Finder to see it) and open ChartLibre again: it reinstalls the libraries.
 
 <details>
 <summary>If the system will not open it the first time</summary>
@@ -119,7 +118,7 @@ The launchers are not signed, so the first time:
 ```bash
 git clone https://github.com/ebelland/ChartLibre.git
 cd ChartLibre
-python3 install.py        # creates .venv and installs requirements.txt into it
+python3 install.py        # with your own Python 3.11+: creates .venv and installs requirements.txt
 .venv/bin/python3 main.py # on Windows: .venv\Scripts\python.exe main.py
 ```
 </details>
@@ -179,7 +178,7 @@ Please read [`dev/DEVELOPMENT.md`](dev/DEVELOPMENT.md) first — it explains the
 
 ## Notes
 
-¹ **Linux: ChartLibre has never been launched on it.** It is Python and Qt, so it may well run from source (`python3 install.py`, then ChartLibre from the applications menu or `./ChartLibre.sh`); on a minimal system Qt may also need `sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1`. Reports either way are welcome.
+¹ **Linux: ChartLibre is barely tested there.** `./ChartLibre.sh` downloads its own Python and libraries like the other launchers. Qt needs a few system libraries a desktop usually has; the first launch says which are missing (typically `sudo apt install libxcb-cursor0`). Reports either way are welcome.
 
 ## Licence
 
