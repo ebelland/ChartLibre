@@ -10,8 +10,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -200,15 +198,16 @@ class PublicationExportDialog(QDialog):
         )
         if not path:
             return
-        QGuiApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        # Said in the dialog, not with a wait cursor: setOverrideCursor crashed
+        # the application on macOS 27 (see project_report_dialog).
+        self._summary.setText(_("Writing the figure…"))
+        self._summary.repaint()
         try:
             self.written = export_publication_figure(self._repo, self._figure_id, Path(path), settings)
         except (OSError, ValueError, RuntimeError) as exc:
             applogger.exception("Publication export failed (figure_id=%s)", self._figure_id)
             self._summary.setText(_("Could not export the figure: {reason}").format(reason=exc))
             return
-        finally:
-            QGuiApplication.restoreOverrideCursor()
         applogger.info("Figure %s exported for publication: %s (%s)", self._figure_id, self.written, settings)
         save_dialog_state(self, _STATE_KEY)
         self.accept()

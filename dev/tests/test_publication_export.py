@@ -178,3 +178,15 @@ def test_the_report_dialog_writes_a_pdf(qapp, showcase, tmp_path: Path, monkeypa
     document.load(str(dialog.written))
     # A contents page, then a page per figure (at least), then the tables.
     assert document.pageCount() >= len(repo.load_figures_from_db()) + 2
+
+
+def test_no_wait_cursor_anywhere() -> None:
+    """QGuiApplication.setOverrideCursor(WaitCursor) crashed the app on macOS 27
+    (CGImageCreate refused the cursor's image): the export dialogs say what
+    they are doing in their own text instead."""
+    app_dir = Path(__file__).resolve().parents[2] / "app"
+    offenders = [
+        str(path.relative_to(app_dir)) for path in app_dir.rglob("*.py")
+        if "setOverrideCursor(" in path.read_text(encoding="utf-8")
+    ]
+    assert offenders == []

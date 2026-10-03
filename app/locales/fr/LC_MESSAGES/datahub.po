@@ -6552,3 +6552,9 @@ msgstr "deux colonnes de catégories : les rôles x et y (la série d'un graphiq
 
 msgid "two factors and a response: the x, trace (or group) and y roles (an Interaction Plot's series)"
 msgstr "deux facteurs et une réponse : les rôles x, trace (ou group) et y (la série d'un graphique d'interaction)"
+
+msgid "Drawing every figure and writing the report…"
+msgstr "Dessin de toutes les figures et écriture du rapport…"
+
+msgid "Writing the figure…"
+msgstr "Écriture de la figure…"

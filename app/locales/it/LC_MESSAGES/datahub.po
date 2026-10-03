@@ -6555,3 +6555,9 @@ msgstr "due colonne di categorie: i ruoli x e y (la serie di un grafico a mosaic
 
 msgid "two factors and a response: the x, trace (or group) and y roles (an Interaction Plot's series)"
 msgstr "due fattori e una risposta: i ruoli x, trace (o group) e y (la serie di un grafico di interazione)"
+
+msgid "Drawing every figure and writing the report…"
+msgstr "Disegno di tutte le figure e scrittura del report…"
+
+msgid "Writing the figure…"
+msgstr "Scrittura della figura…"

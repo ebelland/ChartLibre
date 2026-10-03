@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QMarginsF, QSizeF, Qt, QUrl
-from PySide6.QtGui import QGuiApplication, QImage, QPageLayout, QPageSize, QPdfWriter, QTextDocument
+from PySide6.QtCore import QMarginsF, QSizeF, QUrl
+from PySide6.QtGui import QImage, QPageLayout, QPageSize, QPdfWriter, QTextDocument
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -148,7 +148,11 @@ class ProjectReportDialog(QDialog):
         path, _filter = QFileDialog.getSaveFileName(self, _("Project report"), f"{stem}.{kind}", file_filter)
         if not path:
             return
-        QGuiApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        # Said in the dialog rather than with a wait cursor: setOverrideCursor
+        # crashed the application on macOS 27 (Qt builds that cursor from an
+        # image, and CoreGraphics refused the image).
+        self._status.setText(_("Drawing every figure and writing the report…"))
+        self._status.repaint()
         try:
             report = build_project_report(
                 self._repo,
@@ -163,8 +167,6 @@ class ProjectReportDialog(QDialog):
             applogger.exception("Project report failed")
             self._status.setText(_("Could not write the report: {reason}").format(reason=exc))
             return
-        finally:
-            QGuiApplication.restoreOverrideCursor()
         for name, reason in report.failures:
             applogger.warning("Report: figure %r could not be drawn - %s", name, reason, show_dialog=False, raise_error=False)
         applogger.info("Project report written: %s (%d figures)", self.written, len(report.images))
