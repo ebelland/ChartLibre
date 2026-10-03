@@ -909,6 +909,16 @@
       "title": "New database",
       "text": "Could not create the database:\n{error}"
     },
+    "chart.group_failed": {
+      "level": "error",
+      "title": "Group by",
+      "text": "Could not split the series by '{column}':\n{reason}"
+    },
+    "chart.too_many_groups": {
+      "level": "warning",
+      "title": "Group by",
+      "text": "'{column}' takes more than {limit} different values - one series each would make an unreadable chart. Group by a column with fewer values, such as a category."
+    },
     "chart.histogram_failed": {
       "level": "error",
       "title": "Histogram",

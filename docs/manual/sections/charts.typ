@@ -10,6 +10,7 @@ A chart in ChartLibre is never a picture of a spreadsheet range: it is a *query*
 
 + *The chart type.* The picker lists all the chart types grouped by family, with a search box that matches a name or a whole family ("stat" brings up the statistical charts at once). Selecting one shows its description, the roles it needs and a link to the corresponding Matplotlib documentation.
 + *The data.* Pick a data source — a table or a saved query — then pick which of its columns plays each role. The window writes the SQL for you (`SELECT pressure AS x, flow AS y FROM operating_points`) and shows it; you can edit it directly for a filter, a join or a computed column. Only reading queries (`SELECT`, `WITH`) are accepted.
++ *Group by* (optional). Pick a column the chart does not already use — a species, a batch, a site — and the series becomes one series per value of that column, each with its own colour and legend entry. Each one is the same query with `WHERE "column" = value` added, and rows marked hidden stay out. Up to 50 groups.
 + *Where it goes.* *Create new figure* adds a new figure to the project; *Use current figure* puts the chart in the figure on screen, either as a new axis (*Add new axis*) or as one more series on an axis it already has (*Use existing axis*). Figure, axis and series can be named here or later.
 
 When the window closes, the chart panel shows the new figure, so what you just made is what you see.

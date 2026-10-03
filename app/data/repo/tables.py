@@ -1073,10 +1073,8 @@ class TablesMixin(RepoHost):
         if source is None:
             raise ValueError(f"No table or saved query named {source_name!r}.")
         sql = f"SELECT {quote_identifier(column)} AS {quote_identifier(alias)} FROM {source.from_clause()}"
-        if not source.is_query:
-            columns = self.query_df(f"SELECT * FROM {source.from_clause()} LIMIT 0").columns
-            if "Hide" in columns:
-                sql = self.sql_with_hide_filter(sql)
+        if self.source_has_hide_column(source_name):
+            sql = self.sql_with_hide_filter(sql)
         return sql
 
     @staticmethod
@@ -1099,7 +1097,11 @@ class TablesMixin(RepoHost):
         # missing it appended one more on every run.
         if re.search(r'"?\bhide\b"?\s*(?:=\s*0|is\s+false)', sql, flags=re.IGNORECASE):
             return sql
-        clause = '"Hide" = 0'
+        return self._sql_with_where_clause(sql, '"Hide" = 0')
+
+    @staticmethod
+    def _sql_with_where_clause(sql: str, clause: str) -> str:
+        """*sql* with *clause* joined to its outer WHERE, or as a new WHERE."""
         # The outer query's own clauses only: a WHERE inside a subquery in
         # the select list is not one this filter can join with AND.
         insert_before = top_level_match(sql, r"\b(?:order\s+by|group\s+by|limit|offset)\b")
@@ -1112,6 +1114,56 @@ class TablesMixin(RepoHost):
             return sql + addition
         index = insert_before.start()
         return sql[:index].rstrip() + addition + " " + sql[index:].lstrip()
+
+    @staticmethod
+    def sql_literal(value: Any) -> str:
+        """*value* written as an SQL literal: a number, a quoted text, or NULL."""
+        if hasattr(value, "item"):
+            value = value.item()  # a numpy scalar, as pandas hands them out
+        if value is None or (isinstance(value, float) and value != value):
+            return "NULL"
+        if isinstance(value, bool):
+            return "1" if value else "0"
+        if isinstance(value, (int, float)):
+            return repr(value)
+        return "'" + str(value).replace("'", "''") + "'"
+
+    def source_has_hide_column(self, source_name: str) -> bool:
+        """True when *source_name* is a table with a Hide column."""
+        source = self.get_data_source(source_name)
+        if source is None or source.is_query:
+            return False
+        return "Hide" in self.query_df(f"SELECT * FROM {source.from_clause()} LIMIT 0").columns
+
+    @ensure_connection_wrapper
+    def distinct_values(self, source_name: str, column: str, *, limit: int) -> list[Any]:
+        """The distinct values of *column* in rows not hidden, in order - at
+        most *limit* + 1 of them, so a caller can tell there were too many."""
+        source = self.get_data_source(source_name)
+        if source is None:
+            raise ValueError(f"No table or saved query named {source_name!r}.")
+        sql = f"SELECT DISTINCT {quote_identifier(column)} AS value FROM {source.from_clause()}"
+        if self.source_has_hide_column(source_name):
+            sql = self.sql_with_hide_filter(sql)
+        frame = self.query_df(f"{sql} ORDER BY 1 LIMIT {int(limit) + 1}")
+        return list(frame["value"])
+
+    def sql_with_value_filter(self, sql_query: str, column: str, value: Any) -> str:
+        """*sql_query* keeping only the rows whose *column* is *value*.
+
+        What "Group by" in New plot makes of one series: one copy per value,
+        each with its own condition. Only a plain SELECT ... FROM can take
+        one; anything else is refused rather than rewritten.
+        """
+        sql = str(sql_query or "").strip().rstrip(";")
+        if not self.is_table_backed_sql(sql):
+            raise ValueError("Only a plain SELECT ... FROM query can be split into groups.")
+        literal = self.sql_literal(value)
+        condition = (
+            f"{quote_identifier(column)} IS NULL" if literal == "NULL"
+            else f"{quote_identifier(column)} = {literal}"
+        )
+        return self._sql_with_where_clause(sql, condition)
 
     @ensure_connection_wrapper
     def update_series_hide_filter(self, series_id: int, sql_query: str | None = None) -> None:

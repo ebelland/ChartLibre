@@ -6648,3 +6648,18 @@ msgstr "Impossibile creare l'istogramma:\n{reason}"
 
 msgid "The column '{column}' holds no numbers, so there is nothing to draw a histogram of."
 msgstr "La colonna '{column}' non contiene numeri: non c'è niente di cui disegnare l'istogramma."
+
+msgid "Group by"
+msgstr "Raggruppa per"
+
+msgid "Split the series into one per value of this column - one per species, per batch, per site - each with its own colour and legend entry. The columns the chart already uses are not offered."
+msgstr "Divide la serie in una per ogni valore di questa colonna - una per specie, per lotto, per sito - ciascuna col suo colore e la sua voce di legenda. Le colonne già usate dal grafico non sono proposte."
+
+msgid "(empty)"
+msgstr "(vuoto)"
+
+msgid "Could not split the series by '{column}':\n{reason}"
+msgstr "Impossibile dividere la serie per '{column}':\n{reason}"
+
+msgid "'{column}' takes more than {limit} different values - one series each would make an unreadable chart. Group by a column with fewer values, such as a category."
+msgstr "'{column}' ha più di {limit} valori diversi: una serie per ciascuno renderebbe il grafico illeggibile. Raggruppa per una colonna con meno valori, come una categoria."

@@ -6645,3 +6645,18 @@ msgstr "Impossible de créer l'histogramme :\n{reason}"
 
 msgid "The column '{column}' holds no numbers, so there is nothing to draw a histogram of."
 msgstr "La colonne « {column} » ne contient aucun nombre : il n'y a rien dont tracer l'histogramme."
+
+msgid "Group by"
+msgstr "Grouper par"
+
+msgid "Split the series into one per value of this column - one per species, per batch, per site - each with its own colour and legend entry. The columns the chart already uses are not offered."
+msgstr "Divise la série en une par valeur de cette colonne - une par espèce, par lot, par site - chacune avec sa couleur et son entrée de légende. Les colonnes déjà utilisées par le graphique ne sont pas proposées."
+
+msgid "(empty)"
+msgstr "(vide)"
+
+msgid "Could not split the series by '{column}':\n{reason}"
+msgstr "Impossible de diviser la série par « {column} » :\n{reason}"
+
+msgid "'{column}' takes more than {limit} different values - one series each would make an unreadable chart. Group by a column with fewer values, such as a category."
+msgstr "« {column} » prend plus de {limit} valeurs différentes : une série pour chacune rendrait le graphique illisible. Groupez par une colonne qui en a moins, comme une catégorie."

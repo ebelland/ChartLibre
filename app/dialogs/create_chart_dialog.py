@@ -51,6 +51,8 @@ class SeriesDraft:
     sql: str
     roles: dict[str, str | None] = field(default_factory=dict)
     user_named: bool = False
+    #: A column to split the series by: one series per value it takes.
+    group_by: str | None = None
 
 
 @dataclass(slots=True)
@@ -292,6 +294,15 @@ class NewPlotTabDialog(QDialog):
         self._roles_scroll.setWidget(self._roles_panel)
         self._rebuild_role_combos()
 
+        self._combo_group = QComboBox()
+        self._combo_group.addItem(_("(none)"), None)
+        self._combo_group.setToolTip(_(
+            "Split the series into one per value of this column - one per "
+            "species, per batch, per site - each with its own colour and "
+            "legend entry. The columns the chart already uses are not offered."
+        ))
+        self._combo_group.currentIndexChanged.connect(self._on_group_changed)
+
         editor_group = CardFrame(self, "plotSeriesEditorCard")
         editor_layout = editor_group.layout()
 
@@ -306,6 +317,7 @@ class NewPlotTabDialog(QDialog):
         editor_form_layout.addRow(_("Series name:"), self._edit_series_name)
         editor_form_layout.addRow(_("Query:"), self._edit_sql)
         editor_form_layout.addRow(self._roles_scroll)
+        editor_form_layout.addRow(_("Group by:"), self._combo_group)
         editor_layout.addWidget(editor_form, 1)
 
         # Dialog buttons and layout.
@@ -998,6 +1010,7 @@ class NewPlotTabDialog(QDialog):
 
         self._populate_role_columns(self._columns_from_table())
         self._set_role_selection(draft)
+        self._populate_group_columns()
 
     def _set_role_selection(self, draft: SeriesDraft) -> None:
         """Select role combo values from the given draft."""
@@ -1036,6 +1049,8 @@ class NewPlotTabDialog(QDialog):
         draft.sql = (self._edit_sql.toPlainText() or "").strip()
 
         draft.roles = self._current_role_mapping()
+        data = self._combo_group.currentData()
+        draft.group_by = str(data) if isinstance(data, str) and data else None
 
     def _on_series_name_changed(self, text: str) -> None:
         """Keep the list item and draft name synchronized."""
@@ -1055,6 +1070,30 @@ class NewPlotTabDialog(QDialog):
         """Persist role changes and refresh SQL automatically."""
         self._persist_editor_to_draft()
         self._update_sql()
+        self._populate_group_columns()
+
+    def _on_group_changed(self, _index: int = 0) -> None:
+        self._persist_editor_to_draft()
+
+    def _populate_group_columns(self) -> None:
+        """Offer every column of the source the chart's roles do not use."""
+        used = {value for value in self._current_role_mapping().values() if value}
+        item = self._current_series_item()
+        wanted = self._draft_for_item(item).group_by if item is not None else self._combo_group.currentData()
+        self._combo_group.blockSignals(True)
+        try:
+            self._combo_group.clear()
+            self._combo_group.addItem(_("(none)"), None)
+            for column in self._columns_from_table():
+                if column not in used:
+                    self._combo_group.addItem(column, column)
+            index = self._combo_group.findData(wanted) if wanted else 0
+            self._combo_group.setCurrentIndex(max(index, 0))
+        finally:
+            self._combo_group.blockSignals(False)
+        if item is not None:
+            data = self._combo_group.currentData()
+            self._draft_for_item(item).group_by = str(data) if isinstance(data, str) and data else None
 
     # ------------------------------------------------------------------
     # Columns / roles.
@@ -1240,6 +1279,7 @@ class NewPlotTabDialog(QDialog):
             draft.roles = self._current_role_mapping()
             self._set_default_series_name(series_item, draft)
         self._update_sql()
+        self._populate_group_columns()
         # Last: the note and the target radios depend on the renderer that
         # has just been selected.
         self._sync_series_mode()
@@ -1257,6 +1297,7 @@ class NewPlotTabDialog(QDialog):
         draft.roles = self._current_role_mapping()
         self._update_sql()
         self._set_default_series_name(item, draft)
+        self._populate_group_columns()
 
     def _update_sql(self) -> None:
         """Regenerate SQL from the current data source and role choices."""
@@ -1382,6 +1423,10 @@ class NewPlotTabDialog(QDialog):
                 QMessageBox.warning(self, _("SQL blocked"), f"{draft.name}: {exc}")
                 return
 
+        drafts = self._split_into_groups(drafts)
+        if not drafts:
+            return
+
         if self._rb_current_figure.isChecked():
             if self._current_figure_id is None:
                 return
@@ -1437,6 +1482,46 @@ class NewPlotTabDialog(QDialog):
             series_count=int(created),
         )
         self.accept()
+
+    #: Most series one "Group by" may make: past this the column is an
+    #: identifier or a measurement, not a grouping, and the legend unreadable.
+    MAX_GROUPS: int = 50
+
+    def _split_into_groups(self, drafts: list[SeriesDraft]) -> list[SeriesDraft]:
+        """Each draft with a Group by column becomes one draft per value of it.
+
+        Every copy is the draft's own query with ``WHERE "column" = value``
+        added (and the Hide filter, when the table has one), the same roles,
+        and the value as its name. An empty list means it could not be done,
+        and the person has been told why.
+        """
+        source = self._current_table_name()
+        result: list[SeriesDraft] = []
+        for draft in drafts:
+            if not draft.group_by:
+                result.append(draft)
+                continue
+            try:
+                values = self._repo.distinct_values(source, draft.group_by, limit=self.MAX_GROUPS)
+            except Exception as exc:  # noqa: BLE001 - shown, not swallowed
+                show_message(self, "chart.group_failed", column=draft.group_by, reason=str(exc))
+                return []
+            if len(values) > self.MAX_GROUPS:
+                show_message(self, "chart.too_many_groups", column=draft.group_by, limit=self.MAX_GROUPS)
+                return []
+            hide = self._repo.source_has_hide_column(source)
+            for value in values:
+                try:
+                    sql = self._repo.sql_with_value_filter(draft.sql, draft.group_by, value)
+                    if hide:
+                        sql = self._repo.sql_with_hide_filter(sql)
+                except ValueError as exc:
+                    show_message(self, "chart.group_failed", column=draft.group_by, reason=str(exc))
+                    return []
+                label = _("(empty)") if self._repo.sql_literal(value) == "NULL" else str(value)
+                name = label if len(drafts) == 1 else f"{draft.name}: {label}"
+                result.append(SeriesDraft(name=name, sql=sql, roles=dict(draft.roles), user_named=True))
+        return result
 
     def _existing_axis_has_room(
         self,
