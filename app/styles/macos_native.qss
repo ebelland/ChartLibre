@@ -487,6 +487,10 @@ QSplitter::handle:vertical {
 }
 
 
+/* The table list looks like the table preview under it: one continuous
+   highlight across the selected row, and the same header. It used to draw a
+   rounded capsule per cell, with gaps between them, and the current cell's
+   focus frame inside one in a second blue. */
 TableListPanel QTableView {
   background: palette(base);
   alternate-background-color: rgba(@SHADOW_RGB@, 0.03);
@@ -494,20 +498,18 @@ TableListPanel QTableView {
   border: none;
   border-radius: 0;
   gridline-color: transparent;
-  /* Finder's sidebar rows are taller than a data grid's. */
+  outline: 0;
   show-decoration-selected: 1;
-  /* The capsule below is the only thing that paints a selected row.  Left at
-     the default, the view fills the whole row rect with the highlight colour
-     and the capsule sits on top of it, so the 6px margin either side shows as
-     a second, darker blue. */
-  selection-background-color: transparent;
+  selection-background-color: palette(highlight);
   selection-color: palette(highlighted-text);
 }
 
 TableListPanel QTableView::item {
   padding: 4px 8px;
-  border-radius: 6px;
-  margin: 1px 6px;
+}
+
+TableListPanel QTableView::item:hover {
+  background: rgba(@SHADOW_RGB@, 0.04);
 }
 
 TableListPanel QTableView::item:selected,
@@ -523,8 +525,14 @@ TableListPanel QHeaderView::section {
   font-size: 11pt;
   font-weight: 600;
   letter-spacing: 0;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border: none;
+  border-bottom: 1px solid rgba(@SHADOW_RGB@, 0.10);
+  border-right: 1px solid rgba(@SHADOW_RGB@, 0.06);
+}
+
+TableListPanel QHeaderView::section:last {
+  border-right: none;
 }
 
 TablePreviewPanel QTableView {
@@ -535,6 +543,7 @@ TablePreviewPanel QTableView {
   border-top: 1px solid rgba(@SHADOW_RGB@, 0.08);
   border-radius: 0;
   gridline-color: transparent;
+  outline: 0;
   selection-background-color: transparent;
   selection-color: palette(highlighted-text);
 }

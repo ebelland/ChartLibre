@@ -415,3 +415,36 @@ def test_group_by_makes_one_series_per_value_without_the_hidden_rows(qapp, tmp_p
     again._on_accept()
     assert again.chart_result is None and shown == ["chart.too_many_groups"]
     repo.close()
+
+
+# ======================================================================
+# The left pane stays resizable, whatever order the two toggles are used in
+# ======================================================================
+def test_the_left_pane_is_never_left_pinned(qapp, tmp_path: Path) -> None:
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    window = MainWindow(repo, tmp_path / "p.dhub")
+    window.resize(1300, 850)
+    window.show()
+    qapp.processEvents()
+    panel = window._left_panel
+
+    def resizable() -> bool:
+        return panel.maximumWidth() > 5000 and panel.minimumWidth() < panel.maximumWidth()
+
+    # Rail first, then the panel: the panel cannot leave nothing on the left.
+    window.set_navigation_compact(True)
+    window._toggle_workspace()
+    qapp.processEvents()
+    assert window._rail_width() > 0 and panel.maximumWidth() == window._rail_width()
+    window._toggle_workspace()
+    assert resizable()
+
+    # Panel first, then the rail (which brings the panel back), then the rail back.
+    window._toggle_workspace()
+    window.set_navigation_compact(True)
+    assert not window._left_stack.isHidden() and resizable()
+    window.set_navigation_compact(False)
+    qapp.processEvents()
+    assert window._rail_width() > 0 and resizable()
+    window.close()
+    repo.close()

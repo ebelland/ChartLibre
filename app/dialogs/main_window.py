@@ -378,22 +378,46 @@ class MainWindow(QMainWindow):
     def _toggle_workspace(self) -> None:
         """Collapse left content to the navigation rail, or restore it."""
         hiding = (not self._left_stack.isHidden())
+        if hiding and self._rail_width() == 0:
+            # macOS with the rail hidden: hiding the panel too would leave
+            # nothing on the left at all - and a pane pinned to zero width,
+            # which no handle can widen again. Bring the rail back first.
+            button = getattr(self._custom_title_bar, "sidebar_button", None)
+            if button is not None and button.isCheckable() and button.isChecked():
+                button.setChecked(False)
+            else:
+                self._set_rail_hidden(False)
         sizes = self._main_split.sizes()
         if hiding:
             self._left_panel_restore_width = max(sizes[0], 360)
             self._left_stack.hide()
+            self._apply_left_panel_limits()
             rail_width = self._rail_width()
-            self._left_panel.setMinimumWidth(rail_width)
-            self._left_panel.setMaximumWidth(rail_width)
-            self._main_split.setSizes([rail_width, max(sizes[1], 1)])
+            self._main_split.setSizes([rail_width, max(sum(sizes) - rail_width, 1)])
         else:
-            self._left_panel.setMaximumWidth(16777215)
-            self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._rail_width())
             self._left_stack.show()
+            self._apply_left_panel_limits()
             restore_width = int(getattr(self, "_left_panel_restore_width", 420))
             total = max(sum(sizes), restore_width + CHART_PANE_MIN_WIDTH)
             self._main_split.setSizes([restore_width, max(total - restore_width, 1)])
         self._left_rail.set_workspace_hidden(hiding)
+
+    def _apply_left_panel_limits(self) -> None:
+        """The left pane's width limits, from the rail and the panel's state.
+
+        Pinned to the rail's width while the panel is hidden (the handle has
+        nothing to resize); free above the usual floor otherwise. Worked out
+        from the current state every time, rather than adjusted step by
+        step: hiding the rail and the panel in one order and showing them in
+        the other used to leave the pane pinned at zero width for good.
+        """
+        rail_width = self._rail_width()
+        if self._left_stack.isHidden():
+            self._left_panel.setMinimumWidth(rail_width)
+            self._left_panel.setMaximumWidth(rail_width)
+        else:
+            self._left_panel.setMaximumWidth(16777215)
+            self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + rail_width)
 
     #: config.json key remembering whether the rail is collapsed to icons.
     NAV_COMPACT_KEY: str = "navigation_compact"
@@ -418,21 +442,13 @@ class MainWindow(QMainWindow):
         moved = self._left_rail.width() - was
 
         sizes = self._main_split.sizes()
-        if (not self._left_stack.isHidden()):
-            self._left_panel.setMinimumWidth(
-                PANEL_MIN_WIDTH + self._left_rail.width()
-            )
-            if len(sizes) == 2:
-                self._main_split.setSizes(
-                    [max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)]
-                )
-        else:
-            # Workspace hidden: the left pane is pinned to the rail's width
-            # (see _toggle_workspace), so the pin has to follow the rail.
-            rail_width = self._left_rail.width()
-            self._left_panel.setMinimumWidth(rail_width)
-            self._left_panel.setMaximumWidth(rail_width)
-            if len(sizes) == 2:
+        # Pinned to the rail while the panel is hidden, so the pin follows it.
+        self._apply_left_panel_limits()
+        if len(sizes) == 2:
+            if not self._left_stack.isHidden():
+                self._main_split.setSizes([max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)])
+            else:
+                rail_width = self._left_rail.width()
                 self._main_split.setSizes([rail_width, max(sum(sizes) - rail_width, 1)])
 
         set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
@@ -467,7 +483,7 @@ class MainWindow(QMainWindow):
             self._left_rail.show()
             moved = rail_width
         title_bar.refresh_lights_inset()
-        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._rail_width())
+        self._apply_left_panel_limits()
         if len(sizes) == 2:
             self._main_split.setSizes([max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)])
 
