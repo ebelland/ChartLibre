@@ -23,6 +23,11 @@ on:
 permissions:
   contents: read
 
+# A newer push replaces a build still running for an older one.
+concurrency:
+  group: bundles-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: ${{ matrix.name }}
@@ -32,7 +37,6 @@ jobs:
       matrix:
         include:
           - { name: macOS Apple Silicon, os: macos-15 }
-          - { name: macOS Intel, os: macos-15-intel }
           - { name: Windows, os: windows-latest }
           - { name: Linux x86_64, os: ubuntu-22.04 }
           - { name: Linux ARM64, os: ubuntu-24.04-arm }
@@ -110,6 +114,6 @@ jobs:
           body: |
             Ready-made ChartLibre packages: Python and every library are inside, so nothing needs installing first and no internet is needed.
 
-            - **macOS**: open the .dmg (Apple Silicon or Intel) and drag the ChartLibre folder to Applications, then open ChartLibre.app inside it. The first time, macOS may say it cannot check the app: System Settings > Privacy & Security > Open Anyway.
+            - **macOS**: open the .dmg (Apple Silicon; on an Intel Mac use the source download, whose ChartLibre.app fetches its own Python) and drag the ChartLibre folder to Applications, then open ChartLibre.app inside it. The first time, macOS may say it cannot check the app: System Settings > Privacy & Security > Open Anyway.
             - **Windows**: run the -setup.exe (no administrator rights needed), or unzip the -portable.zip anywhere and open ChartLibre.exe. If Windows says it protected your PC: More info > Run anyway.
             - **Linux**: unpack the .tar.gz and run ChartLibre/ChartLibre.sh; it adds itself to the applications menu. Qt may need `sudo apt install libxcb-cursor0`.
