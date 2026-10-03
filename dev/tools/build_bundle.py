@@ -62,7 +62,10 @@ ALL_LAUNCHERS = {name for names in LAUNCHERS.values() for name in names}
 KEEP_FROM_DEV = ("dev/tools/launcher/chartlibre.png",)
 
 #: Tracked files that are notes for whoever develops ChartLibre, not for users.
-LEAVE_OUT = ("todo.txt",)
+LEAVE_OUT = ("todo.txt", ".gitignore")
+
+#: Tracked folders that are the repository's, not the application's.
+LEAVE_OUT_FOLDERS = (".github",)
 
 
 def platform_key() -> str:
@@ -82,7 +85,7 @@ def system_of(key: str) -> str:
 def wanted_file(path: str, system: str) -> bool:
     """Whether the tracked *path* goes into *system*'s package."""
     top = path.split("/")[0]
-    if path in LEAVE_OUT:
+    if path in LEAVE_OUT or top in LEAVE_OUT_FOLDERS:
         return False
     if top == "dev":
         return path in KEEP_FROM_DEV

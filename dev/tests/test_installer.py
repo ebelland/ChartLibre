@@ -296,6 +296,7 @@ def test_a_package_holds_the_application_and_only_its_own_system_launchers() -> 
     for system in ("macos", "windows", "linux"):
         assert wanted("main.py", system) and wanted("app/charts/bar.py", system) and wanted("install.py", system)
         assert not wanted("dev/tests/test_installer.py", system) and not wanted("todo.txt", system)
+        assert not wanted(".github/workflows/bundles.yml", system) and not wanted(".gitignore", system)
         assert wanted("dev/tools/launcher/chartlibre.png", system)
     assert wanted("ChartLibre.app/Contents/MacOS/ChartLibre", "macos")
     assert not wanted("ChartLibre.app/Contents/MacOS/ChartLibre", "windows")
