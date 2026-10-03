@@ -1,4 +1,4 @@
-# Ready-made ChartLibre packages: Python and every library already inside,
+# Ready-made ChartLibre packages for macOS (Apple Silicon) and Windows: Python and every library already inside,
 # so they open the first time with no download (dev/tools/build_bundle.py).
 #
 # Runs when the packaging changes on main, by hand (Actions > Bundles > Run
@@ -38,24 +38,12 @@ jobs:
         include:
           - { name: macOS Apple Silicon, os: macos-15 }
           - { name: Windows, os: windows-latest }
-          - { name: Linux x86_64, os: ubuntu-22.04 }
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-
-      - name: Qt's system libraries (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          asound=$(apt-cache show libasound2t64 >/dev/null 2>&1 && echo libasound2t64 || echo libasound2)
-          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 \
-            libfontconfig1 libdbus-1-3 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxtst6 \
-            libxkbfile1 libxshmfence1 libgbm1 "$asound" xvfb xauth \
-            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 \
-            libxcb-xinput0 libxcb-shape0 libxcb-randr0 libxcb-xfixes0 libxcb-sync1 libxcb-shm0
 
       - name: Inno Setup (Windows)
         if: runner.os == 'Windows'
@@ -117,4 +105,3 @@ jobs:
 
             - **macOS**: open the .dmg (Apple Silicon; on an Intel Mac use the source download, whose ChartLibre.app fetches its own Python) and drag the ChartLibre folder to Applications, then open ChartLibre.app inside it. The first time, macOS may say it cannot check the app: System Settings > Privacy & Security > Open Anyway.
             - **Windows**: run the -setup.exe (no administrator rights needed), or unzip the -portable.zip anywhere and open ChartLibre.exe. If Windows says it protected your PC: More info > Run anyway.
-            - **Linux** (x86_64): unpack the .tar.gz and run ChartLibre/ChartLibre.sh; it adds itself to the applications menu. Qt may need `sudo apt install libxcb-cursor0`.
