@@ -36,7 +36,7 @@ from app.widgets.chart_jump_bar import ChartJumpBar
 from app.widgets.custom_title_bar import CustomTitleBar
 from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.data.repo._common import ensure_read_only_select
-from app.data.sqlite_repo import SqliteRepo
+from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.chart_panel import ChartPanel
 from app.widgets.nav_bar import NavigationBar
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
@@ -95,6 +95,7 @@ from app.utils.dialog_state import restore_window_geometry, save_window_geometry
 from app.utils.startup import PROJECT_FILE_FILTER
 from app.utils.screen_fit import fit_on_show
 from app.utils.messages import show_message
+from app.utils import column_summary
 from app.logs.logger import applogger
 from app.utils.i18n import _
 from PySide6.QtWidgets import (
@@ -250,6 +251,7 @@ class MainWindow(QMainWindow):
         self._preview = TablePreviewPanel(parent=self, repo=self._repo)
         self._preview.refresh.connect(self.refresh)
         self._preview.chart_requested.connect(self._on_chart_from_columns)
+        self._preview.histogram_requested.connect(self._on_histogram_from_column)
         # Left-side pages.
         self._data_page = self._create_data_page()
         self._properties_control = self._create_properties_control()
@@ -2741,6 +2743,42 @@ class MainWindow(QMainWindow):
     def _on_chart_from_columns(self, table: str, columns: list) -> None:
         """New plot on *table*, with the preview's selected columns as x, y, z."""
         self._on_new_plot_tab(table=table, columns=[str(c) for c in columns])
+
+    def _on_histogram_from_column(self, source: str, column: str) -> None:
+        """A new figure with *column*'s histogram, its statistics in the notes.
+
+        Straight from the preview, without the New plot window: one column
+        has only one sensible chart, and the figure is shown at once.
+        """
+        if self._repo is None:
+            return
+        try:
+            sql = self._repo.column_series_sql(source, column)
+            values = self._repo.query_df(sql)["value"]
+        except (DatabaseError, ValueError, KeyError) as exc:
+            show_message(self, "chart.histogram_failed", title=_("Histogram"), reason=str(exc))
+            return
+        if column_summary.numeric_values(values).size == 0:
+            show_message(self, "chart.histogram_no_numbers", title=_("Histogram"), column=column)
+            return
+        try:
+            figure_id = int(self._repo.create_figure_descriptor(name=column))
+            axis_id = int(self._repo.create_axis_descriptor(
+                figure_id=figure_id, axis_index=0, chart_type="Histogram", title=column,
+                x_label=column, y_label=_("Count"), options={},
+            ))
+            self._repo.create_series_descriptor(
+                axis_id=axis_id, series_index=0, name=column, sql_query=sql, roles={"value": "value"}, style={},
+            )
+        except DatabaseError as exc:
+            show_message(self, "chart.histogram_failed", title=_("Histogram"), reason=str(exc))
+            return
+        self._reload_tabs(select_figure_id=figure_id)
+        index = self._tab_index_of_figure(figure_id)
+        panel = self._tabs.widget(index) if index >= 0 else None
+        if isinstance(panel, ChartPanel):
+            panel.set_notes_html(column_summary.summary_html(column, values))
+        applogger.info("Histogram of %s.%s made as figure %d.", source, column, figure_id)
 
     def _on_new_plot_tab(
         self,

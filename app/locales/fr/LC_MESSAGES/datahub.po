@@ -6594,3 +6594,54 @@ msgstr "Vider le journal de l'application ? Son contenu actuel ne pourra plus ê
 
 msgid "Clear log"
 msgstr "Effacer"
+
+msgid "Histogram and statistics of '{column}'"
+msgstr "Histogramme et statistiques de « {column} »"
+
+msgid "A new figure with this column's histogram, and its statistics in the figure's notes"
+msgstr "Une nouvelle figure avec l'histogramme de cette colonne, et ses statistiques dans les notes de la figure"
+
+msgid "Values"
+msgstr "Valeurs"
+
+msgid "Empty or not a number"
+msgstr "Vides ou non numériques"
+
+msgid "95% CI of the mean"
+msgstr "IC à 95 % de la moyenne"
+
+msgid "Standard deviation"
+msgstr "Écart type"
+
+msgid "First quartile"
+msgstr "Premier quartile"
+
+msgid "Median"
+msgstr "Médiane"
+
+msgid "Third quartile"
+msgstr "Troisième quartile"
+
+msgid "Interquartile range"
+msgstr "Écart interquartile"
+
+msgid "Skewness"
+msgstr "Asymétrie"
+
+msgid "Kurtosis"
+msgstr "Kurtosis"
+
+msgid "Link: a chain for a table linked to its source, Q for a saved query"
+msgstr "Lien : une chaîne pour une table liée à sa source, Q pour une requête enregistrée"
+
+msgid "Saved query"
+msgstr "Requête enregistrée"
+
+msgid "Linked to its source"
+msgstr "Liée à sa source"
+
+msgid "Could not make the histogram:\n{reason}"
+msgstr "Impossible de créer l'histogramme :\n{reason}"
+
+msgid "The column '{column}' holds no numbers, so there is nothing to draw a histogram of."
+msgstr "La colonne « {column} » ne contient aucun nombre : il n'y a rien dont tracer l'histogramme."

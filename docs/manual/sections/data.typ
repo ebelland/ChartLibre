@@ -35,6 +35,7 @@ The preview shows the selected table's rows. Each column header carries the colu
 #defs(
   [*Copy*], [Copy the selected cells.],
   [*Statistics of a column*], [Count, empty cells, distinct values, minimum, maximum, mean and median of the column.],
+  [*Histogram and statistics*], [With exactly one column selected: a new figure with that column's histogram, shown at once, and its statistics — mean with its 95% confidence interval, standard deviation, quartiles, skewness, kurtosis — in the figure's notes. Hidden rows are left out.],
   [*Hide rows*], [Hide rows equal to the selected cell, different from it, higher, lower, or where the column is empty — by marking them in the `Hide` column, which every chart skips. The rows stay in the table.],
   [*Export rows…*], [Save the selected rows as CSV or Excel.],
   [*New chart from selected columns*], [Opens New plot with the selected columns as x, y and z.],

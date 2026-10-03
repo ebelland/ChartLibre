@@ -20,6 +20,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.utils.config import get_constant
 from app.styles.style import (
+    CONTEXT_MENU_ICONS,
     MenuItem,
     apply_fusion_for_item_view_styling,
     create_menu,
@@ -107,6 +108,8 @@ class TablePreviewPanel(QWidget):
     refresh = Signal()
     #: "New chart from selected columns": the source and its picked columns.
     chart_requested = Signal(str, list)
+    #: "Histogram and statistics": the source and its one selected column.
+    histogram_requested = Signal(str, str)
 
     def __init__(self, parent: QWidget, repo:SqliteRepo) -> None:
         super().__init__(parent)
@@ -287,6 +290,17 @@ class TablePreviewPanel(QWidget):
                     tooltip=_("Count, empty cells, distinct values, and min, max, mean and median"),
                 )
             )
+        _rows, positions = self._selected_block()
+        selected = self._column_names(positions)
+        if len(selected) == 1:
+            items.append(
+                MenuItem(
+                    _("Histogram and statistics of '{column}'").format(column=selected[0]),
+                    callback=lambda _=False, col=selected[0]: self.histogram_requested.emit(str(self._table), col),
+                    icon="column_stats",
+                    tooltip=_("A new figure with this column's histogram, and its statistics in the figure's notes"),
+                )
+            )
         items.append(
             MenuItem(
                 _("New chart from selected columns"),
@@ -297,7 +311,7 @@ class TablePreviewPanel(QWidget):
         )
         items.append(None)
 
-        menu = create_menu(self, items)
+        menu = create_menu(self, items, icons=CONTEXT_MENU_ICONS)
 
         if column:
             hide_menu = menu.addMenu(_("Hide rows by selected column"))
@@ -314,6 +328,7 @@ class TablePreviewPanel(QWidget):
             ):
                 create_menu_item(
                     parent=self,
+                    icons=CONTEXT_MENU_ICONS,
                     menu=hide_menu,
                     icon=None,
                     checkable=False,
@@ -330,6 +345,7 @@ class TablePreviewPanel(QWidget):
 
             create_menu_item(
                 parent=self,
+                icons=CONTEXT_MENU_ICONS,
                 menu=hide_menu,
                 icon=None,
                 checkable=False,
@@ -343,6 +359,7 @@ class TablePreviewPanel(QWidget):
             )
             create_menu_item(
                 parent=self,
+                icons=CONTEXT_MENU_ICONS,
                 menu=hide_menu,
                 icon=None,
                 checkable=False,
@@ -371,7 +388,6 @@ class TablePreviewPanel(QWidget):
                 ),
             ),
             None,
-            MenuItem(_("Duplicate table"), callback=self._duplicate_table, icon="duplicate_table"),
             MenuItem(_("Export rows..."), callback=self._export_rows, icon="export_rows"),
             None,
             MenuItem(_("Refresh data table"), callback=self._reload_model, icon="reload"),
@@ -387,6 +403,7 @@ class TablePreviewPanel(QWidget):
                 continue
             create_menu_item(
                 parent=self,
+                icons=CONTEXT_MENU_ICONS,
                 menu=menu,
                 icon=item.icon,
                 checkable=item.checkable,

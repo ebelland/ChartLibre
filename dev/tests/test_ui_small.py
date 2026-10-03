@@ -330,3 +330,44 @@ def test_every_configured_theme_icon_name_is_known() -> None:
     assert names, "no ThemeIcon names found in config.json"
     unknown = sorted(names - _standard_theme_icon_names() - EXTRA_THEME_ICON_NAMES)
     assert unknown == [], f"not a known theme icon name: {unknown}"
+
+
+# ======================================================================
+# Table preview: histogram and statistics of one column, straight to a figure
+# ======================================================================
+def test_one_column_makes_a_histogram_figure_with_its_statistics(qapp, tmp_path: Path, monkeypatch) -> None:
+    import numpy as np
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    mass = np.random.default_rng(1).normal(70.0, 8.0, 200)
+    repo.import_dataframe(pd.DataFrame({"mass": mass, "name": ["x"] * 200}), table_name="people",
+                          normalize_columns=False)
+    repo.mark_hide_rowids(table_name="people", rowids=[1, 2, 3], clear_existing=True)
+    window = MainWindow(repo, tmp_path / "p.dhub")
+    shown: list[str] = []
+    monkeypatch.setattr(main_window_module, "show_message", lambda _parent, message_id, **_k: shown.append(message_id))
+
+    window._on_histogram_from_column("people", "mass")
+    panel = window._current_chart_panel()
+    assert panel is not None and window._tabs.tabText(window._tabs.currentIndex()) == "mass"
+    descriptor = repo.load_figure_descriptor(figure_id=int(panel.figure_id))
+    assert descriptor is not None and descriptor.axes[0].name == "Histogram"
+    series_sql = descriptor.axes[0].series[0].sql_query
+    assert len(repo.query_df(series_sql)) == 197  # the hidden rows stay out
+    notes = panel.notes_html()
+    assert "Statistics of &#x27;mass&#x27;" in notes or "Statistics of 'mass'" in notes
+    assert f"{float(np.mean(mass[3:])):.6g}" in notes and "197" in notes
+
+    window._on_histogram_from_column("people", "name")  # text: nothing to draw
+    assert shown == ["chart.histogram_no_numbers"]
+
+    # The menu offers it only with exactly one column selected.
+    preview = window._preview
+    preview.set_context(repo, "people")
+    model = preview.view.model()
+    preview.view.selectionModel().select(model.index(0, 0), preview.view.selectionModel().SelectionFlag.ClearAndSelect)
+    texts = [action.text() for action in preview._build_context_menu(preview.view.visualRect(model.index(0, 0)).center()).actions()]
+    assert any(text.startswith("Histogram and statistics") for text in texts)
+    assert not any(text == "Duplicate table" for text in texts)
+    window.close()
+    repo.close()

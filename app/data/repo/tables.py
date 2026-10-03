@@ -24,7 +24,7 @@ from pandas._typing import DtypeArg
 
 import app.data.descriptors
 from app import APP_NAME
-from app.data.data_source import DataSource
+from app.data.data_source import DataSource, quote_identifier
 from app.data.select_sql import sql_insert_select_expression, top_level_from, top_level_match
 from app.data.repo._common import (
     READ_FAILURES,
@@ -1061,6 +1061,23 @@ class TablesMixin(RepoHost):
             return False
         match = top_level_from(sql)
         return match is not None and sql[match.end():].lstrip()[:1] not in ("(", "")
+
+    @ensure_connection_wrapper
+    def column_series_sql(self, source_name: str, column: str, alias: str = "value") -> str:
+        """SELECT one column of a table or saved query as *alias*, skipping hidden rows.
+
+        What a chart made straight from one column reads - the preview's
+        "Histogram and statistics" - written the way New plot writes it.
+        """
+        source = self.get_data_source(source_name)
+        if source is None:
+            raise ValueError(f"No table or saved query named {source_name!r}.")
+        sql = f"SELECT {quote_identifier(column)} AS {quote_identifier(alias)} FROM {source.from_clause()}"
+        if not source.is_query:
+            columns = self.query_df(f"SELECT * FROM {source.from_clause()} LIMIT 0").columns
+            if "Hide" in columns:
+                sql = self.sql_with_hide_filter(sql)
+        return sql
 
     @staticmethod
     def sql_without_hide_filter(sql_query: str) -> str:

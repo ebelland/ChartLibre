@@ -1793,6 +1793,11 @@ def create_toolbar_button(
 
     return button
 
+#: Context menus on macOS carry no icons - Finder's, Mail's, every Apple
+#: app's - so the menus that follow the platform pass this as ``icons``.
+CONTEXT_MENU_ICONS: bool = not IS_MACOS
+
+
 def create_menu_item(
     parent: QWidget,
     menu: QMenu | None,
@@ -1806,18 +1811,25 @@ def create_menu_item(
     action_id: str | None = None,
     checked: bool = False,
     enabled: bool = True,
+    icons: bool = True,
 ) -> QAction:
-    """Create and optionally add a QAction to a menu."""
+    """Create and optionally add a QAction to a menu.
+
+    With *icons* False the item shows no icon in a menu, and reserves no
+    space for one.
+    """
     qaction = QAction(parent)
     qaction.setText(text)
     qaction.setToolTip(tooltip)
     qaction.setStatusTip(tooltip)
-    qaction.setIconVisibleInMenu(True)
+    qaction.setIconVisibleInMenu(icons)
     qaction.setCheckable(checkable)
     qaction.setChecked(checked)
     qaction.setEnabled(enabled)
 
-    if isinstance(icon, QIcon):
+    if not icons:
+        pass
+    elif isinstance(icon, QIcon):
         qaction.setIcon(icon)
     elif icon:
         qaction.setIcon(load_icon(icon))
@@ -1851,6 +1863,8 @@ def create_menu_item(
 def create_menu(
     parent: QWidget,
     items: list[MenuItem | None],
+    *,
+    icons: bool = True,
 ) -> QMenu:
     """Create a QMenu from typed menu item descriptors.
 
@@ -1867,9 +1881,9 @@ def create_menu(
             continue
 
         if item.submenu is not None:
-            child = create_menu(parent, item.submenu)
+            child = create_menu(parent, item.submenu, icons=icons)
             child.setTitle(item.text)
-            if item.icon is not None:
+            if icons and item.icon is not None:
                 child.setIcon(
                     item.icon if isinstance(item.icon, QIcon) else load_icon(item.icon)
                 )
@@ -1889,6 +1903,7 @@ def create_menu(
             action_id=item.action_id,
             checked=item.checked,
             enabled=item.enabled,
+            icons=icons,
         )
 
     return menu

@@ -12,6 +12,7 @@ from PySide6.QtGui import QColor, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QStyledItemDelegate, QWidget, QStyleOptionViewItem, QVBoxLayout, QTableView, QAbstractItemView, QFrame, QHeaderView, QFileDialog, QLineEdit, QInputDialog, QMessageBox
 
 from app.styles.style import (
+    CONTEXT_MENU_ICONS,
     MenuItem,
     apply_fusion_for_item_view_styling,
     create_menu,
@@ -685,7 +686,7 @@ class TableListPanel(QWidget):
             ]
         )
 
-        menu = create_menu(self, items)
+        menu = create_menu(self, items, icons=CONTEXT_MENU_ICONS)
         menu.exec(self._view.viewport().mapToGlobal(pos))
 
     def _single_selected_query(self) -> str | None:

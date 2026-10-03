@@ -909,6 +909,16 @@
       "title": "New database",
       "text": "Could not create the database:\n{error}"
     },
+    "chart.histogram_failed": {
+      "level": "error",
+      "title": "Histogram",
+      "text": "Could not make the histogram:\n{reason}"
+    },
+    "chart.histogram_no_numbers": {
+      "level": "info",
+      "title": "Histogram",
+      "text": "The column '{column}' holds no numbers, so there is nothing to draw a histogram of."
+    },
     "database.open_failed": {
       "level": "error",
       "title": "Open database",

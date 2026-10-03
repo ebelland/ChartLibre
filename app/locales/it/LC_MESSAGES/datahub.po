@@ -6597,3 +6597,54 @@ msgstr "Svuotare il log dell'applicazione? Quello che contiene ora non si potrà
 
 msgid "Clear log"
 msgstr "Pulisci"
+
+msgid "Histogram and statistics of '{column}'"
+msgstr "Istogramma e statistiche di '{column}'"
+
+msgid "A new figure with this column's histogram, and its statistics in the figure's notes"
+msgstr "Una nuova figura con l'istogramma di questa colonna e le sue statistiche nelle note della figura"
+
+msgid "Values"
+msgstr "Valori"
+
+msgid "Empty or not a number"
+msgstr "Vuoti o non numerici"
+
+msgid "95% CI of the mean"
+msgstr "IC 95% della media"
+
+msgid "Standard deviation"
+msgstr "Deviazione standard"
+
+msgid "First quartile"
+msgstr "Primo quartile"
+
+msgid "Median"
+msgstr "Mediana"
+
+msgid "Third quartile"
+msgstr "Terzo quartile"
+
+msgid "Interquartile range"
+msgstr "Scarto interquartile"
+
+msgid "Skewness"
+msgstr "Asimmetria"
+
+msgid "Kurtosis"
+msgstr "Curtosi"
+
+msgid "Link: a chain for a table linked to its source, Q for a saved query"
+msgstr "Collegamento: una catena per una tabella collegata alla sua sorgente, Q per una query salvata"
+
+msgid "Saved query"
+msgstr "Query salvata"
+
+msgid "Linked to its source"
+msgstr "Collegata alla sua sorgente"
+
+msgid "Could not make the histogram:\n{reason}"
+msgstr "Impossibile creare l'istogramma:\n{reason}"
+
+msgid "The column '{column}' holds no numbers, so there is nothing to draw a histogram of."
+msgstr "La colonna '{column}' non contiene numeri: non c'è niente di cui disegnare l'istogramma."

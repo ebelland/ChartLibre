@@ -88,7 +88,9 @@ def test_the_table_tools_are_in_the_menu_and_copy_writes_the_clipboard(qapp, tmp
     menu = panel._build_context_menu(QPoint(0, 0))
     assert menu is not None
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
-    assert {"Copy", "Duplicate table", "Export rows..."} <= texts
+    assert {"Copy", "Export rows..."} <= texts
+    assert "Duplicate table" not in texts  # the table list's, not the preview's
+    assert "Histogram and statistics of 'a'" in texts  # one column selected
     # Moved into Edit table..., with the rest of the editing.
     assert not texts & {
         "Group and aggregate...", "Add column from SQL expression...", "Delete column 'a'..."
