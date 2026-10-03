@@ -105,33 +105,6 @@ def _group_by_section(operations: list[dict]) -> list[tuple[str, list[dict]]]:
     return grouped
 
 
-def _operation_action_id(operation: dict) -> str:
-    return str(operation.get("value") or operation.get("name") or "")
-
-
-def _group_by_section(operations: list[dict]) -> list[tuple[str, list[dict]]]:
-    """Sort *operations* into ``_SECTIONS``' order, dropping empty sections.
-
-    A section with none of its operations discovered - every one of them
-    failed to import, say - is left out rather than shown as an empty
-    header with nothing under it.
-    """
-    by_name = {_operation_action_id(op): op for op in operations}
-    grouped: list[tuple[str, list[dict]]] = []
-    placed: set[str] = set()
-
-    for title, names in _SECTIONS:
-        items = [by_name[name] for name in names if name in by_name]
-        placed.update(names)
-        if items:
-            grouped.append((_(title), items))
-
-    leftover = [op for op in operations if _operation_action_id(op) not in placed]
-    if leftover:
-        grouped.append((_(_FALLBACK_SECTION), leftover))
-    return grouped
-
-
 #: Item data roles: the operation a row opens, and what the search matches.
 _OPERATION_ROLE = Qt.ItemDataRole.UserRole
 _SEARCH_ROLE = Qt.ItemDataRole.UserRole + 1

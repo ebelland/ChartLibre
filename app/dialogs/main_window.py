@@ -950,8 +950,8 @@ class MainWindow(QMainWindow):
         layout.addLayout(save_row)
 
     def _fill_export_card(self, card: CardFrame) -> None:
-        """The project as one report (todo R-09). A single figure goes out
-        for publication from its own menu, where it is."""
+        """The project as one report (todo R-09). A single figure has the
+        same report from its own menu, "Export report"."""
         layout = self._card_layout(card)
         row = QHBoxLayout()
         stdSizeAndlayout(row)
