@@ -218,6 +218,32 @@ def make_windows_launcher(target_dir: Path) -> Path:
 
 LAUNCHER_SOURCE = Path(__file__).resolve().parent / "launcher"
 
+#: The Linux launcher. Like the .bat: from its own folder, install on the
+#: first run, then start. install.py puts it in the applications menu.
+LINUX_SCRIPT = """#!/bin/sh
+# ChartLibre launcher for Linux (dev/tools/make_launcher.py). It works from
+# wherever the ChartLibre folder is: the first launch installs the libraries
+# into .venv inside that folder, every later one just starts the application.
+# install.py adds it to the applications menu.
+cd "$(dirname "$0")" || exit 1
+if [ ! -x .venv/bin/python3 ]; then
+  python3 install.py || exit 1
+fi
+exec .venv/bin/python3 main.py "$@"
+"""
+
+#: The icon the Linux menu entry shows, tracked so install.py needs no Qt.
+LINUX_ICON = LAUNCHER_SOURCE / "chartlibre.png"
+
+
+def make_linux_launcher(target_dir: Path) -> Path:
+    """ChartLibre.sh (executable) and the icon its menu entry uses."""
+    launcher = target_dir / f"{APP_NAME}.sh"
+    launcher.write_text(LINUX_SCRIPT, encoding="utf-8")
+    launcher.chmod(0o755)
+    LINUX_ICON.write_bytes(_render_icon_pngs([256])[256])
+    return launcher
+
 
 def make_windows_exe(target_dir: Path) -> Path | None:
     """ChartLibre.exe: the .bat's job without a console window after setup.
@@ -263,6 +289,7 @@ def main() -> None:
     # Both, whatever this machine is: the folder ships to either platform.
     print(make_macos_app(target_dir))
     print(make_windows_launcher(target_dir))
+    print(make_linux_launcher(target_dir))
     exe = make_windows_exe(target_dir)
     if exe is not None:
         print(exe)

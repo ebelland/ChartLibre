@@ -140,11 +140,46 @@ def start_hint(folder: Path, platform: str = sys.platform) -> str:
     return f"Start it with:  {venv_python(folder / '.venv')} {folder / 'main.py'}"
 
 
+def linux_menu_entry(folder: Path) -> str:
+    """The freedesktop menu entry that starts ChartLibre from *folder*.
+
+    Absolute paths, which is why it is written here, on the machine, rather
+    than shipped: it points at ChartLibre.sh and the icon in this folder.
+    """
+    launcher = folder / "ChartLibre.sh"
+    icon = folder / "dev" / "tools" / "launcher" / "chartlibre.png"
+    return (
+        "[Desktop Entry]\n"
+        "Type=Application\n"
+        "Name=ChartLibre\n"
+        "Comment=Charts and data analysis\n"
+        f'Exec="{launcher}"\n'
+        f"Path={folder}\n"
+        f"Icon={icon}\n"
+        "Terminal=false\n"
+        "Categories=Science;Education;Office;\n"
+    )
+
+
+def write_linux_menu_entry(folder: Path, home: Path | None = None) -> Path:
+    """Add ChartLibre to the applications menu (GNOME, KDE, Xfce...), for this user."""
+    applications = (home or Path.home()) / ".local" / "share" / "applications"
+    applications.mkdir(parents=True, exist_ok=True)
+    entry = applications / "chartlibre.desktop"
+    entry.write_text(linux_menu_entry(folder), encoding="utf-8")
+    entry.chmod(0o755)
+    launcher = folder / "ChartLibre.sh"
+    if launcher.exists():
+        launcher.chmod(0o755)  # a copy can lose the bit (a shared folder, a zip)
+    return entry
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Install ChartLibre's libraries into .venv.")
     parser.add_argument("--dir", type=Path, default=HERE, help="the ChartLibre folder (default: where this file is)")
     parser.add_argument("--recreate", action="store_true", help="delete an existing .venv and install again")
     parser.add_argument("--skip-packages", action="store_true", help="only create the .venv (for testing)")
+    parser.add_argument("--no-menu", action="store_true", help="on Linux, do not add ChartLibre to the applications menu")
     args = parser.parse_args(argv)
     folder = args.dir.resolve()
 
@@ -190,6 +225,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     print("\nChartLibre is installed. " + start_hint(folder))
+    if sys.platform.startswith("linux") and not args.no_menu:
+        entry = write_linux_menu_entry(folder)
+        print(f"ChartLibre is in the applications menu now ({entry}).")
     return 0
 
 

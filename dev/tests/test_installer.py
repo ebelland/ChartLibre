@@ -110,3 +110,26 @@ def test_every_library_the_check_imports_is_in_requirements() -> None:
     for package in ("pyside6", "matplotlib", "numpy", "pandas", "openpyxl", "scipy",
                     "scikit-learn", "statsmodels", "scikit-image", "pywavelets"):
         assert package in text
+
+
+def test_linux_gets_a_menu_entry_that_starts_this_folder(tmp_path: Path) -> None:
+    folder = tmp_path / "ChartLibre"
+    folder.mkdir()
+    launcher = folder / "ChartLibre.sh"
+    launcher.write_text("#!/bin/sh\n", encoding="utf-8")
+    launcher.chmod(0o644)  # as a copy through a shared folder can leave it
+    entry = install.write_linux_menu_entry(folder, home=tmp_path / "home")
+    assert entry == tmp_path / "home" / ".local" / "share" / "applications" / "chartlibre.desktop"
+    text = entry.read_text(encoding="utf-8")
+    assert text.startswith("[Desktop Entry]\n")
+    assert f'Exec="{launcher}"' in text and f"Path={folder}" in text
+    assert f"Icon={folder}/dev/tools/launcher/chartlibre.png" in text
+    assert launcher.stat().st_mode & 0o111
+
+
+def test_the_linux_launcher_and_its_icon_ship_with_the_project() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = (root / "ChartLibre.sh").read_text(encoding="utf-8")
+    assert script.startswith("#!/bin/sh") and "python3 install.py" in script and "main.py" in script
+    assert (root / "ChartLibre.sh").stat().st_mode & 0o111
+    assert (root / "dev" / "tools" / "launcher" / "chartlibre.png").stat().st_size > 1000

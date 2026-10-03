@@ -102,7 +102,7 @@ No installer and no terminal needed:
 
 The first launch asks before installing the libraries ChartLibre needs, then does it inside the folder itself (it needs an internet connection and takes a few minutes); every launch after that opens the application straight away. Nothing is installed anywhere else, so deleting the folder removes ChartLibre completely.
 
-**Prefer to install first, and see what happens?** Double-click `Install ChartLibre.command` (macOS) or `Install ChartLibre.bat` (Windows); on Linux run `python3 install.py`. It creates the `.venv` folder, installs the libraries, checks that Qt and the scientific libraries load, and says what to open. `python3 install.py --recreate` throws an existing `.venv` away and starts again — the thing to try if ChartLibre stops starting.
+**Prefer to install first, and see what happens?** Double-click `Install ChartLibre.command` (macOS) or `Install ChartLibre.bat` (Windows); on Linux run `python3 install.py`, which also adds ChartLibre to the applications menu (or start `./ChartLibre.sh`). It creates the `.venv` folder, installs the libraries, checks that Qt and the scientific libraries load, and says what to open. `python3 install.py --recreate` throws an existing `.venv` away and starts again — the thing to try if ChartLibre stops starting.
 
 <details>
 <summary>If the system will not open it the first time</summary>
@@ -179,7 +179,7 @@ Please read [`dev/DEVELOPMENT.md`](dev/DEVELOPMENT.md) first — it explains the
 
 ## Notes
 
-¹ **Linux: ChartLibre has never been launched on it.** It is Python and Qt, so it may well run from source (`python3 install.py`, then `.venv/bin/python3 main.py`); on a minimal system Qt may also need `sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1`. Reports either way are welcome.
+¹ **Linux: ChartLibre has never been launched on it.** It is Python and Qt, so it may well run from source (`python3 install.py`, then ChartLibre from the applications menu or `./ChartLibre.sh`); on a minimal system Qt may also need `sudo apt install libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1`. Reports either way are welcome.
 
 ## Licence
 
