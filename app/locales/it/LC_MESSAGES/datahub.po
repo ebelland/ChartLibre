@@ -6454,8 +6454,8 @@ msgstr "Le tabelle, la loro dimensione e le note"
 msgid "The template could not be applied; see the log."
 msgstr "Impossibile applicare il modello; vedi il log."
 
-msgid "The whole project - every figure with its notes, its data and the operation history - as one HTML or PDF file"
-msgstr "L'intero progetto - ogni figura con le sue note, i dati e lo storico delle operazioni - in un unico file HTML o PDF"
+msgid "The whole project - every figure with its notes, the tables and the operation history - as one HTML or PDF file"
+msgstr "L'intero progetto - ogni figura con le sue note, le tabelle e lo storico delle operazioni - in un unico file HTML o PDF"
 
 msgid "This figure could not be drawn: {reason}"
 msgstr "Impossibile disegnare questa figura: {reason}"

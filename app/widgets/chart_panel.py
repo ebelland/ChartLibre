@@ -12,7 +12,6 @@ import csv
 from io import BytesIO
 import json
 import math
-import re
 from typing import Any, Final
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
@@ -37,7 +36,6 @@ from app.styles.style import (
     SPLITTER_HANDLE_WIDTH,
     MenuItem,
     action as catalogue_action,
-    action_menu_item,
     create_menu,
     create_menu_item,
     create_toolbar_button,
@@ -127,11 +125,6 @@ def axis_text(axis: Any, value: float) -> str:
     except Exception:
         text = ""
     return text or f"{value:g}"
-
-
-def _file_stem(title: str) -> str:
-    """A figure title as a file name: "1 · Penguin bill" -> "1_Penguin_bill"."""
-    return re.sub(r"[^\w\-]+", "_", title).strip("_") or "figure"
 
 
 class ChartPanel(QFrame):
@@ -1885,7 +1878,6 @@ class ChartPanel(QFrame):
                 MenuItem(_("Save figure"),_("Save as picture"), PySide6.QtGui.QKeySequence.StandardKey.SaveAs,self.save_chart_as,False,"save"),
                 MenuItem(_("Export report…"), _("This chart and its notes as an HTML or PDF report, like File > Export for the whole project"), None, self.export_report, False, "project_report"),
                 MenuItem(_("Export view as CSV…"),_("Save the rows currently on screen as a CSV file"),None,self.export_view_as_csv,False,"export_csv"),
-                action_menu_item("publication_export", self.export_for_publication),
                 MenuItem(
                     text=catalogue_action("graph_template").translated_text(),
                     tooltip=catalogue_action("graph_template").translated_description(),
@@ -3043,21 +3035,6 @@ class ChartPanel(QFrame):
         except Exception:
             applogger.exception("Failed to save chart (figure_id=%s)", self._figure_id)
             show_message(self, "chart.save_failed")
-
-    def export_for_publication(self) -> None:
-        """Export this figure at a journal column's width (todo R-09)."""
-        from app.dialogs.publication_export_dialog import PublicationExportDialog
-
-        width_in, height_in = self._fixed_figure_size_inches
-        title = self._repo.get_figure_title(self._figure_id) or f"figure_{self._figure_id}"
-        dialog = PublicationExportDialog(
-            self._repo,
-            self._figure_id,
-            aspect=float(height_in) / float(width_in) if width_in else 0.75,
-            default_name=_file_stem(title),
-            parent=self,
-        )
-        dialog.exec()
 
     def export_report(self) -> None:
         """The project report of this chart alone: its picture and notes."""

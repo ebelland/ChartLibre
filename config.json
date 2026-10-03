@@ -398,16 +398,9 @@
     },
     "project_report": {
       "text": "Project report...",
-      "description": "The whole project - every figure with its notes, its data and the operation history - as one HTML or PDF file",
+      "description": "The whole project - every figure with its notes, the tables and the operation history - as one HTML or PDF file",
       "SFSymbol": "doc.text.image",
       "SegoeFluent": "E8A5",
-      "ThemeIcon": "document-export"
-    },
-    "publication_export": {
-      "text": "Export for publication...",
-      "description": "Save this figure at a journal column's width, with its text at the size asked for, as PDF, EPS, SVG or TIFF",
-      "SFSymbol": "doc.badge.arrow.up",
-      "SegoeFluent": "EDE1",
       "ThemeIcon": "document-export"
     },
     "graph_template": {

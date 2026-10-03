@@ -1,18 +1,15 @@
-"""Publication export (todo R-09): journal figures, graph templates, the project report."""
+"""Publication export (todo R-09): graph templates and the project report."""
 from __future__ import annotations
 
-import re
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from PIL import Image
 from PySide6.QtWidgets import QFileDialog
 
 from app.data.sqlite_repo import SqliteRepo
 from app.utils import graph_templates as gt
 from app.utils.project_report import build_project_report, write_report_html
-from app.utils.publication import PublicationSettings, export_publication_figure, with_overrides
 from dev.tests._figure_factory import create_renderer_showcase_db
 
 
@@ -23,57 +20,6 @@ def showcase(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[SqliteR
     repo = SqliteRepo(db_path=path)
     yield repo, figure_ids
     repo.close()
-
-
-# ----------------------------------------------------------------------
-# A figure for a journal
-# ----------------------------------------------------------------------
-def test_a_pdf_is_exactly_the_column_wide_with_its_fonts_embedded(showcase, tmp_path: Path) -> None:
-    repo, ids = showcase
-    written = export_publication_figure(
-        repo, ids["Scatter Plot"], tmp_path / "scatter", PublicationSettings(width_mm=85, height_mm=60, format="PDF")
-    )
-    assert written.name == "scatter.pdf"
-    pdf = written.read_bytes()
-    box = [float(value) for value in re.search(rb"/MediaBox \[([^\]]*)\]", pdf).group(1).split()]  # pyright: ignore[reportOptionalMemberAccess]
-    assert box[2] == pytest.approx(85 / 25.4 * 72, abs=0.01) and box[3] == pytest.approx(60 / 25.4 * 72, abs=0.01)
-    assert b"/FontFile2" in pdf and b"/Type3" not in pdf
-
-
-def test_a_tiff_has_the_pixels_the_width_and_resolution_ask_for(showcase, tmp_path: Path) -> None:
-    repo, ids = showcase
-    written = export_publication_figure(
-        repo, ids["Bar Chart"], tmp_path / "bars.tif",
-        PublicationSettings(width_mm=180, height_mm=90, format="TIFF", dpi=300),
-    )
-    assert written.suffix == ".tif"
-    with Image.open(written) as image:
-        # Matplotlib truncates to whole pixels.
-        assert image.size == (int(180 / 25.4 * 300), int(90 / 25.4 * 300))
-
-
-@pytest.mark.parametrize("fmt", ["EPS", "SVG", "PNG"])
-def test_every_format_writes(showcase, tmp_path: Path, fmt: str) -> None:
-    repo, ids = showcase
-    written = export_publication_figure(repo, ids["Kaplan-Meier"], tmp_path / "km", PublicationSettings(format=fmt, dpi=150))
-    assert written.exists() and written.stat().st_size > 1000
-
-
-def test_the_publication_style_replaces_the_keys_it_sets() -> None:
-    merged = with_overrides("font.size: 12\nlines.linewidth: 2\nsavefig.bbox: tight  # crop", "font.size: 8\nsavefig.bbox: standard")
-    assert merged.splitlines() == ["lines.linewidth: 2", "font.size: 8", "savefig.bbox: standard"]
-
-
-def test_the_dialog_exports_with_the_figures_proportions(qapp, showcase, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.dialogs.publication_export_dialog import PublicationExportDialog
-
-    repo, ids = showcase
-    dialog = PublicationExportDialog(repo, ids["Histogram"], aspect=0.5)
-    dialog._width_preset_combo.setCurrentIndex(2)  # double column
-    assert dialog._width_spin.value() == 180.0 and dialog._height_spin.value() == 90.0
-    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *_a, **_k: (str(tmp_path / "hist.pdf"), "")))
-    dialog._export()
-    assert dialog.written is not None and dialog.written == tmp_path / "hist.pdf" and dialog.written.exists()
 
 
 # ----------------------------------------------------------------------
