@@ -1,0 +1,107 @@
+# Ready-made ChartLibre packages: Python and every library already inside,
+# so they open the first time with no download (dev/tools/build_bundle.py).
+#
+# Runs when the packaging changes on main, by hand (Actions > Bundles > Run
+# workflow), and for a version tag (v0.1.0), which also publishes them as
+# that version's GitHub Release.
+name: Bundles
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+    branches: [main]
+    paths:
+      - ".github/workflows/bundles.yml"
+      - "dev/tools/build_bundle.py"
+      - "dev/tools/make_launcher.py"
+      - "dev/tools/installer/**"
+      - "dev/tools/launcher/**"
+      - "install.py"
+      - "requirements.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS Apple Silicon, os: macos-15 }
+          - { name: macOS Intel, os: macos-15-intel }
+          - { name: Windows, os: windows-latest }
+          - { name: Linux x86_64, os: ubuntu-22.04 }
+          - { name: Linux ARM64, os: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Qt's system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          asound=$(apt-cache show libasound2t64 >/dev/null 2>&1 && echo libasound2t64 || echo libasound2)
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 \
+            libfontconfig1 libdbus-1-3 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxtst6 \
+            libxkbfile1 libxshmfence1 libgbm1 "$asound"
+
+      - name: Inno Setup (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
+      - name: Version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="$(python -c 'from app import APP_VERSION; print(APP_VERSION)')-${GITHUB_SHA::7}"
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Build, test and pack
+        shell: bash
+        run: python dev/tools/build_bundle.py --version "$VERSION" --work "$RUNNER_TEMP"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ChartLibre-${{ env.VERSION }}-${{ matrix.os }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.tar.gz
+          compression-level: 0
+          retention-days: 14
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: packages/*
+          draft: true
+          body: |
+            Ready-made ChartLibre packages: Python and every library are inside, so nothing needs installing first and no internet is needed.
+
+            - **macOS**: open the .dmg (Apple Silicon or Intel) and drag the ChartLibre folder to Applications, then open ChartLibre.app inside it. The first time, macOS may say it cannot check the app: System Settings > Privacy & Security > Open Anyway.
+            - **Windows**: run the -setup.exe (no administrator rights needed), or unzip the -portable.zip anywhere and open ChartLibre.exe. If Windows says it protected your PC: More info > Run anyway.
+            - **Linux**: unpack the .tar.gz and run ChartLibre/ChartLibre.sh; it adds itself to the applications menu. Qt may need `sudo apt install libxcb-cursor0`.

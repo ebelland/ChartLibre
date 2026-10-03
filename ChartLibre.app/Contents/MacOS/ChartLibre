@@ -1,8 +1,8 @@
 #!/bin/bash
 # ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
-# the ChartLibre folder is. The first launch downloads Python into .python
-# and the libraries into .venv, both inside that folder; every later launch
-# just starts the application. Nothing needs installing first.
+# the ChartLibre folder is. The first launch downloads Python and the
+# libraries into .python inside that folder (a ready-made package already
+# has them); every later launch just starts the application.
 HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$HERE" || exit 1
 VENV="$HERE/.venv"
@@ -35,14 +35,24 @@ get_python() {  # download Python 3.13.16 into .python, once
   rm -f "$archive"
 }
 
-if [ ! -x "$VENV/bin/python3" ]; then
-  ask "First launch: ChartLibre will download what it needs into its own folder - Python and its scientific libraries: about 400 MB to download, 1.7 GB on disk.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
-  say "Step 1 of 2: downloading Python..."
-  if ! { get_python \
-         && say "Step 2 of 2: installing the scientific libraries. ChartLibre opens when it is ready." \
-         && "$RUNTIME/bin/python3" "$HERE/install.py"; } >"$LOG" 2>&1; then
-    osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
-    exit 1
+if [ -f "$RUNTIME/CHARTLIBRE_READY" ]; then
+  # A ready-made package arrives quarantined, every file of it; once the
+  # app itself has been allowed to open, the rest of its folder is too.
+  if xattr -p com.apple.quarantine "$RUNTIME/bin/python3" >/dev/null 2>&1; then
+    xattr -dr com.apple.quarantine "$HERE" 2>/dev/null
   fi
+  exec "$RUNTIME/bin/python3" "$HERE/main.py" "$@"
 fi
-exec "$VENV/bin/python3" "$HERE/main.py" "$@"
+if [ -x "$VENV/bin/python3" ]; then  # an install made before .python
+  exec "$VENV/bin/python3" "$HERE/main.py" "$@"
+fi
+
+ask "First launch: ChartLibre will download what it needs into its own folder - Python and its scientific libraries: about 400 MB to download, 1.7 GB on disk.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
+say "Step 1 of 2: downloading Python..."
+if ! { get_python \
+       && say "Step 2 of 2: installing the scientific libraries. ChartLibre opens when it is ready." \
+       && "$RUNTIME/bin/python3" "$HERE/install.py" --runtime; } >"$LOG" 2>&1; then
+  osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
+  exit 1
+fi
+exec "$RUNTIME/bin/python3" "$HERE/main.py" "$@"

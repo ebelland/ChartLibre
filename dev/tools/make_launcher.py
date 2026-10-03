@@ -133,9 +133,9 @@ def _fill(template: str) -> str:
 #: The macOS launcher. $HERE is the folder the .app sits in.
 MACOS_SCRIPT = _fill(r"""#!/bin/bash
 # ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
-# the ChartLibre folder is. The first launch downloads Python into .python
-# and the libraries into .venv, both inside that folder; every later launch
-# just starts the application. Nothing needs installing first.
+# the ChartLibre folder is. The first launch downloads Python and the
+# libraries into .python inside that folder (a ready-made package already
+# has them); every later launch just starts the application.
 HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$HERE" || exit 1
 VENV="$HERE/.venv"
@@ -168,38 +168,54 @@ get_python() {  # download Python @PYTHON_VERSION@ into .python, once
   rm -f "$archive"
 }
 
-if [ ! -x "$VENV/bin/python3" ]; then
-  ask "First launch: ChartLibre will download what it needs into its own folder - Python and its scientific libraries: about 400 MB to download, 1.7 GB on disk.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
-  say "Step 1 of 2: downloading Python..."
-  if ! { get_python \
-         && say "Step 2 of 2: installing the scientific libraries. ChartLibre opens when it is ready." \
-         && "$RUNTIME/bin/python3" "$HERE/install.py"; } >"$LOG" 2>&1; then
-    osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
-    exit 1
+if [ -f "$RUNTIME/CHARTLIBRE_READY" ]; then
+  # A ready-made package arrives quarantined, every file of it; once the
+  # app itself has been allowed to open, the rest of its folder is too.
+  if xattr -p com.apple.quarantine "$RUNTIME/bin/python3" >/dev/null 2>&1; then
+    xattr -dr com.apple.quarantine "$HERE" 2>/dev/null
   fi
+  exec "$RUNTIME/bin/python3" "$HERE/main.py" "$@"
 fi
-exec "$VENV/bin/python3" "$HERE/main.py" "$@"
+if [ -x "$VENV/bin/python3" ]; then  # an install made before .python
+  exec "$VENV/bin/python3" "$HERE/main.py" "$@"
+fi
+
+ask "First launch: ChartLibre will download what it needs into its own folder - Python and its scientific libraries: about 400 MB to download, 1.7 GB on disk.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
+say "Step 1 of 2: downloading Python..."
+if ! { get_python \
+       && say "Step 2 of 2: installing the scientific libraries. ChartLibre opens when it is ready." \
+       && "$RUNTIME/bin/python3" "$HERE/install.py" --runtime; } >"$LOG" 2>&1; then
+  osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
+  exit 1
+fi
+exec "$RUNTIME/bin/python3" "$HERE/main.py" "$@"
 """)
 
 #: The Windows launcher. %~dp0 is the folder the .bat sits in. curl.exe,
 #: tar.exe and certutil come with Windows 10 (1803 and later) and 11.
 WINDOWS_SCRIPT = _fill(r"""@echo off
 rem ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
-rem the ChartLibre folder is. The first launch downloads Python into .python
-rem and the libraries into .venv, both inside that folder; every later launch
-rem just starts the application. Nothing needs installing first.
+rem the ChartLibre folder is. The first launch downloads Python and the
+rem libraries into .python inside that folder (a ready-made package already
+rem has them); every later launch just starts the application.
 setlocal
 cd /d "%~dp0"
-if exist ".venv\Scripts\pythonw.exe" goto run
+if exist ".python\CHARTLIBRE_READY" goto runtime
+if exist ".venv\Scripts\pythonw.exe" goto venv
 
 echo First launch: ChartLibre downloads what it needs into this folder -
 echo Python and its scientific libraries: about 400 MB to download, 1.7 GB
 echo on disk. This needs an internet connection and takes a few minutes.
 echo.
 if not exist ".python\python.exe" call :getpython || goto failed
-".python\python.exe" install.py || goto failed
+".python\python.exe" install.py --runtime || goto failed
 
-:run
+:runtime
+start "" ".python\pythonw.exe" "%~dp0main.py" %*
+exit /b 0
+
+:venv
+rem An install made before .python.
 start "" ".venv\Scripts\pythonw.exe" "%~dp0main.py" %*
 exit /b 0
 
@@ -296,9 +312,10 @@ LAUNCHER_SOURCE = Path(__file__).resolve().parent / "launcher"
 #: applications menu.
 LINUX_SCRIPT = _fill(r"""#!/bin/sh
 # ChartLibre launcher for Linux (dev/tools/make_launcher.py). It works from
-# wherever the ChartLibre folder is. The first launch downloads Python into
-# .python and the libraries into .venv, both inside that folder; every later
-# launch just starts the application. install.py adds it to the menu.
+# wherever the ChartLibre folder is. The first launch downloads Python and
+# the libraries into .python inside that folder (a ready-made package
+# already has them); every later launch just starts the application.
+# install.py adds it to the applications menu.
 cd "$(dirname "$0")" || exit 1
 
 get_python() {  # download Python @PYTHON_VERSION@ into .python, once
@@ -321,18 +338,41 @@ get_python() {  # download Python @PYTHON_VERSION@ into .python, once
   rm -f "$archive"
 }
 
-if [ ! -x .venv/bin/python3 ]; then
-  echo "First launch: ChartLibre downloads what it needs into this folder -"
-  echo "Python and its scientific libraries: about 400 MB to download, 1.7 GB"
-  echo "on disk. This needs an internet connection and takes a few minutes."
-  get_python || exit 1
-  .python/bin/python3 install.py || exit 1
+if [ -f .python/CHARTLIBRE_READY ]; then
+  # A ready-made package: add the menu entry the first time it runs here.
+  [ -f "$HOME/.local/share/applications/chartlibre.desktop" ] || .python/bin/python3 install.py --menu-only
+  exec .python/bin/python3 main.py "$@"
 fi
-exec .venv/bin/python3 main.py "$@"
+if [ -x .venv/bin/python3 ]; then  # an install made before .python
+  exec .venv/bin/python3 main.py "$@"
+fi
+
+echo "First launch: ChartLibre downloads what it needs into this folder -"
+echo "Python and its scientific libraries: about 400 MB to download, 1.7 GB"
+echo "on disk. This needs an internet connection and takes a few minutes."
+get_python || exit 1
+.python/bin/python3 install.py --runtime || exit 1
+exec .python/bin/python3 main.py "$@"
 """)
 
 #: The icon the Linux menu entry shows, tracked so install.py needs no Qt.
 LINUX_ICON = LAUNCHER_SOURCE / "chartlibre.png"
+
+
+#: The icon of the Windows installer (dev/tools/installer/chartlibre.iss).
+WINDOWS_ICON = LAUNCHER_SOURCE / "chartlibre.ico"
+
+
+def make_windows_icon() -> Path:
+    """chartlibre.ico, every size Windows asks for, for the installer."""
+    from io import BytesIO
+
+    from PIL import Image
+
+    Image.open(BytesIO(_render_icon_pngs([256])[256])).save(
+        WINDOWS_ICON, sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+    )
+    return WINDOWS_ICON
 
 
 def make_linux_launcher(target_dir: Path) -> Path:
@@ -389,6 +429,7 @@ def main() -> None:
     print(make_macos_app(target_dir))
     print(make_windows_launcher(target_dir))
     print(make_linux_launcher(target_dir))
+    print(make_windows_icon())
     exe = make_windows_exe(target_dir)
     if exe is not None:
         print(exe)

@@ -1,8 +1,9 @@
 #!/bin/sh
 # ChartLibre launcher for Linux (dev/tools/make_launcher.py). It works from
-# wherever the ChartLibre folder is. The first launch downloads Python into
-# .python and the libraries into .venv, both inside that folder; every later
-# launch just starts the application. install.py adds it to the menu.
+# wherever the ChartLibre folder is. The first launch downloads Python and
+# the libraries into .python inside that folder (a ready-made package
+# already has them); every later launch just starts the application.
+# install.py adds it to the applications menu.
 cd "$(dirname "$0")" || exit 1
 
 get_python() {  # download Python 3.13.16 into .python, once
@@ -25,11 +26,18 @@ get_python() {  # download Python 3.13.16 into .python, once
   rm -f "$archive"
 }
 
-if [ ! -x .venv/bin/python3 ]; then
-  echo "First launch: ChartLibre downloads what it needs into this folder -"
-  echo "Python and its scientific libraries: about 400 MB to download, 1.7 GB"
-  echo "on disk. This needs an internet connection and takes a few minutes."
-  get_python || exit 1
-  .python/bin/python3 install.py || exit 1
+if [ -f .python/CHARTLIBRE_READY ]; then
+  # A ready-made package: add the menu entry the first time it runs here.
+  [ -f "$HOME/.local/share/applications/chartlibre.desktop" ] || .python/bin/python3 install.py --menu-only
+  exec .python/bin/python3 main.py "$@"
 fi
-exec .venv/bin/python3 main.py "$@"
+if [ -x .venv/bin/python3 ]; then  # an install made before .python
+  exec .venv/bin/python3 main.py "$@"
+fi
+
+echo "First launch: ChartLibre downloads what it needs into this folder -"
+echo "Python and its scientific libraries: about 400 MB to download, 1.7 GB"
+echo "on disk. This needs an internet connection and takes a few minutes."
+get_python || exit 1
+.python/bin/python3 install.py --runtime || exit 1
+exec .python/bin/python3 main.py "$@"

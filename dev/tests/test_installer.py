@@ -248,7 +248,6 @@ def test_the_linux_launcher_downloads_checks_and_unpacks_python(tmp_path: Path) 
     def launch(sha: str) -> subprocess.CompletedProcess[str]:
         url, real = make_launcher._archive("linux-x86_64")
         script = make_launcher.LINUX_SCRIPT.replace(url, archive.as_uri()).replace(real, sha)
-        script = script.replace("exec .venv/bin/python3", "echo started")
         (folder / "ChartLibre.sh").write_text(script, encoding="utf-8")
         return subprocess.run(["sh", str(folder / "ChartLibre.sh")], capture_output=True, text=True, env=env)
 
@@ -259,4 +258,62 @@ def test_the_linux_launcher_downloads_checks_and_unpacks_python(tmp_path: Path) 
     good = launch(digest)
     assert good.returncode == 0, good.stdout + good.stderr
     assert (folder / ".python" / "bin" / "python3").exists()
-    assert "fake python install.py" in good.stdout and not (folder / ".python-download.tar.gz").exists()
+    assert "fake python install.py --runtime" in good.stdout and "fake python main.py" in good.stdout
+    assert not (folder / ".python-download.tar.gz").exists()
+
+    # Once the libraries are in, the launcher goes straight to ChartLibre.
+    (folder / ".python" / "CHARTLIBRE_READY").write_text("ready", encoding="utf-8")
+    (tmp_path / "home" / ".local" / "share" / "applications").mkdir(parents=True)
+    (tmp_path / "home" / ".local" / "share" / "applications" / "chartlibre.desktop").write_text("", encoding="utf-8")
+    env["HOME"] = str(tmp_path / "home")
+    again = subprocess.run(["sh", str(folder / "ChartLibre.sh")], capture_output=True, text=True, env=env)
+    assert again.stdout.strip() == "fake python main.py" and "Downloading" not in again.stdout
+
+
+def test_the_runtime_install_marks_the_python_ready_only_when_every_library_loads(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "requirements.txt").write_text("numpy\n")
+    prefix = tmp_path / ".python"
+    prefix.mkdir()
+    monkeypatch.setattr(install, "install_requirements", lambda python, requirements: None)
+    monkeypatch.setattr(install, "verify", lambda python: ["PySide6.QtWidgets: missing"])
+    assert install.install_runtime(tmp_path, tmp_path / "requirements.txt", menu=False, prefix=prefix) == 1
+    assert not install.runtime_ready(prefix).exists()
+    monkeypatch.setattr(install, "verify", lambda python: [])
+    assert install.install_runtime(tmp_path, tmp_path / "requirements.txt", menu=False, prefix=prefix) == 0
+    assert install.runtime_ready(prefix).exists()
+    assert not (tmp_path / ".venv").exists()  # into the Python itself, no .venv
+
+
+_bundle_spec = importlib.util.spec_from_file_location("build_bundle", ROOT / "dev" / "tools" / "build_bundle.py")
+assert _bundle_spec is not None and _bundle_spec.loader is not None
+build_bundle = importlib.util.module_from_spec(_bundle_spec)
+_bundle_spec.loader.exec_module(build_bundle)
+
+
+def test_a_package_holds_the_application_and_only_its_own_system_launchers() -> None:
+    wanted = build_bundle.wanted_file
+    for system in ("macos", "windows", "linux"):
+        assert wanted("main.py", system) and wanted("app/charts/bar.py", system) and wanted("install.py", system)
+        assert not wanted("dev/tests/test_installer.py", system) and not wanted("todo.txt", system)
+        assert wanted("dev/tools/launcher/chartlibre.png", system)
+    assert wanted("ChartLibre.app/Contents/MacOS/ChartLibre", "macos")
+    assert not wanted("ChartLibre.app/Contents/MacOS/ChartLibre", "windows")
+    assert wanted("ChartLibre.exe", "windows") and wanted("ChartLibre.bat", "windows")
+    assert not wanted("ChartLibre.exe", "linux") and wanted("ChartLibre.sh", "linux")
+
+
+def test_identical_files_become_links_to_the_first(tmp_path: Path) -> None:
+    import os
+
+    if os.name == "nt":
+        pytest.skip("packages for Windows keep their copies")
+    data = os.urandom(300_000)
+    (tmp_path / "Versions" / "A").mkdir(parents=True)
+    (tmp_path / "Versions" / "A" / "lib").write_bytes(data)
+    (tmp_path / "lib").write_bytes(data)
+    (tmp_path / "other").write_bytes(os.urandom(300_000))
+    saved = build_bundle.link_duplicates(tmp_path)
+    assert saved == 300_000
+    links = [path for path in tmp_path.rglob("*") if path.is_symlink()]
+    assert len(links) == 1 and links[0].read_bytes() == data

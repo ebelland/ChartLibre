@@ -221,14 +221,79 @@ def write_linux_menu_entry(folder: Path, home: Path | None = None) -> Path:
     return entry
 
 
+#: Written into the private Python (.python) once its libraries are installed
+#: and checked: what the launchers look for to know they can start ChartLibre.
+READY_MARKER: str = "CHARTLIBRE_READY"
+
+
+def runtime_ready(prefix: Path) -> Path:
+    """The marker file that says the Python at *prefix* has ChartLibre's libraries."""
+    return prefix / READY_MARKER
+
+
+def linux_notes(folder: Path, menu: bool) -> None:
+    """On Linux: name the system libraries Qt lacks, and add the menu entry."""
+    if not sys.platform.startswith("linux"):
+        return
+    packages = missing_linux_packages()
+    if packages:
+        print("\nQt also needs a few system libraries that are missing here. Install them with\n\n"
+              f"    sudo apt install {' '.join(packages)}\n\n"
+              "(on Fedora: sudo dnf install xcb-util-cursor libxkbcommon-x11 mesa-libEGL), then start ChartLibre.")
+    if menu:
+        entry = write_linux_menu_entry(folder)
+        print(f"ChartLibre is in the applications menu now ({entry}).")
+
+
+def install_runtime(folder: Path, requirements: Path, menu: bool,
+                    python: Path | None = None, prefix: Path | None = None) -> int:
+    """Install the libraries into the Python running this file - the private
+    one the launchers download into .python - with no .venv.
+
+    A standalone Python can be moved with its folder, which a .venv cannot:
+    this is what lets the ready-made packages ship with the libraries already
+    in place (dev/tools/build_bundle.py).
+    """
+    python = python or Path(sys.executable)
+    marker = runtime_ready(prefix or Path(sys.prefix))
+    marker.unlink(missing_ok=True)
+    try:
+        install_requirements(python, requirements)
+    except (subprocess.CalledProcessError, OSError) as error:
+        print(f"\nThe installation did not complete: {error}")
+        print("The messages above say why. Run it again to carry on where it stopped.")
+        return 1
+    clear_hidden_flag(folder / ".venv")
+    print("\nChecking the installation ...")
+    problems = verify(python)
+    if problems:
+        print("The libraries were installed, but these would not load:")
+        for line in problems:
+            print(f"  {line}")
+        print("Delete the .python folder and start ChartLibre again; if it keeps failing, please report the lines above.")
+        return 1
+    marker.write_text("ChartLibre's libraries are installed in this Python.\n", encoding="utf-8")
+    print("\nChartLibre is installed. " + start_hint(folder))
+    linux_notes(folder, menu)
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Install ChartLibre's libraries into .venv.")
     parser.add_argument("--dir", type=Path, default=HERE, help="the ChartLibre folder (default: where this file is)")
     parser.add_argument("--recreate", action="store_true", help="delete an existing .venv and install again")
     parser.add_argument("--skip-packages", action="store_true", help="only create the .venv (for testing)")
     parser.add_argument("--no-menu", action="store_true", help="on Linux, do not add ChartLibre to the applications menu")
+    parser.add_argument("--runtime", action="store_true",
+                        help="install into this Python itself, not a .venv (what the launchers do with .python)")
+    parser.add_argument("--menu-only", action="store_true", help="on Linux, only add ChartLibre to the applications menu")
     args = parser.parse_args(argv)
     folder = args.dir.resolve()
+
+    if args.menu_only:
+        if sys.platform.startswith("linux"):
+            linux_notes(folder, menu=True)
+        return 0
 
     problem = python_problem(tuple(sys.version_info[:3]))
     if problem:
@@ -239,6 +304,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not args.skip_packages and not requirements.is_file():
         print(f"{requirements} is missing - is {folder} the ChartLibre folder?")
         return 1
+
+    if args.runtime:
+        return install_runtime(folder, requirements, menu=not args.no_menu)
 
     problem = venv_problem()
     if problem and not venv_python(folder / ".venv").exists():
@@ -277,15 +345,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     print("\nChartLibre is installed. " + start_hint(folder))
-    if sys.platform.startswith("linux"):
-        packages = missing_linux_packages()
-        if packages:
-            print("\nQt also needs a few system libraries that are missing here. Install them with\n\n"
-                  f"    sudo apt install {' '.join(packages)}\n\n"
-                  "(on Fedora: sudo dnf install xcb-util-cursor libxkbcommon-x11 mesa-libEGL), then start ChartLibre.")
-    if sys.platform.startswith("linux") and not args.no_menu:
-        entry = write_linux_menu_entry(folder)
-        print(f"ChartLibre is in the applications menu now ({entry}).")
+    linux_notes(folder, menu=not args.no_menu)
     return 0
 
 

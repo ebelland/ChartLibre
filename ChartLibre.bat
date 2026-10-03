@@ -1,20 +1,26 @@
 @echo off
 rem ChartLibre launcher (dev/tools/make_launcher.py). It works from wherever
-rem the ChartLibre folder is. The first launch downloads Python into .python
-rem and the libraries into .venv, both inside that folder; every later launch
-rem just starts the application. Nothing needs installing first.
+rem the ChartLibre folder is. The first launch downloads Python and the
+rem libraries into .python inside that folder (a ready-made package already
+rem has them); every later launch just starts the application.
 setlocal
 cd /d "%~dp0"
-if exist ".venv\Scripts\pythonw.exe" goto run
+if exist ".python\CHARTLIBRE_READY" goto runtime
+if exist ".venv\Scripts\pythonw.exe" goto venv
 
 echo First launch: ChartLibre downloads what it needs into this folder -
 echo Python and its scientific libraries: about 400 MB to download, 1.7 GB
 echo on disk. This needs an internet connection and takes a few minutes.
 echo.
 if not exist ".python\python.exe" call :getpython || goto failed
-".python\python.exe" install.py || goto failed
+".python\python.exe" install.py --runtime || goto failed
 
-:run
+:runtime
+start "" ".python\pythonw.exe" "%~dp0main.py" %*
+exit /b 0
+
+:venv
+rem An install made before .python.
 start "" ".venv\Scripts\pythonw.exe" "%~dp0main.py" %*
 exit /b 0
 

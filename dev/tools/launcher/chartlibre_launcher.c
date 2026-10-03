@@ -2,11 +2,13 @@
  *
  * It sits in the ChartLibre folder and works from wherever that folder is:
  *
- *   - once .venv exists, it starts .venv\Scripts\pythonw.exe main.py with
- *     no console window at all, and exits;
- *   - before that, it runs ChartLibre.bat in a console window, which finds
- *     Python, installs the libraries into .venv with its progress on
- *     screen, and then starts ChartLibre itself.
+ *   - once .python holds Python and the libraries (its CHARTLIBRE_READY
+ *     file says so - a ready-made package has it from the start), it starts
+ *     .python\pythonw.exe main.py with no console window at all, and exits;
+ *   - an install made before .python is started from .venv the same way;
+ *   - before either, it runs ChartLibre.bat in a console window, which
+ *     downloads Python, installs the libraries with its progress on screen,
+ *     and then starts ChartLibre itself.
  *
  * Needs nothing Windows 10 and 11 do not already have: kernel32, user32 and
  * the Universal C Runtime.
@@ -66,7 +68,7 @@ static int run(wchar_t *command, const wchar_t *folder, DWORD flags) {
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous, PWSTR arguments, int show) {
     (void)instance; (void)previous; (void)arguments; (void)show;
 
-    wchar_t folder[BUF], pythonw[BUF], script[BUF], batch[BUF], command[BUF * 3];
+    wchar_t folder[BUF], ready[BUF], runtime[BUF], pythonw[BUF], script[BUF], batch[BUF], command[BUF * 3];
     DWORD length = GetModuleFileNameW(NULL, folder, BUF);
     if (length == 0 || length >= BUF) {
         fail(L"ChartLibre could not find its own folder.");
@@ -76,11 +78,23 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous, PWSTR arguments, int
         if (*end == L'\\') { *end = L'\0'; break; }
     }
 
-    if (!join(pythonw, BUF, folder, L"\\.venv\\Scripts\\pythonw.exe", NULL, NULL, NULL)
+    if (!join(ready, BUF, folder, L"\\.python\\CHARTLIBRE_READY", NULL, NULL, NULL)
+        || !join(runtime, BUF, folder, L"\\.python\\pythonw.exe", NULL, NULL, NULL)
+        || !join(pythonw, BUF, folder, L"\\.venv\\Scripts\\pythonw.exe", NULL, NULL, NULL)
         || !join(script, BUF, folder, L"\\main.py", NULL, NULL, NULL)
         || !join(batch, BUF, folder, L"\\ChartLibre.bat", NULL, NULL, NULL)) {
         fail(L"The ChartLibre folder's path is too long.");
         return 1;
+    }
+
+    if (exists(ready) && exists(runtime)) {
+        if (!join(command, BUF * 3, L"\"", runtime, L"\" \"", script, L"\"")
+            || !run(command, folder, 0)) {
+            fail(L"ChartLibre could not start its Python (.python\\pythonw.exe).\n\n"
+                 L"Delete the .python folder and open ChartLibre again to reinstall it.");
+            return 1;
+        }
+        return 0;
     }
 
     if (exists(pythonw)) {
