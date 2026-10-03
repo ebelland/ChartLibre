@@ -775,6 +775,9 @@ class MainWindow(QMainWindow):
         if operation.get("name") == "NewPlotTabDialog":
             self._on_new_plot_tab(icon)
             return
+        if operation.get("name") == "QueryBuilderDialog":
+            self._on_query_builder()
+            return
 
         dialog_class = import_class_from_file(operation)
         if dialog_class is None:
@@ -818,7 +821,6 @@ class MainWindow(QMainWindow):
         stack.addWidget(self._data_page)
         stack.addWidget(self._scrollable(self._properties_control))
         stack.addWidget(self._create_series_operations_page())
-        stack.addWidget(self._scrollable(self._create_database_page()))
         stack.addWidget(self._scrollable(self._create_developer_page()))
         return stack
 
@@ -1052,37 +1054,6 @@ class MainWindow(QMainWindow):
             rows = min(len(recent), self._RECENT_MINIMUM_ROWS)
             self._recent_list.setMinimumHeight(row_height * rows + 2)
 
-    def _create_database_page(self) -> QWidget:
-        """Query Builder, plus the database overview (info/tables/Optimize
-        DB/links) - each its own section.
-
-        Page index 3, matching NavigationBar.action_ids' "nav_database" -
-        the two have to stay in step, since _set_nav_index addresses this
-        stack by the same index the rail reports. DatabaseInfoPanel used to
-        be its own modal dialog (see git history); embedded here it sits
-        beside the action it always belonged next to, rather than in a
-        window of its own. Optimize DB lives inside DatabaseInfoPanel's own
-        header (see its optimize_action parameter), not here beside Query
-        Builder: it operates on the size/page stats that card shows, not on
-        the query workflow.
-        """
-        page = QWidget(self)
-        page.setProperty("toolboxPage", True)
-        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        layout = QVBoxLayout(page)
-        stdSizeAndlayout(layout)
-
-        layout.addWidget(self._create_query_builder_section(page))
-        layout.addWidget(
-            self._titled_card(page, _("History"), self._fill_project_history_card, object_name="projectHistoryCard")
-        )
-
-        self._database_info_panel = DatabaseInfoPanel(
-            self._repo, page, optimize_action=self._on_optimize_db,
-        )
-        layout.addWidget(self._database_info_panel, 1)
-        return page
-
     def _fill_project_history_card(self, card: CardFrame) -> None:
         """Every operation applied in the project (todo R-03); one table's
         history is in that table's own context menu."""
@@ -1100,34 +1071,6 @@ class MainWindow(QMainWindow):
 
         OperationHistoryDialog(self._repo, None, self).exec()
 
-    def _create_query_builder_section(self, parent: QWidget) -> QWidget:
-        """Query Builder, as its own card: one button, with the catalogue's
-        own description shown underneath rather than only in the tooltip -
-        this page's first section, so it reads without hovering."""
-        return self._titled_card(
-            parent, _("Query Builder"), self._fill_query_builder_card,
-            object_name="queryBuilderCard",
-        )
-
-    def _fill_query_builder_card(self, card: CardFrame) -> None:
-        card_layout = self._card_layout(card)
-        button_row = QHBoxLayout()
-        stdSizeAndlayout(button_row)
-        create_action_button(
-            parent=card,
-            action_id="query_builder",
-            action=self._on_query_builder,
-            layout=button_row,
-        )
-        button_row.addStretch(1)
-        card_layout.addLayout(button_row)
-
-        _icon, _text, tooltip = action_presentation("query_builder")
-        description = QLabel(tooltip, card)
-        description.setWordWrap(True)
-        description.setProperty("muted", True)
-        card_layout.addWidget(description)
-
     #: (action_id, handler) - the Developer menu's old group, one section
     #: each. See _create_developer_page for why they live here now instead.
     _DEV_TOOLS: tuple[tuple[str, str], ...] = (
@@ -1139,9 +1082,14 @@ class MainWindow(QMainWindow):
     )
 
     def _create_developer_page(self) -> QWidget:
-        """Scaffolding tools and the translation catalogue editor.
+        """The project's database, then the scaffolding tools.
 
-        Page index 5, matching NavigationBar.action_ids' "nav_developer" -
+        First what the Database page held - the project history, and the
+        database overview (info, tables, Optimize DB, links) - since that
+        page is gone; Query Builder moved to the Series Operations list.
+        Then the tools that were here before.
+
+        Page index 4, matching NavigationBar.action_ids' "nav_developer" -
         the old "Developer" menu group, moved here rather than merely
         hidden the way File/Database's own groups still are (see
         _app_menu_items): none of these actions carries a shortcut
@@ -1155,6 +1103,14 @@ class MainWindow(QMainWindow):
         page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QVBoxLayout(page)
         stdSizeAndlayout(layout)
+
+        layout.addWidget(
+            self._titled_card(page, _("History"), self._fill_project_history_card, object_name="projectHistoryCard")
+        )
+        self._database_info_panel = DatabaseInfoPanel(
+            self._repo, page, optimize_action=self._on_optimize_db,
+        )
+        layout.addWidget(self._database_info_panel)
 
         for action_id, handler_name in self._DEV_TOOLS:
             layout.addWidget(
@@ -1569,7 +1525,7 @@ class MainWindow(QMainWindow):
         self._macos_hidden_menu_actions: list[QAction] = []
 
         # File and Database are both covered by the nav rail's own pages
-        # now (_create_file_page/_create_database_page) - a second, visible
+        # now (_create_file_page/_create_developer_page) - a second, visible
         # menu for the same actions would just be redundant chrome. Their
         # items are still built (below, into a menu that is never added to
         # the bar) and their shortcuts kept alive on the window itself
@@ -2968,9 +2924,9 @@ class MainWindow(QMainWindow):
         self._table_panel.reload()
 
     def _on_database_info(self) -> None:
-        """Switch to the embedded Database page (nav rail and Database menu
-        both land here - see _create_database_page)."""
-        self._set_nav_index(self._left_rail.action_ids.index("nav_database"))
+        """Show the database overview, at the top of the Developer page (the
+        Database menu lands here - see _create_developer_page)."""
+        self._set_nav_index(self._left_rail.action_ids.index("nav_developer"))
 
     def _on_copy_chart(self) -> None:
         """Copy the current chart tab's figure to the clipboard.

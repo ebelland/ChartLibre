@@ -93,7 +93,6 @@ DEFAULT_PAGES: tuple[NavPage, ...] = (
     NavPage("nav_data", "Tables", "Show data tables"),
     NavPage("nav_chart_options", "", ""),
     NavPage("nav_series_operations", "", ""),
-    NavPage("nav_database", "Database", "Show database tools"),
     NavPage(
         "nav_developer",
         "Developer",

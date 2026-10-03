@@ -39,6 +39,7 @@ from app.scanners.series_operation_scanner import series_operations
 from app.styles.style import (
     CardFrame,
     icon_from_svg_source,
+    load_icon,
     stdSizeAndlayout,
 )
 from app.utils.i18n import _, tr
@@ -181,6 +182,7 @@ class SeriesOperationWidget(BaseProperties):
         page_layout.addWidget(self._list, 1)
 
         self._add_section(_("Plot"), [self.plot_operation()])
+        self._add_section(_("Data"), [self.query_builder_operation()])
         for title, operations in _group_by_section(list(series_operations)):
             self._add_section(title, operations)
 
@@ -330,7 +332,21 @@ class SeriesOperationWidget(BaseProperties):
         }
 
     @staticmethod
+    def query_builder_operation() -> dict:
+        """Query Builder, listed with the operations: the main window opens it."""
+        return {
+            "name": "QueryBuilderDialog",
+            "value": "Query Builder",
+            "description": "Write, validate and save SQL queries",
+            "action_icon": "query_builder",
+            "builtin": True,
+        }
+
+    @staticmethod
     def plugin_icon(operation: dict) -> QIcon:
+        if operation.get("action_icon"):
+            # A catalogue action rather than a plugin with SVG artwork.
+            return load_icon(str(operation["action_icon"]))
         svg_source = operation.get("icon") or operation.get("Icon") or ""
         svg_source = unescape(str(svg_source)).strip()
         if not svg_source:

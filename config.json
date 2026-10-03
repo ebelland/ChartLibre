@@ -296,16 +296,6 @@
       "SegoeFluent": "e943",
       "ThemeIcon": "applications-system"
     },
-    "nav_database": {
-      "text": "Database",
-      "description": "Show database tools",
-      "SFSymbol": "server.rack",
-      "SegoeFluent": "eda2",
-      "ThemeIcon": [
-        "x-office-database",
-        "drive-harddisk"
-      ]
-    },
     "nav_data": {
       "text": "Data",
       "description": "Show data tables",

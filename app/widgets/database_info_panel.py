@@ -7,10 +7,9 @@ how big, which ones are fed by a link) on screen at once, with those same
 actions one click away for whichever row is selected, rather than requiring
 a right-click per table.
 
-A plain embeddable QWidget, not a QDialog: it sits inside MainWindow's
-"Database" nav page (see main_window._create_database_page), alongside the
-Query Builder / Optimize DB actions the same page offers, rather than
-opening as its own modal window.
+A plain embeddable QWidget, not a QDialog: it sits at the top of
+MainWindow's Developer page (see main_window._create_developer_page), with
+its own Optimize DB action, rather than opening as its own modal window.
 """
 from __future__ import annotations
 
