@@ -1,45 +1,34 @@
-"""The Series Operations panel: New plot, then every operation, all tiles.
+"""The Series Operations panel: New plot, then every operation, as a list.
 
-Grouped into the same five sections the layout proposal settled on -
-Plot on its own, then Analysis (Peaks, Roots, Calculus), Statistics
-(Statistics, Outliers, Clustering, Control Chart), Signal Processing
-(Smoothing, Spectral Analysis, Filtering, Baseline Correction), Modeling
-(Fit, Interpolation, Function) - because "I want a control chart" is one
-decision, not "which of five sections is a control chart in, then which
-dialog in that section". Plot is a section of one for the same reason the
-others exist: naming what it is, above the button, rather than folding it
-wordlessly into "Analysis".
+A sectioned list in the manner of a macOS sidebar - Finder's, System
+Settings' - and of the chart list in this window's own navigation rail:
+small grey section titles, one row per operation with its icon and name,
+the row under the pointer or the keyboard tinted, a click (or Return)
+opening it. It replaced a grid of square tiles, which read as a page of
+buttons rather than as the list of commands it is, and needed soft hyphens
+to fit "Correzione linea di base" into a square.
 
-Every operation - Plot included - is a square tile: an icon over its name,
-the same size and behaviour whichever section it is in, rather than the
-one-row-per-operation list an earlier version drew Plot as (a "this one is
-different" distinction the grid layout does not need: a tile that makes a
-place to put a series is not read differently from one that analyses what
-is already there). Square tiles have no room for a description, so it
-moves to a bar fixed at the bottom of the panel (below the scroll area,
-not inside it) that hover *or* keyboard focus fills in - not a tooltip,
-which would vanish the moment the pointer left and say nothing to someone
-tabbing through with a keyboard instead of a mouse.
+The sections are the ones the layout proposal settled on - Plot on its
+own, then Analysis, Statistics, Geometry, Signal Processing, Modeling -
+because "I want a control chart" is one decision, not "which section is a
+control chart in". A search field above filters the list by name and
+description; Return in it opens the first match. The description of the
+row under the pointer, or with keyboard focus, shows in a bar fixed at the
+panel's bottom - not a tooltip, which vanishes the moment the pointer
+moves and says nothing to someone using the keyboard.
 """
 from __future__ import annotations
 
 from html import unescape
 
-from PySide6.QtCore import QEvent, QSize, Signal, Qt
-from PySide6.QtGui import (
-    QEnterEvent,
-    QFocusEvent,
-    QFontMetrics,
-    QIcon,
-    QKeyEvent,
-    QMouseEvent,
-    QResizeEvent,
-)
+from PySide6.QtCore import QEvent, QObject, QSize, Qt, Signal
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
-    QFrame,
-    QGridLayout,
+    QAbstractItemView,
     QLabel,
-    QScrollArea,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -48,9 +37,7 @@ from PySide6.QtWidgets import (
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.scanners.series_operation_scanner import series_operations
 from app.styles.style import (
-    MARGIN_PANEL,
     CardFrame,
-    create_compact_section_title,
     icon_from_svg_source,
     stdSizeAndlayout,
 )
@@ -58,22 +45,6 @@ from app.utils.i18n import _, tr
 from app.widgets.base_properties import BaseProperties
 
 _ACCENT = "#2563EB"
-
-#: A tile plus its spacing needs about this much width to stay readable;
-#: OperationSection recomputes its column count from the width it is
-#: actually given divided by this, which is what lets two columns at the
-#: panel's usual width become three if it is widened.
-#:
-#: 100, not the 84 this was, and measured rather than chosen: at 84 the
-#: tile left 72x38 for the name, which is two lines of the macOS sheet's
-#: 10.5pt. "Baseline Correction" and "GP Regression" need three once their
-#: long word is broken (see _break_long_words), and the Italian
-#: "Correzione linea di base" needs three in any font - so the third line
-#: was simply cut off. 100 leaves 88x54: three lines, with every shipped
-#: name in both languages fitting in a narrow face and a wide one alike.
-_TILE_MIN_WIDTH = 108
-_TILE_SPACING = 6
-_TILE_HEIGHT = 100
 
 #: Section name -> the operation Name strings (SeriesOperationDialogBase.Name)
 #: it holds, in display order. An operation whose Name is not listed here
@@ -133,289 +104,39 @@ def _group_by_section(operations: list[dict]) -> list[tuple[str, list[dict]]]:
     return grouped
 
 
-#: U+00AD. Invisible where the line does not break there, and drawn as a
-#: hyphen where it does - which is exactly the "you may break here" mark a
-#: long single word needs, and one Qt's text layout honours.
-_SOFT_HYPHEN = "\u00ad"
+def _operation_action_id(operation: dict) -> str:
+    return str(operation.get("value") or operation.get("name") or "")
 
 
-def _break_long_words(text: str, metrics: QFontMetrics, available: int) -> str:
-    """Return *text* with soft hyphens inside any word too wide to fit.
+def _group_by_section(operations: list[dict]) -> list[tuple[str, list[dict]]]:
+    """Sort *operations* into ``_SECTIONS``' order, dropping empty sections.
 
-    ``setWordWrap(True)`` only ever breaks at a space, so a name that is one
-    long word - "Decomposition", "Interpolation", and worse once translated
-    ("Interpolazione", "Decomposizione") - has nowhere to break and is
-    elided instead: the tile reads "ecompositi". The macOS sheet sizes these
-    labels at 10.5pt, where "Decomposition" is 99px against the 72px a tile
-    leaves for text, so this is not a narrow-font problem that a different
-    machine would not have.
-
-    Break points are measured rather than guessed, so this works whatever
-    the language and whatever the font: take the longest prefix that still
-    fits once a hyphen is allowed for, mark it, and carry on through the
-    rest of the word.
+    A section with none of its operations discovered - every one of them
+    failed to import, say - is left out rather than shown as an empty
+    header with nothing under it.
     """
-    if available <= 0:
-        return text
+    by_name = {_operation_action_id(op): op for op in operations}
+    grouped: list[tuple[str, list[dict]]] = []
+    placed: set[str] = set()
 
-    hyphen = metrics.horizontalAdvance("-")
-    room = available - hyphen
-    if room <= 0:
-        return text
+    for title, names in _SECTIONS:
+        items = [by_name[name] for name in names if name in by_name]
+        placed.update(names)
+        if items:
+            grouped.append((_(title), items))
 
-    out: list[str] = []
-    for word in text.split(" "):
-        if metrics.horizontalAdvance(word) <= available:
-            out.append(word)
-            continue
-
-        out.append(_break_one_word(word, metrics, available, room))
-
-    return " ".join(out)
+    leftover = [op for op in operations if _operation_action_id(op) not in placed]
+    if leftover:
+        grouped.append((_(_FALLBACK_SECTION), leftover))
+    return grouped
 
 
-def _break_one_word(
-    word: str, metrics: QFontMetrics, available: int, room: int
-) -> str:
-    """Mark break points inside one word that is too wide for the tile.
+#: Item data roles: the operation a row opens, and what the search matches.
+_OPERATION_ROLE = Qt.ItemDataRole.UserRole
+_SEARCH_ROLE = Qt.ItemDataRole.UserRole + 1
+_DESCRIPTION_ROLE = Qt.ItemDataRole.UserRole + 2
 
-    Balanced rather than greedy where a single break is enough. Taking the
-    longest prefix that fits maximises the first line and leaves whatever is
-    left over on the second, which for these names means an orphan -
-    "Regressio-n", "Interpolati-on". Splitting nearest the middle instead
-    reads as hyphenation rather than as damage, and on this vocabulary it
-    happens to land on the real syllable break more often than not
-    ("Interpola-tion", "Decompo-sition").
-    """
-    # The cut has to leave the head within `room` (the width less a hyphen)
-    # and the tail within `available`; among those, take the most central.
-    candidates = [
-        index
-        for index in range(1, len(word))
-        if metrics.horizontalAdvance(word[:index]) <= room
-        and metrics.horizontalAdvance(word[index:]) <= available
-    ]
-    if candidates:
-        middle = len(word) / 2
-        cut = min(candidates, key=lambda index: (abs(index - middle), -index))
-        return word[:cut] + _SOFT_HYPHEN + word[cut:]
-
-    # Needs more than two lines: fall back to filling each one in turn.
-    pieces: list[str] = []
-    rest = word
-    # Bounded by construction: every pass either consumes at least one
-    # character or gives up, so a font that cannot fit even one character
-    # cannot spin here.
-    while metrics.horizontalAdvance(rest) > available:
-        cut = 0
-        for index in range(1, len(rest)):
-            if metrics.horizontalAdvance(rest[:index]) > room:
-                break
-            cut = index
-        if cut <= 0 or cut >= len(rest):
-            break
-        pieces.append(rest[:cut])
-        rest = rest[cut:]
-    pieces.append(rest)
-    return _SOFT_HYPHEN.join(pieces)
-
-
-class _TileTitle(QLabel):
-    """A tile's name, kept readable rather than elided.
-
-    Holds its own untouched text and re-breaks it whenever the width or the
-    font changes - the font matters because the size comes from the
-    stylesheet, which is applied at polish time, well after __init__ has
-    run, so measuring once at construction would measure the wrong font.
-    """
-
-    def __init__(self, text: str, parent: QWidget) -> None:
-        super().__init__(text, parent)
-        self._plain_text = text
-        self._shown_text = text
-        self.setWordWrap(True)
-
-    def _rebreak(self) -> None:
-        broken = _break_long_words(self._plain_text, self.fontMetrics(), self.width())
-        if broken == self._shown_text:
-            # Nothing to do, and setting it anyway would relayout, resize,
-            # and come straight back here.
-            return
-        self._shown_text = broken
-        super().setText(broken)
-
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        self._rebreak()
-
-    def changeEvent(self, event) -> None:
-        super().changeEvent(event)
-        if event.type() == QEvent.Type.FontChange:
-            self._rebreak()
-
-
-class OperationTile(QFrame):
-    """One square operation tile: an icon over its name.
-
-    ``hovered``/``left`` carry the description to whatever is showing it -
-    SeriesOperationWidget's hint bar - because a tooltip cannot hold a
-    paragraph and disappears the instant the pointer moves, which is wrong
-    for text someone is in the middle of reading. Keyboard focus fires the
-    same two signals as hover, so tabbing through the grid explains each
-    tile exactly as pointing at it does.
-    """
-
-    clicked = Signal()
-    hovered = Signal(str, str)
-    left = Signal()
-    ICON_SIZE = 26
-
-    def __init__(self, *, parent: QWidget, icon: QIcon, title: str, description: str) -> None:
-        super().__init__(parent)
-        self.setObjectName("operationTile")
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
-        self.setFixedSize(_TILE_HEIGHT, _TILE_HEIGHT)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self._title = title
-        self._description = description
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(6, 8, 6, 6)
-        layout.setSpacing(6)
-        # AlignTop only - not AlignHCenter too. A layout-wide AlignHCenter
-        # tells Qt to size every child to its own natural width and centre
-        # that, rather than stretching it to the tile's width; for a
-        # wrapping label that means it is never actually *given* a width
-        # narrower than its unwrapped text, so setWordWrap(True) below had
-        # nothing to wrap against and a long name like "Interpolazione"
-        # just overflowed the tile and got clipped both sides. The icon
-        # still centres itself - it gets its own AlignHCenter on
-        # addWidget, below - and the title now centres its *text* through
-        # its own alignment instead, after being stretched to the tile's
-        # full width.
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        icon_label = QLabel(self)
-        icon_label.setFixedSize(self.ICON_SIZE, self.ICON_SIZE)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setPixmap(icon.pixmap(QSize(self.ICON_SIZE, self.ICON_SIZE)))
-        layout.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignHCenter)
-
-        title_label = _TileTitle(title, self)
-        title_label.setProperty("operationTileTitle", True)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        title_label.setWordWrap(True)
-        title_label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
-        layout.addWidget(title_label, 1)
-
-        self.setAccessibleName(title)
-        self.setAccessibleDescription(description)
-
-    def enterEvent(self, event: QEnterEvent) -> None:
-        self.hovered.emit(self._title, self._description)
-        super().enterEvent(event)
-
-    def leaveEvent(self, event: QEvent) -> None:
-        self.left.emit()
-        super().leaveEvent(event)
-
-    def focusInEvent(self, event: QFocusEvent) -> None:
-        self.hovered.emit(self._title, self._description)
-        super().focusInEvent(event)
-
-    def focusOutEvent(self, event: QFocusEvent) -> None:
-        self.left.emit()
-        super().focusOutEvent(event)
-
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.position().toPoint()):
-            self.clicked.emit()
-            event.accept()
-            return
-        super().mouseReleaseEvent(event)
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self.clicked.emit()
-            event.accept()
-            return
-        super().keyPressEvent(event)
-
-
-class OperationSection(QWidget):
-    """One section header plus its tiles, in a grid that recomputes its
-    own column count from the width it is given (see ``resizeEvent``)."""
-
-    operation_clicked = Signal(dict)
-    tile_hovered = Signal(str, str)
-    tile_left = Signal()
-
-    def __init__(self, parent: QWidget, title: str, operations: list[dict]) -> None:
-        super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
-        layout.addWidget(create_compact_section_title(title, self))
-
-        self._grid_host = QWidget(self)
-        self._grid = QGridLayout(self._grid_host)
-        self._grid.setContentsMargins(0, 0, 0, 0)
-        self._grid.setSpacing(_TILE_SPACING)
-        layout.addWidget(self._grid_host)
-
-        self._tiles: list[OperationTile] = []
-        self._columns = 0
-        for operation in operations:
-            action_id = _operation_action_id(operation)
-            tile = OperationTile(
-                parent=self._grid_host,
-                icon=SeriesOperationWidget.plugin_icon(operation),
-                title=tr(action_id),
-                description=tr(str(operation.get("description") or "")),
-            )
-            tile.clicked.connect(lambda op=operation: self.operation_clicked.emit(op))
-            tile.hovered.connect(self.tile_hovered)
-            tile.left.connect(self.tile_left)
-            self._tiles.append(tile)
-
-        self._relayout(2)
-
-    def _relayout(self, columns: int) -> None:
-        """Re-pack the fixed-size square tiles into *columns* columns.
-
-        No column stretch: tiles are a fixed square size (see
-        OperationTile), so stretching a column would only open a growing
-        gap after each tile as the panel widens rather than resizing it -
-        the grid packs tiles left instead, like an icon view.
-        """
-        columns = max(1, columns)
-        if columns == self._columns:
-            return
-        previous = self._columns
-        self._columns = columns
-        while self._grid.count():
-            self._grid.takeAt(0)
-        for index, tile in enumerate(self._tiles):
-            row, col = divmod(index, columns)
-            self._grid.addWidget(tile, row, col, Qt.AlignmentFlag.AlignLeft)
-        # One empty column after the last takes all the spare width. Without
-        # it the grid shared that width out between the tile columns, and a
-        # section of three tiles in a wide panel came out spread across it
-        # with a gap between every two - an icon view packs to the left.
-        if previous:
-            self._grid.setColumnStretch(previous, 0)
-        for col in range(columns):
-            self._grid.setColumnStretch(col, 0)
-        self._grid.setColumnStretch(columns, 1)
-
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        super().resizeEvent(event)
-        columns = max(1, min(len(self._tiles), self.width() // _TILE_MIN_WIDTH))
-        self._relayout(columns)
+_ICON_SIZE = 18
 
 
 class SeriesOperationWidget(BaseProperties):
@@ -430,63 +151,138 @@ class SeriesOperationWidget(BaseProperties):
         page = CardFrame(self, "seriesOperationsPageCard", margins=(0, 0, 0, 0))
         page.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         root_layout.addWidget(page, 1)
-
         page_layout = page.layout()
 
-        scroll = QScrollArea(page)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        page_layout.addWidget(scroll, 1)
+        self._search = QLineEdit(page)
+        self._search.setObjectName("seriesOperationsSearch")
+        self._search.setPlaceholderText(_("Search operations"))
+        self._search.setClearButtonEnabled(True)
+        self._search.textChanged.connect(self._filter)
+        self._search.returnPressed.connect(self._open_first_match)
+        self._search.installEventFilter(self)
+        page_layout.addWidget(self._search, 0)
 
-        content = QWidget(scroll)
-        # setWidgetResizable(True) keeps this exactly filling the viewport,
-        # so styling it is enough to cover the scroll area's whole visible
-        # rect - including the leftover space below the last section that
-        # the stretch at the end of this method opens up. Left unstyled, an
-        # unstyled QWidget's default background role (Window, a grey tone
-        # on macOS) showed through as a band between the tiles and the
-        # card's own white (Base) - two different whites sitting one above
-        # the other in the same card.
-        content.setObjectName("seriesOperationsContent")
-        content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        scroll.setWidget(content)
+        self._list = QListWidget(page)
+        self._list.setObjectName("seriesOperationsList")
+        self._list.setIconSize(QSize(_ICON_SIZE, _ICON_SIZE))
+        self._list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self._list.setUniformItemSizes(False)
+        self._list.setMouseTracking(True)
+        self._list.itemClicked.connect(self._open_item)
+        # A click opens - and only a click: itemActivated as well would open
+        # twice on a double-click, or wherever one click activates. Return
+        # is handled in eventFilter.
+        self._list.itemEntered.connect(self._hint_for)
+        self._list.currentItemChanged.connect(lambda current, _previous: self._hint_for(current))
+        self._list.viewport().installEventFilter(self)
+        self._list.installEventFilter(self)
+        page_layout.addWidget(self._list, 1)
 
-        layout = QVBoxLayout(content)
-        stdSizeAndlayout(layout)
-        layout.setContentsMargins(*MARGIN_PANEL)
-        layout.setSpacing(2)
-
-        # Plot is a section of one, built the same way and out of the same
-        # tile as every operation below it - see the module docstring for
-        # why it no longer gets the old wide-row treatment.
-        self._add_section(content, layout, _("Plot"), [self.plot_operation()])
-        layout.addSpacing(16)
+        self._add_section(_("Plot"), [self.plot_operation()])
         for title, operations in _group_by_section(list(series_operations)):
-            self._add_section(content, layout, title, operations)
-            layout.addSpacing(12)
+            self._add_section(title, operations)
 
-        layout.addStretch(1)
-
-        # Fixed at the panel's bottom, outside the scroll area: a tile's
-        # description belongs somewhere that stays put while it is read,
-        # not scrolled away with whichever section happened to be hovered.
+        # Fixed at the panel's bottom, outside the list: a description belongs
+        # somewhere that stays put while it is read.
         self._hint_label = QLabel(_("Point at an operation for details"), page)
         self._hint_label.setObjectName("operationHint")
         self._hint_label.setProperty("muted", True)
         self._hint_label.setWordWrap(True)
         page_layout.addWidget(self._hint_label, 0)
 
-    def _add_section(
-        self, content: QWidget, layout: QVBoxLayout, title: str, operations: list[dict]
-    ) -> OperationSection:
-        section = OperationSection(content, title, operations)
-        section.operation_clicked.connect(self.operation_requested)
-        section.tile_hovered.connect(self._show_hint)
-        section.tile_left.connect(self._clear_hint)
-        layout.addWidget(section)
-        return section
+    # ------------------------------------------------------------------
+    # Building
+    # ------------------------------------------------------------------
+    def _add_section(self, title: str, operations: list[dict]) -> None:
+        header = QListWidgetItem(title, self._list)
+        # Not selectable, not enabled: a title, read but never chosen - and
+        # styled through :disabled in the sheets, like a sidebar heading.
+        header.setFlags(Qt.ItemFlag.NoItemFlags)
+        font = QFont(self._list.font())
+        font.setBold(True)
+        font.setPointSizeF(max(8.0, font.pointSizeF() * 0.85))
+        header.setFont(font)
+        header.setSizeHint(QSize(0, 26 if self._list.count() == 1 else 34))
+        header.setData(_SEARCH_ROLE, None)
+        for operation in operations:
+            name = tr(_operation_action_id(operation))
+            description = tr(str(operation.get("description") or ""))
+            item = QListWidgetItem(self.plugin_icon(operation), name, self._list)
+            item.setData(_OPERATION_ROLE, operation)
+            item.setData(_SEARCH_ROLE, f"{name} {description}".casefold())
+            item.setData(_DESCRIPTION_ROLE, description)
+            item.setToolTip(description)
+            item.setSizeHint(QSize(0, 28))
+
+    # ------------------------------------------------------------------
+    # Behaviour
+    # ------------------------------------------------------------------
+    def operation_items(self) -> list[QListWidgetItem]:
+        """The rows that open an operation, in order, hidden or not."""
+        return [
+            item for row in range(self._list.count())
+            if (item := self._list.item(row)) is not None and item.data(_OPERATION_ROLE) is not None
+        ]
+
+    def _open_item(self, item: QListWidgetItem | None) -> None:
+        operation = item.data(_OPERATION_ROLE) if item is not None else None
+        if operation is None:
+            return
+        # A click opens; the row does not stay highlighted as if chosen.
+        self._list.clearSelection()
+        self.operation_requested.emit(operation)
+
+    def _filter(self, text: str) -> None:
+        """Show the rows whose name or description has *text*, and their titles."""
+        wanted = text.strip().casefold()
+        header: QListWidgetItem | None = None
+        header_used = False
+        for row in range(self._list.count()):
+            item = self._list.item(row)
+            if item is None:
+                continue
+            haystack = item.data(_SEARCH_ROLE)
+            if haystack is None:  # a section title
+                if header is not None:
+                    header.setHidden(not header_used)
+                header, header_used = item, False
+                continue
+            shown = not wanted or wanted in str(haystack)
+            item.setHidden(not shown)
+            header_used = header_used or shown
+        if header is not None:
+            header.setHidden(not header_used)
+
+    def _open_first_match(self) -> None:
+        for item in self.operation_items():
+            if not item.isHidden():
+                self._open_item(item)
+                return
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        if (
+            watched is self._list
+            and event.type() == QEvent.Type.KeyPress
+            and getattr(event, "key", lambda: None)() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+        ):
+            # Explicitly: on macOS a list view does not emit activated for
+            # Return (Finder's Return renames), so it would do nothing here.
+            self._open_item(self._list.currentItem())
+            return True
+        if watched is self._list.viewport() and event.type() == QEvent.Type.Leave:
+            if not self._list.hasFocus():
+                self._clear_hint()
+        elif watched is self._search and event.type() == QEvent.Type.KeyPress:
+            # Down from the search field goes into the list, at the first match.
+            if getattr(event, "key", lambda: None)() == Qt.Key.Key_Down:
+                visible = [item for item in self.operation_items() if not item.isHidden()]
+                if visible:
+                    self._list.setFocus()
+                    self._list.setCurrentItem(visible[0])
+                    return True
+        return super().eventFilter(watched, event)
 
     def _reload_from_descriptor(self) -> None:
         """No-op: this panel lists operations, it does not edit a descriptor.
@@ -496,12 +292,17 @@ class SeriesOperationWidget(BaseProperties):
         """
 
     def _set_enabled_state(self, enabled: bool) -> None:
-        """No-op for the same reason: every tile stays clickable regardless.
+        """No-op for the same reason: every row stays usable regardless.
 
         Whether an operation can actually run is decided where it is opened
         (main_window._open_series_operation refuses without a current
-        chart), not by disabling the button that asks for one.
+        chart), not by disabling the row that asks for one.
         """
+
+    def _hint_for(self, item: QListWidgetItem | None) -> None:
+        if item is None or item.data(_OPERATION_ROLE) is None:
+            return
+        self._show_hint(item.text(), str(item.data(_DESCRIPTION_ROLE) or ""))
 
     def _show_hint(self, title: str, description: str) -> None:
         self._hint_label.setProperty("muted", False)

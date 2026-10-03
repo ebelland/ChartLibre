@@ -1120,34 +1120,41 @@ QLabel[sectionTitle="true"] {
 }
 
 /* ----------------------------------------------------------
-   Operation tile (sectioned grid)
-   Every operation - Plot included - is one of these: a bordered
-   square with hover and keyboard-focus states, not a border-left
-   accent stripe, since a tile has no long edge for a stripe to
-   read as "this one" against.
+   Operation list (sectioned, like the navigation rail's chart
+   list): section titles are disabled items, rows carry the
+   operation's icon and name, hover and selection are a rounded
+   neutral tint as in a Fluent NavigationView.
    ---------------------------------------------------------- */
 
-QFrame#operationTile {
-    background: rgba(@SHADOW_RGB@, 0.02);
-    border: 1px solid rgba(@SHADOW_RGB@, 0.08);
-    border-radius: 8px;
+QLineEdit#seriesOperationsSearch {
+    margin: 10px 10px 4px 10px;
 }
 
-QFrame#operationTile:hover {
-    background: rgba(@SHADOW_RGB@, 0.06);
-    border-color: rgba(@ACCENT_RGB@, 0.35);
+QListWidget#seriesOperationsList {
+    background: palette(base);
+    border: none;
+    outline: 0;
+    padding: 0 6px;
 }
 
-QFrame#operationTile:focus {
-    background: rgba(@ACCENT_RGB@, 0.08);
-    border-color: palette(highlight);
-}
-
-QLabel[operationTileTitle="true"] {
-    font-size: 9pt;
-    font-weight: 600;
+QListWidget#seriesOperationsList::item {
+    padding: 0 4px;
+    border-radius: 4px;
     color: palette(window-text);
+}
+
+QListWidget#seriesOperationsList::item:disabled {
+    color: rgba(@NEUTRAL_RGB@, 0.9);
     background: transparent;
+}
+
+QListWidget#seriesOperationsList::item:hover:enabled {
+    background: rgba(@SHADOW_RGB@, 0.05);
+}
+
+QListWidget#seriesOperationsList::item:selected {
+    background: rgba(@SHADOW_RGB@, 0.09);
+    color: palette(window-text);
 }
 
 /* ----------------------------------------------------------
@@ -1163,15 +1170,6 @@ QLabel#operationHint {
     border-bottom-left-radius: 12px;
     border-bottom-right-radius: 12px;
     padding: 8px 10px;
-}
-
-/* The scroll area's content widget: styled because it fills the whole
-   scroll viewport (setWidgetResizable(True)) and left unstyled, an
-   unstyled QWidget's default background role would not match the card's
-   own Base white, leaving a visible band where the trailing stretch below
-   the last section opens up leftover space. */
-#seriesOperationsContent {
-    background: palette(base);
 }
 
 /* The Edit table dialog's "more" button opens a menu; its icon already

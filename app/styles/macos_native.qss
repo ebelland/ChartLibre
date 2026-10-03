@@ -587,27 +587,40 @@ HtmlResultsView#chartNotesView {
   border-top: 1px solid rgba(@SHADOW_RGB@, 0.10);
 }
 
-QFrame#operationTile {
-    background: rgba(@SHADOW_RGB@, 0.02);
-    border: 1px solid rgba(@SHADOW_RGB@, 0.08);
-    border-radius: 8px;
+/* The Series Operations list: a sidebar, like the chart list in the
+   navigation rail - grey section titles (disabled items), rows with the
+   operation's icon and name, a rounded tint under the pointer. */
+QLineEdit#seriesOperationsSearch {
+    margin: 10px 10px 4px 10px;
 }
 
-QFrame#operationTile:hover {
-    background: rgba(@SHADOW_RGB@, 0.06);
-    border-color: rgba(@ACCENT_RGB@, 0.35);
+QListWidget#seriesOperationsList {
+    background: palette(base);
+    border: none;
+    outline: 0;
+    padding: 0 6px;
+    font-size: 13pt;
 }
 
-QFrame#operationTile:focus {
-    background: rgba(@ACCENT_RGB@, 0.08);
-    border-color: palette(highlight);
-}
-
-QLabel[operationTileTitle="true"] {
-    font-size: 10.5pt;
-    font-weight: 600;
+QListWidget#seriesOperationsList::item {
+    padding: 0 6px;
+    border-radius: 6px;
     color: palette(text);
+}
+
+QListWidget#seriesOperationsList::item:disabled {
+    color: rgba(@SHADOW_RGB@, 0.45);
     background: transparent;
+    padding-left: 4px;
+}
+
+QListWidget#seriesOperationsList::item:hover:enabled {
+    background: rgba(@SHADOW_RGB@, 0.06);
+}
+
+QListWidget#seriesOperationsList::item:selected {
+    background: rgba(@ACCENT_RGB@, 0.16);
+    color: palette(highlight);
 }
 
 QLabel#operationHint {
@@ -616,15 +629,6 @@ QLabel#operationHint {
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
     padding: 8px 10px;
-}
-
-/* Fills the whole scroll viewport (setWidgetResizable(True)) - styled
-   because an unstyled QWidget's default background role (Window, a grey
-   tone on macOS) would otherwise show through as a band between the
-   operation tiles and the card's own white beneath the trailing stretch.
-   See series_operation.py's own comment on #seriesOperationsContent. */
-#seriesOperationsContent {
-    background: palette(base);
 }
 
 /* ----------------------------------------------------------

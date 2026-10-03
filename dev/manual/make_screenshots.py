@@ -237,18 +237,24 @@ def _show_page(window, action_id: str) -> None:
     window._set_nav_index(window._left_rail.action_ids.index(action_id))
 
 
-def _fit_operations_panel(window, *, columns: int) -> None:
-    """Narrow the left column to *columns* operation tiles."""
-    from app.widgets.series_operation import SeriesOperationWidget, _TILE_MIN_WIDTH
+#: Width of the Series Operations list in the manual's pictures: the longest
+#: Italian name ("Correzione linea di base") with its icon, unelided.
+OPERATIONS_PANEL_WIDTH: int = 260
 
+
+def _fit_operations_panel(window, *, columns: int = 1) -> None:
+    """Narrow the left column to the Series Operations list's width."""
+    from app.widgets.series_operation import SeriesOperationWidget
+
+    del columns  # the panel was a grid of tiles; it is one list now
     panel = window.findChild(SeriesOperationWidget)
     if panel is None:
         return
     sizes = window._main_split.sizes()
-    # Everything left of the tiles - the rail, margins, the scrollbar - is
-    # what the column has beyond the panel itself.
+    # Everything left of the list - the rail, margins - is what the column
+    # has beyond the panel itself.
     around = sizes[0] - panel.width()
-    left = around + columns * _TILE_MIN_WIDTH + 24
+    left = around + OPERATIONS_PANEL_WIDTH
     window._main_split.setSizes([left, max(sum(sizes) - left, 1)])
 
 

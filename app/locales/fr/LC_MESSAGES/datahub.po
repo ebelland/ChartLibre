@@ -6558,3 +6558,6 @@ msgstr "Dessin de toutes les figures et écriture du rapport…"
 
 msgid "Writing the figure…"
 msgstr "Écriture de la figure…"
+
+msgid "Search operations"
+msgstr "Rechercher une opération"
