@@ -96,6 +96,15 @@ jobs:
         with:
           path: packages
           merge-multiple: true
+      - name: Names without the version
+        # So the README's download links - .../releases/latest/download/<name>
+        # - stay the same from one version to the next.
+        run: |
+          cd packages
+          mv ./*-macos-arm64.dmg ChartLibre-Mac.dmg
+          mv ./*-windows-x86_64-setup.exe ChartLibre-Windows-Setup.exe
+          mv ./*-windows-x86_64-portable.zip ChartLibre-Windows-Portable.zip
+          ls -l
       - uses: softprops/action-gh-release@v2
         with:
           files: packages/*
