@@ -223,10 +223,12 @@ class QueryBuilderDialog(QDialog):
             layout=row,
         )
         row.addStretch(1)
+        # OK saves and closes: it used to only save, so the dialog stayed
+        # open with nothing left to do.
         create_action_button(
             parent=self,
             action_id="apply",
-            action=self.save,
+            action=self.accept,
             layout=row,
         )
         create_action_button(
@@ -627,9 +629,11 @@ class QueryBuilderDialog(QDialog):
         return clean
 
     def accept(self) -> None:  # noqa: D102 - Qt override
+        """Save, and close only if it was saved: a statement that does not
+        run, or a name prompt cancelled, leaves the dialog open to fix it."""
         self._remember_state()
-        self.save()
-        super().accept()
+        if self.save():
+            super().accept()
 
     def reject(self) -> None:  # noqa: D102 - Qt override
         self._remember_state()

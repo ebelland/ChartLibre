@@ -65,3 +65,20 @@ def test_with_nothing_selected_the_builder_still_opens(panel: TableListPanel) ->
     panel._view.selectionModel().clearSelection()
     panel._open_query_builder()
     assert _Recorder.opened == [None]
+
+
+def test_ok_saves_and_closes_and_stays_open_on_a_bad_query(qapp, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch) -> None:
+    import app.dialogs.query_builder_dialog as builder_module
+    from PySide6.QtWidgets import QDialog, QInputDialog
+
+    repo.import_dataframe(pd.DataFrame({"a": [1, 2, 3]}), table_name="t", normalize_columns=False)
+    monkeypatch.setattr(QInputDialog, "getText", staticmethod(lambda *_a, **_k: ("big_ones", True)))
+    monkeypatch.setattr(builder_module, "show_message", lambda *_a, **_k: None)
+    dialog = builder_module.QueryBuilderDialog(repo)
+    dialog._editor.setPlainText('SELECT nope FROM "missing"')
+    dialog.accept()
+    assert dialog.result() != QDialog.DialogCode.Accepted and repo.get_query("big_ones") is None
+    dialog._editor.setPlainText('SELECT a FROM "t" WHERE a > 1')
+    dialog.accept()
+    assert dialog.result() == QDialog.DialogCode.Accepted
+    assert repo.get_query("big_ones") is not None
