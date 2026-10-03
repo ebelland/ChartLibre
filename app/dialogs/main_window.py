@@ -93,6 +93,7 @@ from app.utils.config import (
 )
 from app.utils.dialog_state import restore_window_geometry, save_window_geometry
 from app.utils.startup import PROJECT_FILE_FILTER
+from app.utils.screen_fit import fit_on_show
 from app.utils.messages import show_message
 from app.logs.logger import applogger
 from app.utils.i18n import _
@@ -212,6 +213,8 @@ class MainWindow(QMainWindow):
             self.setWindowFlag(Qt.WindowType.NoTitleBarBackgroundHint, True)
             self.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
         self.resize(1200, 800)
+        # 800 is taller than many laptops leave free: fitted when shown.
+        fit_on_show(self)
 
         # Debounce for property-driven chart reloads (see _redraw_properties_chart).
         self._properties_redraw_callback: Any | None = None

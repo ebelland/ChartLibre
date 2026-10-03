@@ -9,13 +9,15 @@ screen hides its OK and Cancel. So when any window is shown, this shrinks it
 to the screen's available area - never below its own minimum size - and
 moves it fully onto that area.
 
-Installed once on the application (main.py); nothing else needs to call it.
+Installed per window - every dialog through style.apply_dialog_shell, and the
+main window - by :func:`fit_on_show`.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QObject, QRect, Qt, QTimer
+import shiboken6
+from PySide6.QtCore import QEvent, QObject, QRect, QTimer
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QWidget
 
 from app.logs.logger import applogger
 
@@ -56,36 +58,35 @@ def fit_to_screen(window: QWidget) -> bool:
     return changed
 
 
-class ScreenFitFilter(QObject):
-    """Fits every top-level window to its screen as it is shown."""
+class _FitOnShow(QObject):
+    """Watches one window - and only it - and fits it each time it is shown."""
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        if (
-            event.type() == QEvent.Type.Show
-            and isinstance(watched, QWidget)
-            and watched.isWindow()
-            and watched.windowType() not in _NOT_WINDOWS
-        ):
+        if event.type() == QEvent.Type.Show and isinstance(watched, QWidget) and watched.isWindow():
             # After the show completes: a saved geometry is often restored
             # by the window's own showEvent, which runs after this filter.
             QTimer.singleShot(0, lambda window=watched: _fit_if_alive(window))
         return False
 
 
-#: Top-level widgets that are not windows to fit: menus, combo lists, tips.
-_NOT_WINDOWS = frozenset({Qt.WindowType.Popup, Qt.WindowType.ToolTip, Qt.WindowType.SplashScreen})
-
-
 def _fit_if_alive(window: QWidget) -> None:
-    try:
-        if window.isVisible():
-            fit_to_screen(window)
-    except RuntimeError:  # deleted before the timer fired
+    if shiboken6.isValid(window) and window.isVisible():
+        fit_to_screen(window)
+
+
+def fit_on_show(window: QWidget) -> None:
+    """Fit *window* to its screen every time it is shown.
+
+    Installed on the window itself. An application-wide filter did the same
+    for every window at once and crashed the application: PySide wraps
+    every object an application filter sees, Qt's internal ones included,
+    and wrapping one that was being destroyed is a segmentation fault - as
+    well as a Python call for every event of every object.
+    """
+    if window.property(_INSTALLED):
         return
+    window.setProperty(_INSTALLED, True)
+    window.installEventFilter(_FitOnShow(window))
 
 
-def install(app: QApplication) -> ScreenFitFilter:
-    """Fit every window this application shows. Keep the returned filter alive."""
-    fitter = ScreenFitFilter(app)
-    app.installEventFilter(fitter)
-    return fitter
+_INSTALLED = "_chartlibre_fit_on_show"

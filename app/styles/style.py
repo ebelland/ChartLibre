@@ -2061,6 +2061,10 @@ def apply_dialog_shell(
     """
     root_layout.setContentsMargins(*margins)
     root_layout.setSpacing(spacing)
+    # Every dialog fits the screen it opens on, a laptop's included.
+    from app.utils.screen_fit import fit_on_show
+
+    fit_on_show(dialog)
 
     if size is None:
         return
