@@ -95,12 +95,41 @@ def create_venv(folder: Path, recreate: bool) -> tuple[Path, bool]:
     if venv.exists() and recreate:
         print(f"Removing the existing {venv} ...")
         shutil.rmtree(venv)
+    if python.exists() and not venv_has_pip(python):
+        # Left by a run that failed half-way - on Ubuntu, a venv made without
+        # python3-venv has no pip - and every later run would keep it.
+        print(f"{venv} is incomplete (no pip); making it again ...")
+        shutil.rmtree(venv)
     if python.exists():
         print(f"{venv} already exists; keeping it (use --recreate to start again).")
         return python, False
     print(f"Creating {venv} ...")
     subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
     return python, True
+
+
+def venv_has_pip(python: Path) -> bool:
+    """True when *python*'s environment can run pip."""
+    result = subprocess.run([str(python), "-m", "pip", "--version"], capture_output=True, check=False)
+    return result.returncode == 0
+
+
+def venv_problem() -> str:
+    """Why this Python cannot make a working .venv, or "" when it can.
+
+    Debian and Ubuntu ship Python without ensurepip, which venv needs to put
+    pip in the environment; it comes with the python3-venv package.
+    """
+    try:
+        import ensurepip  # noqa: F401
+        import venv  # noqa: F401
+    except ImportError:
+        return (
+            "This Python cannot create a .venv yet. On Ubuntu or Debian install it with\n\n"
+            "    sudo apt install python3-venv\n\n"
+            "and run this again."
+        )
+    return ""
 
 
 def install_requirements(python: Path, requirements: Path) -> None:
@@ -191,6 +220,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     requirements = folder / "requirements.txt"
     if not args.skip_packages and not requirements.is_file():
         print(f"{requirements} is missing - is {folder} the ChartLibre folder?")
+        return 1
+
+    problem = venv_problem()
+    if problem and not venv_python(folder / ".venv").exists():
+        print(problem)
         return 1
 
     note = cloud_sync_warning(folder, Path.home())

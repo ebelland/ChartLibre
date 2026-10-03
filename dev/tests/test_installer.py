@@ -133,3 +133,31 @@ def test_the_linux_launcher_and_its_icon_ship_with_the_project() -> None:
     assert script.startswith("#!/bin/sh") and "python3 install.py" in script and "main.py" in script
     assert (root / "ChartLibre.sh").stat().st_mode & 0o111
     assert (root / "dev" / "tools" / "launcher" / "chartlibre.png").stat().st_size > 1000
+
+
+def test_an_incomplete_venv_is_made_again(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A venv left without pip by a failed run is replaced, not kept."""
+    python = install.venv_python(tmp_path / ".venv")
+    python.parent.mkdir(parents=True)
+    python.write_text("", encoding="utf-8")
+    made: list[str] = []
+    monkeypatch.setattr(install, "venv_has_pip", lambda _python: False)
+    monkeypatch.setattr(install.subprocess, "run", lambda args, **_k: made.append(" ".join(map(str, args))))
+    _python, created = install.create_venv(tmp_path, recreate=False)
+    assert created and any("-m venv" in command for command in made)
+
+
+def test_a_python_without_ensurepip_is_told_what_to_install(monkeypatch: pytest.MonkeyPatch) -> None:
+    import builtins
+
+    real_import = builtins.__import__
+
+    def without_ensurepip(name, *args, **kwargs):
+        if name == "ensurepip":
+            raise ImportError(name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", without_ensurepip)
+    assert "sudo apt install python3-venv" in install.venv_problem()
+    monkeypatch.setattr(builtins, "__import__", real_import)
+    assert install.venv_problem() == ""
