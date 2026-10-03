@@ -6,6 +6,8 @@ Artifacts (databases, saved figures) go to the directory chosen by
 # dev/tests/conftest.py
 from __future__ import annotations
 
+import json
+
 from collections.abc import Iterator
 
 import os
@@ -53,6 +55,14 @@ def _private_user_config(tmp_path_factory: pytest.TempPathFactory):
     copy = tmp_path_factory.mktemp("user_config") / "user.json"
     if real.exists():
         copy.write_bytes(real.read_bytes())
+        # The developer's own view, not a setting: with the rail collapsed
+        # (Workspace) every layout test measures a window nobody tests.
+        try:
+            settings = json.loads(copy.read_text(encoding="utf-8"))
+            settings.get("main_window", {}).pop("navigation_compact", None)
+            copy.write_text(json.dumps(settings, indent=2), encoding="utf-8")
+        except (OSError, ValueError, AttributeError):
+            pass
     config.USER_CONFIG_PATH = copy
     try:
         yield copy

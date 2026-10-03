@@ -68,6 +68,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import (
     FigureCanvasQTAgg as FigureCanvas,
 )
+from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 from matplotlib.colors import is_color_like, to_rgba
 from matplotlib.figure import Figure
 

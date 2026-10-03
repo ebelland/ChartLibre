@@ -35,6 +35,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 from matplotlib.figure import Figure
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 

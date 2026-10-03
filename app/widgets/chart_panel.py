@@ -22,6 +22,7 @@ import numpy as np
 from matplotlib import rcParams
 from matplotlib.backends.backend_qt import NavigationToolbar2QT
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS, before any canvas
 from matplotlib.figure import Figure
 from matplotlib.patches import Patch, Rectangle, Wedge
 
@@ -3248,7 +3249,6 @@ class ChartPanel(QFrame):
     def reload(self) -> None:
         """Reload the latest descriptor from the repository and re-render it."""
         self._figure.clear()
-        self._content_revision += 1
         self._discard_hover_annotation()
         self._discard_ruler()
         self._discard_crosshair()
@@ -3261,6 +3261,7 @@ class ChartPanel(QFrame):
         descriptor = self._repo.load_figure_descriptor(self._figure_id)
         if descriptor is None:
             applogger.warning("No descriptor found for figure_id=%s", self._figure_id)
+            self._content_revision += 1
             self._capture_fixed_metrics_from_rendered_figure()
             self._schedule_canvas_geometry_sync(redraw=True)
             return
@@ -3286,6 +3287,11 @@ class ChartPanel(QFrame):
         except Exception:
             applogger.exception("Failed to render figure_id=%s", self._figure_id)
             self._figure.clear()
+
+        # Only now, with the figure complete: a renderer may draw while it
+        # builds (the Text chart's adjustText measures its labels that way),
+        # and that half-built draw must not pass for this revision's.
+        self._content_revision += 1
 
         self._capture_fixed_metrics_from_rendered_figure()
         if self._resize_mode == "FIXED":

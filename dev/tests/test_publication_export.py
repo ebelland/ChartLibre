@@ -1,6 +1,8 @@
 """Publication export (todo R-09): graph templates and the project report."""
 from __future__ import annotations
 
+import sys
+
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -136,6 +138,74 @@ def test_no_wait_cursor_anywhere() -> None:
         if "setOverrideCursor(" in path.read_text(encoding="utf-8")
     ]
     assert offenders == []
+
+
+def test_matplotlib_asks_macos_for_native_cursors_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Its wait cursor (around any draw after a pause) and its pan cursor are
+    drawn by Qt from an image on macOS - the same crash, from Matplotlib."""
+    from matplotlib.backends import backend_qt
+
+    from app.widgets import mpl_cursors
+
+    monkeypatch.setattr(backend_qt, "cursord", dict(backend_qt.cursord))
+    mpl_cursors.use_native_cursors("linux")
+    assert backend_qt.cursord[mpl_cursors.Cursors.WAIT] != mpl_cursors.Qt.CursorShape.ArrowCursor or sys.platform == "darwin"
+    mpl_cursors.use_native_cursors("darwin")
+    assert not set(backend_qt.cursord.values()) & mpl_cursors.IMAGE_CURSORS
+    app_dir = Path(__file__).resolve().parents[2] / "app"
+    offenders = [
+        str(path.relative_to(app_dir)) for path in app_dir.rglob("*.py")
+        if path.name != "mpl_cursors.py"
+        and any(shape in path.read_text(encoding="utf-8") for shape in ("WaitCursor", "BusyCursor", "SizeAllCursor"))
+    ]
+    assert offenders == []
+
+
+def test_a_chart_that_draws_while_it_is_built_is_still_drawn(qapp, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The Text chart's adjustText draws the figure half-built to measure its
+    labels; that draw used to pass for the finished one, and the canvas
+    stayed blank."""
+    import pandas as pd
+
+    from app.data.sqlite_repo import SqliteRepo
+    from app.dialogs.main_window import MainWindow
+    from app.widgets.chart_panel import ChartPanel
+
+    repo = SqliteRepo(db_path=tmp_path / "t.dhub")
+    repo.import_dataframe(pd.DataFrame({"x": [0.0, 1.0, 2.0], "y": [5.0, 7.0, 6.0], "label": ["a", "b", "c"]}),
+                          table_name="points", normalize_columns=False)
+    for name, chart, roles, sql in (
+        ("scatter", "Scatter Plot", {"x": "x", "y": "y"}, "SELECT x, y FROM points"),
+        ("labels", "Text", {"x": "x", "y": "y", "text": "label"}, "SELECT x, y, label AS text FROM points"),
+    ):
+        figure_id = int(repo.create_figure_descriptor(name=name))
+        axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type=chart, title=name,
+                                                  x_label="x", y_label="y", options={}))
+        repo.create_series_descriptor(axis_id=axis_id, series_index=0, name=name, sql_query=sql, roles=roles, style={})
+    # Every chart draws its figure before it is built, the way adjustText
+    # does mid-build - deterministic, where the real case depends on timing.
+    from app.widgets import chart_panel as chart_panel_module
+
+    real_render = chart_panel_module.render_figure_from_descriptor
+
+    def render_drawing_first(*, figure, descriptor, repo):
+        figure.canvas.draw()
+        return real_render(figure=figure, descriptor=descriptor, repo=repo)
+
+    monkeypatch.setattr(chart_panel_module, "render_figure_from_descriptor", render_drawing_first)
+    window = MainWindow(repo, tmp_path / "t.dhub")
+    window.show()
+    for index in range(window._tabs.count()):
+        window._tabs.setCurrentIndex(index)
+        for _ in range(60):
+            qapp.processEvents()
+        panel = window._tabs.widget(index)
+        assert isinstance(panel, ChartPanel)
+        image = panel.canvas.grab().toImage()
+        colours = {image.pixel(x, y) for x in range(0, image.width(), 5) for y in range(0, image.height(), 5)}
+        assert len(colours) > 2, window._tabs.tabText(index)
+    window.close()
+    repo.close()
 
 
 def test_a_charts_own_report_has_that_chart_alone(qapp, showcase, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
