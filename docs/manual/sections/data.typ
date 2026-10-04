@@ -36,7 +36,7 @@ The preview shows the selected table's rows. Each column header carries the colu
   [*Copy*], [Copy the selected cells.],
   [*Statistics of a column*], [Count, empty cells, distinct values, minimum, maximum, mean and median of the column.],
   [*Histogram and statistics*], [With exactly one column selected: a new figure with that column's histogram, shown at once, and its statistics — mean with its 95% confidence interval, standard deviation, quartiles, skewness, kurtosis — in the figure's notes. Hidden rows are left out.],
-  [*Hide rows*], [Hide rows equal to the selected cell, different from it, higher, lower, or where the column is empty — by marking them in the `Hide` column, which every chart skips. The rows stay in the table.],
+  [*Hide rows* / *Select rows*], [Mark the rows equal to the selected cell, different from it, higher, lower, or where the column is empty — in the `Hide` column, which every chart skips, or in the `Selected` column, which only marks them. The rows stay in the table.],
   [*Export rows…*], [Save the selected rows as CSV or Excel.],
   [*New chart from selected columns*], [Opens New plot with the selected columns as x, y and z.],
   [*Edit table…*], [Opens the table editor.],
@@ -81,7 +81,7 @@ The preview is read-only. To change the data, right-click it and choose *Edit ta
   [*Cells*], [Double-click and type. An emptied cell becomes NULL (not measured) rather than an empty text, which would turn a numeric column into text.],
   [*Rows*], [*Add row* at the end, *Insert row above* the selected one, *Delete rows* with a selected cell.],
   [*Columns*], [Type a name and pick a type, then *Add column* (at the end) or *Insert before selected*; *Rename selected*; *Delete selected*.],
-  [*Managed columns*], [`Hide` marks rows every chart skips; `ClusterId` is written by Clustering. Create, reset or invert them here.],
+  [*Managed columns*], [`Hide` marks rows every chart skips; `Selected` marks rows for your own queries and operations (`WHERE "Selected" = 1`, or *Group by* `Selected` in New plot), with no effect on drawing; `ClusterId` is written by Clustering. Mark rows by a comparison on the selected column, or create, reset or invert the columns, from the editor's last button.],
 )
 
 Every change is written as it is made, yet *Cancel* still puts the table back: the editor takes a snapshot before the first change. *OK* keeps the changes (and the snapshot stays in the undo history), *Cancel* restores the snapshot after asking.

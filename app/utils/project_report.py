@@ -128,6 +128,22 @@ def build_project_report(
     if info.get("notes") and not single:
         notes_html = html.escape(info["notes"]).replace("\n", "<br>")
         about_blocks.append(f"<p style='margin:8px 0 0 0;'>{notes_html}</p>")
+    if not single:
+        from app.data.repo.project_info import parse_references
+
+        items = []
+        for entry in parse_references(info.get("references")):
+            line = html.escape(entry["citation"])
+            if entry.get("doi"):
+                doi = html.escape(entry["doi"])
+                line += f" <a href='https://doi.org/{doi}'>doi:{doi}</a>"
+            if entry.get("url"):
+                url = html.escape(entry["url"], quote=True)
+                line += f" <a href='{url}'>{html.escape(entry['url'])}</a>"
+            items.append(f"<li>{line}</li>")
+        if items:
+            about_blocks.append(f"<p style='margin:10px 0 2px 0;'><b>{html.escape(_('References'))}</b></p>"
+                                f"<ol style='margin:0 0 6px 18px;'>{''.join(items)}</ol>")
     if about_blocks:
         sections.append(report_html.section(_("About this project"), *about_blocks))
 
@@ -146,6 +162,10 @@ def build_project_report(
             report.failures.append((name, str(exc) or type(exc).__name__))
             image = report_html.note(_("This figure could not be drawn: {reason}").format(reason=exc))
         blocks = [f"<p style='margin:0 0 8px 0;'>{image}</p>"]
+        descriptor = repo.get_figure_descriptor(figure_id) if hasattr(repo, "get_figure_descriptor") else None
+        written = str(getattr(descriptor, "note", "") or "")
+        if written.strip():
+            blocks.append(f"<p style='margin:0 0 8px 0;'>{html.escape(written).replace(chr(10), '<br>')}</p>")
         notes = _figure_notes(repo, figure_id)
         if notes.strip():
             blocks.append(f"<div style='margin:0 0 8px 0;'>{notes}</div>")

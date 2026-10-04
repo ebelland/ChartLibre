@@ -30,13 +30,27 @@ On Windows and Linux the rail ends with *Settings* and a *Menu* button (Undo, He
 == The File page
 
 #defs(
-  [*Workspace*], [*New* and *Open* a project, and *Project info…*: the project's author, its creation date and free notes about it — what it is, where the data came from, what is left to do. They are kept inside the `.dhub` file, travel with it, and open every project report. The author is remembered on the computer and filled in for every new project.],
+  [*Workspace*], [*New* and *Open* a project, and *Project info…* (see below).],
   [*Demo*], [*Load demo* (see @demos).],
   [*Import*], [*Import* data into the project (see @importing).],
   [*Save*], [*Save* and *Save As…* (see @getting-started).],
   [*Export*], [*Project report* — the whole project as one HTML or PDF document (see @output).],
   [*Open recent*], [The projects opened recently; click one to open it, or *Clear* the list.],
 )
+
+=== Project info
+
+*Project info…* holds what a project says about itself, kept inside the `.dhub` file so that it travels with it:
+
+#defs(
+  [*Author*], [Who made it. Remembered on the computer, and filled in for every new project.],
+  [*Created*], [When the project was created (for a project older than this record, when its file was).],
+  [*Notes*], [What the project is about, where the data came from, what is left to do.],
+  [*References*], [The bibliographic sources of the data and methods: a citation, and optionally a DOI and a web link each. Reports list them with working links.],
+  [*Preview*], [A picture of the project's first figure, `<project>.preview.png` beside the project file, drawn again each time the project is saved. The Load demo window shows the demos' previews the same way.],
+)
+
+The window opens by itself when a project is created, and when a project is saved without an author or notes — once per session: close it to fill it in another time.
 
 == The Developer page
 

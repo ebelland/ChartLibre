@@ -49,7 +49,7 @@ class LoadDemoDialog(QDialog):
     #: Lines of summary shown below the picture at least; a longer one scrolls.
     _SUMMARY_LINES: int = 7
 
-    #: The picture of the selected demo (demo/previews, 640 x 400), shown
+    #: The picture of the selected demo (the preview its project names), shown
     #: at this size: what it looks like is most of what a choice needs.
     PREVIEW_SIZE: QSize = QSize(400, 250)
 
@@ -71,7 +71,7 @@ class LoadDemoDialog(QDialog):
         mark_editor_panel(self._list)
         for demo in DEMO_PROJECTS:
             item = QListWidgetItem(_(demo.file_name), self._list)
-            item.setToolTip(_(demo.summary))
+            item.setToolTip(_(demo.description))
             item.setData(Qt.ItemDataRole.UserRole, demo)
         self._list.setCurrentRow(0)
         self._list.currentRowChanged.connect(self._update_summary)
@@ -123,15 +123,18 @@ class LoadDemoDialog(QDialog):
     def _update_summary(self, row: int) -> None:
         item = self._list.item(row)
         demo: DemoProject | None = item.data(Qt.ItemDataRole.UserRole) if item else None
-        self._summary.setText(_(demo.summary) if demo else "")
+        # From the built project itself: its notes are the demo's summary
+        # (translated through the catalogue, which holds the same text).
+        self._summary.setText(_(demo.description) if demo else "")
         self._preview.setPixmap(self._picture(demo))
 
     def _picture(self, demo: DemoProject | None) -> QPixmap:
         """The demo's preview at the label's size, sharp on a high-density screen;
         empty when there is none - a clone that has not built them."""
-        if demo is None or not demo.preview_path.exists():
+        preview = demo.preview_path if demo is not None else None
+        if preview is None:
             return QPixmap()
-        picture = QPixmap(str(demo.preview_path))
+        picture = QPixmap(str(preview))
         if picture.isNull():
             return picture
         ratio = self.devicePixelRatioF()

@@ -43,7 +43,7 @@ Most chart types accept any number of series per axis and draw them together (se
 
 *Chart Options* edits the selected figure, axis and series, each in its own collapsible section:
 
-/ Figure: name (also the tab title), the grid of axes (rows and columns), the *figure layout* (tight, constrained, compressed, or manual spacing), size and DPI, frame, a Matplotlib style for this figure alone, and *downsample* (draw at most N points per series, for very large tables).
+/ Figure: name (also the tab title), *notes* about the figure (kept with it in the project and printed under it in reports; saved as you type), its creation and last-modified dates, the grid of axes (rows and columns), the *figure layout* (tight, constrained, compressed, or manual spacing), size and DPI, frame, a Matplotlib style for this figure alone, and *downsample* (draw at most N points per series, for very large tables).
 / Axis: chart type, title, axis labels, ranges, scales (linear, log with its base, symlog with its threshold) and direction (invert), shared x/y/z with neighbouring axes, grid, ticks, spines, the axis position and span in the grid, and the chart type's own *options* (number of bins, which distribution to compare with, whether to draw a colour bar, ...).
 / Series: name, SQL query, colour, line style, marker, legend label, visibility, sort by x, and the *plot arguments* passed to Matplotlib (line width, transparency, hatch, ...).
 

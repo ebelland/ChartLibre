@@ -6696,3 +6696,84 @@ msgstr "Créé :"
 
 msgid "About this project"
 msgstr "À propos de ce projet"
+
+msgid "References"
+msgstr "Références"
+
+msgid "Citation"
+msgstr "Citation"
+
+msgid "DOI"
+msgstr "DOI"
+
+msgid "The sources of the data and methods: a citation, and if it has them a DOI (10.xxxx/...) and a web link. Reports list them with their links."
+msgstr "Les sources des données et des méthodes : une citation et, s'il y en a, un DOI (10.xxxx/...) et un lien. Les rapports les listent avec leurs liens."
+
+msgid "The project's first figure, drawn again each time the project is saved."
+msgstr "La première figure du projet, redessinée à chaque enregistrement."
+
+msgid "No preview yet: it is drawn when the project is saved."
+msgstr "Pas encore d'aperçu : il est dessiné à l'enregistrement du projet."
+
+msgid "What this figure shows, where its data came from..."
+msgstr "Ce que montre cette figure, d'où viennent ses données..."
+
+msgid "Kept with the figure in the project, and printed under it in reports."
+msgstr "Enregistrées avec la figure dans le projet, et imprimées sous elle dans les rapports."
+
+msgid "Created {date}"
+msgstr "Créée {date}"
+
+msgid "modified {date}"
+msgstr "modifiée {date}"
+
+msgid "Select rows"
+msgstr "Sélectionner des lignes"
+
+msgid "Select rows by selected column"
+msgstr "Sélectionner des lignes selon la colonne sélectionnée"
+
+msgid "Mark Selected the rows where {column} {operator} value"
+msgstr "Marquer Selected les lignes où {column} {operator} valeur"
+
+msgid "Select NULL / empty values"
+msgstr "Sélectionner les valeurs NULL / vides"
+
+msgid "Mark Selected the rows where the selected column is empty"
+msgstr "Marquer Selected les lignes où la colonne sélectionnée est vide"
+
+msgid "Select rows equal to selected cell"
+msgstr "Sélectionner les lignes égales à la cellule sélectionnée"
+
+msgid "Mark Selected the rows matching the selected cell value"
+msgstr "Marquer Selected les lignes ayant la valeur de la cellule sélectionnée"
+
+msgid "Select rows where {column} {operator}:"
+msgstr "Sélectionner les lignes où {column} {operator} :"
+
+msgid "{count} row(s) marked Selected."
+msgstr "{count} ligne(s) marquée(s) Selected."
+
+msgid "{count} rows are now marked Selected."
+msgstr "{count} lignes sont maintenant marquées Selected."
+
+msgid "Mark Selected the rows where the selected column compares to a value"
+msgstr "Marquer Selected les lignes où la colonne sélectionnée vérifie une comparaison"
+
+msgid "Ensure Selected"
+msgstr "Assurer Selected"
+
+msgid "Add the Selected column if this table does not have one"
+msgstr "Ajouter la colonne Selected si la table n'en a pas"
+
+msgid "Reset Selected"
+msgstr "Réinitialiser Selected"
+
+msgid "Set Selected back to 0 on every row, so no row is selected"
+msgstr "Remettre Selected à 0 sur chaque ligne : aucune ligne sélectionnée"
+
+msgid "Invert Selected"
+msgstr "Inverser Selected"
+
+msgid "Swap selected and unselected rows"
+msgstr "Échanger lignes sélectionnées et non sélectionnées"

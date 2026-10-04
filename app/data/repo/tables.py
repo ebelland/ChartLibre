@@ -1555,61 +1555,99 @@ class TablesMixin(RepoHost):
 
 
 
-    def invert_hide(self, table_name: str) -> int:
-        """Ensure Hide exists and invert 0/1 values."""
+    #: The 0/1 columns the application maintains on a table: Hide, which
+    #: every chart skips, and Selected, which marks rows for the user's own
+    #: queries and operations. The same tools act on either.
+    FLAG_COLUMNS: tuple[str, ...] = ("Hide", "Selected")
+
+    def invert_flag(self, table_name: str, flag: str) -> int:
+        """Ensure the *flag* column exists and swap its 0s and 1s."""
         if not self._is_connected or self._con is None:
             self._connect()
         assert self._con is not None
-        self.ensure_hide_column(table_name)
+        self.ensure_column(table_name=table_name, col_name=flag, col_type="INTEGER")
+        column = _quote_ident(flag)
         cur = self._con.execute(
             f'UPDATE {_quote_ident(table_name)} '
-            f'SET "Hide" = CASE WHEN COALESCE("Hide", 0) = 0 THEN 1 ELSE 0 END'
+            f'SET {column} = CASE WHEN COALESCE({column}, 0) = 0 THEN 1 ELSE 0 END'
         )
         self._commit()
         return int(cur.rowcount or 0)
 
-
-    def hide_rows_by_value(
+    def flag_rows_by_value(
         self,
         table_name: str,
+        flag: str,
         column_name: str,
         operator: str,
         value: Any,
     ) -> int:
-        """Set Hide=1 where column compares to a user-provided value."""
+        """Set *flag* = 1 where *column_name* compares to a user-provided value."""
         if not self._is_connected or self._con is None:
             self._connect()
         assert self._con is not None
-        self.ensure_hide_column(table_name)
+        self.ensure_column(table_name=table_name, col_name=flag, col_type="INTEGER")
         op_map = {"=": "=", "!=": "!=", "<>": "!=", "<": "<", "<=": "<=", ">": ">", ">=": ">="}
         sql_op = op_map.get(str(operator).strip())
         if sql_op is None:
             applogger.error(f"Unsupported operator: {operator}")
         cur = self._con.execute(
-            f'UPDATE {_quote_ident(table_name)} SET "Hide" = 1 WHERE {_quote_ident(column_name)} {sql_op} ?',
+            f'UPDATE {_quote_ident(table_name)} SET {_quote_ident(flag)} = 1 '
+            f'WHERE {_quote_ident(column_name)} {sql_op} ?',
             (value,),
         )
         self._commit()
         return int(cur.rowcount or 0)
 
-
-    def hide_rows_special(self, table_name: str, column_name: str, mode: str) -> int:
-        """Set Hide=1 using a predefined special predicate."""
+    def flag_rows_special(self, table_name: str, flag: str, column_name: str, mode: str) -> int:
+        """Set *flag* = 1 using a predefined special predicate."""
         if not self._is_connected or self._con is None:
             self._connect()
         assert self._con is not None
-        self.ensure_hide_column(table_name)
+        self.ensure_column(table_name=table_name, col_name=flag, col_type="INTEGER")
         column_sql = _quote_ident(column_name)
         if mode == "null_or_empty":
             predicate = f"{column_sql} IS NULL OR TRIM(CAST({column_sql} AS TEXT)) = ''"
         else:
-            applogger.error(f"Unsupported hide mode: {mode}")
+            applogger.error(f"Unsupported mode: {mode}")
             return 0
         cur = self._con.execute(
-            f'UPDATE {_quote_ident(table_name)} SET "Hide" = 1 WHERE {predicate}'
+            f'UPDATE {_quote_ident(table_name)} SET {_quote_ident(flag)} = 1 WHERE {predicate}'
         )
         self._commit()
         return int(cur.rowcount or 0)
+
+    def invert_hide(self, table_name: str) -> int:
+        """Ensure Hide exists and invert 0/1 values."""
+        return self.invert_flag(table_name, "Hide")
+
+    def hide_rows_by_value(self, table_name: str, column_name: str, operator: str, value: Any) -> int:
+        """Set Hide=1 where column compares to a user-provided value."""
+        return self.flag_rows_by_value(table_name, "Hide", column_name, operator, value)
+
+    def hide_rows_special(self, table_name: str, column_name: str, mode: str) -> int:
+        """Set Hide=1 using a predefined special predicate."""
+        return self.flag_rows_special(table_name, "Hide", column_name, mode)
+
+    def ensure_selected_column(self, table_name: str) -> None:
+        """Ensure the 0/1 Selected column exists on a user data table."""
+        self.ensure_column(table_name=table_name, col_name="Selected", col_type="INTEGER")
+
+    def clear_selected_column(self, table_name: str) -> None:
+        """Set every row's Selected back to 0."""
+        self.clear_integer_column(table_name=table_name, col_name="Selected")
+
+    def invert_selected(self, table_name: str) -> int:
+        """Ensure Selected exists and invert 0/1 values."""
+        return self.invert_flag(table_name, "Selected")
+
+    def select_rows_by_value(self, table_name: str, column_name: str, operator: str, value: Any) -> int:
+        """Set Selected=1 where column compares to a user-provided value."""
+        return self.flag_rows_by_value(table_name, "Selected", column_name, operator, value)
+
+    def select_rows_special(self, table_name: str, column_name: str, mode: str) -> int:
+        """Set Selected=1 using a predefined special predicate."""
+        return self.flag_rows_special(table_name, "Selected", column_name, mode)
 
 
     def supports_sql_math(self) -> bool:

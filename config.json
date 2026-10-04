@@ -763,6 +763,34 @@
       "SegoeFluent": "E7A7",
       "ThemeIcon": "edit-undo"
     },
+    "table_select_rows": {
+      "text": "Select rows",
+      "description": "Mark Selected the rows where the selected column compares to a value",
+      "SFSymbol": "checkmark.circle",
+      "SegoeFluent": "E73E",
+      "ThemeIcon": "edit-select-all"
+    },
+    "table_selected_ensure": {
+      "text": "Ensure Selected",
+      "description": "Add the Selected column if this table does not have one",
+      "SFSymbol": "checkmark.square",
+      "SegoeFluent": "E73A",
+      "ThemeIcon": "list-add"
+    },
+    "table_selected_reset": {
+      "text": "Reset Selected",
+      "description": "Set Selected back to 0 on every row, so no row is selected",
+      "SFSymbol": "square",
+      "SegoeFluent": "E739",
+      "ThemeIcon": "edit-clear"
+    },
+    "table_selected_invert": {
+      "text": "Invert Selected",
+      "description": "Swap selected and unselected rows",
+      "SFSymbol": "arrow.left.arrow.right.square",
+      "SegoeFluent": "E8AB",
+      "ThemeIcon": "object-flip-horizontal"
+    },
     "table_hide_ensure": {
       "text": "Ensure Hide",
       "description": "Add the Hide column if this table does not have one",
@@ -1080,6 +1108,11 @@
       "level": "error",
       "title": "Hide rows failed",
       "text": "{error}"
+    },
+    "preview.rows_selected": {
+      "level": "info",
+      "title": "Select rows",
+      "text": "{count} rows are now marked Selected."
     },
     "preview.rows_hidden": {
       "level": "info",

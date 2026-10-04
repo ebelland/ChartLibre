@@ -111,7 +111,7 @@ class PairPlotAxisRenderer(BaseAxisRenderer):
             return mapped
         numeric = []
         for column in sd.df.columns:
-            if column == "group" or column in ("Hide", "__rowid__"):
+            if column == "group" or column in ("Hide", "Selected", "__rowid__"):
                 continue
             values = to_numbers(sd.df[column]).to_numpy(dtype=float)
             if np.isfinite(values).sum() >= 2:

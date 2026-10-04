@@ -88,9 +88,18 @@ def test_a_real_resize_redraws_once(panel: ChartPanel, draws: list[int]) -> None
     assert (round(width), round(height)) == (round(panel._canvas.width() * ratio), round(panel._canvas.height() * ratio))
 
 
-def test_a_reload_redraws_and_a_hidden_panel_waits(qapp, showcase, draws: list[int]) -> None:
+@pytest.mark.parametrize("zoom", [100, 122])
+def test_a_reload_redraws_and_a_hidden_panel_waits(qapp, showcase, draws: list[int], zoom: int) -> None:
+    """At 122% too: a zoom that does not land on whole pixels used to draw
+    every chart twice on being shown (Qt's resize rounds the canvas to a
+    whole pixel, and the figure's inches moved by a millionth)."""
+    from app.utils.config import get_section, set_section
+
+    saved = get_section("chart_panel")
+    set_section("chart_panel", {**saved, "initial_zoom_percent": zoom, "resize_mode": "FIXED"})
     repo, ids = showcase
-    hidden = ChartPanel(repo, ids["Bar Chart"])
+    # A figure of its own per zoom: a figure remembers the zoom it was shown at.
+    hidden = ChartPanel(repo, ids["Bar Chart" if zoom == 100 else "Histogram"])
     _settle()
     assert id(hidden._canvas) not in draws
     hidden.resize(700, 500)
@@ -106,6 +115,7 @@ def test_a_reload_redraws_and_a_hidden_panel_waits(qapp, showcase, draws: list[i
     # Shown again unchanged: the canvas still holds the drawing.
     assert draws.count(id(hidden._canvas)) == 2
     hidden.close()
+    set_section("chart_panel", saved)
 
 
 def test_the_first_hover_after_a_redraw_needs_no_draw_of_its_own(panel: ChartPanel, draws: list[int]) -> None:

@@ -295,8 +295,8 @@ class TableEditorDialog(QDialog):
         self._tool(row, "table_group_aggregate", self._group_aggregate)
         row.addStretch(1)
 
-        # Hide and ClusterId: the columns the application maintains - used
-        # rarely, so behind one button rather than five.
+        # Hide, Selected and ClusterId: the columns the application
+        # maintains - used rarely, so behind one button.
         more = QToolButton(card)
         more.setObjectName("tableEditorMore")
         more_icon, more_text, more_tip = action_presentation("table_more")
@@ -309,33 +309,41 @@ class TableEditorDialog(QDialog):
         # Hide rows by the selected column: the same comparisons the data
         # preview offers, so the editor is not the one place they are
         # missing (todo N-06). Inside this session's undo entry.
-        hide_icon, hide_text, hide_tip = action_presentation("table_hide_rows")
-        hide_menu = menu.addMenu(hide_icon, hide_text)
-        hide_menu.setToolTipsVisible(True)
-        hide_menu.setToolTip(hide_tip)
-        # The operator is the payload; only the label is translated.
-        for label, operator in (
-            (_("Equal to..."), "="),
-            (_("Different from..."), "!="),
-            (_("Lower than..."), "<"),
-            (_("Lower or equal..."), "<="),
-            (_("Higher than..."), ">"),
-            (_("Higher or equal..."), ">="),
+        for flag, action_id, empty_text, same_text in (
+            ("Hide", "table_hide_rows", _("Hide NULL / empty values"), _("Hide rows equal to selected cell")),
+            ("Selected", "table_select_rows", _("Select NULL / empty values"), _("Select rows equal to selected cell")),
         ):
-            item = hide_menu.addAction(label)
-            item.triggered.connect(lambda _checked=False, op=operator: self._hide_rows(op))
-        hide_menu.addSeparator()
-        hide_menu.addAction(_("Hide NULL / empty values")).triggered.connect(
-            lambda _checked=False: self._hide_rows(None)
-        )
-        hide_menu.addAction(_("Hide rows equal to selected cell")).triggered.connect(
-            lambda _checked=False: self._hide_rows("=", from_cell=True)
-        )
+            flag_icon, flag_text, flag_tip = action_presentation(action_id)
+            flag_menu = menu.addMenu(flag_icon, flag_text)
+            flag_menu.setToolTipsVisible(True)
+            flag_menu.setToolTip(flag_tip)
+            # The operator is the payload; only the label is translated.
+            for label, operator in (
+                (_("Equal to..."), "="),
+                (_("Different from..."), "!="),
+                (_("Lower than..."), "<"),
+                (_("Lower or equal..."), "<="),
+                (_("Higher than..."), ">"),
+                (_("Higher or equal..."), ">="),
+            ):
+                item = flag_menu.addAction(label)
+                item.triggered.connect(lambda _checked=False, op=operator, f=flag: self._flag_rows(f, op))
+            flag_menu.addSeparator()
+            flag_menu.addAction(empty_text).triggered.connect(
+                lambda _checked=False, f=flag: self._flag_rows(f, None)
+            )
+            flag_menu.addAction(same_text).triggered.connect(
+                lambda _checked=False, f=flag: self._flag_rows(f, "=", from_cell=True)
+            )
         menu.addSeparator()
         for action_id, action in (
             ("table_hide_ensure", self._repo.ensure_hide_column),
             ("table_hide_reset", self._repo.clear_hide_column),
             ("table_hide_invert", self._repo.invert_hide),
+            (None, None),
+            ("table_selected_ensure", self._repo.ensure_selected_column),
+            ("table_selected_reset", self._repo.clear_selected_column),
+            ("table_selected_invert", self._repo.invert_selected),
             (None, None),
             ("table_cluster_ensure", self._repo.ensure_cluster_column),
             ("table_cluster_reset", self._repo.clear_cluster_column),
@@ -572,10 +580,10 @@ class TableEditorDialog(QDialog):
         column = self._need_column()
         if column is None:
             return
-        # Hide and ClusterId are the application's; one column of data must stay.
+        # Hide, Selected and ClusterId are the application's; one column of data must stay.
         data_columns = [
             c for c in (self._model.column_name(i) for i in range(self._model.columnCount()))
-            if c not in (None, "Hide", "ClusterId")
+            if c not in (None, "Hide", "Selected", "ClusterId")
         ]
         if column in data_columns and len(data_columns) <= 1:
             self._say(_("A table needs at least one column. Add another column before deleting this one."))
@@ -604,9 +612,14 @@ class TableEditorDialog(QDialog):
     # ------------------------------------------------------------------
 
     def _hide_rows(self, operator: str | None, *, from_cell: bool = False) -> None:
-        """Hide the rows where the selected column compares to a value.
+        """Hide the rows where the selected column compares to a value."""
+        self._flag_rows("Hide", operator, from_cell=from_cell)
 
-        *operator* None hides the empty cells; ``from_cell`` takes the value
+    def _flag_rows(self, flag: str, operator: str | None, *, from_cell: bool = False) -> None:
+        """Set *flag* (Hide or Selected) on the rows where the selected column
+        compares to a value.
+
+        *operator* None marks the empty cells; ``from_cell`` takes the value
         from the selected cell instead of asking for one.
         """
         column = self._need_column()
@@ -623,8 +636,9 @@ class TableEditorDialog(QDialog):
             else:
                 text, ok = QInputDialog.getText(
                     self,
-                    _("Hide rows"),
-                    _("Hide rows where {column} {operator}:").format(column=column, operator=operator),
+                    _("Hide rows") if flag == "Hide" else _("Select rows"),
+                    (_("Hide rows where {column} {operator}:") if flag == "Hide"
+                     else _("Select rows where {column} {operator}:")).format(column=column, operator=operator),
                 )
                 if not ok:
                     return
@@ -634,13 +648,14 @@ class TableEditorDialog(QDialog):
         def run() -> None:
             self._ensure_undo_entry()
             if operator is None:
-                hidden.append(self._repo.hide_rows_special(self._table, column, "null_or_empty"))
+                hidden.append(self._repo.flag_rows_special(self._table, flag, column, "null_or_empty"))
             else:
-                hidden.append(self._repo.hide_rows_by_value(self._table, column, operator, value))
+                hidden.append(self._repo.flag_rows_by_value(self._table, flag, column, operator, value))
 
         self._guarded(run)
         if hidden:
-            self._say(_("{count} row(s) hidden.").format(count=hidden[0]))
+            message = _("{count} row(s) hidden.") if flag == "Hide" else _("{count} row(s) marked Selected.")
+            self._say(message.format(count=hidden[0]))
 
     def _sort(self, *, descending: bool) -> None:
         column = self._need_column()

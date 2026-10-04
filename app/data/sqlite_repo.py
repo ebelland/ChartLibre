@@ -27,6 +27,7 @@ from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import ClassVar
 
@@ -493,6 +494,32 @@ class SqliteRepo(
 
 
     @ensure_connection_wrapper
+    def _create_figure_touch_triggers(self) -> None:
+        """Triggers keeping __figure_descriptors__.last_modified current."""
+        assert self._con
+        now = "strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now')"
+        touch_figure = "UPDATE __figure_descriptors__ SET last_modified = " + now + " WHERE id = {figure}"
+        axis_of_series = "(SELECT figure_id FROM __axis_descriptors__ WHERE id = {series}.axis_id)"
+        statements = [
+            # Not on last_modified itself, nor on created: those are the record.
+            "CREATE TRIGGER IF NOT EXISTS trg_figure_touched AFTER UPDATE OF name, nrows, ncols, options_json, note "
+            "ON __figure_descriptors__ BEGIN " + touch_figure.format(figure="NEW.id") + "; END",
+        ]
+        for event in ("INSERT", "UPDATE", "DELETE"):
+            row = "OLD" if event == "DELETE" else "NEW"
+            statements.append(
+                f"CREATE TRIGGER IF NOT EXISTS trg_axis_{event.lower()}_touches_figure AFTER {event} "
+                f"ON __axis_descriptors__ BEGIN " + touch_figure.format(figure=f"{row}.figure_id") + "; END"
+            )
+            statements.append(
+                f"CREATE TRIGGER IF NOT EXISTS trg_series_{event.lower()}_touches_figure AFTER {event} "
+                f"ON __series_descriptors__ BEGIN "
+                + touch_figure.format(figure=axis_of_series.format(series=row)) + "; END"
+            )
+        for statement in statements:
+            self._con.execute(statement)
+
+    @ensure_connection_wrapper
     def _create_system_tables(self):
         """Create required system tables if missing."""
 
@@ -531,6 +558,23 @@ class SqliteRepo(
         if "options_json" not in cols:
             self._con.execute(
                 "ALTER TABLE __figure_descriptors__ ADD COLUMN options_json TEXT"
+            )
+        # A figure's notes and dates (older projects gain the columns here;
+        # their figures are dated by the project file, the nearest there is).
+        added_dates = False
+        for column in ("note", "created", "last_modified"):
+            if column not in cols:
+                self._con.execute(f"ALTER TABLE __figure_descriptors__ ADD COLUMN {column} TEXT")
+                added_dates = added_dates or column != "note"
+        if added_dates:
+            from app.data.repo.project_info import file_created_at
+
+            born = file_created_at(Path(str(self.db_path))) if self.db_path else None
+            stamp = (born or datetime.now(timezone.utc)).isoformat(timespec="seconds")
+            self._con.execute(
+                "UPDATE __figure_descriptors__ SET created = COALESCE(created, ?), "
+                "last_modified = COALESCE(last_modified, ?)",
+                (stamp, stamp),
             )
 
         # Axis descriptors: chart type and labels
@@ -594,6 +638,10 @@ class SqliteRepo(
             );
             """
         )
+
+        # A figure's last_modified follows every change to it, its axes or
+        # their series, whichever code makes it.
+        self._create_figure_touch_triggers()
 
         # What was applied, and how: see app/data/repo/operations.py.
         self.create_operations_table()

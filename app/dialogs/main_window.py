@@ -2655,6 +2655,10 @@ class MainWindow(QMainWindow):
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Failed to create database: %s", exc)
             show_message(self, "database.create_failed", error=exc)
+            return
+        # A new project says who made it and what it is for from the start.
+        self._project_info_asked = getattr(self, "_project_info_asked", set()) | {str(db_path)}
+        self._on_project_info()
 
     def _on_load_demo(self) -> None:
         """Copy one of the shipped, pre-built demo projects, and open it.
@@ -2721,11 +2725,41 @@ class MainWindow(QMainWindow):
         """
         if self._repo is None:
             return
+        self._ask_for_missing_project_info()
+        self._refresh_project_preview()
         try:
             self._repo.checkpoint()
             self.statusBar().showMessage(_("Database saved."), 4_000)
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Checkpoint failed: %s", exc)
+
+    def _ask_for_missing_project_info(self) -> None:
+        """Open Project info when the project has no author or no notes.
+
+        Once per project and session: closing the window without filling it
+        in means "not now", and the next Save should not ask again.
+        """
+        if self._repo is None:
+            return
+        asked = getattr(self, "_project_info_asked", set())
+        key = str(self._repo.db_path)
+        info = self._repo.project_info()
+        if key in asked or (info.get("author") and info.get("notes")):
+            return
+        asked.add(key)
+        self._project_info_asked = asked
+        self._on_project_info()
+
+    def _refresh_project_preview(self) -> None:
+        """Draw the project's first figure again into its preview picture."""
+        if self._repo is None or self._repo.db_path is None:
+            return
+        try:
+            from app.utils.project_preview import write_project_preview
+
+            write_project_preview(self._repo)
+        except Exception as exc:  # noqa: BLE001 - a preview must never stop a save
+            applogger.warning("Could not draw the project preview: %s", exc, show_dialog=False, raise_error=False)
 
     def _on_save_as(self) -> None:
         """Save a copy of the current database under a new name, and switch to it.
@@ -2750,12 +2784,16 @@ class MainWindow(QMainWindow):
             return
 
         applogger.info("Saving database as: %s", target)
+        self._ask_for_missing_project_info()
         try:
             saved_path = self._repo.save_as(target)
             self._switch_database(saved_path)
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Failed to save database as: %s", exc)
             show_message(self, "database.save_as_failed", error=exc)
+            return
+        # The copy has its own name, so its own preview.
+        self._refresh_project_preview()
 
     def _on_import_data(self, source_path: Path | None = None) -> None:
         """Open the import dialog and refresh UI if import succeeds.

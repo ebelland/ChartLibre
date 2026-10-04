@@ -1,25 +1,36 @@
-"""Project info: who made the project, when, and what it is about.
+"""Project info: who made the project, when, what it is about, its sources.
 
 Edits the project's own ``__project_info__`` entries (see
-app/data/repo/project_info.py). The creation date is shown, not edited - it
-is a fact about the file. The author typed here is also remembered for this
+app/data/repo/project_info.py): author, notes and bibliographic references.
+The creation date and the preview are shown, not edited - the date is a fact
+about the file, and the preview is redrawn from the first figure each time
+the project is saved. The author typed here is also remembered for this
 computer, so a new project starts with it already filled in.
 """
 from __future__ import annotations
 
 from datetime import datetime
 
+from pathlib import Path
+
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QDialog,
     QFormLayout,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QPlainTextEdit,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
+from app.data.repo.project_info import dump_references, parse_references
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.logs.logger import applogger
 from app.styles.style import (
@@ -55,7 +66,7 @@ def default_author() -> str:
 
 
 class ProjectInfoDialog(QDialog):
-    """Author, creation date and notes of the open project."""
+    """Author, creation date, notes, references and preview of the open project."""
 
     def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -65,7 +76,7 @@ class ProjectInfoDialog(QDialog):
         info = repo.project_info()
 
         root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
+        apply_dialog_shell(self, root, size="medium")
         card = CardFrame(self, "projectInfoCard")
         card_layout = card.layout()
         form = QFormLayout()
@@ -88,9 +99,45 @@ class ProjectInfoDialog(QDialog):
 
         self.notes_edit = QPlainTextEdit(info.get("notes", ""), card)
         self.notes_edit.setPlaceholderText(_("What the project is about, where the data came from, what is left to do..."))
-        self.notes_edit.setMinimumHeight(120)
+        self.notes_edit.setMinimumHeight(90)
         form.addRow(_("Notes"), self.notes_edit)
-        card_layout.addLayout(form)
+
+        # The first figure, as the project's preview shows it.
+        top = QHBoxLayout()
+        stdSizeAndlayout(top)
+        top.addLayout(form, 1)
+        self.preview_label = QLabel(card)
+        self.preview_label.setFixedSize(self.PREVIEW_SIZE)
+        self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.preview_label.setToolTip(_("The project's first figure, drawn again each time the project is saved."))
+        self._show_preview(info.get("preview_path"))
+        top.addWidget(self.preview_label, 0, Qt.AlignmentFlag.AlignTop)
+        card_layout.addLayout(top)
+
+        card_layout.addWidget(create_section_title(_("References"), card))
+        self.references_table = QTableWidget(0, 3, card)
+        self.references_table.setHorizontalHeaderLabels([_("Citation"), _("DOI"), _("Link")])
+        self.references_table.setToolTip(_("The sources of the data and methods: a citation, and if it has them a DOI "
+                                           "(10.xxxx/...) and a web link. Reports list them with their links."))
+        header = self.references_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
+        header.resizeSection(1, 150)
+        header.resizeSection(2, 150)
+        self.references_table.verticalHeader().setVisible(False)
+        self.references_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.references_table.setMinimumHeight(110)
+        for entry in parse_references(info.get("references")):
+            self._append_reference(entry)
+        card_layout.addWidget(self.references_table, 1)
+        reference_buttons = QHBoxLayout()
+        stdSizeAndlayout(reference_buttons)
+        create_action_button(parent=card, action_id="add", action=lambda: self._append_reference({}, edit=True),
+                             layout=reference_buttons)
+        create_action_button(parent=card, action_id="delete", action=self._remove_references, layout=reference_buttons)
+        reference_buttons.addStretch(1)
+        card_layout.addLayout(reference_buttons)
         root.addWidget(card, 1)
 
         buttons = QHBoxLayout()
@@ -101,11 +148,62 @@ class ProjectInfoDialog(QDialog):
         root.addLayout(buttons, 0)
         restore_window_geometry(self, _STATE_KEY)
 
+    #: The preview, at the size the Load demo dialog shows it, halved.
+    PREVIEW_SIZE = QSize(200, 125)
+
+    def _show_preview(self, entry: str | None) -> None:
+        from app.utils.project_preview import resolve_preview
+
+        path = resolve_preview(Path(str(self._repo.db_path)), entry) if self._repo.db_path else None
+        picture = QPixmap(str(path)) if path is not None else QPixmap()
+        if picture.isNull():
+            self.preview_label.setText(_("No preview yet: it is drawn when the project is saved."))
+            self.preview_label.setWordWrap(True)
+            self.preview_label.setProperty("muted", True)
+            return
+        ratio = self.devicePixelRatioF()
+        scaled = picture.scaled(self.PREVIEW_SIZE * ratio, Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation)
+        scaled.setDevicePixelRatio(ratio)
+        self.preview_label.setPixmap(scaled)
+
+    def _append_reference(self, entry: dict[str, str], *, edit: bool = False) -> None:
+        row = self.references_table.rowCount()
+        self.references_table.insertRow(row)
+        for column, key in enumerate(("citation", "doi", "url")):
+            self.references_table.setItem(row, column, QTableWidgetItem(entry.get(key, "")))
+        if edit:
+            self.references_table.setCurrentCell(row, 0)
+            self.references_table.editItem(self.references_table.item(row, 0))
+
+    def _remove_references(self) -> None:
+        rows = sorted({index.row() for index in self.references_table.selectedIndexes()}, reverse=True)
+        for row in rows:
+            self.references_table.removeRow(row)
+
+    def references(self) -> list[dict[str, str]]:
+        """The references as typed, rows with no citation left out."""
+        result = []
+        for row in range(self.references_table.rowCount()):
+            values = {}
+            for column, key in enumerate(("citation", "doi", "url")):
+                item = self.references_table.item(row, column)
+                text = item.text().strip() if item is not None else ""
+                if text:
+                    values[key] = text
+            if values.get("citation"):
+                result.append(values)
+        return result
+
     def accept(self) -> None:
         """Save the entries; close only once they are saved."""
         author = self.author_edit.text().strip()
         try:
-            self._repo.set_project_info({"author": author, "notes": self.notes_edit.toPlainText()})
+            self._repo.set_project_info({
+                "author": author,
+                "notes": self.notes_edit.toPlainText(),
+                "references": dump_references(self.references()),
+            })
         except DatabaseError as exc:
             applogger.exception("Could not save the project info: %s", exc)
             return

@@ -13,6 +13,7 @@ Part of ``SqliteRepo``; see ``app/data/repo/__init__.py``.
 """
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -22,8 +23,37 @@ from app.data.repo._common import RepoHost, ensure_connection_wrapper
 
 PROJECT_INFO_TABLE = "__project_info__"
 
-#: The entries the Project info window edits, in its order.
-PROJECT_INFO_KEYS: tuple[str, ...] = ("author", "created", "notes")
+#: The entries a project keeps: who made it, when, notes about it, the
+#: picture of its first figure (a path, relative to the project), and its
+#: bibliographic references (a JSON list of {"citation", "doi", "url"}).
+PROJECT_INFO_KEYS: tuple[str, ...] = ("author", "created", "notes", "preview_path", "references")
+
+
+def parse_references(text: str | None) -> list[dict[str, str]]:
+    """The ``references`` entry as a list; [] when empty or not a list.
+
+    A plain string in the list - a reference written by hand - is taken as
+    its citation.
+    """
+    try:
+        value = json.loads(text) if text else []
+    except ValueError:
+        return []
+    if not isinstance(value, list):
+        return []
+    result: list[dict[str, str]] = []
+    for item in value:
+        if isinstance(item, str) and item.strip():
+            result.append({"citation": item.strip()})
+        elif isinstance(item, dict) and str(item.get("citation") or "").strip():
+            result.append({key: str(item[key]).strip() for key in ("citation", "doi", "url") if str(item.get(key) or "").strip()})
+    return result
+
+
+def dump_references(references: list[dict[str, str]]) -> str | None:
+    """*references* as the entry's JSON, or None when there are none."""
+    kept = [entry for entry in references if str(entry.get("citation") or "").strip()]
+    return json.dumps(kept, ensure_ascii=False) if kept else None
 
 
 def file_created_at(path: Path) -> datetime | None:

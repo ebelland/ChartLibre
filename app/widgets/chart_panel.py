@@ -262,6 +262,10 @@ class ChartPanel(QFrame):
         """
         if self._resize_mode == "FIXED":
             self._apply_fixed_mode_pixel_size()
+        else:
+            # The figure's own dpi is for export; on screen it is drawn at the
+            # screen's density (see _reset_figure_metrics_from_rcparams_for_reload).
+            self._set_configured_dpi(FIXED_MODE_SCREEN_DPI)
         self._schedule_canvas_geometry_sync(redraw=True)
 
     def ensure_rendered(self) -> None:
@@ -782,9 +786,15 @@ class ChartPanel(QFrame):
             self._hover_timer.start()
 
     def _draw_state(self) -> tuple[Any, ...]:
-        """What a draw of the figure right now would show: contents, size, dpi."""
-        width, height = self._figure.get_size_inches()
-        return (self._content_revision, round(float(width), 6), round(float(height), 6), float(self._figure.dpi))
+        """What a draw of the figure right now would show: contents, pixels, dpi.
+
+        The size is the figure's in whole device pixels - the size of the
+        buffer a draw fills, which is what matters: a draw at one size is no
+        draw at another. (The figure follows its canvas to the pixel, FIXED
+        mode included - see _apply_figure_size_from_canvas.)
+        """
+        width, height = self._figure.bbox.size
+        return (self._content_revision, int(width), int(height), float(self._figure.dpi))
 
     def _on_canvas_drawn(self, _event: Any) -> None:
         """After every full draw: note what is on screen, and keep it for hovering.
@@ -2592,11 +2602,12 @@ class ChartPanel(QFrame):
         if canvas_size.width() <= 0 or canvas_size.height() <= 0:
             return
 
-        if self._resize_mode == "FIXED":
-            width_in, height_in = self._fixed_figure_size_inches
-            self._figure.set_size_inches(width_in, height_in, forward=False)
-            return
-
+        # FIXED too: the canvas is a whole number of pixels, and the figure
+        # takes exactly those. Putting the configured inches back (6.4 where
+        # 781 pixels at 122% make 6.4016) left the figure a pixel off its own
+        # canvas - redrawn twice on every show, or, once that was suppressed,
+        # left with a fresh blank buffer of the new size. The configured
+        # inches stay in _fixed_figure_size_inches, for export.
         width_in = logical_to_inches(canvas_size.width(), self._figure, self._canvas)
         height_in = logical_to_inches(canvas_size.height(), self._figure, self._canvas)
         self._figure.set_size_inches(width_in, height_in, forward=False)
@@ -2823,10 +2834,13 @@ class ChartPanel(QFrame):
                 if width_in > 0.0 and height_in > 0.0:
                     self._figure.set_size_inches(width_in, height_in, forward=False)
 
-            if dpi is not None:
-                dpi_value = float(dpi)
-                if dpi_value > 0.0:
-                    self._set_configured_dpi(dpi_value)
+            if dpi is not None and float(dpi) > 0.0:
+                # On screen a figure is drawn at the screen's density in every
+                # mode, as FIXED already did: its own dpi is an export
+                # resolution (Save figure, reports, the project preview), and
+                # drawing at it scaled the text with it - a 200 dpi figure in
+                # a FIT panel came out with letters twice the size.
+                self._set_configured_dpi(FIXED_MODE_SCREEN_DPI)
         except Exception:
             applogger.exception(
                 "Failed to reset figure metrics from rcParams (figure_id=%s)",
@@ -2909,8 +2923,9 @@ class ChartPanel(QFrame):
         """Restore captured logical size and base DPI after leaving FIXED mode."""
         try:
             width_in, height_in = self._fixed_figure_size_inches
-            # Configured dpi in, device dpi onto the figure.
-            self._set_configured_dpi(self._fixed_figure_dpi)
+            # The screen's density in, device dpi onto the figure; the
+            # figure's own dpi stays in _fixed_figure_dpi, for saving.
+            self._set_configured_dpi(FIXED_MODE_SCREEN_DPI)
             self._figure.set_size_inches(width_in, height_in, forward=False)
         except Exception:
             applogger.exception(
@@ -2943,8 +2958,15 @@ class ChartPanel(QFrame):
             width_in, height_in = self._fixed_figure_size_inches
             self._set_configured_dpi(FIXED_MODE_SCREEN_DPI * zoom)
             self._figure.set_size_inches(width_in, height_in, forward=False)
-            self._canvas.setFixedSize(self._current_figure_pixel_size(apply_zoom=True))
-            self._figure.set_size_inches(width_in, height_in, forward=False)
+            pixels = self._current_figure_pixel_size(apply_zoom=True)
+            self._canvas.setFixedSize(pixels)
+            # The whole pixels the canvas got, not the inches asked for: see
+            # _apply_figure_size_from_canvas.
+            self._figure.set_size_inches(
+                logical_to_inches(pixels.width(), self._figure, self._canvas),
+                logical_to_inches(pixels.height(), self._figure, self._canvas),
+                forward=False,
+            )
         except Exception:
             applogger.exception(
                 "Failed to apply fixed-mode pixel size (figure_id=%s)",

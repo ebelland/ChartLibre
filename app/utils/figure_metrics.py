@@ -17,9 +17,12 @@ from typing import Any
 
 CM_PER_INCH = 2.54
 
-#: Fallback metrics, used when a figure's options say nothing.  Matches the
-#: Matplotlib defaults so an untouched figure looks the way Matplotlib draws it.
-DEFAULT_FIGURE_DPI = 100.0
+#: Fallback metrics, used when a figure's options say nothing. The size is
+#: Matplotlib's own; the dpi is 200, so a figure saved as PNG - or drawn into
+#: a report or a project preview - is sharp in print without anyone having
+#: set it. On screen it changes nothing: the chart panel sizes a figure from
+#: its inches at FIXED_MODE_SCREEN_DPI, not from this.
+DEFAULT_FIGURE_DPI = 200.0
 DEFAULT_FIGURE_SIZE_IN = (6.4, 4.8)
 
 OPT_FIGURE_WIDTH_CM = "figure_width_cm"

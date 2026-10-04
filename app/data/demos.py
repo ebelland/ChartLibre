@@ -8,6 +8,8 @@ step that nothing an end user runs ever needs.
 from __future__ import annotations
 
 import shutil
+import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -27,6 +29,50 @@ DEMO_DIR: Path = REPO_ROOT / "demo"
 PROJECTS_DIR: Path = REPO_ROOT / "projects"
 
 
+#: A bibliographic reference: the citation, and optionally its DOI and a
+#: link. The same shape the project's own ``references`` entry holds.
+Reference = dict[str, str]
+
+
+def reference(citation: str, *, doi: str = "", url: str = "") -> Reference:
+    """One reference, with only the parts it has."""
+    entry = {"citation": citation}
+    if doi:
+        entry["doi"] = doi
+    if url:
+        entry["url"] = url
+    return entry
+
+
+#: The data sources the demos draw on (see also app/utils/credits.py).
+REF_PENGUINS = reference(
+    "Horst A. M., Hill A. P., Gorman K. B. (2020). palmerpenguins: Palmer Archipelago (Antarctica) penguin data.",
+    doi="10.5281/zenodo.3960218", url="https://allisonhorst.github.io/palmerpenguins/")
+REF_ANTIBIOTICS = reference("Burtin W. (1951). Antibiotic effectiveness against sixteen bacteria. Scope (Upjohn).")
+REF_YEAST = reference("Nakai K. (1991). Yeast. UCI Machine Learning Repository.",
+                      doi="10.24432/C5KG68", url="https://archive.ics.uci.edu/dataset/110/yeast")
+REF_ANSCOMBE = reference("Anscombe F. J. (1973). Graphs in statistical analysis. The American Statistician 27(1), 17-21.",
+                         doi="10.1080/00031305.1973.10478966")
+REF_CO2 = reference("Keeling C. D. et al.; NOAA Global Monitoring Laboratory. Mauna Loa CO2 monthly mean data.",
+                    url="https://gml.noaa.gov/ccgg/trends/")
+REF_SUNSPOTS = reference("WDC-SILSO, Royal Observatory of Belgium, Brussels. Monthly mean total sunspot number.",
+                         url="https://www.sidc.be/SILSO/")
+REF_GISTEMP = reference("GISTEMP Team (2024). GISS Surface Temperature Analysis (GISTEMP), version 4. NASA GISS.",
+                        url="https://data.giss.nasa.gov/gistemp/")
+REF_USGS = reference("U.S. Geological Survey. Earthquake Hazards Program, real-time feeds.",
+                     url="https://earthquake.usgs.gov/earthquakes/feed/")
+REF_NIST = reference("NIST Statistical Reference Datasets (StRD): nonlinear regression and univariate summary statistics.",
+                     url="https://www.itl.nist.gov/div898/strd/")
+REF_FREIREICH = reference("Freireich E. J. et al. (1963). The effect of 6-mercaptopurine on the duration of steroid-induced "
+                          "remissions in acute leukemia. Blood 21(6), 699-716.", doi="10.1182/blood.V21.6.699.699")
+REF_COLDITZ = reference("Colditz G. A. et al. (1994). Efficacy of BCG vaccine in the prevention of tuberculosis: "
+                        "meta-analysis of the published literature. JAMA 271(9), 698-702.", doi="10.1001/jama.1994.03510330076038")
+REF_MICHELSON = reference("Michelson A. A. (1882). Experimental determination of the velocity of light. "
+                          "Astronomical Papers 1, 109-145. (NIST StRD dataset Michelso.)")
+REF_AGRESTI = reference("Agresti A. (2007). An Introduction to Categorical Data Analysis, 2nd ed. Wiley. Table 2.5.",
+                        doi="10.1002/0470114754")
+
+
 @dataclass(frozen=True, slots=True)
 class DemoProject:
     """One demo file: what it is called, and what it contains.
@@ -35,6 +81,12 @@ class DemoProject:
     folder should be able to open the one that answers their question without
     opening the other eleven, which means the name has to say both the
     subject and what it demonstrates.
+
+    ``summary``, ``author`` and ``references`` are what the build writes into
+    the project's own information (``__project_info__``: notes, author,
+    references), along with its preview; once built, the Load demo dialog
+    reads them back from the file through :meth:`info`, the way any project
+    describes itself.
     """
 
     file_name: str
@@ -44,20 +96,17 @@ class DemoProject:
     #: not a selection of figures - the Series Operations one runs the
     #: operations' dialogs. Empty: built from ``figures`` as usual.
     builder: str = ""
-    #: The figure the Load demo dialog pictures, by (part of) its name; the
-    #: first figure when empty.
+    #: The figure the preview pictures, by (part of) its name; the first
+    #: figure when empty.
     preview: str = ""
+    #: Where its data comes from.
+    references: tuple[Reference, ...] = ()
+    author: str = "ChartLibre"
 
     @property
     def path_name(self) -> str:
         """Return the file name with its extension."""
         return f"{self.file_name}.dhub"
-
-    @property
-    def preview_path(self) -> Path:
-        """A picture of the project's first figure, for the Load demo dialog
-        (dev/demo/demo_previews.py)."""
-        return DEMO_DIR / "previews" / f"{self.file_name}.png"
 
     @property
     def source_path(self) -> Path:
@@ -67,6 +116,33 @@ class DemoProject:
         the point this is read - see :func:`copy_demo_project`.
         """
         return DEMO_DIR / self.path_name
+
+    def info(self) -> dict[str, str]:
+        """The built file's project information, read without opening it for
+        writing; empty when it is not built or predates the information."""
+        source = self.source_path
+        if not source.is_file():
+            return {}
+        try:
+            with closing(sqlite3.connect(f"{source.resolve().as_uri()}?mode=ro", uri=True)) as con:
+                rows = con.execute("SELECT key, value FROM __project_info__").fetchall()
+        except sqlite3.Error:
+            return {}
+        return {str(key): str(value) for key, value in rows}
+
+    @property
+    def description(self) -> str:
+        """What the demo is, as the built project's notes say."""
+        return self.info().get("notes") or self.summary
+
+    @property
+    def preview_path(self) -> Path | None:
+        """The picture the built project's ``preview_path`` names, if any."""
+        entry = self.info().get("preview_path")
+        if not entry:
+            return None
+        path = Path(entry) if Path(entry).is_absolute() else DEMO_DIR / entry
+        return path if path.is_file() else None
 
 
 #: The demo set.  The first is the complete project - every chart type over
@@ -78,24 +154,28 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "and six multi-axis layouts, and one saved query.",
         (),
         preview="Penguin flipper length - spread",
+        references=(REF_PENGUINS, REF_ANTIBIOTICS, REF_YEAST, REF_ANSCOMBE,),
     ),
     DemoProject(
         "Antibiotics - grouped bars from a classic dataset",
         "1930s antibiotic potency data for sixteen bacteria, as a horizontal "
         "bar chart sorted by effectiveness.",
         ("antibiotics",),
+        references=(REF_ANTIBIOTICS,),
     ),
     DemoProject(
         "Penguins - species compared across four chart types",
         "The Palmer penguins: the same three species read as a scatter plot, "
         "a histogram, a violin plot and a box plot.",
         ("penguin_scatter", "penguin_hist", "penguin_violin", "penguin_box"),
+        references=(REF_PENGUINS,),
     ),
     DemoProject(
         "Yeast proteins - histogram of three localisation classes",
         "Cytoplasm, nucleus and mitochondria: three overlapping distributions "
         "of one measured feature.",
         ("yeast_hist",),
+        references=(REF_YEAST,),
     ),
     DemoProject(
         "DLVO force curve - ready for Fit and Calculus",
@@ -185,6 +265,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
             "anscombe_quartet", "lissajous_grid", "signal_time_and_frequency",
             "signal_spectrum_stem",
         ),
+        references=(REF_ANSCOMBE,),
     ),
     DemoProject(
         "Quality and spectroscopy - three quality-control operations",
@@ -288,6 +369,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
             "gutenberg_richter",
             "global_temperature",
         ),
+        references=(REF_CO2, REF_SUNSPOTS, REF_USGS, REF_GISTEMP,),
     ),
     DemoProject(
         "Root cause analysis - an Ishikawa diagram and its Pareto chart",
@@ -309,6 +391,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         (),
         builder="dev.demo.nist_demo:build_nist_demo",
         preview="NIST Gauss3",
+        references=(REF_NIST,),
     ),
     DemoProject(
         "Diagnostic plots - Q-Q, survival, forest, mosaic and more",
@@ -320,6 +403,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "the Statistics model that tests it.",
         (),
         builder="dev.demo.diagnostics_demo:build_diagnostics_demo",
+        references=(REF_PENGUINS, REF_FREIREICH, REF_COLDITZ, REF_MICHELSON,),
     ),
     DemoProject(
         "Series operations - fifteen operations, each with its report",
@@ -365,6 +449,11 @@ def copy_demo_project(demo: DemoProject, target: Path) -> Path:
     for path in (target, *project_side_files(target)):
         path.unlink(missing_ok=True)
     shutil.copy2(source, target)
+    # Its preview goes with it, under the name the project's preview_path
+    # gives it (the same stem, so the same name).
+    preview = demo.preview_path
+    if preview is not None:
+        shutil.copy2(preview, target.parent / preview.name)
     return target
 
 

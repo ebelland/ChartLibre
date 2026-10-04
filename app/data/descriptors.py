@@ -77,3 +77,9 @@ class FigureDescriptor(Descriptor):
     nrows: int = 1
     ncols: int = 1
     axes: list[AxisDescriptor] = field(default_factory=list)
+    #: Free notes about the figure, written in its properties.
+    note: str = ""
+    #: When it was made and last changed, ISO 8601 in UTC; last_modified is
+    #: kept by triggers on the figure, axis and series tables.
+    created: str = ""
+    last_modified: str = ""

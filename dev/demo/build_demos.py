@@ -26,6 +26,8 @@ output need pandas' read_csv/read_excel machinery.
 """
 from __future__ import annotations
 
+import json
+
 import argparse
 import tempfile
 from dataclasses import dataclass
@@ -36,7 +38,7 @@ import numpy as np
 import pandas as pd
 
 from app.charts import layout_presets
-from app.data.demos import DEMO_DIR, DEMO_PROJECTS
+from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject, project_side_files
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 
@@ -2504,7 +2506,40 @@ def build_demo_projects(directory: Path) -> list[Path]:
         path = build_demo_project(target / demo.path_name, demo.figures)
         applogger.info("Demo: wrote %s - %s", path.name, demo.summary)
         written.append(path)
+    for demo, path in zip(DEMO_PROJECTS, written):
+        describe_demo(demo, path)
     return written
+
+
+def describe_demo(demo: DemoProject, path: Path) -> None:
+    """Write *demo*'s information into its built project, and its preview.
+
+    Author, notes (the demo's summary), references and the creation date go
+    into the project's own ``__project_info__``, the way any project
+    describes itself; the preview is drawn beside it, from the figure the
+    demo names (or its first). The Load demo dialog reads all of it back
+    from the file.
+    """
+    from app.utils.project_preview import write_project_preview
+
+    repo = SqliteRepo(db_path=path)
+    try:
+        repo.set_project_info({
+            "author": demo.author,
+            "notes": demo.summary,
+            "references": json.dumps(list(demo.references), ensure_ascii=False) if demo.references else None,
+        })
+        figures = repo.load_figures_from_db()
+        chosen = [figure for figure in figures if demo.preview and demo.preview in figure[1]] or figures
+        if chosen:
+            write_project_preview(repo, figure_id=int(chosen[0][0]))
+        repo.checkpoint()
+    finally:
+        repo.close()
+    # Opening the project made its undo store and WAL files; they are no part
+    # of a shipped demo.
+    for side in project_side_files(path):
+        side.unlink(missing_ok=True)
 
 
 def _create_figure(repo: SqliteRepo, spec: FigureSpec) -> int:
@@ -2630,11 +2665,6 @@ def main() -> None:
 
     for path in build_demo_projects(Path(args.all)):
         print(f"Demo project written to {path}")
-    # The pictures the Load demo dialog shows, from the projects just built.
-    from dev.demo.demo_previews import build_previews
-
-    for path in build_previews(Path(args.all)):
-        print(f"Demo preview written to {path}")
 
 
 if __name__ == "__main__":

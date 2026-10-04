@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from matplotlib import rcParams
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPlainTextEdit,
     QSizePolicy,
     QSpinBox,
     QVBoxLayout,
@@ -222,6 +223,46 @@ class FigurePropertiesWidget(BaseProperties):
         self._connect_auto_apply()
         self.clear_connected_figure()
 
+    def _load_note(self, desc: Any) -> None:
+        """Show the figure's notes and dates, without saving them back.
+
+        Notes still waiting to be saved belong to the figure shown before,
+        and are saved to it first.
+        """
+        if self._note_timer.isActive():
+            self._note_timer.stop()
+            self._save_note()
+        self._note_figure_id = getattr(desc, "id", None)
+        self._note_edit.blockSignals(True)
+        self._note_edit.setPlainText(str(getattr(desc, "note", "") or ""))
+        self._note_edit.blockSignals(False)
+        self._show_dates(desc)
+
+    def _show_dates(self, desc: Any) -> None:
+        from app.dialogs.project_info_dialog import readable_date
+
+        created = str(getattr(desc, "created", "") or "")
+        modified = str(getattr(desc, "last_modified", "") or "")
+        parts = []
+        if created:
+            parts.append(_("Created {date}").format(date=readable_date(created)))
+        if modified:
+            parts.append(_("modified {date}").format(date=readable_date(modified)))
+        self._dates_label.setText(" · ".join(parts))
+
+    def _save_note(self) -> None:
+        """Write the notes typed, a moment after typing stopped."""
+        figure_id = getattr(self, "_note_figure_id", None)
+        if self._repo is None or figure_id is None:
+            return
+        try:
+            self._repo.set_figure_note(int(figure_id), self._note_edit.toPlainText())
+        except Exception as exc:  # noqa: BLE001 - logged; the text stays in the box
+            applogger.exception("Could not save the figure's notes: %s", exc)
+            return
+        if figure_id == self._figure_id:
+            self._show_dates(self._repo.get_figure_descriptor(int(figure_id)))
+
     def _connect_auto_apply(self) -> None:
         """Apply an edit a short moment after the last control change.
 
@@ -297,6 +338,28 @@ class FigurePropertiesWidget(BaseProperties):
         stdSizeAndlayout(self._name_edit)
         name_section_lay.addWidget(self._name_edit)
         lay.addWidget(name_section)
+
+        # ----- Notes -----
+        # Saved on their own, a moment after typing stops: they change
+        # nothing drawn, so they do not go through the panel's apply and
+        # its redraw.
+        notes_section = TitledCard(self, _("Notes"), "figureNotesCard")
+        notes_section_lay = notes_section.card.layout()
+        self._note_edit = QPlainTextEdit(notes_section)
+        self._note_edit.setPlaceholderText(_("What this figure shows, where its data came from..."))
+        self._note_edit.setFixedHeight(72)
+        self._note_edit.setToolTip(_("Kept with the figure in the project, and printed under it in reports."))
+        notes_section_lay.addWidget(self._note_edit)
+        self._dates_label = QLabel(notes_section)
+        self._dates_label.setProperty("muted", True)
+        self._dates_label.setWordWrap(True)
+        notes_section_lay.addWidget(self._dates_label)
+        self._note_timer = QTimer(self)
+        self._note_timer.setSingleShot(True)
+        self._note_timer.setInterval(700)
+        self._note_timer.timeout.connect(self._save_note)
+        self._note_edit.textChanged.connect(self._note_timer.start)
+        lay.addWidget(notes_section)
 
         # ----- Style -----
         style_section = TitledCard(self, _("Style"), "figureStyleCard")
@@ -665,11 +728,20 @@ class FigurePropertiesWidget(BaseProperties):
         self._load_shared_spacing_into_spins({})
         self._load_margins_into_spins({})
         self._name_edit.clear()
+        if self._note_timer.isActive():
+            self._note_timer.stop()
+            self._save_note()
+        self._note_figure_id = None
+        self._note_edit.blockSignals(True)
+        self._note_edit.clear()
+        self._note_edit.blockSignals(False)
+        self._dates_label.clear()
         super().clear_connected_figure()
 
     def _set_enabled_state(self, enabled: bool) -> None:
         for widget in (
             self._name_edit,
+            self._note_edit,
             self._style_combo,
             self._btn_default,
             self._btn_edit,
@@ -773,6 +845,7 @@ class FigurePropertiesWidget(BaseProperties):
             fig_opts = {}
 
         self._name_edit.setText(str(getattr(desc, "name", "") or ""))
+        self._load_note(desc)
 
         self._reload_style_combo(
             current_style=str(fig_opts.get("mpl_style", "") or "")

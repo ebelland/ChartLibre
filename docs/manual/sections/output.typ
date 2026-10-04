@@ -4,7 +4,7 @@
 
 == Saving a figure
 
-*Save figure* (chart menu, or Ctrl+Shift+S / Cmd+Shift+S) saves the active figure as an image: *PNG* or *JPEG* (pixels), or *SVG* or *PDF* (vector — sharp at any size, the format journals ask for). The dialog opens on the default format chosen in Settings. The resolution is the figure's own *DPI*, set in Figure options (300 is usual for print), and the picture is trimmed to its content.
+*Save figure* (chart menu, or Ctrl+Shift+S / Cmd+Shift+S) saves the active figure as an image: *PNG* or *JPEG* (pixels), or *SVG* or *PDF* (vector — sharp at any size, the format journals ask for). The dialog opens on the default format chosen in Settings. The resolution is the figure's own *DPI*, set in Figure options — 200 unless set otherwise, sharp in print; 300 is common for journals — and the picture is trimmed to its content. The DPI is an export resolution only: on screen every chart is drawn at the screen's own density, whatever its DPI.
 
 For a figure that must match a journal's column width, set the figure *size* in Figure options before saving; fonts keep their point size, so the text in the saved file is the size it will be printed at.
 

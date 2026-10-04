@@ -16,6 +16,7 @@ Part of ``SqliteRepo``; see ``app/data/repo/__init__.py``.
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timezone
 from typing import Any, Mapping, Sequence
 
 import app.data.descriptors
@@ -55,7 +56,20 @@ class DescriptorsMixin(RepoHost):
             ncols=int(row["ncols"]),
             options=_loads_json(row["options_json"]) if "options_json" in row.keys() else {},
             axes=[],
+            note=str(row["note"] or "") if "note" in row.keys() else "",
+            created=str(row["created"] or "") if "created" in row.keys() else "",
+            last_modified=str(row["last_modified"] or "") if "last_modified" in row.keys() else "",
         )
+
+    @ensure_connection_wrapper
+    def set_figure_note(self, figure_id: int, note: str) -> None:
+        """Replace the figure's notes (its last_modified follows, by trigger)."""
+        assert self._con is not None
+        self._con.execute(
+            "UPDATE __figure_descriptors__ SET note = ? WHERE id = ?",
+            (str(note or "").strip() or None, int(figure_id)),
+        )
+        self._commit()
     
     @ensure_connection_wrapper
     def get_figure_title(self, figure_id: int) -> str | None:
@@ -375,15 +389,18 @@ class DescriptorsMixin(RepoHost):
             Primary key id of created figure (or 0 on error)
         """
         assert self._con is not None
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         cur = self._con.execute(
             "INSERT INTO __figure_descriptors__ "
-            "(name, nrows, ncols, options_json) "
-            "VALUES (?, ?, ?, ?)",
+            "(name, nrows, ncols, options_json, created, last_modified) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
             (
                 str(name),
                 int(nrows),
                 int(ncols),
                 _dumps_json(options or {}) if options else None,
+                now,
+                now,
             ),
         )
         self._commit()

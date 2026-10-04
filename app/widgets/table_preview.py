@@ -314,60 +314,8 @@ class TablePreviewPanel(QWidget):
         menu = create_menu(self, items, icons=CONTEXT_MENU_ICONS)
 
         if column:
-            hide_menu = menu.addMenu(_("Hide rows by selected column"))
-            # The operator is the payload and stays as it is; only the label
-            # is translated. Wrapping the operator too would hide rows by
-            # comparing against a translated string instead of SQL.
-            for label, operator in (
-                (_("Equal to..."), "="),
-                (_("Different from..."), "!="),
-                (_("Lower than..."), "<"),
-                (_("Lower or equal..."), "<="),
-                (_("Higher than..."), ">"),
-                (_("Higher or equal..."), ">="),
-            ):
-                create_menu_item(
-                    parent=self,
-                    icons=CONTEXT_MENU_ICONS,
-                    menu=hide_menu,
-                    icon=None,
-                    checkable=False,
-                    text=label,
-                    tooltip=_("Hide rows where {column} {operator} value").format(
-                        column=column, operator=operator
-                    ),
-                    key=None,
-                    action=(
-                        lambda _=False, col=column, op=operator:
-                        self._hide_by_comparison(col, op)
-                    ),
-                )
-
-            create_menu_item(
-                parent=self,
-                icons=CONTEXT_MENU_ICONS,
-                menu=hide_menu,
-                icon=None,
-                checkable=False,
-                text=_("Hide NULL / empty values"),
-                tooltip=_("Hide rows where the selected column is empty"),
-                key=None,
-                action=(
-                    lambda _=False, col=column:
-                    self._hide_special(col, "null_or_empty")
-                ),
-            )
-            create_menu_item(
-                parent=self,
-                icons=CONTEXT_MENU_ICONS,
-                menu=hide_menu,
-                icon=None,
-                checkable=False,
-                text=_("Hide rows equal to selected cell"),
-                tooltip=_("Hide rows matching the selected cell value"),
-                key=None,
-                action=self._hide_selected_cell_value,
-            )
+            self._add_flag_menu(menu, column, "Hide")
+            self._add_flag_menu(menu, column, "Selected")
             menu.addSeparator()
 
         # Table-writing actions need a real, LazyTableModel-backed table: a
@@ -575,50 +523,108 @@ class TablePreviewPanel(QWidget):
         # this for the one case it covered; the editor covers more.
         self.refresh.emit()
 
-    def _hide_by_comparison(self, column: str, operator: str) -> None:
+    #: Per flag column: the submenu's title, then its four labels - the
+    #: verb, the comparison tooltip, the empty-cells item and its tooltip,
+    #: the same-as-cell item and its tooltip.
+    _FLAG_MENU_TEXT: dict[str, tuple[str, str, str, str, str, str]] = {
+        "Hide": (
+            "Hide rows by selected column",
+            "Hide rows where {column} {operator} value",
+            "Hide NULL / empty values",
+            "Hide rows where the selected column is empty",
+            "Hide rows equal to selected cell",
+            "Hide rows matching the selected cell value",
+        ),
+        "Selected": (
+            "Select rows by selected column",
+            "Mark Selected the rows where {column} {operator} value",
+            "Select NULL / empty values",
+            "Mark Selected the rows where the selected column is empty",
+            "Select rows equal to selected cell",
+            "Mark Selected the rows matching the selected cell value",
+        ),
+    }
+
+    def _add_flag_menu(self, menu: QMenu, column: str, flag: str) -> None:
+        """The submenu that sets *flag* (Hide or Selected) on rows by *column*."""
+        title, compare_tip, empty_text, empty_tip, same_text, same_tip = self._FLAG_MENU_TEXT[flag]
+        submenu = menu.addMenu(_(title))
+        # The operator is the payload and stays as it is; only the label is
+        # translated. Wrapping the operator too would compare against a
+        # translated string instead of SQL.
+        for label, operator in (
+            (_("Equal to..."), "="),
+            (_("Different from..."), "!="),
+            (_("Lower than..."), "<"),
+            (_("Lower or equal..."), "<="),
+            (_("Higher than..."), ">"),
+            (_("Higher or equal..."), ">="),
+        ):
+            create_menu_item(
+                parent=self, icons=CONTEXT_MENU_ICONS, menu=submenu, icon=None, checkable=False,
+                text=label, tooltip=_(compare_tip).format(column=column, operator=operator), key=None,
+                action=lambda _=False, col=column, op=operator: self._flag_by_comparison(flag, col, op),
+            )
+        create_menu_item(
+            parent=self, icons=CONTEXT_MENU_ICONS, menu=submenu, icon=None, checkable=False,
+            text=_(empty_text), tooltip=_(empty_tip), key=None,
+            action=lambda _=False, col=column: self._flag_special(flag, col, "null_or_empty"),
+        )
+        create_menu_item(
+            parent=self, icons=CONTEXT_MENU_ICONS, menu=submenu, icon=None, checkable=False,
+            text=_(same_text), tooltip=_(same_tip), key=None,
+            action=lambda _=False: self._flag_selected_cell_value(flag),
+        )
+
+    def _flag_done(self, flag: str, count: int) -> None:
+        self._reload_model()
+        show_message(self, "preview.rows_hidden" if flag == "Hide" else "preview.rows_selected", count=count)
+
+    def _flag_by_comparison(self, flag: str, column: str, operator: str) -> None:
         if self._repo is None or not self._table:
             return
+        title = _("Hide rows") if flag == "Hide" else _("Select rows")
         value, ok = QInputDialog.getText(
-            self,
-            _("Hide rows"),
-            f"Hide rows where {column} {operator} value:",
-            QLineEdit.EchoMode.Normal,
-            "",
+            self, title, f"{title}: {column} {operator}", QLineEdit.EchoMode.Normal, "",
         )
         if not ok:
             return
         try:
-            count = self._repo.hide_rows_by_value(self._table, column, operator, value)
-            self._reload_model()
-            show_message(self, "preview.rows_hidden", count=count)
+            self._flag_done(flag, self._repo.flag_rows_by_value(self._table, flag, column, operator, value))
         except Exception as exc:
-            applogger.exception("Hide rows failed: %s", exc)
+            applogger.exception("%s rows failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 
-    def _hide_special(self, column: str, mode: str) -> None:
+    def _flag_special(self, flag: str, column: str, mode: str) -> None:
         if self._repo is None or not self._table:
             return
         try:
-            count = self._repo.hide_rows_special(self._table, column, mode)
-            self._reload_model()
-            show_message(self, "preview.rows_hidden", count=count)
+            self._flag_done(flag, self._repo.flag_rows_special(self._table, flag, column, mode))
         except Exception as exc:
-            applogger.exception("Hide rows failed: %s", exc)
+            applogger.exception("%s rows failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 
-    def _hide_selected_cell_value(self) -> None:
+    def _flag_selected_cell_value(self, flag: str) -> None:
         index = self.view.currentIndex()
         column = self._current_column_name()
         if not index.isValid() or column is None or self._repo is None or not self._table:
             return
         value = index.data(Qt.ItemDataRole.DisplayRole)
         try:
-            count = self._repo.hide_rows_by_value(self._table, column, "=", value)
-            self._reload_model()
-            show_message(self, "preview.rows_hidden", count=count)
+            self._flag_done(flag, self._repo.flag_rows_by_value(self._table, flag, column, "=", value))
         except Exception as exc:
-            applogger.exception("Hide selected value failed: %s", exc)
+            applogger.exception("%s selected value failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
+
+    # The Hide entry points, kept for callers and tests that name them.
+    def _hide_by_comparison(self, column: str, operator: str) -> None:
+        self._flag_by_comparison("Hide", column, operator)
+
+    def _hide_special(self, column: str, mode: str) -> None:
+        self._flag_special("Hide", column, mode)
+
+    def _hide_selected_cell_value(self) -> None:
+        self._flag_selected_cell_value("Hide")
 
 
 class LazyTableModel(QAbstractTableModel):
