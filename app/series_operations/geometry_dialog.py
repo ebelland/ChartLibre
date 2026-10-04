@@ -40,7 +40,7 @@ from matplotlib.figure import Figure
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from app.analysis import geometry as geo
-from app.data.data_source import parse_roles, quote_identifier, row_value
+from app.data.data_source import parse_roles, quote_identifier, row_value, resolve_role_column
 from app.logs.logger import applogger
 from app.series_operations.results import OperationResult
 from app.series_operations.dialog_base import OperationModel, ResultSeriesSpec, SeriesOperationDialogBase
@@ -634,8 +634,8 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         columns = [str(column) for column in frame.columns]
         numeric = [c for c in columns if pd.api.types.is_numeric_dtype(frame[c])]
 
-        x_col = str(roles.get("x") or "")
-        y_col = str(roles.get("y") or "")
+        x_col = resolve_role_column(columns, roles, "x") or ""
+        y_col = resolve_role_column(columns, roles, "y") or ""
         if x_col not in columns:
             x_col = numeric[0] if numeric else columns[0]
         if y_col not in columns:

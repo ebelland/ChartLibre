@@ -24,7 +24,7 @@ from pandas._typing import DtypeArg
 
 import app.data.descriptors
 from app import APP_NAME
-from app.data.data_source import DataSource, quote_identifier
+from app.data.data_source import DataSource, quote_identifier, resolve_role_column
 from app.data.select_sql import sql_insert_select_expression, top_level_from, top_level_match
 from app.data.repo._common import (
     READ_FAILURES,
@@ -893,9 +893,9 @@ class TablesMixin(RepoHost):
         self.ensure_hide_column(table_name)
         frame = self.query_df(sql_insert_select_expression(base, 'rowid AS "__rowid__"'))
 
-        x_col = str(roles.get("x", "")).strip()
-        y_col = str(roles.get("y", "")).strip()
-        missing = [role for role, column in (("x", x_col), ("y", y_col)) if column not in frame.columns]
+        x_col = resolve_role_column(frame.columns, roles, "x") or ""
+        y_col = resolve_role_column(frame.columns, roles, "y") or ""
+        missing = [role for role, column in (("x", x_col), ("y", y_col)) if not column]
         if missing:
             raise ValueError(
                 f"the series' query returns no column for its {' and '.join(missing)} role "

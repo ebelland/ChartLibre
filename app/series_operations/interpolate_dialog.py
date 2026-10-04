@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.data.data_source import parse_roles
+from app.data.data_source import parse_roles, resolve_role_column
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
@@ -629,8 +629,8 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
             applogger.error("Series query returned no rows.")
 
         columns = [str(col) for col in df.columns]
-        x_name = str(roles.get("x", ""))
-        y_name = str(roles.get("y", ""))
+        x_name = resolve_role_column(columns, roles, "x") or ""
+        y_name = resolve_role_column(columns, roles, "y") or ""
 
         if x_name in columns and y_name in columns:
             return x_name, y_name

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -74,6 +74,29 @@ def parse_roles(value: object) -> dict[str, Any]:
     if not isinstance(decoded, Mapping):
         return {}
     return {str(key): item for key, item in decoded.items()}
+
+
+def resolve_role_column(columns: Iterable[object], roles: Mapping[str, Any], role: str) -> str | None:
+    """The column of a query's result that plays *role*, or None.
+
+    A series keeps its roles as role -> source column ("x" -> "Year") while
+    its query aliases that column to the role (``"Year" AS "x"``), so the
+    result has an ``x`` and no ``Year``. Either is accepted, in that order:
+    the mapped column if the result has it, then the role's own name; and
+    each again ignoring case, for a query typed by hand ("X", "Year" as
+    "year"). An operation that only looked for the mapped name refused a
+    series it could perfectly well read.
+    """
+    names = [str(column) for column in columns]
+    mapped = str(roles.get(role) or "").strip() if roles else ""
+    for wanted in (mapped, role):
+        if wanted and wanted in names:
+            return wanted
+    lowered = {name.casefold(): name for name in names}
+    for wanted in (mapped, role):
+        if wanted and wanted.casefold() in lowered:
+            return lowered[wanted.casefold()]
+    return None
 
 
 def row_value(row: object, *names: str, default: Any = None) -> Any:

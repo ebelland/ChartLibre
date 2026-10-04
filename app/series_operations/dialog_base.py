@@ -29,7 +29,7 @@ from scipy.interpolate import griddata
 from app import APP_VERSION
 from app.analysis import Stopped
 from app.charts.grids import pivot_to_grid
-from app.data.data_source import parse_roles, row_value
+from app.data.data_source import parse_roles, row_value, resolve_role_column
 from app.data.repo.operations import OPERATIONS_TABLE
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
@@ -1240,8 +1240,8 @@ class SeriesOperationDialogBase(QDialog):
             if pd.api.types.is_numeric_dtype(frame[column])
         ]
 
-        x_col = str(roles.get("x") or "")
-        y_col = str(roles.get("y") or "")
+        x_col = resolve_role_column(columns, roles, "x") or ""
+        y_col = resolve_role_column(columns, roles, "y") or ""
         if x_col not in columns:
             x_col = numeric[0] if numeric else columns[0]
         if y_col not in columns:
@@ -1369,8 +1369,8 @@ class SeriesOperationDialogBase(QDialog):
             for column in frame.columns
             if pd.api.types.is_numeric_dtype(frame[column])
         ]
-        x_col = str(roles.get("x") or "")
-        y_col = str(roles.get("y") or "")
+        x_col = resolve_role_column(columns, roles, "x") or ""
+        y_col = resolve_role_column(columns, roles, "y") or ""
         if x_col not in columns:
             x_col = numeric[0] if numeric else columns[0]
         if y_col not in columns:

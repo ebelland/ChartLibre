@@ -58,7 +58,7 @@ from app.functions.starting_point import (
     clip_into_bounds,
 )
 
-from app.data.data_source import row_value , parse_roles
+from app.data.data_source import row_value , parse_roles, resolve_role_column
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
@@ -975,8 +975,8 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         columns = [str(column) for column in frame.columns]
         numeric = [str(column) for column in frame.columns if pd.api.types.is_numeric_dtype(frame[column])]
 
-        x_col = str(roles.get("x", ""))
-        y_col = str(roles.get("y", ""))
+        x_col = resolve_role_column(columns, roles, "x") or ""
+        y_col = resolve_role_column(columns, roles, "y") or ""
         if x_col not in columns:
             x_col = numeric[0] if numeric else ""
         if y_col not in columns:

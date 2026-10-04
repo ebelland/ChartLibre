@@ -77,7 +77,7 @@ from app.analysis.control_charts import (  # noqa: F401 - re-exported for the te
     attribute_limits,
     variables_chart,
 )
-from app.data.data_source import parse_roles, row_value
+from app.data.data_source import parse_roles, row_value, resolve_role_column
 from app.data.repo.tables import QueryColumns, coerce_numeric_array
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -503,13 +503,13 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         roles = parse_roles(row_value(row, "roles", default={}))
         columns = list(columns_result.columns)
 
-        y_col = str(roles.get("y") or "y")
+        y_col = resolve_role_column(columns, roles, "y") or "y"
         if y_col not in columns:
             numeric = [c for c in columns if self._looks_numeric(columns_result[c])]
             y_col = numeric[-1] if numeric else columns[-1]
         counts = coerce_numeric_array(columns_result[y_col])
 
-        x_col = str(roles.get("x") or "x")
+        x_col = resolve_role_column(columns, roles, "x") or "x"
         x_values = (
             self.numeric_x(pd.Series(columns_result[x_col]), name)
             if x_col in columns

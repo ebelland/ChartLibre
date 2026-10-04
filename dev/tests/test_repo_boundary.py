@@ -69,3 +69,22 @@ def test_is_open_follows_the_connection(numbers: SqliteRepo) -> None:
     assert numbers.is_open
     numbers.close()
     assert not numbers.is_open
+
+
+def test_a_role_is_found_by_its_column_or_its_alias() -> None:
+    """A series remembers "y" -> "CO₂ emissions per capita" while its query
+    returns the column as "y": either name finds it, in either case."""
+    from app.data.data_source import resolve_role_column
+
+    roles = {"x": "Year", "y": "CO₂ emissions per capita"}
+    assert resolve_role_column(["x", "y"], roles, "y") == "y"
+    assert resolve_role_column(["Year", "CO₂ emissions per capita"], roles, "x") == "Year"
+    assert resolve_role_column(["YEAR", "Y"], roles, "x") == "YEAR"
+    assert resolve_role_column(["a", "b"], roles, "x") is None
+
+
+def test_outliers_read_a_series_whose_roles_name_the_source_columns(numbers: SqliteRepo) -> None:
+    sql = 'SELECT "a" AS "x", "b" AS "y" FROM "numbers" WHERE "Hide" = 0'
+    numbers.ensure_hide_column("numbers")
+    frame = numbers.query_series_frame_for_hide(sql_query=sql, roles={"x": "a", "y": "b"})
+    assert list(frame["x"]) == list(range(1, 8)) and list(frame["y"]) == [x * 10 for x in range(1, 8)]

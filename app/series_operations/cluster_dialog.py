@@ -65,7 +65,7 @@ from app.analysis.clustering import (
     cluster_sklearn,
     numeric_matrix,
 )
-from app.data.data_source import parse_roles
+from app.data.data_source import parse_roles, resolve_role_column
 from app.data.select_sql import sql_insert_select_expression
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -630,9 +630,9 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         columns = [str(column) for column in frame.columns]
         numeric = [str(column) for column in frame.columns if pd.api.types.is_numeric_dtype(frame[column])]
 
-        x_col = str(roles.get("x") or "")
-        y_col = str(roles.get("y") or "")
-        z_col = str(roles.get("z") or "")
+        x_col = resolve_role_column(columns, roles, "x") or ""
+        y_col = resolve_role_column(columns, roles, "y") or ""
+        z_col = resolve_role_column(columns, roles, "z") or ""
 
         if x_col not in columns:
             x_col = numeric[0] if numeric else columns[0]
