@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from app.analysis import NUMERICAL_FAILURES
+from app.analysis import NUMERICAL_FAILURES, odd_window
 from scipy.ndimage import median_filter
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
@@ -55,15 +55,6 @@ class OutlierSettings:
     n_neighbors: int = 20
     #: One-Class SVM.
     nu: float = 0.05
-
-
-def odd_window(value: int, n_values: int, minimum: int = 3) -> int:
-    window = max(minimum, int(value))
-    if window % 2 == 0:
-        window += 1
-    if window > n_values:
-        window = n_values if n_values % 2 == 1 else n_values - 1
-    return max(minimum, window)
 
 
 def outlier_mask(

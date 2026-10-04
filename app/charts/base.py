@@ -281,6 +281,37 @@ class BaseAxisRenderer(Protocol):
         spec = self.Options if name in self.Options else self.Kwargs
         return kwarg_spec.resolve_one(spec, name, self._sources(options))
 
+    def add_colorbar(self, ax: Any, mappable: Any, options: dict[str, Any]) -> None:
+        """Add a colorbar for *mappable* beside *ax*, labelled by ``colorbar_label``.
+
+        ``use_gridspec=False`` is not cosmetic.  Renderers draw while the
+        figure's layout engine is still "none" - render_figure only applies
+        the descriptor's layout mode once every axis has been drawn - and the
+        gridspec path Matplotlib takes by default in that state builds a
+        ``GridSpecFromSubplotSpec`` with zero-height padding rows.  A
+        constrained or compressed engine applied afterwards then divides by
+        that zero and the whole figure fails to draw.  ``make_axes`` takes the
+        space out of the parent axes instead and owns no gridspec, so the
+        colorbar survives whichever engine is set after it.
+        """
+        figure = getattr(ax, "figure", None)
+        if mappable is None or figure is None:
+            return
+        colorbar = figure.colorbar(mappable, ax=ax, use_gridspec=False)
+        label = self.opt("colorbar_label", options)
+        if label is not None and str(label).strip() != "":
+            colorbar.set_label(str(label))
+
+    def apply_view(self, ax: Any, options: dict[str, Any]) -> None:
+        """Point a 3D axis's camera as the options say (``elev``, ``azim``, ``roll``); unset ones keep Matplotlib's."""
+        view: dict[str, float] = {}
+        for name in ("elev", "azim", "roll"):
+            value = self.opt(name, options)
+            if value is not None and value != "":
+                view[name] = float(str(value))
+        if view:
+            ax.view_init(**view)
+
     def merge_style(self, options: dict, style: dict) -> dict:
         """Overlay one series' style on the axis options.
 

@@ -291,22 +291,7 @@ class TripcolorAxisRenderer(BaseAxisRenderer):
             return
 
         if bool(self.opt("colorbar", merged)):
-            self._colorbar(ax, mesh, merged)
+            self.add_colorbar(ax, mesh, merged)
 
         self.apply_annotations(ax, axis_options)
 
-    def _colorbar(self, ax: Any, mappable: Any, options: dict[str, Any]) -> None:
-        """Add a colorbar beside *ax*.
-
-        ``use_gridspec=False`` for the reason ContourAxisRenderer._colorbar
-        sets it: renderers draw while the figure's layout engine is still
-        "none", and the gridspec path taken in that state builds padding rows
-        of zero height that a constrained engine then divides by.
-        """
-        figure = getattr(ax, "figure", None)
-        if mappable is None or figure is None:
-            return
-        colorbar = figure.colorbar(mappable, ax=ax, use_gridspec=False)
-        label = self.opt("colorbar_label", options)
-        if label is not None and str(label).strip() != "":
-            colorbar.set_label(str(label))

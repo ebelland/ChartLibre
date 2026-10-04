@@ -207,7 +207,7 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
             self._annotate_cells(ax, x_grid, y_grid, z_grid, style)
 
         if bool(self.opt("colorbar", style)):
-            self._colorbar(ax, mesh, style)
+            self.add_colorbar(ax, mesh, style)
 
         self.apply_annotations(ax, axis_options)
 
@@ -255,19 +255,3 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
                     zorder=4,
                 )
 
-    def _colorbar(self, ax: Any, mappable: Any, options: dict[str, Any]) -> None:
-        """Add a colorbar for *mappable* beside *ax*.
-
-        ``use_gridspec=False`` for the same reason contour.py's own
-        ``_colorbar`` uses it: renderers draw before the figure's layout
-        engine is applied, and the gridspec path Matplotlib takes by
-        default in that state divides by a zero-height padding row a
-        constrained/compressed engine then trips over.
-        """
-        figure = ax.get_figure()
-        if figure is None:
-            return
-        colorbar = figure.colorbar(mappable, ax=ax, use_gridspec=False)
-        label = self.opt("colorbar_label", options)
-        if label:
-            colorbar.set_label(str(label))

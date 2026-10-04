@@ -69,15 +69,6 @@ def _surface_kwargs(renderer: BaseAxisRenderer, options: dict[str, Any]) -> dict
     return kwargs
 
 
-def _view_kwargs(options: dict[str, Any], renderer: BaseAxisRenderer) -> dict[str, float]:
-    view: dict[str, float] = {}
-    for name in ("elev", "azim", "roll"):
-        value = renderer.opt(name, options)
-        if value is not None and value != "":
-            view[name] = float(str(value))
-    return view
-
-
 class SurfaceAxisRenderer(BaseAxisRenderer):
     """Surface plot over a regular x/y grid.
 
@@ -210,9 +201,7 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
         kwargs = _surface_kwargs(self, merged)
         ax.plot_surface(x_grid, y_grid, z_grid, **kwargs)
 
-        view = _view_kwargs(axis_options, self)
-        if view:
-            ax.view_init(**view)
+        self.apply_view(ax, axis_options)
 
         self.apply_annotations(ax, axis_options)
 
@@ -238,7 +227,6 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
         masked = z_grid.copy()
         masked[distance > radius] = np.nan
         return masked
-
 
 
 class TriSurfaceAxisRenderer(BaseAxisRenderer):
@@ -312,9 +300,7 @@ class TriSurfaceAxisRenderer(BaseAxisRenderer):
         kwargs = _surface_kwargs(self, merged)
         ax.plot_trisurf(x, y, z, **kwargs)
 
-        view = _view_kwargs(axis_options, self)
-        if view:
-            ax.view_init(**view)
+        self.apply_view(ax, axis_options)
 
         self.apply_annotations(ax, axis_options)
 
@@ -458,9 +444,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
                     "Scatter Plot (3D) failed to draw series '%s'.", sd.name
                 )
 
-        view = _view_kwargs(axis_options, self)
-        if view:
-            ax.view_init(**view)
+        self.apply_view(ax, axis_options)
 
         self.apply_annotations(ax, axis_options)
 
@@ -583,8 +567,6 @@ class Line3DAxisRenderer(BaseAxisRenderer):
                     "3D Line Plot failed to draw series '%s'.", sd.name
                 )
 
-        view = _view_kwargs(axis_options, self)
-        if view:
-            ax.view_init(**view)
+        self.apply_view(ax, axis_options)
 
         self.apply_annotations(ax, axis_options)

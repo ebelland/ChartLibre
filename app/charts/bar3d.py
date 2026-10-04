@@ -27,22 +27,6 @@ from app.charts.grids import finite_xyz
 from app.logs.logger import applogger
 
 
-def _view_kwargs(options: dict[str, Any], renderer: BaseAxisRenderer) -> dict[str, float]:
-    """Camera angles read from Options and applied to the axes.
-
-    Duplicated from surface.py rather than imported: a private module-level
-    helper there, kept private here for the same reason - each 3D renderer
-    file owns its own copy rather than the two importing from each other for
-    three lines.
-    """
-    view: dict[str, float] = {}
-    for name in ("elev", "azim", "roll"):
-        value = renderer.opt(name, options)
-        if value is not None and value != "":
-            view[name] = float(str(value))
-    return view
-
-
 class Bar3DAxisRenderer(BaseAxisRenderer):
     """Renderer for bars rising from the x/y plane to a mapped height.
 
@@ -174,8 +158,6 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
         except Exception:
             applogger.exception("3D Bar Chart failed to draw series '%s'.", sd.name)
 
-        view = _view_kwargs(axis_options, self)
-        if view:
-            ax.view_init(**view)
+        self.apply_view(ax, axis_options)
 
         self.apply_annotations(ax, axis_options)

@@ -25,3 +25,17 @@ class Stopped(BaseException):
 #: (RuntimeError). Caught where such data is a normal outcome to report; a
 #: TypeError, AttributeError or NameError is a bug, and propagates (todo R-12).
 NUMERICAL_FAILURES: tuple[type[Exception], ...] = (ValueError, ArithmeticError, RuntimeError)
+
+
+def odd_window(value: int, n_values: int, minimum: int = 3) -> int:
+    """An odd window length of at least *minimum*, no longer than the *n_values* there are.
+
+    A centred window needs an odd length; Outliers' rolling median and
+    Smoothing's filters both use this one.
+    """
+    window = max(minimum, int(value))
+    if window % 2 == 0:
+        window += 1
+    if window > n_values:
+        window = n_values if n_values % 2 == 1 else n_values - 1
+    return max(minimum, window)

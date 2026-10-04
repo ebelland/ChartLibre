@@ -28,6 +28,8 @@ from scipy.interpolate import (
 from scipy.ndimage import gaussian_filter, gaussian_filter1d, median_filter
 from scipy.signal import butter, medfilt, savgol_filter, sosfiltfilt, wiener
 
+from app.analysis import odd_window
+
 try:
     from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess
     from statsmodels.tsa.filters.hp_filter import hpfilter
@@ -108,16 +110,6 @@ def is_available(method: str) -> bool:
 # ---------------------------------------------------------------------------
 # Numeric helpers
 # ---------------------------------------------------------------------------
-
-def _odd_window(value: int, n_values: int, minimum: int = 3) -> int:
-    """Return an odd integer window length within the available data size."""
-    window = max(minimum, int(value))
-    if window % 2 == 0:
-        window += 1
-    if window > n_values:
-        window = n_values if n_values % 2 == 1 else n_values - 1
-    return max(minimum, window)
-
 
 def _moving_average(y_values: np.ndarray, window: int, centered: bool) -> np.ndarray:
     """Moving average whose window shrinks at the ends instead of reading zeros.
@@ -306,7 +298,7 @@ def smooth_1d(
         )
 
     if method == SMOOTH_SAVGOL:
-        window = _odd_window(int(params.get("window", 7)), n_values)
+        window = odd_window(int(params.get("window", 7)), n_values)
         polyorder = min(int(params.get("polyorder", 2)), window - 1)
         return np.asarray(
             savgol_filter(
@@ -329,14 +321,14 @@ def smooth_1d(
         )
 
     if method == SMOOTH_MEDIAN:
-        kernel = _odd_window(int(params.get("kernel", 5)), n_values)
+        kernel = odd_window(int(params.get("kernel", 5)), n_values)
         return medfilt(y_clean, kernel_size=kernel)
 
     if method == SMOOTH_WIENER:
         noise = params.get("noise")
         return wiener(
             y_clean,
-            mysize=_odd_window(int(params.get("window", 7)), n_values),
+            mysize=odd_window(int(params.get("window", 7)), n_values),
             noise=None if noise in (None, 0.0, "") else float(noise),
         )
 
@@ -516,8 +508,8 @@ def smooth_2d(
     if method == SMOOTH2D_MEDIAN:
         if z_clean.ndim != 2:
             raise ValueError("2D median expects gridded Z data.")
-        kernel_y = _odd_window(int(params.get("kernel_y", 3)), z_clean.shape[0])
-        kernel_x = _odd_window(int(params.get("kernel_x", 3)), z_clean.shape[1])
+        kernel_y = odd_window(int(params.get("kernel_y", 3)), z_clean.shape[0])
+        kernel_x = odd_window(int(params.get("kernel_x", 3)), z_clean.shape[1])
         return x_clean, y_clean, median_filter(
             z_clean,
             size=(kernel_y, kernel_x),
@@ -634,9 +626,9 @@ def smooth_3d(
     if method == SMOOTH3D_MEDIAN:
         if values.ndim != 3:
             raise ValueError("3D median expects gridded volume data.")
-        kernel_z = _odd_window(int(params.get("kernel_z", 3)), values.shape[0])
-        kernel_y = _odd_window(int(params.get("kernel_y", 3)), values.shape[1])
-        kernel_x = _odd_window(int(params.get("kernel_x", 3)), values.shape[2])
+        kernel_z = odd_window(int(params.get("kernel_z", 3)), values.shape[0])
+        kernel_y = odd_window(int(params.get("kernel_y", 3)), values.shape[1])
+        kernel_x = odd_window(int(params.get("kernel_x", 3)), values.shape[2])
         return x_clean, y_clean, z_clean, median_filter(
             values,
             size=(kernel_z, kernel_y, kernel_x),

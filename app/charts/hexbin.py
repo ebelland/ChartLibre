@@ -204,20 +204,7 @@ class HexbinAxisRenderer(BaseAxisRenderer):
         collection = ax.hexbin(x, y, **kwargs)
 
         if bool(self.opt("colorbar", style)):
-            self._colorbar(ax, collection, style)
+            self.add_colorbar(ax, collection, style)
 
         self.apply_annotations(ax, axis_options)
 
-    def _colorbar(self, ax: Any, mappable: Any, options: dict[str, Any]) -> None:
-        """Add a colorbar for *mappable* beside *ax*.
-
-        ``use_gridspec=False`` for the same reason every other renderer's
-        own ``_colorbar`` uses it - see contour.py's for the full account.
-        """
-        figure = ax.get_figure()
-        if figure is None:
-            return
-        colorbar = figure.colorbar(mappable, ax=ax, use_gridspec=False)
-        label = self.opt("colorbar_label", options)
-        if label:
-            colorbar.set_label(str(label))

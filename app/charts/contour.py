@@ -353,7 +353,7 @@ class ContourAxisRenderer(BaseAxisRenderer):
             self._label(ax, line_set, options)
 
         if bool(self.opt("colorbar", options)):
-            self._colorbar(ax, band_set if band_set is not None else line_set, options)
+            self.add_colorbar(ax, band_set if band_set is not None else line_set, options)
 
         if bool(self.opt("show_points", options)):
             self._draw_points(ax, data, options)
@@ -516,26 +516,6 @@ class ContourAxisRenderer(BaseAxisRenderer):
                 fmt,
             )
 
-    def _colorbar(self, ax: Any, mappable: Any, options: dict[str, Any]) -> None:
-        """Add a colorbar for *mappable* beside *ax*.
-
-        ``use_gridspec=False`` is not cosmetic.  Renderers draw while the
-        figure's layout engine is still "none" - render_figure only applies
-        the descriptor's layout mode once every axis has been drawn - and the
-        gridspec path Matplotlib takes by default in that state builds a
-        ``GridSpecFromSubplotSpec`` with zero-height padding rows.  A
-        constrained or compressed engine applied afterwards then divides by
-        that zero and the whole figure fails to draw.  ``make_axes`` takes the
-        space out of the parent axes instead and owns no gridspec, so the
-        colorbar survives whichever engine is set after it.
-        """
-        figure = getattr(ax, "figure", None)
-        if mappable is None or figure is None:
-            return
-        colorbar = figure.colorbar(mappable, ax=ax, use_gridspec=False)
-        label = self.opt("colorbar_label", options)
-        if label is not None and str(label).strip() != "":
-            colorbar.set_label(str(label))
 
     # ------------------------------------------------------------------
     # Series and option plumbing
