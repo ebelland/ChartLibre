@@ -7,6 +7,7 @@ own shipped source, see app.utils.config.USER_CONTENT_DIR), import it back
 fresh to confirm it is both syntactically valid and the shape its scanner
 looks for, and open it in the system's default editor - so that sequence
 lives here once rather than three times with three chances to drift.
+:class:`ScaffoldDialog` is the window they share.
 """
 from __future__ import annotations
 
@@ -14,11 +15,24 @@ import importlib.util
 import re
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
+from PySide6.QtWidgets import QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 
+from app.logs.logger import applogger
 from app.scanners.class_discovery import discover_classes_merged
+from app.styles.style import (
+    CardFrame,
+    apply_dialog_shell,
+    create_action_button,
+    create_section_title,
+    load_icon,
+    stdSizeAndlayout,
+)
+from app.utils.i18n import _
+from app.utils.messages import show_message
 
 
 def slug(text: str) -> str:
@@ -96,3 +110,192 @@ def import_check(path: Path, expected_class_name: str) -> str:
     if getattr(module, expected_class_name, None) is None:
         return f'The file imported, but class "{expected_class_name}" was not found in it.'
     return ""
+
+
+class ScaffoldDialog(QDialog):
+    """The form all three tools share: Name, File name, Description, Create.
+
+    A subclass names its folders, scanner base class and texts as class
+    attributes, adds its own rows in :meth:`add_fields`, checks them in
+    :meth:`validate_fields`, and writes the file's text in
+    :meth:`render_source`. Everything else - the file name following the
+    Name until edited by hand, the checks every tool makes, writing the file,
+    importing it back and opening it - happens here once.
+
+    Texts are kept untranslated here and passed through ``_`` when shown,
+    so they follow the language chosen at run time.
+    """
+
+    #: Window title (also the card's title), icon and the card's object name.
+    TITLE: ClassVar[str] = ""
+    ICON: ClassVar[str] = ""
+    CARD_NAME: ClassVar[str] = ""
+    #: The paragraph under the title.
+    HINT: ClassVar[str] = ""
+    NAME_PLACEHOLDER: ClassVar[str] = ""
+    FILE_PLACEHOLDER: ClassVar[str] = ""
+    DESCRIPTION_PLACEHOLDER: ClassVar[str] = ""
+    #: What a file name derived from the Name ends with ("_dialog.py", ".py").
+    FILE_SUFFIX: ClassVar[str] = ".py"
+    #: The class name's suffix ("Function", "AxisRenderer"...).
+    CLASS_SUFFIX: ClassVar[str] = ""
+    #: The Create button's action id in config.json.
+    CREATE_ACTION: ClassVar[str] = ""
+    #: Where the scanner finds the built-in ones, and where this writes.
+    BUILTIN_DIR: ClassVar[Path] = Path()
+    USER_DIR: ClassVar[Path] = Path()
+    #: What the new class must directly subclass, and the attribute its
+    #: scanner reads the name from.
+    BASE_CLASS_NAME: ClassVar[str] = ""
+    VALUE_ATTR: ClassVar[str] = "Name"
+    REQUIRE_VALUE_ATTR: ClassVar[bool] = True
+    #: Messages (config.json) for created and failed, and the texts of the
+    #: checks that name this kind of file.
+    CREATED_MESSAGE: ClassVar[str] = ""
+    FAILED_MESSAGE: ClassVar[str] = ""
+    BAD_FILE_NAME: ClassVar[str] = ""
+    FILE_EXISTS: ClassVar[str] = ""
+    NAME_TAKEN: ClassVar[str] = ""
+    NOT_DISCOVERED: ClassVar[str] = ""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(_(self.TITLE))
+        self.setWindowIcon(load_icon(self.ICON))
+        self.setModal(True)
+
+        root = QVBoxLayout(self)
+        # None, not "medium": a title, a hint and a few fields are far short
+        # of the 900x640 every "medium" dialog gets, and with every child of
+        # the card at stretch 0, Qt spreads the surplus evenly between them
+        # rather than leaving it at the bottom - a forced oversize read as
+        # loose gaps between every row. Sized to the layout's own sizeHint,
+        # there is no surplus.
+        apply_dialog_shell(self, root, size=None)
+
+        card = CardFrame(self, self.CARD_NAME)
+        card_layout = card.layout()
+        card_layout.addWidget(create_section_title(_(self.TITLE), card))
+        hint = QLabel(_(self.HINT), card)
+        hint.setWordWrap(True)
+        card_layout.addWidget(hint)
+
+        form = QFormLayout()
+        stdSizeAndlayout(form)
+        self._name_edit = QLineEdit(card)
+        self._name_edit.setPlaceholderText(_(self.NAME_PLACEHOLDER))
+        self._name_edit.textEdited.connect(self._on_name_edited)
+        form.addRow(_("Name:"), self._name_edit)
+        self._file_edit = QLineEdit(card)
+        self._file_edit.setPlaceholderText(_(self.FILE_PLACEHOLDER))
+        self._file_edit.textEdited.connect(self._on_file_edited_by_user)
+        form.addRow(_("File name:"), self._file_edit)
+        self._description_edit = QLineEdit(card)
+        self._description_edit.setPlaceholderText(_(self.DESCRIPTION_PLACEHOLDER))
+        self.add_fields(form, card)
+        card_layout.addLayout(form)
+
+        action_row = QHBoxLayout()
+        stdSizeAndlayout(action_row)
+        action_row.addStretch(1)
+        create_action_button(parent=self, action_id="close", action=self.reject, layout=action_row)
+        create_action_button(parent=self, action_id=self.CREATE_ACTION, action=self._on_create, layout=action_row)
+        card_layout.addLayout(action_row)
+        # Should the window be dragged larger, the surplus collects here
+        # rather than spreading back out between the rows above.
+        card_layout.addStretch(1)
+        root.addWidget(card, 1)
+
+        self._file_edited_by_user = False
+
+    # -- What a subclass supplies -----------------------------------------
+
+    def add_fields(self, form: QFormLayout, card: QWidget) -> None:
+        """Add the Description row (``self._description_edit``) and any others, in order."""
+        form.addRow(_("Description:"), self._description_edit)
+
+    def validate_fields(self) -> str:
+        """A message for what is wrong with this tool's own fields, or ''."""
+        return ""
+
+    def render_source(self, *, class_name: str, name: str, description: str) -> str:
+        """The new file's text."""
+        raise NotImplementedError
+
+    # -- The file name follows the Name until edited by hand ---------------
+
+    def _on_name_edited(self, text: str) -> None:
+        if self._file_edited_by_user:
+            return
+        self._file_edit.setText(f"{slug(text)}{self.FILE_SUFFIX}" if text.strip() else "")
+
+    def _on_file_edited_by_user(self, _text: str) -> None:
+        self._file_edited_by_user = True
+
+    # -- Create -----------------------------------------------------------
+
+    def _on_create(self) -> None:
+        problem = self._validate()
+        if problem:
+            show_message(self, "dev.validation_error", detail=problem)
+            return
+
+        name = self._name_edit.text().strip()
+        new_class = class_name(name, suffix=self.CLASS_SUFFIX)
+        source = self.render_source(
+            class_name=new_class, name=name, description=self._description_edit.text().strip()
+        )
+        target = self.USER_DIR / self._file_edit.text().strip()
+        try:
+            self.USER_DIR.mkdir(parents=True, exist_ok=True)
+            target.write_text(source, encoding="utf-8")
+        except OSError as exc:
+            applogger.exception("%s: could not write %s.", self.TITLE, target)
+            show_message(self, "dev.validation_error", detail=str(exc))
+            return
+
+        error = self._import_check(target, new_class)
+        if error:
+            show_message(self, self.FAILED_MESSAGE, path=str(target), error=error)
+            return
+
+        applogger.info("%s: wrote %s (%s, name=%r).", self.TITLE, target, new_class, name)
+        show_message(self, self.CREATED_MESSAGE, name=name, path=str(target))
+        open_in_editor(target)
+        self.accept()
+
+    def _validate(self) -> str:
+        name = self._name_edit.text().strip()
+        file_name = self._file_edit.text().strip()
+        if not name:
+            return _("Name cannot be empty.")
+        if not self._description_edit.text().strip():
+            return _("Description cannot be empty.")
+        if not file_name.endswith(".py") or not slug(file_name[:-3]):
+            return _(self.BAD_FILE_NAME)
+        if (self.USER_DIR / file_name).exists():
+            return _(self.FILE_EXISTS).format(file=file_name)
+        problem = self.validate_fields()
+        if problem:
+            return problem
+        if any(entry["value"] == name for entry in self._discovered()):
+            return _(self.NAME_TAKEN).format(name=name)
+        return ""
+
+    def _discovered(self) -> list[dict]:
+        return discover_both_roots(
+            builtin_root=self.BUILTIN_DIR,
+            user_root=self.USER_DIR,
+            base_class_name=self.BASE_CLASS_NAME,
+            value_attr=self.VALUE_ATTR,
+            require_value_attr=self.REQUIRE_VALUE_ATTR,
+        )
+
+    def _import_check(self, path: Path, new_class: str) -> str:
+        """Import *path* fresh, then confirm its scanner finds *new_class* in it."""
+        error = import_check(path, new_class)
+        if error:
+            return error
+        if not any(entry["name"] == new_class for entry in self._discovered()):
+            return _(self.NOT_DISCOVERED)
+        return ""

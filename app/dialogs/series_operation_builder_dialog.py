@@ -21,35 +21,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QDialog,
-    QFormLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QVBoxLayout,
-    QWidget,
-)
-
-from app.dialogs.dev_tools_common import (
-    class_name as _class_name,
-    discover_both_roots,
-    import_check as _generic_import_check,
-    open_in_editor,
-    slug as _slug,
-)
-from app.logs.logger import applogger
-from app.styles.style import (
-    CardFrame,
-    apply_dialog_shell,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.dialogs.dev_tools_common import ScaffoldDialog, slug as _slug
 from app.utils.config import USER_SERIES_OPERATIONS_DIR
-from app.utils.i18n import _
-from app.utils.messages import show_message
 
 #: Where series_operation_scanner.py itself looks for the built-in
 #: operations - used here only to check a new Name against them, never
@@ -204,191 +177,40 @@ class {class_name}(SeriesOperationDialogBase):
 '''
 
 
-class SeriesOperationBuilderDialog(QDialog):
+class SeriesOperationBuilderDialog(ScaffoldDialog):
     """Scaffold a new SeriesOperationDialogBase file from a short form."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("Series Operation Builder"))
-        self.setWindowIcon(load_icon("series_operation_builder"))
-        self.setModal(True)
+    TITLE = "Series Operation Builder"
+    ICON = "series_operation_builder"
+    CARD_NAME = "seriesOperationBuilderCard"
+    HINT = (
+        "Writes a new file under user/series_operations/ with a class "
+        "already filled in from these fields - no registration step, "
+        "the scanner picks it up as soon as the file exists. "
+        "compute_results already passes each selected series through "
+        "unchanged; replace it with the real computation."
+    )
+    NAME_PLACEHOLDER = "e.g. Envelope Detector"
+    FILE_PLACEHOLDER = "e.g. envelope_detector_dialog.py"
+    DESCRIPTION_PLACEHOLDER = "One line, shown in the Series Operations panel."
+    FILE_SUFFIX = "_dialog.py"
+    CLASS_SUFFIX = "Dialog"
+    CREATE_ACTION = "create_series_operation"
+    BUILTIN_DIR = BUILTIN_OPERATIONS_DIR
+    USER_DIR = OPERATIONS_DIR
+    BASE_CLASS_NAME = "SeriesOperationDialogBase"
+    CREATED_MESSAGE = "dev.series_operation_created"
+    FAILED_MESSAGE = "dev.series_operation_create_failed"
+    BAD_FILE_NAME = "File name must be a valid Python file name, e.g. my_operation_dialog.py."
+    FILE_EXISTS = "A file named \"{file}\" already exists under user/series_operations/."
+    NAME_TAKEN = "\"{name}\" is already used by an existing series operation."
+    NOT_DISCOVERED = (
+        "The class imported, but series_operation_scanner did not discover "
+        "it as an operation - check that it subclasses "
+        "SeriesOperationDialogBase directly."
+    )
 
-        root = QVBoxLayout(self)
-        # None, not "medium": a title, one hint paragraph and three fields
-        # is far short of the 900x640 every "medium" dialog gets, and with
-        # every one of this card's children at stretch 0, Qt's box layout
-        # does not just leave the surplus at the bottom - it spreads it
-        # roughly evenly between them (its documented fallback when no
-        # item claims a share), so a forced oversize read as loose gaps
-        # between the title, the hint and the form rather than as one
-        # window that was simply too big. Sizing to the layout's own
-        # sizeHint instead removes the surplus this card never asked for.
-        apply_dialog_shell(self, root, size=None)
-
-        card = CardFrame(self, "seriesOperationBuilderCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("Series Operation Builder"), card))
-
-        hint = QLabel(
-            _(
-                "Writes a new file under user/series_operations/ with a class "
-                "already filled in from these fields - no registration step, "
-                "the scanner picks it up as soon as the file exists. "
-                "compute_results already passes each selected series through "
-                "unchanged; replace it with the real computation."
-            ),
-            card,
+    def render_source(self, *, class_name: str, name: str, description: str) -> str:
+        return render_stub_source(
+            class_name=class_name, name=name, description=description, slug=_slug(name) or "operation"
         )
-        hint.setWordWrap(True)
-        card_layout.addWidget(hint)
-
-        form = QFormLayout()
-        stdSizeAndlayout(form)
-
-        self._name_edit = QLineEdit(card)
-        self._name_edit.setPlaceholderText(_("e.g. Envelope Detector"))
-        self._name_edit.textEdited.connect(self._on_name_edited)
-        form.addRow(_("Name:"), self._name_edit)
-
-        self._file_edit = QLineEdit(card)
-        self._file_edit.setPlaceholderText(_("e.g. envelope_detector_dialog.py"))
-        self._file_edit.textEdited.connect(self._on_file_edited_by_user)
-        form.addRow(_("File name:"), self._file_edit)
-
-        self._description_edit = QLineEdit(card)
-        self._description_edit.setPlaceholderText(
-            _("One line, shown in the Series Operations panel.")
-        )
-        form.addRow(_("Description:"), self._description_edit)
-
-        card_layout.addLayout(form)
-
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="close", action=self.reject, layout=action_row
-        )
-        create_action_button(
-            parent=self,
-            action_id="create_series_operation",
-            action=self._on_create,
-            layout=action_row,
-        )
-        card_layout.addLayout(action_row)
-        # Belt and braces: if this dialog is ever resized past its content
-        # (a person dragging it larger), the surplus collapses here rather
-        # than spreading back out between the rows above.
-        card_layout.addStretch(1)
-
-        root.addWidget(card, 1)
-
-        self._file_edited_by_user = False
-
-    # ------------------------------------------------------------------
-    # Auto-deriving the file name from the operation's Name
-    # ------------------------------------------------------------------
-    def _on_name_edited(self, text: str) -> None:
-        if self._file_edited_by_user:
-            return
-        self._file_edit.setText(f"{_slug(text)}_dialog.py" if text.strip() else "")
-
-    def _on_file_edited_by_user(self, _text: str) -> None:
-        self._file_edited_by_user = True
-
-    # ------------------------------------------------------------------
-    # Create
-    # ------------------------------------------------------------------
-    def _on_create(self) -> None:
-        problem = self._validate()
-        if problem:
-            show_message(self, "dev.validation_error", detail=problem)
-            return
-
-        name = self._name_edit.text().strip()
-        file_name = self._file_edit.text().strip()
-        class_name = _class_name(name, suffix="Dialog", fallback="Custom")
-        description = self._description_edit.text().strip()
-        slug = _slug(name) or "operation"
-
-        source = render_stub_source(
-            class_name=class_name, name=name, description=description, slug=slug
-        )
-
-        target = OPERATIONS_DIR / file_name
-        try:
-            OPERATIONS_DIR.mkdir(parents=True, exist_ok=True)
-            target.write_text(source, encoding="utf-8")
-        except OSError as exc:
-            applogger.exception("Could not write the new series operation file.")
-            show_message(self, "dev.validation_error", detail=str(exc))
-            return
-
-        error = self._import_check(target, class_name)
-        if error:
-            show_message(
-                self,
-                "dev.series_operation_create_failed",
-                path=str(target),
-                error=error,
-            )
-            return
-
-        applogger.info(
-            "Series Operation Builder: wrote %s (%s, Name=%r).", target, class_name, name
-        )
-        show_message(self, "dev.series_operation_created", name=name, path=str(target))
-        open_in_editor(target)
-        self.accept()
-
-    def _validate(self) -> str:
-        name = self._name_edit.text().strip()
-        file_name = self._file_edit.text().strip()
-        description = self._description_edit.text().strip()
-
-        if not name:
-            return _("Name cannot be empty.")
-        if not description:
-            return _("Description cannot be empty.")
-        if not file_name.endswith(".py") or not _slug(file_name[:-3]):
-            return _(
-                "File name must be a valid Python file name, e.g. my_operation_dialog.py."
-            )
-        if (OPERATIONS_DIR / file_name).exists():
-            return _(
-                "A file named \"{file}\" already exists under user/series_operations/."
-            ).format(file=file_name)
-        if self._operation_name_taken(name):
-            return _(
-                "\"{name}\" is already used by an existing series operation."
-            ).format(name=name)
-        return ""
-
-    @staticmethod
-    def _operation_name_taken(name: str) -> bool:
-        entries = discover_both_roots(
-            builtin_root=BUILTIN_OPERATIONS_DIR,
-            user_root=OPERATIONS_DIR,
-            base_class_name="SeriesOperationDialogBase",
-        )
-        return any(entry["value"] == name for entry in entries)
-
-    @staticmethod
-    def _import_check(path: Path, class_name: str) -> str:
-        """Import *path* fresh and confirm it discovers as an operation."""
-        error = _generic_import_check(path, class_name)
-        if error:
-            return error
-
-        entries = discover_both_roots(
-            builtin_root=BUILTIN_OPERATIONS_DIR,
-            user_root=OPERATIONS_DIR,
-            base_class_name="SeriesOperationDialogBase",
-        )
-        if not any(entry["name"] == class_name for entry in entries):
-            return _(
-                "The class imported, but series_operation_scanner did not discover "
-                "it as an operation - check that it subclasses "
-                "SeriesOperationDialogBase directly."
-            )
-        return ""

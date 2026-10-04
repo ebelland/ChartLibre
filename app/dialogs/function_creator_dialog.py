@@ -18,35 +18,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QDialog,
-    QFormLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QFormLayout, QLineEdit, QWidget
 
-from app.dialogs.dev_tools_common import (
-    class_name as _class_name,
-    discover_both_roots,
-    import_check as _generic_import_check,
-    open_in_editor,
-    slug as _slug,
-)
-from app.logs.logger import applogger
-from app.styles.style import (
-    CardFrame,
-    apply_dialog_shell,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.dialogs.dev_tools_common import ScaffoldDialog
 from app.utils.config import USER_FUNCTIONS_DIR
 from app.utils.i18n import _
-from app.utils.messages import show_message
 
 #: Where functions_scanner.py itself looks for the built-in functions -
 #: used here only to check a new name against them, never written to.
@@ -138,198 +114,53 @@ class {class_name}(base_function):
 '''
 
 
-class FunctionCreatorDialog(QDialog):
+class FunctionCreatorDialog(ScaffoldDialog):
     """Scaffold a new base_function file from a short form."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("Function Creator"))
-        self.setWindowIcon(load_icon("function_creator"))
-        self.setModal(True)
+    TITLE = "Function Creator"
+    ICON = "function_creator"
+    CARD_NAME = "functionCreatorCard"
+    HINT = (
+        "Writes a new file under user/functions/ with a class already "
+        "filled in from these fields - no registration step, the "
+        "scanner picks it up as soon as the file exists. execute(x, p) "
+        "already evaluates a real polynomial in the declared "
+        "parameters; replace it with the actual formula."
+    )
+    NAME_PLACEHOLDER = "e.g. Stretched Exponential"
+    FILE_PLACEHOLDER = "e.g. stretched_exponential.py"
+    DESCRIPTION_PLACEHOLDER = "One line, shown in the fit dialog's model list."
+    CLASS_SUFFIX = "Function"
+    CREATE_ACTION = "create_function"
+    BUILTIN_DIR = BUILTIN_FUNCTIONS_DIR
+    USER_DIR = FUNCTIONS_DIR
+    BASE_CLASS_NAME = "base_function"
+    VALUE_ATTR = "name"
+    REQUIRE_VALUE_ATTR = False
+    CREATED_MESSAGE = "dev.function_created"
+    FAILED_MESSAGE = "dev.function_create_failed"
+    BAD_FILE_NAME = "File name must be a valid Python file name, e.g. my_function.py."
+    FILE_EXISTS = "A file named \"{file}\" already exists under user/functions/."
+    NAME_TAKEN = "\"{name}\" is already used by an existing function."
+    NOT_DISCOVERED = (
+        "The class imported, but functions_scanner did not discover it as "
+        "a function - check that it subclasses base_function directly."
+    )
 
-        root = QVBoxLayout(self)
-        # None, not "medium" - see series_operation_builder_dialog's own
-        # note on why a forced 900x640 on a title + hint + four fields
-        # read as loose gaps between every row rather than as a window
-        # that was simply too big: with every child here at stretch 0, Qt
-        # spreads unclaimed surplus roughly evenly between them instead of
-        # leaving it in one place. Sizing to the layout's own sizeHint
-        # removes the surplus this card never asked for.
-        apply_dialog_shell(self, root, size=None)
-
-        card = CardFrame(self, "functionCreatorCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("Function Creator"), card))
-
-        hint = QLabel(
-            _(
-                "Writes a new file under user/functions/ with a class already "
-                "filled in from these fields - no registration step, the "
-                "scanner picks it up as soon as the file exists. execute(x, p) "
-                "already evaluates a real polynomial in the declared "
-                "parameters; replace it with the actual formula."
-            ),
-            card,
-        )
-        hint.setWordWrap(True)
-        card_layout.addWidget(hint)
-
-        form = QFormLayout()
-        stdSizeAndlayout(form)
-
-        self._name_edit = QLineEdit(card)
-        self._name_edit.setPlaceholderText(_("e.g. Stretched Exponential"))
-        self._name_edit.textEdited.connect(self._on_name_edited)
-        form.addRow(_("Name:"), self._name_edit)
-
-        self._file_edit = QLineEdit(card)
-        self._file_edit.setPlaceholderText(_("e.g. stretched_exponential.py"))
-        self._file_edit.textEdited.connect(self._on_file_edited_by_user)
-        form.addRow(_("File name:"), self._file_edit)
-
-        self._description_edit = QLineEdit(card)
-        self._description_edit.setPlaceholderText(
-            _("One line, shown in the fit dialog's model list.")
-        )
-        form.addRow(_("Description:"), self._description_edit)
-
+    def add_fields(self, form: QFormLayout, card: QWidget) -> None:
+        super().add_fields(form, card)
         self._params_edit = QLineEdit(card)
         self._params_edit.setText("intercept, slope")
         self._params_edit.setPlaceholderText(_("comma-separated, e.g. intercept, slope"))
         form.addRow(_("Parameters:"), self._params_edit)
 
-        card_layout.addLayout(form)
-
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="close", action=self.reject, layout=action_row
-        )
-        create_action_button(
-            parent=self,
-            action_id="create_function",
-            action=self._on_create,
-            layout=action_row,
-        )
-        card_layout.addLayout(action_row)
-        # Belt and braces: if this dialog is ever resized past its content,
-        # the surplus collapses here rather than spreading back out
-        # between the rows above.
-        card_layout.addStretch(1)
-
-        root.addWidget(card, 1)
-
-        self._file_edited_by_user = False
-
-    # ------------------------------------------------------------------
-    # Auto-deriving the file name from the function's Name
-    # ------------------------------------------------------------------
-    def _on_name_edited(self, text: str) -> None:
-        if self._file_edited_by_user:
-            return
-        self._file_edit.setText(f"{_slug(text)}.py" if text.strip() else "")
-
-    def _on_file_edited_by_user(self, _text: str) -> None:
-        self._file_edited_by_user = True
-
-    # ------------------------------------------------------------------
-    # Create
-    # ------------------------------------------------------------------
-    def _on_create(self) -> None:
-        problem = self._validate()
-        if problem:
-            show_message(self, "dev.validation_error", detail=problem)
-            return
-
-        name = self._name_edit.text().strip()
-        file_name = self._file_edit.text().strip()
-        class_name = _class_name(name, suffix="Function", fallback="Custom")
-        description = self._description_edit.text().strip()
-        params = _parse_params(self._params_edit.text())
-
-        source = render_stub_source(
-            class_name=class_name, name=name, description=description, params=params
-        )
-
-        target = FUNCTIONS_DIR / file_name
-        try:
-            FUNCTIONS_DIR.mkdir(parents=True, exist_ok=True)
-            target.write_text(source, encoding="utf-8")
-        except OSError as exc:
-            applogger.exception("Could not write the new function file.")
-            show_message(self, "dev.validation_error", detail=str(exc))
-            return
-
-        error = self._import_check(target, class_name)
-        if error:
-            show_message(
-                self,
-                "dev.function_create_failed",
-                path=str(target),
-                error=error,
-            )
-            return
-
-        applogger.info(
-            "Function Creator: wrote %s (%s, name=%r).", target, class_name, name
-        )
-        show_message(self, "dev.function_created", name=name, path=str(target))
-        open_in_editor(target)
-        self.accept()
-
-    def _validate(self) -> str:
-        name = self._name_edit.text().strip()
-        file_name = self._file_edit.text().strip()
-        description = self._description_edit.text().strip()
-        params = _parse_params(self._params_edit.text())
-
-        if not name:
-            return _("Name cannot be empty.")
-        if not description:
-            return _("Description cannot be empty.")
-        if not file_name.endswith(".py") or not _slug(file_name[:-3]):
-            return _("File name must be a valid Python file name, e.g. my_function.py.")
-        if (FUNCTIONS_DIR / file_name).exists():
-            return _(
-                "A file named \"{file}\" already exists under user/functions/."
-            ).format(file=file_name)
-        if not params:
+    def validate_fields(self) -> str:
+        if not _parse_params(self._params_edit.text()):
             return _("At least one parameter is needed.")
-        if self._function_name_taken(name):
-            return _(
-                "\"{name}\" is already used by an existing function."
-            ).format(name=name)
         return ""
 
-    @staticmethod
-    def _function_name_taken(name: str) -> bool:
-        entries = discover_both_roots(
-            builtin_root=BUILTIN_FUNCTIONS_DIR,
-            user_root=FUNCTIONS_DIR,
-            base_class_name="base_function",
-            value_attr="name",
-            require_value_attr=False,
+    def render_source(self, *, class_name: str, name: str, description: str) -> str:
+        return render_stub_source(
+            class_name=class_name, name=name, description=description,
+            params=_parse_params(self._params_edit.text()),
         )
-        return any(entry["value"] == name for entry in entries)
-
-    @staticmethod
-    def _import_check(path: Path, class_name: str) -> str:
-        """Import *path* fresh and confirm it discovers as a function."""
-        error = _generic_import_check(path, class_name)
-        if error:
-            return error
-
-        entries = discover_both_roots(
-            builtin_root=BUILTIN_FUNCTIONS_DIR,
-            user_root=FUNCTIONS_DIR,
-            base_class_name="base_function",
-            value_attr="name",
-            require_value_attr=False,
-        )
-        if not any(entry["name"] == class_name for entry in entries):
-            return _(
-                "The class imported, but functions_scanner did not discover it as "
-                "a function - check that it subclasses base_function directly."
-            )
-        return ""

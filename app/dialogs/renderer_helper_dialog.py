@@ -18,36 +18,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QComboBox,
-    QDialog,
-    QFormLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QComboBox, QFormLayout, QLineEdit, QWidget
 
-from app.dialogs.dev_tools_common import (
-    class_name as _class_name,
-    discover_both_roots,
-    import_check as _generic_import_check,
-    open_in_editor,
-    slug as _slug,
-)
-from app.logs.logger import applogger
-from app.styles.style import (
-    CardFrame,
-    apply_dialog_shell,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.dialogs.dev_tools_common import ScaffoldDialog
 from app.utils.config import USER_CHARTS_DIR
 from app.utils.i18n import _
-from app.utils.messages import show_message
 
 #: Where axis_renderer_scanner.py itself looks for the built-in renderers -
 #: used here only to check a new Name against them, never written to.
@@ -181,65 +156,44 @@ class {class_name}(BaseAxisRenderer):
 {_render_axis_body(required_roles)}'''
 
 
-class RendererHelperDialog(QDialog):
+class RendererHelperDialog(ScaffoldDialog):
     """Scaffold a new BaseAxisRenderer file from a short form."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("Renderer Helper"))
-        self.setWindowIcon(load_icon("renderer_helper"))
-        self.setModal(True)
+    TITLE = "Renderer Helper"
+    ICON = "renderer_helper"
+    CARD_NAME = "rendererHelperCard"
+    HINT = (
+        "Writes a new file under user/charts/ with a class already "
+        "filled in from these fields - no registration step, the "
+        "scanner picks it up as soon as the file exists. render_axis "
+        "is left for you to write the actual drawing code into."
+    )
+    NAME_PLACEHOLDER = "e.g. Ridgeline Plot"
+    FILE_PLACEHOLDER = "e.g. ridgeline.py"
+    DESCRIPTION_PLACEHOLDER = "One line, shown in the chart picker."
+    CLASS_SUFFIX = "AxisRenderer"
+    CREATE_ACTION = "create_renderer"
+    BUILTIN_DIR = BUILTIN_CHARTS_DIR
+    USER_DIR = CHARTS_DIR
+    BASE_CLASS_NAME = "BaseAxisRenderer"
+    CREATED_MESSAGE = "dev.renderer_created"
+    FAILED_MESSAGE = "dev.renderer_create_failed"
+    BAD_FILE_NAME = "File name must be a valid Python file name, e.g. my_chart.py."
+    FILE_EXISTS = "A file named \"{file}\" already exists under user/charts/."
+    NAME_TAKEN = "\"{name}\" is already used by an existing chart type."
+    NOT_DISCOVERED = (
+        "The class imported, but axis_renderer_scanner did not discover it as "
+        "a renderer - check that it subclasses BaseAxisRenderer directly."
+    )
 
-        root = QVBoxLayout(self)
-        # None, not "medium" - see series_operation_builder_dialog's own
-        # note on why a forced 900x640 read as loose gaps between every
-        # row rather than as a window that was simply too big: with every
-        # child here at stretch 0, Qt spreads unclaimed surplus roughly
-        # evenly between them instead of leaving it in one place. Sizing
-        # to the layout's own sizeHint removes the surplus this card
-        # never asked for.
-        apply_dialog_shell(self, root, size=None)
-
-        card = CardFrame(self, "rendererHelperCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("Renderer Helper"), card))
-
-        hint = QLabel(
-            _(
-                "Writes a new file under user/charts/ with a class already "
-                "filled in from these fields - no registration step, the "
-                "scanner picks it up as soon as the file exists. render_axis "
-                "is left for you to write the actual drawing code into."
-            ),
-            card,
-        )
-        hint.setWordWrap(True)
-        card_layout.addWidget(hint)
-
-        form = QFormLayout()
-        stdSizeAndlayout(form)
-
-        self._name_edit = QLineEdit(card)
-        self._name_edit.setPlaceholderText(_("e.g. Ridgeline Plot"))
-        self._name_edit.textEdited.connect(self._on_name_edited)
-        form.addRow(_("Name:"), self._name_edit)
-
-        self._file_edit = QLineEdit(card)
-        self._file_edit.setPlaceholderText(_("e.g. ridgeline.py"))
-        self._file_edit.textEdited.connect(self._on_file_edited_by_user)
-        form.addRow(_("File name:"), self._file_edit)
-
+    def add_fields(self, form: QFormLayout, card: QWidget) -> None:
         self._category_combo = QComboBox(card)
         self._category_combo.setEditable(True)
         self._category_combo.addItems(EXISTING_CATEGORIES)
         self._category_combo.setCurrentText("User")
         form.addRow(_("Category:"), self._category_combo)
 
-        self._description_edit = QLineEdit(card)
-        self._description_edit.setPlaceholderText(
-            _("One line, shown in the chart picker.")
-        )
-        form.addRow(_("Description:"), self._description_edit)
+        super().add_fields(form, card)
 
         self._link_edit = QLineEdit(card)
         self._link_edit.setPlaceholderText(_("Matplotlib documentation URL (optional)"))
@@ -254,153 +208,18 @@ class RendererHelperDialog(QDialog):
         self._optional_roles_edit.setPlaceholderText(_("comma-separated, optional"))
         form.addRow(_("Optional roles:"), self._optional_roles_edit)
 
-        card_layout.addLayout(form)
-
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="close", action=self.reject, layout=action_row
-        )
-        create_action_button(
-            parent=self,
-            action_id="create_renderer",
-            action=self._on_create,
-            layout=action_row,
-        )
-        card_layout.addLayout(action_row)
-        # Belt and braces: if this dialog is ever resized past its content,
-        # the surplus collapses here rather than spreading back out
-        # between the rows above.
-        card_layout.addStretch(1)
-
-        root.addWidget(card, 1)
-
-        self._file_edited_by_user = False
-
-    # ------------------------------------------------------------------
-    # Auto-deriving the file name from the chart's Name
-    # ------------------------------------------------------------------
-    def _on_name_edited(self, text: str) -> None:
-        if self._file_edited_by_user:
-            return
-        self._file_edit.setText(f"{_slug(text)}.py" if text.strip() else "")
-
-    def _on_file_edited_by_user(self, _text: str) -> None:
-        self._file_edited_by_user = True
-
-    # ------------------------------------------------------------------
-    # Create
-    # ------------------------------------------------------------------
-    def _on_create(self) -> None:
-        problem = self._validate()
-        if problem:
-            show_message(self, "dev.validation_error", detail=problem)
-            return
-
-        name = self._name_edit.text().strip()
-        file_name = self._file_edit.text().strip()
-        class_name = _class_name(name, suffix="AxisRenderer")
-        category = self._category_combo.currentText().strip() or "User"
-        description = self._description_edit.text().strip()
-        link = self._link_edit.text().strip()
-        required_roles = _parse_roles(self._required_roles_edit.text())
-        optional_roles = _parse_roles(self._optional_roles_edit.text())
-
-        source = render_stub_source(
-            class_name=class_name,
-            name=name,
-            category=category,
-            description=description,
-            link=link,
-            required_roles=required_roles,
-            optional_roles=optional_roles,
-        )
-
-        target = CHARTS_DIR / file_name
-        try:
-            CHARTS_DIR.mkdir(parents=True, exist_ok=True)
-            target.write_text(source, encoding="utf-8")
-        except OSError as exc:
-            applogger.exception("Could not write the new renderer file.")
-            show_message(self, "dev.validation_error", detail=str(exc))
-            return
-
-        error = _import_check(target, class_name)
-        if error:
-            show_message(
-                self,
-                "dev.renderer_create_failed",
-                path=str(target),
-                error=error,
-            )
-            return
-
-        applogger.info(
-            "Renderer Helper: wrote %s (%s, chart_type=%r).", target, class_name, name
-        )
-        show_message(self, "dev.renderer_created", name=name, path=str(target))
-        open_in_editor(target)
-        self.accept()
-
-    def _validate(self) -> str:
-        name = self._name_edit.text().strip()
-        file_name = self._file_edit.text().strip()
-        description = self._description_edit.text().strip()
-        required_roles = _parse_roles(self._required_roles_edit.text())
-
-        if not name:
-            return _("Name cannot be empty.")
-        if not description:
-            return _("Description cannot be empty.")
-        if not file_name.endswith(".py") or not _slug(file_name[:-3]):
-            return _("File name must be a valid Python file name, e.g. my_chart.py.")
-        if (CHARTS_DIR / file_name).exists():
-            return _("A file named \"{file}\" already exists under user/charts/.").format(
-                file=file_name
-            )
-        if not required_roles:
+    def validate_fields(self) -> str:
+        if not _parse_roles(self._required_roles_edit.text()):
             return _("At least one required role is needed.")
-        if _renderer_name_taken(name):
-            return _(
-                "\"{name}\" is already used by an existing chart type."
-            ).format(name=name)
         return ""
 
-
-def _renderer_name_taken(name: str) -> bool:
-    """True when an existing renderer, built-in or user's own, already
-    declares this Name."""
-    entries = discover_both_roots(
-        builtin_root=BUILTIN_CHARTS_DIR,
-        user_root=CHARTS_DIR,
-        base_class_name="BaseAxisRenderer",
-    )
-    return any(entry["value"] == name for entry in entries)
-
-
-def _import_check(path: Path, class_name: str) -> str:
-    """Import *path* fresh and confirm it discovers as a renderer.
-
-    Returns an empty string on success, else a message describing what
-    went wrong - the same two-step check todo.txt's own design sketch
-    asks for: the file must both import cleanly (dev_tools_common's own
-    generic check) and be the shape axis_renderer_scanner actually looks
-    for (a class directly subclassing BaseAxisRenderer, naming Name as a
-    plain string literal).
-    """
-    error = _generic_import_check(path, class_name)
-    if error:
-        return error
-
-    entries = discover_both_roots(
-        builtin_root=BUILTIN_CHARTS_DIR,
-        user_root=CHARTS_DIR,
-        base_class_name="BaseAxisRenderer",
-    )
-    if not any(entry["name"] == class_name for entry in entries):
-        return _(
-            "The class imported, but axis_renderer_scanner did not discover it as "
-            "a renderer - check that it subclasses BaseAxisRenderer directly."
+    def render_source(self, *, class_name: str, name: str, description: str) -> str:
+        return render_stub_source(
+            class_name=class_name,
+            name=name,
+            category=self._category_combo.currentText().strip() or "User",
+            description=description,
+            link=self._link_edit.text().strip(),
+            required_roles=_parse_roles(self._required_roles_edit.text()),
+            optional_roles=_parse_roles(self._optional_roles_edit.text()),
         )
-    return ""
