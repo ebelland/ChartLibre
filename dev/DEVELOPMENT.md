@@ -897,10 +897,10 @@ the machine.
   the test hangs. Split menu *construction* from *showing* it as a testable
   method — `TablePreviewPanel._build_context_menu(pos) -> QMenu | None` /
   `_show_context_menu` is the pattern — and test the builder.
-- `show_dialog=True` on a log call shows nothing: the logger's message box
-  was switched off, and the dialogs a user sees come from
-  `app.utils.messages` (`show_message`). A WARNING reaches the status bar
-  (`AppLogger._log_with_policy`); `raise_error` still raises.
+- A log call never opens a window: the dialogs a user sees come from
+  `app.utils.messages` (`show_message`). A WARNING or louder reaches the
+  status bar (`AppLogger._log_with_policy`); `raise_error=True` (the default
+  for ERROR and CRITICAL) raises `LoggedError` once the record is written.
 - `conftest.py` points `user.json` at a copy for the whole session: dialogs
   save their state when they close, and against the real file a test run
   used to leave the developer's own window with its panels 47 px wide.

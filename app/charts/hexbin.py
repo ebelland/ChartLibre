@@ -167,8 +167,6 @@ class HexbinAxisRenderer(BaseAxisRenderer):
             applogger.warning(
                 "Series '%s' skipped: Hexbin needs x and y roles.",
                 sd.name,
-                show_dialog=False,
-                raise_error=False,
             )
             return
 

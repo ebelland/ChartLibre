@@ -1131,7 +1131,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
                 self.applied.emit()
             return True
         except Exception as exc:
-            applogger.error("Statistics failed: %s", exc, show_dialog=True)
+            applogger.error("Statistics failed: %s", exc)
             return False
 
     # ------------------------------------------------------------------

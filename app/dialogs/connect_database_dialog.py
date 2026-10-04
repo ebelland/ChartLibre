@@ -517,8 +517,6 @@ class ConnectDatabaseDialog(QDialog):
             applogger.warning(
                 "Could not remember the database connection: %s",
                 exc,
-                show_dialog=False,
-                raise_error=False,
             )
 
     # ------------------------------------------------------------------

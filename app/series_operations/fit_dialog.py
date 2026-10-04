@@ -862,8 +862,6 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                 "%s: dropped %d row(s) with non-finite x/y/z before fitting.",
                 source_name,
                 dropped,
-                show_dialog=False,
-                raise_error=False,
             )
         x_clean = x_values[finite]
         y_clean = y_values[finite]

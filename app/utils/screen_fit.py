@@ -47,7 +47,7 @@ def fit_to_screen(window: QWidget) -> bool:
             applogger.warning(
                 "%s needs %d x %d at least, more than this screen's %d x %d.",
                 type(window).__name__, window.minimumWidth(), window.minimumHeight(),
-                available.width(), available.height(), show_dialog=False, raise_error=False,
+                available.width(), available.height(),
             )
     frame = window.frameGeometry()
     x = min(max(frame.x(), available.left()), max(available.left(), available.right() + 1 - frame.width()))

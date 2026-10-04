@@ -109,8 +109,6 @@ class StackplotAxisRenderer(BaseAxisRenderer):
                     sd.name,
                     y.size,
                     x.size,
-                    show_dialog=False,
-                    raise_error=False,
                 )
                 continue
             # A gap in a band would break the sum, so missing values read as
@@ -215,8 +213,6 @@ class StairsAxisRenderer(BaseAxisRenderer):
                         sd.name,
                         edges.size,
                         values.size,
-                        show_dialog=False,
-                        raise_error=False,
                     )
                     edges = None
 

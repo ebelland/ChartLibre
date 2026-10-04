@@ -188,8 +188,6 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
                 "Heatmap needs a complete grid: every x value paired with "
                 "every y value exactly once. Use 'Contour Plot (Scattered)' "
                 "for data that is not on a regular grid.",
-                show_dialog=False,
-                raise_error=False,
             )
             return
 

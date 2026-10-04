@@ -99,8 +99,6 @@ def pivot_to_grid(
             y_values.size,
             f"{cells:,}",
             f"{MAX_GRID_CELLS:,}",
-            show_dialog=False,
-            raise_error=False,
         )
         return None
 

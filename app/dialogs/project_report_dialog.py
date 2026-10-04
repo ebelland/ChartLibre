@@ -186,7 +186,7 @@ class ProjectReportDialog(QDialog):
             self._status.setText(_("Could not write the report: {reason}").format(reason=exc))
             return
         for name, reason in report.failures:
-            applogger.warning("Report: figure %r could not be drawn - %s", name, reason, show_dialog=False, raise_error=False)
+            applogger.warning("Report: figure %r could not be drawn - %s", name, reason)
         applogger.info("Project report written: %s (%d figures)", self.written, len(report.images))
         save_dialog_state(self, _STATE_KEY)
         self.accept()

@@ -85,8 +85,6 @@ def filter_latex_rcparams(params: Mapping[str, Any]) -> dict[str, Any]:
             "%s; ignoring rcParams: %s",
             latex_unavailable_reason(),
             ", ".join(sorted(dropped)),
-            show_dialog=False,
-            raise_error=False,
         )
     return result
 
@@ -121,8 +119,6 @@ def filter_latex_style_text(text: str) -> str:
             "%s; disabled style entries: %s",
             latex_unavailable_reason(),
             ", ".join(sorted(set(dropped))),
-            show_dialog=False,
-            raise_error=False,
         )
 
     return "\n".join(output)

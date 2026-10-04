@@ -644,8 +644,6 @@ def _pyobjc_core_is_safe_to_import() -> bool:
                 sys.version_info[0],
                 sys.version_info[1],
                 ".".join(str(part) for part in minimum),
-                show_dialog=False,
-                raise_error=False,
             )
             return False
 
@@ -679,8 +677,6 @@ def _sf_symbol_bridge() -> Any | None:
         applogger.warning(
             "SF Symbols need pyobjc, which is not installed; using the SVG "
             "icons instead. Install it with: pip install pyobjc-framework-Cocoa",
-            show_dialog=False,
-            raise_error=False,
         )
         return None
 
@@ -730,8 +726,6 @@ def _create_sf_symbol_icon(symbol: str, *, size: int = 20) -> QIcon:
             applogger.warning(
                 "Unknown SF Symbol %r; using the SVG icon instead.",
                 name,
-                show_dialog=False,
-                raise_error=False,
             )
             _SF_SYMBOL_ICON_CACHE[cache_key] = icon
             return icon
@@ -775,8 +769,6 @@ def _create_sf_symbol_icon(symbol: str, *, size: int = 20) -> QIcon:
             "SF Symbol %r could not be rendered (%s); using the SVG icon instead.",
             name,
             error,
-            show_dialog=False,
-            raise_error=False,
         )
         icon = QIcon()
 
@@ -1035,8 +1027,6 @@ def icon_from_svg_source(
             "An embedded icon could not be parsed as SVG (starts %r); the "
             "widget will have no icon.",
             source[:60],
-            show_dialog=False,
-            raise_error=False,
         )
         icon = QIcon()
     else:
@@ -1394,8 +1384,6 @@ def resolve_app_style(preference: str | None = None) -> str:
         applogger.warning(
             "The stylesheet %r is no longer there; using the automatic style.",
             raw,
-            show_dialog=False,
-            raise_error=False,
         )
         return APP_STYLE_AUTOMATIC
 
@@ -1407,8 +1395,6 @@ def resolve_app_style(preference: str | None = None) -> str:
         applogger.warning(
             "The Qt style %r is not installed; using the automatic style.",
             name,
-            show_dialog=False,
-            raise_error=False,
         )
         return APP_STYLE_AUTOMATIC
 
@@ -2089,8 +2075,6 @@ def apply_dialog_shell(
         applogger.warning(
             "Unknown dialog size %r; leaving the dialog size untouched.",
             size,
-            show_dialog=False,
-            raise_error=False,
         )
         return
 
@@ -2449,8 +2433,6 @@ def action(action_id: str) -> ActionSpec:
     applogger.warning(
         "No action %r in config.json; the widget will have no label or icon.",
         action_id,
-        show_dialog=False,
-        raise_error=False,
     )
     # Empty, not a placeholder labelled with the id: a button reading
     # "series_outliers" looks like a working button with an odd name, and the

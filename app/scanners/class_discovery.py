@@ -55,8 +55,6 @@ def _load_class(file_path: str, class_name: str, mtime_ns: int, module_prefix: s
             path,
             type(exc).__name__,
             exc,
-            show_dialog=False,
-            raise_error=False,
         )
         sys.modules.pop(module_name, None)
         return None

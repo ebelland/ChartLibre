@@ -410,7 +410,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         if errors and not results:
             raise ValueError("; ".join(errors))
         for message in errors:
-            applogger.warning(message, show_dialog=False, raise_error=False)
+            applogger.warning(message)
         return results
 
     # ------------------------------------------------------------------

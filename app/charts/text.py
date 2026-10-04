@@ -44,8 +44,6 @@ def _adjust_text_function():
                 "Text labels are not overlap-adjusted: the optional "
                 "dependency 'adjustText' is not installed. Install it with "
                 "'pip install adjustText' for automatic label spacing.",
-                show_dialog=False,
-                raise_error=False,
             )
         return None
 

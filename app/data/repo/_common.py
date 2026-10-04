@@ -408,23 +408,23 @@ class DatabaseReport:
         """Write the whole report to the log, worst first."""
         for message in self.integrity_errors:
             applogger.error(
-                "Database integrity: %s", message, show_dialog=False, raise_error=False
+                "Database integrity: %s", message
             )
         for message in self.foreign_key_errors:
             applogger.error(
-                "Foreign key: %s", message, show_dialog=False, raise_error=False
+                "Foreign key: %s", message
             )
         for message in self.orphan_descriptors:
             applogger.warning(
-                "Orphan descriptor: %s", message, show_dialog=False, raise_error=False
+                "Orphan descriptor: %s", message
             )
         for message in self.dangling_series:
             applogger.warning(
-                "Dangling reference: %s", message, show_dialog=False, raise_error=False
+                "Dangling reference: %s", message
             )
         for message in self.dangling_links:
             applogger.warning(
-                "Dangling reference: %s", message, show_dialog=False, raise_error=False
+                "Dangling reference: %s", message
             )
         if self.unreferenced_tables:
             applogger.info(

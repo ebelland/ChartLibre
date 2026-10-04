@@ -296,8 +296,6 @@ class ContourAxisRenderer(BaseAxisRenderer):
                 "Contour Plot needs a complete grid: every x value paired "
                 "with every y value exactly once. Use 'Contour Plot "
                 "(Scattered)' for data that is not on a regular grid.",
-                show_dialog=False,
-                raise_error=False,
             )
             return
 
@@ -567,8 +565,6 @@ class ContourScatteredAxisRenderer(ContourAxisRenderer, BaseAxisRenderer):
             applogger.error(
                 "Contour Plot (Scattered) needs at least 3 points to "
                 "triangulate.",
-                show_dialog=False,
-                raise_error=False,
             )
             return
 
@@ -588,8 +584,6 @@ class ContourScatteredAxisRenderer(ContourAxisRenderer, BaseAxisRenderer):
                 "for a contour to cross.",
                 type(exc).__name__,
                 exc,
-                show_dialog=False,
-                raise_error=False,
             )
             return
 

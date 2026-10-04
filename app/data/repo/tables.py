@@ -498,8 +498,6 @@ class TablesMixin(RepoHost):
                 "Dropping a stale column snapshot %s.%s left by an earlier preview.",
                 table_name,
                 backup_name,
-                show_dialog=False,
-                raise_error=False,
             )
             self._drop_column(table_name, backup_name)
 

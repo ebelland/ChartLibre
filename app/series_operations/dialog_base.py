@@ -666,7 +666,7 @@ class SeriesOperationDialogBase(QDialog):
         fs, note = sampling_frequency(x_values)
         if note:
             applogger.warning(
-                "Series '%s': %s.", name, note, show_dialog=False, raise_error=False,
+                "Series '%s': %s.", name, note,
             )
         return fs
 
@@ -842,19 +842,9 @@ class SeriesOperationDialogBase(QDialog):
             raise ValueError(message)
 
         if len(rows) > 1:
-            # NOT show_dialog=True: this runs on every compute_results() -
-            # every Preview, every parameter tweak while two or more series
-            # are checked - and a modal QMessageBox.exec() on each of those
-            # would freeze the dialog until it was dismissed, again and
-            # again. It very nearly shipped that way: AppLogger._show_
-            # message_box only skips the dialog when there is no
-            # QApplication at all, so it exec()s quietly-returning under the
-            # offscreen QPA platform pytest runs on and genuinely blocks on
-            # a real desktop - green everywhere headless, and a hang at
-            # whichever test first exercises this path anywhere else.
-            # The status bar already shows every WARNING-or-louder message
-            # on its own (see AppLogger._log_with_policy) without asking to
-            # be dismissed, which is why this stays at the default.
+            # A warning, not a message box: this runs on every Preview and
+            # every parameter tweak while two or more series are checked.
+            # The status bar shows it without asking to be dismissed.
             name = row_value(rows[0], "name", default="first")
             applogger.warning(
                 "%d series are selected; using only '%s'. Uncheck the "
@@ -1049,7 +1039,7 @@ class SeriesOperationDialogBase(QDialog):
             if outcome.errors and not results:
                 raise ValueError("; ".join(outcome.errors))
             for message in outcome.errors:
-                applogger.warning(message, show_dialog=False, raise_error=False)
+                applogger.warning(message)
             return results
         del job
         return list(outcome) if isinstance(outcome, (list, tuple)) else [outcome]
@@ -1126,7 +1116,7 @@ class SeriesOperationDialogBase(QDialog):
         if isinstance(error, Stopped):
             self.set_results_text(_("Stopped. Nothing was changed."))
             return
-        applogger.error(f"{self.operation_label} failed: {error}", show_dialog=True)
+        applogger.error(f"{self.operation_label} failed: {error}")
 
     def _set_evaluating(self, running: bool) -> None:
         # The buttons go off at once - a second click must not start a second
@@ -1215,7 +1205,7 @@ class SeriesOperationDialogBase(QDialog):
         for issue in issues:
             if issue.severity == "warning":
                 applogger.warning(
-                    issue.message, show_dialog=False, raise_error=False
+                    issue.message
                 )
 
         blocking = errors(issues)
@@ -1224,7 +1214,6 @@ class SeriesOperationDialogBase(QDialog):
             # for one bad series trains the user to dismiss them unread.
             applogger.error(
                 " ".join(issue.message for issue in blocking),
-                show_dialog=True,
                 raise_error=True,
             )
 
@@ -1261,8 +1250,6 @@ class SeriesOperationDialogBase(QDialog):
             prefix = f"{label}: " if label else ""
             applogger.warning(
                 f"{prefix}{report.describe()}.",
-                show_dialog=False,
-                raise_error=False,
             )
 
         return x_clean, y_clean
@@ -1625,8 +1612,6 @@ class SeriesOperationDialogBase(QDialog):
                 applogger.warning(
                     "Could not write %s back as timestamps; leaving it numeric.",
                     column,
-                    show_dialog=False,
-                    raise_error=False,
                 )
         return frame
 
@@ -2205,9 +2190,9 @@ class SeriesOperationDialogBase(QDialog):
         self.cancel_operation_changes(refresh=True)
         action = "Apply" if commit else "Preview"
         if commit:
-            applogger.critical(f"{action} failed: {exc}", show_dialog=True)
+            applogger.critical(f"{action} failed: {exc}")
         else:
-            applogger.error(f"{action} failed: {exc}", show_dialog=True)
+            applogger.error(f"{action} failed: {exc}")
         return False
 
     def _deliver_results(
@@ -2320,7 +2305,6 @@ class SeriesOperationDialogBase(QDialog):
         except Exception:
             applogger.exception(
                 f"Could not record {self.operation_label} in the project's history",
-                show_dialog=False, raise_error=False,
             )
             return
         self.record_applied(written, report, inputs)
@@ -2353,7 +2337,6 @@ class SeriesOperationDialogBase(QDialog):
         except Exception:
             applogger.exception(
                 f"Could not record {self.operation_label} in the project's history",
-                show_dialog=False, raise_error=False,
             )
 
     def operation_succeeded(self, *, commit: bool) -> None:

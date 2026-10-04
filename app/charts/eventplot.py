@@ -130,8 +130,6 @@ class EventPlotAxisRenderer(BaseAxisRenderer):
                 applogger.warning(
                     "Series '%s' skipped: Event Plot needs an x role.",
                     sd.name,
-                    show_dialog=False,
-                    raise_error=False,
                 )
                 continue
 

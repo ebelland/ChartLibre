@@ -580,7 +580,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
     ) -> ControlChartResult:
         chart, _params = settings
         for note in outcome.notes:
-            applogger.warning(f"{name}: {note}", show_dialog=False, raise_error=False)
+            applogger.warning(f"{name}: {note}")
         tag = chart.split(" ")[0] if CONTROL_CHARTS[chart].attribute else chart
         return ControlChartResult(
             source_name=name,

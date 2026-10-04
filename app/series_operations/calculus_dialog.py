@@ -440,7 +440,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
             smoothing=params.get("smoothing", 0),
         )
         for note in derivative.notes:
-            applogger.warning(f"{name}: {note}", show_dialog=False, raise_error=False)
+            applogger.warning(f"{name}: {note}")
 
         power = "²" if order == 2 else ""
         base_name = f"{name} - d{power}y/dx{power}"
@@ -497,7 +497,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
 
         area = calc.definite_integral(x_calc, corrected, simpson_rule=bool(params.get("simpson", False)))
         for note in area.notes:
-            applogger.warning(f"{name}: {note}", show_dialog=False, raise_error=False)
+            applogger.warning(f"{name}: {note}")
         return CalculusResult(
             source_name=name,
             result_name=f"{name} - area{unit_suffix}",

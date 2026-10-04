@@ -375,8 +375,6 @@ def _platform_language_candidates() -> list[str]:
     except Exception:  # pragma: no cover - depends on the Qt build
         applogger.warning(
             "Could not read the platform locale from Qt.",
-            show_dialog=False,
-            raise_error=False,
         )
 
     # Before the environment, and only on the platform it belongs to: on
@@ -466,8 +464,6 @@ def set_language(code: str) -> str:
             "No catalogue for '%s'; keeping %s.",
             clean,
             _language,
-            show_dialog=False,
-            raise_error=False,
         )
         return _language
 

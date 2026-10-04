@@ -174,8 +174,6 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
                 applogger.warning(
                     "Ignoring invalid violin quantile %r.",
                     part,
-                    show_dialog=False,
-                    raise_error=False,
                 )
                 continue
             if 0.0 < value < 1.0:
@@ -184,8 +182,6 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
                 applogger.warning(
                     "Violin quantile %s is outside (0, 1) and was ignored.",
                     value,
-                    show_dialog=False,
-                    raise_error=False,
                 )
 
         return sorted(set(values)) or None

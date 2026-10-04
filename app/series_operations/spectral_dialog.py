@@ -207,7 +207,6 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         if repo is None:
             applogger.error(
                 "SeriesSpectralDialog requires a repository instance.",
-                show_dialog=True,
                 raise_error=True,
             )
 

@@ -503,7 +503,6 @@ class EditLocalizationDialog(QDialog):
         self._reload_status_only()
         applogger.warning(
             "Automatic translation could not start: %s", error,
-            show_dialog=False, raise_error=False,
         )
         show_message(self, "dev.validation_error", detail=str(error))
 

@@ -204,8 +204,6 @@ class PieAxisRenderer(BaseAxisRenderer):
                 "own axis.",
                 len(drawable),
                 drawable[0].name,
-                show_dialog=False,
-                raise_error=False,
             )
 
         sd = drawable[0]
@@ -288,8 +286,6 @@ class PieAxisRenderer(BaseAxisRenderer):
                 name,
                 value,
                 default,
-                show_dialog=False,
-                raise_error=False,
             )
             return default
 
@@ -329,8 +325,6 @@ class PieAxisRenderer(BaseAxisRenderer):
             applogger.warning(
                 "Unknown colormap %r; using the style's colour cycle.",
                 name,
-                show_dialog=False,
-                raise_error=False,
             )
             return None
 

@@ -86,7 +86,6 @@ def ask_the_function(
         applogger.exception(
             "The starting-point estimate of %s failed; searching instead.",
             getattr(function_class, "name", function_class),
-            show_dialog=False, raise_error=False,
         )
         return None
 

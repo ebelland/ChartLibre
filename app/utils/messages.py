@@ -152,8 +152,6 @@ class MessageSpec:
                 normalized,
                 values,
                 exc,
-                show_dialog=False,
-                raise_error=False,
             )
             return normalized
 
@@ -201,8 +199,6 @@ def catalog() -> dict[str, MessageSpec]:
             "No '%s' section in config.json; every message box will show its "
             "id instead of its text.",
             CONFIG_SECTION,
-            show_dialog=False,
-            raise_error=False,
         )
 
     built: dict[str, MessageSpec] = {}
@@ -211,8 +207,6 @@ def catalog() -> dict[str, MessageSpec]:
             applogger.warning(
                 "Message '%s' in config.json is not an object; ignoring it.",
                 message_id,
-                show_dialog=False,
-                raise_error=False,
             )
             continue
         built[str(message_id)] = MessageSpec.from_config(str(message_id), entry)
@@ -242,8 +236,6 @@ def message(message_id: str) -> MessageSpec:
     applogger.error(
         "Unknown message id %r; showing it verbatim.",
         message_id,
-        show_dialog=False,
-        raise_error=False,
     )
     return MessageSpec(message_id, "info", message_id, "")
 

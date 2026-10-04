@@ -297,8 +297,6 @@ def set_section(name: str, value: dict[str, Any]) -> None:
             "Refusing to write section %r: it belongs to the catalogue in %s.",
             name,
             CONFIG_PATH.name,
-            show_dialog=False,
-            raise_error=False,
         )
         return
 

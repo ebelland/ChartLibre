@@ -297,8 +297,6 @@ class HistogramAxisRenderer(BaseAxisRenderer):
                 "Invalid histogram range (%r, %r); using the data range.",
                 low,
                 high,
-                show_dialog=False,
-                raise_error=False,
             )
             return None
 
@@ -307,8 +305,6 @@ class HistogramAxisRenderer(BaseAxisRenderer):
                 "Histogram range_min (%s) is not below range_max (%s); using the data range.",
                 resolved_low,
                 resolved_high,
-                show_dialog=False,
-                raise_error=False,
             )
             return None
 
@@ -440,8 +436,6 @@ class HistogramAxisRenderer(BaseAxisRenderer):
             applogger.warning(
                 "Unknown histtype %r; falling back to 'bar'.",
                 histtype,
-                show_dialog=False,
-                raise_error=False,
             )
             histtype = "bar"
 
@@ -450,8 +444,6 @@ class HistogramAxisRenderer(BaseAxisRenderer):
             applogger.warning(
                 "Unknown histogram orientation %r; falling back to 'vertical'.",
                 orientation,
-                show_dialog=False,
-                raise_error=False,
             )
             orientation = "vertical"
 

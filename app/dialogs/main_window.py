@@ -1543,8 +1543,6 @@ class MainWindow(QMainWindow):
             applogger.warning(
                 "That database is no longer there: %s",
                 db_path,
-                show_dialog=False,
-                raise_error=False,
             )
             show_message(self, "database.open_failed", error=db_path)
             self._build_app_menu()
@@ -2854,7 +2852,7 @@ class MainWindow(QMainWindow):
 
             write_project_preview(self._repo)
         except Exception as exc:  # noqa: BLE001 - a preview must never stop a save
-            applogger.warning("Could not draw the project preview: %s", exc, show_dialog=False, raise_error=False)
+            applogger.warning("Could not draw the project preview: %s", exc)
 
     def _on_save_as(self) -> None:
         """Save a copy of the current database under a new name, and switch to it.

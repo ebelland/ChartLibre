@@ -520,8 +520,6 @@ class BaseAxisRenderer(Protocol):
             applogger.warning(
                 "Skipping a reference line with no usable value: %r",
                 line.get("value"),
-                show_dialog=False,
-                raise_error=False,
             )
             return
         if not np.isfinite(value):
@@ -569,8 +567,6 @@ class BaseAxisRenderer(Protocol):
             applogger.warning(
                 "Skipping a measurement with no usable coordinates: %r",
                 measurement,
-                show_dialog=False,
-                raise_error=False,
             )
             return
         if not all(np.isfinite(value) for value in (x0, y0, x1, y1)):

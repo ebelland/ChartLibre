@@ -785,7 +785,7 @@ def _bundled_web_data_sources() -> tuple[WebDataSource, ...]:
         return ()
     except (OSError, ValueError) as exc:
         applogger.warning("%s could not be read, so its web sources are not offered: %s",
-                          WEB_SOURCES_PATH, exc, show_dialog=False, raise_error=False)
+                          WEB_SOURCES_PATH, exc)
         return ()
     if not isinstance(raw, list):
         return ()

@@ -280,7 +280,7 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
                 f"Select two or more usable series to decompose or embed together. {detail}".strip()
             )
         for message in errors:
-            applogger.warning(message, show_dialog=False, raise_error=False)
+            applogger.warning(message)
 
         def compute() -> list[DecompositionResult]:
             grid = dc.shared_grid(xy_pairs, n_grid)
@@ -327,7 +327,7 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
             n_neighbors=int(params.get("n_neighbors", 5)),
         )
         for note in embedding.notes:
-            applogger.warning(note, show_dialog=False, raise_error=False)
+            applogger.warning(note)
         return DecompositionResult(
             source_names=names,
             model=model,

@@ -184,8 +184,6 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
                 name,
                 value,
                 default,
-                show_dialog=False,
-                raise_error=False,
             )
             return default
 
@@ -311,8 +309,6 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
             applogger.warning(
                 "Series '%s' skipped: the ECDF renderer needs a 'value' role.",
                 sd.name,
-                show_dialog=False,
-                raise_error=False,
             )
             return None
 

@@ -669,8 +669,6 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                 applogger.warning(
                     "Invalid time gap threshold %r; gaps disabled.",
                     threshold,
-                    show_dialog=False,
-                    raise_error=False,
                 )
                 return result
         else:

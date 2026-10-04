@@ -478,7 +478,6 @@ class OverlayPropertiesWidget(BaseProperties):
         if not isinstance(items, list):
             applogger.warning(
                 "Invalid axis %s=%r", key, items,
-                show_dialog=False, raise_error=False,
             )
             return
         for item in items:
@@ -569,13 +568,11 @@ class OverlayPropertiesWidget(BaseProperties):
         except json.JSONDecodeError:
             applogger.warning(
                 "Skipping invalid kwargs JSON on row %s", row + 1,
-                show_dialog=False, raise_error=False,
             )
             return {}
         if not isinstance(parsed, dict):
             applogger.warning(
                 "Skipping non-object kwargs on row %s", row + 1,
-                show_dialog=False, raise_error=False,
             )
             return {}
         return cast("dict[str, Any]", parsed)
@@ -596,7 +593,6 @@ class OverlayPropertiesWidget(BaseProperties):
             else:
                 applogger.warning(
                     "Skipping overlay row %s with an unusable value", row + 1,
-                    show_dialog=False, raise_error=False,
                 )
         return rows
 

@@ -224,7 +224,7 @@ class SqliteRepo(
         try:
             self.repair_misplaced_hide_filters()
         except sqlite3.Error:
-            applogger.exception("Could not check the series queries", show_dialog=False, raise_error=False)
+            applogger.exception("Could not check the series queries")
 
     # =====================================================================
     # Series DataFrame cache
@@ -261,8 +261,6 @@ class SqliteRepo(
                 "Invalid series_cache.max_entries=%r; using %d",
                 section.get("max_entries"),
                 _SERIES_CACHE_DEFAULT_MAX_ENTRIES,
-                show_dialog=False,
-                raise_error=False,
             )
 
     def _database_stamp(self) -> tuple[int, int, int]:

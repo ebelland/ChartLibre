@@ -384,8 +384,6 @@ class StreamAxisRenderer(BaseAxisRenderer):
                 "Stream Plot needs the samples on a complete x/y grid: every "
                 "x value paired with every y value exactly once. Use "
                 "'Quiver' for a field measured at scattered points.",
-                show_dialog=False,
-                raise_error=False,
             )
             return None
 
@@ -400,8 +398,6 @@ class StreamAxisRenderer(BaseAxisRenderer):
                 "interpolates between the samples, and Matplotlib can only "
                 "do that on a regular grid. Use 'Quiver' to draw the samples "
                 "themselves.",
-                show_dialog=False,
-                raise_error=False,
             )
             return None
 

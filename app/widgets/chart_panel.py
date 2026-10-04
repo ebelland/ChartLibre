@@ -3364,8 +3364,6 @@ class ChartPanel(QFrame):
                 "Ignoring invalid persisted zoom for figure_id=%s: %r",
                 self._figure_id,
                 view.get("zoom_percent"),
-                show_dialog=False,
-                raise_error=False,
             )
 
     def _persist_view_state(self) -> None:

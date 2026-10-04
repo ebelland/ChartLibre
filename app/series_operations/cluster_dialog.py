@@ -233,7 +233,6 @@ def _source_table_from_sql(sql_query: str) -> str:
     if match is None:
         applogger.error(
             "Selected series SQL must contain the source table in a FROM clause.",
-            show_dialog=True,
             raise_error=True,
         )
         return ""
@@ -242,7 +241,6 @@ def _source_table_from_sql(sql_query: str) -> str:
             return str(group)
     applogger.error(
         "Selected series source table could not be resolved.",
-        show_dialog=True,
         raise_error=True,
     )
     return ""
@@ -264,7 +262,6 @@ def _source_column_for_alias(sql_query: str, alias: str) -> str:
     if match is None:
         applogger.error(
             f'Selected series SQL must project a source field as "{alias}".',
-            show_dialog=True,
             raise_error=True,
         )
         return ""
@@ -273,7 +270,6 @@ def _source_column_for_alias(sql_query: str, alias: str) -> str:
             return str(group)
     applogger.error(
         f'Source field for alias "{alias}" could not be resolved.',
-        show_dialog=True,
         raise_error=True,
     )
     return ""
@@ -354,7 +350,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
     ) -> None:
 
         if repo is None:
-            applogger.error("SeriesClusterDialog requires a repository instance.", show_dialog=True, raise_error=True)
+            applogger.error("SeriesClusterDialog requires a repository instance.", raise_error=True)
 
         self._repo: Any = repo
         self._figure_id = int(figure_id)
@@ -584,13 +580,13 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         name = str(row["name"])
         sql_query = str(row["sql_query"])
         if not sql_query:
-            applogger.error("Selected series has no SQL query.", show_dialog=True, raise_error=True)
+            applogger.error("Selected series has no SQL query.", raise_error=True)
 
         source_table = _source_table_from_sql(sql_query)
         source_x_column = _source_column_for_alias(sql_query, "x")
         frame = self._repo.query_df(sql_query)
         if frame.empty:
-            applogger.error("Selected series query returned no rows.", show_dialog=True, raise_error=True)
+            applogger.error("Selected series query returned no rows.", raise_error=True)
 
         roles = parse_roles(row["roles"])
         columns = [str(column) for column in frame.columns]
@@ -643,7 +639,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             if not z_col:
                 applogger.error(
                     "Selected series has no Z role/column for X, Y and Z clustering.",
-                    show_dialog=True,
                     raise_error=True,
                 )
             return [series.x_col, series.y_col, z_col]
@@ -656,7 +651,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
                 if pd.api.types.is_numeric_dtype(frame[column]) and str(column) not in excluded
             ]
             if not numeric:
-                applogger.error("No numeric columns are available for clustering.", show_dialog=True, raise_error=True)
+                applogger.error("No numeric columns are available for clustering.", raise_error=True)
             return numeric
 
         return [series.x_col, series.y_col]
@@ -704,7 +699,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         errors = outcome.errors
 
         if errors and not results:
-            applogger.error("\n".join(errors), show_dialog=True, raise_error=True)
+            applogger.error("\n".join(errors), raise_error=True)
 
         if errors:
             show_message(
@@ -1053,7 +1048,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             if source_series_id is None:
                 applogger.error(
                     "Selected series id is missing; cannot update source series SQL.",
-                    show_dialog=True,
                     raise_error=True,
                 )
                 continue

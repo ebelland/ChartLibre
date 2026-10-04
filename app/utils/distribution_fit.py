@@ -136,8 +136,6 @@ def fit_one(values: np.ndarray, name: str) -> DistributionFit | None:
         applogger.warning(
             "No distribution named %r in scipy.stats; skipping it.",
             name,
-            show_dialog=False,
-            raise_error=False,
         )
         return None
 
@@ -237,8 +235,6 @@ def fit_distributions(
             "Unknown ranking criterion %r; ranking by %s instead.",
             rank_by,
             DEFAULT_RANK,
-            show_dialog=False,
-            raise_error=False,
         )
         key = _RANK_KEYS[DEFAULT_RANK]
 

@@ -61,7 +61,7 @@ class MaintenanceMixin(RepoHost):
             self._commit()
             applogger.warning(
                 "Repaired the query of %d series broken by a misplaced Hide filter: %s",
-                len(fixed), ", ".join(fixed), show_dialog=False, raise_error=False,
+                len(fixed), ", ".join(fixed),
             )
         return fixed
 
@@ -99,8 +99,6 @@ class MaintenanceMixin(RepoHost):
             applogger.warning(
                 "Skipping VACUUM: a transaction is open. Call optimize_db "
                 "after committing.",
-                show_dialog=False,
-                raise_error=False,
             )
             return report
 

@@ -189,8 +189,6 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
                 "Surface Plot needs a complete grid: every x value paired "
                 "with every y value exactly once. Use 'Surface Plot "
                 "(Scattered)' for data that is not on a regular grid.",
-                show_dialog=False,
-                raise_error=False,
             )
             return
 
@@ -292,8 +290,6 @@ class TriSurfaceAxisRenderer(BaseAxisRenderer):
             applogger.error(
                 "Surface Plot (Scattered) needs at least 3 points to "
                 "triangulate.",
-                show_dialog=False,
-                raise_error=False,
             )
             return
 

@@ -40,7 +40,6 @@ def sql_insert_select_expression(sql_query: str, expression: str) -> str:
     if match is None:
         applogger.error(
             "Selected series SQL must contain a FROM clause.",
-            show_dialog=True,
             raise_error=True,
         )
         return sql

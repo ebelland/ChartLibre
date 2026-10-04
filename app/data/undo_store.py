@@ -420,5 +420,5 @@ class UndoStore:
                 path.unlink(missing_ok=True)
             except OSError:
                 applogger.warning(
-                    "Could not remove %s", path, show_dialog=False, raise_error=False
+                    "Could not remove %s", path
                 )

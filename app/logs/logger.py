@@ -1,15 +1,13 @@
-"""Application logger with optional GUI dialogs and raise-on-log behaviour.
+"""Application logger, with raise-on-log behaviour.
 
 ``applogger`` is a singleton :class:`DataHubLogger` that writes to a rotating
-file, mirrors records to a Qt signal for the in-app log viewer, and can raise or
-show a message box per call:
+file, mirrors records to a Qt signal for the in-app log viewer, puts WARNING
+and louder in the status bar, and can raise once a record is written:
 
-    applogger.warning("Recoverable")                    # log only
-    applogger.error("Failed", show_dialog=False)        # log, no dialog
-    applogger.critical("Unrecoverable")                    # dialog and raise
+    applogger.warning("Recoverable")                     # log only
+    applogger.error("Failed", raise_error=True)          # log, then LoggedError
 
-Defaults are per level: DEBUG/INFO/WARNING are silent, ERROR and above show a
-dialog.
+It never opens a window: what a user must read goes through app.utils.messages.
 """
 from __future__ import annotations
 
@@ -33,20 +31,6 @@ LOG_FILE: Final[Path] = _LOGGER_DIR / "datahub.log"
 
 ExceptionInfo = tuple[type[BaseException], BaseException, TracebackType | None]
 
-_DIALOG_DEFAULT_BY_LEVEL: Final[dict[int, bool]] = {
-    logging.DEBUG: False,
-    logging.INFO: False,
-    logging.WARNING: False,
-    logging.ERROR: True,
-    logging.CRITICAL: True
-}
-_RAISE_DEFAULT_BY_LEVEL: Final[dict[int, bool]] = {
-    logging.DEBUG: False,
-    logging.INFO: False,
-    logging.WARNING: False,
-    logging.ERROR: False,
-    logging.CRITICAL: False
-}
 
 
 class LoggedError(RuntimeError):
@@ -118,19 +102,20 @@ class _CallerFilter(logging.Filter):
 
 
 class DataHubLogger(logging.Logger):
-    """Logger with optional GUI dialog and raise behavior per log call.
+    """Logger whose calls can also raise, and reach the status bar.
 
     Usage examples:
-        applogger.warning("Recoverable issue")
-        applogger.warning("Show this", show_dialog=True)
-        applogger.error("Fail this operation")  # default: dialog=True, raise=True
-        applogger.error("Log only", show_dialog=False, raise_error=False)
+        applogger.warning("Recoverable issue")       # file, log viewer, status bar
+        applogger.error("Stop here", raise_error=True)  # ...then LoggedError
+
+    A log call never opens a window; the messages a user must read come from
+    app.utils.messages.
     """
 
     # The six level methods below only exist to widen the standard signature
-    # with show_dialog/raise_error; all the behaviour lives in
-    # _log_with_policy.  They cannot be generated in a loop because the
-    # stacklevel used to find the caller's class depends on a fixed call depth.
+    # with raise_error; all the behaviour lives in _log_with_policy. They
+    # cannot be generated in a loop because the stacklevel used to find the
+    # caller's class depends on a fixed call depth.
 
     _status_bar: QStatusBar | None = None
 
@@ -138,88 +123,77 @@ class DataHubLogger(logging.Logger):
         self,
         msg: object,
         *args: object,
-        show_dialog: bool | None = None,
-        raise_error: bool | None = None,
+        raise_error: bool = False,
         **kwargs: Any,
     ) -> None:
-        """Log at DEBUG. Silent by default: no dialog, no raise."""
-        self._log_with_policy(logging.DEBUG, msg, args, show_dialog, raise_error, **kwargs)
+        """Log at DEBUG."""
+        self._log_with_policy(logging.DEBUG, msg, args, raise_error, **kwargs)
 
     def info(
         self,
         msg: object,
         *args: object,
-        show_dialog: bool | None = None,
-        raise_error: bool | None = None,
+        raise_error: bool = False,
         **kwargs: Any,
     ) -> None:
-        """Log at INFO. Silent by default: no dialog, no raise."""
-        self._log_with_policy(logging.INFO, msg, args, show_dialog, raise_error, **kwargs)
+        """Log at INFO."""
+        self._log_with_policy(logging.INFO, msg, args, raise_error, **kwargs)
 
     def warning(
         self,
         msg: object,
         *args: object,
-        show_dialog: bool | None = None,
-        raise_error: bool | None = None,
+        raise_error: bool = False,
         **kwargs: Any,
     ) -> None:
-        """Log at WARNING. Silent by default; pass show_dialog=True to surface it."""
-        self._log_with_policy(logging.WARNING, msg, args, show_dialog, raise_error, **kwargs)
+        """Log at WARNING; it also shows in the status bar."""
+        self._log_with_policy(logging.WARNING, msg, args, raise_error, **kwargs)
 
     def error(
         self,
         msg: object,
         *args: object,
-        show_dialog: bool | None = None,
-        raise_error: bool | None = None,
+        raise_error: bool = False,
         **kwargs: Any,
     ) -> None:
-        """Log at ERROR. Shows a dialog by default but does not raise."""
-        self._log_with_policy(logging.ERROR, msg, args, show_dialog, raise_error, **kwargs)
+        """Log at ERROR; raises LoggedError afterwards when *raise_error*."""
+        self._log_with_policy(logging.ERROR, msg, args, raise_error, **kwargs)
 
     def critical(
         self,
         msg: object,
         *args: object,
-        show_dialog: bool | None = None,
-        raise_error: bool | None = None,
+        raise_error: bool = False,
         **kwargs: Any,
     ) -> None:
-        """Log at CRITICAL. Shows a dialog *and* raises LoggedError."""
-        self._log_with_policy(logging.CRITICAL, msg, args, show_dialog, raise_error, **kwargs)
+        """Log at CRITICAL; raises LoggedError afterwards when *raise_error*."""
+        self._log_with_policy(logging.CRITICAL, msg, args, raise_error, **kwargs)
 
     def exception(
         self,
         msg: object,
         *args: object,
         exc_info: bool | BaseException | tuple[type[BaseException], BaseException, TracebackType | None] = True,
-        show_dialog: bool | None = None,
-        raise_error: bool | None = None,
+        raise_error: bool = False,
         **kwargs: Any,
     ) -> None:
         """Log at ERROR with the active traceback attached.
 
-        Unlike :meth:`critical` this does not re-raise, so it is the right call
-        from inside an ``except`` block that intends to recover.
+        It does not re-raise unless asked to, so it is the right call from
+        inside an ``except`` block that intends to recover.
         """
         kwargs["exc_info"] = exc_info
-        self._log_with_policy(logging.ERROR, msg, args, show_dialog, raise_error, **kwargs)
+        self._log_with_policy(logging.ERROR, msg, args, raise_error, **kwargs)
 
     def _log_with_policy(
         self,
         level: int,
         msg: object,
         args: tuple[object, ...],
-        show_dialog: bool | None,
-        raise_error: bool | None,
+        raise_error: bool,
         **kwargs: Any,
     ) -> None:
-        """Emit one record, then apply the dialog/raise policy for its level.
-
-        ``show_dialog`` and ``raise_error`` travel to the handlers through
-        ``extra`` rather than through a custom record class, so records created
-        by plain ``logging`` calls stay valid (see :class:`_CallerFilter`).
+        """Emit one record, then raise LoggedError if the caller asked to.
 
         The raise happens *after* ``super()._log`` on purpose: the record must
         reach the file and the log viewer even when the caller is about to be
@@ -228,19 +202,16 @@ class DataHubLogger(logging.Logger):
         if not self.isEnabledFor(level):
             return
 
+        # A user's own chart or operation file written for an older version
+        # may still pass show_dialog, which no longer does anything.
+        kwargs.pop("show_dialog", None)
         extra = dict(cast(dict[str, Any], kwargs.pop("extra", {}) or {}))
-        extra["show_dialog"] = (
-            _DIALOG_DEFAULT_BY_LEVEL.get(level, False) if show_dialog is None else bool(show_dialog)
-        )
-        extra["raise_error"] = (
-            _RAISE_DEFAULT_BY_LEVEL.get(level, False) if raise_error is None else bool(raise_error)
-        )
         extra.setdefault("caller", _caller_qualname(stacklevel=3))
         kwargs["extra"] = extra
 
         super()._log(level, msg, args, **kwargs)
 
-        if bool(extra["raise_error"]):
+        if raise_error:
             raise LoggedError(str(msg) % args if args else str(msg))
 
         if self._status_bar is not None and level > logging.DEBUG:
@@ -298,14 +269,8 @@ class AppLogger:
     ) -> DataHubLogger:
         """Configure and return the singleton application logger.
 
-        GUI dialog and raise behavior are controlled per call with optional
-        logger method parameters:
-            show_dialog: bool | None = None
-            raise_error: bool | None = None
-
-        Defaults:
-            DEBUG, INFO, WARNING: show_dialog=False, raise_error=False
-            ERROR, CRITICAL: show_dialog=True, raise_error=True
+        Any call can pass ``raise_error=True`` to raise LoggedError once the
+        record is written; nothing raises by default.
         """
         if cls._configured and cls._logger is not None:
             return cls._logger
@@ -355,7 +320,7 @@ class AppLogger:
 
         cls._logger = logger
         cls._configured = True
-        logger.debug("Log file: %s", log_file, show_dialog=False, raise_error=False)
+        logger.debug("Log file: %s", log_file)
         return logger
 
     @classmethod

@@ -243,7 +243,7 @@ def test_a_warning_from_a_worker_thread_reaches_the_status_bar(qapp) -> None:
     applogger.set_status_bar(bar)
     try:
         worker = threading.Thread(
-            target=lambda: applogger.warning("from the worker", show_dialog=False, raise_error=False)
+            target=lambda: applogger.warning("from the worker")
         )
         worker.start()
         worker.join()
