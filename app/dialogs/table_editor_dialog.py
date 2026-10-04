@@ -335,26 +335,25 @@ class TableEditorDialog(QDialog):
             flag_menu.addAction(same_text).triggered.connect(
                 lambda _checked=False, f=flag: self._flag_rows(f, "=", from_cell=True)
             )
-        menu.addSeparator()
-        for action_id, action in (
-            ("table_hide_ensure", self._repo.ensure_hide_column),
-            ("table_hide_reset", self._repo.clear_hide_column),
-            ("table_hide_invert", self._repo.invert_hide),
-            (None, None),
-            ("table_selected_ensure", self._repo.ensure_selected_column),
-            ("table_selected_reset", self._repo.clear_selected_column),
-            ("table_selected_invert", self._repo.invert_selected),
-            (None, None),
-            ("table_cluster_ensure", self._repo.ensure_cluster_column),
-            ("table_cluster_reset", self._repo.clear_cluster_column),
+        # What each item does to its column: add it, set it to 0, or swap 0 and 1.
+        verbs = {
+            "ensure": self._repo.ensure_column,
+            "reset": self._repo.clear_integer_column,
+            "invert": self._repo.invert_flag,
+        }
+        for column, prefix, kinds in (
+            ("Hide", "table_hide", ("ensure", "reset", "invert")),
+            ("Selected", "table_selected", ("ensure", "reset", "invert")),
+            ("ClusterId", "table_cluster", ("ensure", "reset")),
         ):
-            if action_id is None:
-                menu.addSeparator()
-                continue
-            icon, text, tooltip = action_presentation(action_id)
-            item = menu.addAction(icon, text)
-            item.setToolTip(tooltip)
-            item.triggered.connect(lambda _checked=False, run=action: self._managed(run))
+            menu.addSeparator()
+            for kind in kinds:
+                icon, text, tooltip = action_presentation(f"{prefix}_{kind}")
+                item = menu.addAction(icon, text)
+                item.setToolTip(tooltip)
+                item.triggered.connect(
+                    lambda _checked=False, run=verbs[kind], name=column: self._managed(lambda table: run(table, name))
+                )
         more.setMenu(menu)
         row.addWidget(more, 0)
         return card

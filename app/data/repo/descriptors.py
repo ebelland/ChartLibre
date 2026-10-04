@@ -61,6 +61,69 @@ class DescriptorsMixin(RepoHost):
             last_modified=str(row["last_modified"] or "") if "last_modified" in row.keys() else "",
         )
 
+    def load_figure_descriptor(self, figure_id: int) -> app.data.descriptors.FigureDescriptor | None:
+        """Load a full figure descriptor tree: figure, axes, and their series.
+
+        Returns None only when the figure itself does not exist.  A figure with
+        no axes is a valid, empty figure and is returned as such.
+        """
+        fig = self.get_figure_descriptor(figure_id)
+        if fig is None:
+            return None
+
+        axis_rows = self.get_axes(figure_id) or []
+        series_by_axis = self.get_series_for_axes([int(a["id"]) for a in axis_rows])
+
+        for a in axis_rows:
+            axis = app.data.descriptors.AxisDescriptor(
+                id=int(a["id"]),
+                parent_id=int(a["figure_id"]),
+                index=int(a["axis_index"]),
+                name=str(a["chart_type"]),
+                title=str(a["title"] or ""),
+                x_label=str(a["x_label"] or ""),
+                y_label=str(a["y_label"] or ""),
+                z_label=str(a["z_label"] or "") if "z_label" in a.keys() else "",
+                options=_loads_json(a["options_json"]) if a["options_json"] is not None else None,
+                series=[
+                    app.data.descriptors.SeriesDescriptor(
+                        id=int(s["id"]),
+                        parent_id=int(s["axis_id"]),
+                        index=int(s["series_index"]),
+                        name=str(s["name"] or f"Series {s['series_index']}"),
+                        sql_query=str(s["sql_query"]),
+                        roles=s["roles"],
+                        options=_loads_json(s["style_json"]) if s["style_json"] is not None else None,
+                    )
+                    for s in series_by_axis.get(int(a["id"]), [])
+                ],
+            )
+
+            if fig.axes is None:
+                fig.axes = []
+            fig.axes.append(axis)
+
+        # Apply persisted ordering.
+        if fig.axes:
+            fig_opts = fig.options if isinstance(fig.options, dict) else {}
+            order_ids = [int(x) for x in fig_opts.get("axes_order", []) if str(x).isdigit()]
+            if order_ids:
+                by_id = {ax.id: ax for ax in fig.axes}
+                ordered = [by_id[i] for i in order_ids if i in by_id]
+                tail = [ax for ax in fig.axes if ax.id not in set(order_ids)]
+                fig.axes = ordered + tail
+
+            for ax in fig.axes:
+                opts = ax.options if isinstance(ax.options, dict) else {}
+                s_order = [int(x) for x in opts.get("series_order", []) if str(x).isdigit()]
+                if s_order and ax.series is not None:
+                    s_by = {s.id: s for s in ax.series}
+                    s_ord = [s_by[i] for i in s_order if i in s_by]
+                    s_tail = [s for s in ax.series if s.id not in set(s_order)]
+                    ax.series = s_ord + s_tail
+
+        return fig
+
     @ensure_connection_wrapper
     def set_figure_note(self, figure_id: int, note: str) -> None:
         """Replace the figure's notes (its last_modified follows, by trigger)."""
@@ -132,6 +195,18 @@ class DescriptorsMixin(RepoHost):
             (int(figure_id),),
         ).fetchone()
         return _loads_json(row["options_json"]) if row else {}
+
+    @ensure_connection_wrapper
+    @descriptor_write_wrapper
+    def set_figure_grid(self, figure_id: int, *, nrows: int, ncols: int) -> None:
+        """Persist figure grid layout."""
+        assert self._con is not None
+
+        self._con.execute(
+            "UPDATE __figure_descriptors__ SET nrows = ?, ncols = ? WHERE id = ?",
+            (int(nrows), int(ncols), int(figure_id)),
+        )
+        self._commit()
 
     @ensure_connection_wrapper
     @descriptor_write_wrapper
@@ -229,6 +304,16 @@ class DescriptorsMixin(RepoHost):
             }
             for r in rows
         ]
+
+    @ensure_connection_wrapper
+    def get_series_sql_query(self, series_id: int) -> str | None:
+        """Return the stored SQL of one series, or None when it does not exist."""
+        assert self._con is not None
+        row = self._con.execute(
+            "SELECT sql_query FROM __series_descriptors__ WHERE id = ?",
+            (int(series_id),),
+        ).fetchone()
+        return None if row is None else str(row["sql_query"] or "")
 
     @ensure_connection_wrapper
     def get_series(self, axis_id: int) -> list[sqlite3.Row]:

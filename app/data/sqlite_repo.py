@@ -55,6 +55,7 @@ from app.data.repo._common import (  # noqa: F401 - re-export
 )
 from app.data.repo.descriptors import DescriptorsMixin
 from app.data.repo.editing import EditingMixin
+from app.data.repo.flags import FlagsMixin
 from app.data.repo.maintenance import MaintenanceMixin
 from app.data.repo.operations import OperationsMixin
 from app.data.repo.project_info import ProjectInfoMixin
@@ -71,6 +72,7 @@ _SERIES_CACHE_DEFAULT_MAX_ENTRIES = 64
 @dataclass(slots=True)
 class SqliteRepo(
     TablesMixin,
+    FlagsMixin,
     EditingMixin,
     TableToolsMixin,
     DescriptorsMixin,

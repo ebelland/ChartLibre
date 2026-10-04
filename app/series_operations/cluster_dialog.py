@@ -947,11 +947,11 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         source_table = str(result.metadata["source_table"])
         source_x_column = str(result.metadata["source_x_column"])
         self._snapshot_cluster_state(source_table)
-        self._repo.ensure_cluster_column(source_table)
+        self._repo.ensure_column(source_table, "ClusterId")
 
         cluster_values = to_numbers(result.frame["ClusterId"])
         x_values = result.frame[result.x_col]
-        self._repo.clear_cluster_column(source_table)
+        self._repo.clear_integer_column(source_table, "ClusterId")
         self._repo.set_ClusterId(source_table,source_x_column,x_values,cluster_values)
 
 

@@ -132,9 +132,9 @@ def test_selected_is_kept_like_hide(tmp_path: Path) -> None:
     assert repo.flag_rows_special("t", "Selected", "v", "null_or_empty") == 1
     flags = list(repo.query_df('SELECT COALESCE("Selected", 0) AS s FROM t ORDER BY rowid')["s"])
     assert flags == [0, 1, 1, 1]
-    repo.invert_selected("t")
+    repo.invert_flag("t", "Selected")
     assert list(repo.query_df('SELECT "Selected" AS s FROM t ORDER BY rowid')["s"]) == [1, 0, 0, 0]
-    repo.clear_selected_column("t")
+    repo.clear_integer_column("t", "Selected")
     assert repo.query_df('SELECT SUM("Selected") AS s FROM t')["s"][0] == 0
     assert "Hide" not in repo.get_columns("t")  # its own column, Hide untouched
     repo.close()

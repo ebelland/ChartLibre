@@ -89,3 +89,17 @@ def test_a_table_with_a_space_in_its_name_has_its_hide_preview_undone(tmp_path) 
     assert repo.count_hidden_rows("CO2 per capita") == 0
     assert repo.get_columns("CO2 per capita") == ["x", "Hide"]
     repo.close()
+
+
+def test_a_figure_with_a_damaged_options_field_still_loads(tmp_path) -> None:
+    """One axis's options that are not JSON leave that axis with none, not the figure unopened."""
+    from app.data.sqlite_repo import SqliteRepo
+
+    repo = SqliteRepo(db_path=tmp_path / "damaged.dhub")
+    figure_id = int(repo.create_figure_descriptor(name="f"))
+    axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Line Plot",
+                                              title="", x_label="", y_label="", options={}))
+    repo.query_df("UPDATE __axis_descriptors__ SET options_json = '{not json' WHERE id = ?", (axis_id,))
+    figure = repo.load_figure_descriptor(figure_id)
+    assert figure is not None and figure.axes and figure.axes[0].options == {}
+    repo.close()
