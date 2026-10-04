@@ -360,3 +360,19 @@ def test_the_picture_keeps_the_screen_dpi_whatever_the_charts_use(qapp, repo: Sq
     ratio = view._canvas.device_pixel_ratio
     assert view.figure.dpi == pytest.approx(PREVIEW_DPI * ratio)
     view.deleteLater()
+
+
+def test_the_picture_is_meshes_and_at_most_two_hundred_points_each(qapp, dialog: SeriesGeometryDialog) -> None:
+    from app.series_operations.geometry_dialog import MAX_PICTURE_POINTS, _BeforeAfterView
+
+    _configure(dialog, ROTATE, angle_deg=30.0)
+    result = dialog.compute_results()[0]
+    many = np.linspace(0.0, 1.0, 1000)
+    result.before_x = result.before_y = result.after_x = result.after_y = many
+    view = _BeforeAfterView()
+    view.show_result(result)
+    axes = view.figure.axes[0]
+    assert not axes.axison and axes.get_title() == "" and axes.get_legend() is None
+    points = [len(line.get_xdata()) for line in axes.lines if line.get_marker() == "o"]
+    assert points == [MAX_PICTURE_POINTS, MAX_PICTURE_POINTS]
+    view.deleteLater()

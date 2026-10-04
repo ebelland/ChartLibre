@@ -150,9 +150,10 @@ class _BeforeAfterView(QWidget):
 
     The HTML table the other operations show would say nothing useful here -
     a rotation is a picture, and "0.866, -0.5" is not one. Blue is the
-    source, red is the result, and the optional grid is a square mesh over
-    the source's own extent put through the same map, which is the thing
-    that actually shows a shear or a scale for what it is.
+    source, red is the result, and the optional grid is a square mesh around
+    the source put through the same map, which is the thing that actually
+    shows a shear or a scale for what it is. No axes or labels, and at most
+    MAX_PICTURE_POINTS points of each.
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -193,97 +194,85 @@ class _BeforeAfterView(QWidget):
             self._show_3d(result)
             return
         axes = self._figure.add_subplot(111)
-
+        # Only the meshes and the points: the motion is the picture, and
+        # axes, ticks and labels only crowd it.
+        axes.set_axis_off()
         if result.show_grid and result.before_x.size:
             self._draw_grid(axes, result)
-
-        axes.plot(
-            result.before_x,
-            result.before_y,
-            marker="o",
-            linestyle="none",
-            markersize=4,
-            color=BEFORE_COLOUR,
-            label=_("Before"),
-            zorder=3,
-        )
-        axes.plot(
-            result.after_x,
-            result.after_y,
-            marker="o",
-            linestyle="none",
-            markersize=4,
-            color=AFTER_COLOUR,
-            label=_("After"),
-            zorder=4,
-        )
-
-        axes.set_title(f"{_(result.model)}: {result.source_name}")
-        axes.set_xlabel(result.x_role)
-        axes.set_ylabel(result.y_role)
+        for xs, ys, colour, order in (
+            (result.before_x, result.before_y, BEFORE_COLOUR, 3),
+            (result.after_x, result.after_y, AFTER_COLOUR, 4),
+        ):
+            xs, ys = _thinned(xs, ys)
+            axes.plot(xs, ys, marker="o", linestyle="none", markersize=3, color=colour, zorder=order)
         # Equal aspect or a rotation is not a rotation: a circle turned 30
         # degrees on unequal axes comes out an ellipse, and the one thing
         # this panel exists to show is the shape of the motion.
         axes.set_aspect("equal", adjustable="datalim")
-        axes.grid(True, alpha=0.25)
-        axes.legend(loc="best", fontsize="small")
         self._canvas.draw_idle()
 
     def _show_3d(self, result: GeometryResult) -> None:
-        """Before and after in three dimensions, on equal axes."""
+        """Before and after in three dimensions, in an equal box."""
         axes = self._figure.add_subplot(111, projection="3d")
         assert result.before_z is not None and result.after_z is not None
+        axes.set_axis_off()
         if result.show_grid and result.before_x.size:
             self._draw_grid_3d(axes, result)
-        axes.scatter(result.before_x, result.before_y, result.before_z, s=10, color=BEFORE_COLOUR, label=_("Before"))
-        axes.scatter(result.after_x, result.after_y, result.after_z, s=10, color=AFTER_COLOUR, label=_("After"))
-        axes.set_title(f"{_(result.model)}: {result.source_name}")
-        axes.set_xlabel(result.x_role)
-        axes.set_ylabel(result.y_role)
-        axes.set_zlabel(result.z_role or "z")
+        for xs, ys, zs, colour in (
+            (result.before_x, result.before_y, result.before_z, BEFORE_COLOUR),
+            (result.after_x, result.after_y, result.after_z, AFTER_COLOUR),
+        ):
+            xs, ys, zs = _thinned(xs, ys, zs)
+            axes.scatter(xs, ys, zs, s=8, color=colour, depthshade=False)
         # Equal box, for the same reason as the 2D equal aspect.
         everything = [
             np.concatenate([result.before_x, result.after_x]),
             np.concatenate([result.before_y, result.after_y]),
             np.concatenate([result.before_z, result.after_z]),
         ]
-        axes.set_box_aspect([max(float(np.ptp(v)), 1e-9) for v in everything])
-        axes.legend(loc="best", fontsize="small")
+        x_range, y_range, z_range = self._square(*everything)
+        axes.set_xlim(*x_range)
+        axes.set_ylim(*y_range)
+        axes.set_zlim(*z_range)
+        axes.set_box_aspect((1, 1, 1))
         self._canvas.draw_idle()
 
     @staticmethod
-    def _extent(values: np.ndarray) -> tuple[float, float]:
-        low, high = float(np.nanmin(values)), float(np.nanmax(values))
-        # A series along a single row or column has no extent one way; give
-        # it one so the mesh is a mesh rather than a line.
-        if math.isclose(low, high):
-            return low - 0.5, high + 0.5
-        return low, high
+    def _square(*values: np.ndarray) -> list[tuple[float, float]]:
+        """The source's extent made square: as wide as its widest side.
+
+        A mesh over the bare extent of a flat series - a spectrum 80 wide
+        and 1 tall - is a strip too thin to see deform; a square one shows
+        the motion whatever the shape of the data.
+        """
+        lows = [float(np.nanmin(v)) for v in values]
+        highs = [float(np.nanmax(v)) for v in values]
+        half = max(high - low for low, high in zip(lows, highs)) / 2
+        if math.isclose(half, 0.0):
+            half = 0.5
+        return [((low + high) / 2 - half, (low + high) / 2 + half) for low, high in zip(lows, highs)]
 
     @classmethod
-    def _draw_grid(cls, axes, result: GeometryResult, divisions: int = 6) -> None:
-        """Put a square mesh over the source's extent through the same map."""
-        xs = np.linspace(*cls._extent(result.before_x), divisions + 1)
-        ys = np.linspace(*cls._extent(result.before_y), divisions + 1)
-        for value in xs:
-            line_x = np.full_like(ys, value)
-            axes.plot(line_x, ys, color=BEFORE_COLOUR, alpha=0.20, linewidth=0.8, zorder=1)
-            moved_x, moved_y = result.transform.apply(line_x, ys)
-            axes.plot(moved_x, moved_y, color=AFTER_COLOUR, alpha=0.25, linewidth=0.8, zorder=2)
-        for value in ys:
-            line_y = np.full_like(xs, value)
-            axes.plot(xs, line_y, color=BEFORE_COLOUR, alpha=0.20, linewidth=0.8, zorder=1)
-            moved_x, moved_y = result.transform.apply(xs, line_y)
-            axes.plot(moved_x, moved_y, color=AFTER_COLOUR, alpha=0.25, linewidth=0.8, zorder=2)
+    def _draw_grid(cls, axes, result: GeometryResult, divisions: int = 8) -> None:
+        """Put a square mesh over the source through the same map."""
+        x_range, y_range = cls._square(result.before_x, result.before_y)
+        xs = np.linspace(*x_range, divisions + 1)
+        ys = np.linspace(*y_range, divisions + 1)
+        # Dense along each line, so a map that bends lines would show it.
+        dense_x = np.linspace(*x_range, 50)
+        dense_y = np.linspace(*y_range, 50)
+        lines = [(np.full_like(dense_y, value), dense_y) for value in xs]
+        lines += [(dense_x, np.full_like(dense_x, value)) for value in ys]
+        for line_x, line_y in lines:
+            axes.plot(line_x, line_y, color=BEFORE_COLOUR, alpha=0.35, linewidth=0.8, zorder=1)
+            moved_x, moved_y = result.transform.apply(line_x, line_y)
+            axes.plot(moved_x, moved_y, color=AFTER_COLOUR, alpha=0.45, linewidth=0.8, zorder=2)
 
     @classmethod
-    def _draw_grid_3d(cls, axes, result: GeometryResult, divisions: int = 4) -> None:
-        """The source's bounding box as a wire cage, and the same cage moved."""
+    def _draw_grid_3d(cls, axes, result: GeometryResult) -> None:
+        """A cube around the source as a wire cage, and the same cage moved."""
         assert result.before_z is not None
-        xs = cls._extent(result.before_x)
-        ys = cls._extent(result.before_y)
-        zs = cls._extent(result.before_z)
-        del divisions
+        xs, ys, zs = cls._square(result.before_x, result.before_y, result.before_z)
         edges = []
         for a in xs:
             for b in ys:
@@ -296,9 +285,22 @@ class _BeforeAfterView(QWidget):
                 edges.append((xs, (b, b), (c, c)))
         for ex, ey, ez in edges:
             ex, ey, ez = (np.asarray(v, dtype=float) for v in (ex, ey, ez))
-            axes.plot(ex, ey, ez, color=BEFORE_COLOUR, alpha=0.25, linewidth=0.8)
+            axes.plot(ex, ey, ez, color=BEFORE_COLOUR, alpha=0.4, linewidth=0.8)
             mx, my, mz = result.transform.apply(ex, ey, ez)
-            axes.plot(mx, my, mz, color=AFTER_COLOUR, alpha=0.3, linewidth=0.8)
+            axes.plot(mx, my, mz, color=AFTER_COLOUR, alpha=0.5, linewidth=0.8)
+
+
+#: At most this many points of each set are drawn: enough to show the shape.
+MAX_PICTURE_POINTS = 200
+
+
+def _thinned(*columns: np.ndarray) -> tuple[np.ndarray, ...]:
+    """Every column cut to MAX_PICTURE_POINTS evenly spaced rows."""
+    count = len(columns[0])
+    if count <= MAX_PICTURE_POINTS:
+        return columns
+    rows = np.unique(np.linspace(0, count - 1, MAX_PICTURE_POINTS).round().astype(int))
+    return tuple(np.asarray(column)[rows] for column in columns)
 
 
 class SeriesGeometryDialog(SeriesOperationDialogBase):
