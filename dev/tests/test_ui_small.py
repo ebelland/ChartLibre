@@ -15,7 +15,7 @@ import app.dialogs.main_window as main_window_module
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.create_chart_dialog import NewPlotTabResult
 from app.dialogs.main_window import MainWindow
-from PySide6.QtCore import QRect
+from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout
 from app.styles.style import apply_dialog_shell
@@ -446,5 +446,33 @@ def test_the_left_pane_is_never_left_pinned(qapp, tmp_path: Path) -> None:
     window.set_navigation_compact(False)
     qapp.processEvents()
     assert window._rail_width() > 0 and resizable()
+    window.close()
+    repo.close()
+
+
+# ======================================================================
+# Open recent: a click shows the project, Open opens it
+# ======================================================================
+def test_a_recent_project_is_shown_before_it_is_opened(qapp, tmp_path: Path, monkeypatch) -> None:
+    from app.utils.config import remember_recent_database
+
+    other = SqliteRepo(db_path=tmp_path / "Other study.dhub")
+    other.set_project_info({"author": "Marie Curie", "notes": "Radium samples"})
+    other.close()
+    remember_recent_database(tmp_path / "Other study.dhub")
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    window = MainWindow(repo, tmp_path / "p.dhub")
+    opened: list[Path] = []
+    monkeypatch.setattr(window, "_on_open_recent", lambda path: opened.append(path))
+    window._refresh_recent_list()
+    row = next(i for i in range(window._recent_list.count())
+               if window._recent_list.item(i).data(Qt.ItemDataRole.UserRole) == str(tmp_path / "Other study.dhub"))
+    window._recent_list.setCurrentRow(row)
+    assert opened == []  # selecting only shows it
+    text = window._recent_info.text()
+    assert "Marie Curie" in text and "Radium samples" in text
+    assert not (tmp_path / "Other study.dhub.undo.db").exists()  # read, not opened
+    window._open_selected_recent()
+    assert opened == [tmp_path / "Other study.dhub"]
     window.close()
     repo.close()

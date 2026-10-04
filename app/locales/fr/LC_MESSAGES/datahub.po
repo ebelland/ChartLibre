@@ -6777,3 +6777,18 @@ msgstr "Inverser Selected"
 
 msgid "Swap selected and unselected rows"
 msgstr "Échanger lignes sélectionnées et non sélectionnées"
+
+msgid "This file is no longer there: {path}"
+msgstr "Ce fichier n'existe plus : {path}"
+
+msgid "No preview"
+msgstr "Pas d'aperçu"
+
+msgid "Author: {name}"
+msgstr "Auteur : {name}"
+
+msgid "Saved {date} · {size:.1f} MB"
+msgstr "Enregistré {date} · {size:.1f} Mo"
+
+msgid "{count} reference(s)"
+msgstr "{count} référence(s)"

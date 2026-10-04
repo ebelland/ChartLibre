@@ -11,6 +11,7 @@ re-renders the whole figure.
 from __future__ import annotations
 
 import gc
+import html
 import sys
 from functools import partial
 from pathlib import Path
@@ -28,6 +29,7 @@ from PySide6.QtGui import (
     QKeySequence,
     QMouseEvent,
     QPalette,
+    QPixmap,
     QShortcut,
 )
 from app import APP_ICON, APP_NAME
@@ -216,6 +218,12 @@ class MainWindow(QMainWindow):
         self.resize(1200, 800)
         # 800 is taller than many laptops leave free: fitted when shown.
         fit_on_show(self)
+        # The scientific libraries the series operations need, imported in
+        # the background once the window is up, so the first operation of
+        # the session opens at once (app/utils/warm_up.py).
+        from app.utils.warm_up import warm_up_in_background
+
+        QTimer.singleShot(3_000, warm_up_in_background)
 
         # Debounce for property-driven chart reloads (see _redraw_properties_chart).
         self._properties_redraw_callback: Any | None = None
@@ -996,7 +1004,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(_("Report written: {path}").format(path=dialog.written), 10_000)
 
     #: Rows the recent-projects list keeps even on a short window.
-    _RECENT_MINIMUM_ROWS: int = 3
+    _RECENT_MINIMUM_ROWS: int = 1
 
     def _fill_recent_card(self, card: CardFrame) -> None:
         layout = self._card_layout(card)
@@ -1010,17 +1018,47 @@ class MainWindow(QMainWindow):
         self._recent_list.setIconSize(QSize(20, 20))
         self._recent_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._recent_list.setTextElideMode(Qt.TextElideMode.ElideRight)
-        self._recent_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        # One click opens, the way Finder's and Xcode's recent lists do.
-        self._recent_list.itemClicked.connect(self._on_recent_item_clicked)
-        layout.addWidget(self._recent_list, 1)
+        # Ignored, not Expanding, vertically: it still takes the room left,
+        # but its own preferred height (a list asks for ~190 px) no longer
+        # counts towards the page's, which made the File page scroll.
+        self._recent_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        # A click shows the project; Open (or a double click) opens it - so a
+        # project can be looked at, its picture and its notes, before the
+        # one open now is left for it.
+        self._recent_list.currentItemChanged.connect(self._show_recent_details)
+        self._recent_list.itemDoubleClicked.connect(self._on_recent_item_clicked)
 
         self._recent_placeholder = QLabel(_("No recent projects"), card)
         self._recent_placeholder.setProperty("muted", True)
         layout.addWidget(self._recent_placeholder)
 
+        # The selected project: its preview, and what it says about itself.
+        self._recent_details = QWidget(card)
+        # Side by side, small, in short lines: the File page has to fit a
+        # laptop's height without scrolling.
+        details = QHBoxLayout(self._recent_details)
+        details.setContentsMargins(0, 0, 0, 0)
+        details.setSpacing(8)
+        self._recent_preview = QLabel(self._recent_details)
+        self._recent_preview.setFixedSize(self._RECENT_PREVIEW_SIZE)
+        self._recent_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        details.addWidget(self._recent_preview, 0, Qt.AlignmentFlag.AlignTop)
+        self._recent_info = QLabel(self._recent_details)
+        # Short lines, not wrapped: a wrapping label asks the scroll area for
+        # height by width, and the File page grew a scroll bar it did not need.
+        self._recent_info.setWordWrap(False)
+        self._recent_info.setTextFormat(Qt.TextFormat.RichText)
+        self._recent_info.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._recent_info.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        details.addWidget(self._recent_info, 1)
+        layout.addWidget(self._recent_details)
+
         clear_row = QHBoxLayout()
         stdSizeAndlayout(clear_row)
+        self._recent_open_button = create_action_button(
+            parent=card, action_id="open", action=self._open_selected_recent, layout=clear_row,
+        )
+        clear_row.addStretch(1)
         clear_icon, _clear_text, _clear_tooltip = action_presentation("clear")
         self._recent_clear_button = create_action_button(
             parent=card,
@@ -1035,15 +1073,76 @@ class MainWindow(QMainWindow):
         )
         # Red: the one button here a misclick cannot undo.
         mark_destructive_button(self._recent_clear_button)
-        clear_row.addStretch(1)
         layout.addLayout(clear_row)
+        # The list last, taking the room left: the selected project's
+        # picture and its Open button stay in view on a short screen.
+        layout.addWidget(self._recent_list, 1)
 
         self._refresh_recent_list()
+
+    #: The selected recent project's picture, beside its details.
+    _RECENT_PREVIEW_SIZE = QSize(112, 70)
 
     def _on_recent_item_clicked(self, item: QListWidgetItem) -> None:
         path = item.data(Qt.ItemDataRole.UserRole)
         if path:
             self._on_open_recent(Path(str(path)))
+
+    def _open_selected_recent(self) -> None:
+        item = self._recent_list.currentItem()
+        if item is not None:
+            self._on_recent_item_clicked(item)
+
+    def _show_recent_details(self, item: QListWidgetItem | None, _previous: QListWidgetItem | None = None) -> None:
+        """Picture and information of the recent project *item* names.
+
+        Read from the file without opening it (read_project_info): the
+        project open now stays open until Open is pressed.
+        """
+        from datetime import datetime
+
+        from app.data.repo.project_info import parse_references, read_project_info
+        from app.dialogs.project_info_dialog import readable_date
+        from app.utils.project_preview import resolve_preview
+
+        path = Path(str(item.data(Qt.ItemDataRole.UserRole))) if item is not None else None
+        self._recent_open_button.setEnabled(path is not None and path.is_file())
+        self._recent_preview.clear()
+        if path is None:
+            self._recent_info.clear()
+            return
+        if not path.is_file():
+            self._recent_info.setText(html.escape(_("This file is no longer there: {path}").format(path=path)))
+            return
+        info = read_project_info(path)
+        picture_path = resolve_preview(path, info.get("preview_path"))
+        picture = QPixmap(str(picture_path)) if picture_path is not None else QPixmap()
+        if picture.isNull():
+            self._recent_preview.setText(_("No preview"))
+            self._recent_preview.setProperty("muted", True)
+        else:
+            ratio = self.devicePixelRatioF()
+            scaled = picture.scaled(self._RECENT_PREVIEW_SIZE * ratio, Qt.AspectRatioMode.KeepAspectRatio,
+                                    Qt.TransformationMode.SmoothTransformation)
+            scaled.setDevicePixelRatio(ratio)
+            self._recent_preview.setPixmap(scaled)
+        stat = path.stat()
+        rows = []
+        if info.get("author"):
+            rows.append(html.escape(info["author"]))
+        if info.get("created"):
+            rows.append(html.escape(_("Created {date}").format(date=readable_date(info["created"])[:10])))
+        modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d")
+        rows.append(html.escape(_("Saved {date} · {size:.1f} MB").format(date=modified, size=stat.st_size / 1e6)))
+        references = parse_references(info.get("references"))
+        if references:
+            rows.append(html.escape(_("{count} reference(s)").format(count=len(references))))
+        notes = " ".join(info.get("notes", "").split())
+        if notes:
+            rows.append(f"<i>{html.escape(notes if len(notes) <= 60 else notes[:57] + '...')}</i>")
+        self._recent_info.setText("<br>".join(rows))
+        # The whole notes, which the line above cuts short.
+        self._recent_info.setToolTip(info.get("notes", ""))
 
     def _refresh_recent_list(self) -> None:
         """(Re)populate the File page's Open Recent list from user.json.
@@ -1077,7 +1176,13 @@ class MainWindow(QMainWindow):
         has_any = bool(recent)
         self._recent_list.setVisible(has_any)
         self._recent_clear_button.setVisible(has_any)
+        self._recent_open_button.setVisible(has_any)
+        self._recent_details.setVisible(has_any)
         self._recent_placeholder.setVisible(not has_any)
+        if has_any:
+            self._recent_list.setCurrentRow(0)
+        else:
+            self._show_recent_details(None)
         if has_any:
             row_height = max(self._recent_list.sizeHintForRow(0), 1)
             rows = min(len(recent), self._RECENT_MINIMUM_ROWS)

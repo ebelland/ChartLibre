@@ -35,7 +35,7 @@ On Windows and Linux the rail ends with *Settings* and a *Menu* button (Undo, He
   [*Import*], [*Import* data into the project (see @importing).],
   [*Save*], [*Save* and *Save As…* (see @getting-started).],
   [*Export*], [*Project report* — the whole project as one HTML or PDF document (see @output).],
-  [*Open recent*], [The projects opened recently; click one to open it, or *Clear* the list.],
+  [*Open recent*], [The projects opened recently. Click one to see its preview, author, dates, size and the start of its notes — read from the file without opening it — then *Open* it (or double-click). *Clear list* forgets them.],
 )
 
 === Project info

@@ -8,8 +8,6 @@ step that nothing an end user runs ever needs.
 from __future__ import annotations
 
 import shutil
-import sqlite3
-from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -120,15 +118,9 @@ class DemoProject:
     def info(self) -> dict[str, str]:
         """The built file's project information, read without opening it for
         writing; empty when it is not built or predates the information."""
-        source = self.source_path
-        if not source.is_file():
-            return {}
-        try:
-            with closing(sqlite3.connect(f"{source.resolve().as_uri()}?mode=ro", uri=True)) as con:
-                rows = con.execute("SELECT key, value FROM __project_info__").fetchall()
-        except sqlite3.Error:
-            return {}
-        return {str(key): str(value) for key, value in rows}
+        from app.data.repo.project_info import read_project_info
+
+        return read_project_info(self.source_path)
 
     @property
     def description(self) -> str:

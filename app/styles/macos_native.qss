@@ -706,10 +706,12 @@ QComboBox::down-arrow {
   height: 11px;
 }
 
+/* No frame of its own: macOS already draws the pop-up as a rounded window
+   with its shadow, and a border here put a second white box inside it. */
 QComboBox QAbstractItemView {
   background: palette(base);
-  border: 1px solid rgba(@SHADOW_RGB@, 0.14);
-  border-radius: 8px;
+  border: none;
+  border-radius: 0;
   padding: 4px;
   outline: none;
 }

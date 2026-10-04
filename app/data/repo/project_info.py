@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
+from contextlib import closing
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -74,6 +76,25 @@ def file_created_at(path: Path) -> datetime | None:
 
 def _iso(moment: datetime) -> str:
     return moment.astimezone(timezone.utc).isoformat(timespec="seconds")
+
+
+def read_project_info(path: Path) -> dict[str, str]:
+    """The project information of the .dhub at *path*, without opening it.
+
+    Read-only, through SQLite's own read-only mode: no -wal or undo file is
+    made, nothing is migrated - this is for showing a project that is not
+    the one open (Open recent, Load demo). Empty when the file is missing,
+    unreadable, or predates the information.
+    """
+    path = Path(path)
+    if not path.is_file():
+        return {}
+    try:
+        with closing(sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)) as con:
+            rows = con.execute(f"SELECT key, value FROM {PROJECT_INFO_TABLE}").fetchall()
+    except sqlite3.Error:
+        return {}
+    return {str(key): str(value) for key, value in rows}
 
 
 class ProjectInfoMixin(RepoHost):
