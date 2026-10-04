@@ -19,6 +19,7 @@ import pytest
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.geometry_dialog import (
+    MATRIX,
     MIRROR,
     ROTATE,
     ROTO_TRANSLATE,
@@ -96,6 +97,9 @@ def _sql_result(repo: SqliteRepo, sql: str) -> pd.DataFrame:
         (MIRROR, {"mirror_line": 45.0, "use_data_centre": False, "cx": 0.0, "cy": 0.0}),
         (SHEAR, {"kx": 0.4, "ky": 0.0, "use_data_centre": False, "cx": 0.0, "cy": 0.0}),
         (SHEAR, {"kx": 0.0, "ky": -0.3, "use_data_centre": True}),
+        (MATRIX, {"matrix_form": "2x2", "m11": 2.0, "m12": 0.5, "m21": -1.0, "m22": 3.0, "use_data_centre": True}),
+        (MATRIX, {"matrix_form": "3x2", "m11": 0.0, "m12": -1.0, "m21": 1.0, "m22": 0.0, "b1": 4.0, "b2": -2.5,
+                  "use_data_centre": False, "cx": 0.0, "cy": 0.0}),
     ],
 )
 def test_the_database_computes_what_the_preview_drew(
@@ -298,6 +302,7 @@ def dialog_3d(qapp, repo: SqliteRepo):
         (ROTO_TRANSLATE, {"angle_x": 90.0, "angle_y": 0.0, "angle_z": 30.0, "dx": 1.0, "dy": 2.0, "dz": -3.0, "use_data_centre": False, "cx": 0.0, "cy": 0.0, "cz": 0.0}),
         (TRANSLATE, {"dx": 1.0, "dy": 2.0, "dz": 3.0}),
         (SCALE, {"sx": 2.0, "sy": 1.0, "sz": 0.5, "use_data_centre": True}),
+        (MATRIX, {"matrix_form": "3x2", "m11": 1.5, "m12": 0.2, "m21": 0.0, "m22": -1.0, "b1": 1.0, "b2": 2.0}),
     ],
 )
 def test_3d_the_database_computes_what_the_preview_drew(
@@ -376,3 +381,21 @@ def test_the_picture_is_meshes_and_at_most_two_hundred_points_each(qapp, dialog:
     points = [len(line.get_xdata()) for line in axes.lines if line.get_marker() == "o"]
     assert points == [MAX_PICTURE_POINTS, MAX_PICTURE_POINTS]
     view.deleteLater()
+
+
+def test_the_matrix_is_applied_as_written_about_the_origin(dialog: SeriesGeometryDialog) -> None:
+    """x' = a11 x + a12 y + b1, y' = a21 x + a22 y + b2; the offsets only in the 3 x 2 form."""
+    matrix = {"m11": 0.0, "m12": -1.0, "m21": 1.0, "m22": 0.0, "b1": 4.0, "b2": -2.5,
+              "use_data_centre": False, "cx": 0.0, "cy": 0.0}
+    _configure(dialog, MATRIX, matrix_form="3x2", **matrix)
+    moved = dialog.compute_results()[0]
+    np.testing.assert_allclose(moved.after_x, -SQUARE["y"].to_numpy() + 4.0)
+    np.testing.assert_allclose(moved.after_y, SQUARE["x"].to_numpy() - 2.5)
+    form = dialog._parameter_form_spec
+    assert not form._widgets["b1"].isHidden()
+
+    _configure(dialog, MATRIX, matrix_form="2x2")
+    turned = dialog.compute_results()[0]
+    np.testing.assert_allclose(turned.after_x, -SQUARE["y"].to_numpy())
+    assert form._widgets["b1"].isHidden()
+    assert ("Offset", "4, -2.5") not in turned.settings

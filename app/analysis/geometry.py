@@ -69,6 +69,12 @@ def mirror_xy(line_degrees: float) -> np.ndarray:
     return np.array([[c, s, 0.0], [s, -c, 0.0], [0.0, 0.0, 1.0]])
 
 
+def matrix_xy(entries: tuple[tuple[float, float], tuple[float, float]]) -> np.ndarray:
+    """A 2 x 2 matrix acting in the x-y plane; z kept."""
+    (a, b), (c, d) = entries
+    return np.array([[a, b, 0.0], [c, d, 0.0], [0.0, 0.0, 1.0]])
+
+
 @dataclass(frozen=True, slots=True)
 class Motion:
     """``p' = centre + matrix (p - centre) + translation``."""

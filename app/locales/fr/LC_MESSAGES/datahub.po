@@ -6792,3 +6792,54 @@ msgstr "Enregistré {date} · {size:.1f} Mo"
 
 msgid "{count} reference(s)"
 msgstr "{count} référence(s)"
+
+msgid "Matrix"
+msgstr "Matrice"
+
+msgid "Matrix:"
+msgstr "Matrice :"
+
+msgid "2 x 2"
+msgstr "2 x 2"
+
+msgid "3 x 2 (+ offsets)"
+msgstr "3 x 2 (+ décalages)"
+
+msgid "2 x 2: x' = a11 x + a12 y and y' = a21 x + a22 y, about the centre below. 3 x 2 adds a third row of offsets, b1 and b2, added afterwards. Untick 'Centre on the data' and set the centre to 0, 0 for the matrix exactly as written."
+msgstr "2 x 2 : x' = a11 x + a12 y et y' = a21 x + a22 y, autour du centre ci-dessous. 3 x 2 ajoute une troisième ligne de décalages, b1 et b2, ajoutés ensuite. Décochez « Centrer sur les données » et mettez le centre à 0, 0 pour appliquer la matrice telle qu'écrite."
+
+msgid "a11 (x' per x):"
+msgstr "a11 (x' par unité de x) :"
+
+msgid "a12 (x' per y):"
+msgstr "a12 (x' par unité de y) :"
+
+msgid "a21 (y' per x):"
+msgstr "a21 (y' par unité de x) :"
+
+msgid "a22 (y' per y):"
+msgstr "a22 (y' par unité de y) :"
+
+msgid "b1 (added to x'):"
+msgstr "b1 (ajouté à x') :"
+
+msgid "b2 (added to y'):"
+msgstr "b2 (ajouté à y') :"
+
+msgid "How much of x goes into the new x. 1 with a12 = 0 keeps x."
+msgstr "Quelle part de x entre dans le nouveau x. 1 avec a12 = 0 garde x."
+
+msgid "How much of y goes into the new x."
+msgstr "Quelle part de y entre dans le nouveau x."
+
+msgid "How much of x goes into the new y."
+msgstr "Quelle part de x entre dans le nouveau y."
+
+msgid "How much of y goes into the new y. 1 with a21 = 0 keeps y."
+msgstr "Quelle part de y entre dans le nouveau y. 1 avec a21 = 0 garde y."
+
+msgid "The third row: added to every new x, after the 2 x 2."
+msgstr "La troisième ligne : ajoutée à chaque nouveau x, après la 2 x 2."
+
+msgid "The third row: added to every new y, after the 2 x 2."
+msgstr "La troisième ligne : ajoutée à chaque nouveau y, après la 2 x 2."

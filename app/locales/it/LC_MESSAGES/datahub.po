@@ -6795,3 +6795,54 @@ msgstr "Salvato {date} · {size:.1f} MB"
 
 msgid "{count} reference(s)"
 msgstr "{count} riferimenti"
+
+msgid "Matrix"
+msgstr "Matrice"
+
+msgid "Matrix:"
+msgstr "Matrice:"
+
+msgid "2 x 2"
+msgstr "2 x 2"
+
+msgid "3 x 2 (+ offsets)"
+msgstr "3 x 2 (+ spostamenti)"
+
+msgid "2 x 2: x' = a11 x + a12 y and y' = a21 x + a22 y, about the centre below. 3 x 2 adds a third row of offsets, b1 and b2, added afterwards. Untick 'Centre on the data' and set the centre to 0, 0 for the matrix exactly as written."
+msgstr "2 x 2: x' = a11 x + a12 y e y' = a21 x + a22 y, rispetto al centro indicato sotto. 3 x 2 aggiunge una terza riga di spostamenti, b1 e b2, sommati dopo. Togli la spunta a 'Centra sui dati' e imposta il centro a 0, 0 per applicare la matrice esattamente come scritta."
+
+msgid "a11 (x' per x):"
+msgstr "a11 (x' per unità di x):"
+
+msgid "a12 (x' per y):"
+msgstr "a12 (x' per unità di y):"
+
+msgid "a21 (y' per x):"
+msgstr "a21 (y' per unità di x):"
+
+msgid "a22 (y' per y):"
+msgstr "a22 (y' per unità di y):"
+
+msgid "b1 (added to x'):"
+msgstr "b1 (sommato a x'):"
+
+msgid "b2 (added to y'):"
+msgstr "b2 (sommato a y'):"
+
+msgid "How much of x goes into the new x. 1 with a12 = 0 keeps x."
+msgstr "Quanto di x entra nella nuova x. 1 con a12 = 0 lascia x invariata."
+
+msgid "How much of y goes into the new x."
+msgstr "Quanto di y entra nella nuova x."
+
+msgid "How much of x goes into the new y."
+msgstr "Quanto di x entra nella nuova y."
+
+msgid "How much of y goes into the new y. 1 with a21 = 0 keeps y."
+msgstr "Quanto di y entra nella nuova y. 1 con a21 = 0 lascia y invariata."
+
+msgid "The third row: added to every new x, after the 2 x 2."
+msgstr "La terza riga: sommata a ogni nuova x, dopo la 2 x 2."
+
+msgid "The third row: added to every new y, after the 2 x 2."
+msgstr "La terza riga: sommata a ogni nuova y, dopo la 2 x 2."

@@ -1,4 +1,5 @@
-"""Move a series' coordinates: rotate, translate, roto-translate, scale, mirror, shear.
+"""Move a series' coordinates: rotate, translate, roto-translate, scale, mirror, shear,
+or any 2 x 2 matrix (3 x 2 with a row of offsets).
 
 Unlike every other operation here, this one computes nothing into a table.
 A rigid motion is exactly expressible in SQL, so the result is a *query* -
@@ -16,7 +17,7 @@ the point:
 
 A series with a z role is moved in 3D: three rotation angles (about x, then
 y, then z), a translation and a scale along z as well, and a 3D preview.
-Mirror and shear act in the x-y plane and leave z alone. The arithmetic -
+Mirror, shear and the matrix act in the x-y plane and leave z alone. The arithmetic -
 matrices, composition, the SQL - is app.analysis.geometry; this module reads
 the series and the parameters and shows the result. A 2D rotation spells its
 coefficients as ``cos(radians(30))`` wherever SQLite can evaluate that,
@@ -56,6 +57,7 @@ ROTO_TRANSLATE = "Roto-translation"
 SCALE = "Scale"
 MIRROR = "Mirror"
 SHEAR = "Shear"
+MATRIX = "Matrix"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -76,6 +78,7 @@ GEOMETRY_MODELS: dict[str, GeometryModel] = {
     SCALE: GeometryModel(),
     MIRROR: GeometryModel(),
     SHEAR: GeometryModel(),
+    MATRIX: GeometryModel(),
 }
 #: The same, as the name lists visible_for rules compare against.
 _ROTATING = tuple(name for name, model in GEOMETRY_MODELS.items() if model.rotates)
@@ -89,6 +92,16 @@ MIRROR_LINES: tuple[tuple[str, float], ...] = (
     ("Diagonal y = x", 45.0),
     ("Diagonal y = -x", 135.0),
 )
+
+#: The matrix model's two forms: the 2x2 alone, or with a row of offsets.
+MATRIX_2X2 = "2x2"
+MATRIX_3X2 = "3x2"
+MATRIX_FORMS: tuple[tuple[str, str], ...] = (
+    ("2 x 2", MATRIX_2X2),
+    ("3 x 2 (+ offsets)", MATRIX_3X2),
+)
+#: The matrix entries, in reading order: row, then column.
+MATRIX_ENTRIES = ("m11", "m12", "m21", "m22")
 
 #: Before and after, in the two colours the eye reads as "was" and "is".
 BEFORE_COLOUR = "#2563EB"
@@ -304,7 +317,7 @@ def _thinned(*columns: np.ndarray) -> tuple[np.ndarray, ...]:
 
 
 class SeriesGeometryDialog(SeriesOperationDialogBase):
-    """Rotate, move, scale, mirror or shear a series, in 2D or 3D, as a query."""
+    """Rotate, move, scale, mirror, shear or multiply a series, in 2D or 3D, as a query."""
 
     Name: str = "Geometry"
     Description = "Rotate, move, scale or mirror a series' coordinates"
@@ -417,6 +430,60 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
             tooltip="Adds this much y for each unit of x right of the centre.",
             default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
             visible_for={"model": (SHEAR,)},
+        ),
+        ChoiceParam(
+            "matrix_form",
+            "Matrix:",
+            tooltip=(
+                "2 x 2: x' = a11 x + a12 y and y' = a21 x + a22 y, about the "
+                "centre below. 3 x 2 adds a third row of offsets, b1 and b2, "
+                "added afterwards. Untick 'Centre on the data' and set the "
+                "centre to 0, 0 for the matrix exactly as written."
+            ),
+            choices=MATRIX_FORMS,
+            visible_for={"model": (MATRIX,)},
+        ),
+        FloatParam(
+            "m11",
+            "a11 (x' per x):",
+            tooltip="How much of x goes into the new x. 1 with a12 = 0 keeps x.",
+            default_value=1.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
+            visible_for={"model": (MATRIX,)},
+        ),
+        FloatParam(
+            "m12",
+            "a12 (x' per y):",
+            tooltip="How much of y goes into the new x.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
+            visible_for={"model": (MATRIX,)},
+        ),
+        FloatParam(
+            "m21",
+            "a21 (y' per x):",
+            tooltip="How much of x goes into the new y.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
+            visible_for={"model": (MATRIX,)},
+        ),
+        FloatParam(
+            "m22",
+            "a22 (y' per y):",
+            tooltip="How much of y goes into the new y. 1 with a21 = 0 keeps y.",
+            default_value=1.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
+            visible_for={"model": (MATRIX,)},
+        ),
+        FloatParam(
+            "b1",
+            "b1 (added to x'):",
+            tooltip="The third row: added to every new x, after the 2 x 2.",
+            default_value=0.0, minimum=-1.0e12, maximum=1.0e12, decimals=6, step=1.0,
+            visible_for={"model": (MATRIX,), "matrix_form": (MATRIX_3X2,)},
+        ),
+        FloatParam(
+            "b2",
+            "b2 (added to y'):",
+            tooltip="The third row: added to every new y, after the 2 x 2.",
+            default_value=0.0, minimum=-1.0e12, maximum=1.0e12, decimals=6, step=1.0,
+            visible_for={"model": (MATRIX,), "matrix_form": (MATRIX_3X2,)},
         ),
         FloatParam(
             "cx",
@@ -587,6 +654,15 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         if model == SHEAR:
             matrix = geo.shear_xy(float(values.get("kx", 0.0)), float(values.get("ky", 0.0)))
             return geo.Motion.of(matrix, centre=centre), None
+        if model == MATRIX:
+            m11, m12, m21, m22 = (float(values.get(key, 0.0)) for key in MATRIX_ENTRIES)
+            matrix = geo.matrix_xy(((m11, m12), (m21, m22)))
+            translation = (
+                (float(values.get("b1", 0.0)), float(values.get("b2", 0.0)), 0.0)
+                if values.get("matrix_form") == MATRIX_3X2
+                else (0.0, 0.0, 0.0)
+            )
+            return geo.Motion.of(matrix, centre=centre, translation=translation), None
         # Mirror.
         return geo.Motion.of(geo.mirror_xy(float(values.get("mirror_line", 0.0))), centre=centre), None
 
@@ -798,6 +874,10 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
             rows.append((_("Scale"), f"{num('sx', 1)}, {num('sy', 1)}" + (f", {num('sz', 1)}" if is_3d else "")))
         if model_name == SHEAR:
             rows.append((_("Shear"), f"{num('kx')}, {num('ky')}"))
+        if model_name == MATRIX:
+            rows.append((_("Matrix"), f"[{num('m11')}, {num('m12')}; {num('m21')}, {num('m22')}]"))
+            if values.get("matrix_form") == MATRIX_3X2:
+                rows.append((_("Offset"), f"{num('b1')}, {num('b2')}"))
         if model_name == MIRROR:
             line = float(values.get("mirror_line", 0.0))
             rows.append((_("Mirror line"), next((_(label) for label, angle in MIRROR_LINES if angle == line), f"{line:g}°")))

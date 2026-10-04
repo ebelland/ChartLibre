@@ -230,7 +230,7 @@ The one operation that combines *several* series into one calculation. Every tic
 == Geometry <geometry>
 
 === Geometry — move a series' coordinates
-Rotates, translates, scales, mirrors or shears a series. It answers "put this where that is": rotate a scan onto a reference frame, shift a profile, flip it, scale a model onto measured units.
+Rotates, translates, scales, mirrors or shears a series, or applies any matrix you type. It answers "put this where that is": rotate a scan onto a reference frame, shift a profile, flip it, scale a model onto measured units.
 
 #defs(
   [*Rotate*], [Turns the series counter-clockwise about a centre, by an angle in degrees.],
@@ -239,13 +239,14 @@ Rotates, translates, scales, mirrors or shears a series. It answers "put this wh
   [*Scale*], [Multiplies x and y (and z) by their own factors about the centre. Unequal factors change the shape.],
   [*Mirror*], [Reflects across a horizontal, vertical or diagonal line through the centre.],
   [*Shear*], [Leans the series over: so much x added per unit of y, or y per unit of x.],
+  [*Matrix*], [Any linear map you type. *2 × 2*: $x' = a_(11) x + a_(12) y$, $y' = a_(21) x + a_(22) y$ — every motion above except a move is one of these. *3 × 2* adds a third row of offsets, $b_1$ and $b_2$, added afterwards. The matrix acts about the centre; for the formula exactly as written, turn off *Centre on the data* and set the centre to 0, 0.],
 )
 
 *Centre on the data* (on by default) uses the middle of the series' own extent as the fixed point — "turn this shape" rather than "turn it about the origin". Turn it off to type the centre.
 
-*In 3D.* A series with a z column is moved in space: three rotation angles (about x, then y, then z, each by the right-hand rule), and translation, scale and centre gain a z value. Mirror and Shear act in the x–y plane. The preview becomes a 3D view.
+*In 3D.* A series with a z column is moved in space: three rotation angles (about x, then y, then z, each by the right-hand rule), and translation, scale and centre gain a z value. Mirror, Shear and Matrix act in the x–y plane. The preview becomes a 3D view.
 
-The Results pane shows a picture: the source in blue, the result in red and, with *Show the deformation grid*, a square mesh before and after, which makes a shear or an uneven scale easy to read.
+The Results pane shows a picture with no axes or labels: the source points in blue, the result in red (at most 200 of each) and, with *Show the deformation grid*, a square mesh around the source before and after (a cube in 3D), which makes a shear or an uneven scale easy to read.
 
 #note[
   Geometry computes nothing and writes no table. The new series carries a SQL query — the source series' own query wrapped in the transform's arithmetic, with a 2D rotation written as `cos(radians(30))` so it stays readable. The moved series therefore *follows its source* (change the source and the transform applies to the new data), costs no extra space, and can be adjusted afterwards in the Query Builder.
