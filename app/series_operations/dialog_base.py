@@ -20,7 +20,7 @@ from typing import Any, ClassVar, Protocol
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSplitter, QToolBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSpinBox, QSplitter, QToolBox, QVBoxLayout, QWidget
 import numpy as np
 import pandas as pd
 
@@ -28,6 +28,7 @@ from scipy.interpolate import griddata
 
 from app import APP_VERSION
 from app.analysis import Stopped
+from app.analysis.sampling import sampling_frequency
 from app.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, row_value, resolve_role_column
 from app.data.repo.operations import OPERATIONS_TABLE
@@ -298,7 +299,9 @@ class SeriesOperationDialogBase(QDialog):
         # Shared model combo used by operation-specific model selectors.
         self.model_combo = QComboBox(self)
 
-        # Subclasses create widgets here before build_* hooks run.
+        # Subclasses create widgets here before build_* hooks run. A
+        # subclass that builds its own form sets this in build_parameter_selector.
+        self._parameter_form: QFormLayout | None = None
         self.init_operation_widgets()
 
         self._model_selector_widget = self.build_model_selector()
@@ -597,17 +600,75 @@ class SeriesOperationDialogBase(QDialog):
         except (DatabaseError, ValueError):
             applogger.exception(f"Failed to label the {self.operation_label} result axis")
 
-    def current_model(self, default: str = "") -> str:
+    def current_model(self, default: str | None = None) -> str:
         """The selected model's key, or *default* while none is selected.
 
         The item's data when it has any - a combo that shows translated names
         keeps the untranslated one there, and that is what visible_for rules
-        and the code compare against - otherwise its text.
+        and the code compare against - otherwise its text. With no *default*,
+        the first of MODELS: the one the combo starts on.
         """
         data = self.model_combo.currentData()
         if data is not None and str(data):
             return str(data)
+        if default is None:
+            default = next(iter(self.MODELS), "")
         return self.model_combo.currentText() or default
+
+    def current_axis_name(self) -> str:
+        """The name of the axis picked in the Axis / Series page."""
+        return self.series_selector.selected_axis_name()
+
+    # -- Small controls, for operations that build their own forms ---------
+
+    @staticmethod
+    def int_spin(minimum: int, maximum: int, value: int) -> QSpinBox:
+        """A spin box over [minimum, maximum], set to *value*."""
+        widget = QSpinBox()
+        widget.setRange(minimum, maximum)
+        widget.setValue(value)
+        return widget
+
+    @staticmethod
+    def float_spin(minimum: float, maximum: float, value: float, decimals: int) -> QDoubleSpinBox:
+        """A decimal spin box, stepping by its last shown decimal (0.001 at most)."""
+        widget = QDoubleSpinBox()
+        widget.setRange(minimum, maximum)
+        widget.setValue(value)
+        widget.setDecimals(decimals)
+        widget.setSingleStep(10 ** -min(decimals, 3))
+        return widget
+
+    # -- Sampling rate: the "derive it from x, or type it" pair -----------
+
+    def create_sampling_rate_widgets(self, check_text: str = "") -> None:
+        """Create ``_fs_auto_check`` and ``_fs_spin``; call from init_operation_widgets."""
+        self._fs_auto_check = QCheckBox(check_text, self)
+        self._fs_spin = QDoubleSpinBox(self)
+
+    def add_sampling_rate_rows(self, form: QFormLayout) -> None:
+        """Set up the sampling-rate pair and add it to *form* as two rows."""
+        self._fs_auto_check.setChecked(True)
+        self._fs_auto_check.setToolTip(
+            _("Take the sampling frequency from the spacing of the x role.")
+        )
+        form.addRow(_("Sampling rate:"), self._fs_auto_check)
+        self._fs_spin.setRange(1e-9, 1e12)
+        self._fs_spin.setDecimals(6)
+        self._fs_spin.setValue(1.0)
+        self._fs_spin.setToolTip(_("Samples per unit of x, used when not derived."))
+        form.addRow(_("fs:"), self._fs_spin)
+
+    def sampling_rate(self, x_values: np.ndarray, name: str) -> float:
+        """fs in samples per unit of x: the typed one, or read off the x role."""
+        if not self._fs_auto_check.isChecked():
+            return float(self._fs_spin.value())
+        fs, note = sampling_frequency(x_values)
+        if note:
+            applogger.warning(
+                "Series '%s': %s.", name, note, show_dialog=False, raise_error=False,
+            )
+        return fs
 
     # ------------------------------------------------------------------
     # Common layout

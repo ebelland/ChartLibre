@@ -105,7 +105,6 @@ _KIND: dict[str, str] = {
 DECOMPOSITION_MODELS = tuple(name for name, model in DECOMPOSITION_ALL_MODELS.items() if not model.manifold)
 
 
-
 @dataclass(slots=True)
 class DecompositionResult(TableResult):
     """One joint decomposition/embedding of several selected series.
@@ -247,13 +246,6 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-    def init_operation_widgets(self) -> None:
-        self._parameter_form = None
-
-
-    def _model(self) -> str:
-        return self.current_model(DECOMP_PCA)
-
 
     # ------------------------------------------------------------------
     # Computation
@@ -266,7 +258,7 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
         if len(rows) < 2:
             raise ValueError("Select two or more series to decompose or embed together.")
 
-        model = self._model()
+        model = self.current_model()
         params = self.parameter_values()
         n_grid = int(params.get("n_grid", 200))
 

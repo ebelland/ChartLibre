@@ -245,19 +245,13 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-    def init_operation_widgets(self) -> None:
-        self._parameter_form = None
-
-
-    def _model(self) -> str:
-        return self.current_model(REGRESSION_RANSAC)
 
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
 
     def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self._model(), self.parameter_values()
+        return self.current_model(), self.parameter_values()
 
     def compute_series(
         self, name: str, data: tuple[np.ndarray, np.ndarray], settings: tuple[str, dict[str, Any]]
@@ -306,7 +300,7 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
         selected_axis_id: int,
         results: Sequence[Any],
     ) -> int:
-        model = self._model()
+        model = self.current_model()
         axis_id = self.resolve_destination_axis(
             selected_axis_id,
             chart_type="Scatter Plot",
@@ -374,7 +368,7 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
 
         return report_html.document(
             _("Regression"),
-            self._model(),
+            self.current_model(),
             report_html.section(
                 _("Results"),
                 report_html.table(

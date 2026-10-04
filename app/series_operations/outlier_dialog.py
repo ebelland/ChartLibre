@@ -287,8 +287,6 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         self._refresh_visibility()
         self.mark_results_stale()
 
-    def init_operation_widgets(self) -> None:
-        self._parameter_form = None
 
     def _populate_axes(self) -> None:
         self.series_selector.reload(select_all_series=True)

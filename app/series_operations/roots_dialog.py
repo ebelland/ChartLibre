@@ -108,9 +108,6 @@ ROOT_MODELS: dict[str, OperationModel] = {
 }
 
 
-
-
-
 @dataclass(slots=True)
 class RootResult(TableResult):
     """Every crossing found in one source series."""
@@ -286,17 +283,12 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
 
-
-    def _model(self) -> str:
-        return self.current_model(ROOT_BRENT)
-
-
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
 
     def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self._model(), self.parameter_values()
+        return self.current_model(), self.parameter_values()
 
     def read_series(self, row: Any, name: str) -> tuple[bool, Any]:
         # A series with a z role is a surface: "the roots" are a whole level
@@ -545,7 +537,7 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
         subtitle = _("level {level}").format(
             level=report_html.format_number(results[0].level)
         )
-        # results[0].model, not self._model(): a 3D result's actual method
+        # results[0].model, not self.current_model(): a 3D result's actual method
         # was always "Contour (matplotlib)" regardless of which 1D solver
         # happens to be selected in the combo right now.
         return report_html.document(

@@ -58,7 +58,6 @@ from app.analysis.spectral import (
     Spectrum,
     estimate,
     estimate_pair,
-    sampling_frequency,
 )
 from app.data.data_source import parse_roles, row_value
 from app.data.sqlite_repo import SqliteRepo
@@ -240,8 +239,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     def init_operation_widgets(self) -> None:
         """Create the controls before the base class builds the panels."""
-        self._fs_auto_check = QCheckBox(_("Derive from the x role"), self)
-        self._fs_spin = QDoubleSpinBox(self)
+        self.create_sampling_rate_widgets(_("Derive from the x role"))
         self._nperseg_spin = QSpinBox(self)
         self._overlap_spin = QDoubleSpinBox(self)
         self._window_combo = QComboBox(self)
@@ -265,17 +263,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
             QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow
         )
 
-        self._fs_auto_check.setChecked(True)
-        self._fs_auto_check.setToolTip(
-            _("Take the sampling frequency from the spacing of the x role.")
-        )
-        self._parameter_form.addRow(_("Sampling rate:"), self._fs_auto_check)
-
-        self._fs_spin.setRange(1e-9, 1e12)
-        self._fs_spin.setDecimals(6)
-        self._fs_spin.setValue(1.0)
-        self._fs_spin.setToolTip(_("Samples per unit of x, used when not derived."))
-        self._parameter_form.addRow(_("fs:"), self._fs_spin)
+        self.add_sampling_rate_rows(self._parameter_form)
 
         self._nperseg_spin.setRange(8, 1_048_576)
         self._nperseg_spin.setValue(256)
@@ -465,17 +453,6 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
         x_sorted, y_sorted = self.prepare_input_xy(x_values, y_values, label=name)
         return name, x_sorted, y_sorted
 
-    def _sampling_frequency(self, x_values: np.ndarray, name: str) -> float:
-        """Return fs in samples per unit of x: the typed one, or read off the x role."""
-        if not self._fs_auto_check.isChecked():
-            return float(self._fs_spin.value())
-
-        fs, note = sampling_frequency(x_values)
-        if note:
-            applogger.warning(
-                "Series '%s': %s.", name, note, show_dialog=False, raise_error=False,
-            )
-        return fs
 
     # ------------------------------------------------------------------
     # Computation
@@ -556,7 +533,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
     ) -> SpectralResult | None:
         """Compute a one-input estimate."""
         name, x_values, y_values = entry
-        fs = self._sampling_frequency(x_values, name)
+        fs = self.sampling_rate(x_values, name)
 
         try:
             spectrum = estimate(method, y_values, self._spectral_params(fs))
@@ -592,7 +569,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
             )
             return None
 
-        fs = self._sampling_frequency(reference_x[:length], reference_name)
+        fs = self.sampling_rate(reference_x[:length], reference_name)
         pair_label = f"{reference_name} x {other_name}"
 
         try:

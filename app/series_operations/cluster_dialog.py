@@ -34,10 +34,8 @@ from matplotlib import rcParams
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDoubleSpinBox,
     QFormLayout,
     QScrollArea,
-    QSpinBox,
     QWidget,
 )
 
@@ -384,9 +382,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self.mark_results_stale()
 
 
-    def init_operation_widgets(self) -> None:
-        self._create_controls()
-
     def build_model_selector(self) -> QWidget:
         self.method_combo = QComboBox(self)
         self.method_combo.addItems(list(CLUSTER_METHODS))
@@ -454,37 +449,21 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self.sklearn_min_samples_spin.valueChanged.connect(self.mark_results_stale)
 
 
-    @staticmethod
-    def _spin(minimum: int, maximum: int, value: int) -> QSpinBox:
-        widget = QSpinBox()
-        widget.setRange(minimum, maximum)
-        widget.setValue(value)
-        return widget
-
-    @staticmethod
-    def _double_spin(minimum: float, maximum: float, value: float, decimals: int) -> QDoubleSpinBox:
-        widget = QDoubleSpinBox()
-        widget.setRange(minimum, maximum)
-        widget.setValue(value)
-        widget.setDecimals(decimals)
-        widget.setSingleStep(10 ** -min(decimals, 3))
-        return widget
-
-    def _create_controls(self) -> None:
-        self.cluster_count_spin = self._spin(1, 10_000, 4)
+    def init_operation_widgets(self) -> None:
+        self.cluster_count_spin = self.int_spin(1, 10_000, 4)
         self.cluster_count_spin.setToolTip(_("Number of clusters to request."))
 
         self.whiten_check = QCheckBox()
         self.whiten_check.setChecked(True)
         self.whiten_check.setToolTip(_("Normalize features by standard deviation before k-means."))
 
-        self.kmeans_iter_spin = self._spin(1, 10_000, 50)
+        self.kmeans_iter_spin = self.int_spin(1, 10_000, 50)
         self.kmeans_iter_spin.setToolTip(_("Maximum k-means iterations."))
 
-        self.kmeans_thresh_spin = self._double_spin(0.0, 1.0, 1e-5, 8)
+        self.kmeans_thresh_spin = self.float_spin(0.0, 1.0, 1e-5, 8)
         self.kmeans_thresh_spin.setToolTip(_("K-means convergence threshold."))
 
-        self.max_runtime_spin = self._double_spin(0.0, 3600.0, 15.0, 1)
+        self.max_runtime_spin = self.float_spin(0.0, 3600.0, 15.0, 1)
         self.max_runtime_spin.setSpecialValueText(_("no timeout"))
         self.max_runtime_spin.setToolTip(
             _("Maximum seconds to wait for clustering. Use 0 for no timeout.")
@@ -503,17 +482,17 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self.hierarchy_criterion_combo.addItems(list(HIERARCHY_CRITERIA))
         self.hierarchy_criterion_combo.setCurrentText("maxclust")
 
-        self.distance_threshold_spin = self._double_spin(0.0, 1e18, 0.0, 6)
+        self.distance_threshold_spin = self.float_spin(0.0, 1e18, 0.0, 6)
         self.distance_threshold_spin.setSpecialValueText(_("auto"))
         self.distance_threshold_spin.setToolTip(
             _("Cut threshold for distance/inconsistent criteria. Leave at auto for median linkage distance.")
         )
 
-        self.sklearn_eps_spin = self._double_spin(0.0, 1e18, 0.5, 6)
+        self.sklearn_eps_spin = self.float_spin(0.0, 1e18, 0.5, 6)
         self.sklearn_eps_spin.setSpecialValueText(_("auto"))
         self.sklearn_eps_spin.setToolTip(_("Neighborhood radius for DBSCAN. 0 uses the default 0.5."))
 
-        self.sklearn_min_samples_spin = self._spin(1, 1_000_000, 5)
+        self.sklearn_min_samples_spin = self.int_spin(1, 1_000_000, 5)
         self.sklearn_min_samples_spin.setToolTip(_("Minimum samples for DBSCAN/OPTICS core points."))
 
 
@@ -597,8 +576,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             "sklearn_min_samples": self.sklearn_min_samples_spin.value(),
         }
 
-    def _current_axis_name(self) -> str:
-        return self.series_selector.selected_axis_name()
 
     def _series_display_name(self, row: Any) -> str:
         return str(row["name"])
@@ -687,7 +664,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
     def prepare_job(self, **options: Any) -> SeriesJob | None:
         """Read each series and its feature columns here; the clustering runs in the job."""
         del options
-        settings = (self._current_axis_name(), self._params(), self._figure_id)
+        settings = (self.current_axis_name(), self._params(), self._figure_id)
         selected_rows = self.selected_series()
         if not selected_rows:
             return None

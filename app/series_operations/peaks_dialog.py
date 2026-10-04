@@ -228,19 +228,13 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-    def init_operation_widgets(self) -> None:
-        self._parameter_form = None
-
-
-    def _model(self) -> str:
-        return self.current_model(PEAKS_MAXIMA)
 
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
 
     def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self._model(), self.parameter_values()
+        return self.current_model(), self.parameter_values()
 
     def read_series(self, row: Any, name: str) -> tuple[bool, Any]:
         # A series with a z role is a surface, not a curve - see
@@ -465,4 +459,4 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
                 )
             )
 
-        return report_html.document(_("Peaks"), self._model(), *sections)
+        return report_html.document(_("Peaks"), self.current_model(), *sections)

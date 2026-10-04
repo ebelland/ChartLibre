@@ -170,11 +170,9 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         for spin in (self._lambda_spin, self._p_spin, self._iterations_spin):
             spin.valueChanged.connect(self.mark_results_stale)
 
-    def _model(self) -> str:
-        return self.current_model(BASELINE_ASLS)
 
     def _refresh_visibility(self) -> None:
-        is_asls = self._model() == BASELINE_ASLS
+        is_asls = self.current_model() == BASELINE_ASLS
         self.set_row_visible(self._lambda_spin, is_asls)
         self.set_row_visible(self._p_spin, is_asls)
         self.set_row_visible(self._iterations_spin, is_asls)
@@ -184,7 +182,7 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
     def compute_results(self) -> list[BaselineResult]:
-        model = self._model()
+        model = self.current_model()
         results: list[BaselineResult] = []
         errors: list[str] = []
 

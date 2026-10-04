@@ -169,9 +169,6 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-    def init_operation_widgets(self) -> None:
-        self._parameter_form = None
-
 
     def _kernel(self) -> str:
         return self.model_combo.currentText() or KERNEL_RBF

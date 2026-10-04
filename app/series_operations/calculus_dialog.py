@@ -315,22 +315,16 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-    def init_operation_widgets(self) -> None:
-        self._parameter_form = None
-
-
-    def _model(self) -> str:
-        return self.current_model(DERIV_SAVGOL)
 
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
 
     def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self._model(), self.parameter_values()
+        return self.current_model(), self.parameter_values()
 
     def read_series(self, row: Any, name: str) -> Any:
-        if CALCULUS_MODELS[self._model()].surface:
+        if CALCULUS_MODELS[self.current_model()].surface:
             return self.series_grid_xyz(row, name)
         return self.series_xy(row, name)
 
@@ -552,8 +546,8 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
         axis_id = self.resolve_destination_axis(
             selected_axis_id,
             chart_type=chart_type,
-            title=self._model(),
-            figure_name=self.result_figure_name(results, self._model()),
+            title=self.current_model(),
+            figure_name=self.result_figure_name(results, self.current_model()),
             options=options,
         )
         self._label_result_axis(results)
@@ -654,7 +648,7 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
 
         return report_html.document(
             _("Calculus"),
-            self._model(),
+            self.current_model(),
             report_html.section(
                 _("Results"),
                 report_html.table(

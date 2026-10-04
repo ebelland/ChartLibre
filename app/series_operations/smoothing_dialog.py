@@ -22,10 +22,8 @@ import pandas as pd
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDoubleSpinBox,
     QFormLayout,
     QScrollArea,
-    QSpinBox,
     QWidget,
 )
 from app.analysis.smoothing import (
@@ -367,9 +365,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         self.mark_results_stale()
 
 
-    def init_operation_widgets(self) -> None:
-        self._create_controls()
-
     def build_model_selector(self) -> QWidget:
         self.dimension_combo = QComboBox(self)
         self.dimension_combo.addItems([DIM_1D, DIM_2D, DIM_3D])
@@ -409,63 +404,43 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         self.method_combo.currentIndexChanged.connect(self._refresh_visibility)
         self.method_combo.currentIndexChanged.connect(self.mark_results_stale)
 
-    @staticmethod
-    def _spin(minimum: int, maximum: int, value: int) -> QSpinBox:
-        widget = QSpinBox()
-        widget.setRange(minimum, maximum)
-        widget.setValue(value)
-        return widget
 
-    @staticmethod
-    def _double_spin(
-        minimum: float,
-        maximum: float,
-        value: float,
-        decimals: int,
-    ) -> QDoubleSpinBox:
-        widget = QDoubleSpinBox()
-        widget.setRange(minimum, maximum)
-        widget.setValue(value)
-        widget.setDecimals(decimals)
-        widget.setSingleStep(10 ** -min(decimals, 3))
-        return widget
-
-    def _create_controls(self) -> None:
+    def init_operation_widgets(self) -> None:
         """Create all parameter widgets once; visibility is managed dynamically."""
-        self.window_spin = self._spin(3, 9999, 7)
+        self.window_spin = self.int_spin(3, 9999, 7)
         self.centered_check = QCheckBox()
         self.centered_check.setChecked(True)
-        self.polyorder_spin = self._spin(0, 10, 2)
-        self.deriv_spin = self._spin(0, 5, 0)
-        self.delta_spin = self._double_spin(1e-12, 1e12, 1.0, 6)
+        self.polyorder_spin = self.int_spin(0, 10, 2)
+        self.deriv_spin = self.int_spin(0, 5, 0)
+        self.delta_spin = self.float_spin(1e-12, 1e12, 1.0, 6)
 
-        self.sigma_spin = self._double_spin(0.001, 1e6, 2.0, 4)
-        self.sigma_x_spin = self._double_spin(0.001, 1e6, 1.5, 4)
-        self.sigma_y_spin = self._double_spin(0.001, 1e6, 1.5, 4)
-        self.sigma_z_spin = self._double_spin(0.001, 1e6, 1.5, 4)
-        self.truncate_spin = self._double_spin(0.1, 50.0, 4.0, 2)
+        self.sigma_spin = self.float_spin(0.001, 1e6, 2.0, 4)
+        self.sigma_x_spin = self.float_spin(0.001, 1e6, 1.5, 4)
+        self.sigma_y_spin = self.float_spin(0.001, 1e6, 1.5, 4)
+        self.sigma_z_spin = self.float_spin(0.001, 1e6, 1.5, 4)
+        self.truncate_spin = self.float_spin(0.1, 50.0, 4.0, 2)
 
-        self.kernel_spin = self._spin(3, 9999, 5)
-        self.kernel_x_spin = self._spin(3, 9999, 3)
-        self.kernel_y_spin = self._spin(3, 9999, 3)
-        self.kernel_z_spin = self._spin(3, 9999, 3)
+        self.kernel_spin = self.int_spin(3, 9999, 5)
+        self.kernel_x_spin = self.int_spin(3, 9999, 3)
+        self.kernel_y_spin = self.int_spin(3, 9999, 3)
+        self.kernel_z_spin = self.int_spin(3, 9999, 3)
 
-        self.noise_spin = self._double_spin(0.0, 1e12, 0.0, 6)
+        self.noise_spin = self.float_spin(0.0, 1e12, 0.0, 6)
         self.noise_spin.setSpecialValueText(_("auto"))
 
-        self.spline_s_spin = self._double_spin(0.0, 1e18, 10.0, 4)
-        self.spline_k_spin = self._spin(1, 5, 3)
-        self.kx_spin = self._spin(1, 5, 3)
-        self.ky_spin = self._spin(1, 5, 3)
+        self.spline_s_spin = self.float_spin(0.0, 1e18, 10.0, 4)
+        self.spline_k_spin = self.int_spin(1, 5, 3)
+        self.kx_spin = self.int_spin(1, 5, 3)
+        self.ky_spin = self.int_spin(1, 5, 3)
 
-        self.lowess_frac_spin = self._double_spin(0.01, 1.0, 0.25, 3)
-        self.lowess_it_spin = self._spin(0, 20, 3)
-        self.fft_cutoff_spin = self._double_spin(0.001, 0.999, 0.20, 3)
+        self.lowess_frac_spin = self.float_spin(0.01, 1.0, 0.25, 3)
+        self.lowess_it_spin = self.int_spin(0, 20, 3)
+        self.fft_cutoff_spin = self.float_spin(0.001, 0.999, 0.20, 3)
 
-        self.butter_fs_spin = self._double_spin(1e-12, 1e12, 1.0, 6)
-        self.butter_cutoff_spin = self._double_spin(1e-12, 1e12, 0.20, 6)
-        self.butter_high_cutoff_spin = self._double_spin(1e-12, 1e12, 0.40, 6)
-        self.butter_order_spin = self._spin(1, 20, 4)
+        self.butter_fs_spin = self.float_spin(1e-12, 1e12, 1.0, 6)
+        self.butter_cutoff_spin = self.float_spin(1e-12, 1e12, 0.20, 6)
+        self.butter_high_cutoff_spin = self.float_spin(1e-12, 1e12, 0.40, 6)
+        self.butter_order_spin = self.int_spin(1, 20, 4)
         self.butter_type_combo = QComboBox()
         self.butter_type_combo.addItems(["lowpass", "highpass", "bandpass", "bandstop"])
 
@@ -476,19 +451,19 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
 
         self.wavelet_combo = QComboBox()
         self.wavelet_combo.addItems(["db2", "db4", "sym4", "coif1", "haar"])
-        self.wavelet_level_spin = self._spin(0, 20, 0)
-        self.wavelet_threshold_factor_spin = self._double_spin(0.01, 100.0, 1.0, 3)
+        self.wavelet_level_spin = self.int_spin(0, 20, 0)
+        self.wavelet_threshold_factor_spin = self.float_spin(0.01, 100.0, 1.0, 3)
         self.wavelet_threshold_mode_combo = QComboBox()
         self.wavelet_threshold_mode_combo.addItems(["soft", "hard"])
 
-        self.whittaker_lambda_spin = self._double_spin(0.0, 1e12, 1000.0, 3)
-        self.whittaker_order_spin = self._spin(1, 5, 2)
-        self.hp_lambda_spin = self._double_spin(0.0, 1e12, 1600.0, 3)
-        self.tv_weight_spin = self._double_spin(0.0, 1e6, 0.15, 4)
+        self.whittaker_lambda_spin = self.float_spin(0.0, 1e12, 1000.0, 3)
+        self.whittaker_order_spin = self.int_spin(1, 5, 2)
+        self.hp_lambda_spin = self.float_spin(0.0, 1e12, 1600.0, 3)
+        self.tv_weight_spin = self.float_spin(0.0, 1e6, 0.15, 4)
 
-        self.kalman_process_variance_spin = self._double_spin(1e-12, 1e6, 1e-4, 8)
-        self.kalman_measurement_variance_spin = self._double_spin(1e-12, 1e6, 1e-2, 8)
-        self.kalman_initial_covariance_spin = self._double_spin(1e-12, 1e6, 1.0, 8)
+        self.kalman_process_variance_spin = self.float_spin(1e-12, 1e6, 1e-4, 8)
+        self.kalman_measurement_variance_spin = self.float_spin(1e-12, 1e6, 1e-2, 8)
+        self.kalman_initial_covariance_spin = self.float_spin(1e-12, 1e6, 1.0, 8)
 
         self.rbf_kernel_combo = QComboBox()
         self.rbf_kernel_combo.addItems(
@@ -503,10 +478,10 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
                 "gaussian",
             ]
         )
-        self.rbf_smoothing_spin = self._double_spin(0.0, 1e9, 0.1, 4)
-        self.rbf_epsilon_spin = self._double_spin(0.0, 1e9, 0.0, 4)
+        self.rbf_smoothing_spin = self.float_spin(0.0, 1e9, 0.1, 4)
+        self.rbf_epsilon_spin = self.float_spin(0.0, 1e9, 0.0, 4)
         self.rbf_epsilon_spin.setSpecialValueText(_("auto"))
-        self.rbf_neighbors_spin = self._spin(0, 1_000_000, 0)
+        self.rbf_neighbors_spin = self.int_spin(0, 1_000_000, 0)
         self.rbf_neighbors_spin.setSpecialValueText(_("all"))
 
         self.preview_check = QCheckBox(_("Replace previous smoothing preview in chart"))
@@ -633,9 +608,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
 
         for key, label, widget in rows:
             self.add_field_row(self.form, key, label, widget, self._PARAMETER_TOOLTIPS.get(key, ""))
-
-    def _current_axis_name(self) -> str:
-        return self.series_selector.selected_axis_name()
 
 
     def _series_choice_from_row(self, row: Any) -> SeriesChoice|None:
@@ -806,7 +778,7 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
     def prepare_job(self, **options: Any) -> SeriesJob | None:
         """Read the selected series and the controls; the smoothing itself runs in the job."""
         del options
-        axis_name = self._current_axis_name()
+        axis_name = self.current_axis_name()
         settings = (self.dimension_combo.currentText(), self.method_combo.currentText(), self._params())
         selected_rows = self.selected_series()
         if not selected_rows:

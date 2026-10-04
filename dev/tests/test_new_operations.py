@@ -227,7 +227,7 @@ def _calculus_with_axis(destination: str) -> tuple[SeriesCalculusDialog, _AxisSp
     dialog.create_result_axis = spy.create_result_axis
     dialog.create_result_figure = spy.create_result_figure
     dialog.parameter_values = lambda: {"destination": destination}
-    dialog._model = lambda: DERIV_SAVGOL
+    dialog.current_model = lambda default=None: DERIV_SAVGOL
     return dialog, spy
 
 

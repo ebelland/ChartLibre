@@ -29,7 +29,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
@@ -49,7 +48,6 @@ from app.analysis.filtering import (
     resolve_cutoffs,
     two_cutoffs,
 )
-from app.analysis.sampling import sampling_frequency
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -185,8 +183,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
     def init_operation_widgets(self) -> None:
-        self._fs_auto_check = QCheckBox("", self)
-        self._fs_spin = QDoubleSpinBox(self)
+        self.create_sampling_rate_widgets()
         self._family_combo = QComboBox(self)
         self._response_combo = QComboBox(self)
         self._order_spin = QSpinBox(self)
@@ -205,17 +202,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         self._parameter_form.setContentsMargins(0, 0, 0, 0)
         self._parameter_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
 
-        self._fs_auto_check.setChecked(True)
-        self._fs_auto_check.setToolTip(
-            _("Take the sampling frequency from the spacing of the x role.")
-        )
-        self._parameter_form.addRow(_("Sampling rate:"), self._fs_auto_check)
-
-        self._fs_spin.setRange(1e-9, 1e12)
-        self._fs_spin.setDecimals(6)
-        self._fs_spin.setValue(1.0)
-        self._fs_spin.setToolTip(_("Samples per unit of x, used when not derived."))
-        self._parameter_form.addRow(_("fs:"), self._fs_spin)
+        self.add_sampling_rate_rows(self._parameter_form)
 
         for value, label in IIR_FAMILY_LABELS.items():
             self._family_combo.addItem(label, value)
@@ -305,11 +292,9 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         ):
             spin.valueChanged.connect(self.mark_results_stale)
 
-    def _model(self) -> str:
-        return self.current_model(FILTER_IIR)
 
     def _refresh_visibility(self) -> None:
-        model = self._model()
+        model = self.current_model()
         spec = FILTERS[model]
         is_iir = model == FILTER_IIR
         is_fir = model == FILTER_FIR
@@ -335,17 +320,6 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # Input
     # ------------------------------------------------------------------
-    def _sampling_frequency(self, x_values: np.ndarray, name: str) -> float:
-        """Return fs in samples per unit of x: the typed one, or read off the x role."""
-        if not self._fs_auto_check.isChecked():
-            return float(self._fs_spin.value())
-
-        fs, note = sampling_frequency(x_values)
-        if note:
-            applogger.warning(
-                "Series '%s': %s.", name, note, show_dialog=False, raise_error=False,
-            )
-        return fs
 
     def _cutoffs(self, response: str, fs: float) -> tuple[float, float | None]:
         """The cutoff(s) to filter with: the typed ones, or Auto's fractions of fs."""
@@ -405,7 +379,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
         return y_out, {"trend": self._detrend_combo.currentText()}
 
     def compute_results(self) -> list[FilterResult]:
-        model = self._model()
+        model = self.current_model()
         results: list[FilterResult] = []
         errors: list[str] = []
 
@@ -413,7 +387,7 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
                 x_values, y_values = self.series_xy(row, name)
-                fs = self._sampling_frequency(x_values, name) if FILTERS[model].needs_fs else 1.0
+                fs = self.sampling_rate(x_values, name) if FILTERS[model].needs_fs else 1.0
                 y_out, meta = self._apply_model(model, y_values, fs)
                 if y_out.size != x_values.size:
                     raise ValueError(
