@@ -386,6 +386,13 @@
       "SegoeFluent": "F003",
       "ThemeIcon": "edit-find"
     },
+    "project_info": {
+      "text": "Project info...",
+      "description": "Author, creation date and notes of this project, kept in the project file",
+      "SFSymbol": "info.circle",
+      "SegoeFluent": "E946",
+      "ThemeIcon": "document-properties"
+    },
     "project_report": {
       "text": "Project report...",
       "description": "The whole project - every figure with its notes, the tables and the operation history - as one HTML or PDF file",

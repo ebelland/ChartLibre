@@ -6663,3 +6663,39 @@ msgstr "Impossibile dividere la serie per '{column}':\n{reason}"
 
 msgid "'{column}' takes more than {limit} different values - one series each would make an unreadable chart. Group by a column with fewer values, such as a category."
 msgstr "'{column}' ha più di {limit} valori diversi: una serie per ciascuno renderebbe il grafico illeggibile. Raggruppa per una colonna con meno valori, come una categoria."
+
+msgid "Project info..."
+msgstr "Informazioni progetto..."
+
+msgid "Author, creation date and notes of this project, kept in the project file"
+msgstr "Autore, data di creazione e note di questo progetto, salvati nel file del progetto"
+
+msgid "Project info"
+msgstr "Informazioni progetto"
+
+msgid "Project"
+msgstr "Progetto"
+
+msgid "Your name, or your group's"
+msgstr "Il tuo nome, o quello del tuo gruppo"
+
+msgid "Created"
+msgstr "Creato"
+
+msgid "When the project was created. A project older than this record shows the date its file was created."
+msgstr "Quando è stato creato il progetto. Per un progetto precedente a questa informazione è la data di creazione del suo file."
+
+msgid "What the project is about, where the data came from, what is left to do..."
+msgstr "Di cosa tratta il progetto, da dove vengono i dati, cosa resta da fare..."
+
+msgid "Project info saved."
+msgstr "Informazioni del progetto salvate."
+
+msgid "Author:"
+msgstr "Autore:"
+
+msgid "Created:"
+msgstr "Creato:"
+
+msgid "About this project"
+msgstr "Informazioni sul progetto"

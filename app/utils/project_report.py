@@ -116,6 +116,21 @@ def build_project_report(
     report = ProjectReport(title=title or (figures[0][1] if single else project), html="")
     sections: list[str] = []
 
+    # Who made it, when, and what it is - the project's own record of itself.
+    info = repo.project_info() if hasattr(repo, "project_info") else {}
+    about = [(html.escape(label), html.escape(value)) for label, value in (
+        (_("Author"), info.get("author", "")),
+        (_("Created"), _local_time(info.get("created", "")) if info.get("created") else ""),
+    ) if value]
+    about_blocks: list[str] = []
+    if about:
+        about_blocks.append(report_html.table([_("Project"), ""], about, align=["left", "left"], wrap=True))
+    if info.get("notes") and not single:
+        notes_html = html.escape(info["notes"]).replace("\n", "<br>")
+        about_blocks.append(f"<p style='margin:8px 0 0 0;'>{notes_html}</p>")
+    if about_blocks:
+        sections.append(report_html.section(_("About this project"), *about_blocks))
+
     contents = "".join(
         f"<li>{html.escape(name)}</li>" for _figure_id, name in figures
     )

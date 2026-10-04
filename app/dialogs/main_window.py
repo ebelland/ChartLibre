@@ -929,6 +929,7 @@ class MainWindow(QMainWindow):
         stdSizeAndlayout(new_open_row)
         create_action_button(parent=card, action_id="new", action=self._on_new_file, layout=new_open_row)
         create_action_button(parent=card, action_id="open", action=self._on_open_database, layout=new_open_row)
+        create_action_button(parent=card, action_id="project_info", action=self._on_project_info, layout=new_open_row)
         new_open_row.addStretch(1)
         layout.addLayout(new_open_row)
 
@@ -976,6 +977,16 @@ class MainWindow(QMainWindow):
         create_action_button(parent=card, action_id="project_report", action=self._on_project_report, layout=row)
         row.addStretch(1)
         layout.addLayout(row)
+
+    def _on_project_info(self) -> None:
+        """Author, creation date and notes of the open project."""
+        if self._repo is None:
+            return
+        from app.dialogs.project_info_dialog import ProjectInfoDialog
+
+        if ProjectInfoDialog(self._repo, self).exec():
+            self._database_info_panel.set_repo(self._repo)
+            self.statusBar().showMessage(_("Project info saved."), 4_000)
 
     def _on_project_report(self) -> None:
         from app.dialogs.project_report_dialog import ProjectReportDialog
@@ -1955,6 +1966,11 @@ class MainWindow(QMainWindow):
 
             self._repo = SqliteRepo(db_path=db_path)
             self._db_path = db_path
+            from app.dialogs.project_info_dialog import default_author
+
+            if default_author():
+                # A new project carries the author this computer remembers.
+                self._repo.set_project_info({"author": default_author()})
             self._table_panel.set_repo(self._repo)
             self._database_info_panel.set_repo(self._repo)
             self._update_window_title()

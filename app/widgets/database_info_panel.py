@@ -206,6 +206,13 @@ class DatabaseInfoPanel(QWidget):
             self._form_layout.removeRow(0)
 
         self._form_layout.addRow(_("Path:"), self._selectable_label(str(self._repo.db_path)))
+        info = self._repo.project_info()
+        if info.get("author"):
+            self._form_layout.addRow(_("Author:"), self._selectable_label(info["author"]))
+        if info.get("created"):
+            from app.dialogs.project_info_dialog import readable_date
+
+            self._form_layout.addRow(_("Created:"), self._selectable_label(readable_date(info["created"])))
         self._form_layout.addRow(_("Size on disk:"), self._selectable_label(self._db_size_text()))
         self._add_pragma_rows()
 

@@ -58,6 +58,7 @@ from app.data.repo.descriptors import DescriptorsMixin
 from app.data.repo.editing import EditingMixin
 from app.data.repo.maintenance import MaintenanceMixin
 from app.data.repo.operations import OperationsMixin
+from app.data.repo.project_info import ProjectInfoMixin
 from app.data.repo.queries import QueriesMixin
 from app.data.repo.table_tools import TableToolsMixin
 from app.data.repo.tables import TablesMixin
@@ -77,6 +78,7 @@ class SqliteRepo(
     QueriesMixin,
     MaintenanceMixin,
     OperationsMixin,
+    ProjectInfoMixin,
 ):
     """SQLite repository for ChartLibre.
 
@@ -595,6 +597,11 @@ class SqliteRepo(
 
         # What was applied, and how: see app/data/repo/operations.py.
         self.create_operations_table()
+
+        # Author, creation date, notes: see app/data/repo/project_info.py.
+        # After the descriptor tables, which it looks at to tell a new
+        # project from an old one.
+        self.create_project_info_table()
 
         # Core indexes for fast descriptor and saved-query lookups
         self._con.executescript(

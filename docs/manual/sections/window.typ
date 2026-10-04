@@ -30,7 +30,7 @@ On Windows and Linux the rail ends with *Settings* and a *Menu* button (Undo, He
 == The File page
 
 #defs(
-  [*Workspace*], [*New* and *Open* a project.],
+  [*Workspace*], [*New* and *Open* a project, and *Project info…*: the project's author, its creation date and free notes about it — what it is, where the data came from, what is left to do. They are kept inside the `.dhub` file, travel with it, and open every project report. The author is remembered on the computer and filled in for every new project.],
   [*Demo*], [*Load demo* (see @demos).],
   [*Import*], [*Import* data into the project (see @importing).],
   [*Save*], [*Save* and *Save As…* (see @getting-started).],
