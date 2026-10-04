@@ -411,7 +411,7 @@ class AxisSeriesSelector(QWidget):
         self._signals_blocked = True
         self.figure_combo.clear()
 
-        for figure_row in self._repo.get_figures():
+        for figure_row in self._repo.load_figures_from_db():
             figure_id = int(figure_row[0])
             raw_name = str(figure_row[1] or "").strip()
             figure_name = raw_name if raw_name else f"Figure {figure_id}"

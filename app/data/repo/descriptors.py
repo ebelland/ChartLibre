@@ -265,27 +265,6 @@ class DescriptorsMixin(RepoHost):
             grouped[int(row["axis_id"])].append(row)
         return grouped
 
-    @ensure_connection_wrapper
-    def query_columns_from_sql(self, sql: str) -> list[str]:
-        """Extract column names from arbitrary SELECT query without fetching data.
-        
-        Wraps query with LIMIT 0 subquery to read cursor.description.
-        Useful for dynamic plot builder dialogs.
-        """
-        assert self._con is not None
-
-        q = (sql or "").strip().rstrip(";")
-        if not q:
-            return []
-
-        try:
-            wrapped = f"SELECT * FROM ({q}) AS _q LIMIT 0"
-            cur = self._con.execute(wrapped)
-            if cur.description is None:
-                return []
-            return [str(d[0]) for d in cur.description if d and d[0] is not None]
-        except READ_FAILURES:
-            return []
 
     @ensure_connection_wrapper
     def next_axis_index(self, figure_id: int) -> int:

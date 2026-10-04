@@ -10,7 +10,7 @@ before any of them can run:
 * connecting, the pragmas, and closing;
 * the **series DataFrame cache**, the single biggest lever on render time -
   without it every property tweak re-runs every series query against
-  SQLite (see ``series_df`` for the invalidation contract);
+  SQLite (see ``series_frame`` for the invalidation contract);
 * preview savepoints and the transaction helper every writer uses;
 * the undo hooks, which need the connection to attach their own database.
 
@@ -30,8 +30,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import ClassVar
-
-import pandas as pd
 
 from app.data.series_frame import SeriesFrame
 from app.data.undo_store import UndoEntry, UndoStore
@@ -93,7 +91,7 @@ class SqliteRepo(
       - Persistent connection with WAL mode
       - Memory-mapped I/O and large cache
       - Prepared statements (row_factory cached)
-      - Bounded LRU cache of series DataFrames (see ``series_df``)
+      - Bounded LRU cache of series frames (see ``series_frame``)
     """
 
     db_path: Path
@@ -102,9 +100,8 @@ class SqliteRepo(
     _preview_savepoint_name: str | None = None
 
     # --- series cache -----------------------------------------------------
-    # Holds SeriesFrame, not DataFrame (todo.txt P2-17) - series_df()/
-    # downsampled_series_df() below are now a pandas-shaped view onto this
-    # same cache, kept for the callers and tests that still want a DataFrame.
+    # Holds SeriesFrame, not DataFrame (todo.txt P2-17); .to_pandas() on a
+    # returned frame for a caller that wants one.
     _series_cache: OrderedDict[str, SeriesFrame] = field(default_factory=OrderedDict)
     _series_cache_stamp: tuple[int, int, int] | None = None
     _series_cache_enabled: bool = _SERIES_CACHE_DEFAULT_ENABLED
@@ -321,9 +318,8 @@ class SqliteRepo(
 
         This is the render path (see ``render_figure._load_series_df``):
         SQLite's own cursor, typed straight into numpy arrays - no
-        ``pd.read_sql_query`` between the database and the cache. ``series_df``
-        below is the same cache, wearing a DataFrame for the callers and tests
-        that still want one.
+        ``pd.read_sql_query`` between the database and the cache. A caller
+        that wants a DataFrame calls ``.to_pandas()`` on the result.
 
         The cache is keyed by SQL text and wholesale invalidated whenever
         ``_database_stamp`` changes, so a hit can only ever be served for the
@@ -414,15 +410,6 @@ class SqliteRepo(
                 found.append(f"{kind} '{name}': {reason}")
         return found
 
-    def series_df(self, sql: str) -> pd.DataFrame:
-        """``series_frame`` as a DataFrame, for the callers still built on one.
-
-        Same cache, same invalidation contract as ``series_frame`` - a hit on
-        one is a hit on the other, so a dialog reading a series with
-        ``series_df`` and a chart reading the same SQL with ``series_frame``
-        pay the query once between them, not once each.
-        """
-        return self.series_frame(sql).to_pandas()
 
     @ensure_connection_wrapper
     def series_row_count(self, sql: str) -> int:
@@ -432,7 +419,7 @@ class SqliteRepo(
         a single ``COUNT(*)`` rather than reading the whole result into a
         DataFrame just to call ``len()`` on it, which would defeat the point
         of downsampling in the first place. Cached the same way and
-        invalidated by the same database-state stamp as ``series_df``.
+        invalidated by the same database-state stamp as ``series_frame``.
         """
         sql_text = (sql or "").strip()
         if not sql_text:
@@ -487,10 +474,6 @@ class SqliteRepo(
             f") WHERE (__dhub_rn__ - 1) % {stride} = 0"
         )
         return self.series_frame(wrapped).drop_column("__dhub_rn__")
-
-    def downsampled_series_df(self, sql: str, *, threshold: int) -> pd.DataFrame:
-        """``downsampled_series_frame`` as a DataFrame; see ``series_df``."""
-        return self.downsampled_series_frame(sql, threshold=threshold).to_pandas()
 
 
     @ensure_connection_wrapper
@@ -627,17 +610,8 @@ class SqliteRepo(
             """
         )
 
-        # Saved queries: named SQL snippets + optional UI/settings JSON
-        self._con.execute(
-            """
-            CREATE TABLE IF NOT EXISTS __queries__ (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                name          TEXT NOT NULL UNIQUE,
-                sql           TEXT NOT NULL,
-                settings_json TEXT
-            );
-            """
-        )
+        # Saved queries: see app/data/repo/queries.py.
+        self.create_queries_table()
 
         # A figure's last_modified follows every change to it, its axes or
         # their series, whichever code makes it.
@@ -651,34 +625,9 @@ class SqliteRepo(
         # project from an old one.
         self.create_project_info_table()
 
-        # Core indexes for fast descriptor and saved-query lookups
-        self._con.executescript(
-            """
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_queries_name
-                ON __queries__ (name);
-
-            CREATE INDEX IF NOT EXISTS idx_import_links_table_name
-                ON __import_links__ (table_name);
-
-            CREATE INDEX IF NOT EXISTS idx_table_descriptors_name
-                ON __table_descriptors__ (name);
-
-            CREATE INDEX IF NOT EXISTS idx_figures_name
-                ON __figure_descriptors__ (name);
-
-            CREATE INDEX IF NOT EXISTS idx_axes_figure_id
-                ON __axis_descriptors__ (figure_id);
-
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_axes_figure_axis
-                ON __axis_descriptors__ (figure_id, axis_index);
-
-            CREATE INDEX IF NOT EXISTS idx_series_axis_id
-                ON __series_descriptors__ (axis_id);
-
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_series_axis_series
-                ON __series_descriptors__ (axis_id, series_index);
-            """
-        )
+        # No indexes of its own: each lookup goes through a UNIQUE constraint
+        # above (axis by figure, series by axis, query, link and table
+        # descriptor by name), and SQLite indexes every one of those.
 
 
     # =====================================================================

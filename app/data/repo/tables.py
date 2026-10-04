@@ -280,39 +280,30 @@ class TablesMixin(RepoHost):
             return False, "The query returns no columns."
         return True, f"{len(columns)} column(s): {', '.join(columns)}"
 
-    @ensure_connection_wrapper
-    def get_columns(self, table: str) -> list[str]:
-        """Return column names for a table.
-        
-        Uses PRAGMA table_info to avoid reserved word issues.
-        Returns empty list on error.
-        """
-        assert self._con is not None
-        try:
-            rows = self._con.execute(
-                f"PRAGMA table_info({_quote_ident(table)})"
-            ).fetchall()
-            return [str(r[1]) for r in rows if len(r) > 1]
-        except READ_FAILURES:
-            return []
 
     @ensure_connection_wrapper
     def table_info(self, table: str) -> list[sqlite3.Row]:
-        """Return SQLite PRAGMA table_info rows for a user table.
+        """``PRAGMA table_info`` of a table: one row per column, in order.
 
-        UI widgets use this for schema display. Keep the database access in the
-        repository so callers do not execute PRAGMA statements directly.
+        The one place the schema is read - column names, declared types,
+        the primary key - so every caller quotes the name the same way (a
+        name with a space in it used to fail here, and nowhere else). Empty
+        when there is no such table.
         """
         assert self._con is not None
         try:
-            return list(
-                self._con.execute(
-                    f"PRAGMA table_info({table})"
-                ).fetchall()
-            )
+            return list(self._con.execute(f"PRAGMA table_info({_quote_ident(table)})").fetchall())
         except READ_FAILURES:
             applogger.exception("Failed to read table schema for %s", table)
             return []
+
+    def get_columns(self, table: str) -> list[str]:
+        """A table's column names, in order; empty when there is no such table."""
+        return [str(row[1]) for row in self.table_info(table)]
+
+    def has_column(self, table_name: str, col_name: str) -> bool:
+        """True when the table has a column with this name."""
+        return col_name in self.get_columns(table_name)
 
     @ensure_connection_wrapper
     def ensure_preview_state_columns(self, table_name: str) -> None:
@@ -342,8 +333,7 @@ class TablesMixin(RepoHost):
         assert self._con is not None
         table_sql = _quote_ident(table_name)
         preview_col = _quote_ident("__DataHubPreviewHide")
-        columns = {str(row[1]) for row in self.table_info(table_name)}
-        if "__DataHubPreviewHide" not in columns:
+        if not self.has_column(table_name, "__DataHubPreviewHide"):
             return
         self.ensure_hide_column(table_name)
         self._con.execute(
@@ -355,8 +345,7 @@ class TablesMixin(RepoHost):
     def drop_preview_state_columns(self, table_name: str) -> None:
         """Drop temporary preview state columns created for Hide preview."""
         assert self._con is not None
-        columns = {str(row[1]) for row in self.table_info(table_name)}
-        if "__DataHubPreviewHide" not in columns:
+        if not self.has_column(table_name, "__DataHubPreviewHide"):
             return
         self._con.execute(
             f'ALTER TABLE {_quote_ident(table_name)} '
@@ -381,31 +370,7 @@ class TablesMixin(RepoHost):
     # =====================================================================
     # Query execution
     # =====================================================================
-    @ensure_connection_wrapper
-    def _get_sys_table_tuples(self, table_name: str) -> list[tuple[int, str]]:
-        """Fetch (id, name) tuples from a system table. Helper for fast lookups."""
-        assert self._con is not None
-        try:
-            rows = self._con.execute(
-                f"SELECT id, name FROM {table_name} ORDER BY id"
-            ).fetchall()
-            return [(int(r[0]), str(r[1])) for r in rows] if rows else []
-        except READ_FAILURES:
-            return []
 
-    def get_figures(self) -> list[tuple[int, str]]:
-        """Return figure descriptors as (id, name) tuples."""
-        return self._get_sys_table_tuples("__figure_descriptors__")
-
-    @ensure_connection_wrapper
-    def col_count(self, table: str) -> int:
-        """Return column count for a table (or 0 on error)."""
-        assert self._con is not None
-        try:
-            columns = self._con.execute(f"PRAGMA table_info({_quote_ident(table)})").fetchall()
-            return len(columns)
-        except READ_FAILURES:
-            return 0
 
     @property
     def is_open(self) -> bool:
@@ -467,18 +432,6 @@ class TablesMixin(RepoHost):
             "settings": _loads_json(row["settings_json"]),
         }
 
-    @ensure_connection_wrapper
-    def table_has_link(self, table: str) -> bool:
-        """Check if table has an associated import link."""
-        assert self._con is not None
-        try:
-            row = self._con.execute(
-                "SELECT 1 FROM __import_links__ WHERE table_name = ? LIMIT 1",
-                (table,),
-            ).fetchone()
-            return row is not None
-        except READ_FAILURES:
-            return False
 
     @ensure_connection_wrapper
     def query_df(self, sql: str, params: tuple[Any, ...] | None = None) -> pd.DataFrame:
@@ -657,12 +610,6 @@ class TablesMixin(RepoHost):
             "settings": _loads_json(row["settings_json"]),
         }
 
-    @ensure_connection_wrapper
-    def delete_link(self, link_id: int) -> None:
-        """Delete import link by id."""
-        assert self._con is not None
-        self._con.execute("DELETE FROM __import_links__ WHERE id = ?", (link_id,))
-        self._commit()
 
     # =====================================================================
     # Hide-column support for chart outlier filtering
@@ -678,14 +625,10 @@ class TablesMixin(RepoHost):
 
     @ensure_connection_wrapper
     def ensure_column(self, table_name: str, col_name:str, col_type:str="INTEGER")-> None:
-        """Ensure a int-compatible ClusterId column exists on a user data table."""
+        """Add *col_name* to a table unless it is there already."""
         assert self._con is not None
         table_sql = _quote_ident(table_name)
-        columns = {
-            str(row[1])
-            for row in self._con.execute(f"PRAGMA table_info({table_sql})").fetchall()
-        }
-        if col_name not in columns:
+        if not self.has_column(table_name, col_name):
             # An INTEGER column is a flag or an id and starts at 0; any other
             # kind starts empty. (The conditional used to bind to the whole
             # expression, so every non-INTEGER column ran an empty statement
@@ -706,11 +649,6 @@ class TablesMixin(RepoHost):
         ).fetchone()
         return None if row is None else str(row["sql_query"] or "")
 
-    @ensure_connection_wrapper
-    def has_column(self, table_name: str, col_name: str) -> bool:
-        """Return True when a table already has a column with this name."""
-        assert self._con is not None
-        return col_name in set(self.get_columns(table_name))
 
     @ensure_connection_wrapper
     def rename_table_column(self, table_name: str, old_name: str, new_name: str) -> None:
@@ -808,49 +746,6 @@ class TablesMixin(RepoHost):
                 )
         self._commit()
 
-    @ensure_connection_wrapper
-    def mark_hide_points(
-        self,
-        *,
-        table_name: str,
-        x_column: str,
-        y_column: str,
-        points: Sequence[tuple[float, float]],
-    ) -> int:
-        """Set Hide=True/1 for rows matching supplied X/Y point pairs.
-
-        This is a compatibility fallback.  Outlier apply should prefer
-        mark_hide_rowids because it is exact and avoids float equality issues.
-        """
-        assert self._con is not None
-        self.ensure_hide_column(table_name)
-        rows = [(float(x), float(y)) for x, y in points]
-        if not rows:
-            return 0
-        sql = (
-            f"UPDATE {_quote_ident(table_name)} "
-            f"SET \"Hide\" = 1 "
-            f"WHERE {_quote_ident(x_column)} = ? AND {_quote_ident(y_column)} = ?"
-        )
-        updated_count = 0
-        for x_value, y_value in rows:
-            cur = self._con.execute(sql, (float(x_value), float(y_value)))
-            if cur.rowcount and cur.rowcount > 0:
-                updated_count += int(cur.rowcount)
-        self._commit()
-        hidden_count = self.count_hidden_rows(table_name)
-        print(
-            f"[Outlier] table={table_name!r} requested={len(rows)} "
-            f"matched={updated_count} hidden_total={hidden_count}"
-        )
-        applogger.info(
-            "Outlier Hide update table=%s requested=%d matched=%d hidden_total=%d",
-            table_name,
-            len(rows),
-            updated_count,
-            hidden_count,
-        )
-        return hidden_count
 
     @ensure_connection_wrapper
     def count_hidden_rows(self, table_name: str) -> int:
@@ -932,22 +827,14 @@ class TablesMixin(RepoHost):
                 [(int(rowid),) for rowid in scope_rowids],
             )
         ids = [int(rowid) for rowid in rowids]
-        if not ids:
-            hidden_count = self.count_hidden_rows(table_name)
-            print(f"[Outlier] table={table_name!r} requested=0 matched=0 hidden_total={hidden_count}")
-            return hidden_count
-        sql = f"UPDATE {_quote_ident(table_name)} SET \"Hide\" = 1 WHERE rowid = ?"
-        updated_count = 0
-        for rowid in ids:
-            cur = self._con.execute(sql, (int(rowid),))
-            if cur.rowcount and cur.rowcount > 0:
-                updated_count += int(cur.rowcount)
+        before = self._con.total_changes
+        self._con.executemany(
+            f'UPDATE {_quote_ident(table_name)} SET "Hide" = 1 WHERE rowid = ?',
+            [(rowid,) for rowid in ids],
+        )
+        updated_count = self._con.total_changes - before
         self._commit()
         hidden_count = self.count_hidden_rows(table_name)
-        print(
-            f"[Outlier] table={table_name!r} requested={len(ids)} "
-            f"matched={updated_count} hidden_total={hidden_count}"
-        )
         applogger.info(
             "Outlier Hide update table=%s requested=%d matched=%d hidden_total=%d",
             table_name,
@@ -1009,27 +896,6 @@ class TablesMixin(RepoHost):
             self._con.execute(f"UPDATE {table_sql} SET {column_sql} = ? WHERE rowid = ?", (colour, int(rowid)))
         self._commit()
 
-    @ensure_connection_wrapper
-    def apply_outlier_hide_flags(
-        self,
-        *,
-        table_name: str,
-        x_column: str,
-        y_column: str,
-        points: Sequence[tuple[float, float]],
-        clear_existing: bool = False,
-    ) -> int:
-        """Apply outlier flags to Hide column, optionally clearing old flags first."""
-        if clear_existing:
-            self.clear_hide_column(table_name)
-        else:
-            self.ensure_hide_column(table_name)
-        return self.mark_hide_points(
-            table_name=table_name,
-            x_column=x_column,
-            y_column=y_column,
-            points=points,
-        )
 
     def query_source_table(self, sql_query: str) -> str:
         """Best-effort extraction of the first table name after FROM."""
@@ -1554,7 +1420,6 @@ class TablesMixin(RepoHost):
         self._commit()
 
 
-
     #: The 0/1 columns the application maintains on a table: Hide, which
     #: every chart skips, and Selected, which marks rows for the user's own
     #: queries and operations. The same tools act on either.
@@ -1621,13 +1486,6 @@ class TablesMixin(RepoHost):
         """Ensure Hide exists and invert 0/1 values."""
         return self.invert_flag(table_name, "Hide")
 
-    def hide_rows_by_value(self, table_name: str, column_name: str, operator: str, value: Any) -> int:
-        """Set Hide=1 where column compares to a user-provided value."""
-        return self.flag_rows_by_value(table_name, "Hide", column_name, operator, value)
-
-    def hide_rows_special(self, table_name: str, column_name: str, mode: str) -> int:
-        """Set Hide=1 using a predefined special predicate."""
-        return self.flag_rows_special(table_name, "Hide", column_name, mode)
 
     def ensure_selected_column(self, table_name: str) -> None:
         """Ensure the 0/1 Selected column exists on a user data table."""
@@ -1640,14 +1498,6 @@ class TablesMixin(RepoHost):
     def invert_selected(self, table_name: str) -> int:
         """Ensure Selected exists and invert 0/1 values."""
         return self.invert_flag(table_name, "Selected")
-
-    def select_rows_by_value(self, table_name: str, column_name: str, operator: str, value: Any) -> int:
-        """Set Selected=1 where column compares to a user-provided value."""
-        return self.flag_rows_by_value(table_name, "Selected", column_name, operator, value)
-
-    def select_rows_special(self, table_name: str, column_name: str, mode: str) -> int:
-        """Set Selected=1 using a predefined special predicate."""
-        return self.flag_rows_special(table_name, "Selected", column_name, mode)
 
 
     def supports_sql_math(self) -> bool:

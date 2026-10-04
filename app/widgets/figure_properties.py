@@ -148,7 +148,7 @@ class FigurePropertiesWidget(BaseProperties):
     #: is actually picked, since decimating a series changes what a plot
     #: shows and should never happen invisibly. Above the threshold, a
     #: series query is decimated to roughly that many rows before it ever
-    #: reaches pandas - see SqliteRepo.downsampled_series_df.
+    #: reaches pandas - see SqliteRepo.downsampled_series_frame.
     #: The threshold a figure gets when its descriptor names none. Enough
     #: points to keep the shape of almost any curve, few enough that a
     #: redraw stays quick even on a huge series.

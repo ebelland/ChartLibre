@@ -652,7 +652,7 @@ class LazyTableModel(QAbstractTableModel):
     def _load_schema_and_count(self) -> None:
         if not self._repo.is_open:
             return
-        rows = self._repo.table_info(self._table_q)
+        rows = self._repo.table_info(self._table)
         self._columns = [str(row[1]) for row in rows]
         self._codes = [_type_code(str(row[2])) for row in rows]
         self._row_count = int(self._repo.row_count(self._table))

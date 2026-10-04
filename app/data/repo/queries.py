@@ -11,9 +11,7 @@ Part of ``SqliteRepo``; see ``app/data/repo/__init__.py``.
 """
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
-
-import pandas as pd
+from typing import Any, Mapping
 
 from app.data.repo._common import (
     RepoHost,
@@ -23,7 +21,6 @@ from app.data.repo._common import (
     _quote_ident,
     ensure_connection_wrapper,
     ensure_read_only_select,
-    is_read_only_select,
 )
 from app.logs.logger import applogger
 
@@ -39,7 +36,7 @@ class QueriesMixin(RepoHost):
 
     @ensure_connection_wrapper
     def create_queries_table(self) -> None:
-        """Create the saved-query table."""
+        """Create the saved-query table; called once, as the project opens."""
         assert self._con is not None
         self._con.execute(
             """
@@ -51,37 +48,7 @@ class QueriesMixin(RepoHost):
             );
             """
         )
-        self._con.execute(
-            """
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_queries_name
-                ON __queries__ (name)
-            """
-        )
 
-    @ensure_connection_wrapper
-    def create_index(
-        self,
-        table: str,
-        columns: Sequence[str],
-        *,
-        name: str | None = None,
-        unique: bool = False,
-    ) -> None:
-        """Create an index using validated identifiers only."""
-        if not columns:
-            applogger.error("At least one column is required")
-
-        assert self._con is not None
-        table_sql = _quote_ident(table)
-        cols_sql = ", ".join(_quote_ident(col) for col in columns)
-        index_name = name or f"idx_{table}_{'_'.join(columns)}"
-        index_sql = _quote_ident(index_name)
-        unique_sql = "UNIQUE " if unique else ""
-
-        self._con.execute(
-            f"CREATE {unique_sql}INDEX IF NOT EXISTS "
-            f"{index_sql} ON {table_sql} ({cols_sql})"
-        )
 
     @ensure_connection_wrapper
     def save_query(
@@ -92,7 +59,6 @@ class QueriesMixin(RepoHost):
     ) -> int:
         """Insert or update a named SQL query and return its id."""
         assert self._con is not None
-        self.create_queries_table()
 
         clean_name = name.strip()
         clean_sql = sql.strip()
@@ -125,7 +91,6 @@ class QueriesMixin(RepoHost):
     def get_query(self, name: str) -> SavedQuery | None:
         """Return a saved query by name."""
         assert self._con is not None
-        self.create_queries_table()
 
         row = self._con.execute(
             """
@@ -144,34 +109,11 @@ class QueriesMixin(RepoHost):
             settings=_loads_json(row["settings_json"]),
         )
 
-    @ensure_connection_wrapper
-    def get_query_by_id(self, query_id: int) -> SavedQuery | None:
-        """Return a saved query by id."""
-        assert self._con is not None
-        self.create_queries_table()
-
-        row = self._con.execute(
-            """
-            SELECT id, name, sql, settings_json
-            FROM __queries__
-            WHERE id = ?
-            """,
-            (int(query_id),),
-        ).fetchone()
-        if row is None:
-            return None
-        return SavedQuery(
-            id=int(row["id"]),
-            name=str(row["name"]),
-            sql=str(row["sql"]),
-            settings=_loads_json(row["settings_json"]),
-        )
 
     @ensure_connection_wrapper
     def list_queries(self) -> list[SavedQuery]:
         """Return all saved queries ordered by name."""
         assert self._con is not None
-        self.create_queries_table()
 
         rows = self._con.execute(
             """
@@ -260,7 +202,6 @@ class QueriesMixin(RepoHost):
         to tell them apart in the list.
         """
         stem = str(base or "Query").strip() or "Query"
-        self.create_queries_table()
 
         taken = {saved.name.strip().lower() for saved in self.list_queries()}
         taken.update(name.strip().lower() for name in self.list_table_names())
@@ -274,7 +215,6 @@ class QueriesMixin(RepoHost):
     def delete_query(self, name: str) -> bool:
         """Delete a saved query by name."""
         assert self._con is not None
-        self.create_queries_table()
 
         cur = self._con.execute(
             "DELETE FROM __queries__ WHERE name = ?",
@@ -282,53 +222,4 @@ class QueriesMixin(RepoHost):
         )
         return cur.rowcount > 0
 
-    @ensure_connection_wrapper
-    def rename_query(self, old_name: str, new_name: str) -> None:
-        """Rename a saved query."""
-        assert self._con is not None
-        self.create_queries_table()
-
-        clean_name = new_name.strip()
-        if not clean_name:
-            applogger.error("New query name is required")
-
-        self._con.execute(
-            """
-            UPDATE __queries__
-            SET name = ?
-            WHERE name = ?
-            """,
-            (clean_name, old_name),
-        )
-
-    @ensure_connection_wrapper
-    def run_saved_query(
-        self,
-        name: str,
-        params: tuple[Any, ...] | None = None,
-    ) -> pd.DataFrame:
-        """Execute a saved row-returning query."""
-        query = self.get_query(name)
-        if query is None or query.sql is None:
-            applogger.error(f"Saved query not found: {name}")
-            return pd.DataFrame()
-        # Refuse rather than warn-and-run: this used to log "does not return
-        # rows" and then hand the statement to query_df anyway, which executes
-        # whatever it is given - so a saved query that had been edited into a
-        # DELETE ran it.
-        ok, reason = is_read_only_select(query.sql)
-        if not ok:
-            applogger.error("Saved query %r will not be run: %s", name, reason)
-            return pd.DataFrame()
-
-        return self.query_df(query.sql, params=params)
-
-    @ensure_connection_wrapper
-    def explain_query_plan(
-        self,
-        sql: str,
-        params:  tuple[Any, ...] | None = None,
-    ) -> pd.DataFrame:
-        """Return SQLite query planner output for a statement."""
-        return self.query_df(f"EXPLAIN QUERY PLAN {sql}", params=params)
 

@@ -66,3 +66,26 @@ def test_create_empty_writes_the_file_and_its_system_tables(tmp_db_path) -> None
 
 
 
+
+
+def test_a_table_with_a_space_in_its_name_has_its_hide_preview_undone(tmp_path) -> None:
+    """Outliers' Preview then Cancel: Hide back as it was, the helper column gone.
+
+    table_info did not quote the name, so for "CO2 per capita" it read no
+    columns, and the restore and the clean-up both quietly did nothing.
+    """
+    import pandas as pd
+
+    from app.data.sqlite_repo import SqliteRepo
+
+    repo = SqliteRepo(db_path=tmp_path / "space.dhub")
+    repo.import_dataframe(pd.DataFrame({"x": [1, 2, 3]}), table_name="CO2 per capita", normalize_columns=False)
+    assert repo.get_columns("CO2 per capita") == ["x"]
+    repo.ensure_preview_state_columns("CO2 per capita")
+    repo.mark_hide_rowids(table_name="CO2 per capita", rowids=[1, 3])
+    assert repo.count_hidden_rows("CO2 per capita") == 2
+    repo.restore_preview_state_columns("CO2 per capita")
+    repo.drop_preview_state_columns("CO2 per capita")
+    assert repo.count_hidden_rows("CO2 per capita") == 0
+    assert repo.get_columns("CO2 per capita") == ["x", "Hide"]
+    repo.close()

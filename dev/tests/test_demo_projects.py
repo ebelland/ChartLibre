@@ -51,7 +51,7 @@ def _open(path: Path) -> tuple[list[tuple[int, str]], list[str], list[str]]:
     repo = SqliteRepo(db_path=path)
     try:
         return (
-            list(repo.get_figures()),
+            list(repo.load_figures_from_db()),
             list(repo.list_table_names()),
             [saved.name for saved in repo.list_queries()],
         )
@@ -74,7 +74,7 @@ def test_every_series_in_every_file_returns_rows(demo_set: list[Path]) -> None:
     for path in demo_set:
         repo = SqliteRepo(db_path=path)
         try:
-            for figure_id, _name in repo.get_figures():
+            for figure_id, _name in repo.load_figures_from_db():
                 descriptor = repo.load_figure_descriptor(figure_id=int(figure_id))
                 assert descriptor is not None
                 for axis in descriptor.axes:

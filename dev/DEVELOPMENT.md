@@ -206,10 +206,9 @@ for it — Pareto's category `groupby`, and the Table renderer's
 hatch, not a fallback to lean on: reach for it only when the operation
 really is a DataFrame operation, and keep it to the one call that needs it.
 
-`SqliteRepo` exposes both shapes over one cache: `series_frame()` /
-`downsampled_series_frame()` are the render path, and `series_df()` /
-`downsampled_series_df()` are the same cached data wearing a DataFrame, for
-callers and tests that still want one. A hit on one is a hit on the other.
+`SqliteRepo.series_frame()` / `downsampled_series_frame()` are the render
+path, cached; a caller that wants a DataFrame calls `.to_pandas()` on what
+they return, and still reads through the same cache.
 
 ## 5. Figure layout: grid and spans
 

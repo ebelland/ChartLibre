@@ -13,7 +13,7 @@ from typing import Any, Sequence
 
 import pandas as pd
 
-from app.data.repo._common import _is_ident, _quote_ident, RepoHost
+from app.data.repo._common import RepoHost, _is_ident, _quote_ident, ensure_connection_wrapper
 from app.utils.coercion import to_numbers
 
 #: The declared types a column can be changed to, in SQLite's own names.
@@ -36,14 +36,11 @@ class TableToolsMixin(RepoHost):
     # ------------------------------------------------------------------
     def _schema(self, table_name: str) -> list[tuple[str, str]]:
         """(column, declared type) pairs, in table order."""
-        self._connected()
-        assert self._con is not None
-        rows = self._con.execute(f"PRAGMA table_info({_quote_ident(table_name)})").fetchall()
-        return [(str(row[1]), str(row[2] or "")) for row in rows]
+        return [(str(row[1]), str(row[2] or "")) for row in self.table_info(table_name)]
 
+    @ensure_connection_wrapper
     def free_table_name(self, base: str) -> str:
         """*base*, or *base* with the first free numeric suffix."""
-        self._connected()
         assert self._con is not None
         taken = {
             str(row[0]).lower()
@@ -83,9 +80,9 @@ class TableToolsMixin(RepoHost):
     # ------------------------------------------------------------------
     # Table tools
     # ------------------------------------------------------------------
+    @ensure_connection_wrapper
     def duplicate_table(self, table_name: str, new_name: str | None = None) -> str:
         """Copy a table - columns, declared types and rows - and return the copy's name."""
-        self._connected()
         assert self._con is not None
         name = self.free_table_name(new_name or f"{table_name}_copy")
         if not _is_ident(name):
@@ -379,6 +376,7 @@ class TableToolsMixin(RepoHost):
         base = f"{table_name}_by_{'_'.join(groups)}" if groups else f"{table_name}_summary"
         return self.free_table_name(base)
 
+    @ensure_connection_wrapper
     def group_aggregate_preview(
         self,
         table_name: str,
@@ -389,7 +387,6 @@ class TableToolsMixin(RepoHost):
         limit: int = 50,
     ) -> tuple[pd.DataFrame, int]:
         """The first *limit* rows group_aggregate would write, and how many in all."""
-        self._connected()
         assert self._con is not None
         sql = self._group_select(table_name, group_by, measures, include_hidden)
         total = int(self._con.execute(f"SELECT COUNT(*) FROM ({sql})").fetchone()[0])

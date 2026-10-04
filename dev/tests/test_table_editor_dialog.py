@@ -57,7 +57,7 @@ def _rows(repo: SqliteRepo) -> list[tuple]:
 
 
 def _columns(repo: SqliteRepo) -> list[str]:
-    return [str(row[1]) for row in repo.table_info('"people"')]
+    return [str(row[1]) for row in repo.table_info("people")]
 
 
 def _select_cell(dialog: TableEditorDialog, row: int, column: int) -> None:

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from app.data.repo._common import _is_ident, _quote_ident, RepoHost
+from app.data.repo._common import RepoHost, _is_ident, _quote_ident, ensure_connection_wrapper
 
 
 class EditingMixin(RepoHost):
@@ -36,20 +36,6 @@ class EditingMixin(RepoHost):
     # each call opens an entry of its own, which is what a single edit from
     # anywhere else should do.
 
-    def _connected(self) -> None:
-        if not self._is_connected or self._con is None:
-            self._connect()
-        assert self._con is not None
-
-    def _table_columns(self, table_name: str) -> list[str]:
-        assert self._con is not None
-        return [
-            str(row[1])
-            for row in self._con.execute(
-                f"PRAGMA table_info({_quote_ident(table_name)})"
-            ).fetchall()
-        ]
-
     def has_integer_primary_key(self, table_name: str) -> bool:
         """Say whether this table's rowid is a column the user can see.
 
@@ -58,16 +44,12 @@ class EditingMixin(RepoHost):
         rewriting the user's own key values, so the positional insert below
         refuses on such a table rather than doing that quietly.
         """
-        self._connected()
-        assert self._con is not None
-        rows = self._con.execute(
-            f"PRAGMA table_info({_quote_ident(table_name)})"
-        ).fetchall()
-        for row in rows:
-            if int(row[5] or 0) == 1 and str(row[2] or "").strip().upper() == "INTEGER":
-                return True
-        return False
+        return any(
+            int(row[5] or 0) == 1 and str(row[2] or "").strip().upper() == "INTEGER"
+            for row in self.table_info(table_name)
+        )
 
+    @ensure_connection_wrapper
     def update_table_cell(
         self,
         table_name: str,
@@ -78,7 +60,6 @@ class EditingMixin(RepoHost):
         undo_entry: int | None = None,
     ) -> None:
         """Write one cell, addressed by rowid."""
-        self._connected()
         assert self._con is not None
         if column_name.lower() == "rowid":
             raise ValueError("rowid is not editable")
@@ -94,15 +75,15 @@ class EditingMixin(RepoHost):
         )
         self._commit()
 
+    @ensure_connection_wrapper
     def append_table_row(self, table_name: str, *, undo_entry: int | None = None) -> int:
         """Add one empty row at the end, and return its rowid."""
-        self._connected()
         assert self._con is not None
         self.snapshot_for_undo(
             [table_name], label=f"Add a row to '{table_name}'", entry_id=undo_entry
         )
         table_sql = _quote_ident(table_name)
-        columns = self._table_columns(table_name)
+        columns = self.get_columns(table_name)
         if columns:
             names = ", ".join(_quote_ident(name) for name in columns)
             holes = ", ".join("NULL" for _unused in columns)
@@ -114,6 +95,7 @@ class EditingMixin(RepoHost):
         self._commit()
         return int(cursor.lastrowid or 0)
 
+    @ensure_connection_wrapper
     def insert_table_row_before(
         self, table_name: str, rowid: int, *, undo_entry: int | None = None
     ) -> int:
@@ -125,7 +107,6 @@ class EditingMixin(RepoHost):
         because a single ``rowid + 1`` pass collides with the row it is
         about to move onto the moment SQLite reaches it.
         """
-        self._connected()
         assert self._con is not None
         if self.has_integer_primary_key(table_name):
             raise ValueError(
@@ -145,7 +126,7 @@ class EditingMixin(RepoHost):
         )
         self._con.execute(f"UPDATE {table_sql} SET rowid = -rowid WHERE rowid < 0")
 
-        columns = self._table_columns(table_name)
+        columns = self.get_columns(table_name)
         if columns:
             names = ", ".join(_quote_ident(name) for name in columns)
             holes = ", ".join("NULL" for _unused in columns)
@@ -158,11 +139,11 @@ class EditingMixin(RepoHost):
         self._commit()
         return target
 
+    @ensure_connection_wrapper
     def delete_table_rows(
         self, table_name: str, rowids: Sequence[int], *, undo_entry: int | None = None
     ) -> int:
         """Delete the named rows, and return how many went."""
-        self._connected()
         assert self._con is not None
         wanted = [int(value) for value in rowids]
         if not wanted:
@@ -179,6 +160,7 @@ class EditingMixin(RepoHost):
         self._commit()
         return int(cursor.rowcount or 0)
 
+    @ensure_connection_wrapper
     def insert_table_column(
         self,
         table_name: str,
@@ -200,7 +182,6 @@ class EditingMixin(RepoHost):
         indexes, triggers or constraints across; the tables this edits are
         imported data, which have none.
         """
-        self._connected()
         assert self._con is not None
         name = str(column_name or "").strip()
         if not name:
@@ -209,7 +190,7 @@ class EditingMixin(RepoHost):
             raise ValueError(f"'{name}' is not a usable column name")
 
         table_sql = _quote_ident(table_name)
-        existing = self._table_columns(table_name)
+        existing = self.get_columns(table_name)
         if name in existing:
             raise ValueError(f"'{name}' is already a column of this table")
 
@@ -230,10 +211,7 @@ class EditingMixin(RepoHost):
             self._commit()
             return
 
-        types = {
-            str(row[1]): str(row[2] or "")
-            for row in self._con.execute(f"PRAGMA table_info({table_sql})").fetchall()
-        }
+        types = {str(row[1]): str(row[2] or "") for row in self.table_info(table_name)}
         types[name] = declared
         order = list(existing)
         order.insert(order.index(before), name)

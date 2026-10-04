@@ -28,11 +28,11 @@ def _make_repo(tmp_db_path: Path) -> SqliteRepo:
 def test_second_read_is_served_from_cache(tmp_db_path: Path) -> None:
     repo = _make_repo(tmp_db_path)
 
-    first = repo.series_df(SQL)
+    first = repo.series_frame(SQL)
     hits_before = repo.series_cache_stats["hits"]
-    second = repo.series_df(SQL)
+    second = repo.series_frame(SQL)
 
-    pd.testing.assert_frame_equal(first, second)
+    pd.testing.assert_frame_equal(first.to_pandas(), second.to_pandas())
     assert repo.series_cache_stats["hits"] == hits_before + 1
     repo.close()
 
@@ -41,9 +41,9 @@ def test_insert_on_same_connection_invalidates(tmp_db_path: Path) -> None:
     """PRAGMA data_version does not move for same-connection writes."""
     repo = _make_repo(tmp_db_path)
 
-    assert len(repo.series_df(SQL)) == 2
+    assert len(repo.series_frame(SQL)) == 2
     repo.query_df("INSERT INTO t_cache (x, y) VALUES (3, 3.0)")
-    assert len(repo.series_df(SQL)) == 3
+    assert len(repo.series_frame(SQL)) == 3
     repo.close()
 
 
@@ -51,23 +51,23 @@ def test_ddl_invalidates(tmp_db_path: Path) -> None:
     """Pure DDL changes no rows, so only schema_version catches it."""
     repo = _make_repo(tmp_db_path)
 
-    assert list(repo.series_df("SELECT * FROM t_cache").columns) == ["x", "y"]
+    assert list(repo.series_frame("SELECT * FROM t_cache").columns) == ["x", "y"]
     repo.query_df("ALTER TABLE t_cache ADD COLUMN z REAL")
-    assert list(repo.series_df("SELECT * FROM t_cache").columns) == ["x", "y", "z"]
+    assert list(repo.series_frame("SELECT * FROM t_cache").columns) == ["x", "y", "z"]
     repo.close()
 
 
 def test_external_connection_write_invalidates(tmp_db_path: Path) -> None:
     """A commit from another connection must be picked up."""
     repo = _make_repo(tmp_db_path)
-    assert len(repo.series_df(SQL)) == 2
+    assert len(repo.series_frame(SQL)) == 2
 
     db_path = repo.ensure_dhub_extension(tmp_db_path)
     with sqlite3.connect(str(db_path)) as con:
         con.execute("INSERT INTO t_cache (x, y) VALUES (4, 4.0)")
         con.commit()
 
-    assert len(repo.series_df(SQL)) == 3
+    assert len(repo.series_frame(SQL)) == 3
     repo.close()
 
 

@@ -128,8 +128,8 @@ def test_a_figure_keeps_notes_and_its_dates_follow_its_changes(tmp_path: Path) -
 def test_selected_is_kept_like_hide(tmp_path: Path) -> None:
     repo = SqliteRepo(db_path=tmp_path / "s.dhub")
     repo.import_dataframe(pd.DataFrame({"v": [1, 5, 9, None]}), table_name="t", normalize_columns=False)
-    assert repo.select_rows_by_value("t", "v", ">", 4) == 2
-    assert repo.select_rows_special("t", "v", "null_or_empty") == 1
+    assert repo.flag_rows_by_value("t", "Selected", "v", ">", 4) == 2
+    assert repo.flag_rows_special("t", "Selected", "v", "null_or_empty") == 1
     flags = list(repo.query_df('SELECT COALESCE("Selected", 0) AS s FROM t ORDER BY rowid')["s"])
     assert flags == [0, 1, 1, 1]
     repo.invert_selected("t")
