@@ -47,6 +47,7 @@ from app.series_operations.dialog_base import OperationModel, ResultSeriesSpec, 
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
 from app.styles.style import CardFrame
 from app.utils import report_html
+from app.utils.config import get_constant
 from app.utils.i18n import _
 
 ROTATE = "Rotate"
@@ -140,6 +141,10 @@ class GeometryResult(OperationResult):
         dialog.create_result_series(axis_id, "", self)
 
 
+#: Dots per inch of the before/after picture: the charts' on-screen dpi.
+PREVIEW_DPI: float = get_constant("fixed_mode_screen_dpi", 100.0)
+
+
 class _BeforeAfterView(QWidget):
     """The results pane: where the points were, and where they went.
 
@@ -154,7 +159,9 @@ class _BeforeAfterView(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self._figure = Figure(figsize=(5.0, 4.0), layout="constrained")
+        # Its own dpi: the charts' (figure.dpi, 200 by default) is meant for
+        # export, and taken from rcParams it drew this picture twice as large.
+        self._figure = Figure(figsize=(5.0, 4.0), dpi=PREVIEW_DPI, layout="constrained")
         self._canvas = FigureCanvasQTAgg(self._figure)
         layout.addWidget(self._canvas)
         self.clear(_("Choose a series, then press Preview."))

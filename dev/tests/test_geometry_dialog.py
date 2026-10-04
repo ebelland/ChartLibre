@@ -346,3 +346,17 @@ def test_translated_model_names_still_show_their_parameters(
     form = dialog._parameter_form_spec
     form.refresh_visibility()
     assert not form._widgets["angle"].isHidden()
+
+
+def test_the_picture_keeps_the_screen_dpi_whatever_the_charts_use(qapp, repo: SqliteRepo,
+                                                                   monkeypatch: pytest.MonkeyPatch) -> None:
+    """The charts' figure.dpi (200, for export) drew it twice as large."""
+    from matplotlib import rcParams
+
+    from app.series_operations.geometry_dialog import PREVIEW_DPI, _BeforeAfterView
+
+    monkeypatch.setitem(rcParams, "figure.dpi", 200.0)
+    view = _BeforeAfterView()
+    ratio = view._canvas.device_pixel_ratio
+    assert view.figure.dpi == pytest.approx(PREVIEW_DPI * ratio)
+    view.deleteLater()
