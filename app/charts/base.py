@@ -11,7 +11,7 @@ the columns it needs and the series SQL is responsible for aliasing to them.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Protocol
+from typing import Any, Protocol
 import numpy as np
 import pandas as pd
 from matplotlib import colormaps, rcParams  # pyright: ignore[reportAttributeAccessIssue]
@@ -36,10 +36,6 @@ from app.charts.kwarg_spec import (
 )
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
-
-#: Kept as aliases of the shared vocabulary, which now owns the conversion.
-_TRUE_WORDS = kwarg_spec.TRUE_WORDS
-_FALSE_WORDS = kwarg_spec.FALSE_WORDS
 
 # Re-exported deliberately.  Renderers are re-executed from disk by the
 # renderer scanner while ``app.charts.base`` stays cached in sys.modules, so a
@@ -377,10 +373,6 @@ class BaseAxisRenderer(Protocol):
             if role not in df.columns:
                 return False
         return True
-
-    #: Returned by :meth:`_coerce_option` for a value that cannot be made
-    #: into the type the option declares, and so must not be forwarded.
-    _UNCONVERTIBLE: ClassVar[object] = kwarg_spec.UNCONVERTIBLE
 
     @classmethod
     def _coerce_option(cls, value: Any, meta: dict) -> Any:

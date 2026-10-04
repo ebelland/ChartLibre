@@ -21,8 +21,8 @@ import traceback
 from types import TracebackType
 from typing import Any, Final, Self, cast
 
-from PySide6.QtCore import QObject, QCoreApplication, QtMsgType, Signal, qInstallMessageHandler
-from PySide6.QtWidgets import QApplication, QMessageBox, QStatusBar, QWidget
+from PySide6.QtCore import QObject, QtMsgType, Signal, qInstallMessageHandler
+from PySide6.QtWidgets import QStatusBar
 
 _LOGGER_DIR: Final[Path] = Path(__file__).resolve().parent.parent / "logs"
 _LOGGER_NAME: Final[str] = "datahub"
@@ -272,27 +272,6 @@ class QtLogEventHandler(logging.Handler):
             self.handleError(record)
 
 
-class GuiLogHandler(logging.Handler):
-    """Handler that can show QMessageBox dialogs for selected log records."""
-
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            if not bool(getattr(record, "show_dialog", False)):
-                return
-
-            # The message box this handler used to raise is disabled.  The
-            # call was commented out but the four values it needed were still
-            # computed on every record carrying show_dialog, so the work was
-            # done and thrown away; only the computation is removed here, not
-            # the decision.
-            #
-            # While it stays disabled, ``show_dialog=True`` on a log call has
-            # no visible effect - dialogs come from app.utils.messages instead.
-            return
-        except Exception:  # noqa: BLE001 - logging.Handler contract: handleError, never raise
-            self.handleError(record)
-
-
 class AppLogger:
     """Singleton application logger factory and GUI error reporter."""
 
@@ -314,7 +293,6 @@ class AppLogger:
         *,
         console_level: int = logging.INFO,
         file_level: int = logging.WARNING,
-        gui_level: int = logging.DEBUG,
         max_bytes: int = 1_000_000,
         backup_count: int = 3,
     ) -> DataHubLogger:
@@ -374,11 +352,6 @@ class AppLogger:
             event_handler.setLevel(logging.DEBUG)
             event_handler.setFormatter(formatter)
             logger.addHandler(event_handler)
-        if not any(isinstance(handler, GuiLogHandler) for handler in logger.handlers):
-            gui_handler = GuiLogHandler()
-            gui_handler.setLevel(gui_level)
-            gui_handler.setFormatter(formatter)
-            logger.addHandler(gui_handler)
 
         cls._logger = logger
         cls._configured = True
@@ -410,7 +383,6 @@ class AppLogger:
         if cls._logger is None:
             return cls.configure()
         return cls._logger
-
 
 
     @classmethod
@@ -448,49 +420,6 @@ class AppLogger:
             case _:
                 logger.debug("Qt debug: %s", message)
 
-    @staticmethod
-    def _application_instance() -> QApplication | None:
-        """Return QApplication.instance() narrowed from QCoreApplication | None."""
-        app = QCoreApplication.instance()
-        if isinstance(app, QApplication):
-            return app
-        return None
-
-    @staticmethod
-    def _show_message_box(
-        icon: QMessageBox.Icon,
-        title: str,
-        text: str,
-        details: str,
-        parent: QWidget | None = None,
-    ) -> None:
-        """Show a modal message box, or do nothing when there is no GUI.
-
-        The no-GUI early return is what lets the same logging calls run under
-        pytest and in headless scripts: without a QApplication, constructing a
-        QMessageBox would abort the process.
-        """
-        app = AppLogger._application_instance()
-        if app is None:
-            return
-
-        dialog = QMessageBox(parent)
-        dialog.setIcon(icon)
-        dialog.setWindowTitle(title)
-        dialog.setText(text)
-        dialog.setDetailedText(details)
-        dialog.exec()
-
-    @staticmethod
-    def _close_application(exit_code: int) -> None:
-        """Shut the application down, falling back to SystemExit when headless."""
-        app = AppLogger._application_instance()
-        if app is not None:
-            app.closeAllWindows()
-            app.exit(exit_code)
-        else:
-            raise SystemExit(exit_code)
-
 
 def format_exception(exc_info: ExceptionInfo) -> str:
     """Return a formatted traceback string for an exception tuple."""
@@ -505,7 +434,6 @@ AppLogger.install_exception_hooks()
 def get_logger() -> DataHubLogger:
     """Return the singleton application logger."""
     return AppLogger.get_logger()
-
 
 
 def clear_log_file() -> None:

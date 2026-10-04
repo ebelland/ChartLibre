@@ -43,12 +43,6 @@ RESPONSE_CUTOFFS: dict[str, int] = {
 
 FIR_WINDOWS = ("hamming", "hann", "blackman", "bartlett", "boxcar")
 
-#: What the analytic signal can give back; the key is analytic_signal's ``output``.
-ANALYTIC_OUTPUTS: tuple[str, ...] = ("envelope", "phase", "frequency")
-
-#: The key is scipy.signal.detrend's ``type``.
-DETREND_TYPES: tuple[str, ...] = ("linear", "constant")
-
 #: What "Auto" means for the cutoffs, as fractions of the sampling
 #: frequency: a tenth of it, and - for a band - a quarter (Nyquist is a half).
 AUTO_CUTOFF1: float = 0.1

@@ -440,14 +440,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
 
 
-
-    @staticmethod
-    def _series_label_from_row(row: Any) -> str:
-        keys = row.keys() if hasattr(row, "keys") else []
-        index = row["series_index"] if "series_index" in keys else ""
-        name = row["name"] if "name" in keys else f"Series {index}"
-        return f"{index}: {name}" if index != "" else str(name)
-
     def _series_choice_from_row(self, row: Any) -> SeriesChoice:
         series_index = int(row["series_index"])
         return SeriesChoice(

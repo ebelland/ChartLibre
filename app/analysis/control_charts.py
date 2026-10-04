@@ -498,8 +498,6 @@ def deduplicate(found: Sequence[Violation]) -> list[Violation]:
 
 #: The variables charts that average several readings into each point.
 SUBGROUPED_CHARTS: frozenset[str] = frozenset({CHART_XBAR_R, CHART_XBAR_S})
-#: The attribute charts - a count per point.
-ATTRIBUTE_CHARTS: frozenset[str] = frozenset({CHART_P, CHART_NP, CHART_C, CHART_U})
 #: The attribute charts that read a sample size per point.
 SIZE_CHARTS: frozenset[str] = frozenset({CHART_P, CHART_NP, CHART_U})
 

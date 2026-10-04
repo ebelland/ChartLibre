@@ -602,17 +602,6 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
 
     # -- One chart, without the window (the tests' entry points) -------
 
-    def _build_attribute_chart(
-        self,
-        name: str,
-        x_values: np.ndarray,
-        counts: np.ndarray,
-        sizes: np.ndarray,
-        chart: str,
-        params: Mapping[str, Any],
-    ) -> ControlChartResult:
-        settings = (chart, dict(params))
-        return self.finish_series(name, self.compute_series(name, (x_values, counts, sizes), settings), settings)
 
     def _build_chart(
         self,

@@ -616,16 +616,6 @@ class TablePreviewPanel(QWidget):
             applogger.exception("%s selected value failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 
-    # The Hide entry points, kept for callers and tests that name them.
-    def _hide_by_comparison(self, column: str, operator: str) -> None:
-        self._flag_by_comparison("Hide", column, operator)
-
-    def _hide_special(self, column: str, mode: str) -> None:
-        self._flag_special("Hide", column, mode)
-
-    def _hide_selected_cell_value(self) -> None:
-        self._flag_selected_cell_value("Hide")
-
 
 class LazyTableModel(QAbstractTableModel):
     def __init__(self, repo: SqliteRepo, table: str, parent=None) -> None:

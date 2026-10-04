@@ -288,5 +288,4 @@ class HtmlResultsView(QWidget):
         mime.setText(self._plain_text or self._html)
         QApplication.clipboard().setMimeData(mime)
 
-    _plain_to_html = staticmethod(plain_to_html)
     looks_like_html = staticmethod(looks_like_html)

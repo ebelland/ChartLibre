@@ -962,8 +962,6 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
 
 # Matplotlib scales that need no extra arguments beyond the base.
 SUPPORTED_AXIS_SCALES: tuple[str, ...] = ("linear", "log", "symlog", "logit")
-GRID_AXES: tuple[str, ...] = ("both", "x", "y")
-GRID_WHICH: tuple[str, ...] = ("major", "minor", "both")
 
 
 def _apply_scales(ax: Any, options: dict[str, Any]) -> None:

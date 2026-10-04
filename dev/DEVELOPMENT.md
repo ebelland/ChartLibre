@@ -897,16 +897,10 @@ the machine.
   the test hangs. Split menu *construction* from *showing* it as a testable
   method — `TablePreviewPanel._build_context_menu(pos) -> QMenu | None` /
   `_show_context_menu` is the pattern — and test the builder.
-- The same trap reaches in from *production* code through
-  `applogger.warning(..., show_dialog=True)` and friends.
-  `AppLogger._show_message_box` skips the dialog only when there is no
-  `QApplication` **at all**; the `qapp` fixture provides one, so under test
-  it really does call `QMessageBox.exec()`. Offscreen QPA returns from that
-  immediately, which is why such a call can pass a full green suite here and
-  hang the first run on a real desktop. Keep `show_dialog=True` for terminal
-  outcomes a user must acknowledge — never on a path that runs per keystroke,
-  per preview or per redraw. A WARNING already reaches the status bar without
-  it (`AppLogger._log_with_policy`).
+- `show_dialog=True` on a log call shows nothing: the logger's message box
+  was switched off, and the dialogs a user sees come from
+  `app.utils.messages` (`show_message`). A WARNING reaches the status bar
+  (`AppLogger._log_with_policy`); `raise_error` still raises.
 - `conftest.py` points `user.json` at a copy for the whole session: dialogs
   save their state when they close, and against the real file a test run
   used to leave the developer's own window with its panels 47 px wide.

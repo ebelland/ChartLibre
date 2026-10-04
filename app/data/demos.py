@@ -67,8 +67,6 @@ REF_COLDITZ = reference("Colditz G. A. et al. (1994). Efficacy of BCG vaccine in
                         "meta-analysis of the published literature. JAMA 271(9), 698-702.", doi="10.1001/jama.1994.03510330076038")
 REF_MICHELSON = reference("Michelson A. A. (1882). Experimental determination of the velocity of light. "
                           "Astronomical Papers 1, 109-145. (NIST StRD dataset Michelso.)")
-REF_AGRESTI = reference("Agresti A. (2007). An Introduction to Categorical Data Analysis, 2nd ed. Wiley. Table 2.5.",
-                        doi="10.1002/0470114754")
 
 
 @dataclass(frozen=True, slots=True)

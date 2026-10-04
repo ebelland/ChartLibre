@@ -27,11 +27,6 @@ class FlagsMixin(RepoHost):
 
     __slots__ = ()
 
-    #: The 0/1 columns the application maintains on a table: Hide, which
-    #: every chart skips, and Selected, which marks rows for the user's own
-    #: queries and operations. The same tools act on either.
-    FLAG_COLUMNS: tuple[str, ...] = ("Hide", "Selected")
-
     # ------------------------------------------------------------------
     # Any flag
     # ------------------------------------------------------------------

@@ -25,11 +25,6 @@ from app.data.repo._common import RepoHost, ensure_connection_wrapper
 
 PROJECT_INFO_TABLE = "__project_info__"
 
-#: The entries a project keeps: who made it, when, notes about it, the
-#: picture of its first figure (a path, relative to the project), and its
-#: bibliographic references (a JSON list of {"citation", "doi", "url"}).
-PROJECT_INFO_KEYS: tuple[str, ...] = ("author", "created", "notes", "preview_path", "references")
-
 
 def parse_references(text: str | None) -> list[dict[str, str]]:
     """The ``references`` entry as a list; [] when empty or not a list.

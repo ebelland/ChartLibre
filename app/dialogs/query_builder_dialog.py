@@ -247,10 +247,6 @@ class QueryBuilderDialog(QDialog):
         """Return the SQL currently in the editor."""
         return self._editor.toPlainText().strip()
 
-    @property
-    def current_name(self) -> str | None:
-        """Return the name of the loaded query, if any."""
-        return self._current_name
 
     def _reload_queries(self) -> None:
         """Refill the saved-query drop-down without synthetic entries."""

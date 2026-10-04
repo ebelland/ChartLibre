@@ -23,7 +23,6 @@ from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
-    QColor,
     QDesktopServices,
     QIcon,
     QKeySequence,
@@ -105,7 +104,6 @@ from PySide6.QtWidgets import (
     QBoxLayout,
     QFileDialog,
     QFrame,
-    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -737,14 +735,6 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Left pages
     # ------------------------------------------------------------------
-    @staticmethod
-    def _apply_surface_shadow(widget: QWidget, *, blur: int = 24, y_offset: int = 5) -> None:
-        """Add a restrained Fluent elevation shadow to a top-level surface."""
-        effect = QGraphicsDropShadowEffect(widget)
-        effect.setBlurRadius(float(blur))
-        effect.setOffset(0.0, float(y_offset))
-        effect.setColor(QColor(0, 0, 0, 42))
-        widget.setGraphicsEffect(effect)
 
     def _create_data_page(self) -> QWidget:
         """Create the Data page with table list and preview splitter."""

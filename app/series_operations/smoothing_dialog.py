@@ -58,7 +58,6 @@ from app.analysis.smoothing import (
     smooth_series,
 )
 from app.data.data_source import parse_roles, row_value
-from app.widgets.axis_series_selector import AxisSeriesSelector
 
 from app.data.sqlite_repo import SqliteRepo
 from app.series_operations.results import TableResult
@@ -89,8 +88,6 @@ DIM_3D = "3D volume / XYZW"
 
 #: The engine speaks in dimensions, the dialog in the names above.
 _DIMENSION_NUMBER: dict[str, int] = {DIM_1D: 1, DIM_2D: 2, DIM_3D: 3}
-
-
 
 
 # ---------------------------------------------------------------------------
@@ -126,12 +123,9 @@ class SmoothResult(TableResult):
         return SeriesSmoothingDialog.results_to_dataframe([self])
 
 
-
 # ---------------------------------------------------------------------------
 # Numeric helpers
 # ---------------------------------------------------------------------------
-
-
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -372,8 +366,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
         self._refresh_visibility()
         self.mark_results_stale()
 
-    def create_axis_series_selector(self) -> AxisSeriesSelector:
-        return AxisSeriesSelector(self._repo, self._figure_id, self)
 
     def init_operation_widgets(self) -> None:
         self._create_controls()
@@ -644,7 +636,6 @@ class SeriesSmoothingDialog(SeriesOperationDialogBase):
 
     def _current_axis_name(self) -> str:
         return self.series_selector.selected_axis_name()
-
 
 
     def _series_choice_from_row(self, row: Any) -> SeriesChoice|None:

@@ -24,7 +24,6 @@ series per cluster.
 
 from __future__ import annotations
 
-import html
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -83,7 +82,6 @@ from app.styles.style import (
     CardFrame,
     stdSizeAndlayout,
 )
-from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.utils.i18n import _
 
 
@@ -185,8 +183,6 @@ TOOL_DOCS: dict[str, str] = {
 }
 
 
-
-
 @dataclass(slots=True)
 class ClusterSeriesChoice:
     """Selectable chart series descriptor materialized from a source query."""
@@ -285,15 +281,12 @@ def _source_column_for_alias(sql_query: str, alias: str) -> str:
     return ""
 
 
-
-
 def _sql_with_clusterid_color(sql_query: str) -> str:
     """Return SQL that exposes ClusterId through the scatter color role."""
     return sql_insert_select_expression(
         str(sql_query),
         '"ClusterId" AS "color"',
     )
-
 
 
 def _sql_with_cluster_filter(sql_query: str, cluster_id: int) -> str:
@@ -327,8 +320,6 @@ def _sql_with_cluster_filter(sql_query: str, cluster_id: int) -> str:
 def _rc_cycle_color(cluster_id: int) -> str:
     colors = rcParams["axes.prop_cycle"].by_key().get("color", ["#1f77b4"])
     return str(colors[(int(cluster_id) - 1) % len(colors)])
-
-
 
 
 class SeriesClusterDialog(SeriesOperationDialogBase):
@@ -392,8 +383,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
         self._refresh_visibility()
         self.mark_results_stale()
 
-    def create_axis_series_selector(self) -> AxisSeriesSelector:
-        return AxisSeriesSelector(self._repo, self._figure_id, self)
 
     def init_operation_widgets(self) -> None:
         self._create_controls()
@@ -1065,9 +1054,6 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             unique.setdefault(key, result)
         return list(unique.values())
 
-    @staticmethod
-    def _html_escape(value: Any) -> str:
-        return html.escape(str(value), quote=True)
 
     def apply_results_to_axis(self, axis_id: int, results: Sequence[ClusterResult]) -> None:
         if self.render_mode_combo.currentText() == RENDER_SEPARATE_SERIES:
