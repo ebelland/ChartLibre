@@ -95,6 +95,7 @@ R-12b P3  M  Narrow "except Exception" in app/charts (42) and review the
              only true boundaries, each with its reason (see R-12).
 R-07  P3  L  JMP-style linked selection across charts and table;
              then a local data filter.
+             Idea: suggerisco di aggiungere una colonna "selected" nella tabella e mettere a true quando i punti sono selezionati. valuta questa opzione (non funziona con le query) e dammi un feedback senza implementare
 N-09  P3  M  "Colour by value" dialog (palette, percentiles, categories).
 
 

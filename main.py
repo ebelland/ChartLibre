@@ -111,10 +111,14 @@ def run_app() -> int:
         # come from the catalogue every other box in the app comes from.
         db_path = select_database(sys.argv[1] if len(sys.argv) > 1 else None)
         if db_path is None:
-            applogger.info("No database selected. Application exiting.")
+            applogger.fatal("No database selected. Application exiting.")
             return 0
 
         repo = SqliteRepo(db_path=db_path)
+        if repo is None:
+            applogger.fatal("Database not valid. Application exiting.")
+            return 0
+        applogger.info("Database selected: %s", db_path)
         set_last_database(db_path)
 
         window = MainWindow(repo=repo, db_path=db_path)
