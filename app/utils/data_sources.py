@@ -733,13 +733,15 @@ _CONTENT_TYPE_EXTENSIONS: dict[str, str] = {
 }
 
 
-#: The curated quick-pick catalogue, as a JSON array of {name, url, category,
-#: description} - a plain data file rather than Python so that adding or
-#: retiring an entry never touches code. A user's own entries (see
-#: add_user_web_source) go in user.json instead, alongside every other
-#: setting the application writes while it runs - this file is bundled,
-#: versioned and never touched at runtime.
-WEB_SOURCES_PATH: Path = Path(__file__).resolve().parents[1] / "data" / "web_sources.json"
+#: The quick-pick catalogue, as a JSON array of {name, url, category,
+#: description}: web_sources.json in the ChartLibre folder, beside
+#: config.json, where anyone can open it in a text editor and add, change or
+#: remove entries - the menu reads it again every time it is built, so an
+#: edit shows without a restart. A plain data file rather than Python, so
+#: that the catalogue never touches code. The entries added from the import
+#: window ("Add source") go in user.json instead, with every other setting
+#: the application writes while it runs: ChartLibre never writes this file.
+WEB_SOURCES_PATH: Path = Path(__file__).resolve().parents[2] / "web_sources.json"
 
 #: The category a user's own added sources are grouped under in the menu.
 #: Not translated, for the same reason a bundled entry's category is not
@@ -769,23 +771,33 @@ class WebDataSource:
     custom: bool = False
 
 
-@lru_cache(maxsize=1)
 def _bundled_web_data_sources() -> tuple[WebDataSource, ...]:
-    """The curated catalogue shipped in web_sources.json.
+    """The catalogue in web_sources.json, read afresh.
 
-    Cached: this half of the catalogue is bundled, read-only data, not
-    something that changes while the process is running - unlike
-    ``user_web_data_sources``, which has to read user.json fresh every call.
+    Not cached: the file is meant to be edited by hand, and is small. An
+    entry missing its name or URL is skipped; a file that is not valid JSON -
+    a comma too many after an edit - gives no entries and a log line saying
+    where, rather than an import window that will not open.
     """
-    raw = json.loads(WEB_SOURCES_PATH.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(WEB_SOURCES_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return ()
+    except (OSError, ValueError) as exc:
+        applogger.warning("%s could not be read, so its web sources are not offered: %s",
+                          WEB_SOURCES_PATH, exc, show_dialog=False, raise_error=False)
+        return ()
+    if not isinstance(raw, list):
+        return ()
     return tuple(
         WebDataSource(
-            name=entry["name"],
-            url=entry["url"],
-            category=entry["category"],
-            description=entry["description"],
+            name=str(entry["name"]),
+            url=str(entry["url"]),
+            category=str(entry.get("category") or "Other"),
+            description=str(entry.get("description") or ""),
         )
         for entry in raw
+        if isinstance(entry, dict) and entry.get("name") and entry.get("url")
     )
 
 

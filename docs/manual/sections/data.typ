@@ -63,7 +63,7 @@ Whatever the source, the window shows a preview before anything is written, and 
 
 *Database* opens its own window: pick an engine, give a file path or a host, port, user and password (*Connect* then lists the server's databases, and picking one lists its tables), choose a table — or tick *Use a query* and write a `SELECT` for a join, a filter or an aggregate — and confirm. The last connection is remembered, except its password.
 
-*Web* has a menu of ready-made public datasets grouped by subject. Picking one fills in the address without downloading, so it can be checked first; *Fetch* downloads it. *Add source* saves an address of your own to the menu, and *Delete source* removes one you added.
+*Web* has a menu of ready-made public datasets grouped by subject. The menu is the file `web_sources.json` in the ChartLibre folder, beside `config.json`: a list of entries with a `name`, a `url`, and optionally a `category` and a `description`. Open it in any text editor to add, change or remove datasets — the menu reads it again each time it opens. A mistake in the file (a missing comma, say) leaves its entries out and is named in the log; it never stops the import window. Picking one fills in the address without downloading, so it can be checked first; *Fetch* downloads it. *Add source* saves an address of your own to the menu, and *Delete source* removes one you added.
 
 #note[
   Importing is a one-time read: the table does not change when the original file, database or web page changes. To refresh it, right-click the table and choose *Update link*. Every source except a paste can be refreshed this way.

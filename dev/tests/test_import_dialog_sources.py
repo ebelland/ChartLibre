@@ -195,3 +195,26 @@ def test_transposing_text_keeps_quoted_fields_and_pads_short_rows() -> None:
     text = 'name,"Smith, J",Lee\nage,40\n'
     assert transpose_delimited_text(text, ",") == "name\tage\nSmith, J\t40\nLee\t\n"
     assert transpose_delimited_text("   ") == ""
+
+
+def test_web_sources_json_sits_beside_config_and_is_read_afresh(tmp_path, monkeypatch) -> None:
+    """The user edits it by hand: an edit shows at once, a broken file breaks nothing."""
+    import json
+
+    from app.utils import data_sources
+
+    root = data_sources.WEB_SOURCES_PATH.parent
+    assert data_sources.WEB_SOURCES_PATH.name == "web_sources.json" and (root / "config.json").is_file()
+    assert data_sources._bundled_web_data_sources(), "the shipped catalogue is empty"
+
+    path = tmp_path / "web_sources.json"
+    monkeypatch.setattr(data_sources, "WEB_SOURCES_PATH", path)
+    path.write_text(json.dumps([{"name": "Mine", "url": "https://example.org/a.csv"}]), encoding="utf-8")
+    first = data_sources._bundled_web_data_sources()
+    assert [(s.name, s.category) for s in first] == [("Mine", "Other")]
+    path.write_text(json.dumps([{"name": "Mine", "url": "https://example.org/a.csv"},
+                                {"name": "Second", "url": "https://example.org/b.csv", "category": "Data"},
+                                {"name": "no url"}]), encoding="utf-8")
+    assert [s.name for s in data_sources._bundled_web_data_sources()] == ["Mine", "Second"]
+    path.write_text('[{"name": "Mine",}]', encoding="utf-8")  # a comma too many
+    assert data_sources._bundled_web_data_sources() == ()

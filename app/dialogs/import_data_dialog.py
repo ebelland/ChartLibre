@@ -88,7 +88,7 @@ from app.utils.coercion import to_numbers
 
 
 #: The curated "Web source" quick-pick catalogue - see
-#: app/data/web_sources.json for the actual entries and
+#: web_sources.json (in the ChartLibre folder) for the actual entries and
 #: app.utils.data_sources.WebDataSource for the shape of one.  Kept as a
 #: module-level name here too since the test suite and (previously) this
 #: dialog both import it from this module.
