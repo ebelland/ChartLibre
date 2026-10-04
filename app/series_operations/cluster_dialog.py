@@ -68,7 +68,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 from app.utils.messages import show_message
-from app.series_operations.results import TableResult
+from app.series_operations.results import FrameResult
 from app.series_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -198,7 +198,7 @@ class ClusterSeriesChoice:
 
 
 @dataclass(slots=True)
-class ClusterResult(TableResult):
+class ClusterResult(FrameResult):
     """Clustering output for one source series or one generated cluster series."""
 
     source_name: str
@@ -211,8 +211,6 @@ class ClusterResult(TableResult):
     feature_columns: list[str]
     metadata: dict[str, Any]
 
-    def to_df(self) -> pd.DataFrame:
-        return self.frame
 
     # Not a table of its own: clustering writes ClusterId into the source
     # table and recolours or splits the source series, as a batch - see

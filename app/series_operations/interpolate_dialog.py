@@ -207,9 +207,6 @@ class FitResult(TableResult):
     metrics: dict[str, float]
     message: str
 
-    @property
-    def parameters(self) -> dict[str, Any]:
-        return dict(self.params)
 
     @property
     def series(self) -> tuple[str, ...]:

@@ -27,7 +27,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-import pandas as pd
 from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
@@ -51,7 +50,7 @@ from app.analysis.filtering import (
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.results import TableResult
+from app.series_operations.results import XYResult
 from app.series_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -127,7 +126,7 @@ DETREND_LABELS: dict[str, str] = {
 
 
 @dataclass(slots=True)
-class FilterResult(TableResult):
+class FilterResult(XYResult):
     """One filtered/derived series for one source series."""
 
     source_name: str
@@ -137,8 +136,6 @@ class FilterResult(TableResult):
     y: np.ndarray
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_df(self) -> pd.DataFrame:
-        return pd.DataFrame({"x": self.x, "y": self.y})
     
 
 # ----------------------------------------------------------------------

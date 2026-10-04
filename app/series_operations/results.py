@@ -5,8 +5,8 @@ says what any result can be asked:
 
 * ``model_name``, ``parameters`` and ``series`` - which model ran, with what
   settings, on which series. The defaults read the fields most results
-  already have (``model``, ``metadata``, ``source_name``); a result that
-  names them otherwise overrides the property.
+  already have (``model``, ``params`` or ``metadata``, ``source_name``); a
+  result that names them otherwise overrides the property.
 * ``to_df()`` - the numbers, as the table Apply saves.
 * ``to_html()`` - a short report of the three above.
 * ``preview(dialog, axis_id)`` and ``apply(dialog, axis_id)`` - put the
@@ -20,6 +20,7 @@ them itself, and the dialog base no longer needs to know which is which.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -45,7 +46,10 @@ class OperationResult(ABC):
 
     @property
     def parameters(self) -> dict[str, Any]:
-        """The settings the model ran with, as shown in reports."""
+        """The settings the model ran with, as shown in reports: ``params`` when it is a mapping, else ``metadata``."""
+        params = getattr(self, "params", None)
+        if isinstance(params, Mapping):
+            return dict(params)
         return dict(getattr(self, "metadata", None) or {})
 
     @property
@@ -92,3 +96,21 @@ class TableResult(OperationResult):
         dialog.write_result_table(table_name, self)
         applogger.info(f"Saved result table: {table_name}")
         dialog.create_result_series(axis_id, table_name, self)
+
+
+class XYResult(TableResult):
+    """A table result that is a curve: its ``x`` and ``y`` fields, as two columns."""
+
+    __slots__ = ()
+
+    def to_df(self) -> pd.DataFrame:
+        return pd.DataFrame({"x": getattr(self, "x"), "y": getattr(self, "y")})
+
+
+class FrameResult(TableResult):
+    """A table result that already holds its table, in a ``frame`` field."""
+
+    __slots__ = ()
+
+    def to_df(self) -> pd.DataFrame:
+        return getattr(self, "frame")

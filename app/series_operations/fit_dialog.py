@@ -60,7 +60,7 @@ from app.functions.starting_point import (
 
 from app.data.data_source import row_value , parse_roles, resolve_role_column
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.results import TableResult
+from app.series_operations.results import FrameResult
 from app.series_operations.dialog_base import (
     ResultSeriesSpec,
     SeriesOperationDialogBase,
@@ -110,7 +110,7 @@ class _SurfaceInitialGuessAdapter:
         return self._cls.initial_guess(arr[:, 0], arr[:, 1], np.asarray(z, dtype=float))
 
 @dataclass(slots=True)
-class SeriesFitResult(TableResult):
+class SeriesFitResult(FrameResult):
     source_table: str
     x_col: str
     target_col: str
@@ -142,9 +142,6 @@ class SeriesFitResult(TableResult):
     @property
     def series(self) -> tuple[str, ...]:
         return (self.source_table,)
-
-    def to_df(self) -> pd.DataFrame:
-        return self.frame
 
 
 @dataclass(slots=True)

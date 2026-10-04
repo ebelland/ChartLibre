@@ -61,7 +61,6 @@ from app.utils.i18n import _
 from app.utils import report_html
 
 
-
 @dataclass(slots=True)
 class FunctionResult(TableResult):
     """One evaluated function.
@@ -84,10 +83,6 @@ class FunctionResult(TableResult):
     @property
     def model_name(self) -> str:
         return self.function_name
-
-    @property
-    def parameters(self) -> dict[str, Any]:
-        return dict(self.params)
 
     def to_df(self) -> pd.DataFrame:
         if self.z is not None:

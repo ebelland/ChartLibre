@@ -24,7 +24,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-import pandas as pd
 from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis.regression import (
     KIND_GRADIENT_BOOSTING,
@@ -38,7 +37,7 @@ from app.analysis.regression import (
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
-from app.series_operations.results import TableResult
+from app.series_operations.results import XYResult
 from app.series_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -95,7 +94,7 @@ DEST_NEW_FIGURE = SeriesOperationDialogBase.DEST_NEW_FIGURE
 
 
 @dataclass(slots=True)
-class RegressionResult(TableResult):
+class RegressionResult(XYResult):
     """One fitted curve for one source series."""
 
     source_name: str
@@ -104,9 +103,6 @@ class RegressionResult(TableResult):
     x: np.ndarray
     y: np.ndarray
     metadata: dict[str, Any] = field(default_factory=dict)
-
-    def to_df(self) -> pd.DataFrame:
-        return pd.DataFrame({"x": self.x, "y": self.y})
 
 
 class SeriesRegressionDialog(SeriesOperationDialogBase):
