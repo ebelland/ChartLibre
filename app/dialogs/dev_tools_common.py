@@ -123,7 +123,9 @@ class ScaffoldDialog(QDialog):
     importing it back and opening it - happens here once.
 
     Texts are kept untranslated here and passed through ``_`` when shown,
-    so they follow the language chosen at run time.
+    so they follow the language chosen at run time. Their names are listed in
+    app.utils.i18n.TRANSLATED_ATTRIBUTES, which is how the catalogues find
+    them - a new text attribute goes there too.
     """
 
     #: Window title (also the card's title), icon and the card's object name.

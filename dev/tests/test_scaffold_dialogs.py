@@ -70,3 +70,12 @@ def test_a_built_in_name_is_refused_and_a_typed_file_name_is_kept(qapp, shown: l
     dialog._on_file_edited_by_user("custom.py")
     dialog._on_name_edited("Something else")
     assert dialog._file_edit.text() == "custom.py"
+
+
+@pytest.mark.parametrize("dialog_class", [FunctionCreatorDialog, SeriesOperationBuilderDialog, RendererHelperDialog])
+def test_every_text_a_tool_shows_is_found_for_the_catalogues(dialog_class) -> None:
+    from app.utils.i18n import TRANSLATED_ATTRIBUTES, source_translator_calls
+
+    found = source_translator_calls()
+    for attribute in TRANSLATED_ATTRIBUTES & set(vars(dialog_class)):
+        assert getattr(dialog_class, attribute) in found, attribute
