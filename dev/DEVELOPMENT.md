@@ -824,7 +824,7 @@ a common regression when a new menu is added by copying an existing
 already wrap `text` in `_()`. `dev/tests/test_localization.py` and
 `dev/tests/test_messages.py` check catalogue coverage; a string added to the
 code needs a matching `msgid`/`msgstr` pair appended to
-`app/locales/it/LC_MESSAGES/datahub.po` (any position — the file is not
+`app/locales/it/LC_MESSAGES/ChartLibre.po` (any position — the file is not
 order-sensitive, blank-line-separated blocks — see the existing entries for
 the exact format) to actually show translated, not just be translatable.
 

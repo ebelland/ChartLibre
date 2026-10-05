@@ -2,8 +2,8 @@
 
 The catalogue layout is the GNU one that every translation tool expects::
 
-    app/locales/<lang>/LC_MESSAGES/datahub.po     <- edited by translators
-    app/locales/<lang>/LC_MESSAGES/datahub.mo     <- compiled, read at runtime
+    app/locales/<lang>/LC_MESSAGES/ChartLibre.po  <- edited by translators
+    app/locales/<lang>/LC_MESSAGES/ChartLibre.mo  <- compiled, read at runtime
 
 Call sites use the English string itself as the message id::
 
@@ -35,7 +35,7 @@ from typing import Any
 from app.logs.logger import applogger
 
 LOCALES_DIR: Path = Path(__file__).resolve().parent.parent / "locales"
-DOMAIN: str = "datahub"
+DOMAIN: str = "ChartLibre"
 DEFAULT_LANGUAGE: str = "en"
 
 #: Stored in config.json to mean "whatever this machine is set to".  A
@@ -154,7 +154,7 @@ def _po_escape(text: str) -> str:
     Always as a single physical line, backslash/newline/quote escaped
     inline (``"line one\\nline two"``) rather than split across
     continuation lines - a style this project's own catalogues already
-    use throughout (see any multi-line entry in datahub.po) and one
+    use throughout (see any multi-line entry in ChartLibre.po) and one
     _parse_po already reads back correctly either way, since it just
     accumulates whatever _po_string unescapes.
     """
@@ -267,7 +267,7 @@ def _mo_path(language: str) -> Path:
 
 
 def compile_catalog(language: str, *, force: bool = False) -> Path | None:
-    """Compile ``<lang>/LC_MESSAGES/datahub.po`` when it is newer than the .mo.
+    """Compile ``<lang>/LC_MESSAGES/ChartLibre.po`` when it is newer than the .mo.
 
     Returns the .mo path when one exists afterwards, else None.  Never raises:
     a broken catalogue must degrade to untranslated text, not stop the app.
