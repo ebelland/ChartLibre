@@ -9,7 +9,7 @@ The *Developer* page offers a form for each of the sections below, so writing th
 / *Renderer Helper*: a short form (name, category, description, link, required/optional roles) that scaffolds a new chart-type file.
 / *Series Operation Builder*: the same, for a new series-operation dialog - the scaffolded file already runs, passing each selected series through unchanged, ready to have the real computation dropped in.
 / *Function Creator*: the same, for a new fit function - the scaffolded `execute(x, p)` already evaluates a real polynomial in the declared parameters.
-/ *Edit Localization*: a table editor for a language's translation catalogue, filterable to untranslated strings only, with a button to create a new language from scratch and an optional machine-translation pass to draft from — with Google, MyMemory, or DeepL when a DeepL key is set in Settings.
+/ *Edit Localization*: a table editor for a language's translation catalogue, filterable to untranslated strings only, with a button to create a new language from scratch and an optional machine-translation pass to draft from — with Google, MyMemory, DeepL when a DeepL key is set in Settings, or Argos Translate, which runs on this computer once `ctranslate2` and `sentencepiece` are installed (`pip install ctranslate2 sentencepiece`) and downloads each language's model (85–150 MB) the first time it is used.
 
 Every scaffolded file from the first three goes under `user/` at the project root (`user/charts/`, `user/series_operations/`, `user/functions/`) rather than into `app/`'s own shipped source - kept separate on purpose, so a packaged build's own files are never touched and a person's own additions are never confused with what shipped.
 

@@ -19,8 +19,9 @@ docstring) and recompiles the .mo immediately via
 time that language is selected without restarting the app.
 
 "Translate missing (auto)" is a soft dependency on ``deep_translator``
-(Google Translate or MyMemory, no key needed) or on a DeepL API key in
-Settings (see app.utils.machine_translation) - offered only when one of
+(Google Translate or MyMemory, no key needed), on a DeepL API key in
+Settings, or on ``ctranslate2`` and ``sentencepiece`` for Argos Translate,
+offline (see app.utils.machine_translation) - offered only when one of
 them is there, run
 on a worker thread so the dialog stays usable and can be stopped, and
 always a starting point to review, never treated as a finished translation.

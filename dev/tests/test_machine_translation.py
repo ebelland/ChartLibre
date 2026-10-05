@@ -4,12 +4,15 @@ No network: every test hands translate_all a translator of its own.
 """
 from __future__ import annotations
 
+import io
 import json
 import threading
+import zipfile
 import urllib.error
 import urllib.parse
 import urllib.request
 from email.message import Message
+from pathlib import Path
 
 import pytest
 
@@ -268,6 +271,7 @@ def test_deepl_refusals_are_named() -> None:
 
 def test_deepl_is_offered_only_with_a_key_and_needs_no_deep_translator(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(mt, "available", lambda: False)
+    monkeypatch.setattr(mt, "argos_available", lambda: False)
     assert mt.available_providers("") == []
     assert mt.available_providers("k:fx") == [("deepl", "DeepL")]
     monkeypatch.setattr(mt, "available", lambda: True)
@@ -310,3 +314,82 @@ def test_settings_keep_the_deepl_key_in_user_json(qapp) -> None:
     assert config.get_value(mt.DEEPL_KEY_SETTING) == "my-key:fx"
     assert mt.DEEPL_KEY_SETTING not in json.loads(config.CONFIG_PATH.read_text(encoding="utf-8"))
     config.set_value(mt.DEEPL_KEY_SETTING, "")
+
+
+def _argos_archive(top: str) -> bytes:
+    """An .argosmodel as Argos ships it: one top folder, stanza/ included."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as bundle:
+        bundle.writestr(f"{top}/model/model.bin", b"weights")
+        bundle.writestr(f"{top}/sentencepiece.model", b"pieces")
+        bundle.writestr(f"{top}/metadata.json", "{}")
+        bundle.writestr(f"{top}/stanza/en/tokenize/ewt.pt", b"splitter")
+    return buffer.getvalue()
+
+
+class ArgosSite:
+    """Argos's index and one model archive, served without a network."""
+
+    def __init__(self, archive: bytes) -> None:
+        self.archive = archive
+        self.asked: list[str] = []
+
+    def __call__(self, url: str, timeout: float = 0) -> io.BytesIO:
+        self.asked.append(url)
+        if url == mt.ARGOS_INDEX_URL:
+            return io.BytesIO(json.dumps([
+                {"from_code": "en", "to_code": "it", "links": ["https://example.org/en_it.argosmodel", "ipfs://x"]},
+            ]).encode())
+        return io.BytesIO(self.archive)
+
+
+def test_an_argos_model_is_downloaded_once_without_its_sentence_splitter(tmp_path: Path) -> None:
+    site = ArgosSite(_argos_archive("translate-en_it-1_0"))
+    folder = mt.argos_model("it", tmp_path, opener=site)
+    assert folder == tmp_path / "en_it"
+    assert (folder / "model" / "model.bin").read_bytes() == b"weights"
+    assert (folder / "sentencepiece.model").is_file()
+    assert not (folder / "stanza").exists()
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["en_it"]  # no archive left behind
+    assert site.asked == [mt.ARGOS_INDEX_URL, "https://example.org/en_it.argosmodel"]
+
+    assert mt.argos_model("it", tmp_path, opener=site) == folder
+    assert len(site.asked) == 2  # already there: nothing asked
+
+
+def test_argos_without_the_language_or_a_good_archive_says_so(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="no model for 'xx'"):
+        mt.argos_model("xx", tmp_path, opener=ArgosSite(b""))
+    with pytest.raises(RuntimeError, match="damaged"):
+        mt.argos_model("it", tmp_path, opener=ArgosSite(b"not a zip"))
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_argos_that_cannot_download_hands_over_to_the_next_service() -> None:
+    def factory(name: str, language: str):
+        if name == "argos":
+            raise RuntimeError("Argos Translate's model could not be downloaded (no network)")
+        return Echo()
+
+    run = mt.translate_all(["Hello"], language="it", provider="argos", fallbacks=["google"], make_translator=factory)
+    assert run.translations == {"Hello": "HELLO"}
+    assert run.switched == [("Argos Translate (offline)", "Google Translate")]
+
+
+def test_argos_is_offered_when_its_engine_is_installed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mt, "available", lambda: False)
+    monkeypatch.setattr(mt, "argos_available", lambda: True)
+    assert mt.available_providers("") == [("argos", "Argos Translate (offline)")]
+
+
+@pytest.mark.skipif(
+    not (mt.argos_available() and (mt.argos_models_dir() / "en_it" / "model" / "model.bin").is_file()),
+    reason="needs ctranslate2, sentencepiece and the English-Italian model already downloaded",
+)
+def test_argos_translates_a_block_and_keeps_its_placeholders() -> None:
+    run = mt.translate_all(
+        ["Name cannot be empty.", "A file named {file} already exists.", "  cm"], language="it", provider="argos"
+    )
+    assert run.translations["Name cannot be empty."] == "Il nome non può essere vuoto."
+    assert "{file}" in run.translations["A file named {file} already exists."]
+    assert run.failed == run.rejected == 0

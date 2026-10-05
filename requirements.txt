@@ -31,6 +31,10 @@ adjustText==1.3.0
 # that one button. Google Translate or MyMemory, neither needs an API key.
 # DeepL (todo A-08) needs no package, only a key in Settings.
 deep-translator==1.11.4
+# Argos Translate, free and offline, needs ctranslate2 and sentencepiece -
+# left out here on purpose: a few tens of MB on every install, for a tool
+# only a translator uses. Edit Localization offers it once they are there:
+#     pip install ctranslate2 sentencepiece
 
 # Required for "Import - Database" against a PostgreSQL or MySQL server.
 # Pure Python, deliberately: no C extension means no wheel to be missing on

@@ -14,6 +14,16 @@ directly rather than through ``deep_translator``, whose DeepL client sends
 the key in the URL, a form DeepL no longer accepts; so DeepL works even
 without ``deep_translator`` installed.
 
+A fourth, Argos Translate, is free, open source and runs on this computer:
+no key, no request limit, no network once a language is downloaded. It
+needs ``ctranslate2`` and ``sentencepiece`` - a few tens of MB - and not
+the ``argostranslate`` package itself, which brings PyTorch and spaCy
+along only to split long texts into sentences, something a catalogue's
+short strings never need. Each language's model (85-150 MB) is downloaded
+from Argos's own index the first time it is asked for and kept in the
+user's cache folder (:func:`argos_models_dir`). Its translations are
+plainer than DeepL's: a first draft, like the others.
+
 What makes a catalogue string different from prose is its placeholders.
 ``{count}``, ``%s`` and ``<b>`` are code, not words: a service translates
 ``{count}`` into ``{conteggio}`` and the running application then fails
@@ -29,15 +39,20 @@ from __future__ import annotations
 
 import functools
 import json
+import os
 import re
+import shutil
 import ssl
+import sys
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 #: The services offered, as (key, name shown in the dialog).
@@ -45,6 +60,7 @@ PROVIDERS: tuple[tuple[str, str], ...] = (
     ("google", "Google Translate"),
     ("mymemory", "MyMemory"),
     ("deepl", "DeepL"),
+    ("argos", "Argos Translate (offline)"),
 )
 
 #: The user.json key holding the DeepL API key. Settings writes it; nothing
@@ -52,12 +68,12 @@ PROVIDERS: tuple[tuple[str, str], ...] = (
 DEEPL_KEY_SETTING: str = "deepl_api_key"
 
 #: Google allows five requests a second; this stays under it.
-_MIN_INTERVAL_S: dict[str, float] = {"google": 0.25, "mymemory": 0.0, "deepl": 0.1}
+_MIN_INTERVAL_S: dict[str, float] = {"google": 0.25, "mymemory": 0.0, "deepl": 0.1, "argos": 0.0}
 
 #: Most characters one request carries. MyMemory's free tier takes 500 a
 #: request; Google takes 5000; DeepL 128 KiB, but a block is also what a
 #: failure loses, so it stays at Google's size.
-_BLOCK_CHARS: dict[str, int] = {"google": 4000, "mymemory": 450, "deepl": 4000}
+_BLOCK_CHARS: dict[str, int] = {"google": 4000, "mymemory": 450, "deepl": 4000, "argos": 4000}
 
 #: DeepL's two hosts: a free-plan key ends in ":fx" and only works on the first.
 DEEPL_FREE_URL: str = "https://api-free.deepl.com/v2/translate"
@@ -69,6 +85,10 @@ DEEPL_TARGETS: tuple[str, ...] = (
     "HU", "ID", "IT", "JA", "KO", "LT", "LV", "NB", "NL", "PL", "PT-BR", "PT-PT",
     "RO", "RU", "SK", "SL", "SV", "TR", "UK", "ZH-HANS", "ZH-HANT",
 )
+
+#: Argos Translate's list of models: one entry per language pair, each
+#: with the links its .argosmodel archive can be downloaded from.
+ARGOS_INDEX_URL: str = "https://raw.githubusercontent.com/argosopentech/argospm-index/main/index.json"
 
 #: Most texts DeepL takes in one request.
 _DEEPL_TEXTS_PER_REQUEST: int = 50
@@ -98,18 +118,29 @@ def available() -> bool:
     return True
 
 
+def argos_available() -> bool:
+    """True when Argos Translate's engine (``ctranslate2``, ``sentencepiece``) is installed."""
+    try:
+        import ctranslate2  # noqa: F401  # pyright: ignore[reportMissingImports]
+        import sentencepiece  # noqa: F401  # pyright: ignore[reportMissingImports]
+    except ImportError:
+        return False
+    return True
+
+
 def available_providers(deepl_key: str = "") -> list[tuple[str, str]]:
     """The services that can be asked here: (key, name), in PROVIDERS order.
 
     Google and MyMemory when ``deep_translator`` is installed, DeepL when
-    there is a key for it.
+    there is a key for it, Argos when its engine is installed.
     """
-    free = available()
-    return [
-        (key, name)
-        for key, name in PROVIDERS
-        if (key == "deepl" and deepl_key.strip()) or (key != "deepl" and free)
-    ]
+    usable = {
+        "google": available(),
+        "mymemory": available(),
+        "deepl": bool(deepl_key.strip()),
+        "argos": argos_available(),
+    }
+    return [(key, name) for key, name in PROVIDERS if usable[key]]
 
 
 class DeepLTranslator:
@@ -159,6 +190,120 @@ class DeepLTranslator:
         if len(texts) != len(lines):
             raise RuntimeError("DeepL answered a different number of lines")
         return texts
+
+
+def argos_models_dir() -> Path:
+    """Where Argos models are kept: the user's cache folder, never the repository.
+
+    ~/Library/Caches on macOS, %LOCALAPPDATA% on Windows, $XDG_CACHE_HOME
+    (or ~/.cache) elsewhere - a folder the system may empty, which costs
+    only a new download.
+    """
+    if sys.platform == "darwin":
+        base = Path.home() / "Library" / "Caches"
+    elif sys.platform == "win32":
+        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    else:
+        base = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
+    return base / "ChartLibre" / "argos-models"
+
+
+class ArgosTranslator:
+    """English to one language on this computer, with an Argos model; ``translate(text)``.
+
+    Downloads the model on first use (see :func:`argos_model`). Each line
+    of *text* is translated as one sentence, all of a block's lines in one
+    batch, so the newlines a block is split back on survive.
+    """
+
+    def __init__(self, language: str, *, models_dir: Path | None = None, opener: Callable[..., Any] | None = None) -> None:
+        import ctranslate2  # pyright: ignore[reportMissingImports]
+        import sentencepiece  # pyright: ignore[reportMissingImports]
+
+        folder = argos_model(language, models_dir or argos_models_dir(), opener=opener)
+        self._pieces = sentencepiece.SentencePieceProcessor(model_file=str(folder / "sentencepiece.model"))
+        self._translator = ctranslate2.Translator(str(folder / "model"), device="cpu")
+
+    def translate(self, text: str) -> str:
+        lines = text.split("\n")
+        asked = [index for index, line in enumerate(lines) if line.strip()]
+        if not asked:
+            return text
+        results = self._translator.translate_batch(
+            [self._pieces.encode(lines[index], out_type=str) for index in asked], beam_size=4
+        )
+        for index, result in zip(asked, results):
+            lines[index] = self._pieces.decode(result.hypotheses[0])
+        return "\n".join(lines)
+
+
+def argos_model(language: str, root: Path, *, opener: Callable[..., Any] | None = None) -> Path:
+    """The folder of the English-to-*language* model under *root*, downloaded if missing.
+
+    Raises ValueError when Argos has no model for the language, and
+    RuntimeError, worded for the dialog, when the download fails.
+    """
+    folder = root / f"en_{language.lower()}"
+    if (folder / "sentencepiece.model").is_file() and (folder / "model" / "model.bin").is_file():
+        return folder
+    fetch = opener or functools.partial(urllib.request.urlopen, context=_ssl_context())
+    try:
+        with fetch(ARGOS_INDEX_URL, timeout=30) as response:
+            index = json.loads(response.read().decode("utf-8"))
+        entry = next(
+            (item for item in index if item.get("from_code") == "en" and item.get("to_code") == language.lower()),
+            None,
+        )
+        if entry is None:
+            raise ValueError(f"Argos Translate has no model for {language!r}")
+        url = next((link for link in entry.get("links", []) if link.startswith("https://")), None)
+        if url is None:
+            raise ValueError(f"Argos Translate's model for {language!r} has no download link")
+        root.mkdir(parents=True, exist_ok=True)
+        archive = root / f"en_{language.lower()}.argosmodel.part"
+        with fetch(url, timeout=60) as response, archive.open("wb") as out:
+            while chunk := response.read(1 << 20):
+                out.write(chunk)
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Argos Translate's model could not be downloaded ({getattr(exc, 'reason', exc)})") from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Argos Translate's model could not be downloaded ({exc})") from exc
+    try:
+        _unpack_argos(archive, folder)
+    finally:
+        archive.unlink(missing_ok=True)
+    return folder
+
+
+def _unpack_argos(archive: Path, folder: Path) -> None:
+    """Unpack an .argosmodel into *folder*: its model/ and sentencepiece.model.
+
+    The archive holds them under one top folder whose name varies between
+    versions ("en_it/", "translate-en_de-1_3/"); stanza/ - the sentence
+    splitter this module does without - is left out.
+    """
+    staging = folder.with_name(folder.name + ".unpacking")
+    shutil.rmtree(staging, ignore_errors=True)
+    try:
+        with zipfile.ZipFile(archive) as bundle:
+            for member in bundle.infolist():
+                parts = Path(member.filename).parts[1:]  # without the top folder
+                if not parts or parts[0] == "stanza" or member.is_dir():
+                    continue
+                if ".." in parts or Path(member.filename).is_absolute():
+                    raise RuntimeError("Argos Translate's model archive is not well formed")
+                target = staging.joinpath(*parts)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with bundle.open(member) as source, target.open("wb") as out:
+                    shutil.copyfileobj(source, out)
+        if not (staging / "sentencepiece.model").is_file() or not (staging / "model" / "model.bin").is_file():
+            raise RuntimeError("Argos Translate's model archive lacks its model")
+        shutil.rmtree(folder, ignore_errors=True)
+        staging.rename(folder)
+    except zipfile.BadZipFile as exc:
+        raise RuntimeError("Argos Translate's model archive is damaged") from exc
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 def _ssl_context() -> ssl.SSLContext | None:
@@ -218,7 +363,9 @@ def provider_code(codes: Iterable[str], language: str) -> str | None:
 
 
 def _make_translator(provider: str, language: str, *, deepl_key: str = "") -> Any:
-    """Return a translator from English to *language*: DeepL's, or deep_translator's."""
+    """Return a translator from English to *language*: DeepL's, Argos's, or deep_translator's."""
+    if provider == "argos":
+        return ArgosTranslator(language)
     if provider == "deepl":
         target = provider_code(DEEPL_TARGETS, language)
         if target is None or not deepl_key.strip():
@@ -349,7 +496,7 @@ def translate_all(
             run.switched.append((names.get(chain[position - 1], chain[position - 1]), names.get(name, name)))
         try:
             service = translator if (position == 0 and translator is not None) else factory(name, language)
-        except ValueError as exc:  # this service does not have the language
+        except (ValueError, RuntimeError) as exc:  # no such language, or Argos's model did not download
             run.error = str(exc)
             continue
         todo = _translate_with(service, name, todo, run, cancelled, advance, on_result)

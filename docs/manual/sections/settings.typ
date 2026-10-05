@@ -11,7 +11,7 @@
   [*Language*], [*Auto* follows the operating system's language, falling back to English. Each language is listed under its own name: English, *Italiano* and *Français* are complete; *Español* and *Deutsch* are only started and still read mostly English.],
   [*Default export format*], [The format *Save figure* proposes: PNG, JPEG, SVG or PDF.],
   [*SQL guard*], [*Refuse SQL that would change the database* (on by default, shown in red): `UPDATE`, `DELETE`, `DROP` and the like are refused when a query is saved or typed and when a project is opened. Switch it off only if you know why you need to.],
-  [*DeepL API key*], [Used by *Edit Localization* to translate the interface with DeepL. The key is kept on this computer only. Without one, Edit Localization translates with Google or MyMemory. Free-plan keys end in `:fx`.],
+  [*DeepL API key*], [Used by *Edit Localization* to translate the interface with DeepL. The key is kept on this computer only. Without one, Edit Localization translates with Google, MyMemory or Argos Translate. Free-plan keys end in `:fx`.],
 )
 
 The style and the language are applied the next time ChartLibre starts, as the window says: changing them in a running application would leave half the window in the old style or language.
