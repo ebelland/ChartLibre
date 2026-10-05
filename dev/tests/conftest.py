@@ -18,7 +18,16 @@ from pathlib import Path
 import matplotlib
 import pytest
 
-from app.data.sqlite_repo import SqliteRepo
+from app.logs.logger import AppLogger
+
+# The tests log to a file of their own. They shared the application's -
+# app/logs/datahub.log - so its Log window showed the errors the tests cause
+# on purpose (a malformed web_sources.json, a preview rolled back twice) as if
+# the application had met them.
+AppLogger.reset()
+AppLogger.configure(Path(tempfile.gettempdir()) / "chartlibre-test-logs")
+
+from app.data.sqlite_repo import SqliteRepo  # noqa: E402 - after the logger is moved
 
 matplotlib.use("Agg")
 

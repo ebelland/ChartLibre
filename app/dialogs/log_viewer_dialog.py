@@ -121,11 +121,14 @@ class LogViewerDialog(QDialog):
             layout=action_row,
         )
 
+        # "Exit", not the catalogue's "Cancel": reading a log changes nothing,
+        # so there is nothing to cancel.
         create_action_button(
             parent=self,
             action_id="close",
             action=self.accept,
             layout=action_row,
+            presentation=(load_icon("close"), _("Exit"), _("Close the log")),
         )
 
         root.addLayout(action_row, 0)
