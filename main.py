@@ -89,10 +89,15 @@ def run_app() -> int:
 
     app = QApplication(sys.argv)
 
-    jit=f"JIT is {"not " if not sys._jit.is_available() else ""}included in the build"  # True if JIT is included in the build
-    if sys._jit.is_available():
-        jit+=" and JIT is enabled"  if sys._jit.is_enabled() else " but JIT is not enabled"
-    applogger.info(jit)
+    # sys._jit is new in Python 3.14: an older Python has no JIT to report.
+    jit_module = getattr(sys, "_jit", None)
+    if jit_module is None:
+        applogger.info("JIT: not available in Python %s", sys.version.split()[0])
+    elif not jit_module.is_available():
+        applogger.info("JIT is not included in the build")
+    else:
+        applogger.info("JIT is included in the build %s",
+                       "and enabled" if jit_module.is_enabled() else "but not enabled")
 
     # Language before any widget is built: menus read their labels through the
     # translator when they are constructed.
