@@ -818,6 +818,16 @@ QCheckBox[destructive="true"] {
 /* ---- Sidebar sections and the chart list (the charts used to be tabs) ----
    Recent Mac sidebars: small grey section headings, rows with an icon and
    a rounded selection - the same look as the tool rows above. */
+/* NavigationBar's scrolling list of sections: no background of its own,
+   so the rail's shows through - a scroll area otherwise paints the window
+   colour, a grey block inside the rail. */
+QScrollArea#navSections,
+QScrollArea#navSections > QWidget#qt_scrollarea_viewport,
+QWidget#navSectionsBody {
+  background: transparent;
+  border: none;
+}
+
 QLabel#navSectionTitle {
   color: rgba(@SHADOW_RGB@, 0.45);
   font-size: 11pt;

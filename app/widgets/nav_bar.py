@@ -102,18 +102,25 @@ class NavigationBar(QWidget):
         root.addWidget(self.bar, 0)
 
         self._bar_layout = QVBoxLayout(self.bar)
-        self._bar_layout.setContentsMargins(8, 8, 8, 8)
+        # No top margin under a header: on macOS it is the title strip, whose
+        # traffic lights and sidebar button sit on the window's top edge.
+        self._bar_layout.setContentsMargins(8, 0 if header is not None else 8, 8, 8)
         self._bar_layout.setSpacing(4)
         if header is not None:
             self._bar_layout.addWidget(header)
 
+        # Named for the stylesheets, which keep it transparent: a scroll
+        # area paints the window colour by default, a grey block over the
+        # bar's own background.
         self._section_scroller = QScrollArea(self.bar)
+        self._section_scroller.setObjectName("navSections")
         self._section_scroller.setWidgetResizable(True)
         self._section_scroller.setFrameShape(QFrame.Shape.NoFrame)
         self._section_scroller.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
         self._section_widget = QWidget(self._section_scroller)
+        self._section_widget.setObjectName("navSectionsBody")
         self._section_layout = QVBoxLayout(self._section_widget)
         self._section_layout.setContentsMargins(0, 0, 0, 0)
         self._section_layout.setSpacing(4)

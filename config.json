@@ -299,9 +299,9 @@
     "nav_new_table": {
       "text": "New table",
       "description": "Create a new table",
-      "SFSymbol": "tablecells",
-      "SegoeFluent": "f232",
-      "ThemeIcon": "x-office-spreadsheet"
+      "SFSymbol": "rectangle.badge.plus",
+      "SegoeFluent": "ECC8",
+      "ThemeIcon": "document-new"
     },
     "nav_data": {
       "text": "Data",

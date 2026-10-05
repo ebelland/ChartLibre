@@ -1191,6 +1191,16 @@ QCheckBox[destructive="true"] {
 }
 
 /* Sidebar sections and the chart list (the charts used to be tabs). */
+/* NavigationBar's scrolling list of sections: no background of its own,
+   so the rail's shows through - a scroll area otherwise paints the window
+   colour, a grey block inside the rail. */
+QScrollArea#navSections,
+QScrollArea#navSections > QWidget#qt_scrollarea_viewport,
+QWidget#navSectionsBody {
+  background: transparent;
+  border: none;
+}
+
 QLabel#navSectionTitle {
   color: rgba(@SHADOW_RGB@, 0.55);
   font-weight: 600;
