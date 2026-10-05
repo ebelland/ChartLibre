@@ -7028,7 +7028,7 @@ msgid "Showing the first {count} rows."
 msgstr "Sono mostrate le prime {count} righe."
 
 msgid "Table name:"
-msgstr "Nome della tabella:"
+msgstr "Nome tabella:"
 
 msgid "Test matrix preview"
 msgstr "Anteprima della matrice degli esperimenti"
@@ -7095,3 +7095,12 @@ msgstr "Esci"
 
 msgid "Close the log"
 msgstr "Chiudi il log"
+
+msgid "Seed:"
+msgstr "Seme:"
+
+msgid "Random order"
+msgstr "Ordine casuale"
+
+msgid "The same seed gives the same run order and the same Latin hypercube."
+msgstr "Lo stesso seme dà lo stesso ordine delle prove e lo stesso ipercubo latino."

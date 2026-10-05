@@ -16,7 +16,7 @@ import pandas as pd
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-    QFormLayout, QFrame, QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMessageBox,
+    QFormLayout, QFrame, QGridLayout, QHeaderView, QLabel, QLineEdit, QMessageBox,
     QScrollArea, QSizePolicy, QSpinBox, QSplitter, QTableWidget,
     QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget,
 )
@@ -135,7 +135,9 @@ class DOEExperimentDialog(QDialog):
         ):
             spin.setMinimumWidth(72)
             spin.setMaximumWidth(112)
-        self.randomize = QCheckBox(_("Randomize run order"), self)
+        self.seed.setToolTip(_("The same seed gives the same run order and the same Latin hypercube."))
+        self.randomize = QCheckBox(_("Random order"), self)
+        self.randomize.setToolTip(_("Randomize run order"))
         self.randomize.setChecked(True)
         self.lhs_algorithm = QComboBox(self)
         self.lhs_algorithm.addItem(_("Random within strata"), "random")
@@ -208,35 +210,40 @@ class DOEExperimentDialog(QDialog):
         model_form.addRow(_("Model:"), self.model_combo)
         left_layout.addWidget(model_host)
         left_layout.addWidget(self._title(_("Parameters"), left))
+        # One grid, two settings a row: the table's name alone across the
+        # top, then each pair that belongs together side by side, then what
+        # only some models use. Two separate columns of forms left the name
+        # box squeezed beside the seed and the rows of each column unaligned.
         parameter_host = QWidget(left)
-        parameter_columns = QHBoxLayout(parameter_host)
-        parameter_columns.setContentsMargins(0, 0, 0, 0)
-        parameter_columns.setSpacing(8)
-        first_column = QWidget(parameter_host)
-        second_column = QWidget(parameter_host)
-        first_form = QFormLayout(first_column)
-        second_form = QFormLayout(second_column)
-        self._configure_form(first_form)
-        self._configure_form(second_form)
-        self.parameter_forms = (first_form, second_form)
-        for label, widget in (
-            (_("New table:"), self.table_name),
-            (_("Factors:"), self.factor_count),
-            (_("Responses:"), self.response_count),
-            (_("Levels:"), self.levels),
-            (_("Replicates:"), self.replicates),
-        ):
-            first_form.addRow(label, widget)
-        for label, widget in (
-            (_("Center points:"), self.center_points),
-            (_("LHS samples:"), self.samples),
-            (_("LHS algorithm:"), self.lhs_algorithm),
-            (_("Random seed:"), self.seed),
-            ("", self.randomize),
-        ):
-            second_form.addRow(label, widget)
-        parameter_columns.addWidget(first_column, 1)
-        parameter_columns.addWidget(second_column, 1)
+        grid = QGridLayout(parameter_host)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(6)
+        self._parameter_labels: dict[QWidget, QLabel] = {}
+
+        def place(text: str, widget: QWidget, row: int, column: int, span: int = 1) -> None:
+            if text:
+                label = QLabel(text, parameter_host)
+                label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                grid.addWidget(label, row, column)
+                self._parameter_labels[widget] = label
+            grid.addWidget(widget, row, column + 1, 1, span)
+
+        place(_("Table name:"), self.table_name, 0, 0, span=3)
+        place(_("Factors:"), self.factor_count, 1, 0)
+        place(_("Responses:"), self.response_count, 1, 2)
+        place(_("Levels:"), self.levels, 2, 0)
+        place(_("Replicates:"), self.replicates, 2, 2)
+        place(_("Seed:"), self.seed, 3, 0)
+        grid.addWidget(self.randomize, 3, 2, 1, 2)
+        place(_("Center points:"), self.center_points, 4, 0)
+        place(_("LHS samples:"), self.samples, 4, 2)
+        place(_("LHS algorithm:"), self.lhs_algorithm, 5, 0, span=3)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(3, 1)
+        # As tall as the number boxes beside it: a line edit's own height is
+        # a few pixels less, and the name sat lower than everything else.
+        self.table_name.setMinimumHeight(self.factor_count.sizeHint().height())
         left_layout.addWidget(parameter_host)
         left_layout.addWidget(self._title(_("Factor names and bounds"), left))
         left_layout.addWidget(self.factor_table, 0)
@@ -289,11 +296,9 @@ class DOEExperimentDialog(QDialog):
 
     def _set_parameter_row_visible(self, widget: QWidget, visible: bool) -> None:
         widget.setVisible(visible)
-        for form in self.parameter_forms:
-            label = form.labelForField(widget)
-            if label is not None:
-                label.setVisible(visible)
-                break
+        label = self._parameter_labels.get(widget)
+        if label is not None:
+            label.setVisible(visible)
 
     def _queue_preview(self, *_args: Any) -> None:
         if self._building or self._refresh_pending:
