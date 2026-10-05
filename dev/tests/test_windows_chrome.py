@@ -12,7 +12,8 @@ from typing import Any, cast
 import pytest
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
+import shiboken6
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QToolButton, QVBoxLayout, QWidget
 
 import app.styles.style as style
 from app.widgets.custom_title_bar import (
@@ -21,7 +22,7 @@ from app.widgets.custom_title_bar import (
     CustomTitleBar,
     caption_icon,
 )
-from app.widgets.nav_bar import NavigationBar
+from app.widgets.nav_bar import NavBarItem, NavigationBar
 
 
 @pytest.fixture(scope="module")
@@ -34,10 +35,24 @@ def fluent(qapp: QApplication):
 
 
 def _rail(qapp: QApplication) -> tuple[QWidget, NavigationBar]:
+    """A rail of five rows - four actions and one page - in a host window."""
     host = QWidget()
     layout = QHBoxLayout(host)
     layout.setContentsMargins(0, 0, 0, 0)
-    rail = NavigationBar(host, is_macos=False)
+    page = QWidget()
+    icon = QIcon()
+    rail = NavigationBar(
+        {
+            "Tools": {
+                "workspace": NavBarItem("Workspace", icon, None),
+                "file": NavBarItem("File", icon, None),
+                "tables": NavBarItem("Tables", icon, page),
+                "series_operations": NavBarItem("Series operations", icon, None),
+            },
+            "Charts": {"chart:1": NavBarItem("A chart with a long title", icon, None)},
+        },
+        host,
+    )
     layout.addWidget(rail)
     host.resize(240, 760)
     host.show()
@@ -45,10 +60,14 @@ def _rail(qapp: QApplication) -> tuple[QWidget, NavigationBar]:
     return host, rail
 
 
+def _rows(rail: NavigationBar) -> list[QToolButton]:
+    return list(rail._buttons.values())
+
+
 def test_a_row_is_the_icon_then_its_label_on_one_line(qapp: QApplication, fluent) -> None:
     host, rail = _rail(qapp)
     try:
-        for button in rail._all_tiles():
+        for button in _rows(rail):
             assert button.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonTextBesideIcon
             assert "\n" not in button.text()  # the old tiles broke long labels onto two lines
             assert button.height() == 36 and button.width() > 150
@@ -59,11 +78,12 @@ def test_a_row_is_the_icon_then_its_label_on_one_line(qapp: QApplication, fluent
 def test_the_rail_uses_the_application_font_without_a_size_of_its_own(qapp: QApplication, fluent) -> None:
     host, rail = _rail(qapp)
     try:
-        assert rail.buttons[0].font().pointSizeF() == rail.chart_list.font().pointSizeF() == 10.0
-        assert not rail.buttons[0].font().bold()
-        rail.select_page(1)
+        rows = _rows(rail)
+        assert {button.font().pointSizeF() for button in rows} == {10.0}  # the Fluent sheet's one size
+        assert not any(button.font().bold() for button in rows)
+        rail.select("tables")
         qapp.processEvents()
-        assert not rail.buttons[1].font().bold()  # a bold selected row is wider than its neighbours' text
+        assert not rail._buttons["tables"].font().bold()  # a bold selected row is wider than its neighbours' text
     finally:
         host.close()
 
@@ -71,18 +91,18 @@ def test_the_rail_uses_the_application_font_without_a_size_of_its_own(qapp: QApp
 def test_collapsing_keeps_icons_only_and_expanding_restores_the_labels(qapp: QApplication, fluent) -> None:
     host, rail = _rail(qapp)
     try:
-        labels = [button.text() for button in rail._all_tiles()]
+        labels = [button.text() for button in _rows(rail)]
         rail.set_compact(True)
         qapp.processEvents()
-        assert rail.width() == 56
-        assert all(button.text() == "" for button in rail._all_tiles())
-        assert all(button.width() <= 56 for button in rail._all_tiles())
+        assert rail.bar.width() == 56
+        assert all(button.text() == "" for button in _rows(rail))
+        assert all(button.width() <= 56 for button in _rows(rail))
 
         rail.set_compact(False)
         qapp.processEvents()
-        assert rail.width() == 200
-        assert [button.text() for button in rail._all_tiles()] == labels
-        assert all(button.width() > 150 for button in rail._all_tiles())
+        assert rail.bar.width() == 200
+        assert [button.text() for button in _rows(rail)] == labels
+        assert all(button.width() > 150 for button in _rows(rail))
     finally:
         host.close()
 
@@ -93,9 +113,21 @@ def test_the_collapsed_icons_stay_together_at_the_top(qapp: QApplication, fluent
         rail.set_compact(True)
         host.resize(80, 900)
         qapp.processEvents()
-        tops = [button.geometry().top() for button in rail.buttons]
+        tops = [button.geometry().top() for button in rail._buttons.values()]
         gaps = [b - a for a, b in zip(tops, tops[1:])]
-        assert max(gaps) <= 36 + 10  # a row and the layout spacing, not the height shared out
+        assert max(gaps) <= 36 + 4 + 8  # a row, the spacing and a section's gap - not the height shared out
+    finally:
+        host.close()
+
+
+def test_rebuilding_a_section_leaves_no_old_row_drawn(qapp: QApplication, fluent) -> None:
+    host, rail = _rail(qapp)
+    try:
+        old = _rows(rail)
+        rail.set_section("Charts", {"chart:2": NavBarItem("Another chart", QIcon(), None)})
+        qapp.processEvents()
+        assert not any(button.isVisible() for button in old if shiboken6.isValid(button))
+        assert list(rail._buttons)[-1] == "chart:2"
     finally:
         host.close()
 
@@ -150,3 +182,27 @@ def test_the_close_glyph_turns_white_on_hover(qapp: QApplication) -> None:
 
     assert ink(normal) < 100 and ink(active) > 200
 
+
+
+def test_a_hidden_bar_leaves_its_header_above_the_panels(qapp: QApplication, fluent) -> None:
+    """macOS's title strip holds the button that brings the bar back: it must stay reachable."""
+    host = QWidget()
+    layout = QHBoxLayout(host)
+    header = QWidget()
+    header.setFixedHeight(30)
+    page = QWidget()
+    rail = NavigationBar({"Tools": {"tables": NavBarItem("Tables", QIcon(), page)}}, host, header=header)
+    layout.addWidget(rail)
+    host.resize(500, 400)
+    host.show()
+    try:
+        rail.select("tables")
+        rail.set_bar_hidden(True)
+        qapp.processEvents()
+        assert rail.bar.isHidden() and header.isVisible()
+        assert rail.panels.isAncestorOf(header)
+        rail.set_bar_hidden(False)
+        qapp.processEvents()
+        assert rail.bar.isAncestorOf(header) and header.isVisible()
+    finally:
+        host.close()

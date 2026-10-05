@@ -296,6 +296,13 @@
       "SegoeFluent": "e943",
       "ThemeIcon": "applications-system"
     },
+    "nav_new_table": {
+      "text": "New table",
+      "description": "Create a new table",
+      "SFSymbol": "tablecells",
+      "SegoeFluent": "f232",
+      "ThemeIcon": "x-office-spreadsheet"
+    },
     "nav_data": {
       "text": "Data",
       "description": "Show data tables",

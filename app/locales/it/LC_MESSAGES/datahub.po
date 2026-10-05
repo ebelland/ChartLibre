@@ -6846,3 +6846,198 @@ msgstr "La terza riga: sommata a ogni nuova x, dopo la 2 x 2."
 
 msgid "The third row: added to every new y, after the 2 x 2."
 msgstr "La terza riga: sommata a ogni nuova y, dopo la 2 x 2."
+
+msgid "Box-Behnken"
+msgstr "Box-Behnken"
+
+msgid "Box-Behnken requires at least three factors."
+msgstr "Box-Behnken richiede almeno tre fattori."
+
+msgid "Center points:"
+msgstr "Punti centrali:"
+
+msgid "Centered within strata"
+msgstr "Al centro di ogni strato"
+
+msgid "Central composite, circumscribed"
+msgstr "Composito centrale, circoscritto"
+
+msgid "Central composite, face-centered"
+msgstr "Composito centrale, a facce centrate"
+
+msgid "Chart properties"
+msgstr "Proprietà del grafico"
+
+msgid "Column names must be unique."
+msgstr "I nomi delle colonne devono essere unici."
+
+msgid "Column names, separated by commas:"
+msgstr "Nomi delle colonne, separati da virgole:"
+
+msgid "Could not generate the Latin hypercube."
+msgstr "Impossibile generare l'ipercubo latino."
+
+msgid "Create a new table"
+msgstr "Crea una nuova tabella"
+
+msgid "Create a table from a file, clipboard, database, or web source."
+msgstr "Crea una tabella da un file, dagli appunti, da un database o da una fonte web."
+
+msgid "Create an empty table with named columns."
+msgstr "Crea una tabella vuota con colonne nominate."
+
+msgid "DOE model"
+msgstr "Modello DOE"
+
+msgid "DOE table"
+msgstr "Tabella DOE"
+
+msgid "DOE test matrix"
+msgstr "Matrice degli esperimenti DOE"
+
+msgid "Duplicate column name: {name}"
+msgstr "Nome di colonna ripetuto: {name}"
+
+msgid "Edit the current chart"
+msgstr "Modifica il grafico corrente"
+
+msgid "Enter a table name and at least one column."
+msgstr "Inserisci il nome della tabella e almeno una colonna."
+
+msgid "Enter a table name."
+msgstr "Inserisci il nome della tabella."
+
+msgid "Factor"
+msgstr "Fattore"
+
+msgid "Factor '{name}' has invalid bounds."
+msgstr "Il fattore '{name}' ha limiti non validi."
+
+msgid "Factor '{name}' requires finite Low < High."
+msgstr "Il fattore '{name}' richiede valori finiti con Basso < Alto."
+
+msgid "Factor names and bounds"
+msgstr "Nomi e limiti dei fattori"
+
+msgid "Factor {number} has no name."
+msgstr "Il fattore {number} non ha un nome."
+
+msgid "Factors"
+msgstr "Fattori"
+
+msgid "Factors:"
+msgstr "Fattori:"
+
+msgid "From DOE"
+msgstr "Da DOE"
+
+msgid "Full factorial"
+msgstr "Fattoriale completo"
+
+msgid "Generate an experiment matrix with factors and responses."
+msgstr "Genera una matrice degli esperimenti con fattori e risposte."
+
+msgid "Generated data"
+msgstr "Dati generati"
+
+msgid "Generated table schema"
+msgstr "Struttura della tabella generata"
+
+msgid "Hide the panel"
+msgstr "Nascondi il pannello"
+
+msgid "High"
+msgstr "Alto"
+
+msgid "Import Data"
+msgstr "Importa dati"
+
+msgid "LHS algorithm:"
+msgstr "Algoritmo LHS:"
+
+msgid "LHS samples:"
+msgstr "Campioni LHS:"
+
+msgid "Latin hypercube"
+msgstr "Ipercubo latino"
+
+msgid "Levels:"
+msgstr "Livelli:"
+
+msgid "Low"
+msgstr "Basso"
+
+msgid "Maximin candidate search"
+msgstr "Ricerca maximin tra candidati"
+
+msgid "New Blank Table"
+msgstr "Nuova tabella vuota"
+
+msgid "New table"
+msgstr "Nuova tabella"
+
+msgid "New table:"
+msgstr "Nuova tabella:"
+
+msgid "No"
+msgstr "No"
+
+msgid "Nullable"
+msgstr "Può essere vuota"
+
+msgid "Preview unavailable"
+msgstr "Anteprima non disponibile"
+
+msgid "Random seed:"
+msgstr "Seme casuale:"
+
+msgid "Random within strata"
+msgstr "Casuale in ogni strato"
+
+msgid "Randomize run order"
+msgstr "Ordine delle prove casuale"
+
+msgid "Replicates:"
+msgstr "Repliche:"
+
+msgid "Response"
+msgstr "Risposta"
+
+msgid "Response columns"
+msgstr "Colonne di risposta"
+
+msgid "Response {number} has no name."
+msgstr "La risposta {number} non ha un nome."
+
+msgid "Responses"
+msgstr "Risposte"
+
+msgid "Responses:"
+msgstr "Risposte:"
+
+msgid "Runs"
+msgstr "Prove"
+
+msgid "SQLite type"
+msgstr "Tipo SQLite"
+
+msgid "Series operations"
+msgstr "Operazioni sulle serie"
+
+msgid "Showing the first {count} rows."
+msgstr "Sono mostrate le prime {count} righe."
+
+msgid "Table name:"
+msgstr "Nome della tabella:"
+
+msgid "Test matrix preview"
+msgstr "Anteprima della matrice degli esperimenti"
+
+msgid "Transform or analyse chart series"
+msgstr "Trasforma o analizza le serie del grafico"
+
+msgid "Two-level factorial"
+msgstr "Fattoriale a due livelli"
+
+msgid "Unsupported DOE model: {model}"
+msgstr "Modello DOE non supportato: {model}"

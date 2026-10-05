@@ -38,16 +38,16 @@ def _x(widget: QWidget, window: QWidget, right: bool = False) -> int:
 
 
 def test_the_file_page_cards_have_equal_gaps_on_three_sides(qapp: QApplication, window: MainWindow) -> None:
-    window._left_stack.setCurrentIndex(0)
+    navigation = window.findChild(NavigationBar)
+    assert navigation is not None and navigation.select("file")
     qapp.processEvents()
-    rail = window.findChild(NavigationBar)
-    panel = window.findChild(QFrame, "leftPanelCard")
+    rail, panel = navigation.bar, navigation.panels
     card = window.findChild(QFrame, "fileWorkspaceCard")
-    assert rail is not None and panel is not None and card is not None
+    assert card is not None
 
     left_gap = _x(card, window) - _x(rail, window, right=True)
     right_gap = _x(panel, window, right=True) - _x(card, window, right=True)
-    page = window._left_stack.currentWidget()
+    page = navigation.panel_stack.currentWidget()
     stack_bottom = page.mapTo(window, QPoint(0, page.height())).y()
     panel_bottom = panel.mapTo(window, QPoint(0, panel.height())).y()
 

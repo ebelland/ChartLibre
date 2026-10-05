@@ -1,9 +1,8 @@
 """Main application window.
 
-Layout: an activity rail on the left switches a QStackedWidget between the data
-page (table list plus preview) and the charts page (one ChartPanel per figure in
-a tab widget).  A properties QToolBox on the right edits the figure, axis, and
-series of whichever chart tab is active.
+Layout: a section-driven NavigationBar owns the left bar and its associated
+panel stack. Chart tabs remain in the main surface. A properties QToolBox edits
+the figure, axis, and series of whichever chart tab is active.
 
 Chart reloads requested by the property pages are debounced, because each one
 re-renders the whole figure.
@@ -12,12 +11,15 @@ from __future__ import annotations
 
 import gc
 import html
+import re
 import sys
 from functools import partial
 from pathlib import Path
 from time import monotonic
 import warnings
 from typing import Any, Callable, cast
+
+import pandas as pd
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
@@ -39,7 +41,7 @@ from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.data.repo._common import ensure_read_only_select
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.chart_panel import ChartPanel
-from app.widgets.nav_bar import NavigationBar
+from app.widgets.nav_bar import NavBarItem, NavigationBar
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.import_data_dialog import ImportDataDialog, is_importable
 from app.data.demos import PROJECTS_DIR, copy_demo_project
@@ -106,6 +108,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QInputDialog,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
@@ -115,7 +118,6 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSplitter,
-    QStackedWidget,
     QTabWidget,
     QToolBox,
     QVBoxLayout,
@@ -162,6 +164,12 @@ IS_WINDOWS: bool = sys.platform == "win32"
 
 
 class MainWindow(QMainWindow):
+    _tabs: QTabWidget
+    _properties_control: QToolBox
+    _figure_widget: FigurePropertiesWidget
+    _axis_widget: AxisPropertiesWidget
+    _series_widget: SeriesPropertiesWidget
+    _overlay_widget: OverlayPropertiesWidget
     """Main window with custom activity rail and chart tabs.
 
     The top-level window must remain shrinkable. To avoid child widgets
@@ -263,16 +271,18 @@ class MainWindow(QMainWindow):
         self._properties_control = self._create_properties_control()
         self._configure_properties_control()
 
-        # Build VS Code-like rail + stacked pages.
+        # One navigation component owns both the bar and its panel stack.
+        # MainWindow supplies section definitions and handles action-only rows.
         self._build_app_menu()
-        self._left_stack = self._create_left_stack()
-        self._left_rail: NavigationBar = self._create_activity_rail()
-        self._left_rail.chart_selected.connect(self._tabs.setCurrentIndex)
+        self._left_panel: NavigationBar = self._create_navigation()
+        # Compatibility aliases for splitter/title-bar helpers. They no longer
+        # participate in page selection; NavigationBar selects widgets by key.
+        self._left_rail = self._left_panel
+        self._left_stack = self._left_panel.panels
         # Cmd+[ / Cmd+] on macOS (Qt maps Ctrl to Command), as in Xcode.
         for keys, step in (("Ctrl+[", -1), ("Ctrl+]", +1)):
             shortcut = QShortcut(QKeySequence(keys), self)
             shortcut.activated.connect(lambda s=step: self._step_chart(s))
-        self._left_panel = self._create_left_panel()
         self._configure_left_panel()
 
         # Main split: left panel + chart tabs.
@@ -295,7 +305,7 @@ class MainWindow(QMainWindow):
         # Default page: the tables, not whatever happens to be first in the
         # rail. File sits above them now, and opening onto an empty file
         # page would hide the data the window was just opened on.
-        self._set_nav_index(self._left_rail.action_ids.index("nav_data"))
+        self._select_navigation("tables")
         self._check_project_sql()
         self._table_panel.reload()
         self._reload_tabs()
@@ -378,10 +388,13 @@ class MainWindow(QMainWindow):
             self._status_project.setToolTip(str(self._db_path) if self._db_path else "")
 
     def _rail_width(self) -> int:
-        """The rail's width, or 0 while it is hidden (macOS sidebar toggle)."""
-        return self._left_rail.width() if self._left_rail.isVisibleTo(self._left_panel) else 0
+        """The bar width, or zero while the bar is hidden."""
+        navigation = getattr(self, "_left_panel", None)
+        if not isinstance(navigation, NavigationBar) or navigation.bar.isHidden():
+            return 0
+        return navigation.bar_width
 
-    def _toggle_workspace(self) -> None:
+    def _toggle_workspace(self) -> None: 
         """Collapse left content to the navigation rail, or restore it."""
         hiding = (not self._left_stack.isHidden())
         if hiding and self._rail_width() == 0:
@@ -443,9 +456,9 @@ class MainWindow(QMainWindow):
             self._set_rail_hidden(compact)
             set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
             return
-        was = self._left_rail.width()
-        self._left_rail.set_compact(compact)
-        moved = self._left_rail.width() - was
+        was = self._rail_width()
+        self._left_panel.set_compact(compact)
+        moved = self._rail_width() - was
 
         sizes = self._main_split.sizes()
         # Pinned to the rail while the panel is hidden, so the pin follows it.
@@ -454,160 +467,35 @@ class MainWindow(QMainWindow):
             if not self._left_stack.isHidden():
                 self._main_split.setSizes([max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)])
             else:
-                rail_width = self._left_rail.width()
+                rail_width = self._rail_width()
                 self._main_split.setSizes([rail_width, max(sum(sizes) - rail_width, 1)])
 
         set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
 
     def _set_rail_hidden(self, hidden: bool) -> None:
-        """macOS: hide the whole navigation rail, the way Claude does.
+        """macOS: hide the whole bar, the way Claude does, or bring it back.
 
-        The title strip (traffic lights, sidebar toggle) moves to the top of
-        the panel beside the rail, so it stays reachable and nothing is
-        drawn under the lights. The panel is reopened first if it was
-        hidden: with neither, the left side would be empty.
+        The title strip (traffic lights, sidebar toggle) moves above the
+        panel meanwhile (NavigationBar.set_bar_hidden), so it stays
+        reachable. The panel is reopened first if it was hidden: with
+        neither, the left side would be empty.
         """
-        title_bar = self._left_rail.title_bar
-        if title_bar is None or hidden == (not self._left_rail.isVisibleTo(self._left_panel)):
+        navigation = self._left_panel
+        if navigation.bar.isHidden() == bool(hidden):
             return
         if hidden and self._left_stack.isHidden():
             self._toggle_workspace()
-        sizes = self._main_split.sizes()
-        rail_width = self._left_rail.width()
-        if hidden:
-            self._left_rail.hide()
-            strip_layout = self._rail_hidden_strip.layout()
-            assert strip_layout is not None
-            strip_layout.addWidget(title_bar)
-            self._rail_hidden_strip.show()
-            moved = -rail_width
-        else:
-            self._rail_hidden_strip.hide()
-            rail_layout = self._left_rail.layout()
-            assert isinstance(rail_layout, QBoxLayout)
-            rail_layout.insertWidget(0, title_bar)
-            self._left_rail.show()
-            moved = rail_width
-        title_bar.refresh_lights_inset()
+        sizes = self._main_split.sizes() if hasattr(self, "_main_split") else []
+        width = self._rail_width()
+        navigation.set_bar_hidden(hidden)
+        if isinstance(navigation.header, CustomTitleBar):
+            navigation.header.refresh_lights_inset()
         self._apply_left_panel_limits()
-        if len(sizes) == 2:
-            self._main_split.setSizes([max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)])
-
-    def _restore_navigation_compact(self) -> None:
-        """Re-apply the remembered collapsed state, button included."""
-        if not bool(get_section(STATE_KEY).get(self.NAV_COMPACT_KEY, False)):
-            return
-        button = getattr(self._custom_title_bar, "sidebar_button", None)
-        if button is not None:
-            # setChecked drives the toggled signal, which calls
-            # set_navigation_compact - the button and the rail cannot
-            # disagree about the state this way.
-            button.setChecked(True)
-        else:
-            self.set_navigation_compact(True)
-
-    # ------------------------------------------------------------------
-    # Configuration helpers
-    # ------------------------------------------------------------------
-    def _create_properties_control(self) -> QToolBox:
-        """Create the properties QToolBox directly in the main window."""
-        self._figure_widget = FigurePropertiesWidget(self)
-        self._axis_widget = AxisPropertiesWidget(self)
-        self._series_widget = SeriesPropertiesWidget(self)
-        self._overlay_widget = OverlayPropertiesWidget(self)
-
-        control = QToolBox(self)
-        control.setObjectName("propertiesToolBox")
-        self._figure_properties_index = control.addItem(
-            self._figure_widget,
-            _("Figure properties"),
-        )
-        control.addItem(
-            self._axis_widget,
-            _("Axis properties"),
-        )
-        control.addItem(
-            self._series_widget,
-            _("Series properties"),
-        )
-        # Last: annotations and reference lines are the finishing pass on a
-        # chart, done once the data, the axes and the series are right.
-        control.addItem(
-            self._overlay_widget,
-            _("Overlay properties"),
-        )
-        control.setCurrentIndex(self._figure_properties_index)
-        # Section headers are sized from font metrics; QSS padding alone leaves
-        # the labels clipped (see apply_toolbox_header_metrics).
-        apply_toolbox_header_metrics(control)
-        apply_toolbox_page_metrics(control)
-        self._connect_property_signals()
-        self._clear_property_widgets()
-        return control
-
-    def _connect_property_signals(self) -> None:
-        """Connect property widgets to main-window persistence handlers."""
-        self._figure_widget.style_changed.connect(self._on_figure_style_changed)
-        self._figure_widget.grid_layout_requested.connect(self._on_grid_layout_requested)
-        self._figure_widget.layout_preset_requested.connect(self._on_layout_preset_requested)
-        self._figure_widget.figure_options_requested.connect(self._on_figure_options_requested)
-        self._axis_widget.axis_selected.connect(self._on_axis_selected)
-        self._axis_widget.renderer_changed.connect(self._on_axis_renderer_changed)
-        self._axis_widget.axis_options_requested.connect(self._on_axis_options_requested)
-        self._axis_widget.axis_action_requested.connect(self._on_axis_action_requested)
-        self._series_widget.series_options_requested.connect(self._on_series_options_requested)
-        self._series_widget.series_order_requested.connect(self._on_series_order_requested)
-        self._series_widget.series_delete_requested.connect(self._on_series_delete_requested)
-        self._overlay_widget.overlay_options_requested.connect(
-            self._on_overlay_options_requested
-        )
-
-    def _configure_tabs(self) -> None:
-        """Make the chart tabs shrink-friendly in both directions.
-
-        A QTabWidget is as wide as the wider of its tab bar and its current
-        page, and both push back by default: the bar lays every tab out at its
-        full title width, and the page reports the chart toolbar's width.  With
-        that floor in place the splitter has no room left to give the left
-        panel, which is why the left panel appeared to ignore its own minimum.
-        Eliding the titles and scrolling the bar removes the first half; the
-        second is handled inside ChartPanel.
-        """
-        self._tabs.setObjectName("chartTabs")
-        self._tabs.setDocumentMode(True)
-        self._tabs.setMovable(False)
-        self._tabs.setTabsClosable(False)
-        self._tabs.setMinimumSize(0, 0)
-        self._tabs.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-
-        tab_bar = self._tabs.tabBar()
-        tab_bar.setUsesScrollButtons(True)
-        tab_bar.setExpanding(False)
-        tab_bar.setElideMode(Qt.TextElideMode.ElideNone)
-        #tab_bar.setExpanding(False)
-        
-        # Without this the bar still asks for the full width of every title.
-        tab_bar.setMinimumWidth(300)
-        tab_bar.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
-        # The charts are chosen from the sidebar's Charts section and the
-        # jump bar above the chart now (see _sync_chart_navigation); the
-        # QTabWidget stays as the page stack, its own bar hidden.
-        tab_bar.hide()
-
-    def _configure_properties_control(self) -> None:
-        """Keep the properties control shrink-friendly.
-
-        The properties pane is later wrapped in a scroll area so it can exceed
-        the available height without forcing the whole main window taller.
-        """
-        self._properties_control.setMinimumSize(0, 0)
-        self._properties_control.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Ignored,
-        )
+        if sizes:
+            delta = -width if hidden else navigation.bar_width
+            left = max(sizes[0] + delta, 0)
+            total = max(sum(sizes), left + CHART_PANE_MIN_WIDTH)
+            self._main_split.setSizes([left, max(total - left, 1)])
 
     def _configure_left_panel(self) -> None:
         """Configure the composite left panel to avoid height lock-up."""
@@ -805,40 +693,118 @@ class MainWindow(QMainWindow):
 
         self._open_series_operation(dialog_class, icon)
 
-    def _create_left_stack(self) -> QStackedWidget:
-        """Create the stacked pages shown next to the activity rail.
+    def _create_properties_control(self) -> QToolBox:
+        """Create the properties QToolBox directly in the main window."""
+        self._figure_widget = FigurePropertiesWidget(self)
+        self._axis_widget = AxisPropertiesWidget(self)
+        self._series_widget = SeriesPropertiesWidget(self)
+        self._overlay_widget = OverlayPropertiesWidget(self)
 
-        The properties, Database and File pages are each wrapped in a
-        QScrollArea so they scroll vertically instead of forcing the whole
-        main window to keep a large minimum height - a QStackedWidget's own
-        minimumSizeHint is the max over *every* page it holds, current or
-        not, so an unbounded page (many tables, many recent projects) would
-        otherwise inflate the window's floor even while some other, shorter
-        page is the one actually showing.
+        control = QToolBox(self)
+        control.setObjectName("propertiesToolBox")
+        self._figure_properties_index = control.addItem(
+            self._figure_widget,
+            _("Figure properties"),
+        )
+        control.addItem(
+            self._axis_widget,
+            _("Axis properties"),
+        )
+        control.addItem(
+            self._series_widget,
+            _("Series properties"),
+        )
+        # Last: annotations and reference lines are the finishing pass on a
+        # chart, done once the data, the axes and the series are right.
+        control.addItem(
+            self._overlay_widget,
+            _("Overlay properties"),
+        )
+        control.setCurrentIndex(self._figure_properties_index)
+        # Section headers are sized from font metrics; QSS padding alone leaves
+        # the labels clipped (see apply_toolbox_header_metrics).
+        apply_toolbox_header_metrics(control)
+        apply_toolbox_page_metrics(control)
+        self._connect_property_signals()
+        self._clear_property_widgets()
+        return control
+
+    def _connect_property_signals(self) -> None:
+        """Connect property widgets to main-window persistence handlers."""
+        self._figure_widget.style_changed.connect(self._on_figure_style_changed)
+        self._figure_widget.grid_layout_requested.connect(self._on_grid_layout_requested)
+        self._figure_widget.layout_preset_requested.connect(self._on_layout_preset_requested)
+        self._figure_widget.figure_options_requested.connect(self._on_figure_options_requested)
+        self._axis_widget.axis_selected.connect(self._on_axis_selected)
+        self._axis_widget.renderer_changed.connect(self._on_axis_renderer_changed)
+        self._axis_widget.axis_options_requested.connect(self._on_axis_options_requested)
+        self._axis_widget.axis_action_requested.connect(self._on_axis_action_requested)
+        self._series_widget.series_options_requested.connect(self._on_series_options_requested)
+        self._series_widget.series_order_requested.connect(self._on_series_order_requested)
+        self._series_widget.series_delete_requested.connect(self._on_series_delete_requested)
+        self._overlay_widget.overlay_options_requested.connect(
+            self._on_overlay_options_requested
+        )
+
+    def _configure_tabs(self) -> None:
+        """Make the chart tabs shrink-friendly in both directions.
+
+        A QTabWidget is as wide as the wider of its tab bar and its current
+        page, and both push back by default: the bar lays every tab out at its
+        full title width, and the page reports the chart toolbar's width.  With
+        that floor in place the splitter has no room left to give the left
+        panel, which is why the left panel appeared to ignore its own minimum.
+        Eliding the titles and scrolling the bar removes the first half; the
+        second is handled inside ChartPanel.
         """
-        stack = QStackedWidget(self)
-        # Top padding here only, not on #activityRail beside it: the rail's
-        # own nav rows have their own icon+label affordance to read as
-        # "away from the edge" below the title bar strip (see
-        # main_window._create_central_host), but a page's own content
-        # starting flush against that same edge read as cramped.
-        # Right and bottom: the same gap the panel's own spacing leaves on the
-        # left, between the rail and the pages - without it every card ran
-        # flush to the panel's right and bottom edges, which showed on
-        # Windows' white page (todo W-01).
-        stack.setContentsMargins(0, 12, SPACING_DEFAULT, SPACING_DEFAULT)
-        stack.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding,)
-        # Page order follows NavigationBar.action_ids exactly - the rail
-        # hands back the index of the tile that was clicked, nothing
-        # richer, so the two lists are one ordering split across two
-        # files. File comes first, directly under Workspace: it is where
-        # a session starts (new, open, import, the recent list).
-        stack.addWidget(self._scrollable(self._create_file_page()))
-        stack.addWidget(self._data_page)
-        stack.addWidget(self._scrollable(self._properties_control))
-        stack.addWidget(self._create_series_operations_page())
-        stack.addWidget(self._scrollable(self._create_developer_page()))
-        return stack
+        self._tabs.setObjectName("chartTabs")
+        self._tabs.setDocumentMode(True)
+        self._tabs.setMovable(False)
+        self._tabs.setTabsClosable(False)
+        self._tabs.setMinimumSize(0, 0)
+        self._tabs.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
+
+        tab_bar = self._tabs.tabBar()
+        tab_bar.setUsesScrollButtons(True)
+        tab_bar.setExpanding(False)
+        tab_bar.setElideMode(Qt.TextElideMode.ElideNone)
+        #tab_bar.setExpanding(False)
+        
+        # Without this the bar still asks for the full width of every title.
+        tab_bar.setMinimumWidth(300)
+        tab_bar.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
+        # The charts are chosen from the sidebar's Charts section and the
+        # jump bar above the chart now (see _sync_chart_navigation); the
+        # QTabWidget stays as the page stack, its own bar hidden.
+        tab_bar.hide()
+
+    def _configure_properties_control(self) -> None:
+        """Keep the properties control shrink-friendly.
+
+        The properties pane is later wrapped in a scroll area so it can exceed
+        the available height without forcing the whole main window taller.
+        """
+        self._properties_control.setMinimumSize(0, 0)
+        self._properties_control.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Ignored,
+        )
+
+    def _restore_navigation_compact(self) -> None:
+        """Re-apply the remembered collapsed state, button included."""
+        if not bool(get_section(STATE_KEY).get(self.NAV_COMPACT_KEY, False)):
+            return
+        button = getattr(self._custom_title_bar, "sidebar_button", None)
+        if button is not None:
+            # setChecked drives the toggled signal, which calls
+            # set_navigation_compact - the button and the rail cannot
+            # disagree about the state this way.
+            button.setChecked(True)
+        else:
+            self.set_navigation_compact(True)
 
     def _scrollable(self, widget: QWidget) -> QScrollArea:
         """Wrap *widget* in a QScrollArea with no minimum-height floor of
@@ -852,11 +818,154 @@ class MainWindow(QMainWindow):
         scroll.setWidget(widget)
         return scroll
 
+    def _create_new_table_page(self) -> QWidget:
+        """Panel with the available ways to create a source table."""
+        page = QWidget(self)
+        page.setProperty("toolboxPage", True)
+        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        layout = QVBoxLayout(page)
+        stdSizeAndlayout(layout)
+        layout.addWidget(
+            self._titled_card(
+                page,
+                _("Create a new table"),
+                self._fill_new_table_card,
+                object_name="newTableCard",
+            )
+        )
+        layout.addStretch(1)
+        return page
+
+    def _fill_new_table_card(self, card: CardFrame) -> None:
+        layout = self._card_layout(card)
+        actions = (
+            (
+                _("From DOE"),
+                _("Generate an experiment matrix with factors and responses."),
+                self._on_new_table_from_doe,
+                "new",
+            ),
+            (
+                _("New Blank Table"),
+                _("Create an empty table with named columns."),
+                self._on_new_blank_table,
+                "new",
+            ),
+            (
+                _("Import Data"),
+                _("Create a table from a file, clipboard, database, or web source."),
+                self._on_import_data,
+                "import",
+            ),
+        )
+        for text, tooltip, handler, action_id in actions:
+            row = QHBoxLayout()
+            stdSizeAndlayout(row)
+            icon, _catalogue_text, _catalogue_tooltip = action_presentation(action_id)
+            create_action_button(
+                parent=card,
+                action_id=action_id,
+                action=handler,
+                layout=row,
+                presentation=(icon, text, tooltip),
+            )
+            row.addStretch(1)
+            layout.addLayout(row)
+            description = QLabel(tooltip, card)
+            description.setWordWrap(True)
+            description.setProperty("muted", True)
+            layout.addWidget(description)
+
+    def _on_new_table_from_doe(self) -> None:
+        try:
+            # Runtime import keeps this optional operation out of MainWindow's
+            # static dependency graph. If the module is not installed, the
+            # existing exception handler displays a useful message.
+            from importlib import import_module
+
+            doe_module = import_module("app.dialogs.doe_dialog")
+            dialog_type = cast(Any, getattr(doe_module, "DOEExperimentDialog"))
+            _panel, figure_id = self._get_current_figure_id()
+            dialog = dialog_type(
+                repo=self._repo,
+                figure_id=int(figure_id or 0),
+                parent=self,
+            )
+            dialog.applied.connect(self.refresh)
+            dialog.exec()
+            self._table_panel.reload()
+            table_name = getattr(dialog, "created_table_name", None)
+            if table_name:
+                self._preview.set_context(self._repo, str(table_name))
+                self._select_navigation("tables")
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Failed to create a table from DOE: %s", exc)
+            QMessageBox.warning(self, _("DOE table"), str(exc))
+
+    def _on_new_blank_table(self) -> None:
+        table_name, accepted = QInputDialog.getText(
+            self,
+            _("New Blank Table"),
+            _("Table name:"),
+            text="New_Table",
+        )
+        if not accepted:
+            return
+        raw_columns, accepted = QInputDialog.getText(
+            self,
+            _("New Blank Table"),
+            _("Column names, separated by commas:"),
+            text="Id, Value",
+        )
+        if not accepted:
+            return
+
+        columns = [value.strip() for value in str(raw_columns).split(",") if value.strip()]
+        if not str(table_name).strip() or not columns:
+            QMessageBox.warning(
+                self,
+                _("New Blank Table"),
+                _("Enter a table name and at least one column."),
+            )
+            return
+        if len({column.casefold() for column in columns}) != len(columns):
+            QMessageBox.warning(
+                self,
+                _("New Blank Table"),
+                _("Column names must be unique."),
+            )
+            return
+
+        try:
+            name = re.sub(
+                r"[^A-Za-z0-9_]+", "_", str(table_name).strip()
+            ).strip("_") or "New_Table"
+            if name[0].isdigit():
+                name = f"Table_{name}"
+            base, suffix = name, 1
+            while self._repo.check_if_table_exists(name):
+                name = f"{base}_{suffix}"
+                suffix += 1
+            frame = pd.DataFrame(
+                {column: pd.Series(dtype="object") for column in columns}
+            )
+            self._repo.import_dataframe(
+                frame,
+                table_name=name,
+                normalize_columns=False,
+            )
+            self._table_panel.reload()
+            self._preview.set_context(self._repo, name)
+            self._select_navigation("tables")
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Failed to create blank table: %s", exc)
+            QMessageBox.warning(self, _("New Blank Table"), str(exc))
+
     def _create_file_page(self) -> QWidget:
         """Workspace (New/Open), Demo, Import, Save, and Open Recent.
 
-        Page index 4, matching NavigationBar.action_ids' "nav_file" - the
-        rail's own popup-menu File button (off macOS only) used to be the
+        This panel is associated directly with the ``file`` navigation key.
+        The rail's old popup-menu File button used to be the
         only way to reach these; a page reachable on every platform, same
         as Database's, replaces it. Load demo lives here, in a card of its own
         beside Workspace, not under Help (see _app_menu_items) - starting from
@@ -1213,8 +1322,8 @@ class MainWindow(QMainWindow):
         page is gone; Query Builder moved to the Series Operations list.
         Then the tools that were here before.
 
-        Page index 4, matching NavigationBar.action_ids' "nav_developer" -
-        the old "Developer" menu group, moved here rather than merely
+        This panel is associated directly with the ``developer`` navigation
+        key. The old "Developer" menu group moved here rather than merely
         hidden the way File/Database's own groups still are (see
         _app_menu_items): none of these actions carries a shortcut
         worth preserving, and off macOS there was no menu bar to begin
@@ -1590,9 +1699,6 @@ class MainWindow(QMainWindow):
         # the tile keeps popping up the menu from before the language or
         # the undo stack changed. Guarded because the first build runs
         # before the rail exists.
-        rail = getattr(self, "_left_rail", None)
-        if rail is not None:
-            rail.set_help_menu(self._help_menu)
         self._app_menu = create_menu(self, self._flatten_menu_groups(groups))
         if previous is not None and IS_MACOS:
             # It is parented to this window, so replacing the attribute is not
@@ -1819,96 +1925,110 @@ class MainWindow(QMainWindow):
             applogger.exception("Failed to rename the native macOS app menu items.")
 
 
-    def _create_activity_rail(self) -> NavigationBar:
-        """Create the navigation rail and say what its tiles do here.
+    @staticmethod
+    def _navigation_icon(action_id: str) -> QIcon:
+        icon, _text, _tooltip = action_presentation(action_id)
+        return icon
 
-        The rail itself is host-agnostic (see nav_bar's own docstring): it
-        reports clicks and this is where they are given meaning, rather
-        than the rail reaching into this window for a stack to switch and
-        a settings dialog to open.
-        """
-        rail = NavigationBar(self, is_macos=IS_MACOS)
-        rail.page_selected.connect(self._set_nav_index)
-        rail.workspace_toggled.connect(self._on_workspace_tile_clicked)
-        rail.action_triggered.connect(self._on_rail_action)
-        rail.set_help_menu(self._help_menu)
-        return rail
+    def _create_navigation(self) -> NavigationBar:
+        """Create the bar and panel host from one section dictionary."""
+        file_panel = self._scrollable(self._create_file_page())
+        tables_panel = self._data_page
+        new_table_panel = self._scrollable(self._create_new_table_page())
+        chart_properties_panel = self._scrollable(self._properties_control)
+        series_operations_panel = self._create_series_operations_page()
+        developer_panel = self._scrollable(self._create_developer_page())
 
-    def _on_workspace_tile_clicked(self) -> None:
-        """Collapse the panel beside the rail, but never re-open it here.
+        sections: dict[str, dict[str, NavBarItem]] = {
+            "Tools": {
+                "workspace": NavBarItem(
+                    _("Workspace"), self._navigation_icon("nav_workspace"), None,
+                    _("Hide the panel"),
+                ),
+                "file": NavBarItem(
+                    _("File"), self._navigation_icon("nav_file"), file_panel,
+                    _("New, open, import and save"),
+                ),
+                "tables": NavBarItem(
+                    _("Tables"), self._navigation_icon("nav_data"), tables_panel,
+                    _("Show data tables"),
+                ),
+                "new_table": NavBarItem(
+                    _("New table"), self._navigation_icon("nav_new_table"), new_table_panel,
+                    _("Create a new table"),
+                ),
+                "chart_properties": NavBarItem(
+                    _("Chart properties"), self._navigation_icon("nav_chart_options"),
+                    chart_properties_panel, _("Edit the current chart"),
+                ),
+                "series_operations": NavBarItem(
+                    _("Series operations"), self._navigation_icon("nav_series_operations"),
+                    series_operations_panel, _("Transform or analyse chart series"),
+                ),
+                "developer": NavBarItem(
+                    _("Developer"), self._navigation_icon("nav_developer"), developer_panel,
+                    _("Developer tools"),
+                ),
+            },
+            "Charts": {},
+        }
+        if IS_WINDOWS:
+            sections["Settings"] = {
+                "settings": NavBarItem(
+                    _("Settings"), self._navigation_icon("settings"), None,
+                    _("Open application settings"),
+                )
+            }
 
-        The tile is a one-way "hide" - it is checked while hidden, and
-        clicking a page tile is what brings the panel back - so a click
-        arriving while the panel is already hidden must do nothing rather
-        than toggle it open again.
-        """
-        if (not self._left_stack.isHidden()):
-            self._toggle_workspace()
+        header = CustomTitleBar(cast(Any, self), is_macos=True) if IS_MACOS else None
+        # The pages keep the same gap from the rail as from the panel's right
+        # and bottom edges - flush, every card ran into the rail and the
+        # window's edge, which showed on Windows' white page (todo W-01).
+        navigation = NavigationBar(
+            sections, parent=self, header=header,
+            panel_margins=(SPACING_DEFAULT, 12, SPACING_DEFAULT, SPACING_DEFAULT),
+        )
+        navigation.action_clicked.connect(self._on_navigation_action)
+        navigation.panel_changed.connect(self._on_navigation_panel_changed)
+        return navigation
 
-    def _on_rail_action(self, key: str) -> None:
-        """Run a footer tile's action, named by key."""
+    def _on_navigation_action(self, key: str) -> None:
+        """Handle rows that intentionally have no associated panel."""
+        if key == "workspace":
+            if not self._left_stack.isHidden():
+                self._toggle_workspace()
+            return
         if key == "settings":
             self._on_settings()
-
-    def _create_left_panel(self) -> QWidget:
-        """Create the left-side area: activity rail + stacked content."""
-        # Flush, not padded: #leftPanelCard's own QSS draws it as a plain
-        # white panel with a hairline on its own right edge (Mail/Finder's
-        # sidebar-plus-list arrangement - see macos_native.qss), not a
-        # floating rounded card. The default MARGIN_CARD (10px all round)
-        # left a white gutter framing the grey activity rail on every
-        # side - most visible above and below it, where nothing else
-        # explains a gap.
-        panel = CardFrame(
-            self, "leftPanelCard", orientation=Qt.Orientation.Horizontal,
-            margins=(0, 0, 0, 0),
-        )
-        panel.setProperty("elevated", True)
-        panel.setMinimumSize(0, 0)
-        panel.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Expanding,
-        )
-
-        raw_layout = panel.layout()
-        if not isinstance(raw_layout, QBoxLayout):
-            raise RuntimeError("CardFrame did not create a box layout")
-        layout = raw_layout
-        layout.addWidget(self._left_rail, 0)
-        if IS_MACOS:
-            # The stack under a strip that is empty and hidden until the
-            # rail is: then the traffic lights and the sidebar toggle move
-            # here, above the panel, so nothing sits under the lights.
-            column = QWidget(panel)
-            column_layout = QVBoxLayout(column)
-            column_layout.setContentsMargins(0, 0, 0, 0)
-            column_layout.setSpacing(0)
-            self._rail_hidden_strip = QWidget(column)
-            strip_layout = QHBoxLayout(self._rail_hidden_strip)
-            strip_layout.setContentsMargins(0, 0, 0, 0)
-            self._rail_hidden_strip.hide()
-            column_layout.addWidget(self._rail_hidden_strip, 0)
-            column_layout.addWidget(self._left_stack, 1)
-            layout.addWidget(column, 1)
-        else:
-            layout.addWidget(self._left_stack, 1)
-
-        return panel
-
-    def _set_nav_index(self, index: int) -> None:
-        """Select one content page and restore the pane when necessary."""
-        if not 0 <= index < self._left_stack.count():
             return
-        if self._left_stack.isHidden():
-            self._toggle_workspace()
-        self._left_stack.setCurrentIndex(index)
-        self._left_rail.select_page(index)
-        if self._left_rail.action_ids[index] == "nav_file":
-            # Same reason the native menu's Open Recent rebuilds on every
-            # show: user.json's list can have changed since this page was
-            # last visited.
+        if key.startswith("chart:"):
+            try:
+                figure_id = int(key.partition(":")[2])
+            except ValueError:
+                return
+            index = self._tab_index_of_figure(figure_id)
+            if index >= 0:
+                self._tabs.setCurrentIndex(index)
+
+    def _on_navigation_panel_changed(self, key: str, panel: object) -> None:
+        del panel
+        # NavigationBar shows its panel before emitting this signal. If the
+        # Workspace action had pinned the splitter to the bar width, restore
+        # the panel width here rather than calling _toggle_workspace(), which
+        # would interpret the now-visible panel as a request to hide it again.
+        if self._left_panel.maximumWidth() <= max(self._rail_width(), 1):
+            sizes = self._main_split.sizes()
+            self._apply_left_panel_limits()
+            restore = int(getattr(self, "_left_panel_restore_width", 420))
+            total = max(sum(sizes), restore + CHART_PANE_MIN_WIDTH)
+            self._main_split.setSizes([restore, max(total - restore, 1)])
+        if key == "file":
             self._refresh_recent_list()
-        applogger.debug("Left navigation page changed to index %s", index)
+        applogger.debug("Left navigation item changed to %s", key)
+
+    def _select_navigation(self, key: str) -> None:
+        """Select a panel by stable key; no page index is involved."""
+        self._left_panel.select(key)
 
     # ------------------------------------------------------------------
     # Main layout
@@ -1944,7 +2064,7 @@ class MainWindow(QMainWindow):
         # its own width per platform (a macOS sidebar is wider than a
         # Windows Fluent tile rail), so the constant alone is only ever
         # right for one of them.
-        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._left_rail.width())
+        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._rail_width())
 
         # The chart pane needs the same treatment, and for the same reason:
         # whichever pane keeps a large implicit minimum wins the whole
@@ -1985,7 +2105,7 @@ class MainWindow(QMainWindow):
         # the macOS panel 160px of usable width - the table list and the
         # series-operation panels were unreadably narrow in it - while
         # giving Windows 228 for the same panel.
-        split.setSizes([self._left_rail.width() + PANEL_DEFAULT_WIDTH, 840])
+        split.setSizes([self._rail_width() + PANEL_DEFAULT_WIDTH, 840])
 
         return split
 
@@ -2189,10 +2309,10 @@ class MainWindow(QMainWindow):
         return symbol_icon("chart.xyaxis.line", "office-chart-line")
 
     def _sync_chart_navigation(self, *, rebuild: bool = True) -> None:
-        """Mirror the chart pages into the sidebar list and the jump bar."""
-        rail = getattr(self, "_left_rail", None)
+        """Rebuild chart actions and keep the chart jump bar synchronized."""
+        navigation = getattr(self, "_left_panel", None)
         jump = getattr(self, "_jump_bar", None)
-        if rail is None or jump is None:
+        if not isinstance(navigation, NavigationBar) or jump is None:
             return
         names = [self._tabs.tabText(i) for i in range(self._tabs.count())]
         current = self._tabs.currentIndex()
@@ -2200,16 +2320,23 @@ class MainWindow(QMainWindow):
             try:
                 chart_types = self._repo.figure_chart_types()
             except Exception:
-                applogger.debug("Chart types for the sidebar could not be read.", exc_info=True)
+                applogger.debug(
+                    "Chart types for the sidebar could not be read.", exc_info=True
+                )
                 chart_types = {}
-            charts = []
-            for i, name in enumerate(names):
-                widget = self._tabs.widget(i)
-                figure_id = int(widget.figure_id) if isinstance(widget, ChartPanel) else -1
-                charts.append((name, self._chart_icon(chart_types.get(figure_id, ""))))
-            rail.set_charts(charts, current)
-        else:
-            rail.select_chart(current)
+            chart_items: dict[str, NavBarItem] = {}
+            for index, name in enumerate(names):
+                widget = self._tabs.widget(index)
+                if not isinstance(widget, ChartPanel):
+                    continue
+                figure_id = int(widget.figure_id)
+                chart_items[f"chart:{figure_id}"] = NavBarItem(
+                    name,
+                    self._chart_icon(chart_types.get(figure_id, "")),
+                    None,
+                    name,
+                )
+            navigation.set_section("Charts", chart_items)
         jump.set_charts(names, current)
 
     def _tab_index_of_figure(self, figure_id: int) -> int:
@@ -3127,7 +3254,7 @@ class MainWindow(QMainWindow):
     def _on_database_info(self) -> None:
         """Show the database overview, at the top of the Developer page (the
         Database menu lands here - see _create_developer_page)."""
-        self._set_nav_index(self._left_rail.action_ids.index("nav_developer"))
+        self._select_navigation("developer")
 
     def _on_copy_chart(self) -> None:
         """Copy the current chart tab's figure to the clipboard.

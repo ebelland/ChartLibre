@@ -89,6 +89,11 @@ def run_app() -> int:
 
     app = QApplication(sys.argv)
 
+    jit=f"JIT is {"not " if not sys._jit.is_available() else ""}included in the build"  # True if JIT is included in the build
+    if sys._jit.is_available():
+        jit+=" and JIT is enabled"  if sys._jit.is_enabled() else " but JIT is not enabled"
+    applogger.info(jit)
+
     # Language before any widget is built: menus read their labels through the
     # translator when they are constructed.
     applogger.info("Interface language: %s", set_language(get_language()))
