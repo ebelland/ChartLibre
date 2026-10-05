@@ -303,6 +303,8 @@ def dialog_3d(qapp, repo: SqliteRepo):
         (TRANSLATE, {"dx": 1.0, "dy": 2.0, "dz": 3.0}),
         (SCALE, {"sx": 2.0, "sy": 1.0, "sz": 0.5, "use_data_centre": True}),
         (MATRIX, {"matrix_form": "3x2", "m11": 1.5, "m12": 0.2, "m21": 0.0, "m22": -1.0, "b1": 1.0, "b2": 2.0}),
+        (MATRIX, {"matrix_form": "3x2", "m13": 0.5, "m31": -0.25, "m32": 0.75, "m33": 2.0, "b3": -1.0,
+                  "use_data_centre": False, "cx": 0.0, "cy": 0.0, "cz": 0.0}),
     ],
 )
 def test_3d_the_database_computes_what_the_preview_drew(
@@ -399,3 +401,127 @@ def test_the_matrix_is_applied_as_written_about_the_origin(dialog: SeriesGeometr
     np.testing.assert_allclose(turned.after_x, -SQUARE["y"].to_numpy())
     assert form._widgets["b1"].isHidden()
     assert ("Offset", "4, -2.5") not in turned.settings
+
+
+def _apply(qapp, dialog: SeriesGeometryDialog) -> None:
+    done: list[bool] = []
+    dialog.apply(then=done.append)
+    for _attempt in range(500):
+        qapp.processEvents()
+        if done:
+            break
+    assert done == [True]
+
+
+def _surface_dialog(repo: SqliteRepo, chart_type: str) -> tuple[SeriesGeometryDialog, int]:
+    xs, ys = np.meshgrid(np.linspace(-1.0, 1.0, 6), np.linspace(-1.0, 1.0, 5))
+    grid = pd.DataFrame({"x": xs.ravel(), "y": ys.ravel(), "z": (xs * ys).ravel()})
+    repo.import_dataframe(grid, table_name="grid", normalize_columns=False)
+    figure_id = repo.create_figure_descriptor(name="Surface")
+    axis_id = repo.create_axis_descriptor(
+        figure_id=figure_id, axis_index=0, chart_type=chart_type,
+        title="grid", x_label="x", y_label="y", options={"projection": "3d"},
+    )
+    repo.create_series_descriptor(
+        axis_id=axis_id, series_index=0, name="grid",
+        sql_query='SELECT * FROM "grid"', roles={"x": "x", "y": "y", "z": "z"}, style={},
+    )
+    built = SeriesGeometryDialog(repo=repo, figure_id=figure_id, parent=None)
+    built.series_selector.reload(select_all_series=True)
+    return built, int(figure_id)
+
+
+def test_a_turned_surface_gets_an_axis_of_its_own_and_is_drawn(qapp, repo: SqliteRepo) -> None:
+    """A surface chart draws one series: added beside the source, the result was saved and never drawn."""
+    from matplotlib.figure import Figure
+
+    from app.charts.render_figure import render_figure_from_descriptor
+
+    dialog, figure_id = _surface_dialog(repo, "Surface Plot")
+    try:
+        _configure(dialog, ROTATE, angle_x=30.0, angle_y=0.0, angle_z=0.0, use_data_centre=True)
+        _apply(qapp, dialog)
+        descriptor = repo.load_figure_descriptor(figure_id)
+        assert descriptor is not None
+        assert [(axis.name, len(axis.series)) for axis in descriptor.axes] == [
+            ("Surface Plot", 1),
+            ("Surface Plot (Scattered)", 1),  # off its grid once turned
+        ]
+        assert descriptor.axes[1].options and descriptor.axes[1].options.get("projection") == "3d"
+
+        figure = Figure()
+        render_figure_from_descriptor(figure=figure, descriptor=descriptor, repo=repo)
+        assert [len(axes.collections) for axes in figure.axes] == [1, 1]
+    finally:
+        dialog.close()
+        applogger.set_status_bar(None)
+
+
+def test_a_moved_3d_scatter_stays_on_its_axis(qapp, repo: SqliteRepo) -> None:
+    dialog, figure_id = _surface_dialog(repo, "Scatter Plot (3D)")
+    try:
+        _configure(dialog, ROTATE, angle_x=30.0, angle_y=0.0, angle_z=0.0, use_data_centre=True)
+        _apply(qapp, dialog)
+        descriptor = repo.load_figure_descriptor(figure_id)
+        assert descriptor is not None
+        assert [len(axis.series) for axis in descriptor.axes] == [2]
+    finally:
+        dialog.close()
+        applogger.set_status_bar(None)
+
+
+
+def test_a_3d_matrix_mixes_z_in_as_written(dialog_3d: SeriesGeometryDialog) -> None:
+    _configure(dialog_3d, MATRIX, matrix_form="3x2", use_data_centre=False, cx=0.0, cy=0.0, cz=0.0,
+               m11=1.0, m12=0.0, m13=2.0, m21=0.0, m22=1.0, m23=0.0, m31=0.0, m32=3.0, m33=1.0,
+               b1=0.0, b2=0.0, b3=10.0)
+    result = dialog_3d.compute_results()[0]
+    x, y, z = (CUBE[c].to_numpy() for c in ("x", "y", "z"))
+    np.testing.assert_allclose(result.after_x, x + 2.0 * z, atol=1e-9)
+    np.testing.assert_allclose(result.after_y, y, atol=1e-9)
+    np.testing.assert_allclose(result.after_z, 3.0 * y + z + 10.0, atol=1e-9)
+
+
+def test_the_matrix_is_a_grid_with_z_only_for_a_3d_series(
+    dialog: SeriesGeometryDialog, dialog_3d: SeriesGeometryDialog
+) -> None:
+    for built in (dialog, dialog_3d):
+        _configure(built, MATRIX, matrix_form="2x2")
+    form, form_3d = dialog._parameter_form_spec, dialog_3d._parameter_form_spec
+    assert form.layout.labelForField(form.field("m11")) is None  # in the grid, not a labelled row
+    assert not form.field("m11").isHidden() and form.field("m33").isHidden() and form.field("b1").isHidden()
+    assert dialog._matrix_row_labels[2].isHidden() and dialog._matrix_column_labels[3].isHidden()
+    assert not form_3d.field("m33").isHidden() and not dialog_3d._matrix_row_labels[2].isHidden()
+
+    _configure(dialog_3d, MATRIX, matrix_form="3x2")
+    assert not form_3d.field("b3").isHidden() and not dialog_3d._matrix_column_labels[3].isHidden()
+    _configure(dialog_3d, ROTATE)
+    assert dialog_3d._matrix_grid.isHidden()
+
+
+def test_previewing_a_surface_twice_draws_on_a_live_axis(qapp, repo: SqliteRepo) -> None:
+    """The first Preview's new axis is undone before the second: the dialog must not keep its id.
+
+    It did, and the second Preview's series pointed at an axis that no longer
+    existed - "FOREIGN KEY constraint failed".
+    """
+    dialog, figure_id = _surface_dialog(repo, "Surface Plot")
+    try:
+        for angle in (30.0, 45.0):
+            _configure(dialog, ROTATE, angle_x=angle, angle_y=0.0, angle_z=0.0, use_data_centre=True)
+            done: list[bool] = []
+            dialog._run_operation(commit=False, then=done.append)  # Preview, told when it is done
+            for _attempt in range(500):
+                qapp.processEvents()
+                if done:
+                    break
+            assert done == [True], f"preview at {angle} failed"
+        descriptor = repo.load_figure_descriptor(figure_id)
+        assert descriptor is not None
+        assert [axis.name for axis in descriptor.axes] == ["Surface Plot", "Surface Plot (Scattered)"]
+        _apply(qapp, dialog)
+        descriptor = repo.load_figure_descriptor(figure_id)
+        assert descriptor is not None and [len(axis.series) for axis in descriptor.axes] == [1, 1]
+    finally:
+        dialog.close()
+        applogger.set_status_bar(None)

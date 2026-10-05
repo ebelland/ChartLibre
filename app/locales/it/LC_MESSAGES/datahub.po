@@ -1222,7 +1222,7 @@ msgid "From the style"
 msgstr "Dallo stile"
 
 msgid "Default"
-msgstr "Predefinito"
+msgstr "Auto"
 
 msgid "From x:"
 msgstr "Da x:"
@@ -1348,7 +1348,7 @@ msgid "Hide rows failed"
 msgstr "Impossibile nascondere le righe"
 
 msgid "Hide spines"
-msgstr "Nascondi i bordi degli assi"
+msgstr "Nascondi bordi"
 
 msgid "Highlight the flagged points:"
 msgstr "Evidenzia i punti segnalati:"
@@ -2571,7 +2571,7 @@ msgid "Show generated tables"
 msgstr "Mostra le tabelle generate"
 
 msgid "Show grid"
-msgstr "Mostra la griglia"
+msgstr "Mostra griglia"
 
 msgid "Show in legend"
 msgstr "Mostra in legenda"
@@ -5190,13 +5190,13 @@ msgid "1 leaves y alone; 2 doubles it about the centre below."
 msgstr "1 lascia y invariata; 2 la raddoppia rispetto al centro indicato sotto."
 
 msgid "Shear x per y:"
-msgstr "Taglio di x per unita' di y:"
+msgstr "Taglio x per y:"
 
 msgid "Adds this much x for each unit of y above the centre."
 msgstr "Aggiunge questa quantita' di x per ogni unita' di y sopra il centro."
 
 msgid "Shear y per x:"
-msgstr "Taglio di y per unita' di x:"
+msgstr "Taglio y per x:"
 
 msgid "Adds this much y for each unit of x right of the centre."
 msgstr "Aggiunge questa quantita' di y per ogni unita' di x a destra del centro."
@@ -7041,3 +7041,57 @@ msgstr "Fattoriale a due livelli"
 
 msgid "Unsupported DOE model: {model}"
 msgstr "Modello DOE non supportato: {model}"
+
+msgid "Angle (°):"
+msgstr "Angolo (°):"
+
+msgid "Rotation x (°):"
+msgstr "Rotazione x (°):"
+
+msgid "Rotation y (°):"
+msgstr "Rotazione y (°):"
+
+msgid "Rotation z (°):"
+msgstr "Rotazione z (°):"
+
+msgid "Each new coordinate is its row of the matrix times x and y (and z, for a 3D series), about the centre below. With offsets adds the last column afterwards. Untick 'Centre on the data' and set the centre to 0 for the matrix exactly as written."
+msgstr "Ogni nuova coordinata è la sua riga della matrice per x e y (e z, per una serie 3D), attorno al centro qui sotto. Con traslazione aggiunge poi l'ultima colonna. Togli la spunta a 'Centra sui dati' e metti il centro a 0 per applicare la matrice esattamente come è scritta."
+
+msgid "With offsets"
+msgstr "Con traslazione"
+
+msgid "How much of x goes into the new x."
+msgstr "Quanto di x entra nella nuova x."
+
+msgid "How much of z goes into the new x."
+msgstr "Quanto di z entra nella nuova x."
+
+msgid "How much of y goes into the new y."
+msgstr "Quanto di y entra nella nuova y."
+
+msgid "How much of z goes into the new y."
+msgstr "Quanto di z entra nella nuova y."
+
+msgid "How much of x goes into the new z."
+msgstr "Quanto di x entra nella nuova z."
+
+msgid "How much of y goes into the new z."
+msgstr "Quanto di y entra nella nuova z."
+
+msgid "How much of z goes into the new z."
+msgstr "Quanto di z entra nella nuova z."
+
+msgid "Added to every new x, after the matrix."
+msgstr "Aggiunto a ogni nuova x, dopo la matrice."
+
+msgid "Added to every new y, after the matrix."
+msgstr "Aggiunto a ogni nuova y, dopo la matrice."
+
+msgid "Added to every new z, after the matrix."
+msgstr "Aggiunto a ogni nuova z, dopo la matrice."
+
+msgid "Exit"
+msgstr "Esci"
+
+msgid "Close the log"
+msgstr "Chiudi il log"

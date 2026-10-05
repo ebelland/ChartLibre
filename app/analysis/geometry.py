@@ -75,6 +75,14 @@ def matrix_xy(entries: tuple[tuple[float, float], tuple[float, float]]) -> np.nd
     return np.array([[a, b, 0.0], [c, d, 0.0], [0.0, 0.0, 1.0]])
 
 
+def matrix_xyz(entries: tuple[tuple[float, float, float], ...]) -> np.ndarray:
+    """A 3 x 3 matrix acting on x, y and z together."""
+    matrix = np.asarray(entries, dtype=float)
+    if matrix.shape != (3, 3):
+        raise ValueError(f"a 3 x 3 matrix has nine entries, not {matrix.size}")
+    return matrix
+
+
 @dataclass(frozen=True, slots=True)
 class Motion:
     """``p' = centre + matrix (p - centre) + translation``."""

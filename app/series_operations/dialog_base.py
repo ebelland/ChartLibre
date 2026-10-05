@@ -1798,6 +1798,33 @@ class SeriesOperationDialogBase(QDialog):
             else selected_axis_id
         )
 
+    def _forget_rolled_back_target(self) -> None:
+        """Drop the remembered result axis or figure if the rollback removed it.
+
+        resolve_destination_axis makes the target once and reuses it. Made
+        during a Preview, it is inside the preview's savepoint, and undoing
+        the Preview undoes it too - the next Preview then drew on an axis
+        that no longer existed ("FOREIGN KEY constraint failed").
+        """
+        axis_id = getattr(self, "_result_axis_id", None)
+        figure_id = getattr(self, "_result_figure_id", None)
+        if axis_id is None and figure_id is None:
+            return
+        try:
+            if figure_id is not None and self._repo.get_figure_descriptor(int(figure_id)) is None:
+                self._result_axis_id = self._result_figure_id = None
+                return
+            descriptor = self._repo.load_figure_descriptor(
+                int(figure_id) if figure_id is not None else self._figure_id
+            )
+            axis_ids = {int(axis.id) for axis in (descriptor.axes if descriptor else [])}
+        except Exception:
+            applogger.exception("Could not check the result target after a rollback")
+            axis_ids = set()
+        if axis_id is not None and int(axis_id) not in axis_ids:
+            self._result_axis_id = None
+            self._result_figure_id = None
+
     def discard_result_target(self) -> None:
         """Remove an axis or figure this dialog made, when Apply never ran.
 
@@ -2375,6 +2402,8 @@ class SeriesOperationDialogBase(QDialog):
         # written before this dialog opened one) is not left behind.
         if not rolled_back:
             self.remove_preview_artifacts()
+        else:
+            self._forget_rolled_back_target()
 
         # Keep the grid consistent with the rolled-back axis descriptors.
         # This fixes preview flows that grow the grid (for example 1x1 -> 2x1)

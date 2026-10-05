@@ -39,6 +39,13 @@ from app.utils.i18n import _
 from app.widgets.color_combo import MatplotlibColorCombo
 
 
+#: The narrowest a number box may become. Without it a box is as wide as
+#: its largest value needs - "-1000000000000.000000" for a range of 1e12 -
+#: and one such box pushed every field past the panel's right edge. The
+#: field still grows to fill the row; it only no longer refuses to shrink.
+SPIN_MIN_WIDTH: int = 80
+
+
 class ParameterForm:
     """A QFormLayout built from ``Param`` declarations."""
 
@@ -62,6 +69,10 @@ class ParameterForm:
         self._on_change = on_change
         self._context = context
         self._widgets: dict[str, QWidget] = {}
+        #: Called after every visibility refresh - for a dialog that has moved
+        #: some fields out of the form (into a grid, say) and keeps the
+        #: labels it drew for them in step.
+        self.after_refresh: list[Callable[[], None]] = []
 
         self.widget = QWidget(parent)
         self.layout = QFormLayout(self.widget)
@@ -134,6 +145,8 @@ class ParameterForm:
         else:
             raise TypeError(f"Unsupported parameter type: {type(param).__name__}")
 
+        if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+            widget.setMinimumWidth(SPIN_MIN_WIDTH)
         if param.tooltip:
             widget.setToolTip(_(param.tooltip))
         return widget
@@ -223,3 +236,9 @@ class ParameterForm:
             label = self.layout.labelForField(widget)
             if label is not None:
                 label.setVisible(visible)
+        for callback in self.after_refresh:
+            callback()
+
+    def field(self, name: str) -> QWidget:
+        """The control built for the parameter *name*."""
+        return self._widgets[name]

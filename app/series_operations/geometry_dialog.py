@@ -38,11 +38,14 @@ import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 from matplotlib.figure import Figure
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QAbstractSpinBox, QGridLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from app.analysis import geometry as geo
+from app.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, quote_identifier, row_value, resolve_role_column
 from app.logs.logger import applogger
+from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
 from app.series_operations.results import OperationResult
 from app.series_operations.dialog_base import OperationModel, ResultSeriesSpec, SeriesOperationDialogBase
 from app.series_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
@@ -93,15 +96,21 @@ MIRROR_LINES: tuple[tuple[str, float], ...] = (
     ("Diagonal y = -x", 135.0),
 )
 
-#: The matrix model's two forms: the 2x2 alone, or with a row of offsets.
+#: The matrix model's two forms: the matrix alone, or with a column of
+#: offsets added afterwards. The values are the names they had when the
+#: matrix was always 2 x 2, kept so a remembered choice still reads.
 MATRIX_2X2 = "2x2"
 MATRIX_3X2 = "3x2"
 MATRIX_FORMS: tuple[tuple[str, str], ...] = (
-    ("2 x 2", MATRIX_2X2),
-    ("3 x 2 (+ offsets)", MATRIX_3X2),
+    ("Linear", MATRIX_2X2),
+    ("With offsets", MATRIX_3X2),
 )
-#: The matrix entries, in reading order: row, then column.
+#: The matrix entries, in reading order: row, then column. A 2D series
+#: uses the top-left 2 x 2, a 3D one all nine.
 MATRIX_ENTRIES = ("m11", "m12", "m21", "m22")
+MATRIX_ENTRIES_3D = ("m11", "m12", "m13", "m21", "m22", "m23", "m31", "m32", "m33")
+#: The offsets, one per row.
+MATRIX_OFFSETS = ("b1", "b2", "b3")
 
 #: Before and after, in the two colours the eye reads as "was" and "is".
 BEFORE_COLOUR = "#2563EB"
@@ -148,10 +157,10 @@ class GeometryResult(OperationResult):
     # A series and no table: its own query carries the transform, so the
     # descriptor is the only thing to write.
     def preview(self, dialog: Any, axis_id: int) -> None:
-        dialog.create_preview_series(axis_id, "", self)
+        dialog.create_preview_series(dialog.axis_for_result(axis_id, self), "", self)
 
     def apply(self, dialog: Any, axis_id: int) -> None:
-        dialog.create_result_series(axis_id, "", self)
+        dialog.create_result_series(dialog.axis_for_result(axis_id, self), "", self)
 
 
 #: Dots per inch of the before/after picture: the charts' on-screen dpi.
@@ -338,7 +347,7 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
     PARAMS = (
         FloatParam(
             "angle",
-            "Angle (degrees):",
+            "Angle (°):",
             tooltip=(
                 "Counter-clockwise, about the centre below. The query "
                 "spells this out as cos(radians(...)) rather than as a "
@@ -349,21 +358,21 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         ),
         FloatParam(
             "angle_x",
-            "Rotation about x (degrees):",
+            "Rotation x (°):",
             tooltip="Applied first. Positive turns y towards z (right-hand rule).",
             default_value=0.0, minimum=-360.0, maximum=360.0, decimals=4, step=15.0,
             visible_for={"model": _ROTATING, "dims": ("3D",)},
         ),
         FloatParam(
             "angle_y",
-            "Rotation about y (degrees):",
+            "Rotation y (°):",
             tooltip="Applied second. Positive turns z towards x.",
             default_value=0.0, minimum=-360.0, maximum=360.0, decimals=4, step=15.0,
             visible_for={"model": _ROTATING, "dims": ("3D",)},
         ),
         FloatParam(
             "angle_z",
-            "Rotation about z (degrees):",
+            "Rotation z (°):",
             tooltip="Applied last. Positive turns x towards y - the 2D rotation.",
             default_value=30.0, minimum=-360.0, maximum=360.0, decimals=4, step=15.0,
             visible_for={"model": _ROTATING, "dims": ("3D",)},
@@ -435,55 +444,98 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
             "matrix_form",
             "Matrix:",
             tooltip=(
-                "2 x 2: x' = a11 x + a12 y and y' = a21 x + a22 y, about the "
-                "centre below. 3 x 2 adds a third row of offsets, b1 and b2, "
-                "added afterwards. Untick 'Centre on the data' and set the "
-                "centre to 0, 0 for the matrix exactly as written."
+                "Each new coordinate is its row of the matrix times x and y "
+                "(and z, for a 3D series), about the centre below. With "
+                "offsets adds the last column afterwards. Untick 'Centre on "
+                "the data' and set the centre to 0 for the matrix exactly as "
+                "written."
             ),
             choices=MATRIX_FORMS,
             visible_for={"model": (MATRIX,)},
         ),
         FloatParam(
             "m11",
-            "a11 (x' per x):",
-            tooltip="How much of x goes into the new x. 1 with a12 = 0 keeps x.",
-            default_value=1.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
+            "m11",
+            tooltip="How much of x goes into the new x.",
+            default_value=1.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
             visible_for={"model": (MATRIX,)},
         ),
         FloatParam(
             "m12",
-            "a12 (x' per y):",
+            "m12",
             tooltip="How much of y goes into the new x.",
-            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
             visible_for={"model": (MATRIX,)},
         ),
         FloatParam(
+            "m13",
+            "m13",
+            tooltip="How much of z goes into the new x.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
+            visible_for={"model": (MATRIX,), "dims": ("3D",)},
+        ),
+        FloatParam(
             "m21",
-            "a21 (y' per x):",
+            "m21",
             tooltip="How much of x goes into the new y.",
-            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
             visible_for={"model": (MATRIX,)},
         ),
         FloatParam(
             "m22",
-            "a22 (y' per y):",
-            tooltip="How much of y goes into the new y. 1 with a21 = 0 keeps y.",
-            default_value=1.0, minimum=-1.0e6, maximum=1.0e6, decimals=6, step=0.1,
+            "m22",
+            tooltip="How much of y goes into the new y.",
+            default_value=1.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
             visible_for={"model": (MATRIX,)},
         ),
         FloatParam(
+            "m23",
+            "m23",
+            tooltip="How much of z goes into the new y.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
+            visible_for={"model": (MATRIX,), "dims": ("3D",)},
+        ),
+        FloatParam(
+            "m31",
+            "m31",
+            tooltip="How much of x goes into the new z.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
+            visible_for={"model": (MATRIX,), "dims": ("3D",)},
+        ),
+        FloatParam(
+            "m32",
+            "m32",
+            tooltip="How much of y goes into the new z.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
+            visible_for={"model": (MATRIX,), "dims": ("3D",)},
+        ),
+        FloatParam(
+            "m33",
+            "m33",
+            tooltip="How much of z goes into the new z.",
+            default_value=1.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
+            visible_for={"model": (MATRIX,), "dims": ("3D",)},
+        ),
+        FloatParam(
             "b1",
-            "b1 (added to x'):",
-            tooltip="The third row: added to every new x, after the 2 x 2.",
-            default_value=0.0, minimum=-1.0e12, maximum=1.0e12, decimals=6, step=1.0,
+            "b1",
+            tooltip="Added to every new x, after the matrix.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
             visible_for={"model": (MATRIX,), "matrix_form": (MATRIX_3X2,)},
         ),
         FloatParam(
             "b2",
-            "b2 (added to y'):",
-            tooltip="The third row: added to every new y, after the 2 x 2.",
-            default_value=0.0, minimum=-1.0e12, maximum=1.0e12, decimals=6, step=1.0,
+            "b2",
+            tooltip="Added to every new y, after the matrix.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
             visible_for={"model": (MATRIX,), "matrix_form": (MATRIX_3X2,)},
+        ),
+        FloatParam(
+            "b3",
+            "b3",
+            tooltip="Added to every new z, after the matrix.",
+            default_value=0.0, minimum=-1.0e6, maximum=1.0e6, decimals=3, step=0.1,
+            visible_for={"model": (MATRIX,), "dims": ("3D",), "matrix_form": (MATRIX_3X2,)},
         ),
         FloatParam(
             "cx",
@@ -524,7 +576,7 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         ),
         BoolParam(
             "show_grid",
-            "Show the deformation grid",
+            "Show grid",
             tooltip=(
                 "Draws a square mesh (a box in 3D) over the source's extent "
                 "and the same mesh after the transform. A rotation turns it, "
@@ -556,6 +608,84 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # UI
     # ------------------------------------------------------------------
+
+    def build_parameter_selector(self) -> QWidget:
+        widget = super().build_parameter_selector()
+        self._build_matrix_grid()
+        return widget
+
+    def _build_matrix_grid(self) -> None:
+        """Lay the matrix out as the matrix it is: columns x, y, z, rows x', y', z'.
+
+        Nine labelled rows ("a12 (x' per unit of y)") were wider than the
+        panel and read as nine unrelated numbers. The fields stay the form's
+        own - read, remembered and shown or hidden by it as before - and only
+        move into a grid; the offsets, when used, are its last column. A 2D
+        series shows the top-left 2 x 2, a 3D one all three rows.
+        """
+        form = self._parameter_form_spec
+        layout = form.layout
+        holder = QWidget(form.widget)
+        grid = QGridLayout(holder)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(4)
+        grid.setVerticalSpacing(4)
+
+        def muted(text: str) -> QLabel:
+            label = QLabel(text, holder)
+            label.setProperty("muted", True)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            return label
+
+        axes = "xyz"
+        self._matrix_column_labels = [muted(axis) for axis in axes] + [muted("+")]
+        for column, label in enumerate(self._matrix_column_labels, start=1):
+            grid.addWidget(label, 0, column)
+        self._matrix_row_labels = [muted(f"{axis}\u2032") for axis in axes]
+        for row, label in enumerate(self._matrix_row_labels, start=1):
+            grid.addWidget(label, row, 0)
+
+        names = [*MATRIX_ENTRIES_3D, *MATRIX_OFFSETS]
+        first_row = layout.getWidgetPosition(form.field("m11"))[0]
+        for name in names:
+            field = form.field(name)
+            taken = layout.takeRow(field)
+            if taken.labelItem is not None and taken.labelItem.widget() is not None:
+                taken.labelItem.widget().deleteLater()
+            if isinstance(field, QAbstractSpinBox):
+                # A grid of numbers, not of controls: no arrows, and narrow
+                # enough for four across the panel.
+                field.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+                field.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                # Only the padding is changed here; the platform stylesheet
+                # still draws the box. Its own padding left room for three
+                # characters of "1.000" in a four-column 3D grid.
+                field.setStyleSheet("QAbstractSpinBox { padding-left: 2px; padding-right: 2px; }")
+                field.setMinimumWidth(48)
+                field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            if name.startswith("b"):
+                grid.addWidget(field, int(name[1]), 4)
+            else:
+                grid.addWidget(field, int(name[1]), int(name[2]))
+        layout.insertRow(first_row, holder)
+        self._matrix_grid = holder
+        self._matrix_layout = grid
+        form.after_refresh.append(self._sync_matrix_grid)
+        self._sync_matrix_grid()
+
+    def _sync_matrix_grid(self) -> None:
+        """Show the grid, its z row and column and its offsets column with their fields."""
+        form = self._parameter_form_spec
+        self._matrix_grid.setVisible(not form.field("m11").isHidden())
+        three_d = not form.field("m33").isHidden()
+        offsets = not form.field("b1").isHidden()
+        self._matrix_column_labels[2].setVisible(three_d)
+        self._matrix_row_labels[2].setVisible(three_d)
+        self._matrix_column_labels[3].setVisible(offsets)
+        # The width goes to the columns in use: a 2D matrix's offsets sit
+        # right after y, not beyond an empty z column.
+        for column, used in ((1, True), (2, True), (3, three_d), (4, offsets)):
+            self._matrix_layout.setColumnStretch(column, 1 if used else 0)
 
     def build_results_pane(self) -> QWidget:
         card = CardFrame(self, "operationResultsCard")
@@ -655,13 +785,16 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
             matrix = geo.shear_xy(float(values.get("kx", 0.0)), float(values.get("ky", 0.0)))
             return geo.Motion.of(matrix, centre=centre), None
         if model == MATRIX:
-            m11, m12, m21, m22 = (float(values.get(key, 0.0)) for key in MATRIX_ENTRIES)
-            matrix = geo.matrix_xy(((m11, m12), (m21, m22)))
-            translation = (
-                (float(values.get("b1", 0.0)), float(values.get("b2", 0.0)), 0.0)
-                if values.get("matrix_form") == MATRIX_3X2
-                else (0.0, 0.0, 0.0)
-            )
+            if is_3d:
+                a = [float(values.get(key, 0.0)) for key in MATRIX_ENTRIES_3D]
+                matrix = geo.matrix_xyz((tuple(a[0:3]), tuple(a[3:6]), tuple(a[6:9])))
+            else:
+                m11, m12, m21, m22 = (float(values.get(key, 0.0)) for key in MATRIX_ENTRIES)
+                matrix = geo.matrix_xy(((m11, m12), (m21, m22)))
+            offsets = [float(values.get(key, 0.0)) for key in MATRIX_OFFSETS]
+            if not is_3d:
+                offsets[2] = 0.0
+            translation = tuple(offsets) if values.get("matrix_form") == MATRIX_3X2 else (0.0, 0.0, 0.0)
             return geo.Motion.of(matrix, centre=centre, translation=translation), None
         # Mirror.
         return geo.Motion.of(geo.mirror_xy(float(values.get("mirror_line", 0.0))), centre=centre), None
@@ -875,9 +1008,14 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
         if model_name == SHEAR:
             rows.append((_("Shear"), f"{num('kx')}, {num('ky')}"))
         if model_name == MATRIX:
-            rows.append((_("Matrix"), f"[{num('m11')}, {num('m12')}; {num('m21')}, {num('m22')}]"))
+            size = 3 if is_3d else 2
+            matrix_rows = (
+                ", ".join(num(f"m{row}{col}", 1 if row == col else 0) for col in range(1, size + 1))
+                for row in range(1, size + 1)
+            )
+            rows.append((_("Matrix"), "[" + "; ".join(matrix_rows) + "]"))
             if values.get("matrix_form") == MATRIX_3X2:
-                rows.append((_("Offset"), f"{num('b1')}, {num('b2')}"))
+                rows.append((_("Offset"), ", ".join(num(f"b{row}") for row in range(1, size + 1))))
         if model_name == MIRROR:
             line = float(values.get("mirror_line", 0.0))
             rows.append((_("Mirror line"), next((_(label) for label, angle in MIRROR_LINES if angle == line), f"{line:g}°")))
@@ -890,6 +1028,45 @@ class SeriesGeometryDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # Writing the series
     # ------------------------------------------------------------------
+
+    #: A surface on a regular grid, and the chart that draws the same
+    #: surface from scattered points - what a turned grid becomes.
+    GRID_SURFACE: str = "Surface Plot"
+    SCATTERED_SURFACE: str = "Surface Plot (Scattered)"
+
+    def axis_for_result(self, axis_id: int, result: GeometryResult) -> int:
+        """The source's own axis, or a new one in this figure when it cannot draw the result.
+
+        A surface chart draws one series per axis (its renderer's MaxSeries):
+        two surfaces on one set of axes hide each other. The moved surface,
+        added there, was saved but never drawn. It gets an axis of its own,
+        with the source's chart type and options - the 3D projection and the
+        camera among them - and a surface on a grid that is no longer on one
+        once turned is drawn from its points instead.
+        """
+        descriptor = self._repo.load_figure_descriptor(self._figure_id)
+        axis = next((a for a in (descriptor.axes if descriptor else []) if int(a.id) == int(axis_id)), None)
+        if axis is None:
+            return axis_id
+        entry = get_renderer(axis.name)
+        renderer = import_class_from_file(entry) if entry else None
+        limit = getattr(renderer, "MaxSeries", None)
+        if limit is None or len(axis.series) < int(limit):
+            return axis_id
+        chart_type = axis.name
+        if chart_type == self.GRID_SURFACE and result.is_3d:
+            moved = result.to_df()
+            if pivot_to_grid(moved, x_role=result.x_role, y_role=result.y_role, z_role=str(result.z_role)) is None:
+                chart_type = self.SCATTERED_SURFACE
+        title = f"{axis.title or result.source_name} ({_(result.model).lower()})"
+        return self.resolve_destination_axis(
+            axis_id,
+            chart_type=chart_type,
+            title=title,
+            options={**(axis.options or {}), "title": title},
+            # Not a parameter of this operation: missing, it means a new axis.
+            parameter="_geometry_destination",
+        )
 
     def result_series_spec(
         self, axis_id: int, table_name: str, result: GeometryResult
