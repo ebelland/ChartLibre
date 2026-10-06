@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,
-    QFormLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -408,15 +407,6 @@ class FigurePropertiesWidget(BaseProperties):
             self._nrows_combo.addItem(str(i), i)
             self._ncols_combo.addItem(str(i), i)
 
-        grid_section_lay.addWidget(
-            PairGrid(
-                [
-                    (QLabel(_("Rows"), grid_section), self._nrows_combo),
-                    (QLabel(_("Cols"), grid_section), self._ncols_combo),
-                ],
-                grid_section,
-            )
-        )
 
         # A preset writes row_span/col_span/sharex/sharey/twin_of across
         # every axis at once - the rows/cols above only ever set a uniform
@@ -455,9 +445,8 @@ class FigurePropertiesWidget(BaseProperties):
         self._layout_preset_combo.currentIndexChanged.connect(
             self._on_layout_preset_selected
         )
-        preset_lay.addWidget(QLabel(_("Layout"), preset_row))
+        preset_lay.addWidget(QLabel(_("Preset"), preset_row))
         preset_lay.addWidget(self._layout_preset_combo, 1)
-        grid_section_lay.addWidget(preset_row)
 
         # Axes that share a scale are drawn flush by default, the way
         # Matplotlib's own shared-axis gallery example does it - these two
@@ -475,24 +464,30 @@ class FigurePropertiesWidget(BaseProperties):
         self._shared_hspace.setToolTip(
             _("Gap between shared axes side by side. 0 draws them flush.")
         )
+        # Two to a row, in short words: Rows | Cols, then the shared gap
+        # down | across - "Gap V [] H []" reads as one setting in two halves.
+        gap_v = QLabel(_("Gap V"), grid_section)
+        gap_v.setToolTip(self._shared_vspace.toolTip())
+        gap_h = QLabel(_("H"), grid_section)
+        gap_h.setToolTip(self._shared_hspace.toolTip())
         grid_section_lay.addWidget(
             PairGrid(
                 [
-                    (QLabel(_("Shared gap V"), grid_section), self._shared_vspace),
-                    (QLabel(_("Shared gap H"), grid_section), self._shared_hspace),
+                    (QLabel(_("Rows"), grid_section), self._nrows_combo),
+                    (QLabel(_("Cols"), grid_section), self._ncols_combo),
+                    (gap_v, self._shared_vspace),
+                    (gap_h, self._shared_hspace),
                 ],
                 grid_section,
             )
         )
+        grid_section_lay.addWidget(preset_row)
 
         lay.addWidget(grid_section)
 
         # ----- Figure options -----
         opts_section = TitledCard(self, _("Figure options"), "figureOptionsCard")
         opts_section_lay = opts_section.card.layout()
-
-        form = QFormLayout()
-        stdSizeAndlayout(form)
 
         self._fig_dpi = QSpinBox(opts_section)
         self._fig_dpi.setRange(20, 2400)
@@ -579,25 +574,31 @@ class FigurePropertiesWidget(BaseProperties):
                 Qt.ItemDataRole.ToolTipRole,
             )
 
-        # Width and height share a row: they are one measurement asked for
-        # in two halves, and stacking them cost a whole row of the panel's
-        # height to say so twice.
-        size_row = PairGrid(
-            [
-                (QLabel(_("Width"), opts_section), self._fig_width_cm),
-                (QLabel(_("Height"), opts_section), self._fig_height_cm),
-            ],
-            opts_section,
-        )
+        # Two to a row, each pair one idea: resolution and type size, the two
+        # halves of the size, how the panel shows the figure and how it lays
+        # it out, how much it draws and whether it frames it. One field a row
+        # made this the longest section of the panel; PairGrid still drops to
+        # one a row when the panel is too narrow for two.
+        def pair(text: str, field: QWidget) -> tuple[QWidget, QWidget]:
+            label = QLabel(text, opts_section)
+            label.setToolTip(field.toolTip())
+            return label, field
 
-        form.addRow(_("DPI"), self._fig_dpi)
-        form.addRow(size_row)
-        form.addRow(_("Frame on"), self._fig_frameon)
-        form.addRow(_("Font size"), self._font_scale)
-        form.addRow(_("Display"), self._resize_mode_combo)
-        form.addRow(_("Figure layout"), self._fig_layout_mode)
-        form.addRow(_("Downsample"), self._downsample_combo)
-        opts_section_lay.addLayout(form)
+        opts_section_lay.addWidget(
+            PairGrid(
+                [
+                    pair(_("DPI"), self._fig_dpi),
+                    pair(_("Font size"), self._font_scale),
+                    pair(_("Width"), self._fig_width_cm),
+                    pair(_("Height"), self._fig_height_cm),
+                    pair(_("Display"), self._resize_mode_combo),
+                    pair(_("Figure layout"), self._fig_layout_mode),
+                    pair(_("Downsample"), self._downsample_combo),
+                    pair(_("Frame on"), self._fig_frameon),
+                ],
+                opts_section,
+            )
+        )
         lay.addWidget(opts_section)
 
         lay.addWidget(self._build_margins_section())

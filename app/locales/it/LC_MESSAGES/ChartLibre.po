@@ -1066,7 +1066,7 @@ msgid "Fields:"
 msgstr "Campi:"
 
 msgid "Figure layout"
-msgstr "Disposizione"
+msgstr "Layout"
 
 msgid "Downsample"
 msgstr "Punti max"
@@ -1333,7 +1333,7 @@ msgid "Half-prominence bounds"
 msgstr "Limiti a metà prominenza"
 
 msgid "Height"
-msgstr "Altezza"
+msgstr "Altez."
 
 msgid "Height (absolute)"
 msgstr "Altezza (assoluta)"
@@ -3149,7 +3149,7 @@ msgid "Who made this, and what it is made of"
 msgstr "Chi l'ha fatto e di cosa è fatto"
 
 msgid "Width"
-msgstr "Larghezza"
+msgstr "Largh."
 
 msgid "Width of the linear region around zero, for the symlog scale."
 msgstr "Ampiezza della regione lineare attorno allo zero, per la scala symlog."
@@ -7107,3 +7107,9 @@ msgstr "Lo stesso seme dà lo stesso ordine delle prove e lo stesso ipercubo lat
 
 msgid "Operations"
 msgstr "Operazioni"
+
+msgid "Gap V"
+msgstr "Spazio V"
+
+msgid "Preset"
+msgstr "Schema"
