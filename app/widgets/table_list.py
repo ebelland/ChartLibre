@@ -143,6 +143,9 @@ class TableListPanel(QWidget):
     """Panel: list of user tables with link badge / Table / Notes / Source columns."""
 
     tableSelected = PySide6.QtCore.Signal(str)
+    #: The tables changed here (edited, duplicated, renamed, deleted): the
+    #: window refreshes whatever is drawn from them.
+    changed = PySide6.QtCore.Signal()
 
     COL_HAS_LINK = 0
     COL_TABLE = 1
@@ -532,7 +535,7 @@ class TableListPanel(QWidget):
         selected_tables = self.selected_tables()
         if (not table and not selected_tables) or self._repo is None:
             return
-        parent = self._top_level_parent()
+        parent = self.window()
         if parent is None:
             return
 
@@ -704,7 +707,7 @@ class TableListPanel(QWidget):
         if self._single_selected_query() is not None:
             self._edit_selected_query()
             return
-        QueryBuilderDialog(self._repo, parent=self._top_level_parent()).exec()
+        QueryBuilderDialog(self._repo, parent=self.window()).exec()
         self.reload()
 
     def _edit_selected_query(self) -> None:
@@ -718,7 +721,7 @@ class TableListPanel(QWidget):
         if self._repo is None or current_source is None or not current_source[1]:
             return
         name, _is_query = current_source
-        QueryBuilderDialog(self._repo, query_name=name, parent=self._top_level_parent()).exec()
+        QueryBuilderDialog(self._repo, query_name=name, parent=self.window()).exec()
         self.reload()
 
     def _selected_table(self) -> str | None:
@@ -733,11 +736,11 @@ class TableListPanel(QWidget):
         table = self._selected_table()
         if table is None or self._repo is None:
             return
-        TableEditorDialog(self._repo, table, self._top_level_parent()).exec()
+        TableEditorDialog(self._repo, table, self.window()).exec()
         self.reload()
         # A column added, dropped or retyped, or rows hidden: every chart and
         # the preview built on this table may draw something else now.
-        self.update_parent()
+        self.changed.emit()
 
     def _duplicate_table(self) -> None:
         """Copy the selected table under a new name, and select the copy."""
@@ -752,8 +755,8 @@ class TableListPanel(QWidget):
             return
         applogger.info("Table '%s' duplicated as '%s'.", table, name)
         self.reload()
-        self.update_parent()
-        parent = self._top_level_parent()
+        self.changed.emit()
+        parent = self.window()
         panel = getattr(parent, "_table_panel", None)
         if panel is not None and hasattr(panel, "select_table"):
             panel.select_table(name)
@@ -763,7 +766,7 @@ class TableListPanel(QWidget):
         current = self._current_source()
         if self._repo is None or current is None:
             return
-        OperationHistoryDialog(self._repo, current[0], parent=self._top_level_parent()).exec()
+        OperationHistoryDialog(self._repo, current[0], parent=self.window()).exec()
 
     def set_generated_visible(self, visible: bool) -> None:
         """Show or hide the tables written by series operations."""
@@ -773,7 +776,7 @@ class TableListPanel(QWidget):
 
     def _on_new_plot_tab(self) -> None:
         """Emit a signal to request a new plot tab for the selected table."""
-        parent = self._top_level_parent()
+        parent = self.window()
         if parent is None or self._repo is None:
             return
         fn = getattr(parent, "_on_new_plot_tab", None)
@@ -793,8 +796,8 @@ class TableListPanel(QWidget):
         try:
             self._repo.rename_table(table or "", new)
             self.reload()
-            self.update_parent()
-            parent = self._top_level_parent()
+            self.changed.emit()
+            parent = self.window()
             if parent is not None:
                 parent._table_panel.select_table(new) # type: ignore
 
@@ -856,7 +859,7 @@ class TableListPanel(QWidget):
 
         try:
             refresh_link(self._repo, link_id=int(link["id"]), password=password)
-            self.update_parent()
+            self.changed.emit()
         except Exception as exc:
             applogger.exception(f"Link refresh failed: {exc}")
 
@@ -888,7 +891,7 @@ class TableListPanel(QWidget):
                 else:
                     self._repo.delete_table(name)
             self.reload()
-            self.update_parent()
+            self.changed.emit()
 
             # Ensure dependent previews/listeners are notified after delete.
             current_table = self.current
@@ -927,23 +930,6 @@ class TableListPanel(QWidget):
             tables=preview,
         )
         
-    def update_parent(self) -> None:
-        """Update the parent window's table list and tabs, if they exist."""
-        parent = self._top_level_parent()
-        if self._repo is None or parent is None:
-            return
-        if type(parent).__name__ == "MainWindow" :
-            parent.refresh2() # type: ignore
 
 
     
-    def _top_level_parent(self) -> QWidget | None:
-        widget: QWidget | None = self
-
-        while widget is not None:
-            next_widget = widget.parentWidget()
-            if next_widget is None:
-                return widget
-            widget = next_widget
-
-        return None

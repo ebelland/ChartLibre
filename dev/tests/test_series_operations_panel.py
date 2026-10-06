@@ -80,10 +80,10 @@ def test_query_builder_is_listed_and_opened_by_the_window(qapp, tmp_path, monkey
     window = MainWindow(repo, tmp_path / "q.dhub")
     opened: list[bool] = []
     monkeypatch.setattr(window, "_on_query_builder", lambda: opened.append(True))
-    assert not any("database" in key for key in window._left_rail._items)
+    assert not any("database" in key for key in window._left_panel._items)
     window._on_series_operation_requested(SeriesOperationWidget.query_builder_operation())
     assert opened == [True]
     window._on_database_info()
-    assert window._left_rail.selected_key == "developer"
+    assert window._left_panel.selected_key == "developer"
     window.close()
     repo.close()

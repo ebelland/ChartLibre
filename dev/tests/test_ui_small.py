@@ -442,7 +442,7 @@ def test_the_left_pane_is_never_left_pinned(qapp, tmp_path: Path) -> None:
     # Panel first, then the rail (which brings the panel back), then the rail back.
     window._toggle_workspace()
     window.set_navigation_compact(True)
-    assert not window._left_stack.isHidden() and resizable()
+    assert window._left_panel.panel_visible and resizable()
     window.set_navigation_compact(False)
     qapp.processEvents()
     assert window._left_panel.visible_bar_width > 0 and resizable()

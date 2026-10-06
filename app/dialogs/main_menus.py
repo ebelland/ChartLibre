@@ -199,7 +199,7 @@ class MainWindowMenus:
 
         Called straight after anything that records or consumes an undo entry
         - the few UI refresh points every change funnels through
-        (_snapshot_descriptors, refresh, refresh2, _on_chart_panel_deleted,
+        (_snapshot_descriptors, refresh, _on_chart_panel_deleted,
         ChartPanel.figure_edited) and _on_undo - not every handler.
 
         The native macOS menu bar makes this more than a property poke: it

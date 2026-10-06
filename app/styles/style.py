@@ -60,6 +60,7 @@ _IS_WINDOWS = platform.system().lower().startswith("win")
 #: platform check but have no reason to reach into a private module constant
 #: (main_window.py's menu bar, at the moment).
 IS_MACOS: bool = _IS_MACOS
+IS_WINDOWS: bool = _IS_WINDOWS
 
 #: Qt::ExpandedClientAreaHint (Qt 6.9+): content drawn under the native
 #: title bar. PySide6 lists the value only under its deprecated alias
