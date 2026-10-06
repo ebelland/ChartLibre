@@ -63,8 +63,7 @@ from app.styles.style import (
     action_presentation,
     SPACING_DEFAULT,
     SPLITTER_HANDLE_WIDTH,
-    apply_toolbox_header_metrics,
-    apply_toolbox_page_metrics,
+    MARGIN_TOOLBOX_PAGE,
     CardFrame,
     icon_from_svg_source,
     relax_minimum_width,
@@ -99,7 +98,6 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QTabWidget,
-    QToolBox,
     QVBoxLayout,
     QWidget,
 )
@@ -145,7 +143,7 @@ IS_WINDOWS: bool = sys.platform == "win32"
 
 class MainWindow(MainWindowMenus, QMainWindow):
     _tabs: QTabWidget
-    _properties_control: QToolBox
+    _properties_control: QTabWidget
     _figure_widget: FigurePropertiesWidget
     _axis_widget: AxisPropertiesWidget
     _series_widget: SeriesPropertiesWidget
@@ -565,38 +563,43 @@ class MainWindow(MainWindowMenus, QMainWindow):
 
         self._open_series_operation(dialog_class, icon)
 
-    def _create_properties_control(self) -> QToolBox:
-        """Create the properties QToolBox directly in the main window."""
+    def _create_properties_control(self) -> QTabWidget:
+        """Figure, Axis, Series and Overlays as tabs, each page scrolling on its own.
+
+        Tabs rather than the accordion they were: four headers stacked
+        took about 200 px of the panel's height and showed one page at a
+        time all the same. Short names, so the four fit a narrow panel;
+        when they do not, the tab bar scrolls rather than eliding them.
+        """
         self._figure_widget = FigurePropertiesWidget(self)
         self._axis_widget = AxisPropertiesWidget(self)
         self._series_widget = SeriesPropertiesWidget(self)
         self._overlay_widget = OverlayPropertiesWidget(self)
 
-        control = QToolBox(self)
-        control.setObjectName("propertiesToolBox")
-        self._figure_properties_index = control.addItem(
-            self._figure_widget,
-            _("Figure properties"),
-        )
-        control.addItem(
-            self._axis_widget,
-            _("Axis properties"),
-        )
-        control.addItem(
-            self._series_widget,
-            _("Series properties"),
-        )
+        control = QTabWidget(self)
+        control.setObjectName("propertiesTabs")
+        control.setDocumentMode(True)
+        control.setUsesScrollButtons(True)
+        control.setElideMode(Qt.TextElideMode.ElideNone)
+        control.tabBar().setExpanding(False)
         # Last: annotations and reference lines are the finishing pass on a
         # chart, done once the data, the axes and the series are right.
-        control.addItem(
-            self._overlay_widget,
-            _("Overlay properties"),
-        )
-        control.setCurrentIndex(self._figure_properties_index)
-        # Section headers are sized from font metrics; QSS padding alone leaves
-        # the labels clipped (see apply_toolbox_header_metrics).
-        apply_toolbox_header_metrics(control)
-        apply_toolbox_page_metrics(control)
+        for page, title, tooltip in (
+            (self._figure_widget, _("Figure"), _("Figure properties")),
+            (self._axis_widget, _("Axis"), _("Axis properties")),
+            (self._series_widget, _("Series"), _("Series properties")),
+            (self._overlay_widget, _("Overlays"), _("Overlay properties")),
+        ):
+            # The ground and the room a toolbox page had: the window grey on
+            # macOS, white on Windows (see apply_toolbox_page_metrics).
+            page.setProperty("toolboxPage", True)
+            page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            layout = page.layout()
+            if layout is not None and layout.contentsMargins().isNull():
+                layout.setContentsMargins(*MARGIN_TOOLBOX_PAGE)
+            index = control.addTab(self._scrollable(page), title)
+            control.setTabToolTip(index, tooltip)
+        control.setCurrentIndex(0)
         self._connect_property_signals()
         self._clear_property_widgets()
         return control
@@ -947,7 +950,7 @@ class MainWindow(MainWindowMenus, QMainWindow):
         file_panel = self._create_file_page()
         tables_panel = self._data_page
         new_table_panel = self._create_new_table_page()
-        chart_properties_panel = self._scrollable(self._properties_control)
+        chart_properties_panel = self._properties_control
         series_operations_panel = self._create_series_operations_page()
         developer_panel = self._create_developer_page()
 

@@ -7113,3 +7113,9 @@ msgstr "Spazio V"
 
 msgid "Preset"
 msgstr "Schema"
+
+msgid "Figure"
+msgstr "Figura"
+
+msgid "Overlays"
+msgstr "Sovrapp."

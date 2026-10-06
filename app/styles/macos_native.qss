@@ -330,6 +330,15 @@ QTabBar::tab {
   min-width: 52px;
 }
 
+/* Chart properties' four tabs (Figura | Asse | Serie | Sovrapp.): narrow,
+   so the four fit the left panel at its narrowest; the bar still scrolls
+   beyond that. Direct children only - the Axis page's own tabs keep the
+   ordinary size. */
+QTabWidget#propertiesTabs > QTabBar::tab {
+  padding: 4px 6px;
+  min-width: 0px;
+}
+
 QTabBar::tab:hover:!selected {
   color: palette(text);
 }

@@ -427,6 +427,13 @@ QTabBar::tab {
     font-weight: 400;
 }
 
+/* Chart properties' four tabs: narrow enough for the left panel at its
+   narrowest (see macos_native.qss); the Axis page's own tabs are untouched. */
+QTabWidget#propertiesTabs > QTabBar::tab {
+    padding: 0 8px;
+    min-width: 0px;
+}
+
 QTabBar QToolButton {
     min-width: 5px;
     min-height: 5px;
