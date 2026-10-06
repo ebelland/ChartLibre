@@ -98,6 +98,12 @@ class TableToolsMixin(RepoHost):
             f"INSERT INTO {_quote_ident(name)} (rowid, {names}) "
             f"SELECT rowid, {names} FROM {_quote_ident(table_name)}"
         )
+        # The copy keeps the original's notes and information (a DOE design).
+        self._con.execute(
+            "INSERT OR REPLACE INTO __table_descriptors__ (name, notes, info_json) "
+            "SELECT ?, notes, info_json FROM __table_descriptors__ WHERE name = ?",
+            (name, table_name),
+        )
         self._commit()
         return name
 

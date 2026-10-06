@@ -557,6 +557,25 @@ class DOEExperimentDialog(QDialog):
             suffix += 1
         return name
 
+    @staticmethod
+    def design_record(request: DOERequest) -> dict[str, Any]:
+        """The design as the project keeps it with the table (``get_table_info(t)["doe"]``)."""
+        return {
+            "model": request.model,
+            "factors": [
+                {"name": f.name, "kind": "numeric", "low": f.low, "high": f.high}
+                for f in request.factors
+            ],
+            "responses": list(request.responses),
+            "levels": request.levels,
+            "center_points": request.center_points,
+            "samples": request.samples,
+            "replicates": request.replicates,
+            "randomize": request.randomize,
+            "seed": request.seed,
+            "lhs_algorithm": request.lhs_algorithm,
+        }
+
     def accept(self) -> None:
         try:
             request = self._read_request()
@@ -564,6 +583,10 @@ class DOEExperimentDialog(QDialog):
             table_name = self._unique_table_name(request.table_name)
             self._repo.import_dataframe(
                 frame, table_name=table_name, normalize_columns=False)
+            # The design travels with the table: an analysis of it reads the
+            # factors (their kind and their low/high, for the coding), the
+            # responses and the model it was built for.
+            self._repo.set_table_info(table_name, "doe", self.design_record(request))
         except Exception as exc:
             applogger.error("DOE table creation failed: %s", exc)
             QMessageBox.warning(self, _(self.Name), str(exc))

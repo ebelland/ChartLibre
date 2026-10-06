@@ -53,3 +53,23 @@ def test_ok_writes_the_matrix_as_a_new_table(dialog: DOEExperimentDialog) -> Non
     dialog.accept()
     assert dialog.created_table_name is not None
     assert dialog._repo.series_row_count(f'SELECT * FROM "{dialog.created_table_name}"') == 8
+
+
+def test_the_table_keeps_its_design_through_rename_and_copy(dialog: DOEExperimentDialog) -> None:
+    dialog.model_combo.setCurrentIndex(dialog.model_combo.findData("box_behnken"))
+    dialog.accept()
+    repo, name = dialog._repo, dialog.created_table_name
+    assert name is not None
+    design = repo.get_table_info(name)["doe"]
+    assert design["model"] == "box_behnken"
+    assert [f["name"] for f in design["factors"]] == ["Factor_1", "Factor_2", "Factor_3"]
+    assert design["factors"][0] == {"name": "Factor_1", "kind": "numeric", "low": -1.0, "high": 1.0}
+    assert design["responses"] == ["Response_1"]
+
+    repo.rename_table(name, "trial")
+    assert repo.get_table_info("trial")["doe"] == design
+    assert repo.get_table_info(name) == {}
+    copy = repo.duplicate_table("trial")
+    assert repo.get_table_info(copy)["doe"] == design
+    repo.delete_table("trial")
+    assert repo.get_table_info("trial") == {}

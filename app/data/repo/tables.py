@@ -11,6 +11,7 @@ Part of ``SqliteRepo``; see ``app/data/repo/__init__.py``.
 """
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 import struct
@@ -259,6 +260,45 @@ class TablesMixin(RepoHost):
             ON CONFLICT(name) DO UPDATE SET notes = excluded.notes
             """,
             (table, notes),
+        )
+        self._commit()
+
+    @ensure_connection_wrapper
+    def get_table_info(self, table: str) -> dict[str, Any]:
+        """What the project records about *table* beyond its rows - its DOE design, say.
+
+        A JSON object in ``__table_descriptors__.info_json``, one key per
+        kind of information; empty when there is none or it cannot be read.
+        """
+        assert self._con is not None
+        row = self._con.execute(
+            "SELECT info_json FROM __table_descriptors__ WHERE name = ?", (table,)
+        ).fetchone()
+        if not row or not row[0]:
+            return {}
+        try:
+            info = json.loads(row[0])
+        except ValueError:
+            applogger.warning("The information recorded for table %r is not valid JSON.", table)
+            return {}
+        return info if isinstance(info, dict) else {}
+
+    @ensure_connection_wrapper
+    def set_table_info(self, table: str, key: str, value: Any) -> None:
+        """Record *value* under *key* for *table*; None removes the key."""
+        assert self._con is not None
+        info = self.get_table_info(table)
+        if value is None:
+            info.pop(key, None)
+        else:
+            info[key] = value
+        self._con.execute(
+            """
+            INSERT INTO __table_descriptors__ (name, info_json)
+            VALUES (?, ?)
+            ON CONFLICT(name) DO UPDATE SET info_json = excluded.info_json
+            """,
+            (table, json.dumps(info, ensure_ascii=False) if info else None),
         )
         self._commit()
 
@@ -727,8 +767,11 @@ class TablesMixin(RepoHost):
                 applogger.error(f"Target table already exists: {new}")
                 return
 
-            # Rename the table
+            # Rename the table; its notes and information follow it.
             self._con.execute(f"ALTER TABLE {old_q} RENAME TO {new_q}")
+            self._con.execute(
+                "UPDATE __table_descriptors__ SET name = ? WHERE name = ?", (new, old)
+            )
             # Update all series that reference this table
             self._propagate_table_name(old, new, mode="rename")
 
@@ -758,11 +801,12 @@ class TablesMixin(RepoHost):
         # tables, because this deletes both - the data, and the series
         # descriptors that drew it.
         self.snapshot_for_undo(
-            [table, "__series_descriptors__"], label=f"Delete table '{table}'"
+            [table, "__series_descriptors__", "__table_descriptors__"], label=f"Delete table '{table}'"
         )
 
         with self.transaction(immediate=True):
             self._con.execute(f"DROP TABLE IF EXISTS {_quote_ident(table)}")
+            self._con.execute("DELETE FROM __table_descriptors__ WHERE name = ?", (table,))
             self._propagate_table_name(table, None, mode="delete")
 
     @ensure_connection_wrapper
