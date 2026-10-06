@@ -10,7 +10,6 @@ re-renders the whole figure.
 from __future__ import annotations
 
 import gc
-import html
 import re
 import sys
 from functools import partial
@@ -21,7 +20,7 @@ from typing import Any, Callable, cast
 
 import pandas as pd
 
-from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
@@ -29,8 +28,6 @@ from PySide6.QtGui import (
     QIcon,
     QKeySequence,
     QMouseEvent,
-    QPalette,
-    QPixmap,
     QShortcut,
 )
 from app import APP_ICON, APP_NAME
@@ -41,7 +38,8 @@ from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.data.repo._common import ensure_read_only_select
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.chart_panel import ChartPanel
-from app.widgets.nav_bar import NavBarItem, NavigationBar
+from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
+from app.widgets.recent_projects import RecentProjectsView
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.import_data_dialog import ImportDataDialog, is_importable
 from app.data.demos import PROJECTS_DIR, copy_demo_project
@@ -68,17 +66,12 @@ from app.styles.style import (
     action_presentation,
     SPACING_DEFAULT,
     SPLITTER_HANDLE_WIDTH,
-    apply_fusion_for_item_view_styling,
     apply_toolbox_header_metrics,
     apply_toolbox_page_metrics,
     CardFrame,
-    colored_icon,
-    TitledCard,
-    create_action_button,
     create_menu,
     create_menu_item,
     icon_from_svg_source,
-    mark_destructive_button,
     relax_minimum_width,
     stdSizeAndlayout,
     symbol_icon,
@@ -105,12 +98,8 @@ from PySide6.QtWidgets import (
     QApplication,
     QBoxLayout,
     QFileDialog,
-    QFrame,
-    QHBoxLayout,
     QLabel,
     QInputDialog,
-    QListWidget,
-    QListWidgetItem,
     QMessageBox,
     QMainWindow,
     QMenu,
@@ -387,115 +376,40 @@ class MainWindow(QMainWindow):
             self._status_project.setText(project)
             self._status_project.setToolTip(str(self._db_path) if self._db_path else "")
 
-    def _rail_width(self) -> int:
-        """The bar width, or zero while the bar is hidden."""
-        navigation = getattr(self, "_left_panel", None)
-        if not isinstance(navigation, NavigationBar) or navigation.bar.isHidden():
-            return 0
-        return navigation.bar_width
-
-    def _toggle_workspace(self) -> None: 
-        """Collapse left content to the navigation rail, or restore it."""
-        hiding = (not self._left_stack.isHidden())
-        if hiding and self._rail_width() == 0:
-            # macOS with the rail hidden: hiding the panel too would leave
-            # nothing on the left at all - and a pane pinned to zero width,
-            # which no handle can widen again. Bring the rail back first.
-            button = getattr(self._custom_title_bar, "sidebar_button", None)
-            if button is not None and button.isCheckable() and button.isChecked():
-                button.setChecked(False)
-            else:
-                self._set_rail_hidden(False)
-        sizes = self._main_split.sizes()
-        if hiding:
-            self._left_panel_restore_width = max(sizes[0], 360)
-            self._left_stack.hide()
-            self._apply_left_panel_limits()
-            rail_width = self._rail_width()
-            self._main_split.setSizes([rail_width, max(sum(sizes) - rail_width, 1)])
-        else:
-            self._left_stack.show()
-            self._apply_left_panel_limits()
-            restore_width = int(getattr(self, "_left_panel_restore_width", 420))
-            total = max(sum(sizes), restore_width + CHART_PANE_MIN_WIDTH)
-            self._main_split.setSizes([restore_width, max(total - restore_width, 1)])
-        self._left_rail.set_workspace_hidden(hiding)
-
-    def _apply_left_panel_limits(self) -> None:
-        """The left pane's width limits, from the rail and the panel's state.
-
-        Pinned to the rail's width while the panel is hidden (the handle has
-        nothing to resize); free above the usual floor otherwise. Worked out
-        from the current state every time, rather than adjusted step by
-        step: hiding the rail and the panel in one order and showing them in
-        the other used to leave the pane pinned at zero width for good.
-        """
-        rail_width = self._rail_width()
-        if self._left_stack.isHidden():
-            self._left_panel.setMinimumWidth(rail_width)
-            self._left_panel.setMaximumWidth(rail_width)
-        else:
-            self._left_panel.setMaximumWidth(16777215)
-            self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + rail_width)
+    def _toggle_workspace(self) -> None:
+        """Hide the panel beside the bar, or bring it back (the Workspace row)."""
+        self._left_panel.toggle_panels()
 
     #: config.json key remembering whether the rail is collapsed to icons.
     NAV_COMPACT_KEY: str = "navigation_compact"
 
     def set_navigation_compact(self, compact: bool) -> None:
-        """Collapse the navigation rail to its icons, or restore its labels.
+        """Collapse the bar - on macOS hide it outright, elsewhere keep its icons.
 
-        Different from _toggle_workspace, which hides the *panel* beside the
-        rail: this keeps every page reachable and only drops the words, so
-        the rail narrows from 200px to 48 and hands that width to whatever
-        is next to it. The width the splitter gives the left pane moves by
-        the same amount, or collapsing the rail would only widen the empty
-        gap inside it.
+        The sidebar button in the title bar calls this. NavigationBar moves
+        the splitter and keeps the panel reachable; this only says which of
+        the two the platform does, and remembers it.
         """
         compact = bool(compact)
         if IS_MACOS:
-            self._set_rail_hidden(compact)
-            set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
-            return
-        was = self._rail_width()
-        self._left_panel.set_compact(compact)
-        moved = self._rail_width() - was
-
-        sizes = self._main_split.sizes()
-        # Pinned to the rail while the panel is hidden, so the pin follows it.
-        self._apply_left_panel_limits()
-        if len(sizes) == 2:
-            if not self._left_stack.isHidden():
-                self._main_split.setSizes([max(sizes[0] + moved, 1), max(sizes[1] - moved, 1)])
-            else:
-                rail_width = self._rail_width()
-                self._main_split.setSizes([rail_width, max(sum(sizes) - rail_width, 1)])
-
+            self._left_panel.set_bar_hidden(compact)
+        else:
+            self._left_panel.set_compact(compact)
         set_section(STATE_KEY, {**get_section(STATE_KEY), self.NAV_COMPACT_KEY: compact})
 
-    def _set_rail_hidden(self, hidden: bool) -> None:
-        """macOS: hide the whole bar, the way Claude does, or bring it back.
+    def _on_bar_hidden_changed(self, hidden: bool) -> None:
+        """macOS: the traffic lights moved with the title strip; the button follows the bar.
 
-        The title strip (traffic lights, sidebar toggle) moves above the
-        panel meanwhile (NavigationBar.set_bar_hidden), so it stays
-        reachable. The panel is reopened first if it was hidden: with
-        neither, the left side would be empty.
+        The bar can come back on its own - hiding the panel while the bar is
+        hidden would leave nothing - and the sidebar button must then read
+        as shown too.
         """
-        navigation = self._left_panel
-        if navigation.bar.isHidden() == bool(hidden):
-            return
-        if hidden and self._left_stack.isHidden():
-            self._toggle_workspace()
-        sizes = self._main_split.sizes() if hasattr(self, "_main_split") else []
-        width = self._rail_width()
-        navigation.set_bar_hidden(hidden)
-        if isinstance(navigation.header, CustomTitleBar):
-            navigation.header.refresh_lights_inset()
-        self._apply_left_panel_limits()
-        if sizes:
-            delta = -width if hidden else navigation.bar_width
-            left = max(sizes[0] + delta, 0)
-            total = max(sum(sizes), left + CHART_PANE_MIN_WIDTH)
-            self._main_split.setSizes([left, max(total - left, 1)])
+        title_bar = self._left_panel.header
+        if isinstance(title_bar, CustomTitleBar):
+            title_bar.refresh_lights_inset()
+        button = getattr(self._custom_title_bar, "sidebar_button", None)
+        if button is not None and button.isCheckable() and button.isChecked() != hidden:
+            button.setChecked(hidden)
 
     def _configure_left_panel(self) -> None:
         """Configure the composite left panel to avoid height lock-up."""
@@ -624,46 +538,13 @@ class MainWindow(QMainWindow):
     # Left pages
     # ------------------------------------------------------------------
 
-    def _create_data_page(self) -> QWidget:
-        """Create the Data page with table list and preview splitter."""
-        page = CardFrame(self, "dataPageCard", margins=(0, 0, 0, 0))
-        page.setProperty("elevated", True)
-        page.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-        raw_layout = page.layout()
-        if isinstance(raw_layout, QBoxLayout):
-            layout = raw_layout
-        else:
-            layout = QVBoxLayout(page)
-        split = self._data_split = QSplitter(Qt.Orientation.Vertical, page)
-        split.setChildrenCollapsible(True)
-        split.setHandleWidth(SPLITTER_HANDLE_WIDTH)
-        split.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-
-        self._table_panel.setMinimumSize(0, 0)
-        self._table_panel.setContentsMargins(5,5,5,5)
-        self._table_panel.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-
-        self._preview.setContentsMargins(5,5,5,5)
-        self._preview.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-
-        split.addWidget(self._table_panel)
-        split.addWidget(self._preview)
-        split.setStretchFactor(0, 1)
-        split.setStretchFactor(1, 2)
-
-        layout.addWidget(split, 1)
+    def _create_data_page(self) -> NavPanel:
+        """Tables above, the selected table's data below, the handle between them dragged."""
+        page = NavPanel(self, resizable=True)
+        page.add_frame(_("Tables"), self._table_panel, object_name="tablesFrame", stretch=1, margins=(0, 0, 0, 0))
+        page.add_frame(_("Data"), self._preview, object_name="dataFrame", stretch=2, margins=(0, 0, 0, 0))
+        assert page.splitter is not None
+        self._data_split = page.splitter
         return page
 
     def _create_series_operations_page(self) -> QWidget:
@@ -818,63 +699,18 @@ class MainWindow(QMainWindow):
         scroll.setWidget(widget)
         return scroll
 
-    def _create_new_table_page(self) -> QWidget:
-        """Panel with the available ways to create a source table."""
-        page = QWidget(self)
-        page.setProperty("toolboxPage", True)
-        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        layout = QVBoxLayout(page)
-        stdSizeAndlayout(layout)
-        layout.addWidget(
-            self._titled_card(
-                page,
-                _("Create a new table"),
-                self._fill_new_table_card,
-                object_name="newTableCard",
-            )
-        )
-        layout.addStretch(1)
+    def _create_new_table_page(self) -> NavPanel:
+        """The ways to make a source table, each with its sentence."""
+        page = NavPanel(self)
+        page.add_buttons(_("Create a new table"), [
+            NavButton("new", self._on_new_table_from_doe, _("From DOE"),
+                      _("Generate an experiment matrix with factors and responses."), described=True),
+            NavButton("new", self._on_new_blank_table, _("New Blank Table"),
+                      _("Create an empty table with named columns."), described=True),
+            NavButton("import", self._on_import_data, _("Import Data"),
+                      _("Create a table from a file, clipboard, database, or web source."), described=True),
+        ], object_name="newTableCard")
         return page
-
-    def _fill_new_table_card(self, card: CardFrame) -> None:
-        layout = self._card_layout(card)
-        actions = (
-            (
-                _("From DOE"),
-                _("Generate an experiment matrix with factors and responses."),
-                self._on_new_table_from_doe,
-                "new",
-            ),
-            (
-                _("New Blank Table"),
-                _("Create an empty table with named columns."),
-                self._on_new_blank_table,
-                "new",
-            ),
-            (
-                _("Import Data"),
-                _("Create a table from a file, clipboard, database, or web source."),
-                self._on_import_data,
-                "import",
-            ),
-        )
-        for text, tooltip, handler, action_id in actions:
-            row = QHBoxLayout()
-            stdSizeAndlayout(row)
-            icon, _catalogue_text, _catalogue_tooltip = action_presentation(action_id)
-            create_action_button(
-                parent=card,
-                action_id=action_id,
-                action=handler,
-                layout=row,
-                presentation=(icon, text, tooltip),
-            )
-            row.addStretch(1)
-            layout.addLayout(row)
-            description = QLabel(tooltip, card)
-            description.setWordWrap(True)
-            description.setProperty("muted", True)
-            layout.addWidget(description)
 
     def _on_new_table_from_doe(self) -> None:
         try:
@@ -961,129 +797,33 @@ class MainWindow(QMainWindow):
             applogger.exception("Failed to create blank table: %s", exc)
             QMessageBox.warning(self, _("New Blank Table"), str(exc))
 
-    def _create_file_page(self) -> QWidget:
-        """Workspace (New/Open), Demo, Import, Save, and Open Recent.
+    def _create_file_page(self) -> NavPanel:
+        """Workspace, Demo, Import, Save, Export and Open recent.
 
-        This panel is associated directly with the ``file`` navigation key.
-        The rail's old popup-menu File button used to be the
-        only way to reach these; a page reachable on every platform, same
-        as Database's, replaces it. Load demo lives here, in a card of its own
-        beside Workspace, not under Help (see _app_menu_items) - starting from
-        a demo is a way of starting, not a piece of documentation.
+        Load demo has a frame of its own, not a place under Help: starting
+        from a demo is a way of starting, not a piece of documentation.
+        Import adds tables to the open project, where New and Open replace
+        it - a different kind of step, so a frame of its own too.
         """
-        page = QWidget(self)
-        # Same "white page the cards float on" convention the properties
-        # toolbox pages get from apply_toolbox_page_metrics - a plain
-        # QWidget paints no stylesheet background at all without
-        # WA_StyledBackground, so without both of these this page stayed
-        # transparent next to Tables (a card) and Chart properties
-        # (already toolboxPage), the one grey gap in an otherwise white
-        # left panel.
-        page.setProperty("toolboxPage", True)
-        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        layout = QVBoxLayout(page)
-        stdSizeAndlayout(layout)
-
-        layout.addWidget(
-            self._titled_card(page, _("Workspace"), self._fill_workspace_card, object_name="fileWorkspaceCard")
-        )
-        layout.addWidget(
-            self._titled_card(page, _("Demo"), self._fill_demo_card, object_name="fileDemoCard")
-        )
-        layout.addWidget(
-            self._titled_card(page, _("Import"), self._fill_import_card, object_name="fileImportCard")
-        )
-        layout.addWidget(
-            self._titled_card(page, _("Save"), self._fill_save_card, object_name="fileSaveCard")
-        )
-        layout.addWidget(
-            self._titled_card(page, _("Export"), self._fill_export_card, object_name="fileExportCard")
-        )
-        # The recent list takes whatever height the page has left, rather
-        # than a fixed number of rows above an empty gap.
-        recent = self._titled_card(page, _("Open recent"), self._fill_recent_card, object_name="fileRecentCard")
-        recent_layout = recent.layout()
-        if isinstance(recent_layout, QBoxLayout):
-            recent_layout.setStretch(recent_layout.count() - 1, 1)
-        layout.addWidget(recent, 1)
+        page = NavPanel(self)
+        page.add_buttons(_("Workspace"), [
+            NavButton("new", self._on_new_file),
+            NavButton("open", self._on_open_database),
+            NavButton("project_info", self._on_project_info),
+        ], object_name="fileWorkspaceCard")
+        page.add_buttons(_("Demo"), [NavButton("load_demo", self._on_load_demo, described=True)],
+                         object_name="fileDemoCard")
+        page.add_buttons(_("Import"), [NavButton("import", self._on_import_data)], object_name="fileImportCard")
+        page.add_buttons(_("Save"), [NavButton("save", self._on_save), NavButton("save_as", self._on_save_as)],
+                         object_name="fileSaveCard")
+        page.add_buttons(_("Export"), [NavButton("project_report", self._on_project_report)],
+                         object_name="fileExportCard")
+        self._recent_view = RecentProjectsView(page)
+        self._recent_view.open_requested.connect(self._on_open_recent)
+        self._recent_view.clear_requested.connect(self._on_clear_recent)
+        # The recent list takes whatever height the page has left.
+        page.add_frame(_("Open recent"), self._recent_view, object_name="fileRecentCard", stretch=1)
         return page
-
-    def _titled_card(
-        self,
-        parent: QWidget,
-        title: str,
-        fill: Callable[[CardFrame], None],
-        *,
-        object_name: str | None = None,
-    ) -> QWidget:
-        """A section title *above* its card - see style.TitledCard."""
-        titled = TitledCard(parent, title, object_name)
-        fill(titled.card)
-        return titled
-
-    @staticmethod
-    def _card_layout(card: CardFrame) -> QBoxLayout:
-        """Return CardFrame's box layout, logging and recovering if absent."""
-        layout = card.layout()
-        if isinstance(layout, QBoxLayout):
-            return layout
-        applogger.error("CardFrame did not create a box layout")
-        return QVBoxLayout(card)
-
-    def _fill_workspace_card(self, card: CardFrame) -> None:
-        layout = self._card_layout(card)
-        new_open_row = QHBoxLayout()
-        stdSizeAndlayout(new_open_row)
-        create_action_button(parent=card, action_id="new", action=self._on_new_file, layout=new_open_row)
-        create_action_button(parent=card, action_id="open", action=self._on_open_database, layout=new_open_row)
-        create_action_button(parent=card, action_id="project_info", action=self._on_project_info, layout=new_open_row)
-        new_open_row.addStretch(1)
-        layout.addLayout(new_open_row)
-
-    def _fill_demo_card(self, card: CardFrame) -> None:
-        """Load demo on its own: it opens a ready-made example, where New and
-        Open beside it start from nothing or from the user's own file - and a
-        button that opens one of twenty-four projects deserves its sentence."""
-        layout = self._card_layout(card)
-        row = QHBoxLayout()
-        stdSizeAndlayout(row)
-        create_action_button(parent=card, action_id="load_demo", action=self._on_load_demo, layout=row)
-        row.addStretch(1)
-        layout.addLayout(row)
-
-        description = QLabel(action_presentation("load_demo")[2], card)
-        description.setWordWrap(True)
-        description.setProperty("muted", True)
-        layout.addWidget(description)
-
-    def _fill_import_card(self, card: CardFrame) -> None:
-        """Import on its own: it adds tables to the open project, where New
-        and Open beside it replace the project - a different kind of step."""
-        layout = self._card_layout(card)
-        row = QHBoxLayout()
-        stdSizeAndlayout(row)
-        create_action_button(parent=card, action_id="import", action=self._on_import_data, layout=row)
-        row.addStretch(1)
-        layout.addLayout(row)
-
-    def _fill_save_card(self, card: CardFrame) -> None:
-        layout = self._card_layout(card)
-        save_row = QHBoxLayout()
-        stdSizeAndlayout(save_row)
-        create_action_button(parent=card, action_id="save", action=self._on_save, layout=save_row)
-        create_action_button(parent=card, action_id="save_as", action=self._on_save_as, layout=save_row)
-        save_row.addStretch(1)
-        layout.addLayout(save_row)
-
-    def _fill_export_card(self, card: CardFrame) -> None:
-        """The project as one report (todo R-09). A single figure has the
-        same report from its own menu, "Export report"."""
-        layout = self._card_layout(card)
-        row = QHBoxLayout()
-        stdSizeAndlayout(row)
-        create_action_button(parent=card, action_id="project_report", action=self._on_project_report, layout=row)
-        row.addStretch(1)
-        layout.addLayout(row)
 
     def _on_project_info(self) -> None:
         """Author, creation date and notes of the open project."""
@@ -1102,284 +842,33 @@ class MainWindow(QMainWindow):
         if dialog.exec() and dialog.written is not None:
             self.statusBar().showMessage(_("Report written: {path}").format(path=dialog.written), 10_000)
 
-    #: Rows the recent-projects list keeps even on a short window.
-    _RECENT_MINIMUM_ROWS: int = 1
-
-    def _fill_recent_card(self, card: CardFrame) -> None:
-        layout = self._card_layout(card)
-
-        self._recent_list = QListWidget(card)
-        self._recent_list.setObjectName("recentProjectsList")
-        apply_fusion_for_item_view_styling(self._recent_list)
-        self._recent_list.setAlternatingRowColors(True)
-        self._recent_list.setFrameShape(QFrame.Shape.NoFrame)
-        self._recent_list.setUniformItemSizes(True)
-        self._recent_list.setIconSize(QSize(20, 20))
-        self._recent_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._recent_list.setTextElideMode(Qt.TextElideMode.ElideRight)
-        # Ignored, not Expanding, vertically: it still takes the room left,
-        # but its own preferred height (a list asks for ~190 px) no longer
-        # counts towards the page's, which made the File page scroll.
-        self._recent_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
-        # A click shows the project; Open (or a double click) opens it - so a
-        # project can be looked at, its picture and its notes, before the
-        # one open now is left for it.
-        self._recent_list.currentItemChanged.connect(self._show_recent_details)
-        self._recent_list.itemDoubleClicked.connect(self._on_recent_item_clicked)
-
-        self._recent_placeholder = QLabel(_("No recent projects"), card)
-        self._recent_placeholder.setProperty("muted", True)
-        layout.addWidget(self._recent_placeholder)
-
-        # The selected project: its preview, and what it says about itself.
-        self._recent_details = QWidget(card)
-        # Side by side, small, in short lines: the File page has to fit a
-        # laptop's height without scrolling.
-        details = QHBoxLayout(self._recent_details)
-        details.setContentsMargins(0, 0, 0, 0)
-        details.setSpacing(8)
-        self._recent_preview = QLabel(self._recent_details)
-        self._recent_preview.setFixedSize(self._RECENT_PREVIEW_SIZE)
-        self._recent_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        details.addWidget(self._recent_preview, 0, Qt.AlignmentFlag.AlignTop)
-        self._recent_info = QLabel(self._recent_details)
-        # Short lines, not wrapped: a wrapping label asks the scroll area for
-        # height by width, and the File page grew a scroll bar it did not need.
-        self._recent_info.setWordWrap(False)
-        self._recent_info.setTextFormat(Qt.TextFormat.RichText)
-        self._recent_info.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        self._recent_info.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        details.addWidget(self._recent_info, 1)
-        layout.addWidget(self._recent_details)
-
-        clear_row = QHBoxLayout()
-        stdSizeAndlayout(clear_row)
-        self._recent_open_button = create_action_button(
-            parent=card, action_id="open", action=self._open_selected_recent, layout=clear_row,
-        )
-        clear_row.addStretch(1)
-        clear_icon, _clear_text, _clear_tooltip = action_presentation("clear")
-        self._recent_clear_button = create_action_button(
-            parent=card,
-            action_id="clear",
-            action=self._on_clear_recent,
-            layout=clear_row,
-            presentation=(
-                clear_icon,
-                _("Clear list"),
-                _("Forget the list of recently opened projects"),
-            ),
-        )
-        # Red: the one button here a misclick cannot undo.
-        mark_destructive_button(self._recent_clear_button)
-        layout.addLayout(clear_row)
-        # The list last, taking the room left: the selected project's
-        # picture and its Open button stay in view on a short screen.
-        layout.addWidget(self._recent_list, 1)
-
-        self._refresh_recent_list()
-
-    #: The selected recent project's picture, beside its details.
-    _RECENT_PREVIEW_SIZE = QSize(112, 70)
-
-    def _on_recent_item_clicked(self, item: QListWidgetItem) -> None:
-        path = item.data(Qt.ItemDataRole.UserRole)
-        if path:
-            self._on_open_recent(Path(str(path)))
-
-    def _open_selected_recent(self) -> None:
-        item = self._recent_list.currentItem()
-        if item is not None:
-            self._on_recent_item_clicked(item)
-
-    def _show_recent_details(self, item: QListWidgetItem | None, _previous: QListWidgetItem | None = None) -> None:
-        """Picture and information of the recent project *item* names.
-
-        Read from the file without opening it (read_project_info): the
-        project open now stays open until Open is pressed.
-        """
-        from datetime import datetime
-
-        from app.data.repo.project_info import parse_references, read_project_info
-        from app.dialogs.project_info_dialog import readable_date
-        from app.utils.project_preview import resolve_preview
-
-        path = Path(str(item.data(Qt.ItemDataRole.UserRole))) if item is not None else None
-        self._recent_open_button.setEnabled(path is not None and path.is_file())
-        self._recent_preview.clear()
-        if path is None:
-            self._recent_info.clear()
-            return
-        if not path.is_file():
-            self._recent_info.setText(html.escape(_("This file is no longer there: {path}").format(path=path)))
-            return
-        info = read_project_info(path)
-        picture_path = resolve_preview(path, info.get("preview_path"))
-        picture = QPixmap(str(picture_path)) if picture_path is not None else QPixmap()
-        if picture.isNull():
-            self._recent_preview.setText(_("No preview"))
-            self._recent_preview.setProperty("muted", True)
-        else:
-            ratio = self.devicePixelRatioF()
-            scaled = picture.scaled(self._RECENT_PREVIEW_SIZE * ratio, Qt.AspectRatioMode.KeepAspectRatio,
-                                    Qt.TransformationMode.SmoothTransformation)
-            scaled.setDevicePixelRatio(ratio)
-            self._recent_preview.setPixmap(scaled)
-        stat = path.stat()
-        rows = []
-        if info.get("author"):
-            rows.append(html.escape(info["author"]))
-        if info.get("created"):
-            rows.append(html.escape(_("Created {date}").format(date=readable_date(info["created"])[:10])))
-        modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d")
-        rows.append(html.escape(_("Saved {date} · {size:.1f} MB").format(date=modified, size=stat.st_size / 1e6)))
-        references = parse_references(info.get("references"))
-        if references:
-            rows.append(html.escape(_("{count} reference(s)").format(count=len(references))))
-        notes = " ".join(info.get("notes", "").split())
-        if notes:
-            rows.append(f"<i>{html.escape(notes if len(notes) <= 60 else notes[:57] + '...')}</i>")
-        self._recent_info.setText("<br>".join(rows))
-        # The whole notes, which the line above cuts short.
-        self._recent_info.setToolTip(info.get("notes", ""))
-
-    def _refresh_recent_list(self) -> None:
-        """(Re)populate the File page's Open Recent list from user.json.
-
-        A list, one project per row: its name, and its folder under it.
-        Rebuilt on every call - user.json's recent list changes between
-        visits to this page, the same reason the native File menu's Open
-        Recent submenu rebuilds itself on every show.
-        """
-        if not hasattr(self, "_recent_list"):
-            return
-        recent = get_recent_databases()
-        self._recent_list.clear()
-        # A document, in the accent blue, as Finder draws a file - the
-        # folder this used to show read as "open a folder".
-        open_icon = colored_icon(
-            action_presentation("recent_project")[0],
-            QApplication.palette().color(QPalette.ColorRole.Highlight),
-            20,
-        )
-        for path in recent:
-            folder = str(path.parent)
-            home = str(Path.home())
-            if folder.startswith(home):
-                folder = "~" + folder[len(home):]
-            item = QListWidgetItem(open_icon, f"{path.name}\n{folder}")
-            item.setToolTip(str(path))
-            item.setData(Qt.ItemDataRole.UserRole, str(path))
-            self._recent_list.addItem(item)
-
-        has_any = bool(recent)
-        self._recent_list.setVisible(has_any)
-        self._recent_clear_button.setVisible(has_any)
-        self._recent_open_button.setVisible(has_any)
-        self._recent_details.setVisible(has_any)
-        self._recent_placeholder.setVisible(not has_any)
-        if has_any:
-            self._recent_list.setCurrentRow(0)
-        else:
-            self._show_recent_details(None)
-        if has_any:
-            row_height = max(self._recent_list.sizeHintForRow(0), 1)
-            rows = min(len(recent), self._RECENT_MINIMUM_ROWS)
-            self._recent_list.setMinimumHeight(row_height * rows + 2)
-
-    def _fill_project_history_card(self, card: CardFrame) -> None:
-        """Every operation applied in the project (todo R-03); one table's
-        history is in that table's own context menu."""
-        card_layout = self._card_layout(card)
-        button_row = QHBoxLayout()
-        stdSizeAndlayout(button_row)
-        create_action_button(
-            parent=card, action_id="project_history", action=self._on_project_history, layout=button_row,
-        )
-        button_row.addStretch(1)
-        card_layout.addLayout(button_row)
-
     def _on_project_history(self) -> None:
         from app.dialogs.operation_history_dialog import OperationHistoryDialog
 
         OperationHistoryDialog(self._repo, None, self).exec()
 
-    #: (action_id, handler) - the Developer menu's old group, one section
-    #: each. See _create_developer_page for why they live here now instead.
-    _DEV_TOOLS: tuple[tuple[str, str], ...] = (
-        ("edit_localization", "_on_edit_localization"),
-        ("series_operation_builder", "_on_series_operation_builder"),
-        ("function_creator", "_on_function_creator"),
-        ("renderer_helper", "_on_renderer_helper"),
-        ("log_viewer", "_show_log_viewer"),
-    )
+    def _create_developer_page(self) -> NavPanel:
+        """The project's history and database, then the scaffolding tools.
 
-    def _create_developer_page(self) -> QWidget:
-        """The project's database, then the scaffolding tools.
-
-        First what the Database page held - the project history, and the
-        database overview (info, tables, Optimize DB, links) - since that
-        page is gone; Query Builder moved to the Series Operations list.
-        Then the tools that were here before.
-
-        This panel is associated directly with the ``developer`` navigation
-        key. The old "Developer" menu group moved here rather than merely
-        hidden the way File/Database's own groups still are (see
-        _app_menu_items): none of these actions carries a shortcut
-        worth preserving, and off macOS there was no menu bar to begin
-        with - only the rail's own flattened popup, which itself no
-        longer has a button anywhere pointing at it, making this group
-        unreachable there before this page existed.
+        The Database page's content lives here since that page went; Query
+        Builder moved to the Series Operations list. Each tool has a frame
+        of its own with its catalogue sentence under the button.
         """
-        page = QWidget(self)
-        page.setProperty("toolboxPage", True)
-        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        layout = QVBoxLayout(page)
-        stdSizeAndlayout(layout)
-
-        layout.addWidget(
-            self._titled_card(page, _("History"), self._fill_project_history_card, object_name="projectHistoryCard")
-        )
-        self._database_info_panel = DatabaseInfoPanel(
-            self._repo, page, optimize_action=self._on_optimize_db,
-        )
-        layout.addWidget(self._database_info_panel)
-
-        for action_id, handler_name in self._DEV_TOOLS:
-            layout.addWidget(
-                self._create_dev_tool_section(page, action_id, handler_name)
-            )
-
-        layout.addStretch(1)
+        page = NavPanel(self)
+        page.add_buttons(_("History"), [NavButton("project_history", self._on_project_history)],
+                         object_name="projectHistoryCard")
+        self._database_info_panel = DatabaseInfoPanel(self._repo, page, optimize_action=self._on_optimize_db)
+        page.add_widget(self._database_info_panel)
+        for action_id, handler in (
+            ("edit_localization", self._on_edit_localization),
+            ("series_operation_builder", self._on_series_operation_builder),
+            ("function_creator", self._on_function_creator),
+            ("renderer_helper", self._on_renderer_helper),
+            ("log_viewer", self._show_log_viewer),
+        ):
+            page.add_buttons(action_presentation(action_id)[1], [NavButton(action_id, handler, described=True)],
+                             object_name=f"{action_id}Card")
         return page
-
-    def _create_dev_tool_section(
-        self, parent: QWidget, action_id: str, handler_name: str
-    ) -> QWidget:
-        """One scaffolding tool as its own card - button plus the
-        catalogue's own description shown underneath, same pattern as
-        Query Builder's own section on the Database page."""
-        _icon, text, tooltip = action_presentation(action_id)
-
-        def fill(card: CardFrame) -> None:
-            card_layout = self._card_layout(card)
-            button_row = QHBoxLayout()
-            stdSizeAndlayout(button_row)
-            create_action_button(
-                parent=card,
-                action_id=action_id,
-                action=getattr(self, handler_name),
-                layout=button_row,
-            )
-            button_row.addStretch(1)
-            card_layout.addLayout(button_row)
-
-            description = QLabel(tooltip, card)
-            description.setWordWrap(True)
-            description.setProperty("muted", True)
-            card_layout.addWidget(description)
-
-        return self._titled_card(parent, text, fill, object_name=f"{action_id}Card")
 
     # ------------------------------------------------------------------
     # Activity rail
@@ -1655,7 +1144,7 @@ class MainWindow(QMainWindow):
             )
             show_message(self, "database.open_failed", error=db_path)
             self._build_app_menu()
-            self._refresh_recent_list()
+            self._recent_view.refresh()
             return
 
         applogger.info("Opening recent database: %s", db_path)
@@ -1669,7 +1158,7 @@ class MainWindow(QMainWindow):
         """Forget the list. The database currently open is not affected."""
         clear_recent_databases()
         self._build_app_menu()
-        self._refresh_recent_list()
+        self._recent_view.refresh()
 
     def _build_app_menu(self) -> None:
         """Create the app menu, and place it where each platform expects it.
@@ -1932,12 +1421,12 @@ class MainWindow(QMainWindow):
 
     def _create_navigation(self) -> NavigationBar:
         """Create the bar and panel host from one section dictionary."""
-        file_panel = self._scrollable(self._create_file_page())
+        file_panel = self._create_file_page()
         tables_panel = self._data_page
-        new_table_panel = self._scrollable(self._create_new_table_page())
+        new_table_panel = self._create_new_table_page()
         chart_properties_panel = self._scrollable(self._properties_control)
         series_operations_panel = self._create_series_operations_page()
-        developer_panel = self._scrollable(self._create_developer_page())
+        developer_panel = self._create_developer_page()
 
         sections: dict[str, dict[str, NavBarItem]] = {
             "Tools": {
@@ -1987,16 +1476,17 @@ class MainWindow(QMainWindow):
         navigation = NavigationBar(
             sections, parent=self, header=header,
             panel_margins=(SPACING_DEFAULT, 12, SPACING_DEFAULT, SPACING_DEFAULT),
+            panel_min_width=PANEL_MIN_WIDTH,
         )
         navigation.action_clicked.connect(self._on_navigation_action)
         navigation.panel_changed.connect(self._on_navigation_panel_changed)
+        navigation.bar_hidden_changed.connect(self._on_bar_hidden_changed)
         return navigation
 
     def _on_navigation_action(self, key: str) -> None:
         """Handle rows that intentionally have no associated panel."""
         if key == "workspace":
-            if not self._left_stack.isHidden():
-                self._toggle_workspace()
+            self._left_panel.set_panel_visible(False)
             return
         if key == "settings":
             self._on_settings()
@@ -2012,18 +1502,8 @@ class MainWindow(QMainWindow):
 
     def _on_navigation_panel_changed(self, key: str, panel: object) -> None:
         del panel
-        # NavigationBar shows its panel before emitting this signal. If the
-        # Workspace action had pinned the splitter to the bar width, restore
-        # the panel width here rather than calling _toggle_workspace(), which
-        # would interpret the now-visible panel as a request to hide it again.
-        if self._left_panel.maximumWidth() <= max(self._rail_width(), 1):
-            sizes = self._main_split.sizes()
-            self._apply_left_panel_limits()
-            restore = int(getattr(self, "_left_panel_restore_width", 420))
-            total = max(sum(sizes), restore + CHART_PANE_MIN_WIDTH)
-            self._main_split.setSizes([restore, max(total - restore, 1)])
         if key == "file":
-            self._refresh_recent_list()
+            self._recent_view.refresh()
         applogger.debug("Left navigation item changed to %s", key)
 
     def _select_navigation(self, key: str) -> None:
@@ -2058,13 +1538,9 @@ class MainWindow(QMainWindow):
         )
 
         relax_minimum_width(self._left_panel)
-        # The rail is fixed-width and always visible, so the floor applies to
-        # the content next to it, not to the panel as a whole. Read from the
-        # rail itself, not the NAV_BAR_WIDTH constant: NavigationBar picks
-        # its own width per platform (a macOS sidebar is wider than a
-        # Windows Fluent tile rail), so the constant alone is only ever
-        # right for one of them.
-        self._left_panel.setMinimumWidth(PANEL_MIN_WIDTH + self._rail_width())
+        # relax_minimum_width cleared every floor; NavigationBar works out its
+        # own again (the panels' minimum beside the bar).
+        self._left_panel.set_panel_visible(self._left_panel.panel_visible)
 
         # The chart pane needs the same treatment, and for the same reason:
         # whichever pane keeps a large implicit minimum wins the whole
@@ -2105,7 +1581,7 @@ class MainWindow(QMainWindow):
         # the macOS panel 160px of usable width - the table list and the
         # series-operation panels were unreadably narrow in it - while
         # giving Windows 228 for the same panel.
-        split.setSizes([self._rail_width() + PANEL_DEFAULT_WIDTH, 840])
+        split.setSizes([self._left_panel.visible_bar_width + PANEL_DEFAULT_WIDTH, 840])
 
         return split
 
@@ -2198,7 +1674,7 @@ class MainWindow(QMainWindow):
             # or it goes on showing the order from before the switch - same
             # for the File page's own list.
             self._build_app_menu()
-            self._refresh_recent_list()
+            self._recent_view.refresh()
         finally:
             contents.setUpdatesEnabled(True)
 

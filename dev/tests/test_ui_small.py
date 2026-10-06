@@ -435,7 +435,7 @@ def test_the_left_pane_is_never_left_pinned(qapp, tmp_path: Path) -> None:
     window.set_navigation_compact(True)
     window._toggle_workspace()
     qapp.processEvents()
-    assert window._rail_width() > 0 and panel.maximumWidth() == window._rail_width()
+    assert window._left_panel.visible_bar_width > 0 and panel.maximumWidth() == window._left_panel.visible_bar_width
     window._toggle_workspace()
     assert resizable()
 
@@ -445,7 +445,7 @@ def test_the_left_pane_is_never_left_pinned(qapp, tmp_path: Path) -> None:
     assert not window._left_stack.isHidden() and resizable()
     window.set_navigation_compact(False)
     qapp.processEvents()
-    assert window._rail_width() > 0 and resizable()
+    assert window._left_panel.visible_bar_width > 0 and resizable()
     window.close()
     repo.close()
 
@@ -462,17 +462,19 @@ def test_a_recent_project_is_shown_before_it_is_opened(qapp, tmp_path: Path, mon
     remember_recent_database(tmp_path / "Other study.dhub")
     repo = SqliteRepo(db_path=tmp_path / "p.dhub")
     window = MainWindow(repo, tmp_path / "p.dhub")
+    view = window._recent_view
     opened: list[Path] = []
-    monkeypatch.setattr(window, "_on_open_recent", lambda path: opened.append(path))
-    window._refresh_recent_list()
-    row = next(i for i in range(window._recent_list.count())
-               if window._recent_list.item(i).data(Qt.ItemDataRole.UserRole) == str(tmp_path / "Other study.dhub"))
-    window._recent_list.setCurrentRow(row)
+    view.open_requested.disconnect()
+    view.open_requested.connect(opened.append)
+    view.refresh()
+    row = next(i for i in range(view._list.count())
+               if view._list.item(i).data(Qt.ItemDataRole.UserRole) == str(tmp_path / "Other study.dhub"))
+    view._list.setCurrentRow(row)
     assert opened == []  # selecting only shows it
-    text = window._recent_info.text()
+    text = view._info.text()
     assert "Marie Curie" in text and "Radium samples" in text
     assert not (tmp_path / "Other study.dhub.undo.db").exists()  # read, not opened
-    window._open_selected_recent()
+    view._open_selected()
     assert opened == [tmp_path / "Other study.dhub"]
     window.close()
     repo.close()

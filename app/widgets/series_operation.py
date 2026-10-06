@@ -36,14 +36,9 @@ from PySide6.QtWidgets import (
 
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.scanners.series_operation_scanner import series_operations
-from app.styles.style import (
-    CardFrame,
-    icon_from_svg_source,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.styles.style import icon_from_svg_source, load_icon
 from app.utils.i18n import _, tr
-from app.widgets.base_properties import BaseProperties
+from app.widgets.nav_bar import NavPanel
 
 _ACCENT = "#2563EB"
 
@@ -113,19 +108,17 @@ _DESCRIPTION_ROLE = Qt.ItemDataRole.UserRole + 2
 _ICON_SIZE = 18
 
 
-class SeriesOperationWidget(BaseProperties):
+class SeriesOperationWidget(NavPanel):
+    """The Series operations panel: the operations, searchable, and the pointed one's description."""
+
     operation_requested = Signal(dict)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
-        root_layout = QVBoxLayout(self)
-        stdSizeAndlayout(root_layout)
-
-        page = CardFrame(self, "seriesOperationsPageCard", margins=(0, 0, 0, 0))
-        page.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        root_layout.addWidget(page, 1)
-        page_layout = page.layout()
+        page = QWidget(self)
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
 
         self._search = QLineEdit(page)
         self._search.setObjectName("seriesOperationsSearch")
@@ -152,20 +145,25 @@ class SeriesOperationWidget(BaseProperties):
         self._list.currentItemChanged.connect(lambda current, _previous: self._hint_for(current))
         self._list.viewport().installEventFilter(self)
         self._list.installEventFilter(self)
+        # Ignored vertically, like every list that fills a panel: it takes the
+        # height left without asking the scrolling panel for its own.
+        self._list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        self._list.setMinimumHeight(160)
         page_layout.addWidget(self._list, 1)
+        self.add_frame(_("Operations"), page, object_name="seriesOperationsPageCard", stretch=1)
 
         self._add_section(_("Plot"), [self.plot_operation()])
         self._add_section(_("Data"), [self.query_builder_operation()])
         for title, operations in _group_by_section(list(series_operations)):
             self._add_section(title, operations)
 
-        # Fixed at the panel's bottom, outside the list: a description belongs
-        # somewhere that stays put while it is read.
-        self._hint_label = QLabel(_("Point at an operation for details"), page)
+        # A frame of its own under the list: a description belongs somewhere
+        # that stays put while it is read.
+        self._hint_label = QLabel(_("Point at an operation for details"), self)
         self._hint_label.setObjectName("operationHint")
         self._hint_label.setProperty("muted", True)
         self._hint_label.setWordWrap(True)
-        page_layout.addWidget(self._hint_label, 0)
+        self.add_frame(_("Description"), self._hint_label, object_name="operationHintFrame")
 
     # ------------------------------------------------------------------
     # Building
@@ -258,21 +256,6 @@ class SeriesOperationWidget(BaseProperties):
                     self._list.setCurrentItem(visible[0])
                     return True
         return super().eventFilter(watched, event)
-
-    def _reload_from_descriptor(self) -> None:
-        """No-op: this panel lists operations, it does not edit a descriptor.
-
-        Required by BaseProperties; nothing here reads from a connected
-        figure, so there is nothing to reload when one changes.
-        """
-
-    def _set_enabled_state(self, enabled: bool) -> None:
-        """No-op for the same reason: every row stays usable regardless.
-
-        Whether an operation can actually run is decided where it is opened
-        (main_window._open_series_operation refuses without a current
-        chart), not by disabling the row that asks for one.
-        """
 
     def _hint_for(self, item: QListWidgetItem | None) -> None:
         if item is None or item.data(_OPERATION_ROLE) is None:

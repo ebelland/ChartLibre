@@ -7104,3 +7104,6 @@ msgstr "Ordine casuale"
 
 msgid "The same seed gives the same run order and the same Latin hypercube."
 msgstr "Lo stesso seme dà lo stesso ordine delle prove e lo stesso ipercubo latino."
+
+msgid "Operations"
+msgstr "Operazioni"
