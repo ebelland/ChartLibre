@@ -303,6 +303,13 @@
       "SegoeFluent": "ECC8",
       "ThemeIcon": "document-new"
     },
+    "nav_analysis": {
+      "text": "Analysis",
+      "description": "Models of a table's columns",
+      "SFSymbol": "chart.dots.scatter",
+      "SegoeFluent": "E9D9",
+      "ThemeIcon": "accessories-calculator"
+    },
     "nav_data": {
       "text": "Data",
       "description": "Show data tables",

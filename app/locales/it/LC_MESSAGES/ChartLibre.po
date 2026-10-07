@@ -7119,3 +7119,201 @@ msgstr "Figura"
 
 msgid "Overlays"
 msgstr "Sovrapp."
+
+msgid "Actual by predicted"
+msgstr "Osservato contro previsto"
+
+msgid "Add the interaction of the selected factors; one factor alone gives its square."
+msgstr "Aggiunge l'interazione dei fattori selezionati; un fattore da solo dà il suo quadrato."
+
+msgid "Add the selected factors as main effects."
+msgstr "Aggiunge i fattori selezionati come effetti principali."
+
+msgid "Analysis of variance"
+msgstr "Analisi della varianza"
+
+msgid "Cast the columns into their roles, then press Preview."
+msgstr "Assegna le colonne ai loro ruoli, poi premi Anteprima."
+
+msgid "Choose a table."
+msgstr "Scegli una tabella."
+
+msgid "Cross"
+msgstr "Incrocia"
+
+msgid "Double-click a column to take it out of this role."
+msgstr "Doppio clic su una colonna per toglierla da questo ruolo."
+
+msgid "Effect summary"
+msgstr "Riepilogo degli effetti"
+
+msgid "Effect summary (LogWorth)"
+msgstr "Riepilogo degli effetti (LogWorth)"
+
+msgid "Effect tests"
+msgstr "Test degli effetti"
+
+msgid "Effects"
+msgstr "Effetti"
+
+msgid "How the selected columns enter a model: as numbers, or as labels."
+msgstr "Come le colonne selezionate entrano in un modello: come numeri o come etichette."
+
+msgid "Lack of fit"
+msgstr "Mancanza di adattamento"
+
+msgid "LogWorth"
+msgstr "LogWorth"
+
+msgid "Macro:"
+msgstr "Macro:"
+
+msgid "Model effects"
+msgstr "Effetti del modello"
+
+msgid "Models of a table's columns"
+msgstr "Modelli delle colonne di una tabella"
+
+msgid "Parameter estimates (coded units)"
+msgstr "Stime dei parametri (unità codificate)"
+
+msgid "Prob > F"
+msgstr "Prob > F"
+
+msgid "Remove the selected terms."
+msgstr "Toglie i termini selezionati."
+
+msgid "Removed as not significant: {terms}."
+msgstr "Tolti perché non significativi: {terms}."
+
+msgid "Residual by predicted"
+msgstr "Residuo contro previsto"
+
+msgid "Residual normal quantile plot"
+msgstr "Quantili normali dei residui"
+
+msgid "Response {name}"
+msgstr "Risposta {name}"
+
+msgid "Summary of fit"
+msgstr "Riepilogo dell'adattamento"
+
+msgid "Table:"
+msgstr "Tabella:"
+
+msgid "The inputs changed: press Preview to compute again."
+msgstr "I dati sono cambiati: premi Anteprima per ricalcolare."
+
+msgid "The model has no effects: add some on the Effects tab."
+msgstr "Il modello non ha effetti: aggiungine nella scheda Effetti."
+
+msgid "The table has no visible rows."
+msgstr "La tabella non ha righe visibili."
+
+msgid "{operation} could not be computed: {error}"
+msgstr "Impossibile calcolare {operation}: {error}"
+
+msgid "{operation} could not be written: {error}"
+msgstr "Impossibile scrivere {operation}: {error}"
+
+msgid "{role} takes {kinds} columns only: {columns}."
+msgstr "{role} accetta solo colonne {kinds}: {columns}."
+
+msgid "{role}: choose at least {count} column(s)."
+msgstr "{role}: scegli almeno {count} colonna/e."
+
+msgid "{table} · {count} response(s)"
+msgstr "{table} · {count} risposta/e"
+
+msgid "Fit Model"
+msgstr "Adatta modello"
+
+msgid "Least-squares model of one or more responses on continuous and nominal factors: effect tests, estimates, analysis of variance and lack of fit - for a designed experiment, or any table."
+msgstr "Modello ai minimi quadrati di una o più risposte su fattori continui e nominali: test degli effetti, stime, analisi della varianza e mancanza di adattamento - per un esperimento pianificato o per qualunque tabella."
+
+msgid "Models"
+msgstr "Modelli"
+
+msgid "Y, response"
+msgstr "Y, risposta"
+
+msgid "The columns to model: one model each."
+msgstr "Le colonne da modellare: un modello ciascuna."
+
+msgid "The columns the responses are modelled on."
+msgstr "Le colonne su cui si modellano le risposte."
+
+msgid "Remove terms that are not significant"
+msgstr "Togli i termini non significativi"
+
+msgid "Backwards: the least significant term goes first, until every term left is significant - never a term a higher-order one still contains."
+msgstr "All'indietro: esce per primo il termine meno significativo, finché tutti quelli rimasti sono significativi - mai un termine contenuto in uno di ordine superiore ancora presente."
+
+msgid "Significance level (α):"
+msgstr "Livello di significatività (α):"
+
+msgid "A term is significant when its p-value is at most this."
+msgstr "Un termine è significativo quando il suo p-value non supera questo valore."
+
+msgid "Make the charts"
+msgstr "Crea i grafici"
+
+msgid "For each response, a figure: actual by predicted, the effects' Pareto, residual by predicted, and a normal quantile plot of the residuals."
+msgstr "Per ogni risposta, una figura: osservato contro previsto, Pareto degli effetti, residuo contro previsto e quantili normali dei residui."
+
+msgid "Main effects"
+msgstr "Effetti principali"
+
+msgid "Factorial to degree 2"
+msgstr "Fattoriale di grado 2"
+
+msgid "Response surface"
+msgstr "Superficie di risposta"
+
+msgid "Continuous"
+msgstr "Continuo"
+
+msgid "Nominal"
+msgstr "Nominale"
+
+msgid "DF"
+msgstr "GdL"
+
+msgid "Sum of Squares"
+msgstr "Somma dei quadrati"
+
+msgid "Mean Square"
+msgstr "Quadrato medio"
+
+msgid "F Ratio"
+msgstr "Rapporto F"
+
+msgid "Term"
+msgstr "Termine"
+
+msgid "Std Error"
+msgstr "Errore std"
+
+msgid "t Ratio"
+msgstr "Rapporto t"
+
+msgid "Prob > |t|"
+msgstr "Prob > |t|"
+
+msgid "RSquare"
+msgstr "R²"
+
+msgid "RSquare Adj"
+msgstr "R² corretto"
+
+msgid "Root Mean Square Error"
+msgstr "Radice dell'errore quadratico medio"
+
+msgid "Mean of Response"
+msgstr "Media della risposta"
+
+msgid "Observations"
+msgstr "Osservazioni"
+
+msgid "No degrees of freedom are left for error: the model has as many terms as runs, so nothing can be tested. Remove terms, or add runs."
+msgstr "Non restano gradi di libertà per l'errore: il modello ha tanti termini quante prove, quindi non si può testare nulla. Togli dei termini o aggiungi prove."

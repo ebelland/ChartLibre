@@ -37,6 +37,8 @@ from app.dialogs.main_project import MainWindowProject
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.chart_panel import ChartPanel
 from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
+from app.widgets.analysis_panel import AnalysisPanel
+from app.scanners.table_operation_scanner import import_class_from_file as import_table_operation
 from app.widgets.recent_projects import RecentProjectsView
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.credits_dialog import CreditsDialog
@@ -659,6 +661,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         new_table_panel = self._create_new_table_page()
         chart_properties_panel = self._properties_control
         series_operations_panel = self._create_series_operations_page()
+        analysis_panel = AnalysisPanel(self)
+        analysis_panel.operation_requested.connect(self._on_table_operation_requested)
         developer_panel = self._create_developer_page()
 
         sections: dict[str, dict[str, NavBarItem]] = {
@@ -686,6 +690,10 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                 "series_operations": NavBarItem(
                     _("Series operations"), self._navigation_icon("nav_series_operations"),
                     series_operations_panel, _("Transform or analyse chart series"),
+                ),
+                "analysis": NavBarItem(
+                    _("Analysis"), self._navigation_icon("nav_analysis"),
+                    analysis_panel, _("Models of a table's columns"),
                 ),
                 "developer": NavBarItem(
                     _("Developer"), self._navigation_icon("nav_developer"), developer_panel,
@@ -1097,6 +1105,21 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             applogger.exception("Failed to refresh the data panes.")
         self._update_properties_for_current_chart()
         self._refresh_undo_item()
+
+    def _on_table_operation_requested(self, operation: dict) -> None:
+        """Open a table operation (Fit Model...) on the table selected in the Tables panel."""
+        dialog_class = import_table_operation(operation)
+        if dialog_class is None:
+            applogger.error("Could not load table operation class: %r", operation.get("name"))
+            return
+        current = self._table_panel.current
+        dialog = dialog_class(repo=self._repo, table=str(current) if current else None, parent=self)
+        dialog.applied.connect(self.refresh)
+        dialog.exec()
+        figures = list(getattr(dialog, "created_figure_ids", []) or [])
+        self._table_panel.reload()
+        if figures:
+            self._reload_tabs(select_figure_id=figures[0])
 
     def _open_series_operation(
         self,

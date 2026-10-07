@@ -121,6 +121,9 @@ msgstr "Acerca de"
 msgid "About this project"
 msgstr "Acerca de este proyecto"
 
+msgid "Actual by predicted"
+msgstr "Real por predicho"
+
 msgid "Add"
 msgstr "Añadir"
 
@@ -137,133 +140,145 @@ msgid "Add a new series holding only the selected points."
 msgstr "Añadir una nueva serie que contenga solo los puntos seleccionados."
 
 msgid "Add an axis to the current figure showing the analysed series. Preview draws it; closing without applying removes it again."
-msgstr ""
+msgstr "Añada un eje a la figura actual que muestre las series analizadas. La vista previa lo dibuja; cerrar sin aplicar lo elimina de nuevo."
 
 msgid "Add annotation"
-msgstr ""
+msgstr "Añadir anotación"
 
 msgid "Add annotation here…"
-msgstr ""
+msgstr "Añadir anotación aquí..."
 
 msgid "Add another column to the summary"
-msgstr ""
+msgstr "Añadir otra columna al resumen"
 
 msgid "Add column"
-msgstr ""
+msgstr "Añadir columna"
 
 msgid "Add computed column"
-msgstr ""
+msgstr "Añadir columna calculada"
 
 msgid "Add horizontal line at y = {value}"
-msgstr ""
+msgstr "Añadir línea horizontal en y = {value}"
 
 msgid "Add line"
-msgstr ""
+msgstr "Añadir línea"
 
 msgid "Add measure"
-msgstr ""
+msgstr "Añadir medida"
 
 msgid "Add measurement"
-msgstr ""
+msgstr "Añadir medida"
 
 msgid "Add new axis"
-msgstr ""
+msgstr "Añadir nuevo eje"
 
 msgid "Add source"
-msgstr ""
+msgstr "Añadir fuente"
+
+msgid "Add the interaction of the selected factors; one factor alone gives its square."
+msgstr "Añade la interacción de los factores seleccionados; un solo factor da su cuadrado."
+
+msgid "Add the selected factors as main effects."
+msgstr "Añada los factores seleccionados como efectos principales."
 
 msgid "Add vertical line at x = {value}"
-msgstr ""
+msgstr "Añadir línea vertical en x = {value}"
 
 msgid "Add {orientation} line"
-msgstr ""
+msgstr "Añadir {orientation} línea"
 
 msgid "Additional kwargs editor can be inserted here by the host."
-msgstr ""
+msgstr "El anfitrión puede insertar un editor de kwargs adicional aquí."
 
 msgid "Algorithm:"
-msgstr ""
+msgstr "Algoritmo:"
 
 msgid "All"
-msgstr ""
+msgstr "Todos"
 
 msgid "All checked series"
-msgstr ""
+msgstr "Todas las series comprobadas"
 
 msgid "All groups"
-msgstr ""
+msgstr "Todos los grupos"
 
 msgid "All statistics"
-msgstr ""
+msgstr "Todas las estadísticas"
 
 msgid "Allow evaluation outside source data X range."
-msgstr ""
+msgstr "Permitir la evaluación fuera del rango X de datos de origen."
 
 msgid "Allow extrapolation"
-msgstr ""
+msgstr "Permitir extrapolación"
 
 msgid "Alternative hypothesis for supported tests."
-msgstr ""
+msgstr "Hipótesis alternativa para pruebas soportadas."
 
 msgid "Alternative:"
-msgstr ""
+msgstr "Alternativa:"
 
 msgid "Amplitude envelope"
-msgstr ""
+msgstr "Envoltura de amplitud"
+
+msgid "Analysis"
+msgstr "Análisis"
+
+msgid "Analysis of variance"
+msgstr "Análisis de varianza"
 
 msgid "Anderson method:"
-msgstr ""
+msgstr "Método Anderson:"
 
 msgid "Anderson p-value: Monte Carlo"
-msgstr ""
+msgstr "Valor p de Anderson: Monte Carlo"
 
 msgid "Anderson p-value: interpolated"
-msgstr ""
+msgstr "Valor p de Anderson: interpolado"
 
 msgid "Anderson-Darling normality"
-msgstr ""
+msgstr "Normalidad Anderson-Darling"
 
 msgid "Angle"
-msgstr ""
+msgstr "Ángulo"
 
 msgid "Angles (x, y, z)"
-msgstr ""
+msgstr "Ángulos (x, y, z)"
 
 msgid "Annotation text:"
-msgstr ""
+msgstr "Texto de anotación:"
 
 msgid "Annotations"
-msgstr ""
+msgstr "Anotaciones"
 
 msgid "Annotations are stored in axis options. Color, font and size have their own columns; anything else goes in Kwargs JSON, for example: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
-msgstr ""
+msgstr "Las anotaciones se almacenan en opciones de eje. El color, la fuente y el tamaño tienen sus propias columnas; cualquier otra cosa vale en Kwargs JSON, por ejemplo: {\"xytext\": [10, 10], \"textcoords\": \"offset points\"}."
 
 msgid "Another ChartLibre project (.dhub)"
-msgstr ""
+msgstr "Otro proyecto de ChartLibre (.dhub)"
 
 msgid "App style"
-msgstr ""
+msgstr "Estilo de aplicación"
 
 msgid "Appearance"
-msgstr ""
+msgstr "Aspecto"
 
 msgid "Application Log"
-msgstr ""
+msgstr "Registro de aplicaciones"
 
 msgid "Applied"
-msgstr ""
+msgstr "Aplicado"
 
 msgid "Apply a preset…"
-msgstr ""
+msgstr "Aplicar un ajuste preestablecido..."
 
 msgid "Apply a template"
-msgstr ""
+msgstr "Aplicar una plantilla"
 
 msgid "Apply a template…"
-msgstr ""
+msgstr "Aplicar una plantilla..."
 
 msgid "Apply multi-peak"
-msgstr ""
+msgstr "Aplicar multi-peak"
 
 msgid "Apply template"
 msgstr ""
@@ -382,6 +397,9 @@ msgstr ""
 msgid "Cancel measurement"
 msgstr ""
 
+msgid "Cast the columns into their roles, then press Preview."
+msgstr ""
+
 msgid "Category:"
 msgstr ""
 
@@ -449,6 +467,9 @@ msgid "Choose a decomposition (a curve per component) or a manifold embedding (a
 msgstr ""
 
 msgid "Choose a series, then press Preview."
+msgstr ""
+
+msgid "Choose a table."
 msgstr ""
 
 msgid "Choose how Anderson-Darling p-values are calculated when supported by SciPy."
@@ -527,6 +548,9 @@ msgid "Clipboard transposed"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Close the log"
 msgstr ""
 
 msgid "Color"
@@ -659,6 +683,9 @@ msgid "Created:"
 msgstr ""
 
 msgid "Credits"
+msgstr ""
+
+msgid "Cross"
 msgstr ""
 
 msgid "Crosshair"
@@ -856,6 +883,9 @@ msgstr ""
 msgid "Double-click a column to insert it at the cursor."
 msgstr ""
 
+msgid "Double-click a column to take it out of this role."
+msgstr ""
+
 msgid "Downsample"
 msgstr ""
 
@@ -910,6 +940,18 @@ msgstr ""
 msgid "Edit the current chart"
 msgstr ""
 
+msgid "Effect summary"
+msgstr ""
+
+msgid "Effect summary (LogWorth)"
+msgstr ""
+
+msgid "Effect tests"
+msgstr ""
+
+msgid "Effects"
+msgstr ""
+
 msgid "Elliptic"
 msgstr ""
 
@@ -959,6 +1001,9 @@ msgid "Every figure is drawn again, with its notes."
 msgstr ""
 
 msgid "Example: {\"a\": 1.0, \"b\": 0.1}"
+msgstr ""
+
+msgid "Exit"
 msgstr ""
 
 msgid "Explained variance"
@@ -1070,6 +1115,9 @@ msgid "Field to join on:"
 msgstr ""
 
 msgid "Fields:"
+msgstr ""
+
+msgid "Figure"
 msgstr ""
 
 msgid "Figure layout"
@@ -1210,6 +1258,9 @@ msgstr ""
 msgid "GP Regression"
 msgstr ""
 
+msgid "Gap V"
+msgstr ""
+
 msgid "Gap between shared axes side by side. 0 draws them flush."
 msgstr ""
 
@@ -1256,6 +1307,9 @@ msgid "Guess starting parameters"
 msgstr ""
 
 msgid "Guess starting parameters for nonlinear models."
+msgstr ""
+
+msgid "H"
 msgstr ""
 
 msgid "HTML - one file, opens in any browser"
@@ -1355,6 +1409,9 @@ msgid "How many scales to evaluate between the longest period the record support
 msgstr ""
 
 msgid "How the candidates are ordered. AIC is the default because the KS statistic alone always favours the distributions with the most free parameters, whatever the data really is."
+msgstr ""
+
+msgid "How the selected columns enter a model: as numbers, or as labels."
 msgstr ""
 
 msgid "How to produce a translated copy of the user manual"
@@ -1489,6 +1546,9 @@ msgstr ""
 msgid "Labels"
 msgstr ""
 
+msgid "Lack of fit"
+msgstr ""
+
 msgid "Lambda:"
 msgstr ""
 
@@ -1505,9 +1565,6 @@ msgid "Last modified:"
 msgstr ""
 
 msgid "Latin hypercube"
-msgstr ""
-
-msgid "Layout"
 msgstr ""
 
 msgid "Left"
@@ -1597,6 +1654,9 @@ msgstr ""
 msgid "Log-rank"
 msgstr ""
 
+msgid "LogWorth"
+msgstr ""
+
 msgid "Loss:"
 msgstr ""
 
@@ -1619,6 +1679,9 @@ msgid "MC batch:"
 msgstr ""
 
 msgid "MC resamples:"
+msgstr ""
+
+msgid "Macro"
 msgstr ""
 
 msgid "Main field:"
@@ -1747,7 +1810,13 @@ msgstr ""
 msgid "Model"
 msgstr ""
 
+msgid "Model effects"
+msgstr ""
+
 msgid "Model:"
+msgstr ""
+
+msgid "Models of a table's columns"
 msgstr ""
 
 msgid "Morlet central frequency w0. Higher values resolve frequency more finely at the cost of time resolution; 6 is the usual compromise and the value at which the wavelet is near-admissible."
@@ -1823,9 +1892,6 @@ msgid "New table"
 msgstr ""
 
 msgid "New table name:"
-msgstr ""
-
-msgid "New table:"
 msgstr ""
 
 msgid "New type for '{column}':"
@@ -2002,6 +2068,9 @@ msgstr ""
 msgid "Operation:"
 msgstr ""
 
+msgid "Operations"
+msgstr ""
+
 msgid "Optional range as 'start, stop'. Empty = data range plus Extend."
 msgstr ""
 
@@ -2018,6 +2087,9 @@ msgid "Output:"
 msgstr ""
 
 msgid "Overlay properties"
+msgstr ""
+
+msgid "Overlays"
 msgstr ""
 
 msgid "PDF - A4 pages"
@@ -2048,6 +2120,9 @@ msgid "Parameter"
 msgstr ""
 
 msgid "Parameter estimates"
+msgstr ""
+
+msgid "Parameter estimates (coded units)"
 msgstr ""
 
 msgid "Parameters"
@@ -2122,6 +2197,9 @@ msgstr ""
 msgid "Position"
 msgstr ""
 
+msgid "Preset"
+msgstr ""
+
 msgid "Press Preview to see where the points move."
 msgstr ""
 
@@ -2135,6 +2213,9 @@ msgid "Preview unavailable"
 msgstr ""
 
 msgid "Preview:"
+msgstr ""
+
+msgid "Prob > F"
 msgstr ""
 
 msgid "Project"
@@ -2176,7 +2257,7 @@ msgstr ""
 msgid "Query:"
 msgstr ""
 
-msgid "Random seed:"
+msgid "Random order"
 msgstr ""
 
 msgid "Random within strata"
@@ -2239,10 +2320,19 @@ msgstr ""
 msgid "Reload tables"
 msgstr ""
 
+msgid "Remove"
+msgstr ""
+
 msgid "Remove a constant or linear trend from each segment first. A trend leaks into the lowest frequency bins and hides everything near it."
 msgstr ""
 
+msgid "Remove the selected terms."
+msgstr ""
+
 msgid "Remove this measure"
+msgstr ""
+
+msgid "Removed as not significant: {terms}."
 msgstr ""
 
 msgid "Rename column"
@@ -2275,6 +2365,9 @@ msgstr ""
 msgid "Replace previous smoothing preview in chart"
 msgstr ""
 
+msgid "Replace the effects with a standard model."
+msgstr ""
+
 msgid "Replace with:"
 msgstr ""
 
@@ -2296,6 +2389,12 @@ msgstr ""
 msgid "Residual"
 msgstr ""
 
+msgid "Residual by predicted"
+msgstr ""
+
+msgid "Residual normal quantile plot"
+msgstr ""
+
 msgid "Residual sum of squares: {cost}"
 msgstr ""
 
@@ -2312,6 +2411,9 @@ msgid "Response"
 msgstr ""
 
 msgid "Response columns"
+msgstr ""
+
+msgid "Response {name}"
 msgstr ""
 
 msgid "Response {number} has no name."
@@ -2342,6 +2444,9 @@ msgid "Ripple (dB):"
 msgstr ""
 
 msgid "Role"
+msgstr ""
+
+msgid "Roles"
 msgstr ""
 
 msgid "Roots"
@@ -2503,6 +2608,9 @@ msgstr ""
 msgid "Second table:"
 msgstr ""
 
+msgid "Seed:"
+msgstr ""
+
 msgid "Segment length:"
 msgstr ""
 
@@ -2606,12 +2714,6 @@ msgid "Share Y"
 msgstr ""
 
 msgid "Share Z"
-msgstr ""
-
-msgid "Shared gap H"
-msgstr ""
-
-msgid "Shared gap V"
 msgstr ""
 
 msgid "Sharing"
@@ -2752,6 +2854,9 @@ msgstr ""
 msgid "Sum"
 msgstr ""
 
+msgid "Summary of fit"
+msgstr ""
+
 msgid "Survival (Kaplan-Meier, log-rank)"
 msgstr ""
 
@@ -2771,6 +2876,9 @@ msgid "Table name:"
 msgstr ""
 
 msgid "Table to join:"
+msgstr ""
+
+msgid "Table:"
 msgstr ""
 
 msgid "Tables"
@@ -2836,10 +2944,16 @@ msgstr ""
 msgid "The first {count} are shown."
 msgstr ""
 
+msgid "The inputs changed: press Preview to compute again."
+msgstr ""
+
 msgid "The limits move with the sample size, so the zone rules (Nelson 5-8) do not apply and were not run."
 msgstr ""
 
 msgid "The log was cleared."
+msgstr ""
+
+msgid "The model has no effects: add some on the Effects tab."
 msgstr ""
 
 msgid "The operation history"
@@ -2852,6 +2966,9 @@ msgid "The operations applied to or from this table"
 msgstr ""
 
 msgid "The project's first figure, drawn again each time the project is saved."
+msgstr ""
+
+msgid "The same seed gives the same run order and the same Latin hypercube."
 msgstr ""
 
 msgid "The search found nothing better than the declared values, which are unchanged."
@@ -2867,6 +2984,9 @@ msgid "The style and the language are applied the next time the app starts."
 msgstr ""
 
 msgid "The surface never reaches this level - z stays on one side of it everywhere on the grid."
+msgstr ""
+
+msgid "The table has no visible rows."
 msgstr ""
 
 msgid "The tables have no fields in common to UNION."
@@ -3403,6 +3523,18 @@ msgstr ""
 msgid "{name} (selection)"
 msgstr ""
 
+msgid "{operation} could not be computed: {error}"
+msgstr ""
+
+msgid "{operation} could not be written: {error}"
+msgstr ""
+
+msgid "{role} takes {kinds} columns only: {columns}."
+msgstr ""
+
+msgid "{role}: choose at least {count} column(s)."
+msgstr ""
+
 msgid "{series}\nx: {x}\ny: {y}"
 msgstr ""
 
@@ -3427,6 +3559,24 @@ msgstr ""
 msgid "{tables} table(s), {rows} row(s) total"
 msgstr ""
 
+msgid "{table} · {count} response(s)"
+msgstr ""
+
+msgid "Layout"
+msgstr ""
+
+msgid "New table:"
+msgstr ""
+
+msgid "Random seed:"
+msgstr ""
+
+msgid "Shared gap H"
+msgstr ""
+
+msgid "Shared gap V"
+msgstr ""
+
 msgid "After"
 msgstr ""
 
@@ -3434,9 +3584,6 @@ msgid "Before"
 msgstr ""
 
 msgid "Edit…"
-msgstr ""
-
-msgid "H"
 msgstr ""
 
 msgid "Hide rows by selected column"
