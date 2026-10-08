@@ -110,3 +110,19 @@ def test_several_responses_and_missing_values() -> None:
     assert fits[1].summary["Observations"] == 7 and 0 not in fits[1].rows
     assert len(fits[1].predicted) == 7 and fits[1].predicted.index.equals(fits[1].rows)
     assert CONTINUOUS == "continuous"
+
+
+def test_the_profile_follows_each_continuous_factor_with_the_others_held() -> None:
+    frame = _two_by_two()
+    frame["T"] = frame.A.map({-1: 100.0, 1: 200.0})
+    factors = [Factor("T", low=100, high=200), Factor("B", low=-1, high=1)]
+    fit = lm.fit_models(frame, ModelSpec(factors, ["Y"], lm.main_effects(factors)))[0]
+    profile = fit.profile
+    assert set(profile["Factor"]) == {"T", "B"}
+    t = profile[profile.Factor == "T"]
+    assert len(t) == lm.PROFILE_POINTS
+    assert t["Value"].iloc[0] == 100.0 and t["Value"].iloc[-1] == 200.0
+    # Along T, with B at its centre: intercept + 2 * coded T.
+    intercept = fit.estimates.set_index("Term").loc["Intercept", "Estimate"]
+    np.testing.assert_allclose(t["Predicted"], intercept + fit.estimates.set_index("Term").loc["T", "Estimate"] * t["Coded"])
+    assert (t["Lower"] <= t["Predicted"]).all() and (t["Predicted"] <= t["Upper"]).all()

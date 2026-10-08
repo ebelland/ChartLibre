@@ -7317,3 +7317,63 @@ msgstr "Osservazioni"
 
 msgid "No degrees of freedom are left for error: the model has as many terms as runs, so nothing can be tested. Remove terms, or add runs."
 msgstr "Non restano gradi di libertà per l'errore: il modello ha tanti termini quante prove, quindi non si può testare nulla. Togli dei termini o aggiungi prove."
+
+msgid "Macro"
+msgstr "Macro"
+
+msgid "Replace the effects with a standard model."
+msgstr "Sostituisce gli effetti con un modello standard."
+
+msgid "Find a column"
+msgstr "Cerca una colonna"
+
+msgid "Add the selected columns as main effects."
+msgstr "Aggiunge le colonne selezionate come effetti principali."
+
+msgid "Add the interaction of the selected columns; one column alone gives its square."
+msgstr "Aggiunge l'interazione delle colonne selezionate; una colonna da sola dà il suo quadrato."
+
+msgid "Remove the selected effects."
+msgstr "Toglie gli effetti selezionati."
+
+msgid "Replace the effects with a standard model of the selected columns."
+msgstr "Sostituisce gli effetti con un modello standard delle colonne selezionate."
+
+msgid "Factorial to degree"
+msgstr "Fattoriale fino al grado"
+
+msgid "Degree"
+msgstr "Grado"
+
+msgid "How many factors the factorial macro's interactions combine, at most."
+msgstr "Quanti fattori combinano al massimo le interazioni della macro fattoriale."
+
+msgid "Double-click an effect to remove it."
+msgstr "Doppio clic su un effetto per toglierlo."
+
+msgid "The model has no effects: select columns and press Add."
+msgstr "Il modello non ha effetti: seleziona delle colonne e premi Aggiungi."
+
+msgid "A column cannot be both a response and a factor: {columns}."
+msgstr "Una colonna non può essere sia risposta sia fattore: {columns}."
+
+msgid "Effects Pareto (LogWorth)"
+msgstr "Pareto degli effetti (LogWorth)"
+
+msgid "Residual Q-Q"
+msgstr "Q-Q dei residui"
+
+msgid "Prediction profile"
+msgstr "Profilo di previsione"
+
+msgid "Factor (coded, -1 to +1)"
+msgstr "Fattore (codificato, da -1 a +1)"
+
+msgid "Interaction {a} × {b}"
+msgstr "Interazione {a} × {b}"
+
+msgid "Effects Pareto"
+msgstr "Pareto degli effetti"
+
+msgid "Interaction"
+msgstr "Interazione"

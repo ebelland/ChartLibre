@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QPushButton,
@@ -113,11 +114,16 @@ class ColumnRolesWidget(QWidget):
         left = QVBoxLayout()
         left.setSpacing(4)
         left.addWidget(self._heading(_("Columns")))
+        self._search = QLineEdit(self)
+        self._search.setPlaceholderText(_("Find a column"))
+        self._search.setClearButtonEnabled(True)
+        self._search.textChanged.connect(self._filter_columns)
+        left.addWidget(self._search)
         self._column_list = QListWidget(self)
         self._column_list.setObjectName("tableColumnsList")
         self._column_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._column_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._column_list.setMinimumWidth(140)
+        self._column_list.setMinimumWidth(150)
         self._column_list.itemSelectionChanged.connect(self._sync_kind_combo)
         left.addWidget(self._column_list, 1)
         type_row = QHBoxLayout()
@@ -129,8 +135,10 @@ class ColumnRolesWidget(QWidget):
         self._kind_combo.activated.connect(self._apply_kind)
         type_row.addWidget(self._kind_combo, 1)
         left.addLayout(type_row)
-        layout.addLayout(left, 1)
+        layout.addLayout(left, 2)
 
+        side = QVBoxLayout()
+        side.setSpacing(6)
         right = QGridLayout()
         right.setHorizontalSpacing(6)
         right.setVerticalSpacing(6)
@@ -144,14 +152,17 @@ class ColumnRolesWidget(QWidget):
             box.setObjectName(f"roleBox_{role.key}")
             box.setToolTip(_("Double-click a column to take it out of this role."))
             box.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-            rows = 1 if role.maximum == 1 else 4
+            rows = 1 if role.maximum == 1 else 3
             box.setFixedHeight(10 + rows * max(box.fontMetrics().height() + 8, 22))
             box.itemDoubleClicked.connect(lambda item, key=role.key: self.unassign(key, [item.data(_NAME_ROLE)]))
             right.addWidget(box, row, 1)
             self._boxes[role.key] = box
         right.setColumnStretch(1, 1)
-        right.setRowStretch(len(self._roles) + 1, 1)
-        layout.addLayout(right, 2)
+        side.addLayout(right)
+        #: Where the operation adds its own inputs, under the roles: a model's
+        #: effects, its parameters.
+        self.side_layout = side
+        layout.addLayout(side, 3)
 
     @staticmethod
     def _heading(text: str) -> QLabel:
@@ -211,6 +222,17 @@ class ColumnRolesWidget(QWidget):
                     columns=", ".join(wrong),
                 ))
         return found
+
+    def selected_columns(self) -> list[str]:
+        """The columns selected on the left, in the table's order."""
+        chosen = {item.data(_NAME_ROLE) for item in self._column_list.selectedItems()}
+        return [name for name in self._columns if name in chosen]
+
+    def _filter_columns(self, text: str) -> None:
+        needle = text.strip().casefold()
+        for row in range(self._column_list.count()):
+            item = self._column_list.item(row)
+            item.setHidden(bool(needle) and needle not in str(item.data(_NAME_ROLE)).casefold())
 
     # -- Moving columns ----------------------------------------------------
 
@@ -287,4 +309,5 @@ class ColumnRolesWidget(QWidget):
         for box in self._boxes.values():
             for i in range(box.count()):
                 box.item(i).setText(self._label(box.item(i).data(_NAME_ROLE)))
+        self._filter_columns(self._search.text())
         self._sync_kind_combo()

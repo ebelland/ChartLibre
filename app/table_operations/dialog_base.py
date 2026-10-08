@@ -32,7 +32,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
 import pandas as pd
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QComboBox,
@@ -42,7 +42,6 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QSizePolicy,
     QSplitter,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -128,8 +127,8 @@ class TableOperationDialogBase(QDialog):
         """
         raise NotImplementedError
 
-    def build_extra_inputs(self, tabs: QTabWidget) -> None:
-        """Add tabs of the operation's own between Model and Parameters (a model's terms, say)."""
+    def build_extra_inputs(self, layout: QVBoxLayout) -> None:
+        """Add the operation's own inputs under the roles (a model's effects, say); its parameters follow."""
 
     def default_casting(self, table: str, frame: pd.DataFrame) -> tuple[dict[str, list[str]], dict[str, str]]:
         """Roles and types for a table met for the first time: (roles, kinds). None by default."""
@@ -147,40 +146,33 @@ class TableOperationDialogBase(QDialog):
     # ------------------------------------------------------------------
 
     def _build_ui(self) -> None:
-        self._tabs = QTabWidget(self)
-        self._tabs.setObjectName("tableOperationTabs")
-        self._tabs.setDocumentMode(True)
-
-        data = QWidget(self._tabs)
-        data_layout = QVBoxLayout(data)
+        # One page, as JMP's launch window: the table, its columns on the left,
+        # the roles - and whatever the operation adds, a model's effects, its
+        # parameters - in a column beside them. Tabs hid half the inputs and
+        # asked for the factors twice.
+        self._inputs_panel = QWidget(self)
+        inputs_layout = QVBoxLayout(self._inputs_panel)
+        inputs_layout.setContentsMargins(0, 0, 0, 0)
         table_row = QFormLayout()
         stdSizeAndlayout(table_row)
-        self._table_combo = QComboBox(data)
+        self._table_combo = QComboBox(self._inputs_panel)
         self._table_combo.currentIndexChanged.connect(self._on_table_changed)
         table_row.addRow(_("Table:"), self._table_combo)
-        data_layout.addLayout(table_row)
-        self.roles_widget = ColumnRolesWidget(self.ROLES, data)
-        self.roles_widget.changed.connect(self.inputs_changed)
-        data_layout.addWidget(self.roles_widget, 1)
-        self._tabs.addTab(data, _("Columns"))
-
         if self.MODELS:
-            model_page = QWidget(self._tabs)
-            model_form = QFormLayout(model_page)
-            stdSizeAndlayout(model_form)
-            self.model_combo = QComboBox(model_page)
+            self.model_combo = QComboBox(self._inputs_panel)
             for key in self.MODELS:
                 self.model_combo.addItem(_(key), key)
             self.model_combo.currentIndexChanged.connect(lambda _i: self.inputs_changed())
-            model_form.addRow(_("Model:"), self.model_combo)
-            self._tabs.addTab(model_page, _("Model"))
-
-        self.build_extra_inputs(self._tabs)
-
+            table_row.addRow(_("Model:"), self.model_combo)
+        inputs_layout.addLayout(table_row)
+        self.roles_widget = ColumnRolesWidget(self.ROLES, self._inputs_panel)
+        self.roles_widget.changed.connect(self.inputs_changed)
+        inputs_layout.addWidget(self.roles_widget, 1)
+        self.build_extra_inputs(self.roles_widget.side_layout)
         self._parameter_form: ParameterForm | None = None
         if self.PARAMS:
             self._parameter_form = ParameterForm(self.PARAMS, self, on_change=self.inputs_changed)
-            self._tabs.addTab(self._parameter_form.widget, _("Parameters"))
+            self.roles_widget.side_layout.addWidget(self._parameter_form.widget)
 
         right = CardFrame(self, "tableOperationResultsCard")
         right_layout = right.layout()
@@ -189,15 +181,15 @@ class TableOperationDialogBase(QDialog):
         self._results = HtmlResultsView(self)
         self._results.setText(_("Cast the columns into their roles, then press Preview."))
         right_layout.addWidget(self._results)
-        right.setMinimumWidth(380)
+        right.setMinimumWidth(240)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.addWidget(self._tabs)
+        splitter.setChildrenCollapsible(False)
+        splitter.addWidget(self._inputs_panel)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        self._tabs.setMinimumWidth(420)
-        self._tabs.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        self._inputs_panel.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
         buttons = QHBoxLayout()
         stdSizeAndlayout(buttons)
@@ -216,7 +208,9 @@ class TableOperationDialogBase(QDialog):
         create_action_button(parent=self, action_id="close", action=self.reject, layout=buttons)
 
         root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
+        # Small enough for a laptop: the inputs need about 520 px, the report
+        # takes the rest, and screen_fit shrinks it further on a smaller screen.
+        apply_dialog_shell(self, root, size=QSize(880, 560))
         root.addWidget(splitter, 1)
         root.addLayout(buttons)
 
@@ -348,7 +342,7 @@ class TableOperationDialogBase(QDialog):
             self._task = None
         self.stop_button.setVisible(busy)
         self._progress.setVisible(busy)
-        for widget in (self.preview_button, self.apply_button, self._tabs):
+        for widget in (self.preview_button, self.apply_button, self._inputs_panel):
             widget.setEnabled(not busy)
 
     def _apply(self, result: Any) -> None:

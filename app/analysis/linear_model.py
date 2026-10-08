@@ -77,6 +77,11 @@ class ResponseFit:
     residuals: pd.Series
     studentized: pd.Series
     coding: dict[str, tuple[float, float]] = field(default_factory=dict)
+    #: The prediction profile: for each continuous factor in the model, the
+    #: predicted response from -1 to +1 coded with the others at their centre
+    #: (nominal ones at their most frequent level), and its 95% confidence
+    #: band. Columns Factor, Coded, Value, Predicted, Lower, Upper.
+    profile: pd.DataFrame = field(default_factory=pd.DataFrame)
     #: A note for the report when the model cannot test anything (no error
     #: degrees of freedom, say).
     note: str = ""
@@ -210,6 +215,7 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
         studentized = pd.Series(model.get_influence().resid_studentized_internal, index=data.index)
     except Exception:  # noqa: BLE001 - a saturated model has none
         studentized = pd.Series(np.nan, index=data.index)
+    profile = _profile(model, data, spec.factors, safe, codes, terms)
     note = ""
     if model.df_resid <= 0:
         note = "No degrees of freedom are left for error: the model has as many terms as runs, so nothing can be tested. Remove terms, or add runs."
@@ -227,8 +233,43 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
         residuals=pd.Series(model.resid, index=data.index),
         studentized=studentized,
         coding=codes,
+        profile=profile,
         note=note,
     )
+
+
+#: Points along each factor in the prediction profile.
+PROFILE_POINTS = 21
+
+
+def _profile(model, data: pd.DataFrame, factors: Sequence[Factor], safe: dict[str, str],
+             codes: dict[str, tuple[float, float]], terms: list[Term]) -> pd.DataFrame:
+    """The predicted response along each continuous factor still in the model, the others held."""
+    used = {name for term in terms for name in term}
+    held = {}
+    for f in factors:
+        column = safe[f.name]
+        held[column] = 0.0 if f.kind == CONTINUOUS else data[column].mode().iloc[0]
+    grid = np.linspace(-1.0, 1.0, PROFILE_POINTS)
+    pieces = []
+    for f in factors:
+        if f.kind != CONTINUOUS or f.name not in used:
+            continue
+        new = pd.DataFrame({column: [value] * len(grid) for column, value in held.items()})
+        new[safe[f.name]] = grid
+        with np.errstate(all="ignore"):
+            frame = model.get_prediction(new).summary_frame(alpha=0.05)
+        centre, half = codes[f.name]
+        pieces.append(pd.DataFrame({
+            "Factor": f.name,
+            "Coded": grid,
+            "Value": centre + grid * half,
+            "Predicted": frame["mean"].to_numpy(),
+            "Lower": frame["mean_ci_lower"].to_numpy(),
+            "Upper": frame["mean_ci_upper"].to_numpy(),
+        }))
+    columns = ["Factor", "Coded", "Value", "Predicted", "Lower", "Upper"]
+    return pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame(columns=columns)
 
 
 def _patsy_name(piece_text: str) -> str:
