@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.styles.style import TitledCard
 from app.utils.i18n import _
 
 CONTINUOUS = "continuous"
@@ -111,21 +112,26 @@ class ColumnRolesWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
-        left = QVBoxLayout()
-        left.setSpacing(4)
-        left.addWidget(self._heading(_("Columns")))
+        # Titled frames, as everywhere else in the application: the columns
+        # on the left, the roles - and what the operation adds - beside them.
+        columns_card = TitledCard(self, _("Select Columns"))
+        columns = columns_card.card.layout()
+        assert isinstance(columns, QVBoxLayout)
+        columns.setSpacing(4)
+        #: Where the dialog puts the table to read, above the columns.
+        self.columns_card_layout = columns
         self._search = QLineEdit(self)
         self._search.setPlaceholderText(_("Find a column"))
         self._search.setClearButtonEnabled(True)
         self._search.textChanged.connect(self._filter_columns)
-        left.addWidget(self._search)
+        columns.addWidget(self._search)
         self._column_list = QListWidget(self)
         self._column_list.setObjectName("tableColumnsList")
         self._column_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._column_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._column_list.setMinimumWidth(150)
+        self._column_list.setMinimumHeight(120)
         self._column_list.itemSelectionChanged.connect(self._sync_kind_combo)
-        left.addWidget(self._column_list, 1)
+        columns.addWidget(self._column_list, 1)
         type_row = QHBoxLayout()
         type_row.addWidget(QLabel(_("Type:"), self))
         self._kind_combo = QComboBox(self)
@@ -134,16 +140,28 @@ class ColumnRolesWidget(QWidget):
             self._kind_combo.addItem(f"{_KIND_MARKS[value]} {_(label)}", value)
         self._kind_combo.activated.connect(self._apply_kind)
         type_row.addWidget(self._kind_combo, 1)
-        left.addLayout(type_row)
-        layout.addLayout(left, 2)
+        columns.addLayout(type_row)
+        columns.setStretchFactor(self._column_list, 1)
+        columns_card.layout().setStretchFactor(columns_card.card, 1)
 
-        side = QVBoxLayout()
-        side.setSpacing(6)
+        left = QVBoxLayout()
+        left.setSpacing(10)
+        left.addWidget(columns_card, 1)
+        #: Where the operation adds frames under the columns: a model's charts.
+        self.column_layout = left
+        left_widget = QWidget(self)
+        left_widget.setLayout(left)
+        # Narrow: column names are short, the report beside wants the room.
+        left_widget.setMinimumWidth(170)
+        left_widget.setMaximumWidth(230)
+        layout.addWidget(left_widget)
+
+        roles_card = TitledCard(self, _("Pick Role Variables"))
         right = QGridLayout()
+        right.setContentsMargins(0, 0, 0, 0)
         right.setHorizontalSpacing(6)
         right.setVerticalSpacing(6)
-        right.addWidget(self._heading(_("Roles")), 0, 0, 1, 2)
-        for row, role in enumerate(self._roles, start=1):
+        for row, role in enumerate(self._roles):
             button = QPushButton(_(role.label), self)
             button.setToolTip(_(role.tooltip) if role.tooltip else "")
             button.clicked.connect(lambda _checked=False, key=role.key: self.assign_selected(key))
@@ -158,17 +176,17 @@ class ColumnRolesWidget(QWidget):
             right.addWidget(box, row, 1)
             self._boxes[role.key] = box
         right.setColumnStretch(1, 1)
-        side.addLayout(right)
-        #: Where the operation adds its own inputs, under the roles: a model's
+        roles_layout = roles_card.card.layout()
+        assert roles_layout is not None
+        roles_layout.addLayout(right)
+
+        side = QVBoxLayout()
+        side.setSpacing(10)
+        side.addWidget(roles_card)
+        #: Where the operation adds its own frames, under the roles: a model's
         #: effects, its parameters.
         self.side_layout = side
-        layout.addLayout(side, 3)
-
-    @staticmethod
-    def _heading(text: str) -> QLabel:
-        label = QLabel(text)
-        label.setProperty("muted", True)
-        return label
+        layout.addLayout(side, 1)
 
     # -- Content ---------------------------------------------------------
 

@@ -12,7 +12,6 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Callable
-from typing import Optional
 
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt, QTimer
@@ -28,9 +27,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
     QMenu,
-    QScrollArea,
     QSpinBox,
-    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -52,38 +49,34 @@ from app.styles.style import (
     TitledCard,
 )
 from app.utils.i18n import _
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 
 
 # -----------------------------------------------------------------------------
 # Reading helpers
 #
-# The actual reading - files, another SQLite database, a server database, a
+# The actual reading of files and URLs lives in app.utils.data_sources
 # URL - lives in app.utils.data_sources, which has no Qt import: it is what
 # app.utils.import_runner.refresh_link calls into headlessly for "Update
 # link", and this dialog calls into live for the preview.  Imported here
 # (rather than qualified as data_sources.whatever at each call site) so that
 # existing external imports of these names from this module - the test suite
-# and app.dialogs.main_window - keep working unchanged.
+# and app.main_window.main_window - keep working unchanged.
 # -----------------------------------------------------------------------------
 from app.utils.data_sources import (
     CLIPBOARD_SOURCE_NAME,
     IMPORT_FILE_FILTER,
-    DatabaseConnection,
     WebDataSource,
     add_user_web_source,
     filename_from_url,
-    is_importable,
     is_valid_web_url,
     load_web_data_sources,
     read_any_file,
     read_clipboard_text,
     transpose_delimited_text,
     read_web_url,
-    remove_user_web_source,
-    SERVER_DATABASE_QUERY_READERS,
-    SERVER_DATABASE_READERS,
+    remove_user_web_source
 )
-from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
 from app.utils.coercion import to_numbers
 
 
@@ -204,7 +197,7 @@ class ImportResult:
     cols: int
 
 
-class ImportDataDialog(QDialog):
+class ImportDataDialog(SettingsTableDialog):
     """Import data from files or clipboard into the current SQLite database."""
 
     SQLITE_TYPES = [
@@ -228,32 +221,31 @@ class ImportDataDialog(QDialog):
         "utf-16",
     ]
 
-    def __init__(self, repo: SqliteRepo, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
+    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
+        super().__init__(
+            parent,
+            title=_("Import data"),
+            icon=load_icon("import"),
+            settings_title=_("Settings"),
+            content_title=_("Preview"),
+            settings_width=420,
+        )
         self._repo = repo
-        self.import_result: Optional[ImportResult] = None
-        self._df: Optional[pd.DataFrame] = None
+        self.import_result: ImportResult | None = None
+        self._df: pd.DataFrame | None = None
 
         # Which of the sources the preview and the import read from. Every
         # path that sets one must clear the others, or the dialog shows one
         # source's data under another's name - which is exactly what pasting
         # after opening a file used to do.
-        self._source_mode: str = "none"  # none|file|clipboard|database|web
+        self._source_mode: str = "none"  # none|file|clipboard|web
         self._clipboard_text: str = ""
         #: The clipboard is read with rows and columns swapped.
         self._clipboard_transposed: bool = False
         self._path: str = ""
-        self._db_connection: DatabaseConnection | None = None
-        self._db_table_name: str = ""
-        #: Set instead of _db_table_name when the connect dialog's "Use a
-        #: query" was checked - mutually exclusive with it, same as
-        #: ConnectDatabaseDialog's own table/query pair.
-        self._db_query: str = ""
         self._last_auto_table: str = ""
         self._picked_web_source: WebDataSource | None = None
 
-        self.setWindowTitle(_("Import data"))
-        self.setWindowIcon(load_icon("import"))
         # Size and root padding come from the shared dialog shell.
 
         cfg = get_import_data_dialog_config()
@@ -264,23 +256,17 @@ class ImportDataDialog(QDialog):
         # not inside it, and each row short enough for the panel's width -
         # a row of five controls ran off the right edge and was cut off,
         # since the panel does not scroll sideways.
-        left = QWidget(self)
-        left.setProperty("toolboxPage", True)
-        left.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        left = QWidget(self.settings_frame)
         left_layout = QVBoxLayout(left)
         stdSizeAndlayout(left_layout)
-        # Room on the right for macOS's overlay scroll bar, which otherwise
-        # sits on top of the cards' right edge.
-        left_layout.setContentsMargins(0, 0, 14, 0)
 
-        # -- Source: a file, the clipboard, another database; Excel's sheet.
+        # -- Source: a file, the clipboard; Excel's sheet.
         source = TitledCard(left, _("Source"), "importSourceCard")
         source_layout = source.card.layout()
         src_row = QHBoxLayout()
         stdSizeAndlayout(src_row)
-        # Named for the source rather than for the verb: "Open" and "Paste"
-        # beside "Database" read as actions on the dialog, not as where the
-        # data comes from.
+        # Named for the source rather than the verb:
+        # "Open" and "Paste" indicate where the data comes from.
         create_action_button(
             parent=source.card, action_id="open", action=self._on_browse, layout=src_row,
             presentation=(
@@ -303,12 +289,6 @@ class ImportDataDialog(QDialog):
                 _("Import the table on the clipboard with rows and columns swapped - "
                   "for data copied one series per row"),
             ),
-        )
-        create_action_button(
-            parent=source.card,
-            action_id="import_database",
-            action=self._on_import_database,
-            layout=src_row,
         )
         src_row.addStretch(1)
         source_layout.addLayout(src_row)
@@ -448,42 +428,15 @@ class ImportDataDialog(QDialog):
             columns_layout.setStretch(columns_layout.count() - 1, 1)
         left_layout.addWidget(columns, 1)
 
-        # Make left scrollable for smaller screens
-        left_scroll = QScrollArea(self)
-        stdSizeAndlayout(left_scroll)
-        left_scroll.setWidget(left)
+        self.settings_layout.addWidget(left, 1)
 
         # ---------------- Right: preview ----------------
-        self._preview = TablePreviewPanel(self,self._repo)
+        self._preview = TablePreviewPanel(self.content_frame, self._repo)
         self._preview.refresh.connect(self._schedule_preview)
-        splitter = QSplitter(self)
-        splitter.setOrientation(Qt.Orientation.Horizontal)
-        splitter.addWidget(left_scroll)
-        splitter.addWidget(self._preview)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([420, 560])
+        self.content_layout.addWidget(self._preview, 1)
 
-        # OK and Cancel at the foot of the dialog, right-aligned, as every
-        # other dialog has them - not at the bottom of the left panel.
-        # There is no Preview button: the preview already refreshes itself
-        # on Browse, on paste, and a moment after any option changes.
-        btn_lay = QHBoxLayout()
-        stdSizeAndlayout(btn_lay)
-        btn_lay.addStretch(1)
-        self._btn_ok = create_action_button(
-            parent=self, action_id="apply", action=self._on_accept, layout=btn_lay
-        )
-        create_action_button(
-            parent=self, action_id="close", action=self.reject, layout=btn_lay
-        )
-        self._btn_ok.setDefault(True)
-
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
-        root.addWidget(splitter, 1)
-        root.addLayout(btn_lay, 0)
-        self.setLayout(root)
+        self._btn_ok = self.add_action("apply", self._on_accept, default=True)
+        self.add_action("close", self.reject)
 
         # ---------------- Events & shortcuts ----------------
 
@@ -524,7 +477,7 @@ class ImportDataDialog(QDialog):
             return
         self._preview_timer.start(250)
 
-    def _current_delim(self) -> Optional[str]:
+    def _current_delim(self) -> str | None:
         data = self._delim.currentData()
         if data is not None:
             return str(data)
@@ -537,7 +490,7 @@ class ImportDataDialog(QDialog):
             return " "
         return txt
 
-    def _current_encoding(self) -> Optional[str]:
+    def _current_encoding(self) -> str | None:
         txt = (self._encoding.currentText() or "").strip()
         if not txt or txt.lower() == "auto":
             return None
@@ -617,12 +570,6 @@ class ImportDataDialog(QDialog):
                 show_message(self, "import.clipboard_failed", error=failure)
             return
 
-        if self._source_mode == "database":
-            failure = self._show_frame(self._read_database_source)
-            if failure is not None:
-                show_message(self, "import.database_failed", error=failure)
-            return
-
         if self._source_mode == "web":
             failure = self._show_frame(self._read_web_source)
             if failure is not None:
@@ -656,7 +603,6 @@ class ImportDataDialog(QDialog):
 
             # Columns: keep empty columns (default Ignore)
             self._build_columns_table(include_empty=True)
-            self._apply_source_dependent_enablement()
 
             # Preview: hide empty columns
             df_prev = self._df
@@ -688,27 +634,6 @@ class ImportDataDialog(QDialog):
             raise ValueError("The clipboard holds no text to import.")
         return frame
 
-    def _read_database_source(self) -> pd.DataFrame:
-        """Read the currently selected table, or query, from the other database."""
-        if self._db_connection is None:
-            return pd.DataFrame()
-        if self._db_query:
-            read_query = SERVER_DATABASE_QUERY_READERS[self._db_connection.kind]
-            return read_query(
-                self._db_connection,
-                self._db_query,
-                skiprows=int(self._skip_rows.value()),
-                skipfooter=int(self._skip_last.value()),
-            )
-        if not self._db_table_name:
-            return pd.DataFrame()
-        _list_tables, read_table = SERVER_DATABASE_READERS[self._db_connection.kind]
-        return read_table(
-            self._db_connection,
-            self._db_table_name,
-            skiprows=int(self._skip_rows.value()),
-            skipfooter=int(self._skip_last.value()),
-        )
 
     def _read_web_source(self) -> pd.DataFrame:
         """Fetch and parse the remembered URL with the current options."""
@@ -793,32 +718,6 @@ class ImportDataDialog(QDialog):
 
         self._col_table.resizeColumnsToContents()
 
-    def _apply_source_dependent_enablement(self) -> None:
-        """Disable the read-format controls a database source has no use for.
-
-        Skip rows/skip last/delimiter/header/encoding, and the per-column
-        type picker, all describe how to parse *text* - a database table has
-        none of that to say: no delimiter, no header row to detect, and
-        types of its own that ``read_sqlite_table``/``read_postgres_table``/
-        ``read_mysql_table`` already read as they are. Left enabled they
-        would invite "fixing" a setting nothing here reads. Re-run after
-        every ``_build_columns_table`` call, since that rebuilds the
-        per-column combos from scratch and a freshly built one defaults to
-        enabled.
-        """
-        text_only = self._source_mode != "database"
-        for widget in (
-            self._skip_rows,
-            self._skip_last,
-            self._delim,
-            self._has_header,
-            self._encoding,
-        ):
-            widget.setEnabled(text_only)
-        for row in range(self._col_table.rowCount()):
-            combo = self._col_table.cellWidget(row, 1)
-            if isinstance(combo, QComboBox):
-                combo.setEnabled(text_only)
 
     @staticmethod
     def _guess_sqlite_type(series: pd.Series) -> str:
@@ -899,23 +798,12 @@ class ImportDataDialog(QDialog):
         self.load_file(path)
 
     def load_file(self, path: str | Path) -> None:
-        """Show *path* as the source, exactly as Browse does.
-
-        Public because Browse is no longer the only way a file arrives: the
-        main window accepts a drop and opens this dialog on what was dropped.
-        Sharing the method rather than the four lines means the dropped file
-        gets the sheet list, the default table name and the preview too - the
-        parts that are easy to leave out of a second copy.
-        """
         name = str(path)
         self._source_mode = "file"
         self._set_file_name_label(name)
         self._set_default_table_name(name)
         self._path = name
         self._update_sheet_choices(name)
-        self._db_connection = None
-
-        # Auto preview immediately: the file was chosen, not typed.
         self._refresh_preview()
 
     def _parse_clipboard(self, text: str, transposed: bool) -> pd.DataFrame | None:
@@ -968,38 +856,8 @@ class ImportDataDialog(QDialog):
         self._path = ""
         self._set_file_name_label("")
         self._update_sheet_choices("")
-        self._db_connection = None
         self._set_default_table_name(CLIPBOARD_SOURCE_NAME)
 
-        self._refresh_preview()
-
-    def _on_import_database(self) -> None:
-        """Connect to another database, then import one of its tables - or,
-        with "Use a query" checked, whatever that query returns.
-
-        Connecting, picking a table and typing a query all happen in
-        ConnectDatabaseDialog - not the application's own ``self._repo``:
-        this dialog only ever reads from a *different* database into the
-        current one. That dialog's own error handling covers a failed
-        connection, a database with nothing in it, or an invalid query, so a
-        plain cancel is the only outcome to handle here.
-        """
-        picker = ConnectDatabaseDialog(self)
-        if not picker.exec() or picker.connection is None:
-            return
-        if not picker.table and not picker.query:
-            return
-
-        self._source_mode = "database"
-        self._db_connection = picker.connection
-        self._db_table_name = picker.table or ""
-        self._db_query = picker.query or ""
-        self._path = ""
-        label = picker.table or _("query")
-        self._set_file_name_label(f"{picker.connection.display_name()} · {label}")
-        self._update_sheet_choices("")
-
-        self._set_default_table_name(picker.table or f"{picker.connection.display_name()}_query")
         self._refresh_preview()
 
     def _on_web_source_picked(self, source: WebDataSource) -> None:
@@ -1112,7 +970,6 @@ class ImportDataDialog(QDialog):
         self._path = url
         self._set_file_name_label(url)
         self._update_sheet_choices("")
-        self._db_connection = None
 
         # A quick-pick source names the table for what it is; a typed-in URL
         # falls back to its own file name.
@@ -1178,7 +1035,7 @@ class ImportDataDialog(QDialog):
                 }
                 if not self._repo.upsert_link(
                     table_name=table_name,
-                    source_path=self._link_display_path(),
+                    source_path=self._path,
                     settings=link_settings,
                 ):
                     applogger.warning("Failed to create link for imported table '%s'", table_name)
@@ -1194,28 +1051,15 @@ class ImportDataDialog(QDialog):
         """Return the ``source`` dict a saved link should remember, or None.
 
         Every source that can meaningfully be read again gets one - file,
-        another database, a URL. Pasted text cannot: there is nothing left
+         a URL. Pasted text cannot: there is nothing left
         to reread once the clipboard has moved on, so "Update link" has
         nothing to offer it and none is created.
         """
         if self._source_mode == "file":
             return {"kind": "file", "path": self._path, "sheet": self._current_sheet()}
-        if self._source_mode == "database" and self._db_connection is not None:
-            settings = self._db_connection.to_link_settings()
-            if self._db_query:
-                settings["query"] = self._db_query
-            else:
-                settings["table"] = self._db_table_name
-            return settings
         if self._source_mode == "web":
             return {"kind": "web", "url": self._path}
         return None
-
-    def _link_display_path(self) -> str:
-        """Return the display string a saved link is listed under."""
-        if self._source_mode == "database" and self._db_connection is not None:
-            return f"{self._db_connection.display_name()}#{self._db_table_name or self._db_query}"
-        return self._path
 
     @staticmethod
     def _coerce_df(df: pd.DataFrame, types: dict[str, str]) -> pd.DataFrame:

@@ -37,7 +37,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 from io import StringIO
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -94,8 +93,8 @@ def read_text_file(
     skiprows: int = 0,
     skipfooter: int = 0,
     header: bool = True,
-    encoding: Optional[str] = None,
-    delimiter: Optional[str] = None,
+    encoding: str | None = None,
+    delimiter: str | None = None,
 ) -> pd.DataFrame:
     encodings = [encoding] if encoding else ["utf-8-sig", "utf-8", "cp1252", "latin-1"]
     encodings = [e for e in encodings if e]
@@ -114,7 +113,7 @@ def read_text_file(
     delim = delimiter or sniff_delimiter(sample)
     hdr = 0 if header else None
 
-    last_exc: Optional[Exception] = None
+    last_exc: Exception | None = None
     for enc in encodings:
         try:
             return pd.read_csv(
@@ -139,8 +138,8 @@ def read_clipboard_text(
     skiprows: int = 0,
     skipfooter: int = 0,
     header: bool = True,
-    delimiter: Optional[str] = None,
-) -> Optional[pd.DataFrame]:
+    delimiter: str | None = None,
+) -> pd.DataFrame | None:
     text = (clipboard_text or "").strip("﻿\n\r\t ")
     if not text:
         return None
@@ -159,7 +158,7 @@ def read_clipboard_text(
     )
 
 
-def transpose_delimited_text(text: str, delimiter: Optional[str] = None) -> str:
+def transpose_delimited_text(text: str, delimiter: str | None = None) -> str:
     """Swap the rows and columns of delimited text; the result is tab-separated.
 
     For a table copied the other way round - one series per row, as a
@@ -186,7 +185,7 @@ def read_excel_file(
     *,
     skiprows: int = 0,
     skipfooter: int = 0,
-    sheet_name: Optional[str] = None,
+    sheet_name: str | None = None,
     header: bool = True,
 ) -> pd.DataFrame:
     hdr = 0 if header else None
@@ -224,9 +223,9 @@ def read_any_file(
     skiprows: int = 0,
     skipfooter: int = 0,
     header: bool = True,
-    sheet: Optional[str] = None,
-    delim: Optional[str] = None,
-    encoding: Optional[str] = None,
+    sheet: str | None = None,
+    delim: str | None = None,
+    encoding: str | None = None,
 ) -> pd.DataFrame:
     ext = (Path(path).suffix or "").lower()
     if ext in (".csv", ".tsv", ".txt"):
@@ -886,7 +885,7 @@ def is_valid_web_url(url: str) -> bool:
     return parsed.scheme in _ALLOWED_WEB_SCHEMES and bool(parsed.netloc)
 
 
-def _extension_for_web_source(url: str, content_type: Optional[str]) -> str:
+def _extension_for_web_source(url: str, content_type: str | None) -> str:
     """Return the extension read_any_file should dispatch on for *url*."""
     ext = (Path(urlparse(url).path).suffix or "").lower()
     if ext in IMPORTABLE_SUFFIXES:
@@ -928,9 +927,9 @@ def read_web_url(
     skiprows: int = 0,
     skipfooter: int = 0,
     header: bool = True,
-    sheet: Optional[str] = None,
-    delim: Optional[str] = None,
-    encoding: Optional[str] = None,
+    sheet: str | None = None,
+    delim: str | None = None,
+    encoding: str | None = None,
     timeout: float = 20.0,
 ) -> pd.DataFrame:
     """Download *url* and parse it exactly as a local file of the same kind.
@@ -1024,7 +1023,7 @@ def read_from_link_source(
     source: dict[str, object],
     read: dict[str, object],
     *,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> pd.DataFrame:
     """Read the data a saved link's ``source``/``read`` settings describe.
 

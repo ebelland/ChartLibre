@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication, QFrame, QWidget
 
 import app.styles.style as style
 from app.data.sqlite_repo import SqliteRepo
-from app.dialogs.main_window import MainWindow
+from app.main_window.main_window import MainWindow
 from app.logs.logger import applogger
 from app.widgets.nav_bar import NavigationBar
 

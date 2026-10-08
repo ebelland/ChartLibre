@@ -41,6 +41,7 @@ def doe_table(qapp, tmp_path: Path):
     rng = np.random.default_rng(3)
     a, b = frame["Factor_1"], frame["Factor_2"]
     frame["Response_1"] = 5 + 2 * a - b + a * b + a * a + rng.normal(0, 0.05, len(frame))
+    frame["Quality"] = np.where(np.arange(len(frame)) % 3 == 0, "poor", "good")  # not separable by the factors
     repo.delete_table(name)
     repo.import_dataframe(frame.drop(columns=[c for c in ("Hide", "Selected") if c in frame]), table_name=name,
                           normalize_columns=False)
@@ -147,3 +148,59 @@ def test_column_types_are_guessed_from_the_data() -> None:
     assert guess_kind(pd.Series(["a", "b", "a"])) == NOMINAL
     assert guess_kind(pd.Series([1, 2, 3, 1, 2, 3, 1, 2, 3])) == NOMINAL  # three repeated levels
     assert guess_kind(pd.Series([0.1, 0.5, 2.3, 7.7, 1.2])) == CONTINUOUS
+
+
+def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, doe_table) -> None:
+    repo, name = doe_table
+    dialog = FitModelDialog(repo=repo, table=name)
+    try:
+        dialog._emphasis.setCurrentIndex(dialog._emphasis.findData("screening"))
+        assert dialog.charts() == ["pareto", "profile"]
+        assert "jmp.com/support/help" in dialog._doc_link.text()
+
+        # A nominal Y needs a logistic personality.
+        dialog.roles_widget.set_casting({"response": ["Quality"]})
+        dialog._apply_macro("main", edited=True)
+        assert any("nominal" in p for p in dialog.problems())
+        dialog._personality.setCurrentIndex(dialog._personality.findData("nominal"))
+        assert not dialog.problems()
+        assert not dialog._chart_checks["actual"].isEnabled()
+        assert dialog._family.isHidden() and dialog._emphasis.isHidden()
+
+        dialog.preview()
+        _wait(qapp, dialog)
+        fit = dialog._result[0]
+        assert fit.personality == "nominal" and fit.levels == ["good", "poor"]
+        report = dialog.format_results(dialog._result)
+        assert "Whole model test" in report and "Prob &gt; ChiSq" in report
+
+        dialog.ok()
+        _wait(qapp, dialog)
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        assert [axis.name for axis in figure.axes] == ["Pareto Chart", "Scatter Plot"]
+        effects = repo.table_frame(f"{name}_fit_effects")
+        assert "Prob > ChiSq" in effects.columns
+    finally:
+        dialog.close()
+
+
+def test_a_poisson_glm_and_forward_stepwise(qapp, doe_table) -> None:
+    repo, name = doe_table
+    dialog = FitModelDialog(repo=repo, table=name)
+    try:
+        dialog.roles_widget.set_casting({"response": ["Response_1"]})  # the window remembers the last Y
+        dialog._personality.setCurrentIndex(dialog._personality.findData("stepwise"))
+        assert not dialog._direction.isHidden()
+        dialog._direction.setCurrentIndex(dialog._direction.findData("forward"))
+        dialog.preview()
+        _wait(qapp, dialog)
+        kept = {lm_term for lm_term in dialog._result[0].terms}
+        assert ("Factor_1",) in kept and ("Factor_3",) not in kept
+
+        dialog._personality.setCurrentIndex(dialog._personality.findData("glm"))
+        dialog._family.setCurrentIndex(dialog._family.findData("gamma"))
+        dialog.preview()
+        _wait(qapp, dialog)
+        assert dialog._result[0].p_column == "Prob > ChiSq"
+    finally:
+        dialog.close()

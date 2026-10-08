@@ -365,7 +365,7 @@ msgid "Centre line"
 msgstr "Linea centrale"
 
 msgid "Chart"
-msgstr "Carta"
+msgstr "Grafico"
 
 msgid "Chart Options"
 msgstr "Opzioni grafico"
@@ -7377,3 +7377,456 @@ msgstr "Pareto degli effetti"
 
 msgid "Interaction"
 msgstr "Interazione"
+
+msgid "Select Columns"
+msgstr "Seleziona colonne"
+
+msgid "Pick Role Variables"
+msgstr "Seleziona variabili di ruolo"
+
+msgid "Construct Model Effects"
+msgstr "Costruisci effetti del modello"
+
+msgid "Personality:"
+msgstr "Personalità:"
+
+msgid "How the responses are modelled."
+msgstr "Come vengono modellate le risposte."
+
+msgid "Emphasis:"
+msgstr "Enfasi:"
+
+msgid "Which charts the report opens with; each can still be ticked or not."
+msgstr "Con quali grafici si apre il report; ognuno resta selezionabile."
+
+msgid "The response's distribution; its canonical link (log for Gamma)."
+msgstr "La distribuzione della risposta; con il suo link canonico (log per Gamma)."
+
+msgid "Backward drops terms from the full model; forward adds them to the mean."
+msgstr "All'indietro toglie termini dal modello completo; in avanti li aggiunge partendo dalla media."
+
+msgid "Emphasis"
+msgstr "Enfasi"
+
+msgid "Prediction profiler"
+msgstr "Profilo di previsione"
+
+msgid "JMP documentation:"
+msgstr "Documentazione JMP:"
+
+msgid "Standard Least Squares"
+msgstr "Minimi quadrati standard"
+
+msgid "Stepwise"
+msgstr "Stepwise"
+
+msgid "Generalized Linear Model"
+msgstr "Modello lineare generalizzato"
+
+msgid "Nominal Logistic"
+msgstr "Logistica nominale"
+
+msgid "Ordinal Logistic"
+msgstr "Logistica ordinale"
+
+msgid "Effect Leverage"
+msgstr "Leverage degli effetti"
+
+msgid "Effect Screening"
+msgstr "Screening degli effetti"
+
+msgid "Minimal Report"
+msgstr "Report minimo"
+
+msgid "Binomial"
+msgstr "Binomiale"
+
+msgid "Poisson"
+msgstr "Poisson"
+
+msgid "Gamma"
+msgstr "Gamma"
+
+msgid "Backward"
+msgstr "All'indietro"
+
+msgid "Forward"
+msgstr "In avanti"
+
+msgid "Logistic"
+msgstr "Logistica"
+
+msgid "{personality} needs a continuous Y; {columns} is nominal - choose Nominal or Ordinal Logistic."
+msgstr "{personality} richiede una Y continua; {columns} è nominale: scegli Logistica nominale o ordinale."
+
+msgid "Levels: {levels}. The predictions are the probability of {first}."
+msgstr "Livelli: {levels}. Le previsioni sono la probabilità di {first}."
+
+msgid "Whole model test"
+msgstr "Test del modello intero"
+
+msgid "Prob > ChiSq"
+msgstr "Prob > ChiQuad"
+
+msgid "Prob > |z|"
+msgstr "Prob > |z|"
+
+msgid "z Ratio"
+msgstr "Rapporto z"
+
+msgid "Chi-Square"
+msgstr "Chi quadrato"
+
+msgid "-LogLikelihood"
+msgstr "-LogVerosimiglianza"
+
+msgid "RSquare (U)"
+msgstr "R quadrato (U)"
+
+msgid "AICc"
+msgstr "AICc"
+
+msgid "L-R Chi-Square"
+msgstr "Chi quadrato R-V"
+
+msgid "Wald Chi-Square"
+msgstr "Chi quadrato di Wald"
+
+msgid "Pearson Chi-Square"
+msgstr "Chi quadrato di Pearson"
+
+msgid "Deviance"
+msgstr "Devianza"
+
+msgid "Full"
+msgstr "Completo"
+
+msgid "Reduced"
+msgstr "Ridotto"
+
+msgid "Difference"
+msgstr "Differenza"
+
+msgid "A term is significant when its p-value is at most this; the Stepwise personality adds or keeps only such terms."
+msgstr "Un termine è significativo se il suo p-value non supera questo valore; la personalità Stepwise aggiunge o tiene solo questi termini."
+
+msgid "Data from:"
+msgstr "Dati da:"
+
+msgid "The series the chart draws."
+msgstr "Le serie disegnate nel grafico."
+
+msgid "A table's columns, without drawing them first."
+msgstr "Le colonne di una tabella, senza doverle prima disegnare."
+
+msgid "Choose a table and at least one Y column."
+msgstr "Scegli una tabella e almeno una colonna Y."
+
+msgid "Row"
+msgstr "Riga"
+
+msgid "The column the operation reads as x; the row number when there is none."
+msgstr "La colonna che l'operazione legge come x; il numero di riga se non ce n'è una."
+
+msgid "The numeric columns to run on, one series each."
+msgstr "Le colonne numeriche su cui lavorare, una serie ciascuna."
+
+msgid "X:"
+msgstr "X:"
+
+msgid "Y:"
+msgstr "Y:"
+
+msgid "The columns are drawn as a chart of their own, which the operation then runs on."
+msgstr "Le colonne vengono disegnate in un grafico a sé, su cui poi lavora l'operazione."
+
+msgid "(row number)"
+msgstr "(numero di riga)"
+
+msgid "Control chart"
+msgstr "Carta di controllo"
+
+msgid "Revert"
+msgstr "Ripristina"
+
+msgid "Put every entry back to its default value"
+msgstr "Riporta ogni voce al valore predefinito"
+
+msgid "95% CI high"
+msgstr "IC 95% sup."
+
+msgid "95% CI low"
+msgstr "IC 95% inf."
+
+msgid "Alternative"
+msgstr "Alternativa"
+
+msgid "Anderson method"
+msgstr "Metodo di Anderson"
+
+msgid "Clustering preview"
+msgstr "Anteprima del clustering"
+
+msgid "Colour"
+msgstr "Colore"
+
+msgid "Generated {count} points"
+msgstr "Generati {count} punti"
+
+msgid "Method"
+msgstr "Metodo"
+
+msgid "Mode"
+msgstr "Moda"
+
+msgid "No applicable results for this selection."
+msgstr "Nessun risultato applicabile a questa selezione."
+
+msgid "No correlation matrix available."
+msgstr "Nessuna matrice di correlazione disponibile."
+
+msgid "No metrics available."
+msgstr "Nessuna metrica disponibile."
+
+msgid "Paired, independent, group and correlation sections need at least two selected series; check another one in the Series list."
+msgstr "Le sezioni appaiate, indipendenti, per gruppi e di correlazione richiedono almeno due serie selezionate; spuntane un'altra nell'elenco delle serie."
+
+msgid "Peak ({x} &rarr; {y})"
+msgstr "Picco ({x} &rarr; {y})"
+
+msgid "Points coloured on OK"
+msgstr "Punti colorati con OK"
+
+msgid "Preview for {count} smoothed series"
+msgstr "Anteprima di {count} serie livellate"
+
+msgid "Preview: the outliers of {count} series are coloured {colour}."
+msgstr "Anteprima: le anomalie di {count} serie sono colorate {colour}."
+
+msgid "Preview: the outliers of {count} series are hidden."
+msgstr "Anteprima: le anomalie di {count} serie sono nascoste."
+
+msgid "Ranked by {rank}. D is the largest gap between the sample's empirical CDF and the fitted one, and is shown as a diagnostic rather than as the ordering: on samples drawn from known families, ranking by D alone puts four-parameter beta first every time, because it measures how close the curve got and not how many free parameters it took. The p-value is optimistic for the same reason it always is here - the parameters were estimated from the sample being tested, so it asks whether the data could have come from this fitted curve, not from that family."
+msgstr "Ordinate per {rank}. D è la massima distanza tra la CDF empirica del campione e quella adattata, ed è mostrata come diagnostica e non come criterio d'ordine: su campioni tratti da famiglie note, ordinare solo per D mette sempre prima la beta a quattro parametri, perché misura quanto la curva si avvicina e non quanti parametri liberi ha usato. Il p-value è ottimistico per la solita ragione: i parametri sono stimati dallo stesso campione sottoposto al test, quindi chiede se i dati possano venire da questa curva adattata, non da quella famiglia."
+
+msgid "Reference value"
+msgstr "Valore di riferimento"
+
+msgid "Residual variance (reduced χ²)"
+msgstr "Varianza residua (χ² ridotto)"
+
+msgid "Rows hidden on OK"
+msgstr "Righe nascoste con OK"
+
+msgid "SS residual"
+msgstr "SS residua"
+
+msgid "Spectral analysis"
+msgstr "Analisi spettrale"
+
+msgid "Status"
+msgstr "Stato"
+
+msgid "Std. error"
+msgstr "Errore std."
+
+msgid "Tukey's p-values are already adjusted for the number of pairs, so each can be read against 0.05 on its own. Where Levene says the variances differ, read Welch's ANOVA rather than the classical one."
+msgstr "I p-value di Tukey sono già corretti per il numero di coppie, quindi ognuno si può confrontare da solo con 0,05. Se Levene indica varianze diverse, leggi l'ANOVA di Welch invece di quella classica."
+
+msgid "t and p test whether each parameter is zero, with {dof} residual degrees of freedom. Fixed parameters have no error, so none is shown."
+msgstr "t e p verificano se ogni parametro è zero, con {dof} gradi di libertà residui. I parametri fissi non hanno errore, quindi non viene mostrato."
+
+msgid "{count} further candidates fitted worse and are not shown."
+msgstr "Altri {count} candidati si adattano peggio e non sono mostrati."
+
+msgid "{count} series"
+msgstr "{count} serie"
+
+msgid "{left} vs {right}"
+msgstr "{left} vs {right}"
+
+msgid "{name}: {clusters} clusters, {clustered}/{total} clustered rows, tool={tool}, features={features}"
+msgstr "{name}: {clusters} cluster, {clustered}/{total} righe raggruppate, strumento={tool}, variabili={features}"
+
+msgid "Trim mean"
+msgstr "Media troncata"
+
+msgid "GMean"
+msgstr "Media geom."
+
+msgid "HMean"
+msgstr "Media arm."
+
+msgid "Mode n"
+msgstr "n moda"
+
+msgid "Std"
+msgstr "Dev. std"
+
+msgid "Var"
+msgstr "Varianza"
+
+msgid "Min"
+msgstr "Min"
+
+msgid "Max"
+msgstr "Max"
+
+msgid "Skew"
+msgstr "Asimmetria"
+
+msgid "Entropy"
+msgstr "Entropia"
+
+msgid "95% CI mean"
+msgstr "IC 95% media"
+
+msgid "Test"
+msgstr "Test"
+
+msgid "Statistic"
+msgstr "Statistica"
+
+msgid "p-value"
+msgstr "p-value"
+
+msgid "Note"
+msgstr "Nota"
+
+msgid "Pair"
+msgstr "Coppia"
+
+msgid "Groups"
+msgstr "Gruppi"
+
+msgid "p (Tukey)"
+msgstr "p (Tukey)"
+
+msgid "Distribution"
+msgstr "Distribuzione"
+
+msgid "Variables"
+msgstr "Variabili"
+
+msgid "Sum of squares"
+msgstr "Somma dei quadrati"
+
+msgid "df"
+msgstr "gdl"
+
+msgid "Mean square"
+msgstr "Media dei quadrati"
+
+msgid "Partial eta²"
+msgstr "Eta² parziale"
+
+msgid "Group"
+msgstr "Gruppo"
+
+msgid "Events"
+msgstr "Eventi"
+
+msgid "Censored"
+msgstr "Censurati"
+
+msgid "Median survival"
+msgstr "Sopravvivenza mediana"
+
+msgid "95% CI median"
+msgstr "IC 95% mediana"
+
+msgid "Fit mode"
+msgstr "Modalità del fit"
+
+msgid "Designed experiment - a Box-Behnken design analysed with Fit Model"
+msgstr "Esperimento pianificato - un disegno Box-Behnken analizzato con Adatta modello"
+
+msgid "A reaction studied with a Box-Behnken design - temperature, time and catalyst - kept with its table, so Analysis > Fit Model opens on it with the responses cast and the response-surface model built. Yield and purity are fitted by Standard Least Squares, the pass/fail grade by Nominal Logistic; each figure carries its report in its notes."
+msgstr "Una reazione studiata con un disegno Box-Behnken - temperatura, tempo e catalizzatore - conservato con la sua tabella, così Analisi > Adatta modello si apre con le risposte assegnate e il modello di superficie di risposta già costruito. Resa e purezza sono adattate con i minimi quadrati standard, l'esito superato/respinto con la logistica nominale; ogni figura porta il suo report nelle note."
+
+msgid "Axis: No axis selected"
+msgstr "Asse: nessun asse selezionato"
+
+msgid "Axis: {name}"
+msgstr "Asse: {name}"
+
+msgid "Base"
+msgstr "Base"
+
+msgid "Create Query Table"
+msgstr "Crea tabella da query"
+
+msgid "Create a table from a DOE"
+msgstr "Crea una tabella da un DOE"
+
+msgid "Create a table from a database query."
+msgstr "Crea una tabella da una query su un database."
+
+msgid "Create a table from a database table."
+msgstr "Crea una tabella da una tabella di un database."
+
+msgid "Create a table from a file, clipboard or web source."
+msgstr "Crea una tabella da un file, dagli appunti o da una fonte web."
+
+msgid "Experiment settings"
+msgstr "Impostazioni dell'esperimento"
+
+msgid "Field"
+msgstr "Campo"
+
+msgid "Import Database Table"
+msgstr "Importa tabella da database"
+
+msgid "Invert direction"
+msgstr "Inverti direzione"
+
+msgid "Label"
+msgstr "Etichetta"
+
+msgid "Proj."
+msgstr "Proiez."
+
+msgid "Properties"
+msgstr "Proprietà"
+
+msgid "Query settings"
+msgstr "Impostazioni della query"
+
+msgid "Range max"
+msgstr "Massimo"
+
+msgid "Range min"
+msgstr "Minimo"
+
+msgid "Rotation"
+msgstr "Rotazione"
+
+msgid "Share {axis}"
+msgstr "Condividi {axis}"
+
+msgid "Spines"
+msgstr "Bordi"
+
+msgid "Symlog"
+msgstr "Symlog"
+
+msgid "Table and field"
+msgstr "Tabella e campo"
+
+msgid "Histogram of '{column}'"
+msgstr "Istogramma di '{column}'"
+
+msgid "Export selected rows..."
+msgstr "Esporta righe selezionate..."
+
+msgid "Edit query…"
+msgstr "Modifica query…"
+
+msgid "Save the whole table, or what the query returns, as CSV or Excel"
+msgstr "Salva l'intera tabella, o il risultato della query, come CSV o Excel"
+
+msgid "User manual and credits"
+msgstr "Manuale utente e riconoscimenti"
+
+msgid "Hide, Selected, ClusterId"
+msgstr "Hide, Selected, ClusterId"

@@ -712,7 +712,7 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
     def format_results(self, results: Sequence[SpectralResult]) -> str:
         """Return an HTML summary of the computed estimates."""
         if not results:
-            return report_html.note("Select one or more source series.")
+            return report_html.note(_("Select one or more source series."))
 
         rows = []
         for result in results:
@@ -735,16 +735,16 @@ class SeriesSpectralDialog(SeriesOperationDialogBase):
 
         first = results[0]
         return report_html.document(
-            "Spectral analysis",
+            _("Spectral analysis"),
             first.model,
             report_html.section(
                 _("Estimates"),
                 report_html.table(
                     [
-                        "Source",
-                        "Method",
-                        "Points",
-                        f"Peak ({first.x_label} &rarr; {first.y_label})",
+                        _("Source"),
+                        _("Method"),
+                        _("Points"),
+                        _("Peak ({x} &rarr; {y})").format(x=first.x_label, y=first.y_label),
                     ],
                     rows,
                     align=["left", "left", "right", "right"],

@@ -27,7 +27,6 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QPlainTextEdit,
     QSizePolicy,
-    QSplitter,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -37,10 +36,8 @@ from app.data.data_source import quote_identifier
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.styles.style import (
-    apply_dialog_shell,
-    CardFrame,
     create_action_button,
-    create_section_title,
+    create_compact_section_title,
     load_icon,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -55,6 +52,7 @@ from app.utils.dialog_state import (
 from app.utils.messages import ask, show_message
 from app.widgets.table_preview import DataFrameTableModel
 from app.utils.i18n import _
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 
 # Rows fetched by Run.  Enough to see whether the query is right, few enough
 # that pressing Run on a full-table select is not a mistake.
@@ -71,7 +69,7 @@ STATE_KEY: str = "query_builder_dialog"
 _SNIPPET_IDS = ("select", "join", "union", "summary", "order", "filter")
 
 
-class QueryBuilderDialog(QDialog):
+class QueryBuilderDialog(SettingsTableDialog):
     """Create and edit saved queries, and run them to check the result."""
 
     def __init__(
@@ -82,7 +80,14 @@ class QueryBuilderDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         """Open the builder, optionally on an existing saved query."""
-        super().__init__(parent)
+        super().__init__(
+            parent,
+            title=_("Query Builder"),
+            icon=load_icon("data"),
+            settings_title=_("Query settings"),
+            size="large",
+            settings_width=340,
+        )
         self._repo = repo
         self._current_name: str | None = None
         # False while the name is one this dialog picked for a draft nobody
@@ -91,15 +96,12 @@ class QueryBuilderDialog(QDialog):
         # user's.
         self._name_confirmed: bool = False
 
-        self.setWindowTitle(_("Query Builder"))
-        self.setWindowIcon(load_icon("data"))
 
         self._build_ui()
         self._reload_queries()
         self._reload_tables()
 
-        # Restore after the lists are populated: a combo or a splitter cannot
-        # be restored to a row that does not exist yet.
+        # Restore after the lists are populated so combo selections exist.
         restore_window_geometry(self, STATE_KEY)
         restore_dialog_state(self, STATE_KEY)
 
@@ -110,54 +112,53 @@ class QueryBuilderDialog(QDialog):
     # UI
     # ------------------------------------------------------------------
     def _build_ui(self) -> None:
-        """Build the three-part shell: saved list, editor, result preview."""
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="large")
+        """Build the standard settings/editor two-column shell."""
+        self.settings_layout.addWidget(self._build_side_panel(), 1)
+        self.content_layout.addWidget(self._build_editor_panel(), 1)
 
-        # Kept on self so that restore_dialog_state can remember its sizes.
-        splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.addWidget(self._build_side_panel())
-        splitter.addWidget(self._build_editor_panel())
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([260, 740])
-
-        root.addWidget(splitter, 1)
-        root.addLayout(self._build_action_row(), 0)
+        run_button = create_action_button(
+            parent=self, action_id="run", action=self.run, layout=None
+        )
+        self.action_row.insertWidget(0, run_button)
+        self.add_action("apply", self.accept, default=True)
+        self.add_action("close", self.reject)
 
     def _build_side_panel(self) -> QWidget:
-        """Build the settings panel shown on the left."""
-        panel = CardFrame(self, "querySettingsCard")
-        layout = panel.layout()
+        """Build the controls shown in the fixed settings frame."""
+        panel = QWidget(self.settings_frame)
+        layout = QVBoxLayout(panel)
+        stdSizeAndlayout(layout)
 
-        layout.addWidget(create_section_title(_("Saved queries:"), panel))
+        layout.addWidget(create_compact_section_title(_("Saved queries"), panel))
         self._query_combo = QComboBox(panel)
         self._query_combo.setToolTip(_("Pick a saved query."))
         self._query_combo.currentTextChanged.connect(self._on_saved_query_changed)
-        layout.addWidget(self._query_combo, 0)
+        layout.addWidget(self._query_combo)
 
         add_row = QWidget(panel)
         add_layout = QHBoxLayout(add_row)
         stdSizeAndlayout(add_layout)
-        create_action_button(parent=add_row, action_id="add",
-                             action=self._new_query, layout=add_layout)
-        create_action_button(parent=add_row, action_id="delete",
-                             action=self._delete_current_query, layout=add_layout)
+        create_action_button(parent=add_row, action_id="add", action=self._new_query, layout=add_layout)
+        create_action_button(
+            parent=add_row, action_id="delete",
+            action=self._delete_current_query, layout=add_layout
+        )
         add_layout.addStretch(1)
-        layout.addWidget(add_row, 0)
+        layout.addWidget(add_row)
 
-        layout.addWidget(create_section_title(_("Tables:"), panel))
+        layout.addWidget(create_compact_section_title(_("Table and field"), panel))
+        form = QFormLayout()
+        stdSizeAndlayout(form)
         self._table_combo = QComboBox(panel)
         self._table_combo.currentTextChanged.connect(self._reload_fields)
-        layout.addWidget(self._table_combo, 0)
-
-        layout.addWidget(create_section_title(_("Fields:"), panel))
+        form.addRow(_("Table"), self._table_combo)
         self._field_combo = QComboBox(panel)
         self._field_combo.setToolTip(_("The field the SQL buttons below act on."))
-        layout.addWidget(self._field_combo, 0)
+        form.addRow(_("Field"), self._field_combo)
+        layout.addLayout(form)
 
-        layout.addWidget(create_section_title(_("Snippets:"), panel))
-        layout.addWidget(self._build_snippet_rows(panel), 0)
+        layout.addWidget(create_compact_section_title(_("Snippets"), panel))
+        layout.addWidget(self._build_snippet_rows(panel))
         layout.addStretch(1)
         return panel
 
@@ -183,10 +184,11 @@ class QueryBuilderDialog(QDialog):
 
     def _build_editor_panel(self) -> QWidget:
         """SQL editor on top, result preview below."""
-        panel = CardFrame(self, "queryEditorCard")
-        layout = panel.layout()
+        panel = QWidget(self.content_frame)
+        layout = QVBoxLayout(panel)
+        stdSizeAndlayout(layout)
 
-        layout.addWidget(create_section_title(_("SQL:"), panel))
+        layout.addWidget(create_compact_section_title(_("SQL"), panel))
 
         self._editor = QPlainTextEdit(panel)
         self._editor.setPlaceholderText(_("SELECT x, y FROM my_table WHERE ..."))
@@ -200,44 +202,13 @@ class QueryBuilderDialog(QDialog):
         self._status.setProperty("muted", True)
         layout.addWidget(self._status, 0)
 
-        layout.addWidget(create_section_title(_("Result preview:"), panel))
+        layout.addWidget(create_compact_section_title(_("Result preview"), panel))
         self._result_view = QTableView(panel)
         self._result_view.setAlternatingRowColors(True)
         mark_editor_panel(self._result_view)
         layout.addWidget(self._result_view, 3)
 
         return panel
-
-    def _build_action_row(self) -> QHBoxLayout:
-        """Run on the left, Save / Close on the right."""
-        row = QHBoxLayout()
-        stdSizeAndlayout(row)
-
-        # No separate Preview button: it only called validate(), which run()
-        # already does before executing, so the two buttons differed only in
-        # whether you also got the rows.
-        create_action_button(
-            parent=self,
-            action_id="run",
-            action=self.run,
-            layout=row,
-        )
-        row.addStretch(1)
-        # OK saves and closes: it used to only save, so the dialog stayed
-        # open with nothing left to do.
-        create_action_button(
-            parent=self,
-            action_id="apply",
-            action=self.accept,
-            layout=row,
-        )
-        create_action_button(
-            parent=self,
-            action_id="close",
-            action=self.reject,
-            layout=row,
-        )
-        return row
 
     # ------------------------------------------------------------------
     # State
@@ -640,7 +611,7 @@ class QueryBuilderDialog(QDialog):
         super().closeEvent(event)
 
     def _remember_state(self) -> None:
-        """Persist the splitter, the selected table and the geometry."""
+        """Persist the selected controls and window geometry."""
         save_dialog_state(self, STATE_KEY)
         save_window_geometry(self, STATE_KEY)
 

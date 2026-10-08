@@ -163,7 +163,7 @@ def test_each_service_gets_its_own_language_code() -> None:
 def test_the_dialog_fills_only_empty_cells(qapp, monkeypatch: pytest.MonkeyPatch) -> None:
     from PySide6.QtCore import Qt
 
-    import app.dialogs.edit_localization_dialog as dialog_module
+    import app.developer_helpers.localization_helper as dialog_module
 
     monkeypatch.setattr(mt, "available", lambda: True)
     monkeypatch.setattr(mt, "_make_translator", lambda provider, language: Echo())

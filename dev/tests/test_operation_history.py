@@ -69,7 +69,12 @@ def test_an_apply_is_recorded_with_its_inputs_and_outputs(qapp, repo: SqliteRepo
     assert record.app_version == APP_VERSION
     assert record.parameters == {key: value for key, value in parameters.items()}
     # The dialog's own choices, not its buttons.
-    assert record.entries == {"model_combo": dialog.model_combo.currentText()}
+    assert record.entries == {
+        "model_combo": dialog.model_combo.currentText(),
+        # Where the data came from: the chart's series, not a table's columns.
+        "source_chart_radio": True,
+        "source_table_radio": False,
+    }
     assert [source["name"] for source in record.sources] == ["a", "b"]
     assert all('FROM "data"' in source["sql_query"] for source in record.sources)
     tables = [result["table"] for result in record.results]

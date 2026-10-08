@@ -38,8 +38,11 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
+    QLabel,
     QProgressBar,
+    QScrollArea,
     QSizePolicy,
     QSplitter,
     QVBoxLayout,
@@ -54,6 +57,7 @@ from app.series_operations.parameter_form import ParameterForm
 from app.series_operations.parameter_spec import Param
 from app.styles.style import (
     CardFrame,
+    TitledCard,
     apply_dialog_shell,
     create_action_button,
     create_section_title,
@@ -153,26 +157,42 @@ class TableOperationDialogBase(QDialog):
         self._inputs_panel = QWidget(self)
         inputs_layout = QVBoxLayout(self._inputs_panel)
         inputs_layout.setContentsMargins(0, 0, 0, 0)
+        self.roles_widget = ColumnRolesWidget(self.ROLES, self._inputs_panel)
+        self.roles_widget.changed.connect(self.inputs_changed)
+        inputs_layout.addWidget(self.roles_widget, 1)
+        # The table at the top of the columns' frame: the columns are its.
         table_row = QFormLayout()
         stdSizeAndlayout(table_row)
         self._table_combo = QComboBox(self._inputs_panel)
+        self._table_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        # Short: the column is narrow, and the label must keep its room.
+        self._table_combo.setMinimumContentsLength(3)
         self._table_combo.currentIndexChanged.connect(self._on_table_changed)
-        table_row.addRow(_("Table:"), self._table_combo)
+        table_label = QLabel(_("Table:"), self._inputs_panel)
+        table_label.setMinimumWidth(table_label.sizeHint().width())
+        table_row.addRow(table_label, self._table_combo)
         if self.MODELS:
             self.model_combo = QComboBox(self._inputs_panel)
             for key in self.MODELS:
                 self.model_combo.addItem(_(key), key)
             self.model_combo.currentIndexChanged.connect(lambda _i: self.inputs_changed())
-            table_row.addRow(_("Model:"), self.model_combo)
-        inputs_layout.addLayout(table_row)
-        self.roles_widget = ColumnRolesWidget(self.ROLES, self._inputs_panel)
-        self.roles_widget.changed.connect(self.inputs_changed)
-        inputs_layout.addWidget(self.roles_widget, 1)
+            table_row.addRow(QLabel(_("Model:"), self._inputs_panel), self.model_combo)
+        self.roles_widget.columns_card_layout.insertLayout(0, table_row)
         self.build_extra_inputs(self.roles_widget.side_layout)
         self._parameter_form: ParameterForm | None = None
         if self.PARAMS:
             self._parameter_form = ParameterForm(self.PARAMS, self, on_change=self.inputs_changed)
-            self.roles_widget.side_layout.addWidget(self._parameter_form.widget)
+            parameters = TitledCard(self._inputs_panel, _("Parameters"))
+            parameters.card.layout().addWidget(self._parameter_form.widget)
+            self.roles_widget.side_layout.addWidget(parameters)
+        # Scrolled rather than squeezed: a short window must not pile the
+        # frames on top of one another.
+        inputs_scroll = QScrollArea(self)
+        inputs_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        inputs_scroll.setWidgetResizable(True)
+        inputs_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        inputs_scroll.setWidget(self._inputs_panel)
+        inputs_scroll.setMinimumWidth(self._inputs_panel.minimumSizeHint().width() + 16)
 
         right = CardFrame(self, "tableOperationResultsCard")
         right_layout = right.layout()
@@ -181,11 +201,11 @@ class TableOperationDialogBase(QDialog):
         self._results = HtmlResultsView(self)
         self._results.setText(_("Cast the columns into their roles, then press Preview."))
         right_layout.addWidget(self._results)
-        right.setMinimumWidth(240)
+        right.setMinimumWidth(300)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setChildrenCollapsible(False)
-        splitter.addWidget(self._inputs_panel)
+        splitter.addWidget(inputs_scroll)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
@@ -210,7 +230,7 @@ class TableOperationDialogBase(QDialog):
         root = QVBoxLayout(self)
         # Small enough for a laptop: the inputs need about 520 px, the report
         # takes the rest, and screen_fit shrinks it further on a smaller screen.
-        apply_dialog_shell(self, root, size=QSize(880, 560))
+        apply_dialog_shell(self, root, size=QSize(1000, 600))
         root.addWidget(splitter, 1)
         root.addLayout(buttons)
 

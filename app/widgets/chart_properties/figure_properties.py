@@ -45,7 +45,7 @@ from app.styles.style import (
     configure_combo_width,
 )
 from app.utils.config import MPLSTYLES_DIR
-from app.widgets.base_properties import BaseProperties
+from app.widgets.chart_properties.base_properties import BaseProperties
 from app.widgets.font_scale_control import FontScaleControl
 from app.widgets.pair_grid import PairGrid
 from app.widgets.chart_panel import RESIZE_MODE_CHOICES

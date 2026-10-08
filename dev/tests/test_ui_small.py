@@ -11,10 +11,10 @@ import pytest
 import app.dialogs.log_viewer_dialog as viewer_module
 import app.logs.logger as logger_module
 import pandas as pd
-import app.dialogs.main_window as main_window_module
+import app.main_window.main_window as main_window_module
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.create_chart_dialog import NewPlotTabResult
-from app.dialogs.main_window import MainWindow
+from app.main_window.main_window import MainWindow
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout
@@ -367,7 +367,7 @@ def test_one_column_makes_a_histogram_figure_with_its_statistics(qapp, tmp_path:
     model = preview.view.model()
     preview.view.selectionModel().select(model.index(0, 0), preview.view.selectionModel().SelectionFlag.ClearAndSelect)
     texts = [action.text() for action in preview._build_context_menu(preview.view.visualRect(model.index(0, 0)).center()).actions()]
-    assert any(text.startswith("Histogram and statistics") for text in texts)
+    assert any(text.startswith("Histogram of") for text in texts)
     assert not any(text == "Duplicate table" for text in texts)
     window.close()
     repo.close()

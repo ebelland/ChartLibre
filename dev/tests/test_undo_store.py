@@ -149,7 +149,7 @@ def window(qapp, repo: SqliteRepo, tmp_db_path: Path):
     """A window on a figure with one axis and one series."""
     import numpy as np
 
-    from app.dialogs.main_window import MainWindow
+    from app.main_window.main_window import MainWindow
     from app.logs.logger import applogger
 
     repo.import_dataframe(

@@ -24,6 +24,7 @@ ending up in config.json.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, Callable
 
 from PySide6.QtWidgets import (
@@ -113,13 +114,13 @@ def dialog_entries(owner: object, *, inputs_only: bool = False) -> dict[str, Any
     """The current entries of *owner*, by attribute name, as save_dialog_state stores them.
 
     ``inputs_only`` leaves out what only arranges the window (splitter
-    sizes) and the buttons that act rather than hold a choice: what an
+    sizes, the tab shown) and the buttons that act rather than hold a choice: what an
     operation records about how it was run.
     """
     state: dict[str, Any] = {}
     for name, widget in _stateful_widgets(owner).items():
         if inputs_only and (
-            isinstance(widget, QSplitter)
+            isinstance(widget, (QSplitter, QTabWidget))
             or (isinstance(widget, QAbstractButton) and not widget.isCheckable())
         ):
             continue
@@ -136,12 +137,16 @@ def dialog_entries(owner: object, *, inputs_only: bool = False) -> dict[str, Any
     return state
 
 
-def save_dialog_state(owner: object, key: str) -> dict[str, Any]:
+def save_dialog_state(owner: object, key: str, extra: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Store the current entries of *owner* under ``dialog_state.<key>``.
 
-    Returns what was stored, which is handy in tests and costs nothing.
+    *extra* is stored beside them: what is not an attribute widget - a form's
+    parameters, a choice of columns - under names no attribute has, read back
+    with :func:`stored_dialog_state`. Returns what was stored, which is handy
+    in tests and costs nothing.
     """
     state = dialog_entries(owner)
+    state.update(extra or {})
     section = get_section(CONFIG_SECTION)
     section[key] = state
     set_section(CONFIG_SECTION, section)
@@ -159,7 +164,21 @@ def restore_dialog_state(owner: object, key: str) -> None:
     state = get_section(CONFIG_SECTION).get(key)
     if not isinstance(state, dict):
         return
+    set_dialog_entries(owner, state)
 
+
+def stored_dialog_state(key: str) -> dict[str, Any]:
+    """What is stored under ``dialog_state.<key>``: entries, and whatever a dialog added."""
+    state = get_section(CONFIG_SECTION).get(key)
+    return dict(state) if isinstance(state, dict) else {}
+
+
+def set_dialog_entries(owner: object, state: Mapping[str, Any], *, quietly: bool = True) -> None:
+    """Put *state*'s values into *owner*'s widgets, by attribute name.
+
+    *quietly* blocks the widgets' signals, as restoring a window does; a
+    Revert lets them through, so whatever hangs on a combo follows it.
+    """
     widgets = _stateful_widgets(owner)
     for name, value in state.items():
         widget = widgets.get(name)
@@ -167,14 +186,16 @@ def restore_dialog_state(owner: object, key: str) -> None:
         if widget is None or accessor is None:
             continue
         try:
-            widget.blockSignals(True)
+            if quietly:
+                widget.blockSignals(True)
             accessor[1](widget, value)
         except Exception:  # noqa: BLE001 - any widget, any stale value: skipped, never fatal
             applogger.exception(
-                "Could not restore %s.%s from config", key, name,
+                "Could not restore %s.%s", type(owner).__name__, name,
             )
         finally:
-            widget.blockSignals(False)
+            if quietly:
+                widget.blockSignals(False)
 
 
 # ----------------------------------------------------------------------

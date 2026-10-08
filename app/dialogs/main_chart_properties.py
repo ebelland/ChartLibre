@@ -20,11 +20,11 @@ from app.logs.logger import applogger
 from app.styles.style import MARGIN_TOOLBOX_PAGE, stdSizeAndlayout
 from app.utils.config import get_constant
 from app.utils.i18n import _
-from app.widgets.axis_properties import AxisPropertiesWidget
+from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget
 from app.widgets.chart_panel import ChartPanel
-from app.widgets.figure_properties import FigurePropertiesWidget
-from app.widgets.overlay_properties import OverlayPropertiesWidget
-from app.widgets.series_properties import SeriesPropertiesWidget
+from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
+from app.widgets.chart_properties.overlay_properties import OverlayPropertiesWidget
+from app.widgets.chart_properties.series_properties import SeriesPropertiesWidget
 
 # Coalescing window for property-driven chart reloads, in milliseconds.
 # Long enough to swallow a spinbox drag, short enough to feel immediate.

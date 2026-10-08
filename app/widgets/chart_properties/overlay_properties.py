@@ -42,15 +42,14 @@ from app.logs.logger import applogger
 from app.styles.style import (
     MARGIN_PANEL,
     CardFrame,
-    TitledCard,
     mark_destructive_button,
     stdSizeAndlayout,
 )
 from app.utils.config import get_constant
 from app.utils.i18n import _
-from app.widgets.base_properties import BaseProperties
-from app.widgets.color_combo import MatplotlibColorCombo
-from app.widgets.line_combo import LineStyleCombo
+from app.widgets.chart_properties.base_properties import BaseProperties
+from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
+from app.widgets.drop_down_controls.line_combo import LineStyleCombo
 
 #: The shapes ``BaseAxisRenderer.apply_annotation`` can draw.
 ANNOTATION_TYPES: Final[tuple[str, ...]] = ("arrow", "text", "boxed text")
@@ -201,13 +200,12 @@ class OverlayPropertiesWidget(BaseProperties):
         root.addWidget(self._tabs, 1)
 
     def _build_axis_card(self) -> QWidget:
-        """Name the axis being edited - the Axis panel owns the selector."""
-        card = TitledCard(self, _("Axis"), "overlayAxisCard")
-        layout = card.card.layout()
-        self._axis_label = QLabel(_("No axis selected"), card)
-        self._axis_label.setWordWrap(True)
-        layout.addWidget(self._axis_label)
-        return card
+        """Name the axis being edited without an empty card body."""
+        title = QLabel(_("Axis: No axis selected"), self)
+        title.setProperty("sectionTitle", True)
+        title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._axis_heading = title
+        return title
 
     def _add_tab(
         self,
@@ -447,7 +445,7 @@ class OverlayPropertiesWidget(BaseProperties):
         self._annotations_table.setRowCount(0)
         self._lines_table.setRowCount(0)
         self._measurements_table.setRowCount(0)
-        self._axis_label.setText(_("No axis selected"))
+        self._axis_heading.setText(_("Axis: No axis selected"))
         super().clear_connected_figure()
 
     # ------------------------------------------------------------------
@@ -460,11 +458,11 @@ class OverlayPropertiesWidget(BaseProperties):
 
         options = self._axis_options()
         if options is None:
-            self._axis_label.setText(_("No axis selected"))
+            self._axis_heading.setText(_("Axis: No axis selected"))
             self._set_enabled_state(False)
             return
 
-        self._axis_label.setText(self._axis_title(options))
+        self._axis_heading.setText(_("Axis: {name}").format(name=self._axis_title(options)))
         self._load_rows(self._annotations_table, _ANNOTATION_COLS, options, "annotations")
         self._load_rows(self._lines_table, _LINE_COLS, options, "lines")
         self._load_rows(self._measurements_table, _MEASUREMENT_COLS, options, "measurements")

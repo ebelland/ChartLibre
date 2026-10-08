@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""app.widgets.line_combo
+"""app.widgets.drop_down_controls.line_combo
 
 LineStyleCombo
 
@@ -26,7 +26,7 @@ from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from app.charts.kwarg_spec import DEFAULT
 from app.styles.style import create_hidpi_pixmap
-from app.widgets.icon_combo import ComboEntry, IconComboBox
+from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 
 _ICON_W, _ICON_H = 28, 14
 _LINE_COLOR = "#3a3a3a"

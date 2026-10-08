@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.dialogs.dev_tools_common import ScaffoldDialog, slug as _slug
+from app.developer_helpers.developer_helper_base import DeveloperDialogBase, slug as _slug
 from app.utils.config import USER_SERIES_OPERATIONS_DIR
 
 #: Where series_operation_scanner.py itself looks for the built-in
@@ -177,7 +177,7 @@ class {class_name}(SeriesOperationDialogBase):
 '''
 
 
-class SeriesOperationBuilderDialog(ScaffoldDialog):
+class SeriesOperationBuilderDialog(DeveloperDialogBase):
     """Scaffold a new SeriesOperationDialogBase file from a short form."""
 
     TITLE = "Series Operation Builder"

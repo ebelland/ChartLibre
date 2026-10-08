@@ -296,6 +296,13 @@
       "SegoeFluent": "e943",
       "ThemeIcon": "applications-system"
     },
+    "nav_help": {
+      "text": "Help",
+      "description": "User manual and credits",
+      "SFSymbol": "questionmark.circle",
+      "SegoeFluent": "E897",
+      "ThemeIcon": "help-about"
+    },
     "nav_new_table": {
       "text": "New table",
       "description": "Create a new table",
@@ -506,6 +513,13 @@
       "SegoeFluent": "E71A",
       "ThemeIcon": "process-stop"
     },
+    "operation_revert": {
+      "text": "Revert",
+      "description": "Put every entry back to its default value",
+      "SFSymbol": "arrow.uturn.backward",
+      "SegoeFluent": "E7A7",
+      "ThemeIcon": "document-revert"
+    },
     "run_fit": {
       "text": "Fit",
       "description": "Optimise the parameters and preview the result",
@@ -663,7 +677,8 @@
       "description": "Summarise this table by one or more columns into a new table",
       "SFSymbol": "square.stack.3d.up",
       "SegoeFluent": "E8FD",
-      "ThemeIcon": "view-list-tree"
+      "ThemeIcon": "view-list-tree",
+      "SVG": "<path d=\"M17.5 4.5h-11l6 7.5-6 7.5h11\"/>"
     },
     "export_rows": {
       "text": "Export rows...",
@@ -684,84 +699,96 @@
       "description": "Add an empty row at the end of the table",
       "SFSymbol": "plus.rectangle",
       "SegoeFluent": "E710",
-      "ThemeIcon": "list-add"
+      "ThemeIcon": "list-add",
+      "SVG": "<rect x=\"3\" y=\"3.5\" width=\"18\" height=\"5\" rx=\"1\"/><rect x=\"3\" y=\"10.5\" width=\"10\" height=\"5\" rx=\"1\"/><path d=\"M18.5 14v8M14.5 18h8\"/>"
     },
     "table_insert_row": {
       "text": "Insert row above",
       "description": "Add an empty row above the selected one",
       "SFSymbol": "arrow.up.to.line",
       "SegoeFluent": "E74A",
-      "ThemeIcon": "go-up"
+      "ThemeIcon": "go-up",
+      "SVG": "<path d=\"M12 2v6M9 5.5l3 3 3-3\"/><rect x=\"3\" y=\"11\" width=\"18\" height=\"4.5\" rx=\"1\"/><rect x=\"3\" y=\"17.5\" width=\"18\" height=\"4.5\" rx=\"1\"/>"
     },
     "table_delete_rows": {
       "text": "Delete rows",
       "description": "Delete every row with a selected cell",
       "SFSymbol": "minus.rectangle",
       "SegoeFluent": "E738",
-      "ThemeIcon": "list-remove"
+      "ThemeIcon": "list-remove",
+      "SVG": "<g stroke=\"#D93025\"><rect x=\"3\" y=\"3.5\" width=\"18\" height=\"5\" rx=\"1\"/><rect x=\"3\" y=\"10.5\" width=\"10\" height=\"5\" rx=\"1\"/><path d=\"M15.5 15.5l6 6M21.5 15.5l-6 6\"/></g>"
     },
     "table_add_column": {
       "text": "Add column",
       "description": "Add the named column at the end of the table",
       "SFSymbol": "plus.square",
       "SegoeFluent": "E710",
-      "ThemeIcon": "list-add"
+      "ThemeIcon": "list-add",
+      "SVG": "<rect x=\"3.5\" y=\"3\" width=\"5\" height=\"18\" rx=\"1\"/><rect x=\"10.5\" y=\"3\" width=\"5\" height=\"10\" rx=\"1\"/><path d=\"M18.5 14v8M14.5 18h8\"/>"
     },
     "table_insert_column": {
       "text": "Insert column before",
       "description": "Add the named column immediately before the selected one",
       "SFSymbol": "arrow.left.to.line",
       "SegoeFluent": "E72B",
-      "ThemeIcon": "go-previous"
+      "ThemeIcon": "go-previous",
+      "SVG": "<path d=\"M2 12h6M5.5 9l3 3-3 3\"/><rect x=\"11\" y=\"3\" width=\"4.5\" height=\"18\" rx=\"1\"/><rect x=\"17.5\" y=\"3\" width=\"4.5\" height=\"18\" rx=\"1\"/>"
     },
     "table_rename_column": {
       "text": "Rename column",
       "description": "Rename the selected column (or double-click its header)",
       "SFSymbol": "pencil",
       "SegoeFluent": "E70F",
-      "ThemeIcon": "document-edit"
+      "ThemeIcon": "document-edit",
+      "SVG": "<rect x=\"3.5\" y=\"3\" width=\"5.5\" height=\"18\" rx=\"1\"/><path d=\"M12.5 21l1-4 6.2-6.2a1.6 1.6 0 0 1 2.3 2.3L15.8 19.3z\"/><path d=\"M12 5h8\"/>"
     },
     "table_computed_column": {
       "text": "Add computed column...",
       "description": "Add a column computed for every row from a SQL expression",
       "SFSymbol": "function",
       "SegoeFluent": "E8EF",
-      "ThemeIcon": "accessories-calculator"
+      "ThemeIcon": "accessories-calculator",
+      "SVG": "<rect x=\"3.5\" y=\"3\" width=\"5.5\" height=\"18\" rx=\"1\"/><path d=\"M21 4.5c-2.6-.6-4 .5-4.4 3L15 19.5c-.4 2.2-1.7 2.8-3 2.4\"/><path d=\"M13.5 10.5h6\"/>"
     },
     "table_delete_column": {
       "text": "Delete column",
       "description": "Delete the selected column and everything in it",
       "SFSymbol": "minus.square",
       "SegoeFluent": "E738",
-      "ThemeIcon": "list-remove"
+      "ThemeIcon": "list-remove",
+      "SVG": "<g stroke=\"#D93025\"><rect x=\"3.5\" y=\"3\" width=\"5\" height=\"18\" rx=\"1\"/><rect x=\"10.5\" y=\"3\" width=\"5\" height=\"10\" rx=\"1\"/><path d=\"M15.5 15.5l6 6M21.5 15.5l-6 6\"/></g>"
     },
     "table_cast_column": {
       "text": "Change type",
       "description": "Convert the selected column to another type",
       "SFSymbol": "textformat",
       "SegoeFluent": "E8D2",
-      "ThemeIcon": "format-text-bold"
+      "ThemeIcon": "format-text-bold",
+      "SVG": "<rect x=\"3.5\" y=\"3\" width=\"5.5\" height=\"18\" rx=\"1\"/><path d=\"M12.5 4.5h8M16.5 4.5v7\"/><path d=\"M12.5 17.5h9M18.5 14.5l3 3-3 3\"/>"
     },
     "table_sort_ascending": {
       "text": "Sort ascending",
       "description": "Reorder the rows by the selected column, smallest first",
       "SFSymbol": "arrow.up",
       "SegoeFluent": "E74A",
-      "ThemeIcon": "view-sort-ascending"
+      "ThemeIcon": "view-sort-ascending",
+      "SVG": "<path d=\"M4 6.5h5M4 12h8M4 17.5h11\"/><path d=\"M19 20V4M16 7l3-3 3 3\"/>"
     },
     "table_sort_descending": {
       "text": "Sort descending",
       "description": "Reorder the rows by the selected column, largest first",
       "SFSymbol": "arrow.down",
       "SegoeFluent": "E74B",
-      "ThemeIcon": "view-sort-descending"
+      "ThemeIcon": "view-sort-descending",
+      "SVG": "<path d=\"M4 6.5h11M4 12h8M4 17.5h5\"/><path d=\"M19 4v16M16 17l3 3 3-3\"/>"
     },
     "table_fill_missing": {
       "text": "Fill empty cells...",
       "description": "Fill the selected column's empty cells: a value, the mean or median, the previous value, or by interpolation",
       "SFSymbol": "square.and.pencil",
       "SegoeFluent": "E70F",
-      "ThemeIcon": "document-edit"
+      "ThemeIcon": "document-edit",
+      "SVG": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M3 15h18M9 3v18M15 3v18\"/><path d=\"M12 10.5v3M10.5 12h3\"/>"
     },
     "table_find_replace": {
       "text": "Find and replace...",

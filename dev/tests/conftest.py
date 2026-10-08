@@ -48,6 +48,21 @@ def _operations_compute_in_place(request: pytest.FixtureRequest):
     SeriesOperationDialogBase.BACKGROUND_ENABLED = True
 
 
+@pytest.fixture(autouse=True)
+def _dialogs_start_from_their_defaults(_private_user_config):
+    """Every test opens its dialogs as built, not as a previous test left them.
+
+    The dialogs remember their entries and parameters - and whether the data
+    came from a chart or a table - when they close; one test leaving
+    Smoothing on a table would otherwise change what the next one opens.
+    """
+    from app.utils import config
+    from app.utils.dialog_state import CONFIG_SECTION
+
+    config.set_section(CONFIG_SECTION, {})
+    yield
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _private_user_config(tmp_path_factory: pytest.TempPathFactory):
     """Point user.json at a copy for the whole run.

@@ -16,7 +16,7 @@ import shiboken6
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QToolButton, QVBoxLayout, QWidget
 
 import app.styles.style as style
-from app.widgets.custom_title_bar import (
+from app.main_window.custom_title_bar import (
     CAPTION_BUTTON_WIDTH,
     CUSTOM_TITLE_BAR_HEIGHT,
     CustomTitleBar,

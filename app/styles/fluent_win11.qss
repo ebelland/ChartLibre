@@ -165,6 +165,7 @@ QWidget[elevated="true"] {
     border-radius: 14px;
 }
 
+
 /* The chart pane is a surface, not a card: its jump bar and tab strip run
    flush to its edges with square backgrounds of their own, which covered
    the rounded top corners and left the card's outline showing round

@@ -57,7 +57,7 @@ def readable_date(iso: str) -> str:
         moment = datetime.fromisoformat(iso)
     except (TypeError, ValueError):
         return iso
-    return moment.astimezone().strftime("%Y-%m-%d %H:%M")
+    return moment.astimezone().strftime("%x %X")  # ("%Y-%m-%d %H:%M")
 
 
 def default_author() -> str:
@@ -170,11 +170,13 @@ class ProjectInfoDialog(QDialog):
     def _append_reference(self, entry: dict[str, str], *, edit: bool = False) -> None:
         row = self.references_table.rowCount()
         self.references_table.insertRow(row)
-        for column, key in enumerate(("citation", "doi", "url")):
+        item = QTableWidgetItem(entry.get("citation", ""))
+        self.references_table.setItem(row, 0, item)
+        for column, key in enumerate(("doi", "url"), start=1):
             self.references_table.setItem(row, column, QTableWidgetItem(entry.get(key, "")))
         if edit:
             self.references_table.setCurrentCell(row, 0)
-            self.references_table.editItem(self.references_table.item(row, 0))
+            self.references_table.editItem(item)
 
     def _remove_references(self) -> None:
         rows = sorted({index.row() for index in self.references_table.selectedIndexes()}, reverse=True)

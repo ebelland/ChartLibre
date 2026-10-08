@@ -168,7 +168,7 @@ def test_a_chart_that_draws_while_it_is_built_is_still_drawn(qapp, tmp_path: Pat
     import pandas as pd
 
     from app.data.sqlite_repo import SqliteRepo
-    from app.dialogs.main_window import MainWindow
+    from app.main_window.main_window import MainWindow
     from app.widgets.chart_panel import ChartPanel
 
     repo = SqliteRepo(db_path=tmp_path / "t.dhub")

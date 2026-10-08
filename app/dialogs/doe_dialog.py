@@ -15,16 +15,17 @@ import numpy as np
 import pandas as pd
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-    QFormLayout, QFrame, QGridLayout, QHeaderView, QLabel, QLineEdit, QMessageBox,
-    QScrollArea, QSizePolicy, QSpinBox, QSplitter, QTableWidget,
+    QAbstractItemView, QCheckBox, QComboBox,
+    QFormLayout, QGridLayout, QHeaderView, QLabel, QLineEdit, QMessageBox,
+    QSizePolicy, QSpinBox, QTableWidget,
     QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget,
 )
 
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.utils.i18n import _
-from app.utils.screen_fit import fit_on_show
+from app.styles.style import load_icon, mark_editor_panel, stdSizeAndlayout
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 
 _TABLE_RE = re.compile(r"[^A-Za-z0-9_]+")
 _MAX_PREVIEW_ROWS = 500
@@ -52,7 +53,7 @@ class DOERequest:
     lhs_algorithm: str
 
 
-class DOEExperimentDialog(QDialog):
+class DOEExperimentDialog(SettingsTableDialog):
     """Create a DOE matrix as a new table, independently from charts."""
 
     Name = "Design of Experiments"
@@ -63,19 +64,20 @@ class DOEExperimentDialog(QDialog):
 
     def __init__(self, repo: SqliteRepo, figure_id: int | None = None,
                  parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+        super().__init__(
+            parent,
+            title=_(self.Name),
+            icon=load_icon("new_table"),
+            settings_title=_("Experiment settings"),
+            content_title=_("Test matrix preview"),
+            settings_width=460,
+        )
         del figure_id  # Accepted for compatibility; DOE has no chart target.
         self._repo = repo
         self.created_table_name: str | None = None
         self._preview_frame: pd.DataFrame | None = None
         self._refresh_pending = False
         self._building = True
-        self.setWindowTitle(_(self.Name))
-        self.resize(1000, 700)
-        self.setMinimumSize(850, 550)
-        # 700 tall does not fit a laptop's 720 with its title bar: shrunk to
-        # the screen on show, like every dialog built by apply_dialog_shell.
-        fit_on_show(self)
         self._create_widgets()
         self._build_ui()
         self._connect_signals()
@@ -180,40 +182,17 @@ class DOEExperimentDialog(QDialog):
         self.preview = QTextBrowser(self)
         self.preview.setObjectName("doePreview")
         self.preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
-            self)
-        self.ok_button = self.buttons.button(QDialogButtonBox.StandardButton.Ok)
-        self.ok_button.setText(_("OK"))
-        self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(_("Cancel"))
 
     def _build_ui(self) -> None:
-        root = QVBoxLayout(self)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(10)
-        splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.setChildrenCollapsible(False)
-
-        scroll = QScrollArea(splitter)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setMinimumWidth(410)
-        scroll.setMaximumWidth(560)
-        left = QWidget(scroll)
+        left = QWidget(self.settings_frame)
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 8, 0)
-        left_layout.setSpacing(10)
-        left_layout.addWidget(self._title(_("DOE model"), left))
-        model_host = QWidget(left)
-        model_form = QFormLayout(model_host)
+        stdSizeAndlayout(left_layout)
+
+        model_form = QFormLayout()
         self._configure_form(model_form)
         model_form.addRow(_("Model:"), self.model_combo)
-        left_layout.addWidget(model_host)
-        left_layout.addWidget(self._title(_("Parameters"), left))
-        # One grid, two settings a row: the table's name alone across the
-        # top, then each pair that belongs together side by side, then what
-        # only some models use. Two separate columns of forms left the name
-        # box squeezed beside the seed and the rows of each column unaligned.
+        left_layout.addLayout(model_form)
+
         parameter_host = QWidget(left)
         grid = QGridLayout(parameter_host)
         grid.setContentsMargins(0, 0, 0, 0)
@@ -241,28 +220,19 @@ class DOEExperimentDialog(QDialog):
         place(_("LHS algorithm:"), self.lhs_algorithm, 5, 0, span=3)
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(3, 1)
-        # As tall as the number boxes beside it: a line edit's own height is
-        # a few pixels less, and the name sat lower than everything else.
         self.table_name.setMinimumHeight(self.factor_count.sizeHint().height())
         left_layout.addWidget(parameter_host)
         left_layout.addWidget(self._title(_("Factor names and bounds"), left))
-        left_layout.addWidget(self.factor_table, 0)
+        left_layout.addWidget(self.factor_table)
         left_layout.addWidget(self._title(_("Response columns"), left))
         left_layout.addWidget(self.response_table)
         left_layout.addStretch(1)
-        scroll.setWidget(left)
+        self.settings_layout.addWidget(left, 1)
 
-        right = QWidget(splitter)
-        right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(8, 0, 0, 0)
-        right_layout.addWidget(self._title(_("Test matrix preview"), right))
-        right_layout.addWidget(self.preview, 1)
-        splitter.addWidget(scroll)
-        splitter.addWidget(right)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([455, 545])
-        root.addWidget(splitter, 1)
-        root.addWidget(self.buttons)
+        mark_editor_panel(self.preview)
+        self.content_layout.addWidget(self.preview, 1)
+        self.ok_button = self.add_action("apply", self.accept, default=True)
+        self.add_action("close", self.reject)
         self._update_table_heights()
 
     def _connect_signals(self) -> None:
@@ -277,8 +247,6 @@ class DOEExperimentDialog(QDialog):
             widget.valueChanged.connect(self._queue_preview)
         self.randomize.toggled.connect(self._queue_preview)
         self.lhs_algorithm.currentIndexChanged.connect(self._queue_preview)
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
 
     def current_model(self) -> str:
         return str(self.model_combo.currentData() or "full_factorial")

@@ -754,15 +754,14 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
                 # No silent truncation: a ranking that quietly drops candidates
                 # reads as "these are all of them".
                 blocks.append(
-                    report_html.note(
-                        f"{len(fits) - self.DISTRIBUTION_ROWS} further candidates "
-                        "fitted worse and are not shown."
-                    )
+                    report_html.note(_(
+                        "{count} further candidates fitted worse and are not shown."
+                    ).format(count=len(fits) - self.DISTRIBUTION_ROWS))
                 )
 
         blocks.append(
-            report_html.note(
-                f"Ranked by {result.rank_by.upper()}. D is the largest gap "
+            report_html.note(_(
+                "Ranked by {rank}. D is the largest gap "
                 "between the sample's empirical CDF and the fitted one, and is "
                 "shown as a diagnostic rather than as the ordering: on samples "
                 "drawn from known families, ranking by D alone puts "
@@ -772,7 +771,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
                 "here - the parameters were estimated from the sample being "
                 "tested, so it asks whether the data could have come from this "
                 "fitted curve, not from that family."
-            )
+            ).format(rank=result.rank_by.upper()))
         )
         return "".join(blocks)
 
@@ -828,11 +827,12 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             "left" if str(header).strip().lower() in text_columns else "right"
             for header in headers
         ]
+        # Translated here, after the alignment read the English names.
         return report_html.table(
-            headers,
+            [_(str(header)) for header in headers],
             rows,
             align=align,
-            empty_message="No applicable results for this selection.",
+            empty_message=_("No applicable results for this selection."),
         )
 
     def _show_section(self, model: str, section: str) -> bool:
@@ -852,12 +852,12 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         sections: list[str] = [
             report_html.summary_table(
                 [
-                    ("Series", len(result.samples)),
-                    ("Model", result.model),
-                    ("Reference value", f"{result.popmean:g}"),
-                    ("Alternative", result.alternative),
+                    (_("Series"), len(result.samples)),
+                    (_("Model"), result.model),
+                    (_("Reference value"), f"{result.popmean:g}"),
+                    (_("Alternative"), result.alternative),
                     (
-                        "Anderson method",
+                        _("Anderson method"),
                         str(self.anderson_method_combo.currentData() or "interpolate"),
                     ),
                 ]
@@ -912,7 +912,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         if len(result.samples) > 1 and self._show_section(result.model, "paired"):
             rows = []
             for left, right in itertools.combinations(result.samples, 2):
-                pair_name = f"{left.name} vs {right.name}"
+                pair_name = _("{left} vs {right}").format(left=left.name, right=right.name)
                 a, b, alignment = self._paired(left, right)
                 for test in st.paired_tests(a, b, alignment=alignment, alternative=result.alternative):
                     rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
@@ -924,7 +924,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
         if len(result.samples) > 1 and self._show_section(result.model, "independent"):
             rows = []
             for left, right in itertools.combinations(result.samples, 2):
-                pair_name = f"{left.name} vs {right.name}"
+                pair_name = _("{left} vs {right}").format(left=left.name, right=right.name)
                 for test in st.independent_tests(left.y, right.y, alternative=result.alternative):
                     rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
             parts.append(report_html.section(
@@ -954,18 +954,18 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
                         for row in tukey
                     ],
                 )
-                section += report_html.note(
+                section += report_html.note(_(
                     "Tukey's p-values are already adjusted for the number of "
                     "pairs, so each can be read against 0.05 on its own. Where "
                     "Levene says the variances differ, read Welch's ANOVA rather "
                     "than the classical one."
-                )
+                ))
             parts.append(report_html.section(_("Group comparison (ANOVA)"), section))
 
         if len(result.samples) > 1 and self._show_section(result.model, "correlation"):
             rows = []
             for left, right in itertools.combinations(result.samples, 2):
-                pair_name = f"{left.name} vs {right.name}"
+                pair_name = _("{left} vs {right}").format(left=left.name, right=right.name)
                 a, b, alignment = self._paired(left, right)
                 for test in st.correlation_tests(a, b, alignment=alignment):
                     rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
@@ -983,16 +983,16 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
 
         if len(result.samples) < 2 and result.model in {"all", "paired", "independent", "groups", "correlation"}:
             parts.append(
-                report_html.note(
+                report_html.note(_(
                     "Paired, independent, group and correlation sections need "
                     "at least two selected series; check another one in the "
                     "Series list."
-                )
+                ))
             )
 
         return report_html.document(
-            "Statistics",
-            f"{len(result.samples)} series",
+            _("Statistics"),
+            _("{count} series").format(count=len(result.samples)),
             *parts,
         )
 
@@ -1034,7 +1034,7 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
             except NUMERICAL_FAILURES as exc:
                 body = report_html.note(str(exc))
             parts.append(report_html.section(title, body))
-        return report_html.document(_(self.MODEL_TITLES[model]), f"{len(result.tables)} series", *parts)
+        return report_html.document(_(self.MODEL_TITLES[model]), _("{count} series").format(count=len(result.tables)), *parts)
 
     @staticmethod
     def _count(value: Any) -> str:
@@ -1107,6 +1107,8 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
 
     def _run_statistics(self, *, verb: str) -> bool:
         try:
+            if self.reads_table():
+                self._prepare_table_source()
             results = list(self.compute_results())
             if not results:
                 show_message(self, "series.no_series_selected", title=self.operation_label)

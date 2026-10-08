@@ -15,9 +15,9 @@ from typing import Any
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QApplication, QBoxLayout, QCheckBox, QComboBox, QDoubleSpinBox, QHBoxLayout, QHeaderView, QLineEdit, QSizePolicy, QSpinBox, QStyledItemDelegate, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
-from app.widgets.color_combo import MatplotlibColorCombo
-from app.widgets.line_combo import LineStyleCombo
-from app.widgets.marker_combo import MarkerStyleCombo
+from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
+from app.widgets.drop_down_controls.line_combo import LineStyleCombo
+from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
 from app.styles.style import apply_fusion_for_item_view_styling, mark_editor_panel, stdSizeAndlayout
 from app.utils.i18n import _
 

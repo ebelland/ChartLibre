@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""app.widgets.marker_combo
+"""app.widgets.drop_down_controls.marker_combo
 
 MarkerStyleCombo
 
@@ -30,7 +30,7 @@ from matplotlib import rcParams
 from PySide6.QtWidgets import QWidget
 
 from app.charts.kwarg_spec import DEFAULT
-from app.widgets.icon_combo import ComboEntry, IconComboBox
+from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 from app.styles.style import create_hidpi_pixmap
 
 

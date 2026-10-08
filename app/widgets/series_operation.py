@@ -153,7 +153,6 @@ class SeriesOperationWidget(NavPanel):
         self.add_frame(_("Operations"), page, object_name="seriesOperationsPageCard", stretch=1)
 
         self._add_section(_("Plot"), [self.plot_operation()])
-        self._add_section(_("Data"), [self.query_builder_operation()])
         for title, operations in _group_by_section(list(series_operations)):
             self._add_section(title, operations)
 
@@ -284,17 +283,6 @@ class SeriesOperationWidget(NavPanel):
             "value": "Plot",
             "description": getattr(NewPlotTabDialog, "Description", "Create a new plot"),
             "icon": NewPlotTabDialog.Icon,
-            "builtin": True,
-        }
-
-    @staticmethod
-    def query_builder_operation() -> dict:
-        """Query Builder, listed with the operations: the main window opens it."""
-        return {
-            "name": "QueryBuilderDialog",
-            "value": "Query Builder",
-            "description": "Write, validate and save SQL queries",
-            "action_icon": "query_builder",
             "builtin": True,
         }
 

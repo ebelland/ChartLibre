@@ -36,7 +36,7 @@ from app.series_operations.parameter_spec import (
     TextParam,
 )
 from app.utils.i18n import _
-from app.widgets.color_combo import MatplotlibColorCombo
+from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
 
 
 #: The narrowest a number box may become. Without it a box is as wide as

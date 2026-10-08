@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-import app.dialogs.dev_tools_common as common
-from app.dialogs.function_creator_dialog import FunctionCreatorDialog
-from app.dialogs.renderer_helper_dialog import RendererHelperDialog
-from app.dialogs.series_operation_builder_dialog import SeriesOperationBuilderDialog
+import app.developer_helpers.developer_helper_base as common
+from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
+from app.developer_helpers.renderer_helper import RendererHelperDialog
+from app.developer_helpers.series_operation_helper import SeriesOperationBuilderDialog
 
 
 @pytest.fixture

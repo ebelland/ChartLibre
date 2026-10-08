@@ -20,7 +20,7 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QFormLayout, QLineEdit, QWidget
 
-from app.dialogs.dev_tools_common import ScaffoldDialog
+from app.developer_helpers.developer_helper_base import DeveloperDialogBase
 from app.utils.config import USER_FUNCTIONS_DIR
 from app.utils.i18n import _
 
@@ -114,7 +114,7 @@ class {class_name}(base_function):
 '''
 
 
-class FunctionCreatorDialog(ScaffoldDialog):
+class FunctionCreatorDialog(DeveloperDialogBase):
     """Scaffold a new base_function file from a short form."""
 
     TITLE = "Function Creator"

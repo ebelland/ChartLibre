@@ -50,6 +50,7 @@ from app.utils.coercion import to_numeric_axis
 # deviation over two points says nothing about either of them.
 MIN_POINTS: int = 3
 from app.utils.messages import show_message
+from app.utils import report_html
 from app.utils.i18n import _
 
 
@@ -153,6 +154,7 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
     """Dialog to detect outliers and mark source rows with Hide=True."""
 
     MODELS = OUTLIER_METHODS
+    RESULTS_ARE_HTML = True
     MODEL_TOOLTIP = "Choose the outlier detection method."
     Name: str = "Outliers"
     Description = "Detect anomalies"
@@ -530,21 +532,18 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
 
     @staticmethod
     def _format_results(results: Sequence[OutlierResult], colour: str | None = None) -> str:
-        lines: list[str] = []
+        sections = []
         for result in results:
-            lines.append(result.source_name)
-            if colour is None:
-                lines.append(result.message)
-            else:
-                lines.append(f"Detected {result.outlier_count} outlier(s); apply colours them {colour}")
-            lines.append(f"Source table: {result.source_table}")
-            lines.append(f"Outliers: {result.outlier_count}")
-            if colour is None:
-                lines.append(f"Rows marked Hide=True on apply: {result.outlier_count}")
-            else:
-                lines.append(f"Points coloured on apply: {result.outlier_count}")
-            lines.append("")
-        return "\n".join(lines).strip()
+            done_on_ok = _("Rows hidden on OK") if colour is None else _("Points coloured on OK")
+            rows = [
+                (_("Source table"), result.source_table),
+                (_("Outliers"), result.outlier_count),
+                (done_on_ok, result.outlier_count),
+            ]
+            if colour is not None:
+                rows.append((_("Colour"), colour))
+            sections.append(report_html.section(str(result.source_name), report_html.summary_table(rows)))
+        return "".join(sections)
 
     def result_series_spec(self, axis_id: int, table_name: str, result: OutlierResult) -> ResultSeriesSpec:
         del axis_id, table_name, result
@@ -666,6 +665,8 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
         """Temporarily apply the Hide flags (or the colour) so the chart updates, without closing."""
         self._ensure_preview_state_attrs()
         try:
+            if self.reads_table():
+                self._prepare_table_source()
             params = self.parameter_values()
             colour = str(params.get("colour", "")) if params.get("action") == ACTION_COLOUR else None
 
@@ -705,10 +706,12 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             self.store_cached_results(results)
             self._preview_active = True
             self.applied.emit()
-            what = "Hide column updated" if colour is None else f"outliers coloured {colour}"
-            message = f"Preview updated: {what} for {len(results)} series."
-            detail = self.format_results(results)
-            self.set_results_text(f"{detail}\n\n{message}" if detail else message)
+            if colour is None:
+                message = _("Preview: the outliers of {count} series are hidden.").format(count=len(results))
+            else:
+                message = _("Preview: the outliers of {count} series are coloured {colour}.").format(
+                    count=len(results), colour=colour)
+            self.set_results_html(self.format_results(results) + report_html.note(message))
             return True
         except Exception as exc:
             applogger.exception("Failed to preview outlier hide flags")
@@ -734,6 +737,8 @@ class SeriesOutlierDialog(SeriesOperationDialogBase):
             self._preview_series_sql.clear()
             self._preview_state_tables.clear()
             self._preview_colour_snapshots.clear()
+            # Kept: a figure drawn from a table's columns stays with them.
+            self._applied = True
             self.accept()
 
     def _written_tables(self, results: Sequence[OutlierResult]) -> list[dict[str, Any]]:

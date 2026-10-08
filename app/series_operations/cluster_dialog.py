@@ -997,7 +997,7 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             return ""
 
         unique_results = self._unique_report_results(results)
-        lines: list[str] = ["Clustering preview"]
+        lines: list[str] = [_("Clustering preview")]
         for result in unique_results:
             ids = to_numbers(result.frame["ClusterId"])
             valid_ids = ids.dropna().astype(int)
@@ -1006,10 +1006,11 @@ class SeriesClusterDialog(SeriesOperationDialogBase):
             finite_rows = int(valid_ids.size)
             feature_text = ", ".join(result.feature_columns)
             lines.append(
-                f"- {result.source_name}: {clusters_found} clusters, "
-                f"{finite_rows}/{total_rows} clustered rows, "
-                f"tool={result.metadata.get('scipy_tool', result.method)}, "
-                f"features={feature_text}"
+                "- " + _("{name}: {clusters} clusters, {clustered}/{total} clustered rows, "
+                         "tool={tool}, features={features}").format(
+                    name=result.source_name, clusters=clusters_found, clustered=finite_rows, total=total_rows,
+                    tool=result.metadata.get("scipy_tool", result.method), features=feature_text,
+                )
             )
         return "\n".join(lines)
 

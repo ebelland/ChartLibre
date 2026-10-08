@@ -28,11 +28,11 @@ def _opened(panel: SeriesOperationWidget) -> list[str]:
 
 def test_every_operation_and_new_plot_is_a_row_under_a_title(panel: SeriesOperationWidget) -> None:
     names = [str(item.data(Qt.ItemDataRole.UserRole)["value"]) for item in panel.operation_items()]
-    assert names[:2] == ["Plot", "Query Builder"]
-    assert sorted(names[2:]) == sorted(str(op["value"]) for op in series_operations)
+    assert names[0] == "Plot"  # the Query Builder is on the New Table page
+    assert sorted(names[1:]) == sorted(str(op["value"]) for op in series_operations)
     titles = [panel._list.item(row) for row in range(panel._list.count())
               if panel._list.item(row).data(Qt.ItemDataRole.UserRole) is None]  # pyright: ignore[reportOptionalMemberAccess]
-    assert len(titles) >= 7
+    assert len(titles) >= 6  # Plot, then the operations' own sections
     assert all(not (title.flags() & Qt.ItemFlag.ItemIsSelectable) for title in titles)  # pyright: ignore[reportOptionalMemberAccess]
 
 
@@ -72,18 +72,3 @@ def test_the_hint_bar_describes_the_current_row(panel: SeriesOperationWidget) ->
 
 
 
-def test_query_builder_is_listed_and_opened_by_the_window(qapp, tmp_path, monkeypatch) -> None:
-    from app.data.sqlite_repo import SqliteRepo
-    from app.dialogs.main_window import MainWindow
-
-    repo = SqliteRepo(db_path=tmp_path / "q.dhub")
-    window = MainWindow(repo, tmp_path / "q.dhub")
-    opened: list[bool] = []
-    monkeypatch.setattr(window, "_on_query_builder", lambda: opened.append(True))
-    assert not any("database" in key for key in window._left_panel._items)
-    window._on_series_operation_requested(SeriesOperationWidget.query_builder_operation())
-    assert opened == [True]
-    window._on_database_info()
-    assert window._left_panel.selected_key == "developer"
-    window.close()
-    repo.close()

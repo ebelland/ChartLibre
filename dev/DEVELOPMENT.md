@@ -18,7 +18,7 @@ lives in a SQLite database (a `.dhub` file). The three moving parts:
 - **Render pipeline** — `app/charts/render_figure.py`. Pure function of a
   descriptor tree + a `SqliteRepo` → a populated `matplotlib.figure.Figure`.
   No Qt in this module; it is unit-testable headlessly (see §11).
-- **UI** — `app/dialogs/main_window.py` plus the widgets in `app/widgets/`.
+- **UI** — `app/main_window/main_window.py` plus the widgets in `app/widgets/`.
   Property panels emit typed payloads (dicts) that the main window persists
   through the repo and then asks the chart panel to redraw.
 
@@ -221,7 +221,7 @@ An axis can occupy more than one cell by setting `row_span` and/or
 `col_span` in its `options` (integers ≥ 1, default 1) — e.g. one axis with
 `col_span: 2` in a 2×2 grid spans the whole top row, with two narrower axes
 below it. This is exposed in the UI as **Grid position → Span** on the Axis
-panel (`app/widgets/axis_properties.py`), one spin box per dimension.
+panel (`app/widgets/chart_properties/axis_properties.py`), one spin box per dimension.
 `dev/demo/build_demos.py`'s `_create_layout_showcase_figure` is a worked
 example: a scatter plot spanning both columns of a 2×2 grid over a histogram
 and a box plot, combined with `frameon: False` and explicit margins.

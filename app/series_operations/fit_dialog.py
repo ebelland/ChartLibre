@@ -1377,10 +1377,10 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         metric_labels = {
             "r2": "R&sup2;",
             "rmse": "RMSE",
-            "ss_res": "SS residual",
+            "ss_res": _("SS residual"),
             "aic": "AIC",
             "bic": "BIC",
-            "reduced_chi2": "Residual variance (reduced &chi;&sup2;)",
+            "reduced_chi2": _("Residual variance (reduced χ²)"),
         }
         metric_rows = [
             (metric_labels[key], report_html.format_number(result.metrics[key]))
@@ -1399,19 +1399,19 @@ class SeriesFitDialog(SeriesOperationDialogBase):
                 corr_rows.append(tuple(row_values))
 
         summary_rows = [
-            ("Mode", result.fit_mode),
-            ("Source", result.source_table),
+            (_("Fit mode"), result.fit_mode),
+            (_("Source"), result.source_table),
         ]
         if result.fit_mode == "2D":
             summary_rows.append(("X1", result.x_col or ""))
             summary_rows.append(("X2", result.x2_col or ""))
         else:
             summary_rows.append(("X", result.x_col or ""))
-        summary_rows.append(("Target", result.target_col or ""))
-        summary_rows.append(("Status", result.message))
+        summary_rows.append((_("Target"), result.target_col or ""))
+        summary_rows.append((_("Status"), result.message))
 
         return report_html.document(
-            "Fit",
+            _("Fit"),
             result.model_name,
             report_html.section(
                 _("Curve"),
@@ -1428,29 +1428,29 @@ class SeriesFitDialog(SeriesOperationDialogBase):
             report_html.section(
                 _("Parameter estimates"),
                 report_html.table(
-                    ["Parameter", "Estimate", "Std. error", "t", "p", "95% CI low", "95% CI high"],
+                    [_("Parameter"), _("Estimate"), _("Std. error"), "t", "p", _("95% CI low"), _("95% CI high")],
                     parameter_rows,
                 )
-                + report_html.note(
-                    f"t and p test whether each parameter is zero, with "
-                    f"{result.dof} residual degrees of freedom. Fixed "
+                + report_html.note(_(
+                    "t and p test whether each parameter is zero, with "
+                    "{dof} residual degrees of freedom. Fixed "
                     "parameters have no error, so none is shown."
-                ),
+                ).format(dof=result.dof)),
             ),
             report_html.section(
                 _("Correlation matrix"),
                 report_html.table(
-                    ["Parameter", *[html_escape(name) for name in names]],
+                    [_("Parameter"), *[html_escape(name) for name in names]],
                     corr_rows,
-                    empty_message="No correlation matrix available.",
+                    empty_message=_("No correlation matrix available."),
                 ),
             ),
             report_html.section(
                 _("Goodness of fit"),
                 report_html.table(
-                    ["Measure", "Value"],
+                    [_("Measure"), _("Value")],
                     metric_rows,
-                    empty_message="No metrics available.",
+                    empty_message=_("No metrics available."),
                 ),
             ),
         )

@@ -58,6 +58,13 @@ class ModelSpec:
     terms: list[Term]
     reduce: bool = False
     alpha: float = 0.05
+    #: How the responses are modelled - JMP's personalities: "standard"
+    #: (least squares), "stepwise", "glm", "nominal" (logistic), "ordinal".
+    personality: str = "standard"
+    #: Stepwise: "backward" (drop) or "forward" (add) - see :data:`STEPWISE`.
+    direction: str = "backward"
+    #: Generalized linear model: the response's distribution - see :data:`FAMILIES`.
+    family: str = "normal"
 
 
 @dataclass(slots=True)
@@ -85,6 +92,35 @@ class ResponseFit:
     #: A note for the report when the model cannot test anything (no error
     #: degrees of freedom, say).
     note: str = ""
+    #: The personality that fitted this, and how its whole-model table and
+    #: its tests' p-values are titled (an ANOVA and Prob > F for least
+    #: squares, a likelihood-ratio test and Prob > ChiSq for the others).
+    personality: str = "standard"
+    whole_title: str = "Analysis of variance"
+    p_column: str = "Prob > F"
+    #: A categorical response's levels, in the order modelled; the first is
+    #: the one whose probability the predictions give.
+    levels: list[str] = field(default_factory=list)
+
+
+#: The personalities: key, name as JMP names it.
+PERSONALITIES: tuple[tuple[str, str], ...] = (
+    ("standard", "Standard Least Squares"),
+    ("stepwise", "Stepwise"),
+    ("glm", "Generalized Linear Model"),
+    ("nominal", "Nominal Logistic"),
+    ("ordinal", "Ordinal Logistic"),
+)
+#: Generalized linear model families, each with its canonical link (log for Gamma).
+FAMILIES: tuple[tuple[str, str], ...] = (
+    ("normal", "Normal"),
+    ("binomial", "Binomial"),
+    ("poisson", "Poisson"),
+    ("gamma", "Gamma"),
+)
+STEPWISE: tuple[tuple[str, str], ...] = (("backward", "Backward"), ("forward", "Forward"))
+#: The personalities whose response is a category rather than a number.
+CATEGORICAL_RESPONSE = frozenset({"nominal", "ordinal"})
 
 
 # ----------------------------------------------------------------------
@@ -159,17 +195,43 @@ def fit_models(
     for response in spec.responses:
         if should_stop is not None and should_stop():
             raise Stopped()
-        fits.append(_fit_one(frame, spec, response))
+        if spec.personality == "glm":
+            fits.append(_fit_glm(frame, spec, response))
+        elif spec.personality in CATEGORICAL_RESPONSE:
+            fits.append(_fit_logistic(frame, spec, response))
+        else:
+            fits.append(_fit_one(frame, spec, response))
     return fits
 
 
-def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit:
-    import statsmodels.formula.api as smf
+@dataclass(slots=True)
+class _Prepared:
+    """A response's rows, coded, and how each term is spelled in a formula."""
 
-    factors = {f.name: f for f in spec.factors}
+    data: pd.DataFrame
+    safe: dict[str, str]
+    codes: dict[str, tuple[float, float]]
+    factors: dict[str, Factor]
+
+    def piece(self, term: Term) -> str:
+        if len(term) == 2 and term[0] == term[1] and self.factors[term[0]].kind == CONTINUOUS:
+            return f"I({self.safe[term[0]]}**2)"
+        return ":".join(
+            self.safe[name] if self.factors[name].kind == CONTINUOUS else f"C({self.safe[name]}, Sum)"
+            for name in term
+        )
+
+    def formula(self, terms: Sequence[Term]) -> str:
+        return "y ~ " + (" + ".join(self.piece(t) for t in terms) if terms else "1")
+
+
+def _prepare(frame: pd.DataFrame, spec: ModelSpec, response: str, *, categorical: bool) -> _Prepared:
     safe = {f.name: f"x{index}" for index, f in enumerate(spec.factors)}
     data = pd.DataFrame(index=frame.index)
-    data["y"] = pd.to_numeric(frame[response], errors="coerce")
+    if categorical:
+        data["y"] = frame[response].astype("string")
+    else:
+        data["y"] = pd.to_numeric(frame[response], errors="coerce")
     codes: dict[str, tuple[float, float]] = {}
     for f in spec.factors:
         if f.kind == CONTINUOUS:
@@ -181,22 +243,47 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
     data = data.dropna()
     if len(data) < 2:
         raise ValueError(f"{response}: fewer than two complete rows")
+    return _Prepared(data, safe, codes, {f.name: f for f in spec.factors})
 
-    def piece(term: Term) -> str:
-        parts = []
-        if len(term) == 2 and term[0] == term[1] and factors[term[0]].kind == CONTINUOUS:
-            return f"I({safe[term[0]]}**2)"
-        for name in term:
-            parts.append(safe[name] if factors[name].kind == CONTINUOUS else f"C({safe[name]}, Sum)")
-        return ":".join(parts)
 
+def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit:
+    """Least squares - standard, or stepwise backward or forward."""
+    import statsmodels.formula.api as smf
+
+    prep = _prepare(frame, spec, response, categorical=False)
+    data, piece = prep.data, prep.piece
+    stepwise = spec.personality == "stepwise" or spec.reduce
     terms = [tuple(t) for t in spec.terms]
     removed: list[Term] = []
+
+    if stepwise and spec.direction == "forward":
+        # Forward: from the mean alone, add the most significant term whose
+        # lower-order parts are already in, while it is significant.
+        chosen: list[Term] = []
+        while True:
+            candidates = [
+                t for t in terms if t not in chosen
+                and all(other in chosen for other in terms if _contained(other, t))
+            ]
+            best: tuple[float, Term] | None = None
+            for term in candidates:
+                trial = chosen + [term]
+                model = smf.ols(prep.formula(trial), data=data).fit()
+                if model.df_resid <= 0:
+                    continue
+                p = float(_effect_tests(model, trial, piece).iloc[-1]["Prob > F"])
+                if np.isfinite(p) and (best is None or p < best[0]):
+                    best = (p, term)
+            if best is None or best[0] > spec.alpha:
+                break
+            chosen.append(best[1])
+        removed = [t for t in terms if t not in chosen]
+        terms = chosen
+
     while True:
-        formula = "y ~ " + " + ".join(piece(t) for t in terms)
-        model = smf.ols(formula, data=data).fit()
+        model = smf.ols(prep.formula(terms), data=data).fit()
         tests = _effect_tests(model, terms, piece)
-        if not spec.reduce or model.df_resid <= 0:
+        if not stepwise or spec.direction == "forward" or model.df_resid <= 0:
             break
         candidates = [
             (p, t) for t, p in zip(terms, tests["Prob > F"])
@@ -210,12 +297,12 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
 
     estimates = _estimates(model, terms, piece)
     anova, summary = _whole_model(model, data["y"])
-    lack = _lack_of_fit(model, data, [safe[f.name] for f in spec.factors])
+    lack = _lack_of_fit(model, data, [prep.safe[f.name] for f in spec.factors])
     try:
         studentized = pd.Series(model.get_influence().resid_studentized_internal, index=data.index)
     except Exception:  # noqa: BLE001 - a saturated model has none
         studentized = pd.Series(np.nan, index=data.index)
-    profile = _profile(model, data, spec.factors, safe, codes, terms)
+    profile = _profile(model, data, spec.factors, prep.safe, prep.codes, terms)
     note = ""
     if model.df_resid <= 0:
         note = "No degrees of freedom are left for error: the model has as many terms as runs, so nothing can be tested. Remove terms, or add runs."
@@ -232,10 +319,215 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
         predicted=pd.Series(model.fittedvalues, index=data.index),
         residuals=pd.Series(model.resid, index=data.index),
         studentized=studentized,
-        coding=codes,
+        coding=prep.codes,
         profile=profile,
         note=note,
+        personality=spec.personality,
     )
+
+
+def _chi_square_table(rows: list[tuple[str, int, float, float]], statistic: str) -> pd.DataFrame:
+    tests = pd.DataFrame(rows, columns=["Term", "DF", statistic, "Prob > ChiSq"])
+    tests["LogWorth"] = -np.log10(tests["Prob > ChiSq"].clip(lower=1e-300))
+    return tests
+
+
+def _whole_model_test(llf: float, llnull: float, df: int) -> pd.DataFrame:
+    """JMP's Whole Model Test: the likelihood ratio of the model against the intercept alone."""
+    from scipy import stats
+
+    chi2 = max(2.0 * (llf - llnull), 0.0)
+    p = float(stats.chi2.sf(chi2, df)) if df > 0 else math.nan
+    return pd.DataFrame(
+        [("Difference", df, llf - llnull, chi2, p), ("Full", math.nan, -llf, math.nan, math.nan),
+         ("Reduced", math.nan, -llnull, math.nan, math.nan)],
+        columns=["Model", "DF", "-LogLikelihood", "Chi-Square", "Prob > ChiSq"],
+    )
+
+
+def _fit_glm(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit:
+    """A generalized linear model: the response's family with its canonical link (log for Gamma)."""
+    import statsmodels.api as sm
+    import statsmodels.formula.api as smf
+
+    families = {
+        "normal": sm.families.Gaussian(),
+        "binomial": sm.families.Binomial(),
+        "poisson": sm.families.Poisson(),
+        "gamma": sm.families.Gamma(link=sm.families.links.Log()),
+    }
+    prep = _prepare(frame, spec, response, categorical=False)
+    terms = [tuple(t) for t in spec.terms]
+    model = smf.glm(prep.formula(terms), data=prep.data, family=families.get(spec.family, families["normal"])).fit()
+    wald = model.wald_test_terms(skip_single=False, scalar=True).table
+    rows = []
+    for term in terms:
+        name = _patsy_name(prep.piece(term))
+        line = wald.loc[name] if name in wald.index else None
+        rows.append((term_label(term), int(line["df_constraint"]) if line is not None else 1,
+                     float(line["statistic"]) if line is not None else math.nan,
+                     float(line["pvalue"]) if line is not None else math.nan))
+    estimates = _estimates(model, terms, prep.piece).rename(columns={"t Ratio": "z Ratio", "Prob > |t|": "Prob > |z|"})
+    null = smf.glm("y ~ 1", data=prep.data, family=model.family).fit()
+    summary = {
+        "Observations": float(model.nobs),
+        "Deviance": float(model.deviance),
+        "Pearson Chi-Square": float(model.pearson_chi2),
+        "AIC": float(model.aic),
+        "BIC": float(model.bic_llf),
+    }
+    return ResponseFit(
+        response=response, terms=terms, removed=[], estimates=estimates,
+        effect_tests=_chi_square_table(rows, "Wald Chi-Square"),
+        anova=_whole_model_test(float(model.llf), float(null.llf), int(model.df_model)),
+        summary=summary, lack_of_fit=None, rows=prep.data.index,
+        predicted=pd.Series(model.fittedvalues, index=prep.data.index),
+        residuals=pd.Series(model.resid_deviance, index=prep.data.index),
+        studentized=pd.Series(model.resid_pearson, index=prep.data.index),
+        coding=prep.codes, profile=_profile(model, prep.data, spec.factors, prep.safe, prep.codes, terms),
+        personality="glm", whole_title="Whole model test", p_column="Prob > ChiSq",
+    )
+
+
+def _levels(values: pd.Series) -> list[str]:
+    """A categorical response's levels: numerically when they are numbers, else alphabetically."""
+    distinct = list(dict.fromkeys(values.astype("string")))
+    numbers = pd.to_numeric(pd.Series(distinct), errors="coerce")
+    if numbers.notna().all():
+        return [distinct[i] for i in np.argsort(numbers.to_numpy(), kind="stable")]
+    return sorted(distinct)
+
+
+def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit:
+    """Nominal (binary or multinomial) or ordinal logistic regression, after JMP.
+
+    Each term's test is a likelihood ratio: the model refitted without it.
+    Predictions give the probability of the first level.
+    """
+    import patsy
+    from scipy import stats
+    import statsmodels.api as sm
+    from statsmodels.miscmodels.ordinal_model import OrderedModel
+
+    prep = _prepare(frame, spec, response, categorical=True)
+    levels = _levels(prep.data["y"])
+    if len(levels) < 2:
+        raise ValueError(f"{response}: a logistic model needs at least two levels")
+    terms = [tuple(t) for t in spec.terms]
+    ordinal = spec.personality == "ordinal"
+    codes = prep.data["y"].map({level: i for i, level in enumerate(levels)}).astype(int)
+    design = patsy.dmatrix(prep.formula(terms).split("~", 1)[1], prep.data, return_type="dataframe")
+    slices = design.design_info.term_name_slices
+
+    def fit(columns: list[str]):
+        exog = design[columns]
+        if ordinal:
+            return OrderedModel(codes, exog.drop(columns=["Intercept"], errors="ignore"), distr="logit").fit(
+                method="bfgs", disp=0, maxiter=500)
+        if len(levels) == 2:
+            return sm.Logit((codes == 0).astype(int), exog).fit(disp=0, maxiter=200)
+        return sm.MNLogit(codes, exog).fit(disp=0, maxiter=200)
+
+    columns = list(design.columns)
+    full = fit(columns)
+    counts = codes.value_counts().to_numpy(dtype=float)
+    llnull = float((counts * np.log(counts / counts.sum())).sum())
+    width = 1 if ordinal or len(levels) == 2 else len(levels) - 1
+    rows = []
+    for term in terms:
+        span = slices.get(_patsy_name(prep.piece(term)))
+        if span is None:
+            continue
+        dropped = columns[span]
+        kept = [c for c in columns if c not in dropped]
+        if ordinal and not [c for c in kept if c != "Intercept"]:
+            reduced_llf = llnull
+        else:
+            reduced_llf = float(fit(kept).llf)
+        chi2 = max(2.0 * (float(full.llf) - reduced_llf), 0.0)
+        df = len(dropped) * width
+        rows.append((term_label(term), df, chi2, float(stats.chi2.sf(chi2, df))))
+
+    labels = _labels(columns, terms, prep.piece, slices)
+    params, errors, z, p = full.params, full.bse, full.tvalues, full.pvalues
+    if isinstance(params, pd.DataFrame):  # multinomial: one column per level after the first
+        records = []
+        for j, column in enumerate(params.columns):
+            level = levels[j + 1]
+            for name in params.index:
+                records.append((f"{labels.get(name, name)} [{level}]", params.loc[name, column],
+                                errors.loc[name, column], z.loc[name, column], p.loc[name, column]))
+        estimates = pd.DataFrame(records, columns=["Term", "Estimate", "Std Error", "z Ratio", "Prob > |z|"])
+    else:
+        names = list(params.index)
+        estimates = pd.DataFrame({
+            "Term": [labels.get(n, n) for n in names],
+            "Estimate": params.to_numpy(), "Std Error": np.asarray(errors), "z Ratio": np.asarray(z),
+            "Prob > |z|": np.asarray(p),
+        })
+
+    probabilities = np.asarray(full.predict(design[columns].drop(columns=["Intercept"], errors="ignore")
+                                            if ordinal else design[columns]))
+    first = probabilities if probabilities.ndim == 1 else probabilities[:, 0]
+    df_model = len(full.params) - (len(levels) - 1 if ordinal else width)
+    llf = float(full.llf)
+    summary = {
+        "Observations": float(len(codes)),
+        "-LogLikelihood": -llf,
+        "RSquare (U)": 1 - llf / llnull if llnull else math.nan,
+        "AICc": float(-2 * llf + 2 * len(np.ravel(full.params)) * len(codes) / max(len(codes) - len(np.ravel(full.params)) - 1, 1)),
+    }
+    profile = pd.DataFrame(columns=["Factor", "Coded", "Value", "Predicted", "Lower", "Upper"])
+    if not ordinal and len(levels) == 2:
+        profile = _probability_profile(full, design, prep, spec.factors, terms)
+    return ResponseFit(
+        response=response, terms=terms, removed=[], estimates=estimates,
+        effect_tests=_chi_square_table(rows, "L-R Chi-Square"),
+        anova=_whole_model_test(llf, llnull, int(df_model)),
+        summary=summary, lack_of_fit=None, rows=prep.data.index,
+        predicted=pd.Series(first, index=prep.data.index),
+        residuals=pd.Series((codes == 0).astype(float).to_numpy() - first, index=prep.data.index),
+        studentized=pd.Series(np.nan, index=prep.data.index),
+        coding=prep.codes, profile=profile,
+        personality=spec.personality, whole_title="Whole model test", p_column="Prob > ChiSq", levels=levels,
+    )
+
+
+def _labels(columns: list[str], terms: list[Term], piece, slices) -> dict[str, str]:
+    """Design column names (patsy's) to the report's: A, A*B, Cat[level]."""
+    labels = {"Intercept": "Intercept"}
+    for term in terms:
+        span = slices.get(_patsy_name(piece(term)))
+        if span is None:
+            continue
+        for column in columns[span]:
+            label = term_label(term)
+            levels = [part.split("[S.", 1)[1].rstrip("]") for part in column.split(":") if "[S." in part]
+            labels[column] = label + ("[" + ",".join(levels) + "]" if levels else "")
+    return labels
+
+
+def _probability_profile(model, design: pd.DataFrame, prep: _Prepared, factors, terms) -> pd.DataFrame:
+    """A binary logistic model's probability of the first level along each continuous factor."""
+    import patsy
+
+    used = {name for term in terms for name in term}
+    held = {prep.safe[f.name]: (0.0 if f.kind == CONTINUOUS else prep.data[prep.safe[f.name]].mode().iloc[0])
+            for f in factors}
+    grid = np.linspace(-1.0, 1.0, PROFILE_POINTS)
+    pieces = []
+    for f in factors:
+        if f.kind != CONTINUOUS or f.name not in used:
+            continue
+        new = pd.DataFrame({column: [value] * len(grid) for column, value in held.items()})
+        new[prep.safe[f.name]] = grid
+        exog = patsy.build_design_matrices([design.design_info], new, return_type="dataframe")[0]
+        p = np.asarray(model.predict(exog))
+        centre, half = prep.codes[f.name]
+        pieces.append(pd.DataFrame({"Factor": f.name, "Coded": grid, "Value": centre + grid * half,
+                                    "Predicted": p, "Lower": np.nan, "Upper": np.nan}))
+    return pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame(
+        columns=["Factor", "Coded", "Value", "Predicted", "Lower", "Upper"])
 
 
 #: Points along each factor in the prediction profile.

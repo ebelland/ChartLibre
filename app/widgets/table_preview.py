@@ -7,7 +7,7 @@ edit) that are implemented on the repository.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pathlib import Path
 
@@ -182,7 +182,7 @@ class TablePreviewPanel(QWidget):
         self._table = None
         self.view.setModel(None)
 
-    def set_context(self, repo: Optional[SqliteRepo], table: Optional[str]) -> None:
+    def set_context(self, repo: SqliteRepo | None, table: str | None) -> None:
         if repo is None or not table:
             self.clear()
             return
@@ -271,7 +271,9 @@ class TablePreviewPanel(QWidget):
             return None
 
         clicked = self.view.indexAt(pos)
-        if clicked.isValid():
+        # Inside the selection, the selection stays: it is what the menu acts on.
+        selection = self.view.selectionModel()
+        if clicked.isValid() and not (selection is not None and selection.isSelected(clicked)):
             self.view.setCurrentIndex(clicked)
 
         column = self._current_column_name() if lazy_model is not None else None
@@ -295,7 +297,7 @@ class TablePreviewPanel(QWidget):
         if len(selected) == 1:
             items.append(
                 MenuItem(
-                    _("Histogram and statistics of '{column}'").format(column=selected[0]),
+                    _("Histogram of '{column}'").format(column=selected[0]),
                     callback=lambda _=False, col=selected[0]: self.histogram_requested.emit(str(self._table), col),
                     icon="column_stats",
                     tooltip=_("A new figure with this column's histogram, and its statistics in the figure's notes"),
@@ -318,31 +320,13 @@ class TablePreviewPanel(QWidget):
             self._add_flag_menu(menu, column, "Selected")
             menu.addSeparator()
 
-        # Table-writing actions need a real, LazyTableModel-backed table: a
-        # saved query has no rowid and nothing in the repo to hide/cluster/add
-        # a column to. A query preview keeps only the model-agnostic reload.
-        # "Edit table..." replaces the Hide/ClusterId items, Delete column,
-        # Add column from SQL expression and Group and aggregate that used
-        # to sit here. They are edits, and they now live with the rest of
-        # the editing - see TableEditorDialog.
+        # The cells selected here; the whole table - edit, export, reload -
+        # is the table list's, right above this panel on the Data page: an
+        # action belongs to one menu, not both.
+        rows, positions = self._selected_block()
         trailing_items: tuple[MenuItem | None, ...] = (
-            MenuItem(
-                _("Edit table..."),
-                callback=self._edit_table,
-                icon="document-edit",
-                tooltip=_(
-                    "Edit cells, add or delete rows and columns, and manage "
-                    "the Hide and ClusterId columns"
-                ),
-            ),
-            None,
-            MenuItem(_("Export rows..."), callback=self._export_rows, icon="export_rows"),
-            None,
-            MenuItem(_("Refresh data table"), callback=self._reload_model, icon="reload"),
-        ) if lazy_model is not None else (
-            MenuItem(_("Export rows..."), callback=self._export_rows, icon="export_rows"),
-            None,
-            MenuItem(_("Refresh data table"), callback=self._reload_model, icon="reload"),
+            (MenuItem(_("Export selected rows..."), callback=self._export_rows, icon="export_rows"),)
+            if len(rows) * len(positions) > 1 else ()
         )
 
         for item in trailing_items:
@@ -503,25 +487,6 @@ class TablePreviewPanel(QWidget):
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
         applogger.info("Exported %d rows to %s.", len(frame), target)
-
-    def _edit_table(self) -> None:
-        """Open the hand editor on this table, and show its result.
-
-        Imported late: the editor builds on this module's own
-        LazyTableModel, so importing it at module scope would be a cycle.
-        """
-        if self._repo is None or not self._table:
-            return
-        from app.dialogs.table_editor_dialog import TableEditorDialog
-
-        dialog = TableEditorDialog(self._repo, self._table, self)
-        dialog.exec()
-        self._reload_model()
-        # Not just this panel: the editor can add or drop a column, delete
-        # rows, or flip Hide, and every one of those changes what the
-        # charts built on this table draw. _ensure_cluster used to emit
-        # this for the one case it covered; the editor covers more.
-        self.refresh.emit()
 
     #: Per flag column: the submenu's title, then its four labels - the
     #: verb, the comparison tooltip, the empty-cells item and its tooltip,

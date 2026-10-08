@@ -406,6 +406,17 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         (),
         builder="dev.demo.demo_operations:build_operations_demo",
     ),
+    DemoProject(
+        "Designed experiment - a Box-Behnken design analysed with Fit Model",
+        "A reaction studied with a Box-Behnken design - temperature, time and "
+        "catalyst - kept with its table, so Analysis > Fit Model opens on it "
+        "with the responses cast and the response-surface model built. Yield "
+        "and purity are fitted by Standard Least Squares, the pass/fail grade "
+        "by Nominal Logistic; each figure carries its report in its notes.",
+        (),
+        builder="dev.demo.demo_fit_model:build_fit_model_demo",
+        preview="Yield",
+    ),
 )
 
 

@@ -58,7 +58,7 @@ MPLSTYLES_DIR = _repo_root().parent / "mplstyles"
 
 #: Where a user-authored plugin (a renderer, a series operation, a fit
 #: function) lives, one subfolder per kind, mirroring the shipped folder it
-#: extends - see app/dialogs/renderer_helper_dialog.py and its Developer-menu
+#: extends - see app/developer_helpers/renderer_helper.py and its Developer-menu
 #: siblings. Kept beside config.json/user.json/mplstyles/ rather than inside
 #: app/ itself: a packaged build's own app/ tree may be read-only, and
 #: user-authored code has no business living alongside the app's own shipped

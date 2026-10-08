@@ -126,3 +126,64 @@ def test_the_profile_follows_each_continuous_factor_with_the_others_held() -> No
     intercept = fit.estimates.set_index("Term").loc["Intercept", "Estimate"]
     np.testing.assert_allclose(t["Predicted"], intercept + fit.estimates.set_index("Term").loc["T", "Estimate"] * t["Coded"])
     assert (t["Lower"] <= t["Predicted"]).all() and (t["Predicted"] <= t["Upper"]).all()
+
+
+def _noisy(seed: int = 4, n: int = 120) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+    frame = pd.DataFrame({"A": rng.uniform(-1, 1, n), "B": rng.uniform(-1, 1, n), "C": rng.uniform(-1, 1, n)})
+    frame["eta"] = 0.3 + 1.5 * frame.A - 1.0 * frame.B
+    return frame
+
+
+def test_forward_stepwise_adds_only_what_matters() -> None:
+    frame = _noisy()
+    frame["Y"] = 2 + 3 * frame.A - 2 * frame.B + np.random.default_rng(1).normal(0, 0.3, len(frame))
+    factors = [Factor(n, low=-1, high=1) for n in "ABC"]
+    spec = ModelSpec(factors, ["Y"], lm.main_effects(factors), personality="stepwise", direction="forward")
+    fit = lm.fit_models(frame, spec)[0]
+    assert sorted(fit.terms) == [("A",), ("B",)] and fit.removed == [("C",)]
+
+
+def test_a_normal_glm_is_least_squares_and_poisson_finds_its_rate() -> None:
+    frame = _noisy()
+    rng = np.random.default_rng(2)
+    frame["Y"] = 1 + 2 * frame.A + rng.normal(0, 0.2, len(frame))
+    frame["N"] = rng.poisson(np.exp(0.5 + 0.8 * frame.A))
+    factors = [Factor("A", low=-1, high=1), Factor("B", low=-1, high=1)]
+    terms = lm.main_effects(factors)
+    ols = lm.fit_models(frame, ModelSpec(factors, ["Y"], terms))[0]
+    glm = lm.fit_models(frame, ModelSpec(factors, ["Y"], terms, personality="glm"))[0]
+    np.testing.assert_allclose(glm.estimates["Estimate"], ols.estimates["Estimate"], atol=1e-8)
+    poisson = lm.fit_models(frame, ModelSpec(factors, ["N"], terms, personality="glm", family="poisson"))[0]
+    assert poisson.estimates.set_index("Term").loc["A", "Estimate"] == pytest.approx(0.8, abs=0.2)
+    tests = poisson.effect_tests.set_index("Term")
+    assert tests.loc["A", "Prob > ChiSq"] < 0.001 < tests.loc["B", "Prob > ChiSq"]
+    assert poisson.p_column == "Prob > ChiSq" and poisson.anova.loc[0, "Prob > ChiSq"] < 0.001
+    assert poisson.anova.loc[0, "-LogLikelihood"] > 0
+
+
+def test_nominal_logistic_binary_and_multinomial() -> None:
+    frame = _noisy(n=300)
+    rng = np.random.default_rng(3)
+    p_good = 1 / (1 + np.exp(-frame.eta))
+    frame["Ok"] = np.where(rng.uniform(size=len(frame)) < p_good, "good", "bad")
+    factors = [Factor("A", low=-1, high=1), Factor("B", low=-1, high=1)]
+    terms = lm.main_effects(factors)
+    fit = lm.fit_models(frame, ModelSpec(factors, ["Ok"], terms, personality="nominal"))[0]
+    assert fit.levels == ["bad", "good"]  # the predictions are P(bad)
+    a = fit.estimates.set_index("Term").loc["A", "Estimate"]
+    assert a == pytest.approx(-1.5, abs=0.6)  # P(bad) falls as A rises
+    assert fit.effect_tests.set_index("Term").loc["A", "Prob > ChiSq"] < 0.001
+    assert fit.predicted.between(0, 1).all() and not fit.profile.empty
+
+    frame["Grade"] = pd.cut(frame.eta + rng.normal(0, 0.7, len(frame)), [-np.inf, -0.3, 0.9, np.inf],
+                            labels=["c", "b", "a"]).astype(str)
+    multi = lm.fit_models(frame, ModelSpec(factors, ["Grade"], terms, personality="nominal"))[0]
+    assert multi.levels == ["a", "b", "c"]
+    assert len(multi.estimates) == 3 * 2  # intercept, A, B for each level after the first
+    assert multi.effect_tests.set_index("Term").loc["A", "DF"] == 2
+
+    ordinal = lm.fit_models(frame, ModelSpec(factors, ["Grade"], terms, personality="ordinal"))[0]
+    tests = ordinal.effect_tests.set_index("Term")
+    assert tests.loc["A", "DF"] == 1 and tests.loc["A", "Prob > ChiSq"] < 0.001
+    assert ordinal.anova.loc[0, "Prob > ChiSq"] < 0.001

@@ -28,12 +28,12 @@ from PySide6.QtGui import (
 )
 from app import APP_ICON, APP_NAME
 from app.widgets.chart_jump_bar import ChartJumpBar
-from app.widgets.custom_title_bar import CustomTitleBar
+from app.main_window.custom_title_bar import CustomTitleBar
 from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.dialogs.main_chart_properties import MainWindowChartProperties
-from app.dialogs.main_frame import MainWindowFrame
-from app.dialogs.main_menus import MainWindowMenus
-from app.dialogs.main_project import MainWindowProject
+from app.main_window.main_frame import MainWindowFrame
+from app.main_window.main_menus import MainWindowMenus
+from app.main_window.main_project import MainWindowProject
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.chart_panel import ChartPanel
 from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
@@ -43,15 +43,15 @@ from app.widgets.recent_projects import RecentProjectsView
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.credits_dialog import CreditsDialog
 from app.widgets.database_info_panel import DatabaseInfoPanel
-from app.dialogs.renderer_helper_dialog import RendererHelperDialog
-from app.dialogs.series_operation_builder_dialog import SeriesOperationBuilderDialog
-from app.dialogs.function_creator_dialog import FunctionCreatorDialog
-from app.dialogs.edit_localization_dialog import EditLocalizationDialog
+from app.developer_helpers.renderer_helper import RendererHelperDialog
+from app.developer_helpers.series_operation_helper import SeriesOperationBuilderDialog
+from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
+from app.developer_helpers.localization_helper import EditLocalizationDialog
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
-from app.widgets.axis_properties import AxisPropertiesWidget
-from app.widgets.overlay_properties import OverlayPropertiesWidget
-from app.widgets.figure_properties import FigurePropertiesWidget
-from app.widgets.series_properties import SeriesPropertiesWidget
+from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget
+from app.widgets.chart_properties.overlay_properties import OverlayPropertiesWidget
+from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
+from app.widgets.chart_properties.series_properties import SeriesPropertiesWidget
 from app.widgets.series_operation import SeriesOperationWidget
 from app.scanners.series_operation_scanner import import_class_from_file
 from app.styles.style import (
@@ -426,6 +426,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     def _create_data_page(self) -> NavPanel:
         """Tables above, the selected table's data below, the handle between them dragged."""
         page = NavPanel(self, resizable=True)
+        page.setProperty("toolboxPage", True)
+        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
         page.add_frame(_("Tables"), self._table_panel, object_name="tablesFrame", stretch=1, margins=(0, 0, 0, 0))
         page.add_frame(_("Data"), self._preview, object_name="dataFrame", stretch=2, margins=(0, 0, 0, 0))
         assert page.splitter is not None
@@ -444,9 +447,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
 
         if operation.get("name") == "NewPlotTabDialog":
             self._on_new_plot_tab(icon)
-            return
-        if operation.get("name") == "QueryBuilderDialog":
-            self._on_query_builder()
             return
 
         dialog_class = import_class_from_file(operation)
@@ -511,12 +511,16 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         """The ways to make a source table, each with its sentence."""
         page = NavPanel(self)
         page.add_buttons(_("Create a new table"), [
-            NavButton("new", self._on_new_table_from_doe, _("From DOE"),
-                      _("Generate an experiment matrix with factors and responses."), described=True),
             NavButton("new", self._on_new_blank_table, _("New Blank Table"),
                       _("Create an empty table with named columns."), described=True),
+            NavButton("new", self._on_new_table_from_doe, _("Create a table from a DOE"),
+                      _("Generate an experiment matrix with factors and responses."), described=True),
             NavButton("import", self._on_import_data, _("Import Data"),
-                      _("Create a table from a file, clipboard, database, or web source."), described=True),
+                      _("Create a table from a file, clipboard or web source."), described=True),
+            NavButton("import", self._on_database_table_import, _("Import Database Table"),
+                      _("Create a table from a database table."), described=True),
+            NavButton("query", self._on_create_query_table, _("Create Query Table"),
+                      _("Create a table from a database query."), described=True),
         ], object_name="newTableCard")
         return page
 
@@ -702,13 +706,19 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             },
             "Charts": {},
         }
-        if IS_WINDOWS:
+        if not IS_MACOS:
+            # macOS has Help in its menu bar; elsewhere the rail is the menu.
             sections["Settings"] = {
-                "settings": NavBarItem(
-                    _("Settings"), self._navigation_icon("settings"), None,
-                    _("Open application settings"),
-                )
+                "help": NavBarItem(
+                    _("Help"), self._navigation_icon("nav_help"), None,
+                    _("User manual and credits"),
+                ),
             }
+        if IS_WINDOWS:
+            sections.setdefault("Settings", {})["settings"] = NavBarItem(
+                _("Settings"), self._navigation_icon("settings"), None,
+                _("Open application settings"),
+            )
 
         header = CustomTitleBar(cast(Any, self), is_macos=True) if IS_MACOS else None
         # The pages keep the same gap from the rail as from the panel's right
@@ -732,6 +742,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if key == "settings":
             self._on_settings()
             return
+        if key == "help":
+            self._popup_help_menu()
+            return
         if key.startswith("chart:"):
             try:
                 figure_id = int(key.partition(":")[2])
@@ -740,6 +753,12 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             index = self._tab_index_of_figure(figure_id)
             if index >= 0:
                 self._tabs.setCurrentIndex(index)
+
+    def _popup_help_menu(self) -> None:
+        """The Help menu beside its rail row, opening to the right: the rail is on the left."""
+        button = self._left_panel.button("help")
+        if button is not None:
+            self._help_menu.exec(button.mapToGlobal(button.rect().topRight()))
 
     def _on_navigation_panel_changed(self, key: str, panel: object) -> None:
         del panel
@@ -1288,3 +1307,4 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             saved = sizes.get(key)
             if isinstance(saved, list) and len(saved) == splitter.count():
                 splitter.setSizes([int(value) for value in saved])
+

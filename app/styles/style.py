@@ -1134,6 +1134,9 @@ def icon_from_action_spec(spec: "ActionSpec") -> QIcon:
     One rule, applied in order, and every step falls through when it produces
     nothing:
 
+    0. ``SVG``, when the catalogue draws the icon itself: an action no system
+       set has a glyph for (a table's rows told apart from its columns).
+
     1. On macOS, ``SFSymbol`` - the system's own icon set, so the app looks
        like a Mac app.
     2. On Windows, ``SegoeFluent`` - likewise.
@@ -1158,6 +1161,13 @@ def icon_from_action_spec(spec: "ActionSpec") -> QIcon:
     machine it runs on, and what is left under ``"none"`` is what nothing can
     draw there.
     """
+    if spec.svg:
+        # Drawn for this action because no system glyph says it: preferred
+        # wherever it is given, so the icon is the same on every platform.
+        icon = icon_from_svg_source(spec.svg)
+        if not icon.isNull():
+            return icon
+
     if _IS_MACOS and spec.sf_symbol:
         icon = _create_sf_symbol_icon(spec.sf_symbol)
         if not icon.isNull():
@@ -1177,7 +1187,7 @@ def icon_from_action_spec(spec: "ActionSpec") -> QIcon:
 
 
 #: Which backend answered for an action, in the order they are tried.
-ICON_SOURCES: tuple[str, ...] = ("sf_symbol", "segoe_fluent", "theme", "none")
+ICON_SOURCES: tuple[str, ...] = ("svg", "sf_symbol", "segoe_fluent", "theme", "none")
 
 
 def icon_source_for_action(spec: "ActionSpec") -> str:
@@ -1187,6 +1197,9 @@ def icon_source_for_action(spec: "ActionSpec") -> str:
     implementations of one priority order would drift, and the whole point of
     this is to be able to trust the answer.
     """
+    if spec.svg and not icon_from_svg_source(spec.svg).isNull():
+        return "svg"
+
     if _IS_MACOS and spec.sf_symbol and not _create_sf_symbol_icon(spec.sf_symbol).isNull():
         return "sf_symbol"
 
@@ -2368,6 +2381,10 @@ class ActionSpec:
     sf_symbol: str | None = None
     segoe_fluent: str | None = None
     theme_icon: str | tuple[str, ...] | None = None
+    #: The icon drawn here, as SVG path data (the body of SVG_ICON_DOCUMENT),
+    #: for an action no system set has a glyph for - a table's rows told apart
+    #: from its columns. Inked in the theme's colour, like the system glyphs.
+    svg: str | None = None
 
     @classmethod
     def from_config(cls, action_id: str, entry: dict[str, Any]) -> "ActionSpec":
@@ -2382,6 +2399,7 @@ class ActionSpec:
             theme_icon=_theme_icon_field(
                 entry.get("ThemeIcon") or entry.get("theme_icon")
             ),
+            svg=(entry.get("SVG") or entry.get("svg") or None),
         )
 
     def translated_text(self) -> str:

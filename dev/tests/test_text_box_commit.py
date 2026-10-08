@@ -10,7 +10,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLineEdit, QPlainTextEdit, QVBoxLayout
 
-from app.widgets.base_properties import BaseProperties
+from app.widgets.chart_properties.base_properties import BaseProperties
 
 
 class _Panel(BaseProperties):

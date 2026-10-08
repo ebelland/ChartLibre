@@ -8,19 +8,23 @@ MainWindow: the menus (main_menus.py) and the File panel call these.
 from __future__ import annotations
 
 import gc
+import re
 from pathlib import Path
 from time import monotonic
-from typing import Callable
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QWidget
 
 from app.data.demos import PROJECTS_DIR, copy_demo_project
 from app.data.sqlite_repo import SqliteRepo
+from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
 from app.dialogs.import_data_dialog import ImportDataDialog
 from app.dialogs.load_demo_dialog import LoadDemoDialog
+from app.dialogs.query_builder_dialog import QueryBuilderDialog
 from app.logs.logger import applogger
 from app.utils.config import clear_recent_databases, get_constant, set_last_database
+from app.utils.data_sources import SERVER_DATABASE_QUERY_READERS, SERVER_DATABASE_READERS
 from app.utils.i18n import _
 from app.utils.messages import show_message
 from app.utils.startup import PROJECT_FILE_FILTER
@@ -33,8 +37,35 @@ from app.utils.startup import PROJECT_FILE_FILTER
 SNAPSHOT_COALESCE_SECONDS: float = get_constant("snapshot_coalesce_seconds", 2.0)
 
 
-class MainWindowProject:
+if TYPE_CHECKING:
+    class _MainWindowProjectBase(QMainWindow):
+        _repo: SqliteRepo
+        _db_path: Path
+        _database_info_panel: Any
+        _table_panel: Any
+        _preview: Any
+        _tabs: Any
+        _recent_view: Any
+        _last_snapshot_label: str
+        _last_snapshot_at: float
+
+        def _refresh_undo_item(self) -> None: ...
+        def _reload_tabs(self, select_figure_id: int | None = None) -> None: ...
+        def _update_properties_for_current_chart(self) -> None: ...
+        def _build_app_menu(self) -> None: ...
+        def _update_window_title(self) -> None: ...
+else:
+    class _MainWindowProjectBase:
+        pass
+
+
+class MainWindowProject(_MainWindowProjectBase):
     """A part of MainWindow; ``self`` is the window."""
+
+    #: The project metadata panel is supplied by the composed MainWindow.
+    #: Declaring it here keeps the mixin type-checkable without changing the
+    #: runtime construction order of the window's widgets.
+    _database_info_panel: Any
 
     #: How many database-check problems the message box lists inline before
     #: it stops and points at Show Details, which holds all of them. Enough
@@ -49,7 +80,7 @@ class MainWindowProject:
             return
         from app.dialogs.project_info_dialog import ProjectInfoDialog
 
-        if ProjectInfoDialog(self._repo, self).exec():
+        if ProjectInfoDialog(self._repo, cast(QWidget, self)).exec():
             self._database_info_panel.set_repo(self._repo)
             self.statusBar().showMessage(_("Project info saved."), 4_000)
 
@@ -161,7 +192,7 @@ class MainWindowProject:
             "This project contains SQL that would change the database. It has been "
             "blocked and will not run until it is edited:\n\n{items}"
         ).format(items=listed)
-        QTimer.singleShot(0, self, lambda: QMessageBox.warning(self, _("SQL blocked"), text))
+        QTimer.singleShot(0, lambda: QMessageBox.warning(self, _("SQL blocked"), text))
 
     def _switch_database(
         self, db_path: Path, prepare: Callable[[], object] | None = None
@@ -421,6 +452,64 @@ class MainWindowProject:
         if dlg.exec():
             self._table_panel.reload()
             self._reload_tabs()
+
+    def _on_database_table_import(self) -> None:
+        """Import a table - or what a query returns - from another database, as a linked table."""
+        picker = ConnectDatabaseDialog(cast(QWidget, self))
+        if not picker.exec() or picker.connection is None:
+            return
+        if not picker.table and not picker.query:
+            return
+        connection = picker.connection
+        settings = connection.to_link_settings()
+        try:
+            if picker.query:
+                settings["query"] = picker.query
+                frame = SERVER_DATABASE_QUERY_READERS[connection.kind](
+                    connection, picker.query, skiprows=0, skipfooter=0
+                )
+            else:
+                settings["table"] = picker.table
+                _list_tables, read_table = SERVER_DATABASE_READERS[connection.kind]
+                frame = read_table(connection, picker.table, skiprows=0, skipfooter=0)
+        except Exception as exc:  # noqa: BLE001 - any driver's error, told to the user
+            applogger.exception("Database import failed")
+            show_message(cast(QWidget, self), "import.database_failed", error=exc)
+            return
+        if frame is None or frame.empty:
+            applogger.warning("The database returned no rows to import.")
+            return
+
+        # Named for the source table, as Import Data names a file's. A free
+        # name - "readings_2" when "readings" exists: import_into_sqlite
+        # would replace a table of the same name. "sqlite_" starts SQLite's
+        # own names, which it refuses.
+        base = re.sub(r"[^0-9A-Za-z_]+", "_", picker.table or f"{connection.display_name()}_query").strip("_")
+        if not base or base.lower().startswith("sqlite_") or base[0].isdigit():
+            base = f"db_{base}"
+        table_name = self._repo.free_table_name(base)
+        types = {str(column): ImportDataDialog._guess_sqlite_type(frame[column]) for column in frame.columns}
+        self._repo.snapshot_for_undo([table_name], label=f"Import '{table_name}'")
+        self._repo.import_into_sqlite(table_name, frame, types)
+        applogger.info("Imported %s from %s.", table_name, connection.display_name())
+        link_settings = {
+            "source": settings,
+            "read": {"skiprows": 0, "skip_last": 0, "header": True, "delimiter": None, "encoding": None},
+            "destination": {"table": table_name, "normalize_columns": False},
+            "columns": {"types": types},
+        }
+        if not self._repo.upsert_link(
+            table_name=table_name,
+            source_path=f"{connection.display_name()}#{picker.table or picker.query}",
+            settings=link_settings,
+        ):
+            applogger.warning("Failed to create link for imported table '%s'", table_name)
+        self._table_panel.reload()
+
+    def _on_create_query_table(self) -> None:
+        dialog = QueryBuilderDialog(self._repo, parent=self)
+        dialog.exec()
+        self._table_panel.reload()
 
     def _on_optimize_db(self) -> None:
         """Check the database, report what it found, then compact it.

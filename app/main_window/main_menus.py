@@ -213,8 +213,6 @@ class MainWindowMenus:
         if IS_MACOS:
             self._build_app_menu()
 
-
-
     def _recent_databases_item(self) -> MenuItem:
         """The Open recent submenu, built from user.json's own list.
 
@@ -246,8 +244,6 @@ class MainWindowMenus:
             submenu=items,
             enabled=bool(recent),
         )
-
-
 
     def _build_app_menu(self) -> None:
         """Create the app menu, and place it where each platform expects it.

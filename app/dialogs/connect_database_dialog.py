@@ -36,14 +36,12 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDialog,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLineEdit,
     QListWidget,
     QPlainTextEdit,
-    QSizePolicy,
     QSpinBox,
     QStackedWidget,
     QVBoxLayout,
@@ -53,8 +51,6 @@ from PySide6.QtWidgets import (
 from app.data.repo._common import is_read_only_select
 from app.logs.logger import applogger
 from app.styles.style import (
-    apply_dialog_shell,
-    CardFrame,
     configure_combo_width,
     create_action_button,
     create_compact_section_title,
@@ -77,6 +73,7 @@ from app.utils.data_sources import (
 )
 from app.utils.i18n import _
 from app.utils.messages import show_message
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 
 ENGINE_SQLITE = "sqlite"
 ENGINE_DHUB = "dhub"
@@ -114,7 +111,7 @@ _DHUB_FILE_FILTER: str = _("ChartLibre project (*.dhub);;All files (*.*)")
 _FORM_COLUMN_MAX_WIDTH: int = 340
 
 
-class ConnectDatabaseDialog(QDialog):
+class ConnectDatabaseDialog(SettingsTableDialog):
     """Pick an engine, connect, and choose one of its tables.
 
     ``connection`` and ``table`` hold the result once accepted - read
@@ -124,9 +121,13 @@ class ConnectDatabaseDialog(QDialog):
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("Connect to database"))
-        self.setWindowIcon(load_icon("import_database"))
+        super().__init__(
+            parent,
+            title=_("Connect to database"),
+            icon=load_icon("import_database"),
+            settings_title=_("Connection"),
+            settings_width=_FORM_COLUMN_MAX_WIDTH,
+        )
         self.connection: DatabaseConnection | None = None
         self.table: str | None = None
         #: Set instead of ``table`` when "Use a query" is checked - mutually
@@ -140,25 +141,10 @@ class ConnectDatabaseDialog(QDialog):
         #: user has connected.
         self._remembered_table: str = ""
 
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
-
-        columns = QHBoxLayout()
-        stdSizeAndlayout(columns)
-        columns.addWidget(self._build_connection_card(), 0)
-        columns.addWidget(self._build_table_card(), 1)
-        root.addLayout(columns, 1)
-
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="apply", action=self._confirm, layout=action_row
-        )
-        create_action_button(
-            parent=self, action_id="close", action=self.reject, layout=action_row
-        )
-        root.addLayout(action_row, 0)
+        self.settings_layout.addWidget(self._build_connection_panel(), 1)
+        self.content_layout.addWidget(self._build_table_panel(), 1)
+        self.add_action("apply", self._confirm, default=True)
+        self.add_action("close", self.reject)
 
         self._on_engine_changed()
         self._restore_remembered_connection()
@@ -166,13 +152,11 @@ class ConnectDatabaseDialog(QDialog):
     # ------------------------------------------------------------------
     # Construction
     # ------------------------------------------------------------------
-    def _build_connection_card(self) -> QWidget:
+    def _build_connection_panel(self) -> QWidget:
         """The left column: everything needed to open the connection."""
-        card = CardFrame(self, "connectDatabaseCard")
-        card.setMaximumWidth(_FORM_COLUMN_MAX_WIDTH)
-        card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-        card_layout = card.layout()
-        card_layout.addWidget(create_compact_section_title(_("Connection"), card))
+        card = QWidget(self.settings_frame)
+        card_layout = QVBoxLayout(card)
+        stdSizeAndlayout(card_layout)
 
         form = QFormLayout()
         stdSizeAndlayout(form)
@@ -248,7 +232,7 @@ class ConnectDatabaseDialog(QDialog):
         card_layout.addStretch(1)
         return card
 
-    def _build_table_card(self) -> QWidget:
+    def _build_table_panel(self) -> QWidget:
         """The right column: the tables, given the room to be read in.
 
         "Use a query" swaps the list for a SQL box rather than showing both
@@ -256,8 +240,9 @@ class ConnectDatabaseDialog(QDialog):
         so a table picked while a query sits typed under it would leave
         Accept looking at a state neither field alone explains.
         """
-        card = CardFrame(self, "connectTablesCard")
-        card_layout = card.layout()
+        card = QWidget(self.content_frame)
+        card_layout = QVBoxLayout(card)
+        stdSizeAndlayout(card_layout)
 
         header_row = QHBoxLayout()
         stdSizeAndlayout(header_row)

@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.import_data_dialog import ImportDataDialog
@@ -91,14 +91,15 @@ def other_db(tmp_path: Path) -> Path:
     return path
 
 
-def _pick_database(
-    dialog, path: Path, monkeypatch: pytest.MonkeyPatch, *, table: str = "readings"
-) -> None:
-    """Stand in for the connect dialog, the way LoadDemoDialog.exec is
-    stood in for elsewhere: picking a database is its own dialog now, not a
-    bare file picker, since PostgreSQL and MySQL need host/user/password
-    fields a file dialog has no room for."""
+def _import_database(repo: SqliteRepo, path: Path, monkeypatch: pytest.MonkeyPatch, *,
+                     table: str = "readings") -> None:
+    """Import Database Table, from the New Table page, with the connect
+    dialog stood in for: picking a database is its own dialog, since
+    PostgreSQL and MySQL need host/user/password fields."""
+    from types import SimpleNamespace
+
     from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
+    from app.main_window.main_project import MainWindowProject
     from app.utils.data_sources import DatabaseConnection
 
     def fake_exec(self: ConnectDatabaseDialog) -> bool:
@@ -107,18 +108,26 @@ def _pick_database(
         return True
 
     monkeypatch.setattr(ConnectDatabaseDialog, "exec", fake_exec)
-    dialog._on_import_database()
+    window = QWidget()  # the dialog's parent, as the main window is
+    window._repo = repo
+    window._table_panel = SimpleNamespace(reload=lambda: None)
+    MainWindowProject._on_database_table_import(window)
 
 
-def test_picking_a_database_loads_its_first_table(
-    dialog, other_db: Path, monkeypatch: pytest.MonkeyPatch
+def test_a_database_table_is_imported_and_linked_under_a_free_name(
+    qapp, tmp_db_path: Path, other_db: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _pick_database(dialog, other_db, monkeypatch)
-
-    assert dialog._source_mode == "database"
-    assert _columns(dialog) == ["t", "v"]
-    assert dialog._table.text() == "readings"
-    assert dialog._db_connection is not None
+    repo = SqliteRepo(db_path=tmp_db_path)
+    try:
+        _import_database(repo, other_db, monkeypatch)
+        assert list(repo.table_frame("readings").columns[:2]) == ["t", "v"]
+        # Imported again: a second table with a number, the first left alone.
+        _import_database(repo, other_db, monkeypatch)
+        tables = set(repo.list_user_tables()["Table"])
+        assert {"readings", "readings_2"} <= tables
+        assert len(repo.table_frame("readings")) == 2
+    finally:
+        repo.close()
 
 
 # ----------------------------------------------------------------------

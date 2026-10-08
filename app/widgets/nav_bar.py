@@ -378,6 +378,10 @@ class NavigationBar(QWidget):
         sections.pop(str(title), None)
         self.set_sections(sections)
 
+    def button(self, key: str) -> QToolButton | None:
+        """The row for *key*, to place a popup beside it; None when there is none."""
+        return self._buttons.get(key)
+
     def select(self, key: str) -> bool:
         """Activate one item by stable key.
 

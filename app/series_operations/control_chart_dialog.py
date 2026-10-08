@@ -751,7 +751,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         for result in results:
             varies = result.limits_vary
             summary_rows: list[tuple[str, Any]] = [
-                (_("Chart"), result.chart),
+                (_("Control chart"), result.chart),
                 (_("Points plotted"), result.y.size),
             ]
             if not CONTROL_CHARTS[result.chart].attribute:

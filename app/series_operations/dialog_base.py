@@ -20,7 +20,7 @@ from typing import Any, ClassVar, Protocol
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QButtonGroup, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QProgressBar, QRadioButton, QSizePolicy, QSpinBox, QSplitter, QStackedWidget, QTabWidget, QVBoxLayout, QWidget
 import numpy as np
 import pandas as pd
 
@@ -34,6 +34,7 @@ from app.data.data_source import parse_roles, row_value, resolve_role_column
 from app.data.repo.operations import OPERATIONS_TABLE
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
+from app.widgets.table_source_selector import TableSourceSelector
 from app.styles.style import (
     apply_dialog_shell,
     create_doc_link,
@@ -63,6 +64,8 @@ from app.utils.dialog_state import (
     restore_window_geometry,
     save_dialog_state,
     save_window_geometry,
+    set_dialog_entries,
+    stored_dialog_state,
 )
 from app.widgets.html_results import HtmlResultsView, looks_like_html, plain_to_html
 from app.utils.background import BackgroundTask, run_in_background
@@ -314,18 +317,69 @@ class SeriesOperationDialogBase(QDialog):
         # Every subclass gets remembered entries and geometry for free; the
         # storage key is the class name, so two dialogs never share a slot.
         self._state_key = type(self).__name__
+        # What Revert goes back to: the entries as built, before any memory.
+        self._default_entries = dialog_entries(self, inputs_only=True)
+        self._default_parameters = self.parameter_values()
         restore_window_geometry(self, self._state_key)
         restore_dialog_state(self, self._state_key)
+        self._restore_extra_state()
+
+    #: Where the declared parameters and the table's columns are stored beside
+    #: the entries; "@" is in no attribute's name, so restoring skips them.
+    _PARAMETERS_STATE = "@parameters"
+    _TABLE_SOURCE_STATE = "@table_source"
 
     def _remember_state(self) -> None:
-        """Persist entries and geometry to config.json.
+        """Persist entries, parameters and geometry to user.json.
 
         Called from every exit path - Apply, Close, the window button - because
         the useful moment to record a choice is when the user leaves, not when
         they make it.
         """
-        save_dialog_state(self, self._state_key)
+        extra: dict[str, Any] = {}
+        if getattr(self, "_parameter_form_spec", None) is not None:
+            extra[self._PARAMETERS_STATE] = self.parameter_values()
+        source = getattr(self, "table_source", None)
+        if source is not None and source.table():
+            extra[self._TABLE_SOURCE_STATE] = {
+                "table": source.table(), "x": source.x_column(), "y": source.y_columns(),
+            }
+        try:
+            save_dialog_state(self, self._state_key, extra)
+        except TypeError:
+            # A parameter that does not go into JSON: the entries all the same.
+            applogger.exception("Could not remember %s's parameters", self._state_key)
+            save_dialog_state(self, self._state_key)
         save_window_geometry(self, self._state_key)
+
+    def _restore_extra_state(self) -> None:
+        """The parameters and the table's columns stored beside the entries."""
+        stored = stored_dialog_state(self._state_key)
+        form = getattr(self, "_parameter_form_spec", None)
+        parameters = stored.get(self._PARAMETERS_STATE)
+        if form is not None and isinstance(parameters, dict):
+            try:
+                form.set_values(parameters)
+            except Exception:  # noqa: BLE001 - a stale value must not stop the window opening
+                applogger.exception("Could not restore %s's parameters", self._state_key)
+        source = getattr(self, "table_source", None)
+        chosen = stored.get(self._TABLE_SOURCE_STATE)
+        if source is not None and isinstance(chosen, dict):
+            source.set_spec(str(chosen.get("table", "")), str(chosen.get("x", "")), chosen.get("y") or [])
+        # Restored with its signals blocked: the page follows the radio here.
+        if getattr(self, "_source_stack", None) is not None:
+            self._source_stack.setCurrentIndex(1 if self.reads_table() else 0)
+
+    def revert_entries(self) -> None:
+        """Every entry back to its default, as JMP's Revert: what the window had when first opened."""
+        set_dialog_entries(self, self._default_entries, quietly=False)
+        form = getattr(self, "_parameter_form_spec", None)
+        if form is not None:
+            form.set_values(self._default_parameters)
+        if getattr(self, "_source_stack", None) is not None:
+            self._source_stack.setCurrentIndex(1 if self.reads_table() else 0)
+        self._refresh_visibility()
+        self.mark_results_stale()
 
 
     def _series_display_name(self, row: Any) -> str:
@@ -437,6 +491,12 @@ class SeriesOperationDialogBase(QDialog):
     #: because _run_operation needs an axis to write to - this only decides
     #: whether the user is shown a page they have no decision to make on.
     SHOWS_AXIS_SERIES_PAGE: bool = True
+
+    #: Whether the data can come from a table's columns instead of a chart's
+    #: series: "Data from: Chart | Table" on the Axis / Series page. The
+    #: columns are drawn as a figure of their own first (see
+    #: _prepare_table_source), so the operation runs on series as always.
+    READS_TABLES: bool = True
 
     #: Declared parameters.  An operation that sets this gets its parameter
     #: form built, wired and read back for free; see ``parameter_spec``.
@@ -615,7 +675,7 @@ class SeriesOperationDialogBase(QDialog):
         return self.model_combo.currentText() or default
 
     def current_axis_name(self) -> str:
-        """The name of the axis picked in the Axis / Series page."""
+        """The name of the axis picked in the Data page."""
         return self.series_selector.selected_axis_name()
 
     # -- Small controls, for operations that build their own forms ---------
@@ -720,7 +780,7 @@ class SeriesOperationDialogBase(QDialog):
             QSizePolicy.Policy.Expanding,
         )
 
-        self.axis_series_panel = self.series_selector
+        self.axis_series_panel = self._build_source_panel()
         self.model_panel = self._model_selector_widget
         self.parameters_panel = self._parameter_selector_widget
 
@@ -740,7 +800,7 @@ class SeriesOperationDialogBase(QDialog):
         # The Axis / Series tab is left out for an operation that selects nothing.
         pages = []
         if self.SHOWS_AXIS_SERIES_PAGE:
-            pages.append((self.axis_series_panel, _("Axis / Series")))
+            pages.append((self.axis_series_panel, _("Data")))
         pages.append((self.model_panel, _("Model")))
         pages.append((self.parameters_panel, _("Parameters")))
         for content, title in pages:
@@ -795,6 +855,14 @@ class SeriesOperationDialogBase(QDialog):
         self.progress_bar.setVisible(False)
         action_row.addWidget(self.progress_bar)
 
+        # Back to the defaults, beside Preview: it acts on the entries only.
+        self.revert_button = create_action_button(
+                                 parent=self,
+                                 action_id="operation_revert",
+                                 action=self.revert_entries,
+                                 layout=action_row,
+                             )
+
         # Operation-specific buttons go next to Preview, on the left: they act
         # on the dialog's own state, unlike Apply/Close which end it.
         self.build_extra_action_buttons(action_row)
@@ -830,6 +898,118 @@ class SeriesOperationDialogBase(QDialog):
 
 
     # ------------------------------------------------------------------
+    # Data from a chart, or from a table
+    # ------------------------------------------------------------------
+
+    def _build_source_panel(self) -> QWidget:
+        """The Data page: the chart's series, or a table's columns."""
+        self.table_source: TableSourceSelector | None = None
+        #: The figure the table's columns were drawn on, and what they were.
+        self._table_figure_id: int | None = None
+        self._table_figure_spec: tuple[str, str, tuple[str, ...]] | None = None
+        #: The figure the dialog was opened on, to go back to.
+        self._chart_figure_id = self._figure_id
+        if not (self.READS_TABLES and self.SHOWS_SERIES_SELECTOR and self.SHOWS_AXIS_SERIES_PAGE):
+            return self.series_selector
+
+        panel = QWidget(self)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        row = QHBoxLayout()
+        row.addWidget(QLabel(_("Data from:"), panel))
+        self.source_chart_radio = QRadioButton(_("Chart"), panel)
+        self.source_chart_radio.setToolTip(_("The series the chart draws."))
+        self.source_table_radio = QRadioButton(_("Table"), panel)
+        self.source_table_radio.setToolTip(_("A table's columns, without drawing them first."))
+        group = QButtonGroup(panel)
+        group.addButton(self.source_chart_radio)
+        group.addButton(self.source_table_radio)
+        self.source_chart_radio.setChecked(True)
+        row.addWidget(self.source_chart_radio)
+        row.addWidget(self.source_table_radio)
+        row.addStretch(1)
+        layout.addLayout(row)
+
+        self.table_source = TableSourceSelector(self._repo, panel)
+        self._source_stack = QStackedWidget(panel)
+        self._source_stack.addWidget(self.series_selector)
+        self._source_stack.addWidget(self.table_source)
+        layout.addWidget(self._source_stack, 1)
+
+        self.source_table_radio.toggled.connect(self._on_source_changed)
+        self.table_source.changed.connect(self.mark_results_stale)
+        return panel
+
+    def reads_table(self) -> bool:
+        """Whether this run takes its data from a table's columns."""
+        return getattr(self, "table_source", None) is not None and self.source_table_radio.isChecked()
+
+    def _on_source_changed(self, *_ignored: Any) -> None:
+        self._source_stack.setCurrentIndex(1 if self.reads_table() else 0)
+        if not self.reads_table() and self._table_figure_id is not None:
+            # Back to the chart: whatever was drawn from the table goes.
+            self.cancel_operation_changes(refresh=False)
+            self._discard_table_figure()
+            self._refresh_after_preview_state_change()
+        self.mark_results_stale()
+
+    def _use_figure(self, figure_id: int) -> None:
+        """Run on *figure_id* from now on: its axes, its series, its grid."""
+        self._figure_id = int(figure_id)
+        self._original_grid = self._capture_current_grid()
+        self.series_selector._load_figures()
+        self.series_selector.set_figure_id(int(figure_id), select_all_series=True)
+
+    def _prepare_table_source(self) -> None:
+        """Draw the chosen columns as a figure of their own, once, and run on it.
+
+        Before the preview's savepoint, which is rolled back by the next
+        Preview: the figure stays until the window closes without Apply, or
+        the columns change.
+        """
+        spec = self.table_source.spec() if self.table_source is not None else None
+        if spec is None:
+            raise ValueError(_("Choose a table and at least one Y column."))
+        if spec == self._table_figure_spec and self._table_figure_id is not None:
+            if self._repo.get_figure_descriptor(int(self._table_figure_id)) is not None:
+                return
+        self.cancel_operation_changes(refresh=False)
+        self.discard_result_target()
+        self._discard_table_figure()
+
+        table, x, ys = spec
+        x_label = x or _("Row")
+        figure_id = int(self._repo.create_figure_descriptor(
+            name=f"{table}: {', '.join(ys)}", nrows=1, ncols=1,
+        ))
+        axis_id = int(self._repo.create_axis_descriptor(
+            figure_id=figure_id, axis_index=0, chart_type="Scatter Plot", title=table,
+            x_label=x_label, y_label=ys[0] if len(ys) == 1 else "", options={"grid": True},
+        ))
+        for index, y in enumerate(ys):
+            self._repo.create_series_descriptor(
+                axis_id=axis_id, series_index=index, name=y,
+                sql_query=TableSourceSelector.series_sql(table, x, y), roles={"x": "x", "y": "y"},
+            )
+        applogger.info("%s: drew %s from table %s as figure %s.", self.operation_label, ", ".join(ys), table, figure_id)
+        self._table_figure_id, self._table_figure_spec = figure_id, spec
+        self._use_figure(figure_id)
+
+    def _discard_table_figure(self) -> None:
+        """Remove the figure drawn from a table, unless Apply kept it; back to the chart."""
+        figure_id = getattr(self, "_table_figure_id", None)
+        self._table_figure_id, self._table_figure_spec = None, None
+        if figure_id is None:
+            return
+        if not getattr(self, "_applied", False):
+            try:
+                self._repo.delete_figure(int(figure_id))
+            except Exception:
+                applogger.exception("Failed to discard the figure drawn from a table")
+        self._use_figure(self._chart_figure_id)
+
+    # ------------------------------------------------------------------
     # Shared helpers
     # ------------------------------------------------------------------
 
@@ -840,7 +1020,7 @@ class SeriesOperationDialogBase(QDialog):
         rows = self.series_selector.selected_series()
 
         if not rows:
-            message = "Select one source series in the Axis / Series panel."
+            message = "Select one source series in the Data panel."
             applogger.error(message)
             raise ValueError(message)
 
@@ -2180,6 +2360,8 @@ class SeriesOperationDialogBase(QDialog):
             return succeeded
 
         try:
+            if self.reads_table():
+                self._prepare_table_source()
             axis_id_value = self.series_selector.selected_axis_id()
             if axis_id_value is None:
                 # The catalogue holds the wording; the operation names the box.
@@ -2381,6 +2563,7 @@ class SeriesOperationDialogBase(QDialog):
 
     def cancel(self) -> None:
         self.cancel_operation_changes()
+        self._discard_table_figure()
         super().reject()
 
     def cancel_operation_changes(self, *, refresh: bool = True) -> None:
@@ -2439,6 +2622,7 @@ class SeriesOperationDialogBase(QDialog):
         self._remember_state()
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
+        self._discard_table_figure()
         super().reject()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
@@ -2447,4 +2631,5 @@ class SeriesOperationDialogBase(QDialog):
         self._remember_state()
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
+        self._discard_table_figure()
         super().closeEvent(event)

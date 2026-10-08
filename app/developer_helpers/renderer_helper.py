@@ -20,7 +20,7 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QComboBox, QFormLayout, QLineEdit, QWidget
 
-from app.dialogs.dev_tools_common import ScaffoldDialog
+from app.developer_helpers.developer_helper_base import DeveloperDialogBase
 from app.utils.config import USER_CHARTS_DIR
 from app.utils.i18n import _
 
@@ -156,7 +156,7 @@ class {class_name}(BaseAxisRenderer):
 {_render_axis_body(required_roles)}'''
 
 
-class RendererHelperDialog(ScaffoldDialog):
+class RendererHelperDialog(DeveloperDialogBase):
     """Scaffold a new BaseAxisRenderer file from a short form."""
 
     TITLE = "Renderer Helper"

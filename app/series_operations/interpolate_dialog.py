@@ -679,7 +679,7 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
                 if rmse is not None and np.isfinite(rmse):
                     lines.append(f"RMSE = {rmse:.5g}")
             else:
-                lines.append(f"Generated {len(result.x_eval)} points")
+                lines.append(_("Generated {count} points").format(count=len(result.x_eval)))
             lines.append("")
         return "\n".join(lines).strip()
 

@@ -29,16 +29,15 @@ from matplotlib import rcParams
 from app.charts.kwarg_spec import DEFAULT
 from app.styles.style import (
     MARGIN_PANEL,
-    CardFrame,
     TitledCard,
     create_action_button,
     create_hidpi_pixmap,
     stdSizeAndlayout,
 )
-from app.widgets.base_properties import BaseProperties
-from app.widgets.color_combo import DEFAULT_COLOR_LABEL, MatplotlibColorCombo
-from app.widgets.line_combo import LineStyleCombo
-from app.widgets.marker_combo import MarkerStyleCombo
+from app.widgets.chart_properties.base_properties import BaseProperties
+from app.widgets.drop_down_controls.color_combo import DEFAULT_COLOR_LABEL, MatplotlibColorCombo
+from app.widgets.drop_down_controls.line_combo import LineStyleCombo
+from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
 from app.logs.logger import applogger
 from app.utils.config import get_constant
 from app.utils.i18n import _
@@ -163,6 +162,8 @@ class SeriesPropertiesWidget(BaseProperties):
         )
 
         content = QWidget(self)
+        content.setProperty("toolboxPage", True)
+        content.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         content.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
@@ -177,12 +178,21 @@ class SeriesPropertiesWidget(BaseProperties):
 
         self._options_section = self._build_options_section()
         self._options_section.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self._options_section.title_label.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+        )
+        self._options_section.card.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         root.addWidget(self._options_section, 1)
 
         scroll = QScrollArea(self)
+        scroll.setProperty("toolboxPage", True)
+        scroll.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        scroll.viewport().setProperty("toolboxPage", True)
+        scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -199,7 +209,7 @@ class SeriesPropertiesWidget(BaseProperties):
 
     def _build_selector_section(self) -> QWidget:
         """Create the series selector and ordering controls."""
-        section = TitledCard(self, _("Series"), "seriesSelectorCard")
+        section = TitledCard(self, _("Axis"), "seriesSelectorCard")
         section.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
@@ -248,14 +258,13 @@ class SeriesPropertiesWidget(BaseProperties):
 
     def _build_options_section(self) -> QWidget:
         """Create editable series style controls."""
-        section = CardFrame(self, "seriesOptionsCard")
+        section = TitledCard(self, _("Properties"), "seriesOptionsCard")
         stdSizeAndlayout(section)
         section.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
         )
 
-        layout = section.layout()
 
         form = QFormLayout()
         stdSizeAndlayout(form)
@@ -326,7 +335,11 @@ class SeriesPropertiesWidget(BaseProperties):
         form.addRow(_("Marker"), self._marker_combo)
         form.addRow(_("Color"), self._color_combo)
 
-        layout.addLayout(form, 0)
+        raw_layout = section.card.layout()
+        if not isinstance(raw_layout, QVBoxLayout):
+            raise RuntimeError("TitledCard did not create a vertical box layout")
+
+        raw_layout.addLayout(form, 0)
 
         # Important:
         # If you have self.series_list in your real code, add it here,
@@ -355,7 +368,7 @@ class SeriesPropertiesWidget(BaseProperties):
         self._current_axis_id = None
         self._current_series_id = None
         self._series_map.clear()
-        self._series_title.setText(_("Series"))
+        self._series_title.setText(_("Axis: No axis selected"))
         self._clear_series_combo()
         self._clear_series_fields()
         super().clear_connected_figure()
@@ -482,16 +495,21 @@ class SeriesPropertiesWidget(BaseProperties):
         self._on_series_combo_changed(index_to_select)
 
     def _update_title(self) -> None:
-        """Refresh section title with the current axis filter and count."""
-        count = self._series_combo.count()
-
+        """Name the axis whose series are being edited."""
         if self._current_axis_id is None:
-            self._series_title.setText(f"Series ({count})")
+            self._series_title.setText(_("Axis: No axis selected"))
             return
-
-        self._series_title.setText(
-            f"Series for axis {self._current_axis_id} ({count})"
-        )
+        name = ""
+        if self._repo is not None and self._figure_id is not None:
+            try:
+                for axis_id, _index, title in self._repo.list_axes_for_figure(int(self._figure_id)):
+                    if int(axis_id) == self._current_axis_id:
+                        name = str(title or "").strip()
+                        break
+            except Exception:
+                applogger.debug("Could not resolve the series axis title.", exc_info=True)
+        name = name or _("Axis {id}").format(id=self._current_axis_id)
+        self._series_title.setText(_("Axis: {name}").format(name=name))
 
     # ------------------------------------------------------------------
     # Series binding

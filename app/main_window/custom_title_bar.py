@@ -21,7 +21,7 @@ from app.styles.style import action_presentation, svg_icon_document
 from app.utils.i18n import _
 
 if TYPE_CHECKING:
-    from app.dialogs.main_window import MainWindow
+    from app.main_window.main_window import MainWindow
 
 #: Windows: icon + title on the left, min/max/close on the right, each as
 #: tall as the strip and CAPTION_BUTTON_WIDTH wide, edge to edge with no gap

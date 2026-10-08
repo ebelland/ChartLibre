@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""app.widgets.color_combo
+"""app.widgets.drop_down_controls.color_combo
 
 MatplotlibColorCombo
 
@@ -33,7 +33,7 @@ from matplotlib.colors import (
     to_hex,
 )
 
-from app.widgets.icon_combo import ComboEntry, IconComboBox
+from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 from app.styles.style import create_hidpi_pixmap
 
 #: The first entry's stored value. An empty string, which every consumer

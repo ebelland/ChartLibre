@@ -24,9 +24,11 @@ from collections.abc import Mapping
 from typing import Any
 
 import pandas as pd
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
-    QGridLayout,
+    QComboBox,
+    QFormLayout,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -38,9 +40,10 @@ from PySide6.QtWidgets import (
 )
 
 from app.analysis import linear_model as lm
-from app.series_operations.parameter_spec import BoolParam, FloatParam
+from app.series_operations.parameter_spec import FloatParam
 from app.table_operations.column_roles import CONTINUOUS, NOMINAL, ColumnCasting, ColumnRole
 from app.table_operations.dialog_base import TableOperationDialogBase
+from app.styles.style import TitledCard
 from app.utils import report_html
 from app.utils.i18n import _
 from app.widgets.chart_panel import FIGURE_VIEW_OPTIONS_KEY
@@ -66,6 +69,27 @@ CHARTS: tuple[tuple[str, str, bool], ...] = (
 )
 
 
+#: JMP's emphases for least squares: key, name, the charts the report opens with.
+EMPHASES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("leverage", "Effect Leverage", ("actual", "residual", "interaction")),
+    ("screening", "Effect Screening", ("pareto", "profile")),
+    ("minimal", "Minimal Report", ()),
+)
+
+#: JMP 18's help, page by page.
+_JMP_HELP = "https://www.jmp.com/support/help/en/18.0/index.shtml#page/jmp/"
+DOCS: dict[str, tuple[tuple[str, str], ...]] = {
+    "standard": (("Fit Model", _JMP_HELP + "overview-of-the-fit-model-platform.shtml"),
+                 ("Standard Least Squares", _JMP_HELP + "standard-least-squares-models.shtml")),
+    "stepwise": (("Stepwise", _JMP_HELP + "overview-of-stepwise-regression.shtml"),),
+    "glm": (("Generalized Linear Model", _JMP_HELP + "generalized-linear-models.shtml"),),
+    "nominal": (("Logistic", _JMP_HELP + "overview-of-the-nominal-and-ordinal-logistic-personalities.shtml"),),
+    "ordinal": (("Logistic", _JMP_HELP + "overview-of-the-nominal-and-ordinal-logistic-personalities.shtml"),),
+}
+EMPHASIS_DOC = _JMP_HELP + "standard-least-squares-options-in-the-fit-model-launch-window.shtml"
+PROFILER_DOC = _JMP_HELP + "overview-of-the-prediction-profiler.shtml"
+
+
 class FitModelDialog(TableOperationDialogBase):
     """Fit Model: responses on factors, by least squares."""
 
@@ -83,23 +107,16 @@ class FitModelDialog(TableOperationDialogBase):
     """
 
     ROLES = (
-        ColumnRole("response", "Y", "The columns to model: one model each.", kinds=(CONTINUOUS,), minimum=1),
+        ColumnRole("response", "Y", "The columns to model: one model each.", minimum=1),
     )
     PARAMS = (
-        BoolParam(
-            "reduce",
-            "Remove terms that are not significant",
-            tooltip=(
-                "Backwards: the least significant term goes first, until every "
-                "term left is significant - never a term a higher-order one "
-                "still contains."
-            ),
-            default_value=False,
-        ),
         FloatParam(
             "alpha",
             "Significance level (α):",
-            tooltip="A term is significant when its p-value is at most this.",
+            tooltip=(
+                "A term is significant when its p-value is at most this; the "
+                "Stepwise personality adds or keeps only such terms."
+            ),
             default_value=0.05, minimum=0.001, maximum=0.5, decimals=3, step=0.01,
         ),
     )
@@ -136,9 +153,48 @@ class FitModelDialog(TableOperationDialogBase):
     # ------------------------------------------------------------------
 
     def build_extra_inputs(self, layout: QVBoxLayout) -> None:
-        heading = QLabel(_("Model effects"))
-        heading.setProperty("muted", True)
-        layout.addWidget(heading)
+        # Personality and Emphasis first, top right as in JMP's launch window.
+        form = QFormLayout()
+        form.setContentsMargins(0, 0, 0, 0)
+        self._personality = QComboBox()
+        for key, label in lm.PERSONALITIES:
+            self._personality.addItem(_(label), key)
+        self._personality.setToolTip(_("How the responses are modelled."))
+        self._personality.currentIndexChanged.connect(lambda _i: self._on_personality_changed())
+        form.addRow(_("Personality:"), self._personality)
+        self._emphasis = QComboBox()
+        for key, label, _charts in EMPHASES:
+            self._emphasis.addItem(_(label), key)
+        self._emphasis.setToolTip(_("Which charts the report opens with; each can still be ticked or not."))
+        self._emphasis.currentIndexChanged.connect(lambda _i: self._apply_emphasis())
+        form.addRow(_("Emphasis:"), self._emphasis)
+        self._family = QComboBox()
+        for key, label in lm.FAMILIES:
+            self._family.addItem(_(label), key)
+        self._family.setToolTip(_("The response's distribution; its canonical link (log for Gamma)."))
+        self._family.currentIndexChanged.connect(lambda _i: self.inputs_changed())
+        form.addRow(_("Distribution:"), self._family)
+        self._direction = QComboBox()
+        for key, label in lm.STEPWISE:
+            self._direction.addItem(_(label), key)
+        self._direction.setToolTip(_("Backward drops terms from the full model; forward adds them to the mean."))
+        self._direction.currentIndexChanged.connect(lambda _i: self.inputs_changed())
+        form.addRow(_("Direction:"), self._direction)
+        for combo in (self._personality, self._emphasis, self._family, self._direction):
+            # Long names elide instead of widening the window.
+            combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(12)
+        self._form = form
+        self._doc_link = QLabel()
+        self._doc_link.setOpenExternalLinks(True)
+        self._doc_link.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        self._doc_link.setWordWrap(True)
+        # Above the roles, as JMP puts it.
+        model = TitledCard(self, _("Model"))
+        model_layout = model.card.layout()
+        model_layout.addLayout(form)
+        model_layout.addWidget(self._doc_link)
+        layout.insertWidget(0, model)
 
         # Buttons in a column beside the list, as in JMP: in a row they made
         # the window wider than a laptop's.
@@ -182,14 +238,13 @@ class FitModelDialog(TableOperationDialogBase):
         self._term_list.setMinimumWidth(140)
         self._term_list.itemDoubleClicked.connect(lambda _item: self._remove_selected())
         effects.addWidget(self._term_list, 1)
-        layout.addLayout(effects, 1)
+        effects_card = TitledCard(self, _("Construct Model Effects"))
+        effects_card.card.layout().addLayout(effects)
+        layout.addWidget(effects_card, 1)
 
-        charts = QLabel(_("Charts"))
-        charts.setProperty("muted", True)
-        layout.addWidget(charts)
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(2)
+        charts = TitledCard(self, _("Charts"))
+        grid = QVBoxLayout()
+        grid.setSpacing(2)
         self._chart_checks: dict[str, QCheckBox] = {}
         for index, (key, label, ticked) in enumerate(CHARTS):
             check = QCheckBox(_(label))
@@ -197,8 +252,11 @@ class FitModelDialog(TableOperationDialogBase):
             # An attribute of its own, so the window remembers it.
             setattr(self, f"_chart_{key}", check)
             self._chart_checks[key] = check
-            grid.addWidget(check, index // 2, index % 2)
-        layout.addLayout(grid)
+            grid.addWidget(check)
+        charts.card.layout().addLayout(grid)
+        # Under the column list, where there is room: the effects take the right.
+        self.roles_widget.column_layout.addWidget(charts)
+        self._on_personality_changed()
 
     def table_or_none(self) -> str | None:
         combo = getattr(self, "_table_combo", None)
@@ -295,13 +353,56 @@ class FitModelDialog(TableOperationDialogBase):
             return found
         if not self._terms:
             return [_("The model has no effects: select columns and press Add.")]
-        both = sorted(set(self.roles_widget.casting().columns("response")) & {f.name for f in self._factors()})
+        casting = self.roles_widget.casting()
+        if self.personality() not in lm.CATEGORICAL_RESPONSE:
+            nominal = [name for name in casting.columns("response") if casting.kinds.get(name) == NOMINAL]
+            if nominal:
+                return [_("{personality} needs a continuous Y; {columns} is nominal - choose Nominal or Ordinal Logistic.").format(
+                    personality=self._personality.currentText(), columns=", ".join(nominal))]
+        both = sorted(set(casting.columns("response")) & {f.name for f in self._factors()})
         if both:
             return [_("A column cannot be both a response and a factor: {columns}.").format(columns=", ".join(both))]
         return []
 
+    def personality(self) -> str:
+        return str(self._personality.currentData() or "standard")
+
+    def _on_personality_changed(self) -> None:
+        """Show what the personality asks for, offer the charts it can draw, link its documentation."""
+        personality = self.personality()
+        categorical = personality in lm.CATEGORICAL_RESPONSE
+        for widget, shown in (
+            (self._emphasis, personality in ("standard", "stepwise")),
+            (self._family, personality == "glm"),
+            (self._direction, personality == "stepwise"),
+        ):
+            widget.setVisible(shown)
+            label = self._form.labelForField(widget)
+            if label is not None:
+                label.setVisible(shown)
+        for key, check in self._chart_checks.items():
+            usable = not categorical or key in ("pareto", "profile")
+            check.setEnabled(usable)
+            if not usable:
+                check.setChecked(False)
+        links = [(_(label), url) for label, url in DOCS.get(personality, ())]
+        if personality in ("standard", "stepwise"):
+            links.append((_("Emphasis"), EMPHASIS_DOC))
+        links.append((_("Prediction profiler"), PROFILER_DOC))
+        self._doc_link.setText(
+            _("JMP documentation:") + " " + " · ".join(f"<a href='{html.escape(url)}'>{html.escape(text)}</a>" for text, url in links)
+        )
+        self.inputs_changed()
+
+    def _apply_emphasis(self) -> None:
+        """Tick the charts the emphasis opens with, as JMP's emphases choose their reports."""
+        key = str(self._emphasis.currentData())
+        charts = next((charts for k, _label, charts in EMPHASES if k == key), ())
+        for chart, check in self._chart_checks.items():
+            check.setChecked(chart in charts and check.isEnabled())
+
     def charts(self) -> list[str]:
-        return [key for key, check in self._chart_checks.items() if check.isChecked()]
+        return [key for key, check in self._chart_checks.items() if check.isChecked() and check.isEnabled()]
 
     def parameter_values(self) -> dict[str, Any]:
         """The parameters, and the model: its terms and the factors' types and coding."""
@@ -311,6 +412,9 @@ class FitModelDialog(TableOperationDialogBase):
             {"name": f.name, "kind": f.kind, "low": f.low, "high": f.high} for f in self._factors()
         ]
         values["charts"] = self.charts()
+        values["personality"] = self.personality()
+        values["family"] = str(self._family.currentData())
+        values["direction"] = str(self._direction.currentData())
         return values
 
     # ------------------------------------------------------------------
@@ -323,8 +427,10 @@ class FitModelDialog(TableOperationDialogBase):
             factors=[lm.Factor(f["name"], f["kind"], f["low"], f["high"]) for f in params["factors"]],
             responses=casting.columns("response"),
             terms=[tuple(t) for t in params["terms"]],
-            reduce=bool(params.get("reduce")),
             alpha=float(params.get("alpha", 0.05)),
+            personality=str(params.get("personality", "standard")),
+            family=str(params.get("family", "normal")),
+            direction=str(params.get("direction", "backward")),
         )
         return lm.fit_models(frame, spec)
 
@@ -344,7 +450,7 @@ class FitModelDialog(TableOperationDialogBase):
                 elif isinstance(value, str):
                     cells.append(html.escape(value))
                 elif column == "DF":
-                    cells.append(str(int(value)))
+                    cells.append("" if pd.isna(value) else str(int(value)))
                 else:
                     cells.append(report_html.format_number(value))
             rows.append(cells)
@@ -358,9 +464,9 @@ class FitModelDialog(TableOperationDialogBase):
         blocks.append(report_html.section(
             _("Effect summary"),
             report_html.table(
-                [_("Source"), _("LogWorth"), _("Prob > F")],
+                [_("Source"), _("LogWorth"), _(fit.p_column)],
                 [[html.escape(r["Term"]), report_html.format_number(r["LogWorth"], digits=3),
-                  report_html.format_p_value(r["Prob > F"])]
+                  report_html.format_p_value(r[fit.p_column])]
                  for r in effects.to_dict("records")],
             ),
         ))
@@ -373,8 +479,8 @@ class FitModelDialog(TableOperationDialogBase):
             report_html.summary_table((_(key), report_html.format_number(value)) for key, value in fit.summary.items()),
         ))
         blocks.append(report_html.section(
-            _("Analysis of variance"),
-            report_html.table([_(c) for c in fit.anova.columns], self._rows(fit.anova, ("Prob > F",))),
+            _(fit.whole_title),
+            report_html.table([_(c) for c in fit.anova.columns], self._rows(fit.anova, ("Prob > F", "Prob > ChiSq"))),
         ))
         if fit.lack_of_fit is not None:
             blocks.append(report_html.section(
@@ -383,16 +489,22 @@ class FitModelDialog(TableOperationDialogBase):
             ))
         blocks.append(report_html.section(
             _("Parameter estimates (coded units)"),
-            report_html.table([_(c) for c in fit.estimates.columns], self._rows(fit.estimates, ("Prob > |t|",))),
+            report_html.table([_(c) for c in fit.estimates.columns],
+                              self._rows(fit.estimates, ("Prob > |t|", "Prob > |z|"))),
         ))
         blocks.append(report_html.section(
             _("Effect tests"),
             report_html.table(
                 [_(c) for c in fit.effect_tests.columns if c != "LogWorth"],
-                self._rows(fit.effect_tests.drop(columns=["LogWorth"]), ("Prob > F",)),
+                self._rows(fit.effect_tests.drop(columns=["LogWorth"]), ("Prob > F", "Prob > ChiSq")),
             ),
         ))
-        return report_html.section(_("Response {name}").format(name=fit.response), *blocks)
+        if fit.levels:
+            blocks.insert(0, report_html.note(
+                _("Levels: {levels}. The predictions are the probability of {first}.").format(
+                    levels=", ".join(fit.levels), first=fit.levels[0])))
+        title = _("Response {name}").format(name=fit.response)
+        return report_html.section(f"{title} · {_(dict(lm.PERSONALITIES)[fit.personality])}", *blocks)
 
     # ------------------------------------------------------------------
     # OK: the results into the project
@@ -423,8 +535,7 @@ class FitModelDialog(TableOperationDialogBase):
             frame[residual] = fit.residuals.reindex(frame.index)
             frame[studentized] = fit.studentized.reindex(frame.index)
             for row in fit.effect_tests.to_dict("records"):
-                effects.append({"Response": fit.response, "Term": row["Term"], "LogWorth": row["LogWorth"],
-                                "F Ratio": row["F Ratio"], "Prob > F": row["Prob > F"]})
+                effects.append({"Response": fit.response, **row})
             if not fit.profile.empty:
                 profiles.append(fit.profile.assign(Response=fit.response))
         repo.import_dataframe(frame, table_name=names["results"], normalize_columns=False)
@@ -486,7 +597,8 @@ class FitModelDialog(TableOperationDialogBase):
                     name=factor, style={"linestyle": "-"})
                 for factor in dict.fromkeys(fit.profile["Factor"])
             ]
-            panels.append(("Scatter Plot", _("Prediction profile"), _("Factor (coded, -1 to +1)"), fit.response, series))
+            y_label = f"Prob({fit.levels[0]})" if fit.levels else fit.response
+            panels.append(("Scatter Plot", _("Prediction profile"), _("Factor (coded, -1 to +1)"), y_label, series))
         if "interaction" in charts:
             pairs = [t for t in fit.terms if len(t) == 2 and t[0] != t[1]]
             if pairs:

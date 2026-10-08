@@ -220,10 +220,15 @@ class DataHubLogger(logging.Logger):
     def set_status_bar(self, status_bar: QStatusBar | None) -> None:
         """Set the status bar that receives log messages, or None to disable."""
         if self._status_bar is not None:
-            try:
-                log_events.status_message.disconnect(self._status_bar.showMessage)
-            except (RuntimeError, TypeError):
-                pass  # already gone with its window
+            # A bar gone with its window must not be touched at all: asking a
+            # deleted Qt object for its bound method can crash, not raise.
+            import shiboken6
+
+            if shiboken6.isValid(self._status_bar):
+                try:
+                    log_events.status_message.disconnect(self._status_bar.showMessage)
+                except (RuntimeError, TypeError):
+                    pass  # already disconnected
         self._status_bar = status_bar
         if status_bar is not None:
             log_events.status_message.connect(status_bar.showMessage)

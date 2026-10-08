@@ -253,7 +253,7 @@ def source_translator_calls(root: Path | None = None) -> set[str]:
 
 #: Class attributes whose string value is passed through ``_()`` by the code
 #: that reads them: SeriesOperationDialogBase.build_model_selector, and
-#: ScaffoldDialog (app/dialogs/dev_tools_common.py) for its texts.
+#: DeveloperDialogBase (app/developer_helpers/developer_helper_base.py) for its texts.
 TRANSLATED_ATTRIBUTES: frozenset[str] = frozenset({
     "MODEL_LABEL", "MODEL_TOOLTIP",
     "TITLE", "HINT", "NAME_PLACEHOLDER", "FILE_PLACEHOLDER", "DESCRIPTION_PLACEHOLDER",

@@ -30,14 +30,14 @@ from typing import Any
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QDialog,
-    QHBoxLayout,
+    QFrame,
     QInputDialog,
     QLabel,
     QLineEdit,
     QMenu,
     QMessageBox,
-    QPushButton,
+    QScrollArea,
+    QSizePolicy,
     QTableView,
     QToolButton,
     QVBoxLayout,
@@ -47,14 +47,14 @@ from PySide6.QtWidgets import (
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.data.repo.table_tools import CAST_TYPES
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.styles.style import (
-    CardFrame,
     action_presentation,
-    apply_dialog_shell,
     apply_fusion_for_item_view_styling,
     create_action_button,
+    create_compact_section_title,
+    load_icon,
     mark_destructive_button,
-    mark_icon_only,
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
@@ -176,8 +176,21 @@ class EditableTableModel(LazyTableModel):
         return text
 
 
-class TableEditorDialog(QDialog):
+class TableEditorDialog(SettingsTableDialog):
     """Hand editing for one table: cells, rows, columns, and the data tools."""
+
+    #: The tools, by section: what each acts on, one name per button.
+    TOOL_SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("Rows", ("table_add_row", "table_insert_row", "table_delete_rows")),
+        ("Columns", (
+            "table_add_column", "table_insert_column", "table_rename_column",
+            "table_cast_column", "table_computed_column", "table_delete_column",
+        )),
+        ("Data", (
+            "table_sort_ascending", "table_sort_descending", "table_fill_missing",
+            "table_find_replace", "table_group_aggregate",
+        )),
+    )
 
     def __init__(
         self,
@@ -185,10 +198,19 @@ class TableEditorDialog(QDialog):
         table: str,
         parent: QWidget | None = None,
     ) -> None:
-        super().__init__(parent)
+        # "medium" (900x640), not "large" (1020x700): 700 plus a title bar
+        # and a dock does not fit the 768 a laptop screen still commonly
+        # has, and a dialog that opens taller than the screen cannot be
+        # resized back by dragging an edge that is off it.
+        super().__init__(
+            parent,
+            title=_("Edit table '{table}'").format(table=table),
+            icon=load_icon("document-edit"),
+            size="medium",
+            settings_width=250,
+        )
         self._repo = repo
         self._table = str(table)
-        self.setWindowTitle(_("Edit table '{table}'").format(table=self._table))
 
         self.view = QTableView(self)
         self.view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
@@ -209,103 +231,123 @@ class TableEditorDialog(QDialog):
         self._model = self._new_model()
         self.view.setModel(self._model)
 
-        root = QVBoxLayout(self)
-        # "medium" (900x640), not "large" (1020x700): 700 plus a title bar
-        # and a dock does not fit the 768 a laptop screen still commonly
-        # has, and a dialog that opens taller than the screen cannot be
-        # resized back by dragging an edge that is off it.
-        apply_dialog_shell(self, root, size="medium")
-        root.addWidget(self._build_toolbar(), 0)
-        root.addWidget(self.view, 1)
-
+        # The tools on the left, the table on the right.
+        self.settings_layout.addWidget(self._build_tools(), 1)
+        self.content_layout.addWidget(self.view, 1)
         self._status = QLabel(self)
         self._status.setProperty("muted", True)
-        root.addWidget(self._status, 0)
+        self._status.setWordWrap(True)
+        self.content_layout.addWidget(self._status, 0)
         self._show_counts()
 
-        closing = QHBoxLayout()
-        stdSizeAndlayout(closing)
         self._restore_button = create_action_button(
-            parent=self, action_id="table_restore", action=self._restore, layout=closing
+            parent=self, action_id="table_restore", action=self._restore, layout=None
         )
         mark_destructive_button(self._restore_button)
-        closing.addStretch(1)
-        create_action_button(
+        # Left of the stretch, apart from OK and Cancel: it undoes, it does not close.
+        self.action_row.insertWidget(0, self._restore_button)
+        ok = create_action_button(
             parent=self,
             action_id="apply",
             action=self.accept,
-            layout=closing,
+            layout=self.action_row,
             presentation=(
                 action_presentation("apply")[0],
                 _("OK"),
                 _("Keep every change made here"),
             ),
         )
+        ok.setDefault(True)
         create_action_button(
             parent=self,
             action_id="close",
             action=self.reject,
-            layout=closing,
+            layout=self.action_row,
             presentation=(
                 action_presentation("close")[0],
                 _("Cancel"),
                 _("Undo every change made here and close"),
             ),
         )
-        root.addLayout(closing, 0)
 
     # ------------------------------------------------------------------
-    # The toolbar: one row of icons, grouped; names are in the tooltips
+    # The tools: by section, an icon and a name each
     # ------------------------------------------------------------------
 
-    def _tool(self, row: QHBoxLayout, action_id: str, action) -> QPushButton:
-        """One square icon button from the action catalogue (SF Symbols on
-        macOS, Segoe Fluent on Windows); its name is in the tooltip."""
-        button = create_action_button(parent=self, action_id=action_id, action=action, layout=row)
-        button.setAccessibleName(action_presentation(action_id)[1])
-        mark_icon_only(button)
+    def _tool_button(self, parent: QWidget, action_id: str) -> QToolButton:
+        """One tool from the action catalogue: its icon, its name beside it, a sentence as tooltip."""
+        icon, text, tooltip = action_presentation(action_id)
+        button = QToolButton(parent)
+        button.setObjectName("tableEditorTool")
+        button.setIcon(icon)
+        button.setText(text)
+        button.setToolTip(tooltip)
+        button.setAccessibleName(text)
+        button.setAutoRaise(True)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        # A list of tools, not a stack of buttons: compact rows, so all
+        # fifteen fit a laptop's height without scrolling.
+        button.setFixedHeight(max(24, button.fontMetrics().height() + 10))
         return button
 
-    @staticmethod
-    def _gap(row: QHBoxLayout) -> None:
-        row.addSpacing(18)
-
-    def _build_toolbar(self) -> CardFrame:
-        card = CardFrame(self, "tableEditorCard")
-        row = QHBoxLayout()
-        stdSizeAndlayout(row)
-        card.layout().addLayout(row)
-
-        self._tool(row, "table_add_row", self._add_row)
-        self._tool(row, "table_insert_row", self._insert_row)
-        self._tool(row, "table_delete_rows", self._delete_rows)
-        self._gap(row)
-        self._tool(row, "table_add_column", self._add_column)
-        self._tool(row, "table_insert_column", self._insert_column)
-        self._tool(row, "table_rename_column", self._rename_column)
-        self._tool(row, "table_cast_column", self._cast_column)
-        self._tool(row, "table_computed_column", self._computed_column)
-        self._tool(row, "table_delete_column", self._delete_column)
-        self._gap(row)
-        self._tool(row, "table_sort_ascending", lambda: self._sort(descending=False))
-        self._tool(row, "table_sort_descending", lambda: self._sort(descending=True))
-        self._tool(row, "table_fill_missing", self._fill_missing)
-        self._tool(row, "table_find_replace", self._find_replace)
-        self._gap(row)
-        self._tool(row, "table_group_aggregate", self._group_aggregate)
-        row.addStretch(1)
+    def _build_tools(self) -> QWidget:
+        actions = {
+            "table_add_row": self._add_row,
+            "table_insert_row": self._insert_row,
+            "table_delete_rows": self._delete_rows,
+            "table_add_column": self._add_column,
+            "table_insert_column": self._insert_column,
+            "table_rename_column": self._rename_column,
+            "table_cast_column": self._cast_column,
+            "table_computed_column": self._computed_column,
+            "table_delete_column": self._delete_column,
+            "table_sort_ascending": lambda: self._sort(descending=False),
+            "table_sort_descending": lambda: self._sort(descending=True),
+            "table_fill_missing": self._fill_missing,
+            "table_find_replace": self._find_replace,
+            "table_group_aggregate": self._group_aggregate,
+        }
+        tools = QWidget(self.settings_frame)
+        layout = QVBoxLayout(tools)
+        stdSizeAndlayout(layout)
+        layout.setSpacing(2)
+        #: action id -> its button, for tests and for whatever enables them.
+        self.tool_buttons: dict[str, QToolButton] = {}
+        for title, action_ids in self.TOOL_SECTIONS:
+            if self.tool_buttons:
+                layout.addSpacing(6)
+            layout.addWidget(create_compact_section_title(_(title), tools))
+            for action_id in action_ids:
+                button = self._tool_button(tools, action_id)
+                button.clicked.connect(lambda _checked=False, run=actions[action_id]: run())
+                layout.addWidget(button)
+                self.tool_buttons[action_id] = button
 
         # Hide, Selected and ClusterId: the columns the application
-        # maintains - used rarely, so behind one button.
-        more = QToolButton(card)
+        # maintains - used rarely, so behind one button with its menu.
+        layout.addSpacing(6)
+        layout.addWidget(create_compact_section_title(_("Managed columns"), tools))
+        more = self._tool_button(tools, "table_more")
         more.setObjectName("tableEditorMore")
-        more_icon, more_text, more_tip = action_presentation("table_more")
-        more.setIcon(more_icon)
-        more.setAccessibleName(more_text)
-        more.setToolTip(f"{more_text}: {more_tip}")
-        more.setAutoRaise(True)
+        # Under its section's title: named for what the menu holds, not again for the section.
+        more.setText(_("Hide, Selected, ClusterId"))
         more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        menu = QMenu(more)
+        more.setMenu(self._managed_columns_menu(more))
+        layout.addWidget(more)
+        layout.addStretch(1)
+
+        # Scrolled rather than squeezed: a short window must not pile the
+        # buttons on top of one another.
+        scroll = QScrollArea(self.settings_frame)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(tools)
+        return scroll
+
+    def _managed_columns_menu(self, parent: QWidget) -> QMenu:
+        menu = QMenu(parent)
         # Hide rows by the selected column: the same comparisons the data
         # preview offers, so the editor is not the one place they are
         # missing (todo N-06). Inside this session's undo entry.
@@ -354,9 +396,7 @@ class TableEditorDialog(QDialog):
                 item.triggered.connect(
                     lambda _checked=False, run=verbs[kind], name=column: self._managed(lambda table: run(table, name))
                 )
-        more.setMenu(menu)
-        row.addWidget(more, 0)
-        return card
+        return menu
 
     # ------------------------------------------------------------------
     # What changed: the status line

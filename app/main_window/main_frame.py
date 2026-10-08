@@ -8,21 +8,41 @@ imported. A mixin of MainWindow.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from PySide6.QtCore import QEvent, QObject, QPoint, Qt
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QMainWindow, QSizePolicy, QSplitter, QVBoxLayout, QWidget
 
-from app.dialogs.import_data_dialog import ImportDataDialog, is_importable
+from app.dialogs.import_data_dialog import ImportDataDialog
 from app.logs.logger import applogger
 from app.styles.style import IS_WINDOWS
 from app.styles.style import IS_MACOS, stdSizeAndlayout
+from app.utils.data_sources import is_importable
 from app.utils.messages import show_message
-from app.widgets.custom_title_bar import CustomTitleBar
+from app.main_window.custom_title_bar import CustomTitleBar
 
 
-class MainWindowFrame:
+if TYPE_CHECKING:
+    from app.data.sqlite_repo import SqliteRepo
+
+    class _MainWindowFrameBase(QMainWindow):
+        """Static contract supplied by the composed MainWindow class."""
+
+        _main_split: QSplitter
+        _central_host: QWidget
+        _repo: SqliteRepo
+        _table_panel: Any
+        _own_title_bar: CustomTitleBar | None
+
+        def _switch_database(self, db_path: Path) -> None: ...
+        def _reload_tabs(self, select_figure_id: int | None = None) -> None: ...
+else:
+    class _MainWindowFrameBase:
+        """Runtime-neutral base: MainWindow supplies the actual Qt base."""
+
+
+class MainWindowFrame(_MainWindowFrameBase):
     """A part of MainWindow; ``self`` is the window."""
 
     #: How close to an edge, in pixels, counts as "grab this edge to resize".
@@ -110,7 +130,7 @@ class MainWindowFrame:
             # window's top edge - grey for the rail, white for the panels
             # beside it - the way Finder and System Settings look. A strip
             # here would cut across all of them.
-            self._own_title_bar = CustomTitleBar(self, is_macos=False)
+            self._own_title_bar = CustomTitleBar(cast(Any, self), is_macos=False)
             layout.addWidget(self._own_title_bar, 0)
         layout.addWidget(self._main_split, 1)
         return host

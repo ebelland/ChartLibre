@@ -582,6 +582,31 @@ class TableListPanel(QWidget):
             )
             items.append(None)
 
+        # The whole table is managed here; the data preview below works on
+        # the cells selected in it - an action belongs to one menu, not both.
+        # Editing: the table in the editor, a saved query in the Query
+        # Builder (opened empty from the menu bar and New Table).
+        if len(selected_sources) == 1 and not has_query:
+            items.append(
+                MenuItem(
+                    text=_("Edit table..."),
+                    tooltip=_(
+                        "Edit cells, add or delete rows and columns, change a "
+                        "column's type, and manage the Hide and ClusterId columns"
+                    ),
+                    callback=self._edit_table,
+                    icon="document-edit",
+                )
+            )
+        elif self._single_selected_query() is not None:
+            items.append(
+                MenuItem(
+                    text=_("Edit query…"),
+                    tooltip=_("Open this saved query in the Query Builder"),
+                    callback=self._edit_selected_query,
+                    icon="query_builder",
+                )
+            )
         items.append(
             MenuItem(
                 text=_("Rename…"),
@@ -590,44 +615,16 @@ class TableListPanel(QWidget):
                 icon="rename",
             )
         )
-
-        # One entry for both: it edits the selected saved query when there is
-        # exactly one, and otherwise opens the Query Builder empty.
-        items.append(
-            MenuItem(
-                text=_("Query Builder…"),
-                tooltip=(
-                    _("Open this saved query in the Query Builder")
-                    if self._single_selected_query() is not None
-                    else _("Open the Query Builder")
-                ),
-                callback=self._open_query_builder,
-                icon="query_builder",
-            )
-        )
-        # The same table edits the data preview offers (todo N-01): change a
-        # column's type and the rest live in the editor. A saved query has no
-        # rows of its own to edit or copy.
         if len(selected_sources) == 1 and not has_query:
-            items.extend(
-                [
-                    MenuItem(
-                        text=_("Edit table..."),
-                        tooltip=_(
-                            "Edit cells, add or delete rows and columns, change a "
-                            "column's type, and manage the Hide and ClusterId columns"
-                        ),
-                        callback=self._edit_table,
-                        icon="document-edit",
-                    ),
-                    MenuItem(
-                        text=_("Duplicate table"),
-                        tooltip=_("Copy this table, rows and columns, under a new name"),
-                        callback=self._duplicate_table,
-                        icon="duplicate_table",
-                    ),
-                ]
+            items.append(
+                MenuItem(
+                    text=_("Duplicate table"),
+                    tooltip=_("Copy this table, rows and columns, under a new name"),
+                    callback=self._duplicate_table,
+                    icon="duplicate_table",
+                )
             )
+        items.append(None)
         if len(selected_sources) == 1:
             items.append(
                 MenuItem(
@@ -649,16 +646,10 @@ class TableListPanel(QWidget):
         items.extend(
             [
                 MenuItem(
-                    text=_("Export → CSV…"),
-                    tooltip=_("Export current table as comma separated text file"),
-                    callback=self._export_table_csv,
-                    icon="export_csv",
-                ),
-                MenuItem(
-                    text=_("Export → XLSX…"),
-                    tooltip=_("Export current table as Excel file"),
-                    callback=self._export_table_xlsx,
-                    icon="export_xlsx",
+                    text=_("Export…"),
+                    tooltip=_("Save the whole table, or what the query returns, as CSV or Excel"),
+                    callback=self._export_table,
+                    icon="export_rows",
                 ),
                 None,
                 MenuItem(
@@ -804,27 +795,33 @@ class TableListPanel(QWidget):
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Rename failed: %s", exc)
 
-    def _export_table_csv(self) -> None:
-        """Export the selected table to CSV."""
+    def _export_table(self) -> None:
+        """Save the selected table, or saved query's result, as CSV or Excel - the file type chosen."""
         table, _unused = self._selected_row_info()
-        file_path, _unused = QFileDialog.getSaveFileName(self,_("Export CSV"),f"{table}.csv","CSV files (*.csv)",)
-        if  file_path and self._repo and table:
-            try:
-                df = self._repo.query_df(f'SELECT * FROM "{table}"')
-                df.to_csv(file_path, index=False)
-            except Exception as exc:  # noqa: BLE001
-                applogger.exception(f"CSV export failed: {exc}")
-
-    def _export_table_xlsx(self) -> None:
-        """Export the selected table to XLSX."""
-        table, _unused = self._selected_row_info()
-        file_path, _unused = QFileDialog.getSaveFileName(self,_("Export XLSX"),f"{table}.xlsx","Excel files (*.xlsx)",)
-        if  file_path and self._repo and table:
-            try:
-                df = self._repo.query_df(f'SELECT * FROM "{table}"')
-                df.to_excel(file_path, index=False, engine="openpyxl")
-            except Exception as exc:  # noqa: BLE001
-                applogger.exception(f"XLSX export failed: {exc}")
+        if not table or self._repo is None:
+            return
+        path, chosen = QFileDialog.getSaveFileName(
+            self, _("Export"), f"{table}.csv", _("CSV (*.csv);;Excel (*.xlsx)"),
+        )
+        if not path:
+            return
+        target = Path(path)
+        if target.suffix.lower() not in (".csv", ".xlsx"):
+            target = target.with_suffix(".xlsx" if "xlsx" in chosen else ".csv")
+        try:
+            source = self._repo.get_data_source(table)
+            if source is None:
+                return
+            frame = self._repo.query_df(f"SELECT * FROM {source.from_clause()}")
+            if target.suffix.lower() == ".xlsx":
+                frame.to_excel(target, index=False, engine="openpyxl")
+            else:
+                frame.to_csv(target, index=False)
+        except Exception as exc:  # noqa: BLE001 - told to the user, not raised into Qt
+            applogger.exception("Export failed: %s", exc)
+            QMessageBox.warning(self, _("Could not do that"), str(exc))
+            return
+        applogger.info("Exported %s to %s.", table, target)
 
     def _refresh_link_for_table(self) -> None:
         """Refresh the external link associated with a table.

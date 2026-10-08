@@ -62,7 +62,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app import APP_NAME, APP_VERSION
 from app.data.sqlite_repo import SqliteRepo
-from app.dialogs.main_window import MainWindow
+from app.main_window.main_window import MainWindow
 
 from app.styles.style import apply_platform_style, ensure_icon_theme
 from app.utils.config import get_language, set_last_database

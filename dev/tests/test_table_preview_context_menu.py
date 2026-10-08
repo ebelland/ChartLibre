@@ -10,8 +10,8 @@ loaded on screen. Right-clicking a query preview silently did nothing.
 
 The fix keeps the table-writing items (delete column, hide rows, ensure
 hide/cluster columns, ...) table-only, since a query has nothing in the repo
-for them to write to, but the menu itself - with at least "Refresh data
-table" - must still appear.
+for them to write to, but the menu itself - with at least Copy - must
+still appear.
 """
 from __future__ import annotations
 
@@ -50,11 +50,10 @@ def test_context_menu_appears_for_a_real_table(qapp, tmp_db_path: Path) -> None:
     assert menu is not None
 
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
-    assert "Refresh data table" in texts
-    # Table-only actions are present for a real table. "Edit table..." is
-    # the marker for them now: the Hide and ClusterId items this used to
-    # name were moved into that dialog, where the rest of the editing is.
-    assert "Edit table..." in texts
+    assert "Copy" in texts
+    # The whole table - edit, export, reload - is the table list's, right
+    # above this panel; the preview works on the cells selected in it.
+    assert not texts & {"Edit table...", "Refresh data table", "Export rows..."}
 
 
 def test_context_menu_still_appears_for_a_saved_query(qapp, tmp_db_path: Path) -> None:
@@ -69,7 +68,7 @@ def test_context_menu_still_appears_for_a_saved_query(qapp, tmp_db_path: Path) -
 
     assert menu is not None, "the context menu must not disappear for a saved query"
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
-    assert "Refresh data table" in texts
+    assert "Copy" in texts
     # Table-writing actions do not apply to a query: it has no rowid to
     # address a cell by, and nothing in the repo backs a "hide" or
     # "cluster" column for it.
@@ -88,9 +87,10 @@ def test_the_table_tools_are_in_the_menu_and_copy_writes_the_clipboard(qapp, tmp
     menu = panel._build_context_menu(QPoint(0, 0))
     assert menu is not None
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
-    assert {"Copy", "Export rows..."} <= texts
+    assert "Copy" in texts
+    assert "Export selected rows..." not in texts  # one cell is not a block to export
     assert "Duplicate table" not in texts  # the table list's, not the preview's
-    assert "Histogram and statistics of 'a'" in texts  # one column selected
+    assert "Histogram of 'a'" in texts  # one column selected
     # Moved into Edit table..., with the rest of the editing.
     assert not texts & {
         "Group and aggregate...", "Add column from SQL expression...", "Delete column 'a'..."
@@ -102,3 +102,17 @@ def test_the_table_tools_are_in_the_menu_and_copy_writes_the_clipboard(qapp, tmp
             selection.select(model.index(row, col), QItemSelectionModel.SelectionFlag.Select)
     panel._copy_selection()
     assert qapp.clipboard().text() == "1\t4\n2\t5"
+
+
+def test_a_selected_block_can_be_exported(qapp, tmp_db_path: Path) -> None:
+    repo = _repo_with_table_and_query(tmp_db_path)
+    host = QWidget()
+    panel = TablePreviewPanel(parent=host, repo=repo)
+    panel.set_context(repo, "t1")
+    model = panel.view.model()
+    selection = panel.view.selectionModel()
+    for row in (0, 1):
+        selection.select(model.index(row, 0), QItemSelectionModel.SelectionFlag.Select)
+    menu = panel._build_context_menu(QPoint(0, 0))
+    assert menu is not None
+    assert "Export selected rows..." in {action.text() for action in menu.actions()}

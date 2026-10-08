@@ -7,7 +7,7 @@ own shipped source, see app.utils.config.USER_CONTENT_DIR), import it back
 fresh to confirm it is both syntactically valid and the shape its scanner
 looks for, and open it in the system's default editor - so that sequence
 lives here once rather than three times with three chances to drift.
-:class:`ScaffoldDialog` is the window they share.
+:class:`DeveloperDialogBase` is the window they share.
 """
 from __future__ import annotations
 
@@ -112,7 +112,7 @@ def import_check(path: Path, expected_class_name: str) -> str:
     return ""
 
 
-class ScaffoldDialog(QDialog):
+class DeveloperDialogBase(QDialog):
     """The form all three tools share: Name, File name, Description, Create.
 
     A subclass names its folders, scanner base class and texts as class
