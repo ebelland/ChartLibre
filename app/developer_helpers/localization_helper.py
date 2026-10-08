@@ -35,7 +35,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
-    QDialog,
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
@@ -45,17 +44,14 @@ from PySide6.QtWidgets import (
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
-    QVBoxLayout,
     QWidget,
 )
 
 from app.dialogs.settings_dialog import LANGUAGE_NAMES
 from app.logs.logger import applogger
 from app.styles.style import (
-    CardFrame,
-    apply_dialog_shell,
     create_action_button,
-    create_section_title,
+    create_compact_section_title,
     load_icon,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -63,6 +59,7 @@ from app.styles.style import (
 from app.utils import i18n, machine_translation
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.config import get_value
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.utils.i18n import _
 from app.utils.messages import show_message
 
@@ -100,45 +97,95 @@ def _leading_comment(path: Path) -> str:
     return "\n".join(lines)
 
 
-class EditLocalizationDialog(QDialog):
+class EditLocalizationDialog(SettingsTableDialog):
     """Browse, edit and extend one language's translation catalogue."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("Edit Localization"))
-        self.setWindowIcon(load_icon("edit_localization"))
+        # The language and what to show on the left; its strings on the right.
+        super().__init__(
+            parent,
+            title=_("Edit Localization"),
+            icon=load_icon("edit_localization"),
+            size="large",
+            settings_width=280,
+        )
+        side = self.settings_layout
+        panel = self.settings_frame
+        card = self.content_frame
 
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="large")
-
-        card = CardFrame(self, "editLocalizationCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("Edit Localization"), card))
-
-        top_row = QHBoxLayout()
-        stdSizeAndlayout(top_row)
-        top_row.addWidget(QLabel(_("Language:"), card))
-        self._language_combo = self._build_language_combo(card)
+        side.addWidget(create_compact_section_title(_("Language"), panel))
+        self._language_combo = self._build_language_combo(panel)
         self._language_combo.currentIndexChanged.connect(self._reload_table)
-        top_row.addWidget(self._language_combo)
+        side.addWidget(self._language_combo)
+        new_row = QHBoxLayout()
+        stdSizeAndlayout(new_row)
         create_action_button(
             parent=self,
             action_id="new",
             action=self._on_new_language,
-            layout=top_row,
+            layout=new_row,
             presentation=(load_icon("new"), _("New language…"), _("Create a new, empty catalogue")),
         )
-        top_row.addStretch(1)
-        self._missing_only_check = QCheckBox(_("Missing only"), card)
-        self._missing_only_check.toggled.connect(self._apply_filter)
-        top_row.addWidget(self._missing_only_check)
-        card_layout.addLayout(top_row)
+        new_row.addStretch(1)
+        side.addLayout(new_row)
 
-        self._search_edit = QLineEdit(card)
+        side.addSpacing(6)
+        side.addWidget(create_compact_section_title(_("Show"), panel))
+        self._search_edit = QLineEdit(panel)
         self._search_edit.setPlaceholderText(_("Search source or translation…"))
         self._search_edit.setClearButtonEnabled(True)
         self._search_edit.textChanged.connect(self._apply_filter)
-        card_layout.addWidget(self._search_edit)
+        side.addWidget(self._search_edit)
+        self._missing_only_check = QCheckBox(_("Missing only"), panel)
+        self._missing_only_check.toggled.connect(self._apply_filter)
+        side.addWidget(self._missing_only_check)
+
+        self._translate_button: QPushButton | None = None
+        self._provider_combo: QComboBox | None = None
+        self._deepl_key = str(get_value(machine_translation.DEEPL_KEY_SETTING, "") or "")
+        self._providers = machine_translation.available_providers(self._deepl_key)
+        if self._providers:
+            side.addSpacing(6)
+            side.addWidget(create_compact_section_title(_("Machine translation"), panel))
+            self._provider_combo = QComboBox(panel)
+            self._provider_combo.setToolTip(_("Translation service"))
+            for key, name in self._providers:
+                self._provider_combo.addItem(name, key)
+            side.addWidget(self._provider_combo)
+            translate_row = QHBoxLayout()
+            stdSizeAndlayout(translate_row)
+            self._translate_button = create_action_button(
+                parent=self,
+                action_id="run",
+                action=self._on_auto_translate_missing,
+                layout=translate_row,
+                presentation=(
+                    load_icon("run"),
+                    _("Translate missing (auto)"),
+                    _("Fill every empty translation with a machine translation to review"),
+                ),
+            )
+            translate_row.addStretch(1)
+            side.addLayout(translate_row)
+
+        side.addSpacing(6)
+        side.addWidget(create_compact_section_title(_("Manual"), panel))
+        manual_row = QHBoxLayout()
+        stdSizeAndlayout(manual_row)
+        create_action_button(
+            parent=self,
+            action_id="info",
+            action=self._show_manual_instructions,
+            layout=manual_row,
+            presentation=(
+                load_icon("info"),
+                _("Localized manual…"),
+                _("How to produce a translated copy of the user manual"),
+            ),
+        )
+        manual_row.addStretch(1)
+        side.addLayout(manual_row)
+        side.addStretch(1)
 
         self._table = QTableWidget(0, 2, card)
         self._table.setHorizontalHeaderLabels([_("Source"), _("Translation")])
@@ -149,56 +196,14 @@ class EditLocalizationDialog(QDialog):
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         mark_editor_panel(self._table)
-        card_layout.addWidget(self._table, 1)
+        self.content_layout.addWidget(self._table, 1)
 
         self._status_label = QLabel(card)
         self._status_label.setWordWrap(True)
-        card_layout.addWidget(self._status_label)
+        self.content_layout.addWidget(self._status_label)
 
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        create_action_button(
-            parent=self,
-            action_id="info",
-            action=self._show_manual_instructions,
-            layout=action_row,
-            presentation=(
-                load_icon("info"),
-                _("Localized manual…"),
-                _("How to produce a translated copy of the user manual"),
-            ),
-        )
-        self._translate_button: QPushButton | None = None
-        self._provider_combo: QComboBox | None = None
-        self._deepl_key = str(get_value(machine_translation.DEEPL_KEY_SETTING, "") or "")
-        self._providers = machine_translation.available_providers(self._deepl_key)
-        if self._providers:
-            self._provider_combo = QComboBox(card)
-            self._provider_combo.setToolTip(_("Translation service"))
-            for key, name in self._providers:
-                self._provider_combo.addItem(name, key)
-            action_row.addWidget(self._provider_combo)
-            self._translate_button = create_action_button(
-                parent=self,
-                action_id="run",
-                action=self._on_auto_translate_missing,
-                layout=action_row,
-                presentation=(
-                    load_icon("run"),
-                    _("Translate missing (auto)"),
-                    _("Fill every empty translation with a machine translation to review"),
-                ),
-            )
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="close", action=self.reject, layout=action_row
-        )
-        create_action_button(
-            parent=self, action_id="apply", action=self._on_save, layout=action_row
-        )
-        card_layout.addLayout(action_row)
-
-        root.addWidget(card, 1)
+        self.add_action("apply", self._on_save, default=True)
+        self.add_action("close", self.reject)
 
         self._entries: dict[str, str] = {}
         self._translation_task: BackgroundTask | None = None

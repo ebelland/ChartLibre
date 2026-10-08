@@ -38,11 +38,9 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFormLayout,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QScrollArea,
     QSizePolicy,
     QSplitter,
     QVBoxLayout,
@@ -92,6 +90,9 @@ class TableOperationDialogBase(QDialog):
     ROLES: ClassVar[tuple[ColumnRole, ...]] = ()
     MODELS: ClassVar[Mapping[str, OperationModel]] = {}
     PARAMS: ClassVar[tuple[Param, ...]] = ()
+    #: The tab the declared parameters go on: one of their own by default, or
+    #: one the operation built (a model's settings).
+    PARAMETERS_TAB: ClassVar[str] = "Parameters"
 
     #: Something was written into the project (an OK): the window refreshes.
     applied = Signal()
@@ -184,15 +185,12 @@ class TableOperationDialogBase(QDialog):
             self._parameter_form = ParameterForm(self.PARAMS, self, on_change=self.inputs_changed)
             parameters = TitledCard(self._inputs_panel, _("Parameters"))
             parameters.card.layout().addWidget(self._parameter_form.widget)
-            self.roles_widget.side_layout.addWidget(parameters)
-        # Scrolled rather than squeezed: a short window must not pile the
-        # frames on top of one another.
-        inputs_scroll = QScrollArea(self)
-        inputs_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        inputs_scroll.setWidgetResizable(True)
-        inputs_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        inputs_scroll.setWidget(self._inputs_panel)
-        inputs_scroll.setMinimumWidth(self._inputs_panel.minimumSizeHint().width() + 16)
+            self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(parameters)
+        self.roles_widget.finish_tabs()
+        self.roles_widget.tabs.setCurrentIndex(0)
+        # The standard ground under the frames, not the window's grey.
+        self._inputs_panel.setProperty("toolboxPage", True)
+        self._inputs_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         right = CardFrame(self, "tableOperationResultsCard")
         right_layout = right.layout()
@@ -201,11 +199,11 @@ class TableOperationDialogBase(QDialog):
         self._results = HtmlResultsView(self)
         self._results.setText(_("Cast the columns into their roles, then press Preview."))
         right_layout.addWidget(self._results)
-        right.setMinimumWidth(300)
+        right.setMinimumWidth(260)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setChildrenCollapsible(False)
-        splitter.addWidget(inputs_scroll)
+        splitter.addWidget(self._inputs_panel)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
@@ -230,7 +228,7 @@ class TableOperationDialogBase(QDialog):
         root = QVBoxLayout(self)
         # Small enough for a laptop: the inputs need about 520 px, the report
         # takes the rest, and screen_fit shrinks it further on a smaller screen.
-        apply_dialog_shell(self, root, size=QSize(1000, 600))
+        apply_dialog_shell(self, root, size=QSize(900, 520))
         root.addWidget(splitter, 1)
         root.addLayout(buttons)
 

@@ -43,14 +43,14 @@ import matplotlib as mpl
 from matplotlib import style as mplstyle
 import numpy as np
 
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.styles.style import (
     MARGIN_CARD,
-    apply_dialog_shell,
-    CardFrame,
     action_presentation,
     create_action_button,
+    create_compact_section_title,
+    load_icon,
     mark_icon_only,
-    create_section_title,
     mark_editor_panel,
     stdSizeAndlayout,
 )
@@ -74,7 +74,7 @@ from matplotlib.figure import Figure
 
 from PySide6.QtCore import QModelIndex, Qt, QSettings, QSize, QTimer, Signal
 from PySide6.QtGui import     QFont,    QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QWidget, QTreeView, QLabel, QAbstractItemView, QDialog, QFileDialog, QHBoxLayout, QVBoxLayout, QComboBox, QSizePolicy, QSplitter, QListWidget, QListWidgetItem
+from PySide6.QtWidgets import QWidget, QTreeView, QLabel, QAbstractItemView, QFileDialog, QHBoxLayout, QVBoxLayout, QComboBox, QSizePolicy, QListWidget, QListWidgetItem
 
 # ---------------------------------------------------------------------------
 # Optional external helpers (graceful fallbacks)
@@ -501,7 +501,7 @@ class RcParamTreePicker(QComboBox):
 # Main editor dialog
 # ---------------------------------------------------------------------------
 
-class MplStyleEditorDialog(QDialog):
+class MplStyleEditorDialog(SettingsTableDialog):
     """Top-level Matplotlib style editor dialog."""
 
     # Emit path to a temp .mplstyle file when "Apply" is clicked
@@ -514,50 +514,33 @@ class MplStyleEditorDialog(QDialog):
         initial_style_text: str = "",
         figure_drawer: Callable[[Figure], None] | None = None,
     ) -> None:
-        super().__init__(parent)
+        # "medium": the action rows are icons now, so the editor no longer
+        # needs the large shell's width. The style stack and the preview on
+        # the left, the parameters on the right.
+        super().__init__(
+            parent,
+            title=_("Matplotlib Style Editor"),
+            icon=load_icon("edit"),
+            size="medium",
+            settings_width=400,
+        )
         #: Draws the chart being styled onto a figure, for the "This figure"
         #: preview; None when the editor was opened without one.
         self._figure_drawer = figure_drawer
-        self.setWindowTitle(_("Matplotlib Style Editor"))
-        # Size and root padding come from the shared dialog shell.
         self.setModal(True)
         self.apply_callback = apply_callback
         self.style_stack: list[str] = []
 
-        # Root layout: splitter + status bar + Apply.
-        root = QVBoxLayout(self)
-        # "medium": the action rows are icons now, so the editor no longer
-        # needs the large shell's width.
-        apply_dialog_shell(self, root, size="medium")
-
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setChildrenCollapsible(False)
-        root.addWidget(splitter, 1)
-
-        # Status + action row.
-        status_row = QHBoxLayout()
-        stdSizeAndlayout(status_row)
+        # The status, left of the buttons.
         self.status = QLabel("")
         self.status.setWordWrap(True)
         self.status.setContentsMargins(0, 0, 0, 0)
-        status_row.addWidget(self.status, 1)
-
-        create_action_button(
-                             parent=self,
-                             action_id="apply",
-                             action=self._on_apply_clicked,
-                             layout=status_row,
-                         )
-        create_action_button(
-                             parent=self,
-                             action_id="close",
-                             action=self._on_close,
-                             layout=status_row,
-                         )
-        root.addLayout(status_row, 0)
+        self.action_row.insertWidget(0, self.status, 1)
+        self.add_action("apply", self._on_apply_clicked, default=True)
+        self.add_action("close", self._on_close)
 
         # Left: stack on top, compact figure preview on bottom.
-        left: QWidget = QWidget()
+        left: QWidget = QWidget(self.settings_frame)
         ll: QVBoxLayout = QVBoxLayout(left)
         stdSizeAndlayout(ll)
         ll.addWidget(self._build_stack_group(), 0)
@@ -586,13 +569,8 @@ class MplStyleEditorDialog(QDialog):
         ll.addWidget(preview_panel, 1)
 
         # Right: parameters editor.
-        right: QWidget = self._build_table_group()
-
-        splitter.addWidget(left)
-        splitter.addWidget(right)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([420, 480])
+        self.settings_layout.addWidget(left, 1)
+        self.content_layout.addWidget(self._build_table_group(), 1)
 
         # Debounced preview timer.
         self._preview_timer = QTimer(self)
@@ -638,10 +616,14 @@ class MplStyleEditorDialog(QDialog):
         title: str,
         note: str | None = None,
     ) -> tuple[QWidget, QVBoxLayout]:
-        panel: QWidget = CardFrame(self, f"mplStyle{title.replace(' ', '')}Card")
-        layout = cast(QVBoxLayout, panel.layout())
+        # A titled part of the dialog's own frame, not a card of its own:
+        # the two-panel shell already draws the frames.
+        panel = QWidget(self)
+        panel.setObjectName(f"mplStyle{title.replace(' ', '')}Section")
+        layout = QVBoxLayout(panel)
+        stdSizeAndlayout(layout)
 
-        title_label: QLabel = create_section_title(title, panel)
+        title_label: QLabel = create_compact_section_title(_(title), panel)
         layout.addWidget(title_label, 0)
 
         if note:

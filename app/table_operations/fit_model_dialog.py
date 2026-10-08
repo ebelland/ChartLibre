@@ -109,6 +109,9 @@ class FitModelDialog(TableOperationDialogBase):
     ROLES = (
         ColumnRole("response", "Y", "The columns to model: one model each.", minimum=1),
     )
+    #: Alpha beside the personality: both say how the model is fitted.
+    PARAMETERS_TAB = "Model"
+
     PARAMS = (
         FloatParam(
             "alpha",
@@ -189,17 +192,21 @@ class FitModelDialog(TableOperationDialogBase):
         self._doc_link.setOpenExternalLinks(True)
         self._doc_link.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
         self._doc_link.setWordWrap(True)
-        # Above the roles, as JMP puts it.
-        model = TitledCard(self, _("Model"))
+        # Tabs beside the columns: the roles and the effects built from them,
+        # the model's settings, the charts - one page of all of it was taller
+        # than a laptop's screen.
+        self.roles_widget.tabs.setTabText(0, _("Roles and effects"))
+        model = TitledCard(self, _("Personality"))
         model_layout = model.card.layout()
         model_layout.addLayout(form)
         model_layout.addWidget(self._doc_link)
-        layout.insertWidget(0, model)
+        self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(model)
 
-        # Buttons in a column beside the list, as in JMP: in a row they made
-        # the window wider than a laptop's.
-        effects = QHBoxLayout()
-        buttons = QVBoxLayout()
+        # Buttons in two short rows above the list: a column of them beside it
+        # made the frame taller than the list needs to be.
+        effects = QVBoxLayout()
+        effects.setSpacing(6)
+        buttons = QHBoxLayout()
         buttons.setSpacing(4)
         for text, tooltip, action in (
             (_("Add"), _("Add the selected columns as main effects."), self._add_selected),
@@ -220,6 +227,8 @@ class FitModelDialog(TableOperationDialogBase):
         menu.addAction(_("Response surface"), lambda: self._apply_macro("surface", edited=True))
         macros.setMenu(menu)
         buttons.addWidget(macros)
+        buttons.addStretch(1)
+        effects.addLayout(buttons)
         degree = QHBoxLayout()
         degree.addWidget(QLabel(_("Degree")))
         self._degree = QSpinBox()
@@ -227,22 +236,24 @@ class FitModelDialog(TableOperationDialogBase):
         self._degree.setValue(2)
         self._degree.setToolTip(_("How many factors the factorial macro's interactions combine, at most."))
         degree.addWidget(self._degree)
-        buttons.addLayout(degree)
-        buttons.addStretch(1)
-        effects.addLayout(buttons)
+        degree.addStretch(1)
+        effects.addLayout(degree)
 
         self._term_list = QListWidget()
         self._term_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self._term_list.setToolTip(_("Double-click an effect to remove it."))
-        self._term_list.setMinimumHeight(90)
+        # Short, as the columns' list: about seven effects show, more scroll.
+        term_rows = max(self._term_list.fontMetrics().height() + 4, 18)
+        self._term_list.setMinimumHeight(4 * term_rows)
+        self._term_list.setMaximumHeight(7 * term_rows + 8)
         self._term_list.setMinimumWidth(140)
         self._term_list.itemDoubleClicked.connect(lambda _item: self._remove_selected())
         effects.addWidget(self._term_list, 1)
         effects_card = TitledCard(self, _("Construct Model Effects"))
         effects_card.card.layout().addLayout(effects)
-        layout.addWidget(effects_card, 1)
+        layout.addWidget(effects_card, 0)
 
-        charts = TitledCard(self, _("Charts"))
+        charts = TitledCard(self, _("Charts to draw"))
         grid = QVBoxLayout()
         grid.setSpacing(2)
         self._chart_checks: dict[str, QCheckBox] = {}
@@ -254,8 +265,7 @@ class FitModelDialog(TableOperationDialogBase):
             self._chart_checks[key] = check
             grid.addWidget(check)
         charts.card.layout().addLayout(grid)
-        # Under the column list, where there is room: the effects take the right.
-        self.roles_widget.column_layout.addWidget(charts)
+        self.roles_widget.add_tab(_("Charts")).addWidget(charts)
         self._on_personality_changed()
 
     def table_or_none(self) -> str | None:

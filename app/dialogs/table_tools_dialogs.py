@@ -32,12 +32,15 @@ from PySide6.QtWidgets import (
 
 from app.data.repo._common import _is_ident, _quote_ident
 from app.data.repo.table_tools import AGGREGATES
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.styles.style import (
-    CardFrame,
     action_presentation,
     apply_dialog_shell,
     apply_fusion_for_item_view_styling,
     create_action_button,
+    create_compact_section_title,
+    load_icon,
+    stdSizeAndlayout,
 )
 from app.utils.i18n import _
 from app.widgets.table_preview import DataFrameTableModel
@@ -134,7 +137,7 @@ class _MeasureRow(QWidget):
         return str(self.aggregate.currentData()), self.column.currentData()
 
 
-class GroupAggregateDialog(QDialog):
+class GroupAggregateDialog(SettingsTableDialog):
     """Summarise a table into a new one: grouping columns, measures, a preview.
 
     The form only collects the choices; the repository writes the table
@@ -150,12 +153,16 @@ class GroupAggregateDialog(QDialog):
         *,
         initial_group: str | None = None,
     ) -> None:
-        super().__init__(parent)
+        # The choices on the left, the table they make on the right.
+        super().__init__(
+            parent,
+            title=_("Group and aggregate '{table}'").format(table=table),
+            icon=load_icon("table_group_aggregate"),
+            settings_width=340,
+        )
         self._repo = repo
         self._table = str(table)
-        self.setWindowTitle(_("Group and aggregate '{table}'").format(table=self._table))
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
+        side = self.settings_layout
 
         schema = [(name, kind) for name, kind in repo._schema(self._table) if name != "Hide"]
         self._columns = [name for name, _kind in schema]
@@ -165,11 +172,8 @@ class GroupAggregateDialog(QDialog):
         }
         self._has_hide = "Hide" in {name for name, _kind in repo._schema(self._table)}
 
-        top = QHBoxLayout()
-        root.addLayout(top, 0)
-
-        groups_card = CardFrame(self, "groupByCard")
-        groups_card.layout().addWidget(QLabel(_("Group by:"), groups_card))
+        groups_card = self.settings_frame
+        side.addWidget(create_compact_section_title(_("Group by"), groups_card))
         self.groups = QListWidget(groups_card)
         # Fusion draws the check boxes; the native macOS style drew the
         # unchecked ones as nothing at all, and the checked ones barely.
@@ -182,17 +186,17 @@ class GroupAggregateDialog(QDialog):
             )
         self.groups.setMaximumHeight(170)
         self.groups.itemChanged.connect(lambda _item: self._schedule())
-        groups_card.layout().addWidget(self.groups)
+        side.addWidget(self.groups)
         hint = QLabel(_("One row per distinct combination. None checked: one row of totals."), groups_card)
         hint.setProperty("muted", True)
         hint.setWordWrap(True)
-        groups_card.layout().addWidget(hint)
-        top.addWidget(groups_card, 1)
+        side.addWidget(hint)
 
-        measures_card = CardFrame(self, "measuresCard")
-        measures_card.layout().addWidget(QLabel(_("Measures:"), measures_card))
+        measures_card = self.settings_frame
+        side.addSpacing(6)
+        side.addWidget(create_compact_section_title(_("Measures"), measures_card))
         self._measure_box = QVBoxLayout()
-        measures_card.layout().addLayout(self._measure_box)
+        side.addLayout(self._measure_box)
         add_row = QHBoxLayout()
         add = create_action_button(
             parent=measures_card,
@@ -202,17 +206,17 @@ class GroupAggregateDialog(QDialog):
         )
         add_row.addWidget(add)
         add_row.addStretch(1)
-        measures_card.layout().addLayout(add_row)
-        measures_card.layout().addStretch(1)
-        top.addWidget(measures_card, 1)
+        side.addLayout(add_row)
         self._measures: list[_MeasureRow] = []
         self._add_measure("COUNT", None)
 
         # A plain row, not a QFormLayout: on macOS a form centres itself
         # and leaves the name box a few characters wide.
+        side.addSpacing(6)
+        side.addWidget(create_compact_section_title(_("New table"), self.settings_frame))
         options = QHBoxLayout()
-        root.addLayout(options, 0)
-        options.addWidget(QLabel(_("New table name:"), self), 0)
+        side.addLayout(options)
+        options.addWidget(QLabel(_("Name:"), self), 0)
         self.name = QLineEdit(self)
         self.name.textChanged.connect(lambda _t: self._schedule())
         options.addWidget(self.name, 1)
@@ -220,23 +224,18 @@ class GroupAggregateDialog(QDialog):
         self.include_hidden.setToolTip(_("Rows marked Hide are left out unless this is checked, as they are from the charts."))
         self.include_hidden.setVisible(self._has_hide)
         self.include_hidden.toggled.connect(lambda _c: self._schedule())
-        options.addSpacing(12)
-        options.addWidget(self.include_hidden, 0)
+        side.addWidget(self.include_hidden)
+        side.addStretch(1)
 
-        root.addWidget(QLabel(_("Preview:"), self), 0)
+        self.content_layout.addWidget(create_compact_section_title(_("Preview"), self.content_frame))
         self._preview = _preview_view(self)
-        root.addWidget(self._preview, 1)
+        self.content_layout.addWidget(self._preview, 1)
         self._status = _error_label(self)
-        root.addWidget(self._status, 0)
+        self.content_layout.addWidget(self._status, 0)
 
-        box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self
-        )
-        self._ok = box.button(QDialogButtonBox.StandardButton.Ok)
+        self._ok = self.add_action("apply", self.accept, default=True)
         self._ok.setText(_("Create table"))
-        box.accepted.connect(self.accept)
-        box.rejected.connect(self.reject)
-        root.addWidget(box, 0)
+        self.add_action("close", self.reject)
 
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
@@ -321,22 +320,28 @@ class GroupAggregateDialog(QDialog):
         return None
 
 
-class ComputedColumnDialog(QDialog):
+class ComputedColumnDialog(SettingsTableDialog):
     """A new column computed per row from a SQL expression, with a preview."""
 
     def __init__(self, repo: Any, table: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+        # The new column and the table's columns on the left; the expression
+        # and what it gives on the right.
+        super().__init__(
+            parent,
+            title=_("Add computed column"),
+            icon=load_icon("table_computed_column"),
+            settings_width=280,
+        )
         self._repo = repo
         self._table = str(table)
-        self.setWindowTitle(_("Add computed column"))
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
 
         form = QFormLayout()
-        root.addLayout(form, 0)
+        stdSizeAndlayout(form)
+        self.settings_layout.addWidget(create_compact_section_title(_("New column"), self.settings_frame))
+        self.settings_layout.addLayout(form)
         self.name = QLineEdit(self)
         self.name.setPlaceholderText("new_column")
-        form.addRow(_("Name of the new column:"), self.name)
+        form.addRow(_("Name:"), self.name)
         self.kind = QComboBox(self)
         self.kind.addItem(_("Automatic"), None)
         for kind in ("REAL", "INTEGER", "TEXT"):
@@ -344,42 +349,31 @@ class ComputedColumnDialog(QDialog):
         self.kind.setToolTip(_("Automatic keeps each value as the expression gives it."))
         form.addRow(_("Type:"), self.kind)
 
-        middle = QHBoxLayout()
-        root.addLayout(middle, 1)
-        left = QVBoxLayout()
-        left.addWidget(QLabel(_("Expression:"), self))
+        self.content_layout.addWidget(create_compact_section_title(_("Expression"), self.content_frame))
         self.expression = QPlainTextEdit(self)
         self.expression.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.expression.setPlaceholderText("2 * salary_eur\nage / 10.0\nCASE WHEN x > 0 THEN 'up' ELSE 'down' END")
         self.expression.setTabChangesFocus(True)
-        left.addWidget(self.expression, 1)
-        middle.addLayout(left, 2)
+        self.content_layout.addWidget(self.expression, 1)
 
-        right = QVBoxLayout()
-        right.addWidget(QLabel(_("Columns:"), self))
+        self.settings_layout.addSpacing(6)
+        self.settings_layout.addWidget(create_compact_section_title(_("Columns"), self.settings_frame))
         self.columns = QListWidget(self)
         self.columns.setToolTip(_("Double-click a column to insert it at the cursor."))
         for name in repo.get_columns(self._table):
             self.columns.addItem(str(name))
         self.columns.itemDoubleClicked.connect(self._insert_column)
-        right.addWidget(self.columns, 1)
-        middle.addLayout(right, 1)
+        self.settings_layout.addWidget(self.columns, 1)
 
-        root.addWidget(QLabel(_("Preview (first rows):"), self), 0)
+        self.content_layout.addWidget(create_compact_section_title(_("Preview (first rows)"), self.content_frame))
         self._preview = _preview_view(self)
-        self._preview.setMaximumHeight(160)
-        root.addWidget(self._preview, 0)
+        self.content_layout.addWidget(self._preview, 1)
         self._status = _error_label(self)
-        root.addWidget(self._status, 0)
+        self.content_layout.addWidget(self._status, 0)
 
-        box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self
-        )
-        self._ok = box.button(QDialogButtonBox.StandardButton.Ok)
+        self._ok = self.add_action("apply", self.accept, default=True)
         self._ok.setText(_("Add column"))
-        box.accepted.connect(self.accept)
-        box.rejected.connect(self.reject)
-        root.addWidget(box, 0)
+        self.add_action("close", self.reject)
 
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)

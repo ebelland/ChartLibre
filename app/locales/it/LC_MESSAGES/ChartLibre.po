@@ -7830,3 +7830,42 @@ msgstr "Manuale utente e riconoscimenti"
 
 msgid "Hide, Selected, ClusterId"
 msgstr "Hide, Selected, ClusterId"
+
+msgid "Measures"
+msgstr "Misure"
+
+msgid "New column"
+msgstr "Nuova colonna"
+
+msgid "Expression"
+msgstr "Espressione"
+
+msgid "Preview (first rows)"
+msgstr "Anteprima (prime righe)"
+
+msgid "Demo projects"
+msgstr "Progetti demo"
+
+msgid "Show"
+msgstr "Mostra"
+
+msgid "Machine translation"
+msgstr "Traduzione automatica"
+
+msgid "Manual"
+msgstr "Manuale"
+
+msgid "Style Stack"
+msgstr "Pila di stili"
+
+msgid "Parameters Override"
+msgstr "Parametri modificati"
+
+msgid "Roles and effects"
+msgstr "Ruoli ed effetti"
+
+msgid "Personality"
+msgstr "Personalità"
+
+msgid "Charts to draw"
+msgstr "Grafici da disegnare"

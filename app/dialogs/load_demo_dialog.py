@@ -15,31 +15,21 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
-    QDialog,
     QFrame,
-    QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QScrollArea,
-    QVBoxLayout,
     QWidget,
 )
 
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.data.demos import DEMO_PROJECTS, DemoProject
-from app.styles.style import (
-    apply_dialog_shell,
-    CardFrame,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    mark_editor_panel,
-    stdSizeAndlayout,
-)
+from app.styles.style import load_icon, mark_editor_panel
 from app.utils.i18n import _
 
 
-class LoadDemoDialog(QDialog):
+class LoadDemoDialog(SettingsTableDialog):
     """Let the user choose one demo project; ``chosen`` holds the result.
 
     Modal, and read through ``chosen`` rather than a signal: the caller wants
@@ -54,20 +44,19 @@ class LoadDemoDialog(QDialog):
     PREVIEW_SIZE: QSize = QSize(400, 250)
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-
-        self.setWindowTitle(_("Load demo"))
-        self.setWindowIcon(load_icon("plot"))
+        # The demos on the left; the one chosen, pictured, on the right.
+        super().__init__(
+            parent,
+            title=_("Load demo"),
+            icon=load_icon("plot"),
+            settings_title=_("Demo projects"),
+            size="medium",
+            settings_width=380,
+        )
         self.chosen: DemoProject | None = None
+        card = self.content_frame
 
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
-
-        card = CardFrame(self, "loadDemoCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("Load demo"), card))
-
-        self._list = QListWidget(card)
+        self._list = QListWidget(self.settings_frame)
         mark_editor_panel(self._list)
         for demo in DEMO_PROJECTS:
             item = QListWidgetItem(_(demo.file_name), self._list)
@@ -75,11 +64,8 @@ class LoadDemoDialog(QDialog):
             item.setData(Qt.ItemDataRole.UserRole, demo)
         self._list.setCurrentRow(0)
         self._list.currentRowChanged.connect(self._update_summary)
-        body = QHBoxLayout()
-        stdSizeAndlayout(body)
-        body.addWidget(self._list, 1)
-        details = QVBoxLayout()
-        stdSizeAndlayout(details)
+        self.settings_layout.addWidget(self._list, 1)
+        details = self.content_layout
         self._preview = QLabel(card)
         self._preview.setFixedSize(self.PREVIEW_SIZE)
         self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -101,24 +87,12 @@ class LoadDemoDialog(QDialog):
         self._summary.setAutoFillBackground(False)
         # At least this many lines, and whatever height the list beside it has.
         summary_box.setMinimumHeight(self._summary.fontMetrics().lineSpacing() * self._SUMMARY_LINES + 4)
-        summary_box.setFixedWidth(self.PREVIEW_SIZE.width())
+        summary_box.setMinimumWidth(self.PREVIEW_SIZE.width())
         details.addWidget(summary_box, 1)
-        body.addLayout(details, 0)
-        card_layout.addLayout(body, 1)
         self._update_summary(0)
 
-        root.addWidget(card, 1)
-
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="apply", action=self._confirm, layout=action_row
-        )
-        create_action_button(
-            parent=self, action_id="close", action=self.reject, layout=action_row
-        )
-        root.addLayout(action_row, 0)
+        self.add_action("apply", self._confirm, default=True)
+        self.add_action("close", self.reject)
 
     def _update_summary(self, row: int) -> None:
         item = self._list.item(row)

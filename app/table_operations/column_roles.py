@@ -21,6 +21,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -28,12 +29,14 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from app.styles.style import TitledCard
+from app.styles.style import MARGIN_TOOLBOX_PAGE, TitledCard
 from app.utils.i18n import _
 
 CONTINUOUS = "continuous"
@@ -129,7 +132,11 @@ class ColumnRolesWidget(QWidget):
         self._column_list.setObjectName("tableColumnsList")
         self._column_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._column_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._column_list.setMinimumHeight(120)
+        # Short: about nine columns show, more scroll - a list as tall as the
+        # window made the window taller than a laptop's screen.
+        rows_height = max(self._column_list.fontMetrics().height() + 4, 18)
+        self._column_list.setMinimumHeight(5 * rows_height)
+        self._column_list.setMaximumHeight(9 * rows_height + 8)
         self._column_list.itemSelectionChanged.connect(self._sync_kind_combo)
         columns.addWidget(self._column_list, 1)
         type_row = QHBoxLayout()
@@ -141,12 +148,12 @@ class ColumnRolesWidget(QWidget):
         self._kind_combo.activated.connect(self._apply_kind)
         type_row.addWidget(self._kind_combo, 1)
         columns.addLayout(type_row)
-        columns.setStretchFactor(self._column_list, 1)
-        columns_card.layout().setStretchFactor(columns_card.card, 1)
+
 
         left = QVBoxLayout()
         left.setSpacing(10)
-        left.addWidget(columns_card, 1)
+        left.addWidget(columns_card, 0)
+        left.addStretch(1)
         #: Where the operation adds frames under the columns: a model's charts.
         self.column_layout = left
         left_widget = QWidget(self)
@@ -180,13 +187,55 @@ class ColumnRolesWidget(QWidget):
         assert roles_layout is not None
         roles_layout.addLayout(right)
 
-        side = QVBoxLayout()
-        side.setSpacing(10)
+        # Beside the columns, tabs: the roles first, then whatever the
+        # operation adds (a model's settings, its charts) - one page of all of
+        # it is taller than a laptop's screen.
+        self.tabs = QTabWidget(self)
+        self.tabs.setObjectName("operationTabs")
+        self.tabs.setDocumentMode(True)
+        self.tabs.setUsesScrollButtons(True)
+        self.tabs.setElideMode(Qt.TextElideMode.ElideNone)
+        self.tabs.tabBar().setExpanding(False)
+        self._tab_layouts: dict[str, QVBoxLayout] = {}
+        side = self.add_tab(_("Roles"))
         side.addWidget(roles_card)
         #: Where the operation adds its own frames, under the roles: a model's
-        #: effects, its parameters.
+        #: effects.
         self.side_layout = side
-        layout.addLayout(side, 1)
+        layout.addWidget(self.tabs, 1)
+
+    def add_tab(self, title: str) -> QVBoxLayout:
+        """The layout of the tab *title*, made the first time it is asked for.
+
+        A page of titled frames on the standard ground, scrolled when the
+        window is shorter than it: frames are never squeezed on each other.
+        """
+        existing = self._tab_layouts.get(title)
+        if existing is not None:
+            return existing
+        page = QWidget()
+        page.setProperty("toolboxPage", True)
+        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(*MARGIN_TOOLBOX_PAGE)
+        page_layout.setSpacing(10)
+        scroll = QScrollArea(self.tabs)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(page)
+        scroll.viewport().setProperty("toolboxPage", True)
+        scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.tabs.addTab(scroll, title)
+        self._tab_layouts[title] = page_layout
+        return page_layout
+
+    def finish_tabs(self) -> None:
+        """Keep each page's frames at its top: the spare height goes below them,
+        unless a frame already takes it (a list that should fill the page)."""
+        for page_layout in self._tab_layouts.values():
+            if not any(page_layout.stretch(i) for i in range(page_layout.count())):
+                page_layout.addStretch(1)
 
     # -- Content ---------------------------------------------------------
 

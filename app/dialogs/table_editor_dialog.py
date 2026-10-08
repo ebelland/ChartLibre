@@ -31,6 +31,7 @@ from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
+    QHeaderView,
     QInputDialog,
     QLabel,
     QLineEdit,
@@ -52,7 +53,7 @@ from app.styles.style import (
     action_presentation,
     apply_fusion_for_item_view_styling,
     create_action_button,
-    create_compact_section_title,
+    TitledCard,
     load_icon,
     mark_destructive_button,
     stdSizeAndlayout,
@@ -218,6 +219,12 @@ class TableEditorDialog(SettingsTableDialog):
         self.view.setAlternatingRowColors(True)
         self.view.setSortingEnabled(False)
         apply_fusion_for_item_view_styling(self.view)
+        # Drawn as the data preview draws a table: compact rows, columns as
+        # wide as their names, resizable by hand.
+        self.view.verticalHeader().setDefaultSectionSize(26)
+        self.view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.view.horizontalHeader().setHighlightSections(False)
+        self.view.horizontalHeader().setMinimumSectionSize(72)
         # Rename a column where it is named: double-click its header.
         self.view.horizontalHeader().sectionDoubleClicked.connect(self._rename_from_header)
 
@@ -230,6 +237,7 @@ class TableEditorDialog(SettingsTableDialog):
 
         self._model = self._new_model()
         self.view.setModel(self._model)
+        self.view.resizeColumnsToContents()
 
         # The tools on the left, the table on the right.
         self.settings_layout.addWidget(self._build_tools(), 1)
@@ -308,42 +316,55 @@ class TableEditorDialog(SettingsTableDialog):
             "table_find_replace": self._find_replace,
             "table_group_aggregate": self._group_aggregate,
         }
-        tools = QWidget(self.settings_frame)
+        # The left column is a page of titled frames, as the navigation
+        # panels are: the shell's own card would put a box around the boxes.
+        frame = self.settings_frame
+        frame.setProperty("card", False)
+        frame.setProperty("toolboxPage", True)
+        frame.style().unpolish(frame)
+        frame.style().polish(frame)
+        self.settings_layout.setContentsMargins(0, 0, 0, 0)
+
+        tools = QWidget(frame)
+        tools.setObjectName("tableEditorTools")
+        tools.setProperty("toolboxPage", True)
+        tools.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QVBoxLayout(tools)
         stdSizeAndlayout(layout)
-        layout.setSpacing(2)
+        layout.setSpacing(10)
         #: action id -> its button, for tests and for whatever enables them.
         self.tool_buttons: dict[str, QToolButton] = {}
         for title, action_ids in self.TOOL_SECTIONS:
-            if self.tool_buttons:
-                layout.addSpacing(6)
-            layout.addWidget(create_compact_section_title(_(title), tools))
+            section = TitledCard(tools, _(title), f"tableEditor{title}Card", margins=(6, 6, 6, 6), spacing=1)
             for action_id in action_ids:
-                button = self._tool_button(tools, action_id)
+                button = self._tool_button(section.card, action_id)
                 button.clicked.connect(lambda _checked=False, run=actions[action_id]: run())
-                layout.addWidget(button)
+                section.card.layout().addWidget(button)
                 self.tool_buttons[action_id] = button
+            layout.addWidget(section)
 
         # Hide, Selected and ClusterId: the columns the application
         # maintains - used rarely, so behind one button with its menu.
-        layout.addSpacing(6)
-        layout.addWidget(create_compact_section_title(_("Managed columns"), tools))
-        more = self._tool_button(tools, "table_more")
+        managed = TitledCard(tools, _("Managed columns"), "tableEditorManagedCard", margins=(6, 6, 6, 6), spacing=1)
+        more = self._tool_button(managed.card, "table_more")
         more.setObjectName("tableEditorMore")
         # Under its section's title: named for what the menu holds, not again for the section.
         more.setText(_("Hide, Selected, ClusterId"))
         more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         more.setMenu(self._managed_columns_menu(more))
-        layout.addWidget(more)
+        managed.card.layout().addWidget(more)
+        layout.addWidget(managed)
         layout.addStretch(1)
 
         # Scrolled rather than squeezed: a short window must not pile the
         # buttons on top of one another.
-        scroll = QScrollArea(self.settings_frame)
+        scroll = QScrollArea(frame)
+        scroll.setObjectName("tableEditorToolsScroll")
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setWidget(tools)
+        scroll.viewport().setProperty("toolboxPage", True)
         return scroll
 
     def _managed_columns_menu(self, parent: QWidget) -> QMenu:
@@ -890,6 +911,7 @@ class TableEditorDialog(SettingsTableDialog):
         previous = self._model
         self._model = self._new_model()
         self.view.setModel(self._model)
+        self.view.resizeColumnsToContents()
         previous.deleteLater()
 
 

@@ -16,8 +16,10 @@ Important behavior:
 """
 from __future__ import annotations
 
+import atexit
 import html
 import re
+import weakref
 from typing import cast
 
 from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
@@ -116,6 +118,54 @@ def plain_to_html(text: str) -> str:
     )
 
 
+#: Every web view still alive, so they can be torn down in order before Qt is.
+_WEB_VIEWS: "weakref.WeakSet[QWidget]" = weakref.WeakSet()
+_RELEASE_HOOKED = False
+
+
+def release_web_views() -> None:
+    """Delete every live web view's page, then the view, now - not at exit.
+
+    Left to the end of the process, a QWebEngineView goes after the profile
+    and the scene its page renders into ("Release of profile requested but
+    WebEnginePage still not deleted"), and Qt crashes deleting it
+    (QQuickWindow::~QQuickWindow on a destroyed window: SIGSEGV). Deleting
+    the page first and the view straight after, while the application is
+    still whole, is the order QtWebEngine expects. Run on aboutToQuit and
+    at interpreter exit, so tests and scripts that never call exec() are
+    covered too.
+    """
+    try:
+        import shiboken6
+        from PySide6.QtCore import QCoreApplication, QEvent
+    except ImportError:  # pragma: no cover - PySide6 is always there
+        return
+    views = [view for view in list(_WEB_VIEWS) if shiboken6.isValid(view)]
+    _WEB_VIEWS.clear()
+    for view in views:
+        page = view.page() if hasattr(view, "page") else None
+        if page is not None and shiboken6.isValid(page):
+            shiboken6.delete(page)
+        if shiboken6.isValid(view):
+            shiboken6.delete(view)
+    if views and QCoreApplication.instance() is not None:
+        QCoreApplication.sendPostedEvents(None, int(QEvent.Type.DeferredDelete))
+
+
+def _hook_release() -> None:
+    """Arrange for release_web_views to run before Qt goes away, once."""
+    global _RELEASE_HOOKED
+    if _RELEASE_HOOKED:
+        return
+    _RELEASE_HOOKED = True
+    from PySide6.QtCore import QCoreApplication
+
+    app = QCoreApplication.instance()
+    if app is not None:
+        app.aboutToQuit.connect(release_web_views)
+    atexit.register(release_web_views)
+
+
 class HtmlResultsView(QWidget):
     """Reusable HTML results pane with Copy-as-HTML support."""
 
@@ -192,6 +242,8 @@ class HtmlResultsView(QWidget):
 
             view = QWebEngineView(self)
             view.setPage(_ExternalLinksPage(view))
+            _WEB_VIEWS.add(view)
+            _hook_release()
             return cast(QWidget, view)
         except Exception:
             pass

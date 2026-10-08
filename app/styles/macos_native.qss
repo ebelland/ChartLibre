@@ -913,3 +913,37 @@ QComboBox[cellEditor="true"]:hover,
 QComboBox[cellEditor="true"]:on {
   background-color: palette(base);
 }
+
+/* Table editor: the tools are rows of a list inside their titled frames -
+   flat, an icon and a name, a soft highlight under the pointer - not the
+   framed squares the generic QToolButton rule draws. */
+QToolButton#tableEditorTool,
+QToolButton#tableEditorMore {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 2px 6px;
+  min-height: 0px;
+  min-width: 0px;
+  text-align: left;
+}
+
+QToolButton#tableEditorTool:hover,
+QToolButton#tableEditorMore:hover {
+  background: rgba(@SHADOW_RGB@, 0.07);
+}
+
+QToolButton#tableEditorTool:pressed,
+QToolButton#tableEditorMore:pressed {
+  background: rgba(@ACCENT_RGB@, 0.16);
+}
+
+QToolButton#tableEditorMore::menu-indicator {
+  image: none;
+  width: 0px;
+}
+
+QScrollArea#tableEditorToolsScroll,
+QScrollArea#tableEditorToolsScroll > QWidget > QWidget {
+  background: transparent;
+}
