@@ -334,7 +334,8 @@ QTabBar::tab {
    so the four fit the left panel at its narrowest; the bar still scrolls
    beyond that. Direct children only - the Axis page's own tabs keep the
    ordinary size. */
-QTabWidget#propertiesTabs > QTabBar::tab {
+QTabWidget#propertiesTabs > QTabBar::tab,
+QTabWidget#operationTabs > QTabBar::tab {
   padding: 4px 6px;
   min-width: 0px;
 }

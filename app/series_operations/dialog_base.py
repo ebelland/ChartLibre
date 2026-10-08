@@ -3,7 +3,7 @@
 The base class owns the common shell used by smoothing, interpolation, outlier
 removal and fitting dialogs:
 
-- left side: QToolBox with Axis/Series selector, model selector and parameters
+- left side: tabs with the Axis/Series selector, the model selector and the parameters
 - right side: results pane and log output
 - bottom action buttons
 
@@ -20,7 +20,7 @@ from typing import Any, ClassVar, Protocol
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSpinBox, QSplitter, QToolBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget
 import numpy as np
 import pandas as pd
 
@@ -39,8 +39,7 @@ from app.styles.style import (
     create_doc_link,
     icon_from_svg_source,
     set_doc_link,
-    apply_toolbox_header_metrics,
-    apply_toolbox_page_metrics,
+    MARGIN_TOOLBOX_PAGE,
     CardFrame,
     create_action_button,
     create_section_title,
@@ -284,11 +283,11 @@ class SeriesOperationDialogBase(QDialog):
         # would show one figure's axes while writing to another's.
         self.series_selector.set_figure_locked(self.LOCK_FIGURE_SELECTION)
         self.series_selector.set_series_visible(self.SHOWS_SERIES_SELECTOR)
-        # The Axis / Series page lives inside the QToolBox left panel. It must
-        # be vertically expanding; otherwise its internal series_list can expand
+        # The Axis / Series page is a tab of the left panel. It must be
+        # vertically expanding; otherwise its internal series_list can expand
         # only inside the selector's fixed size and the empty space remains in
-        # the QToolBox page below it. Model and Parameters already behave this
-        # way because they are not forced to QSizePolicy.Fixed here.
+        # the page below it. Model and Parameters already behave this way
+        # because they are not forced to QSizePolicy.Fixed here.
         self.series_selector.setMinimumHeight(0)
         self.series_selector.setMaximumHeight(16777215)
         self.series_selector.setSizePolicy(
@@ -674,10 +673,10 @@ class SeriesOperationDialogBase(QDialog):
     # Common layout
     # ------------------------------------------------------------------
     def _toolbox_page(self, content: QWidget) -> QWidget:
-        """Wrap one left-panel widget as a QToolBox page.
+        """Wrap one left-panel widget as a tab page.
 
         The properties inspector's arrangement: the page is the grey ground
-        (``apply_toolbox_page_metrics`` marks it and insets it), and the
+        (marked toolboxPage and inset in _build_common_ui), and the
         content floats on it inside one white card - the System Settings
         grouped-box look. Most operation panels are already
         ``create_card_widget`` cards; the ones that are not (the Axis / Series
@@ -706,11 +705,17 @@ class SeriesOperationDialogBase(QDialog):
         return page
 
     def _build_common_ui(self) -> None:
-        """Build the common shell with a QToolBox left panel."""
-        left_toolbox = QToolBox(self)
-        left_toolbox.setObjectName("operationToolBox")
-        left_toolbox.setMinimumWidth(320)
-        left_toolbox.setSizePolicy(
+        """Build the common shell: the inputs as tabs on the left, the results on the right."""
+        # Tabs, as Chart properties: the accordion's three stacked headers took
+        # height and showed one section at a time all the same.
+        left_tabs = QTabWidget(self)
+        left_tabs.setObjectName("operationTabs")
+        left_tabs.setDocumentMode(True)
+        left_tabs.setUsesScrollButtons(True)
+        left_tabs.setElideMode(Qt.TextElideMode.ElideNone)
+        left_tabs.tabBar().setExpanding(False)
+        left_tabs.setMinimumWidth(320)
+        left_tabs.setSizePolicy(
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding,
         )
@@ -719,9 +724,7 @@ class SeriesOperationDialogBase(QDialog):
         self.model_panel = self._model_selector_widget
         self.parameters_panel = self._parameter_selector_widget
 
-        # QToolBox gives the current page the available page area, but the page
-        # itself still follows its own size policy. Keep all three pages capable
-        # of vertical expansion so the active page fills the left panel.
+        # Each page fills its tab: every panel may expand vertically.
         for panel in (
             self.axis_series_panel,
             self.model_panel,
@@ -734,22 +737,22 @@ class SeriesOperationDialogBase(QDialog):
                 QSizePolicy.Policy.Expanding,
             )
 
-        # The Axis / Series page is omitted entirely for an operation that
-        # selects nothing. Hiding the page's widget is not enough - a QToolBox
-        # keeps the header button for a hidden page, leaving a section that
-        # opens onto nothing.
+        # The Axis / Series tab is left out for an operation that selects nothing.
+        pages = []
         if self.SHOWS_AXIS_SERIES_PAGE:
-            left_toolbox.addItem(
-                self._toolbox_page(self.axis_series_panel), _("Axis / Series")
-            )
-        left_toolbox.addItem(self._toolbox_page(self.model_panel), _("Model"))
-        left_toolbox.addItem(
-            self._toolbox_page(self.parameters_panel), _("Parameters")
-        )
-        left_toolbox.setCurrentIndex(0)
-        apply_toolbox_header_metrics(left_toolbox)
-        apply_toolbox_page_metrics(left_toolbox)
-        self.left_toolbox = left_toolbox
+            pages.append((self.axis_series_panel, _("Axis / Series")))
+        pages.append((self.model_panel, _("Model")))
+        pages.append((self.parameters_panel, _("Parameters")))
+        for content, title in pages:
+            page = self._toolbox_page(content)
+            # The ground and the inset a toolbox page had (grey on macOS,
+            # white on Windows; see apply_toolbox_page_metrics).
+            page.setProperty("toolboxPage", True)
+            page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            page.layout().setContentsMargins(*MARGIN_TOOLBOX_PAGE)
+            left_tabs.addTab(page, title)
+        left_tabs.setCurrentIndex(0)
+        self.left_tabs = left_tabs
 
         right = CardFrame(self, "operationResultsCard")
         right_layout = right.layout()
@@ -759,7 +762,7 @@ class SeriesOperationDialogBase(QDialog):
         right_layout.addWidget(self._results_widget, 3)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.addWidget(left_toolbox)
+        splitter.addWidget(left_tabs)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)

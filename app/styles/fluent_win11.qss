@@ -429,7 +429,8 @@ QTabBar::tab {
 
 /* Chart properties' four tabs: narrow enough for the left panel at its
    narrowest (see macos_native.qss); the Axis page's own tabs are untouched. */
-QTabWidget#propertiesTabs > QTabBar::tab {
+QTabWidget#propertiesTabs > QTabBar::tab,
+QTabWidget#operationTabs > QTabBar::tab {
     padding: 0 8px;
     min-width: 0px;
 }
