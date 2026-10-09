@@ -46,7 +46,6 @@ from app.table_operations.dialog_base import TableOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
 from app.utils.i18n import _
-from app.widgets.chart_panel import FIGURE_VIEW_OPTIONS_KEY
 
 #: The macro a DOE model is analysed with by default.
 _DOE_MACROS: dict[str, str] = {
@@ -365,6 +364,12 @@ class FitModelDialog(TableOperationDialogBase):
         if not self._terms:
             return [_("The model has no effects: select columns and press Add.")]
         casting = self.roles_widget.casting()
+        if self.personality() in lm.CATEGORICAL_RESPONSE:
+            continuous = [name for name in casting.columns("response") if casting.kinds.get(name) != NOMINAL]
+            if continuous:
+                return [_("{personality} needs a nominal Y; {columns} is continuous - set its type to Nominal, "
+                          "or choose a least-squares personality.").format(
+                    personality=self._personality.currentText(), columns=", ".join(continuous))]
         if self.personality() not in lm.CATEGORICAL_RESPONSE:
             nominal = [name for name in casting.columns("response") if casting.kinds.get(name) == NOMINAL]
             if nominal:
@@ -565,29 +570,15 @@ class FitModelDialog(TableOperationDialogBase):
                 written.append({"figure": figure_id, "name": fit.response})
         return written
 
-    @staticmethod
-    def _quoted(name: str) -> str:
-        return '"' + name.replace('"', '""') + '"'
-
-    @staticmethod
-    def _literal(text: str) -> str:
-        return "'" + text.replace("'", "''") + "'"
-
-    def _select(self, table: str, roles: Mapping[str, str], where: str = "") -> tuple[str, dict[str, str]]:
-        """A series query naming each role's column as the role, the way every series reads its data."""
-        columns = ", ".join(f"{self._quoted(column)} AS {self._quoted(role)}" for role, column in roles.items())
-        sql = f"SELECT {columns} FROM {self._quoted(table)}" + (f" WHERE {where}" if where else "")
-        return sql, {role: role for role in roles}
-
     def _panels(self, fit: lm.ResponseFit, names: Mapping[str, str], charts: list[str]) -> list[tuple]:
         """(chart type, title, x label, y label, [(series name, sql, roles, style)]) per chart ticked."""
         predicted, residual, _studentized = self._columns_for(fit.response)
-        response = self._literal(fit.response)
+        response = self.literal(fit.response)
         panels = []
 
         def one(table: str, roles: Mapping[str, str], where: str = "", name: str = fit.response,
                 style: Mapping[str, Any] | None = None) -> tuple:
-            sql, mapped = self._select(names[table], roles, where)
+            sql, mapped = self.series_select(names[table], roles, where)
             return (name, sql, mapped, dict(style or {}))
 
         if "actual" in charts:
@@ -604,7 +595,7 @@ class FitModelDialog(TableOperationDialogBase):
         if "profile" in charts and not fit.profile.empty:
             series = [
                 one("profile", {"x": "Coded", "y": "Predicted"},
-                    f'"Response" = {response} AND "Factor" = {self._literal(factor)}',
+                    f'"Response" = {response} AND "Factor" = {self.literal(factor)}',
                     name=factor, style={"linestyle": "-"})
                 for factor in dict.fromkeys(fit.profile["Factor"])
             ]
@@ -621,22 +612,5 @@ class FitModelDialog(TableOperationDialogBase):
 
     def _make_figure(self, fit: lm.ResponseFit, names: Mapping[str, str], charts: list[str]) -> int:
         """A figure of the charts ticked, two to a row, with the response's report in its notes."""
-        repo = self._repo
-        panels = self._panels(fit, names, charts)
-        columns = 2 if len(panels) > 1 else 1
-        rows = max(1, math.ceil(len(panels) / columns))
         notes = report_html.document(_("Fit Model"), f"{self.table} · {fit.response}", self._report(fit))
-        figure_id = int(repo.create_figure_descriptor(
-            name=f"Fit Model · {fit.response}", nrows=rows, ncols=columns,
-            options={FIGURE_VIEW_OPTIONS_KEY: {"notes_html": notes}},
-        ))
-        for index, (chart, title, x_label, y_label, series) in enumerate(panels):
-            axis_id = int(repo.create_axis_descriptor(
-                figure_id=figure_id, axis_index=index, chart_type=chart,
-                title=title, x_label=x_label, y_label=y_label, options={},
-            ))
-            for position, (name, sql, roles, style) in enumerate(series):
-                repo.create_series_descriptor(
-                    axis_id=axis_id, series_index=position, name=name, sql_query=sql, roles=roles, style=style,
-                )
-        return figure_id
+        return self.create_report_figure(f"Fit Model · {fit.response}", notes, self._panels(fit, names, charts))

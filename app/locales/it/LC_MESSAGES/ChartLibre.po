@@ -7869,3 +7869,153 @@ msgstr "Personalità"
 
 msgid "Charts to draw"
 msgstr "Grafici da disegnare"
+
+msgid "Actual"
+msgstr "Osservato"
+
+msgid "Classification tree"
+msgstr "Albero di classificazione"
+
+msgid "Column contributions"
+msgstr "Contributi delle colonne"
+
+msgid "Confusion matrix (training rows)"
+msgstr "Matrice di confusione (righe di addestramento)"
+
+msgid "Grow the tree"
+msgstr "Crescita dell'albero"
+
+msgid "Leaf"
+msgstr "Foglia"
+
+msgid "Leaf report"
+msgstr "Report delle foglie"
+
+msgid "Leaves"
+msgstr "Foglie"
+
+msgid "One more split: the one that best separates the response."
+msgstr "Una divisione in più: quella che separa meglio la risposta."
+
+msgid "Partition"
+msgstr "Partizione"
+
+msgid "Prune"
+msgstr "Pota"
+
+msgid "Regression tree"
+msgstr "Albero di regressione"
+
+msgid "Split"
+msgstr "Dividi"
+
+msgid "Split history"
+msgstr "Storia delle divisioni"
+
+msgid "Split while the validation rows say the tree predicts better."
+msgstr "Divide finché le righe di validazione dicono che l'albero prevede meglio."
+
+msgid "Splits"
+msgstr "Divisioni"
+
+msgid "Tree"
+msgstr "Albero"
+
+msgid "Undo the last split."
+msgstr "Annulla l'ultima divisione."
+
+msgid "{columns} is both Y and X."
+msgstr "{columns} è sia Y sia X."
+
+msgid "{measure} by number of splits"
+msgstr "{measure} per numero di divisioni"
+
+msgid "Decision tree of a continuous or nominal response on many factors: split and prune a step at a time, or automatically on validation rows; leaves, column contributions and each row's leaf and prediction."
+msgstr "Albero decisionale di una risposta continua o nominale su molti fattori: dividi e pota un passo alla volta, o automaticamente sulle righe di validazione; foglie, contributi delle colonne e foglia e previsione di ogni riga."
+
+msgid "R² or misclassification by splits"
+msgstr "R² o errore di classificazione per divisioni"
+
+msgid "Actual by predicted (continuous Y)"
+msgstr "Osservato contro previsto (Y continua)"
+
+msgid "Leaf means or shares"
+msgstr "Medie o quote delle foglie"
+
+msgid "Splits:"
+msgstr "Divisioni:"
+
+msgid "Minimum leaf size:"
+msgstr "Dimensione minima della foglia:"
+
+msgid "Validation share:"
+msgstr "Quota di validazione:"
+
+msgid "How many times the rows are split: one fewer than the leaves."
+msgstr "Quante volte le righe vengono divise: una in meno delle foglie."
+
+msgid "The fewest rows a leaf may hold."
+msgstr "Il numero minimo di righe in una foglia."
+
+msgid "With no validation column: this share of rows, at random, judges the tree. 0 for none."
+msgstr "Senza colonna di validazione: questa quota di righe, a caso, giudica l'albero. 0 per nessuna."
+
+msgid "Which rows the validation share draws."
+msgstr "Quali righe estrae la quota di validazione."
+
+msgid "The column to predict: continuous gives a regression tree, nominal a classification tree."
+msgstr "La colonna da prevedere: continua dà un albero di regressione, nominale uno di classificazione."
+
+msgid "The columns the tree may split on."
+msgstr "Le colonne su cui l'albero può dividere."
+
+msgid "Optional: 1 (or Validation) on the rows kept out of the fit, to judge it."
+msgstr "Facoltativa: 1 (o Validation) sulle righe tenute fuori dall'adattamento, per giudicarlo."
+
+msgid "Validation"
+msgstr "Validazione"
+
+msgid "Std Dev"
+msgstr "Dev. std"
+
+msgid "Prediction"
+msgstr "Previsione"
+
+msgid "SS"
+msgstr "SS"
+
+msgid "G^2"
+msgstr "G²"
+
+msgid "Portion"
+msgstr "Quota"
+
+msgid "Rows (training)"
+msgstr "Righe (addestramento)"
+
+msgid "Rows (validation)"
+msgstr "Righe (validazione)"
+
+msgid "R² (training)"
+msgstr "R² (addestramento)"
+
+msgid "R² (validation)"
+msgstr "R² (validazione)"
+
+msgid "RMSE (training)"
+msgstr "RMSE (addestramento)"
+
+msgid "Misclassification (training)"
+msgstr "Errore di classificazione (addestramento)"
+
+msgid "Misclassification (validation)"
+msgstr "Errore di classificazione (validazione)"
+
+msgid "Entropy R² (training)"
+msgstr "R² entropico (addestramento)"
+
+msgid "Misclassification"
+msgstr "Errore di classificazione"
+
+msgid "{personality} needs a nominal Y; {columns} is continuous - set its type to Nominal, or choose a least-squares personality."
+msgstr "{personality} richiede una Y nominale; {columns} è continua: imposta il tipo Nominale, o scegli una personalità ai minimi quadrati."

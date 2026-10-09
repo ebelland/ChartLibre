@@ -187,3 +187,26 @@ def test_nominal_logistic_binary_and_multinomial() -> None:
     tests = ordinal.effect_tests.set_index("Term")
     assert tests.loc["A", "DF"] == 1 and tests.loc["A", "Prob > ChiSq"] < 0.001
     assert ordinal.anova.loc[0, "Prob > ChiSq"] < 0.001
+
+
+def test_a_model_without_design_info_still_has_its_effect_tests_and_estimates() -> None:
+    """Some models carry no ``data.design_info`` ("'PandasData' object has no
+    attribute 'design_info'"): the term columns are rebuilt from the formula."""
+    import statsmodels.formula.api as smf
+
+    from app.analysis import linear_model as lm
+
+    rng = np.random.default_rng(5)
+    frame = pd.DataFrame({"a": rng.normal(size=40), "g": rng.choice(["p", "q", "r"], 40)})
+    frame["y"] = 2 * frame["a"] + np.where(frame["g"] == "q", 1.0, 0.0) + rng.normal(0, 0.1, 40)
+    terms = [("a",), ("g",)]
+
+    def piece(term):
+        return "a" if term == ("a",) else "C(g, Sum)"
+
+    model = smf.ols("y ~ a + C(g, Sum)", data=frame).fit()
+    expected = lm._effect_tests(model, terms, piece)
+    del model.model.data.design_info
+    tests = lm._effect_tests(model, terms, piece)
+    pd.testing.assert_frame_equal(tests, expected)
+    assert len(lm._estimates(model, terms, piece)) == 4

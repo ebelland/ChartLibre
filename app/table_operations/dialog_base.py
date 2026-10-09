@@ -28,6 +28,7 @@ to read.
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
@@ -397,6 +398,53 @@ class TableOperationDialogBase(QDialog):
             )
         except Exception:
             applogger.exception("Could not record %s in the project's history", self.Name)
+
+    # ------------------------------------------------------------------
+    # Results as a figure: charts of the tables written, the report in its notes
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def quoted(name: str) -> str:
+        """*name* as an SQL identifier."""
+        return '"' + str(name).replace('"', '""') + '"'
+
+    @staticmethod
+    def literal(text: str) -> str:
+        """*text* as an SQL string."""
+        return "'" + str(text).replace("'", "''") + "'"
+
+    def series_select(self, table: str, roles: Mapping[str, str], where: str = "") -> tuple[str, dict[str, str]]:
+        """A series query naming each role's column as the role, the way every series reads its data."""
+        columns = ", ".join(f"{self.quoted(column)} AS {self.quoted(role)}" for role, column in roles.items())
+        sql = f"SELECT {columns} FROM {self.quoted(table)}" + (f" WHERE {where}" if where else "")
+        return sql, {role: role for role in roles}
+
+    def create_report_figure(self, name: str, notes_html: str, panels: Sequence[tuple]) -> int:
+        """A figure of *panels*, two to a row, with *notes_html* in its notes; its id.
+
+        Each panel is ``(chart type, title, x label, y label, series)``, each
+        series ``(name, sql, roles, style)`` - see series_select.
+        """
+        from app.widgets.chart_panel import FIGURE_VIEW_OPTIONS_KEY
+
+        repo = self._repo
+        columns = 2 if len(panels) > 1 else 1
+        rows = max(1, math.ceil(len(panels) / columns))
+        figure_id = int(repo.create_figure_descriptor(
+            name=name, nrows=rows, ncols=columns,
+            options={FIGURE_VIEW_OPTIONS_KEY: {"notes_html": notes_html}},
+        ))
+        for index, (chart, title, x_label, y_label, series) in enumerate(panels):
+            axis_id = int(repo.create_axis_descriptor(
+                figure_id=figure_id, axis_index=index, chart_type=chart,
+                title=title, x_label=x_label, y_label=y_label, options={},
+            ))
+            for position, (series_name, sql, roles, style) in enumerate(series):
+                repo.create_series_descriptor(
+                    axis_id=axis_id, series_index=position, name=series_name,
+                    sql_query=sql, roles=roles, style=style,
+                )
+        return figure_id
 
     # ------------------------------------------------------------------
     # Leaving

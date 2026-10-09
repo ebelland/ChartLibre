@@ -571,24 +571,53 @@ def _patsy_name(piece_text: str) -> str:
     return patsy.ModelDesc.from_formula("y ~ " + piece_text).rhs_termlist[-1].name()
 
 
-def _effect_tests(model, terms: list[Term], piece) -> pd.DataFrame:
-    """One F test per term, all its estimates at once (type III, sum contrasts)."""
-    from statsmodels.stats.anova import anova_lm
+def _term_slices(model) -> dict[str, slice]:
+    """Each formula term's columns among the estimates.
 
+    Read from the formula's design (``data.design_info``); rebuilt from the
+    formula and its data when a model carries none - a statsmodels build or
+    a model path that does not keep it ("'PandasData' object has no
+    attribute 'design_info'").
+    """
+    inner = model.model
+    info = getattr(inner.data, "design_info", None) or getattr(inner, "design_info", None)
+    if info is None:
+        import patsy
+
+        formula = str(getattr(inner, "formula", "") or "")
+        frame = getattr(inner.data, "frame", None)
+        if "~" not in formula or frame is None:
+            return {}
+        info = patsy.dmatrix(formula.split("~", 1)[1], frame, return_type="dataframe").design_info
+    return dict(info.term_name_slices)
+
+
+def _effect_tests(model, terms: list[Term], piece) -> pd.DataFrame:
+    """One F test per term, all its estimates at once (type III, sum contrasts).
+
+    A Wald F test that the term's coefficients are all zero: with sum
+    contrasts, the type III test anova_lm(typ=3) makes - computed here so
+    it needs no more of the model than its estimates and the term's columns.
+    """
+    slices = _term_slices(model)
+    n_params = len(model.params)
+    mse = float(model.mse_resid) if model.df_resid > 0 else math.nan
     rows = []
-    if model.df_resid > 0:
-        table = anova_lm(model, typ=3)
-    else:
-        table = None
     for term in terms:
-        name = _patsy_name(piece(term))
-        if table is not None and name in table.index:
-            line = table.loc[name]
-            rows.append((term_label(term), int(line["df"]), float(line["sum_sq"]), float(line["F"]), float(line["PR(>F)"])))
-        else:
-            width = model.model.data.design_info.term_name_slices.get(name)
-            df = (width.stop - width.start) if width is not None else 1
-            rows.append((term_label(term), df, math.nan, math.nan, math.nan))
+        span = slices.get(_patsy_name(piece(term)))
+        width = (span.stop - span.start) if span is not None else 1
+        if span is None or model.df_resid <= 0:
+            rows.append((term_label(term), width, math.nan, math.nan, math.nan))
+            continue
+        restriction = np.zeros((width, n_params))
+        for row, column in enumerate(range(span.start, span.stop)):
+            restriction[row, column] = 1.0
+        try:
+            test = model.f_test(restriction)
+            f_ratio, p_value = float(np.squeeze(test.fvalue)), float(np.squeeze(test.pvalue))
+        except Exception:  # noqa: BLE001 - an aliased term has no test, not an error
+            f_ratio = p_value = math.nan
+        rows.append((term_label(term), width, f_ratio * width * mse, f_ratio, p_value))
     tests = pd.DataFrame(rows, columns=["Term", "DF", "Sum of Squares", "F Ratio", "Prob > F"])
     tests["LogWorth"] = -np.log10(tests["Prob > F"].clip(lower=1e-300))
     return tests
@@ -596,7 +625,7 @@ def _effect_tests(model, terms: list[Term], piece) -> pd.DataFrame:
 
 def _estimates(model, terms: list[Term], piece) -> pd.DataFrame:
     """The parameter estimates, named by term (and level, for a nominal factor's)."""
-    slices = model.model.data.design_info.term_name_slices
+    slices = _term_slices(model)
     names = list(model.params.index)
     labels = {"Intercept": "Intercept"}
     for term in terms:

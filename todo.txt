@@ -1,12 +1,13 @@
 ChartLibre TODO
-Updated 2026-10-02. Highest priority first.
+Updated 2026-10-09. Highest priority first.
 
 Priority  P0 wrong results / blocked   P1 foundations   P2 high value
           P3 useful later              P4 ideas, undecided
 Effort    S one session   M 2-3 sessions   L 4+ sessions   [YOU] no code needed
 
 State: ~83k lines in app/, 1120 tests, Pyright 0 errors, 19 series
-operations, 42 chart types, it/fr complete, de/es started.
+operations (each on a chart's series or a table's columns), 2 table
+operations (Fit Model, Partition), 42 chart types, it/fr complete, de/es started.
 
 
 ================================================================
@@ -14,7 +15,7 @@ NEXT
 ================================================================
 1. R-03               Reproducibility: re-run, script export
 2. W-04               Smoother live window resize
-3. R-08 -> R-04 -> R-05 -> P2-12                  Analysis features
+3. AN-01 Partition -> R-08 -> R-04 -> AN-02..AN-05  Analysis features
 4. R-14, A-06, A-07                                Reach non-Python users
 
 
@@ -70,9 +71,11 @@ R-08  P2  M  Column metadata (__column_meta__): label, unit, measure type
 R-04  P2  L  Statistics vs SPSS/JMP - IN PROGRESS.
              Done: contingency (chi², G, Fisher, Cramér's V), two-way
              ANOVA (Type II), survival (KM medians, log-rank).
+             Done in Fit Model (Analysis): multiple regression (effects,
+             parameter estimates, lack of fit, profiler), stepwise, GLM,
+             nominal and ordinal logistic.
              Missing, in order:
-             - multiple regression (coef table, adj. R², VIF, residuals),
-               logistic regression
+             - VIF and leverage plots in Fit Model; model comparison (AIC)
              - post hoc: Games-Howell, Bonferroni; Dunn
              - two-way ANOVA with repeated measures; ANCOVA
 R-05  P2  M  Fit like Origin. Missing:
@@ -83,6 +86,62 @@ R-14  P2  L  Standalone signed app (macOS, needs Apple dev account),
              Windows installer, update check.
 A-06  P2  S  Linux: never run. Try in a VM; icons and paths.
 A-07  P2  S  German 19% done, Spanish empty (machine translated, review).
+
+
+================================================================
+P2/P3 - ANALYSIS: WHAT JMP, SPSS, MINITAB AND ORIGIN HAVE AND WE DO NOT
+================================================================
+Table operations (Analysis panel) unless said otherwise: roles cast from
+a table's columns, report in the figure's notes, result columns written
+back to the table like ClusterId.
+
+AN-01 P2  L  Partition (JMP) - IN PROGRESS
+             Done: decision tree for a continuous or nominal Y on many X
+             (Analysis > Partition): Split / Prune / Automatic on a
+             validation column or share; split history, column
+             contributions, leaf report, confusion matrix; Leaf, Predicted
+             and Prob(level) columns written beside the data.
+             Left: tree diagram chart, ROC curve, Bootstrap Forest, Boosted
+             Tree, K-fold validation, informative missing values.
+AN-02 P2  M  Distribution of a column (JMP Distribution): histogram, box,
+             quantiles, moments, normality tests, fitted distributions,
+             capability (Cp, Cpk, Pp, Ppk) against spec limits.
+AN-03 P2  M  Fit Y by X (JMP): one platform choosing by the two types -
+             bivariate (fit lines, polynomial, spline, density ellipse),
+             oneway (ANOVA, means comparisons, Tukey/Dunnett, Welch,
+             Kruskal-Wallis), contingency (mosaic, chi², odds ratio),
+             logistic (one X).
+AN-04 P2  M  Multivariate: correlation matrix with p-values, scatterplot
+             matrix, partial correlations, PCA and factor analysis on a
+             table's columns (loadings, scree, biplot), Cronbach's alpha.
+AN-05 P2  M  Time series: ACF/PACF, seasonal decomposition (STL), ARIMA /
+             exponential smoothing with forecast and intervals, change
+             points, cross-correlation.
+AN-06 P3  M  Quality: Gage R&R (crossed, nested), attribute agreement,
+             process capability with non-normal fits, Pareto by cause
+             (exists as a chart), multi-vari chart.
+AN-07 P3  M  Profiler and optimisation: interactive prediction profiler
+             (drag the factors), desirability for several responses,
+             contour profiler; DOE augmentation and D-optimal designs.
+AN-08 P3  M  Survival and reliability: Cox proportional hazards,
+             parametric (Weibull, lognormal) life fits, reliability plots.
+AN-09 P3  M  Mixed models (REML) - random effects, repeated measures; then
+             power and sample size for t, ANOVA, proportions (R-16).
+AN-10 P3  M  Clustering on a table's columns: k-means / hierarchical /
+             Gaussian mixtures with standardisation, cluster profiles,
+             dendrogram, silhouette; writes ClusterId (today the series
+             operation only reads x and y from a table).
+AN-11 P3  M  Data preparation: stack / split (long-wide), join two tables
+             on keys, recode values, bin a continuous column, date parts,
+             missing-value imputation (mean, regression, multiple).
+AN-12 P3  M  Resampling: bootstrap confidence intervals for any statistic,
+             permutation tests, cross-validation for Fit Model.
+AN-13 P4  M  Science: ODE models fitted to data (kinetics), dose-response
+             with EC50 comparison between groups, peak deconvolution with
+             shared widths, wavelets and spectrogram, uncertainty
+             propagation with units (N-02).
+AN-14 P4  M  Text and categories: word counts, response screening (many Y
+             against one X, FDR-adjusted p-values).
 
 
 ================================================================
