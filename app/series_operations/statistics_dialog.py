@@ -520,22 +520,12 @@ class SeriesStatisticsDialog(SeriesOperationDialogBase):
     # Data extraction
     # ------------------------------------------------------------------
     def _checked_series_rows(self) -> list[Any]:
-        """Return all checked series rows directly from the selector widget.
+        """Return every checked series row, not just the current one.
 
-        This bypasses any single-current-item semantics and guarantees that the
-        statistics dialog uses every checked series, not just the last one the
-        user clicked.
+        Through the base's selected_series, which is what draws a table's
+        columns first when the data comes from a table.
         """
-        series_list = getattr(self.series_selector, "series_list", None)
-        if series_list is None:
-            return list(self.selected_series())
-
-        rows: list[Any] = []
-        for index in range(series_list.count()):
-            item = series_list.item(index)
-            if item.checkState() == Qt.CheckState.Checked:
-                rows.append(item.data(_SERIES_ROLE))
-        return rows
+        return list(self.selected_series())
 
     def _rows_for_statistics(self) -> list[Any]:
         """Return the checked rows. Only those, and all of them.

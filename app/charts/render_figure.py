@@ -169,6 +169,8 @@ def render_figure_from_descriptor(
                 downsample_threshold=(
                     0
                     if chart_type in _GRID_REQUIRED_CHART_TYPES
+                    else max(downsample_threshold, POINT_DOWNSAMPLE_THRESHOLD)
+                    if chart_type in _POINT_CHART_TYPES and downsample_threshold > 0
                     else downsample_threshold
                 ),
             )
@@ -699,6 +701,12 @@ DEFAULT_DOWNSAMPLE_THRESHOLD = get_constant("default_downsample_threshold", 1_00
 #: exists for, so these chart types simply skip it rather than decimating by
 #: unique x/y instead - not worth the extra machinery yet.
 _GRID_REQUIRED_CHART_TYPES = frozenset({"Surface Plot", "Contour Plot"})
+
+#: Charts where every point is a datum - an outlier, a member of a cluster -
+#: rather than a sample of a curve: thinned out only past a far higher count,
+#: since a scatter of a few thousand points draws quickly anyway.
+_POINT_CHART_TYPES = frozenset({"Scatter Plot"})
+POINT_DOWNSAMPLE_THRESHOLD = get_constant("point_downsample_threshold", 20_000)
 
 
 def _figure_downsample_threshold(descriptor: FigureDescriptor) -> int:

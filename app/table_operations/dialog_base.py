@@ -93,6 +93,9 @@ class TableOperationDialogBase(QDialog):
     #: The tab the declared parameters go on: one of their own by default, or
     #: one the operation built (a model's settings).
     PARAMETERS_TAB: ClassVar[str] = "Parameters"
+    #: Raised when the window's layout changes, so a remembered size made for
+    #: the old one is left behind (2: the inputs in tabs, 880 x 460).
+    LAYOUT_VERSION: ClassVar[int] = 2
 
     #: Something was written into the project (an OK): the window refreshes.
     applied = Signal()
@@ -105,11 +108,14 @@ class TableOperationDialogBase(QDialog):
         self._result_inputs: tuple[Any, ...] | None = None
         self._task: BackgroundTask | None = None
         self._state_key = type(self).__name__
+        # The size is the layout's: a new layout starts from its own default
+        # rather than from a size remembered for the old one.
+        self._geometry_key = f"{self._state_key}@{self.LAYOUT_VERSION}"
         self.setWindowTitle(_(self.Name))
         if self.Icon:
             self.setWindowIcon(icon_from_svg_source(self.Icon, size=32))
         self._build_ui()
-        restore_window_geometry(self, self._state_key)
+        restore_window_geometry(self, self._geometry_key)
         restore_dialog_state(self, self._state_key)
         self._load_tables(table)
 
@@ -228,7 +234,7 @@ class TableOperationDialogBase(QDialog):
         root = QVBoxLayout(self)
         # Small enough for a laptop: the inputs need about 520 px, the report
         # takes the rest, and screen_fit shrinks it further on a smaller screen.
-        apply_dialog_shell(self, root, size=QSize(900, 520))
+        apply_dialog_shell(self, root, size=QSize(880, 460))
         root.addWidget(splitter, 1)
         root.addLayout(buttons)
 
@@ -399,7 +405,7 @@ class TableOperationDialogBase(QDialog):
     def _remember(self) -> None:
         self._remember_casting()
         save_dialog_state(self, self._state_key)
-        save_window_geometry(self, self._state_key)
+        save_window_geometry(self, self._geometry_key)
 
     def reject(self) -> None:
         self.stop()

@@ -545,11 +545,13 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         settings = self._settings()
         start_params = self._start_params()
         grid = self._evaluation_grid()
-        axis_id = self.series_selector.selected_axis_id()
         inputs = [
             (series, *self._series_data(series))
             for series in (self._series_choice_from_row(row) for row in self.selected_series())
         ]
+        # After the series: reading them may draw a table's columns, which
+        # is the axis the result belongs on.
+        axis_id = self.series_selector.selected_axis_id()
 
         def compute() -> list[FitResult]:
             return [

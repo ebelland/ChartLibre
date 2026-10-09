@@ -843,7 +843,8 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         """
         row = self._selected_series_row()
         roles = parse_roles(row_value(row, "roles", default={}))
-        source_name = str(roles.get("name", "Series"))
+        # A "name" role names the source; otherwise the series' own name.
+        source_name = str(roles.get("name") or row_value(row, "name", "series_name", default="Series"))
         if not roles.get("z"):
             applogger.error(
                 "A surface model needs a series with x, y and z roles; "
@@ -885,7 +886,9 @@ class SeriesFitDialog(SeriesOperationDialogBase):
 
     def _load_fit_data_1d(self) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
         row = self._selected_series_row()
-        source_name = str(parse_roles(row["roles"]).get("name", "Series"))
+        source_name = str(
+            parse_roles(row["roles"]).get("name") or row_value(row, "name", "series_name", default="Series")
+        )
         sql_query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
         if not sql_query:
             applogger.error("Selected series has no SQL query.")

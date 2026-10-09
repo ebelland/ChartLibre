@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import ClassVar
 
+from app.data.select_sql import has_projection_alias
 from app.data.series_frame import SeriesFrame
 from app.data.undo_store import UndoEntry, UndoStore
 from app.logs.logger import applogger
@@ -450,10 +451,9 @@ class SqliteRepo(
         Decided and applied entirely inside SQLite: one ``COUNT(*)``
         (``series_row_count``, itself cached) to size a stride, and - only
         when the query actually exceeds ``threshold`` - one row kept out of
-        every stride via ``ROW_NUMBER()``, ordered by the query's own first
-        column. Every point-series query in this application selects the x
-        role first (``SELECT x, y FROM ...``), so ordinal position 1 names
-        it without needing to know the column's actual alias. The full
+        every stride via ``ROW_NUMBER()``, in the query's own order (a
+        curve's ``ORDER BY x``); a row with a colour of its own (an outlier
+        coloured, a cluster) is always kept. The full
         result is never read only to be thinned out afterwards - that would
         keep the exact cost this exists to avoid.
 
@@ -468,10 +468,18 @@ class SqliteRepo(
             return self.series_frame(sql_text)
 
         stride = max(1, -(-total // threshold))  # ceil division
+        # OVER () numbers the rows in the query's own order - a curve's ORDER
+        # BY x. "ORDER BY 1" inside a window is the constant 1, not the first
+        # column, and kept an arbitrary set of rows.
+        keep = f"(__dhub_rn__ - 1) % {stride} = 0"
+        if has_projection_alias(sql_text, "color"):
+            # A row given a colour of its own - an outlier, a cluster - is
+            # what the chart is there to show: never thinned out.
+            keep += " OR (\"color\" IS NOT NULL AND \"color\" <> '')"
         wrapped = (
             "SELECT * FROM ("
-            f"SELECT *, ROW_NUMBER() OVER (ORDER BY 1) AS __dhub_rn__ FROM ({sql_text})"
-            f") WHERE (__dhub_rn__ - 1) % {stride} = 0"
+            f"SELECT *, ROW_NUMBER() OVER () AS __dhub_rn__ FROM ({sql_text})"
+            f") WHERE {keep}"
         )
         return self.series_frame(wrapped).drop_column("__dhub_rn__")
 

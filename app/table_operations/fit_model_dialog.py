@@ -242,20 +242,21 @@ class FitModelDialog(TableOperationDialogBase):
         self._term_list = QListWidget()
         self._term_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self._term_list.setToolTip(_("Double-click an effect to remove it."))
-        # Short, as the columns' list: about seven effects show, more scroll.
+        # As tall as the page allows, and no less than a few effects.
         term_rows = max(self._term_list.fontMetrics().height() + 4, 18)
         self._term_list.setMinimumHeight(4 * term_rows)
-        self._term_list.setMaximumHeight(7 * term_rows + 8)
         self._term_list.setMinimumWidth(140)
         self._term_list.itemDoubleClicked.connect(lambda _item: self._remove_selected())
         effects.addWidget(self._term_list, 1)
         effects_card = TitledCard(self, _("Construct Model Effects"))
         effects_card.card.layout().addLayout(effects)
-        layout.addWidget(effects_card, 0)
+        effects.setStretch(effects.count() - 1, 1)
+        layout.addWidget(effects_card, 1)
 
         charts = TitledCard(self, _("Charts to draw"))
         grid = QVBoxLayout()
-        grid.setSpacing(2)
+        # Spaced as a list of choices, not packed as a block of text.
+        grid.setSpacing(10)
         self._chart_checks: dict[str, QCheckBox] = {}
         for index, (key, label, ticked) in enumerate(CHARTS):
             check = QCheckBox(_(label))

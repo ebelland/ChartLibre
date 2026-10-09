@@ -54,6 +54,10 @@ def test_the_operation_runs_on_a_tables_columns(qapp, repo: SqliteRepo, operatio
     try:
         dialog.source_table_radio.setChecked(True)
         dialog.table_source.set_spec("measures", "time", ["signal", "level"])
+        # Drawn as soon as the columns are chosen: what the operation reads
+        # before Preview (its own buttons, its lists) is the table's already.
+        assert dialog._figure_id != figure_id
+        assert sorted(str(row["name"]) for row in dialog.selected_series()) == ["level", "signal"]
         assert dialog.preview(), told
         dialog.ok()
         assert dialog.result() == QDialog.DialogCode.Accepted, told

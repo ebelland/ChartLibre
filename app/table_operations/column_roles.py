@@ -132,11 +132,10 @@ class ColumnRolesWidget(QWidget):
         self._column_list.setObjectName("tableColumnsList")
         self._column_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._column_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        # Short: about nine columns show, more scroll - a list as tall as the
-        # window made the window taller than a laptop's screen.
+        # As tall as the window allows, and no less than a few columns: the
+        # window decides, not the list.
         rows_height = max(self._column_list.fontMetrics().height() + 4, 18)
-        self._column_list.setMinimumHeight(5 * rows_height)
-        self._column_list.setMaximumHeight(9 * rows_height + 8)
+        self._column_list.setMinimumHeight(4 * rows_height)
         self._column_list.itemSelectionChanged.connect(self._sync_kind_combo)
         columns.addWidget(self._column_list, 1)
         type_row = QHBoxLayout()
@@ -148,12 +147,13 @@ class ColumnRolesWidget(QWidget):
         self._kind_combo.activated.connect(self._apply_kind)
         type_row.addWidget(self._kind_combo, 1)
         columns.addLayout(type_row)
+        columns.setStretchFactor(self._column_list, 1)
+        columns_card.layout().setStretchFactor(columns_card.card, 1)
 
 
         left = QVBoxLayout()
         left.setSpacing(10)
-        left.addWidget(columns_card, 0)
-        left.addStretch(1)
+        left.addWidget(columns_card, 1)
         #: Where the operation adds frames under the columns: a model's charts.
         self.column_layout = left
         left_widget = QWidget(self)
@@ -196,6 +196,7 @@ class ColumnRolesWidget(QWidget):
         self.tabs.setUsesScrollButtons(True)
         self.tabs.setElideMode(Qt.TextElideMode.ElideNone)
         self.tabs.tabBar().setExpanding(False)
+        self.tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._tab_layouts: dict[str, QVBoxLayout] = {}
         side = self.add_tab(_("Roles"))
         side.addWidget(roles_card)

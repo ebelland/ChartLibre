@@ -938,7 +938,7 @@ class SeriesOperationDialogBase(QDialog):
         layout.addWidget(self._source_stack, 1)
 
         self.source_table_radio.toggled.connect(self._on_source_changed)
-        self.table_source.changed.connect(self.mark_results_stale)
+        self.table_source.changed.connect(self._on_table_columns_changed)
         return panel
 
     def reads_table(self) -> bool:
@@ -952,14 +952,41 @@ class SeriesOperationDialogBase(QDialog):
             self.cancel_operation_changes(refresh=False)
             self._discard_table_figure()
             self._refresh_after_preview_state_change()
+        self._on_table_columns_changed()
+
+    def _on_table_columns_changed(self, *_ignored: Any) -> None:
+        """Draw the chosen columns at once, not at Preview.
+
+        Everything an operation reads before Preview - its own buttons (Fit's
+        Estimate and Fit), the lists it fills from the selected series'
+        columns - reads the series the dialog is on. Drawn only at Preview,
+        those were still the chart's series, not the table's.
+        """
         self.mark_results_stale()
+        if not self.reads_table():
+            return
+        try:
+            self._prepare_table_source()
+        except ValueError:
+            return  # no Y yet: drawn when there is one
+        except Exception:
+            applogger.exception("Could not draw the table's columns")
+            return
+        self._refresh_after_preview_state_change()
 
     def _use_figure(self, figure_id: int) -> None:
         """Run on *figure_id* from now on: its axes, its series, its grid."""
         self._figure_id = int(figure_id)
         self._original_grid = self._capture_current_grid()
-        self.series_selector._load_figures()
-        self.series_selector.set_figure_id(int(figure_id), select_all_series=True)
+        # Reloading the selector announces a new selection, and whatever
+        # listens may ask for the selected series: not a reason to draw the
+        # table again while this is the drawing (or the discarding) of it.
+        self._switching_figure = True
+        try:
+            self.series_selector._load_figures()
+            self.series_selector.set_figure_id(int(figure_id), select_all_series=True)
+        finally:
+            self._switching_figure = False
 
     def _prepare_table_source(self) -> None:
         """Draw the chosen columns as a figure of their own, once, and run on it.
@@ -1014,10 +1041,16 @@ class SeriesOperationDialogBase(QDialog):
     # ------------------------------------------------------------------
 
     def selected_series(self) -> list[Any]:
+        if self.reads_table() and not getattr(self, "_switching_figure", False):
+            # The table's columns, drawn if they are not yet.
+            try:
+                self._prepare_table_source()
+            except ValueError:
+                return []
         return self.series_selector.selected_series()
 
     def _selected_series_row(self) -> Any:
-        rows = self.series_selector.selected_series()
+        rows = self.selected_series()
 
         if not rows:
             message = "Select one source series in the Data panel."
