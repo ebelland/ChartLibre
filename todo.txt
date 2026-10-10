@@ -1,6 +1,7 @@
-ChartLibre TODO - updated 2026-10-09
+ChartLibre TODO - updated 2026-10-10
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
+Size: app 88,528 lines in 205 files; tests 15,384 lines in 111 files (updated at each commit).
 
 DONE RECENTLY
 - Partition (AN-01): tree, partition graph, box plots by leaf;
@@ -9,10 +10,20 @@ DONE RECENTLY
   function; "Data operations" (was Series operations); manual appendix
   of equivalents in JMP/SPSS/Minitab/Origin (dev/manual/make_equivalents.py).
 - Column types: float continuous, integer ordinal, text nominal.
+- Review, step 1: PanelDialog (one column of titled frames + buttons) under
+  SettingsTableDialog; Credits, Log, History, Project report moved onto it.
 - Guided analysis on the rail: search, quick answers, goals -> suggestions.
 - Quick answer Q-01 "Are there differences?" (test chosen, answer in words).
 
 NOW
+R-20  M  Project review, step by step (one commit each):
+         1. PanelDialog for one-panel dialogs - left: Project info, Settings,
+            Find/Replace, Fill missing, Add web source.
+         2. Shared report/series/figure helpers in TableOperationDialogBase.
+         3. Dead code.
+         4. Split large files into packages like main_window/ (chart_panel,
+            series_operations/dialog_base, style, fit_dialog).
+         5. Properties panels on their base.
 0. Q-02  M  Quick answer "What has the most impact?" - Y and many X: ranking
             in words (forest importance + Fit Model effects), Pareto chart.
    Q-03  M  Quick answer "Has it changed over time?" - trend test (Mann-Kendall),

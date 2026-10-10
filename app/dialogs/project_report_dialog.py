@@ -12,28 +12,12 @@ from pathlib import Path
 
 from PySide6.QtCore import QMarginsF, QSizeF, QUrl
 from PySide6.QtGui import QImage, QPageLayout, QPageSize, QPdfWriter, QTextDocument
-from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDialog,
-    QFileDialog,
-    QFormLayout,
-    QHBoxLayout,
-    QLabel,
-    QSpinBox,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QCheckBox, QComboBox, QFileDialog, QFormLayout, QLabel, QSpinBox, QWidget
 
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.logs.logger import applogger
-from app.styles.style import (
-    TitledCard,
-    apply_dialog_shell,
-    create_action_button,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.styles.style import TitledCard, load_icon, stdSizeAndlayout
 from app.utils.dialog_state import restore_dialog_state, save_dialog_state
 from app.utils.i18n import _
 from app.utils.project_report import ProjectReport, build_project_report, write_report_html
@@ -70,7 +54,7 @@ def write_report_pdf(report: ProjectReport, path: Path | str) -> Path:
     return target
 
 
-class ProjectReportDialog(QDialog):
+class ProjectReportDialog(PanelDialog):
     """Ask what the report holds and in which format, then write it.
 
     With *figure_id*, the report of that one chart - its picture and notes -
@@ -79,15 +63,12 @@ class ProjectReportDialog(QDialog):
     """
 
     def __init__(self, repo: SqliteRepo, parent: QWidget | None = None, *, figure_id: int | None = None) -> None:
-        super().__init__(parent)
+        super().__init__(parent, title=_("Export report") if figure_id is not None else _("Project report"),
+                         icon=load_icon("save"))
         self._repo = repo
         self._figure_id = figure_id
         self.written: Path | None = None
-        self.setWindowTitle(_("Export report") if figure_id is not None else _("Project report"))
-        self.setWindowIcon(load_icon("save"))
-
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
+        root = self.body_layout
         # Titled frames as in the rest of the application: the title above
         # its box, not inside it.
         report = TitledCard(self, _("Report"), "projectReportCard")
@@ -136,15 +117,9 @@ class ProjectReportDialog(QDialog):
         contents.setVisible(figure_id is None)
         root.addStretch(1)
 
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="save", action=self._export, layout=action_row,
-            presentation=(load_icon("save"), _("Export…"), _("Choose where to save the report")),
-        )
-        create_action_button(parent=self, action_id="close", action=self.reject, layout=action_row)
-        root.addLayout(action_row, 0)
+        self.add_action("save", self._export,
+                        presentation=(load_icon("save"), _("Export…"), _("Choose where to save the report")))
+        self.add_action("close", self.reject)
 
         restore_dialog_state(self, _STATE_KEY)
         self._format_combo.currentIndexChanged.connect(self._refresh)

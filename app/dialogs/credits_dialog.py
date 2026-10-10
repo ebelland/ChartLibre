@@ -13,54 +13,30 @@ from __future__ import annotations
 
 import html
 
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QWidget
 
 from app import APP_NAME, APP_VERSION
-from app.styles.style import (
-    apply_dialog_shell,
-    CardFrame,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.styles.style import load_icon
 from app.utils import credits, report_html
 from app.utils.i18n import _
 from app.widgets.html_results import HtmlResultsView
 
 
-class CreditsDialog(QDialog):
+class CreditsDialog(PanelDialog):
     """Show the author, the assistants and every dependency with its licence."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-
-        self.setWindowTitle(_("Credits"))
-        self.setWindowIcon(load_icon("info"))
-
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
-
-        card = CardFrame(self, "creditsCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("Credits"), card))
-
+        super().__init__(parent, title=_("Credits"), icon=load_icon("info"))
+        card = self.add_card(_("Credits"), "creditsCard", stretch=1)
         # The same pane the operation reports use, so the credits can be
         # copied as HTML like everything else in the application.
         self._view = HtmlResultsView(card)
         self._view.setContent(credits_html())
-        card_layout.addWidget(self._view, 1)
-        root.addWidget(card, 1)
-
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
+        card.layout().addWidget(self._view, 1)
         # "dismiss", not "close": the catalogue's close button says Cancel,
         # and there is nothing here to cancel.
-        create_action_button(
-            parent=self, action_id="dismiss", action=self.reject, layout=action_row
-        )
-        root.addLayout(action_row, 0)
+        self.add_action("dismiss", self.reject)
 
 
 def credits_html() -> str:

@@ -2,43 +2,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtGui import (
-    QCloseEvent,
-    QFontDatabase,
-)
-from PySide6.QtWidgets import (
-    QApplication,
-    QDialog,
-    QHBoxLayout,
-    QLabel,
-    QPlainTextEdit,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtGui import QCloseEvent, QFontDatabase
+from PySide6.QtWidgets import QApplication, QLabel, QPlainTextEdit, QWidget
 
 from app.logs.logger import LOG_FILE, clear_log_file
-from app.styles.style import (
-    apply_dialog_shell,
-    CardFrame,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    mark_destructive_button,
-    mark_editor_panel,
-    stdSizeAndlayout,
-)
+from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.styles.style import load_icon, mark_destructive_button, mark_editor_panel
 from app.utils.i18n import _
 from app.utils.messages import ask
 
 
-class LogViewerDialog(QDialog):
+class LogViewerDialog(PanelDialog):
     def __init__(self, parent: QWidget):
         self._parent = parent
 
-        super().__init__(parent)
-
-        self.setWindowTitle(_("Application Log"))
-        self.setWindowIcon(load_icon("log_viewer"))
+        super().__init__(parent, title=_("Application Log"), icon=load_icon("log_viewer"), size="medium")
 
         try:
             log_path = Path(LOG_FILE)
@@ -60,78 +38,35 @@ class LogViewerDialog(QDialog):
             log_text = f"Unable to read log file:\n\n{exc}"
             line_count = 0
 
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
-
-        card = CardFrame(self, "logViewerCard")
-        card_layout = card.layout()
-
-        card_layout.addWidget(
-            create_section_title(_("Application Log"), card)
-        )
-
+        card = self.add_card(_("Application Log"), "logViewerCard", stretch=1)
         viewer = QPlainTextEdit(card)
         viewer.setObjectName("logViewerText")
         viewer.setReadOnly(True)
         viewer.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        viewer.setFont(
-            QFontDatabase.systemFont(
-                QFontDatabase.SystemFont.FixedFont
-            )
-        )
+        viewer.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         viewer.setPlainText(log_text)
-        viewer.moveCursor(
-            viewer.textCursor().MoveOperation.End
-        )
-
+        viewer.moveCursor(viewer.textCursor().MoveOperation.End)
         mark_editor_panel(viewer)
-        card_layout.addWidget(viewer, 1)
+        card.layout().addWidget(viewer, 1)
 
-        caption = QLabel(
-            f"{line_count} lines loaded from {LOG_FILE}",
-            card,
-        )
+        caption = QLabel(f"{line_count} lines loaded from {LOG_FILE}", card)
         caption.setProperty("muted", True)
         caption.setWordWrap(True)
-        card_layout.addWidget(caption, 0)
-
-        root.addWidget(card, 1)
-
+        card.layout().addWidget(caption, 0)
         self._viewer = viewer
         self._caption = caption
 
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
         # Red and on its own at the left, away from Copy and Close: the one
         # button here whose effect cannot be taken back.
-        clear_button = create_action_button(
-            parent=self,
-            action_id="clear",
-            action=self._clear_log,
-            layout=action_row,
+        clear_button = self.add_action(
+            "clear", self._clear_log, left=True,
             presentation=(load_icon("clear"), _("Clear log"), _("Empty the application log")),
         )
         mark_destructive_button(clear_button)
-        action_row.addStretch(1)
-
-        create_action_button(
-            parent=self,
-            action_id="copy",
-            action=lambda: QApplication.clipboard().setText(viewer.toPlainText()),
-            layout=action_row,
-        )
-
+        self.add_action("copy", lambda: QApplication.clipboard().setText(viewer.toPlainText()))
         # "Exit", not the catalogue's "Cancel": reading a log changes nothing,
         # so there is nothing to cancel.
-        create_action_button(
-            parent=self,
-            action_id="close",
-            action=self.accept,
-            layout=action_row,
-            presentation=(load_icon("close"), _("Exit"), _("Close the log")),
-        )
-
-        root.addLayout(action_row, 0)
+        self.add_action("close", self.accept, presentation=(load_icon("close"), _("Exit"), _("Close the log")))
 
     def _clear_log(self) -> None:
         """Empty the log file, after asking, and the viewer with it."""
