@@ -89,13 +89,19 @@ def test_split_prune_and_ok_write_the_leaves_and_the_figure(qapp, repo: SqliteRe
     _wait(qapp, dialog)
     tables = set(repo.list_user_tables()["Table"])
     assert {"process_partition", "process_partition_leaves", "process_partition_history",
-            "process_partition_contributions"} <= tables
+            "process_partition_contributions", "process_partition_graph"} <= tables
     rows = repo.table_frame("process_partition")
-    assert {"Leaf", "Predicted y", "Partition role"} <= set(rows.columns)
+    assert {"Leaf", "Predicted y", "Partition role", "Partition x"} <= set(rows.columns)
     assert set(rows["Leaf"].dropna().astype(int)) == {1, 2}
+    # JMP's graph: each leaf a band as wide as its rows, left to right.
+    bands = rows.groupby("Leaf")["Partition x"].agg(["min", "max"])
+    assert 0 < bands.loc[1, "min"] and bands.loc[1, "max"] < bands.loc[2, "min"] and bands.loc[2, "max"] < 1
 
     figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
-    assert [axis.name for axis in figure.axes] == ["Pareto Chart", "Scatter Plot", "Scatter Plot"]
+    assert [axis.name for axis in figure.axes] == ["Scatter Plot", "Pareto Chart", "Scatter Plot", "Scatter Plot"]
+    graph = figure.axes[0]
+    assert len(graph.options["annotations"]) == 3  # All rows, and a rule per leaf
+    assert graph.options["lines"][0]["orientation"] == "horizontal"
     from matplotlib.figure import Figure
 
     from app.charts.render_figure import render_figure_from_descriptor
@@ -105,6 +111,18 @@ def test_split_prune_and_ok_write_the_leaves_and_the_figure(qapp, repo: SqliteRe
     assert all(axes.collections or axes.lines or axes.patches for axes in drawn.axes)
 
 
+def test_box_plots_by_leaf(qapp, repo: SqliteRepo, dialog: PartitionDialog) -> None:
+    dialog._parameter_form.set_values({"splits": 2})
+    for key, check in dialog._chart_checks.items():
+        check.setChecked(key == "box")
+    dialog.ok()
+    _wait(qapp, dialog)
+    figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+    assert [axis.name for axis in figure.axes] == ["Box Plot"]
+    groups = repo.query_df(figure.axes[0].series[0].sql_query)["group"]
+    assert list(dict.fromkeys(groups)) == ["1", "2", "3"]
+
+
 def test_automatic_sets_the_split_count_it_chose(qapp, dialog: PartitionDialog) -> None:
     dialog.roles_widget.set_casting({"response": ["ok"], "factor": ["temp", "press", "supplier"]}, KINDS)
     dialog._parameter_form.set_values({"validation_fraction": 0.3})
@@ -112,6 +130,28 @@ def test_automatic_sets_the_split_count_it_chose(qapp, dialog: PartitionDialog) 
     _wait(qapp, dialog)
     assert dialog._result.splits == 2
     assert dialog.parameter_values()["splits"] == 2
+
+
+@pytest.mark.parametrize("method", ["forest", "boosted"])
+def test_a_forest_or_boosted_trees_fit_and_ok_writes_no_leaves(qapp, repo: SqliteRepo, dialog: PartitionDialog,
+                                                              method: str) -> None:
+    dialog._parameter_form.set_values({"method": method, "trees": 40, "validation_fraction": 0.3})
+    dialog.preview()
+    _wait(qapp, dialog)
+    result = dialog._result
+    assert result.method == method and result.leaves.empty
+    assert result.summary["R² (validation)"] > 0.9
+    assert result.contributions["Column"].iloc[0] == "temp"
+    assert list(result.history.columns)[0] == "Trees"
+    assert "Leaf report" not in dialog.format_results(result)
+
+    dialog.ok()
+    _wait(qapp, dialog)
+    tables = set(repo.list_user_tables()["Table"])
+    assert "process_partition_leaves" not in tables and "process_partition_history" in tables
+    assert "Leaf" not in repo.table_frame("process_partition").columns
+    figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+    assert "Scatter Plot" in [axis.name for axis in figure.axes]  # the fit by number of trees
 
 
 def test_y_cannot_also_be_an_x(dialog: PartitionDialog) -> None:

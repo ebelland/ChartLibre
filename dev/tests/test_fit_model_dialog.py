@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt
 
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.doe_dialog import DOEExperimentDialog
-from app.table_operations.column_roles import CONTINUOUS, NOMINAL, guess_kind
+from app.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
 from app.table_operations.fit_model_dialog import FitModelDialog
 
 
@@ -144,10 +144,30 @@ def test_effects_are_built_from_the_selected_columns(qapp, doe_table) -> None:
         dialog.close()
 
 
-def test_column_types_are_guessed_from_the_data() -> None:
+def test_column_types_follow_the_declared_type_then_the_data() -> None:
+    """As JMP's defaults: a float is continuous, an integer ordinal, text nominal."""
+    assert declared_kind("REAL") == CONTINUOUS and declared_kind("DOUBLE") == CONTINUOUS
+    assert declared_kind("INTEGER") == ORDINAL and declared_kind("BIGINT") == ORDINAL
+    assert declared_kind("TEXT") == NOMINAL and declared_kind("") is None
     assert guess_kind(pd.Series(["a", "b", "a"])) == NOMINAL
-    assert guess_kind(pd.Series([1, 2, 3, 1, 2, 3, 1, 2, 3])) == NOMINAL  # three repeated levels
+    assert guess_kind(pd.Series([1, 2, 3, 1, 2, 3])) == ORDINAL
     assert guess_kind(pd.Series([0.1, 0.5, 2.3, 7.7, 1.2])) == CONTINUOUS
+    assert guess_kind(pd.Series(["1", "2", "3"], dtype=object)) == ORDINAL
+
+
+def test_an_ordinal_response_is_fitted_by_ordinal_logistic_and_an_ordinal_factor_as_levels(qapp, doe_table) -> None:
+    repo, name = doe_table
+    dialog = FitModelDialog(repo=repo, table=name)
+    try:
+        kinds = dict(dialog.roles_widget.casting().kinds, Quality=ORDINAL)
+        dialog.roles_widget.set_casting({"response": ["Quality"], "factor": ["Factor_1"]}, kinds)
+        assert dialog.personality() == "ordinal"
+        kinds["Factor_1"] = ORDINAL
+        dialog.roles_widget.set_casting({"response": ["Response_1"], "factor": ["Factor_1"]}, kinds)
+        assert dialog.personality() == "standard"
+        assert [f.kind for f in dialog._factors() if f.name == "Factor_1"] == [NOMINAL]
+    finally:
+        dialog.close()
 
 
 def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, doe_table) -> None:
@@ -158,9 +178,11 @@ def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, 
         assert dialog.charts() == ["pareto", "profile"]
         assert "jmp.com/support/help" in dialog._doc_link.text()
 
-        # A nominal Y needs a logistic personality.
+        # A nominal Y needs a logistic personality, and gets one, as in JMP.
         dialog.roles_widget.set_casting({"response": ["Quality"]})
         dialog._apply_macro("main", edited=True)
+        assert dialog.personality() == "nominal"
+        dialog._personality.setCurrentIndex(dialog._personality.findData("standard"))
         assert any("nominal" in p for p in dialog.problems())
         dialog._personality.setCurrentIndex(dialog._personality.findData("nominal"))
         assert not dialog.problems()
@@ -180,6 +202,35 @@ def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, 
         assert [axis.name for axis in figure.axes] == ["Pareto Chart", "Scatter Plot"]
         effects = repo.table_frame(f"{name}_fit_effects")
         assert "Prob > ChiSq" in effects.columns
+    finally:
+        dialog.close()
+
+
+def test_a_text_response_of_the_design_is_nominal_and_fitted_by_logistic(qapp, doe_table) -> None:
+    """Reaction_DOE's Grade: a design's response recorded as Pass/Fail is not a number to least-squares."""
+    repo, name = doe_table
+    design = repo.get_table_info(name)["doe"]
+    repo.set_table_info(name, "doe", {**design, "responses": ["Response_1", "Quality"]})
+    dialog = FitModelDialog(repo=repo, table=name)
+    try:
+        roles, kinds = dialog.default_casting(name, repo.table_frame(name))
+        assert roles == {"response": ["Response_1", "Quality"]}
+        dialog.roles_widget.set_casting(roles, kinds)
+        casting = dialog.roles_widget.casting()
+        assert casting.kinds["Quality"] == NOMINAL and casting.kinds["Response_1"] == CONTINUOUS
+        dialog._apply_macro("main", edited=True)
+        dialog._personality.setCurrentIndex(dialog._personality.findData("standard"))
+        assert any("Quality is nominal" in p for p in dialog.problems())  # mixed: said, not attempted
+
+        dialog.roles_widget.set_casting({"response": ["Quality"]}, casting.kinds)
+        assert dialog.personality() == "nominal" and not dialog.problems()
+        dialog._apply_macro("main", edited=True)  # 15 runs: a response surface would separate them
+        dialog.preview()
+        _wait(qapp, dialog)
+        assert dialog._result[0].personality == "nominal"
+
+        dialog.roles_widget.set_casting({"response": ["Response_1"]}, casting.kinds)
+        assert dialog.personality() == "standard"
     finally:
         dialog.close()
 

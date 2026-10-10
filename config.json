@@ -203,7 +203,7 @@
       "ThemeIcon": "list-remove"
     },
     "import": {
-      "text": "Import from other sources...",
+      "text": "Import from File, Clipboard and Web...",
       "description": "Import data from a CSV or Excel file, another database, a web address or the clipboard",
       "SFSymbol": "square.and.arrow.down",
       "SegoeFluent": "E8B5",
@@ -249,7 +249,7 @@
     },
     "load_demo": {
       "text": "Load demo",
-      "description": "Load one of the shipped demo projects and open it",
+      "description": "Open one of the sample projects",
       "SFSymbol": "wand.and.stars",
       "SegoeFluent": "e8a5",
       "ThemeIcon": "document-new"
@@ -309,6 +309,13 @@
       "SFSymbol": "rectangle.badge.plus",
       "SegoeFluent": "ECC8",
       "ThemeIcon": "document-new"
+    },
+    "nav_guided": {
+      "text": "Guided analysis",
+      "description": "Find the function for what you want to find out",
+      "SFSymbol": "lightbulb",
+      "SegoeFluent": "EA80",
+      "ThemeIcon": "dialog-information"
     },
     "nav_analysis": {
       "text": "Analysis",
@@ -409,14 +416,14 @@
     },
     "project_info": {
       "text": "Project info...",
-      "description": "Author, creation date and notes of this project, kept in the project file",
+      "description": "Author, date and notes, kept in the project file",
       "SFSymbol": "info.circle",
       "SegoeFluent": "E946",
       "ThemeIcon": "document-properties"
     },
     "project_report": {
       "text": "Project report...",
-      "description": "The whole project - every figure with its notes, the tables and the operation history - as one HTML or PDF file",
+      "description": "Every figure, table and operation, in one HTML or PDF file",
       "SFSymbol": "doc.text.image",
       "SegoeFluent": "E8A5",
       "ThemeIcon": "document-export"
@@ -622,6 +629,13 @@
       "SFSymbol": "chevron.up",
       "SegoeFluent": "e70e",
       "ThemeIcon": "go-up"
+    },
+    "search_functions": {
+      "text": "Search functions…",
+      "description": "Find an analysis, a series operation, a chart type or a table tool by what it does (Ctrl+K)",
+      "SFSymbol": "magnifyingglass",
+      "SegoeFluent": "E721",
+      "ThemeIcon": "edit-find"
     },
     "user_manual": {
       "text": "User manual",
@@ -1197,17 +1211,17 @@
     },
     "series.estimate_failed": {
       "level": "warning",
-      "title": "Series operation",
+      "title": "Data operation",
       "text": "{series}: {error}"
     },
     "series.needs_two_series": {
       "level": "info",
-      "title": "Series operation",
+      "title": "Data operation",
       "text": "{method} needs two series.\n\nSelect the reference series first, then the one to compare it with."
     },
     "series.no_axis_selected": {
       "level": "info",
-      "title": "Series operation",
+      "title": "Data operation",
       "text": "No axis selected."
     },
     "series.no_fit_results": {
@@ -1227,7 +1241,7 @@
     },
     "series.no_series_selected": {
       "level": "info",
-      "title": "Series operation",
+      "title": "Data operation",
       "text": "No series selected."
     },
     "series.open_docs_failed": {
@@ -1235,9 +1249,19 @@
       "title": "Documentation",
       "text": "Could not open a browser. The documentation is at:\n{url}"
     },
+    "catalog.open_a_chart": {
+      "level": "info",
+      "title": "Search",
+      "text": "{name} works on a chart's series: open or create a chart first, then choose it again."
+    },
+    "catalog.select_a_table": {
+      "level": "info",
+      "title": "Search",
+      "text": "Select a table in the Tables panel first."
+    },
     "series.outliers_need_a_table": {
       "level": "warning",
-      "title": "Series operation",
+      "title": "Data operation",
       "text": "Outlier detection needs a table, and these series read from a saved query:\n\n{series}\n\nHiding an outlier marks a row in the source table, which a query result does not have. Import the query result as a table first."
     },
     "series.preview_failed": {
@@ -1247,12 +1271,12 @@
     },
     "series.roles_missing": {
       "level": "warning",
-      "title": "Series operation",
+      "title": "Data operation",
       "text": "This operation needs both an x and a y role.\n\nThese series cannot be processed:\n\n{series}\n\nSet the missing roles in Series properties, then try again."
     },
     "series.some_failed": {
       "level": "warning",
-      "title": "Series operation",
+      "title": "Data operation",
       "text": "Some series could not be processed:\n\n{errors}"
     },
     "source.confirm_delete_many": {

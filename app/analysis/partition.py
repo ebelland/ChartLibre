@@ -50,6 +50,16 @@ class PartitionSpec:
     #: Grow while validation improves, up to ``max_splits``.
     auto: bool = False
     max_splits: int = 30
+    #: TREE, FOREST (JMP's Bootstrap Forest) or BOOSTED (Boosted Tree).
+    method: str = "tree"
+    #: Trees in a forest or a boosted model; for a boosted one, ``splits`` is per tree.
+    trees: int = 100
+    #: A boosted model's learning rate: how much each tree corrects the ones before.
+    learning_rate: float = 0.1
+
+
+TREE, FOREST, BOOSTED = "tree", "forest", "boosted"
+METHODS: tuple[tuple[str, str], ...] = ((TREE, "Decision Tree"), (FOREST, "Bootstrap Forest"), (BOOSTED, "Boosted Tree"))
 
 
 @dataclass(slots=True)
@@ -77,6 +87,8 @@ class PartitionResult:
     confusion: pd.DataFrame | None = None
     levels: list[str] = field(default_factory=list)
     note: str = ""
+    #: The spec's method: TREE has leaves and a split history; an ensemble neither.
+    method: str = "tree"
 
 
 # ----------------------------------------------------------------------
@@ -257,6 +269,8 @@ def partition(frame: pd.DataFrame, spec: PartitionSpec) -> PartitionResult:
         target_score = y
     encoded = _encode(complete, spec, target_score, train)
     x = encoded.matrix
+    if spec.method in (FOREST, BOOSTED):
+        return _ensemble(spec, complete, x, y, train, valid, nominal, levels, dropped)
 
     # The history: the same tree grown one split at a time.
     largest = max(1, min(spec.max_splits if spec.auto else spec.splits, len(complete) // max(1, spec.min_leaf)))
@@ -366,4 +380,122 @@ def partition(frame: pd.DataFrame, spec: PartitionSpec) -> PartitionResult:
         confusion=confusion,
         levels=levels,
         note=note,
+    )
+
+
+# ----------------------------------------------------------------------
+# Bootstrap Forest and Boosted Tree
+# ----------------------------------------------------------------------
+
+def _ensemble_model(spec: PartitionSpec, nominal: bool, trees: int):
+    common = {"n_estimators": max(1, int(trees)), "min_samples_leaf": max(1, int(spec.min_leaf)),
+              "random_state": int(spec.seed)}
+    if spec.method == FOREST:
+        from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+        return (RandomForestClassifier(criterion="entropy", **common) if nominal
+                else RandomForestRegressor(**common))
+    from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
+
+    # JMP's Boosted Tree: many small trees (``splits`` each), each fitted to
+    # what the ones before left unexplained.
+    boosted = {**common, "learning_rate": float(spec.learning_rate), "max_leaf_nodes": max(2, int(spec.splits) + 1)}
+    return GradientBoostingClassifier(**boosted) if nominal else GradientBoostingRegressor(**boosted)
+
+
+def _staged(model: Any, spec: PartitionSpec, x: np.ndarray, nominal: bool):
+    """(trees, prediction) after each tree: the forest's running mean, the boosted model's stages."""
+    if spec.method == BOOSTED:
+        yield from enumerate(model.staged_predict(x), start=1)
+        return
+    total = None
+    for count, tree in enumerate(model.estimators_, start=1):
+        part = tree.predict_proba(x) if nominal else tree.predict(x)
+        total = part if total is None else total + part
+        yield count, (model.classes_[np.argmax(total, axis=1)] if nominal else total / count)
+
+
+def _staged_score(predicted: np.ndarray, y: np.ndarray, nominal: bool) -> float:
+    if len(y) == 0:
+        return math.nan
+    if nominal:
+        return float(np.mean(predicted != y))
+    total = float(np.sum((y - y.mean()) ** 2))
+    return 1.0 - float(np.sum((y - predicted) ** 2)) / total if total > 0 else math.nan
+
+
+def _ensemble(spec: PartitionSpec, complete: pd.DataFrame, x: np.ndarray, y: np.ndarray, train: np.ndarray,
+              valid: np.ndarray, nominal: bool, levels: list[str], dropped: int) -> PartitionResult:
+    """A Bootstrap Forest or a Boosted Tree: no single tree to read, so no leaves -
+    the report is the fit, the columns' contributions and the score by number of trees."""
+    model = _ensemble_model(spec, nominal, spec.trees).fit(x[train], y[train])
+    measure = "Misclassification" if nominal else "R²"
+    checkpoints = set(np.unique(np.linspace(1, spec.trees, min(spec.trees, 25)).round().astype(int)))
+    rows = []
+    for count, predicted_all in _staged(model, spec, x, nominal):
+        if count in checkpoints:
+            rows.append((count, _staged_score(predicted_all[train], y[train], nominal),
+                         _staged_score(predicted_all[valid], y[valid], nominal) if valid.any() else math.nan))
+    history = pd.DataFrame(rows, columns=["Trees", f"{measure} (training)", f"{measure} (validation)"])
+    if not valid.any():
+        history = history.drop(columns=[f"{measure} (validation)"])
+
+    trees, note = spec.trees, ""
+    if spec.auto and spec.method == BOOSTED:
+        if valid.any():
+            # Stop where validation was best, as JMP's early stopping.
+            # On a tie, the most trees: their probabilities are the better ones.
+            judged = history[f"{measure} (validation)"][::-1]
+            trees = int(history["Trees"][judged.idxmin() if nominal else judged.idxmax()])
+            model = _ensemble_model(spec, nominal, trees).fit(x[train], y[train])
+        else:
+            note = "Automatic stopping needs validation rows; every tree was kept."
+
+    # Each column's share of the impurity the trees removed, and how often it split.
+    estimators = model.estimators_.ravel() if spec.method == BOOSTED else model.estimators_
+    used = np.zeros(len(spec.factors), dtype=int)
+    for tree in estimators:
+        features = tree.tree_.feature
+        np.add.at(used, features[features >= 0], 1)
+    importance = model.feature_importances_
+    contributions = pd.DataFrame({
+        "Column": spec.factors, "Splits": used, "G^2" if nominal else "SS": importance,
+        "Portion": importance / importance.sum() if importance.sum() > 0 else importance,
+    }).sort_values("Portion", ascending=False, kind="stable").reset_index(drop=True)
+
+    role = pd.Series(np.where(valid, VALIDATION, TRAINING), index=complete.index, name="Role")
+    summary: dict[str, float] = {"Rows (training)": float(train.sum()), "Rows (validation)": float(valid.sum()),
+                                 "Trees": float(trees)}
+    probabilities = confusion = None
+    if nominal:
+        predicted = pd.Series(model.predict(x).astype(str), index=complete.index)
+        proba = model.predict_proba(x)
+        classes = [str(c) for c in model.classes_]
+        probabilities = pd.DataFrame(proba, index=complete.index, columns=[f"Prob({c})" for c in classes])
+        summary["Misclassification (training)"] = _staged_score(predicted.to_numpy()[train], y[train], True)
+        if valid.any():
+            summary["Misclassification (validation)"] = _staged_score(predicted.to_numpy()[valid], y[valid], True)
+        index = {c: i for i, c in enumerate(model.classes_)}
+        picked = np.clip(proba[train][np.arange(train.sum()), [index[v] for v in y[train]]], 1e-12, 1)
+        shares = pd.Series(y[train]).value_counts(normalize=True)
+        null = -float(np.sum(np.log(shares.reindex(y[train]).to_numpy())))
+        summary["Entropy R² (training)"] = 1.0 - (-float(np.sum(np.log(picked)))) / null if null > 0 else math.nan
+        confusion = pd.crosstab(pd.Series(y[train], name="Actual"),
+                                pd.Series(predicted.to_numpy()[train], name="Predicted"))
+    else:
+        predicted = pd.Series(model.predict(x), index=complete.index)
+        summary["R² (training)"] = _staged_score(predicted.to_numpy()[train], y[train], False)
+        residual = y[train] - predicted.to_numpy()[train]
+        summary["RMSE (training)"] = float(np.sqrt(np.mean(residual**2)))
+        if valid.any():
+            summary["R² (validation)"] = _staged_score(predicted.to_numpy()[valid], y[valid], False)
+    if dropped:
+        note = (note + " " if note else "") + f"{dropped} rows with a missing value were left out."
+
+    return PartitionResult(
+        response=spec.response, kind=NOMINAL if nominal else CONTINUOUS, factors=list(spec.factors),
+        splits=int(spec.splits), leaves=pd.DataFrame(), history=history, contributions=contributions,
+        summary=summary, leaf=pd.Series(np.nan, index=complete.index, name="Leaf"), predicted=predicted,
+        role=role, probabilities=probabilities, confusion=confusion, levels=levels, note=note,
+        method=spec.method,
     )

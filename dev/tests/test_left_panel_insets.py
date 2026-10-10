@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QPoint
-from PySide6.QtWidgets import QApplication, QFrame, QWidget
+from PySide6.QtWidgets import QScrollArea, QApplication, QFrame, QWidget
 
 import app.styles.style as style
 from app.data.sqlite_repo import SqliteRepo
@@ -48,6 +48,10 @@ def test_the_file_page_cards_have_equal_gaps_on_three_sides(qapp: QApplication, 
     left_gap = _x(card, window) - _x(rail, window, right=True)
     right_gap = _x(panel, window, right=True) - _x(card, window, right=True)
     page = navigation.panel_stack.currentWidget()
+    # On a short window the page scrolls: its scroll bar is not part of the gap.
+    scroll = page.findChild(QScrollArea)
+    if scroll is not None and scroll.verticalScrollBar().isVisible():
+        right_gap -= scroll.verticalScrollBar().width()
     stack_bottom = page.mapTo(window, QPoint(0, page.height())).y()
     panel_bottom = panel.mapTo(window, QPoint(0, panel.height())).y()
 

@@ -722,6 +722,13 @@ class TableListPanel(QWidget):
             return None
         return current[0]
 
+    def edit_selected_table(self) -> bool:
+        """Open the table editor on the selected table; False when no one table is selected."""
+        if self._selected_table() is None or self._repo is None:
+            return False
+        self._edit_table()
+        return True
+
     def _edit_table(self) -> None:
         """Open the table editor on the selected table, then refresh what shows it."""
         table = self._selected_table()

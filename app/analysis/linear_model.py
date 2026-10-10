@@ -27,6 +27,7 @@ term left has p <= alpha - never a term a higher-order one still contains
 from __future__ import annotations
 
 import math
+import warnings
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
@@ -405,7 +406,6 @@ def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respon
     Predictions give the probability of the first level.
     """
     import patsy
-    from scipy import stats
     import statsmodels.api as sm
     from statsmodels.miscmodels.ordinal_model import OrderedModel
 
@@ -419,16 +419,48 @@ def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respon
     design = patsy.dmatrix(prep.formula(terms).split("~", 1)[1], prep.data, return_type="dataframe")
     slices = design.design_info.term_name_slices
 
+    unstable: list[bool] = []
+
     def fit(columns: list[str]):
         exog = design[columns]
         if ordinal:
             return OrderedModel(codes, exog.drop(columns=["Intercept"], errors="ignore"), distr="logit").fit(
                 method="bfgs", disp=0, maxiter=500)
-        if len(levels) == 2:
-            return sm.Logit((codes == 0).astype(int), exog).fit(disp=0, maxiter=200)
-        return sm.MNLogit(codes, exog).fit(disp=0, maxiter=200)
+        model = sm.Logit((codes == 0).astype(int), exog) if len(levels) == 2 else sm.MNLogit(codes, exog)
+        try:
+            return model.fit(disp=0, maxiter=200)
+        except (np.linalg.LinAlgError, *_separation_errors()):
+            # The effects separate the levels: Newton's Hessian is singular.
+            # As JMP, fit anyway by a gradient method and say it is unstable.
+            unstable.append(True)
+            return model.fit(method="bfgs", disp=0, maxiter=2000)
 
     columns = list(design.columns)
+    from statsmodels.tools.sm_exceptions import ConvergenceWarning, HessianInversionWarning
+
+    with warnings.catch_warnings():
+        # Separation also overflows exp(), logs zeros and leaves the Hessian
+        # singular on the way: the report's note says it once, plainly.
+        for category in (RuntimeWarning, ConvergenceWarning, HessianInversionWarning):
+            warnings.simplefilter("ignore", category)
+        return _logistic_report(response, spec, prep, levels, terms, ordinal, codes, design, slices, fit,
+                                columns, unstable)
+
+
+def _separation_errors() -> tuple[type[Exception], ...]:
+    """statsmodels' perfect-separation error, where the installed version still raises one."""
+    try:
+        from statsmodels.tools.sm_exceptions import PerfectSeparationError
+    except ImportError:
+        return ()
+    return (PerfectSeparationError,)
+
+
+def _logistic_report(response, spec, prep, levels, terms, ordinal, codes, design, slices, fit, columns,
+                     unstable) -> ResponseFit:
+    """The fitted logistic model, its likelihood-ratio tests and its estimates (see _fit_logistic)."""
+    from scipy import stats
+
     full = fit(columns)
     counts = codes.value_counts().to_numpy(dtype=float)
     llnull = float((counts * np.log(counts / counts.sum())).sum())
@@ -478,8 +510,11 @@ def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respon
         "AICc": float(-2 * llf + 2 * len(np.ravel(full.params)) * len(codes) / max(len(codes) - len(np.ravel(full.params)) - 1, 1)),
     }
     profile = pd.DataFrame(columns=["Factor", "Coded", "Value", "Predicted", "Lower", "Upper"])
-    if not ordinal and len(levels) == 2:
+    if not ordinal and len(levels) == 2 and not unstable:
         profile = _probability_profile(full, design, prep, spec.factors, terms)
+    note = ("Unstable: the effects separate the response levels (quasi-complete separation), so the "
+            "estimates grow without bound and their standard errors mean little. Remove effects - "
+            "keep the main effects, say - or add runs." if unstable else "")
     return ResponseFit(
         response=response, terms=terms, removed=[], estimates=estimates,
         effect_tests=_chi_square_table(rows, "L-R Chi-Square"),
@@ -490,6 +525,7 @@ def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respon
         studentized=pd.Series(np.nan, index=prep.data.index),
         coding=prep.codes, profile=profile,
         personality=spec.personality, whole_title="Whole model test", p_column="Prob > ChiSq", levels=levels,
+        note=note,
     )
 
 

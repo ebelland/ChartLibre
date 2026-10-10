@@ -31,7 +31,6 @@ from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
-    QHeaderView,
     QInputDialog,
     QLabel,
     QLineEdit,
@@ -51,7 +50,6 @@ from app.data.repo.table_tools import CAST_TYPES
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.styles.style import (
     action_presentation,
-    apply_fusion_for_item_view_styling,
     create_action_button,
     TitledCard,
     load_icon,
@@ -59,7 +57,7 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
-from app.widgets.table_preview import LazyTableModel
+from app.widgets.table_preview import LazyTableModel, style_data_table
 
 #: What a new column can be declared as. SQLite's own storage classes, in
 #: the order they are actually wanted: a measured quantity first.
@@ -214,17 +212,13 @@ class TableEditorDialog(SettingsTableDialog):
         self._table = str(table)
 
         self.view = QTableView(self)
+        # Drawn as the data preview draws the same table; the row numbers
+        # stay, since an edit is often "row 12, column x".
+        style_data_table(self.view)
         self.view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
         self.view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.view.setAlternatingRowColors(True)
-        self.view.setSortingEnabled(False)
-        apply_fusion_for_item_view_styling(self.view)
-        # Drawn as the data preview draws a table: compact rows, columns as
-        # wide as their names, resizable by hand.
-        self.view.verticalHeader().setDefaultSectionSize(26)
-        self.view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.view.horizontalHeader().setHighlightSections(False)
         self.view.horizontalHeader().setMinimumSectionSize(72)
+        self.view.horizontalHeader().setStretchLastSection(True)
         # Rename a column where it is named: double-click its header.
         self.view.horizontalHeader().sectionDoubleClicked.connect(self._rename_from_header)
 

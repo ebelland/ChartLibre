@@ -45,3 +45,4 @@ class AnalysisPanel(NavPanel):
                 description.setProperty("muted", True)
                 layout.addWidget(description)
             self.add_frame(_(category), body, object_name=f"analysis{category.replace(' ', '')}Frame")
+

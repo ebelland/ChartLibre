@@ -273,7 +273,8 @@ class TableOperationDialogBase(QDialog):
             roles, kinds = remembered.get("roles", {}), remembered.get("kinds", {})
         else:
             roles, kinds = self.default_casting(table, self._frame) if table else ({}, {})
-        self.roles_widget.set_columns(self._frame, kinds)
+        declared = {str(row[1]): str(row[2] or "") for row in self._repo.table_info(table)} if table else {}
+        self.roles_widget.set_columns(self._frame, kinds, declared)
         self.roles_widget.set_casting(roles)
         self._cast_table = table
         self.inputs_changed()
@@ -422,7 +423,8 @@ class TableOperationDialogBase(QDialog):
     def create_report_figure(self, name: str, notes_html: str, panels: Sequence[tuple]) -> int:
         """A figure of *panels*, two to a row, with *notes_html* in its notes; its id.
 
-        Each panel is ``(chart type, title, x label, y label, series)``, each
+        Each panel is ``(chart type, title, x label, y label, series)``, and
+        optionally the axis options last (annotations, reference lines); each
         series ``(name, sql, roles, style)`` - see series_select.
         """
         from app.widgets.chart_panel import FIGURE_VIEW_OPTIONS_KEY
@@ -434,10 +436,10 @@ class TableOperationDialogBase(QDialog):
             name=name, nrows=rows, ncols=columns,
             options={FIGURE_VIEW_OPTIONS_KEY: {"notes_html": notes_html}},
         ))
-        for index, (chart, title, x_label, y_label, series) in enumerate(panels):
+        for index, (chart, title, x_label, y_label, series, *options) in enumerate(panels):
             axis_id = int(repo.create_axis_descriptor(
                 figure_id=figure_id, axis_index=index, chart_type=chart,
-                title=title, x_label=x_label, y_label=y_label, options={},
+                title=title, x_label=x_label, y_label=y_label, options=dict(options[0]) if options else {},
             ))
             for position, (series_name, sql, roles, style) in enumerate(series):
                 repo.create_series_descriptor(

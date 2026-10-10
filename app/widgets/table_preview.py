@@ -54,7 +54,35 @@ def _type_code(decl_type: str | None) -> str:
             return 'S'
 
 
-        
+#: Row height of every data table (the preview, the table editor).
+DATA_TABLE_ROW_HEIGHT = 32
+
+
+def style_data_table(view: QTableView) -> None:
+    """Draw *view* as the application draws a table of data.
+
+    The preview and the table editor show the same table, so they share
+    one look: the ``QTableView#dataTable`` rules of the stylesheets, no
+    grid, alternating rows, no frame (the card around the view draws it),
+    and columns resized by hand.
+    """
+    view.setObjectName("dataTable")
+    apply_fusion_for_item_view_styling(view)
+    view.setShowGrid(False)
+    view.setAlternatingRowColors(True)
+    view.setFrameShape(QFrame.Shape.NoFrame)
+    view.setSortingEnabled(False)
+    view.verticalHeader().setDefaultSectionSize(DATA_TABLE_ROW_HEIGHT)
+    header = view.horizontalHeader()
+    # Interactive rather than ResizeToContents: the latter locks every
+    # column at its computed width and silently undoes a drag the moment
+    # the user lets go of it. Columns are still sized to fit whenever a
+    # new model is set (resizeColumnsToContents), so a view opens fitted;
+    # the difference is that a resize the user makes now sticks.
+    header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+    header.setHighlightSections(False)
+
+
 
 
 class DataFrameTableModel(QAbstractTableModel):
@@ -117,14 +145,10 @@ class TablePreviewPanel(QWidget):
         self._table: str|None = None
 
         self.view = QTableView(self)
-        apply_fusion_for_item_view_styling(self.view)
-        self.view.setShowGrid(False)
         # Finder's list view: alternating rows carry the eye across a wide
         # row, and the frame is dropped so the list meets the sidebar
         # hairline instead of drawing a second border beside it.
-        self.view.setAlternatingRowColors(True)
-        self.view.setFrameShape(QFrame.Shape.NoFrame)
-        self.view.setSortingEnabled(False)
+        style_data_table(self.view)
 
         # QTableView is backed by a viewport. Right-click events may arrive on
         # the viewport, not on the view, so wire both and also filter events.
@@ -134,19 +158,8 @@ class TablePreviewPanel(QWidget):
         self.view.customContextMenuRequested.connect(self._show_context_menu)
         self.view.viewport().customContextMenuRequested.connect(self._show_context_menu)
 
-        header = self.view.horizontalHeader()
-        header.setStretchLastSection(True)
-        # Interactive rather than ResizeToContents: the latter locks every
-        # column at its computed width and silently undoes a drag the moment
-        # the user lets go of it. Columns are still sized to fit whenever a
-        # new model is set - see resizeColumnsToContents() below - so the
-        # panel opens looking the same as before; the difference is that a
-        # resize the user makes now sticks.
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setHighlightSections(False)
-
+        self.view.horizontalHeader().setStretchLastSection(True)
         self.view.verticalHeader().setVisible(False)
-        self.view.verticalHeader().setDefaultSectionSize(32)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

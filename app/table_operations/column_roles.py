@@ -40,16 +40,16 @@ from app.styles.style import MARGIN_TOOLBOX_PAGE, TitledCard
 from app.utils.i18n import _
 
 CONTINUOUS = "continuous"
+ORDINAL = "ordinal"
 NOMINAL = "nominal"
 
 #: The modelling types, as the type combo lists them, and the mark a column
 #: carries for its type in the lists.
-KINDS: tuple[tuple[str, str], ...] = ((CONTINUOUS, "Continuous"), (NOMINAL, "Nominal"))
-_KIND_MARKS: dict[str, str] = {CONTINUOUS: "▲", NOMINAL: "●"}
+KINDS: tuple[tuple[str, str], ...] = ((CONTINUOUS, "Continuous"), (ORDINAL, "Ordinal"), (NOMINAL, "Nominal"))
+_KIND_MARKS: dict[str, str] = {CONTINUOUS: "▲", ORDINAL: "◆", NOMINAL: "●"}
 
-#: A numeric column with at most this many distinct values, all whole
-#: numbers, reads as levels rather than measurements when guessing.
-_LEVEL_LIMIT = 6
+#: The types whose values are levels rather than measurements.
+CATEGORICAL = frozenset({ORDINAL, NOMINAL})
 
 _NAME_ROLE = Qt.ItemDataRole.UserRole
 
@@ -66,7 +66,7 @@ class ColumnRole:
     key: str
     label: str
     tooltip: str = ""
-    kinds: tuple[str, ...] = (CONTINUOUS, NOMINAL)
+    kinds: tuple[str, ...] = (CONTINUOUS, ORDINAL, NOMINAL)
     minimum: int = 0
     maximum: int | None = None
 
@@ -85,17 +85,35 @@ class ColumnCasting:
         return [name for name in self.roles.get(role, []) if self.kinds.get(name) == kind]
 
 
+def declared_kind(declared: str | None) -> str | None:
+    """The modelling type a column's declared SQL type says, as JMP's defaults:
+    a REAL is continuous, an INTEGER ordinal, TEXT nominal. None: no type declared."""
+    text = str(declared or "").strip().upper()
+    if not text:
+        return None
+    if "INT" in text:  # SQLite's own rule for integer affinity
+        return ORDINAL
+    if any(word in text for word in ("REAL", "FLOA", "DOUB", "NUM", "DEC")):
+        return CONTINUOUS
+    return NOMINAL
+
+
 def guess_kind(values: pd.Series) -> str:
-    """The modelling type *values* suggest: text is nominal, so are a few whole-number levels."""
-    numbers = pd.to_numeric(values, errors="coerce")
+    """The modelling type *values* suggest, when no type is declared: text is nominal,
+    whole numbers ordinal, other numbers continuous."""
     present = values.dropna()
-    if present.empty or numbers.notna().sum() < len(present):
+    if present.empty:
+        return CONTINUOUS
+    if pd.api.types.is_bool_dtype(present):
         return NOMINAL
-    distinct = numbers.dropna().unique()
-    whole = bool(((distinct % 1) == 0).all())
-    if whole and len(distinct) <= min(_LEVEL_LIMIT, max(len(present) // 3, 2)) and len(present) > len(distinct):
+    if pd.api.types.is_integer_dtype(present):
+        return ORDINAL
+    if pd.api.types.is_float_dtype(present):
+        return CONTINUOUS
+    numbers = pd.to_numeric(present, errors="coerce")
+    if numbers.notna().sum() < len(present):
         return NOMINAL
-    return CONTINUOUS
+    return ORDINAL if bool(((numbers % 1) == 0).all()) else CONTINUOUS
 
 
 class ColumnRolesWidget(QWidget):
@@ -244,11 +262,17 @@ class ColumnRolesWidget(QWidget):
     def roles(self) -> tuple[ColumnRole, ...]:
         return self._roles
 
-    def set_columns(self, frame: pd.DataFrame, kinds: Mapping[str, str] | None = None) -> None:
-        """Show *frame*'s columns, typed from *kinds* or guessed; every role empties."""
+    def set_columns(self, frame: pd.DataFrame, kinds: Mapping[str, str] | None = None,
+                    declared: Mapping[str, str] | None = None) -> None:
+        """Show *frame*'s columns, typed from *kinds*, else from their *declared* SQL types,
+        else guessed from the values; every role empties."""
         self._columns = [str(name) for name in frame.columns]
-        given = dict(kinds or {})
-        self._kinds = {name: given.get(name) or guess_kind(frame[name]) for name in self._columns}
+        given = {name: kind for name, kind in (kinds or {}).items() if kind in _KIND_MARKS}
+        types = dict(declared or {})
+        self._kinds = {
+            name: given.get(name) or declared_kind(types.get(name)) or guess_kind(frame[name])
+            for name in self._columns
+        }
         for box in self._boxes.values():
             box.clear()
         self._refresh_columns()

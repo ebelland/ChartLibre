@@ -41,7 +41,7 @@ from PySide6.QtWidgets import (
 
 from app.analysis import linear_model as lm
 from app.series_operations.parameter_spec import FloatParam
-from app.table_operations.column_roles import CONTINUOUS, NOMINAL, ColumnCasting, ColumnRole
+from app.table_operations.column_roles import CATEGORICAL, CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.table_operations.dialog_base import TableOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
@@ -142,8 +142,9 @@ class FitModelDialog(TableOperationDialogBase):
             for f in design.get("factors", [])
             if f.get("name") in frame.columns
         }
+        # The responses are typed as any column is, by what they hold: a yield
+        # is continuous, a pass/fail grade nominal.
         responses = [name for name in design.get("responses", []) if name in frame.columns]
-        kinds.update({name: CONTINUOUS for name in responses})
         return {"response": responses}, kinds
 
     def _design_factors(self) -> list[str]:
@@ -284,7 +285,8 @@ class FitModelDialog(TableOperationDialogBase):
                     names.append(name)
         factors = []
         for name in names:
-            kind = NOMINAL if kinds.get(name) == NOMINAL else CONTINUOUS
+            # An ordinal factor is fitted as its levels, as JMP fits it.
+            kind = NOMINAL if kinds.get(name) in CATEGORICAL else CONTINUOUS
             low, high = ranges.get(name, (None, None)) if kind == CONTINUOUS else (None, None)
             factors.append(lm.Factor(name, kind, low, high))
         return factors
@@ -303,17 +305,38 @@ class FitModelDialog(TableOperationDialogBase):
             kinds = self.roles_widget.casting().kinds
             self._terms = [
                 t for t in self._terms
-                if all(n in kinds for n in t) and not (len(t) == 2 and t[0] == t[1] and kinds.get(t[0]) == NOMINAL)
+                if all(n in kinds for n in t) and not (len(t) == 2 and t[0] == t[1] and kinds.get(t[0]) in CATEGORICAL)
             ]
             self._show_terms()
+        self._personality_for_responses()
         super().inputs_changed()
+
+    def _personality_for_responses(self) -> None:
+        """As JMP: the Y's modelling type picks the personality - logistic for nominal Y, least squares otherwise."""
+        combo = getattr(self, "_personality", None)
+        casting = self.roles_widget.casting()
+        responses = casting.columns("response")
+        kinds = tuple(casting.kinds.get(name) for name in responses)
+        # Only when the Y change: a personality chosen by hand afterwards stays.
+        if combo is None or not responses or kinds == getattr(self, "_personality_picked_for", None):
+            return
+        self._personality_picked_for = kinds
+        levels = [casting.kinds.get(name) in CATEGORICAL for name in responses]
+        categorical = self.personality() in lm.CATEGORICAL_RESPONSE
+        if all(levels):
+            ordinal = all(casting.kinds.get(name) == ORDINAL for name in responses)
+            wanted = "ordinal" if ordinal else "nominal"
+            if self.personality() != wanted:
+                combo.setCurrentIndex(combo.findData(wanted))
+        elif not any(levels) and categorical:
+            combo.setCurrentIndex(combo.findData("standard"))
 
     def _apply_macro(self, key: str, *, edited: bool, columns: list[str] | None = None) -> None:
         """Replace the effects with a macro over *columns*: the selected ones, else the model's factors."""
         if columns is None:
             columns = self.roles_widget.selected_columns() or [f.name for f in self._factors()]
         kinds = self.roles_widget.casting().kinds
-        factors = [lm.Factor(name, NOMINAL if kinds.get(name) == NOMINAL else CONTINUOUS) for name in columns]
+        factors = [lm.Factor(name, NOMINAL if kinds.get(name) in CATEGORICAL else CONTINUOUS) for name in columns]
         degree = self._degree.value() if hasattr(self, "_degree") else 2
         self._terms = {
             "main": lm.main_effects,
@@ -365,13 +388,13 @@ class FitModelDialog(TableOperationDialogBase):
             return [_("The model has no effects: select columns and press Add.")]
         casting = self.roles_widget.casting()
         if self.personality() in lm.CATEGORICAL_RESPONSE:
-            continuous = [name for name in casting.columns("response") if casting.kinds.get(name) != NOMINAL]
+            continuous = [name for name in casting.columns("response") if casting.kinds.get(name) not in CATEGORICAL]
             if continuous:
                 return [_("{personality} needs a nominal Y; {columns} is continuous - set its type to Nominal, "
                           "or choose a least-squares personality.").format(
                     personality=self._personality.currentText(), columns=", ".join(continuous))]
         if self.personality() not in lm.CATEGORICAL_RESPONSE:
-            nominal = [name for name in casting.columns("response") if casting.kinds.get(name) == NOMINAL]
+            nominal = [name for name in casting.columns("response") if casting.kinds.get(name) in CATEGORICAL]
             if nominal:
                 return [_("{personality} needs a continuous Y; {columns} is nominal - choose Nominal or Ordinal Logistic.").format(
                     personality=self._personality.currentText(), columns=", ".join(nominal))]

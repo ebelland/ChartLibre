@@ -60,6 +60,11 @@ def _dialogs_start_from_their_defaults(_private_user_config):
     from app.utils.dialog_state import CONFIG_SECTION
 
     config.set_section(CONFIG_SECTION, {})
+    # The table operations keep each table's casting (roles and column types)
+    # in a section named after the dialog.
+    for name, section in config.load_user_config().items():
+        if isinstance(section, dict) and "casting" in section:
+            config.set_section(name, {})
     yield
 
 

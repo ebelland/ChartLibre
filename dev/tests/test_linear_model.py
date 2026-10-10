@@ -189,6 +189,18 @@ def test_nominal_logistic_binary_and_multinomial() -> None:
     assert ordinal.anova.loc[0, "Prob > ChiSq"] < 0.001
 
 
+def test_a_logistic_model_that_separates_the_levels_is_fitted_and_called_unstable() -> None:
+    """Reaction_DOE's Grade by a response surface: Newton's Hessian is singular; JMP still reports."""
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame({"A": rng.uniform(-1, 1, 30), "B": rng.uniform(-1, 1, 30)})
+    frame["Ok"] = np.where(frame.A + frame.B * frame.B > 0.2, "pass", "fail")
+    factors = [Factor("A", low=-1, high=1), Factor("B", low=-1, high=1)]
+    terms = [("A",), ("B",), ("A", "B"), ("A", "A"), ("B", "B")]
+    fit = lm.fit_models(frame, ModelSpec(factors, ["Ok"], terms, personality="nominal"))[0]
+    assert fit.note.startswith("Unstable")
+    assert fit.summary["RSquare (U)"] > 0.9 and len(fit.effect_tests) == len(terms)
+
+
 def test_a_model_without_design_info_still_has_its_effect_tests_and_estimates() -> None:
     """Some models carry no ``data.design_info`` ("'PandasData' object has no
     attribute 'design_info'"): the term columns are rebuilt from the formula."""

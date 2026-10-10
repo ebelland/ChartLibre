@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import html
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
@@ -18,15 +19,17 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app.analysis import partition as pt
-from app.series_operations.parameter_spec import FloatParam, IntParam
+from app.series_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.styles.style import TitledCard
-from app.table_operations.column_roles import NOMINAL, ColumnCasting, ColumnRole
+from app.table_operations.column_roles import CATEGORICAL, ORDINAL, ColumnCasting, ColumnRole
 from app.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
 #: The charts OK can draw: (key, check box label, ticked by default).
 CHARTS: tuple[tuple[str, str, bool], ...] = (
+    ("partition", "Partition graph (continuous Y)", True),
+    ("box", "Box plots by leaf (continuous Y)", False),
     ("contributions", "Column contributions", True),
     ("history", "R² or misclassification by splits", True),
     ("actual", "Actual by predicted (continuous Y)", True),
@@ -35,6 +38,63 @@ CHARTS: tuple[tuple[str, str, bool], ...] = (
 
 _JMP_HELP = "https://www.jmp.com/support/help/en/18.0/index.shtml#page/jmp/"
 PARTITION_DOC = _JMP_HELP + "overview-of-the-partition-platform.shtml"
+
+
+def _tree_kinds(casting: ColumnCasting, frame: pd.DataFrame) -> dict[str, str]:
+    """The engine's two kinds. As JMP's Partition: an ordinal X is split in its
+    order, as a continuous one (if its levels are numbers); an ordinal Y is
+    classified, as a nominal one."""
+    responses = set(casting.columns("response"))
+    kinds = {}
+    for name, kind in casting.kinds.items():
+        if kind == ORDINAL:
+            numbers = name in frame and pd.to_numeric(frame[name].dropna(), errors="coerce").notna().all()
+            kinds[name] = pt.CONTINUOUS if numbers and name not in responses else pt.NOMINAL
+        else:
+            kinds[name] = pt.NOMINAL if kind in CATEGORICAL else pt.CONTINUOUS
+    return kinds
+
+
+#: The rows table's column placing each row along the partition graph.
+PARTITION_X = "Partition x"
+
+
+def _leaf_label(rule: str) -> str:
+    """A leaf's rule as a label: one condition per line."""
+    return str(rule).replace(" & ", "\n")
+
+
+@dataclass(slots=True)
+class _GraphLayout:
+    """Where the partition graph puts things, in its 0..1 horizontal space."""
+
+    positions: pd.Series  # per row with a leaf
+    segments: pd.DataFrame  # Leaf, x, y: each leaf's mean, from its left edge to its right one
+    leaves: pd.DataFrame  # Leaf, start, mean, label
+    mean: float  # of all the training rows
+
+
+def _graph_layout(result: pt.PartitionResult) -> _GraphLayout:
+    """Each leaf as wide as its share of the rows, left to right as the tree has them; its rows evenly inside it."""
+    leaf = result.leaf.dropna().astype(int).sort_index(kind="stable").sort_values(kind="stable")
+    counts = leaf.value_counts().reindex(sorted(leaf.unique()))
+    widths = counts / counts.sum()
+    starts = widths.cumsum() - widths
+    rank = leaf.groupby(leaf).cumcount()
+    positions = starts.reindex(leaf).to_numpy() + (rank.to_numpy() + 0.5) / counts.reindex(leaf).to_numpy() \
+        * widths.reindex(leaf).to_numpy()
+    means = result.leaves.set_index("Leaf")["Mean"]
+    rules = result.leaves.set_index("Leaf")["Rule"]
+    segments, leaves = [], []
+    for number, start in starts.items():
+        mean = float(means.get(number, float("nan")))
+        end = float(start + widths[number])
+        segments += [{"Leaf": number, "x": float(start), "y": mean}, {"Leaf": number, "x": end, "y": mean}]
+        leaves.append({"Leaf": number, "start": float(start), "mean": mean,
+                       "label": f"{number}. {_leaf_label(rules.get(number, ''))}"})
+    # The leaves' means weighted by their training rows: the mean of all of them.
+    mean = float(result.leaves["Mean"].mul(result.leaves["Count"]).sum() / max(result.leaves["Count"].sum(), 1))
+    return _GraphLayout(pd.Series(positions, index=leaf.index), pd.DataFrame(segments), pd.DataFrame(leaves), mean)
 
 
 class PartitionDialog(TableOperationDialogBase):
@@ -64,8 +124,17 @@ class PartitionDialog(TableOperationDialogBase):
     PARAMETERS_TAB = "Tree"
 
     PARAMS = (
-        IntParam("splits", "Splits:", tooltip="How many times the rows are split: one fewer than the leaves.",
+        ChoiceParam("method", "Method:", choices=tuple((label, key) for key, label in pt.METHODS),
+                    tooltip="One tree you can read; a Bootstrap Forest (many trees on resampled rows, averaged); "
+                            "or a Boosted Tree (many small trees, each correcting the ones before)."),
+        IntParam("splits", "Splits:", tooltip="How many times the rows are split: one fewer than the leaves. "
+                                              "For a Boosted Tree, the splits of each tree.",
                  default_value=3, minimum=1, maximum=60),
+        IntParam("trees", "Trees:", tooltip="How many trees a Bootstrap Forest or a Boosted Tree grows.",
+                 default_value=100, minimum=1, maximum=2000),
+        FloatParam("learning_rate", "Learning rate:",
+                   tooltip="Boosted Tree: how much each tree corrects the ones before. Smaller needs more trees.",
+                   default_value=0.1, minimum=0.01, maximum=1.0, decimals=2, step=0.05),
         IntParam("min_leaf", "Minimum leaf size:", tooltip="The fewest rows a leaf may hold.",
                  default_value=5, minimum=1, maximum=10_000),
         FloatParam("validation_fraction", "Validation share:",
@@ -164,18 +233,21 @@ class PartitionDialog(TableOperationDialogBase):
         spec = pt.PartitionSpec(
             response=casting.columns("response")[0],
             factors=casting.columns("factor"),
-            kinds={name: (pt.NOMINAL if kind == NOMINAL else pt.CONTINUOUS) for name, kind in casting.kinds.items()},
+            kinds=_tree_kinds(casting, frame),
             splits=int(params.get("splits", 3)),
             min_leaf=int(params.get("min_leaf", 5)),
             validation_column=validation[0] if validation else None,
             validation_fraction=float(params.get("validation_fraction", 0.0)),
             seed=int(params.get("seed", 1)),
             auto=bool(params.get("auto")),
+            method=str(params.get("method") or pt.TREE),
+            trees=int(params.get("trees", 100)),
+            learning_rate=float(params.get("learning_rate", 0.1)),
         )
         return pt.partition(frame, spec)
 
     def format_results(self, result: pt.PartitionResult) -> str:
-        if self._auto and self._parameter_form is not None:
+        if self._auto and self._parameter_form is not None and result.method == pt.TREE:
             # What Automatic chose becomes the count Split and Prune go on from.
             self._parameter_form.set_values({"splits": result.splits})
         return report_html.document(_(self.Name), f"{self.table} · {result.response}", self._report(result))
@@ -199,7 +271,9 @@ class PartitionDialog(TableOperationDialogBase):
         blocks = []
         if result.note:
             blocks.append(report_html.note(result.note))
-        kind = _("Regression tree") if result.kind == pt.CONTINUOUS else _("Classification tree")
+        kind = (dict(pt.METHODS)[result.method] if result.method != pt.TREE
+                else "Regression tree" if result.kind == pt.CONTINUOUS else "Classification tree")
+        kind = _(kind)
         blocks.append(report_html.section(
             _("Summary"),
             report_html.summary_table(
@@ -210,12 +284,13 @@ class PartitionDialog(TableOperationDialogBase):
             _("Column contributions"),
             report_html.table([_(c) for c in result.contributions.columns], self._rows(result.contributions)),
         ))
+        if not result.leaves.empty:
+            blocks.append(report_html.section(
+                _("Leaf report"),
+                report_html.table([_(c) for c in result.leaves.columns], self._rows(result.leaves)),
+            ))
         blocks.append(report_html.section(
-            _("Leaf report"),
-            report_html.table([_(c) for c in result.leaves.columns], self._rows(result.leaves)),
-        ))
-        blocks.append(report_html.section(
-            _("Split history"),
+            _("Split history") if result.method == pt.TREE else _("Fit by number of trees"),
             report_html.table([_(c) for c in result.history.columns], self._rows(result.history)),
         ))
         if result.confusion is not None:
@@ -233,10 +308,14 @@ class PartitionDialog(TableOperationDialogBase):
 
     def apply_results(self, result: pt.PartitionResult) -> list[dict[str, Any]]:
         repo, table = self._repo, self.table
-        names = {key: repo.free_table_name(f"{table}_partition{suffix}") for key, suffix in (
-            ("rows", ""), ("leaves", "_leaves"), ("history", "_history"), ("contributions", "_contributions"),
-        )}
         charts = self.charts()
+        # A forest or a boosted model has no single tree: no leaves to write or draw.
+        tree = not result.leaves.empty
+        graph = "partition" in charts and result.kind != pt.NOMINAL and tree
+        names = {key: repo.free_table_name(f"{table}_partition{suffix}") for key, suffix in (
+            ("rows", ""), *((("leaves", "_leaves"),) if tree else ()), ("history", "_history"),
+            ("contributions", "_contributions"), *((("graph", "_graph"),) if graph else ()),
+        )}
         repo.snapshot_for_undo(
             [*names.values(), *(repo.DESCRIPTOR_TABLES if charts else ())],
             label=f"Partition on '{table}'",
@@ -244,19 +323,26 @@ class PartitionDialog(TableOperationDialogBase):
 
         # Each row's leaf and prediction beside its data, like ClusterId.
         frame = self._frame.copy()
-        frame["Leaf"] = result.leaf.reindex(frame.index)
+        if tree:
+            frame["Leaf"] = result.leaf.reindex(frame.index)
         frame[f"Predicted {result.response}"] = result.predicted.reindex(frame.index)
         if result.probabilities is not None:
             for column in result.probabilities.columns:
                 frame[column] = result.probabilities[column].reindex(frame.index)
         frame["Partition role"] = result.role.reindex(frame.index)
+        layout = None
+        if graph:
+            layout = _graph_layout(result)
+            frame[PARTITION_X] = layout.positions.reindex(frame.index)
+            repo.import_dataframe(layout.segments, table_name=names["graph"], normalize_columns=False)
         repo.import_dataframe(frame, table_name=names["rows"], normalize_columns=False)
         for key in ("leaves", "history", "contributions"):
-            repo.import_dataframe(getattr(result, key), table_name=names[key], normalize_columns=False)
+            if key in names:
+                repo.import_dataframe(getattr(result, key), table_name=names[key], normalize_columns=False)
         written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
 
         self.created_figure_ids = []
-        panels = self._panels(result, names, charts)
+        panels = self._panels(result, names, charts, layout)
         if panels:
             notes = report_html.document(_(self.Name), f"{table} · {result.response}", self._report(result))
             figure_id = self.create_report_figure(f"Partition · {result.response}", notes, panels)
@@ -264,11 +350,22 @@ class PartitionDialog(TableOperationDialogBase):
             written.append({"figure": figure_id, "name": result.response})
         return written
 
-    def _panels(self, result: pt.PartitionResult, names: Mapping[str, str], charts: list[str]) -> list[tuple]:
-        """(chart type, title, x label, y label, [(series name, sql, roles, style)]) per chart ticked."""
+    def _panels(self, result: pt.PartitionResult, names: Mapping[str, str], charts: list[str],
+                layout: _GraphLayout | None = None) -> list[tuple]:
+        """(chart type, title, x label, y label, [(series name, sql, roles, style)], options) per chart ticked."""
         panels = []
         nominal = result.kind == pt.NOMINAL
         measure = "Misclassification" if nominal else "R²"
+        if layout is not None:
+            panels.append(self._partition_graph(result, names, layout))
+        if "box" in charts and not nominal and "leaves" in names:
+            # Numbered as in the leaves chart and the partition graph: the rules
+            # are too long to sit side by side under the boxes.
+            leaf = self.quoted("Leaf")
+            sql = (f"SELECT {self.quoted(result.response)} AS value, CAST(CAST({leaf} AS INTEGER) AS TEXT) AS "
+                   f"\"group\" FROM {self.quoted(names['rows'])} WHERE {leaf} IS NOT NULL ORDER BY {leaf}")
+            panels.append(("Box Plot", _("{response} by leaf").format(response=result.response), _("Leaf"),
+                           result.response, [(result.response, sql, {"value": "value", "group": "group"}, {})]))
         if "contributions" in charts:
             share = "G^2" if nominal else "SS"
             sql, roles = self.series_select(names["contributions"], {"Y": share, "X": "Column"})
@@ -277,18 +374,53 @@ class PartitionDialog(TableOperationDialogBase):
         if "history" in charts:
             series = []
             for column in result.history.columns[1:]:
-                sql, roles = self.series_select(names["history"], {"x": "Splits", "y": column})
+                sql, roles = self.series_select(names["history"], {"x": result.history.columns[0], "y": column})
                 series.append((_(column), sql, roles, {"linestyle": "-", "marker": "o"}))
-            panels.append(("Scatter Plot", _("{measure} by number of splits").format(measure=_(measure)),
-                           _("Splits"), _(measure), series))
+            panels.append(("Scatter Plot", (_("{measure} by number of splits") if result.method == pt.TREE
+                                            else _("{measure} by number of trees")).format(measure=_(measure)),
+                           _(result.history.columns[0]), _(measure), series))
         if "actual" in charts and not nominal:
             predicted = f"Predicted {result.response}"
             sql, roles = self.series_select(names["rows"], {"x": predicted, "y": result.response})
             panels.append(("Scatter Plot", _("Actual by predicted"), predicted, result.response,
                            [(result.response, sql, roles, {})]))
-        if "leaves" in charts:
+        if "leaves" in charts and "leaves" in names:
             value = "Mean" if not nominal else f"Prob({result.levels[0]})" if result.levels else "Count"
             sql, roles = self.series_select(names["leaves"], {"X": "Leaf", "Y": value})
+            # The leaf's number as a category, not a float axis value ("1", not "1.0").
+            sql = sql.replace(f"{self.quoted('Leaf')} AS", f"CAST(CAST({self.quoted('Leaf')} AS INTEGER) AS TEXT) AS", 1)
             panels.append(("Bar Chart", _("Leaves"), _("Leaf"), _(value), [(result.response, sql, roles, {})]))
         return panels
+
+    def _partition_graph(self, result: pt.PartitionResult, names: Mapping[str, str], layout: _GraphLayout) -> tuple:
+        """JMP's partition graph: Y by row, the rows grouped by leaf, each leaf as wide as its rows,
+        a line at each leaf's mean labelled with its rule and a grey one at the mean of all rows."""
+        role = self.quoted("Partition role")
+        series = []
+        for name, where, style in (
+            (_("Training"), f"{role} = 'Training'", {"color": "black", "s": 14}),
+            (_("Validation"), f"{role} = 'Validation'", {"color": "0.55", "s": 14, "marker": "x"}),
+        ):
+            if not (result.role == ("Training" if name == _("Training") else "Validation")).any():
+                continue
+            sql, roles = self.series_select(names["rows"], {"x": PARTITION_X, "y": result.response},
+                                            where=f"{where} AND {self.quoted(PARTITION_X)} IS NOT NULL")
+            series.append((name, sql, roles, style))
+        for leaf in layout.segments["Leaf"].unique():
+            sql, roles = self.series_select(names["graph"], {"x": "x", "y": "y"},
+                                            where=f"{self.quoted('Leaf')} = {int(leaf)}")
+            series.append((_("Leaf {leaf}").format(leaf=int(leaf)), sql, roles,
+                           {"linestyle": "-", "marker": "", "color": "black", "linewidth": 1.2,
+                            "show_in_legend": False}))
+        mean_all = layout.mean
+        annotations = [{"type": "text", "x": 0.0, "y": mean_all, "text": _("All rows"),
+                        "kwargs": {"color": "0.55", "fontsize": 8, "va": "bottom"}}]
+        for row in layout.leaves.itertuples():
+            annotations.append({"type": "text", "x": float(row.start), "y": float(row.mean), "text": row.label,
+                                "kwargs": {"fontsize": 8, "va": "bottom"}})
+        lines = [{"orientation": "horizontal", "value": mean_all, "kwargs": {"color": "0.6", "linewidth": 1}}]
+        lines += [{"orientation": "vertical", "value": float(x),
+                   "kwargs": {"color": "0.8", "linewidth": 0.8, "linestyle": ":"}} for x in layout.leaves["start"][1:]]
+        return ("Scatter Plot", _("Partition for {response}").format(response=result.response),
+                _("Rows, by leaf"), result.response, series, {"annotations": annotations, "lines": lines})
 

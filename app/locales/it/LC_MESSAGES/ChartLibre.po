@@ -5688,7 +5688,7 @@ msgid "Why circuit boards are rejected, twice over: the possible causes brainsto
 msgstr "Perché le schede elettroniche vengono scartate, visto due volte: le possibili cause raccolte su una lisca di pesce secondo le sei M (metodo, macchina, materiale, manodopera, misura, ambiente), con cause più fini sotto alcune di esse, e i difetti effettivamente contati in un diagramma di Pareto - i due strumenti della qualità che si usano insieme."
 
 msgid "Series operations - fifteen operations, each with its report"
-msgstr "Operazioni sulle serie - quindici operazioni, ognuna con il suo rapporto"
+msgstr "Operazioni sui dati - quindici operazioni, ognuna con il suo rapporto"
 
 msgid "Fifteen Series Operations run for real, one per chart, each on a dataset suited to it - smoothing, spectrum, filtering, baseline, peaks, roots, calculus, fit, interpolation, statistics, outliers, clustering, a control chart, a robust regression and a transform - with the result drawn on the chart and the operation's own report in the results pane below it, exactly as the operation leaves them."
 msgstr "Quindici operazioni sulle serie eseguite davvero, una per grafico, ognuna su dati adatti - smussatura, spettro, filtro, linea di base, picchi, radici, calcolo, fit, interpolazione, statistiche, valori anomali, clustering, una carta di controllo, una regressione robusta e una trasformazione - con il risultato disegnato sul grafico e il rapporto dell'operazione nel pannello dei risultati sotto, esattamente come li lascia l'operazione."
@@ -7462,6 +7462,9 @@ msgstr "{personality} richiede una Y continua; {columns} è nominale: scegli Log
 msgid "Levels: {levels}. The predictions are the probability of {first}."
 msgstr "Livelli: {levels}. Le previsioni sono la probabilità di {first}."
 
+msgid "Unstable: the effects separate the response levels (quasi-complete separation), so the estimates grow without bound and their standard errors mean little. Remove effects - keep the main effects, say - or add runs."
+msgstr "Instabile: gli effetti separano i livelli della risposta (separazione quasi completa), quindi le stime crescono senza limite e i loro errori standard dicono poco. Togli effetti (ad esempio tieni solo gli effetti principali) o aggiungi prove."
+
 msgid "Whole model test"
 msgstr "Test del modello intero"
 
@@ -7939,8 +7942,35 @@ msgstr "R² o errore di classificazione per divisioni"
 msgid "Actual by predicted (continuous Y)"
 msgstr "Osservato contro previsto (Y continua)"
 
+msgid "Ordinal"
+msgstr "Ordinale"
+
 msgid "Leaf means or shares"
 msgstr "Medie o quote delle foglie"
+
+msgid "Partition graph (continuous Y)"
+msgstr "Grafico della partizione (Y continua)"
+
+msgid "Box plots by leaf (continuous Y)"
+msgstr "Box plot per foglia (Y continua)"
+
+msgid "Partition for {response}"
+msgstr "Partizione per {response}"
+
+msgid "{response} by leaf"
+msgstr "{response} per foglia"
+
+msgid "Rows, by leaf"
+msgstr "Righe, per foglia"
+
+msgid "All rows"
+msgstr "Tutte le righe"
+
+msgid "Training"
+msgstr "Addestramento"
+
+msgid "Leaf {leaf}"
+msgstr "Foglia {leaf}"
 
 msgid "Splits:"
 msgstr "Divisioni:"
@@ -8019,3 +8049,477 @@ msgstr "Errore di classificazione"
 
 msgid "{personality} needs a nominal Y; {columns} is continuous - set its type to Nominal, or choose a least-squares personality."
 msgstr "{personality} richiede una Y nominale; {columns} è continua: imposta il tipo Nominale, o scegli una personalità ai minimi quadrati."
+
+msgid "Search analyses, operations, charts…"
+msgstr "Cerca analisi, operazioni, grafici…"
+
+msgid "Nothing found. Try another word - in English or Italian."
+msgstr "Nessun risultato. Prova un'altra parola, in italiano o in inglese."
+
+msgid "Type what you want to do: \"anova\", \"outliers\", \"peaks\", \"tree\"…"
+msgstr "Scrivi cosa vuoi fare: \"anova\", \"anomalie\", \"picchi\", \"albero\"…"
+
+msgid "Search"
+msgstr "Cerca"
+
+msgid "Guided analysis"
+msgstr "Analisi guidata"
+
+msgid "Guided analysis…"
+msgstr "Analisi guidata…"
+
+msgid "Say what you want to find out and which columns you have: it suggests the analysis, and opens it."
+msgstr "Di' cosa vuoi scoprire e quali colonne hai: ti suggerisce l'analisi e la apre."
+
+msgid "Coming soon"
+msgstr "In arrivo"
+
+msgid "Search functions…"
+msgstr "Cerca funzioni…"
+
+msgid "Find an analysis, a series operation, a chart type or a table tool by what it does (Ctrl+K)"
+msgstr "Trova un'analisi, un'operazione sulle serie, un tipo di grafico o uno strumento tabella da ciò che fa (Ctrl+K)"
+
+msgid "{name} works on a chart's series: open or create a chart first, then choose it again."
+msgstr "{name} lavora sulle serie di un grafico: apri o crea prima un grafico, poi sceglila di nuovo."
+
+msgid "Select a table in the Tables panel first."
+msgstr "Seleziona prima una tabella nel pannello Tabelle."
+
+msgid "Edit cells, rows and columns; group and aggregate; add computed columns."
+msgstr "Modifica celle, righe e colonne; raggruppa e aggrega; aggiungi colonne calcolate."
+
+msgid "Data operations"
+msgstr "Operazioni sui dati"
+
+msgid "Data operation"
+msgstr "Operazione sui dati"
+
+msgid "Transform or analyse a chart's series or a table's columns"
+msgstr "Trasforma o analizza le serie di un grafico o le colonne di una tabella"
+
+msgid "Decision Tree"
+msgstr "Albero decisionale"
+
+msgid "Bootstrap Forest"
+msgstr "Foresta bootstrap"
+
+msgid "Boosted Tree"
+msgstr "Albero con boosting"
+
+msgid "One tree you can read; a Bootstrap Forest (many trees on resampled rows, averaged); or a Boosted Tree (many small trees, each correcting the ones before)."
+msgstr "Un albero leggibile; una foresta bootstrap (molti alberi su righe ricampionate, mediati); o un albero con boosting (molti alberi piccoli, ognuno corregge i precedenti)."
+
+msgid "How many times the rows are split: one fewer than the leaves. For a Boosted Tree, the splits of each tree."
+msgstr "Quante volte le righe vengono divise: una in meno delle foglie. Per l'albero con boosting, le divisioni di ogni albero."
+
+msgid "How many trees a Bootstrap Forest or a Boosted Tree grows."
+msgstr "Quanti alberi fa crescere la foresta bootstrap o l'albero con boosting."
+
+msgid "Boosted Tree: how much each tree corrects the ones before. Smaller needs more trees."
+msgstr "Albero con boosting: quanto ogni albero corregge i precedenti. Più piccolo richiede più alberi."
+
+msgid "Fit by number of trees"
+msgstr "Adattamento per numero di alberi"
+
+msgid "{measure} by number of trees"
+msgstr "{measure} per numero di alberi"
+
+msgid "Trees"
+msgstr "Alberi"
+
+msgid "Automatic stopping needs validation rows; every tree was kept."
+msgstr "L'arresto automatico richiede righe di validazione; sono stati tenuti tutti gli alberi."
+
+msgid "Describe a variable"
+msgstr "Descrivere una variabile"
+
+msgid "Its distribution, centre and spread."
+msgstr "La sua distribuzione, il centro e la dispersione."
+
+msgid "Compare groups"
+msgstr "Confrontare gruppi"
+
+msgid "Is a measure different from one group to another?"
+msgstr "Una misura cambia da un gruppo all'altro?"
+
+msgid "Relate two variables"
+msgstr "Mettere in relazione due variabili"
+
+msgid "How one measure changes with another."
+msgstr "Come una misura cambia con un'altra."
+
+msgid "Find what affects a response"
+msgstr "Trovare cosa influenza una risposta"
+
+msgid "Which factors matter, and by how much."
+msgstr "Quali fattori contano, e quanto."
+
+msgid "Predict a value"
+msgstr "Prevedere un valore"
+
+msgid "A model that gives Y from the X."
+msgstr "Un modello che dà Y a partire dalle X."
+
+msgid "Predict a category"
+msgstr "Prevedere una categoria"
+
+msgid "Pass or fail, a class, a grade."
+msgstr "Buono o scarto, una classe, un giudizio."
+
+msgid "Analyse a signal or a time series"
+msgstr "Analizzare un segnale o una serie temporale"
+
+msgid "Noise, trends, frequencies, peaks."
+msgstr "Rumore, andamenti, frequenze, picchi."
+
+msgid "Find anomalies"
+msgstr "Trovare anomalie"
+
+msgid "The points that do not belong."
+msgstr "I punti fuori posto."
+
+msgid "Find groups in the data"
+msgstr "Trovare gruppi nei dati"
+
+msgid "Rows or curves that are alike."
+msgstr "Righe o curve simili tra loro."
+
+msgid "Plan an experiment"
+msgstr "Pianificare un esperimento"
+
+msgid "Which runs to make, and how to analyse them."
+msgstr "Quali prove fare, e come analizzarle."
+
+msgid "Monitor a process"
+msgstr "Tenere sotto controllo un processo"
+
+msgid "Is it stable? Is it in its limits?"
+msgstr "È stabile? È entro i limiti?"
+
+msgid "Prepare the data"
+msgstr "Preparare i dati"
+
+msgid "Import, combine, compute and reshape tables."
+msgstr "Importare, combinare, calcolare e trasformare tabelle."
+
+msgid "What do you want to do?"
+msgstr "Cosa vuoi fare?"
+
+msgid "The response (Y) is"
+msgstr "La risposta (Y) è"
+
+msgid "Either"
+msgstr "Qualsiasi"
+
+msgid "A number"
+msgstr "Un numero"
+
+msgid "A category"
+msgstr "Una categoria"
+
+msgid "Nothing for this kind of response: choose Either."
+msgstr "Niente per questo tipo di risposta: scegli Qualsiasi."
+
+msgid "Mean, median, spread, quartiles and normality tests, in one report."
+msgstr "Media, mediana, dispersione, quartili e test di normalità, in un solo rapporto."
+
+msgid "The shape of the distribution: centre, spread, skew, several peaks."
+msgstr "La forma della distribuzione: centro, dispersione, asimmetria, più picchi."
+
+msgid "Median, quartiles and outliers at a glance - several columns side by side."
+msgstr "Mediana, quartili e valori anomali a colpo d'occhio, più colonne affiancate."
+
+msgid "Is it normal? Points on the line say yes."
+msgstr "È normale? Se i punti stanno sulla retta, sì."
+
+msgid "How many rows per category, largest first."
+msgstr "Quante righe per categoria, dalla più grande."
+
+msgid "t-test, ANOVA, Kruskal-Wallis and their effect sizes between groups."
+msgstr "Test t, ANOVA, Kruskal-Wallis e dimensione dell'effetto tra gruppi."
+
+msgid "The groups side by side: medians, spread, outliers."
+msgstr "I gruppi affiancati: mediane, dispersione, valori anomali."
+
+msgid "Groups and other factors together: effect tests and estimates."
+msgstr "Gruppi e altri fattori insieme: test degli effetti e stime."
+
+msgid "Two categorical variables: shares, then chi-squared in Statistics."
+msgstr "Due variabili categoriali: le quote, poi il chi quadrato in Statistiche."
+
+msgid "Time until an event, by group, with the log-rank test."
+msgstr "Il tempo fino a un evento, per gruppo, con il test log-rank."
+
+msgid "One measure against the other: trend, curvature, clusters."
+msgstr "Una misura contro l'altra: andamento, curvatura, gruppi."
+
+msgid "A curve through the points: line, polynomial, exponential, your own formula."
+msgstr "Una curva sui punti: retta, polinomio, esponenziale, una formula tua."
+
+msgid "Correlation coefficients (Pearson, Spearman, Kendall) with p-values."
+msgstr "Coefficienti di correlazione (Pearson, Spearman, Kendall) con i p-value."
+
+msgid "Every variable against every other, to choose which to look at."
+msgstr "Ogni variabile contro ogni altra, per scegliere quali guardare."
+
+msgid "Two categorical variables: does one depend on the other?"
+msgstr "Due variabili categoriali: una dipende dall'altra?"
+
+msgid "Which factors matter and by how much: effect tests, estimates, profiler."
+msgstr "Quali fattori contano e quanto: test degli effetti, stime, profilatore."
+
+msgid "A tree finds the factors and the cut points that split the response best."
+msgstr "Un albero trova i fattori e i punti di taglio che dividono meglio la risposta."
+
+msgid "Logistic regression: how each factor moves the odds of each level."
+msgstr "Regressione logistica: come ogni fattore sposta le probabilità di ogni livello."
+
+msgid "Does the effect of one factor depend on another?"
+msgstr "L'effetto di un fattore dipende da un altro?"
+
+msgid "A model you can read and write down, with confidence intervals."
+msgstr "Un modello leggibile e scrivibile, con intervalli di confidenza."
+
+msgid "Bootstrap Forest or Boosted Tree: accurate, no formula needed."
+msgstr "Foresta bootstrap o albero con boosting: precisi, senza bisogno di una formula."
+
+msgid "Robust or machine-learning regression on one X."
+msgstr "Regressione robusta o di machine learning su una X."
+
+msgid "A smooth prediction with its uncertainty band."
+msgstr "Una previsione liscia con la sua banda di incertezza."
+
+msgid "Classification tree or forest: rules and the probability of each class."
+msgstr "Albero o foresta di classificazione: regole e probabilità di ogni classe."
+
+msgid "Nominal or ordinal logistic regression."
+msgstr "Regressione logistica nominale o ordinale."
+
+msgid "Reduce the noise and keep the shape."
+msgstr "Riduce il rumore e mantiene la forma."
+
+msgid "Which frequencies the signal holds."
+msgstr "Quali frequenze contiene il segnale."
+
+msgid "Find peaks and measure their height, width and area."
+msgstr "Trova i picchi e ne misura altezza, larghezza e area."
+
+msgid "Low-, high- or band-pass filters; remove a trend."
+msgstr "Filtri passa basso, passa alto o passa banda; toglie un andamento."
+
+msgid "Subtract a spectrum's background."
+msgstr "Sottrae il fondo di uno spettro."
+
+msgid "Derivative or integral."
+msgstr "Derivata o integrale."
+
+msgid "The values over time."
+msgstr "I valori nel tempo."
+
+msgid "Mark the points that do not belong, by several methods."
+msgstr "Segna i punti fuori posto, con vari metodi."
+
+msgid "Points outside the process limits, and runs that break the rules."
+msgstr "Punti fuori dai limiti del processo e sequenze che violano le regole."
+
+msgid "Points beyond the whiskers."
+msgstr "I punti oltre i baffi."
+
+msgid "k-means, DBSCAN, hierarchical: rows that are alike, coloured."
+msgstr "k-means, DBSCAN, gerarchico: le righe simili, colorate."
+
+msgid "PCA, t-SNE: see groups among many variables."
+msgstr "PCA, t-SNE: vedere gruppi tra molte variabili."
+
+msgid "Segments described by rules on the factors."
+msgstr "Segmenti descritti da regole sui fattori."
+
+msgid "Factorial, Box-Behnken, central composite or space-filling runs."
+msgstr "Prove fattoriali, Box-Behnken, composite centrali o space-filling."
+
+msgid "Analyse the runs: the design's model is proposed for you."
+msgstr "Analizza le prove: il modello del piano viene proposto da solo."
+
+msgid "See the interactions between factors."
+msgstr "Mostra le interazioni tra i fattori."
+
+msgid "Is the process stable? I-MR, X-bar, p, c, u charts."
+msgstr "Il processo è stabile? Carte I-MR, X-bar, p, c, u."
+
+msgid "The causes that account for most defects."
+msgstr "Le cause della maggior parte dei difetti."
+
+msgid "Cause and effect, by category."
+msgstr "Causa ed effetto, per categoria."
+
+msgid "Bring a file, the clipboard or a web table in."
+msgstr "Porta dentro un file, gli appunti o una tabella dal web."
+
+msgid "Edit cells; group and aggregate; computed columns."
+msgstr "Modifica celle; raggruppa e aggrega; colonne calcolate."
+
+msgid "Join and filter tables with a query."
+msgstr "Unisce e filtra tabelle con una query."
+
+msgid "Log, Box-Cox, standardise."
+msgstr "Logaritmo, Box-Cox, standardizzazione."
+
+msgid "Fill missing values."
+msgstr "Riempie i valori mancanti."
+
+msgid "Are there differences?"
+msgstr "Ci sono differenze?"
+
+msgid "Is a measure different from one group to another? The right test is chosen for you, and the answer is given in words."
+msgstr "Una misura cambia da un gruppo all'altro? Il test giusto viene scelto per te e la risposta è data a parole."
+
+msgid "Quick answers"
+msgstr "Risposte rapide"
+
+msgid "What to compare: numbers (a weight, a time) or categories (pass/fail)."
+msgstr "Cosa confrontare: numeri (un peso, un tempo) o categorie (buono/scarto)."
+
+msgid "The column that says which group each row is in."
+msgstr "La colonna che dice a quale gruppo appartiene ogni riga."
+
+msgid "The measure and the groups must be two different columns."
+msgstr "La misura e i gruppi devono essere due colonne diverse."
+
+msgid "The groups"
+msgstr "I gruppi"
+
+msgid "Details"
+msgstr "Dettagli"
+
+msgid "{measure} by {group}"
+msgstr "{measure} per {group}"
+
+msgid "Suggestions"
+msgstr "Suggerimenti"
+
+msgid "Find the function for what you want to find out"
+msgstr "Trova la funzione per ciò che vuoi scoprire"
+
+msgid "Choose the measure and the groups: the test is chosen for you, and the answer is given in words."
+msgstr "Scegli la misura e i gruppi: il test viene scelto per te e la risposta è data a parole."
+
+msgid "Yes: {measure} differs between the groups of {group}."
+msgstr "Sì: {measure} è diverso tra i gruppi di {group}."
+
+msgid "{high} has the highest {centre} ({high_value:.4g}), {low} the lowest ({low_value:.4g})."
+msgstr "{high} ha il valore più alto ({high_value:.4g}), {low} il più basso ({low_value:.4g})."
+
+msgid "The difference is {size}."
+msgstr "La differenza è {size}."
+
+msgid "The groups that differ: {pairs}."
+msgstr "I gruppi che differiscono: {pairs}."
+
+msgid "No difference is shown: these data do not say that {measure} changes with {group}."
+msgstr "Nessuna differenza dimostrata: questi dati non dicono che {measure} cambi con {group}."
+
+msgid "That is not proof that the groups are the same: with more rows a small difference might show."
+msgstr "Non è la prova che i gruppi siano uguali: con più righe potrebbe emergere una piccola differenza."
+
+msgid "How it was decided: {test}, p = {p:.3g} (below 0.05 is called a difference), on {n} rows in {groups} groups."
+msgstr "Come è stato deciso: {test}, p = {p:.3g} (sotto 0,05 si parla di differenza), su {n} righe in {groups} gruppi."
+
+msgid "The values are not normally distributed, so the test compares medians and ranks rather than means."
+msgstr "I valori non hanno distribuzione normale, quindi il test confronta mediane e ranghi invece delle medie."
+
+msgid "Left out, with fewer than two values: {names}."
+msgstr "Esclusi, con meno di due valori: {names}."
+
+msgid "Some groups have fewer than five values: treat the answer with caution."
+msgstr "Alcuni gruppi hanno meno di cinque valori: prendi la risposta con cautela."
+
+msgid "Yes: the share of each {measure} differs between the groups of {group}."
+msgstr "Sì: la quota di ogni {measure} cambia tra i gruppi di {group}."
+
+msgid "{level} is most frequent in {high} ({high_value:.3g}%) and least in {low} ({low_value:.3g}%)."
+msgstr "{level} è più frequente in {high} ({high_value:.3g}%) e meno in {low} ({low_value:.3g}%)."
+
+msgid "Some expected counts are below five: treat the answer with caution."
+msgstr "Alcuni conteggi attesi sono sotto cinque: prendi la risposta con cautela."
+
+msgid "Mann-Whitney U test"
+msgstr "Test U di Mann-Whitney"
+
+msgid "Welch ANOVA"
+msgstr "ANOVA di Welch"
+
+msgid "Kruskal-Wallis test"
+msgstr "Test di Kruskal-Wallis"
+
+msgid "Chi-squared test"
+msgstr "Test del chi quadrato"
+
+msgid "Fisher exact test"
+msgstr "Test esatto di Fisher"
+
+msgid "large"
+msgstr "grande"
+
+msgid "medium"
+msgstr "media"
+
+msgid "small"
+msgstr "piccola"
+
+msgid "negligible"
+msgstr "trascurabile"
+
+msgid "Coordinates"
+msgstr "Coordinate"
+
+msgid "Apply to"
+msgstr "Applica a"
+
+msgid "Edit the {axis} coordinate; tick several to set them together."
+msgstr "Modifica la coordinata {axis}; spuntane più di una per impostarle insieme."
+
+msgid "Share this coordinate's range with the other axes that share it."
+msgstr "Condividi l'intervallo di questa coordinata con gli altri assi che la condividono."
+
+msgid "Tick len."
+msgstr "Lungh. tacche"
+
+msgid "Rot."
+msgstr "Rotaz."
+
+msgid "Tick label rotation"
+msgstr "Rotazione delle etichette delle tacche"
+
+msgid "Maj."
+msgstr "Princ."
+
+msgid "Min."
+msgstr "Sec."
+
+msgid "The linear region around zero of a symlog scale."
+msgstr "La zona lineare attorno allo zero di una scala symlog."
+
+msgid "Share coordinate"
+msgstr "Condividi"
+
+msgid "Automatic range"
+msgstr "Intervallo automatico"
+
+msgid "Invert axis"
+msgstr "Inverti"
+
+msgid "Import from File, Clipboard and Web..."
+msgstr "Importa da File, Appunti e Web..."
+
+msgid "Project information"
+msgstr "Informazioni progetto"
+
+msgid "Every figure, table and operation, in one HTML or PDF file"
+msgstr "Ogni figura, tabella e operazione, in un unico file HTML o PDF"
+
+msgid "Author, date and notes, kept in the project file"
+msgstr "Autore, data e note, salvati nel file del progetto"
+
+msgid "Open one of the sample projects"
+msgstr "Apri uno dei progetti di esempio"
