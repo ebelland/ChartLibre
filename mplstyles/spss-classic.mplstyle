@@ -1,0 +1,144 @@
+# ============================================================
+# SPSS Classic
+# IBM SPSS Statistics' default chart template (Chart Builder):
+# white chart area, axes on the left and bottom only in grey, no
+# grid lines, Arial, bars in SPSS's first colour with a thin dark
+# outline, and SPSS's categorical palette (blue, green, sand,
+# purple, yellow, red, teal, grey...). Approximate - SPSS draws
+# its own charts.
+# ============================================================
+
+# ------------------------------------------------------------
+# Figure
+# ------------------------------------------------------------
+
+figure.figsize: 6.4, 4.8
+figure.dpi: 120
+figure.facecolor: white
+savefig.facecolor: white
+savefig.bbox: tight
+savefig.pad_inches: 0.05
+savefig.transparent: False
+
+# ------------------------------------------------------------
+# Fonts - Arial; title 12 bold, axis titles 10, ticks 9
+# ------------------------------------------------------------
+
+font.family: sans-serif
+font.sans-serif: Arial, Helvetica, Helvetica Neue, DejaVu Sans
+font.size: 10
+axes.titlesize: 12
+axes.titleweight: bold
+axes.labelsize: 10
+axes.labelcolor: 000000
+xtick.labelsize: 9
+ytick.labelsize: 9
+xtick.labelcolor: 000000
+ytick.labelcolor: 000000
+legend.fontsize: 9
+figure.titlesize: 13
+figure.titleweight: bold
+mathtext.fontset: dejavusans
+
+# ------------------------------------------------------------
+# Axes - left and bottom only, grey
+# ------------------------------------------------------------
+
+axes.facecolor: white
+axes.edgecolor: 7F7F7F
+axes.linewidth: 0.8
+axes.spines.top: False
+axes.spines.right: False
+axes.axisbelow: True
+axes.xmargin: 0.05
+axes.ymargin: 0.05
+
+# SPSS's categorical palette.
+axes.prop_cycle: cycler('color', ['3E58AC', '2EB848', 'D3CE97', '7C287D', 'FBF873', 'EF3338', '48C2C5', 'CCCCCC', '7AAAD5', '0A562C', 'F8981D', 'DDBAF1'])
+
+# ------------------------------------------------------------
+# Grid - off; when turned on, very light
+# ------------------------------------------------------------
+
+axes.grid: False
+grid.linestyle: -
+grid.linewidth: 0.5
+grid.major.color: DDDDDD
+grid.minor.color: EEEEEE
+
+# ------------------------------------------------------------
+# Ticks - outside, short, grey
+# ------------------------------------------------------------
+
+xtick.direction: out
+ytick.direction: out
+xtick.major.size: 3.5
+ytick.major.size: 3.5
+xtick.minor.size: 2
+ytick.minor.size: 2
+xtick.major.width: 0.8
+ytick.major.width: 0.8
+xtick.minor.visible: False
+ytick.minor.visible: False
+xtick.color: 7F7F7F
+ytick.color: 7F7F7F
+
+# ------------------------------------------------------------
+# Markers and lines
+# ------------------------------------------------------------
+
+lines.linewidth: 1.5
+lines.markersize: 5
+lines.markeredgewidth: 0.6
+scatter.marker: o
+
+# ------------------------------------------------------------
+# Bars and histograms - SPSS's first colour, thin dark outline
+# ------------------------------------------------------------
+
+patch.facecolor: 3E58AC
+patch.edgecolor: 000000
+patch.force_edgecolor: True
+patch.linewidth: 0.5
+hist.bins: auto
+
+# ------------------------------------------------------------
+# Box plots - SPSS's boxes: filled, black lines, circles for outliers
+# ------------------------------------------------------------
+
+boxplot.patchartist: True
+boxplot.showmeans: False
+boxplot.showfliers: True
+boxplot.boxprops.color: 000000
+boxplot.boxprops.linewidth: 0.8
+boxplot.whiskerprops.color: 000000
+boxplot.whiskerprops.linewidth: 0.8
+boxplot.capprops.color: 000000
+boxplot.capprops.linewidth: 0.8
+boxplot.medianprops.color: 000000
+boxplot.medianprops.linewidth: 1.6
+boxplot.flierprops.marker: o
+boxplot.flierprops.markerfacecolor: none
+boxplot.flierprops.markeredgecolor: 000000
+boxplot.flierprops.markersize: 4
+
+# ------------------------------------------------------------
+# Error bars, legend (to the right in SPSS; framed), images
+# ------------------------------------------------------------
+
+errorbar.capsize: 3
+legend.frameon: True
+legend.framealpha: 1.0
+legend.edgecolor: BFBFBF
+legend.fancybox: False
+legend.handlelength: 1.5
+legend.handletextpad: 0.4
+image.cmap: Blues
+
+# ------------------------------------------------------------
+# Vector export: text stays text
+# ------------------------------------------------------------
+
+pdf.fonttype: 42
+ps.fonttype: 42
+svg.fonttype: none

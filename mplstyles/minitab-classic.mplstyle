@@ -1,0 +1,144 @@
+# ============================================================
+# Minitab Classic
+# Minitab's default graph look: white figure and data regions, a
+# dark frame on all four sides, ticks outside, no grid lines,
+# filled blue symbols, blue bars with a dark outline, a bold
+# centred title, Segoe UI. Colours after Minitab's default
+# palette; approximate - Minitab draws its own graphs.
+# ============================================================
+
+# ------------------------------------------------------------
+# Figure
+# ------------------------------------------------------------
+
+figure.figsize: 6.4, 4.4
+figure.dpi: 120
+figure.facecolor: white
+savefig.facecolor: white
+savefig.bbox: tight
+savefig.pad_inches: 0.05
+savefig.transparent: False
+
+# ------------------------------------------------------------
+# Fonts - Segoe UI; title 12 bold, axis labels 10, ticks 9
+# ------------------------------------------------------------
+
+font.family: sans-serif
+font.sans-serif: Segoe UI, Helvetica Neue, Arial, Helvetica, DejaVu Sans
+font.size: 10
+axes.titlesize: 12
+axes.titleweight: bold
+axes.labelsize: 10
+axes.labelcolor: 000000
+xtick.labelsize: 9
+ytick.labelsize: 9
+xtick.labelcolor: 000000
+ytick.labelcolor: 000000
+legend.fontsize: 9
+figure.titlesize: 13
+figure.titleweight: bold
+mathtext.fontset: dejavusans
+
+# ------------------------------------------------------------
+# Frame - the data region boxed in dark grey
+# ------------------------------------------------------------
+
+axes.facecolor: white
+axes.edgecolor: 404040
+axes.linewidth: 0.8
+axes.spines.top: True
+axes.spines.right: True
+axes.axisbelow: True
+axes.xmargin: 0.05
+axes.ymargin: 0.05
+
+# Minitab's default colours: blue, red, green, orange, purple, ...
+axes.prop_cycle: cycler('color', ['2E5EAA', 'D7262E', '2E9E44', 'F2A33A', '7B4BA0', '5BB7D7', 'A9852A', 'E05FA0', '808080', '1B3F73'])
+
+# ------------------------------------------------------------
+# Grid - off; when turned on, light grey
+# ------------------------------------------------------------
+
+axes.grid: False
+grid.linestyle: -
+grid.linewidth: 0.5
+grid.major.color: D0D0D0
+grid.minor.color: E8E8E8
+
+# ------------------------------------------------------------
+# Ticks - outside
+# ------------------------------------------------------------
+
+xtick.direction: out
+ytick.direction: out
+xtick.major.size: 4
+ytick.major.size: 4
+xtick.minor.size: 2
+ytick.minor.size: 2
+xtick.major.width: 0.8
+ytick.major.width: 0.8
+xtick.minor.visible: False
+ytick.minor.visible: False
+xtick.color: 404040
+ytick.color: 404040
+
+# ------------------------------------------------------------
+# Symbols and lines - filled circles; connect/fit lines 1.5 pt
+# ------------------------------------------------------------
+
+lines.linewidth: 1.5
+lines.markersize: 5
+lines.markeredgewidth: 0
+scatter.marker: o
+scatter.edgecolors: face
+
+# ------------------------------------------------------------
+# Bars and histograms - blue fill, dark outline
+# ------------------------------------------------------------
+
+patch.facecolor: 7DA7D9
+patch.edgecolor: 1B3F73
+patch.force_edgecolor: True
+patch.linewidth: 0.7
+hist.bins: auto
+
+# ------------------------------------------------------------
+# Box plots - dark lines, filled boxes, asterisks for outliers
+# ------------------------------------------------------------
+
+boxplot.patchartist: True
+boxplot.showmeans: False
+boxplot.showfliers: True
+boxplot.boxprops.color: 1B3F73
+boxplot.boxprops.linewidth: 0.8
+boxplot.whiskerprops.color: 1B3F73
+boxplot.whiskerprops.linewidth: 0.8
+boxplot.capprops.color: 1B3F73
+boxplot.capprops.linewidth: 0.8
+boxplot.medianprops.color: 1B3F73
+boxplot.medianprops.linewidth: 1.2
+boxplot.flierprops.marker: *
+boxplot.flierprops.markerfacecolor: 1B3F73
+boxplot.flierprops.markeredgecolor: 1B3F73
+boxplot.flierprops.markersize: 6
+
+# ------------------------------------------------------------
+# Error bars, legend (boxed, as Minitab's), images
+# ------------------------------------------------------------
+
+errorbar.capsize: 3
+legend.frameon: True
+legend.framealpha: 1.0
+legend.edgecolor: 808080
+legend.fancybox: False
+legend.handlelength: 1.5
+legend.handletextpad: 0.4
+image.cmap: viridis
+
+# ------------------------------------------------------------
+# Vector export: text stays text
+# ------------------------------------------------------------
+
+pdf.fonttype: 42
+ps.fonttype: 42
+svg.fonttype: none
