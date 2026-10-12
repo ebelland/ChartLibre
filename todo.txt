@@ -1,171 +1,210 @@
-ChartLibre TODO
-Updated 2026-10-09. Highest priority first.
+ChartLibre TODO - updated 2026-10-10
+One line per item, highest priority first. [YOU] = no code needed.
+Effort: S one session, M 2-3, L 4+.
+Size: app 88,528 lines in 205 files; tests 15,384 lines in 111 files (updated at each commit).
 
-Priority  P0 wrong results / blocked   P1 foundations   P2 high value
-          P3 useful later              P4 ideas, undecided
-Effort    S one session   M 2-3 sessions   L 4+ sessions   [YOU] no code needed
+DONE RECENTLY
+- Partition (AN-01): tree, partition graph, box plots by leaf;
+  Bootstrap Forest and Boosted Tree (AN-15).
+- Search (Analysis panel and Ctrl/Cmd+K) over a catalogue of every
+  function; "Data operations" (was Series operations); manual appendix
+  of equivalents in JMP/SPSS/Minitab/Origin (dev/manual/make_equivalents.py).
+- Column types: float continuous, integer ordinal, text nominal.
+- Review, step 1: PanelDialog (one column of titled frames + buttons) under
+  SettingsTableDialog; Credits, Log, History, Project report moved onto it.
+- Guided analysis on the rail: search, quick answers, goals -> suggestions.
+- Quick answer Q-01 "Are there differences?" (test chosen, answer in words).
 
-State: ~83k lines in app/, 1120 tests, Pyright 0 errors, 19 series
-operations (each on a chart's series or a table's columns), 2 table
-operations (Fit Model, Partition), 42 chart types, it/fr complete, de/es started.
+Are there differences?" keep only in Guided analysis
+color Guided analysis after analysis and with an icon of different color
+Axis properties: Min-->Minor, Maj-->MAjor
+                  x,y,z checkbox --> option box
+                  Kwargs frame too short. (200)
+                  Base--> use also for Symlog
+                  Share coo.... --> share
+                  Invert axis --> Invert
+                  Spines-->hide spines
+                  Sperarate tick length/rotation for minor and major 
+Series: Line style -->apply to box line
+        Marker style --> apply to outliers
 
+Figure: apply style to project
 
-================================================================
-NEXT
-================================================================
-1. R-03               Reproducibility: re-run, script export
-2. W-04               Smoother live window resize
-3. AN-01 Partition -> R-08 -> R-04 -> AN-02..AN-05  Analysis features
-4. R-14, A-06, A-07                                Reach non-Python users
+Fit Mode: taller. Ugly look.
 
+MPL style editor looks corrupted (no parameter tree)
 
-================================================================
-OPEN BUGS AND SMALL FIXES
-================================================================
-W-04  M  Dragging the window edge redraws the chart at every step
-         (~90 ms for an ordinary figure, constrained layout included):
-         draw once the drag pauses, without the stale-buffer artefacts
-         Matplotlib's Qt canvas shows if a draw is simply skipped.
-A-04  [YOU] Move the project out of the iCloud Desktop (e.g. ~/Developer).
-         iCloud hides .venv/.git contents (Qt plugin crash, now worked
-         around) and may evict files.
-A-05  [YOU] GitHub: description, topics, social preview
-         (docs/images/social_preview.png), first release.
+Windows spin chevrons
 
+Settings: default mplstyle
 
-================================================================
-P1 - FOUNDATIONS
-================================================================
-R-03  P1  M  Reproducibility - IN PROGRESS
-         Done: every Apply recorded in __operations__ (same transaction,
-         undoable), Outlier and Statistics included; "History…" in the
-         table list context menu; project history on the Database page.
-         Left:
-         - Re-run ("Recalculate"): reopen with recorded entries, or re-run
-           everything downstream of a changed table.
-         - Export an equivalent Python script (see N-02).
-R-02  P1  M  Background computation - MOSTLY DONE
-         Done: 11 operations + Fit; Stop and progress bar after 300 ms.
-         Left:
-         - Outlier: its own preview pipeline (Hide/colour state).
-         - Filter, baseline: snapshot controls in series_settings first.
-         - Stop inside one long computation (t-SNE, hierarchical, big GP):
-           should_stop in engines with a loop.
-R-13  P1  M  Numerical validation - DONE for NIST StRD
-         Report: python3 dev/tools/nist_report.py
-         Left:
-         - Known-answer tests for operations with no NIST dataset.
-         - Multiple regression (Longley) once R-04 adds it.
-         Notes:
-         - No-intercept fits report centred R²; NIST certifies uncentred.
+Series fit too tall
 
-R-14  Multichart templates: ready to use templates with multiple axis.
+remove search functions from helpers
+
+undo button on Windows
 
 
-================================================================
-P2 - HIGH VALUE
-================================================================
-R-08  P2  M  Column metadata (__column_meta__): label, unit, measure type
-             (continuous/ordinal/nominal), missing codes, value labels.
-             Drives test choice (R-04), units on axes.
-R-04  P2  L  Statistics vs SPSS/JMP - IN PROGRESS.
-             Done: contingency (chi², G, Fisher, Cramér's V), two-way
-             ANOVA (Type II), survival (KM medians, log-rank).
-             Done in Fit Model (Analysis): multiple regression (effects,
-             parameter estimates, lack of fit, profiler), stepwise, GLM,
-             nominal and ordinal logistic.
-             Missing, in order:
-             - VIF and leverage plots in Fit Model; model comparison (AIC)
-             - post hoc: Games-Howell, Bonferroni; Dunn
-             - two-way ANOVA with repeated measures; ANCOVA
-R-05  P2  M  Fit like Origin. Missing:
-             - weights from an error column (1/sigma²)
-             - global fit with shared parameters
-P2-12 P2  M  Small chart beside operation results (also for P2-19).
-R-14  P2  L  Standalone signed app (macOS, needs Apple dev account),
-             Windows installer, update check.
-A-06  P2  S  Linux: never run. Try in a VM; icons and paths.
-A-07  P2  S  German 19% done, Spanish empty (machine translated, review).
+
+NOW
+R-20  M  Project review, step by step (one commit each):
+         1. PanelDialog for one-panel dialogs - left: Project info, Settings,
+            Find/Replace, Fill missing, Add web source.
+         2. Shared report/series/figure helpers in TableOperationDialogBase.
+         3. Dead code.
+         4. Split large files into packages like main_window/ (chart_panel,
+            series_operations/dialog_base, style, fit_dialog).
+         5. Properties panels on their base.
+0. Q-02  M  Quick answer "What has the most impact?" - Y and many X: ranking
+            in words (forest importance + Fit Model effects), Pareto chart.
+   Q-03  M  Quick answer "Has it changed over time?" - trend test (Mann-Kendall),
+            change points, before/after comparison, in words.
+   D-01  M  Demos rethought around the questions (one per quick answer and
+            goal), still covering every function.
+1. G-01  S  Guided analysis, step 2: pick the table's Y and X and open the
+            function with them cast (step 1 done: goal + response type ->
+            suggestions with why -> Open).
+2. AN-16 M  Fit Model: Lasso / Ridge / Elastic Net with CV (JMP Gen. Regression).
+3. AN-17 M  PLS regression for spectra: VIP, loadings, components by CV.
+4. AN-18 S  Permutation importance and partial dependence for any model.
+5. AN-19 S  ROC curve, AUC, confusion matrix for logistic fits and trees.
+6. M-01  S  Manual: "Series operations" -> "Data operations"; rebuild the PDF.
+7. R-03  M  Reproducibility: re-run recorded operations; export a Python script.
+8. W-04  M  Window resize redraws the chart at every step: draw on pause.
+
+NEXT - ANALYSIS (table operations, JMP-like)
+- AN-02 M  Distribution: histogram, quantiles, normality, capability.
+- AN-03 M  Fit Y by X: bivariate / oneway (post hoc) / contingency / logistic.
+- AN-04 M  Multivariate: correlations with p, PCA and factor analysis (AN-21).
+- AN-05 M  Time series: ACF/PACF, STL, ARIMA / ETS forecasts.
+- AN-10 M  Clustering on table columns, silhouette to choose k (AN-23).
+- AN-11 M  Data prep: stack/split, join, recode, bin, imputation (AN-22).
+- AN-20 S  Discriminant analysis.
+- R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Games-Howell,
+           Bonferroni, Dunn; repeated-measures ANOVA, ANCOVA.
+- R-08  M  Column metadata: label, unit, missing codes, value labels.
+- R-05  M  Fit: weights from an error column; global fit, shared parameters.
+
+LATER
+- AN-06 M  Quality: Gage R&R, capability with non-normal fits, multi-vari.
+- AN-07 M  Profiler, desirability, contour profiler; D-optimal DOE.
+- AN-08 M  Survival: Cox, Weibull/lognormal life fits.
+- AN-09 M  Mixed models (REML); power and sample size.
+- AN-12 M  Bootstrap CIs, permutation tests, cross-validation.
+- AN-13 M  Science: ODE kinetics, dose-response EC50, peak deconvolution.
+- AN-14 M  Response screening (many Y, FDR).
+- AN-24 M  Neural network (MLP).
+- R-02  M  Background computation: Outlier preview, Stop inside long loops.
+- R-13  S  Known-answer tests where NIST has no dataset; Longley.
+- R-14  L  Multichart templates; signed macOS app, Windows installer.
+- P2-12 M  Small chart beside operation results.
+- R-07  L  Linked selection across charts and table, then a data filter
+           (idea to evaluate: a "Selected" column; not for queries).
+- N-09  M  "Colour by value" dialog.
+- R-10  M  Split large files (chart_panel, main_window, style, dialogs).
+- R-12b M  Narrow "except Exception" to true boundaries.
+- A-06  S  Linux: first run in a VM.
+- A-07  S  German / Spanish translations.
+
+IDEAS
+- Animated charts: a Frame column (like ClusterId), per-figure player.
+- 3D vector fields (divergence, curl); 3D parametric curves.
+- User Python/sympy operations (sandboxed); script/notebook export,
+  units with pint, uncertainty propagation.
+
+[YOU]
+- A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
+- A-05 GitHub: description, topics, social preview, first release.
 
 
-================================================================
-P2/P3 - ANALYSIS: WHAT JMP, SPSS, MINITAB AND ORIGIN HAVE AND WE DO NOT
-================================================================
-Table operations (Analysis panel) unless said otherwise: roles cast from
-a table's columns, report in the figure's notes, result columns written
-back to the table like ClusterId.
-
-AN-01 P2  L  Partition (JMP) - IN PROGRESS
-             Done: decision tree for a continuous or nominal Y on many X
-             (Analysis > Partition): Split / Prune / Automatic on a
-             validation column or share; split history, column
-             contributions, leaf report, confusion matrix; Leaf, Predicted
-             and Prob(level) columns written beside the data.
-             Left: tree diagram chart, ROC curve, Bootstrap Forest, Boosted
-             Tree, K-fold validation, informative missing values.
-AN-02 P2  M  Distribution of a column (JMP Distribution): histogram, box,
-             quantiles, moments, normality tests, fitted distributions,
-             capability (Cp, Cpk, Pp, Ppk) against spec limits.
-AN-03 P2  M  Fit Y by X (JMP): one platform choosing by the two types -
-             bivariate (fit lines, polynomial, spline, density ellipse),
-             oneway (ANOVA, means comparisons, Tukey/Dunnett, Welch,
-             Kruskal-Wallis), contingency (mosaic, chi², odds ratio),
-             logistic (one X).
-AN-04 P2  M  Multivariate: correlation matrix with p-values, scatterplot
-             matrix, partial correlations, PCA and factor analysis on a
-             table's columns (loadings, scree, biplot), Cronbach's alpha.
-AN-05 P2  M  Time series: ACF/PACF, seasonal decomposition (STL), ARIMA /
-             exponential smoothing with forecast and intervals, change
-             points, cross-correlation.
-AN-06 P3  M  Quality: Gage R&R (crossed, nested), attribute agreement,
-             process capability with non-normal fits, Pareto by cause
-             (exists as a chart), multi-vari chart.
-AN-07 P3  M  Profiler and optimisation: interactive prediction profiler
-             (drag the factors), desirability for several responses,
-             contour profiler; DOE augmentation and D-optimal designs.
-AN-08 P3  M  Survival and reliability: Cox proportional hazards,
-             parametric (Weibull, lognormal) life fits, reliability plots.
-AN-09 P3  M  Mixed models (REML) - random effects, repeated measures; then
-             power and sample size for t, ANOVA, proportions (R-16).
-AN-10 P3  M  Clustering on a table's columns: k-means / hierarchical /
-             Gaussian mixtures with standardisation, cluster profiles,
-             dendrogram, silhouette; writes ClusterId (today the series
-             operation only reads x and y from a table).
-AN-11 P3  M  Data preparation: stack / split (long-wide), join two tables
-             on keys, recode values, bin a continuous column, date parts,
-             missing-value imputation (mean, regression, multiple).
-AN-12 P3  M  Resampling: bootstrap confidence intervals for any statistic,
-             permutation tests, cross-validation for Fit Model.
-AN-13 P4  M  Science: ODE models fitted to data (kinetics), dose-response
-             with EC50 comparison between groups, peak deconvolution with
-             shared widths, wavelets and spectrogram, uncertainty
-             propagation with units (N-02).
-AN-14 P4  M  Text and categories: word counts, response screening (many Y
-             against one X, FDR-adjusted p-values).
 
 
-================================================================
-P3 - MAINTENANCE AND COMFORT
-================================================================
-R-10  P3  M  Split large files: chart_panel, main_window, build_demos,
-             style; fit/cluster/smoothing/statistics dialogs.
-R-12b P3  M  Narrow "except Exception" in app/charts (42) and review the
-             UI ones (widgets 60, dialogs 56, series_operations 45): keep
-             only true boundaries, each with its reason (see R-12).
-R-07  P3  L  JMP-style linked selection across charts and table;
-             then a local data filter.
-             Idea: suggerisco di aggiungere una colonna "selected" nella tabella e mettere a true quando i punti sono selezionati. valuta questa opzione (non funziona con le query) e dammi un feedback senza implementare
-N-09  P3  M  "Colour by value" dialog (palette, percentiles, categories).
+Best Numba opportunities
+Kalman smoothing
+Nelson-rule detection in control charts
+Multi-peak model evaluation
+Model-specific numerical Jacobians
+Batch Monte Carlo scoring, if the full scoring kernel can be compiled
+Better solved without Numba
+Whittaker-Eilers smoothing: use a banded or sparse solver
+Wavelet power: vectorise or process scales in batches
+Correlation: use FFT-based SciPy correlation
+Survival analysis: improve the algorithm before considering JIT
+Cluster-label remapping: use np.unique(..., return_inverse=True)
+Contingency/mosaic accumulation: use integer codes and np.bincount
+Linear root crossings: compute directly instead of iterating
+Do not target with Numba
+Qt property panels
+Matplotlib rendering and style editing
+pandas transformations
+statsmodels fitting
+scikit-learn estimators
+SciPy interpolation, filtering, integration and statistical-test wrappers
+string, SQL and catalogue logic
+High-priority opportunities
+1. Kalman smoother
 
+smoothing contains a forward Kalman pass and backward Rauch-Tung-Striebel pass implemented as scalar Python loops. The loops operate only on floats and fixed NumPy arrays, making this the cleanest Numba candidate reviewed.
 
-================================================================
-P4 - IDEAS
-================================================================
-P2-21 P4  M  3D vector fields: divergence, curl, |v| peaks, stagnation.
-P2-22 P4  M  3D parametric curves x(t), y(t), z(t).
-P2-19 P4  L  pysym: user Python/sympy operations. Never run code on
-             open; restricted globals; warn on first open.
-N-02  P4     Script/notebook export (with R-03), units with pint (R-08),
-             uncertainty propagation, Python/SQL console.
-R-16  P4     DOE, mixed models, power analysis.
+Suggested approach
 
+Move the numeric loop into an @njit(cache=True) kernel.
+Keep validation and parameter conversion in the Python wrapper.
+Pass contiguous float64 arrays to the compiled kernel.
+Retain a pure-Python fallback if Numba remains optional.
+
+Expected benefit
+
+Most useful for long signals, repeated previews and batch processing of many series. The first invocation incurs compilation overhead, so cache=True and realistic benchmarking are important.
+
+2. Nelson-rule scanning
+
+control_charts scans overlapping windows using several Python loops in find_violations(). The loops implement Nelson rules 2 through 8 and repeatedly call .all() or .sum() on small temporary slices.
+
+Suggested approach
+
+Have a compiled kernel return one integer bitmask per sample.
+Assign one bit to each rule.
+Convert the numeric bitmasks into Violation dataclasses after returning to Python.
+Keep descriptions and deduplication outside the compiled kernel.
+
+Why this structure
+
+Numba can efficiently process numeric arrays but should not be asked to build Python dataclasses, dictionaries or variable-length description lists.
+
+3. Multi-peak model evaluation
+
+fit decodes every peak into a Python tuple list and then performs another Python loop to add Gaussian, Lorentzian or pseudo-Voigt peak arrays. Optimisation and numerical Jacobian calculation can invoke this model many times.
+
+Suggested approach
+
+Create separate compiled kernels for:
+
+Gaussian multi-peak
+Lorentzian multi-peak
+pseudo-Voigt multi-peak
+
+Inside each kernel, loop first over points and then over peaks, accumulating directly into one output array. This avoids allocating one complete temporary array per peak.
+
+Design recommendation
+
+Do not attempt to compile the dynamic factory and Python closure. The factory should decode the parameter layout and dispatch to a compiled numeric kernel.
+
+4. Model-specific numerical Jacobians
+
+fit calculates central differences by calling an arbitrary model twice for every parameter.
+
+Suggested approach
+
+Provide two paths:
+
+Generic Python Jacobian for user formulas and dynamically loaded models
+Compiled Jacobian for supported built-in compiled models
+
+A compiled outer loop that still calls an ordinary Python model will not remove the main overhead. The complete chain must be compiled:
+
+Plain Text
+model evaluation
+→ residual calculation
+→ parameter perturbation
+→ Jacobian assembly
