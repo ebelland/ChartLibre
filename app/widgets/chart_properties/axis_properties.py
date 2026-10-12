@@ -26,7 +26,9 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QSizePolicy,
     QSpinBox,
+    QPushButton,
     QStackedWidget,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -121,7 +123,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._axis_label_edit,
             self._coordinate_label,
             self._projection_combo,
-            self._share_check,
+            *self._share_checks.values(),
             self._hide_axis_check,
         ) + self._extended_option_widgets()
 
@@ -155,27 +157,60 @@ class AxisPropertiesWidget(BaseProperties):
         configure_combo_width(combo, minimum_contents_length)
 
     def _build_ui(self) -> None:
-        """The axis selector, one coordinate card for X, Y and/or Z, the axis-wide properties, the kwargs."""
+        """The axis selector, then tabs: Properties, X, Y, Z (one coordinate page, moved between them), Kwargs."""
         root = QVBoxLayout(self)
         root.setContentsMargins(*MARGIN_PANEL)
         root.setSpacing(12)
         root.addWidget(self._build_axis_selector_section())
 
         self._build_coordinate_controls()
-        self._options_page = QWidget(self)
-        self._options_page.setProperty("toolboxPage", True)
-        self._options_page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        page_layout = QVBoxLayout(self._options_page)
-        page_layout.setContentsMargins(0, 0, 0, 0)
-        page_layout.setSpacing(10)
-        page_layout.addWidget(self._build_coordinate_card(self._options_page), 0)
-        page_layout.addWidget(self._build_shared_properties_frame(), 0)
-        page_layout.addWidget(self._build_kwargs_section(), 1)
-        root.addWidget(self._options_page, 1)
+        self._tabs = QTabWidget(self)
+        self._tabs.setObjectName("axisPropertiesTabs")
+        self._tabs.setDocumentMode(True)
+        self._tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._tabs.addTab(self._tab_page(self._build_shared_properties_frame()), _("Properties"))
+        self._coordinate_page = self._build_coordinate_page()
+        # Shown by the first X, Y or Z tab that hosts it; until then it would
+        # be a stray widget in the panel's corner.
+        self._coordinate_page.hide()
+        self._coordinate_hosts: dict[str, QVBoxLayout] = {}
+        for axis in axis_options.AXES:
+            page = self._tab_page()
+            self._coordinate_hosts[axis] = cast(QVBoxLayout, page.layout())
+            self._tabs.addTab(page, axis.upper())
+        self._tabs.addTab(self._tab_page(self._build_kwargs_section(), stretch=1), _("Kwargs"))
+        self._tabs.currentChanged.connect(self._on_tab_changed)
+        root.addWidget(self._tabs, 1)
+        self._on_tab_changed(self._tabs.currentIndex())
+
+    def _tab_page(self, content: QWidget | None = None, *, stretch: int = 0) -> QWidget:
+        """A tab's page on the standard ground, *content* at its top."""
+        page = QWidget(self._tabs if hasattr(self, "_tabs") else self)
+        page.setProperty("toolboxPage", True)
+        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(10)
+        if content is not None:
+            layout.addWidget(content, stretch)
+        if not stretch:
+            layout.addStretch(1)
+        return page
+
+    def _on_tab_changed(self, index: int) -> None:
+        """An X, Y or Z tab shows the one coordinate page, filled with that coordinate's settings."""
+        axes = axis_options.AXES
+        if not 1 <= index <= len(axes):
+            return
+        self._coordinate_axis = axes[index - 1]
+        host = self._coordinate_hosts[self._coordinate_axis]
+        host.insertWidget(0, self._coordinate_page)
+        self._coordinate_page.show()
+        self._show_coordinates()
 
     def _build_shared_properties_frame(self) -> QWidget:
         """Build compact axis-wide properties mounted in the active XYZ page."""
-        section = TitledCard(self, _("Properties"), "axisPropertiesCard")
+        section = TitledCard(self, _("Axis"), "axisPropertiesCard")
         raw_layout = section.card.layout()
         if not isinstance(raw_layout, QVBoxLayout):
             raise RuntimeError("TitledCard did not create a vertical box layout")
@@ -201,29 +236,37 @@ class AxisPropertiesWidget(BaseProperties):
             grid.addWidget(QLabel(caption, section.card), row, column)
             grid.addWidget(widget, row, column + 1)
 
-        add_field(0, 0, _("Title"), self._axis_label_edit)
-        add_field(0, 2, _("Font"), self._font_scale)
+        grid.addWidget(QLabel(_("Title"), section.card), 0, 0)
+        grid.addWidget(self._axis_label_edit, 0, 1, 1, 3)
         add_field(1, 0, _("Proj."), self._projection_combo)
-        add_field(1, 2, _("Visible"), self._hide_axis_check)
+        add_field(1, 2, _("Font"), self._font_scale)
+        grid.addWidget(QLabel(_("Visible"), section.card), 2, 0)
+        grid.addWidget(self._hide_axis_check, 2, 1)
 
         span = self._build_span_row(section.card)
         self._row_span_spin.setMaximumWidth(72)
         self._col_span_spin.setMaximumWidth(72)
-        grid.addWidget(QLabel(_("Span"), section.card), 2, 0)
-        grid.addWidget(span, 2, 1, 1, 3)
+        grid.addWidget(QLabel(_("Span"), section.card), 3, 0)
+        grid.addWidget(span, 3, 1, 1, 3)
 
-        spine_row = QWidget(section.card)
-        spine_layout = QHBoxLayout(spine_row)
-        stdSizeAndlayout(spine_layout)
+        def check_row(checks: list[QCheckBox]) -> QWidget:
+            holder = QWidget(section.card)
+            layout = QHBoxLayout(holder)
+            stdSizeAndlayout(layout)
+            for check in checks:
+                layout.addWidget(check)
+            layout.addStretch(1)
+            return holder
+
         names = {"top": _("Top"), "right": _("Right"), "bottom": _("Bottom"), "left": _("Left")}
         short = {"top": "T", "right": "R", "bottom": "B", "left": "L"}
         for name, check in self._spine_checks().items():
             check.setText(short[name])
             check.setToolTip(names[name])
-            spine_layout.addWidget(check)
-        spine_layout.addStretch(1)
-        grid.addWidget(QLabel(_("Hide spines"), section.card), 3, 0)
-        grid.addWidget(spine_row, 3, 1, 1, 3)
+        grid.addWidget(QLabel(_("Hide spines"), section.card), 4, 0)
+        grid.addWidget(check_row(list(self._spine_checks().values())), 4, 1, 1, 3)
+        grid.addWidget(QLabel(_("Share"), section.card), 5, 0)
+        grid.addWidget(check_row(list(self._share_checks.values())), 5, 1, 1, 3)
         raw_layout.addLayout(grid)
         return section
 
@@ -232,7 +275,7 @@ class AxisPropertiesWidget(BaseProperties):
     # ------------------------------------------------------------------
     #: A coordinate's settings as the card shows them; min/max None is Auto.
     _COORDINATE_DEFAULTS: dict[str, Any] = {
-        "label": "", "share": False, "scale": "linear", "base": 10.0, "invert": False,
+        "label": "", "scale": "linear", "base": 10.0, "invert": False,
         "tick_length": 0.0, "tick_rotation": 0.0, "tick_length_minor": 0.0, "tick_rotation_minor": 0.0,
         "min": None, "max": None,
         **{f"{kind}_{which}": axis_options.AUTO for kind in ("grid", "ticks") for which in axis_options.WHICH},
@@ -243,17 +286,14 @@ class AxisPropertiesWidget(BaseProperties):
         self._coordinates: dict[str, dict[str, Any]] = {
             axis: dict(self._COORDINATE_DEFAULTS) for axis in axis_options.AXES
         }
-        self._target_checks: dict[str, QCheckBox] = {}
+        #: The coordinate the X, Y, Z tabs show now.
+        self._coordinate_axis = "x"
+        self._share_checks: dict[str, QCheckBox] = {}
         for axis in axis_options.AXES:
             check = QCheckBox(axis.upper(), self)
-            check.setChecked(axis == "x")
-            check.setToolTip(_("Edit the {axis} coordinate; tick several to set them together.").format(
-                axis=axis.upper()))
-            check.toggled.connect(lambda checked, a=axis: self._on_target_toggled(a, checked))
-            self._target_checks[axis] = check
+            check.setToolTip(_("Share the {axis} range with the other axes that share it.").format(axis=axis.upper()))
+            self._share_checks[axis] = check
         self._coordinate_label = QLineEdit(self)
-        self._share_check = QCheckBox(_("Share"), self)
-        self._share_check.setToolTip(_("Share this coordinate's range with the other axes that share it."))
         self._scale_combo = QComboBox(self)
         for value in AXIS_SCALES:
             self._scale_combo.addItem(value, value)
@@ -303,7 +343,6 @@ class AxisPropertiesWidget(BaseProperties):
         """Each coordinate setting and the signals that say it was changed."""
         signals: dict[str, tuple[Any, ...]] = {
             "label": (self._coordinate_label.textChanged,),
-            "share": (self._share_check.toggled,),
             "scale": (self._scale_combo.currentIndexChanged,),
             "base": (self._scale_base_spin.valueChanged,),
             "invert": (self._invert_check.toggled,),
@@ -323,8 +362,8 @@ class AxisPropertiesWidget(BaseProperties):
         """The value the card shows for *field*."""
         if field == "label":
             return self._coordinate_label.text().strip()
-        if field in ("share", "invert"):
-            return bool((self._share_check if field == "share" else self._invert_check).isChecked())
+        if field == "invert":
+            return bool(self._invert_check.isChecked())
         if field == "scale":
             return str(self._scale_combo.currentData() or "linear")
         if field in ("min", "max"):
@@ -339,8 +378,8 @@ class AxisPropertiesWidget(BaseProperties):
         """Show *value* for *field* in the card."""
         if field == "label":
             self._coordinate_label.setText(str(value or ""))
-        elif field in ("share", "invert"):
-            (self._share_check if field == "share" else self._invert_check).setChecked(bool(value))
+        elif field == "invert":
+            self._invert_check.setChecked(bool(value))
         elif field == "scale":
             self._select_combo_value(self._scale_combo, value, "linear")
         elif field in ("min", "max"):
@@ -362,8 +401,8 @@ class AxisPropertiesWidget(BaseProperties):
                 "tick_rotation_minor": self._minor_tick_rotation_spin}
 
     def _targets(self) -> list[str]:
-        """The coordinates the card edits: the ticked ones."""
-        return [axis for axis, check in self._target_checks.items() if check.isChecked()]
+        """The coordinate the page edits: its tab's."""
+        return [self._coordinate_axis]
 
     def _store_field(self, field: str) -> None:
         value = self._read_field(field)
@@ -371,63 +410,44 @@ class AxisPropertiesWidget(BaseProperties):
             self._coordinates[axis][field] = value
 
     def _show_coordinates(self) -> None:
-        """Fill the card from the first ticked coordinate, without applying anything."""
-        targets = self._targets() or ["x"]
-        values = self._coordinates[targets[0]]
+        """Fill the page from its coordinate's settings, without applying anything."""
+        values = self._coordinates[self._coordinate_axis]
         with self._form_signal_blocker():
             for field in self._COORDINATE_DEFAULTS:
                 self._write_field(field, values[field])
         self._update_scale_control_state()
 
-    def _on_target_toggled(self, axis: str, checked: bool) -> None:
-        if not checked and not self._targets():
-            # One coordinate at least: the card always edits something.
-            with QSignalBlocker(self._target_checks[axis]):
-                self._target_checks[axis].setChecked(True)
-            return
-        self._show_coordinates()
+    #: What "Copy ticks and grid" copies from the coordinate shown to the others.
+    _TICK_AND_GRID_FIELDS: tuple[str, ...] = (
+        "grid_major", "grid_minor", "ticks_major", "ticks_minor",
+        "tick_length", "tick_rotation", "tick_length_minor", "tick_rotation_minor",
+    )
 
-    def _build_coordinate_card(self, parent: QWidget) -> QWidget:
-        """The coordinate settings, for the X, Y, Z ticked at its top.
+    def _copy_ticks_and_grid(self) -> None:
+        """The shown coordinate's grid and ticks, given to X, Y and Z alike."""
+        source = self._coordinates[self._coordinate_axis]
+        for axis in axis_options.AXES:
+            for field in self._TICK_AND_GRID_FIELDS:
+                self._coordinates[axis][field] = source[field]
+        self._queue_auto_apply()
+
+    def _build_coordinate_page(self) -> QWidget:
+        """One coordinate's settings - the X, Y and Z tabs show this one page, moved between them.
 
         Two short captions and two fields a row, the fields sharing the width:
-        a long caption ("Tick length") would widen the whole first column and
-        squeeze every field into an unreadable stub.
+        a long caption would widen the whole first column and squeeze every
+        field into an unreadable stub.
         """
-        section = TitledCard(parent, _("Coordinates"), "axisCoordinatesCard")
-        raw_layout = section.card.layout()
-        if not isinstance(raw_layout, QVBoxLayout):
-            raise RuntimeError("TitledCard did not create a vertical box layout")
-        card = section.card
-        grid = QGridLayout()
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(6)
-        grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(3, 1)
-
-        def caption(text: str, tooltip: str = "") -> QLabel:
-            label = QLabel(text, card)
-            label.setToolTip(tooltip)
-            return label
-
-        def row(widgets: list[QWidget], *, fill: bool = False) -> QWidget:
-            """*widgets* side by side; with *fill* the first takes the width left."""
-            holder = QWidget(card)
-            layout = QHBoxLayout(holder)
-            stdSizeAndlayout(layout)
-            layout.setContentsMargins(0, 0, 0, 0)
-            for index, widget in enumerate(widgets):
-                layout.addWidget(widget, 1 if fill and index == 0 else 0)
-            if not fill:
-                layout.addStretch(1)
-            return holder
+        page = QWidget(self)
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(10)
 
         for widget in (self._scale_combo, *self._grid_combos.values(), *self._tick_combos.values()):
             widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             widget.setMinimumContentsLength(5)
         for edge in ("min", "max"):
-            # Auto shows a dash, not the spin box's -1e15 floor.
+            # Auto shows in the box itself, not the spin box's -1e15 floor.
             self._limit_spins[edge].setSpecialValueText(_("Auto"))
             # An explicit minimum: the spin box would otherwise ask for room
             # for all fifteen digits of its range and widen the whole panel.
@@ -437,39 +457,68 @@ class AxisPropertiesWidget(BaseProperties):
             spin.setMinimumWidth(70)
             spin.setMaximumWidth(120)
 
-        grid.addWidget(caption(_("Apply to")), 0, 0)
-        grid.addWidget(row(list(self._target_checks.values())), 0, 1)
-        grid.addWidget(row([self._share_check, self._invert_check]), 0, 2, 1, 2)
-        grid.addWidget(caption(_("Label")), 1, 0)
-        grid.addWidget(self._coordinate_label, 1, 1, 1, 3)
-        grid.addWidget(caption(_("Scale")), 2, 0)
-        grid.addWidget(self._scale_combo, 2, 1)
+        def card(title: str, name: str) -> tuple[QWidget, QGridLayout, QWidget]:
+            section = TitledCard(page, title, name)
+            grid = QGridLayout()
+            grid.setContentsMargins(0, 0, 0, 0)
+            grid.setHorizontalSpacing(8)
+            grid.setVerticalSpacing(6)
+            grid.setColumnStretch(1, 1)
+            grid.setColumnStretch(3, 1)
+            section.card.layout().addLayout(grid)
+            page_layout.addWidget(section)
+            return section, grid, section.card
+
+        def row(parent: QWidget, widgets: list[QWidget], *, fill: bool = False) -> QWidget:
+            """*widgets* side by side; with *fill* the first takes the width left."""
+            holder = QWidget(parent)
+            layout = QHBoxLayout(holder)
+            stdSizeAndlayout(layout)
+            layout.setContentsMargins(0, 0, 0, 0)
+            for index, widget in enumerate(widgets):
+                layout.addWidget(widget, 1 if fill and index == 0 else 0)
+            if not fill:
+                layout.addStretch(1)
+            return holder
+
+        # Label, scale and range.
+        _section, grid, box = card(_("Scale and range"), "axisScaleCard")
+        grid.addWidget(QLabel(_("Label"), box), 0, 0)
+        grid.addWidget(self._coordinate_label, 0, 1, 1, 3)
+        grid.addWidget(QLabel(_("Scale"), box), 1, 0)
+        grid.addWidget(self._scale_combo, 1, 1)
         # One box beside the scale: its base for log, its linear zone for symlog.
-        self._scale_parameter_caption = caption(_("Base"))
-        self._scale_parameter = QStackedWidget(card)
+        self._scale_parameter_caption = QLabel(_("Base"), box)
+        self._scale_parameter = QStackedWidget(box)
         self._scale_parameter.addWidget(self._scale_base_spin)
         self._scale_parameter.addWidget(self._linthresh_spin)
-        grid.addWidget(self._scale_parameter_caption, 2, 2)
-        grid.addWidget(self._scale_parameter, 2, 3)
-        grid.addWidget(caption(_("Min")), 3, 0)
-        grid.addWidget(row([self._limit_spins["min"], self._limit_auto_checks["min"]], fill=True), 3, 1)
-        grid.addWidget(caption(_("Max")), 3, 2)
-        grid.addWidget(row([self._limit_spins["max"], self._limit_auto_checks["max"]], fill=True), 3, 3)
-        # Grid, ticks, their length and their labels' rotation: major and minor as columns.
-        grid.addWidget(caption(_("Major")), 4, 1, Qt.AlignmentFlag.AlignHCenter)
-        grid.addWidget(caption(_("Minor")), 4, 2, 1, 2, Qt.AlignmentFlag.AlignHCenter)
+        grid.addWidget(self._scale_parameter_caption, 1, 2)
+        grid.addWidget(self._scale_parameter, 1, 3)
+        grid.addWidget(QLabel(_("Min"), box), 2, 0)
+        grid.addWidget(row(box, [self._limit_spins["min"], self._limit_auto_checks["min"]], fill=True), 2, 1)
+        grid.addWidget(QLabel(_("Max"), box), 2, 2)
+        grid.addWidget(row(box, [self._limit_spins["max"], self._limit_auto_checks["max"]], fill=True), 2, 3)
+        grid.addWidget(self._invert_check, 3, 1, 1, 3)
+
+        # Ticks and grid: major and minor as columns.
+        _section, grid, box = card(_("Ticks and grid"), "axisTicksCard")
+        grid.addWidget(QLabel(_("Major"), box), 0, 1, Qt.AlignmentFlag.AlignHCenter)
+        grid.addWidget(QLabel(_("Minor"), box), 0, 2, 1, 2, Qt.AlignmentFlag.AlignHCenter)
         rows = (
             (_("Grid"), self._grid_combos["major"], self._grid_combos["minor"]),
             (_("Ticks"), self._tick_combos["major"], self._tick_combos["minor"]),
             (_("Length"), self._tick_length_spin, self._minor_tick_length_spin),
             (_("Rotation"), self._tick_rotation_spin, self._minor_tick_rotation_spin),
         )
-        for index, (text, major, minor) in enumerate(rows, start=5):
-            grid.addWidget(caption(text), index, 0)
+        for index, (text, major, minor) in enumerate(rows, start=1):
+            grid.addWidget(QLabel(text, box), index, 0)
             grid.addWidget(major, index, 1)
             grid.addWidget(minor, index, 2, 1, 2)
-        raw_layout.addLayout(grid)
-        return section
+        copy = QPushButton(_("Copy to X, Y and Z"), box)
+        copy.setToolTip(_("Give X, Y and Z this coordinate's grid and ticks."))
+        copy.clicked.connect(self._copy_ticks_and_grid)
+        grid.addWidget(copy, len(rows) + 1, 1, 1, 3, Qt.AlignmentFlag.AlignLeft)
+        return page
 
     def _build_axis_selector_section(self) -> QWidget:
         """Create axis selector, axis actions and renderer display."""
@@ -976,7 +1025,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._projection_combo,
             self._hide_axis_check,
             self._renderer_value,
-            self._options_page,
+            self._tabs,
         )
         for widget in widgets:
             widget.setEnabled(enabled)
@@ -1102,7 +1151,7 @@ class AxisPropertiesWidget(BaseProperties):
             )
             for axis in axis_options.AXES:
                 self._coordinates[axis]["label"] = str(options.get(f"{axis}_label", "")).strip()
-                self._coordinates[axis]["share"] = bool(options.get(f"share{axis}", False))
+                self._share_checks[axis].setChecked(bool(options.get(f"share{axis}", False)))
             self._projection_combo.setCurrentIndex(
                 max(0, self._projection_combo.findData(projection))
             )
@@ -1137,7 +1186,7 @@ class AxisPropertiesWidget(BaseProperties):
                 self._axis_label_edit,
                 self._coordinate_label,
                 self._projection_combo,
-                self._share_check,
+                *self._share_checks.values(),
                 self._hide_axis_check,
             )
             + self._extended_option_widgets()
@@ -1307,9 +1356,9 @@ class AxisPropertiesWidget(BaseProperties):
             "y_label": self._coordinates["y"]["label"],
             "z_label": self._coordinates["z"]["label"],
             "projection": str(self._projection_combo.currentData() or "rectilinear"),
-            "sharex": bool(self._coordinates["x"]["share"]),
-            "sharey": bool(self._coordinates["y"]["share"]),
-            "sharez": bool(self._coordinates["z"]["share"]),
+            "sharex": bool(self._share_checks["x"].isChecked()),
+            "sharey": bool(self._share_checks["y"].isChecked()),
+            "sharez": bool(self._share_checks["z"].isChecked()),
             "hide_axis": bool(self._hide_axis_check.isChecked()),
             "font_scale": float(self._font_scale.factor()),
             # The renderer's own name, never the translated one the panel shows.

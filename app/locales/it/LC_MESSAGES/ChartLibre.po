@@ -8598,3 +8598,18 @@ msgstr "Bande sul fit"
 
 msgid "Extra charts"
 msgstr "Grafici accessori"
+
+msgid "Scale and range"
+msgstr "Scala e intervallo"
+
+msgid "Ticks and grid"
+msgstr "Tacche e griglia"
+
+msgid "Copy to X, Y and Z"
+msgstr "Copia su X, Y e Z"
+
+msgid "Give X, Y and Z this coordinate's grid and ticks."
+msgstr "Dai a X, Y e Z la griglia e le tacche di questa coordinata."
+
+msgid "Share the {axis} range with the other axes that share it."
+msgstr "Condividi l'intervallo di {axis} con gli altri assi che lo condividono."
