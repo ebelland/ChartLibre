@@ -81,7 +81,7 @@ class AxisPropertiesWidget(BaseProperties):
     axis_action_requested = Signal(dict)
     renderer_changed = Signal(str)
 
-    KWARGS_PANEL_MIN_HEIGHT: int = 120
+    KWARGS_PANEL_MIN_HEIGHT: int = 220
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
