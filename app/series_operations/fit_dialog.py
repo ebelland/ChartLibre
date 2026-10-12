@@ -24,6 +24,7 @@ from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QApplication,
+    QHeaderView,
     QCheckBox,
     QComboBox,
     QFileDialog,
@@ -72,6 +73,7 @@ from app.utils import report_html
 
 from app.styles.style import (
     CardFrame,
+    TitledCard,
     create_action_button,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -489,8 +491,16 @@ class SeriesFitDialog(SeriesOperationDialogBase):
         self._spin_params.hide()
 
         mark_editor_panel(self._params_table)
-        self._params_table.setHorizontalHeaderLabels(["Parameter", "Initial", "Lower", "Upper", "Fix"])
-        self._params_table.horizontalHeader().setStretchLastSection(True)
+        self._params_table.setHorizontalHeaderLabels(
+            [_("Parameter"), _("Initial"), _("Lower"), _("Upper"), _("Fix")])
+        # The columns share the panel's width - no horizontal scroll bar for
+        # five short columns; Fix only as wide as its box.
+        header = self._params_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        for column in range(1, 4):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        self._params_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._params_table.setMinimumHeight(160)
         self._params_table.setToolTip(
             _("Initial value, bounds and fixed flag for each function parameter. Apply runs the fit with these settings.")
@@ -550,20 +560,27 @@ class SeriesFitDialog(SeriesOperationDialogBase):
 
         layout.addWidget(fit_options)
         self._refresh_optimizer_help()
-
-        layout.addWidget(QLabel(_("Output table:"), outer))
-        self._output_table_edit.setToolTip(_("Name of the SQLite table where fitted values/residuals are saved."))
-        layout.addWidget(self._output_table_edit)
-
-        layout.addWidget(QLabel(_("Bands on the fit:"), outer))
-        layout.addWidget(self._confidence_band_check)
-        layout.addWidget(self._prediction_band_check)
-
-        layout.addWidget(QLabel(_("Extra charts:"), outer))
-        layout.addWidget(self._residual_chart_check)
-        layout.addWidget(self._fit_vs_measured_chart_check)
-
         return outer
+
+    def extra_tabs(self) -> list[tuple[QWidget, str]]:
+        """What the fit writes and draws, in a tab of its own: the Parameters tab is tall enough."""
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        output = TitledCard(page, _("Output table"))
+        self._output_table_edit.setToolTip(_("Name of the SQLite table where fitted values/residuals are saved."))
+        output.card.layout().addWidget(self._output_table_edit)
+        layout.addWidget(output)
+        bands = TitledCard(page, _("Bands on the fit"))
+        bands.card.layout().addWidget(self._confidence_band_check)
+        bands.card.layout().addWidget(self._prediction_band_check)
+        layout.addWidget(bands)
+        charts = TitledCard(page, _("Extra charts"))
+        charts.card.layout().addWidget(self._residual_chart_check)
+        charts.card.layout().addWidget(self._fit_vs_measured_chart_check)
+        layout.addWidget(charts)
+        layout.addStretch(1)
+        return [(page, _("Output"))]
 
     def _catalog_data(self) -> dict[str, list[dict[str, Any]]]:
         """Return scanned fit functions grouped by category.

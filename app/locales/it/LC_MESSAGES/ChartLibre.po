@@ -8574,3 +8574,27 @@ msgstr "Dai questo stile a ogni figura del progetto"
 
 msgid "Give all {count} figures of the project this style? Their own styles are replaced (Undo brings them back)."
 msgstr "Dare questo stile a tutte le {count} figure del progetto? I loro stili vengono sostituiti (Annulla li ripristina)."
+
+msgid "Initial"
+msgstr "Iniziale"
+
+msgid "Lower"
+msgstr "Minimo"
+
+msgid "Upper"
+msgstr "Massimo"
+
+msgid "Fix"
+msgstr "Fisso"
+
+msgid "Output"
+msgstr "Uscita"
+
+msgid "Output table"
+msgstr "Tabella di output"
+
+msgid "Bands on the fit"
+msgstr "Bande sul fit"
+
+msgid "Extra charts"
+msgstr "Grafici accessori"

@@ -505,6 +505,10 @@ class SeriesOperationDialogBase(QDialog):
     #: still the right answer for a genuinely unusual control.
     PARAMS: tuple[Param, ...] = ()
 
+    def extra_tabs(self) -> list[tuple[QWidget, str]]:
+        """Further (page, title) tabs after Parameters, for an operation with more to set."""
+        return []
+
     def build_parameter_selector(self) -> QWidget:
         """Return the parameter editor widget for the left panel.
 
@@ -803,6 +807,7 @@ class SeriesOperationDialogBase(QDialog):
             pages.append((self.axis_series_panel, _("Data")))
         pages.append((self.model_panel, _("Model")))
         pages.append((self.parameters_panel, _("Parameters")))
+        pages.extend(self.extra_tabs())
         for content, title in pages:
             page = self._toolbox_page(content)
             # The ground and the inset a toolbox page had (grey on macOS,
