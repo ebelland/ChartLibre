@@ -20,6 +20,7 @@ from app.logs.logger import applogger
 from app.styles.style import MARGIN_TOOLBOX_PAGE, stdSizeAndlayout
 from app.utils.config import get_constant
 from app.utils.i18n import _
+from app.utils.messages import ask
 from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget
 from app.widgets.chart_panel import ChartPanel
 from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
@@ -78,6 +79,7 @@ class MainWindowChartProperties:
     def _connect_property_signals(self) -> None:
         """Connect property widgets to main-window persistence handlers."""
         self._figure_widget.style_changed.connect(self._on_figure_style_changed)
+        self._figure_widget.style_applied_to_all.connect(self._on_style_applied_to_all)
         self._figure_widget.grid_layout_requested.connect(self._on_grid_layout_requested)
         self._figure_widget.layout_preset_requested.connect(self._on_layout_preset_requested)
         self._figure_widget.figure_options_requested.connect(self._on_figure_options_requested)
@@ -307,6 +309,22 @@ class MainWindowChartProperties:
             options.pop("mpl_style", None)
         self._repo.set_figure_options(self._properties_figure_id, options)
         self._redraw_properties_chart()
+
+    def _on_style_applied_to_all(self, style_text: str) -> None:
+        """Every figure of the project takes *style_text* (or the default, when empty) - after asking; undoable."""
+        figures = [int(figure_id) for figure_id, _name in self._repo.load_figures_from_db()]
+        if not figures or not ask(self, "figure.confirm_style_to_all", count=len(figures)):
+            return
+        self._repo.snapshot_for_undo(list(self._repo.DESCRIPTOR_TABLES), label="Style applied to all figures")
+        style = str(style_text or "")
+        for figure_id in figures:
+            options = dict(self._repo.get_figure_options(figure_id) or {})
+            if style:
+                options["mpl_style"] = style
+            else:
+                options.pop("mpl_style", None)
+            self._repo.set_figure_options(figure_id, options)
+        self._reload_tabs(select_figure_id=self._properties_figure_id)
 
     def _on_grid_layout_requested(self, nrows: int, ncols: int) -> None:
         if self._properties_figure_id is None:

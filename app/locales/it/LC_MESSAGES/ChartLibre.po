@@ -8565,3 +8565,12 @@ msgstr "Lo stile dei grafici per ogni figura che non ne ha uno proprio."
 
 msgid "Default chart style"
 msgstr "Stile grafici predefinito"
+
+msgid "Apply to all figures"
+msgstr "Applica a tutte le figure"
+
+msgid "Give every figure of the project this style"
+msgstr "Dai questo stile a ogni figura del progetto"
+
+msgid "Give all {count} figures of the project this style? Their own styles are replaced (Undo brings them back)."
+msgstr "Dare questo stile a tutte le {count} figure del progetto? I loro stili vengono sostituiti (Annulla li ripristina)."

@@ -934,6 +934,11 @@
     }
   },
   "messages": {
+    "figure.confirm_style_to_all": {
+      "level": "question",
+      "title": "Apply to all figures",
+      "text": "Give all {count} figures of the project this style? Their own styles are replaced (Undo brings them back)."
+    },
     "axis.confirm_delete": {
       "level": "question",
       "title": "Delete axis",

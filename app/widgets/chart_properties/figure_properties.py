@@ -37,6 +37,7 @@ from app.dialogs.edit_mpl_styles_dialog import (
     _sanitize_mplstyle_text,
 )
 from app.styles.style import (
+    load_icon,
     MARGIN_PANEL,
     TitledCard,
     create_action_button,
@@ -83,6 +84,8 @@ class FigurePropertiesWidget(BaseProperties):
     """
 
     style_changed = Signal(str)
+    #: The current style, for every figure of the project.
+    style_applied_to_all = Signal(str)
     grid_layout_requested = Signal(int, int)
     figure_options_requested = Signal(dict)
     #: Emitted with one of app.charts.layout_presets.PRESETS.
@@ -386,6 +389,14 @@ class FigurePropertiesWidget(BaseProperties):
                              action=self._edit_current_style,
                              layout=style_buttons_lay,
                          )
+        self._btn_style_to_all = create_action_button(
+            parent=style_buttons_row,
+            action_id="copy",
+            action=lambda: self.style_applied_to_all.emit(self._current_style_text()),
+            layout=style_buttons_lay,
+            presentation=(load_icon("copy"), _("Apply to all figures"),
+                          _("Give every figure of the project this style")),
+        )
         # No Apply button: every control on this panel applies itself a
         # short moment after it changes (see _connect_auto_apply). Reload
         # and Edit stay - they are style actions, not "commit the form".
