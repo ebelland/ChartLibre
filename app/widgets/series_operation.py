@@ -11,8 +11,8 @@ to fit "Correzione linea di base" into a square.
 The sections are the ones the layout proposal settled on - Plot on its
 own, then Analysis, Statistics, Geometry, Signal Processing, Modeling -
 because "I want a control chart" is one decision, not "which section is a
-control chart in". A search field above filters the list by name and
-description; Return in it opens the first match. The description of the
+control chart in". Finding one by what it does is
+the Guided analysis panel's search (and Cmd/Ctrl+K). The description of the
 row under the pointer, or with keyboard focus, shows in a bar fixed at the
 panel's bottom - not a tooltip, which vanishes the moment the pointer
 moves and says nothing to someone using the keyboard.
@@ -26,7 +26,6 @@ from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QLabel,
-    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QSizePolicy,
@@ -100,9 +99,8 @@ def _group_by_section(operations: list[dict]) -> list[tuple[str, list[dict]]]:
     return grouped
 
 
-#: Item data roles: the operation a row opens, and what the search matches.
+#: Item data roles: the operation a row opens, and its description.
 _OPERATION_ROLE = Qt.ItemDataRole.UserRole
-_SEARCH_ROLE = Qt.ItemDataRole.UserRole + 1
 _DESCRIPTION_ROLE = Qt.ItemDataRole.UserRole + 2
 
 _ICON_SIZE = 18
@@ -119,15 +117,6 @@ class SeriesOperationWidget(NavPanel):
         page = QWidget(self)
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(0, 0, 0, 0)
-
-        self._search = QLineEdit(page)
-        self._search.setObjectName("seriesOperationsSearch")
-        self._search.setPlaceholderText(_("Search operations"))
-        self._search.setClearButtonEnabled(True)
-        self._search.textChanged.connect(self._filter)
-        self._search.returnPressed.connect(self._open_first_match)
-        self._search.installEventFilter(self)
-        page_layout.addWidget(self._search, 0)
 
         self._list = QListWidget(page)
         self._list.setObjectName("seriesOperationsList")
@@ -177,13 +166,11 @@ class SeriesOperationWidget(NavPanel):
         font.setPointSizeF(max(8.0, font.pointSizeF() * 0.85))
         header.setFont(font)
         header.setSizeHint(QSize(0, 26 if self._list.count() == 1 else 34))
-        header.setData(_SEARCH_ROLE, None)
         for operation in operations:
             name = tr(_operation_action_id(operation))
             description = tr(str(operation.get("description") or ""))
             item = QListWidgetItem(self.plugin_icon(operation), name, self._list)
             item.setData(_OPERATION_ROLE, operation)
-            item.setData(_SEARCH_ROLE, f"{name} {description}".casefold())
             item.setData(_DESCRIPTION_ROLE, description)
             item.setToolTip(description)
             item.setSizeHint(QSize(0, 28))
@@ -206,33 +193,6 @@ class SeriesOperationWidget(NavPanel):
         self._list.clearSelection()
         self.operation_requested.emit(operation)
 
-    def _filter(self, text: str) -> None:
-        """Show the rows whose name or description has *text*, and their titles."""
-        wanted = text.strip().casefold()
-        header: QListWidgetItem | None = None
-        header_used = False
-        for row in range(self._list.count()):
-            item = self._list.item(row)
-            if item is None:
-                continue
-            haystack = item.data(_SEARCH_ROLE)
-            if haystack is None:  # a section title
-                if header is not None:
-                    header.setHidden(not header_used)
-                header, header_used = item, False
-                continue
-            shown = not wanted or wanted in str(haystack)
-            item.setHidden(not shown)
-            header_used = header_used or shown
-        if header is not None:
-            header.setHidden(not header_used)
-
-    def _open_first_match(self) -> None:
-        for item in self.operation_items():
-            if not item.isHidden():
-                self._open_item(item)
-                return
-
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if (
             watched is self._list
@@ -246,14 +206,6 @@ class SeriesOperationWidget(NavPanel):
         if watched is self._list.viewport() and event.type() == QEvent.Type.Leave:
             if not self._list.hasFocus():
                 self._clear_hint()
-        elif watched is self._search and event.type() == QEvent.Type.KeyPress:
-            # Down from the search field goes into the list, at the first match.
-            if getattr(event, "key", lambda: None)() == Qt.Key.Key_Down:
-                visible = [item for item in self.operation_items() if not item.isHidden()]
-                if visible:
-                    self._list.setFocus()
-                    self._list.setCurrentItem(visible[0])
-                    return True
         return super().eventFilter(watched, event)
 
     def _hint_for(self, item: QListWidgetItem | None) -> None:

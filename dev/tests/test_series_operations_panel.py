@@ -51,20 +51,6 @@ def test_a_click_opens_and_return_opens_the_current_row(panel: SeriesOperationWi
     assert opened == ["Fit", "Plot"]
 
 
-def test_search_filters_rows_hides_empty_titles_and_return_opens_the_first(panel: SeriesOperationWidget) -> None:
-    opened = _opened(panel)
-    panel._search.setText("spectral")
-    shown = [str(item.data(Qt.ItemDataRole.UserRole)["value"]) for item in panel.operation_items() if not item.isHidden()]
-    assert shown == ["Spectral Analysis"]
-    visible_titles = [panel._list.item(row).text() for row in range(panel._list.count())
-                      if panel._list.item(row).data(Qt.ItemDataRole.UserRole) is None and not panel._list.item(row).isHidden()]  # pyright: ignore[reportOptionalMemberAccess]
-    assert len(visible_titles) == 1
-    QTest.keyClick(panel._search, Qt.Key.Key_Return)
-    assert opened == ["Spectral Analysis"]
-    panel._search.clear()
-    assert not any(item.isHidden() for item in panel.operation_items())
-
-
 def test_the_hint_bar_describes_the_current_row(panel: SeriesOperationWidget) -> None:
     fit = next(item for item in panel.operation_items() if item.data(Qt.ItemDataRole.UserRole)["value"] == "Fit")
     panel._list.setCurrentItem(fit)
