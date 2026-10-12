@@ -29,6 +29,7 @@ from scipy.ndimage import gaussian_filter, gaussian_filter1d, median_filter
 from scipy.signal import butter, medfilt, savgol_filter, sosfiltfilt, wiener
 
 from app.analysis import odd_window
+from app.utils.jit import njit
 
 try:
     from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess
@@ -247,32 +248,33 @@ def _kalman_smoother_1d(
     r_value = max(float(measurement_variance), 1e-12)
     p0_value = max(float(initial_covariance), 1e-12)
 
-    filtered = np.empty_like(values, dtype=float)
-    predicted = np.empty_like(values, dtype=float)
-    filter_cov = np.empty_like(values, dtype=float)
-    predict_cov = np.empty_like(values, dtype=float)
+    return _kalman_rts_kernel(values, q_value, r_value, p0_value)
 
-    state = float(values[0])
+
+@njit
+def _kalman_rts_kernel(values: np.ndarray, q_value: float, r_value: float, p0_value: float) -> np.ndarray:
+    """The forward Kalman pass and the backward RTS pass: scalar loops, compiled by Numba when it is installed."""
+    n = values.size
+    filtered = np.empty(n)
+    predicted = np.empty(n)
+    filter_cov = np.empty(n)
+    predict_cov = np.empty(n)
+
+    state = values[0]
     covariance = p0_value
-
-    for index, observation in enumerate(values):
+    for index in range(n):
         predicted[index] = state
         predict_cov[index] = covariance + q_value
-
         gain = predict_cov[index] / (predict_cov[index] + r_value)
-        state = predicted[index] + gain * (float(observation) - predicted[index])
+        state = predicted[index] + gain * (values[index] - predicted[index])
         covariance = (1.0 - gain) * predict_cov[index]
-
         filtered[index] = state
         filter_cov[index] = covariance
 
     smoothed = filtered.copy()
-    for index in range(values.size - 2, -1, -1):
+    for index in range(n - 2, -1, -1):
         gain = filter_cov[index] / max(predict_cov[index + 1], 1e-12)
-        smoothed[index] = filtered[index] + gain * (
-            smoothed[index + 1] - predicted[index + 1]
-        )
-
+        smoothed[index] = filtered[index] + gain * (smoothed[index + 1] - predicted[index + 1])
     return smoothed
 
 

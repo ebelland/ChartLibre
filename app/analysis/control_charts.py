@@ -14,6 +14,8 @@ from typing import Any
 
 import numpy as np
 
+from app.utils.jit import njit
+
 # Variables charts - a measurement per point.
 CHART_INDIVIDUALS = "Individuals (I-MR)"
 CHART_MOVING_RANGE = "Moving range (MR)"
@@ -387,7 +389,6 @@ def find_violations(
     is carried as an array rather than a scalar.
     """
     found: list[Violation] = []
-    size = values.size
 
     def flag(index: int, rule: int, description: str) -> None:
         found.append(
@@ -407,65 +408,100 @@ def find_violations(
     if not use_nelson or not sigma.size or float(np.max(sigma)) <= 0.0:
         return deduplicate(found)
 
-    above = values > center
-    below = values < center
-
-    # Rule 2: nine in a row on one side of the centre - a shift.
-    for start in range(size - 8):
-        window = slice(start, start + 9)
-        if above[window].all() or below[window].all():
-            flag(start + 8, 2, "nine in a row on one side of the centre")
-
-    # Rule 3: six in a row steadily increasing or decreasing - a trend.
-    differences = np.diff(values)
-    for start in range(size - 5):
-        window = differences[start : start + 5]
-        if window.size == 5 and ((window > 0).all() or (window < 0).all()):
-            flag(start + 5, 3, "six in a row trending in one direction")
-
-    # Rule 4: fourteen alternating up and down - overcontrol.
-    if size >= 14:
-        signs = np.sign(differences)
-        for start in range(size - 13):
-            window = signs[start : start + 13]
-            if window.size == 13 and np.all(window[:-1] * window[1:] < 0):
-                flag(start + 13, 4, "fourteen alternating up and down")
-
-    # Rules 5-8 need equal-width zones; see the docstring.
-    if float(np.ptp(sigma)) > 0.0:
-        return deduplicate(found)
-    constant_sigma = float(sigma[0])
-
-    # Rule 5: two of three beyond two sigma, same side.
-    two_sigma_up = center + 2.0 * constant_sigma
-    two_sigma_down = center - 2.0 * constant_sigma
-    for start in range(size - 2):
-        window = values[start : start + 3]
-        if (window > two_sigma_up).sum() >= 2 or (window < two_sigma_down).sum() >= 2:
-            flag(start + 2, 5, "two of three beyond two sigma on one side")
-
-    # Rule 6: four of five beyond one sigma, same side.
-    one_sigma_up = center + constant_sigma
-    one_sigma_down = center - constant_sigma
-    for start in range(size - 4):
-        window = values[start : start + 5]
-        if (window > one_sigma_up).sum() >= 4 or (window < one_sigma_down).sum() >= 4:
-            flag(start + 4, 6, "four of five beyond one sigma on one side")
-
-    # Rule 7: fifteen in a row within one sigma - too good, which usually
-    # means the limits are wrong or the data has been smoothed.
-    within = (values < one_sigma_up) & (values > one_sigma_down)
-    for start in range(size - 14):
-        if within[start : start + 15].all():
-            flag(start + 14, 7, "fifteen in a row hugging the centre line")
-
-    # Rule 8: eight in a row all beyond one sigma, either side.
-    outside = ~within
-    for start in range(size - 7):
-        if outside[start : start + 8].all():
-            flag(start + 7, 8, "eight in a row beyond one sigma, both sides")
-
+    # Rules 2-8, one pass that counts runs: a bit per rule on each point
+    # (compiled by Numba when it is installed). Rules 5-8 need equal-width
+    # zones, so only when sigma is constant; see the docstring.
+    zones = float(np.ptp(sigma)) == 0.0
+    mask = _run_rule_mask(np.asarray(values, dtype=np.float64), float(center),
+                          float(sigma[0]) if zones else 0.0, zones)
+    for rule, description in RUN_RULES.items():
+        for index in np.flatnonzero(mask & (1 << rule)):
+            flag(int(index), rule, description)
     return deduplicate(found)
+
+
+#: The Nelson run rules (2-8) and how a flag on each reads.
+RUN_RULES: dict[int, str] = {
+    2: "nine in a row on one side of the centre",
+    3: "six in a row trending in one direction",
+    4: "fourteen alternating up and down",
+    5: "two of three beyond two sigma on one side",
+    6: "four of five beyond one sigma on one side",
+    7: "fifteen in a row hugging the centre line",
+    8: "eight in a row beyond one sigma, both sides",
+}
+
+
+@njit
+def _run_rule_mask(values: np.ndarray, center: float, sigma: float, zones: bool) -> np.ndarray:
+    """For each point, bit *r* set when it ends a run that breaks Nelson rule *r* (2-8).
+
+    Each rule is a count carried along the series - points in a row above
+    the centre, rising, alternating, within one sigma - rather than a window
+    re-examined at every start, so the pass is linear in the series' length.
+    """
+    n = values.size
+    mask = np.zeros(n, dtype=np.int64)
+    run_above = run_below = 0
+    run_up = run_down = 0
+    run_alternating = 0
+    run_within = run_outside = 0
+    previous_sign = 0.0
+    for i in range(n):
+        value = values[i]
+        # Rule 2: nine in a row on one side of the centre - a shift.
+        run_above = run_above + 1 if value > center else 0
+        run_below = run_below + 1 if value < center else 0
+        if run_above >= 9 or run_below >= 9:
+            mask[i] |= 1 << 2
+        if i >= 1:
+            step = value - values[i - 1]
+            # Rule 3: six in a row (five steps) rising or falling - a trend.
+            run_up = run_up + 1 if step > 0 else 0
+            run_down = run_down + 1 if step < 0 else 0
+            if run_up >= 5 or run_down >= 5:
+                mask[i] |= 1 << 3
+            # Rule 4: fourteen alternating up and down (thirteen steps) - overcontrol.
+            sign = 1.0 if step > 0 else (-1.0 if step < 0 else 0.0)
+            if i >= 2 and sign * previous_sign < 0:
+                run_alternating += 1
+            else:
+                run_alternating = 0
+            previous_sign = sign
+            if run_alternating >= 12:
+                mask[i] |= 1 << 4
+        if not zones:
+            continue
+        # Rule 5: two of three beyond two sigma, same side.
+        if i >= 2:
+            up = down = 0
+            for k in range(i - 2, i + 1):
+                if values[k] > center + 2.0 * sigma:
+                    up += 1
+                elif values[k] < center - 2.0 * sigma:
+                    down += 1
+            if up >= 2 or down >= 2:
+                mask[i] |= 1 << 5
+        # Rule 6: four of five beyond one sigma, same side.
+        if i >= 4:
+            up = down = 0
+            for k in range(i - 4, i + 1):
+                if values[k] > center + sigma:
+                    up += 1
+                elif values[k] < center - sigma:
+                    down += 1
+            if up >= 4 or down >= 4:
+                mask[i] |= 1 << 6
+        # Rule 7: fifteen in a row within one sigma - too good; rule 8: eight
+        # in a row beyond one sigma, either side.
+        within = center - sigma < value < center + sigma
+        run_within = run_within + 1 if within else 0
+        run_outside = run_outside + 1 if not within else 0
+        if run_within >= 15:
+            mask[i] |= 1 << 7
+        if run_outside >= 8:
+            mask[i] |= 1 << 8
+    return mask
 
 
 def deduplicate(found: Sequence[Violation]) -> list[Violation]:

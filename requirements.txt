@@ -19,6 +19,12 @@ pytest==9.1.1
 # and importing it on a released 3.14 kills the interpreter outright.
 pyobjc-framework-Cocoa>=12.2; sys_platform == "darwin"
 
+# Optional: compiles the numeric kernels marked with app.utils.jit.njit -
+# the Kalman smoother (about 95x) and the Nelson run rules of control
+# charts (about 200x). Without it they run as plain Python, the same
+# results; CHARTLIBRE_NO_NUMBA=1 turns it off. Pulls in llvmlite (~40 MB).
+numba==0.68.0
+
 # Optional: app/charts/text.py guards the import in a try/except and falls
 # back to plain, non-adjusted labels when this is absent, so the Text
 # renderer works either way - installed, it spreads overlapping labels apart
