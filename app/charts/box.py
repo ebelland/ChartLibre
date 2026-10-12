@@ -16,6 +16,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from app.charts import kwarg_spec
+from app.charts.kwarg_spec import DEFAULT
 from app.charts.base import BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
@@ -467,6 +468,9 @@ class BoxAxisRenderer(BaseAxisRenderer):
                 linewidth=linewidth_value,
                 zorder=zorder_value,
                 flier_marker=base_kwargs.get("sym"),
+                linestyle=style.get("linestyle"),
+                marker=style.get("marker"),
+                markersize=style.get("markersize"),
             )
 
             if bool(base_kwargs.get("show_stats", False)):
@@ -535,6 +539,9 @@ class BoxAxisRenderer(BaseAxisRenderer):
         linewidth: Any,
         zorder: Any,
         flier_marker: Any,
+        linestyle: Any = None,
+        marker: Any = None,
+        markersize: Any = None,
     ) -> None:
         """Apply per-box style overrides to the artists returned by ax.bxp.
 
@@ -554,6 +561,27 @@ class BoxAxisRenderer(BaseAxisRenderer):
         if isinstance(flier_marker, str) and flier_marker.strip():
             for flier in box_result.get("fliers", []):
                 flier.set_marker(flier_marker.strip())
+
+        # The series' own Line style draws the box's lines - its outline,
+        # whiskers, caps and median - and its Marker style the outliers.
+        # "Default" (or none chosen) leaves the style sheet's.
+        if _chosen(linestyle) and str(linestyle).lower() not in ("none", ""):
+            for key in ("whiskers", "caps", "medians"):
+                for line in box_result.get(key, []):
+                    line.set_linestyle(linestyle)
+            for patch in box_result.get("boxes", []):
+                patch.set_linestyle(linestyle)
+        if _chosen(marker) and str(marker).strip():
+            for flier in box_result.get("fliers", []):
+                flier.set_marker(str(marker).strip())
+        if markersize not in (None, "", DEFAULT):
+            try:
+                size = float(markersize)
+            except (TypeError, ValueError):
+                size = None
+            if size:
+                for flier in box_result.get("fliers", []):
+                    flier.set_markersize(size)
 
         # zorder/linewidth apply uniformly across every artist in the box
         # (box, whiskers, caps, median, fliers) so the whole box moves or
@@ -793,3 +821,8 @@ def _style_bool(kwargs: dict, key: str, rcparam: str) -> bool:
     if value is None:
         return bool(mpl.rcParams[rcparam])
     return bool(value)
+
+
+def _chosen(value: Any) -> bool:
+    """A style value the person picked: set, and not the "Default" entry."""
+    return value is not None and value != DEFAULT

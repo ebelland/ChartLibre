@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 88,347 lines in 206 files; tests 15,412 lines in 112 files (updated at each commit).
+Size: app 88,380 lines in 206 files; tests 15,442 lines in 113 files (updated at each commit).
 
 DONE RECENTLY
+- UI-03: Box plot: the series' Line style draws the box lines, its Marker style the outliers
 - UI-09: Data operations panel: its own search removed - Guided analysis search and Ctrl/Cmd+K find every function
 - UI-08: Settings > Default chart style: the .mplstyle a figure without its own style uses
 - UI-02: Axis card: Major/Minor table (grid, ticks, length, rotation - minor apart, also drawn for Y/Z), Base box is the linear zone for symlog, Share/Invert, Hide spines
@@ -47,8 +48,6 @@ R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 W-04  M  Window resize redraws the chart at every step: draw on pause.
 
 UI FIXES (from the notes list; one commit per group, mostly S)
-UI-03 S  Series: Line style also applies to the box line; Marker style also
-         applies to outliers.
 UI-04 S  Figure: apply the style to the whole project.
 UI-05 S  Fit Mode and Series fit dialogs: too tall, ugly look.
 UI-07 S  Windows: spin-box chevrons; Undo button.
