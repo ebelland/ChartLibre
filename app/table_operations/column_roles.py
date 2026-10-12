@@ -255,6 +255,11 @@ class ColumnRolesWidget(QWidget):
         for page_layout in self._tab_layouts.values():
             if not any(page_layout.stretch(i) for i in range(page_layout.count())):
                 page_layout.addStretch(1)
+        # One page only (the roles): no tab bar to name it, and no more width
+        # than the roles need - the results beside take the rest.
+        self.tabs.setTabBarAutoHide(True)
+        if self.tabs.count() == 1:
+            self.tabs.setMaximumWidth(320)
 
     # -- Content ---------------------------------------------------------
 

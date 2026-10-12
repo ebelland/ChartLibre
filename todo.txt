@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 88,431 lines in 206 files; tests 15,465 lines in 114 files (updated at each commit).
+Size: app 88,436 lines in 206 files; tests 15,465 lines in 114 files (updated at each commit).
 
 DONE RECENTLY
 - UI-05: Series Fit: output table, bands and extra charts in an Output tab (min height 751 -> 566); parameter table without horizontal scroll, headers translated
