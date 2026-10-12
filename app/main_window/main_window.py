@@ -24,6 +24,8 @@ from PySide6.QtGui import (
     QDesktopServices,
     QIcon,
     QKeySequence,
+    QPainter,
+    QPalette,
     QShortcut,
 )
 from app import APP_ICON, APP_NAME
@@ -82,6 +84,7 @@ from app.utils import column_summary
 from app.logs.logger import applogger
 from app.utils.i18n import _
 from PySide6.QtWidgets import (
+    QApplication,
     QBoxLayout,
     QLabel,
     QInputDialog,
@@ -661,6 +664,22 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         icon, _text, _tooltip = action_presentation(action_id)
         return icon
 
+    @staticmethod
+    def _accent_icon(icon: QIcon) -> QIcon:
+        """*icon* drawn in the accent colour, at the sizes the rail uses."""
+        accent = QApplication.palette().color(QPalette.ColorRole.Highlight)
+        tinted = QIcon()
+        for size in (16, 20, 24, 32, 48):
+            pixmap = icon.pixmap(size, size)
+            if pixmap.isNull():
+                continue
+            painter = QPainter(pixmap)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+            painter.fillRect(pixmap.rect(), accent)
+            painter.end()
+            tinted.addPixmap(pixmap)
+        return tinted if not tinted.isNull() else icon
+
     def _create_navigation(self) -> NavigationBar:
         """Create the bar and panel host from one section dictionary."""
         file_panel = self._create_file_page()
@@ -700,13 +719,15 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                     _("Data operations"), self._navigation_icon("nav_series_operations"),
                     series_operations_panel, _("Transform or analyse a chart's series or a table's columns"),
                 ),
-                "guided": NavBarItem(
-                    _("Guided analysis"), self._navigation_icon("nav_guided"),
-                    guided_panel, _("Find the function for what you want to find out"),
-                ),
                 "analysis": NavBarItem(
                     _("Analysis"), self._navigation_icon("nav_analysis"),
                     analysis_panel, _("Models of a table's columns"),
+                ),
+                # After Analysis, in the accent colour: the way in for someone
+                # who does not know which analysis to choose.
+                "guided": NavBarItem(
+                    _("Guided analysis"), self._accent_icon(self._navigation_icon("nav_guided")),
+                    guided_panel, _("Find the function for what you want to find out"),
                 ),
                 "developer": NavBarItem(
                     _("Developer"), self._navigation_icon("nav_developer"), developer_panel,

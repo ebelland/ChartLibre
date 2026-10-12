@@ -24,7 +24,10 @@ class AnalysisPanel(NavPanel):
 
     def __init__(self, parent: QWidget | None = None, operations: list[dict] | None = None) -> None:
         super().__init__(parent)
-        entries = list(table_operations if operations is None else operations)
+        # The quick answers live in the Guided analysis panel, for those who
+        # do not know which analysis to run; here only the analyses.
+        entries = [entry for entry in (table_operations if operations is None else operations)
+                   if entry.get("category") != "Quick answers"]
         categories: dict[str, list[dict]] = {}
         for entry in entries:
             categories.setdefault(str(entry.get("category") or "Other"), []).append(entry)
