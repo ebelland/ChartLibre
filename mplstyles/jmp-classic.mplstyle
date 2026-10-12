@@ -1,9 +1,10 @@
 # ============================================================
 # JMP Classic
-# JMP's default preferences (Preferences > Styles): a grey frame
-# on all four sides, ticks outside, no grid lines (light grey when
-# turned on), white plot, black points, red fit lines, grey-green
-# histogram bars with no outline.
+# JMP's default preferences (Styles, Graphs, Fonts): a grey frame on
+# all four sides, ticks outside, no grid lines (light grey when turned
+# on), white plot, large solid black points, red fit lines 2 px wide,
+# box plots 1 px, grey-green histogram bars with no outline, Helvetica
+# Neue (axis 11 pt, legend 13, graph title 16 bold), JMP's colour themes.
 # ============================================================
 
 # ------------------------------------------------------------
@@ -20,22 +21,26 @@ savefig.pad_inches: 0.05
 savefig.transparent: False
 
 # ------------------------------------------------------------
-# Fonts - JMP's sans-serif, small axis text
+# Fonts - Preferences > Fonts: Helvetica Neue; Axis and Axis title
+# 11 pt, Legend 13, Graph title 16 bold, Title 18 bold
 # ------------------------------------------------------------
 
 font.family: sans-serif
-font.sans-serif: Segoe UI, Helvetica Neue, Arial, Helvetica, DejaVu Sans
-font.size: 9
+font.sans-serif: Helvetica Neue, Helvetica, Segoe UI, Arial, DejaVu Sans
+font.monospace: Menlo, DejaVu Sans Mono
+font.size: 11
 
-axes.titlesize: 10
+axes.titlesize: 16
 axes.titleweight: bold
-axes.labelsize: 9
+axes.labelsize: 11
 axes.labelcolor: 000000
-xtick.labelsize: 8
-ytick.labelsize: 8
+xtick.labelsize: 11
+ytick.labelsize: 11
 xtick.labelcolor: 000000
 ytick.labelcolor: 000000
-legend.fontsize: 8
+legend.fontsize: 13
+figure.titlesize: 18
+figure.titleweight: bold
 
 mathtext.fontset: dejavusans
 
@@ -52,8 +57,9 @@ axes.axisbelow: True
 axes.xmargin: 0.04
 axes.ymargin: 0.04
 
-# First series black, as JMP draws points; red second, as its fit lines.
-axes.prop_cycle: cycler('color', ['000000', 'C8484E', '2F6EBA', '4E9A47', 'E38D2C', '8064A2', '4BACC6', '808080'])
+# First series black, as JMP draws points; red second, as its fit lines;
+# then JMP's Categorical colour theme.
+axes.prop_cycle: cycler('color', ['000000', 'D9464E', '45A944', '3F6BD6', 'E07B2C', '1FAE9A', 'A13AD8', 'C4B42A', '25A7B3', 'D23AAF', '7FAF2F', '2E9FD0'])
 
 # ------------------------------------------------------------
 # Grid lines - off by default; major light grey, minor lighter
@@ -85,11 +91,12 @@ xtick.color: 8C8C8C
 ytick.color: 8C8C8C
 
 # ------------------------------------------------------------
-# Points and lines - solid black dots; fit lines in red
+# Points and lines - Graphs > Line width 2 px (1.5 pt); Markers: large
+# solid dots, black; fit lines in red
 # ------------------------------------------------------------
 
-lines.linewidth: 1.4
-lines.markersize: 4
+lines.linewidth: 1.5
+lines.markersize: 5
 lines.markeredgewidth: 0
 scatter.marker: o
 scatter.edgecolors: face
@@ -106,34 +113,34 @@ patch.linewidth: 0.6
 hist.bins: auto
 
 # ------------------------------------------------------------
-# Box plots - outlines only, black, as JMP's outlier box plot
+# Box plots - outlines only, black, 1 px (Graphs > Box plot line width)
 # ------------------------------------------------------------
 
 boxplot.patchartist: False
 boxplot.showmeans: False
 boxplot.showfliers: True
 boxplot.boxprops.color: 000000
-boxplot.boxprops.linewidth: 0.9
+boxplot.boxprops.linewidth: 0.75
 boxplot.whiskerprops.color: 000000
-boxplot.whiskerprops.linewidth: 0.9
+boxplot.whiskerprops.linewidth: 0.75
 boxplot.capprops.color: 000000
-boxplot.capprops.linewidth: 0.9
+boxplot.capprops.linewidth: 0.75
 boxplot.medianprops.color: 000000
-boxplot.medianprops.linewidth: 1.2
+boxplot.medianprops.linewidth: 1.0
 boxplot.flierprops.marker: o
 boxplot.flierprops.markerfacecolor: 000000
 boxplot.flierprops.markeredgecolor: 000000
 boxplot.flierprops.markersize: 3
 
 # ------------------------------------------------------------
-# Error bars, legend, images
+# Error bars, legend; images in JMP's Continuous theme (blue - grey - red)
 # ------------------------------------------------------------
 
 errorbar.capsize: 3
 legend.frameon: False
 legend.handlelength: 1.5
 legend.handletextpad: 0.4
-image.cmap: Greys
+image.cmap: coolwarm
 
 # ------------------------------------------------------------
 # Vector export: text stays text
