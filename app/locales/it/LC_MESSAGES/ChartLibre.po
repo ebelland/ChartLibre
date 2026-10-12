@@ -8556,3 +8556,12 @@ msgstr "Zona lineare"
 
 msgid "The base of a log scale."
 msgstr "La base di una scala logaritmica."
+
+msgid "Matplotlib default"
+msgstr "Predefinito di Matplotlib"
+
+msgid "The chart style of every figure that has none of its own."
+msgstr "Lo stile dei grafici per ogni figura che non ne ha uno proprio."
+
+msgid "Default chart style"
+msgstr "Stile grafici predefinito"

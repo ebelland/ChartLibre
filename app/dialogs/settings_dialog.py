@@ -57,7 +57,8 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
-from app.utils.config import get_language, get_value, set_value
+from app.charts.render_figure import DEFAULT_MPL_STYLE_KEY
+from app.utils.config import MPLSTYLES_DIR, get_language, get_value, set_value
 from app.utils.machine_translation import DEEPL_KEY_SETTING
 from app.utils.i18n import (
     AUTO_LANGUAGE,
@@ -202,6 +203,15 @@ class SettingsDialog(QDialog):
             normalized_save_format(get_value(CONFIG_SAVE_FORMAT)),
         )
         form.addRow(tr("Default export format"), self._format_combo)
+
+        styles = sorted(path.stem for path in MPLSTYLES_DIR.glob("*.mplstyle")) if MPLSTYLES_DIR.exists() else []
+        self._mpl_style_combo = self._combo(
+            card,
+            [("", tr("Matplotlib default"))] + [(name, name) for name in styles],
+            str(get_value(DEFAULT_MPL_STYLE_KEY) or ""),
+        )
+        self._mpl_style_combo.setToolTip(tr("The chart style of every figure that has none of its own."))
+        form.addRow(tr("Default chart style"), self._mpl_style_combo)
 
         form.addRow(create_section_title(tr("Safety"), card))
         # Red: switching it off lets typed SQL change the database.
@@ -377,6 +387,7 @@ class SettingsDialog(QDialog):
         set_value(CONFIG_APP_STYLE, style_key)
         set_value("language", self._value(self._language_combo))
         set_value(CONFIG_SAVE_FORMAT, self._value(self._format_combo))
+        set_value(DEFAULT_MPL_STYLE_KEY, self._value(self._mpl_style_combo))
         set_value(SQL_GUARD_KEY, bool(self._sql_guard_check.isChecked()))
         set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
 

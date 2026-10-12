@@ -34,7 +34,7 @@ from app.data.descriptors import AxisDescriptor, FigureDescriptor, SeriesDescrip
 from app.data.series_frame import SeriesFrame
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.utils.config import get_constant
+from app.utils.config import MPLSTYLES_DIR, get_constant, get_value
 from app.utils.mpl_latex import filter_latex_style_text
 from app.utils.coercion import to_numbers
 
@@ -45,6 +45,10 @@ LayoutMode = Literal["constrained", "compressed", "tight", "none"]
 # ----------------------------------------------------------------------
 # Context helpers
 # ----------------------------------------------------------------------
+#: Settings key: the .mplstyle (name, no extension) a figure without its own style uses.
+DEFAULT_MPL_STYLE_KEY = "default_mpl_style"
+
+
 @contextmanager
 def _figure_style_context(
     fig_desc: FigureDescriptor,
@@ -56,6 +60,9 @@ def _figure_style_context(
     """
     options = fig_desc.options if isinstance(fig_desc.options, dict) else {}
     style_text = options.get("mpl_style")
+    if not isinstance(style_text, str) or not style_text.strip():
+        # A figure with no style of its own takes the one chosen in Settings.
+        style_text = default_style_text()
 
     if not isinstance(style_text, str) or not style_text.strip():
         yield
@@ -79,6 +86,19 @@ def _figure_style_context(
     finally:
         if temp_path is not None:
             temp_path.unlink(missing_ok=True)
+
+
+def default_style_text() -> str:
+    """The .mplstyle chosen in Settings as every new figure's default; empty for Matplotlib's."""
+    name = str(get_value(DEFAULT_MPL_STYLE_KEY) or "").strip()
+    if not name:
+        return ""
+    path = MPLSTYLES_DIR / f"{name}.mplstyle"
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        applogger.warning("Default style %s not found in %s", name, MPLSTYLES_DIR)
+        return ""
 
 
 # ----------------------------------------------------------------------
