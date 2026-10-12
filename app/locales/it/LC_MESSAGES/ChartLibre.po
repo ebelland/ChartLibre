@@ -4624,7 +4624,7 @@ msgid "Component"
 msgstr "Componente"
 
 msgid "Share"
-msgstr "Quota"
+msgstr "Condividi"
 
 msgid "{count} point(s) embedded from {series} series into 2 dimensions."
 msgstr "{count} punto/i incorporato/i da {series} serie in 2 dimensioni."
@@ -8532,3 +8532,27 @@ msgstr "Anteprima aggiornata: {applied} applicati, {invalid} non validi (ultimo:
 
 msgid "Preview updated: {count} changed parameters"
 msgstr "Anteprima aggiornata: {count} parametri modificati"
+
+msgid "Variance share"
+msgstr "Quota di varianza"
+
+msgid "X and Y"
+msgstr "X e Y"
+
+msgid "X, Y and Z"
+msgstr "X, Y e Z"
+
+msgid "The coordinates the card edits; several are set together."
+msgstr "Le coordinate che la scheda modifica; più di una si impostano insieme."
+
+msgid "Invert"
+msgstr "Inverti"
+
+msgid "Length"
+msgstr "Lunghezza"
+
+msgid "Linear zone"
+msgstr "Zona lineare"
+
+msgid "The base of a log scale."
+msgstr "La base di una scala logaritmica."

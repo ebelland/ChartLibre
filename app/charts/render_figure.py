@@ -1116,25 +1116,44 @@ def _apply_ticks(ax: Any, options: dict[str, Any]) -> None:
             if setting != axis_options.ON:
                 _tick_params(ax, axis=axis, which=which, direction=setting)
 
-    length = options.get("tick_length")
-    if length is not None:
-        try:
-            _tick_params(ax, axis="both", which="both", length=float(length))
-        except (TypeError, ValueError):
-            applogger.warning("Invalid tick length: %r", length)
+    _apply_tick_sizes(ax, options)
 
-    rotation = options.get("x_tick_rotation")
-    if rotation is not None:
-        try:
-            rotation_value = float(rotation)
-        except (TypeError, ValueError):
-            applogger.warning("Invalid x tick rotation: %r", rotation)
-        else:
-            for label in ax.get_xticklabels():
-                label.set_rotation(rotation_value)
-                # Rotated labels overlap the axis unless they are anchored at
-                # the end that stays next to the tick.
-                if rotation_value:
+
+def _apply_tick_sizes(ax: Any, options: dict[str, Any]) -> None:
+    """Each coordinate's tick length and label rotation, major and minor apart.
+
+    Keys: ``{axis}_tick_length`` / ``{axis}_tick_rotation`` for the major
+    ticks, ``{axis}_minor_tick_length`` / ``{axis}_minor_tick_rotation`` for
+    the minor ones. A figure saved before them has one ``tick_length`` for
+    every tick and ``x_tick_rotation`` for the x labels; those still apply.
+    """
+    legacy_length = options.get("tick_length")
+    for axis in axis_options.AXES:
+        if axis == "z" and not hasattr(ax, "zaxis"):
+            continue
+        for which, prefix in (("major", f"{axis}_"), ("minor", f"{axis}_minor_")):
+            length = options.get(f"{prefix}tick_length")
+            if length is None and which == "major":
+                length = legacy_length
+            if length is not None:
+                try:
+                    _tick_params(ax, axis=axis, which=which, length=float(length))
+                except (TypeError, ValueError):
+                    applogger.warning("Invalid %s %s tick length: %r", axis, which, length)
+            rotation = options.get(f"{prefix}tick_rotation")
+            if rotation in (None, 0, 0.0):
+                continue
+            try:
+                angle = float(rotation)
+            except (TypeError, ValueError):
+                applogger.warning("Invalid %s %s tick rotation: %r", axis, which, rotation)
+                continue
+            labels = getattr(ax, f"get_{axis}ticklabels")(minor=which == "minor")
+            for label in labels:
+                label.set_rotation(angle)
+                # Rotated x labels overlap the axis unless they are anchored
+                # at the end that stays next to the tick.
+                if axis == "x":
                     label.set_horizontalalignment("right")
 
 

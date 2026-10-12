@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 88,301 lines in 206 files; tests 15,384 lines in 111 files (updated at each commit).
+Size: app 88,364 lines in 206 files; tests 15,411 lines in 111 files (updated at each commit).
 
 DONE RECENTLY
+- UI-02: Axis card: Major/Minor table (grid, ticks, length, rotation - minor apart, also drawn for Y/Z), Base box is the linear zone for symlog, Share/Invert, Hide spines
 - UI-01: Guided analysis after Analysis on the rail, accent-coloured icon; the quick answer only there
 - UI-06: MPL style editor: system rcParams (keymap, backend...) filtered again; header reaches the edge; texts translated
 - Partition (AN-01): tree, partition graph, box plots by leaf;
@@ -44,14 +45,6 @@ R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 W-04  M  Window resize redraws the chart at every step: draw on pause.
 
 UI FIXES (from the notes list; one commit per group, mostly S)
-UI-02 M  Axis properties:
-         - Min -> Minor, Maj -> Major
-         - x, y, z checkboxes -> option box
-         - Kwargs frame too short (200)
-         - Base: use it for Symlog too
-         - "Share coo..." -> "Share"; "Invert axis" -> "Invert"
-         - Spines -> "Hide spines"
-         - separate tick length / rotation for minor and major ticks
 UI-03 S  Series: Line style also applies to the box line; Marker style also
          applies to outliers.
 UI-04 S  Figure: apply the style to the whole project.

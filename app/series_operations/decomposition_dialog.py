@@ -444,7 +444,7 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
                 report_html.section(
                     _("Explained variance"),
                     report_html.table(
-                        (_("Component"), _("Share")),
+                        (_("Component"), _("Variance share")),
                         rows,
                         align=("left", "right"),
                     ),

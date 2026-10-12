@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QSizePolicy,
     QSpinBox,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -221,7 +222,7 @@ class AxisPropertiesWidget(BaseProperties):
             check.setToolTip(names[name])
             spine_layout.addWidget(check)
         spine_layout.addStretch(1)
-        grid.addWidget(QLabel(_("Spines"), section.card), 3, 0)
+        grid.addWidget(QLabel(_("Hide spines"), section.card), 3, 0)
         grid.addWidget(spine_row, 3, 1, 1, 3)
         raw_layout.addLayout(grid)
         return section
@@ -232,7 +233,8 @@ class AxisPropertiesWidget(BaseProperties):
     #: A coordinate's settings as the card shows them; min/max None is Auto.
     _COORDINATE_DEFAULTS: dict[str, Any] = {
         "label": "", "share": False, "scale": "linear", "base": 10.0, "invert": False,
-        "tick_length": 0.0, "tick_rotation": 0.0, "min": None, "max": None,
+        "tick_length": 0.0, "tick_rotation": 0.0, "tick_length_minor": 0.0, "tick_rotation_minor": 0.0,
+        "min": None, "max": None,
         **{f"{kind}_{which}": axis_options.AUTO for kind in ("grid", "ticks") for which in axis_options.WHICH},
     }
 
@@ -250,7 +252,7 @@ class AxisPropertiesWidget(BaseProperties):
             check.toggled.connect(lambda checked, a=axis: self._on_target_toggled(a, checked))
             self._target_checks[axis] = check
         self._coordinate_label = QLineEdit(self)
-        self._share_check = QCheckBox(_("Share coordinate"), self)
+        self._share_check = QCheckBox(_("Share"), self)
         self._share_check.setToolTip(_("Share this coordinate's range with the other axes that share it."))
         self._scale_combo = QComboBox(self)
         for value in AXIS_SCALES:
@@ -258,12 +260,16 @@ class AxisPropertiesWidget(BaseProperties):
         self._scale_combo.currentIndexChanged.connect(self._update_scale_control_state)
         self._scale_base_spin = QDoubleSpinBox(self)
         self._scale_base_spin.setRange(1.1, 1000.0); self._scale_base_spin.setDecimals(2); self._scale_base_spin.setValue(10.0)
-        self._invert_check = QCheckBox(_("Invert axis"), self)
+        self._invert_check = QCheckBox(_("Invert"), self)
         self._invert_check.setToolTip(_("Invert direction"))
         self._tick_length_spin = QDoubleSpinBox(self)
         self._tick_length_spin.setRange(0.0, 50.0); self._tick_length_spin.setDecimals(1); self._tick_length_spin.setSingleStep(0.5)
         self._tick_rotation_spin = QDoubleSpinBox(self)
         self._tick_rotation_spin.setRange(-180.0, 180.0); self._tick_rotation_spin.setDecimals(0); self._tick_rotation_spin.setSingleStep(15.0)
+        self._minor_tick_length_spin = QDoubleSpinBox(self)
+        self._minor_tick_length_spin.setRange(0.0, 50.0); self._minor_tick_length_spin.setDecimals(1); self._minor_tick_length_spin.setSingleStep(0.5)
+        self._minor_tick_rotation_spin = QDoubleSpinBox(self)
+        self._minor_tick_rotation_spin.setRange(-180.0, 180.0); self._minor_tick_rotation_spin.setDecimals(0); self._minor_tick_rotation_spin.setSingleStep(15.0)
         self._grid_combos: dict[str, QComboBox] = {}
         self._tick_combos: dict[str, QComboBox] = {}
         for which in axis_options.WHICH:
@@ -303,6 +309,8 @@ class AxisPropertiesWidget(BaseProperties):
             "invert": (self._invert_check.toggled,),
             "tick_length": (self._tick_length_spin.valueChanged,),
             "tick_rotation": (self._tick_rotation_spin.valueChanged,),
+            "tick_length_minor": (self._minor_tick_length_spin.valueChanged,),
+            "tick_rotation_minor": (self._minor_tick_rotation_spin.valueChanged,),
         }
         for edge in ("min", "max"):
             signals[edge] = (self._limit_spins[edge].valueChanged, self._limit_auto_checks[edge].toggled)
@@ -325,9 +333,7 @@ class AxisPropertiesWidget(BaseProperties):
             kind, which = field.split("_", 1)
             combo = (self._grid_combos if kind == "grid" else self._tick_combos)[which]
             return str(combo.currentData() or axis_options.AUTO)
-        spin = {"base": self._scale_base_spin, "tick_length": self._tick_length_spin,
-                "tick_rotation": self._tick_rotation_spin}[field]
-        return float(spin.value())
+        return float(self._value_spins()[field].value())
 
     def _write_field(self, field: str, value: Any) -> None:
         """Show *value* for *field* in the card."""
@@ -347,8 +353,13 @@ class AxisPropertiesWidget(BaseProperties):
             combo = (self._grid_combos if kind == "grid" else self._tick_combos)[which]
             self._select_combo_value(combo, value, axis_options.AUTO)
         else:
-            {"base": self._scale_base_spin, "tick_length": self._tick_length_spin,
-             "tick_rotation": self._tick_rotation_spin}[field].setValue(float(value))
+            self._value_spins()[field].setValue(float(value))
+
+    def _value_spins(self) -> dict[str, QDoubleSpinBox]:
+        """The settings shown in a plain number box."""
+        return {"base": self._scale_base_spin, "tick_length": self._tick_length_spin,
+                "tick_rotation": self._tick_rotation_spin, "tick_length_minor": self._minor_tick_length_spin,
+                "tick_rotation_minor": self._minor_tick_rotation_spin}
 
     def _targets(self) -> list[str]:
         """The coordinates the card edits: the ticked ones."""
@@ -422,36 +433,41 @@ class AxisPropertiesWidget(BaseProperties):
             # for all fifteen digits of its range and widen the whole panel.
             self._limit_spins[edge].setMinimumWidth(70)
         # Their ranges are huge; their values are short.
-        for spin in (self._linthresh_spin, self._scale_base_spin, self._tick_length_spin, self._tick_rotation_spin):
+        for spin in (self._linthresh_spin, self._scale_base_spin, *self._value_spins().values()):
             spin.setMinimumWidth(70)
             spin.setMaximumWidth(120)
 
         grid.addWidget(caption(_("Apply to")), 0, 0)
-        grid.addWidget(row(list(self._target_checks.values())), 0, 1, 1, 3)
+        grid.addWidget(row(list(self._target_checks.values())), 0, 1)
+        grid.addWidget(row([self._share_check, self._invert_check]), 0, 2, 1, 2)
         grid.addWidget(caption(_("Label")), 1, 0)
         grid.addWidget(self._coordinate_label, 1, 1, 1, 3)
         grid.addWidget(caption(_("Scale")), 2, 0)
         grid.addWidget(self._scale_combo, 2, 1)
-        grid.addWidget(caption(_("Base")), 2, 2)
-        grid.addWidget(self._scale_base_spin, 2, 3)
-        grid.addWidget(caption(_("Symlog"), _("The linear region around zero of a symlog scale.")), 3, 0)
-        grid.addWidget(self._linthresh_spin, 3, 1)
-        grid.addWidget(row([self._share_check, self._invert_check]), 3, 2, 1, 2)
-        grid.addWidget(caption(_("Min")), 4, 0)
-        grid.addWidget(row([self._limit_spins["min"], self._limit_auto_checks["min"]], fill=True), 4, 1)
-        grid.addWidget(caption(_("Max")), 4, 2)
-        grid.addWidget(row([self._limit_spins["max"], self._limit_auto_checks["max"]], fill=True), 4, 3)
-        grid.addWidget(caption(_("Tick len."), _("Tick length")), 5, 0)
-        grid.addWidget(self._tick_length_spin, 5, 1)
-        grid.addWidget(caption(_("Rot."), _("Tick label rotation")), 5, 2)
-        grid.addWidget(self._tick_rotation_spin, 5, 3)
-        # Grid and ticks: a small table, major and minor as its columns.
-        grid.addWidget(caption(_("Maj.")), 6, 1, Qt.AlignmentFlag.AlignHCenter)
-        grid.addWidget(caption(_("Min.")), 6, 2, 1, 2, Qt.AlignmentFlag.AlignHCenter)
-        for index, (text, combos) in enumerate(((_("Grid"), self._grid_combos), (_("Ticks"), self._tick_combos))):
-            grid.addWidget(caption(text), 7 + index, 0)
-            grid.addWidget(combos["major"], 7 + index, 1)
-            grid.addWidget(combos["minor"], 7 + index, 2, 1, 2)
+        # One box beside the scale: its base for log, its linear zone for symlog.
+        self._scale_parameter_caption = caption(_("Base"))
+        self._scale_parameter = QStackedWidget(card)
+        self._scale_parameter.addWidget(self._scale_base_spin)
+        self._scale_parameter.addWidget(self._linthresh_spin)
+        grid.addWidget(self._scale_parameter_caption, 2, 2)
+        grid.addWidget(self._scale_parameter, 2, 3)
+        grid.addWidget(caption(_("Min")), 3, 0)
+        grid.addWidget(row([self._limit_spins["min"], self._limit_auto_checks["min"]], fill=True), 3, 1)
+        grid.addWidget(caption(_("Max")), 3, 2)
+        grid.addWidget(row([self._limit_spins["max"], self._limit_auto_checks["max"]], fill=True), 3, 3)
+        # Grid, ticks, their length and their labels' rotation: major and minor as columns.
+        grid.addWidget(caption(_("Major")), 4, 1, Qt.AlignmentFlag.AlignHCenter)
+        grid.addWidget(caption(_("Minor")), 4, 2, 1, 2, Qt.AlignmentFlag.AlignHCenter)
+        rows = (
+            (_("Grid"), self._grid_combos["major"], self._grid_combos["minor"]),
+            (_("Ticks"), self._tick_combos["major"], self._tick_combos["minor"]),
+            (_("Length"), self._tick_length_spin, self._minor_tick_length_spin),
+            (_("Rotation"), self._tick_rotation_spin, self._minor_tick_rotation_spin),
+        )
+        for index, (text, major, minor) in enumerate(rows, start=5):
+            grid.addWidget(caption(text), index, 0)
+            grid.addWidget(major, index, 1)
+            grid.addWidget(minor, index, 2, 1, 2)
         raw_layout.addLayout(grid)
         return section
 
@@ -557,8 +573,14 @@ class AxisPropertiesWidget(BaseProperties):
     def _update_scale_control_state(self) -> None:
         """Enable only the scale parameters the scales actually use."""
         shown = str(self._scale_combo.currentData() or "linear")
-        self._scale_base_spin.setEnabled(shown in {"log", "symlog"})
-        self._linthresh_spin.setEnabled("symlog" in {shown, *self._selected_scales()})
+        symlog = shown == "symlog"
+        if hasattr(self, "_scale_parameter"):
+            self._scale_parameter.setCurrentWidget(self._linthresh_spin if symlog else self._scale_base_spin)
+            self._scale_parameter_caption.setText(_("Linear zone") if symlog else _("Base"))
+            self._scale_parameter_caption.setToolTip(
+                _("The linear region around zero of a symlog scale.") if symlog else _("The base of a log scale."))
+        self._scale_base_spin.setEnabled(shown == "log")
+        self._linthresh_spin.setEnabled(symlog)
 
     def _selected_scales(self) -> tuple[str, str, str]:
         """The x, y and z scales, defaulting to linear."""
@@ -578,6 +600,8 @@ class AxisPropertiesWidget(BaseProperties):
             self._invert_check,
             self._tick_length_spin,
             self._tick_rotation_spin,
+            self._minor_tick_length_spin,
+            self._minor_tick_rotation_spin,
             self._hide_spine_top_check,
             self._hide_spine_right_check,
             self._hide_spine_bottom_check,
@@ -626,6 +650,8 @@ class AxisPropertiesWidget(BaseProperties):
             values["invert"] = bool(options.get(f"invert_{axis}", False))
             values["tick_length"] = self._float_option(options, f"{axis}_tick_length", legacy_tick_length) or 0.0
             values["tick_rotation"] = self._float_option(options, f"{axis}_tick_rotation", 0.0) or 0.0
+            values["tick_length_minor"] = self._float_option(options, f"{axis}_minor_tick_length", 0.0) or 0.0
+            values["tick_rotation_minor"] = self._float_option(options, f"{axis}_minor_tick_rotation", 0.0) or 0.0
             # Through axis_options so a figure saved before these existed opens
             # with the settings it actually had, rather than with four Autos.
             for which in axis_options.WHICH:
@@ -678,6 +704,8 @@ class AxisPropertiesWidget(BaseProperties):
             payload[f"invert_{axis}"] = bool(values["invert"])
             payload[f"{axis}_tick_length"] = values["tick_length"] or None
             payload[f"{axis}_tick_rotation"] = float(values["tick_rotation"])
+            payload[f"{axis}_minor_tick_length"] = values["tick_length_minor"] or None
+            payload[f"{axis}_minor_tick_rotation"] = float(values["tick_rotation_minor"])
             for which in axis_options.WHICH:
                 payload[axis_options.grid_key(axis, which)] = values[f"grid_{which}"]
                 payload[axis_options.tick_key(axis, which)] = values[f"ticks_{which}"]

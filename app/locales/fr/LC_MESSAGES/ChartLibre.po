@@ -4621,7 +4621,7 @@ msgid "Component"
 msgstr "Composante"
 
 msgid "Share"
-msgstr "Part"
+msgstr "Partager"
 
 msgid "{count} point(s) embedded from {series} series into 2 dimensions."
 msgstr "{count} point(s) plongé(s) depuis {series} série(s) en 2 dimensions."
@@ -6843,3 +6843,6 @@ msgstr "La troisième ligne : ajoutée à chaque nouveau x, après la 2 x 2."
 
 msgid "The third row: added to every new y, after the 2 x 2."
 msgstr "La troisième ligne : ajoutée à chaque nouveau y, après la 2 x 2."
+
+msgid "Variance share"
+msgstr "Part de variance"
