@@ -8523,3 +8523,12 @@ msgstr "Autore, data e note, salvati nel file del progetto"
 
 msgid "Open one of the sample projects"
 msgstr "Apri uno dei progetti di esempio"
+
+msgid "Property"
+msgstr "Proprietà"
+
+msgid "Preview updated: {applied} applied, {invalid} invalid (last: {key} = {value})"
+msgstr "Anteprima aggiornata: {applied} applicati, {invalid} non validi (ultimo: {key} = {value})"
+
+msgid "Preview updated: {count} changed parameters"
+msgstr "Anteprima aggiornata: {count} parametri modificati"

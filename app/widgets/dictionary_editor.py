@@ -396,7 +396,7 @@ class DictEditorPanel(QWidget):
         apply_fusion_for_item_view_styling(self.tree)
         self.tree.setMinimumHeight(_DEFAULT_MIN_PANEL_HEIGHT - 32)
         self.tree.setColumnCount(2)
-        self.tree.setHeaderLabels(["Property", "Value"])
+        self.tree.setHeaderLabels([_("Property"), _("Value")])
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
         self.tree.setUniformRowHeights(False)
@@ -413,9 +413,10 @@ class DictEditorPanel(QWidget):
     def _configure_header(self) -> None:
         header = self.tree.header()
         header.setSectionsMovable(False)
-        header.setStretchLastSection(False)
+        # The value column takes the width left, so the header and the rows
+        # reach the scroll bar instead of stopping short of it.
+        header.setStretchLastSection(True)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
         header.setMinimumSectionSize(60)
         header.resizeSection(0, _DEFAULT_PROPERTY_COLUMN_WIDTH)
         header.resizeSection(1, _DEFAULT_VALUE_COLUMN_WIDTH)

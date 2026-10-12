@@ -246,12 +246,20 @@ _NON_STYLE_KEYS = frozenset({
 })
 
 
+#: rcParams groups that are the running program's, not a chart's style:
+#: backends, key bindings, GUI toolkits, internals. Left out of the picker.
+SYSTEM_RC_GROUPS: frozenset[str] = frozenset({
+    "_internal", "agg", "animation", "backend", "backend_fallback",
+    "docstring", "interactive", "keymap", "macosx", "tk", "toolbar", "webagg",
+})
+
+
 def style_rc_keys() -> list[str]:
-    """Return style-file rcParams, excluding runtime-only keys."""
+    """Return style-file rcParams: no runtime-only keys, no system groups."""
     return sorted(
         key for key in mpl.rcParamsDefault
         if key not in _NON_STYLE_KEYS
-        and not key.startswith("agg.")
+        and key.split(".")[0] not in SYSTEM_RC_GROUPS
         and "_internal" not in key.split(".")
     )
 
@@ -950,14 +958,12 @@ class MplStyleEditorDialog(SettingsTableDialog):
 
             if invalid:
                 last = invalid[-1]
-                self.status.setText(
-                    f"Preview updated. {len(style_dict)} applied; "
-                    f"{len(invalid)} invalid "
-                    f"(last: {last[0]} = {last[1]!r})")
+                self.status.setText(_("Preview updated: {applied} applied, {invalid} invalid "
+                                      "(last: {key} = {value})").format(
+                    applied=len(style_dict), invalid=len(invalid), key=last[0], value=repr(last[1])))
                 self.status.setToolTip(f"Last error for '{last[0]}':\n{last[2]}")
             else:
-                self.status.setText(
-                    f"Preview updated — overrides: {len(style_dict)}")
+                self.status.setText(_("Preview updated: {count} changed parameters").format(count=len(style_dict)))
                 self.status.setToolTip("")
         except Exception as ex:
             self.status.setText(_("Preview failed — see error dialog."))
