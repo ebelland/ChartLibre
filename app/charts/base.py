@@ -11,7 +11,9 @@ the columns it needs and the series SQL is responsible for aliasing to them.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import re
 from typing import Any, Protocol
+import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import colormaps, rcParams  # pyright: ignore[reportAttributeAccessIssue]
@@ -741,11 +743,22 @@ class BaseAxisRenderer(Protocol):
         colors = rcParams["axes.prop_cycle"].by_key().get("color", ["#1f77b4"])
         return list(colors)
 
+    #: Filled shapes (bars, histogram bins): the first series takes the style
+    #: sheet's fill colour, ``patch.facecolor``, when the sheet sets one - a
+    #: style can colour its bars apart from its points, JMP's grey-green bars
+    #: beside its black dots. Left at Matplotlib's "C0" it is the first cycle
+    #: colour anyway, so no other style changes.
+    FILLS_FROM_STYLE: bool = False
+
     def series_color(self, style: dict[str, Any], layer_index: int = 0) -> Any:
         """Return an explicit style color or the rcParams cycle color."""
         style_color = str(style.get("color", "") or "").strip()
         if style_color:
             return style_color
+        if self.FILLS_FROM_STYLE and layer_index == 0:
+            face = matplotlib.rcParams.get("patch.facecolor")
+            if isinstance(face, str) and not re.fullmatch(r"C\d+", face):
+                return face
         palette = self.palette_colors()
         return palette[int(layer_index) % len(palette)]
 

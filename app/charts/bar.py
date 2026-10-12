@@ -47,6 +47,8 @@ class BarAxisRenderer(BaseAxisRenderer):
     type/min/max/kind/group/description metadata for the generic kwargs editor.
     """
 
+    FILLS_FROM_STYLE = True
+
     Name: str = "Bar Chart"
     Category: str = "Pairwise data"
     Description: str = "Vertical bar chart"

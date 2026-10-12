@@ -35,6 +35,8 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
         z      required bar height - the value each (x, y) pair measures.
     """
 
+    FILLS_FROM_STYLE = True
+
     Name: str = "3D Bar Chart"
     Category: str = "3D and volumetric data"
     Description: str = (

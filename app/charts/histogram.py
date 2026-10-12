@@ -19,10 +19,8 @@ Data sets come from two places, and both can be mixed in one axis:
 """
 from __future__ import annotations
 
-import re
 from typing import Any
 
-import matplotlib
 import numpy as np
 
 from app.charts.base import BaseAxisRenderer, SeriesData
@@ -50,6 +48,8 @@ class HistogramAxisRenderer(BaseAxisRenderer):
     Honors per-series style fields:
         label, visible, show_in_legend, color, alpha, zorder
     """
+
+    FILLS_FROM_STYLE = True
 
     RequiredRoles: list[str] = ["value"]
     OptionalRoles: list[str] = ["dataset", "weight", "color"]
@@ -216,20 +216,6 @@ class HistogramAxisRenderer(BaseAxisRenderer):
             ),
         },
     }
-
-    def series_color(self, style: dict[str, Any], layer_index: int = 0) -> Any:
-        """The first histogram takes the style sheet's fill colour (``patch.facecolor``).
-
-        A style can colour its bars apart from its points - JMP's grey-green
-        bars beside its black dots. When the sheet leaves patch.facecolor at
-        Matplotlib's "C0", that is the first cycle colour anyway, so nothing
-        changes for any other style.
-        """
-        explicit = str(style.get("color", "") or "").strip()
-        face = matplotlib.rcParams.get("patch.facecolor")
-        if not explicit and layer_index == 0 and isinstance(face, str) and not re.fullmatch(r"C\d+", face):
-            return face
-        return super().series_color(style, layer_index)
 
     # ------------------------------------------------------------------
     # Data preparation

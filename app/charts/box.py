@@ -53,6 +53,8 @@ class BoxAxisRenderer(BaseAxisRenderer):
         - linewidth
     """
 
+    FILLS_FROM_STYLE = True
+
     RequiredRoles = ["value"]
     OptionalRoles = ["group", "color"]
     Name = "Box Plot"
