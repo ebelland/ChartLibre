@@ -428,8 +428,13 @@ class MplStyleEditorDialog(SettingsTableDialog):
             parent,
             title=_("Matplotlib Style Editor"),
             icon=load_icon("edit"),
+            # Medium: "large" is 700 px tall, more than a laptop's screen
+            # leaves. The parameters narrow, the preview the larger panel:
+            # the chart is what is being judged.
             size="medium",
-            settings_width=560,
+            settings_width=380,
+            settings_title=_("Changed parameters"),
+            content_title=_("Figure"),
         )
         #: Draws the chart being styled onto a figure, for the "This figure"
         #: preview; None when the editor was opened without one.
@@ -449,7 +454,8 @@ class MplStyleEditorDialog(SettingsTableDialog):
         self.settings_layout.addWidget(self._build_table_group(), 1)
 
         # Right: live figure preview.
-        preview_panel, pg = self._create_section("Figure")
+        preview_panel = QWidget(self)
+        pg = QVBoxLayout(preview_panel)
         pg.setContentsMargins(0, 0, 0, 0)
         self.preview_kind = QComboBox()
         for label, key in PREVIEW_KINDS:
@@ -497,34 +503,11 @@ class MplStyleEditorDialog(SettingsTableDialog):
     # Panel builders
     # ======================================================================
 
-    def _create_section(
-        self,
-        title: str,
-        note: str | None = None,
-    ) -> tuple[QWidget, QVBoxLayout]:
-        # A titled part of the dialog's own frame, not a card of its own:
-        # the two-panel shell already draws the frames.
-        panel = QWidget(self)
-        panel.setObjectName(f"mplStyle{title.replace(' ', '')}Section")
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
-
-        title_label: QLabel = create_compact_section_title(_(title), panel)
-        layout.addWidget(title_label, 0)
-
-        if note:
-            note_label: QLabel = QLabel(note, panel)
-            note_label.setProperty("muted", True)
-            layout.addWidget(note_label, 0)
-
-        content: QVBoxLayout = QVBoxLayout()
-        stdSizeAndlayout(content)
-        layout.addLayout(content, 1)
-        return panel, content
-
     def _build_table_group(self) -> QWidget:
         """Create the rcParams override editor using the shared DictEditorPanel."""
-        group, lay = self._create_section("Parameters Override")
+        group = QWidget(self)
+        lay = QVBoxLayout(group)
+        lay.setContentsMargins(0, 0, 0, 0)
 
         # The grouped property editor replaces the separate rcParam picker.
         row = QHBoxLayout()
@@ -539,7 +522,6 @@ class MplStyleEditorDialog(SettingsTableDialog):
             ("rcparam_open", self._load_from_file),
             (None, None),
             ("rcparam_reset", self._reset_selected_to_defaults),
-            ("rcparam_delete", self._remove_selected_rows),
             (None, None),
             ("rcparam_save", self._save_file),
         ])
@@ -834,29 +816,18 @@ class MplStyleEditorDialog(SettingsTableDialog):
         self._preview_timer.start()
 
     def _reset_selected_to_defaults(self) -> None:
-        key: str = self.editor.current_key() or ""
-        if not key:
-            show_message(self, "style.no_property_selected")
-            return
-        dv = cast(Any, mpl.rcParamsDefault).get(key)
-        if dv is None:
-            return
-        value = _to_table_str(dv)
-        values: dict[str, object] = self._editor_values()
-        values[key] = value
-        self.editor.set_values(values)
-        self.status.setText(f"Reset '{key}' to default.")
-        self._preview_timer.start()
-
-    def _remove_selected_rows(self) -> None:
+        """Take the selected property's change away: its value is cleared (None), so the
+        style neither keeps it in the figure nor writes it to a .mplstyle - Matplotlib's
+        default applies."""
         key = self.editor.current_key() or ""
         if not key:
+            show_message(self, "style.no_property_selected")
             return
         values = self._editor_values()
         values[key] = ""
         self.editor.set_values(values)
         self.editor.set_current_key(key)
-        self.status.setText(f"Cleared override for '{key}'.")
+        self.status.setText(_("'{key}' back to Matplotlib's default.").format(key=key))
         self._preview_timer.start()
 
 

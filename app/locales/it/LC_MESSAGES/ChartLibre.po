@@ -8613,3 +8613,27 @@ msgstr "Dai a X, Y e Z la griglia e le tacche di questa coordinata."
 
 msgid "Share the {axis} range with the other axes that share it."
 msgstr "Condividi l'intervallo di {axis} con gli altri assi che lo condividono."
+
+msgid "Changed parameters"
+msgstr "Parametri modificati"
+
+msgid "'{key}' back to Matplotlib's default."
+msgstr "'{key}' torna al valore predefinito di Matplotlib."
+
+msgid "Take away the selected property's change: Matplotlib's default applies, and it is not saved in the style"
+msgstr "Toglie la modifica della proprietà selezionata: vale il predefinito di Matplotlib e non viene salvata nello stile"
+
+msgid "Representative"
+msgstr "Rappresentativo"
+
+msgid "Image"
+msgstr "Immagine"
+
+msgid "3D scatter"
+msgstr "Dispersione 3D"
+
+msgid "3D bars"
+msgstr "Barre 3D"
+
+msgid "Current figure"
+msgstr "Figura corrente"

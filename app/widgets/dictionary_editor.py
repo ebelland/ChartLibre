@@ -106,7 +106,7 @@ _GROUP_ORDER = [
 ]
 _MIN_ROW_HEIGHT = 30
 _EDITOR_MIN_HEIGHT = 26
-_DEFAULT_PROPERTY_COLUMN_WIDTH = 310
+_DEFAULT_PROPERTY_COLUMN_WIDTH = 200
 _DEFAULT_VALUE_COLUMN_WIDTH = 170
 _DEFAULT_MIN_PANEL_HEIGHT = 360
 
@@ -416,6 +416,9 @@ class DictEditorPanel(QWidget):
         # The value column takes the width left, so the header and the rows
         # reach the scroll bar instead of stopping short of it.
         header.setStretchLastSection(True)
+        # The value column fills what the name column leaves: no sideways
+        # scrolling in a panel this narrow.
+        self.tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
         header.setMinimumSectionSize(60)
         header.resizeSection(0, _DEFAULT_PROPERTY_COLUMN_WIDTH)

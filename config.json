@@ -472,7 +472,7 @@
     },
     "rcparam_reset": {
       "text": "Reset",
-      "description": "Reset the selected property to the Matplotlib default",
+      "description": "Take away the selected property's change: Matplotlib's default applies, and it is not saved in the style",
       "SFSymbol": "arrow.clockwise",
       "SegoeFluent": "E72C",
       "ThemeIcon": "edit-undo"

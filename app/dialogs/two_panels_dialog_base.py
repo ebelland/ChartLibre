@@ -16,7 +16,6 @@ from app.styles.style import (
     TitledCard,
     apply_dialog_shell,
     create_action_button,
-    create_compact_section_title,
     stdSizeAndlayout,
 )
 
@@ -83,24 +82,27 @@ class SettingsTableDialog(PanelDialog):
         stdSizeAndlayout(columns)
 
         width = settings_width or self.SETTINGS_WIDTH
-        self.settings_frame = CardFrame(self, "dialogSettingsCard")
-        self.settings_frame.setFixedWidth(width)
-        self.settings_frame.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        # A titled panel is a standard frame: its title above the box, not in it.
+        settings_widget = self._panel(settings_title, "dialogSettingsCard")
+        self.settings_frame = settings_widget.card if isinstance(settings_widget, TitledCard) else settings_widget
+        settings_widget.setFixedWidth(width)
+        settings_widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.settings_layout = self.settings_frame.layout()
-        if settings_title:
-            self.settings_layout.addWidget(
-                create_compact_section_title(settings_title, self.settings_frame)
-            )
 
-        self.content_frame = CardFrame(self, "dialogContentCard")
-        self.content_frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        content_widget = self._panel(content_title, "dialogContentCard")
+        self.content_frame = content_widget.card if isinstance(content_widget, TitledCard) else content_widget
+        content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content_layout = self.content_frame.layout()
-        if content_title:
-            self.content_layout.addWidget(
-                create_compact_section_title(content_title, self.content_frame)
-            )
 
-        columns.addWidget(self.settings_frame, 0)
-        columns.addWidget(self.content_frame, 1)
+        columns.addWidget(settings_widget, 0)
+        columns.addWidget(content_widget, 1)
         self.body_layout.addLayout(columns, 1)
 
+    def _panel(self, title: str, object_name: str) -> QWidget:
+        """A frame for one side: titled (the title above the box) when *title* is given."""
+        if not title:
+            return CardFrame(self, object_name)
+        titled = TitledCard(self, title, object_name)
+        titled.layout().setStretchFactor(titled.card, 1)
+        titled.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        return titled
