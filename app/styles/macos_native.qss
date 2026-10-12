@@ -72,6 +72,13 @@ QFrame#chartSurfaceCard {
   background: palette(base);
 }
 
+/* The guided analysis: the Analysis panel's way in, tinted with the accent
+   so it reads apart from the frames of analyses under it. */
+QFrame#guidedAnalysisCard {
+  background: rgba(@ACCENT_RGB@, 0.08);
+  border: 1px solid rgba(@ACCENT_RGB@, 0.22);
+}
+
 QWidget#basePropertiesPanel {
   background: palette(base);
 }
@@ -545,7 +552,7 @@ TableListPanel QHeaderView::section:last {
   border-right: none;
 }
 
-TablePreviewPanel QTableView {
+QTableView#dataTable {
   background: palette(base);
   alternate-background-color: rgba(@SHADOW_RGB@, 0.03);
   color: palette(text);
@@ -558,20 +565,20 @@ TablePreviewPanel QTableView {
   selection-color: palette(highlighted-text);
 }
 
-TablePreviewPanel QTableView::item {
+QTableView#dataTable::item {
   padding: 2px 8px;
 }
 
-TablePreviewPanel QTableView::item:hover {
+QTableView#dataTable::item:hover {
   background: rgba(@SHADOW_RGB@, 0.04);
 }
 
-TablePreviewPanel QTableView::item:selected {
+QTableView#dataTable::item:selected {
   background: palette(highlight);
   color: palette(highlighted-text);
 }
 
-TablePreviewPanel QHeaderView::section {
+QTableView#dataTable QHeaderView::section {
   background: transparent;
   color: rgba(@SHADOW_RGB@, 0.65);
   font-size: 11pt;
@@ -583,8 +590,17 @@ TablePreviewPanel QHeaderView::section {
   border-right: 1px solid rgba(@SHADOW_RGB@, 0.06);
 }
 
-TablePreviewPanel QHeaderView::section:last {
+QTableView#dataTable QHeaderView::section:last {
   border-right: none;
+}
+
+/* Row numbers (the table editor shows them): a quiet gutter. */
+QTableView#dataTable QHeaderView::section:vertical,
+QTableView#dataTable QHeaderView::section:vertical:last {
+  font-weight: 400;
+  padding: 0 8px;
+  border-bottom: none;
+  border-right: 1px solid rgba(@SHADOW_RGB@, 0.10);
 }
 
 QMessageBox QLabel {

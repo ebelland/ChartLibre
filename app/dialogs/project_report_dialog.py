@@ -12,29 +12,12 @@ from pathlib import Path
 
 from PySide6.QtCore import QMarginsF, QSizeF, QUrl
 from PySide6.QtGui import QImage, QPageLayout, QPageSize, QPdfWriter, QTextDocument
-from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDialog,
-    QFileDialog,
-    QFormLayout,
-    QHBoxLayout,
-    QLabel,
-    QSpinBox,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QCheckBox, QComboBox, QFileDialog, QFormLayout, QLabel, QSpinBox, QWidget
 
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.logs.logger import applogger
-from app.styles.style import (
-    CardFrame,
-    apply_dialog_shell,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.styles.style import TitledCard, load_icon, stdSizeAndlayout
 from app.utils.dialog_state import restore_dialog_state, save_dialog_state
 from app.utils.i18n import _
 from app.utils.project_report import ProjectReport, build_project_report, write_report_html
@@ -71,7 +54,7 @@ def write_report_pdf(report: ProjectReport, path: Path | str) -> Path:
     return target
 
 
-class ProjectReportDialog(QDialog):
+class ProjectReportDialog(PanelDialog):
     """Ask what the report holds and in which format, then write it.
 
     With *figure_id*, the report of that one chart - its picture and notes -
@@ -80,74 +63,63 @@ class ProjectReportDialog(QDialog):
     """
 
     def __init__(self, repo: SqliteRepo, parent: QWidget | None = None, *, figure_id: int | None = None) -> None:
-        super().__init__(parent)
+        super().__init__(parent, title=_("Export report") if figure_id is not None else _("Project report"),
+                         icon=load_icon("save"))
         self._repo = repo
         self._figure_id = figure_id
         self.written: Path | None = None
-        self.setWindowTitle(_("Export report") if figure_id is not None else _("Project report"))
-        self.setWindowIcon(load_icon("save"))
-
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
-        card = CardFrame(self, "projectReportCard")
-        card_layout = card.layout()
+        root = self.body_layout
+        # Titled frames as in the rest of the application: the title above
+        # its box, not inside it.
+        report = TitledCard(self, _("Report"), "projectReportCard")
         form = QFormLayout()
         stdSizeAndlayout(form)
-        form.addRow(create_section_title(_("Report"), card))
+        report.card.layout().addLayout(form)
 
-        self._format_combo = QComboBox(card)
+        self._format_combo = QComboBox(report.card)
         self._format_combo.addItem(_("HTML - one file, opens in any browser"), "html")
         self._format_combo.addItem(_("PDF - A4 pages"), "pdf")
         form.addRow(_("Format"), self._format_combo)
 
-        self._image_combo = QComboBox(card)
+        self._image_combo = QComboBox(report.card)
         self._image_combo.addItem(_("PNG"), "png")
         self._image_combo.addItem(_("SVG - sharp at any zoom"), "svg")
         self._image_combo.setToolTip(_("The PDF always uses PNG."))
         form.addRow(_("Pictures"), self._image_combo)
 
-        self._dpi_spin = QSpinBox(card)
+        self._dpi_spin = QSpinBox(report.card)
         self._dpi_spin.setRange(72, 600)
         self._dpi_spin.setSingleStep(25)
         self._dpi_spin.setValue(150)
         self._dpi_spin.setSuffix(" dpi")
         form.addRow(_("Resolution"), self._dpi_spin)
 
-        self._tables_check = QCheckBox(_("The tables, their size and notes"), card)
-        self._tables_check.setChecked(True)
-        self._history_check = QCheckBox(_("The operation history"), card)
-        self._history_check.setChecked(True)
-        if figure_id is None:
-            form.addRow(create_section_title(_("Contents"), card))
-            for check in (self._tables_check, self._history_check):
-                form.addRow("", check)
-        else:
-            # One chart: its picture and notes; the project's tables and
-            # history are not about it.
-            for check in (self._tables_check, self._history_check):
-                check.hide()
-        card_layout.addLayout(form)
-
         self._status = QLabel(
             _("The chart is drawn again, with its notes.") if figure_id is not None
             else _("Every figure is drawn again, with its notes."),
-            card,
+            report.card,
         )
         self._status.setProperty("muted", True)
         self._status.setWordWrap(True)
-        card_layout.addWidget(self._status)
-        card_layout.addStretch(1)
-        root.addWidget(card, 1)
+        report.card.layout().addWidget(self._status)
+        root.addWidget(report, 0)
 
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="save", action=self._export, layout=action_row,
-            presentation=(load_icon("save"), _("Export…"), _("Choose where to save the report")),
-        )
-        create_action_button(parent=self, action_id="close", action=self.reject, layout=action_row)
-        root.addLayout(action_row, 0)
+        contents = TitledCard(self, _("Contents"), "projectReportContentsCard")
+        self._tables_check = QCheckBox(_("The tables, their size and notes"), contents.card)
+        self._tables_check.setChecked(True)
+        self._history_check = QCheckBox(_("The operation history"), contents.card)
+        self._history_check.setChecked(True)
+        for check in (self._tables_check, self._history_check):
+            contents.card.layout().addWidget(check)
+        root.addWidget(contents, 0)
+        # One chart: its picture and notes; the project's tables and history
+        # are not about it.
+        contents.setVisible(figure_id is None)
+        root.addStretch(1)
+
+        self.add_action("save", self._export,
+                        presentation=(load_icon("save"), _("Export…"), _("Choose where to save the report")))
+        self.add_action("close", self.reject)
 
         restore_dialog_state(self, _STATE_KEY)
         self._format_combo.currentIndexChanged.connect(self._refresh)

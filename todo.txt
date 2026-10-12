@@ -1,4 +1,4 @@
-ChartLibre TODO - updated 2026-10-10
+ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
 Size: app 88,528 lines in 205 files; tests 15,384 lines in 111 files (updated at each commit).
@@ -15,62 +15,77 @@ DONE RECENTLY
 - Guided analysis on the rail: search, quick answers, goals -> suggestions.
 - Quick answer Q-01 "Are there differences?" (test chosen, answer in words).
 
-Are there differences?" keep only in Guided analysis
-color Guided analysis after analysis and with an icon of different color
-Axis properties: Min-->Minor, Maj-->MAjor
-                  x,y,z checkbox --> option box
-                  Kwargs frame too short. (200)
-                  Base--> use also for Symlog
-                  Share coo.... --> share
-                  Invert axis --> Invert
-                  Spines-->hide spines
-                  Sperarate tick length/rotation for minor and major 
-Series: Line style -->apply to box line
-        Marker style --> apply to outliers
-
-Figure: apply style to project
-
-Fit Mode: taller. Ugly look.
-
-MPL style editor looks corrupted (no parameter tree)
-
-Windows spin chevrons
-
-Settings: default mplstyle
-
-Series fit too tall
-
-remove search functions from helpers
-
-undo button on Windows
-
-
-
 NOW
 R-20  M  Project review, step by step (one commit each):
          1. PanelDialog for one-panel dialogs - left: Project info, Settings,
-            Find/Replace, Fill missing, Add web source.
+         Find/Replace, Fill missing, Add web source.
          2. Shared report/series/figure helpers in TableOperationDialogBase.
          3. Dead code.
-         4. Split large files into packages like main_window/ (chart_panel,
-            series_operations/dialog_base, style, fit_dialog).
+         4. Split large files into packages like main_window/ (R-10: chart_panel,
+         series_operations/dialog_base, style, fit_dialog).
          5. Properties panels on their base.
-0. Q-02  M  Quick answer "What has the most impact?" - Y and many X: ranking
-            in words (forest importance + Fit Model effects), Pareto chart.
-   Q-03  M  Quick answer "Has it changed over time?" - trend test (Mann-Kendall),
-            change points, before/after comparison, in words.
-   D-01  M  Demos rethought around the questions (one per quick answer and
-            goal), still covering every function.
-1. G-01  S  Guided analysis, step 2: pick the table's Y and X and open the
-            function with them cast (step 1 done: goal + response type ->
-            suggestions with why -> Open).
-2. AN-16 M  Fit Model: Lasso / Ridge / Elastic Net with CV (JMP Gen. Regression).
-3. AN-17 M  PLS regression for spectra: VIP, loadings, components by CV.
-4. AN-18 S  Permutation importance and partial dependence for any model.
-5. AN-19 S  ROC curve, AUC, confusion matrix for logistic fits and trees.
-6. M-01  S  Manual: "Series operations" -> "Data operations"; rebuild the PDF.
-7. R-03  M  Reproducibility: re-run recorded operations; export a Python script.
-8. W-04  M  Window resize redraws the chart at every step: draw on pause.
+Q-02  M  Quick answer "What has the most impact?" - Y and many X: ranking
+         in words (forest importance + Fit Model effects), Pareto chart.
+Q-03  M  Quick answer "Has it changed over time?" - trend test (Mann-Kendall),
+         change points, before/after comparison, in words.
+D-01  M  Demos rethought around the questions (one per quick answer and
+         goal), still covering every function.
+G-01  S  Guided analysis, step 2: pick the table's Y and X and open the
+         function with them cast (step 1 done: goal + response type ->
+         suggestions with why -> Open).
+AN-16 M  Fit Model: Lasso / Ridge / Elastic Net with CV (JMP Gen. Regression).
+AN-17 M  PLS regression for spectra: VIP, loadings, components by CV.
+AN-18 S  Permutation importance and partial dependence for any model.
+AN-19 S  ROC curve, AUC, confusion matrix for logistic fits and trees.
+M-01  S  Manual: rebuild the PDF (rename Series -> Data operations is done).
+R-03  M  Reproducibility: re-run recorded operations; export a Python script.
+W-04  M  Window resize redraws the chart at every step: draw on pause.
+
+UI FIXES (from the notes list; one commit per group, mostly S)
+UI-01 S  Guided analysis: keep the quick answer "Are there differences?" only
+         there; colour the Guided analysis item after an analysis has run, with
+         an icon of a different colour.
+UI-02 M  Axis properties:
+         - Min -> Minor, Maj -> Major
+         - x, y, z checkboxes -> option box
+         - Kwargs frame too short (200)
+         - Base: use it for Symlog too
+         - "Share coo..." -> "Share"; "Invert axis" -> "Invert"
+         - Spines -> "Hide spines"
+         - separate tick length / rotation for minor and major ticks
+UI-03 S  Series: Line style also applies to the box line; Marker style also
+         applies to outliers.
+UI-04 S  Figure: apply the style to the whole project.
+UI-05 S  Fit Mode and Series fit dialogs: too tall, ugly look.
+UI-06 S  MPL style editor looks corrupted (no parameter tree).
+UI-07 S  Windows: spin-box chevrons; Undo button.
+UI-08 S  Settings: default mplstyle.
+UI-09 S  Remove the search functions from the developer helpers (the catalogue
+         search replaces them).
+
+PERFORMANCE - NUMBA (measured on this repo, see notes below)
+PF-01 S  Kalman smoother (analysis/smoothing.py _kalman_smoother_1d): scalar
+         loops, 117 ms -> 4 ms for 100k points (x29). @njit(cache=True) kernel
+         on float64 arrays; validation stays in the wrapper.
+PF-02 S  Nelson rules (analysis/control_charts.py find_violations): 71 ms at
+         5k points, 1.5 s at 100k (windowed Python loops). Compiled kernel
+         returns one bitmask per sample (one bit per rule 2-8); Violation
+         objects and descriptions are built in Python afterwards.
+PF-03 S  Without Numba: Whittaker-Eilers (banded/sparse solver instead of the
+         dense np.linalg.solve - O(n^3) now), cluster-label remap
+         (np.unique return_inverse), contingency/mosaic (integer codes +
+         np.bincount), linear root crossings (direct computation), wavelet
+         power (batch scales), correlation (scipy FFT correlate).
+PF-04 M  Batch Monte Carlo scoring - only if the whole scoring kernel can be
+         compiled; otherwise skip. Survival: improve the algorithm first.
+Rules: Numba stays an OPTIONAL dependency with a pure-Python fallback; cache=True;
+compile in a kernel only numeric arrays (no dataclasses, dicts, closures).
+Not worth it: multi-peak model (already vectorised: 0.2 ms for 5 peaks x 2000
+points; Jacobian 7 ms for 21 parameters - a fit of 50 iterations is well under
+a second) and model-specific Jacobians (they need the whole chain compiled:
+model -> residual -> perturbation -> Jacobian; large effort, small gain).
+Never target: Qt panels, Matplotlib rendering and style editing, pandas,
+statsmodels, scikit-learn, SciPy wrappers, string/SQL/catalogue logic.
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - AN-02 M  Distribution: histogram, quantiles, normality, capability.
@@ -101,7 +116,6 @@ LATER
 - R-07  L  Linked selection across charts and table, then a data filter
            (idea to evaluate: a "Selected" column; not for queries).
 - N-09  M  "Colour by value" dialog.
-- R-10  M  Split large files (chart_panel, main_window, style, dialogs).
 - R-12b M  Narrow "except Exception" to true boundaries.
 - A-06  S  Linux: first run in a VM.
 - A-07  S  German / Spanish translations.
@@ -113,98 +127,7 @@ IDEAS
   units with pint, uncertainty propagation.
 
 [YOU]
+- A-08 Missing from the repo: app/analysis/catalog.py (needed by the new
+  catalog_search.py / guided_panel.py) and the tests - add them or upload.
 - A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
 - A-05 GitHub: description, topics, social preview, first release.
-
-
-
-
-Best Numba opportunities
-Kalman smoothing
-Nelson-rule detection in control charts
-Multi-peak model evaluation
-Model-specific numerical Jacobians
-Batch Monte Carlo scoring, if the full scoring kernel can be compiled
-Better solved without Numba
-Whittaker-Eilers smoothing: use a banded or sparse solver
-Wavelet power: vectorise or process scales in batches
-Correlation: use FFT-based SciPy correlation
-Survival analysis: improve the algorithm before considering JIT
-Cluster-label remapping: use np.unique(..., return_inverse=True)
-Contingency/mosaic accumulation: use integer codes and np.bincount
-Linear root crossings: compute directly instead of iterating
-Do not target with Numba
-Qt property panels
-Matplotlib rendering and style editing
-pandas transformations
-statsmodels fitting
-scikit-learn estimators
-SciPy interpolation, filtering, integration and statistical-test wrappers
-string, SQL and catalogue logic
-High-priority opportunities
-1. Kalman smoother
-
-smoothing contains a forward Kalman pass and backward Rauch-Tung-Striebel pass implemented as scalar Python loops. The loops operate only on floats and fixed NumPy arrays, making this the cleanest Numba candidate reviewed.
-
-Suggested approach
-
-Move the numeric loop into an @njit(cache=True) kernel.
-Keep validation and parameter conversion in the Python wrapper.
-Pass contiguous float64 arrays to the compiled kernel.
-Retain a pure-Python fallback if Numba remains optional.
-
-Expected benefit
-
-Most useful for long signals, repeated previews and batch processing of many series. The first invocation incurs compilation overhead, so cache=True and realistic benchmarking are important.
-
-2. Nelson-rule scanning
-
-control_charts scans overlapping windows using several Python loops in find_violations(). The loops implement Nelson rules 2 through 8 and repeatedly call .all() or .sum() on small temporary slices.
-
-Suggested approach
-
-Have a compiled kernel return one integer bitmask per sample.
-Assign one bit to each rule.
-Convert the numeric bitmasks into Violation dataclasses after returning to Python.
-Keep descriptions and deduplication outside the compiled kernel.
-
-Why this structure
-
-Numba can efficiently process numeric arrays but should not be asked to build Python dataclasses, dictionaries or variable-length description lists.
-
-3. Multi-peak model evaluation
-
-fit decodes every peak into a Python tuple list and then performs another Python loop to add Gaussian, Lorentzian or pseudo-Voigt peak arrays. Optimisation and numerical Jacobian calculation can invoke this model many times.
-
-Suggested approach
-
-Create separate compiled kernels for:
-
-Gaussian multi-peak
-Lorentzian multi-peak
-pseudo-Voigt multi-peak
-
-Inside each kernel, loop first over points and then over peaks, accumulating directly into one output array. This avoids allocating one complete temporary array per peak.
-
-Design recommendation
-
-Do not attempt to compile the dynamic factory and Python closure. The factory should decode the parameter layout and dispatch to a compiled numeric kernel.
-
-4. Model-specific numerical Jacobians
-
-fit calculates central differences by calling an arbitrary model twice for every parameter.
-
-Suggested approach
-
-Provide two paths:
-
-Generic Python Jacobian for user formulas and dynamically loaded models
-Compiled Jacobian for supported built-in compiled models
-
-A compiled outer loop that still calls an ordinary Python model will not remove the main overhead. The complete chain must be compiled:
-
-Plain Text
-model evaluation
-→ residual calculation
-→ parameter perturbation
-→ Jacobian assembly

@@ -8,7 +8,6 @@ A PySide6 dialog for creating and editing ``.mplstyle`` files.
 
 Features
 --------
-* Style-stack panel — compose multiple built-in or file-based styles.
 * Parameter-override property editor — add / edit / reset individual rcParams with
   type-aware inline editors (color picker, bool checkbox, number field,
   linestyle / marker / cmap / loc combo, cycler dialog, font-list dialog,
@@ -40,7 +39,6 @@ from pathlib import Path
 
 import cycler as _cycler
 import matplotlib as mpl
-from matplotlib import style as mplstyle
 import numpy as np
 
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
@@ -72,9 +70,8 @@ from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 from matplotlib.colors import is_color_like, to_rgba
 from matplotlib.figure import Figure
 
-from PySide6.QtCore import QModelIndex, Qt, QSettings, QSize, QTimer, Signal
-from PySide6.QtGui import     QFont,    QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QWidget, QTreeView, QLabel, QAbstractItemView, QFileDialog, QHBoxLayout, QVBoxLayout, QComboBox, QSizePolicy, QListWidget, QListWidgetItem
+from PySide6.QtCore import Qt, QSize, QTimer, Signal
+from PySide6.QtWidgets import QWidget, QLabel, QAbstractItemView, QFileDialog, QHBoxLayout, QVBoxLayout, QComboBox, QSizePolicy, QListWidget, QListWidgetItem
 
 # ---------------------------------------------------------------------------
 # Optional external helpers (graceful fallbacks)
@@ -82,6 +79,20 @@ from PySide6.QtWidgets import QWidget, QTreeView, QLabel, QAbstractItemView, QFi
 
 from app.widgets.dictionary_editor import DictEditorPanel
 from app.utils.i18n import _
+
+PREVIEW_KINDS: tuple[tuple[str, str], ...] = (
+    ("Representative", "representative"),
+    ("Lines and scatter", "line"),
+    ("Bars", "bars"),
+    ("Histogram", "hist"),
+    ("Pie", "pie"),
+    ("Image", "heatmap"),
+    ("3D surface", "surface3d"),
+    ("3D scatter", "scatter3d"),
+    ("3D bars", "bars3d"),
+    ("Current figure", "this"),
+)
+
 
 OverrideErrors = list[tuple[str, object, str]]
 ButtonAction = (
@@ -234,6 +245,16 @@ _NON_STYLE_KEYS = frozenset({
     "webagg.port_retries",
 })
 
+
+def style_rc_keys() -> list[str]:
+    """Return style-file rcParams, excluding runtime-only keys."""
+    return sorted(
+        key for key in mpl.rcParamsDefault
+        if key not in _NON_STYLE_KEYS
+        and not key.startswith("agg.")
+        and "_internal" not in key.split(".")
+    )
+
 #: The generic families font.family can name; each resolves through its
 #: own font.<generic> list.
 _GENERIC_FONT_FAMILIES: tuple[str, ...] = ("sans-serif", "serif", "monospace", "cursive", "fantasy")
@@ -377,127 +398,6 @@ _ICON_SIZE = 14  # pixels, square
 # ---------------------------------------------------------------------------
 # RcParam Tree Picker
 # ---------------------------------------------------------------------------
-#: rcParams groups that are the running program's, not a chart's style:
-#: backends, key bindings, GUI toolkits, internals. Left out of the picker.
-SYSTEM_RC_GROUPS: frozenset[str] = frozenset(
-    {
-        "_internal", "agg", "animation", "backend", "backend_fallback",
-        "docstring", "interactive", "keymap", "macosx", "tk", "toolbar",
-        "webagg",
-    }
-)
-
-
-def style_rc_keys() -> list[str]:
-    """Every rcParam that styles a chart, sorted - the picker's contents."""
-    return sorted(key for key in mpl.rcParamsDefault if key.split(".")[0] not in SYSTEM_RC_GROUPS)
-
-
-#: What the preview can draw: (label, key). "this" - the chart being
-#: styled - is offered only when the caller hands the editor a way to draw it.
-PREVIEW_KINDS: tuple[tuple[str, str], ...] = (
-    ("This figure", "this"),
-    ("Lines and scatter", "lines"),
-    ("Bars", "bars"),
-    ("Box plot", "box"),
-    ("Histogram", "hist"),
-    ("Pie", "pie"),
-    ("Heatmap", "heatmap"),
-    ("3D surface", "surface3d"),
-)
-
-
-class RcParamTreePicker(QComboBox):
-    """Editable combo whose drop-down is a QTreeView grouping rcParams by
-    their dot-prefix category. Each leaf node shows a type-specific icon.
-    The last-selected category is remembered via QSettings.
-    """
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setEditable(True)
-        self.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.setPlaceholderText(_("Pick rcParam…"))
-        self.setSizeAdjustPolicy(
-            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-        self.setMinimumContentsLength(28)
-
-        self._model = QStandardItemModel(self)
-        self._view = QTreeView(self)
-        self._view.setHeaderHidden(True)
-        self._view.setRootIsDecorated(True)
-        self._view.setEditTriggers(
-            QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._view.setUniformRowHeights(True)
-        self._view.setIconSize(QSize(_ICON_SIZE, _ICON_SIZE))
-        self._view.clicked.connect(self._on_item_clicked)
-
-        self.setModel(self._model)
-        self.setView(self._view)
-
-        self._selected_key: str = ""
-        self._settings = QSettings("MplStyleEditor", "Dialog")
-        value: object = self._settings.value("rcpicker/last_category", "")
-        self._last_category: str = value if isinstance(value, str) else ""
-# ------------------------------------------------------------------
-    def populate(self, keys: list[str]) -> None:
-        """Rebuild the tree from *keys*, grouped by dot-prefix category."""
-        cats: dict[str, list[str]] = {}
-        for k in keys:
-            cat = (k.split(".", 1)[0] if "." in k else "other").lower()
-            cats.setdefault(cat, []).append(k)
-
-        bold: QFont = QFont()
-        bold.setBold(True)
-        self._model.clear()
-
-        for cat in sorted(cats):
-            cat_item: QStandardItem = QStandardItem(f" {cat}")
-            cat_item.setFont(bold)
-            cat_item.setSelectable(False)
-            cat_item.setEditable(False)
-            for k in sorted(cats[cat], key=str.lower):
-                kind: str = _rcparam_kind(k)
-                child: QStandardItem = QStandardItem(k)
-                child.setData(k, Qt.ItemDataRole.UserRole)
-                child.setToolTip(f"{k} [{kind}]")
-                child.setEditable(False)
-                cat_item.appendRow(child)
-            self._model.appendRow(cat_item)
-        self._view.expandAll()
-        self._scroll_to_last_category()
-
-    def showPopup(self) -> None:
-        super().showPopup()
-        self._scroll_to_last_category()
-
-    def selected_key(self) -> str:
-        return self._selected_key or self.currentText().strip()
-
-    # ------------------------------------------------------------------
-    def _scroll_to_last_category(self) -> None:
-        if not self._last_category:
-            return
-        for r in range(self._model.rowCount()):
-            item = self._model.item(r, 0)
-            if item and item.text().strip().lower() == self._last_category:
-                self._view.scrollTo(
-                    item.index(),
-                    QAbstractItemView.ScrollHint.PositionAtTop)
-                return
-
-    def _on_item_clicked(self, index: QModelIndex) -> None:
-        item = self._model.itemFromIndex(index)
-        if item is None or item.hasChildren():
-            return  # category node — ignore clicks
-        key = str(item.data(Qt.ItemDataRole.UserRole) or item.text())
-        self._selected_key = key
-        cat = (key.split(".", 1)[0] if "." in key else "other").lower()
-        self._last_category = cat
-        self._settings.setValue("rcpicker/last_category", cat)
-        self.setCurrentText(key)
-        self.hidePopup()
-
-# ---------------------------------------------------------------------------
 # Main editor dialog
 # ---------------------------------------------------------------------------
 
@@ -514,22 +414,20 @@ class MplStyleEditorDialog(SettingsTableDialog):
         initial_style_text: str = "",
         figure_drawer: Callable[[Figure], None] | None = None,
     ) -> None:
-        # "medium": the action rows are icons now, so the editor no longer
-        # needs the large shell's width. The style stack and the preview on
-        # the left, the parameters on the right.
+        # A wide left pane accommodates long rcParam names; the preview stays
+        # compact on the right.
         super().__init__(
             parent,
             title=_("Matplotlib Style Editor"),
             icon=load_icon("edit"),
             size="medium",
-            settings_width=400,
+            settings_width=560,
         )
         #: Draws the chart being styled onto a figure, for the "This figure"
         #: preview; None when the editor was opened without one.
         self._figure_drawer = figure_drawer
         self.setModal(True)
         self.apply_callback = apply_callback
-        self.style_stack: list[str] = []
 
         # The status, left of the buttons.
         self.status = QLabel("")
@@ -539,38 +437,31 @@ class MplStyleEditorDialog(SettingsTableDialog):
         self.add_action("apply", self._on_apply_clicked, default=True)
         self.add_action("close", self._on_close)
 
-        # Left: stack on top, compact figure preview on bottom.
-        left: QWidget = QWidget(self.settings_frame)
-        ll: QVBoxLayout = QVBoxLayout(left)
-        stdSizeAndlayout(ll)
-        ll.addWidget(self._build_stack_group(), 0)
+        # Left: parameters editor and its toolbar.
+        self.settings_layout.addWidget(self._build_table_group(), 1)
 
+        # Right: live figure preview.
         preview_panel, pg = self._create_section("Figure")
         pg.setContentsMargins(0, 0, 0, 0)
-        # What the preview draws: the chart being styled, or a sample of one
-        # chart family, so a style can be judged where it will be used.
         self.preview_kind = QComboBox()
         for label, key in PREVIEW_KINDS:
             if key == "this" and figure_drawer is None:
                 continue
             self.preview_kind.addItem(_(label), key)
         stdSizeAndlayout(self.preview_kind, minimum_contents_length=14)
-        self.preview_kind.currentIndexChanged.connect(lambda _i: self._preview_timer.start())
+        self.preview_kind.currentIndexChanged.connect(
+            lambda _i: self._preview_timer.start()
+        )
         pg.addWidget(self.preview_kind, 0)
         self.canvas = self._make_canvas()
-        self.preview_card: QWidget = QWidget()
+        self.preview_card = QWidget()
         self.preview_card.setProperty("previewCard", True)
-
-        card_lay: QVBoxLayout = QVBoxLayout(self.preview_card)
+        card_lay = QVBoxLayout(self.preview_card)
         card_lay.setContentsMargins(*MARGIN_CARD)
         card_lay.setSpacing(0)
         card_lay.addWidget(self.canvas, 1)
         pg.addWidget(self.preview_card, 1)
-        ll.addWidget(preview_panel, 1)
-
-        # Right: parameters editor.
-        self.settings_layout.addWidget(left, 1)
-        self.content_layout.addWidget(self._build_table_group(), 1)
+        self.content_layout.addWidget(preview_panel, 1)
 
         # Debounced preview timer.
         self._preview_timer = QTimer(self)
@@ -578,26 +469,13 @@ class MplStyleEditorDialog(SettingsTableDialog):
         self._preview_timer.setSingleShot(True)
         self._preview_timer.timeout.connect(self.update_preview)
 
-        # Seed the table with common keys.
-        for key in [
-            "figure.facecolor", "figure.edgecolor",
-            "figure.dpi",
-            "axes.facecolor", "axes.edgecolor",
-            "axes.titlesize", "axes.labelsize",
-            "axes.grid", "grid.linestyle", "grid.color",
-            "lines.linewidth", "lines.linestyle", "lines.markersize",
-            "font.size", "font.family", "font.weight",
-            "legend.loc", "legend.frameon",
-            "xtick.labelsize", "ytick.labelsize",
-            "savefig.dpi", "savefig.transparent", "savefig.format",
-            "axes.prop_cycle", "text.color", "image.origin",
-            "axes.labelcolor", "xtick.color", "ytick.color",
-            "image.cmap", "axes.autolimit_mode", "axes.titlelocation",
-            "mathtext.fontset",
-            "lines.solid_joinstyle", "lines.solid_capstyle",
-            "lines.dash_joinstyle", "lines.dash_capstyle",
-        ]:
-            self._append_row(key, "")
+        # DictEditorPanel is the rcParam browser and editor. Empty values
+        # are inactive overrides and are omitted by preview/save/apply.
+        self._param_schema = {
+            key: self._schema_for_key(key, "") for key in style_rc_keys()
+        }
+        self.editor.set_config(self._param_schema)
+        self.editor.set_values({key: "" for key in self._param_schema})
 
         if initial_style_text.strip():
             self.load_style_text(initial_style_text)
@@ -636,60 +514,11 @@ class MplStyleEditorDialog(SettingsTableDialog):
         layout.addLayout(content, 1)
         return panel, content
 
-    def _build_stack_group(self) -> QWidget:
-        group, lay = self._create_section("Style Stack")
-
-        self.builtin = QComboBox()
-        self.builtin.setMinimumWidth(180)
-        self.builtin.setMinimumHeight(28)
-        self.builtin.addItems(sorted(plt.style.available))
-
-        row = QHBoxLayout()
-        stdSizeAndlayout(row)
-        row.setSpacing(4)
-        row.addWidget(self.builtin, 1, Qt.AlignmentFlag.AlignVCenter)
-
-        self._add_button_actions(row, [
-            ("add", "Add selected built-in style to stack",
-             self._stack_add_builtin),
-            ("open", "Add .mplstyle file(s) to stack",
-             self._stack_add_files),
-            (None, None, None),
-            ("up", "Move selected entry up", self._stack_move_up),
-            ("down", "Move selected entry down", self._stack_move_down),
-            ("delete", "Remove selected entries", self._stack_remove_selected),
-            (None, None, None),
-            ("style_stack_to_editor",
-             "Compute stack diff and load into parameter editor",
-             self._stack_result_to_table),
-        ])
-
-        self.stack = QListWidget()
-        self.stack.setSelectionMode(
-            QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.stack.setFixedHeight(140)
-        mark_editor_panel(self.stack)
-
-        lay.addLayout(row)
-        lay.addWidget(self.stack)
-        return group
-
     def _build_table_group(self) -> QWidget:
         """Create the rcParams override editor using the shared DictEditorPanel."""
         group, lay = self._create_section("Parameters Override")
 
-        self.rc_picker = RcParamTreePicker()
-        try:
-            self.rc_picker.populate(style_rc_keys())
-        except Exception:
-            self.rc_picker.populate([])
-        self.rc_picker.setMinimumHeight(28)
-        stdSizeAndlayout(self.rc_picker, minimum_contents_length=36)
-        self.rc_picker.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-        # The picker on a row of its own, as wide as the panel - rcParam
-        # names are long - and the buttons on the row below it.
-        lay.addWidget(self.rc_picker)
+        # The grouped property editor replaces the separate rcParam picker.
         row = QHBoxLayout()
         stdSizeAndlayout(row)
         row.setSpacing(4)
@@ -699,7 +528,6 @@ class MplStyleEditorDialog(SettingsTableDialog):
         # "Add" on this row means "insert the selected rcParam", and the button
         # should say so.
         self._add_button_actions(row, [
-            ("rcparam_add", self._add_param_from_picker),
             ("rcparam_open", self._load_from_file),
             (None, None),
             ("rcparam_reset", self._reset_selected_to_defaults),
@@ -737,9 +565,8 @@ class MplStyleEditorDialog(SettingsTableDialog):
           Use the shared action catalogue from ``style.py`` for icon, label and
           tooltip.
         * ``(action_id, tooltip, callback)``
-          Legacy form used by the style-stack row.  The button is still created
-          through ``create_action_button``.  Only the tooltip is overridden, so
-          icon/label remain catalogue-driven wherever the action exists.
+          Optional explicit-tooltip form. The button is still created through
+          ``create_action_button``.
 
         ``action_id is None`` inserts a small spacer.
         """
@@ -808,12 +635,31 @@ class MplStyleEditorDialog(SettingsTableDialog):
             return
 
         rng = np.random.default_rng(42)
-        if kind == "surface3d":
+        if kind in {"surface3d", "scatter3d", "bars3d"}:
             ax = fig.add_subplot(111, projection="3d")
-            grid = np.linspace(-3, 3, 40)
-            xx, yy = np.meshgrid(grid, grid)
-            ax.plot_surface(xx, yy, np.exp(-(xx**2 + yy**2) / 3) * np.cos(xx), cmap=None)
-            ax.set_title("3D surface")
+            if kind == "surface3d":
+                grid = np.linspace(-3, 3, 40)
+                xx, yy = np.meshgrid(grid, grid)
+                zz = np.exp(-(xx**2 + yy**2) / 3) * np.cos(xx)
+                ax.plot_surface(xx, yy, zz, cmap="viridis")
+                ax.set_title("3D surface")
+            elif kind == "scatter3d":
+                x = rng.normal(size=100)
+                y = rng.normal(size=100)
+                z = 0.7 * x - 0.4 * y + rng.normal(scale=0.35, size=100)
+                ax.scatter(x, y, z, c=z, cmap="viridis", marker="o")
+                ax.set_title("3D scatter")
+            else:
+                xpos, ypos = np.meshgrid(np.arange(4), np.arange(3), indexing="ij")
+                xpos = xpos.ravel()
+                ypos = ypos.ravel()
+                zpos = np.zeros_like(xpos, dtype=float)
+                heights = 1.0 + ((xpos * 2 + ypos * 3) % 6)
+                ax.bar3d(xpos, ypos, zpos, 0.65, 0.65, heights, shade=True)
+                ax.set_title("3D bars")
+            ax.set_xlabel("X")
+            ax.set_ylabel("Y")
+            ax.set_zlabel("Z")
             return
 
         ax = fig.add_subplot(111)
@@ -851,86 +697,6 @@ class MplStyleEditorDialog(SettingsTableDialog):
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
             ax.grid(True)
-
-    # ======================================================================
-    # Style-stack actions
-    # ======================================================================
-    def _stack_add_builtin(self) -> None:
-        name: str = self.builtin.currentText().strip()
-        if not name:
-            return
-        self.style_stack.append(name)
-        self.stack.addItem(QListWidgetItem(f"[builtin] {name}"))
-        self._on_stack_changed()
-
-    def _stack_add_files(self) -> None:
-        paths: list[str]
-        paths, _unused = QFileDialog.getOpenFileNames(
-            self, "Add Matplotlib Style(s)", "",
-            "Matplotlib Style (*.mplstyle);;All Files (*)",
-        )
-        for p in paths:
-            self.style_stack.append(p)
-            self.stack.addItem(QListWidgetItem(os.path.abspath(p)))
-        if paths:
-            self._on_stack_changed()
-
-    def _stack_remove_selected(self) -> None:
-        rows: list[int] = sorted(
-            {i.row() for i in self.stack.selectedIndexes()}, reverse=True)
-        for r in rows:
-            self.stack.takeItem(r)
-            del self.style_stack[r]
-        self._on_stack_changed()
-
-    def _stack_move_up(self) -> None:
-        r: int = self.stack.currentRow()
-        if r <= 0:
-            return
-        self.style_stack[r - 1], self.style_stack[r] = (
-            self.style_stack[r], self.style_stack[r - 1])
-        it = self.stack.takeItem(r)
-        self.stack.insertItem(r - 1, it)
-        self.stack.setCurrentRow(r - 1)
-        self._on_stack_changed()
-
-    def _stack_move_down(self) -> None:
-        r: int = self.stack.currentRow()
-        if r < 0 or r >= self.stack.count() - 1:
-            return
-        self.style_stack[r + 1], self.style_stack[r] = (
-            self.style_stack[r], self.style_stack[r + 1])
-        it = self.stack.takeItem(r)
-        self.stack.insertItem(r + 1, it)
-        self.stack.setCurrentRow(r + 1)
-        self._on_stack_changed()
-
-    def _stack_result_to_table(self) -> None:
-        if not self.style_stack:
-            show_message(self, "style.stack_empty")
-            return
-        try:
-            with mpl.rc_context():
-                mplstyle.use(cast(Any, self.style_stack))
-                final = dict(mpl.rcParams)
-                defaults = dict(mpl.rcParamsDefault)
-                diffs = {
-                    k: _to_table_str(final[k])
-                    for k in final
-                    if str(final[k]) != str(defaults.get(k))
-                }
-                self._load_dict_into_table(diffs)
-                self.status.setText(
-                    f"Loaded {len(diffs)} differing parameter(s) from stack.")
-                self._preview_timer.start()
-        except Exception as ex:
-            show_message(self, "style.stack_failed", error=ex)
-
-    def _on_stack_changed(self) -> None:
-        n = len(self.style_stack)
-        self.status.setText(
-            f"Stack updated — {n} {'entry' if n == 1 else 'entries'}.")
-        self._preview_timer.start()
 
     # ======================================================================
     # DictEditor helpers
@@ -1014,12 +780,15 @@ class MplStyleEditorDialog(SettingsTableDialog):
         self._rebuild_editor(values)
 
     def _load_dict_into_table(self, d: dict[str, str]) -> None:
+        keys = set(style_rc_keys()) | set(d)
         self._param_schema = {
-            k: self._schema_for_key(k, str(v))
-            for k, v in sorted(d.items(), key=lambda kv: kv[0].lower())
+            key: self._schema_for_key(key, "")
+            for key in sorted(keys, key=str.lower)
         }
+        values: dict[str, object] = {key: "" for key in self._param_schema}
+        values.update(d)
         self.editor.set_config(self._param_schema)
-        self.editor.set_values(dict(d))
+        self.editor.set_values(values)
         self.editor.set_filter_text("")
 
 
@@ -1072,43 +841,16 @@ class MplStyleEditorDialog(SettingsTableDialog):
         self._preview_timer.start()
 
     def _remove_selected_rows(self) -> None:
-        key: str = self.editor.current_key() or ""
+        key = self.editor.current_key() or ""
         if not key:
             return
-        values: dict[str, object] = self._editor_values()
-        values.pop(key, None)
-        self._param_schema.pop(key, None)
-        self.editor.set_config(self._param_schema)
+        values = self._editor_values()
+        values[key] = ""
         self.editor.set_values(values)
-        self.status.setText(f"Removed '{key}'.")
-        self._preview_timer.start()
-
-    def _effective_value_for_key(self, key: str) -> object | None:
-        """Return the live rcParam value for *key* given current stack + overrides."""
-        try:
-            with mpl.rc_context():
-                if self.style_stack:
-                    mplstyle.use(cast(Any, self.style_stack))
-                overlay, _unused = self._collect_overrides()
-                for k, v in overlay.items():
-                    cast(Any, mpl.rcParams)[k] = v
-                return cast(Any, mpl.rcParams).get(key)
-        except Exception:
-            return None
-
-    def _add_param_from_picker(self) -> None:
-        key: str = self.rc_picker.selected_key().strip()
-        if not key:
-            return
-        if key in self._param_schema:
-            self.editor.set_current_key(key)
-            self.status.setText(f"'{key}' is already in the editor.")
-            return
-        val: object | None = self._effective_value_for_key(key)
-        self._append_row(key, _to_table_str(val) if val is not None else "")
         self.editor.set_current_key(key)
-        self.status.setText(f"Inserted '{key}'.")
+        self.status.setText(f"Cleared override for '{key}'.")
         self._preview_timer.start()
+
 
     # ======================================================================
     # Override collection and validation
@@ -1200,16 +942,6 @@ class MplStyleEditorDialog(SettingsTableDialog):
         style_dict, invalid = self._collect_overrides()
         try:
             with mpl.rc_context():
-                if self.style_stack:
-                    missing = [
-                        p for p in self.style_stack
-                        if os.path.isabs(p) and not os.path.exists(p)
-                    ]
-                    if missing:
-                        self.status.setText(
-                            f"Warning: {len(missing)} stack file(s) missing;"
-                            " preview uses available ones.")
-                    mplstyle.use(cast(Any, self.style_stack))
                 for k, v in style_dict.items():
                     cast(Any, mpl.rcParams)[k] = v
 
@@ -1225,9 +957,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
                 self.status.setToolTip(f"Last error for '{last[0]}':\n{last[2]}")
             else:
                 self.status.setText(
-                    f"Preview updated — "
-                    f"stack: {len(self.style_stack)} "
-                    f"overrides: {len(style_dict)}")
+                    f"Preview updated — overrides: {len(style_dict)}")
                 self.status.setToolTip("")
         except Exception as ex:
             self.status.setText(_("Preview failed — see error dialog."))
@@ -1286,15 +1016,10 @@ class MplStyleEditorDialog(SettingsTableDialog):
 
     def _current_merged_style(self) -> dict[str, object]:
         """
-        Return a merged rcParams dict (style stack applied, then overrides).
+        Return current defaults merged with the property-table overrides.
         Non-style keys are filtered out.
         """
         with mpl.rc_context():
-            if self.style_stack:
-                try:
-                    mplstyle.use(cast(Any, self.style_stack))
-                except Exception:
-                    pass
             overrides: dict[str, object]
             overrides, _unused = self._collect_overrides()
             for k, v in overrides.items():

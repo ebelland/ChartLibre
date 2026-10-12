@@ -13,47 +13,28 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QWidget
 
 from app.data.repo.operations import OperationRecord
 from app.data.sqlite_repo import SqliteRepo
-from app.styles.style import (
-    CardFrame,
-    apply_dialog_shell,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.styles.style import load_icon
 from app.utils import report_html
 from app.utils.i18n import _
 from app.widgets.html_results import HtmlResultsView, looks_like_html, plain_to_html
 
 
-class OperationHistoryDialog(QDialog):
+class OperationHistoryDialog(PanelDialog):
     """The recorded operations that read or wrote *table*; all of them when None."""
 
     def __init__(self, repo: SqliteRepo, table: str | None, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("History of {table}").format(table=table) if table else _("Project history"))
-        self.setWindowIcon(load_icon("operation_history"))
-
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
-
-        card = CardFrame(self, "operationHistoryCard")
-        card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_("History"), card))
+        super().__init__(parent, title=_("History of {table}").format(table=table) if table else _("Project history"),
+                         icon=load_icon("operation_history"))
+        card = self.add_card(_("History"), "operationHistoryCard", stretch=1)
         self._view = HtmlResultsView(card)
         self._view.setContent(history_html(table, repo.operations(table=table)))
-        card_layout.addWidget(self._view, 1)
-        root.addWidget(card, 1)
-
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(parent=self, action_id="dismiss", action=self.reject, layout=action_row)
-        root.addLayout(action_row, 0)
+        card.layout().addWidget(self._view, 1)
+        self.add_action("dismiss", self.reject)
 
 
 def _local_time(stamp: str) -> str:

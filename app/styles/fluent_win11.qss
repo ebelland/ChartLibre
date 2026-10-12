@@ -146,6 +146,13 @@ QFrame#ChartPanel {
     border-radius: 12px;
 }
 
+/* The guided analysis: the Analysis panel's way in, tinted with the accent
+   so it reads apart from the frames of analyses under it. */
+QFrame#guidedAnalysisCard {
+  background: rgba(@ACCENT_RGB@, 0.08);
+  border: 1px solid rgba(@ACCENT_RGB@, 0.22);
+}
+
 /* The Figure/Axis/Series properties panels (BaseProperties).
    White, not the window grey: the cards inside are white too, so on grey
    the panel read as grey gutters between white boxes - a different colour
@@ -842,10 +849,10 @@ TableListPanel QHeaderView::section:last {
 }
 
 /* -------------------------------
-   TablePreviewPanel
+   Data tables (preview, table editor): QTableView#dataTable
 -------------------------------- */
 
-TablePreviewPanel QTableView {
+QTableView#dataTable {
   border: 1px solid rgba(@SHADOW_RGB@, 0.08);
   border-radius: 8px;
   background: palette(base);
@@ -853,11 +860,11 @@ TablePreviewPanel QTableView {
   gridline-color: rgba(@SHADOW_RGB@, 0.06);
 }
 
-TablePreviewPanel QTableView::item {
+QTableView#dataTable::item {
   padding: 2px 8px;
 }
 
-TablePreviewPanel QHeaderView::section {
+QTableView#dataTable QHeaderView::section {
   background: palette(window);
   color: palette(window-text);
   font-size: 8pt;
@@ -870,8 +877,18 @@ TablePreviewPanel QHeaderView::section {
   border-right: 1px solid rgba(@SHADOW_RGB@, 0.06);
 }
 
-TablePreviewPanel QHeaderView::section:last {
+QTableView#dataTable QHeaderView::section:last {
   border-right: none;
+}
+
+/* Row numbers (the table editor shows them): a quiet gutter. */
+QTableView#dataTable QHeaderView::section:vertical,
+QTableView#dataTable QHeaderView::section:vertical:last {
+  font-weight: 400;
+  letter-spacing: 0;
+  padding: 0 8px;
+  border-bottom: none;
+  border-right: 1px solid rgba(@SHADOW_RGB@, 0.08);
 }
 
 /* -------------------------------

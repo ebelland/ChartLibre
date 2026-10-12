@@ -1,108 +1,118 @@
-"""Generic key/value editor driven by a schema.
-
-Given a mapping of names to metadata (type, default, allowed values, group,
-description), the panel builds the right inline editor per entry: colour picker,
-checkbox, spin box, combo, or free text.  It is what makes the renderer
-``Kwargs`` schemas and the rcParams override table editable without either of
-them writing UI code.
-"""
+"""Generic schema-driven key/value property editor."""
 from __future__ import annotations
 
 import ast
 from collections.abc import Mapping
 from typing import Any
 
-from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtWidgets import QApplication, QBoxLayout, QCheckBox, QComboBox, QDoubleSpinBox, QHBoxLayout, QHeaderView, QLineEdit, QSizePolicy, QSpinBox, QStyledItemDelegate, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
-
-from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
-from app.widgets.drop_down_controls.line_combo import LineStyleCombo
-from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
-from app.styles.style import apply_fusion_for_item_view_styling, mark_editor_panel, stdSizeAndlayout
-from app.utils.i18n import _
-
-
-_KIND_BY_EXACT_KEY: dict[str, str] = {
-    "color": "color",
-    "c": "color",
-    "facecolor": "color",
-    "facecolors": "color",
-    "edgecolor": "color",
-    "edgecolors": "color",
-    "markerfacecolor": "color",
-    "markeredgecolor": "color",
-    "mfc": "color",
-    "mec": "color",
-    "ecolor": "color",
-    "labelcolor": "color",
-    "linestyle": "linestyle",
-    "ls": "linestyle",
-    "marker": "marker",
-    "alpha": "number",
-    "linewidth": "number",
-    "linewidths": "number",
-    "lw": "number",
-    "markersize": "number",
-    "ms": "number",
-    "capsize": "number",
-    "pickradius": "number",
-    "zorder": "number",
-    "dpi": "number",
-    "visible": "bool",
-    "animated": "bool",
-    "clip_on": "bool",
-    "in_layout": "bool",
-    "rasterized": "bool",
-    "fill": "bool",
-    "frameon": "bool",
-    "show_legend": "bool",
-    "show_in_legend": "bool",
-    "sort_x": "bool",
-    "log": "bool",
-    "joinstyle": "joinstyle",
-    "capstyle": "capstyle",
-}
-
-_SUFFIX_KIND_RULES: tuple[tuple[str, str], ...] = (
-    ("color", "color"),
-    ("edgecolor", "color"),
-    ("facecolor", "color"),
-    ("labelcolor", "color"),
-    ("linestyle", "linestyle"),
-    ("marker", "marker"),
-    ("linewidth", "number"),
-    ("markersize", "number"),
-    ("dpi", "number"),
-    ("alpha", "number"),
-    ("joinstyle", "joinstyle"),
-    ("capstyle", "capstyle"),
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtWidgets import (
+    QApplication,
+    QBoxLayout,
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLineEdit,
+    QSizePolicy,
+    QSpinBox,
+    QStyledItemDelegate,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
+from app.styles.style import (
+    apply_fusion_for_item_view_styling,
+    mark_editor_panel,
+    stdSizeAndlayout,
+)
+from app.utils.i18n import _
+from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
+from app.widgets.drop_down_controls.font_combo import MatplotlibFontCombo
+from app.widgets.drop_down_controls.line_combo import LineStyleCombo
+from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
+
+_KIND_BY_EXACT_KEY: dict[str, str] = {
+    # Colour aliases and common artist kwargs.
+    "color": "color", "c": "color", "facecolor": "color",
+    "facecolors": "color", "edgecolor": "color", "edgecolors": "color",
+    "markerfacecolor": "color", "markeredgecolor": "color",
+    "mfc": "color", "mec": "color", "ecolor": "color",
+    "labelcolor": "color",
+    # Line and marker helpers.
+    "linestyle": "linestyle", "ls": "linestyle", "marker": "marker",
+    "joinstyle": "joinstyle", "capstyle": "capstyle",
+    # Font-family lists. The rcParams schema normally sets this explicitly,
+    # but exact recognition also makes the shared editor work independently.
+    "font.family": "fontlist", "font.serif": "fontlist",
+    "font.sans-serif": "fontlist", "font.monospace": "fontlist",
+    "font.cursive": "fontlist", "font.fantasy": "fontlist",
+    "fontfamily": "fontlist", "font_family": "fontlist",
+    # Numeric artist kwargs.
+    "alpha": "number", "linewidth": "number", "linewidths": "number",
+    "lw": "number", "markersize": "number", "ms": "number",
+    "markeredgewidth": "number", "mew": "number", "capsize": "number",
+    "capthick": "number", "pickradius": "number", "zorder": "number",
+    "dpi": "number", "fontsize": "number", "size": "number",
+    "rotation": "number", "pad": "number",
+    # Boolean artist kwargs.
+    "visible": "bool", "animated": "bool", "antialiased": "bool",
+    "antialiaseds": "bool", "aa": "bool", "clip_on": "bool",
+    "in_layout": "bool", "rasterized": "bool", "fill": "bool",
+    "frameon": "bool", "show_legend": "bool", "show_in_legend": "bool",
+    "sort_x": "bool", "log": "bool", "grid": "bool",
+}
+
+# Ordered from specialised endings to broad endings. For example,
+# markerfacecolor must be recognised as a colour before marker is considered.
+_SUFFIX_KIND_RULES: tuple[tuple[str, str], ...] = (
+    # Font lists.
+    (".font.family", "fontlist"), (".font.serif", "fontlist"),
+    (".font.sans-serif", "fontlist"), (".font.monospace", "fontlist"),
+    (".font.cursive", "fontlist"), (".font.fantasy", "fontlist"),
+    ("font_family", "fontlist"), ("fontfamily", "fontlist"),
+    # Colours, most specific first.
+    ("markeredgecolor", "color"), ("markerfacecolor", "color"),
+    ("labelcolor", "color"), ("gridcolor", "color"),
+    ("edgecolor", "color"), ("facecolor", "color"),
+    ("tick.color", "color"), ("tick.labelcolor", "color"),
+    (".color", "color"), ("color", "color"),
+    # Line and marker selectors.
+    ("linestyle", "linestyle"), ("joinstyle", "joinstyle"),
+    ("capstyle", "capstyle"), ("marker", "marker"),
+    # Booleans.
+    ("antialiased", "bool"), ("clip_on", "bool"),
+    ("in_layout", "bool"), ("rasterized", "bool"),
+    ("frameon", "bool"), ("visible", "bool"), ("animated", "bool"),
+    (".grid", "bool"), (".fill", "bool"),
+    # Numeric values. Avoid a generic 'size' rule because figsize and list-like
+    # sizes are not scalar spin-box values.
+    ("markeredgewidth", "number"), ("linewidth", "number"),
+    ("markersize", "number"), ("fontsize", "number"),
+    ("pickradius", "number"), ("capsize", "number"),
+    ("capthick", "number"), ("zorder", "number"),
+    ("rotation", "number"), (".dpi", "number"),
+    (".alpha", "number"), ("alpha", "number"),
+    ("labelpad", "number"), ("titlepad", "number"),
+)
 _JOINSTYLE_CHOICES = ["miter", "round", "bevel"]
 _CAPSTYLE_CHOICES = ["butt", "round", "projecting"]
 _GROUP_ORDER = [
-    "Appearance",
-    "Line",
-    "Marker",
-    "Patch",
-    "Error bars",
-    "Geometry",
-    "Text",
-    "Behavior",
-    "Other",
+    "Appearance", "Line", "Marker", "Patch", "Error bars", "Geometry",
+    "Text", "Behavior", "Other",
 ]
-
 _MIN_ROW_HEIGHT = 30
 _EDITOR_MIN_HEIGHT = 26
-_DEFAULT_PROPERTY_COLUMN_WIDTH = 230
-_DEFAULT_VALUE_COLUMN_WIDTH = 260
+_DEFAULT_PROPERTY_COLUMN_WIDTH = 310
+_DEFAULT_VALUE_COLUMN_WIDTH = 170
 _DEFAULT_MIN_PANEL_HEIGHT = 360
 
 
 def _normalize_meta(meta: object) -> dict[str, Any]:
-    if isinstance(meta, dict):
-        return dict(meta)
-    return {"default": meta}
+    return dict(meta) if isinstance(meta, dict) else {"default": meta}
 
 
 def _value_to_text(value: object) -> str:
@@ -120,32 +130,16 @@ def _parse_text_value(text: str) -> object:
 
 
 def _truthy(value: Any) -> bool:
-    """A boolean read from a style file or a box: "False" is false, not a non-empty string."""
     if isinstance(value, str):
         return value.strip().lower() in {"true", "1", "yes", "on"}
     return bool(value)
 
 
 def _make_check_item(item: QTreeWidgetItem, value: Any) -> None:
-    """Turn one row's value column into an always-visible checkbox.
-
-    A boolean used to be text that became a checkbox only while the row was
-    being edited: two clicks to change, and on macOS the editor's box sat
-    where the delegate put it rather than where the row was, so a click often
-    missed it entirely and the setting appeared not to work.
-
-    A check state is drawn by the view itself, so the box is there whether or
-    not anything is being edited, and one click toggles it on every platform.
-    The text is cleared because the box already says True or False, and a
-    label beside it would only be a second answer to the same question.
-
-    Not ItemIsUserCheckable: the view drawing the box needs only the check
-    state. With the flag, a click on the box itself was toggled by the view
-    and again by the row's own click handler, so it changed nothing; now the
-    handler is the one place a click toggles, wherever on the row it lands.
-    """
     item.setFlags(
-        item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable & ~Qt.ItemFlag.ItemIsEditable
+        item.flags()
+        & ~Qt.ItemFlag.ItemIsUserCheckable
+        & ~Qt.ItemFlag.ItemIsEditable
     )
     item.setText(1, "")
     item.setCheckState(
@@ -157,7 +151,6 @@ def _kind_for_key(key: str, meta: Mapping[str, Any]) -> str:
     explicit = meta.get("kind", meta.get("editor"))
     if explicit:
         return str(explicit).strip().lower()
-
     value_type = meta.get("type")
     if isinstance(value_type, list):
         return "enum"
@@ -165,14 +158,12 @@ def _kind_for_key(key: str, meta: Mapping[str, Any]) -> str:
         return "bool"
     if value_type in (int, float):
         return "number"
-
     lower = key.strip().lower()
     if lower in _KIND_BY_EXACT_KEY:
         return _KIND_BY_EXACT_KEY[lower]
     for suffix, kind in _SUFFIX_KIND_RULES:
         if lower.endswith(suffix):
             return kind
-
     default = meta.get("default")
     if isinstance(default, bool):
         return "bool"
@@ -185,7 +176,6 @@ def _group_for_key(key: str, meta: Mapping[str, Any], kind: str) -> str:
     explicit = meta.get("group")
     if explicit:
         return str(explicit)
-
     lower = key.strip().lower()
     if kind == "linestyle" or lower in {"linewidth", "linewidths", "lw", "alpha"}:
         return "Line"
@@ -197,7 +187,7 @@ def _group_for_key(key: str, meta: Mapping[str, Any], kind: str) -> str:
         return "Error bars"
     if lower in {"width", "height", "bottom", "left", "align"}:
         return "Geometry"
-    if lower in {"label", "tick_label", "url", "gid"}:
+    if lower in {"label", "tick_label", "url", "gid"} or kind == "fontlist":
         return "Text"
     if kind == "bool" or lower in {"zorder", "picker", "snap", "clip_on", "animated", "rasterized"}:
         return "Behavior"
@@ -207,7 +197,7 @@ def _group_for_key(key: str, meta: Mapping[str, Any], kind: str) -> str:
 
 
 class DictValueDelegate(QStyledItemDelegate):
-    """Value delegate with matplotlib-style custom editors."""
+    """Value delegate supplying type-aware inline editors."""
 
     def __init__(self, panel: "DictEditorPanel", parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -218,33 +208,29 @@ class DictValueDelegate(QStyledItemDelegate):
         size.setHeight(max(size.height(), _MIN_ROW_HEIGHT))
         return size
 
-    # Returning None (no editor) is valid Qt; the stub only admits QWidget.
-    def createEditor(self, parent: QWidget, option, index):  # noqa: N802, ANN001, ANN201  # pyright: ignore[reportIncompatibleMethodOverride]
+    def createEditor(self, parent: QWidget, option, index):  # noqa: N802, ANN001, ANN201
         if index.column() != 1:
             return None
         key = self._panel.key_from_index(index)
         if key is None:
             return None
-
         meta = self._panel.meta_for_key(key)
         kind = self._panel.kind_for_key(key)
-
         if kind == "bool":
-            # None: the row carries a real checkbox of its own, drawn and
-            # clickable whether or not anything is being edited. An editor
-            # here would put a second one on top of it - and on macOS that
-            # one had to be found and hit before it would take a click at
-            # all, which is what made the boolean rows feel broken there.
             return None
-
         if kind == "color":
             editor = MatplotlibColorCombo(parent, include_none=True)
+        elif kind == "fontlist":
+            editor = MatplotlibFontCombo(
+                parent,
+                include_none=True,
+                include_generic=True,
+                extra_fonts=meta.get("choices", ()),
+            )
         elif kind == "linestyle":
             editor = LineStyleCombo(parent)
         elif kind == "marker":
             editor = MarkerStyleCombo(parent)
-        elif kind == "bool":
-            editor = QCheckBox(parent)
         elif kind == "number":
             if meta.get("type") is int:
                 editor = QSpinBox(parent)
@@ -261,12 +247,6 @@ class DictValueDelegate(QStyledItemDelegate):
                 )
                 editor.setDecimals(int(str(meta.get("decimals", 6))))
                 editor.setSingleStep(float(str(meta.get("step", 0.1))))
-        elif kind == "fontlist":
-            # Font families: an editable list of the ones Matplotlib can use,
-            # typed names still accepted.
-            editor = QComboBox(parent)
-            editor.setEditable(True)
-            editor.addItems([str(choice) for choice in meta.get("choices", [])])
         elif kind in {"enum", "joinstyle", "capstyle", "loc"}:
             editor = QComboBox(parent)
             if kind == "joinstyle":
@@ -277,16 +257,11 @@ class DictValueDelegate(QStyledItemDelegate):
                 choices = list(meta.get("choices", meta.get("type", [])) or [])
             for choice in choices:
                 editor.addItem("" if choice is None else str(choice), choice)
-            # A list that also takes a number (a font size is "large" or 12).
             editor.setEditable(bool(meta.get("editable")))
         else:
             editor = QLineEdit(parent)
-
         editor.setMinimumHeight(_EDITOR_MIN_HEIGHT)
         if isinstance(editor, QComboBox):
-            # The sheets draw a read-only combo see-through; over a cell that
-            # let the cell's own text show through the editor's. See the
-            # [cellEditor="true"] rule in the stylesheets.
             editor.setProperty("cellEditor", True)
         return editor
 
@@ -296,12 +271,23 @@ class DictValueDelegate(QStyledItemDelegate):
             return
         value = self._panel.value_for_key(key)
         text = _value_to_text(value)
-
         if isinstance(editor, MatplotlibColorCombo):
             if text == "":
                 editor.setCurrentIndex(0)
             elif not editor.set_current_hex(text):
                 editor.set_current_name(text)
+            return
+        if isinstance(editor, MatplotlibFontCombo):
+            if isinstance(value, (list, tuple)):
+                family = value[0] if value else None
+            else:
+                parsed = _parse_text_value(text)
+                family = (
+                    parsed[0]
+                    if isinstance(parsed, (list, tuple)) and parsed
+                    else text.split(",", 1)[0].strip()
+                )
+            editor.set_current_font(family)
             return
         if isinstance(editor, LineStyleCombo):
             editor.set_current_linestyle(text)
@@ -311,10 +297,6 @@ class DictValueDelegate(QStyledItemDelegate):
             return
         if isinstance(editor, QCheckBox):
             editor.setChecked(_truthy(value))
-            return
-        if isinstance(editor, QComboBox) and editor.isEditable() and self._panel.kind_for_key(key) == "fontlist":
-            first = value[0] if isinstance(value, (list, tuple)) and value else text.split(",")[0]
-            editor.setCurrentText(str(first).strip())
             return
         if isinstance(editor, QDoubleSpinBox):
             if text:
@@ -340,15 +322,21 @@ class DictValueDelegate(QStyledItemDelegate):
         if isinstance(editor, QLineEdit):
             editor.setText(text)
             editor.selectAll()
-            return
 
     def setModelData(self, editor, model, index) -> None:  # noqa: N802, ANN001
         key = self._panel.key_from_index(index)
         if key is None:
             return
-
         if isinstance(editor, MatplotlibColorCombo):
             value: object = editor.current_hex() or None
+        elif isinstance(editor, MatplotlibFontCombo):
+            selected = editor.current_font()
+            previous = self._panel.value_for_key(key)
+            fallbacks = [str(v) for v in previous] if isinstance(previous, (list, tuple)) else []
+            value = (
+                [selected, *[family for family in fallbacks if family != selected]]
+                if selected else None
+            )
         elif isinstance(editor, LineStyleCombo):
             value = editor.current_linestyle()
         elif isinstance(editor, MarkerStyleCombo):
@@ -359,12 +347,6 @@ class DictValueDelegate(QStyledItemDelegate):
             value = editor.value()
         elif isinstance(editor, QSpinBox):
             value = editor.value()
-        elif isinstance(editor, QComboBox) and editor.isEditable() and self._panel.kind_for_key(key) == "fontlist":
-            chosen = editor.currentText().strip()
-            previous = self._panel.value_for_key(key)
-            rest = [str(v) for v in previous] if isinstance(previous, (list, tuple)) else []
-            # The chosen family first; the rest stay as fallbacks.
-            value = [chosen] + [v for v in rest if v != chosen] if chosen else rest
         elif isinstance(editor, QComboBox) and editor.isEditable():
             value = _parse_text_value(editor.currentText())
         elif isinstance(editor, QComboBox):
@@ -373,59 +355,44 @@ class DictValueDelegate(QStyledItemDelegate):
             value = _parse_text_value(editor.text())
         else:
             value = None
-
         self._panel.set_value_for_key(key, value)
         model.setData(index, self._panel._display_text(key, value), Qt.ItemDataRole.DisplayRole)
         model.setData(index, value, Qt.ItemDataRole.UserRole)
 
 
 class DictEditorPanel(QWidget):
-    """Qt-Designer-like property editor for dictionary values.
-
-    Groups are collapsed by default. Searching temporarily expands groups that
-    contain matches. The widget expands vertically and horizontally to fill the
-    host layout.
-    """
+    """Qt-Designer-like grouped property editor for dictionary values."""
 
     valuesChanged = Signal(dict)
 
-    def __init__(self, config: Mapping[str, object] | None = None, parent: QWidget | None = None):
+    def __init__(
+        self,
+        config: Mapping[str, object] | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
         self.config: dict[str, dict[str, Any]] = {}
         self._values: dict[str, object] = {}
         self._key_items: dict[str, QTreeWidgetItem] = {}
         self._group_items: dict[str, QTreeWidgetItem] = {}
         self._updating = False
-
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumHeight(_DEFAULT_MIN_PANEL_HEIGHT)
-
         layout = QVBoxLayout(self)
         stdSizeAndlayout(layout)
-
-        # The search box lives on a row of its own rather than straight in
-        # the column, so a host can put its own controls beside it - see
-        # add_search_row_widget. AxisPropertiesWidget's "reset to style"
-        # button is the row's only other occupant today, and it belongs
-        # there rather than above: one strip of chrome over the tree reads
-        # as one thing to do with the tree, two read as two.
         self._search_row = QWidget(self)
         search_lay = QHBoxLayout(self._search_row)
         search_lay.setContentsMargins(0, 0, 0, 0)
         search_lay.setSpacing(8)
-
         self.search_edit = QLineEdit(self._search_row)
         self.search_edit.setPlaceholderText(_("Search properties..."))
         stdSizeAndlayout(self.search_edit)
         self.search_edit.textChanged.connect(self._apply_filter)
         search_lay.addWidget(self.search_edit, 1)
         layout.addWidget(self._search_row, 0)
-
         self.tree = QTreeWidget(self)
         self.tree.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         mark_editor_panel(self.tree)
-        # Fusion draws the boolean rows' check boxes: the native macOS
-        # style drew an unchecked one as nothing at all.
         apply_fusion_for_item_view_styling(self.tree)
         self.tree.setMinimumHeight(_DEFAULT_MIN_PANEL_HEIGHT - 32)
         self.tree.setColumnCount(2)
@@ -435,15 +402,12 @@ class DictEditorPanel(QWidget):
         self.tree.setUniformRowHeights(False)
         self.tree.setIconSize(QSize(20, 20))
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
-        # A single click edits (see _on_item_clicked); only the value column
-        # is ever edited, so the property names cannot be changed by mistake.
         self.tree.setEditTriggers(QTreeWidget.EditTrigger.EditKeyPressed)
         self.tree.itemClicked.connect(self._on_item_clicked)
         self.tree.setItemDelegateForColumn(1, DictValueDelegate(self, self.tree))
         self._configure_header()
         self.tree.itemChanged.connect(self._on_item_changed)
         layout.addWidget(self.tree, 1)
-
         self.set_config(config or {})
 
     def _configure_header(self) -> None:
@@ -455,17 +419,8 @@ class DictEditorPanel(QWidget):
         header.setMinimumSectionSize(60)
         header.resizeSection(0, _DEFAULT_PROPERTY_COLUMN_WIDTH)
         header.resizeSection(1, _DEFAULT_VALUE_COLUMN_WIDTH)
-        self.tree.setColumnWidth(0, _DEFAULT_PROPERTY_COLUMN_WIDTH)
-        self.tree.setColumnWidth(1, _DEFAULT_VALUE_COLUMN_WIDTH)
 
     def add_search_row_widget(self, widget: QWidget) -> None:
-        """Put *widget* on the search row, to the right of the search box.
-
-        For a host that has one control belonging to this whole editor
-        rather than to any one row of it - a "reset everything" button,
-        say. Reparented onto the row, so the host does not have to place
-        it and the two cannot drift apart.
-        """
         widget.setParent(self._search_row)
         row_layout = self._search_row.layout()
         if isinstance(row_layout, QBoxLayout):
@@ -574,25 +529,19 @@ class DictEditorPanel(QWidget):
         self.tree.clear()
         self._key_items.clear()
         self._group_items.clear()
-
         grouped: dict[str, list[str]] = {}
         for key, meta in self.config.items():
             group = _group_for_key(key, meta, self.kind_for_key(key))
             grouped.setdefault(group, []).append(key)
-
-        ordered_groups = [group for group in _GROUP_ORDER if group in grouped]
-        ordered_groups.extend(sorted(group for group in grouped if group not in ordered_groups))
-
-        for group in ordered_groups:
+        ordered = [group for group in _GROUP_ORDER if group in grouped]
+        ordered.extend(sorted(group for group in grouped if group not in ordered))
+        for group in ordered:
             group_item = QTreeWidgetItem(self.tree, [group, ""])
             group_item.setData(0, Qt.ItemDataRole.UserRole, None)
             group_item.setFlags(group_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             group_item.setExpanded(False)
             group_item.setFirstColumnSpanned(True)
-            group_item.setSizeHint(0, QSize(0, _MIN_ROW_HEIGHT))
-            group_item.setSizeHint(1, QSize(0, _MIN_ROW_HEIGHT))
             self._group_items[group] = group_item
-
             for key in grouped[group]:
                 meta = self.config[key]
                 value = self._values.get(key)
@@ -609,7 +558,6 @@ class DictEditorPanel(QWidget):
                 item.setSizeHint(0, QSize(0, _MIN_ROW_HEIGHT))
                 item.setSizeHint(1, QSize(0, _MIN_ROW_HEIGHT))
                 self._key_items[key] = item
-
         self.tree.blockSignals(False)
         self._configure_header()
         self._apply_filter()
@@ -628,7 +576,6 @@ class DictEditorPanel(QWidget):
         self.tree.blockSignals(False)
 
     def _display_text(self, key: str, value: object) -> str:
-        """A font list reads as "serif, DejaVu Serif", not as a Python list."""
         if self.kind_for_key(key) == "fontlist":
             if isinstance(value, str):
                 parsed = _parse_text_value(value)
@@ -638,15 +585,11 @@ class DictEditorPanel(QWidget):
         return _value_to_text(value)
 
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int) -> None:
-        """One click edits: a yes/no toggles, anything else opens its editor.
-
-        The only place a boolean row is toggled (see _make_check_item), so
-        a click on the box and a click beside it do the same thing.
-        """
         key = item.data(0, Qt.ItemDataRole.UserRole)
         if not key:
             return
-        if self.kind_for_key(str(key)) == "bool":
+        key_str = str(key)
+        if self.kind_for_key(key_str) == "bool":
             item.setCheckState(
                 1,
                 Qt.CheckState.Unchecked
@@ -654,7 +597,25 @@ class DictEditorPanel(QWidget):
                 else Qt.CheckState.Checked,
             )
             return
+
+        # Always activate the value cell, even when the property-name column
+        # was clicked. editItem() schedules delegate creation, so open combo
+        # popups on the next event-loop turn after the editor exists.
+        self.tree.setCurrentItem(item, 1)
         self.tree.editItem(item, 1)
+        if self.kind_for_key(key_str) in {
+            "fontlist", "color", "linestyle", "marker",
+            "enum", "joinstyle", "capstyle", "loc",
+        }:
+            QTimer.singleShot(0, lambda current=item: self._open_combo_editor(current))
+
+    def _open_combo_editor(self, item: QTreeWidgetItem) -> None:
+        """Open the combo created by the value delegate for *item*."""
+        index = self.tree.indexFromItem(item, 1)
+        editor = self.tree.indexWidget(index)
+        if isinstance(editor, QComboBox):
+            editor.setFocus(Qt.FocusReason.MouseFocusReason)
+            editor.showPopup()
 
     def _on_item_changed(self, item: QTreeWidgetItem, column: int) -> None:
         if self._updating or column != 1:
@@ -663,14 +624,10 @@ class DictEditorPanel(QWidget):
         if not key:
             return
         key_str = str(key)
-
         if self.kind_for_key(key_str) == "bool":
-            # The box is the value. Reading item.text(1) here would parse the
-            # empty label beside it and turn every toggle into False.
             value: object = item.checkState(1) == Qt.CheckState.Checked
         else:
             value = self._coerce_value_from_text(key_str, item.text(1))
-
         self._values[key_str] = value
         item.setData(1, Qt.ItemDataRole.UserRole, value)
         self._emit_values_changed()
@@ -698,18 +655,17 @@ class DictEditorPanel(QWidget):
             visible_children = 0
             for index in range(group_item.childCount()):
                 child = group_item.child(index)
+                if child is None:
+                    continue
                 key = str(child.data(0, Qt.ItemDataRole.UserRole) or "")
+                if not key or key not in self.config:
+                    child.setHidden(True)
+                    continue
                 meta = self.config[key]
-                haystack = " ".join(
-                    [
-                        key,
-                        str(meta.get("label", "")),
-                        str(meta.get("description", "")),
-                        self.kind_for_key(key),
-                        _value_to_text(self._values.get(key)),
-                        group,
-                    ]
-                ).lower()
+                haystack = " ".join([
+                    key, str(meta.get("label", "")), str(meta.get("description", "")),
+                    self.kind_for_key(key), _value_to_text(self._values.get(key)), group,
+                ]).lower()
                 visible = not needle or needle in haystack or group_match
                 child.setHidden(not visible)
                 if visible:

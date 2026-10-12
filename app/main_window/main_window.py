@@ -38,6 +38,7 @@ from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.chart_panel import ChartPanel
 from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
 from app.widgets.analysis_panel import AnalysisPanel
+from app.widgets.guided_panel import GuidedAnalysisPanel
 from app.scanners.table_operation_scanner import import_class_from_file as import_table_operation
 from app.widgets.recent_projects import RecentProjectsView
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
@@ -230,6 +231,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         for keys, step in (("Ctrl+[", -1), ("Ctrl+]", +1)):
             shortcut = QShortcut(QKeySequence(keys), self)
             shortcut.activated.connect(lambda s=step: self._step_chart(s))
+        # Cmd/Ctrl+K: search everything the application can do, from anywhere.
+        QShortcut(QKeySequence("Ctrl+K"), self).activated.connect(self.open_catalog_palette)
         self._configure_left_panel()
 
         # Main split: left panel + chart tabs.
@@ -600,26 +603,26 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             QMessageBox.warning(self, _("New Blank Table"), str(exc))
 
     def _create_file_page(self) -> NavPanel:
-        """Workspace, Demo, Import, Save, Export and Open recent.
+        """Workspace, Import, Save, Project information, Export, Demo, Open recent.
 
-        Load demo has a frame of its own, not a place under Help: starting
-        from a demo is a way of starting, not a piece of documentation.
         Import adds tables to the open project, where New and Open replace
-        it - a different kind of step, so a frame of its own too.
+        it - a different kind of step, so a frame of its own. The report and
+        the demos say in a sentence what they do, under their button.
         """
         page = NavPanel(self)
         page.add_buttons(_("Workspace"), [
             NavButton("new", self._on_new_file),
             NavButton("open", self._on_open_database),
-            NavButton("project_info", self._on_project_info),
         ], object_name="fileWorkspaceCard")
-        page.add_buttons(_("Demo"), [NavButton("load_demo", self._on_load_demo, described=True)],
-                         object_name="fileDemoCard")
         page.add_buttons(_("Import"), [NavButton("import", self._on_import_data)], object_name="fileImportCard")
         page.add_buttons(_("Save"), [NavButton("save", self._on_save), NavButton("save_as", self._on_save_as)],
                          object_name="fileSaveCard")
-        page.add_buttons(_("Export"), [NavButton("project_report", self._on_project_report)],
+        page.add_buttons(_("Project information"), [NavButton("project_info", self._on_project_info)],
+                         object_name="fileProjectInfoCard")
+        page.add_buttons(_("Export"), [NavButton("project_report", self._on_project_report, described=True)],
                          object_name="fileExportCard")
+        page.add_buttons(_("Demo"), [NavButton("load_demo", self._on_load_demo, described=True)],
+                         object_name="fileDemoCard")
         self._recent_view = RecentProjectsView(page)
         self._recent_view.open_requested.connect(self._on_open_recent)
         self._recent_view.clear_requested.connect(self._on_clear_recent)
@@ -667,6 +670,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         series_operations_panel = self._create_series_operations_page()
         analysis_panel = AnalysisPanel(self)
         analysis_panel.operation_requested.connect(self._on_table_operation_requested)
+        guided_panel = GuidedAnalysisPanel(self)
+        guided_panel.entry_requested.connect(self.open_catalog_entry)
         developer_panel = self._create_developer_page()
 
         sections: dict[str, dict[str, NavBarItem]] = {
@@ -692,8 +697,12 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                     chart_properties_panel, _("Edit the current chart"),
                 ),
                 "series_operations": NavBarItem(
-                    _("Series operations"), self._navigation_icon("nav_series_operations"),
-                    series_operations_panel, _("Transform or analyse chart series"),
+                    _("Data operations"), self._navigation_icon("nav_series_operations"),
+                    series_operations_panel, _("Transform or analyse a chart's series or a table's columns"),
+                ),
+                "guided": NavBarItem(
+                    _("Guided analysis"), self._navigation_icon("nav_guided"),
+                    guided_panel, _("Find the function for what you want to find out"),
                 ),
                 "analysis": NavBarItem(
                     _("Analysis"), self._navigation_icon("nav_analysis"),
@@ -1066,6 +1075,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         *,
         table: str | None = None,
         columns: list[str] | None = None,
+        chart_type: str | None = None,
     ) -> None:
         """Create a chart tab, optionally using the operation-list icon.
 
@@ -1082,6 +1092,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             preferred_columns=columns,
             parent=self,
         )
+        if chart_type:
+            dialog.select_chart_type(chart_type)
 
         if icon is None or icon.isNull():
             icon = SeriesOperationWidget.plugin_icon(
@@ -1102,6 +1114,47 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             # the figure the new axis went into.
             result = dialog.chart_result
             self._reload_tabs(select_figure_id=result.figure_id if result is not None else None)
+
+    # ------------------------------------------------------------------
+    # Search (the Analysis panel's Search frame, Cmd/Ctrl+K)
+    # ------------------------------------------------------------------
+
+    def open_catalog_palette(self) -> None:
+        """The search in a window of its own; what is chosen there opens."""
+        from app.widgets.catalog_search import CatalogPalette
+
+        palette = CatalogPalette(self)
+        if palette.exec() and palette.chosen is not None:
+            self.open_catalog_entry(palette.chosen)
+
+    def open_catalog_entry(self, entry) -> None:
+        """Open what a search found: an analysis, a series operation, a chart type, a table tool."""
+        from app.analysis import catalog
+
+        if entry.kind == catalog.ANALYSIS:
+            self._on_table_operation_requested(entry.payload)
+        elif entry.kind == catalog.SERIES:
+            if entry.payload.get("name") != "NewPlotTabDialog" and self._current_chart_panel() is None:
+                show_message(self, "catalog.open_a_chart", name=_(entry.name))
+                return
+            self._on_series_operation_requested(entry.payload)
+        elif entry.kind == catalog.CHART:
+            self._on_new_plot_tab(chart_type=str(entry.payload))
+        elif entry.kind == catalog.TOOL:
+            if entry.payload == "edit_table":
+                if not self._table_panel.edit_selected_table():
+                    show_message(self, "catalog.select_a_table", name=_(entry.name))
+                return
+            handlers = {
+                "doe": self._on_new_table_from_doe,
+                "import": self._on_import_data,
+                "import_database": self._on_database_table_import,
+                "query": self._on_create_query_table,
+                "new_table": self._on_new_blank_table,
+            }
+            handler = handlers.get(str(entry.payload))
+            if handler is not None:
+                handler()
 
     def refresh(self, *, reload_preview: bool = True) -> None:
         """Bring the chart, the tables and the properties back in step with the project.

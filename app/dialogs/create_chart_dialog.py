@@ -542,6 +542,10 @@ class NewPlotTabDialog(QDialog):
                     self._clear_other_selections(renderer_list)
                     return
 
+    def select_chart_type(self, name: str) -> bool:
+        """Choose the chart type *name* (the search opens New plot on one); whether it exists."""
+        return self._select_renderer_by_name(name)
+
     def _select_renderer_by_name(self, name: str) -> bool:
         """Select the renderer *name* if it exists in any section.
 

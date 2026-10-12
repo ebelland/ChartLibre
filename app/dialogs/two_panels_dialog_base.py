@@ -1,4 +1,10 @@
-"""Shared two-column shell for settings-and-preview dialogs."""
+"""The dialog shells: one column of titled frames, or settings beside content.
+
+``PanelDialog`` is the base: the shared margins and size, a column of
+titled frames (``add_card``) and the row of buttons under them
+(``add_action``). ``SettingsTableDialog`` puts two frames side by side in
+that column - fixed settings on the left, the content on the right.
+"""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -7,6 +13,7 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QSizePolicy, QVBoxLayout, QW
 
 from app.styles.style import (
     CardFrame,
+    TitledCard,
     apply_dialog_shell,
     create_action_button,
     create_compact_section_title,
@@ -14,7 +21,48 @@ from app.styles.style import (
 )
 
 
-class SettingsTableDialog(QDialog):
+class PanelDialog(QDialog):
+    """A dialog of titled frames, one under the other, over a row of buttons."""
+
+    def __init__(self, parent: QWidget | None = None, *, title: str, icon=None, size: str | None = "small") -> None:
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        if icon is not None:
+            self.setWindowIcon(icon)
+        self.root_layout = QVBoxLayout(self)
+        apply_dialog_shell(self, self.root_layout, size=size)
+        #: Where the frames go: add_card, or any widget or layout.
+        self.body_layout = QVBoxLayout()
+        self.body_layout.setContentsMargins(0, 0, 0, 0)
+        self.root_layout.addLayout(self.body_layout, 1)
+        self.action_row = QHBoxLayout()
+        stdSizeAndlayout(self.action_row)
+        self.action_row.addStretch(1)
+        self.root_layout.addLayout(self.action_row)
+
+    def add_card(self, title: str, object_name: str | None = None, *, stretch: int = 0) -> CardFrame:
+        """A frame titled *title* (the title above its box); its box, to fill."""
+        titled = TitledCard(self, title, object_name)
+        self.body_layout.addWidget(titled, stretch)
+        if stretch:
+            titled.layout().setStretchFactor(titled.card, 1)
+        return titled.card
+
+    def add_action(self, action_id: str, action: Callable[[], None], *, default: bool = False, presentation=None,
+                   left: bool = False):
+        """A button in the bottom row, from the action catalogue; *left* puts it apart, at the left."""
+        kwargs = {} if presentation is None else {"presentation": presentation}
+        button = create_action_button(parent=self, action_id=action_id, action=action, layout=self.action_row,
+                                      **kwargs)
+        if left:
+            self.action_row.removeWidget(button)
+            self.action_row.insertWidget(0, button)
+        if default:
+            button.setDefault(True)
+        return button
+
+
+class SettingsTableDialog(PanelDialog):
     """Standard dialog with fixed settings on the left and content on the right."""
 
     SETTINGS_WIDTH = 420
@@ -30,13 +78,7 @@ class SettingsTableDialog(QDialog):
         size: str = "medium",
         settings_width: int | None = None,
     ) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(title)
-        if icon is not None:
-            self.setWindowIcon(icon)
-
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size=size)
+        super().__init__(parent, title=title, icon=icon, size=size)
         columns = QHBoxLayout()
         stdSizeAndlayout(columns)
 
@@ -60,17 +102,5 @@ class SettingsTableDialog(QDialog):
 
         columns.addWidget(self.settings_frame, 0)
         columns.addWidget(self.content_frame, 1)
-        root.addLayout(columns, 1)
+        self.body_layout.addLayout(columns, 1)
 
-        self.action_row = QHBoxLayout()
-        stdSizeAndlayout(self.action_row)
-        self.action_row.addStretch(1)
-        root.addLayout(self.action_row)
-
-    def add_action(self, action_id: str, action: Callable[[], None], *, default: bool = False):
-        button = create_action_button(
-            parent=self, action_id=action_id, action=action, layout=self.action_row
-        )
-        if default:
-            button.setDefault(True)
-        return button
