@@ -1045,6 +1045,9 @@ msgstr "Zusammenfassung der Wirkung"
 msgid "Effect tests"
 msgstr "Wirkungsprüfungen"
 
+msgid "Effects"
+msgstr "Effekte"
+
 msgid "Effects Pareto (LogWorth)"
 msgstr "Effekte Pareto (LogWorth)"
 
@@ -1260,6 +1263,9 @@ msgstr "Der Dateiname muss ein gültiger Python-Dateiname sein, z. B. my_operati
 
 msgid "File name:"
 msgstr "Dateiname:"
+
+msgid "Fill"
+msgstr "Füllen"
 
 msgid "Fill empty cells in '{column}'"
 msgstr "Leere Zellen in '{column}' ausfüllen"
@@ -2303,7 +2309,7 @@ msgid "Output"
 msgstr "Ausgabetabelle"
 
 msgid "Output table"
-msgstr ""
+msgstr "Ausgabetabelle"
 
 msgid "Output:"
 msgstr "Ausgang:"
@@ -2730,9 +2736,6 @@ msgstr "Rolle"
 
 msgid "Roles"
 msgstr "Rollen"
-
-msgid "Roles and effects"
-msgstr "Rollen und Effekte"
 
 msgid "Roots"
 msgstr "Wurzeln"
@@ -3571,6 +3574,9 @@ msgstr "Sichtbar"
 msgid "Web"
 msgstr "Web"
 
+msgid "Web source"
+msgstr "Web-Source"
+
 msgid "Weight residuals by magnitude when computing RMSE/R²."
 msgstr "Gewichtsreste nach Größenordnung bei der Berechnung von RMSE/R²."
 
@@ -3686,280 +3692,283 @@ msgid "Zooming or panning one axes' x range applies it to every other axes of th
 msgstr "Das Zoomen oder Schwenken des x-Bereichs einer Achse gilt auch für alle anderen Achsen dieser Figur."
 
 msgid "a colour column in its query"
-msgstr ""
+msgstr "eine Farbspalte in seiner Abfrage"
 
 msgid "all"
-msgstr ""
+msgstr "alle"
 
 msgid "all lags"
-msgstr ""
+msgstr "alle Lags"
 
 msgid "auto"
-msgstr ""
+msgstr "auto"
 
 msgid "auto, or start, stop"
-msgstr ""
+msgstr "auto oder Start, Stopp"
 
 msgid "bar"
-msgstr ""
+msgstr "bar"
 
 msgid "comma-separated, e.g. intercept, slope"
-msgstr ""
+msgstr "kommagetrennte, z.B. Intercept, Slope"
 
 msgid "comma-separated, e.g. x, y"
-msgstr ""
+msgstr "kommagetrennt, z.B. x, y"
 
 msgid "comma-separated, optional"
-msgstr ""
+msgstr "kommagetrennt, optional"
 
 msgid "density: power per unit frequency. spectrum: power per segment."
-msgstr ""
+msgstr "dichte: Leistung pro Frequenzeinheit. Spektrum: Leistung pro Segment."
 
 msgid "docs/manual/user_manual.typ is not translated by this tool - it is prose inside Typst markup, not a string catalogue. To produce a translated copy:\n\n1. Copy user_manual.typ to user_manual_<lang>.typ (e.g. user_manual_it.typ).\n2. Translate the prose, leaving every #-command, code block and image reference untouched.\n3. Compile it: typst compile user_manual_<lang>.typ.\n\nThe application text itself does not need this step - it comes from the catalogue this dialog edits."
-msgstr ""
+msgstr "docs/manual/user_manual.typ wird von diesem Tool nicht übersetzt - es handelt sich um Prosa innerhalb des Typst-Markups, nicht um einen String-Katalog. So erstellen Sie eine übersetzte Kopie:\n\n1. Kopieren Sie user_manual.typ in user_manual_<lang> .typ(z. B. user_manual_it.typ).\n2. Übersetzen Sie die Prosa, wobei Sie alle # -Befehle, Codeblöcke und Bildreferenzen unberührt lassen.\n3. Kompilieren Sie es: typst compile user_manual_<lang> .typ.\n\nDer Anwendungstext selbst benötigt diesen Schritt nicht - er kommt aus dem Katalog, den dieser Dialog bearbeitet."
 
 msgid "e.g. Envelope Detector"
-msgstr ""
+msgstr "z. B. Briefumschlagdetektor"
 
 msgid "e.g. Ridgeline Plot"
-msgstr ""
+msgstr "z.B. Ridgeline Plot"
 
 msgid "e.g. Stretched Exponential"
-msgstr ""
+msgstr "z. B. gestreckt exponentiell"
 
 msgid "e.g. envelope_detector_dialog.py"
-msgstr ""
+msgstr "z.B. envelope_detector_dialog.py"
 
 msgid "e.g. ridgeline.py"
-msgstr ""
+msgstr "z.B. ridgeline.py"
 
 msgid "e.g. stretched_exponential.py"
-msgstr ""
+msgstr "z.B. stretched_exponential.py"
 
 msgid "falling"
-msgstr ""
+msgstr "fallend"
 
 msgid "fit"
-msgstr ""
+msgstr "passform"
 
 msgid "fs:"
-msgstr ""
+msgstr "fs:"
 
 msgid "https://example.com/data.csv"
-msgstr ""
+msgstr "https://example.com/data.csv"
 
 msgid "level {level}"
-msgstr ""
+msgstr "level {level}"
 
 msgid "maximum"
-msgstr ""
+msgstr "maximal"
 
 msgid "measured"
-msgstr ""
+msgstr "gemessen"
 
 msgid "minimum"
-msgstr ""
+msgstr "minimum"
 
 msgid "modified {date}"
-msgstr ""
+msgstr "{date} geändert"
 
 msgid "no answer"
-msgstr ""
+msgstr "keine Antwort"
 
 msgid "no timeout"
-msgstr ""
+msgstr "kein Timeout"
 
 msgid "not installed"
-msgstr ""
+msgstr "nicht verbaut"
 
 msgid "not reached"
-msgstr ""
+msgstr "nicht erreicht"
 
 msgid "of"
-msgstr ""
+msgstr "von"
 
 msgid "p-value"
-msgstr ""
+msgstr "p-Wert"
 
 msgid "p:"
-msgstr ""
+msgstr "p:"
 
 msgid "residual"
-msgstr ""
+msgstr "residuum"
 
 msgid "rising"
-msgstr ""
+msgstr "ansteigend"
 
 msgid "series"
-msgstr ""
+msgstr "baureihe"
 
 msgid "slice"
-msgstr ""
+msgstr "scheibe"
 
 msgid "space"
-msgstr ""
+msgstr "raum"
 
 msgid "stopped"
-msgstr ""
+msgstr "gestoppt"
 
 msgid "t and p test whether each parameter is zero, with {dof} residual degrees of freedom. Fixed parameters have no error, so none is shown."
-msgstr ""
+msgstr "t und p testen, ob jeder Parameter Null ist, mit {dof} verbleibenden Freiheitsgraden. Feste Parameter haben keinen Fehler, daher wird keiner angezeigt."
 
 msgid "truncated"
-msgstr ""
+msgstr "abgeschnitten"
 
 msgid "unbiased divides by the overlap at each lag; biased divides by N; none returns the raw sum of products."
-msgstr ""
+msgstr "unvoreingenommen dividiert durch die Überlappung bei jeder Verzögerung; unvoreingenommen dividiert durch N; keiner gibt die Rohsumme der Produkte zurück."
 
 msgid "unknown"
-msgstr ""
+msgstr "unbekannt"
 
 msgid "vector field (x, y, u, v)"
-msgstr ""
+msgstr "vektorfeld (x, y, u, v)"
 
 msgid "y range"
-msgstr ""
+msgstr "y-Bereich"
 
 msgid "z range"
-msgstr ""
+msgstr "z-Bereich"
 
 msgid "{chart} draws one series per axis: the {count} below will each get an axis of their own."
-msgstr ""
+msgstr "{chart} zeichnet eine Serie pro Achse: Die {count} darunter erhalten jeweils eine eigene Achse."
 
 msgid "{chart} draws up to {limit} series per axis: the {count} below will be split across {axes} axes."
-msgstr ""
+msgstr "{chart} zeichnet bis zu {limit} Serien pro Achse: Die {count} unten werden auf {axes} Achsen aufgeteilt."
 
 msgid "{columns} is both Y and X."
-msgstr ""
+msgstr "{columns} ist sowohl Y als auch X."
 
 msgid "{count:,} x {size} B"
-msgstr ""
+msgstr "{count:,} x {size} B"
 
 msgid "{count:,} x {size} B, {amount} reclaimable by Optimize DB"
-msgstr ""
+msgstr "{count:,} x {size} B, {amount} rückgewinnbar durch Optimize DB"
 
 msgid "{count} cell(s) changed."
-msgstr ""
+msgstr "{count} Zelle(n) geändert."
 
 msgid "{count} could not be drawn"
-msgstr ""
+msgstr "{count} konnte nicht gezeichnet werden"
 
 msgid "{count} discarded because a placeholder such as {{name}} or %s was lost"
-msgstr ""
+msgstr "{count} wurde verworfen, weil ein Platzhalter wie {{name}} oder %s verloren ging"
 
 msgid "{count} figure(s), {date}"
-msgstr ""
+msgstr "{count} Figur(en), {date}"
 
 msgid "{count} further candidates fitted worse and are not shown."
-msgstr ""
+msgstr "{count} weitere Kandidaten passten schlechter und werden nicht angezeigt."
 
 msgid "{count} not translated by the service ({error})"
-msgstr ""
+msgstr "{count} nicht vom Dienst übersetzt ({error})"
 
 msgid "{count} of {total} points signal. The process is not in statistical control."
-msgstr ""
+msgstr "{count} von {total} Punkten signalisieren. Der Prozess unterliegt keiner statistischen Kontrolle."
 
 msgid "{count} operation(s), oldest first"
-msgstr ""
+msgstr "{count} Operation(en), älteste zuerst"
 
 msgid "{count} point(s) embedded from {series} series into 2 dimensions."
-msgstr ""
+msgstr "{count} Punkt(e) aus {series} Serie in 2 Dimensionen eingebettet."
 
 msgid "{count} point(s) selected across {series} series - right-click to act on them."
-msgstr ""
+msgstr "{count} Punkt(e), die in {series} Serien ausgewählt wurden - klicken Sie mit der rechten Maustaste, um darauf zu reagieren."
 
 msgid "{count} reference(s)"
-msgstr ""
+msgstr "{count} Referenz(en)"
 
 msgid "{count} row(s) hidden."
-msgstr ""
+msgstr "{count} Zeile(n) ausgeblendet."
 
 msgid "{count} row(s) in the new table."
-msgstr ""
+msgstr "{count} Zeile(n) in der neuen Tabelle."
 
 msgid "{count} row(s) marked Selected."
-msgstr ""
+msgstr "{count} Zeile(n) als ausgewählt markiert."
 
 msgid "{count} series"
-msgstr ""
+msgstr "{count} -Serie"
 
 msgid "{count} string(s), {missing} missing translation."
-msgstr ""
+msgstr "{count} Zeichenfolge(n), {missing} fehlende Übersetzung."
 
 msgid "{count} value(s) could not be read as {kind} and were left empty."
-msgstr ""
+msgstr "{count} Wert(e) konnten nicht als {kind} gelesen werden und wurden leer gelassen."
 
 msgid "{first} refused the requests, continued with {second}"
-msgstr ""
+msgstr "{first} hat die Anfragen abgelehnt, weiter mit {second}"
 
 msgid "{label}: {value}"
-msgstr ""
+msgstr "{label}: {value}"
 
 msgid "{left} vs {right}"
-msgstr ""
+msgstr "{left} gegen {right}"
 
 msgid "{measure} by number of splits"
-msgstr ""
+msgstr "{measure} nach Anzahl der Splits"
 
 msgid "{measure} by number of trees"
-msgstr ""
+msgstr "{measure} nach Anzahl der Bäume"
 
 msgid "{measure} by {group}"
-msgstr ""
+msgstr "{measure} von {group}"
 
 msgid "{name} (selection)"
-msgstr ""
+msgstr "{name} (Auswahl)"
 
 msgid "{name}: {clusters} clusters, {clustered}/{total} clustered rows, tool={tool}, features={features}"
-msgstr ""
+msgstr "{name}: {clusters} Cluster, {clustered}/{total} geclusterte Zeilen, Tool={tool}, Features={features}"
 
 msgid "{operation} could not be computed: {error}"
-msgstr ""
+msgstr "{operation} konnte nicht berechnet werden: {error}"
 
 msgid "{operation} could not be written: {error}"
-msgstr ""
+msgstr "{operation} konnte nicht geschrieben werden: {error}"
 
 msgid "{personality} needs a continuous Y; {columns} is nominal - choose Nominal or Ordinal Logistic."
-msgstr ""
+msgstr "{personality} benötigt ein kontinuierliches Y; {columns} ist nominal - wählen Sie Nominal- oder Ordinal-Logistik."
 
 msgid "{personality} needs a nominal Y; {columns} is continuous - set its type to Nominal, or choose a least-squares personality."
-msgstr ""
+msgstr "{personality} benötigt ein nominales Y; {columns} ist kontinuierlich - setzen Sie seinen Typ auf Nominal oder wählen Sie eine Persönlichkeit mit den kleinsten Quadraten."
 
 msgid "{response} by leaf"
-msgstr ""
+msgstr "{response} im Blattformat"
 
 msgid "{role} takes {kinds} columns only: {columns}."
-msgstr ""
+msgstr "{role} benötigt nur {kinds} Spalten: {columns}."
 
 msgid "{role}: choose at least {count} column(s)."
-msgstr ""
+msgstr "{role}: Wählen Sie mindestens {count} Spalte(n)."
 
 msgid "{series}\nx: {x}\ny: {y}"
-msgstr ""
+msgstr "{series}..."
 
 msgid "{series} hidden"
-msgstr ""
+msgstr "{series} ausgeblendet"
 
 msgid "{series} shown"
-msgstr ""
+msgstr "{series} angezeigt"
 
 msgid "{series} — x: {x}, y: {y}"
-msgstr ""
+msgstr "{series} — x: {x}, y: {y}"
 
 msgid "{series} — {count} points, mean x: {x}, mean y: {y}"
-msgstr ""
+msgstr "{series} — {count} Punkte, Mittelwert x: {x}, Mittelwert y: {y}"
 
 msgid "{series} — {percent:.1f}% of the total"
-msgstr ""
+msgstr "{series} — {percent:.1f}% der Gesamtsumme"
 
 msgid "{services} refused for their request limit - Google for a while, MyMemory until tomorrow"
-msgstr ""
+msgstr "{services} hat sein Anforderungslimit abgelehnt - Google für eine Weile, MyMemory bis morgen"
 
 msgid "{tables} table(s), {rows} row(s) total"
-msgstr ""
+msgstr "{tables} Tabelle(n), {rows} Zeile(n) insgesamt"
 
 msgid "{table} · {count} response(s)"
-msgstr ""
+msgstr "{table} · {count} Antwort(en)"
+
+msgid "Roles and effects"
+msgstr "Rollen und Effekte"
 
 msgid "(auto)"
 msgstr "(Auto)"
@@ -4076,88 +4085,88 @@ msgid "Scale and direction"
 msgstr "Maßstab und Richtung"
 
 msgid "Search operations"
-msgstr ""
+msgstr "Suchvorgänge"
 
 msgid "Share X"
-msgstr ""
+msgstr "Teilen X"
 
 msgid "Share Y"
-msgstr ""
+msgstr "Teilen Y"
 
 msgid "Share Z"
-msgstr ""
+msgstr "Anteil Z"
 
 msgid "Shared gap H"
-msgstr ""
+msgstr "Gemeinsame Lücke H"
 
 msgid "Shared gap V"
-msgstr ""
+msgstr "Gemeinsame Lücke V"
 
 msgid "Sharing"
-msgstr ""
+msgstr "Teilen"
 
 msgid "Show the left panel"
-msgstr ""
+msgstr "Linkes Bedienfeld anzeigen"
 
 msgid "Snippets:"
-msgstr ""
+msgstr "Snippets:"
 
 msgid "Symlog threshold"
-msgstr ""
+msgstr "Symlog-Schwelle"
 
 msgid "Tick length"
-msgstr ""
+msgstr "Häkchenlänge"
 
 msgid "Tools"
-msgstr ""
+msgstr "Werkzeuge"
 
 msgid "Use one common Z range for all 3D axes in this figure. The selected axis provides the Z limits; 2D axes are ignored."
-msgstr ""
+msgstr "Verwenden Sie einen gemeinsamen Z-Bereich für alle 3D-Achsen in dieser Abbildung. Die gewählte Achse liefert die Z-Grenzen; 2D-Achsen werden ignoriert."
 
 msgid "Width of the linear region around zero, for the symlog scale."
-msgstr ""
+msgstr "Breite des linearen Bereichs um Null für die Symlog-Skala."
 
 msgid "X label"
-msgstr ""
+msgstr "X-Label"
 
 msgid "X log base"
-msgstr ""
+msgstr "X-Protokollbasis"
 
 msgid "X range"
-msgstr ""
+msgstr "X-Bereich"
 
 msgid "X scale"
-msgstr ""
+msgstr "X-Skala"
 
 msgid "X tick rotation"
-msgstr ""
+msgstr "X-Tick-Rotation"
 
 msgid "Y label"
-msgstr ""
+msgstr "Y-Label"
 
 msgid "Y log base"
-msgstr ""
+msgstr "Y-Protokollbasis"
 
 msgid "Y range"
-msgstr ""
+msgstr "Y-Bereich"
 
 msgid "Y scale"
-msgstr ""
+msgstr "Y-Skala"
 
 msgid "Z label"
-msgstr ""
+msgstr "Z-Etikett"
 
 msgid "Z log base"
-msgstr ""
+msgstr "Z-Protokollbasis"
 
 msgid "Z range"
-msgstr ""
+msgstr "Z-Bereich"
 
 msgid "Z scale"
-msgstr ""
+msgstr "Z-Skala"
 
 msgid "query"
-msgstr ""
+msgstr "abfrage"
 
 msgid "After"
 msgstr "Nach"
@@ -4166,22 +4175,22 @@ msgid "Before"
 msgstr "Vorher"
 
 msgid "Edit…"
-msgstr ""
+msgstr "Bearbeiten..."
 
 msgid "Hide rows by selected column"
-msgstr ""
+msgstr "Zeilen nach ausgewählter Spalte ausblenden"
 
 msgid "Hide rows matching the selected cell value"
-msgstr ""
+msgstr "Zeilen ausblenden, die dem ausgewählten Zellwert entsprechen"
 
 msgid "Hide rows where the selected column is empty"
-msgstr ""
+msgstr "Zeilen ausblenden, in denen die ausgewählte Spalte leer ist"
 
 msgid "Hide rows where {column} {operator} value"
-msgstr ""
+msgstr "Zeilen mit {column} {operator} Wert ausblenden"
 
 msgid "Shared gap"
-msgstr ""
+msgstr "Gemeinsame Lücke"
 
 msgid "V"
-msgstr ""
+msgstr "V"

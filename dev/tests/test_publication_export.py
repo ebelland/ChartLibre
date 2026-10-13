@@ -184,7 +184,7 @@ def test_a_chart_that_draws_while_it_is_built_is_still_drawn(qapp, tmp_path: Pat
         repo.create_series_descriptor(axis_id=axis_id, series_index=0, name=name, sql_query=sql, roles=roles, style={})
     # Every chart draws its figure before it is built, the way adjustText
     # does mid-build - deterministic, where the real case depends on timing.
-    from app.widgets import chart_panel as chart_panel_module
+    from app.widgets.chart_panel import panel as chart_panel_module
 
     real_render = chart_panel_module.render_figure_from_descriptor
 
