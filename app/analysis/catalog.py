@@ -99,7 +99,8 @@ _ANALYSES: dict[str, tuple[str, tuple[str, ...]]] = {
         "regression regressione linear model modello lineare least squares minimi quadrati anova "
         "analysis of variance analisi della varianza doe design of experiments response surface "
         "superficie di risposta effects effetti screening stepwise glm logistic logistica ordinal "
-        "ordinale nominal nominale poisson interaction interazione factors fattori",
+        "ordinale nominal nominale poisson interaction interazione factors fattori lasso ridge elastic net "
+        "generalized regression regressione generalizzata penalized penalizzata regularization regolarizzazione",
         ("explain", "predict", "classify", "compare", "experiment"),
     ),
     "Discriminant": (

@@ -8964,3 +8964,54 @@ msgstr "La colonna da spiegare, confrontare o prevedere. Il suo tipo imposta la 
 
 msgid "The columns that might explain it, or that group it."
 msgstr "Le colonne che potrebbero spiegarla, o che la dividono in gruppi."
+
+msgid "Effects Pareto ({measure})"
+msgstr "Pareto degli effetti ({measure})"
+
+msgid "Estimation method:"
+msgstr "Metodo di stima:"
+
+msgid "Lasso drops the terms that do not help, Ridge shrinks them all, Elastic Net mixes the two; the strength is chosen by cross-validation."
+msgstr "Lasso elimina i termini che non aiutano, Ridge li riduce tutti, Elastic Net combina i due; l'intensità è scelta con la validazione incrociata."
+
+msgid "Generalized Regression"
+msgstr "Regressione generalizzata"
+
+msgid "Lasso"
+msgstr "Lasso"
+
+msgid "Ridge"
+msgstr "Ridge"
+
+msgid "Elastic Net"
+msgstr "Elastic Net"
+
+msgid "Std Magnitude"
+msgstr "Grandezza std."
+
+msgid "Standardized"
+msgstr "Standardizzata"
+
+msgid "Zeroed"
+msgstr "Azzerata"
+
+msgid "Nonzero"
+msgstr "Non nulli"
+
+msgid "Model fit"
+msgstr "Adattamento del modello"
+
+msgid "RSquare (cross-validated)"
+msgstr "R² (validazione incrociata)"
+
+msgid "Penalty (alpha)"
+msgstr "Penalità (alpha)"
+
+msgid "L1 ratio"
+msgstr "Rapporto L1"
+
+msgid "Nonzero parameters"
+msgstr "Parametri non nulli"
+
+msgid "Penalized estimates, shrunk towards zero by the penalty that predicted best in cross-validation: they have no standard errors or p-values. The effects are ranked by the size of their standardized estimates."
+msgstr "Stime penalizzate, ridotte verso zero dalla penalità che ha previsto meglio in validazione incrociata: non hanno errori standard né p-value. Gli effetti sono ordinati per la grandezza delle stime standardizzate."

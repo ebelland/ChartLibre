@@ -66,6 +66,8 @@ class ModelSpec:
     direction: str = "backward"
     #: Generalized linear model: the response's distribution - see :data:`FAMILIES`.
     family: str = "normal"
+    #: Generalized regression: the penalty - see :data:`PENALTIES`.
+    penalty: str = "lasso"
 
 
 @dataclass(slots=True)
@@ -102,6 +104,9 @@ class ResponseFit:
     #: A categorical response's levels, in the order modelled; the first is
     #: the one whose probability the predictions give.
     levels: list[str] = field(default_factory=list)
+    #: The effect tests' column the effects are ranked and charted by:
+    #: LogWorth, or for a penalized fit (no p-values) the standardized size.
+    importance_column: str = "LogWorth"
 
 
 #: The personalities: key, name as JMP names it.
@@ -111,7 +116,16 @@ PERSONALITIES: tuple[tuple[str, str], ...] = (
     ("glm", "Generalized Linear Model"),
     ("nominal", "Nominal Logistic"),
     ("ordinal", "Ordinal Logistic"),
+    ("generalized", "Generalized Regression"),
 )
+#: Generalized regression's penalties (JMP's estimation methods), its strength chosen by cross-validation.
+PENALTIES: tuple[tuple[str, str], ...] = (
+    ("lasso", "Lasso"),
+    ("ridge", "Ridge"),
+    ("elastic", "Elastic Net"),
+)
+#: Folds of the cross-validation that chooses the penalty.
+CV_FOLDS = 5
 #: Generalized linear model families, each with its canonical link (log for Gamma).
 FAMILIES: tuple[tuple[str, str], ...] = (
     ("normal", "Normal"),
@@ -198,6 +212,8 @@ def fit_models(
             raise Stopped()
         if spec.personality == "glm":
             fits.append(_fit_glm(frame, spec, response))
+        elif spec.personality == "generalized":
+            fits.append(_fit_penalized(frame, spec, response))
         elif spec.personality in CATEGORICAL_RESPONSE:
             fits.append(_fit_logistic(frame, spec, response))
         else:
@@ -325,6 +341,123 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
         note=note,
         personality=spec.personality,
     )
+
+
+def _fit_penalized(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit:
+    """Generalized regression: least squares with a Lasso, Ridge or Elastic Net penalty (AN-16).
+
+    For many factors, or factors that move together, where least squares
+    overfits or cannot separate them. The design is the model's own (coded
+    factors, sum contrasts), its columns standardized so the penalty treats
+    them alike; the penalty's strength is the one that predicts best in
+    CV_FOLDS-fold cross-validation. Lasso and Elastic Net set some estimates
+    to exactly zero - the terms they leave out; Ridge shrinks all of them.
+    Shrunk estimates have no standard errors or p-values: the effects are
+    ranked by the size of their standardized estimates instead.
+    """
+    import patsy
+    from sklearn.linear_model import ElasticNetCV, LassoCV, RidgeCV
+    from sklearn.model_selection import KFold
+
+    prep = _prepare(frame, spec, response, categorical=False)
+    terms = [tuple(t) for t in spec.terms]
+    y_frame, x_frame = patsy.dmatrices(prep.formula(terms), prep.data, return_type="dataframe")
+    y = y_frame.iloc[:, 0].to_numpy(float)
+    design = x_frame.drop(columns=["Intercept"], errors="ignore")
+    if design.shape[1] == 0 or len(y) < CV_FOLDS + 2:
+        raise ValueError(f"{response}: too few rows or terms for a penalized fit")
+    x = design.to_numpy(float)
+    mean, scale = x.mean(axis=0), x.std(axis=0)
+    scale[scale == 0] = 1.0
+    standard = (x - mean) / scale
+    folds = KFold(CV_FOLDS, shuffle=True, random_state=0)
+    if spec.penalty == "ridge":
+        model = RidgeCV(alphas=np.logspace(-4, 4, 81), cv=folds).fit(standard, y)
+        alpha, l1_ratio = float(model.alpha_), 0.0
+    elif spec.penalty == "elastic":
+        model = ElasticNetCV(l1_ratio=[0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 1.0], cv=folds, max_iter=20000,
+                             random_state=0).fit(standard, y)
+        alpha, l1_ratio = float(model.alpha_), float(model.l1_ratio_)
+    else:
+        model = LassoCV(cv=folds, max_iter=20000, random_state=0).fit(standard, y)
+        alpha, l1_ratio = float(model.alpha_), 1.0
+    standardized = np.asarray(model.coef_, dtype=float)
+    coefficients = standardized / scale
+    intercept = float(model.intercept_ - np.sum(coefficients * mean))
+    predicted = pd.Series(intercept + x @ coefficients, index=prep.data.index)
+    residuals = pd.Series(y, index=prep.data.index) - predicted
+    zero = np.isclose(standardized, 0.0)
+
+    # Each design column to its term, and its label as the other personalities spell it.
+    slices = {name: span for name, span in x_frame.design_info.term_name_slices.items() if name != "Intercept"}
+    offset = 1 if "Intercept" in x_frame.columns else 0
+    labels, effect_rows = ["Intercept"], []
+    names = list(design.columns)
+    column_term: dict[int, str] = {}
+    for term in terms:
+        span = slices.get(_patsy_name(prep.piece(term)))
+        if span is None:
+            continue
+        columns = range(span.start - offset, span.stop - offset)
+        label = term_label(term)
+        for column in columns:
+            levels = [part.split("[S.", 1)[1].rstrip("]") for part in names[column].split(":") if "[S." in part]
+            column_term[column] = label + ("[" + ",".join(levels) + "]" if levels else "")
+        sizes = standardized[list(columns)]
+        effect_rows.append((label, len(columns), int(np.count_nonzero(~np.isclose(sizes, 0.0))),
+                            float(np.sqrt(np.sum(sizes ** 2)))))
+    labels += [column_term.get(column, names[column]) for column in range(len(names))]
+    estimates = pd.DataFrame({
+        "Term": labels,
+        "Estimate": [intercept, *coefficients],
+        "Standardized": [np.nan, *standardized],
+        "Zeroed": ["", *("Yes" if flag else "" for flag in zero)],
+    })
+    tests = pd.DataFrame(effect_rows, columns=["Term", "DF", "Nonzero", "Std Magnitude"])
+    tests = tests.sort_values("Std Magnitude", ascending=False, kind="stable").reset_index(drop=True)
+    tests["LogWorth"] = np.nan
+    removed = [term for term, row in zip(terms, effect_rows) if row[2] == 0]
+
+    total = float(np.sum((y - y.mean()) ** 2))
+    error = float(np.sum(residuals.to_numpy() ** 2))
+    nonzero = int(np.count_nonzero(~zero))
+    anova = pd.DataFrame([("Model", nonzero, total - error), ("Error", len(y) - nonzero - 1, error),
+                          ("C. Total", len(y) - 1, total)], columns=["Source", "DF", "Sum of Squares"])
+    # The penalty's own judge: R² of predictions made for rows held out of the fit.
+    from sklearn.model_selection import cross_val_predict
+
+    held_out = cross_val_predict(_fixed_penalty(spec.penalty, alpha, l1_ratio), standard, y, cv=folds)
+    summary = {
+        "RSquare": 1.0 - error / total if total > 0 else math.nan,
+        "RSquare (cross-validated)": 1.0 - float(np.sum((y - held_out) ** 2)) / total if total > 0 else math.nan,
+        "Root Mean Square Error": math.sqrt(error / max(len(y) - nonzero - 1, 1)),
+        "Penalty (alpha)": alpha,
+        "L1 ratio": l1_ratio,
+        "Nonzero parameters": float(nonzero),
+        "Mean of Response": float(y.mean()),
+        "Observations": float(len(y)),
+    }
+    return ResponseFit(
+        response=response, terms=[t for t in terms if t not in removed], removed=removed,
+        estimates=estimates, effect_tests=tests, anova=anova, summary=summary, lack_of_fit=None,
+        rows=prep.data.index, predicted=predicted, residuals=residuals,
+        studentized=pd.Series(np.nan, index=prep.data.index), coding=prep.codes,
+        note=("Penalized estimates, shrunk towards zero by the penalty that predicted best in cross-validation: "
+              "they have no standard errors or p-values. The effects are ranked by the size of their "
+              "standardized estimates."),
+        personality="generalized", whole_title="Model fit", importance_column="Std Magnitude",
+    )
+
+
+def _fixed_penalty(penalty: str, alpha: float, l1_ratio: float):
+    """The plain estimator at the penalty cross-validation chose."""
+    from sklearn.linear_model import ElasticNet, Lasso, Ridge
+
+    if penalty == "ridge":
+        return Ridge(alpha=alpha)
+    if penalty == "elastic":
+        return ElasticNet(alpha=alpha, l1_ratio=l1_ratio, max_iter=20000)
+    return Lasso(alpha=alpha, max_iter=20000)
 
 
 def _chi_square_table(rows: list[tuple[str, int, float, float]], statistic: str) -> pd.DataFrame:

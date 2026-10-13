@@ -255,3 +255,42 @@ def test_a_poisson_glm_and_forward_stepwise(qapp, doe_table) -> None:
         assert dialog._result[0].p_column == "Prob > ChiSq"
     finally:
         dialog.close()
+
+
+def test_generalized_regression_lasso_drops_noise_and_ridge_keeps_every_term(qapp, tmp_path) -> None:
+    """AN-16: penalized fits, the penalty chosen by cross-validation."""
+    import app.analysis.linear_model as lm
+
+    rng = np.random.default_rng(0)
+    n = 80
+    frame = pd.DataFrame({f"x{i}": rng.normal(size=n) for i in range(8)})
+    frame["y"] = 3 * frame.x0 - 2 * frame.x1 + rng.normal(0, 1, n)
+    factors = [lm.Factor(f"x{i}", CONTINUOUS) for i in range(8)]
+    fits = {}
+    for penalty in ("lasso", "ridge"):
+        spec = lm.ModelSpec(factors=factors, responses=["y"], terms=lm.main_effects(factors),
+                            personality="generalized", penalty=penalty)
+        fits[penalty] = lm.fit_models(frame, spec)[0]
+    lasso, ridge = fits["lasso"], fits["ridge"]
+    assert list(lasso.effect_tests["Term"][:2]) == ["x0", "x1"]
+    assert lasso.removed and all(t[0] not in ("x0", "x1") for t in lasso.removed)
+    assert not ridge.removed and ridge.summary["L1 ratio"] == 0.0
+    assert lasso.summary["RSquare (cross-validated)"] > 0.8
+
+    repo = SqliteRepo(db_path=tmp_path / "g.dhub")
+    repo.import_dataframe(frame, table_name="wide", normalize_columns=False)
+    dialog = FitModelDialog(repo=repo, table="wide")
+    try:
+        dialog.roles_widget.set_casting({"response": ["y"]})
+        dialog.cast_explanatory([f"x{i}" for i in range(8)])
+        dialog._personality.setCurrentIndex(dialog._personality.findData("generalized"))
+        assert not dialog._penalty.isHidden()
+        dialog._chart_checks["pareto"].setChecked(True)
+        dialog.ok()
+        _wait(qapp, dialog)
+        assert "Std Magnitude" in dialog.format_results(dialog._result)
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        assert "Pareto Chart" in [axis.name for axis in figure.axes]
+    finally:
+        dialog.close()
+        repo.close()

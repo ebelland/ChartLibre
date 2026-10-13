@@ -81,6 +81,7 @@ DOCS: dict[str, tuple[tuple[str, str], ...]] = {
     "standard": (("Fit Model", _JMP_HELP + "overview-of-the-fit-model-platform.shtml"),
                  ("Standard Least Squares", _JMP_HELP + "standard-least-squares-models.shtml")),
     "stepwise": (("Stepwise", _JMP_HELP + "overview-of-stepwise-regression.shtml"),),
+    "generalized": (("Generalized Regression", _JMP_HELP + "overview-of-the-generalized-regression-personality.shtml"),),
     "glm": (("Generalized Linear Model", _JMP_HELP + "generalized-linear-models.shtml"),),
     "nominal": (("Logistic", _JMP_HELP + "overview-of-the-nominal-and-ordinal-logistic-personalities.shtml"),),
     "ordinal": (("Logistic", _JMP_HELP + "overview-of-the-nominal-and-ordinal-logistic-personalities.shtml"),),
@@ -177,13 +178,20 @@ class FitModelDialog(TableOperationDialogBase):
         self._family.setToolTip(_("The response's distribution; its canonical link (log for Gamma)."))
         self._family.currentIndexChanged.connect(lambda _i: self.inputs_changed())
         form.addRow(_("Distribution:"), self._family)
+        self._penalty = QComboBox()
+        for key, label in lm.PENALTIES:
+            self._penalty.addItem(_(label), key)
+        self._penalty.setToolTip(_("Lasso drops the terms that do not help, Ridge shrinks them all, Elastic Net "
+                                   "mixes the two; the strength is chosen by cross-validation."))
+        self._penalty.currentIndexChanged.connect(lambda _i: self.inputs_changed())
+        form.addRow(_("Estimation method:"), self._penalty)
         self._direction = QComboBox()
         for key, label in lm.STEPWISE:
             self._direction.addItem(_(label), key)
         self._direction.setToolTip(_("Backward drops terms from the full model; forward adds them to the mean."))
         self._direction.currentIndexChanged.connect(lambda _i: self.inputs_changed())
         form.addRow(_("Direction:"), self._direction)
-        for combo in (self._personality, self._emphasis, self._family, self._direction):
+        for combo in (self._personality, self._emphasis, self._family, self._penalty, self._direction):
             # Long names elide instead of widening the window.
             combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
             combo.setMinimumContentsLength(12)
@@ -416,6 +424,7 @@ class FitModelDialog(TableOperationDialogBase):
         for widget, shown in (
             (self._emphasis, personality in ("standard", "stepwise")),
             (self._family, personality == "glm"),
+            (self._penalty, personality == "generalized"),
             (self._direction, personality == "stepwise"),
         ):
             widget.setVisible(shown)
@@ -456,6 +465,7 @@ class FitModelDialog(TableOperationDialogBase):
         values["charts"] = self.charts()
         values["personality"] = self.personality()
         values["family"] = str(self._family.currentData())
+        values["penalty"] = str(self._penalty.currentData())
         values["direction"] = str(self._direction.currentData())
         return values
 
@@ -472,6 +482,7 @@ class FitModelDialog(TableOperationDialogBase):
             alpha=float(params.get("alpha", 0.05)),
             personality=str(params.get("personality", "standard")),
             family=str(params.get("family", "normal")),
+            penalty=str(params.get("penalty", "lasso")),
             direction=str(params.get("direction", "backward")),
         )
         return lm.fit_models(frame, spec)
@@ -485,13 +496,15 @@ class FitModelDialog(TableOperationDialogBase):
         blocks = []
         if fit.note:
             blocks.append(report_html.note(_(fit.note)))
-        effects = fit.effect_tests.sort_values("LogWorth", ascending=False, na_position="last")
+        rank = fit.importance_column
+        effects = fit.effect_tests.sort_values(rank, ascending=False, na_position="last")
+        with_p = fit.p_column in effects.columns
         blocks.append(report_html.section(
             _("Effect summary"),
             report_html.table(
-                [_("Source"), _("LogWorth"), _(fit.p_column)],
-                [[html.escape(r["Term"]), report_html.format_number(r["LogWorth"], digits=3),
-                  report_html.format_p_value(r[fit.p_column])]
+                [_("Source"), _(rank), *([_(fit.p_column)] if with_p else [])],
+                [[html.escape(r["Term"]), report_html.format_number(r[rank], digits=3),
+                  *([report_html.format_p_value(r[fit.p_column])] if with_p else [])]
                  for r in effects.to_dict("records")],
             ),
         ))
@@ -593,8 +606,9 @@ class FitModelDialog(TableOperationDialogBase):
             panels.append(("Scatter Plot", _("Actual by predicted"), predicted, fit.response,
                            [one("results", {"x": predicted, "y": fit.response})]))
         if "pareto" in charts:
-            panels.append(("Pareto Chart", _("Effects Pareto (LogWorth)"), "", "LogWorth",
-                           [one("effects", {"Y": "LogWorth", "X": "Term"}, f'"Response" = {response}')]))
+            rank = fit.importance_column
+            panels.append(("Pareto Chart", _("Effects Pareto ({measure})").format(measure=_(rank)), "", _(rank),
+                           [one("effects", {"Y": rank, "X": "Term"}, f'"Response" = {response}')]))
         if "residual" in charts:
             panels.append(("Scatter Plot", _("Residual by predicted"), predicted, residual,
                            [one("results", {"x": predicted, "y": residual})]))
