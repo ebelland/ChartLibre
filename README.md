@@ -67,17 +67,40 @@ ChartLibre aims at the first of those without the price tag:
 
 Multiple axes per figure, multi-axis layout presets (shared scale, main + secondary, overlapping), annotations and reference lines, and an interactive canvas for measuring, annotating and selecting points.
 
-### Analysis — 19 series operations
+### Start from a question — Guided analysis
+
+Not sure which function you need? **Guided analysis** starts from what you want to find out. It reads the table you have selected — how many numbers, categories and dates it holds — and:
+
+- **asks it concrete questions** — *Does "weight" change between the groups of "line"?*, *What has the most impact on "yield"?*, *Has "temperature" changed over time?* — and answers them **in words**, the right test chosen for you;
+- **suggests** the analyses and charts that fit a goal (compare groups, explain a response, predict, monitor a process, …), and opens them with your Y and X already in place — greying out what the table cannot support, and saying why;
+- **searches** every function by what it does, in English or Italian, and by the names other programs give it ("anova", "crosstabs", "PivotTable") — also from anywhere with **Cmd/Ctrl+K**.
+
+The three **quick answers** — *Are there differences?*, *What has the most impact?*, *Has it changed over time?* — each give the answer in a sentence, then what it rests on and what it does not mean.
+
+![Guided analysis on the Palmer penguins table](docs/manual/screenshot_guided_analysis.png)
+
+### Analysis of tables — JMP-style models
+
+| | |
+|---|---|
+| **Fit Model** | Standard least squares, stepwise, generalized linear models, nominal and ordinal logistic, and **Generalized Regression** (Lasso, Ridge, Elastic Net with cross-validation). Effect tests, prediction profile, lack of fit; ROC curve, AUC and confusion matrix for logistic fits. Designs from the built-in **Design of Experiments** open with their model ready. |
+| **Partition** | Decision trees split and pruned a step at a time or on validation rows, **Bootstrap Forest** and **Boosted Tree**; permutation importance and partial dependence for any of them, ROC for a categorical response. |
+| **Discriminant** | Linear or quadratic discriminant analysis, Wilks' lambda, canonical plot. |
+| **Partial Least Squares** | For spectra and other wide, collinear data: components chosen by cross-validation, VIP, loadings, scores. |
+
+Each writes its predictions beside the data, its report as tables, and a figure with the report in its notes — and every step is undoable.
+
+### Data operations — 19 operations on a chart's series
 
 Peaks · Roots · Calculus · Statistics · Outliers · Clustering · Regression · GP Regression · Transform · Decomposition · Control Chart · Geometry · Smoothing · Spectral Analysis · Filtering · Baseline Correction · Fit · Interpolation · Function
 
 Each previews its result on the chart before anything is committed, and a long calculation runs in the background with a *Stop* button.
 
-![The Series Operations page](docs/manual/screenshot_series_operations.png)
+![The Data operations page](docs/manual/screenshot_series_operations.png)
 
 Highlights:
 
-- **Fit** — Gaussian, exponential, polynomial, your own functions; standard errors, t, p and 95 % intervals for every parameter, confidence and prediction bands on the chart, residual and measured-vs-fit charts. Validated against the NIST StRD certified values.
+- **Fit** — Gaussian, exponential, polynomial, your own functions; standard errors, t, p and 95 % intervals for every parameter, confidence and prediction bands on the chart, residual and measured-vs-fit charts; weights from an error-bar column, and **global fits** of several series with shared parameters. Validated against the NIST StRD certified values.
 - **Statistics** — descriptive statistics, normality, one-sample and paired tests, independent samples (Welch, Student, Mann-Whitney, Cohen's d), one-way ANOVA with Welch, Kruskal-Wallis and Tukey HSD, correlation, distribution fitting.
 - **Geometry** — rotate, translate, roto-translate, scale, mirror or shear a series in 2D or 3D; the result is a live query on the original data, not a copy.
 - **Filtering / Spectral Analysis** — Butterworth, Chebyshev, Bessel, FIR; PSD, coherence, cross-correlation, Hilbert envelope.
@@ -94,9 +117,10 @@ Highlights:
 
 ### Make it yours
 
-- **Matplotlib style editor** — edit rcParams and save `.mplstyle` files.
+- **Matplotlib style editor** — edit rcParams and save `.mplstyle` files; styles that look like JMP, Minitab and SPSS ship ready to use.
+- **Click to edit** — a click on a figure, an axis or a series opens its properties.
 - **Extensible without forking** — drop a Python file into `user/charts/`, `user/series_operations/` or `user/functions/` and it appears in the application. GUI scaffolding tools generate a working skeleton for each.
-- **Localisation** — English, Italian and French (complete), with a built-in catalogue editor for adding more.
+- **Localisation** — English and Italian complete, German nearly so, French in progress — with a built-in catalogue editor and machine translation for adding more.
 
 ---
 
@@ -144,7 +168,7 @@ To remove it: *Settings → Apps → Installed apps → ChartLibre → Uninstall
 
 ### Your first steps
 
-When ChartLibre opens it asks whether to create a new project, open one, or **load a demo**. Start with one of the twenty-six demos: each opens a project with data and charts already made, which is the quickest way to see what ChartLibre does. The [user manual](docs/manual/user_manual.pdf) explains every window.
+When ChartLibre opens it asks whether to create a new project, open one, or **load a demo**. Start with one of the twenty-eight demos: each opens a project with data and charts already made, which is the quickest way to see what ChartLibre does — *Quick answers* asks three questions of real data and answers them in words. The [user manual](docs/manual/user_manual.pdf) explains every window.
 
 <details>
 <summary>Mac with an Intel processor, Linux, or the source code</summary>

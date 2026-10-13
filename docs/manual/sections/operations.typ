@@ -29,7 +29,7 @@ An operation added by you or a plugin (see @advanced-operation) appears under *O
 
 Every operation opens the same kind of window, operating on the figure currently shown:
 
-- *On the left*, in collapsible sections: the *Axis / Series* selector (which axis of the figure, and which of its series to read), the *Model* (the method, with a link to its documentation), and the *Parameters* of that model. Each parameter explains itself in its tooltip.
+- *On the left*, in tabs: the *Axis / Series* selector (which axis of the figure, and which of its series to read), the *Model* (the method, with a link to its documentation), and the *Parameters* of that model. Each parameter explains itself in its tooltip.
 - *On the right*, the *Results* pane: a formatted report of what was computed — tables of numbers, fit statistics, warnings — and below it the log of the computation.
 - *At the bottom*, the buttons: *Preview*, *Copy* (copies the report), *OK* and *Close*.
 
@@ -360,6 +360,10 @@ The *Multi-peak builder* creates a sum of *N* Gaussian, Lorentzian or pseudo-Voi
   [*Differential evolution*, *Dual annealing*, *Basin hopping*, *SHGO*, *Monte Carlo*], [Global methods: search the whole box defined by the bounds, then finish with a local fit. Use them when the result depends on the starting point.],
 )
 *Loss* sets how large residuals are weighted: plain least squares trusts every point; the robust losses (soft L1, Huber, Cauchy, arctan) limit how much one bad point can pull the fit. *Max evaluations* caps the work.
+
+*Weights* says how much each point counts: *Equal*; *Relative* (each residual divided by its value, for data spanning orders of magnitude); or *Error bars*, each residual divided by the error in the series' *yerr* column, so a precise point counts more — the report then gives the chi-squared and the chi-squared per degree of freedom.
+
+*Global fit.* Tick two or more series and the fit is global: one model fitted to all of them at once. Under the parameter table, *Shared* lists the parameters: a shared one has one value for every series (one row of the table), the others one value per series (a row each, named after its series). Fit, Preview and OK work as for one series; each series gets its own curve, report and output table, and the errors account for what the series share.
 
 *The report* gives the fitted expression, each parameter with its standard error, t value, p value and 95% confidence interval, the parameter correlation matrix, and goodness of fit (R², RMSE, residual sum of squares, reduced chi-squared, AIC and BIC). Parameters can be copied, saved as CSV, or reused as the starting point of the next fit.
 

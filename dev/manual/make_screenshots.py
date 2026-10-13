@@ -70,12 +70,15 @@ style.IS_MACOS = True
 from PySide6.QtCore import QCoreApplication, QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
-import app.dialogs.main_window as main_window_module  # noqa: E402
+import app.main_window.main_frame as main_frame_module  # noqa: E402
+import app.main_window.main_menus as main_menus_module  # noqa: E402
+import app.main_window.main_window as main_window_module  # noqa: E402
 from app.data.demos import DEMO_PROJECTS, copy_demo_project  # noqa: E402
 from app.data.sqlite_repo import SqliteRepo  # noqa: E402
 from app.logs.logger import applogger  # noqa: E402
 
-main_window_module.IS_MACOS = True
+for _module in (main_window_module, main_frame_module, main_menus_module):
+    _module.IS_MACOS = True
 
 #: The manual's own folder: the figures sit beside the .typ that names them.
 OUTPUT_DIR = PROJECT_ROOT / "docs" / "manual"
@@ -194,7 +197,7 @@ def main() -> int:
 
     # 1. The main window, on the Tables page: the list, a preview and a
     #    finished chart, which is what the manual's own caption promises.
-    _show_page(window, "nav_data")
+    _show_page(window, "tables")
     _lay_out_data_page(window)
     _select_figure(window, COVER_FIGURE)
     _settle(app)
@@ -203,8 +206,8 @@ def main() -> int:
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_main_window.png")
 
-    # 2. Chart Options: the figure/axis/series property panels.
-    _show_page(window, "nav_chart_options")
+    # 2. Chart properties: the figure/axis/series property panels.
+    _show_page(window, "chart_properties")
     _settle(app)
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_chart_options.png")
@@ -212,12 +215,22 @@ def main() -> int:
     # 3. Series Operations: the grid of operations and its hint bar, in a
     #    panel as wide as four tiles rather than the Tables page's width,
     #    which left most of it empty.
-    _show_page(window, "nav_series_operations")
+    _show_page(window, "series_operations")
     _settle(app)
     _fit_operations_panel(window, columns=4)
     _settle(app)
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_series_operations.png")
+
+    # 4. Guided analysis on the penguins table: what it holds, its own
+    #    questions, the goals.
+    window._table_panel.select_table("penguins")
+    _show_page(window, "guided")
+    _settle(app)
+    _lay_out_data_page(window)
+    _settle(app)
+    _quieten_status_bar(window)
+    _grab(app, window, "screenshot_guided_analysis.png")
 
     window.close()
     repo.close()
@@ -229,12 +242,13 @@ def main() -> int:
     return 0
 
 
-def _show_page(window, action_id: str) -> None:
-    """Switch the nav rail to a page by its id, not its position.
+def _show_page(window, key: str) -> None:
+    """Switch the navigation rail to a page by its key, not its position.
 
-    Positions move whenever the rail gains a page; ids do not.
+    Positions move whenever the rail gains a page; keys do not.
     """
-    window._set_nav_index(window._left_rail.action_ids.index(action_id))
+    if not window._left_panel.select(key):
+        raise RuntimeError(f"no page {key!r} on the navigation rail")
 
 
 #: Width of the Series Operations list in the manual's pictures: the longest

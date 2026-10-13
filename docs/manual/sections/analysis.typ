@@ -24,6 +24,11 @@ Where a data operation works on the series of a chart, an *analysis* works on th
 
 *Guided analysis* starts from what you want to find out rather than from the name of a function. It follows the table selected in the Tables page and says what it holds — how many numeric columns, categories and dates.
 
+#figure(
+  image("../screenshot_guided_analysis.png", width: 100%),
+  caption: [Guided analysis on the Palmer penguins table: what it holds, its own questions, the goals.],
+)
+
 - *Search* finds any function by what it does, in English or Italian, and by the names other programs give it ("anova", "crosstabs", "control chart"). The same search opens from anywhere with *Cmd/Ctrl+K*.
 - *Quick answers* ask a question in everyday words and answer it in words, the right test chosen for you:
   - *Are there differences?* — is a measure different from one group to another (t-test or ANOVA, Mann-Whitney or Kruskal-Wallis, chi-squared or Fisher, as the data call for);

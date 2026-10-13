@@ -18,7 +18,7 @@ The style and the language are applied the next time ChartLibre starts, as the w
 
 == Chart styles
 
-A *Matplotlib style* sets the base look of every chart in a figure: colours, fonts, line widths, grid, tick direction. Each figure picks its style in *Figure options → Style*: Matplotlib's built-in styles, the *SciencePlots* styles for journal figures, or a `.mplstyle` file of your own.
+A *Matplotlib style* sets the base look of every chart in a figure: colours, fonts, line widths, grid, tick direction. Each figure picks its style in *Figure options → Style*: Matplotlib's built-in styles, the *SciencePlots* styles for journal figures, the *Apps* styles that look like JMP, Minitab and SPSS charts, or a `.mplstyle` file of your own. *Apply to all figures* gives every figure of the project the same style (undoable). A figure with no style of its own uses the *Default chart style* chosen in *Settings*.
 
 The *Edit* button beside the style opens the *Matplotlib Style Editor*:
 
