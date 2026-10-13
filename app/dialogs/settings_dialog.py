@@ -176,10 +176,16 @@ class SettingsDialog(PanelDialog):
         )
         form.addRow(tr("Default export format"), self._format_combo)
 
-        styles = sorted(path.stem for path in MPLSTYLES_DIR.glob("*.mplstyle")) if MPLSTYLES_DIR.exists() else []
+        # Every shipped style, subfolders included (Apps/, Journals/, color/):
+        # stored as its path under mplstyles without the extension, shown as
+        # "Apps.jmp-classic" - the way the Figure panel names them.
+        styles = sorted(
+            path.relative_to(MPLSTYLES_DIR).with_suffix("").as_posix()
+            for path in MPLSTYLES_DIR.rglob("*.mplstyle")
+        ) if MPLSTYLES_DIR.exists() else []
         self._mpl_style_combo = self._combo(
             card,
-            [("", tr("Matplotlib default"))] + [(name, name) for name in styles],
+            [("", tr("Matplotlib default"))] + [(name, name.replace("/", ".")) for name in styles],
             str(get_value(DEFAULT_MPL_STYLE_KEY) or ""),
         )
         self._mpl_style_combo.setToolTip(tr("The chart style of every figure that has none of its own."))

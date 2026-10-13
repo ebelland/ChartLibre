@@ -89,7 +89,11 @@ def _figure_style_context(
 
 
 def default_style_text() -> str:
-    """The .mplstyle chosen in Settings as every new figure's default; empty for Matplotlib's."""
+    """The .mplstyle chosen in Settings as every new figure's default; empty for Matplotlib's.
+
+    The setting is the style's path under mplstyles without its extension:
+    "ChartLibreDefault", or "Apps/jmp-classic" for one in a subfolder.
+    """
     name = str(get_value(DEFAULT_MPL_STYLE_KEY) or "").strip()
     if not name:
         return ""

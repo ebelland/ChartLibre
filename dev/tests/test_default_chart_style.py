@@ -8,7 +8,7 @@ from app.utils.config import set_value
 def test_the_default_style_is_read_from_settings() -> None:
     set_value(DEFAULT_MPL_STYLE_KEY, "")
     assert default_style_text() == ""
-    set_value(DEFAULT_MPL_STYLE_KEY, "jmp-classic")
+    set_value(DEFAULT_MPL_STYLE_KEY, "Apps/jmp-classic")  # a style in a subfolder
     assert "JMP Classic" in default_style_text()
     set_value(DEFAULT_MPL_STYLE_KEY, "no-such-style")
     assert default_style_text() == ""
