@@ -165,12 +165,25 @@ class Question:
 
 
 def questions(table: TableProfile) -> list[Question]:
-    """Up to MAX_QUESTIONS 'does this measure change between these groups?'.
+    """Up to MAX_QUESTIONS concrete questions of the table.
 
-    Every measure with the first group, then the next group: the measures
-    are what the table was made to record, so they vary first.
+    First "what has the most impact on" the first measure, when there are
+    two or more other columns to rank; then "does this measure change
+    between these groups?" - every measure with the first group, then the
+    next group: the measures are what the table was made to record.
     """
     found: list[Question] = []
+    if table.measures:
+        result = table.measures[0]
+        factors = [name for name in (*table.measures, *table.groups) if name != result]
+        if len(factors) >= 2:
+            found.append(Question(
+                template="What has the most impact on “{measure}”?",
+                key="analysis:What has the most impact?",
+                roles={"response": [result], "factor": factors},
+                kinds={},
+                values={"measure": result},
+            ))
     for group in table.groups:
         for measure in table.measures:
             if len(found) >= MAX_QUESTIONS:

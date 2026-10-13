@@ -83,6 +83,12 @@ _ANALYSES: dict[str, tuple[str, tuple[str, ...]]] = {
         "risposta rapida",
         ("compare",),
     ),
+    "What has the most impact?": (
+        "cosa impatta di più impatto impact most important factors fattori importanti drivers key driver "
+        "importance importanza influence influenza cause cosa conta what matters ranking classifica "
+        "quick answer risposta rapida",
+        ("explain",),
+    ),
     "Fit Model": (
         "regression regressione linear model modello lineare least squares minimi quadrati anova "
         "analysis of variance analisi della varianza doe design of experiments response surface "
@@ -304,6 +310,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("chart:Mosaic Plot", "Two categorical variables: does one depend on the other?", CATEGORICAL),
     ),
     "explain": (
+        ("analysis:What has the most impact?", "Choose the result and the factors: they are ranked for you, "
+                                               "and the answer is given in words.", ANY),
         ("analysis:Fit Model", "Which factors matter and by how much: effect tests, estimates, profiler.", NUMERIC),
         ("analysis:Partition", "A tree finds the factors and the cut points that split the response best.", ANY),
         ("analysis:Fit Model", "Logistic regression: how each factor moves the odds of each level.", CATEGORICAL),

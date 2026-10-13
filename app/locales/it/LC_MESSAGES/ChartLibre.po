@@ -8784,3 +8784,87 @@ msgstr "Gruppi distinti da misure continue: lineare o quadratica, con il grafico
 
 msgid "Strings"
 msgstr "Stringhe"
+
+msgid "Impact %"
+msgstr "Impatto %"
+
+msgid "The factors, most impact first"
+msgstr "I fattori, dal più importante"
+
+msgid "The result cannot also be a factor."
+msgstr "Il risultato non può essere anche un fattore."
+
+msgid "What has the most impact on {response}"
+msgstr "Cosa impatta di più su {response}"
+
+msgid "falls as it rises"
+msgstr "cala quando cresce"
+
+msgid "rises with it"
+msgstr "cresce con esso"
+
+msgid "highest at {level}"
+msgstr "più alto con {level}"
+
+msgid "What has the most impact?"
+msgstr "Cosa impatta di più?"
+
+msgid "Which of many columns matters most for a result? The factors are ranked for you, and the answer is given in words."
+msgstr "Quale tra tante colonne conta di più per un risultato? I fattori vengono messi in classifica per te, e la risposta è a parole."
+
+msgid "Result"
+msgstr "Risultato"
+
+msgid "What you want to explain: numbers (a yield, a time) or categories (pass/fail)."
+msgstr "Cosa vuoi spiegare: numeri (una resa, un tempo) o categorie (conforme/non conforme)."
+
+msgid "The columns that might drive it."
+msgstr "Le colonne che potrebbero determinarlo."
+
+msgid "Choose the result and the factors: they are ranked for you, and the answer is given in words."
+msgstr "Scegli il risultato e i fattori: vengono messi in classifica per te, e la risposta è a parole."
+
+msgid "What has the most impact on “{measure}”?"
+msgstr "Cosa impatta di più su «{measure}»?"
+
+msgid "None of these factors shows a clear impact on “{response}”."
+msgstr "Nessuno di questi fattori mostra un impatto chiaro su «{response}»."
+
+msgid "“{first}” has the most impact on “{response}”: {share:.0f}% of what the factors explain."
+msgstr "«{first}» è quello che impatta di più su «{response}»: il {share:.0f}% di quanto spiegano i fattori."
+
+msgid "“{response}” rises as “{first}” rises."
+msgstr "«{response}» cresce quando cresce «{first}»."
+
+msgid "“{response}” falls as “{first}” rises."
+msgstr "«{response}» cala quando cresce «{first}»."
+
+msgid "“{response}” is highest when “{first}” is {level}."
+msgstr "«{response}» è più alto quando «{first}» è {level}."
+
+msgid "Then “{second}” ({second_share:.0f}%)."
+msgstr "Poi «{second}» ({second_share:.0f}%)."
+
+msgid "Then “{second}” ({second_share:.0f}%) and “{third}” ({third_share:.0f}%)."
+msgstr "Poi «{second}» ({second_share:.0f}%) e «{third}» ({third_share:.0f}%)."
+
+msgid "Together the factors explain {explained:.0f}% of the variation of “{response}”, judged on rows the model had not seen."
+msgstr "Insieme i fattori spiegano il {explained:.0f}% della variazione di «{response}», valutato su righe che il modello non aveva visto."
+
+msgid "Most of the variation of “{response}” is not explained by these factors."
+msgstr "Gran parte della variazione di «{response}» non è spiegata da questi fattori."
+
+msgid "From the factors, the group of “{response}” is guessed right {explained:.0f}% of the time, against {baseline:.0f}% by always guessing the most common one."
+msgstr "Dai fattori, il gruppo di «{response}» viene indovinato il {explained:.0f}% delle volte, contro il {baseline:.0f}% scegliendo sempre il più frequente."
+
+msgid "Little or no impact: {names}."
+msgstr "Impatto scarso o nullo: {names}."
+
+msgid "How it was decided: a random forest, each factor shuffled in turn on rows it had not seen ({n} rows); the p-values from a linear model."
+msgstr "Come è stato deciso: una foresta casuale, mescolando a turno ogni fattore su righe che non aveva visto ({n} righe); i p-value da un modello lineare."
+
+msgid "How it was decided: a random forest, each factor shuffled in turn on rows it had not seen ({n} rows); the p-values from a test per factor."
+msgstr "Come è stato deciso: una foresta casuale, mescolando a turno ogni fattore su righe che non aveva visto ({n} righe); i p-value da un test per fattore."
+
+msgid "Impact is not proof of cause: a factor can stand in for another one that was not measured."
+msgstr "Un impatto non prova una causa: un fattore può stare al posto di un altro che non è stato misurato."

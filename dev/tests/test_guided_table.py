@@ -30,8 +30,10 @@ def test_the_profile_sorts_measures_groups_and_dates() -> None:
 def test_questions_cast_a_measure_and_a_group() -> None:
     found = table_profile.questions(table_profile.profile("t", FRAME, DECLARED))
     assert [question.roles for question in found] == [
+        {"response": ["peso"], "factor": ["linea", "turno"]},
         {"response": ["peso"], "group": ["linea"]}, {"response": ["peso"], "group": ["turno"]}]
-    assert found[0].template.format(**found[0].values) == "Does “peso” change between the groups of “linea”?"
+    assert found[0].template.format(**found[0].values) == "What has the most impact on “peso”?"
+    assert found[1].template.format(**found[1].values) == "Does “peso” change between the groups of “linea”?"
 
 
 def test_the_panel_follows_the_table(qapp) -> None:
@@ -41,7 +43,7 @@ def test_the_panel_follows_the_table(qapp) -> None:
     panel.question_requested.connect(lambda entry, roles, kinds: asked.append((entry.key, roles)))
     panel.set_table("lines")
     assert panel.profile() is not None and "lines" in panel._table_label.text()
-    panel._questions.findChildren(QPushButton)[0].click()
+    panel._questions.findChildren(QPushButton)[1].click()
     assert asked == [("analysis:Are there differences?", {"response": ["peso"], "group": ["linea"]})]
 
     # Goals the table cannot answer go last; suggestions it cannot feed after the others, saying why.
@@ -74,7 +76,7 @@ def test_a_question_opens_its_answer_with_the_columns_cast(qapp, tmp_path, monke
         qapp.processEvents()
         panel = window._guided_panel
         assert panel.profile() is not None and panel.profile().table == "lines"
-        panel._questions.findChildren(QPushButton)[0].click()
+        panel._questions.findChildren(QPushButton)[1].click()
         assert cast and cast[0]["response"] == ["peso"] and cast[0]["group"] == ["linea"]
     finally:
         window.close()
