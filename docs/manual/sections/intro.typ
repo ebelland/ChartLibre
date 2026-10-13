@@ -16,12 +16,12 @@ It should also work under Linux but it has never been tested.
 == Key concepts
 
 #defs(
-  [*Project (`.dhub`)*], [The file you work in: a SQLite database that holds the imported data *and* every chart built on it. It is self-contained — copy or e-mail the file and everything travels with it.],
+  [*Project (`.dhub`)*], [The file you work in: a \b(SQLite) database that holds the imported data *and* every chart built on it. It is self-contained — copy or e-mail the file and everything travels with it.],
   [*Table*], [A set of rows and columns: imported, produced by an operation (their names start with `_`), or edited by hand.],
-  [*Saved query*], [A named SQL `SELECT`, usable anywhere a table is. Its rows are computed when read, so it always reflects the current data.],
-  [*Figure*], [One page of the chart panel, listed under *Charts* in the navigation rail. It holds one or more axes.],
-  [*Axis*], [One chart inside a figure, with a chart type and one or more series.],
-  [*Series*], [The data drawn on an axis: a SQL query whose columns are named after the *roles* the chart type reads — `x` and `y`, `value`, `time` and `event`, ...],
+  [*Saved query*], [A named SQL `SELECT`, usable anywhere a table is. Its rows are computed when read, so it always reflects the current data.], 
+  [*Figure*], [Matplotlib object: a page of the chart panel, listed under *Charts* in the navigation rail. It holds one or more axes.],
+  [*Axis*], [Matplotlib object: a chart inside a figure, with a chart type and one or more series.],
+  [*Series*], [Matplotlib object: the data drawn on an axis: a SQL query whose columns are named after the *roles* the chart type reads — `x` and `y`, `value`, `time` and `event`, ...],
   [*Chart type* (renderer)], [The code that turns a series' rows into a drawing. See @renderers.],
   [*Series operation*], [A calculation on the data of one or more series, whose result is added to the chart. See @series-operations.],
 )

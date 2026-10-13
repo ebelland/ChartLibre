@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 91,893 lines in 248 files; tests 16,379 lines in 126 files (updated at each commit).
+Size: app 91,913 lines in 248 files; tests 16,379 lines in 126 files (updated at each commit).
 
 DONE RECENTLY
 - M-01: Manual: Data operations and Chart properties named as in the app, the rail's pages listed as they are now, a new Analysis chapter (the analysis window, Fit Model with Generalized Regression, Partition with importance/dependence/ROC, Discriminant, PLS; Guided analysis with search, the three quick answers, the table's questions, goals with Y and X); PDF rebuilt. Screenshots not retaken.

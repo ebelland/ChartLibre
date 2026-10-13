@@ -4,6 +4,8 @@
 
 *Statistics* (in the *Statistics* section of Data operations) answers the questions people ask of their data before or instead of drawing a conclusion: what is the centre and spread, is it normal, do these groups differ, are these variables associated. It reads the series ticked in its list and writes a formatted report in the Results pane; it changes no data and writes no tables.
 
+#example("op_statistics")
+
 == Using the window
 
 + Tick the series to analyse. One series is enough for descriptive, one-sample and normality statistics; tests that compare need two or more.

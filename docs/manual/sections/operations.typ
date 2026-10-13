@@ -76,6 +76,7 @@ The *Axis / Series* selector labels each series with the shape it found:
 )
 
 Five operations also work on surfaces: *Fit*, *Function*, *Peaks*, *Roots* and *Calculus*. *Smoothing* has its own 2D and 3D models, and *Geometry* moves 3D series in space. Each is described below.
+#example("op_surface", width: 90%)
 
 // ======================================================================
 == Analysis
@@ -95,6 +96,7 @@ A raw search for local maxima on real data returns hundreds of hits, almost all 
 )
 
 #refs("scipy.signal.find_peaks", "scipy.signal.peak_prominences", "scipy.signal.peak_widths", "scipy.ndimage.maximum_filter")
+#example("op_peaks")
 #use[Spectroscopy and chromatography (peak positions and widths), finding cycles and extremes in any signal. The half-prominence bounds are exactly what *Calculus* needs to integrate a peak's area.]
 
 On a *surface*, Peaks finds local maxima and minima in two dimensions with the same parameters.
@@ -112,6 +114,7 @@ Finds every x at which the series crosses a chosen *level* — the zeros of y(x)
 )
 
 #refs("scipy.optimize.brentq", "scipy.optimize.toms748", "scipy.optimize.newton", "scipy.interpolate.CubicSpline", "scipy.interpolate.PchipInterpolator")
+#example("op_roots")
 #use[Titration endpoints, the time a response falls to half its value, threshold crossings, the temperature at which a difference changes sign, the zero crossings of a derivative (maxima and minima).]
 
 On a *surface*, Roots traces the *level curve* z = level — a contour line — instead of a list of points.
@@ -135,6 +138,7 @@ Computes the numerical derivative or integral of a series. Two things that are e
 Derivatives are drawn on a new axis by default (a slope is in different units from the data). On a date axis, the derivative is expressed per natural unit of the sampling interval — per day for daily data — rather than per second.
 
 #refs("scipy.integrate.trapezoid", "scipy.integrate.simpson", "scipy.integrate.cumulative_trapezoid", "scipy.signal.savgol_filter", "scipy.interpolate.UnivariateSpline")
+#example("op_calculus")
 #use[Rates of change (velocity from position, growth rate), finding inflection points, peak areas (concentration from a chromatogram), totals from rates (energy from power).]
 
 // ======================================================================
@@ -162,6 +166,7 @@ The last four judge a point by its position relative to the others in (x, y), no
 *Action*: *Hide them* marks the rows in the table's `Hide` column, which every chart skips — the data stays in the table, and the rows can be un-hidden from the table editor (see @table-editor). *Colour them* keeps every point on the chart and draws the outliers in the chosen *colour*.
 
 #refs("sklearn.ensemble.IsolationForest", "sklearn.neighbors.LocalOutlierFactor", "sklearn.svm.OneClassSVM", "sklearn.covariance.EllipticEnvelope", "scipy.ndimage.median_filter")
+#example("op_outliers")
 #use[Cleaning measurement glitches before a fit, flagging anomalous batches, checking how sensitive a result is to a few points.]
 
 === Clustering — group similar data
@@ -176,6 +181,7 @@ Groups the points of a series into clusters and writes each row's cluster number
 *Features* chooses which numeric columns of the series are used. A *max runtime* stops algorithms that scale badly on large tables.
 
 #refs("scipy.cluster.vq.kmeans2", "scipy.cluster.hierarchy.linkage", "scipy.cluster.hierarchy.fcluster", "sklearn.cluster.KMeans", "sklearn.cluster.MiniBatchKMeans", "sklearn.cluster.DBSCAN", "sklearn.cluster.OPTICS", "sklearn.cluster.AgglomerativeClustering", "sklearn.cluster.SpectralClustering", "sklearn.cluster.Birch", "sklearn.cluster.MeanShift", "sklearn.mixture.GaussianMixture")
+#example("op_clustering")
 #use[Finding natural groups — material phases, customer segments, operating regimes — and then analysing each group separately.]
 
 === Control Chart — monitor process stability
@@ -204,6 +210,7 @@ The key point of a control chart is where its limits come from: never from the s
 The report lists each signalling point and the rule it broke. A chart with no signals says the process is *stable* — which is not the same as meeting a specification.
 
 #use[Manufacturing and laboratory quality control, monitoring any process over time.]
+#example("op_control_chart")
 
 === Transform — rescale or reshape a distribution
 Replaces y with a transformed version of itself, point for point (same x, same number of points), on a new axis.
@@ -216,6 +223,7 @@ Replaces y with a transformed version of itself, point for point (same x, same n
 )
 
 #refs("sklearn.preprocessing.PowerTransformer", "sklearn.preprocessing.QuantileTransformer", "sklearn.preprocessing.StandardScaler", "sklearn.preprocessing.RobustScaler")
+#example("op_transform")
 #use[Preparing data for a method that assumes normality or comparable scales — a test, a control chart, a clustering on several variables.]
 
 === Decomposition — several series together
@@ -286,6 +294,7 @@ Produces a smoothed copy of a series, drawn beside the original. The *data type*
 *Surfaces (2D) and volumes (3D):* Gaussian, Median, smoothing and rectangular bivariate splines, RBF (radial basis function) smoothing, FFT low-pass and Total Variation, each with per-axis sizes where it applies.
 
 #refs("scipy.signal.savgol_filter", "scipy.ndimage.gaussian_filter1d", "scipy.signal.medfilt", "scipy.signal.butter", "scipy.signal.sosfiltfilt", "scipy.signal.wiener", "scipy.interpolate.UnivariateSpline", "scipy.linalg.solveh_banded", "statsmodels.nonparametric.smoothers_lowess.lowess", "statsmodels.tsa.filters.hp_filter.hpfilter")
+#example("op_smoothing")
 #use[Making a trend visible in noisy data, preparing a signal for peak finding or differentiation. When in doubt, start with Savitzky-Golay or LOWESS.]
 
 === Spectral Analysis — analyse frequencies
@@ -305,6 +314,7 @@ Computes how a signal's energy is distributed over frequency, or how it correlat
 The *sampling frequency* is derived from the spacing of x (with a warning if the spacing is not uniform) or typed in. Welch estimators take a *segment length*, *overlap*, *window* and *detrend*; spectra can be *one-sided* and in *decibels*; correlations take *max lags* and a *normalisation* (unbiased, biased, none). Two-signal estimators pair the *first* ticked series with each of the others.
 
 #refs("numpy.fft.rfft", "scipy.signal.welch", "scipy.signal.csd", "scipy.signal.coherence", "scipy.signal.correlate")
+#example("op_spectral")
 #use[Vibration analysis, finding periodicities (seasonal cycles, mains hum), comparing two sensors, checking what a filter should remove.]
 
 === Filtering — filter, detrend or demodulate
@@ -320,6 +330,7 @@ Changes the signal itself in the frequency domain — the complement of Spectral
 The cutoffs are in the same units as the sampling frequency, which is taken from x as in Spectral Analysis.
 
 #refs("scipy.signal.iirfilter", "scipy.signal.firwin", "scipy.signal.sosfiltfilt", "scipy.signal.filtfilt", "scipy.signal.hilbert", "scipy.signal.detrend")
+#example("op_filtering")
 #use[Removing mains hum (bandstop at 50/60 Hz), separating slow drift from fast signal, extracting an envelope.]
 
 === Baseline Correction — subtract a background
@@ -333,6 +344,7 @@ Estimates the slowly varying background under a spectrum or chromatogram and sub
 *Draw the baseline* adds the estimated background as its own series, so the correction can be checked by eye.
 
 #refs("scipy.sparse.linalg.spsolve")
+#example("op_baseline")
 #use[Raman, IR, XRD and fluorescence spectra; chromatograms with drift — always before measuring peak areas.]
 
 // ======================================================================
@@ -381,6 +393,7 @@ The *Multi-peak builder* creates a sum of *N* Gaussian, Lorentzian or pseudo-Voi
 *Extra output:* *95% confidence band* (where the true curve lies, given the parameter uncertainty), *95% prediction band* (where a new measurement would fall), a *residuals vs x* chart (structure in the residuals means the model is missing something) and a *measured vs fit* chart (a perfect fit lies on the diagonal). Fitted values and residuals are saved to the *output table*.
 
 #refs("scipy.optimize.least_squares", "scipy.optimize.minimize", "scipy.optimize.differential_evolution", "scipy.optimize.dual_annealing", "scipy.optimize.basinhopping", "scipy.optimize.shgo")
+#example("op_fit")
 #use[Extracting physical parameters (a rate constant, a peak position, an EC50), calibration curves, comparing candidate models. ChartLibre's fit has been checked against the certified NIST StRD reference results.]
 
 === Interpolation — fill gaps and resample
@@ -399,6 +412,7 @@ Evaluates a smooth or fitted curve through a series at new x values: to fill gap
 *X spacing* chooses where the new values are computed: a number of *points* spaced linearly, logarithmically, geometrically or at Chebyshev nodes over the data range (optionally *extended* by a percentage on both sides, or over an explicit *X range*); a fixed integer *step*; the *original data x* values; or a custom list of x values. *Allow extrapolation* permits values outside the data's x range.
 
 #refs("numpy.interp", "scipy.interpolate.CubicSpline", "scipy.interpolate.PchipInterpolator", "scipy.interpolate.Akima1DInterpolator", "scipy.interpolate.make_interp_spline", "scipy.interpolate.UnivariateSpline", "scipy.optimize.curve_fit")
+#example("op_interpolation")
 #use[Putting two series on the same x grid before comparing or subtracting them; filling missing readings; producing a smooth curve for display.]
 
 === Function — plot a function
@@ -418,6 +432,7 @@ Fits a curve through a series with models that do not assume an algebraic formul
 )
 
 #refs("sklearn.linear_model.HuberRegressor", "sklearn.linear_model.RANSACRegressor", "sklearn.isotonic.IsotonicRegression", "sklearn.ensemble.RandomForestRegressor", "sklearn.ensemble.GradientBoostingRegressor")
+#example("op_regression")
 #use[A trend through outlier-heavy data (RANSAC, Huber), a calibration that must be monotone (Isotonic), a flexible non-parametric trend when no formula is known.]
 
 === GP Regression — a fit with its own uncertainty

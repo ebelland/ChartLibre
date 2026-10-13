@@ -72,3 +72,15 @@
     *Computed with:* #names.pos().map(name => link(ref-url(name), text(fill: rgb("#1a5fb4"), raw(name)))).join(", ")
   ]
 ]
+
+// An example picture (or several side by side), drawn by ChartLibre itself:
+// docs/manual/examples/, made by dev/manual/make_examples.py.
+#let example(..names, width: auto) = {
+  let pictures = names.pos()
+  let w = if width != auto { width } else if pictures.len() == 1 { 66% } else { 100% }
+  align(center, block(width: w, above: 0.6em, below: 0.9em, grid(
+    columns: pictures.len(),
+    gutter: 10pt,
+    ..pictures.map(name => image("../examples/" + name + ".png", width: 100%)),
+  )))
+}

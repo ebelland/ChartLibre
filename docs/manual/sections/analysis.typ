@@ -20,6 +20,23 @@ Where a data operation works on the series of a chart, an *analysis* works on th
   [*Partial Least Squares*], [A response from many X that move together — the wavelengths of a spectrum — through a few components, their number chosen by cross-validation; the variables' importance (VIP), loadings, coefficients and scores. #refs("sklearn.cross_decomposition.PLSRegression", "sklearn.model_selection.KFold")],
 )
 
+#figure(
+  example("analysis_fit_model", width: 100%),
+  caption: [Fit Model on a Box-Behnken design: the effects ranked by LogWorth, and the prediction profile.],
+)
+#figure(
+  example("analysis_partition", width: 100%),
+  caption: [Partition of the penguins' body mass: the partition graph, each leaf as wide as its rows, and the permutation importance.],
+)
+#figure(
+  example("analysis_discriminant"),
+  caption: [Discriminant analysis of the three penguin species from four measures: the canonical plot.],
+)
+#figure(
+  example("analysis_pls", width: 100%),
+  caption: [Partial Least Squares on a set of spectra: RMSECV by number of components, VIP along the wavelengths, scores, actual by predicted.],
+)
+
 == Guided analysis <guided-analysis>
 
 *Guided analysis* starts from what you want to find out rather than from the name of a function. It follows the table selected in the Tables page and says what it holds — how many numeric columns, categories and dates.
@@ -38,6 +55,11 @@ Where a data operation works on the series of a chart, an *analysis* works on th
 
   Above them, questions asked of the selected table itself — "Does “weight” change between the groups of “line”?" — open the answer with its columns already chosen.
 - *What do you want to do?* lists goals — describe, compare, relate, explain, predict, monitor… With *Y* and *X* chosen from the table, *Open* starts the suggested analysis or chart with them cast. Suggestions the table cannot feed come last, greyed, saying what they lack.
+
+#figure(
+  example("answer_differences", "answer_impact", "answer_change", width: 100%),
+  caption: [The three quick answers on real data: penguin body mass by species, what has the most impact on it, and NASA's global temperature anomaly since 1880.],
+)
 
 #note[
   The demo *Quick answers – three questions asked of real data* has each quick answer already asked, its answer in the chart's notes.
