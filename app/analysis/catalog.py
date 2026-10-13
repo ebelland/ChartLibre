@@ -95,6 +95,11 @@ _ANALYSES: dict[str, tuple[str, tuple[str, ...]]] = {
         "stable quick answer risposta rapida",
         ("signal", "process"),
     ),
+    "Partial Least Squares": (
+        "pls partial least squares minimi quadrati parziali spectra spettri spectrum spettro nir chemometrics "
+        "chemiometria calibration calibrazione vip latent components componenti latenti multivariate calibration",
+        ("predict", "explain"),
+    ),
     "Fit Model": (
         "regression regressione linear model modello lineare least squares minimi quadrati anova "
         "analysis of variance analisi della varianza doe design of experiments response surface "
@@ -325,6 +330,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("chart:Interaction Plot", "Does the effect of one factor depend on another?", NUMERIC),
     ),
     "predict": (
+        ("analysis:Partial Least Squares", "Many X that move together, like a spectrum: a few components, "
+                                           "chosen by cross-validation.", NUMERIC),
         ("analysis:Fit Model", "A model you can read and write down, with confidence intervals.", NUMERIC),
         ("analysis:Partition", "Bootstrap Forest or Boosted Tree: accurate, no formula needed.", ANY),
         ("series:Regression", "Robust or machine-learning regression on one X.", NUMERIC),

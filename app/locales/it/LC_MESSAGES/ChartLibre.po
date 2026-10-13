@@ -9015,3 +9015,81 @@ msgstr "Parametri non nulli"
 
 msgid "Penalized estimates, shrunk towards zero by the penalty that predicted best in cross-validation: they have no standard errors or p-values. The effects are ranked by the size of their standardized estimates."
 msgstr "Stime penalizzate, ridotte verso zero dalla penalità che ha previsto meglio in validazione incrociata: non hanno errori standard né p-value. Gli effetti sono ordinati per la grandezza delle stime standardizzate."
+
+msgid "Coefficients"
+msgstr "Coefficienti"
+
+msgid "Components"
+msgstr "Componenti"
+
+msgid "Cross-validation"
+msgstr "Validazione incrociata"
+
+msgid "RMSECV by number of components"
+msgstr "RMSECV per numero di componenti"
+
+msgid "Scores"
+msgstr "Punteggi"
+
+msgid "Variable (in column order)"
+msgstr "Variabile (nell'ordine delle colonne)"
+
+msgid "Variable importance (VIP)"
+msgstr "Importanza delle variabili (VIP)"
+
+msgid "Variable importance (VIP), highest 15"
+msgstr "Importanza delle variabili (VIP), le 15 più alte"
+
+msgid "Partial Least Squares"
+msgstr "Minimi quadrati parziali"
+
+msgid "Y from many X that move together - a spectrum's wavelengths: a few latent components, their number chosen by cross-validation; variable importance (VIP), loadings, scores, predictions."
+msgstr "Y da molte X che si muovono insieme, come le lunghezze d'onda di uno spettro: poche componenti latenti, il loro numero scelto con la validazione incrociata; importanza delle variabili (VIP), loadings, punteggi, previsioni."
+
+msgid "The values to predict: a concentration, a property."
+msgstr "I valori da prevedere: una concentrazione, una proprietà."
+
+msgid "The many measures to predict them from: a spectrum's columns."
+msgstr "Le molte misure da cui prevederli: le colonne di uno spettro."
+
+msgid "PLS"
+msgstr "PLS"
+
+msgid "0 chooses them by cross-validation: another component only while it cuts the prediction error by 5% or more."
+msgstr "0 le sceglie con la validazione incrociata: un'altra componente solo finché riduce l'errore di previsione del 5% o più."
+
+msgid "Cross-validation folds:"
+msgstr "Blocchi di validazione incrociata:"
+
+msgid "Into how many parts the rows are split; each part is predicted by a model fitted on the others."
+msgstr "In quante parti si dividono le righe; ogni parte è prevista da un modello adattato sulle altre."
+
+msgid "Scale X to unit variance"
+msgstr "Scala le X a varianza unitaria"
+
+msgid "For X in different units. Off for a spectrum: scaling gives the wavelengths that carry only noise the weight of the bands."
+msgstr "Per X in unità diverse. Spento per uno spettro: la scala dà alle lunghezze d'onda di solo rumore il peso delle bande."
+
+msgid "Many X that move together, like a spectrum: a few components, chosen by cross-validation."
+msgstr "Molte X che si muovono insieme, come uno spettro: poche componenti, scelte con la validazione incrociata."
+
+msgid "RSquare Y"
+msgstr "R² Y"
+
+msgid "Q² (cross-validated)"
+msgstr "Q² (validazione incrociata)"
+
+msgid "Variables with VIP > 0.8"
+msgstr "Variabili con VIP > 0,8"
+
+msgid "Folds"
+msgstr "Blocchi"
+
+msgid "Fewer components than the lowest RMSECV: the next one cut the prediction error by less than 5%, so the simpler model is kept."
+msgstr "Meno componenti del RMSECV minimo: la successiva riduceva l'errore di previsione di meno del 5%, quindi si tiene il modello più semplice."
+
+msgid "Chosen"
+msgstr "Scelto"
+
+msgid "Variable"
+msgstr "Variabile"
