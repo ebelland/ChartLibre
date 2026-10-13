@@ -39,3 +39,17 @@
   radius: 2pt,
   width: 100%,
 )[#text(size: 9.8pt)[*When to use it.* #body]]
+
+// The Matplotlib functions a chart type draws with, each linked to its API page.
+#let mpl-url(name) = if name.starts-with("Axes3D.") {
+  "https://matplotlib.org/stable/api/_as_gen/mpl_toolkits.mplot3d.axes3d." + name + ".html"
+} else if name.starts-with("patches.") {
+  "https://matplotlib.org/stable/api/_as_gen/matplotlib." + name + ".html"
+} else {
+  "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes." + name + ".html"
+}
+#let mpl(..names) = block(above: 0.3em, below: 0.7em)[
+  #text(size: 9.5pt, fill: rgb("#444"))[
+    *Matplotlib:* #names.pos().map(name => link(mpl-url(name), text(fill: rgb("#1a5fb4"), raw(name)))).join(", ")
+  ]
+]
