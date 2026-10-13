@@ -148,6 +148,20 @@ class TableOperationDialogBase(QDialog):
         del table, frame
         return {}, {}
 
+    def cast_explanatory(self, columns: list[str]) -> None:
+        """Cast the guided analysis's X: into this analysis's role after the response.
+
+        Factors, groups, covariates, a time column - as many as the role
+        takes. An analysis whose X are not a role (Fit Model's effects)
+        overrides this.
+        """
+        role = next((role for role in self.ROLES if role.key != "response"), None)
+        if role is None:
+            return
+        roles = dict(self.roles_widget.casting().roles)
+        roles[role.key] = list(columns)[: role.maximum] if role.maximum else list(columns)
+        self.roles_widget.set_casting(roles)
+
     def inputs_changed(self) -> None:
         """The table, the casting, the model or a parameter changed: the report is stale."""
         if self._result is not None:

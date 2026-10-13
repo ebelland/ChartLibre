@@ -691,8 +691,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         analysis_panel.operation_requested.connect(self._on_table_operation_requested)
         guided_panel = GuidedAnalysisPanel(self)
         guided_panel.entry_requested.connect(self.open_catalog_entry)
-        guided_panel.question_requested.connect(
-            lambda entry, roles, kinds: self._on_table_operation_requested(entry.payload, roles=roles, kinds=kinds))
+        guided_panel.question_requested.connect(self._open_catalog_entry_with_columns)
         guided_panel.set_loader(self._guided_table)
         guided_panel.set_table(self._table_panel.current)
         self._guided_panel = guided_panel
@@ -1169,6 +1168,18 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if palette.exec() and palette.chosen is not None:
             self.open_catalog_entry(palette.chosen)
 
+    def _open_catalog_entry_with_columns(self, entry, roles: dict, kinds: dict) -> None:
+        """Open what the guided analysis chose with its columns: cast into an analysis, or a chart on them."""
+        from app.analysis import catalog
+
+        if entry.kind == catalog.ANALYSIS:
+            self._on_table_operation_requested(entry.payload, roles=roles, kinds=kinds)
+        elif entry.kind == catalog.CHART:
+            columns = [*roles.get("_x", [])[:1], *roles.get("response", [])]
+            self._on_new_plot_tab(chart_type=str(entry.payload), columns=columns or None)
+        else:
+            self.open_catalog_entry(entry)
+
     def open_catalog_entry(self, entry) -> None:
         """Open what a search found: an analysis, a series operation, a chart type, a table tool."""
         from app.analysis import catalog
@@ -1238,7 +1249,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         current = self._table_panel.current
         dialog = dialog_class(repo=self._repo, table=str(current) if current else None, parent=self)
         if roles:
+            roles = dict(roles)
+            chosen_x = roles.pop("_x", None)
             dialog.roles_widget.set_casting(roles, kinds)
+            if chosen_x:
+                dialog.cast_explanatory(list(chosen_x))
         dialog.applied.connect(self.refresh)
         dialog.exec()
         figures = list(getattr(dialog, "created_figure_ids", []) or [])

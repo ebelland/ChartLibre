@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
@@ -114,7 +115,21 @@ class GuidedAnalysisPanel(NavPanel):
             self._response.addItem(_(label), value)
         self._response.currentIndexChanged.connect(lambda _index: self._show())
         form.addRow(_("The response (Y) is"), self._response)
+        # The table's own columns (G-01): with Y (and X) chosen, Open casts
+        # them into the analysis, or a new chart starts on them.
+        self._y_combo = QComboBox(body)
+        self._y_combo.setToolTip(_("The column to explain, compare or predict. Its type sets the response above."))
+        self._y_combo.currentIndexChanged.connect(lambda _index: self._on_y_changed())
+        self._y_row_label = QLabel(_("Y:"), body)
+        form.insertRow(0, self._y_row_label, self._y_combo)
+        self._x_button = QPushButton(body)
+        self._x_button.setToolTip(_("The columns that might explain it, or that group it."))
+        self._x_menu = QMenu(self._x_button)
+        self._x_button.setMenu(self._x_menu)
+        self._x_row_label = QLabel(_("X:"), body)
+        form.insertRow(1, self._x_row_label, self._x_button)
         layout.addLayout(form)
+        self._fill_columns()
         self.add_frame(_("What do you want to do?"), body, object_name="guidedGoalsFrame")
 
         page = QWidget(self)
@@ -162,6 +177,7 @@ class GuidedAnalysisPanel(NavPanel):
             except Exception:  # noqa: BLE001 - a table that cannot be read: general suggestions
                 applogger.exception("Guided analysis: could not read table %s", self._table)
         self._show_table()
+        self._fill_columns()
         self._fill_goals()
         self._show()
 
@@ -214,6 +230,66 @@ class GuidedAnalysisPanel(NavPanel):
             if key == selected:
                 self.goals.setCurrentItem(item)
         self.goals.blockSignals(blocked)
+        # Every goal in sight and no more: the rows' real height, not a guess.
+        row = self.goals.sizeHintForRow(0)
+        if row > 0:
+            self.goals.setFixedHeight(row * self.goals.count() + 2 * self.goals.frameWidth() + 4)
+
+    def _fill_columns(self) -> None:
+        """Y and X from the selected table's columns; hidden without a table."""
+        table = self._profile
+        columns = list(table.kinds) if table is not None else []
+        for widget in (self._y_combo, self._y_row_label, self._x_button, self._x_row_label):
+            widget.setVisible(bool(columns))
+        previous = self._y_combo.currentData()
+        blocked = self._y_combo.blockSignals(True)
+        self._y_combo.clear()
+        self._y_combo.addItem(_("(choose in the window)"), None)
+        for name in columns:
+            self._y_combo.addItem(name, name)
+        index = self._y_combo.findData(previous)
+        self._y_combo.setCurrentIndex(max(index, 0))
+        self._y_combo.blockSignals(blocked)
+        chosen = set(self.chosen_x())
+        self._x_menu.clear()
+        for name in columns:
+            action = self._x_menu.addAction(name)
+            action.setCheckable(True)
+            action.setChecked(name in chosen)
+            action.toggled.connect(lambda _checked: self._show_x())
+        self._show_x()
+
+    def chosen_y(self) -> str | None:
+        value = self._y_combo.currentData()
+        return str(value) if value else None
+
+    def chosen_x(self) -> list[str]:
+        y = self.chosen_y()
+        return [action.text() for action in self._x_menu.actions() if action.isChecked() and action.text() != y]
+
+    def _show_x(self) -> None:
+        names = self.chosen_x()
+        self._x_button.setText(", ".join(names) if names else _("(choose in the window)"))
+
+    def _on_y_changed(self) -> None:
+        """Y's own type is the response's: a number or a category."""
+        y, table = self.chosen_y(), self._profile
+        if y and table is not None:
+            kind = catalog.NUMERIC if y in table.measures else catalog.CATEGORICAL if y in table.groups else None
+            if kind is not None:
+                self._response.setCurrentIndex(self._response.findData(kind))
+        self._show_x()
+
+    def _open(self, entry: CatalogEntry) -> None:
+        """Open a suggestion: with the chosen Y and X cast, when there are any and it takes columns."""
+        y, x = self.chosen_y(), self.chosen_x()
+        if y and entry.kind in (catalog.ANALYSIS, catalog.CHART):
+            roles: dict[str, list[str]] = {"response": [y]}
+            if x:
+                roles["_x"] = x
+            self.question_requested.emit(entry, roles, {})
+        else:
+            self.entry_requested.emit(entry)
 
     def _goal_missing(self, goal: str) -> str | None:
         return table_profile.goal_missing(self._profile, goal) if self._profile is not None else None
@@ -274,7 +350,7 @@ class GuidedAnalysisPanel(NavPanel):
                        "</span>", card)
         top.addWidget(title, 1)
         button = QPushButton(_("Open"), card)
-        button.clicked.connect(lambda _checked=False, e=entry: self.entry_requested.emit(e))
+        button.clicked.connect(lambda _checked=False, e=entry: self._open(e))
         top.addWidget(button)
         layout.addLayout(top)
         text = QLabel(_(why), card)

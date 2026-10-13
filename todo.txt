@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 91,112 lines in 245 files; tests 16,164 lines in 125 files (updated at each commit).
+Size: app 91,221 lines in 245 files; tests 16,203 lines in 125 files (updated at each commit).
 
 DONE RECENTLY
+- G-01: Guided analysis: Y and X picked from the selected table (Y's type sets the response); Open casts them into the analysis (X into its role after the response; Fit Model builds their main effects - TableOperationDialogBase.cast_explanatory) or starts a new chart on them. Goal list sized to its rows.
 - A click on the chart selects what it landed on in Chart properties (when shown): outside every axis the Figure page, on an axis the Axis page on it, on a series' line, points or bar the Series page on it.
 - D-01 (part): demo "Quick answers - three questions asked of real data" (dev/demo/demo_questions.py): penguins' body mass by species, what has the most impact on it, NASA global temperature over time - each asked by the real dialog, the answer in the chart's notes.
 - Q-03: Quick answer "Has it changed over time?": Mann-Kendall trend with Sen's slope and Pettitt change point (O(n) from ranks), the two sides compared; when both speak, the shape that fits better (drift or step) is the answer; caution on autocorrelation; order by a date, number or the rows; OK draws the values with the trend line or the medians before and after. Also a concrete question of the guided analysis when the table has dates.
@@ -47,10 +48,6 @@ DONE RECENTLY
 NOW
 D-01  M  Demos rethought around the questions: per goal still to do (the
          quick answers' demo is done), still covering every function.
-G-01  S  Guided analysis, step 3: pick Y and X for any suggestion and open
-         it with them cast (done: the selected table's summary, goals and
-         suggestions it cannot feed greyed with why, questions opening
-         "Are there differences?" with the columns cast).
 AN-16 M  Fit Model: Lasso / Ridge / Elastic Net with CV (JMP Gen. Regression).
 AN-17 M  PLS regression for spectra: VIP, loadings, components by CV.
 AN-18 S  Permutation importance and partial dependence for any model.

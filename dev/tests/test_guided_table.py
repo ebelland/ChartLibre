@@ -83,3 +83,42 @@ def test_a_question_opens_its_answer_with_the_columns_cast(qapp, tmp_path, monke
     finally:
         window.close()
         repo.close()
+
+
+def test_y_and_x_chosen_open_the_suggestion_with_them_cast(qapp, tmp_path, monkeypatch) -> None:
+    from app.data.sqlite_repo import SqliteRepo
+    from app.main_window.main_window import MainWindow
+    from app.table_operations.dialog_base import TableOperationDialogBase
+
+    repo = SqliteRepo(db_path=tmp_path / "x.dhub")
+    repo.import_dataframe(FRAME, table_name="lines", normalize_columns=False)
+    window = MainWindow(repo, tmp_path / "x.dhub")
+    opened = []
+
+    def capture(self):
+        opened.append((type(self).__name__, self.roles_widget.casting().roles, list(getattr(self, "_terms", []))))
+        return 0
+
+    monkeypatch.setattr(TableOperationDialogBase, "exec", capture)
+    try:
+        window._table_panel.reload()
+        window._table_panel.select_table("lines")
+        qapp.processEvents()
+        panel = window._guided_panel
+        panel.profile()
+        panel._y_combo.setCurrentIndex(panel._y_combo.findData("peso"))
+        assert panel.response() == catalog.NUMERIC  # Y's own type
+        for action in panel._x_menu.actions():
+            action.setChecked(action.text() in ("linea", "turno"))
+        assert panel.chosen_x() == ["linea", "turno"]
+        rows = [str(panel.goals.item(row).data(0x0100)) for row in range(panel.goals.count())]
+        panel.goals.setCurrentRow(rows.index("explain"))
+        by_key = {card.property("entry").key: card for card in panel._cards()}
+        by_key["analysis:What has the most impact?"].findChildren(QPushButton)[-1].click()
+        by_key["analysis:Fit Model"].findChildren(QPushButton)[-1].click()
+        impact, fit = opened
+        assert impact[1]["response"] == ["peso"] and impact[1]["factor"] == ["linea", "turno"]
+        assert fit[1]["response"] == ["peso"] and len(fit[2]) == 2  # the two main effects
+    finally:
+        window.close()
+        repo.close()

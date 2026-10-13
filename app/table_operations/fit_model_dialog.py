@@ -330,6 +330,10 @@ class FitModelDialog(TableOperationDialogBase):
         elif not any(levels) and categorical:
             combo.setCurrentIndex(combo.findData("standard"))
 
+    def cast_explanatory(self, columns: list[str]) -> None:
+        """The guided analysis's X are the model's main effects."""
+        self._apply_macro("main", edited=True, columns=list(columns))
+
     def _apply_macro(self, key: str, *, edited: bool, columns: list[str] | None = None) -> None:
         """Replace the effects with a macro over *columns*: the selected ones, else the model's factors."""
         if columns is None:
