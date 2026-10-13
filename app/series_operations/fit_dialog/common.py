@@ -108,6 +108,8 @@ class _FitJob:
     output_table: str
     #: Fit (optimise the parameters) or merely evaluate them.
     optimise: bool = False
+    #: Each point's error, from the series' yerr column, when weighting by it.
+    sigma: np.ndarray | None = None
 
     def run(self, should_stop: Callable[[], bool] | None = None) -> fit_engine.CurveFit:
         """The calculation alone - no Qt, safe on a worker thread."""
@@ -124,6 +126,7 @@ class _FitJob:
             loss=self.loss,
             max_nfev=self.max_nfev,
             weighted=self.weighted,
+            sigma=self.sigma,
             should_stop=should_stop,
         )
 

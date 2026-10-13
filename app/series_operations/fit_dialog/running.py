@@ -72,7 +72,7 @@ class FitRunMixin:
             optimizer=self._optimizer_key(),
             loss=self._loss_key(),
             max_nfev=int(float(self._max_nfev_edit.text().strip() or "800")),
-            weighted=self._weighted_check.isChecked(),
+            weighted=self._weights_key() == "relative",
             source_table=self._current_table(),
             x_col=x_col,
             x2_col=x2_col,
@@ -83,7 +83,11 @@ class FitRunMixin:
             expression=str(self._selected_model.get("expression", "")).strip(),
             output_table=self._output_table_name(),
             optimise=optimise,
+            sigma=clean["sigma"].to_numpy(float) if "sigma" in clean.columns else None,
         )
+
+    def _weights_key(self) -> str:
+        return str(self._combo_weights.currentData() or "none")
 
     def finish_job(self, job: _FitJob, outcome: fit_engine.CurveFit) -> list[SeriesFitResult]:
         """The engine's outcome as this dialog's result; kept as _last_result."""

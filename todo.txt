@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 89,150 lines in 237 files; tests 15,560 lines in 117 files (updated at each commit).
+Size: app 89,228 lines in 237 files; tests 15,624 lines in 118 files (updated at each commit).
 
 DONE RECENTLY
 - W-04: ChartCanvas (chart_panel/canvas.py): within a burst of resizes the last image is stretched, and the figure is resized and drawn once the size holds for 150 ms; the panel's geometry pass waits for it.
@@ -77,7 +77,7 @@ NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Games-Howell,
            Bonferroni, Dunn; repeated-measures ANOVA, ANCOVA.
 - R-08  M  Column metadata: label, unit, missing codes, value labels.
-- R-05  M  Fit: weights from an error column; global fit, shared parameters.
+- R-05  M  Fit: global fit, shared parameters (weights from yerr done).
 
 LATER
 - AN-06 M  Quality: Gage R&R, capability with non-normal fits, multi-vari.

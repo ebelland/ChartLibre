@@ -368,18 +368,24 @@ class ModelDataMixin:
         if x_col == y_col:
             applogger.error("Selected series X and Y columns must be different.")
 
+        x_raw = self.numeric_x(frame[x_col], source_name)
+        y_raw = self.numeric_y(frame[y_col])
+        sigma = None
+        if self._weights_key() == "errors":
+            sigma = self._error_column(frame, columns, roles, source_name)
+            x_raw, y_raw, sigma = _merge_points_with_errors(x_raw, y_raw, sigma, source_name)
+
         # Same three repairs as before - drop non-finite, sort by x, average
-        # repeated x - but reported rather than silent.
-        x_prepared, target_prepared = self.prepare_input_xy(
-            self.numeric_x(frame[x_col], source_name),
-            self.numeric_y(frame[y_col]),
-            label=source_name,
-        )
+        # repeated x - but reported rather than silent. With errors they were
+        # made above, carrying each point's error along.
+        x_prepared, target_prepared = self.prepare_input_xy(x_raw, y_raw, label=source_name)
 
         clean_frame = cast(
             pd.DataFrame,
             pd.DataFrame({"x": x_prepared, "target": target_prepared}),
         )
+        if sigma is not None:
+            clean_frame["sigma"] = sigma
 
         self._source_name = source_name
         self._source_x_col = x_col
@@ -389,6 +395,19 @@ class ModelDataMixin:
         x_data = clean_frame["x"].to_numpy(dtype=float)
         target_data = clean_frame["target"].to_numpy(dtype=float)
         return x_data, target_data, clean_frame
+
+    def _error_column(self, frame: pd.DataFrame, columns: list[str], roles: dict, source_name: str) -> np.ndarray:
+        """Each point's y error: the yerr role, or the mean of yerr_low/yerr_high."""
+        found = [resolve_role_column(columns, roles, role) for role in ("yerr", "yerr_low", "yerr_high")]
+        if found[0] in columns:
+            return self.numeric_y(frame[found[0]])
+        halves = [self.numeric_y(frame[name]) for name in found[1:] if name in columns]
+        if not halves:
+            applogger.error(
+                f"{source_name}: weighting by error bars needs a yerr column in the series' roles.",
+                raise_error=True,
+            )
+        return np.mean(halves, axis=0)
 
     def _model_name(self) -> str:
         item = self._models_tree.currentItem()
@@ -454,3 +473,28 @@ class ModelDataMixin:
         for row, value in enumerate(np.asarray(values, dtype=float)):
             if row < self._params_table.rowCount():
                 self._params_table.setItem(row, 1, QTableWidgetItem(f"{float(value):.12g}"))
+
+
+def _merge_points_with_errors(
+    x: np.ndarray, y: np.ndarray, sigma: np.ndarray, label: str
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Drop points without a usable error, sort by x, merge repeated x.
+
+    What prepare_input_xy does, done first so each point keeps its error:
+    repeated x become their weighted mean, with the error of that mean.
+    """
+    x, y, sigma = (np.asarray(values, dtype=float) for values in (x, y, sigma))
+    usable = np.isfinite(x) & np.isfinite(y) & np.isfinite(sigma) & (sigma > 0.0)
+    dropped = int(usable.size - np.count_nonzero(usable))
+    if dropped:
+        applogger.warning(f"{label}: {dropped} point(s) without a positive, finite error left out of the fit.")
+    x, y, sigma = x[usable], y[usable], sigma[usable]
+    unique_x, inverse = np.unique(x, return_inverse=True)
+    if unique_x.size == x.size:
+        order = np.argsort(x, kind="stable")
+        return x[order], y[order], sigma[order]
+    weight = 1.0 / np.square(sigma)
+    total = np.bincount(inverse, weights=weight)
+    merged_y = np.bincount(inverse, weights=weight * y) / total
+    applogger.warning(f"{label}: {x.size - unique_x.size} repeated x merged into their weighted mean.")
+    return unique_x, merged_y, 1.0 / np.sqrt(total)

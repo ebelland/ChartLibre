@@ -336,9 +336,10 @@ class StartingPointMixin:
         return f"{float(std[row]):.6g}"
 
     def _format_metrics(self, metrics: dict[str, float]) -> str:
-        labels = {"r2": "R^2", "rmse": "RMSE", "ss_res": "SS_RES", "aic": "AIC", "bic": "BIC"}
+        labels = {"r2": "R^2", "rmse": "RMSE", "ss_res": "SS_RES", "aic": "AIC", "bic": "BIC",
+                  "chi2": "Chi^2", "chi2_reduced": "Chi^2/dof"}
         parts = []
-        for key in ("r2", "rmse", "ss_res", "aic", "bic"):
+        for key in labels:
             value = metrics.get(key)
             if value is not None and np.isfinite(value):
                 parts.append(f"{labels[key]}={value:.6g}")

@@ -173,7 +173,7 @@ class SeriesFitDialog(ModelDataMixin, FitRunMixin, StartingPointMixin, FitHooksM
         self._results_table.setVisible(False)
         self._output_table_edit = QLineEdit(self)
         self._max_nfev_edit = QLineEdit("800", self)
-        self._weighted_check = QCheckBox(_("Weighted RMSE/R²"), self)
+        self._combo_weights = QComboBox(self)
         self._combo_optimizer = QComboBox(self)
         self._combo_loss = QComboBox(self)
         self._btn_estimate = QPushButton(_("Estimate"), self)
@@ -394,10 +394,20 @@ class SeriesFitDialog(ModelDataMixin, FitRunMixin, StartingPointMixin, FitHooksM
         self._max_nfev_edit.setMaximumWidth(90)
         self._max_nfev_edit.setToolTip(_("Maximum number of function evaluations for the optimizer."))
         run_row_layout.addWidget(self._max_nfev_edit)
-        self._weighted_check.setToolTip(_("Weight residuals by magnitude when computing RMSE/R²."))
-        run_row_layout.addWidget(self._weighted_check)
         run_row_layout.addStretch(1)
         fit_options_layout.addRow(_("Max evals:"), run_row)
+
+        for key, label in (("none", "Equal"), ("relative", "Relative (1/|y|)"), ("errors", "Error bars (yerr)")):
+            self._combo_weights.addItem(_(label), key)
+        self._combo_weights.setToolTip(
+            _(
+                "How much each point counts. Relative: each residual divided by "
+                "its value, for data spanning orders of magnitude. Error bars: "
+                "each residual divided by the series' yerr column - its points' "
+                "own errors - so a precise point counts more."
+            )
+        )
+        fit_options_layout.addRow(_("Weights:"), self._combo_weights)
 
         self._btn_estimate.setToolTip(
             _(

@@ -8640,3 +8640,18 @@ msgstr "Figura corrente"
 
 msgid "Fill"
 msgstr "Riempimento"
+
+msgid "Weights:"
+msgstr "Pesi:"
+
+msgid "Relative (1/|y|)"
+msgstr "Relativi (1/|y|)"
+
+msgid "Error bars (yerr)"
+msgstr "Barre d'errore (yerr)"
+
+msgid "How much each point counts. Relative: each residual divided by its value, for data spanning orders of magnitude. Error bars: each residual divided by the series' yerr column - its points' own errors - so a precise point counts more."
+msgstr "Quanto conta ogni punto. Relativi: ogni residuo diviso per il suo valore, per dati che coprono più ordini di grandezza. Barre d'errore: ogni residuo diviso per la colonna yerr della serie - gli errori dei suoi punti - così un punto preciso conta di più."
+
+msgid "Equal"
+msgstr "Uguali"

@@ -324,6 +324,7 @@ def fit_curve(
     loss: str = "linear",
     max_nfev: int = 800,
     weighted: bool = False,
+    sigma: np.ndarray | None = None,
     should_stop: Callable[[], bool] | None = None,
 ) -> CurveFit:
     """Fit *model* to (x, target) starting from *p0*, or just evaluate it.
@@ -335,6 +336,10 @@ def fit_curve(
     *should_stop* is polled before every evaluation of the model; when it
     returns True the fit raises :class:`FitStopped` - how a fit running in
     the background is stopped.
+
+    *sigma* is each point's own error - an error-bar column - and weighs
+    each residual by 1/sigma; it wins over *weighted*, the relative weights
+    1/|target| for data that has no errors of its own (R-05).
     """
     if optimizer not in BY_KEY:
         # Before the exact linear path too, which never reaches an optimiser.
@@ -347,7 +352,12 @@ def fit_curve(
     target = np.asarray(target, dtype=float)
 
     free = ~fixed if optimise else np.zeros_like(fixed, dtype=bool)
-    sigma = weights_sigma(target) if weighted else None
+    if sigma is not None:
+        sigma = np.asarray(sigma, dtype=float)
+        if sigma.shape != target.shape or not np.all(np.isfinite(sigma) & (sigma > 0.0)):
+            raise ValueError("Every point needs a positive, finite error to weight the fit by.")
+    elif weighted:
+        sigma = weights_sigma(target)
     if not np.any(free):
         p_opt = p0.copy()
         jac_free = np.empty((target.size, 0))
@@ -424,6 +434,12 @@ def fit_curve(
     tvalues, pvalues, ci_low, ci_high = parameter_inference(p_opt, std, dof)
     if dof > 0:
         metrics["reduced_chi2"] = float(metrics["ss_res"] / dof)
+    if sigma is not None:
+        # The weighted sum the fit minimised; near 1 per degree of freedom
+        # when the errors are honest and the model is right.
+        metrics["chi2"] = float(np.sum(np.square(residual / sigma)))
+        if dof > 0:
+            metrics["chi2_reduced"] = metrics["chi2"] / dof
     return CurveFit(
         params=p_opt,
         std=std,
