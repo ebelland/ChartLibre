@@ -97,7 +97,7 @@ class TableOperationDialogBase(QDialog):
     PARAMETERS_TAB: ClassVar[str] = "Parameters"
     #: Raised when the window's layout changes, so a remembered size made for
     #: the old one is left behind (2: the inputs in tabs, 880 x 460).
-    LAYOUT_VERSION: ClassVar[int] = 2
+    LAYOUT_VERSION: ClassVar[int] = 3
 
     #: Something was written into the project (an OK): the window refreshes.
     applied = Signal()
@@ -235,7 +235,8 @@ class TableOperationDialogBase(QDialog):
         root = QVBoxLayout(self)
         # Small enough for a laptop: the inputs need about 520 px, the report
         # takes the rest, and screen_fit shrinks it further on a smaller screen.
-        apply_dialog_shell(self, root, size=QSize(880, 460))
+        # Wider since the roles sit under the columns: three columns of room.
+        apply_dialog_shell(self, root, size=QSize(1000, 560))
         root.addWidget(splitter, 1)
         root.addLayout(buttons)
 

@@ -166,6 +166,9 @@ class ColumnRolesWidget(QWidget):
 
 
         left = QVBoxLayout()
+        # No margins of its own: the style's default would drop the columns'
+        # title below the results' and the roles' beside it.
+        left.setContentsMargins(0, 0, 0, 0)
         left.setSpacing(10)
         left.addWidget(columns_card, 1)
         #: Where the operation adds frames under the columns: a model's charts.
@@ -255,16 +258,22 @@ class ColumnRolesWidget(QWidget):
             if not any(page_layout.stretch(i) for i in range(page_layout.count())):
                 page_layout.addStretch(1)
         self.tabs.setTabBarAutoHide(True)
-        if self.tabs.count() == 1:
-            # The roles only: they go under the columns, in one column beside
-            # the results, and the column list is short enough to leave them
-            # room. No middle column, no tab bar naming a single page.
-            rows_height = max(self._column_list.fontMetrics().height() + 4, 18)
-            self._column_list.setMaximumHeight(8 * rows_height)
-            self.column_layout.setStretchFactor(self._columns_card, 0)
-            self.column_layout.addWidget(self._roles_card, 0)
-            self.column_layout.addStretch(1)
-            self._left_widget.setMaximumWidth(300)
+        # The roles always go under the columns, whose list gets shorter to
+        # leave them room: choosing a column and giving it a role is one gesture.
+        # The roles' tab keeps what the operation added there (a model's
+        # effects) or, with nothing else on it, goes; with no tab left the
+        # middle column goes too.
+        rows_height = max(self._column_list.fontMetrics().height() + 4, 18)
+        self._column_list.setMaximumHeight(8 * rows_height)
+        self.column_layout.setStretchFactor(self._columns_card, 0)
+        self.column_layout.addWidget(self._roles_card, 0)
+        self.column_layout.addStretch(1)
+        self._left_widget.setMaximumWidth(300)
+        roles_page = self._tab_layouts.get(_("Roles"))
+        if roles_page is not None and not any(
+                roles_page.itemAt(i).widget() is not None for i in range(roles_page.count())):
+            self.tabs.removeTab(0)  # the roles' tab is always the first
+        if self.tabs.count() == 0:
             self.tabs.hide()
 
     # -- Content ---------------------------------------------------------

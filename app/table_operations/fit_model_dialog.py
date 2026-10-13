@@ -192,10 +192,9 @@ class FitModelDialog(TableOperationDialogBase):
         self._doc_link.setOpenExternalLinks(True)
         self._doc_link.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
         self._doc_link.setWordWrap(True)
-        # Tabs beside the columns: the roles and the effects built from them,
-        # the model's settings, the charts - one page of all of it was taller
-        # than a laptop's screen.
-        self.roles_widget.tabs.setTabText(0, _("Roles and effects"))
+        # Tabs beside the columns (the roles are under them): the effects built
+        # from the columns, the model's settings, the charts.
+        self.roles_widget.tabs.setTabText(0, _("Effects"))
         model = TitledCard(self, _("Personality"))
         model_layout = model.card.layout()
         model_layout.addLayout(form)
