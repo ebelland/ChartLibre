@@ -15,8 +15,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
-    QDialog,
-    QDialogButtonBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -32,10 +30,9 @@ from PySide6.QtWidgets import (
 
 from app.data.repo._common import _is_ident, _quote_ident
 from app.data.repo.table_tools import AGGREGATES
-from app.dialogs.two_panels_dialog_base import SettingsTableDialog
+from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
 from app.styles.style import (
     action_presentation,
-    apply_dialog_shell,
     apply_fusion_for_item_view_styling,
     create_action_button,
     create_compact_section_title,
@@ -44,15 +41,6 @@ from app.styles.style import (
 )
 from app.utils.i18n import _
 from app.widgets.table_preview import DataFrameTableModel
-
-
-def _buttons(dialog: QDialog, layout: QVBoxLayout) -> None:
-    box = QDialogButtonBox(
-        QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, dialog
-    )
-    box.accepted.connect(dialog.accept)
-    box.rejected.connect(dialog.reject)
-    layout.addWidget(box)
 
 
 def _aggregate_label(func: str) -> str:
@@ -436,16 +424,14 @@ FILL_CHOICES: tuple[tuple[str, str], ...] = (
 )
 
 
-class FillMissingDialog(QDialog):
+class FillMissingDialog(PanelDialog):
     """How to fill one column's empty cells."""
 
     def __init__(self, column: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("Fill empty cells in '{column}'").format(column=column))
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size=None)
+        super().__init__(parent, title=_("Fill empty cells in '{column}'").format(column=column), size=None)
         form = QFormLayout()
-        root.addLayout(form)
+        stdSizeAndlayout(form)
+        self.add_card(_("Fill"), "fillMissingCard").layout().addLayout(form)
         self.method = QComboBox(self)
         for label, key in FILL_CHOICES:
             self.method.addItem(_(label), key)
@@ -455,19 +441,18 @@ class FillMissingDialog(QDialog):
         self.method.currentIndexChanged.connect(
             lambda _i: self.value.setEnabled(self.method.currentData() == "constant")
         )
-        _buttons(self, root)
+        self.add_action("apply", self.accept, default=True)
+        self.add_action("close", self.reject)
 
 
-class FindReplaceDialog(QDialog):
+class FindReplaceDialog(PanelDialog):
     """What to find, what to put instead, and where."""
 
     def __init__(self, column: str | None, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("Find and replace"))
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size=None)
+        super().__init__(parent, title=_("Find and replace"), size=None)
         form = QFormLayout()
-        root.addLayout(form)
+        stdSizeAndlayout(form)
+        self.add_card(_("Find and replace"), "findReplaceCard").layout().addLayout(form)
         self.find_edit = QLineEdit(self)
         form.addRow(_("Find:"), self.find_edit)
         self.replace_edit = QLineEdit(self)
@@ -479,4 +464,5 @@ class FindReplaceDialog(QDialog):
         form.addRow(_("In:"), self.scope)
         self.whole_cell = QCheckBox(_("Only cells that match exactly"), self)
         form.addRow("", self.whole_cell)
-        _buttons(self, root)
+        self.add_action("apply", self.accept, default=True)
+        self.add_action("close", self.reject)

@@ -28,28 +28,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDialog,
-    QFileDialog,
-    QFormLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QCheckBox, QComboBox, QFileDialog, QFormLayout, QLabel, QLineEdit, QWidget
 
 from app.logs.logger import applogger
+from app.dialogs.two_panels_dialog_base import PanelDialog
 from app.styles.style import (
     CONFIG_APP_STYLE,
     available_app_styles,
-    apply_dialog_shell,
-    CardFrame,
     configure_combo_width,
-    create_action_button,
-    create_section_title,
     load_icon,
     qss_file_style_key,
     qss_file_style_label,
@@ -60,12 +46,7 @@ from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
 from app.charts.render_figure import DEFAULT_MPL_STYLE_KEY
 from app.utils.config import MPLSTYLES_DIR, get_language, get_value, set_value
 from app.utils.machine_translation import DEEPL_KEY_SETTING
-from app.utils.i18n import (
-    AUTO_LANGUAGE,
-    available_languages,
-    platform_language,
-    tr,
-)
+from app.utils.i18n import AUTO_LANGUAGE, available_languages, platform_language, tr
 
 #: Config key and choices for the default chart export format.  The chart
 #: panel's save dialog offers all of them whatever is chosen here; this only
@@ -126,7 +107,7 @@ def normalized_save_format(value: object) -> str:
     return clean if clean in SAVE_FORMATS else DEFAULT_SAVE_FORMAT
 
 
-class SettingsDialog(QDialog):
+class SettingsDialog(PanelDialog):
     """Read and write the machine-level preferences in config.json.
 
     Nothing is written until Save, and nothing is applied until the next
@@ -142,10 +123,7 @@ class SettingsDialog(QDialog):
     _BROWSE_SENTINEL = "__browse_qss__"
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-
-        self.setWindowTitle(tr("Settings"))
-        self.setWindowIcon(load_icon("settings"))
+        super().__init__(parent, title=tr("Settings"), icon=load_icon("settings"), size="small")
 
         # Only to preselect the combo: nothing here changes the running app.
         self._entry_style = resolve_app_style()
@@ -154,18 +132,12 @@ class SettingsDialog(QDialog):
         # happened to resolve to on this machine.
         self._entry_language = get_language()
 
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
-
-        card = CardFrame(self, "settingsCard")
-        card_layout = card.layout()
-        # One QFormLayout for every row, section headings included.  Two of
-        # them would each size their own label column, so the combos in the
-        # second group would not line up with the first - visible, and the
-        # kind of thing that reads as carelessness.
-        form = QFormLayout()
-        stdSizeAndlayout(form)
-        form.addRow(create_section_title(tr("Appearance"), card))
+        # A titled frame per group, each with its own form; their label
+        # columns are given one width at the end, so the fields line up from
+        # one frame to the next as they did in a single form.
+        forms: list[QFormLayout] = []
+        card = self
+        form = self._section(tr("Appearance"), forms)
 
         # Built from what is actually applicable: the themes this app ships,
         # plus whichever Qt style plugins are installed.  Breeze, Oxygen and
@@ -195,7 +167,7 @@ class SettingsDialog(QDialog):
         )
         form.addRow(tr("Language"), self._language_combo)
 
-        form.addRow(create_section_title(tr("Charts"), card))
+        form = self._section(tr("Charts"), forms)
 
         self._format_combo = self._combo(
             card,
@@ -213,7 +185,7 @@ class SettingsDialog(QDialog):
         self._mpl_style_combo.setToolTip(tr("The chart style of every figure that has none of its own."))
         form.addRow(tr("Default chart style"), self._mpl_style_combo)
 
-        form.addRow(create_section_title(tr("Safety"), card))
+        form = self._section(tr("Safety"), forms)
         # Red: switching it off lets typed SQL change the database.
         self._sql_guard_check = QCheckBox(
             tr("Refuse SQL that would change the database"), card
@@ -232,7 +204,7 @@ class SettingsDialog(QDialog):
         # The one secret in here: shown as dots, kept in user.json on this
         # computer - never in config.json or a project - and sent only to
         # DeepL. Edit Localization offers DeepL once it is set (todo A-08).
-        form.addRow(create_section_title(tr("Translation"), card))
+        form = self._section(tr("Translation"), forms)
         self._deepl_key_edit = QLineEdit(card)
         self._deepl_key_edit.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
         self._deepl_key_edit.setPlaceholderText(tr("Free plan keys end in :fx"))
@@ -246,29 +218,23 @@ class SettingsDialog(QDialog):
         self._deepl_key_edit.setText(str(get_value(DEEPL_KEY_SETTING, "") or ""))
         form.addRow(tr("DeepL API key"), self._deepl_key_edit)
 
-        card_layout.addLayout(form)
-
-        note = QLabel(
-            tr("The style and the language are applied the next time the app starts."),
-            card,
-        )
+        note = QLabel(tr("The style and the language are applied the next time the app starts."), self)
         note.setProperty("muted", True)
         note.setWordWrap(True)
-        card_layout.addWidget(note, 0)
+        self.body_layout.addWidget(note, 0)
+        self.body_layout.addStretch(1)
+        _align_labels(forms)
 
-        card_layout.addStretch(1)
-        root.addWidget(card, 1)
+        self.add_action("save", self._save)
+        self.add_action("close", self.reject)
 
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self, action_id="save", action=self._save, layout=action_row
-        )
-        create_action_button(
-            parent=self, action_id="close", action=self.reject, layout=action_row
-        )
-        root.addLayout(action_row, 0)
+    def _section(self, title: str, forms: list[QFormLayout]) -> QFormLayout:
+        """A titled frame and its form; the form, to fill."""
+        form = QFormLayout()
+        stdSizeAndlayout(form)
+        self.add_card(title, f"settings{title.replace(' ', '')}Card").layout().addLayout(form)
+        forms.append(form)
+        return form
 
     # ------------------------------------------------------------------
     # Construction helpers
@@ -398,3 +364,16 @@ class SettingsDialog(QDialog):
             self._value(self._format_combo),
         )
         self.accept()
+
+
+def _align_labels(forms: list[QFormLayout]) -> None:
+    """One label width for every form, so their fields start at the same x."""
+    labels = []
+    for form in forms:
+        for row in range(form.rowCount()):
+            item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
+            if item is not None and item.widget() is not None:
+                labels.append(item.widget())
+    width = max((label.sizeHint().width() for label in labels), default=0)
+    for label in labels:
+        label.setMinimumWidth(width)

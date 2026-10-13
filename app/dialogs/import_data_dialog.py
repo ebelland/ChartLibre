@@ -21,7 +21,6 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
-    QDialog,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -40,7 +39,6 @@ from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.styles.style import (
     action_presentation,
-    apply_dialog_shell,
     create_action_button,
     load_icon,
     mark_editor_panel,
@@ -49,7 +47,7 @@ from app.styles.style import (
     TitledCard,
 )
 from app.utils.i18n import _
-from app.dialogs.two_panels_dialog_base import SettingsTableDialog
+from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
 
 
 # -----------------------------------------------------------------------------
@@ -75,7 +73,7 @@ from app.utils.data_sources import (
     read_clipboard_text,
     transpose_delimited_text,
     read_web_url,
-    remove_user_web_source
+    remove_user_web_source,
 )
 from app.utils.coercion import to_numbers
 
@@ -126,7 +124,7 @@ class DataFramePreviewModel(QAbstractTableModel):
         return "" if pd.isna(val) else str(val)
 
 
-class _AddWebSourceDialog(QDialog):
+class _AddWebSourceDialog(PanelDialog):
     """Collects a name, a URL and an optional note for one quick-pick entry.
 
     Small enough, and specific enough to this one caller, to live next to
@@ -135,17 +133,14 @@ class _AddWebSourceDialog(QDialog):
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(_("Add source"))
+        super().__init__(parent, title=_("Add source"), size="small")
         self.name = ""
         self.url = ""
         self.description = ""
 
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="small")
-
         form = QFormLayout()
         stdSizeAndlayout(form)
+        self.add_card(_("Web source"), "addWebSourceCard").layout().addLayout(form)
 
         self._name_field = QLineEdit(self)
         stdSizeAndlayout(self._name_field)
@@ -160,15 +155,9 @@ class _AddWebSourceDialog(QDialog):
         stdSizeAndlayout(self._description_field)
         form.addRow(_("Description"), self._description_field)
 
-        root.addLayout(form)
-        root.addStretch(1)
-
-        btn_row = QHBoxLayout()
-        stdSizeAndlayout(btn_row)
-        btn_row.addStretch(1)
-        create_action_button(parent=self, action_id="apply", action=self._on_accept, layout=btn_row)
-        create_action_button(parent=self, action_id="close", action=self.reject, layout=btn_row)
-        root.addLayout(btn_row)
+        self.body_layout.addStretch(1)
+        self.add_action("apply", self._on_accept)
+        self.add_action("close", self.reject)
 
     def _on_accept(self) -> None:
         name = self._name_field.text().strip()

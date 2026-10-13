@@ -17,7 +17,6 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QDialog,
     QFormLayout,
     QHBoxLayout,
     QHeaderView,
@@ -26,21 +25,14 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QTableWidget,
     QTableWidgetItem,
-    QVBoxLayout,
     QWidget,
 )
 
 from app.data.repo.project_info import dump_references, parse_references
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.logs.logger import applogger
-from app.styles.style import (
-    CardFrame,
-    apply_dialog_shell,
-    create_action_button,
-    create_section_title,
-    load_icon,
-    stdSizeAndlayout,
-)
+from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.styles.style import create_action_button, load_icon, stdSizeAndlayout
 from app.utils.config import get_value, set_value
 from app.utils.dialog_state import restore_window_geometry, save_window_geometry
 from app.utils.i18n import _
@@ -65,23 +57,18 @@ def default_author() -> str:
     return str(get_value(AUTHOR_SETTING, "") or "")
 
 
-class ProjectInfoDialog(QDialog):
+class ProjectInfoDialog(PanelDialog):
     """Author, creation date, notes, references and preview of the open project."""
 
     def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+        super().__init__(parent, title=_("Project info"), icon=load_icon("project_info"), size="medium")
         self._repo = repo
-        self.setWindowTitle(_("Project info"))
-        self.setWindowIcon(load_icon("project_info"))
         info = repo.project_info()
 
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="medium")
-        card = CardFrame(self, "projectInfoCard")
+        card = self.add_card(_("Project"), "projectInfoCard")
         card_layout = card.layout()
         form = QFormLayout()
         stdSizeAndlayout(form)
-        form.addRow(create_section_title(_("Project"), card))
 
         self.file_label = QLabel(str(repo.db_path or ""), card)
         self.file_label.setProperty("muted", True)
@@ -114,7 +101,8 @@ class ProjectInfoDialog(QDialog):
         top.addWidget(self.preview_label, 0, Qt.AlignmentFlag.AlignTop)
         card_layout.addLayout(top)
 
-        card_layout.addWidget(create_section_title(_("References"), card))
+        card = self.add_card(_("References"), "projectReferencesCard", stretch=1)
+        card_layout = card.layout()
         self.references_table = QTableWidget(0, 3, card)
         self.references_table.setHorizontalHeaderLabels([_("Citation"), _("DOI"), _("Link")])
         self.references_table.setToolTip(_("The sources of the data and methods: a citation, and if it has them a DOI "
@@ -138,14 +126,9 @@ class ProjectInfoDialog(QDialog):
         create_action_button(parent=card, action_id="delete", action=self._remove_references, layout=reference_buttons)
         reference_buttons.addStretch(1)
         card_layout.addLayout(reference_buttons)
-        root.addWidget(card, 1)
 
-        buttons = QHBoxLayout()
-        stdSizeAndlayout(buttons)
-        buttons.addStretch(1)
-        create_action_button(parent=self, action_id="apply", action=self.accept, layout=buttons)
-        create_action_button(parent=self, action_id="close", action=self.reject, layout=buttons)
-        root.addLayout(buttons, 0)
+        self.add_action("apply", self.accept)
+        self.add_action("close", self.reject)
         restore_window_geometry(self, _STATE_KEY)
 
     #: The preview, at the size the Load demo dialog shows it, halved.

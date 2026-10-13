@@ -8637,3 +8637,6 @@ msgstr "Barre 3D"
 
 msgid "Current figure"
 msgstr "Figura corrente"
+
+msgid "Fill"
+msgstr "Riempimento"
