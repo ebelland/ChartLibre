@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 89,073 lines in 236 files; tests 15,517 lines in 116 files (updated at each commit).
+Size: app 89,150 lines in 237 files; tests 15,560 lines in 117 files (updated at each commit).
 
 DONE RECENTLY
+- W-04: ChartCanvas (chart_panel/canvas.py): within a burst of resizes the last image is stretched, and the figure is resized and drawn once the size holds for 150 ms; the panel's geometry pass waits for it.
 - PF-03: Whittaker-Eilers banded Cholesky (O(n): 0.1 ms vs 404 ms at n=3000); cluster ids via np.unique return_inverse; contingency via factorize + bincount; roots: vectorised brackets, exact linear crossings with no solver; wavelet power via Parseval with no inverse FFT, scales in blocks; correlation via scipy.signal.correlate (FFT when faster). All checked equal to the old code.
 - UI-07: Fluent spin-box and combo chevrons (Segoe Fluent glyphs); off macOS the window carries the popup menu's shortcuts, so Ctrl+Z (Undo) works with the menu closed.
 - R-20: project review - PanelDialog for every one-panel dialog; report
@@ -50,7 +51,6 @@ AN-18 S  Permutation importance and partial dependence for any model.
 AN-19 S  ROC curve, AUC, confusion matrix for logistic fits and trees.
 M-01  S  Manual: rebuild the PDF (rename Series -> Data operations is done).
 R-03  M  Reproducibility: re-run recorded operations; export a Python script.
-W-04  M  Window resize redraws the chart at every step: draw on pause.
 
 UI FIXES (from the notes list; one commit per group, mostly S)
 

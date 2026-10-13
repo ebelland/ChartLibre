@@ -390,6 +390,8 @@ class GeometryMixin:
                 return
             self._apply_figure_size_from_canvas(target_size)
 
+        if getattr(self._canvas, "resize_deferred", False):
+            return  # mid-resize: the canvas draws once the size settles (W-04)
         figure_changed = (tuple(self._figure.get_size_inches()), self._figure.dpi) != figure_before
         if redraw or figure_changed or target_size != self._last_canvas_size:
             self._last_canvas_size = QSize(target_size)
@@ -426,6 +428,8 @@ class GeometryMixin:
         held, which is the field of artefacts reported on macOS and never on
         Windows, where the ratio is 1 and the mistake cancels out.
         """
+        if getattr(self._canvas, "resize_deferred", False):
+            return  # the figure keeps its size until the resize settles (W-04)
         if canvas_size.width() <= 0 or canvas_size.height() <= 0:
             return
 

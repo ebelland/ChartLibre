@@ -36,6 +36,7 @@ from app.styles.style import SPLITTER_HANDLE_WIDTH, create_toolbar_button
 from app.utils.config import get_section, update_section
 from app.widgets.html_results import HtmlResultsView
 
+from app.widgets.chart_panel.canvas import ChartCanvas
 from app.widgets.chart_panel.constants import (
     TOOLBAR_ICON_SIZE,
     TOOLBAR_ACTIONS_TO_REMOVE,
@@ -164,7 +165,8 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
         # bound here so a pick arriving before the first one cannot fail.
         self._legend_targets: dict[Any, list[Any]] = {}
 
-        self._canvas = FigureCanvasQTAgg(self._figure)
+        self._canvas = ChartCanvas(self._figure)
+        self._canvas.resize_settled.connect(lambda: self._schedule_canvas_geometry_sync(redraw=True))
         self._init_hover_readout()
         self._init_ruler()
         self._init_crosshair()
