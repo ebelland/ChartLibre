@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 88,722 lines in 224 files; tests 15,491 lines in 115 files (updated at each commit).
+Size: app 88,813 lines in 231 files; tests 15,493 lines in 115 files (updated at each commit).
 
 DONE RECENTLY
 - PF-01/02: optional Numba (app/utils/jit.py, CHARTLIBRE_NO_NUMBA=1 to turn
@@ -33,7 +33,7 @@ R-20  M  Project review, step by step (one commit each):
          2. Shared report helpers in TableOperationDialogBase - DONE.
          3. Dead code - DONE (7 unused functions; a name found only where defined).
          4. Split large files into packages like main_window/ - chart_panel
-         and series_operations/dialog_base DONE; left: style, fit_dialog.
+         series_operations/dialog_base and fit_dialog DONE; left: style.
          5. Properties panels on their base.
 Q-02  M  Quick answer "What has the most impact?" - Y and many X: ranking
          in words (forest importance + Fit Model effects), Pareto chart.
