@@ -8868,3 +8868,84 @@ msgstr "Come è stato deciso: una foresta casuale, mescolando a turno ogni fatto
 
 msgid "Impact is not proof of cause: a factor can stand in for another one that was not measured."
 msgstr "Un impatto non prova una causa: un fattore può stare al posto di un altro che non è stato misurato."
+
+msgid "Has it changed over time?"
+msgstr "È cambiato nel tempo?"
+
+msgid "Has a measure moved - a steady trend or a sudden change? The tests are chosen for you, and the answer is given in words."
+msgstr "Una misura si è mossa, con una tendenza costante o un cambiamento improvviso? I test vengono scelti per te, e la risposta è a parole."
+
+msgid "The numbers to follow over time."
+msgstr "I numeri da seguire nel tempo."
+
+msgid "Time or order"
+msgstr "Tempo o ordine"
+
+msgid "Optional: dates, times or a run number. Without it, the rows' order."
+msgstr "Facoltativo: date, orari o un numero di prova. Senza, l'ordine delle righe."
+
+msgid "The measure and the time must be two different columns."
+msgstr "La misura e il tempo devono essere due colonne diverse."
+
+msgid "Trend"
+msgstr "Tendenza"
+
+msgid "{measure} over time"
+msgstr "{measure} nel tempo"
+
+msgid "day"
+msgstr "giorno"
+
+msgid "row"
+msgstr "riga"
+
+msgid "unit"
+msgstr "unità"
+
+msgid "A steady trend or a sudden change? The tests are chosen for you, and the answer is given in words."
+msgstr "Una tendenza costante o un cambiamento improvviso? I test vengono scelti per te, e la risposta è a parole."
+
+msgid "Has “{measure}” changed over time?"
+msgstr "«{measure}» è cambiato nel tempo?"
+
+msgid "Yes: “{measure}” rises over “{time}”, by about {slope:.3g} per {unit} ({total:+.3g} over the whole span)."
+msgstr "Sì: «{measure}» cresce lungo «{time}», di circa {slope:.3g} per {unit} ({total:+.3g} su tutto l'intervallo)."
+
+msgid "Yes: “{measure}” falls over “{time}”, by about {slope:.3g} per {unit} ({total:+.3g} over the whole span)."
+msgstr "Sì: «{measure}» cala lungo «{time}», di circa {slope:.3g} per {unit} ({total:+.3g} su tutto l'intervallo)."
+
+msgid "Yes: “{measure}” rises along the rows, by about {slope:.3g} per {unit} ({total:+.3g} over the whole span)."
+msgstr "Sì: «{measure}» cresce lungo le righe, di circa {slope:.3g} per {unit} ({total:+.3g} su tutto l'intervallo)."
+
+msgid "Yes: “{measure}” falls along the rows, by about {slope:.3g} per {unit} ({total:+.3g} over the whole span)."
+msgstr "Sì: «{measure}» cala lungo le righe, di circa {slope:.3g} per {unit} ({total:+.3g} su tutto l'intervallo)."
+
+msgid "The values drift rather than jump: a steady trend fits them better than a single change."
+msgstr "I valori derivano più che saltare: una tendenza costante li descrive meglio di un singolo cambiamento."
+
+msgid "Yes: it changed around {when}: the median of “{measure}” went from {before:.4g} to {after:.4g} ({percent:+.0f}%)."
+msgstr "Sì: è cambiato intorno a {when}: la mediana di «{measure}» è passata da {before:.4g} a {after:.4g} ({percent:+.0f}%)."
+
+msgid "Yes: it changed around {when}: the median of “{measure}” went from {before:.4g} to {after:.4g}."
+msgstr "Sì: è cambiato intorno a {when}: la mediana di «{measure}» è passata da {before:.4g} a {after:.4g}."
+
+msgid "The values jump rather than drift: a single change fits them better than a steady trend."
+msgstr "I valori saltano più che derivare: un singolo cambiamento li descrive meglio di una tendenza costante."
+
+msgid "No change is shown: these data do not say that “{measure}” has changed over “{time}”."
+msgstr "Nessun cambiamento dimostrato: questi dati non dicono che «{measure}» sia cambiato lungo «{time}»."
+
+msgid "No change is shown: these data do not say that “{measure}” has changed along the rows."
+msgstr "Nessun cambiamento dimostrato: questi dati non dicono che «{measure}» sia cambiato lungo le righe."
+
+msgid "That is not proof that it stayed the same: with more values a small change might show."
+msgstr "Non è la prova che sia rimasto uguale: con più valori potrebbe emergere un piccolo cambiamento."
+
+msgid "How it was decided: the Mann-Kendall trend test (p = {p_trend:.3g}) and the Pettitt change-point test (p = {p_change:.3g}), on {n} values; below 0.05 is called a change."
+msgstr "Come è stato deciso: test di tendenza di Mann-Kendall (p = {p_trend:.3g}) e test del punto di cambiamento di Pettitt (p = {p_change:.3g}), su {n} valori; sotto 0,05 si parla di cambiamento."
+
+msgid "The trend was measured on {count} values spread evenly over the {n}."
+msgstr "La tendenza è stata misurata su {count} valori distribuiti uniformemente tra i {n}."
+
+msgid "Values close in time resemble each other (autocorrelation {r:.2f}): that makes both tests see change more readily than they should - treat the answer with caution."
+msgstr "I valori vicini nel tempo si somigliano (autocorrelazione {r:.2f}): questo rende entrambi i test più pronti del dovuto a vedere un cambiamento; prendi la risposta con cautela."

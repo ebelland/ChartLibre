@@ -168,7 +168,8 @@ def questions(table: TableProfile) -> list[Question]:
     """Up to MAX_QUESTIONS concrete questions of the table.
 
     First "what has the most impact on" the first measure, when there are
-    two or more other columns to rank; then "does this measure change
+    two or more other columns to rank; "has it changed over time?" when
+    there is a date column; then "does this measure change
     between these groups?" - every measure with the first group, then the
     next group: the measures are what the table was made to record.
     """
@@ -184,6 +185,14 @@ def questions(table: TableProfile) -> list[Question]:
                 kinds={},
                 values={"measure": result},
             ))
+    if table.measures and table.times:
+        found.append(Question(
+            template="Has “{measure}” changed over time?",
+            key="analysis:Has it changed over time?",
+            roles={"response": [table.measures[0]], "time": [table.times[0]]},
+            kinds={},
+            values={"measure": table.measures[0]},
+        ))
     for group in table.groups:
         for measure in table.measures:
             if len(found) >= MAX_QUESTIONS:

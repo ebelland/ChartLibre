@@ -89,6 +89,12 @@ _ANALYSES: dict[str, tuple[str, tuple[str, ...]]] = {
         "quick answer risposta rapida",
         ("explain",),
     ),
+    "Has it changed over time?": (
+        "è cambiato nel tempo cambiamento change changed over time trend tendenza drift deriva step gradino "
+        "change point punto di cambiamento before after prima dopo mann-kendall pettitt sen slope stabile "
+        "stable quick answer risposta rapida",
+        ("signal", "process"),
+    ),
     "Fit Model": (
         "regression regressione linear model modello lineare least squares minimi quadrati anova "
         "analysis of variance analisi della varianza doe design of experiments response surface "
@@ -330,6 +336,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
                                   "with the canonical plot.", CATEGORICAL),
     ),
     "signal": (
+        ("analysis:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
+                                               "and the answer is given in words.", NUMERIC),
         ("series:Smoothing", "Reduce the noise and keep the shape.", NUMERIC),
         ("series:Spectral Analysis", "Which frequencies the signal holds.", NUMERIC),
         ("series:Peaks", "Find peaks and measure their height, width and area.", NUMERIC),
@@ -354,6 +362,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("chart:Interaction Plot", "See the interactions between factors.", NUMERIC),
     ),
     "process": (
+        ("analysis:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
+                                               "and the answer is given in words.", NUMERIC),
         ("series:Control Chart", "Is the process stable? I-MR, X-bar, p, c, u charts.", ANY),
         ("chart:Pareto Chart", "The causes that account for most defects.", CATEGORICAL),
         ("chart:Fishbone Diagram", "Cause and effect, by category.", ANY),

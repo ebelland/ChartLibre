@@ -25,7 +25,7 @@ def answer_html(answer: answers.Answer) -> str:
     """The sentences, translated: the first as the answer, the rest beneath it."""
     def words(values: dict[str, Any]) -> dict[str, Any]:
         # The size and the test's name are words too, in the window's language.
-        return {**values, **{key: _(values[key]) for key in ("size", "test") if key in values}}
+        return {**values, **{key: _(values[key]) for key in ("size", "test", "unit") if key in values}}
 
     lines = [_(template).format(**words(values)) for template, values in answer.sentences]
     colour = "#1a7f37" if answer.verdict == answers.YES else "#57606a"

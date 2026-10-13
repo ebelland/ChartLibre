@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 90,673 lines in 243 files; tests 16,023 lines in 123 files (updated at each commit).
+Size: app 90,986 lines in 245 files; tests 16,097 lines in 124 files (updated at each commit).
 
 DONE RECENTLY
+- Q-03: Quick answer "Has it changed over time?": Mann-Kendall trend with Sen's slope and Pettitt change point (O(n) from ranks), the two sides compared; when both speak, the shape that fits better (drift or step) is the answer; caution on autocorrelation; order by a date, number or the rows; OK draws the values with the trend line or the medians before and after. Also a concrete question of the guided analysis when the table has dates.
 - Q-02: Quick answer "What has the most impact?": a random forest ranks the factors by permutation importance on held-out rows (3-fold), a linear model (or a test per factor for a categorical result) gives p-values and direction; answer in words (first factor and share, direction, next ones, how much is explained on unseen rows, little impact, not cause); OK writes the ranking and a Pareto chart. Also the guided analysis's first concrete question.
 - Tab switch left the chart stale and corner-anchored: the Figure properties panel set the export size and dpi, the dpi change queued a draw that ran before the panel put its size back; reapply_view_geometry now syncs at once.
 - Frame titles above their boxes everywhere: New chart, Group and aggregate, Computed column, Query builder, Connect to database, the data operations' Results, developer helpers, Edit localization (SettingsTableDialog sections=True: a column of titled frames).
@@ -42,8 +43,6 @@ DONE RECENTLY
 - Quick answer Q-01 "Are there differences?" (test chosen, answer in words).
 
 NOW
-Q-03  M  Quick answer "Has it changed over time?" - trend test (Mann-Kendall),
-         change points, before/after comparison, in words.
 D-01  M  Demos rethought around the questions (one per quick answer and
          goal), still covering every function.
 G-01  S  Guided analysis, step 3: pick Y and X for any suggestion and open
