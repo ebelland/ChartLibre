@@ -478,23 +478,6 @@ class FitModelDialog(TableOperationDialogBase):
         subtitle = _("{table} · {count} response(s)").format(table=self.table, count=len(result))
         return report_html.document(_(self.Name), subtitle, *sections)
 
-    @staticmethod
-    def _rows(frame: pd.DataFrame, p_columns: tuple[str, ...] = ()) -> list[list[str]]:
-        rows = []
-        for record in frame.itertuples(index=False):
-            cells = []
-            for column, value in zip(frame.columns, record):
-                if column in p_columns:
-                    cells.append(report_html.format_p_value(value))
-                elif isinstance(value, str):
-                    cells.append(html.escape(value))
-                elif column == "DF":
-                    cells.append("" if pd.isna(value) else str(int(value)))
-                else:
-                    cells.append(report_html.format_number(value))
-            rows.append(cells)
-        return rows
-
     def _report(self, fit: lm.ResponseFit) -> str:
         blocks = []
         if fit.note:
@@ -519,23 +502,22 @@ class FitModelDialog(TableOperationDialogBase):
         ))
         blocks.append(report_html.section(
             _(fit.whole_title),
-            report_html.table([_(c) for c in fit.anova.columns], self._rows(fit.anova, ("Prob > F", "Prob > ChiSq"))),
+            self.report_table(fit.anova, p_columns=("Prob > F", "Prob > ChiSq")),
         ))
         if fit.lack_of_fit is not None:
             blocks.append(report_html.section(
                 _("Lack of fit"),
-                report_html.table([_(c) for c in fit.lack_of_fit.columns], self._rows(fit.lack_of_fit, ("Prob > F",))),
+                self.report_table(fit.lack_of_fit, p_columns=("Prob > F",)),
             ))
         blocks.append(report_html.section(
             _("Parameter estimates (coded units)"),
-            report_html.table([_(c) for c in fit.estimates.columns],
-                              self._rows(fit.estimates, ("Prob > |t|", "Prob > |z|"))),
+            self.report_table(fit.estimates, p_columns=("Prob > |t|", "Prob > |z|")),
         ))
         blocks.append(report_html.section(
             _("Effect tests"),
             report_html.table(
                 [_(c) for c in fit.effect_tests.columns if c != "LogWorth"],
-                self._rows(fit.effect_tests.drop(columns=["LogWorth"]), ("Prob > F", "Prob > ChiSq")),
+                self.report_rows(fit.effect_tests.drop(columns=["LogWorth"]), p_columns=("Prob > F", "Prob > ChiSq")),
             ),
         ))
         if fit.levels:

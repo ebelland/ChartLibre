@@ -28,6 +28,8 @@ to read.
 """
 from __future__ import annotations
 
+import html
+
 import math
 from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
@@ -73,6 +75,7 @@ from app.utils.dialog_state import (
     save_dialog_state,
     save_window_geometry,
 )
+from app.utils import report_html
 from app.utils.i18n import _
 from app.widgets.html_results import HtmlResultsView
 
@@ -413,6 +416,30 @@ class TableOperationDialogBase(QDialog):
     def literal(text: str) -> str:
         """*text* as an SQL string."""
         return "'" + str(text).replace("'", "''") + "'"
+
+    @staticmethod
+    def report_rows(frame: pd.DataFrame, *, p_columns: Sequence[str] = (), digits: int = 6) -> list[list[str]]:
+        """*frame*'s rows as a report table's cells: text escaped, whole numbers and DF as
+        integers, the *p_columns* as p-values ("<.0001"), other numbers to *digits*."""
+        rows = []
+        for record in frame.itertuples(index=False):
+            cells = []
+            for column, value in zip(frame.columns, record):
+                if column in p_columns:
+                    cells.append(report_html.format_p_value(value))
+                elif isinstance(value, str):
+                    cells.append(html.escape(value))
+                elif column == "DF" or (isinstance(value, int) and not isinstance(value, bool)):
+                    cells.append("" if pd.isna(value) else str(int(value)))
+                else:
+                    cells.append(report_html.format_number(value, digits=digits))
+            rows.append(cells)
+        return rows
+
+    def report_table(self, frame: pd.DataFrame, *, p_columns: Sequence[str] = (), digits: int = 6) -> str:
+        """*frame* as a report table, its column names translated."""
+        return report_html.table([_(str(c)) for c in frame.columns],
+                                 self.report_rows(frame, p_columns=p_columns, digits=digits))
 
     def series_select(self, table: str, roles: Mapping[str, str], where: str = "") -> tuple[str, dict[str, str]]:
         """A series query naming each role's column as the role, the way every series reads its data."""

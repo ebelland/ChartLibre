@@ -65,12 +65,9 @@ class DifferencesDialog(TableOperationDialogBase):
         return report_html.document(_(self.Name), str(self.table), self._report(result))
 
     def _report(self, result: answers.Answer) -> str:
-        groups = result.groups
-        rows = [[html.escape(str(v)) if isinstance(v, str) else report_html.format_number(v) for v in record]
-                for record in groups.itertuples(index=False)]
         blocks = [
             answer_html(result),
-            report_html.section(_("The groups"), report_html.table([_(str(c)) for c in groups.columns], rows)),
+            report_html.section(_("The groups"), self.report_table(result.groups)),
             report_html.section(_("Details"), report_html.summary_table([
                 (_("Test"), _(result.test)),
                 (_("p-value"), report_html.format_number(result.pvalue)),

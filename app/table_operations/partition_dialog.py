@@ -252,21 +252,6 @@ class PartitionDialog(TableOperationDialogBase):
             self._parameter_form.set_values({"splits": result.splits})
         return report_html.document(_(self.Name), f"{self.table} · {result.response}", self._report(result))
 
-    @staticmethod
-    def _rows(frame: pd.DataFrame, digits: int = 6) -> list[list[str]]:
-        rows = []
-        for record in frame.to_dict("records"):
-            cells = []
-            for value in record.values():
-                if isinstance(value, str):
-                    cells.append(html.escape(value))
-                elif isinstance(value, (int,)) and not isinstance(value, bool):
-                    cells.append(str(value))
-                else:
-                    cells.append(report_html.format_number(value, digits=digits))
-            rows.append(cells)
-        return rows
-
     def _report(self, result: pt.PartitionResult) -> str:
         blocks = []
         if result.note:
@@ -282,23 +267,23 @@ class PartitionDialog(TableOperationDialogBase):
         ))
         blocks.append(report_html.section(
             _("Column contributions"),
-            report_html.table([_(c) for c in result.contributions.columns], self._rows(result.contributions)),
+            self.report_table(result.contributions),
         ))
         if not result.leaves.empty:
             blocks.append(report_html.section(
                 _("Leaf report"),
-                report_html.table([_(c) for c in result.leaves.columns], self._rows(result.leaves)),
+                self.report_table(result.leaves),
             ))
         blocks.append(report_html.section(
             _("Split history") if result.method == pt.TREE else _("Fit by number of trees"),
-            report_html.table([_(c) for c in result.history.columns], self._rows(result.history)),
+            self.report_table(result.history),
         ))
         if result.confusion is not None:
             confusion = result.confusion.reset_index()
             blocks.append(report_html.section(
                 _("Confusion matrix (training rows)"),
                 report_html.table([_("Actual")] + [html.escape(str(c)) for c in result.confusion.columns],
-                                  self._rows(confusion)),
+                                  self.report_rows(confusion)),
             ))
         return report_html.section(_("Response {name}").format(name=result.response), *blocks)
 
