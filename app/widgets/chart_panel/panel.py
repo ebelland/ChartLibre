@@ -82,6 +82,8 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
     #: does not go looking for the window's: it says what was selected and lets
     #: whoever owns the window decide where that belongs.
     selection_changed = Signal(str)
+    #: A plain click on the chart: {"axis_id": int | None, "series": str | None} (see PickingMixin).
+    chart_object_clicked = Signal(dict)
 
     def __init__(
         self,
@@ -340,6 +342,9 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
         # redoing that hit test against Qt coordinates would mean reimplementing
         # marker sizes, transforms and axis scales for every renderer.
         self._canvas.mpl_connect("pick_event", self._on_pick)
+        # A plain click also selects what it landed on in Chart properties.
+        self._canvas.mpl_connect("button_press_event", self._on_object_click_press)
+        self._canvas.mpl_connect("button_release_event", self._on_object_click_release)
         # Ctrl + left click creates an axis-level annotation at the clicked
         # data coordinates.  This is deliberately a mouse-button event, not
         # a pick event, so it works even when there is no marker exactly

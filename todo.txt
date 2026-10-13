@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 90,998 lines in 245 files; tests 16,097 lines in 124 files (updated at each commit).
+Size: app 91,112 lines in 245 files; tests 16,164 lines in 125 files (updated at each commit).
 
 DONE RECENTLY
+- A click on the chart selects what it landed on in Chart properties (when shown): outside every axis the Figure page, on an axis the Axis page on it, on a series' line, points or bar the Series page on it.
 - D-01 (part): demo "Quick answers - three questions asked of real data" (dev/demo/demo_questions.py): penguins' body mass by species, what has the most impact on it, NASA global temperature over time - each asked by the real dialog, the answer in the chart's notes.
 - Q-03: Quick answer "Has it changed over time?": Mann-Kendall trend with Sen's slope and Pettitt change point (O(n) from ranks), the two sides compared; when both speak, the shape that fits better (drift or step) is the answer; caution on autocorrelation; order by a date, number or the rows; OK draws the values with the trend line or the medians before and after. Also a concrete question of the guided analysis when the table has dates.
 - Q-02: Quick answer "What has the most impact?": a random forest ranks the factors by permutation importance on held-out rows (3-fold), a linear model (or a test per factor for a categorical result) gives p-values and direction; answer in words (first factor and share, direction, next ones, how much is explained on unseen rows, little impact, not cause); OK writes the ranking and a Pareto chart. Also the guided analysis's first concrete question.

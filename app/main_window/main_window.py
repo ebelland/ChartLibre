@@ -927,6 +927,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                         text, CHART_SELECTION_TIMEOUT_MS
                     )
                 )
+                panel.chart_object_clicked.connect(
+                    lambda hit, source=panel: self._on_chart_object_clicked(source, hit)
+                )
                 self._tabs.addTab(panel, name)
         finally:
             self._tabs.blockSignals(False)

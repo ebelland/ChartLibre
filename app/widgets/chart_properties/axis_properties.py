@@ -811,6 +811,15 @@ class AxisPropertiesWidget(BaseProperties):
         """Return the currently selected axis id."""
         return self._current_axis_id
 
+    def select_axis(self, axis_id: int) -> bool:
+        """Show *axis_id* (a click on it in the chart); False when it is not in the selector."""
+        index = self._axis_combo.findData(int(axis_id))
+        if index < 0:
+            return False
+        if index != self._axis_combo.currentIndex():
+            self._axis_combo.setCurrentIndex(index)
+        return True
+
     def set_kwargs_widget(self, widget: QWidget) -> None:
         """Replace kwargs host content."""
         self._replace_layout_widget(self._kwargs_layout, widget)

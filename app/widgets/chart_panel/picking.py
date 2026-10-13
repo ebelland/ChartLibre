@@ -56,6 +56,57 @@ class PickingMixin:
 
         self._canvas.draw_idle()
 
+    #: A press and a release this close (pixels) are a click, not a drag.
+    CLICK_SLOP_PX = 4
+
+    def _on_object_click_press(self, event: Any) -> None:
+        self._object_click_at = (event.x, event.y) if event.button == 1 else None
+
+    def _on_object_click_release(self, event: Any) -> None:
+        """A plain left click on the chart: say which figure, axis and series it landed on.
+
+        Emitted as ``chart_object_clicked`` with ``axis_id`` (None outside every
+        axis: the figure) and ``series`` (the series' name, or None); the main
+        window selects that object in Chart properties when the panel is
+        shown. Not after a drag, nor while a navigation tool, box selection
+        or an annotation drag owns the mouse.
+        """
+        start = getattr(self, "_object_click_at", None)
+        self._object_click_at = None
+        if start is None or event.button != 1:
+            return
+        if abs(event.x - start[0]) > self.CLICK_SLOP_PX or abs(event.y - start[1]) > self.CLICK_SLOP_PX:
+            return
+        if str(getattr(self._toolbar, "mode", "")) != "" or getattr(self, "_select_mode_enabled", False):
+            return
+        axes = event.inaxes
+        axis_id = getattr(axes, "_dhub_axis_id", None) if axes is not None else None
+        series = self._series_name_at(axes, event) if axis_id is not None else None
+        self.chart_object_clicked.emit({"axis_id": axis_id, "series": series})
+
+    @staticmethod
+    def _series_name_at(axes: Any, event: Any) -> str | None:
+        """The name of the series drawn under the click, from its artist's label."""
+        def named(label: Any) -> str | None:
+            text = str(label or "").strip()
+            return None if not text or text.startswith("_") else text
+
+        # Bars first: their patches carry no label, their container does.
+        for container in getattr(axes, "containers", []):
+            if any(getattr(patch, "contains", None) and patch.contains(event)[0] for patch in container):
+                name = named(container.get_label())
+                if name:
+                    return name
+        for artist in (*axes.lines, *axes.collections, *axes.patches):
+            try:
+                hit = artist.get_visible() and artist.contains(event)[0]
+            except Exception:  # noqa: BLE001 - an artist that cannot hit-test is simply not it
+                hit = False
+            name = named(artist.get_label()) if hit else None
+            if name:
+                return name
+        return None
+
     def _make_data_artists_pickable(self) -> None:
         """Arm picking on the lines and marker collections a render produced.
 

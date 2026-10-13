@@ -432,6 +432,33 @@ class MainWindowChartProperties:
                 self._sync_chart_navigation()
                 return
 
+    def _on_chart_object_clicked(self, panel: Any, hit: dict[str, Any]) -> None:
+        """A click on the chart selects what it landed on here - when Chart properties is shown.
+
+        Outside every axis: the Figure page. On an axis: the Axis page on that
+        axis. On a series' line, points or bar: the Series page on that series.
+        """
+        control = self._properties_control
+        if not control.isVisible() or panel is not self._current_chart_panel():
+            return
+        pages = [control.widget(index) for index in range(control.count())]
+
+        def show(widget: QWidget) -> None:
+            for index, page in enumerate(pages):
+                if page is widget or (isinstance(page, QScrollArea) and page.widget() is widget):
+                    control.setCurrentIndex(index)
+                    return
+
+        axis_id = hit.get("axis_id")
+        if axis_id is None or not self._axis_widget.select_axis(int(axis_id)):
+            show(self._figure_widget)
+            return
+        series = hit.get("series")
+        if series and self._series_widget.select_series_named(str(series)):
+            show(self._series_widget)
+        else:
+            show(self._axis_widget)
+
     def _on_axis_selected(self, axis_id: int) -> None:
         self._series_widget.set_current_axis_id(axis_id)
         # One axis selector in the application: the overlays panel edits

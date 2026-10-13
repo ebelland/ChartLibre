@@ -379,6 +379,25 @@ class SeriesPropertiesWidget(BaseProperties):
         """Return the current axis id filter."""
         return self._current_axis_id
 
+    def select_series_named(self, name: str) -> bool:
+        """Show the series called *name* on the current axis (a click on it in the chart).
+
+        The chart labels a series' artists with its name - or a name it
+        starts with, for a series split by a group column or given a
+        companion line ("name (rolling)") - so an exact match wins, then
+        the longest name the label starts with.
+        """
+        matches = [
+            (len(str(desc.name)), series_id)
+            for series_id, desc in self._series_map.items()
+            if name == str(desc.name) or name.startswith(str(desc.name))
+        ]
+        if not matches:
+            return False
+        exact = [series_id for series_id, desc in self._series_map.items() if name == str(desc.name)]
+        self._select_series(exact[0] if exact else max(matches)[1])
+        return True
+
     # ------------------------------------------------------------------
     # Descriptor loading
     # ------------------------------------------------------------------
