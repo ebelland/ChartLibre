@@ -8655,3 +8655,21 @@ msgstr "Quanto conta ogni punto. Relativi: ogni residuo diviso per il suo valore
 
 msgid "Equal"
 msgstr "Uguali"
+
+msgid "One value for every series, fitted to all of them together."
+msgstr "Un solo valore per tutte le serie, adattato su tutte insieme."
+
+msgid "Global fit of {count} series"
+msgstr "Fit globale di {count} serie"
+
+msgid "shared: {names}"
+msgstr "condivisi: {names}"
+
+msgid "Press Preview or OK to see the result."
+msgstr "Premi Anteprima o OK per vedere il risultato."
+
+msgid "Shared:"
+msgstr "Condivisi:"
+
+msgid "none"
+msgstr "nessuno"

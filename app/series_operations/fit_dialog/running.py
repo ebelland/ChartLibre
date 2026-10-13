@@ -37,8 +37,9 @@ class FitRunMixin:
             return
         result = results[0]
         # The table is the single source of truth for what gets drawn, so the
-        # optimum has to land in it rather than only in the report.
-        self._set_initial_params(np.asarray(result.params, dtype=float))
+        # optimum has to land in it rather than only in the report - every
+        # row of it, which in a global fit is more than one series' worth.
+        self._set_initial_params(np.asarray(self._last_table_params, dtype=float))
         self._fill_results_table(result.params, result.param_std)
         self._btn_use_fit_params.setEnabled(True)
         self.publish_results(self.format_results([result]))
@@ -59,6 +60,11 @@ class FitRunMixin:
             return None
         model, _model_p0 = built
         p0, lb, ub, fixed = self._collect_params_from_table()
+        global_parts = None
+        layout = getattr(self, "_table_layout", None)
+        if layout is not None and x_data.ndim == 2:
+            global_parts = (model, layout, list(self._global_names))
+            model = fit_engine.global_model(model, layout)
         x_col, x2_col, target_col = self._selected_column_names()
         return _FitJob(
             model=model,
@@ -84,6 +90,7 @@ class FitRunMixin:
             output_table=self._output_table_name(),
             optimise=optimise,
             sigma=clean["sigma"].to_numpy(float) if "sigma" in clean.columns else None,
+            global_parts=global_parts,
         )
 
     def _weights_key(self) -> str:
@@ -97,12 +104,15 @@ class FitRunMixin:
             self._last_fit = (job.model_name, np.asarray(outcome.params, dtype=float), outcome.message)
         elif not job.optimise:
             outcome.message = self._evaluation_message(job, outcome)
+        self._last_table_params = np.asarray(outcome.params, dtype=float)
+        parts = self._split_global(job, outcome) if job.global_parts is not None else [(job, outcome)]
         try:
-            self._last_result = self._result_from(job, outcome, optimise=job.optimise)
+            results = [self._result_from(part_job, part, optimise=job.optimise) for part_job, part in parts]
         except Exception:
             self._last_result = None
             raise
-        return [self._last_result]
+        self._last_result = results[0]
+        return results
 
     def _evaluation_message(self, job: _FitJob, outcome: fit_engine.CurveFit) -> str:
         """What an evaluation reports: the fit's own status while the table

@@ -94,6 +94,8 @@ class StartingPointMixin:
         # box in front of someone who has not asked for anything yet.
         if not self.selected_series():
             return False
+        if getattr(self, "_table_layout", None) is not None:
+            return self._fill_global_initial_from_estimator(function_class)
         try:
             x_data, target_data, _clean = self._load_fit_data()
         except Exception:
@@ -119,6 +121,9 @@ class StartingPointMixin:
         space when it does not - which is most of the library, and every user
         function this application has never seen.
         """
+        if getattr(self, "_table_layout", None) is not None:
+            self._estimate_global_initial_values()
+            return
         try:
             x_data, target_data, _clean = self._load_fit_data()
             if x_data is None or target_data is None:
@@ -149,6 +154,53 @@ class StartingPointMixin:
         self._set_initial_params(start.values)
         applogger.info("Initial values from %s (cost %.6g)", start.source, start.cost)
         self.set_results_text(self._estimate_report(start.source, start.cost))
+
+    def _fill_global_initial_from_estimator(self, function_class: Any) -> bool:
+        """The function's own estimate, series by series (a global fit)."""
+        try:
+            series = self._per_series_xy()
+        except Exception:
+            return False
+        n_params = len(self._param_defaults)
+        estimates = [ask_the_function(function_class, x, y, expected=n_params) for x, y in series]
+        theta = self._combine_estimates([None if value is None else np.asarray(value, float) for value in estimates])
+        if theta is None:
+            return False
+        _p0, lb, ub, _fixed = self._collect_params_from_table()
+        self._set_initial_params(clip_into_bounds(theta, lb, ub))
+        return True
+
+    def _estimate_global_initial_values(self) -> None:
+        """Estimate, series by series, from each series' own rows; shared ones averaged."""
+        layout = self._table_layout
+        try:
+            series = self._per_series_xy()
+            model, _model_p0 = self._build_model(series[0][0], series[0][1]) or (None, None)
+            if model is None:
+                return
+            p0, lb, ub, fixed = self._collect_params_from_table()
+            starts = [
+                choose_starting_point(
+                    model, x, y,
+                    declared=p0[layout.index[number]],
+                    lower=lb[layout.index[number]],
+                    upper=ub[layout.index[number]],
+                    function_class=self._selected_function_class(),
+                    fixed=fixed[layout.index[number]],
+                )
+                for number, (x, y) in enumerate(series)
+            ]
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Could not estimate initial values")
+            show_message(self, "series.estimate_failed", series=self._current_table(), error=exc)
+            return
+        theta = self._combine_estimates([np.asarray(start.values, float) for start in starts])
+        if theta is None:
+            return
+        self._set_initial_params(clip_into_bounds(theta, lb, ub))
+        cost = float(sum(start.cost for start in starts))
+        applogger.info("Initial values, series by series (total cost %.6g)", cost)
+        self.set_results_text(self._estimate_report(starts[0].source, cost))
 
     @staticmethod
     def _estimate_report(source: str, cost: float) -> str:

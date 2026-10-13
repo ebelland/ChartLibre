@@ -260,6 +260,75 @@ def confidence_band(
 # ----------------------------------------------------------------------
 # The fit
 # ----------------------------------------------------------------------
+@dataclass(frozen=True, slots=True)
+class GlobalLayout:
+    """Where each series' parameters sit in a global fit's vector (R-05).
+
+    A global fit fits one model to several series at once. A shared
+    parameter is one entry for all of them; an unshared one is an entry per
+    series. Entries go parameter by parameter: a shared one once, an
+    unshared one series by series - the order of the dialog's table.
+    """
+
+    shared: tuple[bool, ...]
+    n_series: int
+
+    @property
+    def index(self) -> np.ndarray:
+        """(series, parameter) -> the entry in the global vector."""
+        index = np.empty((self.n_series, len(self.shared)), dtype=int)
+        position = 0
+        for column, shared in enumerate(self.shared):
+            if shared:
+                index[:, column] = position
+                position += 1
+            else:
+                index[:, column] = np.arange(position, position + self.n_series)
+                position += self.n_series
+        return index
+
+    @property
+    def size(self) -> int:
+        return sum(1 if shared else self.n_series for shared in self.shared)
+
+    def entries(self) -> list[tuple[int, int | None]]:
+        """(parameter, series) of each entry in order; series None when shared."""
+        return [
+            (column, None) if shared else (column, series)
+            for column, shared in enumerate(self.shared)
+            for series in ([None] if shared else range(self.n_series))
+        ]
+
+    def expand(self, per_series: np.ndarray) -> np.ndarray:
+        """A (series, parameter) table as the global vector; shared from series 0."""
+        per_series = np.asarray(per_series)
+        return np.array([per_series[series or 0, column] for column, series in self.entries()])
+
+
+def global_model(model: Model, layout: GlobalLayout) -> Model:
+    """*model* over several series at once, for :func:`fit_curve`.
+
+    x is (n, 2): the x value and the series it belongs to (0, 1, ...); each
+    series is evaluated with its own parameters picked out of the global
+    vector, so fit_curve fits them all - shared and not - in one problem,
+    with errors and correlations across series.
+    """
+    index = layout.index
+
+    def combined(x: np.ndarray, theta: np.ndarray) -> np.ndarray:
+        x = np.asarray(x, dtype=float)
+        values, series = x[:, 0], x[:, 1].astype(int)
+        theta = np.asarray(theta, dtype=float)
+        out = np.empty(values.shape[0], dtype=float)
+        for number in range(layout.n_series):
+            mask = series == number
+            if np.any(mask):
+                out[mask] = model(values[mask], theta[index[number]])
+        return out
+
+    return combined
+
+
 def linear_basis(model: Model, x: np.ndarray, n_params: int) -> np.ndarray | None:
     """The columns g_i(x) when ``model(x, p) == sum(p_i * g_i(x))``, else None.
 

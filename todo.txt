@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 89,228 lines in 237 files; tests 15,624 lines in 118 files (updated at each commit).
+Size: app 89,632 lines in 238 files; tests 15,725 lines in 119 files (updated at each commit).
 
 DONE RECENTLY
+- R-05: Fit weights from the series' yerr column (Weights: Equal, Relative, Error bars; chi-square reported); global fit: two or more series checked fit together, parameters picked in the Shared menu are one value for all, the others one per series (fit.GlobalLayout, fit.global_model), a result, curve and output table per series. Also: the parameter table no longer overflows after a fit (resizeColumnsToContents widened the Stretch columns).
 - W-04: ChartCanvas (chart_panel/canvas.py): within a burst of resizes the last image is stretched, and the figure is resized and drawn once the size holds for 150 ms; the panel's geometry pass waits for it.
 - PF-03: Whittaker-Eilers banded Cholesky (O(n): 0.1 ms vs 404 ms at n=3000); cluster ids via np.unique return_inverse; contingency via factorize + bincount; roots: vectorised brackets, exact linear crossings with no solver; wavelet power via Parseval with no inverse FFT, scales in blocks; correlation via scipy.signal.correlate (FFT when faster). All checked equal to the old code.
 - UI-07: Fluent spin-box and combo chevrons (Segoe Fluent glyphs); off macOS the window carries the popup menu's shortcuts, so Ctrl+Z (Undo) works with the menu closed.
@@ -77,7 +78,6 @@ NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Games-Howell,
            Bonferroni, Dunn; repeated-measures ANOVA, ANCOVA.
 - R-08  M  Column metadata: label, unit, missing codes, value labels.
-- R-05  M  Fit: global fit, shared parameters (weights from yerr done).
 
 LATER
 - AN-06 M  Quality: Gage R&R, capability with non-normal fits, multi-vari.

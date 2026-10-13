@@ -180,6 +180,9 @@ class ModelDataMixin:
 
     def _param_label(self, row: int) -> str:
         """Return the human-readable parameter name for the table/report."""
+        global_label = self._global_label(row)
+        if global_label is not None:
+            return global_label
         name = self._param_names[row] if row < len(self._param_names) else ""
         return name if name else f"p[{row}]"
 
@@ -205,9 +208,13 @@ class ModelDataMixin:
                     self._params_table.setItem(row, col, QTableWidgetItem(text))
             if self._params_table.cellWidget(row, 4) is None:
                 self._params_table.setCellWidget(row, 4, QCheckBox(self._params_table))
-        self._params_table.resizeColumnsToContents()
+        # Not resizeColumnsToContents(): it widened the Stretch columns to
+        # their longest value until the next resize, pushing Fix out of view.
 
     def _populate_params_defaults(self) -> None:
+        # The model's own rows first; a global fit then lays them out per series.
+        self._table_layout = None
+        self._shared = []
         self._ensure_params_rows(len(self._param_defaults))
         for row, value in enumerate(self._param_defaults):
             self._params_table.setItem(row, 0, QTableWidgetItem(self._param_label(row)))
@@ -216,6 +223,7 @@ class ModelDataMixin:
             self._params_table.setItem(row, 3, QTableWidgetItem("inf"))
             cb = self._get_fix_checkbox(row)
             cb.setChecked(False)
+        self._relayout_params_table()
 
     def _get_fix_checkbox(self, row: int) -> QCheckBox:
         widget = self._params_table.cellWidget(row, 4)
@@ -284,6 +292,8 @@ class ModelDataMixin:
     def _load_fit_data(self) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
         if self._is_2d_fit():
             return self._load_fit_data_2d()
+        if self._global_rows():
+            return self._load_global_fit_data()
         return self._load_fit_data_1d()
 
     def _load_fit_data_2d(self) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
@@ -339,8 +349,8 @@ class ModelDataMixin:
         target_data = target_clean
         return x_data, target_data, clean_frame
 
-    def _load_fit_data_1d(self) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
-        row = self._selected_series_row()
+    def _load_fit_data_1d(self, row: Any = None) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+        row = self._selected_series_row() if row is None else row
         source_name = str(
             parse_roles(row["roles"]).get("name") or row_value(row, "name", "series_name", default="Series")
         )
@@ -470,7 +480,7 @@ class ModelDataMixin:
         return p0, lb, ub, fixed
 
     def _set_initial_params(self, values: np.ndarray) -> None:
-        for row, value in enumerate(np.asarray(values, dtype=float)):
+        for row, value in enumerate(self._expand_to_table(values)):
             if row < self._params_table.rowCount():
                 self._params_table.setItem(row, 1, QTableWidgetItem(f"{float(value):.12g}"))
 

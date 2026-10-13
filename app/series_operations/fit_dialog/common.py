@@ -110,6 +110,8 @@ class _FitJob:
     optimise: bool = False
     #: Each point's error, from the series' yerr column, when weighting by it.
     sigma: np.ndarray | None = None
+    #: A global fit's (model of one series, GlobalLayout, series names); see global_fit.py.
+    global_parts: tuple | None = None
 
     def run(self, should_stop: Callable[[], bool] | None = None) -> fit_engine.CurveFit:
         """The calculation alone - no Qt, safe on a worker thread."""

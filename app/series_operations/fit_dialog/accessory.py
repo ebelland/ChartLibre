@@ -198,7 +198,8 @@ class AccessoryChartsMixin:
         if self._last_result is None:
             show_message(self, "series.no_fit_results")
             return
-        params = np.asarray(self._last_result.params, dtype=float)
+        # Every row of the table: in a global fit, more than one series' worth.
+        params = np.asarray(getattr(self, "_last_table_params", self._last_result.params), dtype=float)
         if params.size == 0:
             show_message(self, "series.no_parameters")
             return
@@ -216,7 +217,6 @@ class AccessoryChartsMixin:
             if self._params_table.item(row, 3) is None:
                 self._params_table.setItem(row, 3, QTableWidgetItem("inf"))
             self._get_fix_checkbox(row).setChecked(False)
-        self._params_table.resizeColumnsToContents()
         applogger.info("Initial parameters updated from latest fit results.")
 
     def _cell_text(self, row: int, col: int, default: str = "") -> str:

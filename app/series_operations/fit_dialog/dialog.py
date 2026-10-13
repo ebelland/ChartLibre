@@ -42,13 +42,14 @@ from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScann
 
 from app.series_operations.fit_dialog.common import SeriesFitResult
 from app.series_operations.fit_dialog.model_data import ModelDataMixin
+from app.series_operations.fit_dialog.global_fit import GlobalFitMixin
 from app.series_operations.fit_dialog.running import FitRunMixin
 from app.series_operations.fit_dialog.starting_point import StartingPointMixin
 from app.series_operations.fit_dialog.hooks import FitHooksMixin
 from app.series_operations.fit_dialog.accessory import AccessoryChartsMixin
 
 
-class SeriesFitDialog(ModelDataMixin, FitRunMixin, StartingPointMixin, FitHooksMixin, AccessoryChartsMixin, SeriesOperationDialogBase):
+class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPointMixin, FitHooksMixin, AccessoryChartsMixin, SeriesOperationDialogBase):
     """Fit a model to a series, or draw the parameters as they stand.
 
     Two verbs, deliberately separate:
@@ -288,6 +289,7 @@ class SeriesFitDialog(ModelDataMixin, FitRunMixin, StartingPointMixin, FitHooksM
         self.series_selector.selection_changed.connect(
             lambda *_args: self._refresh_default_output_name(force=True)
         )
+        self.series_selector.selection_changed.connect(lambda *_args: self._relayout_params_table())
         self._model_search.textChanged.connect(self._filter_model_catalog)
         self._multi_apply_btn.clicked.connect(self.on_multi_peak)
         self._models_tree.itemSelectionChanged.connect(self._on_model_tree_selection)
@@ -356,6 +358,7 @@ class SeriesFitDialog(ModelDataMixin, FitRunMixin, StartingPointMixin, FitHooksM
             _("Initial value, bounds and fixed flag for each function parameter. Apply runs the fit with these settings.")
         )
         layout.addWidget(self._params_table, 1)
+        layout.addWidget(self._build_shared_row())
 
         # Output / fit options, one control per row: a translated algorithm
         # label ("Regione di fiducia (predefinito)") and a translated loss
