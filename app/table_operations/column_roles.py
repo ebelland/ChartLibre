@@ -81,10 +81,6 @@ class ColumnCasting:
     def columns(self, role: str) -> list[str]:
         return list(self.roles.get(role, []))
 
-    def of_kind(self, role: str, kind: str) -> list[str]:
-        return [name for name in self.roles.get(role, []) if self.kinds.get(name) == kind]
-
-
 def declared_kind(declared: str | None) -> str | None:
     """The modelling type a column's declared SQL type says, as JMP's defaults:
     a REAL is continuous, an INTEGER ordinal, TEXT nominal. None: no type declared."""

@@ -46,32 +46,24 @@ from app.styles.style import (
     MARGIN_CARD,
     action_presentation,
     create_action_button,
-    create_compact_section_title,
     load_icon,
     mark_icon_only,
-    mark_editor_panel,
     stdSizeAndlayout,
 )
 from app.logs.logger import applogger
 from app.utils.messages import show_message
-from app.utils.mpl_latex import (
-    is_latex_rcparam,
-    latex_available,
-    latex_unavailable_reason,
-)
+from app.utils.mpl_latex import is_latex_rcparam, latex_available, latex_unavailable_reason
 
 mpl.use("QtAgg")
 from matplotlib import image as _mimage
 from matplotlib import pyplot as plt
-from matplotlib.backends.backend_qtagg import (
-    FigureCanvasQTAgg as FigureCanvas,
-)
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 from matplotlib.colors import is_color_like, to_rgba
 from matplotlib.figure import Figure
 
-from PySide6.QtCore import Qt, QSize, QTimer, Signal
-from PySide6.QtWidgets import QWidget, QLabel, QAbstractItemView, QFileDialog, QHBoxLayout, QVBoxLayout, QComboBox, QSizePolicy, QListWidget, QListWidgetItem
+from PySide6.QtCore import QTimer, Signal
+from PySide6.QtWidgets import QWidget, QLabel, QFileDialog, QHBoxLayout, QVBoxLayout, QComboBox, QSizePolicy
 
 # ---------------------------------------------------------------------------
 # Optional external helpers (graceful fallbacks)
@@ -762,12 +754,6 @@ class MplStyleEditorDialog(SettingsTableDialog):
             self.editor.set_values(values)
         self.editor.set_filter_text(filter_text)
         self.editor.set_current_key(current_key)
-
-    def _append_row(self, key: str, value: str) -> None:
-        values: dict[str, object] = self._editor_values()
-        self._param_schema[key] = self._schema_for_key(key, value)
-        values[key] = value
-        self._rebuild_editor(values)
 
     def _load_dict_into_table(self, d: dict[str, str]) -> None:
         keys = set(style_rc_keys()) | set(d)

@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 88,464 lines in 207 files; tests 15,491 lines in 115 files (updated at each commit).
+Size: app 88,405 lines in 207 files; tests 15,491 lines in 115 files (updated at each commit).
 
 DONE RECENTLY
 - PF-01/02: optional Numba (app/utils/jit.py, CHARTLIBRE_NO_NUMBA=1 to turn
@@ -31,7 +31,7 @@ NOW
 R-20  M  Project review, step by step (one commit each):
          1. PanelDialog for one-panel dialogs - DONE.
          2. Shared report helpers in TableOperationDialogBase - DONE.
-         3. Dead code.
+         3. Dead code - DONE (7 unused functions; a name found only where defined).
          4. Split large files into packages like main_window/ (R-10: chart_panel,
          series_operations/dialog_base, style, fit_dialog).
          5. Properties panels on their base.

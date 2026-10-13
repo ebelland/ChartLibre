@@ -389,22 +389,6 @@ class DatabaseConnection:
             return self.path
         return f"{self.kind}://{self.host}:{self.port}/{self.database}"
 
-    @classmethod
-    def from_link_settings(cls, settings: dict[str, object], *, password: str = "") -> "DatabaseConnection":
-        """Rebuild a connection from a saved link, plus a freshly-typed password."""
-        kind = str(settings.get("kind") or "sqlite")
-        if kind == "sqlite":
-            return cls(kind="sqlite", path=str(settings.get("path") or ""))
-        return cls(
-            kind=kind,
-            host=str(settings.get("host") or ""),
-            port=int(str(settings.get("port") or DEFAULT_PORTS.get(kind, 0))),
-            database=str(settings.get("database") or ""),
-            username=str(settings.get("username") or ""),
-            password=password,
-        )
-
-
 #: Schemas MySQL keeps for its own bookkeeping. They are databases like any
 #: other as far as ``SHOW DATABASES`` is concerned, and every server has them,
 #: so listing them would bury the two or three a user actually came for.

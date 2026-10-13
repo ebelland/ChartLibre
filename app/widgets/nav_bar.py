@@ -346,10 +346,6 @@ class NavigationBar(QWidget):
         """The bar's width, or 0 while it is hidden."""
         return 0 if self.bar.isHidden() else self.bar.maximumWidth()
 
-    @property
-    def bar_hidden(self) -> bool:
-        return self.bar.isHidden()
-
     def sections(self) -> dict[str, dict[str, NavBarItem]]:
         """Return a shallow copy of the current section definitions."""
         return {name: dict(items) for name, items in self._sections.items()}
@@ -371,11 +367,6 @@ class NavigationBar(QWidget):
         """Create or replace one section, for example the current chart list."""
         sections = self.sections()
         sections[str(title)] = dict(items)
-        self.set_sections(sections)
-
-    def remove_section(self, title: str) -> None:
-        sections = self.sections()
-        sections.pop(str(title), None)
         self.set_sections(sections)
 
     def button(self, key: str) -> QToolButton | None:

@@ -615,10 +615,6 @@ class AxisPropertiesWidget(BaseProperties):
         span_layout.addWidget(self._col_span_spin, 1)
         return span_row
 
-    def _update_limit_control_state(self) -> None:
-        for edge, spin in self._limit_spins.items():
-            spin.setEnabled(not self._limit_auto_checks[edge].isChecked())
-
     def _update_scale_control_state(self) -> None:
         """Enable only the scale parameters the scales actually use."""
         shown = str(self._scale_combo.currentData() or "linear")

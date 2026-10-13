@@ -407,18 +407,6 @@ class BaseAxisRenderer(Protocol):
                 return False
         return True
 
-    @classmethod
-    def _coerce_option(cls, value: Any, meta: dict) -> Any:
-        """Return *value* as the type the option declares.
-
-        The conversion itself lives in ``kwarg_spec`` now, so that
-        :func:`~app.charts.kwarg_spec.resolve` applies exactly the same rules
-        to a forwarded keyword as this applies to one a renderer reads for
-        itself - two implementations of "is this a number?" is how they drift.
-        Kept as a method because renderers call it.
-        """
-        return kwarg_spec.coerce(value, meta if isinstance(meta, dict) else {})
-
     def opt_typed(self, name: str, options: dict) -> Any:
         """Like :meth:`opt`, but converted to the type the option declares.
 
