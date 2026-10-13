@@ -32,10 +32,7 @@ from app.charts.render_figure import (
     OPT_SHARED_HORIZONTAL_SPACE,
     OPT_SHARED_VERTICAL_SPACE,
 )
-from app.dialogs.edit_mpl_styles_dialog import (
-    MplStyleEditorDialog,
-    _sanitize_mplstyle_text,
-)
+from app.dialogs.edit_mpl_styles_dialog import MplStyleEditorDialog, _sanitize_mplstyle_text
 from app.styles.style import (
     load_icon,
     MARGIN_PANEL,
@@ -43,7 +40,6 @@ from app.styles.style import (
     create_action_button,
     fit_spin_width,
     stdSizeAndlayout,
-    configure_combo_width,
 )
 from app.utils.config import MPLSTYLES_DIR
 from app.widgets.chart_properties.base_properties import BaseProperties
@@ -273,26 +269,21 @@ class FigurePropertiesWidget(BaseProperties):
         preset in particular is a one-shot rearrangement that deliberately
         does not ride on the panel's apply.
         """
-        # Enter or leaving the box applies (editingFinished covers both).
-        self._apply_on_commit(self._name_edit)
-        for combo in (
+        self._watch(
+            self._name_edit,  # Enter or leaving the box applies
             self._nrows_combo,
             self._ncols_combo,
             self._fig_layout_mode,
             self._downsample_combo,
-        ):
-            combo.currentIndexChanged.connect(self._queue_auto_apply)
-        for spin in (
             self._fig_dpi,
             self._fig_width_cm,
             self._fig_height_cm,
             self._shared_vspace,
             self._shared_hspace,
             *self._margin_spins.values(),
-        ):
-            spin.valueChanged.connect(self._queue_auto_apply)
-        self._fig_frameon.toggled.connect(self._queue_auto_apply)
-        self._font_scale.value_changed.connect(self._queue_auto_apply)
+            self._fig_frameon,
+            self._font_scale,
+        )
 
     def _shared_space_spin(self, parent: QWidget) -> QDoubleSpinBox:
         """A spin box for one shared-axis gap, in Matplotlib's own units.
@@ -310,18 +301,6 @@ class FigurePropertiesWidget(BaseProperties):
         fit_spin_width(spin)
         spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         return spin
-
-    def _configure_combo_width(
-        self,
-        combo: QComboBox,
-        minimum_contents_length: int = 0,
-    ) -> None:
-        """Make combo boxes use the available widget width.
-
-        Thin wrapper kept so the call sites read the same as before; the rule
-        itself is shared with the axis panel in ``style``.
-        """
-        configure_combo_width(combo, minimum_contents_length)
 
     def _build_ui(self) -> None:
         lay = QVBoxLayout(self)

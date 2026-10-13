@@ -23,7 +23,17 @@ from typing import Any, Callable, Iterator
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QLineEdit, QPlainTextEdit, QSizePolicy, QWidget
+from PySide6.QtWidgets import (
+    QAbstractSpinBox,
+    QCheckBox,
+    QComboBox,
+    QLineEdit,
+    QPlainTextEdit,
+    QSizePolicy,
+    QWidget,
+)
+
+from app.styles.style import configure_combo_width
 
 from app.utils.config import get_constant
 
@@ -91,6 +101,33 @@ class BaseProperties(QWidget):
         """Register the method that commits this editor's pending edit."""
         self._auto_apply_callback = callback
         self._auto_apply_timer.timeout.connect(self._run_auto_apply)
+
+    def _watch(self, *widgets: Any) -> None:
+        """Apply a short moment after any of *widgets* is changed by the user.
+
+        Each control by its own change signal: a line or text edit when it is
+        committed (Enter, or leaving it), a check box when toggled, a combo
+        when its choice changes, a spin box when its value does, and anything
+        else that has a ``value_changed`` signal (the font-size control).
+        """
+        for widget in widgets:
+            if isinstance(widget, (QLineEdit, QPlainTextEdit)):
+                self._apply_on_commit(widget)
+            elif isinstance(widget, QCheckBox):
+                widget.toggled.connect(self._queue_auto_apply)
+            elif isinstance(widget, QComboBox):
+                widget.currentIndexChanged.connect(self._queue_auto_apply)
+            elif isinstance(widget, QAbstractSpinBox):
+                widget.valueChanged.connect(self._queue_auto_apply)  # type: ignore[attr-defined]
+            elif hasattr(widget, "value_changed"):
+                widget.value_changed.connect(self._queue_auto_apply)
+            else:
+                raise TypeError(f"Cannot watch {type(widget).__name__}")
+
+    @staticmethod
+    def _configure_combo_width(combo: QComboBox, minimum_contents_length: int = 0) -> None:
+        """Make a combo box use the panel's width (the rule is style's)."""
+        configure_combo_width(combo, minimum_contents_length)
 
     @contextmanager
     def _reloading_controls(self) -> Iterator[None]:

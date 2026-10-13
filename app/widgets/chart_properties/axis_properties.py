@@ -44,7 +44,6 @@ from app.styles.style import (
     create_action_button,
     mark_icon_only,
     stdSizeAndlayout,
-    configure_combo_width,
 )
 from app.utils.messages import ask
 from app.widgets.chart_properties.base_properties import BaseProperties
@@ -54,7 +53,7 @@ AxisDescriptorLike: TypeAlias = Any
 RendererConfig: TypeAlias = dict[str, Any]
 AxisPayload: TypeAlias = dict[str, Any]
 
-from app.scanners.axis_renderer_scanner import get_renderer,import_class_from_file
+from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
 from app.utils.i18n import _, tr
 MAX_QT_HEIGHT: int = 16_777_215
 
@@ -119,43 +118,20 @@ class AxisPropertiesWidget(BaseProperties):
         ``_form_signal_blocker`` on a reload, so the change signals only ever
         reach the timer when the user is the one turning the control.
         """
-        widgets = (
+        self._watch(
             self._axis_label_edit,
             self._coordinate_label,
             self._projection_combo,
             *self._share_checks.values(),
             self._hide_axis_check,
-        ) + self._extended_option_widgets()
-
-        for widget in widgets:
-            if isinstance(widget, QLineEdit):
-                self._apply_on_commit(widget)
-            elif isinstance(widget, QCheckBox):
-                widget.toggled.connect(self._queue_auto_apply)
-            elif isinstance(widget, QComboBox):
-                widget.currentIndexChanged.connect(self._queue_auto_apply)
-            elif isinstance(widget, QSpinBox):
-                widget.valueChanged.connect(self._queue_auto_apply)
-            elif isinstance(widget, QDoubleSpinBox):
-                widget.valueChanged.connect(self._queue_auto_apply)
-        self._font_scale.value_changed.connect(self._queue_auto_apply)
+            *self._extended_option_widgets(),
+            self._font_scale,
+        )
 
     # ------------------------------------------------------------------
     # Setup helpers
     # ------------------------------------------------------------------
  
-    def _configure_combo_width(
-        self,
-        combo: QComboBox,
-        minimum_contents_length: int = 0,
-    ) -> None:
-        """Make combo boxes use the available panel width.
-
-        Thin wrapper kept so the call sites read the same as before; the rule
-        itself is shared with the figure panel in ``style``.
-        """
-        configure_combo_width(combo, minimum_contents_length)
-
     def _build_ui(self) -> None:
         """The axis selector, then tabs: Properties, X, Y, Z (one coordinate page, moved between them), Kwargs."""
         root = QVBoxLayout(self)

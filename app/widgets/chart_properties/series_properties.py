@@ -134,20 +134,16 @@ class SeriesPropertiesWidget(BaseProperties):
         an edit to one, and its handler repopulates the form under the
         reload guard anyway.
         """
-        self._apply_on_commit(self._legend_label_edit)
-        self._apply_on_commit(self._sql_query_edit)
-        for check in (
+        self._watch(
+            self._legend_label_edit,
+            self._sql_query_edit,
             self._visible_check,
             self._show_in_legend_check,
             self._sort_x_check,
-        ):
-            check.toggled.connect(self._queue_auto_apply)
-        for combo in (
             self._linestyle_combo,
             self._marker_combo,
             self._color_combo,
-        ):
-            combo.currentIndexChanged.connect(self._queue_auto_apply)
+        )
 
     def _build_ui(self) -> None:
         """Build all UI sections inside a resizable scrollable container.
