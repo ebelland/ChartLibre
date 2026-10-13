@@ -190,3 +190,25 @@ def test_permutation_importance_and_partial_dependence_for_any_method(qapp, repo
         assert all(axes.collections or axes.lines or axes.patches for axes in drawn.axes)
     finally:
         dialog.close()
+
+
+def test_a_classification_tree_reports_and_draws_its_roc_curve(qapp, repo: SqliteRepo) -> None:
+    """AN-19: AUC on the validation rows, the curve with the chance diagonal."""
+    result = partition(_data(), PartitionSpec(response="ok", factors=["temp", "press", "supplier"], kinds=KINDS,
+                                              splits=3, validation_fraction=0.3))
+    assert list(result.auc) == ["fail"] and result.auc["fail"] > 0.9
+    assert "AUC fail (validation)" in result.summary
+
+    repo.import_dataframe(_data(), table_name="plant", normalize_columns=False)
+    dialog = PartitionDialog(repo=repo, table="plant")
+    try:
+        dialog.roles_widget.set_casting({"response": ["ok"], "factor": ["temp", "press", "supplier"]}, KINDS)
+        for key, check in dialog._chart_checks.items():
+            check.setChecked(key == "roc")
+        dialog.ok()
+        _wait(qapp, dialog)
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        assert [axis.title for axis in figure.axes] == ["ROC curve"]
+        assert [s.name for s in figure.axes[0].series][-1] == "Chance"
+    finally:
+        dialog.close()

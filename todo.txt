@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 91,792 lines in 248 files; tests 16,333 lines in 126 files (updated at each commit).
+Size: app 91,893 lines in 248 files; tests 16,379 lines in 126 files (updated at each commit).
 
 DONE RECENTLY
+- AN-19: ROC curves (one level against the rest), AUC and confusion matrix (explain.roc/confusion): Fit Model's nominal and ordinal logistic (AUC in the summary, confusion matrix in the report, ROC chart with the chance diagonal); Partition's classification tree, forest and boosted tree, on validation rows when there are some.
 - AN-18: Permutation importance and partial dependence for any model (app/analysis/explain.py, model-agnostic): in Partition for the tree, the forest and the boosted tree, on validation rows when there are some; report section, tables, Pareto and a dependence chart per most important factor (bars for a nominal one).
 - AN-17: Partial Least Squares (Models): Y from many collinear X (spectra), components by cross-validation with Wold's criterion (PRESS cut by 5% or more), X centred (scaling optional - off for spectra); Q², VIP, loadings, coefficients, scores; OK draws RMSECV by components, VIP along the variables, scores, actual by predicted.
 - AN-16: Fit Model > Generalized Regression: Lasso, Ridge or Elastic Net on the model's own design (coded, standardized), the penalty chosen by 5-fold cross-validation; estimates with zeroed terms, effects ranked by standardized size (no p-values, said in a note), cross-validated R²; Pareto by size.
@@ -51,7 +52,6 @@ DONE RECENTLY
 NOW
 D-01  M  Demos rethought around the questions: per goal still to do (the
          quick answers' demo is done), still covering every function.
-AN-19 S  ROC curve, AUC, confusion matrix for logistic fits and trees.
 M-01  S  Manual: rebuild the PDF (rename Series -> Data operations is done).
 R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 

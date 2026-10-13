@@ -93,6 +93,9 @@ class PartitionResult:
     importance: pd.DataFrame = field(default_factory=pd.DataFrame)
     #: Partial dependence of the most important factors: Factor, Value, Label, Predicted.
     dependence: pd.DataFrame = field(default_factory=pd.DataFrame)
+    #: A nominal response's ROC curves (Level, FPR, TPR) and areas, on the same rows (AN-19).
+    roc: pd.DataFrame = field(default_factory=pd.DataFrame)
+    auc: dict[str, float] = field(default_factory=dict)
 
 
 # ----------------------------------------------------------------------
@@ -421,6 +424,12 @@ def _explain(result: PartitionResult, model: Any, x: np.ndarray, y: np.ndarray, 
                   else [f"{value:.4g}" for value in grid])
         parts.append(pd.DataFrame({"Factor": name, "Value": grid, "Label": labels, "Predicted": values}))
     result.dependence = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    if nominal:
+        classes = [str(c) for c in model.classes_]
+        result.roc, result.auc = explain.roc(y[rows], model.predict_proba(x[rows]), classes)
+        which = "validation" if valid.any() else "training"
+        for level, area in result.auc.items():
+            result.summary[f"AUC {level} ({which})"] = area
 
 
 # ----------------------------------------------------------------------

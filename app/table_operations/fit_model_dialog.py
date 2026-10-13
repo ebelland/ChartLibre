@@ -64,6 +64,7 @@ CHARTS: tuple[tuple[str, str, bool], ...] = (
     ("residual", "Residual by predicted", True),
     ("qq", "Residual Q-Q", False),
     ("profile", "Prediction profile", True),
+    ("roc", "ROC curve (categorical Y)", True),
     ("interaction", "Interaction", False),
 )
 
@@ -432,7 +433,10 @@ class FitModelDialog(TableOperationDialogBase):
             if label is not None:
                 label.setVisible(shown)
         for key, check in self._chart_checks.items():
-            usable = not categorical or key in ("pareto", "profile")
+            usable = key in ("pareto", "profile", "roc") if categorical else key != "roc"
+            if usable and not check.isEnabled():
+                # Usable again: back to its default, not left as unusable made it.
+                check.setChecked(dict((k, ticked) for k, _label, ticked in CHARTS)[key])
             check.setEnabled(usable)
             if not usable:
                 check.setChecked(False)
@@ -536,6 +540,13 @@ class FitModelDialog(TableOperationDialogBase):
                 self.report_rows(fit.effect_tests.drop(columns=["LogWorth"]), p_columns=("Prob > F", "Prob > ChiSq")),
             ),
         ))
+        if fit.confusion is not None:
+            confusion = fit.confusion.reset_index()
+            blocks.append(report_html.section(
+                _("Confusion matrix"),
+                report_html.table([_("Actual")] + [html.escape(str(c)) for c in fit.confusion.columns],
+                                  self.report_rows(confusion)),
+            ))
         if fit.levels:
             blocks.insert(0, report_html.note(
                 _("Levels: {levels}. The predictions are the probability of {first}.").format(
@@ -557,6 +568,7 @@ class FitModelDialog(TableOperationDialogBase):
             "results": repo.free_table_name(f"{table}_fit"),
             "effects": repo.free_table_name(f"{table}_fit_effects"),
             "profile": repo.free_table_name(f"{table}_fit_profile"),
+            "roc": repo.free_table_name(f"{table}_fit_roc"),
         }
         charts = self.charts()
         repo.snapshot_for_undo(
@@ -565,7 +577,7 @@ class FitModelDialog(TableOperationDialogBase):
         )
 
         frame = self._frame.copy()
-        effects, profiles = [], []
+        effects, profiles, curves = [], [], []
         for fit in result:
             predicted, residual, studentized = self._columns_for(fit.response)
             frame[predicted] = fit.predicted.reindex(frame.index)
@@ -575,6 +587,10 @@ class FitModelDialog(TableOperationDialogBase):
                 effects.append({"Response": fit.response, **row})
             if not fit.profile.empty:
                 profiles.append(fit.profile.assign(Response=fit.response))
+            if not fit.roc.empty:
+                # The chance diagonal rides along, so the chart needs no second table.
+                chance = pd.DataFrame({"Level": "Chance", "FPR": [0.0, 1.0], "TPR": [0.0, 1.0]})
+                curves.append(pd.concat([fit.roc, chance], ignore_index=True).assign(Response=fit.response))
         repo.import_dataframe(frame, table_name=names["results"], normalize_columns=False)
         repo.import_dataframe(pd.DataFrame(effects), table_name=names["effects"], normalize_columns=False)
         written: list[dict[str, Any]] = [{"table": names["results"]}, {"table": names["effects"]}]
@@ -582,6 +598,10 @@ class FitModelDialog(TableOperationDialogBase):
             repo.import_dataframe(pd.concat(profiles, ignore_index=True), table_name=names["profile"],
                                   normalize_columns=False)
             written.append({"table": names["profile"]})
+        if curves:
+            repo.import_dataframe(pd.concat(curves, ignore_index=True), table_name=names["roc"],
+                                  normalize_columns=False)
+            written.append({"table": names["roc"]})
 
         self.created_figure_ids = []
         if charts:
@@ -623,6 +643,15 @@ class FitModelDialog(TableOperationDialogBase):
             ]
             y_label = f"Prob({fit.levels[0]})" if fit.levels else fit.response
             panels.append(("Scatter Plot", _("Prediction profile"), _("Factor (coded, -1 to +1)"), y_label, series))
+        if "roc" in charts and not fit.roc.empty:
+            series = []
+            for level in [*dict.fromkeys(fit.roc["Level"]), "Chance"]:
+                where = f'"Response" = {response} AND "Level" = {self.literal(str(level))}'
+                style = ({"linestyle": "--", "marker": "", "color": "0.6"} if level == "Chance"
+                         else {"linestyle": "-", "marker": ""})
+                name = _("Chance") if level == "Chance" else f"{level} (AUC {fit.auc.get(str(level), math.nan):.3f})"
+                series.append(one("roc", {"x": "FPR", "y": "TPR"}, where, name=name, style=style))
+            panels.append(("Scatter Plot", _("ROC curve"), _("False positive rate"), _("True positive rate"), series))
         if "interaction" in charts:
             pairs = [t for t in fit.terms if len(t) == 2 and t[0] != t[1]]
             if pairs:

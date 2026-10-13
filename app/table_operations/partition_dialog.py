@@ -36,6 +36,7 @@ CHARTS: tuple[tuple[str, str, bool], ...] = (
     ("leaves", "Leaf means or shares", False),
     ("importance", "Permutation importance", False),
     ("dependence", "Partial dependence (most important factors)", False),
+    ("roc", "ROC curve (nominal Y)", True),
 )
 
 _JMP_HELP = "https://www.jmp.com/support/help/en/18.0/index.shtml#page/jmp/"
@@ -313,6 +314,7 @@ class PartitionDialog(TableOperationDialogBase):
             ("contributions", "_contributions"), *((("graph", "_graph"),) if graph else ()),
             *((("importance", "_importance"),) if not result.importance.empty else ()),
             *((("dependence", "_dependence"),) if not result.dependence.empty else ()),
+            *((("roc", "_roc"),) if not result.roc.empty else ()),
         )}
         repo.snapshot_for_undo(
             [*names.values(), *(repo.DESCRIPTOR_TABLES if charts else ())],
@@ -337,6 +339,10 @@ class PartitionDialog(TableOperationDialogBase):
         for key in ("leaves", "history", "contributions", "importance", "dependence"):
             if key in names:
                 repo.import_dataframe(getattr(result, key), table_name=names[key], normalize_columns=False)
+        if "roc" in names:
+            chance = pd.DataFrame({"Level": "Chance", "FPR": [0.0, 1.0], "TPR": [0.0, 1.0]})
+            repo.import_dataframe(pd.concat([result.roc, chance], ignore_index=True), table_name=names["roc"],
+                                  normalize_columns=False)
         written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
 
         self.created_figure_ids = []
@@ -398,6 +404,17 @@ class PartitionDialog(TableOperationDialogBase):
                     sql, roles = self.series_select(names["dependence"], {"x": "Value", "y": "Predicted"}, where=where)
                     panels.append(("Scatter Plot", _("Partial dependence on {factor}").format(factor=factor), factor,
                                    y_label, [(str(factor), sql, roles, {"linestyle": "-", "marker": "o"})]))
+        if "roc" in charts and "roc" in names:
+            series = []
+            for level in [*dict.fromkeys(result.roc["Level"]), "Chance"]:
+                sql, roles = self.series_select(names["roc"], {"x": "FPR", "y": "TPR"},
+                                                where=f"{self.quoted('Level')} = {self.literal(str(level))}")
+                if level == "Chance":
+                    series.append((_("Chance"), sql, roles, {"linestyle": "--", "marker": "", "color": "0.6"}))
+                else:
+                    series.append((f"{level} (AUC {result.auc.get(str(level), float('nan')):.3f})", sql, roles,
+                                   {"linestyle": "-", "marker": ""}))
+            panels.append(("Scatter Plot", _("ROC curve"), _("False positive rate"), _("True positive rate"), series))
         if "leaves" in charts and "leaves" in names:
             value = "Mean" if not nominal else f"Prob({result.levels[0]})" if result.levels else "Count"
             sql, roles = self.series_select(names["leaves"], {"X": "Leaf", "Y": value})

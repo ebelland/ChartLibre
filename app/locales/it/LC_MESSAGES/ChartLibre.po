@@ -9117,3 +9117,21 @@ msgstr "Importanza"
 
 msgid "Partial dependence on {factor}"
 msgstr "Dipendenza parziale da {factor}"
+
+msgid "Chance"
+msgstr "Caso"
+
+msgid "False positive rate"
+msgstr "Tasso di falsi positivi"
+
+msgid "ROC curve"
+msgstr "Curva ROC"
+
+msgid "True positive rate"
+msgstr "Tasso di veri positivi"
+
+msgid "ROC curve (categorical Y)"
+msgstr "Curva ROC (Y a categorie)"
+
+msgid "ROC curve (nominal Y)"
+msgstr "Curva ROC (Y nominale)"

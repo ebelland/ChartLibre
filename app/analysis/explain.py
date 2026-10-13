@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import numpy as np
+import pandas as pd
 
 Predict = Callable[[np.ndarray], np.ndarray]
 Score = Callable[[np.ndarray, np.ndarray], float]
@@ -61,3 +62,36 @@ def r_squared(y: np.ndarray, predicted: np.ndarray) -> float:
 
 def accuracy(y: np.ndarray, predicted: np.ndarray) -> float:
     return float(np.mean(np.asarray(y) == np.asarray(predicted)))
+
+
+def roc(actual: np.ndarray, probabilities: np.ndarray, levels: list[str]) -> tuple[pd.DataFrame, dict[str, float]]:
+    """ROC curves, one level against the rest each, and their areas (AN-19).
+
+    *probabilities* is (rows, levels) in *levels*' order. A level absent from
+    *actual*, or the only one present, has no curve. With two levels the
+    second curve mirrors the first, so only the first is returned.
+    """
+    from sklearn.metrics import roc_auc_score, roc_curve
+
+    actual = np.asarray(actual).astype(str)
+    probabilities = np.asarray(probabilities, dtype=float).reshape(len(actual), -1)
+    curves, areas = [], {}
+    for index, level in enumerate(levels[:1] if len(levels) == 2 else levels):
+        truth = actual == str(level)
+        if truth.all() or not truth.any():
+            continue
+        fpr, tpr, _thresholds = roc_curve(truth, probabilities[:, index])
+        areas[str(level)] = float(roc_auc_score(truth, probabilities[:, index]))
+        curves.append(pd.DataFrame({"Level": str(level), "FPR": fpr, "TPR": tpr}))
+    return (pd.concat(curves, ignore_index=True) if curves else pd.DataFrame(columns=["Level", "FPR", "TPR"])), areas
+
+
+def confusion(actual: np.ndarray, probabilities: np.ndarray, levels: list[str]) -> pd.DataFrame:
+    """Actual (rows) by predicted (columns, the most probable level), every level shown."""
+    actual = pd.Categorical(np.asarray(actual).astype(str), categories=[str(level) for level in levels])
+    chosen = np.asarray(levels, dtype=object)[np.argmax(np.asarray(probabilities, dtype=float).reshape(len(actual), -1),
+                                                        axis=1)]
+    predicted = pd.Categorical(chosen.astype(str), categories=[str(level) for level in levels])
+    table = pd.crosstab(actual, predicted, dropna=False)
+    table.index.name, table.columns.name = "Actual", "Predicted"
+    return table

@@ -193,13 +193,17 @@ def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, 
         _wait(qapp, dialog)
         fit = dialog._result[0]
         assert fit.personality == "nominal" and fit.levels == ["good", "poor"]
+        # AN-19: the ROC curve of the first level, its area, the confusion matrix.
+        assert set(fit.auc) == {"good"} and 0.5 <= fit.auc["good"] <= 1.0
+        assert "AUC (good)" in fit.summary and int(fit.confusion.to_numpy().sum()) == int(fit.summary["Observations"])
+        assert dialog._chart_checks["roc"].isEnabled()
         report = dialog.format_results(dialog._result)
         assert "Whole model test" in report and "Prob &gt; ChiSq" in report
 
         dialog.ok()
         _wait(qapp, dialog)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
-        assert [axis.name for axis in figure.axes] == ["Pareto Chart", "Scatter Plot"]
+        assert [axis.name for axis in figure.axes] == ["Pareto Chart", "Scatter Plot", "Scatter Plot"]  # + ROC
         effects = repo.table_frame(f"{name}_fit_effects")
         assert "Prob > ChiSq" in effects.columns
     finally:
@@ -294,3 +298,23 @@ def test_generalized_regression_lasso_drops_noise_and_ridge_keeps_every_term(qap
     finally:
         dialog.close()
         repo.close()
+
+
+def test_a_logistic_fit_draws_its_roc_curve(qapp, doe_table) -> None:
+    """AN-19: OK writes the curve with the chance diagonal and draws it."""
+    repo, name = doe_table
+    dialog = FitModelDialog(repo=repo, table=name)
+    try:
+        dialog.roles_widget.set_casting({"response": ["Quality"]})
+        dialog._apply_macro("main", edited=True)
+        assert dialog.personality() == "nominal" and "roc" in dialog.charts()
+        dialog.ok()
+        _wait(qapp, dialog)
+        curve = repo.table_frame(f"{name}_fit_roc")
+        assert {"good", "Chance"} <= set(curve["Level"])
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        roc_axis = next(axis for axis in figure.axes if axis.title == "ROC curve")
+        assert [s.name for s in roc_axis.series][-1] == "Chance"
+        assert "AUC" in roc_axis.series[0].name
+    finally:
+        dialog.close()

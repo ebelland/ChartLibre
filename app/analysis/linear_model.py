@@ -107,6 +107,11 @@ class ResponseFit:
     #: The effect tests' column the effects are ranked and charted by:
     #: LogWorth, or for a penalized fit (no p-values) the standardized size.
     importance_column: str = "LogWorth"
+    #: A categorical response's ROC curves (Level, FPR, TPR), their areas, and its
+    #: confusion matrix (actual by most probable level) - AN-19.
+    roc: pd.DataFrame = field(default_factory=pd.DataFrame)
+    auc: dict[str, float] = field(default_factory=dict)
+    confusion: pd.DataFrame | None = None
 
 
 #: The personalities: key, name as JMP names it.
@@ -648,6 +653,13 @@ def _logistic_report(response, spec, prep, levels, terms, ordinal, codes, design
     note = ("Unstable: the effects separate the response levels (quasi-complete separation), so the "
             "estimates grow without bound and their standard errors mean little. Remove effects - "
             "keep the main effects, say - or add runs." if unstable else "")
+    from app.analysis import explain
+
+    matrix = np.column_stack([first, 1.0 - first]) if probabilities.ndim == 1 else probabilities
+    actual = np.asarray(levels, dtype=object)[np.asarray(codes, dtype=int)]
+    roc_curves, areas = explain.roc(actual, matrix, levels)
+    for level, area in areas.items():
+        summary[f"AUC ({level})"] = area
     return ResponseFit(
         response=response, terms=terms, removed=[], estimates=estimates,
         effect_tests=_chi_square_table(rows, "L-R Chi-Square"),
@@ -658,7 +670,7 @@ def _logistic_report(response, spec, prep, levels, terms, ordinal, codes, design
         studentized=pd.Series(np.nan, index=prep.data.index),
         coding=prep.codes, profile=profile,
         personality=spec.personality, whole_title="Whole model test", p_column="Prob > ChiSq", levels=levels,
-        note=note,
+        note=note, roc=roc_curves, auc=areas, confusion=explain.confusion(actual, matrix, levels),
     )
 
 
