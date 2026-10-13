@@ -57,11 +57,9 @@ from app.series_operations.dialog_base import OperationModel
 from app.series_operations.parameter_form import ParameterForm
 from app.series_operations.parameter_spec import Param
 from app.styles.style import (
-    CardFrame,
     TitledCard,
     apply_dialog_shell,
     create_action_button,
-    create_section_title,
     icon_from_svg_source,
     stdSizeAndlayout,
 )
@@ -202,13 +200,12 @@ class TableOperationDialogBase(QDialog):
         self._inputs_panel.setProperty("toolboxPage", True)
         self._inputs_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        right = CardFrame(self, "tableOperationResultsCard")
-        right_layout = right.layout()
-        assert right_layout is not None
-        right_layout.addWidget(create_section_title(_("Results"), right))
+        # A standard frame: the title above the box, as the columns' and the roles'.
+        right = TitledCard(self, _("Results"), "tableOperationResultsCard")
+        right.layout().setStretchFactor(right.card, 1)
         self._results = HtmlResultsView(self)
         self._results.setText(_("Cast the columns into their roles, then press Preview."))
-        right_layout.addWidget(self._results)
+        right.card.layout().addWidget(self._results)
         right.setMinimumWidth(260)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)

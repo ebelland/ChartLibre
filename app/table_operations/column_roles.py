@@ -172,12 +172,15 @@ class ColumnRolesWidget(QWidget):
         self.column_layout = left
         left_widget = QWidget(self)
         left_widget.setLayout(left)
+        self._left_widget = left_widget
+        self._columns_card = columns_card
         # Narrow: column names are short, the report beside wants the room.
         left_widget.setMinimumWidth(170)
         left_widget.setMaximumWidth(230)
         layout.addWidget(left_widget)
 
         roles_card = TitledCard(self, _("Pick Role Variables"))
+        self._roles_card = roles_card
         right = QGridLayout()
         right.setContentsMargins(0, 0, 0, 0)
         right.setHorizontalSpacing(6)
@@ -251,11 +254,18 @@ class ColumnRolesWidget(QWidget):
         for page_layout in self._tab_layouts.values():
             if not any(page_layout.stretch(i) for i in range(page_layout.count())):
                 page_layout.addStretch(1)
-        # One page only (the roles): no tab bar to name it, and no more width
-        # than the roles need - the results beside take the rest.
         self.tabs.setTabBarAutoHide(True)
         if self.tabs.count() == 1:
-            self.tabs.setMaximumWidth(320)
+            # The roles only: they go under the columns, in one column beside
+            # the results, and the column list is short enough to leave them
+            # room. No middle column, no tab bar naming a single page.
+            rows_height = max(self._column_list.fontMetrics().height() + 4, 18)
+            self._column_list.setMaximumHeight(8 * rows_height)
+            self.column_layout.setStretchFactor(self._columns_card, 0)
+            self.column_layout.addWidget(self._roles_card, 0)
+            self.column_layout.addStretch(1)
+            self._left_widget.setMaximumWidth(300)
+            self.tabs.hide()
 
     # -- Content ---------------------------------------------------------
 
