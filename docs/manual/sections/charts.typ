@@ -6,7 +6,7 @@ A chart in ChartLibre is never a picture of a spreadsheet range: it is a *query*
 
 == The New plot window
 
-*Plot*, the first entry of the *Series Operations* list (see @series-operations), opens the chart-creation window. Building a chart takes three decisions:
+*Plot*, the first entry of the *Data operations* list (see @series-operations), opens the chart-creation window. Building a chart takes three decisions:
 
 + *The chart type.* The picker lists all the chart types grouped by family, with a search box that matches a name or a whole family ("stat" brings up the statistical charts at once). Selecting one shows its description, the roles it needs and a link to the corresponding Matplotlib documentation.
 + *The data.* Pick a data source — a table or a saved query — then pick which of its columns plays each role. The window writes the SQL for you (`SELECT pressure AS x, flow AS y FROM operating_points`) and shows it; you can edit it directly for a filter, a join or a computed column. Only reading queries (`SELECT`, `WITH`) are accepted.
@@ -37,11 +37,11 @@ A *figure* is one page of the chart panel, listed under *Charts* in the rail. It
 
 Most chart types accept any number of series per axis and draw them together (several lines on one Time Series, several samples in one Histogram). A few accept only one — a Pie Chart, a Heatmap, a Surface Plot, a Mosaic Plot — because two of them on the same axis would hide each other; for these the application offers a new axis instead of a second series that would be silently dropped.
 
-*Add series* in Chart Options adds a series to the selected axis. To add an axis to a figure, open *Plot* with *Use current figure* and *Add new axis*.
+*Add series* in Chart properties adds a series to the selected axis. To add an axis to a figure, open *Plot* with *Use current figure* and *Add new axis*.
 
 == Customizing a chart <customizing>
 
-*Chart Options* edits the selected figure, axis and series, each in its own collapsible section:
+*Chart properties* edits the selected figure, axis and series, each in its own tab - a click on the chart opens the tab of what it landed on:
 
 / Figure: name (also the tab title), *notes* about the figure (kept with it in the project and printed under it in reports; saved as you type), its creation and last-modified dates, the grid of axes (rows and columns), the *figure layout* (tight, constrained, compressed, or manual spacing), size and DPI, frame, a Matplotlib style for this figure alone, and *downsample* (draw at most N points per series, for very large tables).
 / Axis: chart type, title, axis labels, ranges, scales (linear, log with its base, symlog with its threshold) and direction (invert), shared x/y/z with neighbouring axes, grid, ticks, spines, the axis position and span in the grid, and the chart type's own *options* (number of bins, which distribution to compare with, whether to draw a colour bar, ...).
@@ -54,11 +54,11 @@ Every setting has a description shown in its tooltip and beside it, so Matplotli
 
 #figure(
   image("../screenshot_chart_options.png", width: 100%),
-  caption: [Chart Options: the figure, axis, series and overlay property
+  caption: [Chart properties: the figure, axis, series and overlay property
   panels, one collapsible section each, over the chart they apply to.],
 )
 
-*Overlay properties*, also in Chart Options, lists the annotations, reference lines and measurements of an axis — one tab each — as editable tables, so they can be positioned by exact value rather than only by dragging.
+*Overlay properties*, also in Chart properties, lists the annotations, reference lines and measurements of an axis — one tab each — as editable tables, so they can be positioned by exact value rather than only by dragging.
 
 === Features shared by several chart types
 

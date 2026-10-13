@@ -1,12 +1,12 @@
 #import "helpers.typ": *
 
-= Series operations <series-operations>
+= Data operations <series-operations>
 
-A *series operation* takes the data of one or more series already on a chart and computes something from it: a smoothed curve, a fitted model, a spectrum, the position of the peaks, a statistical test. The result is added to the chart as new series (and, where it is data, as a new table), so it can be styled, exported and operated on again like anything else.
+A *data operation* takes the data of one or more series already on a chart and computes something from it: a smoothed curve, a fitted model, a spectrum, the position of the peaks, a statistical test. The result is added to the chart as new series (and, where it is data, as a new table), so it can be styled, exported and operated on again like anything else.
 
-== The Series Operations page
+== The Data operations page
 
-The *Series Operations* page of the navigation rail is a list, organized in sections like a system sidebar. Each row has an icon and a name; resting the pointer on a row shows a one-line description in the bar at the bottom of the page. A search box at the top filters the list by name or description as you type, and *Return* opens the first match.
+The *Data operations* page of the navigation rail is a list, organized in sections like a system sidebar. Each row has an icon and a name; resting the pointer on a row shows a one-line description in the bar at the bottom of the page. To find an operation by what it does, use the search of *Guided analysis* or *Cmd/Ctrl+K* from anywhere (see @guided-analysis).
 
 #defs(
   [*Plot*], [*Plot* — creates a new chart (see @creating-a-chart).],
@@ -22,7 +22,7 @@ An operation added by you or a plugin (see @advanced-operation) appears under *O
 
 #figure(
   image("../screenshot_series_operations.png", width: 100%),
-  caption: [The Series Operations page.],
+  caption: [The Data operations page.],
 )
 
 == How every operation window works

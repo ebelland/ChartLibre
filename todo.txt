@@ -4,6 +4,7 @@ Effort: S one session, M 2-3, L 4+.
 Size: app 91,893 lines in 248 files; tests 16,379 lines in 126 files (updated at each commit).
 
 DONE RECENTLY
+- M-01: Manual: Data operations and Chart properties named as in the app, the rail's pages listed as they are now, a new Analysis chapter (the analysis window, Fit Model with Generalized Regression, Partition with importance/dependence/ROC, Discriminant, PLS; Guided analysis with search, the three quick answers, the table's questions, goals with Y and X); PDF rebuilt. Screenshots not retaken.
 - AN-19: ROC curves (one level against the rest), AUC and confusion matrix (explain.roc/confusion): Fit Model's nominal and ordinal logistic (AUC in the summary, confusion matrix in the report, ROC chart with the chance diagonal); Partition's classification tree, forest and boosted tree, on validation rows when there are some.
 - AN-18: Permutation importance and partial dependence for any model (app/analysis/explain.py, model-agnostic): in Partition for the tree, the forest and the boosted tree, on validation rows when there are some; report section, tables, Pareto and a dependence chart per most important factor (bars for a nominal one).
 - AN-17: Partial Least Squares (Models): Y from many collinear X (spectra), components by cross-validation with Wold's criterion (PRESS cut by 5% or more), X centred (scaling optional - off for spectra); Q², VIP, loadings, coefficients, scores; OK draws RMSECV by components, VIP along the variables, scores, actual by predicted.
@@ -52,7 +53,6 @@ DONE RECENTLY
 NOW
 D-01  M  Demos rethought around the questions: per goal still to do (the
          quick answers' demo is done), still covering every function.
-M-01  S  Manual: rebuild the PDF (rename Series -> Data operations is done).
 R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 
 UI FIXES (from the notes list; one commit per group, mostly S)

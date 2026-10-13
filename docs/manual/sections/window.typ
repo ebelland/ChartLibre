@@ -20,8 +20,11 @@ The window has three parts: the *navigation rail* at the far left — the pages 
   [*Workspace*], [Collapses the page to give the chart panel the whole window; click again to bring the last page back.],
   [*File*], [Projects, demos, import, save and export (see below).],
   [*Tables*], [The tables and saved queries of the project, with a preview of the selected one (see @data-chapter).],
-  [*Chart Options*], [The settings of the selected figure, axis and series (see @customizing).],
-  [*Series Operations*], [New plot, the Query Builder and every analysis operation (see @series-operations).],
+  [*New table*], [A blank table, a designed experiment or a table built from others (see @data-chapter).],
+  [*Chart properties*], [The settings of the selected figure, axis and series (see @customizing). A click on the chart selects what it landed on: outside the axes the figure, on an axis that axis, on a line, points or bar that series.],
+  [*Data operations*], [New plot, the Query Builder and the operations on a chart's series (see @series-operations).],
+  [*Analysis*], [Models of a table's columns: Fit Model, Partition, Discriminant, Partial Least Squares (see @analysis-chapter).],
+  [*Guided analysis*], [Search, quick answers and suggestions, starting from what you want to find out (see @guided-analysis).],
   [*Developer*], [The project's history and database information, and the tools for extending ChartLibre (see below).],
 )
 
@@ -100,7 +103,7 @@ Right-clicking *inside an axis* adds actions for the exact point clicked: *Add v
 
 === Measuring, annotating and selecting points
 
-*Measure from here* and then *Measure to here* record a two-click measurement — distance, Δx, Δy and slope — kept on the chart like a reference line. Annotations, reference lines and measurements each have a tab in *Overlay properties* (in Chart Options) where they can be edited by exact values or deleted. An annotation can also be dragged on the chart.
+*Measure from here* and then *Measure to here* record a two-click measurement — distance, Δx, Δy and slope — kept on the chart like a reference line. Annotations, reference lines and measurements each have a tab in *Overlay properties* (in Chart properties) where they can be edited by exact values or deleted. An annotation can also be dragged on the chart.
 
 With *Select points* on, drag a rectangle over the chart: every point it covers, from every series of that axis, is selected. The menu then offers:
 

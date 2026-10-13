@@ -63,7 +63,7 @@ The base class supplies the whole dialog shell (series picker, parameter form, p
   columns: (auto, 1fr),
   stroke: none,
   inset: 6pt,
-  [`Name`], [Display name shown in the Series Operations list.],
+  [`Name`], [Display name shown in the Data operations list.],
   [`Description`], [One-line summary shown next to the name.],
   [`Icon`], [An inline SVG source string for the operation's icon.],
 )
@@ -87,6 +87,6 @@ The base class supplies the whole dialog shell (series picker, parameter form, p
 + Subclass `SeriesOperationDialogBase`, set `Name`, `Description`, `Icon`.
 + Declare parameters (e.g. with `FloatParam`/`IntParam`/`ChoiceParam`) and implement `build_parameter_selector`.
 + Implement `prepare_job`/`finish_job` (or `compute_results`), `result_series_spec`, and `format_results`. Put the arithmetic in a Qt-free module under `app/analysis/`, so it can be tested on its own.
-+ Restart the application — the operation appears in the Series Operations list, under *Other* until its name is added to a section.
++ Restart the application — the operation appears in the Data operations list, under *Other* until its name is added to a section.
 
 `app/series_operations/function_dialog.py` is the smallest complete dialog and a reasonable starting template; `app/series_operations/calculus_dialog.py` is a good second read for an operation that consumes an existing series rather than generating one from scratch.

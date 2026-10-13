@@ -1,0 +1,37 @@
+#import "helpers.typ": *
+
+= Analysis <analysis-chapter>
+
+Where a data operation works on the series of a chart, an *analysis* works on the columns of a table: you say which column is the response and which ones might explain it, and it fits a model of the whole table. The *Analysis* page of the navigation rail lists them; each opens on the table selected in the Tables page.
+
+== How every analysis window works
+
+- *Select columns*, on the left: the table, its columns with their modelling type — ▲ continuous, ● nominal, ◐ ordinal — and the *Type* to change it. Under them, *Select role variables*: drag or click columns into the roles the analysis asks for (Y, X, groups, …). A role that is short of columns, or a column of the wrong type, is said before anything runs.
+- *Parameters*, in the middle, where the analysis has any.
+- *Results*, on the right: the report.
+- *Preview* computes and shows the report; *OK* writes the results into the project — each row's prediction beside its data, the report's tables as tables — and draws a figure with the report in its notes. The calculation runs in the background, with *Stop*; OK is undoable.
+
+== The analyses
+
+#defs(
+  [*Fit Model*], [A linear model of one or more responses on the effects you build from the columns (main effects, factorial, response surface). Its *personality* says how: *Standard Least Squares*, *Stepwise* (backward or forward), *Generalized Linear Model* (normal, binomial, Poisson, gamma), *Nominal* or *Ordinal Logistic* for a categorical Y, and *Generalized Regression* — Lasso, Ridge or Elastic Net, the penalty chosen by cross-validation, for many factors or factors that move together. Effect tests, estimates, the prediction profile; for a logistic fit the ROC curve, its AUC and the confusion matrix.],
+  [*Partition*], [A decision tree of one response on many factors, as JMP's: *Split* and *Prune* one step at a time, or *Automatic* on validation rows; or a *Bootstrap Forest* or a *Boosted Tree*. Leaves and their rules, column contributions, and for any of the three the *permutation importance* (how much the fit drops when a column is shuffled) and *partial dependence* (the predicted response as one factor varies); for a nominal Y the ROC curve.],
+  [*Discriminant*], [Which group a row belongs to, from continuous measures: linear or quadratic, with Wilks' lambda, the canonical analysis and plot, and each row's predicted group and probabilities.],
+  [*Partial Least Squares*], [A response from many X that move together — the wavelengths of a spectrum — through a few components, their number chosen by cross-validation; the variables' importance (VIP), loadings, coefficients and scores.],
+)
+
+== Guided analysis <guided-analysis>
+
+*Guided analysis* starts from what you want to find out rather than from the name of a function. It follows the table selected in the Tables page and says what it holds — how many numeric columns, categories and dates.
+
+- *Search* finds any function by what it does, in English or Italian, and by the names other programs give it ("anova", "crosstabs", "control chart"). The same search opens from anywhere with *Cmd/Ctrl+K*.
+- *Quick answers* ask a question in everyday words and answer it in words, the right test chosen for you:
+  - *Are there differences?* — is a measure different from one group to another (t-test or ANOVA, Mann-Whitney or Kruskal-Wallis, chi-squared or Fisher, as the data call for);
+  - *What has the most impact?* — the factors ranked by how much they matter for a result (a random forest on rows it had not seen, with a linear model's p-values);
+  - *Has it changed over time?* — a steady trend (Mann-Kendall, Sen's slope) or a sudden change (Pettitt), whichever the values show.
+  Above them, questions asked of the selected table itself — "Does “weight” change between the groups of “line”?" — open the answer with its columns already chosen.
+- *What do you want to do?* lists goals — describe, compare, relate, explain, predict, monitor… With *Y* and *X* chosen from the table, *Open* starts the suggested analysis or chart with them cast. Suggestions the table cannot feed come last, greyed, saying what they lack.
+
+#note[
+  The demo *Quick answers – three questions asked of real data* has each quick answer already asked, its answer in the chart's notes.
+]

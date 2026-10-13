@@ -51,6 +51,7 @@
 #include "sections/data.typ"
 #include "sections/charts.typ"
 #include "sections/operations.typ"
+#include "sections/analysis.typ"
 #include "sections/statistics.typ"
 #include "sections/output.typ"
 #include "sections/settings.typ"

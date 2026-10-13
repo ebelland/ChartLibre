@@ -43,7 +43,7 @@ A project is a database, and every change is written to it as it is made: there 
   [*Save As…*], [Saves the project under a new name and switches to the copy, leaving the original untouched.],
 )
 
-*Undo* (in the main menu, and in the macOS Edit menu) takes back the last recorded action — an import, a table edit, a series operation, deleting a figure, hiding points, applying a template — up to the last ten, and names the action it is about to undo. Settings changed in Chart Options are not recorded: change them back by hand.
+*Undo* (in the main menu, and in the macOS Edit menu) takes back the last recorded action — an import, a table edit, a series operation, deleting a figure, hiding points, applying a template — up to the last ten, and names the action it is about to undo. Settings changed in Chart properties are not recorded: change them back by hand.
 
 == Demo projects <demos>
 

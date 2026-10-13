@@ -92,7 +92,7 @@ Every change is written as it is made, yet *Cancel* still puts the table back: t
 
 == The Query Builder <query-builder>
 
-The *Query Builder* (in the *Data* section of Series Operations, or from the table list's menu) writes, tests and saves SQL queries. A saved query appears in the table list and can feed any chart, exactly like a table — but its rows are computed each time it is read, so it never goes out of date and takes no space.
+The *Query Builder* (in the *Data* section of Data operations, or from the table list's menu) writes, tests and saves SQL queries. A saved query appears in the table list and can feed any chart, exactly like a table — but its rows are computed each time it is read, so it never goes out of date and takes no space.
 
 The window has:
 
