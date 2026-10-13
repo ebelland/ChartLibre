@@ -564,10 +564,14 @@ QComboBox::drop-down:hover {
   background: rgba(@SHADOW_RGB@, 0.04);
 }
 
-/* No image: Qt draws the platform's own arrow. A url() here would need a
-   file, and a Qt stylesheet cannot be handed a themed QIcon - which is what
-   kept four hand-drawn chevrons in the repository after every other icon had
-   been replaced by the system's own. */
+/* The arrow has to be given: with the drop-down styled above, Qt stops
+   drawing the platform's own. The Segoe Fluent chevron, rendered at start-up
+   from the system font (@ICON:), so still no hand-drawn file. */
+QComboBox::down-arrow {
+  image: url(@ICON:chevron_down@);
+  width: 10px;
+  height: 10px;
+}
 
 /* Popup */
 QComboBox QAbstractItemView {
@@ -634,7 +638,30 @@ QDoubleSpinBox::down-button:hover {
     background: rgba(@ACCENT_RGB@,0.06);
 }
 
-/* Spin box arrows are Qt's own too; see the combo box above. */
+/* The arrows have to be given: once the buttons above are styled, Qt's
+   stylesheet engine stops drawing the platform's own and the buttons come
+   out empty (UI-07). The Segoe Fluent chevrons, rendered at start-up, as
+   macos_native.qss gives the SF Symbols ones. */
+QSpinBox::up-arrow,
+QDoubleSpinBox::up-arrow {
+    image: url(@ICON:chevron_up@);
+    width: 9px;
+    height: 9px;
+}
+
+QSpinBox::down-arrow,
+QDoubleSpinBox::down-arrow {
+    image: url(@ICON:chevron_down@);
+    width: 9px;
+    height: 9px;
+}
+
+QSpinBox::up-arrow:disabled,
+QSpinBox::down-arrow:disabled,
+QDoubleSpinBox::up-arrow:disabled,
+QDoubleSpinBox::down-arrow:disabled {
+    image: none;
+}
 
 
 

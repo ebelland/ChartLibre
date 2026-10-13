@@ -284,6 +284,20 @@ class MainWindowMenus:
         # The live popup can just re-read on open; _sync, not _refresh, so it
         # never triggers the macOS menu-bar rebuild from a show handler.
         self._app_menu.aboutToShow.connect(self._sync_undo_item)
+        if not IS_MACOS:
+            # Off macOS the menu is a popup from the rail, shown only while
+            # open: an action that lives only in it has no visible widget to
+            # carry its shortcut, so Ctrl+Z, Ctrl+S and the rest did nothing
+            # with the popup closed (UI-07). The window carries them, as the
+            # macOS hidden menus' actions are carried - the old ones dropped
+            # first when the menu is rebuilt.
+            for action in getattr(self, "_popup_shortcut_actions", []):
+                self.removeAction(action)
+            self._popup_shortcut_actions = [
+                action for action in self._app_menu.actions() if not action.shortcut().isEmpty()
+            ]
+            for action in self._popup_shortcut_actions:
+                self.addAction(action)
 
         if IS_MACOS:
             self._build_macos_menu_bar(groups)
