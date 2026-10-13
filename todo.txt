@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 90,323 lines in 241 files; tests 15,896 lines in 121 files (updated at each commit).
+Size: app 90,328 lines in 241 files; tests 15,952 lines in 122 files (updated at each commit).
 
 DONE RECENTLY
+- Tab switch left the chart stale and corner-anchored: the Figure properties panel set the export size and dpi, the dpi change queued a draw that ran before the panel put its size back; reapply_view_geometry now syncs at once.
 - Frame titles above their boxes everywhere: New chart, Group and aggregate, Computed column, Query builder, Connect to database, the data operations' Results, developer helpers, Edit localization (SettingsTableDialog sections=True: a column of titled frames).
 - Guided analysis follows the selected table: what it holds (numeric, categories, dates), goals and suggestions it cannot feed last and greyed with what they lack, concrete questions ("Does “weight” change between the groups of “line”?") opening Are there differences? with the columns cast (table_operations/table_profile.py). Discriminant in the catalogue.
 - AN-20: Discriminant (Models): linear or quadratic, proportional or equal priors; misclassification, Wilks' lambda with Rao's F, canonical analysis, standardized coefficients, group means, confusion matrix; OK writes each row's predicted group, probabilities and canonical scores and draws the canonical plot. Checked against scikit-learn and the known iris values.

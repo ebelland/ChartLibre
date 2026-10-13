@@ -200,6 +200,11 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
             # The figure's own dpi is for export; on screen it is drawn at the
             # screen's density (see _reset_figure_metrics_from_rcparams_for_reload).
             self._set_configured_dpi(FIXED_MODE_SCREEN_DPI)
+        # Now, not on the next turn of the event loop: changing the dpi has
+        # already queued a draw_idle, and it ran first - drawing the figure
+        # at its export size (6.4 x 4.8 in) into the canvas, which then
+        # showed that buffer corner-anchored and stale after a tab switch.
+        self._sync_canvas_geometry(redraw=True)
         self._schedule_canvas_geometry_sync(redraw=True)
 
     def ensure_rendered(self) -> None:
