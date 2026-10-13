@@ -8949,3 +8949,9 @@ msgstr "La tendenza è stata misurata su {count} valori distribuiti uniformement
 
 msgid "Values close in time resemble each other (autocorrelation {r:.2f}): that makes both tests see change more readily than they should - treat the answer with caution."
 msgstr "I valori vicini nel tempo si somigliano (autocorrelazione {r:.2f}): questo rende entrambi i test più pronti del dovuto a vedere un cambiamento; prendi la risposta con cautela."
+
+msgid "Quick answers - three questions asked of real data"
+msgstr "Risposte rapide - tre domande poste a dati reali"
+
+msgid "Start from a question, not a function: are the three penguin species different in body mass? What has the most impact on it? Has the global temperature changed since 1880? Each asked through Guided analysis > Quick answers, with the answer in words in the chart's notes - open the same question again on your own table."
+msgstr "Partire da una domanda, non da una funzione: le tre specie di pinguini sono diverse per massa corporea? Cosa ha più impatto su di essa? La temperatura globale è cambiata dal 1880? Ognuna posta con Analisi guidata > Risposte rapide, con la risposta a parole nelle note del grafico: riponi la stessa domanda alla tua tabella."

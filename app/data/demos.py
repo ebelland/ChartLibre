@@ -147,6 +147,18 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         references=(REF_PENGUINS, REF_ANTIBIOTICS, REF_YEAST, REF_ANSCOMBE,),
     ),
     DemoProject(
+        "Quick answers - three questions asked of real data",
+        "Start from a question, not a function: are the three penguin species "
+        "different in body mass? What has the most impact on it? Has the "
+        "global temperature changed since 1880? Each asked through Guided "
+        "analysis > Quick answers, with the answer in words in the chart's "
+        "notes - open the same question again on your own table.",
+        (),
+        builder="dev.demo.demo_questions:build_questions_demo",
+        preview="Are there differences?",
+        references=(REF_PENGUINS, REF_GISTEMP,),
+    ),
+    DemoProject(
         "Antibiotics - grouped bars from a classic dataset",
         "1930s antibiotic potency data for sixteen bacteria, as a horizontal "
         "bar chart sorted by effectiveness.",
