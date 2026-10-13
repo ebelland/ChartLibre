@@ -23,8 +23,8 @@ from app.styles.style import (
     apply_dialog_shell,
     MARGIN_TOOLBOX_PAGE,
     CardFrame,
+    TitledCard,
     create_action_button,
-    create_section_title,
     stdSizeAndlayout,
 )
 from app.logs.logger import applogger
@@ -120,12 +120,11 @@ class LayoutMixin:
         left_tabs.setCurrentIndex(0)
         self.left_tabs = left_tabs
 
-        right = CardFrame(self, "operationResultsCard")
-        right_layout = right.layout()
-
-        results_title = create_section_title(_("Results"), right)
-        right_layout.addWidget(results_title, 0)
-        right_layout.addWidget(self._results_widget, 3)
+        # The title above the box, as in every other window.
+        right = TitledCard(self, _("Results"), "operationResultsCard")
+        right.layout().setStretchFactor(right.card, 1)
+        right.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        right.card.layout().addWidget(self._results_widget, 3)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.addWidget(left_tabs)

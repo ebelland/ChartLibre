@@ -24,10 +24,9 @@ from PySide6.QtWidgets import QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEd
 from app.logs.logger import applogger
 from app.scanners.class_discovery import discover_classes_merged
 from app.styles.style import (
-    CardFrame,
+    TitledCard,
     apply_dialog_shell,
     create_action_button,
-    create_section_title,
     load_icon,
     stdSizeAndlayout,
 )
@@ -175,9 +174,9 @@ class DeveloperDialogBase(QDialog):
         # there is no surplus.
         apply_dialog_shell(self, root, size=None)
 
-        card = CardFrame(self, self.CARD_NAME)
+        titled = TitledCard(self, _(self.TITLE), self.CARD_NAME)
+        card = titled.card
         card_layout = card.layout()
-        card_layout.addWidget(create_section_title(_(self.TITLE), card))
         hint = QLabel(_(self.HINT), card)
         hint.setWordWrap(True)
         card_layout.addWidget(hint)
@@ -206,7 +205,8 @@ class DeveloperDialogBase(QDialog):
         # Should the window be dragged larger, the surplus collects here
         # rather than spreading back out between the rows above.
         card_layout.addStretch(1)
-        root.addWidget(card, 1)
+        root.addWidget(titled, 1)
+        titled.layout().setStretchFactor(card, 1)
 
         self._file_edited_by_user = False
 

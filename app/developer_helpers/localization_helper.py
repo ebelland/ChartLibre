@@ -51,7 +51,6 @@ from app.dialogs.settings_dialog import LANGUAGE_NAMES
 from app.logs.logger import applogger
 from app.styles.style import (
     create_action_button,
-    create_compact_section_title,
     load_icon,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -108,12 +107,14 @@ class EditLocalizationDialog(SettingsTableDialog):
             icon=load_icon("edit_localization"),
             size="large",
             settings_width=280,
+            sections=True,
         )
-        side = self.settings_layout
-        panel = self.settings_frame
-        card = self.content_frame
+        # A titled frame per section, titles above the boxes.
+        panel = self.add_settings_card(_("Language"))
+        side = panel.layout()
+        card = self.add_content_card(_("Strings"), stretch=1)
+        self.content_frame, self.content_layout = card, card.layout()
 
-        side.addWidget(create_compact_section_title(_("Language"), panel))
         self._language_combo = self._build_language_combo(panel)
         self._language_combo.currentIndexChanged.connect(self._reload_table)
         side.addWidget(self._language_combo)
@@ -129,8 +130,8 @@ class EditLocalizationDialog(SettingsTableDialog):
         new_row.addStretch(1)
         side.addLayout(new_row)
 
-        side.addSpacing(6)
-        side.addWidget(create_compact_section_title(_("Show"), panel))
+        panel = self.add_settings_card(_("Show"))
+        side = panel.layout()
         self._search_edit = QLineEdit(panel)
         self._search_edit.setPlaceholderText(_("Search source or translation…"))
         self._search_edit.setClearButtonEnabled(True)
@@ -145,8 +146,8 @@ class EditLocalizationDialog(SettingsTableDialog):
         self._deepl_key = str(get_value(machine_translation.DEEPL_KEY_SETTING, "") or "")
         self._providers = machine_translation.available_providers(self._deepl_key)
         if self._providers:
-            side.addSpacing(6)
-            side.addWidget(create_compact_section_title(_("Machine translation"), panel))
+            panel = self.add_settings_card(_("Machine translation"))
+            side = panel.layout()
             self._provider_combo = QComboBox(panel)
             self._provider_combo.setToolTip(_("Translation service"))
             for key, name in self._providers:
@@ -168,8 +169,8 @@ class EditLocalizationDialog(SettingsTableDialog):
             translate_row.addStretch(1)
             side.addLayout(translate_row)
 
-        side.addSpacing(6)
-        side.addWidget(create_compact_section_title(_("Manual"), panel))
+        panel = self.add_settings_card(_("Manual"))
+        side = panel.layout()
         manual_row = QHBoxLayout()
         stdSizeAndlayout(manual_row)
         create_action_button(
@@ -185,7 +186,7 @@ class EditLocalizationDialog(SettingsTableDialog):
         )
         manual_row.addStretch(1)
         side.addLayout(manual_row)
-        side.addStretch(1)
+        self._settings_column.layout().addStretch(1)
 
         self._table = QTableWidget(0, 2, card)
         self._table.setHorizontalHeaderLabels([_("Source"), _("Translation")])

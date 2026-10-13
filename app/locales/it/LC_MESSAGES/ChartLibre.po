@@ -8781,3 +8781,6 @@ msgstr "«{measure}» cambia tra i gruppi di «{group}»?"
 
 msgid "Groups told apart by continuous measures: linear or quadratic, with the canonical plot."
 msgstr "Gruppi distinti da misure continue: lineare o quadratica, con il grafico canonico."
+
+msgid "Strings"
+msgstr "Stringhe"

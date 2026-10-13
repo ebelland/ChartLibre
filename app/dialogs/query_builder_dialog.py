@@ -37,7 +37,6 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.styles.style import (
     create_action_button,
-    create_compact_section_title,
     load_icon,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -84,9 +83,9 @@ class QueryBuilderDialog(SettingsTableDialog):
             parent,
             title=_("Query Builder"),
             icon=load_icon("data"),
-            settings_title=_("Query settings"),
             size="large",
             settings_width=340,
+            sections=True,
         )
         self._repo = repo
         self._current_name: str | None = None
@@ -113,8 +112,8 @@ class QueryBuilderDialog(SettingsTableDialog):
     # ------------------------------------------------------------------
     def _build_ui(self) -> None:
         """Build the standard settings/editor two-column shell."""
-        self.settings_layout.addWidget(self._build_side_panel(), 1)
-        self.content_layout.addWidget(self._build_editor_panel(), 1)
+        self._build_side_panel()
+        self._build_editor_panel()
 
         run_button = create_action_button(
             parent=self, action_id="run", action=self.run, layout=None
@@ -123,19 +122,16 @@ class QueryBuilderDialog(SettingsTableDialog):
         self.add_action("apply", self.accept, default=True)
         self.add_action("close", self.reject)
 
-    def _build_side_panel(self) -> QWidget:
-        """Build the controls shown in the fixed settings frame."""
-        panel = QWidget(self.settings_frame)
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
-
-        layout.addWidget(create_compact_section_title(_("Saved queries"), panel))
-        self._query_combo = QComboBox(panel)
+    def _build_side_panel(self) -> None:
+        """The settings column: saved queries, table and field, snippets - a titled frame each."""
+        card = self.add_settings_card(_("Saved queries"))
+        layout = card.layout()
+        self._query_combo = QComboBox(card)
         self._query_combo.setToolTip(_("Pick a saved query."))
         self._query_combo.currentTextChanged.connect(self._on_saved_query_changed)
         layout.addWidget(self._query_combo)
 
-        add_row = QWidget(panel)
+        add_row = QWidget(card)
         add_layout = QHBoxLayout(add_row)
         stdSizeAndlayout(add_layout)
         create_action_button(parent=add_row, action_id="add", action=self._new_query, layout=add_layout)
@@ -146,21 +142,20 @@ class QueryBuilderDialog(SettingsTableDialog):
         add_layout.addStretch(1)
         layout.addWidget(add_row)
 
-        layout.addWidget(create_compact_section_title(_("Table and field"), panel))
+        card = self.add_settings_card(_("Table and field"))
         form = QFormLayout()
         stdSizeAndlayout(form)
-        self._table_combo = QComboBox(panel)
+        self._table_combo = QComboBox(card)
         self._table_combo.currentTextChanged.connect(self._reload_fields)
         form.addRow(_("Table"), self._table_combo)
-        self._field_combo = QComboBox(panel)
+        self._field_combo = QComboBox(card)
         self._field_combo.setToolTip(_("The field the SQL buttons below act on."))
         form.addRow(_("Field"), self._field_combo)
-        layout.addLayout(form)
+        card.layout().addLayout(form)
 
-        layout.addWidget(create_compact_section_title(_("Snippets"), panel))
-        layout.addWidget(self._build_snippet_rows(panel))
-        layout.addStretch(1)
-        return panel
+        card = self.add_settings_card(_("Snippets"))
+        card.layout().addWidget(self._build_snippet_rows(card))
+        self._settings_column.layout().addStretch(1)
 
     def _build_snippet_rows(self, parent: QWidget) -> QWidget:
         """Build the six SQL command buttons in two rows of three."""
@@ -182,33 +177,26 @@ class QueryBuilderDialog(SettingsTableDialog):
             outer.addWidget(row)
         return container
 
-    def _build_editor_panel(self) -> QWidget:
-        """SQL editor on top, result preview below."""
-        panel = QWidget(self.content_frame)
-        layout = QVBoxLayout(panel)
-        stdSizeAndlayout(layout)
-
-        layout.addWidget(create_compact_section_title(_("SQL"), panel))
-
-        self._editor = QPlainTextEdit(panel)
+    def _build_editor_panel(self) -> None:
+        """The content column: the SQL editor over the result preview, a titled frame each."""
+        card = self.add_content_card(_("SQL"), stretch=2)
+        self._editor = QPlainTextEdit(card)
         self._editor.setPlaceholderText(_("SELECT x, y FROM my_table WHERE ..."))
         self._editor.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._editor.textChanged.connect(self._on_text_changed)
         mark_editor_panel(self._editor)
-        layout.addWidget(self._editor, 2)
+        card.layout().addWidget(self._editor, 1)
 
-        self._status = QLabel("", panel)
+        self._status = QLabel("", card)
         self._status.setWordWrap(True)
         self._status.setProperty("muted", True)
-        layout.addWidget(self._status, 0)
+        card.layout().addWidget(self._status, 0)
 
-        layout.addWidget(create_compact_section_title(_("Result preview"), panel))
-        self._result_view = QTableView(panel)
+        card = self.add_content_card(_("Result preview"), stretch=3)
+        self._result_view = QTableView(card)
         self._result_view.setAlternatingRowColors(True)
         mark_editor_panel(self._result_view)
-        layout.addWidget(self._result_view, 3)
-
-        return panel
+        card.layout().addWidget(self._result_view, 1)
 
     # ------------------------------------------------------------------
     # State

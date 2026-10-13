@@ -53,7 +53,6 @@ from app.logs.logger import applogger
 from app.styles.style import (
     configure_combo_width,
     create_action_button,
-    create_compact_section_title,
     load_icon,
     mark_editor_panel,
     stdSizeAndlayout,
@@ -126,6 +125,7 @@ class ConnectDatabaseDialog(SettingsTableDialog):
             title=_("Connect to database"),
             icon=load_icon("import_database"),
             settings_title=_("Connection"),
+            content_title=_("Tables"),
             settings_width=_FORM_COLUMN_MAX_WIDTH,
         )
         self.connection: DatabaseConnection | None = None
@@ -246,7 +246,6 @@ class ConnectDatabaseDialog(SettingsTableDialog):
 
         header_row = QHBoxLayout()
         stdSizeAndlayout(header_row)
-        header_row.addWidget(create_compact_section_title(_("Tables"), card))
         header_row.addStretch(1)
         self._use_query = QCheckBox(_("Use a query"), card)
         self._use_query.toggled.connect(self._on_use_query_toggled)

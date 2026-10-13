@@ -35,7 +35,6 @@ from app.styles.style import (
     action_presentation,
     apply_fusion_for_item_view_styling,
     create_action_button,
-    create_compact_section_title,
     load_icon,
     stdSizeAndlayout,
 )
@@ -147,10 +146,10 @@ class GroupAggregateDialog(SettingsTableDialog):
             title=_("Group and aggregate '{table}'").format(table=table),
             icon=load_icon("table_group_aggregate"),
             settings_width=340,
+            sections=True,
         )
         self._repo = repo
         self._table = str(table)
-        side = self.settings_layout
 
         schema = [(name, kind) for name, kind in repo._schema(self._table) if name != "Hide"]
         self._columns = [name for name, _kind in schema]
@@ -160,8 +159,8 @@ class GroupAggregateDialog(SettingsTableDialog):
         }
         self._has_hide = "Hide" in {name for name, _kind in repo._schema(self._table)}
 
-        groups_card = self.settings_frame
-        side.addWidget(create_compact_section_title(_("Group by"), groups_card))
+        groups_card = self.add_settings_card(_("Group by"))
+        side = groups_card.layout()
         self.groups = QListWidget(groups_card)
         # Fusion draws the check boxes; the native macOS style drew the
         # unchecked ones as nothing at all, and the checked ones barely.
@@ -180,9 +179,8 @@ class GroupAggregateDialog(SettingsTableDialog):
         hint.setWordWrap(True)
         side.addWidget(hint)
 
-        measures_card = self.settings_frame
-        side.addSpacing(6)
-        side.addWidget(create_compact_section_title(_("Measures"), measures_card))
+        measures_card = self.add_settings_card(_("Measures"), stretch=1)
+        side = measures_card.layout()
         self._measure_box = QVBoxLayout()
         side.addLayout(self._measure_box)
         add_row = QHBoxLayout()
@@ -200,8 +198,9 @@ class GroupAggregateDialog(SettingsTableDialog):
 
         # A plain row, not a QFormLayout: on macOS a form centres itself
         # and leaves the name box a few characters wide.
-        side.addSpacing(6)
-        side.addWidget(create_compact_section_title(_("New table"), self.settings_frame))
+        side.addStretch(1)
+        table_card = self.add_settings_card(_("New table"))
+        side = table_card.layout()
         options = QHBoxLayout()
         side.addLayout(options)
         options.addWidget(QLabel(_("Name:"), self), 0)
@@ -213,13 +212,12 @@ class GroupAggregateDialog(SettingsTableDialog):
         self.include_hidden.setVisible(self._has_hide)
         self.include_hidden.toggled.connect(lambda _c: self._schedule())
         side.addWidget(self.include_hidden)
-        side.addStretch(1)
 
-        self.content_layout.addWidget(create_compact_section_title(_("Preview"), self.content_frame))
+        preview = self.add_content_card(_("Preview"), stretch=1).layout()
         self._preview = _preview_view(self)
-        self.content_layout.addWidget(self._preview, 1)
+        preview.addWidget(self._preview, 1)
         self._status = _error_label(self)
-        self.content_layout.addWidget(self._status, 0)
+        preview.addWidget(self._status, 0)
 
         self._ok = self.add_action("apply", self.accept, default=True)
         self._ok.setText(_("Create table"))
@@ -319,14 +317,14 @@ class ComputedColumnDialog(SettingsTableDialog):
             title=_("Add computed column"),
             icon=load_icon("table_computed_column"),
             settings_width=280,
+            sections=True,
         )
         self._repo = repo
         self._table = str(table)
 
         form = QFormLayout()
         stdSizeAndlayout(form)
-        self.settings_layout.addWidget(create_compact_section_title(_("New column"), self.settings_frame))
-        self.settings_layout.addLayout(form)
+        self.add_settings_card(_("New column")).layout().addLayout(form)
         self.name = QLineEdit(self)
         self.name.setPlaceholderText("new_column")
         form.addRow(_("Name:"), self.name)
@@ -337,27 +335,24 @@ class ComputedColumnDialog(SettingsTableDialog):
         self.kind.setToolTip(_("Automatic keeps each value as the expression gives it."))
         form.addRow(_("Type:"), self.kind)
 
-        self.content_layout.addWidget(create_compact_section_title(_("Expression"), self.content_frame))
         self.expression = QPlainTextEdit(self)
         self.expression.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.expression.setPlaceholderText("2 * salary_eur\nage / 10.0\nCASE WHEN x > 0 THEN 'up' ELSE 'down' END")
         self.expression.setTabChangesFocus(True)
-        self.content_layout.addWidget(self.expression, 1)
+        self.add_content_card(_("Expression"), stretch=1).layout().addWidget(self.expression, 1)
 
-        self.settings_layout.addSpacing(6)
-        self.settings_layout.addWidget(create_compact_section_title(_("Columns"), self.settings_frame))
         self.columns = QListWidget(self)
         self.columns.setToolTip(_("Double-click a column to insert it at the cursor."))
         for name in repo.get_columns(self._table):
             self.columns.addItem(str(name))
         self.columns.itemDoubleClicked.connect(self._insert_column)
-        self.settings_layout.addWidget(self.columns, 1)
+        self.add_settings_card(_("Columns"), stretch=1).layout().addWidget(self.columns, 1)
 
-        self.content_layout.addWidget(create_compact_section_title(_("Preview (first rows)"), self.content_frame))
+        preview = self.add_content_card(_("Preview (first rows)"), stretch=1).layout()
         self._preview = _preview_view(self)
-        self.content_layout.addWidget(self._preview, 1)
+        preview.addWidget(self._preview, 1)
         self._status = _error_label(self)
-        self.content_layout.addWidget(self._status, 0)
+        preview.addWidget(self._status, 0)
 
         self._ok = self.add_action("apply", self.accept, default=True)
         self._ok.setText(_("Add column"))

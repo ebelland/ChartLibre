@@ -34,8 +34,8 @@ from app.styles.style import (
     create_doc_link,
     set_doc_link,
     CardFrame,
+    TitledCard,
     create_action_button,
-    create_section_title,
     load_icon,
     mark_editor_panel,
     stdPlainTextEdit,
@@ -171,14 +171,11 @@ class NewPlotTabDialog(QDialog):
         self._edit_figure_name = QLineEdit()
         self._edit_figure_name.setPlaceholderText(_("Figure name"))
 
-        fig_group = CardFrame(self, "plotTargetCard")
-        fig_main = fig_group.layout()
+        # Titles above the boxes, as in every other window (TitledCard).
+        fig_group = TitledCard(self, _("Target"), "plotTargetCard")
+        fig_main = fig_group.card.layout()
 
-        target_title = create_section_title(_("Target"), fig_group)
-        target_title.setStyleSheet("font-weight: 700;")
-        fig_main.addWidget(target_title)
-
-        fig_form = QWidget(fig_group)
+        fig_form = QWidget(fig_group.card)
         fig_layout = QFormLayout(fig_form)
         stdSizeAndlayout(fig_layout)
         fig_layout.addRow(self._rb_new_figure)
@@ -196,14 +193,14 @@ class NewPlotTabDialog(QDialog):
         self._edit_axis_name = QLineEdit()
         self._edit_axis_name.setPlaceholderText(_("Axis name"))
 
-        axis_form = QWidget(fig_group)
+        axis_form = QWidget(fig_group.card)
         axis_layout = QFormLayout(axis_form)
         stdSizeAndlayout(axis_layout)
         axis_layout.addRow(self._rb_new_axis)
         axis_layout.addRow(self._rb_existing_axis)
         axis_layout.addRow(_("Axis name:"), self._edit_axis_name)
 
-        axis_row = QWidget(fig_group)
+        axis_row = QWidget(fig_group.card)
         axis_row_layout = QHBoxLayout(axis_row)
         stdSizeAndlayout(axis_row_layout)
         axis_row_layout.addWidget(QLabel(_("Axis:")))
@@ -226,21 +223,17 @@ class NewPlotTabDialog(QDialog):
             QSizePolicy.Policy.Expanding,
         )
 
-        series_list_group = CardFrame(self, "plotSeriesListCard")
+        series_list_group = TitledCard(self, _("Series"), "plotSeriesListCard")
         series_list_group.setMinimumWidth(220)
         series_list_group.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
         )
-        series_list_layout = series_list_group.layout()
+        series_list_layout = series_list_group.card.layout()
 
-        series_header = QWidget(series_list_group)
+        series_header = QWidget(series_list_group.card)
         series_header_layout = QHBoxLayout(series_header)
         stdSizeAndlayout(series_header_layout)
-
-        series_title = create_section_title(_("Series"), series_header)
-        series_title.setStyleSheet("font-weight: 700;")
-        series_header_layout.addWidget(series_title)
         series_header_layout.addStretch(1)
         create_action_button(
             parent=series_header,
@@ -258,7 +251,7 @@ class NewPlotTabDialog(QDialog):
         # Says, when it applies, that the entries below are not going to end
         # up on one axes together.  Hidden the rest of the time: a note that
         # is always there is a note nobody reads.
-        self._series_split_note = QLabel(series_list_group)
+        self._series_split_note = QLabel(series_list_group.card)
         self._series_split_note.setWordWrap(True)
         self._series_split_note.setProperty("muted", True)
         self._series_split_note.hide()
@@ -303,14 +296,10 @@ class NewPlotTabDialog(QDialog):
         ))
         self._combo_group.currentIndexChanged.connect(self._on_group_changed)
 
-        editor_group = CardFrame(self, "plotSeriesEditorCard")
-        editor_layout = editor_group.layout()
+        editor_group = TitledCard(self, _("Series"), "plotSeriesEditorCard")
+        editor_layout = editor_group.card.layout()
 
-        series_editor_title = create_section_title(_("Series"), editor_group)
-        series_editor_title.setStyleSheet("font-weight: 700;")
-        editor_layout.addWidget(series_editor_title)
-
-        editor_form = QWidget(editor_group)
+        editor_form = QWidget(editor_group.card)
         editor_form_layout = QFormLayout(editor_form)
         stdSizeAndlayout(editor_form_layout)
         editor_form_layout.addRow(_("Data source:"), self._combo_table)
@@ -328,17 +317,13 @@ class NewPlotTabDialog(QDialog):
         # "grigio e bianco" (grey and white) the panels looked inconsistent
         # for was this column against the other two, not a shade mismatch
         # within any one of them.
-        renderer_panel = CardFrame(self, "plotRendererCard")
+        renderer_panel = TitledCard(self, _("Renderers"), "plotRendererCard")
         renderer_panel.setMinimumWidth(220)
         renderer_panel.setSizePolicy(
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding,
         )
-        renderer_layout = renderer_panel.layout()
-
-        renderer_title = create_section_title(_("Renderers"), renderer_panel)
-        renderer_title.setStyleSheet("font-weight: 700;")
-        renderer_layout.addWidget(renderer_title)
+        renderer_layout = renderer_panel.card.layout()
         renderer_layout.addWidget(self._search_types, 0)
         renderer_layout.addWidget(self._types_toolbox, 1)
         renderer_layout.addWidget(self._renderer_details, 0)
