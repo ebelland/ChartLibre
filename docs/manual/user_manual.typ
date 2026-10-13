@@ -1,5 +1,11 @@
 #set document(title: "ChartLibre — User Manual", author: "ChartLibre")
-#set page(paper: "a4", margin: (x: 2.4cm, y: 2.4cm), numbering: "1")
+#set page(
+  paper: "a4", margin: (x: 2.4cm, y: 2.4cm), numbering: "1",
+  // The application's icon, small, top right - on every page but the cover.
+  header: context if counter(page).get().first() > 1 {
+    align(right, image("logos/chartlibre.png", height: 0.65cm))
+  },
+)
 #set text(font: "New Computer Modern", size: 10.5pt, lang: "en")
 #set par(justify: true, leading: 0.65em)
 #set heading(numbering: "1.1")
