@@ -72,9 +72,9 @@ def numeric_matrix(frame: pd.DataFrame, columns: Sequence[str]) -> tuple[np.ndar
 def stable_cluster_ids(labels: np.ndarray) -> np.ndarray:
     """Convert arbitrary clustering labels to stable 1-based cluster ids."""
     raw = np.asarray(labels, dtype=int).reshape(-1)
-    unique = sorted(int(value) for value in np.unique(raw))
-    mapping = {value: index + 1 for index, value in enumerate(unique)}
-    return np.asarray([mapping[int(value)] for value in raw], dtype=int)
+    # np.unique sorts, so the inverse indices are already the ranks (PF-03).
+    _unique, ranks = np.unique(raw, return_inverse=True)
+    return ranks.reshape(-1).astype(int) + 1
 
 
 

@@ -110,27 +110,21 @@ def brackets(
     each, so only the first of such a run is taken - the series does not
     cross there, it rests there.
     """
-    brackets: list[tuple[float, float, float | None]] = []
-    previous_was_zero = False
-
-    for index in range(offset.size):
-        value = float(offset[index])
-        if value == 0.0:
-            if not previous_was_zero:
-                brackets.append((0.0, 0.0, float(x_values[index])))
-            previous_was_zero = True
-            continue
-        previous_was_zero = False
-
-        if index + 1 >= offset.size:
-            break
-        following = float(offset[index + 1])
-        if following != 0.0 and (value > 0.0) != (following > 0.0):
-            brackets.append(
-                (float(x_values[index]), float(x_values[index + 1]), None)
-            )
-
-    return brackets
+    # Vectorised (PF-03): the first sample of each run on the level, and
+    # every adjacent pair of nonzero samples of opposite sign.
+    offset = np.asarray(offset, dtype=float)
+    zero = offset == 0.0
+    starts = zero & ~np.concatenate(([False], zero[:-1]))
+    sign_change = (~zero[:-1]) & (~zero[1:]) & ((offset[:-1] > 0.0) != (offset[1:] > 0.0))
+    found: list[tuple[int, tuple[float, float, float | None]]] = [
+        (int(index), (0.0, 0.0, float(x_values[index]))) for index in np.flatnonzero(starts)
+    ]
+    found += [
+        (int(index), (float(x_values[index]), float(x_values[index + 1]), None))
+        for index in np.flatnonzero(sign_change)
+    ]
+    found.sort(key=lambda item: item[0])
+    return [bracket for _index, bracket in found]
 
 
 def interpolant(
@@ -334,6 +328,13 @@ def find_roots(
     for left, right, exact in brackets(x, offset):
         if exact is not None:
             roots.append(Root(x=float(exact), y=level, rising=is_rising(curve, float(exact), x), method="sample"))
+            continue
+        if interpolation == INTERP_LINEAR:
+            # The interpolant is a straight segment: its crossing is exact,
+            # with no solver to run (PF-03).
+            f_left, f_right = float(curve(left)), float(curve(right))
+            x_root = left - f_left * (right - left) / (f_right - f_left)
+            roots.append(Root(x=x_root, y=level, rising=is_rising(curve, x_root, x), method=INTERP_LINEAR))
             continue
         found = refine(curve, left, right, solver, xtol=xtol, max_iter=max_iter, notes=notes)
         if found is None:

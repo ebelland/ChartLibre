@@ -25,6 +25,7 @@ from scipy.interpolate import (
     SmoothBivariateSpline,
     UnivariateSpline,
 )
+from scipy.linalg import solveh_banded
 from scipy.ndimage import gaussian_filter, gaussian_filter1d, median_filter
 from scipy.signal import butter, medfilt, savgol_filter, sosfiltfilt, wiener
 
@@ -220,12 +221,29 @@ def _whittaker_eilers(
     lam: float,
     diff_order: int,
 ) -> np.ndarray:
-    """Dense Whittaker-Eilers smoother for chart-sized series."""
+    """Whittaker-Eilers smoother: solves (I + lam D'D) z = y.
+
+    The system is symmetric, positive definite and banded (half-bandwidth =
+    the difference order), so a banded Cholesky solve takes O(n) instead of
+    the O(n^3) of a dense solve (PF-03).
+    """
     n_values = y_values.size
-    identity = np.eye(n_values)
-    difference = np.diff(identity, n=max(1, int(diff_order)), axis=0)
-    system = identity + max(float(lam), 0.0) * difference.T @ difference
-    return np.linalg.solve(system, y_values)
+    order = max(1, int(diff_order))
+    if n_values <= order:
+        return np.asarray(y_values, dtype=float).copy()  # no differences to penalise
+    # Row r of D is the order-th difference stencil placed at column r.
+    stencil = np.diff(np.eye(order + 1), n=order, axis=0)[0]
+    rows = n_values - order
+    weight = max(float(lam), 0.0)
+    banded = np.zeros((order + 1, n_values))
+    for k in range(order + 1):
+        # Diagonal k of D'D: sum over the rows that touch columns j and j+k.
+        diagonal = np.zeros(n_values - k)
+        for m in range(order + 1 - k):
+            diagonal[m : m + rows] += stencil[m] * stencil[m + k]
+        banded[order - k, k:] = weight * diagonal
+    banded[order] += 1.0
+    return solveh_banded(banded, np.asarray(y_values, dtype=float))
 
 
 def _kalman_smoother_1d(

@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 89,037 lines in 236 files; tests 15,517 lines in 116 files (updated at each commit).
+Size: app 89,073 lines in 236 files; tests 15,517 lines in 116 files (updated at each commit).
 
 DONE RECENTLY
+- PF-03: Whittaker-Eilers banded Cholesky (O(n): 0.1 ms vs 404 ms at n=3000); cluster ids via np.unique return_inverse; contingency via factorize + bincount; roots: vectorised brackets, exact linear crossings with no solver; wavelet power via Parseval with no inverse FFT, scales in blocks; correlation via scipy.signal.correlate (FFT when faster). All checked equal to the old code.
 - UI-07: Fluent spin-box and combo chevrons (Segoe Fluent glyphs); off macOS the window carries the popup menu's shortcuts, so Ctrl+Z (Undo) works with the menu closed.
 - R-20: project review - PanelDialog for every one-panel dialog; report
   helpers shared by the analyses; 7 unused functions removed; chart_panel,
@@ -54,11 +55,6 @@ W-04  M  Window resize redraws the chart at every step: draw on pause.
 UI FIXES (from the notes list; one commit per group, mostly S)
 
 PERFORMANCE - NUMBA (measured on this repo, see notes below)
-PF-03 S  Without Numba: Whittaker-Eilers (banded/sparse solver instead of the
-         dense np.linalg.solve - O(n^3) now), cluster-label remap
-         (np.unique return_inverse), contingency/mosaic (integer codes +
-         np.bincount), linear root crossings (direct computation), wavelet
-         power (batch scales), correlation (scipy FFT correlate).
 PF-04 M  Batch Monte Carlo scoring - only if the whole scoring kernel can be
          compiled; otherwise skip. Survival: improve the algorithm first.
 Rules: Numba stays an OPTIONAL dependency with a pure-Python fallback; cache=True;

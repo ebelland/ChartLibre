@@ -205,15 +205,23 @@ def wavelet_power(
     transformed = np.fft.fft(centred)
     omega = 2.0 * np.pi * np.fft.fftfreq(n, d=1.0 / float(fs))
 
+    # Only time-averaged power is wanted, and by Parseval
+    # mean_t |ifft(X W)|^2 = sum_k |X_k W_k|^2 / n^2, so no inverse FFT is
+    # needed: one weighted sum per scale, done for a block of scales at a
+    # time (PF-03). Only positive frequencies count - the wavelet is
+    # analytic, zero elsewhere.
+    positive = omega > 0.0
+    spectrum = np.abs(transformed[positive]) ** 2
+    omega_positive = omega[positive]
     power = np.empty(frequencies.size, dtype=float)
-    for index, scale in enumerate(scales):
-        scaled = scale * omega
-        wavelet = (np.pi ** -0.25) * np.exp(-0.5 * (scaled - float(w0)) ** 2)
-        wavelet[omega <= 0.0] = 0.0  # analytic: no negative frequencies
-        # sqrt(scale) keeps power comparable across scales; without it the
-        # spectrum slopes purely because wide wavelets integrate more.
-        coefficients = np.fft.ifft(transformed * wavelet) * np.sqrt(scale)
-        power[index] = float(np.mean(np.abs(coefficients) ** 2))
+    block = max(1, 4_000_000 // max(omega_positive.size, 1))
+    for start in range(0, scales.size, block):
+        chunk = scales[start : start + block, None]
+        # (pi^-1/4)^2 = pi^-1/2; sqrt(scale) on the coefficients is scale on
+        # the power, which keeps it comparable across scales - without it
+        # the spectrum slopes purely because wide wavelets integrate more.
+        squared = np.exp(-((chunk * omega_positive - float(w0)) ** 2)) / np.sqrt(np.pi)
+        power[start : start + block] = chunk[:, 0] * (squared @ spectrum) / float(n) ** 2
 
     return frequencies, power
 
@@ -230,7 +238,8 @@ def correlate(
     a = first[:length] - float(np.mean(first[:length]))
     b = second[:length] - float(np.mean(second[:length]))
 
-    raw = np.correlate(a, b, mode="full")
+    # FFT-based when that is faster, direct otherwise (PF-03).
+    raw = scipy_signal.correlate(a, b, mode="full", method="auto")
     lags = np.arange(-length + 1, length)
 
     if normalisation == "biased":

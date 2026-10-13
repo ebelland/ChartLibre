@@ -512,7 +512,15 @@ def contingency_table(rows: Any, columns: Any, weights: Any = None) -> pd.DataFr
         "weight": 1.0 if weights is None else np.asarray(weights, dtype=float),
     })
     frame = frame[frame["row"].notna() & frame["column"].notna() & np.isfinite(frame["weight"].to_numpy(dtype=float))]
-    table = frame.pivot_table(index="row", columns="column", values="weight", aggfunc="sum", fill_value=0.0, sort=False)
+    # Integer codes and one bincount instead of a pivot_table groupby (PF-03).
+    row_codes, row_levels = pd.factorize(frame["row"], sort=False)
+    column_codes, column_levels = pd.factorize(frame["column"], sort=False)
+    counts = np.bincount(
+        row_codes * len(column_levels) + column_codes,
+        weights=frame["weight"].to_numpy(dtype=float),
+        minlength=len(row_levels) * len(column_levels),
+    ).reshape(len(row_levels), len(column_levels))
+    table = pd.DataFrame(counts, index=pd.Index(row_levels, name="row"), columns=pd.Index(column_levels, name="column"))
     return table.reindex(index=_level_order(table.index), columns=_level_order(table.columns))
 
 
