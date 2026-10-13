@@ -89,6 +89,10 @@ class PartitionResult:
     note: str = ""
     #: The spec's method: TREE has leaves and a split history; an ensemble neither.
     method: str = "tree"
+    #: Permutation importance (AN-18): Column, Importance, Std, on Rows (validation, or training without it).
+    importance: pd.DataFrame = field(default_factory=pd.DataFrame)
+    #: Partial dependence of the most important factors: Factor, Value, Label, Predicted.
+    dependence: pd.DataFrame = field(default_factory=pd.DataFrame)
 
 
 # ----------------------------------------------------------------------
@@ -270,7 +274,7 @@ def partition(frame: pd.DataFrame, spec: PartitionSpec) -> PartitionResult:
     encoded = _encode(complete, spec, target_score, train)
     x = encoded.matrix
     if spec.method in (FOREST, BOOSTED):
-        return _ensemble(spec, complete, x, y, train, valid, nominal, levels, dropped)
+        return _ensemble(spec, complete, x, y, train, valid, nominal, levels, dropped, encoded.orders)
 
     # The history: the same tree grown one split at a time.
     largest = max(1, min(spec.max_splits if spec.auto else spec.splits, len(complete) // max(1, spec.min_leaf)))
@@ -364,7 +368,7 @@ def partition(frame: pd.DataFrame, spec: PartitionSpec) -> PartitionResult:
     if dropped:
         note = (note + " " if note else "") + f"{dropped} rows with a missing value were left out."
 
-    return PartitionResult(
+    result = PartitionResult(
         response=spec.response,
         kind=NOMINAL if nominal else CONTINUOUS,
         factors=list(spec.factors),
@@ -381,6 +385,42 @@ def partition(frame: pd.DataFrame, spec: PartitionSpec) -> PartitionResult:
         levels=levels,
         note=note,
     )
+    _explain(result, model, x, y, train, valid, nominal, levels, encoded.orders)
+    return result
+
+
+#: Partial dependence is drawn for at most this many factors, the most important first.
+DEPENDENCE_FACTORS = 4
+
+
+def _explain(result: PartitionResult, model: Any, x: np.ndarray, y: np.ndarray, train: np.ndarray,
+             valid: np.ndarray, nominal: bool, levels: list[str], orders: dict[str, list[str]]) -> None:
+    """Permutation importance and partial dependence of the fitted model (AN-18), into *result*."""
+    from app.analysis import explain
+
+    rows = valid if valid.any() else train
+    if nominal:
+        first = list(model.classes_).index(levels[0]) if levels and levels[0] in list(model.classes_) else 0
+        mean, std = explain.permutation_importance(model.predict, x[rows], y[rows], explain.accuracy)
+
+        def predict(matrix: np.ndarray) -> np.ndarray:
+            return model.predict_proba(matrix)[:, first]
+    else:
+        mean, std = explain.permutation_importance(model.predict, x[rows], y[rows], explain.r_squared)
+        predict = model.predict
+    result.importance = pd.DataFrame({
+        "Column": result.factors, "Importance": mean, "Std": std,
+        "Rows": VALIDATION if valid.any() else TRAINING,
+    }).sort_values("Importance", ascending=False, kind="stable").reset_index(drop=True)
+    parts = []
+    for name in result.importance["Column"][:DEPENDENCE_FACTORS]:
+        column = result.factors.index(name)
+        grid = explain.grid_for(x[train, column])
+        values = explain.partial_dependence(predict, x[train], column, grid)
+        labels = ([orders[name][int(code)] for code in grid] if name in orders
+                  else [f"{value:.4g}" for value in grid])
+        parts.append(pd.DataFrame({"Factor": name, "Value": grid, "Label": labels, "Predicted": values}))
+    result.dependence = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
 
 
 # ----------------------------------------------------------------------
@@ -425,7 +465,8 @@ def _staged_score(predicted: np.ndarray, y: np.ndarray, nominal: bool) -> float:
 
 
 def _ensemble(spec: PartitionSpec, complete: pd.DataFrame, x: np.ndarray, y: np.ndarray, train: np.ndarray,
-              valid: np.ndarray, nominal: bool, levels: list[str], dropped: int) -> PartitionResult:
+              valid: np.ndarray, nominal: bool, levels: list[str], dropped: int,
+              orders: dict[str, list[str]] | None = None) -> PartitionResult:
     """A Bootstrap Forest or a Boosted Tree: no single tree to read, so no leaves -
     the report is the fit, the columns' contributions and the score by number of trees."""
     model = _ensemble_model(spec, nominal, spec.trees).fit(x[train], y[train])
@@ -492,10 +533,12 @@ def _ensemble(spec: PartitionSpec, complete: pd.DataFrame, x: np.ndarray, y: np.
     if dropped:
         note = (note + " " if note else "") + f"{dropped} rows with a missing value were left out."
 
-    return PartitionResult(
+    result = PartitionResult(
         response=spec.response, kind=NOMINAL if nominal else CONTINUOUS, factors=list(spec.factors),
         splits=int(spec.splits), leaves=pd.DataFrame(), history=history, contributions=contributions,
         summary=summary, leaf=pd.Series(np.nan, index=complete.index, name="Leaf"), predicted=predicted,
         role=role, probabilities=probabilities, confusion=confusion, levels=levels, note=note,
         method=spec.method,
     )
+    _explain(result, model, x, y, train, valid, nominal, levels, orders or {})
+    return result

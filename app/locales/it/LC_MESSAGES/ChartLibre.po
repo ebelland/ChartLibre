@@ -9093,3 +9093,27 @@ msgstr "Scelto"
 
 msgid "Variable"
 msgstr "Variabile"
+
+msgid "Permutation importance"
+msgstr "Importanza per permutazione"
+
+msgid "Partial dependence (most important factors)"
+msgstr "Dipendenza parziale (fattori più importanti)"
+
+msgid "How much the {measure} drops when a column is shuffled, on the {rows} rows - for any model, the forest and the boosted tree included."
+msgstr "Quanto cala {measure} quando una colonna viene mescolata, sulle righe di {rows}: per qualsiasi modello, foresta e albero con boosting compresi."
+
+msgid "accuracy"
+msgstr "l'accuratezza"
+
+msgid "validation"
+msgstr "validazione"
+
+msgid "training"
+msgstr "addestramento"
+
+msgid "Importance"
+msgstr "Importanza"
+
+msgid "Partial dependence on {factor}"
+msgstr "Dipendenza parziale da {factor}"

@@ -34,6 +34,8 @@ CHARTS: tuple[tuple[str, str, bool], ...] = (
     ("history", "R² or misclassification by splits", True),
     ("actual", "Actual by predicted (continuous Y)", True),
     ("leaves", "Leaf means or shares", False),
+    ("importance", "Permutation importance", False),
+    ("dependence", "Partial dependence (most important factors)", False),
 )
 
 _JMP_HELP = "https://www.jmp.com/support/help/en/18.0/index.shtml#page/jmp/"
@@ -278,6 +280,15 @@ class PartitionDialog(TableOperationDialogBase):
             _("Split history") if result.method == pt.TREE else _("Fit by number of trees"),
             self.report_table(result.history),
         ))
+        if not result.importance.empty:
+            measure = "accuracy" if result.kind == pt.NOMINAL else "R²"
+            blocks.append(report_html.section(
+                _("Permutation importance"),
+                report_html.note(_("How much the {measure} drops when a column is shuffled, on the {rows} rows - "
+                                   "for any model, the forest and the boosted tree included.").format(
+                    measure=_(measure), rows=_(str(result.importance["Rows"].iloc[0]).lower()))),
+                self.report_table(result.importance.drop(columns=["Rows"])),
+            ))
         if result.confusion is not None:
             confusion = result.confusion.reset_index()
             blocks.append(report_html.section(
@@ -300,6 +311,8 @@ class PartitionDialog(TableOperationDialogBase):
         names = {key: repo.free_table_name(f"{table}_partition{suffix}") for key, suffix in (
             ("rows", ""), *((("leaves", "_leaves"),) if tree else ()), ("history", "_history"),
             ("contributions", "_contributions"), *((("graph", "_graph"),) if graph else ()),
+            *((("importance", "_importance"),) if not result.importance.empty else ()),
+            *((("dependence", "_dependence"),) if not result.dependence.empty else ()),
         )}
         repo.snapshot_for_undo(
             [*names.values(), *(repo.DESCRIPTOR_TABLES if charts else ())],
@@ -321,7 +334,7 @@ class PartitionDialog(TableOperationDialogBase):
             frame[PARTITION_X] = layout.positions.reindex(frame.index)
             repo.import_dataframe(layout.segments, table_name=names["graph"], normalize_columns=False)
         repo.import_dataframe(frame, table_name=names["rows"], normalize_columns=False)
-        for key in ("leaves", "history", "contributions"):
+        for key in ("leaves", "history", "contributions", "importance", "dependence"):
             if key in names:
                 repo.import_dataframe(getattr(result, key), table_name=names[key], normalize_columns=False)
         written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
@@ -369,6 +382,22 @@ class PartitionDialog(TableOperationDialogBase):
             sql, roles = self.series_select(names["rows"], {"x": predicted, "y": result.response})
             panels.append(("Scatter Plot", _("Actual by predicted"), predicted, result.response,
                            [(result.response, sql, roles, {})]))
+        if "importance" in charts and "importance" in names:
+            sql, roles = self.series_select(names["importance"], {"Y": "Importance", "X": "Column"})
+            panels.append(("Pareto Chart", _("Permutation importance"), "", _("Importance"),
+                           [(result.response, sql, roles, {})]))
+        if "dependence" in charts and "dependence" in names:
+            y_label = f"Prob({result.levels[0]})" if nominal and result.levels else result.response
+            for factor in dict.fromkeys(result.dependence["Factor"]):
+                where = f"{self.quoted('Factor')} = {self.literal(str(factor))}"
+                if factor in result.factors and self._factor_is_nominal(factor):
+                    sql, roles = self.series_select(names["dependence"], {"X": "Label", "Y": "Predicted"}, where=where)
+                    panels.append(("Bar Chart", _("Partial dependence on {factor}").format(factor=factor), factor,
+                                   y_label, [(str(factor), sql, roles, {})]))
+                else:
+                    sql, roles = self.series_select(names["dependence"], {"x": "Value", "y": "Predicted"}, where=where)
+                    panels.append(("Scatter Plot", _("Partial dependence on {factor}").format(factor=factor), factor,
+                                   y_label, [(str(factor), sql, roles, {"linestyle": "-", "marker": "o"})]))
         if "leaves" in charts and "leaves" in names:
             value = "Mean" if not nominal else f"Prob({result.levels[0]})" if result.levels else "Count"
             sql, roles = self.series_select(names["leaves"], {"X": "Leaf", "Y": value})
@@ -376,6 +405,9 @@ class PartitionDialog(TableOperationDialogBase):
             sql = sql.replace(f"{self.quoted('Leaf')} AS", f"CAST(CAST({self.quoted('Leaf')} AS INTEGER) AS TEXT) AS", 1)
             panels.append(("Bar Chart", _("Leaves"), _("Leaf"), _(value), [(result.response, sql, roles, {})]))
         return panels
+
+    def _factor_is_nominal(self, factor: str) -> bool:
+        return self.roles_widget.casting().kinds.get(factor) in CATEGORICAL
 
     def _partition_graph(self, result: pt.PartitionResult, names: Mapping[str, str], layout: _GraphLayout) -> tuple:
         """JMP's partition graph: Y by row, the rows grouped by leaf, each leaf as wide as its rows,

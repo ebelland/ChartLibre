@@ -157,3 +157,36 @@ def test_a_forest_or_boosted_trees_fit_and_ok_writes_no_leaves(qapp, repo: Sqlit
 def test_y_cannot_also_be_an_x(dialog: PartitionDialog) -> None:
     dialog.roles_widget.set_casting({"response": ["y"], "factor": ["y", "temp"]}, KINDS)
     assert any("both Y and X" in problem for problem in dialog.problems())
+
+
+def test_permutation_importance_and_partial_dependence_for_any_method(qapp, repo: SqliteRepo) -> None:
+    """AN-18: the forest included - shuffling temp costs most, press nothing; the dependence is drawn."""
+    for method in ("tree", "forest"):
+        result = partition(_data(), PartitionSpec(response="y", factors=["temp", "press", "supplier"], kinds=KINDS,
+                                                  splits=4, method=method, validation_fraction=0.3))
+        assert list(result.importance["Column"][:2]) == ["temp", "supplier"]
+        assert abs(result.importance.set_index("Column").loc["press", "Importance"]) < 0.02
+        temp = result.dependence[result.dependence["Factor"] == "temp"]
+        assert temp["Predicted"].iloc[-1] > temp["Predicted"].iloc[0] + 10  # y jumps from 5 to 20 at temp 60
+
+    repo.import_dataframe(_data(), table_name="plant", normalize_columns=False)
+    dialog = PartitionDialog(repo=repo, table="plant")
+    try:
+        dialog.roles_widget.set_casting({"response": ["y"], "factor": ["temp", "press", "supplier"]}, KINDS)
+        for key, check in dialog._chart_checks.items():
+            check.setChecked(key in ("importance", "dependence"))
+        dialog.ok()
+        _wait(qapp, dialog)
+        assert {"plant_partition_importance", "plant_partition_dependence"} <= set(repo.list_user_tables()["Table"])
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        names = [axis.name for axis in figure.axes]
+        assert names[0] == "Pareto Chart" and "Bar Chart" in names and "Scatter Plot" in names
+        from matplotlib.figure import Figure
+
+        from app.charts.render_figure import render_figure_from_descriptor
+
+        drawn = Figure()
+        render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)
+        assert all(axes.collections or axes.lines or axes.patches for axes in drawn.axes)
+    finally:
+        dialog.close()
