@@ -8,10 +8,20 @@ same as Cmd/Ctrl+K), then the goals in everyday words
 
 Whatever is chosen - a search result or a suggestion - is emitted by
 :attr:`GuidedAnalysisPanel.entry_requested`; the main window opens it.
+
+It follows the table selected in the Tables panel (set_table): it says what
+the table holds, asks concrete questions of it - each opening its quick
+answer with the columns already cast (:attr:`question_requested`) - and puts
+the goals and suggestions the table can feed first, the others greyed with
+what they lack (app.table_operations.table_profile).
 """
 from __future__ import annotations
 
+from collections.abc import Callable
+
+import pandas as pd
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -27,7 +37,10 @@ from PySide6.QtWidgets import (
 
 from app.analysis import catalog
 from app.analysis.catalog import CatalogEntry
+from app.logs.logger import applogger
 from app.styles.style import CardFrame, stdSizeAndlayout
+from app.table_operations import table_profile
+from app.table_operations.table_profile import TableProfile
 from app.utils.i18n import _
 from app.widgets.catalog_search import CatalogSearch, entry_icon
 from app.widgets.nav_bar import NavPanel
@@ -41,10 +54,21 @@ class GuidedAnalysisPanel(NavPanel):
 
     #: A catalogue entry to open (app.analysis.catalog.CatalogEntry).
     entry_requested = Signal(object)
+    #: A concrete question: (catalogue entry, role -> columns, column -> type).
+    question_requested = Signal(object, dict, dict)
 
     def __init__(self, parent: QWidget | None = None, entries: list[CatalogEntry] | None = None) -> None:
         super().__init__(parent)
         self._entries = catalog.build_catalog() if entries is None else list(entries)
+        self._profile: TableProfile | None = None
+        self._table: str | None = None
+        self._loader: Callable[[str], tuple[pd.DataFrame, dict[str, str]]] | None = None
+        self._stale = False
+
+        self._table_label = QLabel(_("No table selected: the suggestions are general."), self)
+        self._table_label.setWordWrap(True)
+        self._table_label.setProperty("muted", True)
+        self.add_frame(_("Table"), self._table_label, object_name="guidedTableFrame")
 
         self.search = CatalogSearch(self, self._entries, collapsed=True)
         self.search.entry_chosen.connect(self.entry_requested)
@@ -53,27 +77,30 @@ class GuidedAnalysisPanel(NavPanel):
         # The questions a non-statistician asks, each a button that opens its quick answer.
         quick = [entry for entry in self._entries if entry.kind == catalog.ANALYSIS
                  and isinstance(entry.payload, dict) and entry.payload.get("category") == "Quick answers"]
+        box = QWidget(self)
+        box_layout = QVBoxLayout(box)
+        box_layout.setContentsMargins(0, 0, 0, 0)
+        # The table's own questions first, then the general ones.
+        self._questions = QWidget(box)
+        self._questions_layout = QVBoxLayout(self._questions)
+        self._questions_layout.setContentsMargins(0, 0, 0, 0)
+        self._questions.hide()
+        box_layout.addWidget(self._questions)
         if quick:
-            box = QWidget(self)
-            box_layout = QVBoxLayout(box)
-            box_layout.setContentsMargins(0, 0, 0, 0)
             for entry in quick:
                 button = QPushButton(entry_icon(entry), _(entry.name), box)
                 button.setObjectName("quickAnswerButton")
                 button.setToolTip(_(entry.description))
                 button.clicked.connect(lambda _checked=False, e=entry: self.entry_requested.emit(e))
                 box_layout.addWidget(button)
-            self.add_frame(_("Quick answers"), box, object_name="guidedAnalysisCard")
+        self.add_frame(_("Quick answers"), box, object_name="guidedAnalysisCard")
 
         body = QWidget(self)
         layout = QVBoxLayout(body)
         layout.setContentsMargins(0, 0, 0, 0)
         self.goals = QListWidget(body)
         self.goals.setObjectName("guidedGoals")
-        for key, title, sentence in catalog.GOALS:
-            item = QListWidgetItem(_(title), self.goals)
-            item.setData(_GOAL_ROLE, key)
-            item.setToolTip(_(sentence))
+        self._fill_goals()
         # Every goal in sight: twelve short rows, no scrolling to find one.
         self.goals.setFixedHeight(len(catalog.GOALS) * _ROW_HEIGHT + 8)
         self.goals.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -99,6 +126,97 @@ class GuidedAnalysisPanel(NavPanel):
         self._list_layout.addWidget(self._goal_sentence)
         self.add_frame(_("Suggestions"), page, object_name="guidedSuggestionsFrame")
         self.goals.setCurrentRow(0)
+
+    # ------------------------------------------------------------------
+    # The selected table
+    # ------------------------------------------------------------------
+
+    def set_loader(self, loader: Callable[[str], tuple[pd.DataFrame, dict[str, str]]]) -> None:
+        """How to read a table: its visible rows and its columns' declared SQL types."""
+        self._loader = loader
+
+    def set_table(self, table: str | None) -> None:
+        """Follow the table selected in the Tables panel; read it when the panel is seen."""
+        self._table = table or None
+        self._stale = True
+        if self.isVisible():
+            self._read_table()
+
+    def profile(self) -> TableProfile | None:
+        if self._stale:
+            self._read_table()
+        return self._profile
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        if self._stale:
+            self._read_table()
+
+    def _read_table(self) -> None:
+        self._stale = False
+        self._profile = None
+        if self._table and self._loader is not None:
+            try:
+                frame, declared = self._loader(self._table)
+                self._profile = table_profile.profile(self._table, frame, declared)
+            except Exception:  # noqa: BLE001 - a table that cannot be read: general suggestions
+                applogger.exception("Guided analysis: could not read table %s", self._table)
+        self._show_table()
+        self._fill_goals()
+        self._show()
+
+    def _show_table(self) -> None:
+        table = self._profile
+        self._table_label.setProperty("muted", table is None)
+        self._table_label.style().unpolish(self._table_label)
+        self._table_label.style().polish(self._table_label)
+        if table is None:
+            self._table_label.setText(_("No table selected: the suggestions are general."))
+        else:
+            counts = table.counts()
+            self._table_label.setText(
+                f"<b>{table.table}</b> · " + _("{rows} rows").format(rows=table.rows) + "<br>"
+                + _("Numeric: {measures} · Categories: {groups} · Dates: {times}").format(**counts)
+            )
+        while self._questions_layout.count():
+            child = self._questions_layout.takeAt(0).widget()
+            if child is not None:
+                child.hide()
+                child.deleteLater()
+        found = table_profile.questions(table) if table is not None else []
+        by_key = {entry.key: entry for entry in self._entries}
+        for question in found:
+            entry = by_key.get(question.key)
+            if entry is None:
+                continue
+            button = QPushButton(entry_icon(entry), _(question.template).format(**question.values), self._questions)
+            button.setObjectName("quickAnswerButton")
+            button.setToolTip(_(entry.description))
+            button.clicked.connect(
+                lambda _checked=False, e=entry, q=question: self.question_requested.emit(e, q.roles, q.kinds))
+            self._questions_layout.addWidget(button)
+        self._questions.setVisible(bool(found))
+
+    def _fill_goals(self) -> None:
+        """The goals, those the table can answer first; the others greyed, saying what they lack."""
+        current = self.goals.currentItem()
+        selected = str(current.data(_GOAL_ROLE)) if current is not None else None
+        blocked = self.goals.blockSignals(True)
+        self.goals.clear()
+        ordered = sorted(catalog.GOALS, key=lambda goal: self._goal_missing(goal[0]) is not None)
+        for key, title, sentence in ordered:
+            item = QListWidgetItem(_(title), self.goals)
+            item.setData(_GOAL_ROLE, key)
+            missing = self._goal_missing(key)
+            item.setToolTip(_(sentence) + ("\n" + _(missing) if missing else ""))
+            if missing:
+                item.setForeground(self.palette().placeholderText())
+            if key == selected:
+                self.goals.setCurrentItem(item)
+        self.goals.blockSignals(blocked)
+
+    def _goal_missing(self, goal: str) -> str | None:
+        return table_profile.goal_missing(self._profile, goal) if self._profile is not None else None
 
     def response(self) -> str:
         return str(self._response.currentData() or catalog.ANY)
@@ -128,17 +246,25 @@ class GuidedAnalysisPanel(NavPanel):
                 child.hide()
                 child.deleteLater()
         found = catalog.suggestions(self._entries, goal, self.response())
-        for entry, why in found:
-            self._list_layout.addWidget(self._card(entry, why))
+        suits = {(key, why): kind for key, why, kind in catalog.GUIDE.get(goal, ())}
+        missing = [
+            table_profile.suggestion_missing(self._profile, entry.key, suits.get((entry.key, why), catalog.ANY))
+            if self._profile is not None else None
+            for entry, why in found
+        ]
+        # What the table can feed first; the rest after, greyed, saying what it lacks.
+        for (entry, why), lack in sorted(zip(found, missing), key=lambda pair: pair[1] is not None):
+            self._list_layout.addWidget(self._card(entry, why, lack))
         if not found:
             empty = QLabel(_("Nothing for this kind of response: choose Either."))
             empty.setProperty("muted", True)
             empty.setWordWrap(True)
             self._list_layout.addWidget(empty)
 
-    def _card(self, entry: CatalogEntry, why: str) -> QWidget:
+    def _card(self, entry: CatalogEntry, why: str, missing: str | None = None) -> QWidget:
         card = CardFrame(None, "guidedSuggestion")
         card.setProperty("entry", entry)
+        card.setProperty("missing", missing or "")
         layout = card.layout()
         top = QHBoxLayout()
         icon = QLabel(card)
@@ -154,4 +280,11 @@ class GuidedAnalysisPanel(NavPanel):
         text = QLabel(_(why), card)
         text.setWordWrap(True)
         layout.addWidget(text)
+        if missing:
+            note = QLabel(_("This table: {missing}").format(missing=_(missing)), card)
+            note.setWordWrap(True)
+            note.setProperty("muted", True)
+            layout.addWidget(note)
+            for label in (title, text):
+                label.setEnabled(False)
         return card

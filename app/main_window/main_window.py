@@ -691,6 +691,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         analysis_panel.operation_requested.connect(self._on_table_operation_requested)
         guided_panel = GuidedAnalysisPanel(self)
         guided_panel.entry_requested.connect(self.open_catalog_entry)
+        guided_panel.question_requested.connect(
+            lambda entry, roles, kinds: self._on_table_operation_requested(entry.payload, roles=roles, kinds=kinds))
+        guided_panel.set_loader(self._guided_table)
+        guided_panel.set_table(self._table_panel.current)
+        self._guided_panel = guided_panel
         developer_panel = self._create_developer_page()
 
         sections: dict[str, dict[str, NavBarItem]] = {
@@ -1040,9 +1045,22 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     # Table panel actions
     # ------------------------------------------------------------------
     def _on_table_selected(self, table: str) -> None:
-        """Update the preview panel when a table is selected."""
+        """Update the preview panel, and the guided analysis, when a table is selected."""
         applogger.debug("Selected table: %s", table)
         self._preview.set_context(self._repo, table)
+        guided = getattr(self, "_guided_panel", None)
+        if guided is not None:
+            guided.set_table(table)
+
+    def _guided_table(self, table: str) -> tuple[Any, dict[str, str]]:
+        """A table as the analysis windows read it - visible rows, no application columns - and its SQL types."""
+        from app.table_operations.dialog_base import APPLICATION_COLUMNS
+
+        frame = self._repo.table_frame(table)
+        if "Hide" in frame.columns:
+            frame = frame[pd.to_numeric(frame["Hide"], errors="coerce").fillna(0) == 0]
+        frame = frame.drop(columns=[c for c in frame.columns if c in APPLICATION_COLUMNS])
+        return frame, {str(row[1]): str(row[2] or "") for row in self._repo.table_info(table)}
 
 
     # ------------------------------------------------------------------
@@ -1194,19 +1212,30 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             self._table_panel.reload()
             if reload_preview and self._table_panel.current:
                 self._preview.set_context(self._repo, str(self._table_panel.current))
+            guided = getattr(self, "_guided_panel", None)
+            if guided is not None:
+                guided.set_table(self._table_panel.current)
         except Exception:
             applogger.exception("Failed to refresh the data panes.")
         self._update_properties_for_current_chart()
         self._refresh_undo_item()
 
-    def _on_table_operation_requested(self, operation: dict) -> None:
-        """Open a table operation (Fit Model...) on the table selected in the Tables panel."""
+    def _on_table_operation_requested(
+        self, operation: dict, *, roles: dict | None = None, kinds: dict | None = None
+    ) -> None:
+        """Open a table operation (Fit Model...) on the table selected in the Tables panel.
+
+        *roles* and *kinds* cast its columns beforehand: a question of the
+        guided analysis opens its answer with the columns it asked about.
+        """
         dialog_class = import_table_operation(operation)
         if dialog_class is None:
             applogger.error("Could not load table operation class: %r", operation.get("name"))
             return
         current = self._table_panel.current
         dialog = dialog_class(repo=self._repo, table=str(current) if current else None, parent=self)
+        if roles:
+            dialog.roles_widget.set_casting(roles, kinds)
         dialog.applied.connect(self.refresh)
         dialog.exec()
         figures = list(getattr(dialog, "created_figure_ids", []) or [])

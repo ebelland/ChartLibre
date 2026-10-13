@@ -90,6 +90,11 @@ _ANALYSES: dict[str, tuple[str, tuple[str, ...]]] = {
         "ordinale nominal nominale poisson interaction interazione factors fattori",
         ("explain", "predict", "classify", "compare", "experiment"),
     ),
+    "Discriminant": (
+        "discriminant discriminante lda qda linear discriminant analysis analisi discriminante "
+        "classification classificazione canonical canonica wilks groups gruppi",
+        ("classify", "groups"),
+    ),
     "Partition": (
         "decision tree albero decisionale albero di decisione classification classificazione "
         "regression tree cart split partizioni partizione segmentation segmentazione rules regole "
@@ -313,6 +318,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     "classify": (
         ("analysis:Partition", "Classification tree or forest: rules and the probability of each class.", CATEGORICAL),
         ("analysis:Fit Model", "Nominal or ordinal logistic regression.", CATEGORICAL),
+        ("analysis:Discriminant", "Groups told apart by continuous measures: linear or quadratic, "
+                                  "with the canonical plot.", CATEGORICAL),
     ),
     "signal": (
         ("series:Smoothing", "Reduce the noise and keep the shape.", NUMERIC),

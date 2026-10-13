@@ -1,9 +1,10 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 89,970 lines in 240 files; tests 15,815 lines in 120 files (updated at each commit).
+Size: app 90,324 lines in 241 files; tests 15,896 lines in 121 files (updated at each commit).
 
 DONE RECENTLY
+- Guided analysis follows the selected table: what it holds (numeric, categories, dates), goals and suggestions it cannot feed last and greyed with what they lack, concrete questions ("Does “weight” change between the groups of “line”?") opening Are there differences? with the columns cast (table_operations/table_profile.py). Discriminant in the catalogue.
 - AN-20: Discriminant (Models): linear or quadratic, proportional or equal priors; misclassification, Wilks' lambda with Rao's F, canonical analysis, standardized coefficients, group means, confusion matrix; OK writes each row's predicted group, probabilities and canonical scores and draws the canonical plot. Checked against scikit-learn and the known iris values.
 - R-05: Fit weights from the series' yerr column (Weights: Equal, Relative, Error bars; chi-square reported); global fit: two or more series checked fit together, parameters picked in the Shared menu are one value for all, the others one per series (fit.GlobalLayout, fit.global_model), a result, curve and output table per series. Also: the parameter table no longer overflows after a fit (resizeColumnsToContents widened the Stretch columns).
 - W-04: ChartCanvas (chart_panel/canvas.py): within a burst of resizes the last image is stretched, and the figure is resized and drawn once the size holds for 150 ms; the panel's geometry pass waits for it.
@@ -44,9 +45,10 @@ Q-03  M  Quick answer "Has it changed over time?" - trend test (Mann-Kendall),
          change points, before/after comparison, in words.
 D-01  M  Demos rethought around the questions (one per quick answer and
          goal), still covering every function.
-G-01  S  Guided analysis, step 2: pick the table's Y and X and open the
-         function with them cast (step 1 done: goal + response type ->
-         suggestions with why -> Open).
+G-01  S  Guided analysis, step 3: pick Y and X for any suggestion and open
+         it with them cast (done: the selected table's summary, goals and
+         suggestions it cannot feed greyed with why, questions opening
+         "Are there differences?" with the columns cast).
 AN-16 M  Fit Model: Lasso / Ridge / Elastic Net with CV (JMP Gen. Regression).
 AN-17 M  PLS regression for spectra: VIP, loadings, components by CV.
 AN-18 S  Permutation importance and partial dependence for any model.

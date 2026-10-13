@@ -8745,3 +8745,39 @@ msgstr "GdL num"
 
 msgid "DF den"
 msgstr "GdL den"
+
+msgid "No table selected: the suggestions are general."
+msgstr "Nessuna tabella selezionata: i suggerimenti sono generici."
+
+msgid "Numeric: {measures} · Categories: {groups} · Dates: {times}"
+msgstr "Numeriche: {measures} · Categoriali: {groups} · Date: {times}"
+
+msgid "This table: {missing}"
+msgstr "Questa tabella: {missing}"
+
+msgid "{rows} rows"
+msgstr "{rows} righe"
+
+msgid "Needs a numeric column."
+msgstr "Serve una colonna numerica."
+
+msgid "Needs two numeric columns."
+msgstr "Servono due colonne numeriche."
+
+msgid "Needs a column that groups the rows (a few categories)."
+msgstr "Serve una colonna che divida le righe in gruppi (poche categorie)."
+
+msgid "Needs two columns of categories."
+msgstr "Servono due colonne di categorie."
+
+msgid "Needs a response and at least one other column."
+msgstr "Servono una risposta e almeno un'altra colonna."
+
+msgid "Needs a date column, or a numeric one to order the values by."
+msgstr "Serve una colonna di date, o una numerica per ordinare i valori."
+
+msgid "Does “{measure}” change between the groups of “{group}”?"
+msgstr "«{measure}» cambia tra i gruppi di «{group}»?"
+
+msgid "Groups told apart by continuous measures: linear or quadratic, with the canonical plot."
+msgstr "Gruppi distinti da misure continue: lineare o quadratica, con il grafico canonico."
