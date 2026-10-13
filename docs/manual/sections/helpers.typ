@@ -49,7 +49,26 @@
   "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes." + name + ".html"
 }
 #let mpl(..names) = block(above: 0.3em, below: 0.7em)[
+  #set par(justify: false)
   #text(size: 9.5pt, fill: rgb("#444"))[
     *Matplotlib:* #names.pos().map(name => link(mpl-url(name), text(fill: rgb("#1a5fb4"), raw(name)))).join(", ")
+  ]
+]
+
+// The library functions an operation or an analysis computes with (SciPy,
+// scikit-learn, statsmodels, NumPy), each linked to its documentation page.
+#let ref-url(name) = if name.starts-with("scipy.") {
+  "https://docs.scipy.org/doc/scipy/reference/generated/" + name + ".html"
+} else if name.starts-with("sklearn.") {
+  "https://scikit-learn.org/stable/modules/generated/" + name + ".html"
+} else if name.starts-with("statsmodels.") {
+  "https://www.statsmodels.org/stable/generated/" + name + ".html"
+} else {
+  "https://numpy.org/doc/stable/reference/generated/" + name + ".html"
+}
+#let refs(..names) = block(above: 0.4em, below: 0.7em)[
+  #set par(justify: false)
+  #text(size: 9.5pt, fill: rgb("#444"))[
+    *Computed with:* #names.pos().map(name => link(ref-url(name), text(fill: rgb("#1a5fb4"), raw(name)))).join(", ")
   ]
 ]

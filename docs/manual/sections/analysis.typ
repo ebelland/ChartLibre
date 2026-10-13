@@ -2,7 +2,7 @@
 
 = Analysis <analysis-chapter>
 
-Where a data operation works on the series of a chart, an *analysis* works on the columns of a table: you say which column is the response and which ones might explain it, and it fits a model of the whole table. The *Analysis* page of the navigation rail lists them; each opens on the table selected in the Tables page.
+Where a data operation works on the series of a chart, an *analysis* works on the columns of a table: you say which column is the response and which ones might explain it, and it fits a model of the whole table. The *Analysis* page of the navigation rail lists them; each opens on the table selected in the Tables page. Each names, under *Computed with*, the library functions that fit it, linked to their documentation.
 
 == How every analysis window works
 
@@ -14,10 +14,10 @@ Where a data operation works on the series of a chart, an *analysis* works on th
 == The analyses
 
 #defs(
-  [*Fit Model*], [A linear model of one or more responses on the effects you build from the columns (main effects, factorial, response surface). Its *personality* says how: *Standard Least Squares*, *Stepwise* (backward or forward), *Generalized Linear Model* (normal, binomial, Poisson, gamma), *Nominal* or *Ordinal Logistic* for a categorical Y, and *Generalized Regression* — Lasso, Ridge or Elastic Net, the penalty chosen by cross-validation, for many factors or factors that move together. Effect tests, estimates, the prediction profile; for a logistic fit the ROC curve, its AUC and the confusion matrix.],
-  [*Partition*], [A decision tree of one response on many factors, as JMP's: *Split* and *Prune* one step at a time, or *Automatic* on validation rows; or a *Bootstrap Forest* or a *Boosted Tree*. Leaves and their rules, column contributions, and for any of the three the *permutation importance* (how much the fit drops when a column is shuffled) and *partial dependence* (the predicted response as one factor varies); for a nominal Y the ROC curve.],
-  [*Discriminant*], [Which group a row belongs to, from continuous measures: linear or quadratic, with Wilks' lambda, the canonical analysis and plot, and each row's predicted group and probabilities.],
-  [*Partial Least Squares*], [A response from many X that move together — the wavelengths of a spectrum — through a few components, their number chosen by cross-validation; the variables' importance (VIP), loadings, coefficients and scores.],
+  [*Fit Model*], [A linear model of one or more responses on the effects you build from the columns (main effects, factorial, response surface). Its *personality* says how: *Standard Least Squares*, *Stepwise* (backward or forward), *Generalized Linear Model* (normal, binomial, Poisson, gamma), *Nominal* or *Ordinal Logistic* for a categorical Y, and *Generalized Regression* — Lasso, Ridge or Elastic Net, the penalty chosen by cross-validation, for many factors or factors that move together. Effect tests, estimates, the prediction profile; for a logistic fit the ROC curve, its AUC and the confusion matrix. #refs("statsmodels.formula.api.ols", "statsmodels.formula.api.glm", "statsmodels.discrete.discrete_model.Logit", "statsmodels.discrete.discrete_model.MNLogit", "statsmodels.miscmodels.ordinal_model.OrderedModel", "sklearn.linear_model.LassoCV", "sklearn.linear_model.RidgeCV", "sklearn.linear_model.ElasticNetCV", "sklearn.metrics.roc_curve")],
+  [*Partition*], [A decision tree of one response on many factors, as JMP's: *Split* and *Prune* one step at a time, or *Automatic* on validation rows; or a *Bootstrap Forest* or a *Boosted Tree*. Leaves and their rules, column contributions, and for any of the three the *permutation importance* (how much the fit drops when a column is shuffled) and *partial dependence* (the predicted response as one factor varies); for a nominal Y the ROC curve. #refs("sklearn.tree.DecisionTreeRegressor", "sklearn.tree.DecisionTreeClassifier", "sklearn.ensemble.RandomForestRegressor", "sklearn.ensemble.GradientBoostingRegressor", "sklearn.metrics.roc_auc_score")],
+  [*Discriminant*], [Which group a row belongs to, from continuous measures: linear or quadratic, with Wilks' lambda, the canonical analysis and plot, and each row's predicted group and probabilities. #refs("scipy.linalg.eigh", "scipy.linalg.cholesky", "scipy.stats.f")],
+  [*Partial Least Squares*], [A response from many X that move together — the wavelengths of a spectrum — through a few components, their number chosen by cross-validation; the variables' importance (VIP), loadings, coefficients and scores. #refs("sklearn.cross_decomposition.PLSRegression", "sklearn.model_selection.KFold")],
 )
 
 == Guided analysis <guided-analysis>
@@ -34,6 +34,8 @@ Where a data operation works on the series of a chart, an *analysis* works on th
   - *Are there differences?* — is a measure different from one group to another (t-test or ANOVA, Mann-Whitney or Kruskal-Wallis, chi-squared or Fisher, as the data call for);
   - *What has the most impact?* — the factors ranked by how much they matter for a result (a random forest on rows it had not seen, with a linear model's p-values);
   - *Has it changed over time?* — a steady trend (Mann-Kendall, Sen's slope) or a sudden change (Pettitt), whichever the values show.
+  #refs("scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu", "scipy.stats.kruskal", "scipy.stats.tukey_hsd", "scipy.stats.chi2_contingency", "scipy.stats.fisher_exact", "sklearn.ensemble.RandomForestRegressor", "statsmodels.stats.anova.anova_lm", "scipy.stats.theilslopes")
+
   Above them, questions asked of the selected table itself — "Does “weight” change between the groups of “line”?" — open the answer with its columns already chosen.
 - *What do you want to do?* lists goals — describe, compare, relate, explain, predict, monitor… With *Y* and *X* chosen from the table, *Open* starts the suggested analysis or chart with them cast. Suggestions the table cannot feed come last, greyed, saying what they lack.
 

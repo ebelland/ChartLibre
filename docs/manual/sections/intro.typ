@@ -2,7 +2,8 @@
 
 = Introduction
 
-ChartLibre is a desktop application for Windows, macOS and Linux for importing tabular data, querying it with SQL, analysing it and turning it into scientific charts — from histograms to survival curves and 3D surfaces — without writing code. It is free and open source (MIT licence). It was written mostly by Claude, Anthropic's AI model, in conversation with its author, who designed it, set its direction and tested it. It is young software: test it on your own data before relying on it.
+ChartLibre is a desktop application for Windows and macOS for importing tabular data, querying it with SQL, analysing it and turning it into scientific charts — from histograms to survival curves and 3D surfaces — without writing code. It is free and open source (MIT licence). It was written mostly by Claude, Anthropic's AI model, in conversation with its author, who designed it, set its direction and tested it. It is young software: test it on your own data before relying on it.
+It should also work under Linux but it has never been tested.
 
 == What it does
 

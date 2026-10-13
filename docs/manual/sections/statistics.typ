@@ -33,6 +33,7 @@ These models read the numeric values of each ticked series (its `y`, or its `val
 For each series: count, mean, trimmed mean, geometric and harmonic means (for positive data), median, mode and how often it occurs, standard deviation, variance, standard error of the mean, minimum, quartiles, maximum, range, interquartile range, median absolute deviation, skewness, kurtosis, entropy, and the 95% confidence interval of the mean.
 
 *Charts:* Histogram, ECDF.
+#refs("scipy.stats.sem", "scipy.stats.skew", "scipy.stats.kurtosis", "scipy.stats.iqr", "scipy.stats.median_abs_deviation", "scipy.stats.trim_mean", "scipy.stats.gmean", "scipy.stats.hmean", "scipy.stats.mode")
 
 === One-sample tests
 Is the centre of the series equal to the reference value?
@@ -42,6 +43,7 @@ Is the centre of the series equal to the reference value?
   [*Sign test*], [Counts values above and below the reference. Assumes almost nothing; least powerful.],
 )
 *Charts:* Histogram, ECDF.
+#refs("scipy.stats.ttest_1samp", "scipy.stats.wilcoxon", "scipy.stats.binomtest")
 
 === Normality / shape tests
 Does the series look like a sample from a normal distribution?
@@ -56,6 +58,7 @@ Does the series look like a sample from a normal distribution?
 With thousands of values, every test rejects normality for tiny departures that do not matter in practice; with ten values, none of them can detect much. Look at the Q-Q plot as well.
 
 *Charts:* Histogram, ECDF, *Q-Q Plot*, *P-P Plot*.
+#refs("scipy.stats.shapiro", "scipy.stats.anderson", "scipy.stats.normaltest", "scipy.stats.jarque_bera", "scipy.stats.kstest", "scipy.stats.skewtest", "scipy.stats.kurtosistest")
 
 === Paired-sample tests
 For two series measured on the *same units* — before and after on the same parts, two instruments on the same samples. Values are paired by row (or by matching x). For every pair of ticked series:
@@ -65,6 +68,7 @@ For two series measured on the *same units* — before and after on the same par
   [*Sign test*], [Counts which of the two is larger in each pair.],
 )
 *Chart:* Scatter Plot of one series against the other.
+#refs("scipy.stats.ttest_rel", "scipy.stats.wilcoxon")
 
 === Independent-sample tests
 For two groups of *different units* — parts from two machines, patients in two arms. For every pair of ticked series:
@@ -76,6 +80,7 @@ For two groups of *different units* — parts from two machines, patients in two
   [*Difference of means* and *Cohen's d*], [The size of the difference in standard deviations (about 0.2 small, 0.5 medium, 0.8 large).],
 )
 *Chart:* Box Plot.
+#refs("scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu", "scipy.stats.levene")
 
 === Group comparison (ANOVA)
 All ticked series together, as groups:
@@ -87,16 +92,19 @@ All ticked series together, as groups:
   [*Tukey's HSD*], [Which pairs differ: every pair with its difference, adjusted p-value and 95% interval, so that testing many pairs does not inflate false positives.],
 )
 *Chart:* Box Plot.
+#refs("scipy.stats.f_oneway", "scipy.stats.kruskal", "scipy.stats.tukey_hsd")
 
 === Correlation / association
 For every pair of ticked series, paired by row: *Pearson* r (linear association), *Spearman* ρ (monotone association, by rank), *Kendall* τ (rank agreement, robust for small samples) and the least-squares *regression slope*. Correlation measures association, not cause.
 
 *Chart:* Scatter Plot.
+#refs("scipy.stats.pearsonr", "scipy.stats.spearmanr", "scipy.stats.kendalltau", "scipy.stats.linregress")
 
 === Distribution fit
 Fits candidate distributions (normal, lognormal, gamma, Weibull, exponential, ...) to each series by maximum likelihood and ranks them by AIC, BIC or the KS statistic, with their fitted parameters. AIC is the default because the KS statistic alone always favours distributions with more parameters.
 
 *Chart:* Histogram with the chosen fitted distribution — *best fit* follows whichever candidate ranks first.
+#refs("scipy.stats.rv_continuous.fit", "scipy.stats.kstest")
 
 == Models on tables
 
@@ -115,6 +123,7 @@ The report shows the table of counts with its totals, then:
   [*Cramér's V*], [The strength of the association, from 0 (none) to 1 (complete).],
 )
 *Chart:* Mosaic Plot — shade by Pearson residual to see which cells drive the result.
+#refs("scipy.stats.chi2_contingency", "scipy.stats.fisher_exact")
 
 === Two-way ANOVA
 Do two factors affect a response, and does the effect of one depend on the other?
@@ -125,6 +134,7 @@ The ANOVA table has one row for each factor, one for their *interaction* and one
 Read the interaction first: if it is significant, the effect of one factor depends on the level of the other, and the main effects alone do not tell the whole story.
 
 *Chart:* Interaction Plot.
+#refs("statsmodels.formula.api.ols", "statsmodels.stats.anova.anova_lm")
 
 === Survival (Kaplan-Meier, log-rank)
 How long until an event, when some cases have not had it yet?
