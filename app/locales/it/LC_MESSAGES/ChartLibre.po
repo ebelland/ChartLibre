@@ -8673,3 +8673,75 @@ msgstr "Condivisi:"
 
 msgid "none"
 msgstr "nessuno"
+
+msgid "Canonical analysis"
+msgstr "Analisi canonica"
+
+msgid "Canonical plot"
+msgstr "Grafico canonico"
+
+msgid "Canonical scores by {response}"
+msgstr "Punteggi canonici per {response}"
+
+msgid "Confusion matrix"
+msgstr "Matrice di confusione"
+
+msgid "Group means"
+msgstr "Medie dei gruppi"
+
+msgid "Standardized canonical coefficients"
+msgstr "Coefficienti canonici standardizzati"
+
+msgid "Discriminant"
+msgstr "Discriminante"
+
+msgid "Which group a row belongs to, from continuous measures: linear or quadratic discriminant analysis, canonical plot, Wilks' lambda and the misclassified rows."
+msgstr "A quale gruppo appartiene una riga, da misure continue: analisi discriminante lineare o quadratica, grafico canonico, lambda di Wilks e righe classificate male."
+
+msgid "Y, group"
+msgstr "Y, gruppo"
+
+msgid "The column whose groups the rows are classified into."
+msgstr "La colonna nei cui gruppi vengono classificate le righe."
+
+msgid "X, covariates"
+msgstr "X, covariate"
+
+msgid "The continuous measures that tell the groups apart."
+msgstr "Le misure continue che distinguono i gruppi."
+
+msgid "Linear: the groups share one covariance, the boundaries are planes. Quadratic: each group has its own, the boundaries curve; it needs more rows."
+msgstr "Lineare: i gruppi condividono una covarianza, i confini sono piani. Quadratica: ogni gruppo ha la sua, i confini si curvano; servono più righe."
+
+msgid "Prior probabilities:"
+msgstr "Probabilità a priori:"
+
+msgid "How likely each group is before the measures are seen: its share of the rows, or the same for every group."
+msgstr "Quanto è probabile ogni gruppo prima di vedere le misure: la sua quota di righe, o la stessa per tutti i gruppi."
+
+msgid "Linear (common covariance)"
+msgstr "Lineare (covarianza comune)"
+
+msgid "Quadratic (own covariance)"
+msgstr "Quadratica (covarianza propria)"
+
+msgid "Proportional to the groups"
+msgstr "Proporzionali ai gruppi"
+
+msgid "Misclassified"
+msgstr "Classificate male"
+
+msgid "Misclassification rate"
+msgstr "Tasso di errata classificazione"
+
+msgid "Wilks' lambda"
+msgstr "Lambda di Wilks"
+
+msgid "Approx. F"
+msgstr "F approssimato"
+
+msgid "DF num"
+msgstr "GdL num"
+
+msgid "DF den"
+msgstr "GdL den"
