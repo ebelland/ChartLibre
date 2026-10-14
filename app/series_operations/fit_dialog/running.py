@@ -91,6 +91,7 @@ class FitRunMixin:
             optimise=optimise,
             sigma=clean["sigma"].to_numpy(float) if "sigma" in clean.columns else None,
             global_parts=global_parts,
+            separate=global_parts is not None and not self._fit_is_global(),
         )
 
     def _weights_key(self) -> str:

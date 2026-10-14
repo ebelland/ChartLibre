@@ -14,6 +14,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from scipy import stats
@@ -327,6 +328,87 @@ def global_model(model: Model, layout: GlobalLayout) -> Model:
         return out
 
     return combined
+
+
+def fit_separately(
+    model: Model,
+    layout: GlobalLayout,
+    x: np.ndarray,
+    target: np.ndarray,
+    p0: np.ndarray,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    fixed: np.ndarray,
+    sigma: np.ndarray | None = None,
+    **options: Any,
+) -> tuple[CurveFit, list[CurveFit]]:
+    """Fit every series of a stacked (x, series) dataset on its own.
+
+    *layout* has no shared parameter, so a series' parameters are its own
+    entries of the global vector (``layout.index[series]``). Each series gets
+    its own fit - with its own residual variance, degrees of freedom and
+    errors, which a global fit would pool - and the returned CurveFit is the
+    same fits laid out as the global vector and the stacked points, which is
+    what the dialog's table and its bookkeeping hold. Also returned: the
+    per-series fits, in series order.
+    """
+    if any(layout.shared):
+        raise ValueError("fit_separately needs a layout with no shared parameter.")
+    x = np.asarray(x, dtype=float)
+    target = np.asarray(target, dtype=float)
+    series_of_point = x[:, 1].astype(int)
+    index = layout.index
+    parts: list[CurveFit] = []
+    for number in range(layout.n_series):
+        mask = series_of_point == number
+        entries = index[number]
+        parts.append(
+            fit_curve(
+                model,
+                x[mask, 0],
+                target[mask],
+                np.asarray(p0, dtype=float)[entries],
+                np.asarray(lower, dtype=float)[entries],
+                np.asarray(upper, dtype=float)[entries],
+                np.asarray(fixed, dtype=bool)[entries],
+                sigma=None if sigma is None else np.asarray(sigma, dtype=float)[mask],
+                **options,
+            )
+        )
+
+    def stacked(name: str) -> np.ndarray:
+        return layout.expand(np.vstack([getattr(part, name) for part in parts]))
+
+    size = layout.size
+    cov = np.zeros((size, size))
+    corr = np.zeros((size, size))
+    for number, part in enumerate(parts):
+        square = np.ix_(index[number], index[number])
+        cov[square] = part.cov
+        corr[square] = part.corr
+    fit_values = np.empty(target.size)
+    residual = np.empty(target.size)
+    for number, part in enumerate(parts):
+        mask = series_of_point == number
+        fit_values[mask] = part.fit_values
+        residual[mask] = part.residual
+    combined = CurveFit(
+        params=stacked("params"),
+        std=stacked("std"),
+        cov=cov,
+        corr=corr,
+        fit_values=fit_values,
+        residual=residual,
+        metrics={},
+        success=all(part.success for part in parts),
+        message="; ".join(part.message for part in parts),
+        dof=sum(part.dof for part in parts),
+        tvalues=stacked("tvalues"),
+        pvalues=stacked("pvalues"),
+        ci_low=stacked("ci_low"),
+        ci_high=stacked("ci_high"),
+    )
+    return combined, parts
 
 
 def linear_basis(model: Model, x: np.ndarray, n_params: int) -> np.ndarray | None:

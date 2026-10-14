@@ -501,8 +501,14 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                     scatter_kwargs.pop("vmin", None)
                     scatter_kwargs.pop("vmax", None)
 
-                # A size column wins; otherwise the "s" option (already in
-                # scatter_kwargs when set) or Matplotlib's own default.
+                # A size column wins; then the series' own "s", then the
+                # axis' (already in scatter_kwargs when set), then Matplotlib's.
+                series_area = style.get("s")
+                if series_area not in (None, ""):
+                    try:
+                        scatter_kwargs["s"] = float(series_area)
+                    except (TypeError, ValueError):
+                        applogger.warning("Series '%s': s=%r is not a number; ignored.", sd.name, series_area)
                 if size_values is not None:
                     scatter_kwargs["s"] = size_values
 

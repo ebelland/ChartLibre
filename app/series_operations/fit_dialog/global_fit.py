@@ -240,13 +240,18 @@ class GlobalFitMixin:
             mask = series_of_point == number
             target = job.target[mask]
             fit_values = outcome.fit_values[mask]
-            metrics = fit_engine.fit_metrics(target, fit_values, int(np.count_nonzero(~job.fixed[index])))
-            # Bands use the fit's pooled residual variance, the one its errors come from.
-            if "reduced_chi2" in outcome.metrics:
-                metrics["reduced_chi2"] = outcome.metrics["reduced_chi2"]
-            for key in ("chi2", "chi2_reduced"):
-                if key in outcome.metrics:
-                    metrics[f"global_{key}"] = outcome.metrics[key]
+            if job.parts is not None:
+                # Fitted on its own: its own metrics, errors and degrees of freedom.
+                own = job.parts[number]
+                metrics = dict(own.metrics)
+            else:
+                metrics = fit_engine.fit_metrics(target, fit_values, int(np.count_nonzero(~job.fixed[index])))
+                # Bands use the fit's pooled residual variance, the one its errors come from.
+                if "reduced_chi2" in outcome.metrics:
+                    metrics["reduced_chi2"] = outcome.metrics["reduced_chi2"]
+                for key in ("chi2", "chi2_reduced"):
+                    if key in outcome.metrics:
+                        metrics[f"global_{key}"] = outcome.metrics[key]
             square = np.ix_(index, index)
             part_job = replace(
                 job,
@@ -264,6 +269,10 @@ class GlobalFitMixin:
                 sigma=None if job.sigma is None else job.sigma[mask],
                 global_parts=None,
             )
+            if job.parts is not None:
+                part = replace(job.parts[number], message=f"{note}. {job.parts[number].message}")
+                parts.append((part_job, part))
+                continue
             part = fit_engine.CurveFit(
                 params=outcome.params[index],
                 std=outcome.std[index],

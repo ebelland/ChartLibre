@@ -9135,3 +9135,24 @@ msgstr "Curva ROC (Y a categorie)"
 
 msgid "ROC curve (nominal Y)"
 msgstr "Curva ROC (Y nominale)"
+
+msgid "Global fit"
+msgstr "Fit globale"
+
+msgid "Each curve separately"
+msgstr "Ogni curva separatamente"
+
+msgid "Global: one fit of all the checked series, with the parameters picked in Shared having one value for all. Separately: every series gets its own parameters and result."
+msgstr "Globale: un solo fit di tutte le serie spuntate, con un valore unico per i parametri scelti in Condivisi. Separatamente: ogni serie ha i propri parametri e il proprio risultato."
+
+msgid "Each of {count} series fitted separately"
+msgstr "Ognuna delle {count} serie adattata separatamente"
+
+msgid "Ubuntu Native"
+msgstr "Ubuntu nativo"
+
+msgid "Pick a .mplstyle file from the mplstyles folder"
+msgstr "Scegli un file .mplstyle dalla cartella mplstyles"
+
+msgid "Use the {name} style"
+msgstr "Usa lo stile {name}"

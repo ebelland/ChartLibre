@@ -112,9 +112,33 @@ class _FitJob:
     sigma: np.ndarray | None = None
     #: A global fit's (model of one series, GlobalLayout, series names); see global_fit.py.
     global_parts: tuple | None = None
+    #: Fit every series of a global job on its own (no parameter is shared).
+    separate: bool = False
+    #: The per-series fits of a separate job, filled by :meth:`run`.
+    parts: list[fit_engine.CurveFit] | None = None
 
     def run(self, should_stop: Callable[[], bool] | None = None) -> fit_engine.CurveFit:
         """The calculation alone - no Qt, safe on a worker thread."""
+        if self.separate and self.global_parts is not None:
+            base_model, layout, _names = self.global_parts
+            outcome, self.parts = fit_engine.fit_separately(
+                base_model,
+                layout,
+                self.x,
+                self.target,
+                self.p0,
+                self.lower,
+                self.upper,
+                self.fixed,
+                sigma=self.sigma,
+                optimise=self.optimise,
+                optimizer=self.optimizer,
+                loss=self.loss,
+                max_nfev=self.max_nfev,
+                weighted=self.weighted,
+                should_stop=should_stop,
+            )
+            return outcome
         return fit_engine.fit_curve(
             self.model,
             self.x,
