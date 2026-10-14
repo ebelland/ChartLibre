@@ -41,6 +41,7 @@ from app.widgets.chart_panel import ChartPanel
 from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
 from app.widgets.analysis_panel import AnalysisPanel
 from app.widgets.guided_panel import GuidedAnalysisPanel
+from app.widgets.catalog_search import CatalogSearch
 from app.scanners.table_operation_scanner import import_class_from_file as import_table_operation
 from app.widgets.recent_projects import RecentProjectsView
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
@@ -235,7 +236,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             shortcut = QShortcut(QKeySequence(keys), self)
             shortcut.activated.connect(lambda s=step: self._step_chart(s))
         # Cmd/Ctrl+K: search everything the application can do, from anywhere.
-        QShortcut(QKeySequence("Ctrl+K"), self).activated.connect(self.open_catalog_palette)
+        QShortcut(QKeySequence("Ctrl+K"), self).activated.connect(self.focus_search)
         self._configure_left_panel()
 
         # Main split: left panel + chart tabs.
@@ -699,6 +700,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         series_operations_panel = self._create_series_operations_page()
         analysis_panel = AnalysisPanel(self)
         analysis_panel.operation_requested.connect(self._on_table_operation_requested)
+        self._rail_search = CatalogSearch(self, collapsed=True, compact=True)
+        self._rail_search.entry_chosen.connect(self.open_catalog_entry)
         guided_panel = GuidedAnalysisPanel(self)
         guided_panel.entry_requested.connect(self.open_catalog_entry)
         guided_panel.question_requested.connect(self._open_catalog_entry_with_columns)
@@ -773,6 +776,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             panel_margins=(SPACING_DEFAULT, 12, SPACING_DEFAULT, SPACING_DEFAULT),
             panel_min_width=PANEL_MIN_WIDTH,
         )
+        # The search sits in the rail under Workspace; its matches list under it while typing.
+        navigation.set_row_widget("workspace", self._rail_search)
         navigation.action_clicked.connect(self._on_navigation_action)
         navigation.panel_changed.connect(self._on_navigation_panel_changed)
         navigation.bar_hidden_changed.connect(self._on_bar_hidden_changed)
@@ -1167,16 +1172,15 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             self._reload_tabs(select_figure_id=result.figure_id if result is not None else None)
 
     # ------------------------------------------------------------------
-    # Search (the Analysis panel's Search frame, Cmd/Ctrl+K)
+    # Search (the field in the rail, Cmd/Ctrl+K)
     # ------------------------------------------------------------------
 
-    def open_catalog_palette(self) -> None:
-        """The search in a window of its own; what is chosen there opens."""
-        from app.widgets.catalog_search import CatalogPalette
-
-        palette = CatalogPalette(self)
-        if palette.exec() and palette.chosen is not None:
-            self.open_catalog_entry(palette.chosen)
+    def focus_search(self) -> None:
+        """Put the cursor in the rail's search field, expanding the rail when it shows icons only."""
+        if self._left_panel.compact:
+            self._left_panel.set_compact(False)
+        self._rail_search.field.setFocus()
+        self._rail_search.field.selectAll()
 
     def _open_catalog_entry_with_columns(self, entry, roles: dict, kinds: dict) -> None:
         """Open what the guided analysis chose with its columns: cast into an analysis, or a chart on them."""

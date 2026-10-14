@@ -262,6 +262,8 @@ class NavigationBar(QWidget):
         self._selected_key: str | None = None
         self._buttons: dict[str, QToolButton] = {}
         self._items: dict[str, NavBarItem] = {}
+        #: Widgets set in the rail under a row (a search field), by that row's key.
+        self._row_widgets: dict[str, QWidget] = {}
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -363,6 +365,15 @@ class NavigationBar(QWidget):
             self._selected_key = None
             self.set_panel_visible(False)
 
+    def set_row_widget(self, key: str, widget: QWidget) -> None:
+        """Put *widget* in the rail right under the row *key*; shown while the rail has its labels."""
+        self._row_widgets[key] = widget
+        self._rebuild()
+
+    @property
+    def compact(self) -> bool:
+        return self._compact
+
     def set_section(self, title: str, items: NavBarItems) -> None:
         """Create or replace one section, for example the current chart list."""
         sections = self.sections()
@@ -442,7 +453,7 @@ class NavigationBar(QWidget):
             if item is None:
                 continue
             widget = item.widget()
-            if isinstance(widget, QLabel):
+            if isinstance(widget, QLabel) or widget in self._row_widgets.values():
                 widget.setVisible(not compact)
         moved = self.visible_bar_width - before
         self._restore_width = max(self._restore_width + moved, self._panel_min_width + self.visible_bar_width)
@@ -539,7 +550,8 @@ class NavigationBar(QWidget):
                 # Hidden now: deleteLater waits for the event loop, and until
                 # then the old row would still be drawn under the new one.
                 widget.hide()
-                widget.deleteLater()
+                if widget not in self._row_widgets.values():
+                    widget.deleteLater()
 
         for button in self._buttons.values():
             self._button_group.removeButton(button)
@@ -562,6 +574,11 @@ class NavigationBar(QWidget):
                 self._buttons[key] = button
                 self._button_group.addButton(button)
                 self._section_layout.addWidget(button)
+                extra = self._row_widgets.get(key)
+                if extra is not None:
+                    extra.setParent(self._section_widget)
+                    self._section_layout.addWidget(extra)
+                    extra.setVisible(not self._compact)
                 if nav_item.panel is not None:
                     new_panels.add(nav_item.panel)
                     if self.panel_stack.indexOf(nav_item.panel) < 0:

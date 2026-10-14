@@ -97,7 +97,11 @@ class MainWindowMenus:
                         [action_menu_item("settings", self._on_settings)]
                         if IS_MACOS else []
                     ),
-                    action_menu_item("search_functions", self.open_catalog_palette),
+                    # Elsewhere the rail's Search row (below Workspace) is the way.
+                    *(
+                        [action_menu_item("search_functions", self.focus_search)]
+                        if IS_MACOS else []
+                    ),
                     action_menu_item("user_manual", self._on_user_manual),
                     None,
                     action_menu_item("credits", self._on_credits),

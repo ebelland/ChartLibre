@@ -1,12 +1,11 @@
-"""The Guided analysis panel (navigation rail): search, goals, suggestions.
+"""The Guided analysis panel (navigation rail): quick answers, goals, suggestions.
 
 For someone who knows what they want to find out but not the name of the
-function that does it: a search over everything the application does (the
-same as Cmd/Ctrl+K), then the goals in everyday words
+function that does it: the goals in everyday words
 (app.analysis.catalog.GOALS) with what the response is, and what fits them
 (catalog.GUIDE), best first, each with why and an Open button.
 
-Whatever is chosen - a search result or a suggestion - is emitted by
+Whatever is chosen - a quick answer or a suggestion - is emitted by
 :attr:`GuidedAnalysisPanel.entry_requested`; the main window opens it.
 
 It follows the table selected in the Tables panel (set_table): it says what
@@ -43,7 +42,7 @@ from app.styles.style import CardFrame, stdSizeAndlayout
 from app.table_operations import table_profile
 from app.table_operations.table_profile import TableProfile
 from app.utils.i18n import _
-from app.widgets.catalog_search import CatalogSearch, entry_icon
+from app.widgets.catalog_search import entry_icon
 from app.widgets.nav_bar import NavPanel
 
 _GOAL_ROLE = Qt.ItemDataRole.UserRole
@@ -51,7 +50,7 @@ _ROW_HEIGHT = 24
 
 
 class GuidedAnalysisPanel(NavPanel):
-    """Search, then goal and response type, then the suggestions."""
+    """Quick answers, then goal and response type, then the suggestions."""
 
     #: A catalogue entry to open (app.analysis.catalog.CatalogEntry).
     entry_requested = Signal(object)
@@ -70,10 +69,6 @@ class GuidedAnalysisPanel(NavPanel):
         self._table_label.setWordWrap(True)
         self._table_label.setProperty("muted", True)
         self.add_frame(_("Table"), self._table_label, object_name="guidedTableFrame")
-
-        self.search = CatalogSearch(self, self._entries, collapsed=True)
-        self.search.entry_chosen.connect(self.entry_requested)
-        self.add_frame(_("Search"), self.search, object_name="guidedSearchFrame")
 
         # The questions a non-statistician asks, each a button that opens its quick answer.
         quick = [entry for entry in self._entries if entry.kind == catalog.ANALYSIS

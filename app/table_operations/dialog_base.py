@@ -206,6 +206,7 @@ class TableOperationDialogBase(QDialog):
         if self.PARAMS:
             self._parameter_form = ParameterForm(self.PARAMS, self, on_change=self.inputs_changed)
             parameters = TitledCard(self._inputs_panel, _("Parameters"))
+            parameters.title_label.hide()  # the tab says it, as in the series operations
             parameters.card.layout().addWidget(self._parameter_form.widget)
             self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(parameters)
         self.roles_widget.finish_tabs()

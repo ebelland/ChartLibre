@@ -203,7 +203,7 @@ class FitModelDialog(TableOperationDialogBase):
         self._doc_link.setWordWrap(True)
         # Tabs beside the columns (the roles are under them): the effects built
         # from the columns, the model's settings, the charts.
-        self.roles_widget.tabs.setTabText(0, _("Effects"))
+        self.roles_widget.rename_extra_tab(_("Effects"))
         model = TitledCard(self, _("Personality"))
         model_layout = model.card.layout()
         model_layout.addLayout(form)

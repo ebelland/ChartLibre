@@ -58,13 +58,14 @@ def test_return_in_the_field_chooses_the_best_match_and_the_arrows_another(qapp)
     assert chosen == [first, second]
 
 
-def test_the_guided_panel_searches_and_opens_what_is_found(qapp) -> None:
-    panel = GuidedAnalysisPanel()
+def test_the_rail_search_opens_what_is_found_and_clears_its_field(qapp) -> None:
+    search = CatalogSearch(collapsed=True, compact=True)
     found = []
-    panel.entry_requested.connect(found.append)
-    panel.search.field.setText("fit model")
-    QTest.keyClick(panel.search.field, Qt.Key.Key_Return)
+    search.entry_chosen.connect(found.append)
+    search.field.setText("fit model")
+    QTest.keyClick(search.field, Qt.Key.Key_Return)
     assert [entry.name for entry in found] == ["Fit Model"]
+    assert search.field.text() == ""
 
 
 def test_every_equivalent_opens_something_and_its_words_find_it() -> None:

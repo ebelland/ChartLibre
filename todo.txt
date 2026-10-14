@@ -1,11 +1,11 @@
 ChartLibre TODO - updated 2026-10-12
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 92096 lines in 248 files; tests 16,866 lines in 132 files (updated at each commit).
+Size: app 92,085 lines in 248 files; tests 16,867 lines in 132 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
-P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
-P0-3: move search below workspace in NavBar using the same "temporary" list. Windows: remove from help.Rmove the dialog
+DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
+DONE P0-3: move search below workspace in NavBar using the same "temporary" list. Windows: remove from help.Rmove the dialog
 DONE P0-4: Windows: cannot resize by dragging bottom right corner.
 DONE P0-5: Chart Properties. FIgure. Name and notes in the same frame to save space.
 P0-6 (partly): Chart Properties. FIgure. Reorganize on two columns to save space. Name+notes merged, style buttons 2x2; Figure options still drops to one column below ~370 px (its combos need 98 px each).

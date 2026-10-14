@@ -130,7 +130,7 @@ class ColumnRolesWidget(QWidget):
         layout.setSpacing(10)
 
         # Titled frames, as everywhere else in the application: the columns
-        # on the left, the roles - and what the operation adds - beside them.
+        # and the roles on the first tab, what the operation adds on the next.
         columns_card = TitledCard(self, _("Select Columns"))
         columns = columns_card.card.layout()
         assert isinstance(columns, QVBoxLayout)
@@ -165,22 +165,7 @@ class ColumnRolesWidget(QWidget):
         columns_card.layout().setStretchFactor(columns_card.card, 1)
 
 
-        left = QVBoxLayout()
-        # No margins of its own: the style's default would drop the columns'
-        # title below the results' and the roles' beside it.
-        left.setContentsMargins(0, 0, 0, 0)
-        left.setSpacing(10)
-        left.addWidget(columns_card, 1)
-        #: Where the operation adds frames under the columns: a model's charts.
-        self.column_layout = left
-        left_widget = QWidget(self)
-        left_widget.setLayout(left)
-        self._left_widget = left_widget
         self._columns_card = columns_card
-        # Narrow: column names are short, the report beside wants the room.
-        left_widget.setMinimumWidth(170)
-        left_widget.setMaximumWidth(230)
-        layout.addWidget(left_widget)
 
         roles_card = TitledCard(self, _("Pick Role Variables"))
         self._roles_card = roles_card
@@ -207,9 +192,10 @@ class ColumnRolesWidget(QWidget):
         assert roles_layout is not None
         roles_layout.addLayout(right)
 
-        # Beside the columns, tabs: the roles first, then whatever the
-        # operation adds (a model's settings, its charts) - one page of all of
-        # it is taller than a laptop's screen.
+        # Tabs, as the series operations' dialogs: the data first (the
+        # columns and their roles), then whatever the operation adds (a
+        # model's settings, its charts) - one page of all of it is taller
+        # than a laptop's screen.
         self.tabs = QTabWidget(self)
         self.tabs.setObjectName("operationTabs")
         self.tabs.setDocumentMode(True)
@@ -218,10 +204,15 @@ class ColumnRolesWidget(QWidget):
         self.tabs.tabBar().setExpanding(False)
         self.tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._tab_layouts: dict[str, QVBoxLayout] = {}
+        data = self.add_tab(_("Data"))
+        # The Data tab says it, as in the series operations: no titles above the frames.
+        columns_card.title_label.hide()
+        roles_card.title_label.hide()
+        data.addWidget(columns_card, 1)
+        data.addWidget(roles_card, 0)
+        #: Where the operation adds its own frames, on the tab after Data: a
+        #: model's effects.
         side = self.add_tab(_("Roles"))
-        side.addWidget(roles_card)
-        #: Where the operation adds its own frames, under the roles: a model's
-        #: effects.
         self.side_layout = side
         layout.addWidget(self.tabs, 1)
 
@@ -258,23 +249,16 @@ class ColumnRolesWidget(QWidget):
             if not any(page_layout.stretch(i) for i in range(page_layout.count())):
                 page_layout.addStretch(1)
         self.tabs.setTabBarAutoHide(True)
-        # The roles always go under the columns, whose list gets shorter to
-        # leave them room: choosing a column and giving it a role is one gesture.
-        # The roles' tab keeps what the operation added there (a model's
-        # effects) or, with nothing else on it, goes; with no tab left the
-        # middle column goes too.
-        rows_height = max(self._column_list.fontMetrics().height() + 4, 18)
-        self._column_list.setMaximumHeight(8 * rows_height)
-        self.column_layout.setStretchFactor(self._columns_card, 0)
-        self.column_layout.addWidget(self._roles_card, 0)
-        self.column_layout.addStretch(1)
-        self._left_widget.setMaximumWidth(300)
+        # The operation's own tab goes when it added nothing to it, and the
+        # bar with it when Data is all there is.
         roles_page = self._tab_layouts.get(_("Roles"))
         if roles_page is not None and not any(
                 roles_page.itemAt(i).widget() is not None for i in range(roles_page.count())):
-            self.tabs.removeTab(0)  # the roles' tab is always the first
-        if self.tabs.count() == 0:
-            self.tabs.hide()
+            self.tabs.removeTab(1)  # Data is always the first
+
+    def rename_extra_tab(self, title: str) -> None:
+        """Name the tab after Data (the operation's own frames, e.g. a model's effects)."""
+        self.tabs.setTabText(1, title)
 
     # -- Content ---------------------------------------------------------
 
