@@ -31,6 +31,9 @@ msgstr "(Standard)"
 msgid "(Embedded style)"
 msgstr "(Eingebetteter Stil)"
 
+msgid "(choose in the window)"
+msgstr "(im Fenster auswählen)"
+
 msgid "(empty)"
 msgstr "(leer)"
 
@@ -207,6 +210,9 @@ msgstr "{orientation} Zeile hinzufügen"
 
 msgid "Additional kwargs editor can be inserted here by the host."
 msgstr "Zusätzlicher kwargs-Editor kann hier vom Host eingefügt werden."
+
+msgid "After"
+msgstr "Nach"
 
 msgid "Algorithm:"
 msgstr "Algorithmus:"
@@ -394,6 +400,9 @@ msgstr "Basis"
 msgid "Batch size for Monte Carlo resampling. Auto lets SciPy choose."
 msgstr "Chargengröße für Monte-Carlo-Resampling. Auto lässt SciPy wählen."
 
+msgid "Before"
+msgstr "Vorher"
+
 msgid "Bessel"
 msgstr "Bessel"
 
@@ -436,6 +445,15 @@ msgstr "Abbrechen"
 msgid "Cancel measurement"
 msgstr "Messung abbrechen"
 
+msgid "Canonical analysis"
+msgstr "Kanonische Analyse"
+
+msgid "Canonical plot"
+msgstr "Kanonische Handlung"
+
+msgid "Canonical scores by {response}"
+msgstr "Kanonische Noten von {response}"
+
 msgid "Cast the columns into their roles, then press Preview."
 msgstr "Übertrage die Spalten in ihre Rollen und drücke dann auf Vorschau."
 
@@ -459,6 +477,9 @@ msgstr "Zentrum"
 
 msgid "Centre line"
 msgstr "Mittellinie"
+
+msgid "Chance"
+msgstr "Chance"
 
 msgid "Change type"
 msgstr "Art der Änderung"
@@ -604,6 +625,9 @@ msgstr "Schließen Sie das Protokoll"
 msgid "Clustering preview"
 msgstr "Clustering-Vorschau"
 
+msgid "Coefficients"
+msgstr "Koeffizienten"
+
 msgid "Color"
 msgstr "Farbe"
 
@@ -639,6 +663,12 @@ msgstr "Komponente 1"
 
 msgid "Component 2"
 msgstr "Komponente 2"
+
+msgid "Components"
+msgstr "Komponenten"
+
+msgid "Confusion matrix"
+msgstr "Verwirrungsmatrix"
 
 msgid "Confusion matrix (training rows)"
 msgstr "Verwirrungsmatrix (Trainingszeilen)"
@@ -765,6 +795,9 @@ msgstr "Credits"
 
 msgid "Cross"
 msgstr "Kreuz"
+
+msgid "Cross-validation"
+msgstr "Kreuzvalidierung"
 
 msgid "Crosshair"
 msgstr "Fadenkreuz"
@@ -1048,8 +1081,8 @@ msgstr "Wirkungsprüfungen"
 msgid "Effects"
 msgstr "Effekte"
 
-msgid "Effects Pareto (LogWorth)"
-msgstr "Effekte Pareto (LogWorth)"
+msgid "Effects Pareto ({measure})"
+msgstr "Effekte Pareto ({measure})"
 
 msgid "Elliptic"
 msgstr "Elliptisch"
@@ -1092,6 +1125,9 @@ msgstr "Schätzung"
 
 msgid "Estimates"
 msgstr "Schätzungen"
+
+msgid "Estimation method:"
+msgstr "Schätzmethode:"
 
 msgid "Estimator"
 msgstr "Schätzer"
@@ -1209,6 +1245,9 @@ msgstr "Faktoren:"
 
 msgid "Failed to load renderer kwargs schema."
 msgstr "Fehler beim Laden des Renderer-kwargs-Schemas."
+
+msgid "False positive rate"
+msgstr "Falsch-Positiv-Rate"
 
 msgid "Family:"
 msgstr "Familie:"
@@ -1417,6 +1456,9 @@ msgstr "Geben Sie jeder Figur des Projekts diesen Stil"
 msgid "Give this figure the look of a saved template; its data, titles and labels stay"
 msgstr "Geben Sie dieser Figur das Aussehen einer gespeicherten Vorlage; ihre Daten, Titel und Beschriftungen bleiben"
 
+msgid "Global fit of {count} series"
+msgstr "Globale Anpassung der {count} -Serie"
+
 msgid "Goodness of fit"
 msgstr "Passformgüte"
 
@@ -1443,6 +1485,9 @@ msgstr "Gruppenvergleich"
 
 msgid "Group comparison (ANOVA)"
 msgstr "Gruppenvergleich (ANOVA)"
+
+msgid "Group means"
+msgstr "Gruppe bedeutet"
 
 msgid "Grow the tree"
 msgstr "Wachsen Sie den Baum"
@@ -1561,6 +1606,12 @@ msgstr "Wie viele Faktoren die Wechselwirkungen des faktoriellen Makros höchste
 msgid "How many scales to evaluate between the longest period the record supports and the Nyquist frequency, spaced logarithmically."
 msgstr "Wie viele Skalen zwischen dem längsten Zeitraum, den der Datensatz unterstützt, und der Nyquist-Frequenz zu bewerten sind, logarithmisch beabstandet."
 
+msgid "How much each point counts. Relative: each residual divided by its value, for data spanning orders of magnitude. Error bars: each residual divided by the series' yerr column - its points' own errors - so a precise point counts more."
+msgstr "Wie viel jeder Punkt zählt. Relativ: jedes Residuum geteilt durch seinen Wert, für Daten, die Größenordnungen überspannen. Fehlerbalken: Jeder Restwert geteilt durch die yerr-Spalte der Serie - die eigenen Fehler der Punkte -, sodass ein genauer Punkt mehr zählt."
+
+msgid "How much the {measure} drops when a column is shuffled, on the {rows} rows - for any model, the forest and the boosted tree included."
+msgstr "Wie viel die {measure} fällt, wenn eine Spalte gemischt wird, auf den {rows} Zeilen - für jedes Modell, den Wald und den verstärkten Baum enthalten."
+
 msgid "How the candidates are ordered. AIC is the default because the KS statistic alone always favours the distributions with the most free parameters, whatever the data really is."
 msgstr "Wie die Kandidaten bestellt werden. AIC ist die Voreinstellung, weil die KS-Statistik allein immer die Verteilungen mit den meisten freien Parametern bevorzugt, was auch immer die Daten wirklich sind."
 
@@ -1572,6 +1623,9 @@ msgstr "Wie die ausgewählten Spalten ein Modell eingeben: als Zahlen oder als B
 
 msgid "How to produce a translated copy of the user manual"
 msgstr "So erstellen Sie eine übersetzte Kopie des Benutzerhandbuchs"
+
+msgid "Impact %"
+msgstr "Auswirkung %"
 
 msgid "Import"
 msgstr "Import"
@@ -1593,6 +1647,9 @@ msgstr "Importieren Sie die Tabelle in die Zwischenablage"
 
 msgid "Import the table on the clipboard with rows and columns swapped - for data copied one series per row"
 msgstr "Importieren Sie die Tabelle in die Zwischenablage mit vertauschten Zeilen und Spalten - für kopierte Daten eine Reihe pro Zeile"
+
+msgid "Importance"
+msgstr "Wichtigkeit"
 
 msgid "In:"
 msgstr "In:"
@@ -1723,6 +1780,9 @@ msgstr "Sprache"
 msgid "Largest lag to keep. 0 keeps every lag."
 msgstr "Größte zu haltende Verzögerung. 0 hält jede Verzögerung."
 
+msgid "Lasso drops the terms that do not help, Ridge shrinks them all, Elastic Net mixes the two; the strength is chosen by cross-validation."
+msgstr "Lasso lässt die Begriffe fallen, die nicht helfen, Ridge schrumpft sie alle, Elastic Net mischt die beiden; die Stärke wird durch Kreuzvalidierung gewählt."
+
 msgid "Last modified:"
 msgstr "Letzte Änderung:"
 
@@ -1833,9 +1893,6 @@ msgstr "Protokoll marginale Wahrscheinlichkeit"
 
 msgid "Log-rank"
 msgstr "Log-Rang"
-
-msgid "LogWorth"
-msgstr "LogWorth"
 
 msgid "Loss:"
 msgstr "Verlust:"
@@ -2164,6 +2221,9 @@ msgstr "Keine Ergebnisse."
 msgid "No settings recorded."
 msgstr "Keine Einstellungen aufgezeichnet."
 
+msgid "No table selected: the suggestions are general."
+msgstr "Keine Tabelle ausgewählt: Die Vorschläge sind allgemein."
+
 msgid "No template saved yet."
 msgstr "Noch keine Vorlage gespeichert."
 
@@ -2215,6 +2275,9 @@ msgstr "Anzahl der generierten Punkte für kontinuierliche Abstandsmodi."
 msgid "Number of knots (for knot-based spline models)."
 msgstr "Anzahl der Knoten (für knotenbasierte Spline-Modelle)."
 
+msgid "Numeric: {measures} · Categories: {groups} · Dates: {times}"
+msgstr "Numerisch: {measures} · Kategorien: {groups} · Daten: {times}"
+
 msgid "OK"
 msgstr "OK"
 
@@ -2238,6 +2301,9 @@ msgstr "Noch eine Trennung: diejenige, die die Antwort am besten trennt."
 
 msgid "One row per distinct combination. None checked: one row of totals."
 msgstr "Eine Reihe pro eindeutiger Kombination. Keine markiert: eine Zeile Summen."
+
+msgid "One value for every series, fitted to all of them together."
+msgstr "Ein Wert für jede Serie, die zu allen zusammen passt."
 
 msgid "One-sample t-test"
 msgstr "Ein-Proben-t-Test"
@@ -2362,6 +2428,9 @@ msgstr "Parameter"
 msgid "Parameters:"
 msgstr "Parameter:"
 
+msgid "Partial dependence on {factor}"
+msgstr "Teilweise Abhängigkeit von {factor}"
+
 msgid "Partition"
 msgstr "Partition"
 
@@ -2391,6 +2460,9 @@ msgstr "Spitzen:"
 
 msgid "Pearson chi-squared"
 msgstr "Pearson Chi-Quadrat"
+
+msgid "Permutation importance"
+msgstr "Permutationswichtigkeit"
 
 msgid "Personality"
 msgstr "Persönlichkeit"
@@ -2527,14 +2599,17 @@ msgstr "Abfrage-Generator"
 msgid "Query name:"
 msgstr "Abfragename:"
 
-msgid "Query settings"
-msgstr "Abfrageeinstellungen"
-
 msgid "Query:"
 msgstr "Abfrage:"
 
 msgid "Quick answers"
 msgstr "Schnelle Antworten"
+
+msgid "RMSECV by number of components"
+msgstr "RMSECV nach Anzahl der Komponenten"
+
+msgid "ROC curve"
+msgstr "ROC-Kurve"
 
 msgid "Random order"
 msgstr "Zufällige Reihenfolge"
@@ -2890,6 +2965,9 @@ msgstr "Skalen:"
 msgid "Scaling:"
 msgstr "Skalierung:"
 
+msgid "Scores"
+msgstr "Punktzahlen"
+
 msgid "Search"
 msgstr "Suchen"
 
@@ -3022,6 +3100,9 @@ msgstr "Teilen"
 msgid "Share the {axis} range with the other axes that share it."
 msgstr "Teile den {axis} -Bereich mit den anderen Achsen, die ihn teilen."
 
+msgid "Shared:"
+msgstr "Geteilt:"
+
 msgid "Shear"
 msgstr "Schere"
 
@@ -3142,6 +3223,9 @@ msgstr "Teilen, während die Validierungszeilen sagen, dass der Baum besser vorh
 msgid "Standard deviation"
 msgstr "Standardabweichung"
 
+msgid "Standardized canonical coefficients"
+msgstr "Standardisierte kanonische Koeffizienten"
+
 msgid "Start measuring the distance and slope to another point."
 msgstr "Beginnen Sie mit der Messung der Entfernung und Neigung zu einem anderen Punkt."
 
@@ -3171,6 +3255,9 @@ msgstr "Stopp"
 
 msgid "Stopped. Nothing was changed."
 msgstr "Angehalten. Es wurde nichts geändert."
+
+msgid "Strings"
+msgstr "Saiten"
 
 msgid "Student t-test (equal variances)"
 msgstr "Student t-Test (gleiche Varianzen)"
@@ -3277,14 +3364,23 @@ msgstr "Die Säule, die die Probengröße (geprüfte Einheiten) an jedem Punkt e
 msgid "The column the operation reads as x; the row number when there is none."
 msgstr "Die Spalte, die der Vorgang als x liest; die Zeilennummer, wenn keine vorhanden ist."
 
+msgid "The column to explain, compare or predict. Its type sets the response above."
+msgstr "Die Spalte zum Erklären, Vergleichen oder Vorhersagen. Sein Typ legt die Antwort oben fest."
+
 msgid "The columns are drawn as a chart of their own, which the operation then runs on."
 msgstr "Die Spalten werden als eigenes Diagramm gezeichnet, auf dem der Vorgang dann abläuft."
+
+msgid "The columns that might explain it, or that group it."
+msgstr "Die Spalten, die es erklären könnten, oder die es gruppieren."
 
 msgid "The demo projects are built from these datasets, saved under dev/demo/sample data/. Thanks to their authors for making them freely available."
 msgstr "Die Demoprojekte werden aus diesen Datensätzen erstellt und unter dev/demo/sample data/gespeichert. Vielen Dank an ihre Autoren, dass sie sie frei verfügbar gemacht haben."
 
 msgid "The dependency list is not available in this build."
 msgstr "Die Abhängigkeitsliste ist in diesem Build nicht verfügbar."
+
+msgid "The factors, most impact first"
+msgstr "Die Faktoren, die meisten Auswirkungen zuerst"
 
 msgid "The field the SQL buttons below act on."
 msgstr "Das Feld, auf das die SQL-Schaltflächen unten wirken."
@@ -3313,6 +3409,9 @@ msgstr "Das Protokoll wurde gelöscht."
 msgid "The measure and the groups must be two different columns."
 msgstr "Das Maß und die Gruppen müssen zwei verschiedene Spalten sein."
 
+msgid "The measure and the time must be two different columns."
+msgstr "Das Maß und die Zeit müssen zwei verschiedene Spalten sein."
+
 msgid "The model has no effects: select columns and press Add."
 msgstr "Das Modell hat keine Auswirkungen: Wählen Sie Spalten aus und drücken Sie Hinzufügen."
 
@@ -3336,6 +3435,9 @@ msgstr "Die Antwort (Y) ist"
 
 msgid "The response's distribution; its canonical link (log for Gamma)."
 msgstr "Die Verteilung der Antwort; ihr kanonischer Link (Protokoll für Gamma)."
+
+msgid "The result cannot also be a factor."
+msgstr "Das Ergebnis kann nicht auch ein Faktor sein."
 
 msgid "The same seed gives the same run order and the same Latin hypercube."
 msgstr "Der gleiche Samen gibt die gleiche Laufreihenfolge und den gleichen lateinischen Hyperwürfel."
@@ -3397,6 +3499,9 @@ msgstr "Die Punkte dieser Oberfläche waren kein vollständiges x/y-Raster, so d
 msgid "This surface's points were not a complete x/y grid, so this level curve was traced on a linearly interpolated one - treat it as approximate."
 msgstr "Die Punkte dieser Oberfläche waren kein vollständiges x/y-Raster, daher wurde diese Pegelkurve auf einem linear interpolierten Raster nachverfolgt - behandeln Sie es als ungefähr."
 
+msgid "This table: {missing}"
+msgstr "Diese Tabelle: {missing}"
+
 msgid "Ticks"
 msgstr "Zecken"
 
@@ -3445,6 +3550,9 @@ msgstr "Übersetzungsdienst"
 msgid "Tree"
 msgstr "Baum"
 
+msgid "Trend"
+msgstr "Trend"
+
 msgid "Trend:"
 msgstr "Trend:"
 
@@ -3453,6 +3561,9 @@ msgstr "Trimmprozentsatz, der für den getrimmten Mittelwert verwendet wird."
 
 msgid "Trimmed mean:"
 msgstr "Beschnittener Mittelwert:"
+
+msgid "True positive rate"
+msgstr "True-Positive-Rate"
 
 msgid "Try every SciPy distribution"
 msgstr "Testen Sie jede SciPy-Distribution"
@@ -3559,6 +3670,15 @@ msgstr "Werte"
 msgid "Values used to evaluate the function. Nothing is fitted here."
 msgstr "Werte, die zur Bewertung der Funktion verwendet werden. Hier ist nichts eingepasst."
 
+msgid "Variable (in column order)"
+msgstr "Variable (in Spaltenreihenfolge)"
+
+msgid "Variable importance (VIP)"
+msgstr "Variable Wichtigkeit (VIP)"
+
+msgid "Variable importance (VIP), highest 15"
+msgstr "Variable Wichtigkeit (VIP), höchste 15"
+
 msgid "Variance share"
 msgstr "Abweichungsanteil"
 
@@ -3577,11 +3697,8 @@ msgstr "Web"
 msgid "Web source"
 msgstr "Web-Source"
 
-msgid "Weight residuals by magnitude when computing RMSE/R²."
-msgstr "Gewichtsreste nach Größenordnung bei der Berechnung von RMSE/R²."
-
-msgid "Weighted RMSE/R²"
-msgstr "Gewichteter RMSE/R²"
+msgid "Weights:"
+msgstr "Gewichte:"
 
 msgid "Welch ANOVA (unequal variances)"
 msgstr "Welch ANOVA (ungleiche Varianzen)"
@@ -3591,6 +3708,9 @@ msgstr "Welch t-Test"
 
 msgid "What do you want to do?"
 msgstr "Was möchten Sie tun?"
+
+msgid "What has the most impact on {response}"
+msgstr "Was hat den größten Einfluss auf {response}"
 
 msgid "What the project is about, where the data came from, what is left to do..."
 msgstr "Worum es im Projekt geht, woher die Daten stammen, was noch zu tun ist..."
@@ -3745,11 +3865,17 @@ msgstr "z.B. stretched_exponential.py"
 msgid "falling"
 msgstr "fallend"
 
+msgid "falls as it rises"
+msgstr "fällt bei steigendem"
+
 msgid "fit"
 msgstr "passform"
 
 msgid "fs:"
 msgstr "fs:"
+
+msgid "highest at {level}"
+msgstr "am höchsten bei {level}"
 
 msgid "https://example.com/data.csv"
 msgstr "https://example.com/data.csv"
@@ -3775,6 +3901,9 @@ msgstr "keine Antwort"
 msgid "no timeout"
 msgstr "kein Timeout"
 
+msgid "none"
+msgstr "keine"
+
 msgid "not installed"
 msgstr "nicht verbaut"
 
@@ -3793,11 +3922,17 @@ msgstr "p:"
 msgid "residual"
 msgstr "residuum"
 
+msgid "rises with it"
+msgstr "steigt mit ihm"
+
 msgid "rising"
 msgstr "ansteigend"
 
 msgid "series"
 msgstr "baureihe"
+
+msgid "shared: {names}"
+msgstr "geteilt: {names}"
 
 msgid "slice"
 msgstr "scheibe"
@@ -3913,6 +4048,9 @@ msgstr "{measure} nach Anzahl der Bäume"
 msgid "{measure} by {group}"
 msgstr "{measure} von {group}"
 
+msgid "{measure} over time"
+msgstr "{measure} im Laufe der Zeit"
+
 msgid "{name} (selection)"
 msgstr "{name} (Auswahl)"
 
@@ -3940,6 +4078,9 @@ msgstr "{role} benötigt nur {kinds} Spalten: {columns}."
 msgid "{role}: choose at least {count} column(s)."
 msgstr "{role}: Wählen Sie mindestens {count} Spalte(n)."
 
+msgid "{rows} rows"
+msgstr "{rows} Zeilen"
+
 msgid "{series}\nx: {x}\ny: {y}"
 msgstr "{series}..."
 
@@ -3966,6 +4107,21 @@ msgstr "{tables} Tabelle(n), {rows} Zeile(n) insgesamt"
 
 msgid "{table} · {count} response(s)"
 msgstr "{table} · {count} Antwort(en)"
+
+msgid "Effects Pareto (LogWorth)"
+msgstr "Effekte Pareto (LogWorth)"
+
+msgid "LogWorth"
+msgstr "LogWorth"
+
+msgid "Query settings"
+msgstr "Abfrageeinstellungen"
+
+msgid "Weight residuals by magnitude when computing RMSE/R²."
+msgstr "Gewichtsreste nach Größenordnung bei der Berechnung von RMSE/R²."
+
+msgid "Weighted RMSE/R²"
+msgstr "Gewichteter RMSE/R²"
 
 msgid "Roles and effects"
 msgstr "Rollen und Effekte"
@@ -4167,12 +4323,6 @@ msgstr "Z-Skala"
 
 msgid "query"
 msgstr "abfrage"
-
-msgid "After"
-msgstr "Nach"
-
-msgid "Before"
-msgstr "Vorher"
 
 msgid "Edit…"
 msgstr "Bearbeiten..."

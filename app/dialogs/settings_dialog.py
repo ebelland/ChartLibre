@@ -74,11 +74,23 @@ DEFAULT_SAVE_FORMAT: str = "PNG"
 #: that someone who has landed in a language they cannot read can still find
 #: the one they can.
 LANGUAGE_NAMES: dict[str, str] = {
+    # Lingue già presenti (corretto 'pol' in 'pl')
     "en": "English",
     "it": "Italiano",
     "fr": "Français",
     "es": "Español",    
     "de": "Deutsch",
+    "pt": "Português",
+    "zh": "中文",
+    "pl": "Polski",
+    "ja": "日本語",
+    "ko": "한국어",
+    "ru": "Русский",
+    "ar": "العربية",
+    "hi": "हिन्दी",
+    "nl": "Nederlands",
+    "tr": "Türkçe",
+    "sv": "Svenska",
 }
 
 
