@@ -1,0 +1,84 @@
+# ============================================================
+# IEEE
+# IEEE Transactions: 3.5 in single column, Times 8 pt, boxed axes,
+# black-and-white-safe (colour + line-style cycle).
+# Approximate: check the journal's current author guidelines for exact
+# widths, fonts and file formats before submitting.
+# ============================================================
+
+# ---- Figure --------------------------------------------------
+figure.figsize: 3.5, 2.6
+figure.dpi: 600
+figure.facecolor: white
+savefig.dpi: 600
+savefig.bbox: tight
+savefig.pad_inches: 0.03
+
+# ---- Fonts ---------------------------------------------------
+font.family: serif
+font.serif: Times New Roman, Times, STIXGeneral, DejaVu Serif, serif
+font.size: 8
+axes.titlesize: 8
+axes.titleweight: normal
+axes.labelsize: 8
+xtick.labelsize: 7
+ytick.labelsize: 7
+legend.fontsize: 7
+mathtext.fontset: stix
+axes.formatter.use_mathtext: True
+pdf.fonttype: 42
+ps.fonttype: 42
+svg.fonttype: none
+
+# ---- Axes ----------------------------------------------------
+axes.facecolor: white
+axes.edgecolor: black
+axes.linewidth: 0.5
+axes.axisbelow: True
+axes.spines.top: True
+axes.spines.right: True
+axes.prop_cycle: cycler('color', ['000000', 'D62728', '1F77B4', '2CA02C']) + cycler('linestyle', ['-', '--', '-.', ':'])
+axes.grid: False
+grid.color: B0B0B0
+grid.linewidth: 0.5
+grid.linestyle: :
+grid.alpha: 0.7
+
+# ---- Ticks ---------------------------------------------------
+xtick.direction: in
+ytick.direction: in
+xtick.major.size: 3.6
+ytick.major.size: 3.6
+xtick.minor.size: 1.8
+ytick.minor.size: 1.8
+xtick.major.width: 0.5
+ytick.major.width: 0.5
+xtick.minor.width: 0.5
+ytick.minor.width: 0.5
+xtick.minor.visible: True
+ytick.minor.visible: True
+xtick.top: True
+ytick.right: True
+
+# ---- Lines, markers, patches ---------------------------------
+lines.linewidth: 0.9
+lines.markersize: 3
+lines.markeredgewidth: 0.5
+lines.solid_capstyle: round
+patch.linewidth: 0.5
+errorbar.capsize: 2.0
+scatter.marker: o
+
+# ---- Legend --------------------------------------------------
+legend.frameon: False
+legend.handlelength: 1.6
+legend.handletextpad: 0.5
+legend.labelspacing: 0.3
+legend.borderaxespad: 0.4
+
+# ---- Box plot ------------------------------------------------
+boxplot.boxprops.linewidth: 0.5
+boxplot.whiskerprops.linewidth: 0.5
+boxplot.capprops.linewidth: 0.5
+boxplot.medianprops.linewidth: 0.9
+boxplot.flierprops.markersize: 3

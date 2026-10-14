@@ -634,14 +634,12 @@ measured-vs-fit axes.
 ### 7.3 The `.mplstyle` library
 
 `mplstyles/` ships a large set of `.mplstyle` files, organized into
-subfolders (`color/`, `color/discrete-rainbow/`, `journals/`, `languages/`,
-`misc/`). The Style dropdown on the Figure panel
-(`FigurePropertiesWidget._list_mplstyle_files`) walks the whole tree
-(`Path.rglob("*.mplstyle")`), not just the top level, and labels each entry
-`folder.subfolder.name` (dots joining the path relative to `mplstyles/`,
-extension dropped) so a style's origin stays visible in a flat dropdown. The
-same dropdown has a **Browse…** entry that opens a native file picker for a
-style kept anywhere else entirely (`_browse_for_style_file`). Adding a style
+subfolders (`color/`, `color/discrete-rainbow/`, `Journals/` (by field: `General/`, `Medicine/`, `Physics/`, `Engineering/`, `Statistics/`, `Mathematics/`), `languages/`,
+`misc/`). The Style card on the Figure panel shows the current style in a read-only
+text box (`folder.subfolder.name` for a file under `mplstyles/`, "(Embedded
+style)" otherwise), with a **ChartLibreDefault** button that applies the
+shipped default and a **Browse…** button that opens a native file picker
+rooted in `mplstyles/` (`FigurePropertiesWidget._browse_for_style_file`). Adding a style
 is just dropping a `.mplstyle` file anywhere under `mplstyles/`, including a
 new subfolder — no registration needed.
 

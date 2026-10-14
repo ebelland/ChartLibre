@@ -1,0 +1,87 @@
+# ============================================================
+# Cell
+# Cell Press: 85 mm single column, Arial 6-8 pt, open axes,
+# colour-blind-safe palette.
+# Approximate: check the journal's current author guidelines for exact
+# widths, fonts and file formats before submitting.
+# ============================================================
+
+# ---- Figure --------------------------------------------------
+figure.figsize: 3.35, 2.5
+figure.dpi: 300
+figure.facecolor: white
+savefig.dpi: 300
+savefig.bbox: tight
+savefig.pad_inches: 0.03
+
+# ---- Fonts ---------------------------------------------------
+font.family: sans-serif
+font.sans-serif: Arial, Helvetica, Helvetica Neue, DejaVu Sans, sans-serif
+font.size: 7
+axes.titlesize: 7
+axes.titleweight: bold
+axes.labelsize: 7
+xtick.labelsize: 6
+ytick.labelsize: 6
+legend.fontsize: 6
+mathtext.fontset: custom
+mathtext.rm: sans
+mathtext.it: sans:italic
+mathtext.bf: sans:bold
+axes.formatter.use_mathtext: True
+pdf.fonttype: 42
+ps.fonttype: 42
+svg.fonttype: none
+
+# ---- Axes ----------------------------------------------------
+axes.facecolor: white
+axes.edgecolor: black
+axes.linewidth: 0.5
+axes.axisbelow: True
+axes.spines.top: False
+axes.spines.right: False
+axes.prop_cycle: cycler('color', ['0072B2', 'D55E00', '009E73', 'E69F00', '56B4E9', 'CC79A7', 'F0E442', '000000'])
+axes.grid: False
+grid.color: B0B0B0
+grid.linewidth: 0.5
+grid.linestyle: :
+grid.alpha: 0.7
+
+# ---- Ticks ---------------------------------------------------
+xtick.direction: out
+ytick.direction: out
+xtick.major.size: 3.15
+ytick.major.size: 3.15
+xtick.minor.size: 1.57
+ytick.minor.size: 1.57
+xtick.major.width: 0.5
+ytick.major.width: 0.5
+xtick.minor.width: 0.5
+ytick.minor.width: 0.5
+xtick.minor.visible: False
+ytick.minor.visible: False
+xtick.top: False
+ytick.right: False
+
+# ---- Lines, markers, patches ---------------------------------
+lines.linewidth: 1.0
+lines.markersize: 3
+lines.markeredgewidth: 0.5
+lines.solid_capstyle: round
+patch.linewidth: 0.5
+errorbar.capsize: 2.0
+scatter.marker: o
+
+# ---- Legend --------------------------------------------------
+legend.frameon: False
+legend.handlelength: 1.6
+legend.handletextpad: 0.5
+legend.labelspacing: 0.3
+legend.borderaxespad: 0.4
+
+# ---- Box plot ------------------------------------------------
+boxplot.boxprops.linewidth: 0.5
+boxplot.whiskerprops.linewidth: 0.5
+boxplot.capprops.linewidth: 0.5
+boxplot.medianprops.linewidth: 1.0
+boxplot.flierprops.markersize: 3

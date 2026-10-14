@@ -1,0 +1,84 @@
+# ============================================================
+# SIAM
+# SIAM journals: Times 9 pt, boxed axes, line-style cycle that stays
+# readable in greyscale.
+# Approximate: check the journal's current author guidelines for exact
+# widths, fonts and file formats before submitting.
+# ============================================================
+
+# ---- Figure --------------------------------------------------
+figure.figsize: 4.0, 2.9
+figure.dpi: 300
+figure.facecolor: white
+savefig.dpi: 300
+savefig.bbox: tight
+savefig.pad_inches: 0.03
+
+# ---- Fonts ---------------------------------------------------
+font.family: serif
+font.serif: Times New Roman, Times, STIXGeneral, DejaVu Serif, serif
+font.size: 9
+axes.titlesize: 9
+axes.titleweight: normal
+axes.labelsize: 9
+xtick.labelsize: 8
+ytick.labelsize: 8
+legend.fontsize: 8
+mathtext.fontset: stix
+axes.formatter.use_mathtext: True
+pdf.fonttype: 42
+ps.fonttype: 42
+svg.fonttype: none
+
+# ---- Axes ----------------------------------------------------
+axes.facecolor: white
+axes.edgecolor: black
+axes.linewidth: 0.6
+axes.axisbelow: True
+axes.spines.top: True
+axes.spines.right: True
+axes.prop_cycle: cycler('color', ['000000', 'D55E00', '0072B2', '009E73']) + cycler('linestyle', ['-', '--', '-.', ':'])
+axes.grid: False
+grid.color: B0B0B0
+grid.linewidth: 0.6
+grid.linestyle: :
+grid.alpha: 0.7
+
+# ---- Ticks ---------------------------------------------------
+xtick.direction: in
+ytick.direction: in
+xtick.major.size: 4.05
+ytick.major.size: 4.05
+xtick.minor.size: 2.02
+ytick.minor.size: 2.02
+xtick.major.width: 0.6
+ytick.major.width: 0.6
+xtick.minor.width: 0.6
+ytick.minor.width: 0.6
+xtick.minor.visible: False
+ytick.minor.visible: False
+xtick.top: True
+ytick.right: True
+
+# ---- Lines, markers, patches ---------------------------------
+lines.linewidth: 1.1
+lines.markersize: 3.5
+lines.markeredgewidth: 0.6
+lines.solid_capstyle: round
+patch.linewidth: 0.6
+errorbar.capsize: 2.0
+scatter.marker: o
+
+# ---- Legend --------------------------------------------------
+legend.frameon: False
+legend.handlelength: 1.6
+legend.handletextpad: 0.5
+legend.labelspacing: 0.3
+legend.borderaxespad: 0.4
+
+# ---- Box plot ------------------------------------------------
+boxplot.boxprops.linewidth: 0.6
+boxplot.whiskerprops.linewidth: 0.6
+boxplot.capprops.linewidth: 0.6
+boxplot.medianprops.linewidth: 1.1
+boxplot.flierprops.markersize: 3.5

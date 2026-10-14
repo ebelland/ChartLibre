@@ -1,0 +1,87 @@
+# ============================================================
+# JAMA
+# JAMA: single column, Arial 8 pt, open axes, JAMA colours
+# (slate, amber, cyan, ...).
+# Approximate: check the journal's current author guidelines for exact
+# widths, fonts and file formats before submitting.
+# ============================================================
+
+# ---- Figure --------------------------------------------------
+figure.figsize: 3.5, 2.6
+figure.dpi: 300
+figure.facecolor: white
+savefig.dpi: 300
+savefig.bbox: tight
+savefig.pad_inches: 0.03
+
+# ---- Fonts ---------------------------------------------------
+font.family: sans-serif
+font.sans-serif: Arial, Helvetica, Helvetica Neue, DejaVu Sans, sans-serif
+font.size: 8
+axes.titlesize: 8
+axes.titleweight: bold
+axes.labelsize: 8
+xtick.labelsize: 7
+ytick.labelsize: 7
+legend.fontsize: 7
+mathtext.fontset: custom
+mathtext.rm: sans
+mathtext.it: sans:italic
+mathtext.bf: sans:bold
+axes.formatter.use_mathtext: True
+pdf.fonttype: 42
+ps.fonttype: 42
+svg.fonttype: none
+
+# ---- Axes ----------------------------------------------------
+axes.facecolor: white
+axes.edgecolor: black
+axes.linewidth: 0.6
+axes.axisbelow: True
+axes.spines.top: False
+axes.spines.right: False
+axes.prop_cycle: cycler('color', ['374E55', 'DF8F44', '00A1D5', 'B24745', '79AF97', '6A6599', '80796B'])
+axes.grid: False
+grid.color: B0B0B0
+grid.linewidth: 0.6
+grid.linestyle: :
+grid.alpha: 0.7
+
+# ---- Ticks ---------------------------------------------------
+xtick.direction: out
+ytick.direction: out
+xtick.major.size: 3.6
+ytick.major.size: 3.6
+xtick.minor.size: 1.8
+ytick.minor.size: 1.8
+xtick.major.width: 0.6
+ytick.major.width: 0.6
+xtick.minor.width: 0.6
+ytick.minor.width: 0.6
+xtick.minor.visible: False
+ytick.minor.visible: False
+xtick.top: False
+ytick.right: False
+
+# ---- Lines, markers, patches ---------------------------------
+lines.linewidth: 1.1
+lines.markersize: 3
+lines.markeredgewidth: 0.6
+lines.solid_capstyle: round
+patch.linewidth: 0.6
+errorbar.capsize: 2.0
+scatter.marker: o
+
+# ---- Legend --------------------------------------------------
+legend.frameon: False
+legend.handlelength: 1.6
+legend.handletextpad: 0.5
+legend.labelspacing: 0.3
+legend.borderaxespad: 0.4
+
+# ---- Box plot ------------------------------------------------
+boxplot.boxprops.linewidth: 0.6
+boxplot.whiskerprops.linewidth: 0.6
+boxplot.capprops.linewidth: 0.6
+boxplot.medianprops.linewidth: 1.1
+boxplot.flierprops.markersize: 3

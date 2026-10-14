@@ -97,10 +97,8 @@ class FigurePropertiesWidget(BaseProperties):
         ("Overlapping (twin Y)", layout_presets.OVERLAPPING),
     )
 
-    # Sentinel combo entry that opens a native file picker instead of naming a
-    # style. Keeps "browse anywhere" available even though the dropdown itself
-    # can only ever show what MPLSTYLES_DIR contains.
-    _BROWSE_SENTINEL = "__browse_mplstyle__"
+    #: The shipped style the "ChartLibreDefault" button applies (file stem in MPLSTYLES_DIR).
+    _DEFAULT_STYLE_NAME = "Default"
 
     #: (label, descriptor value, tooltip) for Matplotlib's layout engines.
     #:
@@ -195,9 +193,12 @@ class FigurePropertiesWidget(BaseProperties):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         # _repo/_figure_id/_figure/_redraw_callback come from BaseProperties.
-        self._last_valid_style_index = 0
+        #: Text of the style currently attached to the figure ("" = Matplotlib's own).
+        self._style_text = ""
+        #: Path of the .mplstyle that text came from, when it matches one on disk.
+        self._style_path: Path | None = None
 
-        self._style_combo: QComboBox
+        self._style_edit: QLineEdit
        
         self._nrows_combo: QComboBox
         self._ncols_combo: QComboBox
@@ -346,10 +347,9 @@ class FigurePropertiesWidget(BaseProperties):
         style_section = TitledCard(self, _("Style"), "figureStyleCard")
         style_section_lay = style_section.card.layout()
 
-        self._style_combo = QComboBox(style_section)
-        self._configure_combo_width(self._style_combo)
-        self._style_combo.currentIndexChanged.connect(self._on_style_selected)
-        style_section_lay.addWidget(self._style_combo)
+        self._style_edit = QLineEdit(style_section)
+        self._style_edit.setReadOnly(True)
+        style_section_lay.addWidget(self._style_edit)
 
         style_buttons_row = QWidget(style_section)
         style_buttons_lay = QHBoxLayout(style_buttons_row)
@@ -357,11 +357,21 @@ class FigurePropertiesWidget(BaseProperties):
         style_buttons_lay.setSpacing(8)
 
         self._btn_default = create_action_button(
-                                parent=style_buttons_row,
-                                action_id="reload",
-                                action=self._set_default_style,
-                                layout=style_buttons_lay,
-                            )
+            parent=style_buttons_row,
+            action_id="reload",
+            action=self._set_default_style,
+            layout=style_buttons_lay,
+            presentation=(load_icon("reload"), self._DEFAULT_STYLE_NAME,
+                          _("Use the {name} style").format(name=self._DEFAULT_STYLE_NAME)),
+        )
+        self._btn_browse = create_action_button(
+            parent=style_buttons_row,
+            action_id="open",
+            action=self._browse_for_style_file,
+            layout=style_buttons_lay,
+            presentation=(load_icon("open"), _("Browse…"),
+                          _("Pick a .mplstyle file from the mplstyles folder")),
+        )
         self._btn_edit = create_action_button(
                              parent=style_buttons_row,
                              action_id="edit",
@@ -697,13 +707,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._on_resize_mode_changed = None
         self._resize_mode_combo.setEnabled(False)
 
-        self._style_combo.blockSignals(True)
-        try:
-            self._style_combo.clear()
-            self._style_combo.addItem(_("(Default)"), "")
-        finally:
-            self._style_combo.blockSignals(False)
-        self._update_style_buttons()
+        self._set_style("", None)
 
         width_cm, height_cm = self._rcparams_figsize_cm()
         self._nrows_combo.setCurrentIndex(0)
@@ -733,8 +737,8 @@ class FigurePropertiesWidget(BaseProperties):
         for widget in (
             self._name_edit,
             self._note_edit,
-            self._style_combo,
             self._btn_default,
+            self._btn_browse,
             self._btn_edit,
             self._nrows_combo,
             self._ncols_combo,
@@ -803,7 +807,7 @@ class FigurePropertiesWidget(BaseProperties):
                 "Figure editing disabled for this figure.",
                 self._figure_id,
             )
-            self._reload_style_combo(current_style="")
+            self._set_style("", None)
             self._nrows_combo.setCurrentIndex(0)
             self._ncols_combo.setCurrentIndex(0)
 
@@ -838,9 +842,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._name_edit.setText(str(getattr(desc, "name", "") or ""))
         self._load_note(desc)
 
-        self._reload_style_combo(
-            current_style=str(fig_opts.get("mpl_style", "") or "")
-        )
+        self._load_style_from_text(str(fig_opts.get("mpl_style", "") or ""))
 
         nrows = int(getattr(desc, "nrows", None) or 1)
         ncols = int(getattr(desc, "ncols", None) or 1)
@@ -879,31 +881,12 @@ class FigurePropertiesWidget(BaseProperties):
 
         self._set_enabled_state(True)
 
-    def _list_mplstyle_files(self) -> list[Path]:
-        """Return the ``.mplstyle`` files directly under MPLSTYLES_DIR.
-
-        Subfolders (``color/``, ``journals/``, ``color/discrete-rainbow/``,
-        ...) hold most of the shipped library, and used to be walked in here
-        too - which put dozens of rarely-used styles ahead of the handful
-        someone actually reaches for, in one long, hard-to-scan dropdown.
-        Only the main folder's own files are quick-picks now; anything in a
-        subfolder is still reachable, just through "Browse..." instead.
-        """
-        if not MPLSTYLES_DIR.exists():
-            return []
-        return sorted(
-            MPLSTYLES_DIR.glob("*.mplstyle"),
-            key=lambda path: path.name.lower(),
-        )
-
     @staticmethod
     def _style_label_for_path(path: Path) -> str:
         """Return a "folder.style" label for a style file under MPLSTYLES_DIR.
 
         Example: ``mplstyles/color/discrete-rainbow/discrete-rainbow-10.mplstyle``
-        becomes ``color.discrete-rainbow.discrete-rainbow-10`` - the folder it
-        lives in stays visible in the dropdown instead of collapsing every
-        subfolder's styles into indistinguishable bare filenames.
+        becomes ``color.discrete-rainbow.discrete-rainbow-10``.
         """
         try:
             rel = path.relative_to(MPLSTYLES_DIR)
@@ -911,42 +894,43 @@ class FigurePropertiesWidget(BaseProperties):
             return path.name
         return ".".join(rel.with_suffix("").parts)
 
-    def _reload_style_combo(self, current_style: str) -> None:
-        self._style_combo.blockSignals(True)
-        try:
-            self._style_combo.clear()
-            self._style_combo.addItem(_("(Default)"), "")
-            self._style_combo.addItem(_("Browse…"), self._BROWSE_SENTINEL)
-            for path in self._list_mplstyle_files():
-                self._style_combo.addItem(self._style_label_for_path(path), str(path))
-            if current_style:
-                matched = False
-                for i in range(2, self._style_combo.count()):
-                    path = Path(str(self._style_combo.itemData(i)))
-                    if not path.exists():
-                        continue
-                    text = _sanitize_mplstyle_text(_read_text_any_encoding(path))
-                    if text == current_style:
-                        self._style_combo.setCurrentIndex(i)
-                        matched = True
-                        break
-                if not matched:
-                    self._style_combo.addItem(_("(Embedded style)"), current_style)
-                    self._style_combo.setCurrentIndex(self._style_combo.count() - 1)
-            else:
-                self._style_combo.setCurrentIndex(0)
-        finally:
-            self._style_combo.blockSignals(False)
-        self._last_valid_style_index = self._style_combo.currentIndex()
+    def _set_style(self, text: str, path: Path | None) -> None:
+        """Show a style in the text box; no signal is emitted."""
+        self._style_text = text
+        self._style_path = path
+        if path is not None:
+            label = self._style_label_for_path(path)
+        elif text.strip():
+            label = _("(Embedded style)")
+        else:
+            label = _("(Default)")
+        self._style_edit.setText(label)
+        self._style_edit.setToolTip(str(path) if path is not None else "")
         self._update_style_buttons()
 
-    def _browse_for_style_file(self) -> None:
-        """Open a native file dialog to pick any ``.mplstyle`` file.
+    def _load_style_from_text(self, current_style: str) -> None:
+        """Show the figure's stored style, naming the mplstyles file it equals if any."""
+        matched: Path | None = None
+        if current_style and MPLSTYLES_DIR.exists():
+            for path in sorted(MPLSTYLES_DIR.rglob("*.mplstyle")):
+                try:
+                    text = _sanitize_mplstyle_text(_read_text_any_encoding(path))
+                except OSError:
+                    continue
+                if text == current_style:
+                    matched = path
+                    break
+        self._set_style(current_style, matched)
 
-        Covers the case the dropdown cannot: a style kept somewhere other
-        than MPLSTYLES_DIR entirely. Cancelling restores the previous
-        selection rather than leaving "Browse…" selected.
-        """
+    def _apply_style_file(self, path: Path) -> None:
+        text = _sanitize_mplstyle_text(_read_text_any_encoding(path))
+        self._set_style(text, path)
+        self.style_changed.emit(text)
+
+    def _browse_for_style_file(self) -> None:
+        """Pick a ``.mplstyle`` file, starting in the mplstyles folder."""
+        if self._repo is None or self._figure_id is None:
+            return
         start_dir = str(MPLSTYLES_DIR) if MPLSTYLES_DIR.exists() else ""
         path_str, _unused = QFileDialog.getOpenFileName(
             self,
@@ -954,54 +938,25 @@ class FigurePropertiesWidget(BaseProperties):
             start_dir,
             _("Matplotlib Style (*.mplstyle);;All Files (*)"),
         )
-        if not path_str:
-            blocked = self._style_combo.blockSignals(True)
-            try:
-                self._style_combo.setCurrentIndex(self._last_valid_style_index)
-            finally:
-                self._style_combo.blockSignals(blocked)
-            self._update_style_buttons()
-            return
-
-        style_text = _sanitize_mplstyle_text(_read_text_any_encoding(Path(path_str)))
-        self.style_changed.emit(style_text)
-        self._reload_style_combo(current_style=style_text)
+        if path_str:
+            self._apply_style_file(Path(path_str))
 
     def _update_style_buttons(self) -> None:
         """Enable Edit only when a concrete or embedded style is selected."""
-        data = self._style_combo.currentData()
-        self._btn_edit.setEnabled(bool(str(data or "").strip()))
+        self._btn_edit.setEnabled(bool(self._style_text.strip()))
 
     def _current_style_text(self) -> str:
-        """Return the selected style text, resolving files when needed."""
-        data = self._style_combo.currentData()
-        if not isinstance(data, str) or not data.strip():
-            return ""
-
-        if data.endswith(".mplstyle"):
-            path = Path(data)
-            if path.exists():
-                return _sanitize_mplstyle_text(_read_text_any_encoding(path))
-            return ""
-
-        return _sanitize_mplstyle_text(data)
-
-    def _on_style_selected(self) -> None:
-        if self._repo is None or self._figure_id is None:
-            return
-        if self._style_combo.currentData() == self._BROWSE_SENTINEL:
-            self._browse_for_style_file()
-            return
-        self._last_valid_style_index = self._style_combo.currentIndex()
-        self._update_style_buttons()
-        self.style_changed.emit(self._current_style_text())
+        """Return the style text currently attached to the figure."""
+        return self._style_text
 
     def _set_default_style(self) -> None:
         if self._repo is None or self._figure_id is None:
             return
-        self._style_combo.setCurrentIndex(0)
-        self._last_valid_style_index = 0
-        self.style_changed.emit("")
+        path = MPLSTYLES_DIR / f"{self._DEFAULT_STYLE_NAME}.mplstyle"
+        if not path.exists():
+            applogger.warning("Default style %s not found", path)
+            return
+        self._apply_style_file(path)
 
     def _edit_current_style(self) -> None:
         """Open the style editor preloaded with the current selected style."""
@@ -1057,7 +1012,7 @@ class FigurePropertiesWidget(BaseProperties):
             return
 
         self.style_changed.emit(edited_style_text)
-        self._reload_style_combo(current_style=edited_style_text)
+        self._load_style_from_text(edited_style_text)
 
     def _apply_all(self) -> None:
         """Apply both grid layout and figure options from one button."""
