@@ -615,6 +615,17 @@ QMessageBox QLabel {
   max-width: 360px;
 }
 
+/* Multi-line text boxes (SQL query, figure notes...) take the same soft
+   rounded grey frame as the native single-line fields beside them, instead
+   of the square dark Aqua scroll-area frame. */
+QPlainTextEdit,
+QTextEdit {
+  background: palette(base);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.13);
+  border-radius: 6px;
+  padding: 1px 4px;
+}
+
 QPlainTextEdit#logViewerText {
   background: palette(base);
   selection-background-color: palette(highlight);

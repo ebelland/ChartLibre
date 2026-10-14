@@ -467,6 +467,30 @@ def _marker_icon(marker: str) -> QIcon:
     return _resolved_marker_icon(resolved, faint=is_default)
 
 
+def _draw_no_marker(pixmap) -> None:
+    """Faint struck-through circle: "Default" resolves to no marker at all.
+
+    A blank icon read as "nothing to show"; this says the style sheet's
+    default is a bare line, the way the line-style entry shows its own.
+    """
+    painter = QPainter(pixmap)
+    try:
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        color = QColor(_MARKER_COLOR)
+        color.setAlpha(110)
+        pen = QPen(color)
+        pen.setWidthF(_PEN_WIDTH)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        center = _ICON_SIZE / 2
+        radius = _ICON_SIZE * 0.32
+        painter.drawEllipse(QPointF(center, center), radius, radius)
+        painter.drawLine(QPointF(center - radius, center + radius),
+                         QPointF(center + radius, center - radius))
+    finally:
+        painter.end()
+
+
 @lru_cache(maxsize=None)
 def _resolved_marker_icon(marker: str, *, faint: bool) -> QIcon:
     """Build (and cache) a preview icon for one concrete Matplotlib marker."""
@@ -475,6 +499,8 @@ def _resolved_marker_icon(marker: str, *, faint: bool) -> QIcon:
     pixmap = create_hidpi_pixmap(_ICON_SIZE, _ICON_SIZE)
 
     if not marker or marker.lower() == "none":
+        if faint:
+            _draw_no_marker(pixmap)
         return QIcon(pixmap)
 
     painter = QPainter(pixmap)
