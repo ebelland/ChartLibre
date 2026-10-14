@@ -225,9 +225,14 @@ def kaplan_meier(time: np.ndarray, event: np.ndarray, *, confidence: float = 0.9
     if np.any(times < 0):
         raise ValueError("A survival time cannot be negative.")
 
-    distinct = np.unique(times[observed])
-    at_risk = np.array([np.sum(times >= t) for t in distinct], dtype=float)
-    deaths = np.array([np.sum((times == t) & observed) for t in distinct], dtype=float)
+    # One sort answers every "how many are still at risk at t": the rows with
+    # a time >= t are those past the first row not below it. Counting with a
+    # pass over all the rows per event time was O(rows x event times) - a
+    # second for 20,000 distinct times, quadratic after that.
+    distinct, death_counts = np.unique(times[observed], return_counts=True)
+    ordered = np.sort(times)
+    at_risk = (times.size - np.searchsorted(ordered, distinct, side="left")).astype(float)
+    deaths = death_counts.astype(float)
     factors = 1.0 - deaths / at_risk
     survival = np.cumprod(factors)
 
@@ -245,11 +250,9 @@ def kaplan_meier(time: np.ndarray, event: np.ndarray, *, confidence: float = 0.9
     step_time = np.concatenate(([0.0], distinct))
     step_survival = np.concatenate(([1.0], survival))
 
-    def height(t: float) -> float:
-        index = int(np.searchsorted(step_time, t, side="right")) - 1
-        return float(step_survival[max(index, 0)])
-
     censored = np.sort(times[~observed])
+    # The curve's height at each censored time: the last step at or before it.
+    censored_index = np.maximum(np.searchsorted(step_time, censored, side="right") - 1, 0)
     below = np.nonzero(survival <= 0.5)[0]
     return SurvivalCurve(
         time=step_time,
@@ -259,7 +262,7 @@ def kaplan_meier(time: np.ndarray, event: np.ndarray, *, confidence: float = 0.9
         at_risk=np.concatenate(([float(times.size)], at_risk)),
         events=np.concatenate(([0.0], deaths)),
         censored_time=censored,
-        censored_survival=np.array([height(t) for t in censored]),
+        censored_survival=step_survival[censored_index],
         median=float(distinct[below[0]]) if below.size else float("nan"),
         n=int(times.size),
     )
@@ -294,19 +297,30 @@ def log_rank(groups: list[tuple[np.ndarray, np.ndarray]]) -> LogRank:
     all_events = np.concatenate([e for _t, e in cleaned])
     event_times = np.unique(all_times[all_events])
     k = len(cleaned)
-    observed_minus_expected = np.zeros(k)
-    covariance = np.zeros((k, k))
-    for t in event_times:
-        at_risk = np.array([np.sum(times >= t) for times, _e in cleaned], dtype=float)
-        deaths = np.array([np.sum((times == t) & events) for times, events in cleaned], dtype=float)
-        total_risk, total_deaths = at_risk.sum(), deaths.sum()
-        if total_risk <= 0:
-            continue
-        observed_minus_expected += deaths - total_deaths * at_risk / total_risk
-        if total_risk > 1:
-            share = at_risk / total_risk
-            factor = total_deaths * (total_risk - total_deaths) / (total_risk - 1)
-            covariance += factor * (np.diag(share) - np.outer(share, share))
+    # Per group and event time, at once: the number at risk (rows with a time
+    # >= t, from the group's sorted times) and the deaths (from its sorted
+    # event times). The rows are not rescanned for every event time.
+    at_risk = np.empty((k, event_times.size))
+    deaths = np.empty((k, event_times.size))
+    for index, (times, events) in enumerate(cleaned):
+        ordered = np.sort(times)
+        died = np.sort(times[events])
+        at_risk[index] = times.size - np.searchsorted(ordered, event_times, side="left")
+        deaths[index] = np.searchsorted(died, event_times, side="right") - np.searchsorted(died, event_times, side="left")
+    total_risk = at_risk.sum(axis=0)
+    total_deaths = deaths.sum(axis=0)
+    usable = total_risk > 0
+    at_risk, deaths = at_risk[:, usable], deaths[:, usable]
+    total_risk, total_deaths = total_risk[usable], total_deaths[usable]
+    share = at_risk / total_risk
+    observed_minus_expected = (deaths - total_deaths * share).sum(axis=1)
+    # Sum over event times of factor * (diag(share) - share share'), the
+    # hypergeometric covariance; a time with one subject at risk adds none.
+    multiple = total_risk > 1
+    factor = np.zeros_like(total_risk)
+    factor[multiple] = total_deaths[multiple] * (total_risk[multiple] - total_deaths[multiple]) / (total_risk[multiple] - 1)
+    weighted = share * factor
+    covariance = np.diag(weighted.sum(axis=1)) - weighted @ share.T
     reduced = observed_minus_expected[:-1]
     try:
         statistic = float(reduced @ np.linalg.solve(covariance[:-1, :-1], reduced))

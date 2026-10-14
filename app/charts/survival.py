@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import pandas as pd
 
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis.diagnostics import SurvivalCurve, kaplan_meier, log_rank
@@ -112,11 +113,12 @@ class KaplanMeierAxisRenderer(BaseAxisRenderer):
             if "group" not in sd.df.columns:
                 curves.append((sd.name, dict(sd.style or {}), time, event))
                 continue
-            groups = np.asarray(sd.df["group"], dtype=object)
-            for value in dict.fromkeys(groups.tolist()):
-                if value is None or value != value:
-                    continue
-                mask = np.array([item == value for item in groups.tolist()], dtype=bool)
+            # One pass for every group: a mask per group built by comparing each
+            # row in Python was O(rows x groups). Codes come in order of first
+            # appearance; a missing group value gets -1 and is left out.
+            codes, values = pd.factorize(pd.Series(np.asarray(sd.df["group"], dtype=object)))
+            for number, value in enumerate(values.tolist()):
+                mask = codes == number
                 label = f"{sd.name}: {value}" if len(series) > 1 else str(value)
                 style = {key: item for key, item in (sd.style or {}).items() if key != "color"}
                 curves.append((label, style, time[mask], event[mask]))
