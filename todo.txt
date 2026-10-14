@@ -8,7 +8,7 @@ DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar t
 DONE P0-3: move search below workspace in NavBar using the same "temporary" list. Windows: remove from help.Rmove the dialog
 DONE P0-4: Windows: cannot resize by dragging bottom right corner.
 DONE P0-5: Chart Properties. FIgure. Name and notes in the same frame to save space.
-P0-6 (partly): Chart Properties. FIgure. Reorganize on two columns to save space. Name+notes merged, style buttons 2x2; Figure options still drops to one column below ~370 px (its combos need 98 px each).
+DONE P0-6: Chart Properties. FIgure. Reorganize on two columns to save space. Name+notes merged, style buttons 2x2; Figure options, Grid and Manual spacing stay on two columns down to ~280 px (PairGrid stacks label over field when side by side does not fit).
 DONE P0-7: Chart Properties. FIgure. Style. Reorganize the 4 button in two rows.
 DONE P0-8: Settings appearance. App Style. Remove native Qt Themes. Drop down only with qss files in style and Automatic. No browse.
 DONE P0-9: Settings appearance. Charts. Default chart style. CHart libre default on top. than Matplotlib default. separator. Apps. seprator. Journals. [Separator, other folders if any]

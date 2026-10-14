@@ -37,7 +37,7 @@ def test_a_huge_range_does_not_reserve_a_huge_width(qapp) -> None:
     assert spin.minimumWidth() < 200
 
 
-_CASES_PAIRS_TAKE_THE_WIDEST_ARRANGEMENT_THAT_FITS = [(900, 2, False), (260, 1, False), (120, 1, True)]
+_CASES_PAIRS_TAKE_THE_WIDEST_ARRANGEMENT_THAT_FITS = [(900, 2, False), (260, 2, True), (180, 1, False), (120, 1, True)]
 
 
 def _pairs_take_the_widest_arrangement_that_fits(qapp, width: int, per_row: int, stacked: bool) -> None:

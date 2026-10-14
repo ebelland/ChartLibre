@@ -27,7 +27,7 @@ from PySide6.QtWidgets import QGridLayout, QSizePolicy, QWidget
 _GAP = 8
 
 #: The arrangements, widest first: (pairs per row, label above its field).
-_ARRANGEMENTS: tuple[tuple[int, bool], ...] = ((2, False), (1, False), (1, True))
+_ARRANGEMENTS: tuple[tuple[int, bool], ...] = ((2, False), (2, True), (1, False), (1, True))
 
 
 class PairGrid(QWidget):
