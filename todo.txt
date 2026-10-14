@@ -15,7 +15,10 @@ P0-9: Settings appearance. Charts. Default chart style. CHart libre default on t
 PF-1: Survival: improve the algorithm for performances.
 P0-10: Fit. Only one series is fitted!
 P0-11: Markersize to kwargs!
-P0-12: Scatter x wrong data coercio to datetime
+P0-12: Scatter x wrong data coercion to datetime when series query returns no data
+P0-13: Series Markersize, Line style changes when other parameters are changed
+P0-14: Sometimes labels disapper when other parameters are changed
+
 
 NOW
 D-01  M  Demos rethought around the questions: per goal still to do (the
