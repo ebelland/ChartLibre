@@ -25,10 +25,9 @@ def _load_qss(name: str) -> tuple[str | None, Path | None]:
 def _read_qss_path(path: Path) -> tuple[str | None, Path | None]:
     """Load a QSS file by path, from anywhere on disk.
 
-    Shared by the two shipped sheets and by a stylesheet the user picked
-    themselves (see QSS_FILE_PREFIX): a sheet that has gone missing or
-    cannot be read leaves the application on no sheet at all rather than
-    raising, which is the same answer :func:`_load_qss` has always given.
+    A sheet that has gone missing or cannot be read leaves the application
+    on no sheet at all rather than raising, which is the same answer
+    :func:`_load_qss` has always given.
     """
     if not path.exists():
         applogger.warning("QSS not found: %s", path)
@@ -43,12 +42,8 @@ def _read_qss_path(path: Path) -> tuple[str | None, Path | None]:
 
 #: What the user can choose between, and what each choice does.
 #:
-#: Two different mechanisms sit behind one setting, deliberately.  A *theme* is
-#: one of this application's stylesheets plus a palette; a *Qt style* is a
-#: plugin Qt itself provides - Fusion, Windows, and whatever the desktop has
-#: installed - drawn entirely by Qt with no sheet of ours on top.  They are
-#: offered together because from where the user sits they answer one question,
-#: and kept apart in code because they have nothing else in common.
+#: A *theme* is one of this application's stylesheets (the .qss files in
+#: app/styles) plus a palette; "Automatic" picks the one for this desktop.
 APP_STYLE_AUTOMATIC: str = "automatic"
 
 #: theme key -> (stylesheet file, palette key)
@@ -61,69 +56,30 @@ APP_STYLE_QSS: dict[str, tuple[str, str]] = {
     "dark": ("fluent_win11.qss", "dark"),
 }
 
-#: Prefix marking a Qt style plugin rather than one of our themes.
-QT_STYLE_PREFIX: str = "qt:"
-
-#: Prefix marking a ``.qss`` file the user picked themselves, followed by
-#: its absolute path. The same shape as QT_STYLE_PREFIX and stored in the
-#: same config key, so one setting still answers "what does this app look
-#: like" - a shipped theme, an installed Qt style, or a sheet of your own.
-#: Its palette is the light one: a sheet written elsewhere cannot be asked
-#: which of ours it was built against, and light is what both shipped
-#: sheets use.
-QSS_FILE_PREFIX: str = "file:"
+# Any other sheet dropped into app/styles/ is a theme too, on the light
+# palette: the Settings dropdown lists the .qss files shipped here and
+# "Automatic", nothing else.
+for _sheet in sorted(_STYLES_DIR.glob("*.qss")):
+    if _sheet.name not in {name for name, _palette in APP_STYLE_QSS.values()}:
+        APP_STYLE_QSS[_sheet.stem] = (_sheet.name, "light")
 
 CONFIG_APP_STYLE: str = "app_style"
 
-#: Labels for the themes.  Qt styles are labelled by their own key, since that
-#: is the name their documentation and their users know them by.
+#: Labels for the themes; a sheet without one is shown by its file name.
 APP_STYLE_LABELS: dict[str, str] = {
     APP_STYLE_AUTOMATIC: "Automatic",
     "fluent_win11": "Fluent (Windows 11)",
     "macos_native": "macOS native",
     "dark": "Dark",
 }
-
-
-def available_qt_styles() -> list[str]:
-    """Return the Qt style plugins this installation actually has.
-
-    Enumerated rather than listed.  Fusion and Windows ship with Qt; Breeze,
-    Oxygen and QtCurve are KDE plugins that have to be installed separately and
-    are absent from a stock macOS or Windows machine.  Hard-coding those names
-    would put three entries in the menu that silently do nothing - so they
-    appear here exactly when they can be applied, and not otherwise.
-    """
-    return list(QtWidgets.QStyleFactory.keys())
-
-
-def qss_file_style_key(path: Path | str) -> str:
-    """Return the stored app-style key for a ``.qss`` file on disk."""
-    return f"{QSS_FILE_PREFIX}{Path(path).expanduser().resolve()}"
-
-
-def qss_file_style_label(key: str) -> str:
-    """Return the label to show for a ``file:`` app-style key."""
-    return f"File: {Path(key[len(QSS_FILE_PREFIX):]).name}"
+for _key in APP_STYLE_QSS:
+    APP_STYLE_LABELS.setdefault(_key, _key.replace("_", " ").title())
 
 
 def available_app_styles() -> list[tuple[str, str]]:
-    """Return every selectable style as (stored key, label to show).
-
-    A stylesheet the user picked from disk is one of the entries when it
-    is the current choice: it is the only style whose set is not knowable
-    in advance, and leaving it out would mean reopening Settings on a
-    combo that quietly showed something the app is not wearing.
-    """
-    styles = [(key, APP_STYLE_LABELS[key]) for key in APP_STYLE_LABELS]
-    styles.extend(
-        (f"{QT_STYLE_PREFIX}{name}", f"Qt: {name}") for name in available_qt_styles()
-    )
-
-    current = resolve_app_style()
-    if current.startswith(QSS_FILE_PREFIX):
-        styles.append((current, qss_file_style_label(current)))
-    return styles
+    """Return every selectable style as (stored key, label to show):
+    Automatic, then each stylesheet shipped in app/styles."""
+    return [(key, APP_STYLE_LABELS[key]) for key in APP_STYLE_LABELS]
 
 
 def _automatic_qss_name() -> str | None:
@@ -140,34 +96,13 @@ def resolve_app_style(preference: str | None = None) -> str:
     """Return a valid app-style key, falling back to automatic.
 
     An unknown value reads as automatic rather than as "no stylesheet": a typo
-    in config.json, or a Qt plugin that was uninstalled since it was chosen,
-    should leave the app looking normal rather than unstyled.
+    in config.json, or a Qt style or stylesheet path chosen in an older
+    version (``qt:...``, ``file:...``), should leave the app looking normal
+    rather than unstyled.
     """
     clean = str(preference or "").strip()
     if not clean:
         clean = str(get_value(CONFIG_APP_STYLE, "") or "").strip()
-
-    if clean.startswith(QSS_FILE_PREFIX):
-        raw = clean[len(QSS_FILE_PREFIX) :].strip()
-        path = Path(raw).expanduser()
-        if raw and path.is_file():
-            return qss_file_style_key(path)
-        applogger.warning(
-            "The stylesheet %r is no longer there; using the automatic style.",
-            raw,
-        )
-        return APP_STYLE_AUTOMATIC
-
-    if clean.startswith(QT_STYLE_PREFIX):
-        name = clean[len(QT_STYLE_PREFIX) :]
-        available = {key.lower(): key for key in available_qt_styles()}
-        if name.lower() in available:
-            return f"{QT_STYLE_PREFIX}{available[name.lower()]}"
-        applogger.warning(
-            "The Qt style %r is not installed; using the automatic style.",
-            name,
-        )
-        return APP_STYLE_AUTOMATIC
 
     lowered = clean.lower()
     return lowered if lowered in APP_STYLE_QSS else APP_STYLE_AUTOMATIC
@@ -189,30 +124,12 @@ def apply_platform_style(
     system = platform.system().lower()
     style_key = resolve_app_style(preference)
 
-    if style_key.startswith(QT_STYLE_PREFIX):
-        name = style_key[len(QT_STYLE_PREFIX) :]
-        # A Qt style draws itself; none of ours is a dark theme, so the glyphs
-        # stay dark whatever palette the plugin brings with it.
-        _icons._ACTIVE_THEME_IS_DARK = False
-        app.setStyleSheet("")
-        app.setPalette(QtWidgets.QStyleFactory.create(name).standardPalette())
-        app.setStyle(name)
-        return PlatformStyle(system, None)
-
-    if style_key.startswith(QSS_FILE_PREFIX):
-        # A sheet of the user's own, read from wherever they keep it.
-        # Otherwise treated exactly like a shipped one: the same palette
-        # substitution runs over it, so a sheet that uses none of our
-        # @TOKEN@ placeholders simply passes through unchanged.
-        qss, path = _read_qss_path(Path(style_key[len(QSS_FILE_PREFIX) :]))
-        palette_key = "light"
+    if style_key == APP_STYLE_AUTOMATIC:
+        qss_name, palette_key = _automatic_qss_name(), "light"
     else:
-        if style_key == APP_STYLE_AUTOMATIC:
-            qss_name, palette_key = _automatic_qss_name(), "light"
-        else:
-            qss_name, palette_key = APP_STYLE_QSS[style_key]
+        qss_name, palette_key = APP_STYLE_QSS[style_key]
 
-        qss, path = _load_qss(qss_name) if qss_name else ("", None)
+    qss, path = _load_qss(qss_name) if qss_name else ("", None)
 
     # No app.setStyle() override here, deliberately: macos_native.qss's own
     # header explains why most standard controls (QMenu, QScrollBar,

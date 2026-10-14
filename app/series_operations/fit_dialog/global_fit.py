@@ -17,7 +17,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QMenu, QPushButton, QTableWidgetItem, QWidget
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QMenu, QPushButton, QTableWidgetItem, QWidget
 
 from app.analysis import fit as fit_engine
 from app.data.data_source import parse_roles, row_value
@@ -36,6 +36,19 @@ class GlobalFitMixin:
         rows = list(self.selected_series())
         return rows if len(rows) >= 2 else []
 
+    def _fit_is_global(self) -> bool:
+        """True when the checked series are fitted together (the default).
+
+        False fits every series on its own: the layout then has no shared
+        parameter, so each series gets a row per parameter and its own result.
+        """
+        return bool(getattr(self, "_global_fit_wanted", True))
+
+    def _set_fit_mode(self, index: int) -> None:
+        self._global_fit_wanted = index == 0
+        self._relayout_params_table()
+        self.mark_results_stale()
+
     @staticmethod
     def _series_label(row: Any) -> str:
         return str(parse_roles(row_value(row, "roles", default={})).get("name")
@@ -48,7 +61,11 @@ class GlobalFitMixin:
         n_params = len(self._param_defaults)
         shared = list(getattr(self, "_shared", []))[:n_params]
         shared += [False] * (n_params - len(shared))
+        # What was picked is kept while the series are fitted one by one, so
+        # switching back to a global fit finds the same shared parameters.
         self._shared = shared
+        if not self._fit_is_global():
+            shared = [False] * n_params
         self._global_names = [self._series_label(row) for row in rows]
         return fit_engine.GlobalLayout(tuple(shared), len(rows))
 
@@ -74,6 +91,15 @@ class GlobalFitMixin:
         self._shared_row = QWidget(self)
         row_layout = QHBoxLayout(self._shared_row)
         row_layout.setContentsMargins(0, 0, 0, 0)
+        self._fit_mode_combo = QComboBox(self._shared_row)
+        self._fit_mode_combo.addItem(_("Global fit"))
+        self._fit_mode_combo.addItem(_("Each curve separately"))
+        self._fit_mode_combo.setToolTip(
+            _("Global: one fit of all the checked series, with the parameters picked in Shared "
+              "having one value for all. Separately: every series gets its own parameters and result.")
+        )
+        self._fit_mode_combo.currentIndexChanged.connect(self._set_fit_mode)
+        row_layout.addWidget(self._fit_mode_combo)
         row_layout.addWidget(QLabel(_("Shared:"), self._shared_row))
         self._shared_button = QPushButton(self._shared_row)
         self._shared_button.setToolTip(_("One value for every series, fitted to all of them together."))
@@ -87,6 +113,11 @@ class GlobalFitMixin:
         self._shared_row.setVisible(layout is not None)
         if layout is None:
             return
+        self._shared_button.setEnabled(self._fit_is_global())
+        # The layout has no shared parameter when fitting separately, so the
+        # menu shows what is kept for the global fit instead of the layout.
+        shared_now = list(self._shared)
+        shared_now += [False] * (len(layout.shared) - len(shared_now))
         names = [
             self._param_names[column] if column < len(self._param_names) else f"p[{column}]"
             for column in range(len(layout.shared))
@@ -101,7 +132,7 @@ class GlobalFitMixin:
                 action.setCheckable(True)
                 action.toggled.connect(lambda checked, column=column: self._set_shared(column, checked))
             actions = self._shared_menu.actions()
-        for action, shared in zip(actions, layout.shared):
+        for action, shared in zip(actions, shared_now):
             blocked = action.blockSignals(True)
             action.setChecked(shared)
             action.blockSignals(blocked)
@@ -197,7 +228,10 @@ class GlobalFitMixin:
     def _split_global(self, job: Any, outcome: fit_engine.CurveFit) -> list[tuple[Any, fit_engine.CurveFit]]:
         base_model, layout, names = job.global_parts
         shared_names = [self._param_names[column] for column, shared in enumerate(layout.shared) if shared]
-        note = _("Global fit of {count} series").format(count=layout.n_series)
+        note = (
+            _("Global fit of {count} series") if self._fit_is_global()
+            else _("Each of {count} series fitted separately")
+        ).format(count=layout.n_series)
         note += (" - " + _("shared: {names}").format(names=", ".join(shared_names))) if shared_names else ""
         series_of_point = np.asarray(job.x, dtype=float)[:, 1].astype(int)
         parts = []

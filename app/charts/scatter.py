@@ -208,6 +208,17 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 "using the colormap bad color."
             ),
         },
+        "s": {
+            "default": None,
+            "type": float,
+            "min": 0.0,
+            "max": 100_000.0,
+            "description": (
+                "Marker area in points squared (Matplotlib's s). Leave empty "
+                "for the style's scatter size; a size column, when the series "
+                "has one, takes precedence."
+            ),
+        },
         "label": {
             "default": None,
             "type": str,
@@ -490,10 +501,10 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                     scatter_kwargs.pop("vmin", None)
                     scatter_kwargs.pop("vmax", None)
 
+                # A size column wins; otherwise the "s" option (already in
+                # scatter_kwargs when set) or Matplotlib's own default.
                 if size_values is not None:
                     scatter_kwargs["s"] = size_values
-                else:
-                    scatter_kwargs.pop("s", None)
 
                 # If a line is also drawn, let the line own the legend label.
                 # pop() must tolerate a missing key: get_kwargs only emits keys

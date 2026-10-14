@@ -26,9 +26,9 @@ whatever is constructed next and leaves the rest in the old language.
 """
 from __future__ import annotations
 
-from pathlib import Path
+from typing import Any
 
-from PySide6.QtWidgets import QCheckBox, QComboBox, QFileDialog, QFormLayout, QLabel, QLineEdit, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QFormLayout, QLabel, QLineEdit, QWidget
 
 from app.logs.logger import applogger
 from app.dialogs.two_panels_dialog_base import PanelDialog
@@ -37,8 +37,6 @@ from app.styles.style import (
     available_app_styles,
     configure_combo_width,
     load_icon,
-    qss_file_style_key,
-    qss_file_style_label,
     resolve_app_style,
     stdSizeAndlayout,
 )
@@ -119,6 +117,41 @@ def normalized_save_format(value: object) -> str:
     return clean if clean in SAVE_FORMATS else DEFAULT_SAVE_FORMAT
 
 
+def _mpl_style_choices() -> list[tuple[str, str] | None]:
+    """The default-chart-style choices, grouped with separators.
+
+    ChartLibre's own default first, then Matplotlib's; then the shipped
+    folders - Apps, Journals - and any other folder after them, one group
+    each. A style is stored as its path under mplstyles without the
+    extension and shown as "Apps.jmp-classic", the way the Figure panel
+    names them.
+    """
+    paths = sorted(
+        path.relative_to(MPLSTYLES_DIR).with_suffix("")
+        for path in MPLSTYLES_DIR.rglob("*.mplstyle")
+    ) if MPLSTYLES_DIR.exists() else []
+
+    def entry(path: Any) -> tuple[str, str]:
+        return path.as_posix(), path.as_posix().replace("/", ".")
+
+    default = [path for path in paths if path.as_posix() == "ChartLibreDefault"]
+    top_level = [path for path in paths if len(path.parts) == 1 and path not in default]
+    folders: dict[str, list[Any]] = {}
+    for path in paths:
+        if len(path.parts) > 1:
+            folders.setdefault(path.parts[0], []).append(path)
+    # Apps, then Journals, then whatever else is there.
+    order = sorted(folders, key=lambda name: ({"apps": 0, "journals": 1}.get(name.lower(), 2), name.lower()))
+
+    choices: list[tuple[str, str] | None] = [entry(path) for path in default]
+    choices.append(("", tr("Matplotlib default")))
+    choices.extend(entry(path) for path in top_level)
+    for name in order:
+        choices.append(None)
+        choices.extend(entry(path) for path in folders[name])
+    return choices
+
+
 class SettingsDialog(PanelDialog):
     """Read and write the machine-level preferences in config.json.
 
@@ -127,12 +160,6 @@ class SettingsDialog(PanelDialog):
     and one that applied a style live crashed the application - see the module
     docstring.
     """
-
-    #: Sentinel combo entry that opens a file picker instead of naming a
-    #: style, the same way FigurePropertiesWidget's Style combo browses for
-    #: a .mplstyle. Never stored: picking it either adds a real ``file:``
-    #: entry or puts the combo back where it was.
-    _BROWSE_SENTINEL = "__browse_qss__"
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent, title=tr("Settings"), icon=load_icon("settings"), size="small")
@@ -151,25 +178,12 @@ class SettingsDialog(PanelDialog):
         card = self
         form = self._section(tr("Appearance"), forms)
 
-        # Built from what is actually applicable: the themes this app ships,
-        # plus whichever Qt style plugins are installed.  Breeze, Oxygen and
-        # QtCurve appear here on a machine that has them and are absent on one
-        # that does not, rather than being listed and doing nothing.
+        # Automatic, then the stylesheets shipped in app/styles: nothing else.
         self._style_combo = self._combo(
             card,
-            [
-                *[(key, tr(label)) for key, label in available_app_styles()],
-                # Last, and a sentinel rather than a style: the dropdown can
-                # only ever list what this installation ships or has
-                # installed, and a sheet kept anywhere else has no other way
-                # in. Same idea as the Style combo in Figure properties,
-                # which browses for a .mplstyle the same way.
-                (self._BROWSE_SENTINEL, tr("Browse…")),
-            ],
+            [(key, tr(label)) for key, label in available_app_styles()],
             self._entry_style,
         )
-        self._last_valid_style_index = self._style_combo.currentIndex()
-        self._style_combo.currentIndexChanged.connect(self._on_style_selected)
         form.addRow(tr("App style"), self._style_combo)
 
         self._language_combo = self._combo(
@@ -188,16 +202,9 @@ class SettingsDialog(PanelDialog):
         )
         form.addRow(tr("Default export format"), self._format_combo)
 
-        # Every shipped style, subfolders included (Apps/, Journals/, color/):
-        # stored as its path under mplstyles without the extension, shown as
-        # "Apps.jmp-classic" - the way the Figure panel names them.
-        styles = sorted(
-            path.relative_to(MPLSTYLES_DIR).with_suffix("").as_posix()
-            for path in MPLSTYLES_DIR.rglob("*.mplstyle")
-        ) if MPLSTYLES_DIR.exists() else []
         self._mpl_style_combo = self._combo(
             card,
-            [("", tr("Matplotlib default"))] + [(name, name.replace("/", ".")) for name in styles],
+            _mpl_style_choices(),
             str(get_value(DEFAULT_MPL_STYLE_KEY) or ""),
         )
         self._mpl_style_combo.setToolTip(tr("The chart style of every figure that has none of its own."))
@@ -259,16 +266,22 @@ class SettingsDialog(PanelDialog):
     # ------------------------------------------------------------------
     @staticmethod
     def _combo(
-        parent: QWidget, choices: list[tuple[str, str]], current: str
+        parent: QWidget, choices: list[tuple[str, str] | None], current: str
     ) -> QComboBox:
         """Return a combo of (stored value, shown label), on *current*.
+
+        A ``None`` entry is a separator line.
 
         The stored value is carried as item data rather than being recovered
         from the label, so translating a label cannot change what is written
         to config.json.
         """
         combo = QComboBox(parent)
-        for value, label in choices:
+        for choice in choices:
+            if choice is None:
+                combo.insertSeparator(combo.count())
+                continue
+            value, label = choice
             combo.addItem(label, value)
 
         index = combo.findData(current)
@@ -284,72 +297,6 @@ class SettingsDialog(PanelDialog):
     def _value(combo: QComboBox) -> str:
         return str(combo.currentData() or "")
 
-    @staticmethod
-    def insertItem(combo: QComboBox, index: int, text: str, data: str) -> int:
-        """Insert a combo entry before the trailing Browse… sentinel.
-
-        The sentinel row is always last, so custom user-provided styles must be
-        inserted immediately before it rather than at the absolute index passed
-        in from other code paths. Returning the actual index keeps callers in
-        sync with the combo's state.
-        """
-        sentinel_index = combo.count() - 1
-        if sentinel_index >= 0 and index >= sentinel_index:
-            index = sentinel_index
-        combo.blockSignals(True)
-        try:
-            combo.insertItem(index, text, data)
-        finally:
-            combo.blockSignals(False)
-        return index
-
-    # ------------------------------------------------------------------
-    # A stylesheet of the user's own
-    # ------------------------------------------------------------------
-    def _on_style_selected(self, _index: int) -> None:
-        if self._value(self._style_combo) != self._BROWSE_SENTINEL:
-            self._last_valid_style_index = self._style_combo.currentIndex()
-            return
-        self._browse_for_stylesheet()
-
-    def _browse_for_stylesheet(self) -> None:
-        """Pick a ``.qss`` file and select it as the app style.
-
-        Nothing is applied or written here - this dialog saves on Save and
-        the style takes effect on the next start, which the note at the
-        bottom of it says. Cancelling puts the combo back where it was
-        rather than leaving "Browse…" selected.
-        """
-        path_str, _unused = QFileDialog.getOpenFileName(
-            self,
-            tr("Select a stylesheet"),
-            "",
-            tr("Qt Stylesheet (*.qss);;All Files (*)"),
-        )
-        if not path_str:
-            self._select_style_index(self._last_valid_style_index)
-            return
-
-        key = qss_file_style_key(Path(path_str))
-        index = self._style_combo.findData(key)
-        if index < 0:
-            index = self.insertItem(
-                self._style_combo,
-                self._style_combo.count() - 1,
-                qss_file_style_label(key),
-                key,
-            )
-        self._select_style_index(index)
-
-    def _select_style_index(self, index: int) -> None:
-        """Move the combo without re-entering the browse handler."""
-        self._style_combo.blockSignals(True)
-        try:
-            self._style_combo.setCurrentIndex(index)
-        finally:
-            self._style_combo.blockSignals(False)
-        self._last_valid_style_index = self._style_combo.currentIndex()
-
     # ------------------------------------------------------------------
     # Behaviour
     # ------------------------------------------------------------------
@@ -362,12 +309,7 @@ class SettingsDialog(PanelDialog):
         of config.json - dialog geometry is saved on close - and a single
         blind write would drop whatever else changed while it was open.
         """
-        # Never the sentinel: browsing either selects a real entry or puts
-        # the combo back, so this is belt and braces rather than a case
-        # that is reachable today.
         style_key = self._value(self._style_combo)
-        if style_key == self._BROWSE_SENTINEL:
-            style_key = self._entry_style
         set_value(CONFIG_APP_STYLE, style_key)
         set_value("language", self._value(self._language_combo))
         set_value(CONFIG_SAVE_FORMAT, self._value(self._format_combo))
