@@ -9156,3 +9156,9 @@ msgstr "Scegli un file .mplstyle dalla cartella mplstyles"
 
 msgid "Use the {name} style"
 msgstr "Usa lo stile {name}"
+
+msgid "Marker size"
+msgstr "Dimensione marcatore"
+
+msgid "Marker size in points. Default leaves it to the style."
+msgstr "Dimensione del marcatore in punti. Predefinito la lascia allo stile."

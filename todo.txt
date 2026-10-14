@@ -14,7 +14,7 @@ DONE P0-8: Settings appearance. App Style. Remove native Qt Themes. Drop down on
 DONE P0-9: Settings appearance. Charts. Default chart style. CHart libre default on top. than Matplotlib default. separator. Apps. seprator. Journals. [Separator, other folders if any]
 PF-1: Survival: improve the algorithm for performances.
 DONE P0-10: Fit. Only one series is fitted!
-DONE P0-11: Markersize to kwargs!
+DONE P0-11: Markersize to kwargs! (scatter kwarg "markersize" in points; Series panel "Marker size")
 DONE P0-12: Scatter x wrong data coercion to datetime when series query returns no data
 P0-13: Series Markersize, Line style changes when other parameters are changed
 P0-14: Sometimes labels disapper when other parameters are changed

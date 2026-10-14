@@ -13,6 +13,7 @@ from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPen, QTextOption
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDoubleSpinBox,
     QFrame,
     QFormLayout,
     QHBoxLayout,
@@ -142,6 +143,7 @@ class SeriesPropertiesWidget(BaseProperties):
             self._sort_x_check,
             self._linestyle_combo,
             self._marker_combo,
+            self._markersize_spin,
             self._color_combo,
         )
 
@@ -309,6 +311,15 @@ class SeriesPropertiesWidget(BaseProperties):
 
         self._linestyle_combo = LineStyleCombo(section)
         self._marker_combo = MarkerStyleCombo(section)
+        # Points, as Matplotlib's markersize. The minimum shows as "Default"
+        # and is stored as no value at all: a spin box cannot be empty, and a
+        # size of 0 would hide the markers rather than leave them to the style.
+        self._markersize_spin = QDoubleSpinBox(section)
+        self._markersize_spin.setRange(0.0, 100.0)
+        self._markersize_spin.setDecimals(1)
+        self._markersize_spin.setSingleStep(0.5)
+        self._markersize_spin.setSpecialValueText(_("Default"))
+        self._markersize_spin.setToolTip(_("Marker size in points. Default leaves it to the style."))
         # "Default", not "(none)": an empty colour is not "this series has
         # no colour", it is "let the style sheet's cycle pick one" - which
         # is what the renderer does with it, and what the Line style and
@@ -329,6 +340,7 @@ class SeriesPropertiesWidget(BaseProperties):
         form.addRow(_("Sort"), self._sort_x_check)
         form.addRow(_("Line style"), self._linestyle_combo)
         form.addRow(_("Marker"), self._marker_combo)
+        form.addRow(_("Marker size"), self._markersize_spin)
         form.addRow(_("Color"), self._color_combo)
 
         raw_layout = section.card.layout()
@@ -586,6 +598,11 @@ class SeriesPropertiesWidget(BaseProperties):
                 self._marker_combo,
                 str(style.get("marker", DEFAULT) or DEFAULT),
             )
+            try:
+                markersize = float(style.get("markersize") or 0.0)
+            except (TypeError, ValueError):
+                markersize = 0.0
+            self._markersize_spin.setValue(max(markersize, 0.0))
             self._set_color_value(str(style.get("color", "") or ""))
 
     def _clear_series_fields(self) -> None:
@@ -599,6 +616,7 @@ class SeriesPropertiesWidget(BaseProperties):
             self._sort_x_check.setChecked(False)
             self._linestyle_combo.setCurrentIndex(0)
             self._marker_combo.setCurrentIndex(0)
+            self._markersize_spin.setValue(0.0)
             self._color_combo.setCurrentIndex(0)
 
     def _set_color_value(self, value: str) -> None:
@@ -642,6 +660,7 @@ class SeriesPropertiesWidget(BaseProperties):
             self._sort_x_check,
             self._linestyle_combo,
             self._marker_combo,
+            self._markersize_spin,
             self._color_combo,
         ):
             widget.setEnabled(enabled)
@@ -745,6 +764,8 @@ class SeriesPropertiesWidget(BaseProperties):
                 "sort_x": bool(self._sort_x_check.isChecked()),
                 "linestyle": str(self._linestyle_combo.currentData() or "-"),
                 "marker": str(self._marker_combo.currentData() or ""),
+                # None removes the key: the minimum means "leave it to the style".
+                "markersize": self._markersize_spin.value() or None,
                 "color": self._color_combo.current_hex().strip(),
             }
         )

@@ -109,6 +109,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             "trend_degree",
             "trend_band",
             "trend_sigma",
+            "markersize",
         }
     )
 
@@ -208,15 +209,16 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 "using the colormap bad color."
             ),
         },
-        "s": {
+        "markersize": {
             "default": None,
             "type": float,
             "min": 0.0,
-            "max": 100_000.0,
+            "max": 100.0,
+            "group": "Marker",
             "description": (
-                "Marker area in points squared (Matplotlib's s). Leave empty "
-                "for the style's scatter size; a size column, when the series "
-                "has one, takes precedence."
+                "Marker size in points (Matplotlib's markersize; the area drawn "
+                "is its square). Leave empty for the style's size; a series' own "
+                "Marker size, or a size column, takes precedence."
             ),
         },
         "label": {
@@ -501,14 +503,18 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                     scatter_kwargs.pop("vmin", None)
                     scatter_kwargs.pop("vmax", None)
 
-                # A size column wins; then the series' own "s", then the
-                # axis' (already in scatter_kwargs when set), then Matplotlib's.
-                series_area = style.get("s")
-                if series_area not in (None, ""):
+                # A size column wins; then the series' own Marker size, then
+                # the axis' markersize option, then the style's scatter size.
+                # Points, as in Matplotlib's markersize; scatter wants area.
+                scatter_kwargs.pop("markersize", None)
+                marker_points = style.get("markersize")
+                if marker_points in (None, ""):
+                    marker_points = base_kwargs.get("markersize")
+                if marker_points not in (None, ""):
                     try:
-                        scatter_kwargs["s"] = float(series_area)
+                        scatter_kwargs["s"] = float(marker_points) ** 2
                     except (TypeError, ValueError):
-                        applogger.warning("Series '%s': s=%r is not a number; ignored.", sd.name, series_area)
+                        applogger.warning("Series '%s': markersize=%r is not a number; ignored.", sd.name, marker_points)
                 if size_values is not None:
                     scatter_kwargs["s"] = size_values
 

@@ -265,6 +265,19 @@ class DictValueDelegate(QStyledItemDelegate):
             editor.setProperty("cellEditor", True)
         return editor
 
+    @staticmethod
+    def _watch_untouched(editor: QSpinBox | QDoubleSpinBox) -> None:
+        """Flag *editor* as holding no user value until its value or text changes."""
+        editor.setProperty("untouched", True)
+
+        def touched(*_args: object) -> None:
+            editor.setProperty("untouched", False)
+
+        editor.valueChanged.connect(touched)
+        line_edit = editor.lineEdit()
+        if line_edit is not None:
+            line_edit.textEdited.connect(touched)
+
     def setEditorData(self, editor, index) -> None:  # noqa: N802, ANN001
         key = self._panel.key_from_index(index)
         if key is None:
@@ -298,13 +311,15 @@ class DictValueDelegate(QStyledItemDelegate):
         if isinstance(editor, QCheckBox):
             editor.setChecked(_truthy(value))
             return
-        if isinstance(editor, QDoubleSpinBox):
+        if isinstance(editor, (QDoubleSpinBox, QSpinBox)):
             if text:
-                editor.setValue(float(text))
-            return
-        if isinstance(editor, QSpinBox):
-            if text:
-                editor.setValue(int(text))
+                editor.setValue(float(text) if isinstance(editor, QDoubleSpinBox) else int(text))
+            else:
+                # Unset: the box can only show its minimum, which is not a value
+                # the user chose. Committing it untouched would write that
+                # minimum (a marker size of 0 hides every marker), so remember
+                # that nothing was typed yet.
+                self._watch_untouched(editor)
             return
         if isinstance(editor, QComboBox) and editor.isEditable():
             editor.setCurrentText(text)
@@ -343,10 +358,9 @@ class DictValueDelegate(QStyledItemDelegate):
             value = editor.current_marker()
         elif isinstance(editor, QCheckBox):
             value = editor.isChecked()
-        elif isinstance(editor, QDoubleSpinBox):
-            value = editor.value()
-        elif isinstance(editor, QSpinBox):
-            value = editor.value()
+        elif isinstance(editor, (QDoubleSpinBox, QSpinBox)):
+            # A row that had no value and was never edited stays without one.
+            value = None if editor.property("untouched") else editor.value()
         elif isinstance(editor, QComboBox) and editor.isEditable():
             value = _parse_text_value(editor.currentText())
         elif isinstance(editor, QComboBox):

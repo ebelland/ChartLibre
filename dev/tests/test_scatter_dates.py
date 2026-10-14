@@ -73,17 +73,19 @@ def test_a_skipped_series_with_dates_does_not_date_the_axis() -> None:
     assert not isinstance(ax.xaxis.get_major_formatter(), mdates.ConciseDateFormatter)
 
 
-def test_the_s_option_sets_the_marker_area() -> None:
-    ax = Figure().add_subplot()
+def test_markersize_is_in_points_per_series_and_axis() -> None:
     frame = SeriesFrame({"x": [1.0, 2.0], "y": [1.0, 2.0]})
-    ScatterAxisRenderer().render_axis(ax, [SeriesData(name="s", df=frame, style={"s": 80.0})], {})
-    np.testing.assert_allclose(ax.collections[0].get_sizes(), [80.0])
+    ax = Figure().add_subplot()
+    ScatterAxisRenderer().render_axis(
+        ax, [SeriesData(name="s", df=frame, style={"markersize": 8.0})], {}
+    )
+    np.testing.assert_allclose(ax.collections[0].get_sizes(), [64.0])  # area = size squared
 
     ax = Figure().add_subplot()  # the axis' value, and a series' own over it
     series = [
         SeriesData(name="a", df=frame, style={}),
-        SeriesData(name="b", df=frame, style={"s": 10.0}),
+        SeriesData(name="b", df=frame, style={"markersize": 3.0}),
     ]
-    ScatterAxisRenderer().render_axis(ax, series, {"s": 50.0})
-    np.testing.assert_allclose(ax.collections[0].get_sizes(), [50.0])
-    np.testing.assert_allclose(ax.collections[1].get_sizes(), [10.0])
+    ScatterAxisRenderer().render_axis(ax, series, {"axis_kwargs": {"markersize": 5.0}})
+    np.testing.assert_allclose(ax.collections[0].get_sizes(), [25.0])
+    np.testing.assert_allclose(ax.collections[1].get_sizes(), [9.0])
