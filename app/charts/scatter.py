@@ -274,7 +274,6 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 continue
 
             x, x_is_temporal = self._x_values(sd.df['x'])
-            temporal = temporal or x_is_temporal
             y = to_numbers(sd.df['y'])
             color_source = sd.df['color'] if 'color' in sd.df.columns else None
             # A non-numeric colour column (colour names, hex codes - the
@@ -311,6 +310,10 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             if not bool(mask.any()):
                 applogger.info("Series '%s' skipped: no finite x/y pairs.", sd.name)
                 continue
+
+            # Only a series that is drawn decides the axis is dated: a skipped
+            # one (no points) must not turn the others' numbers into dates.
+            temporal = temporal or x_is_temporal
 
             x_values = x[mask].to_numpy(dtype=float)
             y_values = y[mask].to_numpy(dtype=float)
