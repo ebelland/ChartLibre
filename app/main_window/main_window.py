@@ -254,6 +254,16 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             # _create_central_host is exactly the band this hit-tests.
             self._central_host.setMouseTracking(True)
             self._central_host.installEventFilter(self)
+            # The status bar is outside _central_host, so the window's real
+            # bottom edge and corners are the bar's: it needs the same
+            # watching, and its labels must not take the mouse (a label
+            # swallows the moves the cursor shape depends on). Its own size
+            # grip stays off - this replaces it.
+            status_bar = self.statusBar()
+            status_bar.setMouseTracking(True)
+            status_bar.installEventFilter(self)
+            for label in (self._status_project, self._status_context, self._status_state):
+                label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
         # Default page: the tables, not whatever happens to be first in the
         # rail. File sits above them now, and opening onto an empty file

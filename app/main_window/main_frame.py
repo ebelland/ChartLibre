@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from PySide6.QtCore import QEvent, QObject, QPoint, Qt
+from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QMainWindow, QSizePolicy, QSplitter, QVBoxLayout, QWidget
 
@@ -42,11 +42,45 @@ else:
         """Runtime-neutral base: MainWindow supplies the actual Qt base."""
 
 
+def resize_edges(
+    pos: QPoint,
+    size: QSize,
+    margin: int,
+    *,
+    top: bool = True,
+    bottom: bool = True,
+    corner: int = 0,
+) -> Qt.Edge:
+    """Which edge(s) of a *size* rectangle *pos* is within *margin* of.
+
+    *top* and *bottom* say whether that side is an edge of the window at all:
+    a strip in the middle of it (the central area above the status bar) has no
+    edge there to drag. *corner* widens the left and right bands along the
+    bottom row to that many pixels, so the window's corner is as easy to grab
+    as the corner of a normal window (a 6 px square is a small target).
+    """
+    edges = Qt.Edge(0)
+    on_bottom = bottom and pos.y() >= size.height() - margin
+    side = max(margin, corner) if on_bottom else margin
+    if pos.x() <= side:
+        edges |= Qt.Edge.LeftEdge
+    elif pos.x() >= size.width() - side:
+        edges |= Qt.Edge.RightEdge
+    if top and pos.y() <= margin:
+        edges |= Qt.Edge.TopEdge
+    elif on_bottom:
+        edges |= Qt.Edge.BottomEdge
+    return edges
+
+
 class MainWindowFrame(_MainWindowFrameBase):
     """A part of MainWindow; ``self`` is the window."""
 
     #: How close to an edge, in pixels, counts as "grab this edge to resize".
     _RESIZE_MARGIN: int = 6
+
+    #: Width of the grab zone at each end of the window's bottom edge, where the corner is.
+    _RESIZE_CORNER: int = 14
 
     #: Cursor shape for each edge/corner combination _resize_edge_at can
     #: return. Absent from here (the interior, or a maximized window) means
@@ -135,25 +169,22 @@ class MainWindowFrame(_MainWindowFrameBase):
         layout.addWidget(self._main_split, 1)
         return host
 
-    def _resize_edge_at(self, pos: QPoint) -> Qt.Edge:
-        """Return which edge(s) of _central_host *pos* is within the margin of.
+    def _resize_edge_at(self, pos: QPoint, watched: QWidget | None = None) -> Qt.Edge:
+        """Return which edge(s) of the window *pos* is within the margin of.
 
-        *pos* is in _central_host's own coordinates - the widget
-        eventFilter below watches, not the window's (self never sees a
-        mouse event of its own to filter; see __init__'s comment on why).
+        *pos* is in the coordinates of *watched*, the widget eventFilter
+        below got the event for: _central_host (the default), or the status
+        bar. The status bar is not inside _central_host - QMainWindow puts it
+        below - so with it showing, the window's real bottom edge and both
+        bottom corners belong to the bar, and the host's own bottom band is
+        an interior one with nothing to resize.
         """
-        rect = self._central_host.rect()
-        margin = self._RESIZE_MARGIN
-        edges = Qt.Edge(0)
-        if pos.x() <= margin:
-            edges |= Qt.Edge.LeftEdge
-        elif pos.x() >= rect.width() - margin:
-            edges |= Qt.Edge.RightEdge
-        if pos.y() <= margin:
-            edges |= Qt.Edge.TopEdge
-        elif pos.y() >= rect.height() - margin:
-            edges |= Qt.Edge.BottomEdge
-        return edges
+        bar = self.statusBar() if hasattr(self, "statusBar") else None
+        bar_shown = bar is not None and bar.isVisible()
+        if bar_shown and watched is bar:
+            # The bar's top is the host's bottom: not an edge of the window.
+            return resize_edges(pos, bar.size(), self._RESIZE_MARGIN, top=False, corner=self._RESIZE_CORNER)
+        return resize_edges(pos, self._central_host.size(), self._RESIZE_MARGIN, bottom=not bar_shown)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Give the frameless Windows window edge-drag resizing.
@@ -168,16 +199,16 @@ class MainWindowFrame(_MainWindowFrameBase):
         """
         if not (
             IS_WINDOWS
-            and watched is self._central_host
+            and (watched is self._central_host or watched is self.statusBar())
             and isinstance(event, QMouseEvent)
             and not self.isMaximized()
         ):
             return super().eventFilter(watched, event)
 
-        edges = self._resize_edge_at(event.position().toPoint())
+        edges = self._resize_edge_at(event.position().toPoint(), cast(QWidget, watched))
         if event.type() == QEvent.Type.MouseMove:
             cursor = self._RESIZE_CURSORS.get(edges, Qt.CursorShape.ArrowCursor)
-            self._central_host.setCursor(cursor)
+            cast(QWidget, watched).setCursor(cursor)
         elif (
             event.type() == QEvent.Type.MouseButtonPress
             and event.button() == Qt.MouseButton.LeftButton
