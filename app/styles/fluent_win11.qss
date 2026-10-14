@@ -1,31 +1,33 @@
 /* ==========================================================
-   Fluent Win11 – ChartLibre (SYSTEM PALETTE VERSION)
-   Patched: SpinBox, item hover contrast, message box width
+   Fluent Win11 – ChartLibre 
    ========================================================== */
 
-
-/* ==========================================================
-   Frameless window's own edge
-   ========================================================== */
+QMainWindow {
+    background-color: palette(base);
+}
 
 /* main_window.py sets Qt.FramelessWindowHint on Windows, which strips every
    bit of native chrome - border, corner, drop shadow - so the window has no
    visible edge of its own against whatever is behind it without this. Plain
    1px outline, no radius: WinUI3 windows are only softly rounded by DWM at
-   the compositor level, which a QSS border-radius on an opaque child widget
+   the compositor level, which a QSS border-radius on an opaaque child widget
    cannot reproduce (it would draw a rounded rectangle inside a still-square
    window, not reshape the window itself). */
+
+
 QWidget#windowFrame {
-    border: 1px solid rgba(@SHADOW_RGB@, 0.35);
+  background: palette(base);
 }
 
 /* The navigation-rail toggle, left of the title: a flat glyph in the
    title bar rather than a framed button, the same subtle-fill-on-hover
    treatment WinUI3 gives its own caption-bar controls. */
+
 QToolButton#titleBarSidebarButton {
     background: transparent;
     border: none;
     border-radius: 4px;
+    padding: 0;
     /* The generic QToolButton rule below asks for 36 px and 8 px of side
        padding, which pushed this glyph away from the traffic lights and
        below their line. A small square keeps it beside them. */
@@ -33,7 +35,6 @@ QToolButton#titleBarSidebarButton {
     max-width: 26px;
     min-height: 26px;
     max-height: 26px;
-    padding: 0;
 }
 
 QToolButton#titleBarSidebarButton:hover {
@@ -50,14 +51,14 @@ QToolButton#titleBarSidebarButton:checked {
    (36 px minimum, rounded), which was taller than the strip and cut them off. */
 QToolButton#titleBarButton,
 QToolButton#titleBarCloseButton {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
     min-width: 40px;
     max-width: 40px;
     min-height: 30px;
     max-height: 30px;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: transparent;
     icon-size: 12px;
 }
 
@@ -82,6 +83,7 @@ QToolButton#titleBarCloseButton:pressed {
    ========================================================== */
 
 * {
+    outline: none;
     /* Resolved at load time by style.substitute_ui_font, against the fonts
        actually installed - not a static list. A list here would be a list
        of guesses, and every name in it that the machine does not have costs
@@ -89,7 +91,6 @@ QToolButton#titleBarCloseButton:pressed {
        before Qt reaches the one it does. See style.ui_font_family. */
     font-family: @UI_FONT_FAMILY@;
     font-size: 10pt;
-    outline: none;
 }
 
 /* No background here on purpose (used to be palette(window)): a bare
@@ -197,11 +198,11 @@ QWidget[acrylic="true"] {
 QFrame[acrylicDark="true"],
 QWidget[acrylicDark="true"] {
     background: rgba(32, 32, 32, 0.68);
+    color: rgba(255, 255, 255, 0.92);
     /* Literal white, not @GLOW_RGB@: this panel is dark in every theme, so
        its own overlays must not follow the theme's light/dark direction. */
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 14px;
-    color: rgba(255, 255, 255, 0.92);
 }
 
 /* Sidebar acrylic */
@@ -239,8 +240,8 @@ QLabel[role="subtitle"] {
 }
 
 QLabel[role="caption"] {
-    font-size: 9pt;
     color: rgba(@NEUTRAL_RGB@, 0.95);
+    font-size: 9pt;
 }
 
 QLabel[muted="true"] {
@@ -266,14 +267,14 @@ QLabel[fluentIcon="true"] {
 QPushButton[iconOnly="true"],
 QToolButton[iconOnly="true"],
 QAbstractButton[iconOnly="true"] {
-    min-width: 32px;
-    min-height: 32px;
-    max-width: 32px;
-    max-height: 32px;
-    padding: 0;
-    border-radius: 8px;
-    border: 1px solid transparent;
     background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0;
+    min-width: 32px;
+    max-width: 32px;
+    min-height: 32px;
+    max-height: 32px;
     icon-size: 20px;
 }
 
@@ -305,35 +306,35 @@ QPushButton[accent="true"] {
 
 /* Remove menu indicator from icon buttons */
 QToolButton::menu-indicator {
-    image: none;
     width: 0;
+    image: none;
 }
 /* ==========================================================
    Fluent Command Bar
    ========================================================== */
 
 QToolBar {
-    spacing: 4px;
-    padding: 4px;
     border: none;
+    padding: 4px;
+    spacing: 4px;
 }
 
 QToolBar::separator {
-    width: 1px;
     background: rgba(@SHADOW_RGB@,0.06);
     margin: 6px 8px;
+    width: 1px;
 }
 
 QToolButton {
-    min-width: 36px;
-    min-height: 36px;
-
-    padding: 0 8px;
-
-    border-radius: 8px;
-    border: 1px solid transparent;
 
     color: palette(window-text);
+    border: 1px solid transparent;
+
+    border-radius: 8px;
+
+    padding: 0 8px;
+    min-width: 36px;
+    min-height: 36px;
 
     icon-size: 20px;
 }
@@ -367,8 +368,8 @@ QMenu {
 }
 
 QMenu::item {
-  padding: 6px 16px;
   border-radius: 6px;
+  padding: 6px 16px;
 }
 
 QMenu::item:selected {
@@ -377,9 +378,9 @@ QMenu::item:selected {
 }
 
 QMenu::separator {
-  height: 1px;
   background: rgba(@SHADOW_RGB@, 0.08);
   margin: 6px 0;
+  height: 1px;
 }
 
 /* ==========================================================
@@ -395,11 +396,11 @@ QMenu::separator {
    ========================================================== */
 
 QTabWidget::pane {
+    background: transparent;
     border: none;
     border-top: 1px solid rgba(@SHADOW_RGB@, 0.10);
-    background: transparent;
-    margin: 0;
     padding: 0;
+    margin: 0;
 }
 
 QTabWidget {
@@ -413,40 +414,25 @@ QTabWidget {
    than sitting apart from it (WinUI3's own TabView look, not a floating
    underline-only tab as this file drew before). */
 QTabBar {
-    background: transparent;
-    border: none;
-}
-
-/* Base tab */
-QTabBar::tab {
-    background: transparent;
-    color: palette(window-text);
-
-    min-height: 36px;
-
-    padding: 0 16px;
-    margin-right: 2px;
-
-    border: 1px solid transparent;
-    border-bottom: none;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-
-    font-weight: 400;
-}
-
-/* Chart properties' four tabs: narrow enough for the left panel at its
-   narrowest (see macos_native.qss); the Axis page's own tabs are untouched. */
-QTabWidget#propertiesTabs > QTabBar::tab,
-QTabWidget#operationTabs > QTabBar::tab {
-    padding: 0 8px;
-    min-width: 0px;
-}
-
-QTabBar QToolButton {
-    min-width: 5px;
-    min-height: 5px;
-}
+      background: rgba(@SHADOW_RGB@, 0.05);
+      border-radius: 8px;
+      padding: 2px;
+      qproperty-drawBase: 0;
+  }
+  /* Base tab */
+  QTabBar::tab {
+      background: transparent;
+      color: palette(mid);
+      border: none;
+      border-radius: 4px;
+      padding: 4px 14px;
+      margin: 1px;
+      min-width: 52px;
+  }
+  QTabBar QToolButton {
+      min-width: 5px;
+      min-height: 5px;
+  }
 
 /* Hover state */
 QTabBar::tab:hover:!selected {
@@ -459,14 +445,11 @@ QTabBar::tab:hover:!selected {
    the content it opens read as one connected surface, WinUI3-style,
    instead of a coloured underline floating below plain text. */
 QTabBar::tab:selected {
-    background: palette(base);
-    color: palette(window-text);
-    font-weight: 600;
-
-    border: 1px solid rgba(@SHADOW_RGB@, 0.10);
-    border-bottom: 1px solid palette(base);
-    margin-bottom: -1px;
-}
+      background: palette(base);
+      color: palette(text);
+      border: 1px solid rgba(@SHADOW_RGB@, 0.10);
+      font-weight: 600;
+  }
 
 /* Pressed */
 QTabBar::tab:pressed {
@@ -475,8 +458,8 @@ QTabBar::tab:pressed {
 
 /* Disabled */
 QTabBar::tab:disabled {
-    color: rgba(@NEUTRAL_RGB@, 0.65);
     background: transparent;
+    color: rgba(@NEUTRAL_RGB@, 0.65);
 }
 
 /* Focus approximation.
@@ -499,10 +482,10 @@ QTabBar::tab:last {
 -------------------------------- */
 
 QPushButton {
-  padding: 6px 14px;
-  border-radius: 8px;
   background: palette(button);
   border: 1px solid rgba(@SHADOW_RGB@, 0.12);
+  border-radius: 8px;
+  padding: 6px 14px;
 }
 
 QPushButton:hover {
@@ -528,11 +511,11 @@ QComboBox,
 QDateEdit,
 QPlainTextEdit,
 QTextEdit {
-  padding: 6px 8px;
-  border-radius: 8px;
   background: palette(base);
   color: palette(text);
   border: 1px solid rgba(@SHADOW_RGB@, 0.14);
+  border-radius: 8px;
+  padding: 6px 8px;
 }
 
 QLineEdit:focus,
@@ -552,12 +535,12 @@ QComboBox {
 }
 
 QComboBox::drop-down {
-  subcontrol-origin: padding;
-  subcontrol-position: top right;
-  width: 26px;
   border: none;
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
+  width: 26px;
+  subcontrol-origin: padding;
+  subcontrol-position: top right;
 }
 
 QComboBox::drop-down:hover {
@@ -568,23 +551,23 @@ QComboBox::drop-down:hover {
    drawing the platform's own. The Segoe Fluent chevron, rendered at start-up
    from the system font (@ICON:), so still no hand-drawn file. */
 QComboBox::down-arrow {
-  image: url(@ICON:chevron_down@);
   width: 10px;
   height: 10px;
+  image: url(@ICON:chevron_down@);
 }
 
 /* Popup */
 QComboBox QAbstractItemView {
   background: palette(base);
   color: palette(text);
-  border-radius: 8px;
   border: 1px solid rgba(@SHADOW_RGB@, 0.12);
+  border-radius: 8px;
   padding: 6px;
 }
 
 QComboBox QAbstractItemView::item {
-  padding: 6px 10px;
   border-radius: 6px;
+  padding: 6px 10px;
 }
 
 QComboBox QAbstractItemView::item:hover,
@@ -599,16 +582,16 @@ QComboBox QAbstractItemView::item:selected {
 
 QSpinBox,
 QDoubleSpinBox {
-    min-height: 30px;
-
-    padding: 0 30px 0 10px;
-
-    border-radius: 8px;
 
     background: palette(base);
     color: palette(text);
 
     border: 1px solid rgba(@SHADOW_RGB@,0.10);
+
+    border-radius: 8px;
+
+    padding: 0 30px 0 10px;
+    min-height: 30px;
 }
 
 QSpinBox:hover,
@@ -625,10 +608,10 @@ QSpinBox::up-button,
 QSpinBox::down-button,
 QDoubleSpinBox::up-button,
 QDoubleSpinBox::down-button {
-    width: 22px;
+    background: transparent;
 
     border: none;
-    background: transparent;
+    width: 22px;
 }
 
 QSpinBox::up-button:hover,
@@ -644,16 +627,16 @@ QDoubleSpinBox::down-button:hover {
    macos_native.qss gives the SF Symbols ones. */
 QSpinBox::up-arrow,
 QDoubleSpinBox::up-arrow {
-    image: url(@ICON:chevron_up@);
     width: 9px;
     height: 9px;
+    image: url(@ICON:chevron_up@);
 }
 
 QSpinBox::down-arrow,
 QDoubleSpinBox::down-arrow {
-    image: url(@ICON:chevron_down@);
     width: 9px;
     height: 9px;
+    image: url(@ICON:chevron_down@);
 }
 
 QSpinBox::up-arrow:disabled,
@@ -707,15 +690,15 @@ QHeaderView::section {
 -------------------------------- */
 
 QScrollBar:vertical {
-  width: 10px;
   background: transparent;
   margin: 0;
+  width: 10px;
 }
 
 QScrollBar::handle:vertical {
   background: rgba(@SHADOW_RGB@, 0.25);
-  min-height: 40px;
   border-radius: 5px;
+  min-height: 40px;
 }
 
 QScrollBar::handle:vertical:hover {
@@ -724,10 +707,10 @@ QScrollBar::handle:vertical:hover {
 
 QScrollBar::add-line:vertical,
 QScrollBar::sub-line:vertical {
-  height: 0px;
-  width: 0px;
-  border: none;
   background: none;
+  border: none;
+  width: 0px;
+  height: 0px;
 }
 
 QScrollBar::up-arrow,
@@ -742,15 +725,15 @@ QScrollBar::sub-page {
 }
 
 QScrollBar:horizontal {
-  height: 10px;
   background: transparent;
   margin: 0;
+  height: 10px;
 }
 
 QScrollBar::handle:horizontal {
   background: rgba(@SHADOW_RGB@, 0.25);
-  min-width: 40px;
   border-radius: 5px;
+  min-width: 40px;
 }
 
 QScrollBar::handle:horizontal:hover {
@@ -759,10 +742,10 @@ QScrollBar::handle:horizontal:hover {
 
 QScrollBar::add-line:horizontal,
 QScrollBar::sub-line:horizontal {
+  background: none;
+  border: none;
   width: 0px;
   height: 0px;
-  border: none;
-  background: none;
 }
 
 QScrollBar::left-arrow,
@@ -804,10 +787,10 @@ QStatusBar {
 -------------------------------- */
 
 QRadioButton {
-  border: none;
   background: transparent;
-  spacing: 6px;
   color: palette(text);
+  border: none;
+  spacing: 6px;
 }
 
 QRadioButton::indicator {
@@ -816,15 +799,15 @@ QRadioButton::indicator {
 }
 
 QRadioButton::indicator:unchecked {
+  background: palette(base);
   border: 1px solid palette(mid);
   border-radius: 7px;
-  background: palette(base);
 }
 
 QRadioButton::indicator:checked {
+  background: palette(highlight);
   border: 1px solid palette(mid);
   border-radius: 7px;
-  background: palette(highlight);
 }
 
 /* -------------------------------
@@ -832,10 +815,10 @@ QRadioButton::indicator:checked {
 -------------------------------- */
 
 TableListPanel QTableView {
-  border: 1px solid rgba(@SHADOW_RGB@, 0.08);
-  border-radius: 8px;
   background: palette(base);
   color: palette(text);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.08);
+  border-radius: 8px;
   gridline-color: rgba(@SHADOW_RGB@, 0.06);
 }
 
@@ -861,14 +844,14 @@ TableListPanel QTableView::item:selected:!active {
 TableListPanel QHeaderView::section {
   background: palette(window);
   color: palette(window-text);
+  border: none;
+  border-right: 1px solid rgba(@SHADOW_RGB@, 0.06);
+  border-bottom: 1px solid rgba(@SHADOW_RGB@, 0.08);
+  padding: 5px 8px;
   font-size: 8pt;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 5px 8px;
-  border: none;
-  border-bottom: 1px solid rgba(@SHADOW_RGB@, 0.08);
-  border-right: 1px solid rgba(@SHADOW_RGB@, 0.06);
 }
 
 TableListPanel QHeaderView::section:last {
@@ -880,10 +863,10 @@ TableListPanel QHeaderView::section:last {
 -------------------------------- */
 
 QTableView#dataTable {
-  border: 1px solid rgba(@SHADOW_RGB@, 0.08);
-  border-radius: 8px;
   background: palette(base);
   color: palette(text);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.08);
+  border-radius: 8px;
   gridline-color: rgba(@SHADOW_RGB@, 0.06);
 }
 
@@ -894,14 +877,14 @@ QTableView#dataTable::item {
 QTableView#dataTable QHeaderView::section {
   background: palette(window);
   color: palette(window-text);
+  border: none;
+  border-right: 1px solid rgba(@SHADOW_RGB@, 0.06);
+  border-bottom: 1px solid rgba(@SHADOW_RGB@, 0.08);
+  padding: 5px 8px;
   font-size: 8pt;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 5px 8px;
-  border: none;
-  border-bottom: 1px solid rgba(@SHADOW_RGB@, 0.08);
-  border-right: 1px solid rgba(@SHADOW_RGB@, 0.06);
 }
 
 QTableView#dataTable QHeaderView::section:last {
@@ -911,11 +894,11 @@ QTableView#dataTable QHeaderView::section:last {
 /* Row numbers (the table editor shows them): a quiet gutter. */
 QTableView#dataTable QHeaderView::section:vertical,
 QTableView#dataTable QHeaderView::section:vertical:last {
+  border-right: 1px solid rgba(@SHADOW_RGB@, 0.08);
+  border-bottom: none;
+  padding: 0 8px;
   font-weight: 400;
   letter-spacing: 0;
-  padding: 0 8px;
-  border-bottom: none;
-  border-right: 1px solid rgba(@SHADOW_RGB@, 0.08);
 }
 
 /* -------------------------------
@@ -959,8 +942,8 @@ QToolButton#navigationItem:checked {
 }
 
 QToolButton#navigationItem::menu-indicator {
-    image: none;
     width: 0px;
+    image: none;
 }
 
   /* ==========================================================
@@ -1044,16 +1027,16 @@ QDialogButtonBox QPushButton[primary="true"]:hover,
 QMessageBox QPushButton[primary="true"]:hover,
 QPushButton[primary="true"]:hover {
     background: rgba(@ACCENT_RGB@, 0.92);
-    border: 1px solid rgba(@ACCENT_RGB@, 0.92);
     color: white;
+    border: 1px solid rgba(@ACCENT_RGB@, 0.92);
 }
 
 QDialogButtonBox QPushButton[primary="true"]:pressed,
 QMessageBox QPushButton[primary="true"]:pressed,
 QPushButton[primary="true"]:pressed {
     background: rgba(@ACCENT_RGB@, 0.82);
-    border: 1px solid rgba(@ACCENT_RGB@, 0.82);
     color: white;
+    border: 1px solid rgba(@ACCENT_RGB@, 0.82);
 }
 
 /* ==========================================================
@@ -1074,14 +1057,14 @@ QPushButton#primaryDialogButton {
 
 QPushButton#primaryDialogButton:hover {
     background: rgba(@ACCENT_RGB@, 0.92);
-    border: 1px solid rgba(@ACCENT_RGB@, 0.92);
     color: white;
+    border: 1px solid rgba(@ACCENT_RGB@, 0.92);
 }
 
 QPushButton#primaryDialogButton:pressed {
     background: rgba(@ACCENT_RGB@, 0.82);
-    border: 1px solid rgba(@ACCENT_RGB@, 0.82);
     color: white;
+    border: 1px solid rgba(@ACCENT_RGB@, 0.82);
 }
 
 QPushButton#primaryDialogButton:disabled {
@@ -1105,12 +1088,12 @@ QToolBox {
 
 QToolBox::tab 
 {
-    text-align: left;
-    padding: 6px 8px;
+    background: rgba(@NEUTRAL_RGB@, 0.08);
     border: 0;
     border-radius: 6px;
-    background: rgba(@NEUTRAL_RGB@, 0.08);
+    padding: 6px 8px;
     font-weight: 600;
+    text-align: left;
 }
 /* Hover */
 QToolBox::tab:hover {
@@ -1120,8 +1103,8 @@ QToolBox::tab:hover {
 /* Selected */
 QToolBox::tab:selected {
     background: rgba(@ACCENT_RGB@, 0.055);
-    font-weight: 600;
     color: palette(window-text);
+    font-weight: 600;
 }
 
 /* Pressed */
@@ -1158,18 +1141,18 @@ QDialog
 
 QLabel[sectionTitle="true"] {
 
+    color: rgba(@NEUTRAL_RGB@, 0.9);
+
+    padding-top: 8px;
+    padding-bottom: 4px;
+
     font-size: 9pt;
 
     font-weight: 600;
 
-    color: rgba(@NEUTRAL_RGB@, 0.9);
-
     letter-spacing: 0.04em;
 
     text-transform: uppercase;
-
-    padding-top: 8px;
-    padding-bottom: 4px;
 }
 
 /* ----------------------------------------------------------
@@ -1186,19 +1169,19 @@ QLineEdit#seriesOperationsSearch {
 QListWidget#seriesOperationsList {
     background: palette(base);
     border: none;
-    outline: 0;
     padding: 0 6px;
+    outline: 0;
 }
 
 QListWidget#seriesOperationsList::item {
-    padding: 0 4px;
-    border-radius: 4px;
     color: palette(window-text);
+    border-radius: 4px;
+    padding: 0 4px;
 }
 
 QListWidget#seriesOperationsList::item:disabled {
-    color: rgba(@NEUTRAL_RGB@, 0.9);
     background: transparent;
+    color: rgba(@NEUTRAL_RGB@, 0.9);
 }
 
 QListWidget#seriesOperationsList::item:hover:enabled {
@@ -1220,22 +1203,22 @@ QListWidget#seriesOperationsList::item:selected {
 QLabel#operationHint {
     background: palette(base);
     border-top: 1px solid rgba(@SHADOW_RGB@, 0.08);
-    border-bottom-left-radius: 12px;
     border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
     padding: 8px 10px;
 }
 
 /* The Edit table dialog's "more" button opens a menu; its icon already
    says so, so no drop-down arrow beside it. */
 QToolButton#tableEditorMore {
-  border: none;
   background: transparent;
+  border: none;
   padding: 4px;
 }
 
 QToolButton#tableEditorMore::menu-indicator {
-  image: none;
   width: 0px;
+  image: none;
 }
 
 /* A setting whose "off" is risky (Settings > SQL guard): red text. */
@@ -1256,8 +1239,8 @@ QWidget#navSectionsBody {
 
 QLabel#navSectionTitle {
   color: rgba(@SHADOW_RGB@, 0.55);
-  font-weight: 600;
   padding: 6px 6px 2px 6px;
+  font-weight: 600;
 }
 
 QListWidget#chartList {
@@ -1267,9 +1250,9 @@ QListWidget#chartList {
 }
 
 QListWidget#chartList::item {
-  min-height: 28px;
-  padding: 0 4px;
   border-radius: 4px;
+  padding: 0 4px;
+  min-height: 28px;
 }
 
 QListWidget#chartList::item:selected {
@@ -1283,37 +1266,37 @@ QFrame#chartJumpBar {
 }
 
 QToolButton#chartJumpTitle {
-  font-weight: 600;
   border: none;
+  font-weight: 600;
 }
 
 /* Chart toolbar, jump-bar arrows and title: small square hover areas. The
    generic QToolButton rule (36 px minimum, 8 px side padding) made them
    wide grey slabs and pushed the arrows out of the jump bar. */
 QToolButton#chartToolButton {
+  border-radius: 6px;
+  padding: 0;
   min-width: 32px;
   max-width: 32px;
   min-height: 32px;
   max-height: 32px;
-  padding: 0;
-  border-radius: 6px;
 }
 
 QToolButton#chartJumpArrow {
+  border: none;
+  border-radius: 6px;
+  padding: 0;
   min-width: 28px;
   max-width: 28px;
   min-height: 28px;
   max-height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: 6px;
 }
 
 QToolButton#chartJumpTitle {
+  padding: 0 6px;
   min-width: 0;
   min-height: 28px;
   max-height: 28px;
-  padding: 0 6px;
 }
 
 
@@ -1334,8 +1317,8 @@ QToolButton#tableEditorMore {
   border: none;
   border-radius: 6px;
   padding: 2px 6px;
-  min-height: 0px;
   min-width: 0px;
+  min-height: 0px;
   text-align: left;
 }
 
@@ -1350,11 +1333,67 @@ QToolButton#tableEditorMore:pressed {
 }
 
 QToolButton#tableEditorMore::menu-indicator {
-  image: none;
   width: 0px;
+  image: none;
 }
 
 QScrollArea#tableEditorToolsScroll,
 QScrollArea#tableEditorToolsScroll > QWidget > QWidget {
   background: transparent;
+}
+
+
+/* Splitter gutters belong to the page surface, not to the neutral chrome. */
+QSplitter::handle,
+QSplitter::handle:horizontal,
+QSplitter::handle:vertical {
+    background: palette(base);
+    border: none;
+}
+
+/* Remove the light pane outline and any residual right edge. */
+QTabWidget,
+QTabWidget::pane {
+    background: transparent;
+    border: none;
+    border-right: none;
+}
+
+/* Rounded navigation surface. */
+QFrame#activityRail {
+    border: none;
+    border-right: 1px solid palette(midlight);
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+/* New Plot: series controls should read as one framed, white list surface.
+   Multiple object names are supported so the rule remains effective across
+   the current editor implementations without affecting generic scroll areas. */
+QScrollArea#seriesScrollArea,
+QScrollArea#newPlotSeriesScrollArea,
+QScrollArea#seriesOptionsScrollArea,
+QFrame#seriesScrollFrame,
+QWidget#seriesScrollFrame {
+    background: palette(base);
+    border: 1px solid rgba(@SHADOW_RGB@, 0.08);
+    border-radius: 8px;
+}
+
+QScrollArea#seriesScrollArea > QWidget#qt_scrollarea_viewport,
+QScrollArea#newPlotSeriesScrollArea > QWidget#qt_scrollarea_viewport,
+QScrollArea#seriesOptionsScrollArea > QWidget#qt_scrollarea_viewport,
+QScrollArea#seriesScrollArea QWidget#qt_scrollarea_viewport,
+QScrollArea#newPlotSeriesScrollArea QWidget#qt_scrollarea_viewport,
+QScrollArea#seriesOptionsScrollArea QWidget#qt_scrollarea_viewport {
+    background: palette(base);
+    border: none;
+    border-radius: 8px;
+}
+
+QScrollArea#seriesScrollArea QWidget#qt_scrollarea_viewport > QWidget,
+QScrollArea#newPlotSeriesScrollArea QWidget#qt_scrollarea_viewport > QWidget,
+QScrollArea#seriesOptionsScrollArea QWidget#qt_scrollarea_viewport > QWidget {
+    background: palette(base);
+    border: none;
 }
