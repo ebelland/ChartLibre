@@ -11,6 +11,7 @@ from typing import Any, cast
 import numpy as np
 import pandas as pd
 import matplotlib.dates as mdates
+from matplotlib import rcParams
 from matplotlib.patches import Ellipse
 from matplotlib.transforms import Affine2D
 
@@ -388,14 +389,12 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             )
             line_style, has_line = self.series_linestyle(style, options)
 
-            # Neither a marker nor a line would draw nothing at all: small
-            # dots rather than a series that silently disappears.
+            # Neither a marker nor a line would draw nothing at all: fall
+            # back to the style sheet's own scatter marker (None lets
+            # Matplotlib read rcParams), a plain dot when that is "none".
             if not has_marker and not has_line:
-                applogger.info(
-                    "Series '%s' has no marker and no line; drawn as small dots.",
-                    sd.name,
-                )
-                marker_style = "."
+                rc_marker = str(rcParams.get("scatter.marker", "") or "").strip()
+                marker_style = None if rc_marker.lower() not in ("", "none") else "."
                 has_marker = True
 
             flat_color = str(style.get("color", "") or "").strip()
