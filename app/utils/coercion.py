@@ -55,7 +55,18 @@ def coerce_axis(values: pd.Series) -> tuple[pd.Series, bool]:
     if numeric.notna().any():
         return numeric, False
 
-    return parse_datetimes(values), True
+    # Nothing numeric.  A column with no real entries at all (empty, or every
+    # value NULL - what an integer column becomes when its cells could not be
+    # converted) is not evidence of dates: it stays a numeric axis of NaN
+    # instead of switching the chart to a date axis.
+    if not values.notna().any():
+        return numeric, False
+
+    parsed = parse_datetimes(values)
+    if not parsed.notna().any():
+        # Text that is neither numbers nor dates: nothing to draw as dates.
+        return numeric, False
+    return parsed, True
 
 
 def parse_datetimes(values: pd.Series) -> pd.Series:
