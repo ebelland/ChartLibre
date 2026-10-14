@@ -122,6 +122,8 @@ class SeriesPropertiesWidget(BaseProperties):
         self._current_axis_id: int | None = None
         self._current_series_id: int | None = None
         self._series_map: dict[int, SeriesDescriptorLike] = {}
+        #: key -> (stored value, combo index it was loaded as); see _load_choice.
+        self._stored_choices: dict[str, tuple[Any, int]] = {}
 
         self._build_ui()
         self._install_auto_apply(self._emit_series_options_requested)
@@ -315,7 +317,7 @@ class SeriesPropertiesWidget(BaseProperties):
         # and is stored as no value at all: a spin box cannot be empty, and a
         # size of 0 would hide the markers rather than leave them to the style.
         self._markersize_spin = QDoubleSpinBox(section)
-        self._markersize_spin.setRange(0.0, 100.0)
+        self._markersize_spin.setRange(0.0, 1000.0)
         self._markersize_spin.setDecimals(1)
         self._markersize_spin.setSingleStep(0.5)
         self._markersize_spin.setSpecialValueText(_("Default"))
@@ -590,23 +592,52 @@ class SeriesPropertiesWidget(BaseProperties):
             )
             self._sort_x_check.setChecked(bool(style.get("sort_x", False)))
 
-            self._set_combo_value(
-                self._linestyle_combo,
-                str(style.get("linestyle", DEFAULT) or DEFAULT),
-            )
-            self._set_combo_value(
-                self._marker_combo,
-                str(style.get("marker", DEFAULT) or DEFAULT),
-            )
+            self._load_choice(self._linestyle_combo, "linestyle", style.get("linestyle", DEFAULT), none="none")
+            self._load_choice(self._marker_combo, "marker", style.get("marker", DEFAULT), none="")
             try:
                 markersize = float(style.get("markersize") or 0.0)
             except (TypeError, ValueError):
                 markersize = 0.0
             self._markersize_spin.setValue(max(markersize, 0.0))
-            self._set_color_value(str(style.get("color", "") or ""))
+            raw_color = style.get("color", "")
+            self._set_color_value(str(raw_color or ""))
+            self._stored_choices["color"] = (raw_color, self._color_combo.currentIndex())
+
+    def _load_choice(self, combo: QComboBox, key: str, raw: Any, *, none: str) -> None:
+        """Select what a stored line style / marker shows as, remembering the stored value.
+
+        A stored style is what the series *has*, the combo only what it can
+        show: "", "None" and an explicit no-line / no-marker all read as the
+        combo's None entry (*none*), and a value the combo has no entry for
+        (a dash pattern, "dashed") shows as Default. Writing the combo's
+        reading back on the next edit of any other field changed the series -
+        a chosen None became Default, a custom dash a solid line - so the
+        stored value is kept, and sent back for as long as the combo is left
+        on what it was loaded as.
+        """
+        text = raw.strip() if isinstance(raw, str) else None
+        if text is not None and text.lower() == "none":
+            text = none
+        index = combo.findData(text) if text is not None else -1
+        combo.setCurrentIndex(index if index >= 0 else 0)
+        self._stored_choices[key] = (raw, combo.currentIndex())
+
+    def _choice(self, combo: QComboBox, key: str, fallback: str) -> Any:
+        """The value to store for *combo*: the loaded one while it is untouched."""
+        stored = self._stored_choices.get(key)
+        if stored is not None and combo.currentIndex() == stored[1]:
+            return stored[0]
+        return str(combo.currentData() or fallback)
+
+    def _choice_color(self) -> Any:
+        stored = self._stored_choices.get("color")
+        if stored is not None and self._color_combo.currentIndex() == stored[1]:
+            return stored[0] if stored[0] is not None else ""
+        return self._color_combo.current_hex().strip()
 
     def _clear_series_fields(self) -> None:
         """Clear form fields for the no-selection state."""
+        self._stored_choices.clear()
         with self._reloading_controls():
             self._current_series_id = None
             self._legend_label_edit.clear()
@@ -762,10 +793,13 @@ class SeriesPropertiesWidget(BaseProperties):
                 "visible": bool(self._visible_check.isChecked()),
                 "show_in_legend": bool(self._show_in_legend_check.isChecked()),
                 "sort_x": bool(self._sort_x_check.isChecked()),
-                "linestyle": str(self._linestyle_combo.currentData() or "-"),
-                "marker": str(self._marker_combo.currentData() or ""),
+                "linestyle": self._choice(self._linestyle_combo, "linestyle", "-"),
+                "marker": self._choice(self._marker_combo, "marker", ""),
                 # None removes the key: the minimum means "leave it to the style".
                 "markersize": self._markersize_spin.value() or None,
-                "color": self._color_combo.current_hex().strip(),
+                # What the series has, while the combo is left as loaded: it
+                # has no entry for "C0", "0.5" or a colour with alpha, and
+                # would otherwise write "" over them on any other edit.
+                "color": self._choice_color(),
             }
         )

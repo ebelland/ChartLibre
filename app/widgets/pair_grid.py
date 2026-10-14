@@ -53,12 +53,21 @@ class PairGrid(QWidget):
         self._arrange((1, True))
 
     def _needed_width(self, arrangement: tuple[int, bool]) -> int:
-        """Width the *arrangement* needs so no field is squeezed below its minimum."""
+        """Width the *arrangement* needs so no field is squeezed below its minimum.
+
+        Column by column: the grid sizes each column to its own widest label
+        and field, so a long label in one column does not charge the other.
+        """
         per_row, stacked = arrangement
-        label_width = max(label.sizeHint().width() for label, _field in self._pairs)
-        field_width = max(max(field.minimumWidth(), field.minimumSizeHint().width()) for _label, field in self._pairs)
-        pair = max(label_width, field_width) if stacked else label_width + _GAP + field_width
-        return per_row * pair + (per_row - 1) * _GAP
+        total = (per_row - 1) * _GAP
+        for column in range(per_row):
+            members = [pair for index, pair in enumerate(self._pairs) if index % per_row == column]
+            if not members:
+                continue
+            label_width = max(label.sizeHint().width() for label, _field in members)
+            field_width = max(max(field.minimumWidth(), field.minimumSizeHint().width()) for _label, field in members)
+            total += max(label_width, field_width) if stacked else label_width + _GAP + field_width
+        return total
 
     def _fitting_arrangement(self, width: int) -> tuple[int, bool]:
         for arrangement in _ARRANGEMENTS:

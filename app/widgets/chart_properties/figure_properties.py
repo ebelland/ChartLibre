@@ -12,6 +12,7 @@ from typing import Any, Callable
 from matplotlib import rcParams
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
+    QGridLayout,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -308,8 +309,13 @@ class FigurePropertiesWidget(BaseProperties):
         lay.setContentsMargins(*MARGIN_PANEL)
         lay.setSpacing(12)
 
-        # ----- Name -----
-        name_section = TitledCard(self, _("Name"), "figureNameCard")
+        # ----- Name and notes -----
+        # One card: a name is a line and the notes a few more, and two cards
+        # spent a title and a frame's padding on each.
+        # Notes are saved on their own, a moment after typing stops: they
+        # change nothing drawn, so they do not go through the panel's apply
+        # and its redraw.
+        name_section = TitledCard(self, _("Name and notes"), "figureNameCard")
         name_section_lay = name_section.card.layout()
 
         self._name_edit = QLineEdit(name_section)
@@ -319,29 +325,22 @@ class FigurePropertiesWidget(BaseProperties):
         )
         stdSizeAndlayout(self._name_edit)
         name_section_lay.addWidget(self._name_edit)
-        lay.addWidget(name_section)
 
-        # ----- Notes -----
-        # Saved on their own, a moment after typing stops: they change
-        # nothing drawn, so they do not go through the panel's apply and
-        # its redraw.
-        notes_section = TitledCard(self, _("Notes"), "figureNotesCard")
-        notes_section_lay = notes_section.card.layout()
-        self._note_edit = QPlainTextEdit(notes_section)
+        self._note_edit = QPlainTextEdit(name_section)
         self._note_edit.setPlaceholderText(_("What this figure shows, where its data came from..."))
         self._note_edit.setFixedHeight(72)
         self._note_edit.setToolTip(_("Kept with the figure in the project, and printed under it in reports."))
-        notes_section_lay.addWidget(self._note_edit)
-        self._dates_label = QLabel(notes_section)
+        name_section_lay.addWidget(self._note_edit)
+        self._dates_label = QLabel(name_section)
         self._dates_label.setProperty("muted", True)
         self._dates_label.setWordWrap(True)
-        notes_section_lay.addWidget(self._dates_label)
+        name_section_lay.addWidget(self._dates_label)
         self._note_timer = QTimer(self)
         self._note_timer.setSingleShot(True)
         self._note_timer.setInterval(700)
         self._note_timer.timeout.connect(self._save_note)
         self._note_edit.textChanged.connect(self._note_timer.start)
-        lay.addWidget(notes_section)
+        lay.addWidget(name_section)
 
         # ----- Style -----
         style_section = TitledCard(self, _("Style"), "figureStyleCard")
@@ -351,46 +350,52 @@ class FigurePropertiesWidget(BaseProperties):
         self._style_edit.setReadOnly(True)
         style_section_lay.addWidget(self._style_edit)
 
+        # Two rows of two: four buttons in one row did not fit the panel's width.
         style_buttons_row = QWidget(style_section)
-        style_buttons_lay = QHBoxLayout(style_buttons_row)
+        style_buttons_lay = QGridLayout(style_buttons_row)
         style_buttons_lay.setContentsMargins(0, 0, 0, 0)
         style_buttons_lay.setSpacing(8)
+        style_buttons_lay.setColumnStretch(0, 1)
+        style_buttons_lay.setColumnStretch(1, 1)
 
         self._btn_default = create_action_button(
             parent=style_buttons_row,
             action_id="reload",
             action=self._set_default_style,
-            layout=style_buttons_lay,
+            layout=None,
             presentation=(load_icon("reload"), self._DEFAULT_STYLE_NAME,
                           _("Use the {name} style").format(name=self._DEFAULT_STYLE_NAME)),
         )
+        style_buttons_lay.addWidget(self._btn_default, 0, 0)
         self._btn_browse = create_action_button(
             parent=style_buttons_row,
             action_id="open",
             action=self._browse_for_style_file,
-            layout=style_buttons_lay,
+            layout=None,
             presentation=(load_icon("open"), _("Browse…"),
                           _("Pick a .mplstyle file from the mplstyles folder")),
         )
+        style_buttons_lay.addWidget(self._btn_browse, 0, 1)
         self._btn_edit = create_action_button(
                              parent=style_buttons_row,
                              action_id="edit",
                              action=self._edit_current_style,
-                             layout=style_buttons_lay,
+                             layout=None,
                          )
+        style_buttons_lay.addWidget(self._btn_edit, 1, 0)
         self._btn_style_to_all = create_action_button(
             parent=style_buttons_row,
             action_id="copy",
             action=lambda: self.style_applied_to_all.emit(self._current_style_text()),
-            layout=style_buttons_lay,
+            layout=None,
             presentation=(load_icon("copy"), _("Apply to all figures"),
                           _("Give every figure of the project this style")),
         )
+        style_buttons_lay.addWidget(self._btn_style_to_all, 1, 1)
         # No Apply button: every control on this panel applies itself a
         # short moment after it changes (see _connect_auto_apply). Reload
         # and Edit stay - they are style actions, not "commit the form".
 
-        style_buttons_lay.addStretch(1)
         style_section_lay.addWidget(style_buttons_row)
         lay.addWidget(style_section)
 

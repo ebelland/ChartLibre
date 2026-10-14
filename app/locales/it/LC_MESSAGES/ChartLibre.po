@@ -9162,3 +9162,6 @@ msgstr "Dimensione marcatore"
 
 msgid "Marker size in points. Default leaves it to the style."
 msgstr "Dimensione del marcatore in punti. Predefinito la lascia allo stile."
+
+msgid "Name and notes"
+msgstr "Nome e note"

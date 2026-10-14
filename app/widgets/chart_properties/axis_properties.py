@@ -1131,7 +1131,15 @@ class AxisPropertiesWidget(BaseProperties):
                 ).strip()
             )
             for axis in axis_options.AXES:
-                self._coordinates[axis]["label"] = str(options.get(f"{axis}_label", "")).strip()
+                # What the chart shows: the option when there is one, else the
+                # descriptor's own column (the auto label a new chart gets from
+                # its data column). Reading only the options showed such a
+                # label as empty, and the next edit of any axis parameter wrote
+                # that emptiness back over it - the label vanished.
+                stored = options.get(f"{axis}_label")
+                if stored is None:
+                    stored = getattr(axis_desc, f"{axis}_label", "")
+                self._coordinates[axis]["label"] = str(stored or "").strip()
                 self._share_checks[axis].setChecked(bool(options.get(f"share{axis}", False)))
             self._projection_combo.setCurrentIndex(
                 max(0, self._projection_combo.findData(projection))
