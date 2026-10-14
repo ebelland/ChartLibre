@@ -85,6 +85,21 @@ class SeriesOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin,
     #: dialog that produced them.
     results_published = Signal(str)
 
+    def showEvent(self, event: Any) -> None:  # noqa: N802
+        """Hide a results view no layout adopted.
+
+        The base dialog creates its HTML results view as a child of itself and
+        a layout normally takes it over. A dialog that shows its results some
+        other way (Geometry draws a preview chart) never adds it, and a child
+        of a dialog with no layout is shown at the dialog's top-left corner:
+        the white rectangle there. Whatever still has the dialog itself as its
+        parent when it opens is in nobody's layout, so it is hidden.
+        """
+        results = getattr(self, "_results_label", None)
+        if results is not None and results.parent() is self:
+            results.hide()
+        super().showEvent(event)
+
     def __init__(
         self,
         repo: SqliteRepo,

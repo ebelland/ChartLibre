@@ -525,3 +525,12 @@ def test_previewing_a_surface_twice_draws_on_a_live_axis(qapp, repo: SqliteRepo)
     finally:
         dialog.close()
         applogger.set_status_bar(None)
+
+
+def test_no_stray_results_view_is_shown_in_the_corner(dialog: SeriesGeometryDialog) -> None:
+    """Geometry draws its own preview, so the base dialog's HTML results view is in
+    no layout; left as a child of the dialog it showed as a white rectangle at the
+    dialog's top-left corner (P0-1)."""
+    dialog.show()
+    assert dialog._results_label.parent() is not dialog or dialog._results_label.isHidden()
+    assert not dialog._results_label.isVisible()
