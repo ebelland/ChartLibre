@@ -3,71 +3,25 @@ One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
 Size: app 91,913 lines in 248 files; tests 16,379 lines in 126 files (updated at each commit).
 
-DONE RECENTLY
-- M-01: Manual: Data operations and Chart properties named as in the app, the rail's pages listed as they are now, a new Analysis chapter (the analysis window, Fit Model with Generalized Regression, Partition with importance/dependence/ROC, Discriminant, PLS; Guided analysis with search, the three quick answers, the table's questions, goals with Y and X); PDF rebuilt. Screenshots not retaken.
-- AN-19: ROC curves (one level against the rest), AUC and confusion matrix (explain.roc/confusion): Fit Model's nominal and ordinal logistic (AUC in the summary, confusion matrix in the report, ROC chart with the chance diagonal); Partition's classification tree, forest and boosted tree, on validation rows when there are some.
-- AN-18: Permutation importance and partial dependence for any model (app/analysis/explain.py, model-agnostic): in Partition for the tree, the forest and the boosted tree, on validation rows when there are some; report section, tables, Pareto and a dependence chart per most important factor (bars for a nominal one).
-- AN-17: Partial Least Squares (Models): Y from many collinear X (spectra), components by cross-validation with Wold's criterion (PRESS cut by 5% or more), X centred (scaling optional - off for spectra); Q², VIP, loadings, coefficients, scores; OK draws RMSECV by components, VIP along the variables, scores, actual by predicted.
-- AN-16: Fit Model > Generalized Regression: Lasso, Ridge or Elastic Net on the model's own design (coded, standardized), the penalty chosen by 5-fold cross-validation; estimates with zeroed terms, effects ranked by standardized size (no p-values, said in a note), cross-validated R²; Pareto by size.
-- G-01: Guided analysis: Y and X picked from the selected table (Y's type sets the response); Open casts them into the analysis (X into its role after the response; Fit Model builds their main effects - TableOperationDialogBase.cast_explanatory) or starts a new chart on them. Goal list sized to its rows.
-- A click on the chart selects what it landed on in Chart properties (when shown): outside every axis the Figure page, on an axis the Axis page on it, on a series' line, points or bar the Series page on it.
-- D-01 (part): demo "Quick answers - three questions asked of real data" (dev/demo/demo_questions.py): penguins' body mass by species, what has the most impact on it, NASA global temperature over time - each asked by the real dialog, the answer in the chart's notes.
-- Q-03: Quick answer "Has it changed over time?": Mann-Kendall trend with Sen's slope and Pettitt change point (O(n) from ranks), the two sides compared; when both speak, the shape that fits better (drift or step) is the answer; caution on autocorrelation; order by a date, number or the rows; OK draws the values with the trend line or the medians before and after. Also a concrete question of the guided analysis when the table has dates.
-- Q-02: Quick answer "What has the most impact?": a random forest ranks the factors by permutation importance on held-out rows (3-fold), a linear model (or a test per factor for a categorical result) gives p-values and direction; answer in words (first factor and share, direction, next ones, how much is explained on unseen rows, little impact, not cause); OK writes the ranking and a Pareto chart. Also the guided analysis's first concrete question.
-- Tab switch left the chart stale and corner-anchored: the Figure properties panel set the export size and dpi, the dpi change queued a draw that ran before the panel put its size back; reapply_view_geometry now syncs at once.
-- Frame titles above their boxes everywhere: New chart, Group and aggregate, Computed column, Query builder, Connect to database, the data operations' Results, developer helpers, Edit localization (SettingsTableDialog sections=True: a column of titled frames).
-- Guided analysis follows the selected table: what it holds (numeric, categories, dates), goals and suggestions it cannot feed last and greyed with what they lack, concrete questions ("Does “weight” change between the groups of “line”?") opening Are there differences? with the columns cast (table_operations/table_profile.py). Discriminant in the catalogue.
-- AN-20: Discriminant (Models): linear or quadratic, proportional or equal priors; misclassification, Wilks' lambda with Rao's F, canonical analysis, standardized coefficients, group means, confusion matrix; OK writes each row's predicted group, probabilities and canonical scores and draws the canonical plot. Checked against scikit-learn and the known iris values.
-- R-05: Fit weights from the series' yerr column (Weights: Equal, Relative, Error bars; chi-square reported); global fit: two or more series checked fit together, parameters picked in the Shared menu are one value for all, the others one per series (fit.GlobalLayout, fit.global_model), a result, curve and output table per series. Also: the parameter table no longer overflows after a fit (resizeColumnsToContents widened the Stretch columns).
-- W-04: ChartCanvas (chart_panel/canvas.py): within a burst of resizes the last image is stretched, and the figure is resized and drawn once the size holds for 150 ms; the panel's geometry pass waits for it.
-- PF-03: Whittaker-Eilers banded Cholesky (O(n): 0.1 ms vs 404 ms at n=3000); cluster ids via np.unique return_inverse; contingency via factorize + bincount; roots: vectorised brackets, exact linear crossings with no solver; wavelet power via Parseval with no inverse FFT, scales in blocks; correlation via scipy.signal.correlate (FFT when faster). All checked equal to the old code.
-- UI-07: Fluent spin-box and combo chevrons (Segoe Fluent glyphs); off macOS the window carries the popup menu's shortcuts, so Ctrl+Z (Undo) works with the menu closed.
-- R-20: project review - PanelDialog for every one-panel dialog; report
-  helpers shared by the analyses; 7 unused functions removed; chart_panel,
-  series_operations/dialog_base, fit_dialog and style split into packages
-  (mixins, one module per concern); properties panels share _watch and
-  _configure_combo_width in BaseProperties.
-- PF-01/02: optional Numba (app/utils/jit.py, CHARTLIBRE_NO_NUMBA=1 to turn
-  off): Kalman smoother 102 -> 1.1 ms (100k points); Nelson rules one linear
-  pass, 500 -> 2.3 ms (50k; 87 ms without Numba). Python 3.14's JIT
-  (PYTHON_JIT=1) measured: no gain on these loops - left off.
-- UI-05: Series Fit: output table, bands and extra charts in an Output tab (min height 751 -> 566); parameter table without horizontal scroll, headers translated
-- UI-04: Figure > Style: Apply to all figures (asks first, undoable)
-- UI-03: Box plot: the series' Line style draws the box lines, its Marker style the outliers
-- UI-09: Data operations panel: its own search removed - Guided analysis search and Ctrl/Cmd+K find every function
-- UI-08: Settings > Default chart style: the .mplstyle a figure without its own style uses
-- UI-02: Axis card: Major/Minor table (grid, ticks, length, rotation - minor apart, also drawn for Y/Z), Base box is the linear zone for symlog, Share/Invert, Hide spines
-- UI-01: Guided analysis after Analysis on the rail, accent-coloured icon; the quick answer only there
-- UI-06: MPL style editor: system rcParams (keymap, backend...) filtered again; header reaches the edge; texts translated
-- Partition (AN-01): tree, partition graph, box plots by leaf;
-  Bootstrap Forest and Boosted Tree (AN-15).
-- Search (Analysis panel and Ctrl/Cmd+K) over a catalogue of every
-  function; "Data operations" (was Series operations); manual appendix
-  of equivalents in JMP/SPSS/Minitab/Origin (dev/manual/make_equivalents.py).
-- Column types: float continuous, integer ordinal, text nominal.
-- Review, step 1: PanelDialog (one column of titled frames + buttons) under
-  SettingsTableDialog; Credits, Log, History, Project report moved onto it.
-- Guided analysis on the rail: search, quick answers, goals -> suggestions.
-- Quick answer Q-01 "Are there differences?" (test chosen, answer in words).
+P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
+P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
+P0-3: move search below workspace in NavBar using the same "temporary" list. Windows: remove from help.Rmove the dialog
+P0-4: Windows: cannot resize by dragging bottom right corner.
+P0-5: Chart Properties. FIgure. Name and notes in the same frame to save space.
+P0-6: Chart Properties. FIgure. Reorganize on two columns to save space.
+P0-7: Chart Properties. FIgure. Style. Reorganize the 4 button in two rows.
+P0-8: Settings appearance. App Style. Remove native Qt Themes. Drop down only with qss files in style and Automatic. No browse.
+P0-9: Settings appearance. Charts. Default chart style. CHart libre default on top. than Matplotlib default. separator. Apps. seprator. Journals. [Separator, other folders if any]
+PF-1: Survival: improve the algorithm for performances.
+P0-10: Fit. Only one series is fitted!
+P0-11: Markersize to kwargs!
+P0-12: Scatter x wrong data coercio to datetime
 
 NOW
 D-01  M  Demos rethought around the questions: per goal still to do (the
          quick answers' demo is done), still covering every function.
 R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 
-UI FIXES (from the notes list; one commit per group, mostly S)
-
-PERFORMANCE - NUMBA (measured on this repo, see notes below)
-PF-04 M  Batch Monte Carlo scoring - only if the whole scoring kernel can be
-         compiled; otherwise skip. Survival: improve the algorithm first.
-Rules: Numba stays an OPTIONAL dependency with a pure-Python fallback; cache=True;
-compile in a kernel only numeric arrays (no dataclasses, dicts, closures).
-Not worth it: multi-peak model (already vectorised: 0.2 ms for 5 peaks x 2000
-points; Jacobian 7 ms for 21 parameters - a fit of 50 iterations is well under
-a second) and model-specific Jacobians (they need the whole chain compiled:
-model -> residual -> perturbation -> Jacobian; large effort, small gain).
-Never target: Qt panels, Matplotlib rendering and style editing, pandas,
-statsmodels, scikit-learn, SciPy wrappers, string/SQL/catalogue logic.
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - AN-02 M  Distribution: histogram, quantiles, normality, capability.
