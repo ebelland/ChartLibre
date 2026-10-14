@@ -1,0 +1,174 @@
+/* ==========================================================
+   Ubuntu Native – ChartLibre
+   GNOME / Libadwaita inspired theme
+   ========================================================== */
+
+* {
+    font-family: Cantarell;
+    font-size: 10pt;
+    outline: none;
+}
+
+QWidget {
+    color: palette(window-text);
+    selection-background-color: palette(highlight);
+    selection-color: palette(highlighted-text);
+}
+
+QWidget#windowFrame,
+QMainWindow {
+    background: palette(base);
+}
+
+QFrame[card="true"],
+QWidget[card="true"] {
+    background: palette(base);
+    border: 1px solid rgba(@SHADOW_RGB@, 0.10);
+    border-radius: 12px;
+}
+
+QFrame#activityRail {
+    background: rgba(@SHADOW_RGB@, 0.03);
+    border: none;
+    border-right: 1px solid rgba(@SHADOW_RGB@, 0.10);
+}
+
+QLabel[role="title"] {
+    font-size: 18pt;
+    font-weight: 700;
+}
+
+QLabel[role="subtitle"] {
+    font-size: 13pt;
+    font-weight: 600;
+}
+
+QPushButton {
+    background: rgba(@SHADOW_RGB@, 0.04);
+    color: palette(button-text);
+    border: 1px solid rgba(@SHADOW_RGB@, 0.12);
+    border-radius: 10px;
+    padding: 6px 14px;
+    min-height: 30px;
+}
+
+QPushButton:hover {
+    background: rgba(@ACCENT_RGB@, 0.08);
+}
+
+QPushButton:pressed {
+    background: rgba(@ACCENT_RGB@, 0.16);
+}
+
+QPushButton[primary="true"],
+QPushButton[accent="true"] {
+    background: palette(highlight);
+    color: palette(highlighted-text);
+    border: 1px solid palette(highlight);
+    font-weight: 600;
+}
+
+QPushButton[destructive="true"] {
+    background: #c01c28;
+    color: white;
+    border: 1px solid #c01c28;
+}
+
+QToolButton#navigationItem {
+    background: transparent;
+    color: palette(window-text);
+    border: none;
+    border-radius: 8px;
+    padding: 0 10px;
+    text-align: left;
+}
+
+QToolButton#navigationItem:hover {
+    background: rgba(@SHADOW_RGB@, 0.06);
+}
+
+QToolButton#navigationItem:checked {
+    background: rgba(@ACCENT_RGB@, 0.14);
+    color: palette(highlight);
+    font-weight: 600;
+}
+
+QLineEdit,
+QComboBox,
+QSpinBox,
+QDoubleSpinBox,
+QTextEdit,
+QPlainTextEdit {
+    background: palette(base);
+    color: palette(text);
+    border: 1px solid rgba(@SHADOW_RGB@, 0.16);
+    border-radius: 10px;
+    padding: 6px 10px;
+}
+
+QComboBox:focus,
+QLineEdit:focus,
+QSpinBox:focus,
+QDoubleSpinBox:focus {
+    border: 1px solid palette(highlight);
+}
+
+QTabWidget::pane {
+    border: none;
+    background: transparent;
+}
+
+QTabBar::tab {
+    background: transparent;
+    color: palette(window-text);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+}
+
+QTabBar::tab:selected {
+    background: rgba(@ACCENT_RGB@, 0.15);
+    color: palette(highlight);
+    font-weight: 600;
+}
+
+QToolBox {
+    background: transparent;
+    border: none;
+}
+
+QToolBox::tab {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(@SHADOW_RGB@, 0.08);
+    padding: 8px 12px;
+    font-weight: 600;
+}
+
+QTableView,
+QTreeView,
+QListView {
+    background: palette(base);
+    border: 1px solid rgba(@SHADOW_RGB@, 0.08);
+    border-radius: 10px;
+}
+
+QAbstractItemView::item:selected {
+    background: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+QScrollBar:vertical {
+    width: 10px;
+    background: transparent;
+}
+
+QScrollBar::handle:vertical {
+    background: rgba(@SHADOW_RGB@, 0.30);
+    border-radius: 5px;
+}
+
+QMessageBox QLabel {
+    min-width: 0px;
+    max-width: 360px;
+}
