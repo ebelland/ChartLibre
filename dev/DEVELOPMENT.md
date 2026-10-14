@@ -72,9 +72,10 @@ app/
   locales/            gettext-style .po catalogues (see §9).
 mplstyles/            The bundled Matplotlib style library (see §7.3).
 demo/                 The built demo projects "Load demo" copies from.
-docs/manual/          The user manual: user_manual.typ is the source, built
-                      with `typst compile user_manual.typ`; its figures are
-                      made by dev/manual/make_screenshots.py.
+docs/manual/          The user manual (see docs/manual/README.md):
+                      user_manual.typ and sections/ are the source, built
+                      with `typst compile docs/manual/user_manual.typ`;
+                      screenshots/ and examples/ are generated.
 dev/                  Everything a developer needs and an end user never
                       runs - none of it is imported by the application:
   DEVELOPMENT.md      This guide.
@@ -85,8 +86,10 @@ dev/                  Everything a developer needs and an end user never
                       the Series Operations demo, fetch_case_study_data.py
                       downloads the case-study data, and "sample data/"
                       holds every source dataset.
-  manual/             make_screenshots.py, the manual's figures from the
-                      running application.
+  manual/             The manual's generated parts: make_screenshots.py
+                      (the windows), make_examples.py (a chart per chart
+                      type, operation and analysis), make_equivalents.py
+                      (sections/equivalents.typ).
   tests/              The test suite (`python -m pytest dev/tests -q`);
                       results and artefacts go to dev/test_results/.
   tools/              make_launcher.py, the double-clickable launchers.

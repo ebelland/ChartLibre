@@ -53,7 +53,7 @@ Every setting has a description shown in its tooltip and beside it, so Matplotli
 - *Plot arguments* are handed to the Matplotlib drawing call unchanged: colours, widths, markers, transparency, drawing order.
 
 #figure(
-  image("../screenshot_chart_options.png", width: 100%),
+  image("../screenshots/screenshot_chart_options.png", width: 100%),
   caption: [Chart properties: the figure, axis, series and overlay property
   panels, one collapsible section each, over the chart they apply to.],
 )

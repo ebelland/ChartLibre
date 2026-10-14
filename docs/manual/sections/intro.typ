@@ -98,7 +98,7 @@ It uses the power of SQLite to store the data, the Qt6 GUI multiplatform library
 == Key concepts
 
 #defs(
-  [*Project (`.dhub`)*], [The file you work in: a \b(SQLite) database that holds the imported data *and* every chart built on it. It is self-contained — copy or e-mail the file and everything travels with it.],
+  [*Project (`.dhub`)*], [The file you work in: a SQLite database that holds the imported data *and* every chart built on it. It is self-contained — copy or e-mail the file and everything travels with it.],
   [*Table*], [A set of rows and columns: imported, produced by an operation (their names start with `_`), or edited by hand.],
   [*Saved query*], [A named SQL `SELECT`, usable anywhere a table is. Its rows are computed when read, so it always reflects the current data.], 
   [*Figure*], [Matplotlib object: a page of the chart panel, listed under *Charts* in the navigation rail. It holds one or more axes.],

@@ -6,7 +6,7 @@ Scientific charting software is usually the expensive part of a small lab's or a
 
 It is built on Matplotlib, so the charts are Matplotlib charts: the same output a Python script would produce, reached through a GUI instead of code.
 
-![The ChartLibre main window](docs/manual/screenshot_main_window.png)
+![The ChartLibre main window](docs/manual/screenshots/screenshot_main_window.png)
 
 <table>
   <tr>
@@ -77,7 +77,7 @@ Not sure which function you need? **Guided analysis** starts from what you want 
 
 The three **quick answers** — *Are there differences?*, *What has the most impact?*, *Has it changed over time?* — each give the answer in a sentence, then what it rests on and what it does not mean.
 
-![Guided analysis on the Palmer penguins table](docs/manual/screenshot_guided_analysis.png)
+![Guided analysis on the Palmer penguins table](docs/manual/screenshots/screenshot_guided_analysis.png)
 
 ### Analysis of tables — JMP-style models
 
@@ -96,7 +96,7 @@ Peaks · Roots · Calculus · Statistics · Outliers · Clustering · Regression
 
 Each previews its result on the chart before anything is committed, and a long calculation runs in the background with a *Stop* button.
 
-![The Data operations page](docs/manual/screenshot_series_operations.png)
+![The Data operations page](docs/manual/screenshots/screenshot_series_operations.png)
 
 Highlights:
 

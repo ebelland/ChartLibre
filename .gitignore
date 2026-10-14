@@ -71,3 +71,6 @@ dist/
 # The Python the launchers download on the first launch, and its archive.
 .python/
 .python-download.tar.gz
+
+# Editor plugin state (Typst extensions).
+.typstify/

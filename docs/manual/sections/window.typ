@@ -3,7 +3,7 @@
 = The main window <main-window>
 
 #figure(
-  image("../screenshot_main_window.png", width: 100%),
+  image("../screenshots/screenshot_main_window.png", width: 100%),
   caption: [The main window: the navigation rail on the left, the page it
   selects beside it, and the chart panel on the right.],
 )

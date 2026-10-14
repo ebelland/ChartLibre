@@ -21,7 +21,7 @@ The *Data operations* page of the navigation rail is a list, organized in sectio
 An operation added by you or a plugin (see @advanced-operation) appears under *Other* unless it is given a section.
 
 #figure(
-  image("../screenshot_series_operations.png", width: 100%),
+  image("../screenshots/screenshot_series_operations.png", width: 100%),
   caption: [The Data operations page.],
 )
 

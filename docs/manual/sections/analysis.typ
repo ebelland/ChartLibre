@@ -42,7 +42,7 @@ Where a data operation works on the series of a chart, an *analysis* works on th
 *Guided analysis* starts from what you want to find out rather than from the name of a function. It follows the table selected in the Tables page and says what it holds — how many numeric columns, categories and dates.
 
 #figure(
-  image("../screenshot_guided_analysis.png", width: 100%),
+  image("../screenshots/screenshot_guided_analysis.png", width: 100%),
   caption: [Guided analysis on the Palmer penguins table: what it holds, its own questions, the goals.],
 )
 

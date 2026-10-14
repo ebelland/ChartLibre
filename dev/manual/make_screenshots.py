@@ -4,8 +4,8 @@ Run it from the project root::
 
     python dev/manual/make_screenshots.py
 
-and it rewrites the ``screenshot_*.png`` files beside ``docs/manual/user_manual.typ``.
-Nothing else reads them; the manual does, by name.
+and it rewrites the ``screenshot_*.png`` files in ``docs/manual/screenshots/``.
+The manual and the README read them by name.
 
 Why a script rather than a person with a screen-capture key: the figures
 had drifted several versions behind the application, which is what happens
@@ -81,7 +81,7 @@ for _module in (main_window_module, main_frame_module, main_menus_module):
     _module.IS_MACOS = True
 
 #: The manual's own folder: the figures sit beside the .typ that names them.
-OUTPUT_DIR = PROJECT_ROOT / "docs" / "manual"
+OUTPUT_DIR = PROJECT_ROOT / "docs" / "manual" / "screenshots"
 
 #: Logical size. QT_SCALE_FACTOR above makes the saved file twice this, so
 #: this is the window as a person would size it, not the pixel count.
@@ -158,6 +158,7 @@ def _open_demo(tmp_dir: Path):
 
 def _grab(app: QApplication, widget: QWidget, name: str) -> Path:
     _settle(app)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     target = OUTPUT_DIR / name
     if not widget.grab().save(str(target)):
         raise RuntimeError(f"could not write {target}")
