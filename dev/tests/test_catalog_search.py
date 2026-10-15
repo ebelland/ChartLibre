@@ -73,7 +73,7 @@ def test_every_equivalent_opens_something_and_its_words_find_it() -> None:
     keys = {entry.key for entry in entries}
     assert all(key in keys for _task, _where, key, _programs in catalog.EQUIVALENTS)
     assert all(set(programs) <= set(catalog.PROGRAMS) for *_rest, programs in catalog.EQUIVALENTS)
-    assert _names(catalog.search(entries, "crosstabs")) == ["Statistics"]
+    assert _names(catalog.search(entries, "crosstabs")) == ["Fit Y by X", "Statistics"]
     assert _names(catalog.search(entries, "control chart builder"))[0] == "Control Chart"
     assert _names(catalog.search(entries, "pivottable")) == ["Edit table"]
 
@@ -103,6 +103,6 @@ def test_the_guided_panel_suggests_by_goal_and_response_and_opens_one(qapp) -> N
     assert "chart:Mosaic Plot" in [e.key for e in panel.shown()]
     panel._response.setCurrentIndex(panel._response.findData(catalog.NUMERIC))
     shown = [e.key for e in panel.shown()]
-    assert shown[:2] == ["analysis:Are there differences?", "series:Statistics"] and "chart:Mosaic Plot" not in shown
+    assert shown[:2] == ["analysis:Are there differences?", "analysis:Fit Y by X"] and "chart:Mosaic Plot" not in shown
     panel._cards()[0].findChild(QPushButton).click()
     assert [e.key for e in opened] == ["analysis:Are there differences?"]

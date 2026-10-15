@@ -95,6 +95,18 @@ _ANALYSES: dict[str, tuple[str, tuple[str, ...]]] = {
         "stable quick answer risposta rapida",
         ("signal", "process"),
     ),
+    "Distribution": (
+        "distribution distribuzione quantiles quantili percentiles percentili moments momenti normality "
+        "normalità capability capacità di processo process capability cp cpk pp ppk cpm spec limits "
+        "limiti di specifica lsl usl ppm histogram istogramma",
+        ("describe", "process"),
+    ),
+    "Fit Y by X": (
+        "fit y by x bivariate bivariata oneway one-way anova post hoc tukey games-howell dunn holm "
+        "pairwise comparisons confronti multipli contingency contingenza crosstabs chi-squared logistic "
+        "logistica regression line retta correlation correlazione",
+        ("compare", "relate"),
+    ),
     "Partial Least Squares": (
         "pls partial least squares minimi quadrati parziali spectra spettri spectrum spettro nir chemometrics "
         "chemiometria calibration calibrazione vip latent components componenti latenti multivariate calibration",
@@ -299,6 +311,8 @@ ANY, NUMERIC, CATEGORICAL = "any", "numeric", "categorical"
 #: goal -> (catalogue key, why, the response it suits: ANY, NUMERIC or CATEGORICAL), best first.
 GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     "describe": (
+        ("analysis:Distribution", "Quantiles, moments and normality, one report per column; capability "
+                                  "against specification limits.", NUMERIC),
         ("series:Statistics", "Mean, median, spread, quartiles and normality tests, in one report.", ANY),
         ("chart:Histogram", "The shape of the distribution: centre, spread, skew, several peaks.", NUMERIC),
         ("chart:Box Plot", "Median, quartiles and outliers at a glance - several columns side by side.", NUMERIC),
@@ -308,6 +322,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     "compare": (
         ("analysis:Are there differences?", "Choose the measure and the groups: the test is chosen for you, "
                                              "and the answer is given in words.", ANY),
+        ("analysis:Fit Y by X", "The measure by the groups: ANOVA, then every pair compared "
+                                "(Tukey, Games-Howell, Dunn).", NUMERIC),
         ("series:Statistics", "t-test, ANOVA, Kruskal-Wallis and their effect sizes between groups.", NUMERIC),
         ("chart:Box Plot", "The groups side by side: medians, spread, outliers.", NUMERIC),
         ("analysis:Fit Model", "Groups and other factors together: effect tests and estimates.", NUMERIC),
@@ -315,6 +331,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("chart:Kaplan-Meier", "Time until an event, by group, with the log-rank test.", ANY),
     ),
     "relate": (
+        ("analysis:Fit Y by X", "Y against X, the analysis chosen by their types: line, ANOVA, "
+                                "contingency table or logistic fit.", ANY),
         ("chart:Scatter Plot", "One measure against the other: trend, curvature, clusters.", NUMERIC),
         ("series:Fit", "A curve through the points: line, polynomial, exponential, your own formula.", NUMERIC),
         ("series:Statistics", "Correlation coefficients (Pearson, Spearman, Kendall) with p-values.", NUMERIC),
@@ -373,6 +391,7 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("analysis:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
                                                "and the answer is given in words.", NUMERIC),
         ("series:Control Chart", "Is the process stable? I-MR, X-bar, p, c, u charts.", ANY),
+        ("analysis:Distribution", "Is it capable? Cp, Cpk, Pp, Ppk and the share out of specification.", NUMERIC),
         ("chart:Pareto Chart", "The causes that account for most defects.", CATEGORICAL),
         ("chart:Fishbone Diagram", "Cause and effect, by category.", ANY),
     ),
@@ -413,6 +432,18 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > Basic Statistics > Display Descriptive Statistics",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics; Excel: Data Analysis > Descriptive Statistics",
     }),
+    ("Distribution: quantiles, moments, normality", "Analysis > Distribution", "analysis:Distribution", {
+        "JMP": "Analyze > Distribution",
+        "SPSS": "Analyze > Descriptive Statistics > Explore / Frequencies",
+        "Minitab": "Stat > Basic Statistics > Graphical Summary",
+        "Origin / Excel": "Origin: Statistics > Descriptive Statistics > Statistics on Columns",
+    }),
+    ("Process capability (Cp, Cpk, Pp, Ppk)", "Analysis > Distribution (spec limits)", "analysis:Distribution", {
+        "JMP": "Distribution > Process Capability; Analyze > Quality and Process > Process Capability",
+        "SPSS": "Analyze > Quality Control > Control Charts (Process Capability statistics)",
+        "Minitab": "Stat > Quality Tools > Capability Analysis > Normal",
+        "Origin / Excel": "Origin: Statistics > Quality > Process Capability Analysis",
+    }),
     ("Normality test", "Data operations > Statistics > Normality / shape", "series:Statistics", {
         "JMP": "Distribution > Continuous Fit > Normal (Goodness of Fit)",
         "SPSS": "Analyze > Descriptive Statistics > Explore > Normality plots with tests",
@@ -437,6 +468,17 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "SPSS": "Analyze > Compare Means > One-Way ANOVA",
         "Minitab": "Stat > ANOVA > One-Way",
         "Origin / Excel": "Origin: Statistics > ANOVA > One-Way ANOVA; Excel: Data Analysis > Anova: Single Factor",
+    }),
+    ("Y by X: the analysis chosen by the types", "Analysis > Fit Y by X", "analysis:Fit Y by X", {
+        "JMP": "Analyze > Fit Y by X",
+        "SPSS": "Analyze > Compare Means / Correlate / Crosstabs / Regression (one per type)",
+        "Minitab": "Stat > ANOVA > One-Way; Stat > Regression > Fitted Line Plot; Stat > Tables",
+    }),
+    ("Pairwise comparisons after ANOVA", "Analysis > Fit Y by X (Oneway)", "analysis:Fit Y by X", {
+        "JMP": "Fit Y by X > Oneway > Compare Means (All Pairs, Tukey HSD); Nonparametric > Steel-Dwass",
+        "SPSS": "Analyze > Compare Means > One-Way ANOVA > Post Hoc (Tukey, Games-Howell)",
+        "Minitab": "Stat > ANOVA > One-Way > Comparisons (Tukey, Games-Howell)",
+        "Origin / Excel": "Origin: Statistics > ANOVA > One-Way ANOVA > Means Comparison",
     }),
     ("Two-way ANOVA", "Data operations > Statistics > Two-way ANOVA", "series:Statistics", {
         "JMP": "Analyze > Fit Model (two factors and their interaction)",

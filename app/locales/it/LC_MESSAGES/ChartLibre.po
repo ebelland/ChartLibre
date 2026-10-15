@@ -9162,3 +9162,57 @@ msgstr "Dimensione del marcatore in punti. Predefinito la lascia allo stile."
 
 msgid "Name and notes"
 msgstr "Nome e note"
+
+msgid "Capability"
+msgstr "Capacità di processo"
+
+msgid "Density"
+msgstr "Densità"
+
+msgid "Linear fit"
+msgstr "Retta di regressione"
+
+msgid "Moments"
+msgstr "Momenti"
+
+msgid "Normal quantile plot"
+msgstr "Grafico dei quantili normali"
+
+msgid "Normal quantiles"
+msgstr "Quantili normali"
+
+msgid "Normality"
+msgstr "Normalità"
+
+msgid "Probability"
+msgstr "Probabilità"
+
+msgid "Quantiles"
+msgstr "Quantili"
+
+msgid "Sigma (overall)"
+msgstr "Sigma (complessiva)"
+
+msgid "Sigma (within, moving range)"
+msgstr "Sigma (entro, moving range)"
+
+msgid "The lower specification limit must be below the upper one."
+msgstr "Il limite di specifica inferiore deve essere minore di quello superiore."
+
+msgid "Y cannot also be an X."
+msgstr "Y non può essere anche una X."
+
+msgid "{y} by {x}"
+msgstr "{y} per {x}"
+
+msgid "Fit Y by X"
+msgstr "Fit Y by X"
+
+msgid "Distributions"
+msgstr "Distribuzioni"
+
+msgid "One column at a time: quantiles, moments, normality tests, and process capability (Cp, Cpk, Pp, Ppk) against specification limits."
+msgstr "Una colonna alla volta: quantili, momenti, test di normalità e capacità di processo (Cp, Cpk, Pp, Ppk) rispetto ai limiti di specifica."
+
+msgid "Y against each X, the analysis chosen by their types: bivariate fit, oneway ANOVA with pairwise comparisons, contingency table, or logistic fit."
+msgstr "Y rispetto a ciascuna X, con l'analisi scelta dai loro tipi: regressione bivariata, ANOVA a una via con confronti a coppie, tabella di contingenza o regressione logistica."
