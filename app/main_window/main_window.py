@@ -69,7 +69,6 @@ from app.styles.style import (
     CardFrame,
     icon_from_svg_source,
     relax_minimum_width,
-    symbol_icon,
 )
 from app.widgets.table_list import TableListPanel
 from app.widgets.table_preview import TablePreviewPanel
@@ -506,9 +505,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         # Without this the bar still asks for the full width of every title.
         tab_bar.setMinimumWidth(300)
         tab_bar.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
-        # The charts are chosen from the sidebar's Charts section and the
-        # jump bar above the chart now (see _sync_chart_navigation); the
-        # QTabWidget stays as the page stack, its own bar hidden.
+        # The charts are chosen from the jump bar above the chart (see
+        # _sync_chart_navigation); the QTabWidget stays as the page stack, its
+        # own bar hidden.
         tab_bar.hide()
 
     def _restore_navigation_compact(self) -> None:
@@ -751,7 +750,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                     _("Developer tools"),
                 ),
             },
-            "Charts": {},
         }
         if not IS_MACOS:
             # macOS has Help in its menu bar; elsewhere the rail is the menu.
@@ -794,14 +792,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if key == "help":
             self._popup_help_menu()
             return
-        if key.startswith("chart:"):
-            try:
-                figure_id = int(key.partition(":")[2])
-            except ValueError:
-                return
-            index = self._tab_index_of_figure(figure_id)
-            if index >= 0:
-                self._tabs.setCurrentIndex(index)
 
     def _popup_help_menu(self) -> None:
         """The Help menu beside its rail row, opening to the right: the rail is on the left."""
@@ -979,63 +969,14 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._sync_chart_navigation(rebuild=False)
         self._update_properties_for_current_chart()
 
-    #: Chart type -> (SF Symbol, theme icon) for the sidebar's Charts list.
-    _CHART_TYPE_SYMBOLS: tuple[tuple[str, str, str], ...] = (
-        ("Pie", "chart.pie", "office-chart-pie"),
-        ("Fishbone", "arrow.triangle.branch", "office-chart-line"),
-        ("Pareto", "chart.bar.xaxis", "office-chart-bar"),
-        ("Histogram", "chart.bar", "office-chart-bar"),
-        ("Bar", "chart.bar", "office-chart-bar"),
-        ("3D", "cube", "office-chart-area"),
-        ("Surface", "cube", "office-chart-area"),
-        ("Heatmap", "square.grid.3x3", "office-chart-area"),
-        ("Contour", "circle.dotted.circle", "office-chart-area"),
-        ("Hexbin", "hexagon", "office-chart-area"),
-        ("Table", "tablecells", "x-office-spreadsheet"),
-        ("Text", "textformat", "text-x-generic"),
-        ("Box", "square.split.1x2", "office-chart-bar"),
-        ("Violin", "waveform.path", "office-chart-area"),
-        ("Scatter", "chart.dots.scatter", "office-chart-scatter"),
-        ("Time", "clock", "office-chart-line"),
-        ("Timeline", "calendar.day.timeline.left", "office-chart-line"),
-    )
-
-    def _chart_icon(self, chart_type: str) -> QIcon:
-        for key, sf_name, theme in self._CHART_TYPE_SYMBOLS:
-            if key.lower() in chart_type.lower():
-                return symbol_icon(sf_name, theme)
-        return symbol_icon("chart.xyaxis.line", "office-chart-line")
-
     def _sync_chart_navigation(self, *, rebuild: bool = True) -> None:
-        """Rebuild chart actions and keep the chart jump bar synchronized."""
-        navigation = getattr(self, "_left_panel", None)
+        """Keep the chart jump bar above the chart in step with the open charts."""
+        del rebuild
         jump = getattr(self, "_jump_bar", None)
-        if not isinstance(navigation, NavigationBar) or jump is None:
+        if jump is None:
             return
         names = [self._tabs.tabText(i) for i in range(self._tabs.count())]
-        current = self._tabs.currentIndex()
-        if rebuild:
-            try:
-                chart_types = self._repo.figure_chart_types()
-            except Exception:
-                applogger.debug(
-                    "Chart types for the sidebar could not be read.", exc_info=True
-                )
-                chart_types = {}
-            chart_items: dict[str, NavBarItem] = {}
-            for index, name in enumerate(names):
-                widget = self._tabs.widget(index)
-                if not isinstance(widget, ChartPanel):
-                    continue
-                figure_id = int(widget.figure_id)
-                chart_items[f"chart:{figure_id}"] = NavBarItem(
-                    name,
-                    self._chart_icon(chart_types.get(figure_id, "")),
-                    None,
-                    name,
-                )
-            navigation.set_section("Charts", chart_items)
-        jump.set_charts(names, current)
+        jump.set_charts(names, self._tabs.currentIndex())
 
     def _tab_index_of_figure(self, figure_id: int) -> int:
         """The tab showing figure *figure_id*, or -1."""

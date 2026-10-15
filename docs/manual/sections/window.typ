@@ -12,7 +12,7 @@
   The figures in this manual are taken in the *macOS native* style. On Windows the same screens wear the Fluent style: the panels, the pages and every control are the same and in the same place, but the navigation rail is a column of square tiles and the window draws its own title bar. On Linux the window follows the desktop's Qt style.
 ]
 
-The window has three parts: the *navigation rail* at the far left — the pages under *Tools*, then the list of *Charts* — the *page* it selects, and the *chart panel*, which takes the rest of the window. The page and the chart panel are separated by a splitter you can drag.
+The window has three parts: the *navigation rail* at the far left, the *page* it selects, and the *chart panel*, which takes the rest of the window. The page and the chart panel are separated by a splitter you can drag.
 
 == Navigation rail
 
@@ -69,7 +69,7 @@ The rest of the page holds the tools for extending ChartLibre — *Edit Localiza
 
 == The chart panel
 
-The chart panel shows one *figure* at a time. Below the pages, the rail's *Charts* list names every figure of the project, numbered, with an icon for its chart type: click one to show it. The strip above the chart repeats the current figure's name — click it for the same list — with ‹ and › arrows to step to the previous or next figure. Creating a chart, or running an operation that adds a figure, shows the new figure. Above the chart, a toolbar offers Matplotlib's navigation tools and shows the pointer's coordinates:
+The chart panel shows one *figure* at a time. The strip above the chart names the current figure: click it for the list of every figure of the project, or use the ‹ and › arrows to step to the previous or next one. Creating a chart, or running an operation that adds a figure, shows the new figure. Above the chart, a toolbar offers Matplotlib's navigation tools and shows the pointer's coordinates:
 
 #defs(
   [*Home*], [Back to the initial view.],

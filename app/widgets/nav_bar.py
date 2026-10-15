@@ -7,8 +7,8 @@ The parent supplies an ordered dictionary shaped as::
             "workspace": NavBarItem("Workspace", icon, None),
             "tables": NavBarItem("Tables", icon, tables_panel),
         },
-        "Charts": {
-            "chart:12": NavBarItem("Yield", icon, None),
+        "Settings": {
+            "help": NavBarItem("Help", icon, None),
         },
     }
 
