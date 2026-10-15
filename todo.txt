@@ -27,6 +27,14 @@ R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 
 
 NEXT - ANALYSIS (table operations, JMP-like)
+- AN-02 M  Distribution (table analysis, one report per column): the pieces exist as
+           series operations (Histogram, Q-Q, Statistics > Descriptive / Normality /
+           Distribution fit); missing: the full quantile table (0.5%..99.5%) and
+           process capability (Cp, Cpk, Pp, Ppk with LSL/USL/target).
+- AN-03 S  Fit Y by X (table analysis that picks by the two columns' types): every
+           engine exists (Regression/Fit, Statistics groups + Tukey, Contingency +
+           Mosaic, Fit Model logistic); missing: the one window that dispatches,
+           and post hoc beyond Tukey (Games-Howell, Dunn with Holm).
 - AN-04 M  Multivariate: correlations with p, PCA and factor analysis (AN-21).
 - AN-05 M  Time series: ACF/PACF, STL, ARIMA / ETS forecasts.
 - AN-10 M  Clustering on table columns, silhouette to choose k (AN-23).
@@ -41,9 +49,7 @@ LATER
 - AN-08 M  Survival: Cox, Weibull/lognormal life fits.
 - AN-09 M  Mixed models (REML); power and sample size.
 - AN-12 M  Bootstrap CIs, permutation tests, cross-validation.
-- A
-
-M  Science: ODE kinetics, dose-response EC50, peak deconvolution.
+- AN-13 M  Science: ODE kinetics, dose-response EC50, peak deconvolution.
 - AN-14 M  Response screening (many Y, FDR).
 - AN-24 M  Neural network (MLP).
 - R-02  M  Background computation: Outlier preview, Stop inside long loops.
