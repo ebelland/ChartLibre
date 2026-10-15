@@ -22,10 +22,18 @@ FIT_SOURCE = "\n".join(
 
 
 def _body(source: str, name: str) -> str:
-    """Return one method's source, up to the next method at class level."""
+    """Return one method's source, up to the next method at class level.
+
+    A declaration for the type checker (``def name(...): ...`` under
+    ``if TYPE_CHECKING``) is not the method, and is skipped.
+    """
     start = source.index(f"def {name}")
-    end = source.index("\n    def ", start + 10)
-    return source[start:end]
+    while True:
+        end = source.index("\n    def ", start + 10)
+        body = source[start:end]
+        if not body.split("\n", 1)[0].rstrip().endswith("..."):
+            return body
+        start = source.index(f"def {name}", end)
 
 
 # ----------------------------------------------------------------------
