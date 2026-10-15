@@ -97,9 +97,8 @@ _ANALYSES: dict[str, tuple[str, tuple[str, ...]]] = {
     ),
     "Distribution": (
         "distribution distribuzione quantiles quantili percentiles percentili moments momenti normality "
-        "normalità capability capacità di processo process capability cp cpk pp ppk cpm spec limits "
-        "limiti di specifica lsl usl ppm histogram istogramma",
-        ("describe", "process"),
+        "normalità histogram istogramma",
+        ("describe",),
     ),
     "Fit Y by X": (
         "fit y by x bivariate bivariata oneway one-way anova post hoc tukey games-howell dunn holm "
@@ -151,7 +150,9 @@ _SERIES: dict[str, tuple[str, tuple[str, ...]]] = {
     ),
     "Control Chart": (
         "carta di controllo spc statistical process control controllo statistico di processo "
-        "shewhart i-mr x-bar xbar r chart p chart c chart u chart limits limiti stability stabilita",
+        "shewhart i-mr x-bar xbar r chart p chart c chart u chart limits limiti stability stabilita "
+        "capability capacità di processo process capability cp cpk pp ppk cpm spec limits limiti di specifica "
+        "lsl usl ppm",
         ("process", "anomalies"),
     ),
     "Transform": (
@@ -312,8 +313,7 @@ ANY, NUMERIC, CATEGORICAL = "any", "numeric", "categorical"
 #: goal -> (catalogue key, why, the response it suits: ANY, NUMERIC or CATEGORICAL), best first.
 GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     "describe": (
-        ("analysis:Distribution", "Quantiles, moments and normality, one report per column; capability "
-                                  "against specification limits.", NUMERIC),
+        ("analysis:Distribution", "Histogram, quantiles, moments and normality, one report per column.", NUMERIC),
         ("series:Statistics", "Mean, median, spread, quartiles and normality tests, in one report.", ANY),
         ("chart:Histogram", "The shape of the distribution: centre, spread, skew, several peaks.", NUMERIC),
         ("chart:Box Plot", "Median, quartiles and outliers at a glance - several columns side by side.", NUMERIC),
@@ -391,8 +391,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     "process": (
         ("analysis:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
                                                "and the answer is given in words.", NUMERIC),
-        ("series:Control Chart", "Is the process stable? I-MR, X-bar, p, c, u charts.", ANY),
-        ("analysis:Distribution", "Is it capable? Cp, Cpk, Pp, Ppk and the share out of specification.", NUMERIC),
+        ("series:Control Chart", "Is the process stable? I-MR, X-bar, p, c, u charts; with specification "
+                                 "limits, is it capable? Cp, Cpk, Pp, Ppk.", ANY),
         ("chart:Pareto Chart", "The causes that account for most defects.", CATEGORICAL),
         ("chart:Fishbone Diagram", "Cause and effect, by category.", ANY),
     ),
@@ -439,7 +439,8 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > Basic Statistics > Graphical Summary",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics > Statistics on Columns",
     }),
-    ("Process capability (Cp, Cpk, Pp, Ppk)", "Analysis > Distribution (spec limits)", "analysis:Distribution", {
+    ("Process capability (Cp, Cpk, Pp, Ppk)", "Data operations > Control Chart (spec limits)",
+     "series:Control Chart", {
         "JMP": "Distribution > Process Capability; Analyze > Quality and Process > Process Capability",
         "SPSS": "Analyze > Quality Control > Control Charts (Process Capability statistics)",
         "Minitab": "Stat > Quality Tools > Capability Analysis > Normal",

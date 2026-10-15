@@ -1,4 +1,4 @@
-"""Distribution (AN-02) and Fit Y by X (AN-03): the engines against hand-worked values, and both windows' OK."""
+"""Distribution (AN-02), Fit Y by X (AN-03) and the control chart's capability: engines against hand-worked values, the windows' OK."""
 from __future__ import annotations
 
 import time
@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 from scipy import stats
 
+from app.analysis import capability as cap
 from app.analysis import distribution as dist
 from app.analysis import fit_y_by_x as fyx
 from app.analysis import statistics as st
@@ -22,8 +23,8 @@ def test_quantiles_sit_at_n_plus_one_p() -> None:
 
 def test_capability_follows_its_definitions() -> None:
     values = np.array([9.0, 11.0] * 50)  # moving range 2 everywhere
-    result = dist.capability(values, lsl=4.0, usl=16.0, target=10.0)
-    within = 2.0 / dist.D2_MOVING_RANGE
+    within = 2.0 / 1.128
+    result = cap.capability(values, sigma_within=within, lsl=4.0, usl=16.0, target=10.0)
     overall = float(np.std(values, ddof=1))
     assert result.indices["Cp"] == pytest.approx(12.0 / (6 * within))
     assert result.indices["Cpk"] == pytest.approx(6.0 / (3 * within))
@@ -32,10 +33,29 @@ def test_capability_follows_its_definitions() -> None:
 
 
 def test_one_limit_gives_the_one_sided_indices_only() -> None:
-    result = dist.capability(np.linspace(0, 1, 50), usl=2.0)
+    result = cap.capability(np.linspace(0, 1, 50), sigma_within=0.3, usl=2.0)
     assert set(result.indices) == {"Cpk", "Cpu", "Ppk", "Ppu"}
     with pytest.raises(ValueError):
-        dist.capability(np.linspace(0, 1, 50))
+        cap.capability(np.linspace(0, 1, 50), sigma_within=0.3)
+
+
+def test_the_control_chart_gives_capability_with_its_own_sigma(qapp) -> None:
+    from app.data_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SeriesControlChartDialog
+
+    dialog = SeriesControlChartDialog.__new__(SeriesControlChartDialog)
+    rng = np.random.default_rng(6)
+    x, y = np.arange(100, dtype=float), rng.normal(10.0, 1.0, 100)
+    limits = {"lsl": "6", "usl": "14", "target": "", "subgroup": 5, "sigma_limit": 3.0, "nelson": True}
+    for chart in (CHART_INDIVIDUALS, CHART_XBAR_R):
+        settings = (chart, dict(limits))
+        result = dialog.finish_series("s", dialog.compute_series("s", (x, y), settings), settings)
+        assert result.capability.sigma_within == pytest.approx(result.sigma)
+        assert result.capability.indices["Cp"] == pytest.approx(8.0 / (6 * result.sigma))
+        # The spec lines on the individuals chart only: an X-bar chart plots means.
+        assert ("lsl" in result.to_df().columns) == (chart == CHART_INDIVIDUALS)
+    plain = dialog.finish_series("s", dialog.compute_series("s", (x, y), (CHART_INDIVIDUALS, {})),
+                                 (CHART_INDIVIDUALS, {}))
+    assert plain.capability is None
 
 
 def test_the_analysis_is_chosen_by_the_types() -> None:
@@ -92,11 +112,10 @@ def test_both_windows_write_their_tables_and_a_figure(qapp, repo, frame) -> None
 
     dialog = DistributionDialog(repo=repo, table="data")
     dialog.roles_widget.set_casting({"response": ["y"]}, kinds)
-    dialog._parameter_form.set_values({"lsl": "-6", "usl": "8"})
     _ok(qapp, dialog)
     assert dialog.created_figure_ids
-    capability = repo.query_df('SELECT * FROM "data_distribution_capability"')
-    assert {"Cp", "Cpk", "Pp", "Ppk"} <= set(capability["Index"])
+    quantiles = repo.query_df('SELECT * FROM "data_distribution_quantiles"')
+    assert len(quantiles) == len(dist.QUANTILES)
     dialog.close()
 
     dialog = FitYByXDialog(repo=repo, table="data")

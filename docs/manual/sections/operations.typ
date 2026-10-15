@@ -205,9 +205,12 @@ The key point of a control chart is where its limits come from: never from the s
   [*Nelson rules*], [Besides points beyond the limits (rule 1), flag patterns inside them: 9 points in a row on one side of the centre (2), 6 steadily rising or falling (3), 14 alternating up and down (4), 2 of 3 beyond 2σ (5), 4 of 5 beyond 1σ (6), 15 in a row within 1σ (7), 8 in a row outside 1σ on both sides (8). The zone rules (5–8) are switched off on charts whose limits move with the sample size.],
   [*Exclude violations*], [Recompute the limits without the flagged points — the "trial limits, then revised limits" step. Use it only when the flagged points have a known cause that has been removed.],
   [*Draw*], [Centre line, limits, zones, and violations as separate markers.],
+  [*LSL, USL, Target*], [Specification limits, either or both, for the *process capability* of an Individuals or X-bar chart. Empty: none.],
 )
 
 The report lists each signalling point and the rule it broke. A chart with no signals says the process is *stable* — which is not the same as meeting a specification.
+
+With a specification limit the report adds the *process capability*, from the chart's own within sigma (moving range or subgroups): *Cp* = (USL − LSL) / 6σ#sub[within] and *Cpk*, the nearer limit's distance from the mean over 3σ#sub[within] (with *Cpl* and *Cpu*); *Pp* and *Ppk*, the same with the overall standard deviation; *Cpm* with a target; and the share below LSL and above USL — observed, and expected under a normal, in % and parts per million. On an Individuals chart the limits are drawn as lines. Capability describes a stable process: when points signal, the report says to read the indices with care.
 
 #use[Manufacturing and laboratory quality control, monitoring any process over time.]
 #example("op_control_chart")

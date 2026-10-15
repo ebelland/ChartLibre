@@ -61,6 +61,7 @@ import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QComboBox, QFormLayout, QWidget
 
+from app.analysis.capability import Capability, capability, parse_limit
 from app.analysis.control_charts import (
     CHART_C,
     CHART_INDIVIDUALS,
@@ -70,7 +71,6 @@ from app.analysis.control_charts import (
     CHART_U,
     CHART_XBAR_R,
     CHART_XBAR_S,
-    ControlChart,
     Violation,
     attribute_chart,
     variables_chart,
@@ -80,7 +80,7 @@ from app.data.series_frame import SeriesFrame
 from app.utils.coercion import to_numbers
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
+from app.data_operations.parameter_spec import BoolParam, FloatParam, IntParam, TextParam
 from app.data_operations.results import TableResult
 from app.data_operations.dialog_base import (
     OperationModel,
@@ -159,6 +159,8 @@ CONTROL_CHARTS: dict[str, ControlChartModel] = {
     ),
 }
 SUBGROUPED = tuple(name for name, chart in CONTROL_CHARTS.items() if chart.subgrouped)
+#: The charts with a process sigma to judge capability by: measurements, not their moving range or counts.
+CAPABLE = (CHART_INDIVIDUALS, CHART_XBAR_R, CHART_XBAR_S)
 
 
 #: Below this an attribute chart's limits are too soft to trust; the report
@@ -196,6 +198,8 @@ class ControlChartResult(TableResult):
     subgroup_size: int
     violations: list[Violation] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    #: Against the specification limits, when any were given.
+    capability: Capability | None = None
 
     @property
     def model_name(self) -> str:
@@ -221,6 +225,13 @@ class ControlChartResult(TableResult):
         """
         flagged = {violation.index for violation in self.violations}
         size = self.x.size
+        # The specification limits as lines on an individuals chart only: an
+        # X-bar chart plots means, which a limit for single parts does not judge.
+        limits = {}
+        if self.capability is not None and self.chart == CHART_INDIVIDUALS:
+            limits = {name: np.full(size, np.nan if value is None else value)
+                      for name, value in (("lsl", self.capability.lsl), ("usl", self.capability.usl),
+                                          ("target", self.capability.target))}
         return pd.DataFrame(
             {
                 "x": self.x,
@@ -241,6 +252,7 @@ class ControlChartResult(TableResult):
                     float(value) if index in flagged else None
                     for index, value in enumerate(self.y)
                 ],
+                **limits,
             }
         )
 
@@ -347,6 +359,16 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             ),
             default_value=False,
         ),
+        TextParam("lsl", "Lower spec limit (LSL):", placeholder="none",
+                  tooltip="With a specification limit the report gives the process capability: Cp, Cpk, Pp, "
+                          "Ppk and the share out of specification. Empty when there is none.",
+                  visible_for={"model": CAPABLE}),
+        TextParam("usl", "Upper spec limit (USL):", placeholder="none",
+                  tooltip="With a specification limit the report gives the process capability: Cp, Cpk, Pp, "
+                          "Ppk and the share out of specification. Empty when there is none.",
+                  visible_for={"model": CAPABLE}),
+        TextParam("target", "Target:", placeholder="none", tooltip="For Cpm; needs both limits.",
+                  visible_for={"model": CAPABLE}),
     )
 
     Icon = """
@@ -553,7 +575,8 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             return self._series_counts(row, name, chart)
         return self.series_xy(row, name)
 
-    def compute_series(self, name: str, data: Any, settings: tuple[str, dict[str, Any]]) -> ControlChart:
+    def compute_series(self, name: str, data: Any, settings: tuple[str, dict[str, Any]]) -> Any:
+        """The chart, or (the chart, its capability) when specification limits are given."""
         chart, params = settings
         common = {
             "sigma_limit": float(params.get("sigma_limit", 3.0)),
@@ -566,14 +589,20 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 chart, x_values, counts, sizes, recommended_subgroups=RECOMMENDED_SUBGROUPS, **common
             )
         x_values, y_values = data
-        return variables_chart(
+        built = variables_chart(
             chart, x_values, y_values, subgroup=int(params.get("subgroup", 5)), **common
         )
+        limits = {key: parse_limit(params.get(key)) for key in ("lsl", "usl", "target")}
+        if chart not in CAPABLE or (limits["lsl"] is None and limits["usl"] is None):
+            return built
+        # The chart's own sigma is the within one: moving range or subgroups.
+        return built, capability(y_values, sigma_within=built.sigma, **limits)
 
     def finish_series(
-        self, name: str, outcome: ControlChart, settings: tuple[str, dict[str, Any]]
+        self, name: str, outcome: Any, settings: tuple[str, dict[str, Any]]
     ) -> ControlChartResult:
         chart, _params = settings
+        outcome, capable = outcome if isinstance(outcome, tuple) else (outcome, None)
         for note in outcome.notes:
             applogger.warning(f"{name}: {note}")
         tag = chart.split(" ")[0] if CONTROL_CHARTS[chart].attribute else chart
@@ -593,6 +622,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             subgroup_size=outcome.subgroup_size,
             violations=outcome.violations,
             metadata=outcome.details,
+            capability=capable,
         )
 
     # ------------------------------------------------------------------
@@ -688,6 +718,14 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             specs.append(
                 line("center", "CL", linestyle="-", linewidth=1.0, color="#2e7d32")
             )
+
+        capable = result.capability
+        if capable is not None and result.chart == CHART_INDIVIDUALS:
+            for column, label, value in (("lsl", "LSL", capable.lsl), ("usl", "USL", capable.usl),
+                                         ("target", _("Target"), capable.target)):
+                if value is not None:
+                    specs.append(line(column, label, linestyle="-." if column != "target" else ":",
+                                      linewidth=1.2, color="#6a1b9a"))
 
         specs.append(self.result_series_spec(axis_id, table_name, result))
 
@@ -798,7 +836,37 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 )
 
             sections.append(
-                report_html.section(result.source_name, summary, zones, verdict, table)
+                report_html.section(result.source_name, summary, zones, verdict, table,
+                                    self._capability_html(result))
             )
 
         return report_html.document(_("Control Chart"), self._chart(), *sections)
+
+    @staticmethod
+    def _capability_html(result: ControlChartResult) -> str:
+        """Cp, Cpk, Pp, Ppk..., and how much is out of specification; "" without limits."""
+        capable = result.capability
+        if capable is None:
+            return ""
+        parts = []
+        if result.violations:
+            parts.append(report_html.note(_("The process is not in statistical control: capability describes a "
+                                            "stable process, so read these indices with care.")))
+        limits = [(_(label), report_html.format_number(value)) for label, value in
+                  (("LSL", capable.lsl), ("USL", capable.usl), ("Target", capable.target)) if value is not None]
+        parts.append(report_html.summary_table([
+            *limits,
+            (_("Mean"), report_html.format_number(capable.mean)),
+            (_("Sigma (within)"), report_html.format_number(capable.sigma_within)),
+            (_("Sigma (overall)"), report_html.format_number(capable.sigma_overall)),
+            *((name, report_html.format_number(value)) for name, value in capable.indices.items()),
+        ]))
+        outside = capable.outside
+        parts.append(report_html.table(
+            tuple(_(c) for c in outside.columns),
+            [(_(row[0]), *(report_html.format_number(v) for v in row[1:])) for row in outside.itertuples(index=False)],
+            align=("left", "right", "right", "right", "right"),
+        ))
+        if result.y.size < 30:
+            parts.append(report_html.note(_("Fewer than 30 points: the capability indices are rough estimates.")))
+        return report_html.section(_("Process capability"), *parts)

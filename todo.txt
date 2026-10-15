@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 93,610 lines in 254 files; tests 17,526 lines in 138 files (updated at each commit).
+Size: app 93,637 lines in 255 files; tests 17,545 lines in 138 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -73,8 +73,7 @@ LATER
            (idea to evaluate: a "Selected" column; not for queries).
 - N-09  M  "Colour by value" dialog.
 - R-12b M  Narrow "except Exception" to true boundaries.
-- A-06  S  Linux: first run in a VM.
-- A-07  S  German / Spanish translations.
+
 
 IDEAS
 - Animated charts: a Frame column (like ClusterId), per-figure player.
@@ -85,3 +84,4 @@ IDEAS
 [YOU]
 - A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
 - A-05 GitHub: description, topics, social preview, first release.
+- A-06 Test Linux

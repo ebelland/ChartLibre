@@ -9390,3 +9390,60 @@ msgstr "Una colonna numerica divisa in intervalli: stessa ampiezza, stessa numer
 
 msgid "One row per group: counts, sums, means... of the chosen columns (summary table)."
 msgstr "Una riga per gruppo: conteggi, somme, medie... delle colonne scelte (tabella riassuntiva)."
+
+msgid "The process is not in statistical control: capability describes a stable process, so read these indices with care."
+msgstr "Il processo non è in controllo statistico: la capacità descrive un processo stabile, quindi leggi questi indici con cautela."
+
+msgid "Sigma (within)"
+msgstr "Sigma (entro)"
+
+msgid "Fewer than 30 points: the capability indices are rough estimates."
+msgstr "Meno di 30 punti: gli indici di capacità sono stime approssimative."
+
+msgid "Process capability"
+msgstr "Capacità di processo"
+
+msgid "LSL"
+msgstr "LSL"
+
+msgid "USL"
+msgstr "USL"
+
+msgid "Observed %"
+msgstr "% osservata"
+
+msgid "Expected % (within)"
+msgstr "% attesa (entro)"
+
+msgid "Expected % (overall)"
+msgstr "% attesa (complessiva)"
+
+msgid "Expected PPM (overall)"
+msgstr "PPM attese (complessive)"
+
+msgid "Below LSL"
+msgstr "Sotto LSL"
+
+msgid "Above USL"
+msgstr "Sopra USL"
+
+msgid "Total outside"
+msgstr "Totale fuori"
+
+msgid "Lower spec limit (LSL):"
+msgstr "Limite di specifica inferiore (LSL):"
+
+msgid "Upper spec limit (USL):"
+msgstr "Limite di specifica superiore (USL):"
+
+msgid "Target:"
+msgstr "Target:"
+
+msgid "For Cpm; needs both limits."
+msgstr "Per Cpm; servono entrambi i limiti."
+
+msgid "With a specification limit the report gives the process capability: Cp, Cpk, Pp, Ppk and the share out of specification. Empty when there is none."
+msgstr "Con un limite di specifica il report dà la capacità di processo: Cp, Cpk, Pp, Ppk e la quota fuori specifica. Vuoto se non c'è."
+
+msgid "One column at a time: the histogram, quantiles, moments and normality tests."
+msgstr "Una colonna alla volta: istogramma, quantili, momenti e test di normalità."
