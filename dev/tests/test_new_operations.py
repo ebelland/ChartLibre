@@ -15,7 +15,8 @@ import numpy as np
 import pytest
 
 from app.series_operations.calculus_dialog import BASELINE_NONE, DERIV_GRADIENT, DERIV_SAVGOL, DERIV_SPLINE, DEST_NEW_AXIS, INTEGRAL_DEFINITE, SeriesCalculusDialog
-from app.series_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SPC_CONSTANTS, SeriesControlChartDialog
+from app.analysis.control_charts import SPC_CONSTANTS
+from app.series_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SeriesControlChartDialog
 from app.analysis.function_plot import SPACING_LINEAR, build_range
 from app.series_operations.peaks_dialog import PEAKS_MAXIMA, SeriesPeaksDialog
 from dev.tests._cases import check_all
@@ -123,6 +124,13 @@ CONTROL_PARAMS = {
 }
 
 
+
+def _control_chart(name, x_values, y_values, chart, params):
+    """One chart through the dialog's own per-series pipeline, without the window."""
+    dialog = _bare(SeriesControlChartDialog)
+    settings = (chart, dict(params))
+    return dialog.finish_series(name, dialog.compute_series(name, (x_values, y_values), settings), settings)
+
 def test_xbar_limits_match_the_textbook_a2_formula() -> None:
     """Agreement is to about 1e-3, which is the rounding in the published d2
     and A2 rather than a disagreement about the method."""
@@ -130,7 +138,7 @@ def test_xbar_limits_match_the_textbook_a2_formula() -> None:
     values = rng.normal(50.0, 2.0, 100)
     x = np.arange(100, dtype=float)
 
-    result = _bare(SeriesControlChartDialog)._build_chart(
+    result = _control_chart(
         "s", x, values, CHART_XBAR_R, CONTROL_PARAMS
     )
 
@@ -150,7 +158,7 @@ def test_the_run_rules_catch_a_shift_that_stays_inside_the_limits() -> None:
     values = rng.normal(0.0, 1.0, 60)
     values[40:] += 1.2
 
-    result = _bare(SeriesControlChartDialog)._build_chart(
+    result = _control_chart(
         "s", x, values, CHART_INDIVIDUALS, {**CONTROL_PARAMS, "nelson": True}
     )
 
@@ -273,7 +281,7 @@ def _chart_result(nelson: bool = False):
     x = np.arange(60, dtype=float)
     values = rng.normal(100.0, 1.0, 60)
     values[30] = 130.0
-    return _bare(SeriesControlChartDialog)._build_chart(
+    return _control_chart(
         "s", x, values, CHART_INDIVIDUALS, {**CONTROL_PARAMS, "nelson": nelson}
     )
 

@@ -22,7 +22,7 @@ including the same warning when the spacing is not uniform enough to trust.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -47,7 +47,6 @@ from app.analysis.filtering import (
     resolve_cutoffs,
     two_cutoffs,
 )
-from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.series_operations.results import XYResult
@@ -155,7 +154,8 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
     INPUT_REQUIRES_UNIQUE_X = True
     INPUT_MINIMUM_POINTS = 8
 
-    RESULTS_ARE_HTML = False
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
 
     Icon = """
     <path d="M3 12h4l2-7 4 14 2-7h6"/>
@@ -315,100 +315,51 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
 
 
     # ------------------------------------------------------------------
-    # Input
-    # ------------------------------------------------------------------
-
-    def _cutoffs(self, response: str, fs: float) -> tuple[float, float | None]:
-        """The cutoff(s) to filter with: the typed ones, or Auto's fractions of fs."""
-        return resolve_cutoffs(
-            self._cutoff1_spin.value(), self._cutoff2_spin.value(), response, fs
-        )
-
-    # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
-    def _apply_model(self, model: str, y: np.ndarray, fs: float) -> tuple[np.ndarray, dict[str, Any]]:
-        if model == FILTER_IIR:
-            family = str(self._family_combo.currentData())
-            response = str(self._response_combo.currentData())
-            cutoff, cutoff2 = self._cutoffs(response, fs)
-            y_out = apply_iir_filter(
-                y, fs, family=family, response=response,
-                order=int(self._order_spin.value()),
-                cutoff=cutoff, cutoff2=cutoff2,
-                ripple=float(self._ripple_spin.value()) if IIR_FAMILIES[family].ripple else None,
-                atten=float(self._atten_spin.value()) if IIR_FAMILIES[family].attenuation else None,
-            )
-            meta = {
-                "family": self._family_combo.currentText(),
-                "response": self._response_combo.currentText(),
-                "order": int(self._order_spin.value()),
-                "cutoff": cutoff if cutoff2 is None else f"{cutoff:g} - {cutoff2:g}",
-                "fs": fs,
-            }
-            return y_out, meta
 
-        if model == FILTER_FIR:
-            response = str(self._response_combo.currentData())
-            cutoff, cutoff2 = self._cutoffs(response, fs)
-            y_out = apply_fir_filter(
-                y, fs, numtaps=int(self._numtaps_spin.value()),
-                window=self._window_combo.currentText(), response=response,
-                cutoff=cutoff, cutoff2=cutoff2,
-            )
-            meta = {
-                "response": self._response_combo.currentText(),
-                "taps": int(self._numtaps_spin.value()),
-                "window": self._window_combo.currentText(),
-                "cutoff": cutoff if cutoff2 is None else f"{cutoff:g} - {cutoff2:g}",
-                "fs": fs,
-            }
-            return y_out, meta
+    def series_settings(self) -> tuple[str, dict[str, Any]]:
+        """The model and every control's value, read here so the run needs no widget."""
+        return self.current_model(), {
+            "family": str(self._family_combo.currentData()),
+            "family_text": self._family_combo.currentText(),
+            "response": str(self._response_combo.currentData()),
+            "response_text": self._response_combo.currentText(),
+            "order": int(self._order_spin.value()),
+            "numtaps": int(self._numtaps_spin.value()),
+            "window": self._window_combo.currentText(),
+            "cutoff1": float(self._cutoff1_spin.value()),
+            "cutoff2": float(self._cutoff2_spin.value()),
+            "ripple": float(self._ripple_spin.value()),
+            "atten": float(self._atten_spin.value()),
+            "analytic": str(self._analytic_combo.currentData()),
+            "analytic_text": self._analytic_combo.currentText(),
+            "detrend": str(self._detrend_combo.currentData()),
+            "detrend_text": self._detrend_combo.currentText(),
+        }
 
-        if model == FILTER_ANALYTIC:
-            output = str(self._analytic_combo.currentData())
-            y_out = analytic_signal(y, fs, output)
-            return y_out, {"output": self._analytic_combo.currentText(), "fs": fs}
+    def read_series(self, row: Any, name: str) -> tuple[np.ndarray, np.ndarray, float]:
+        """x, y and the sampling rate (1 for a model that does not use one)."""
+        x_values, y_values = self.series_xy(row, name)
+        fs = self.sampling_rate(x_values, name) if FILTERS[self.current_model()].needs_fs else 1.0
+        return x_values, y_values, fs
 
-        # FILTER_DETREND
-        kind = str(self._detrend_combo.currentData())
-        y_out = apply_detrend(y, kind)
-        return y_out, {"trend": self._detrend_combo.currentText()}
-
-    def compute_results(self) -> list[FilterResult]:
-        model = self.current_model()
-        results: list[FilterResult] = []
-        errors: list[str] = []
-
-        for row in self.selected_series():
-            name = str(row_value(row, "name", "series_name", default="Series"))
-            try:
-                x_values, y_values = self.series_xy(row, name)
-                fs = self.sampling_rate(x_values, name) if FILTERS[model].needs_fs else 1.0
-                y_out, meta = self._apply_model(model, y_values, fs)
-                if y_out.size != x_values.size:
-                    raise ValueError(
-                        f"the result has {y_out.size} points but the series has "
-                        f"{x_values.size}"
-                    )
-                results.append(
-                    FilterResult(
-                        source_name=name,
-                        result_name=f"{name} - {FILTERS[model].tag}",
-                        model=model,
-                        x=x_values,
-                        y=y_out,
-                        metadata=meta,
-                    )
-                )
-            except Exception as exc:  # noqa: BLE001 - collected, then reported
-                errors.append(f"{name}: {exc}")
-
-        if errors and not results:
-            raise ValueError("; ".join(errors))
-        for message in errors:
-            applogger.warning(message)
-        return results
+    def compute_series(
+        self, name: str, data: tuple[np.ndarray, np.ndarray, float], settings: tuple[str, dict[str, Any]]
+    ) -> FilterResult:
+        model, params = settings
+        x_values, y_values, fs = data
+        y_out, meta = _apply_model(model, y_values, fs, params)
+        if y_out.size != x_values.size:
+            raise ValueError(f"the result has {y_out.size} points but the series has {x_values.size}")
+        return FilterResult(
+            source_name=name,
+            result_name=f"{name} - {FILTERS[model].tag}",
+            model=model,
+            x=x_values,
+            y=y_out,
+            metadata=meta,
+        )
 
     # ------------------------------------------------------------------
     # Results
@@ -438,10 +389,6 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
             fallback="Filter_Result",
         )
 
-    @property
-    def operation_label(self) -> str:
-        return "Filtering"
-
     def format_results(self, results: Sequence[FilterResult]) -> str:
         if not results:
             return _("No results.")
@@ -450,3 +397,32 @@ class SeriesFilterDialog(SeriesOperationDialogBase):
             details = ", ".join(f"{key}={value}" for key, value in result.metadata.items())
             lines.append(f"{result.source_name}: {result.model} ({details})")
         return "\n".join(lines)
+
+
+def _apply_model(model: str, y: np.ndarray, fs: float, p: Mapping[str, Any]) -> tuple[np.ndarray, dict[str, Any]]:
+    """Filter *y* with *model* and the settings *p* (see SeriesFilterDialog.series_settings)."""
+    if model in (FILTER_IIR, FILTER_FIR):
+        response = p["response"]
+        cutoff, cutoff2 = resolve_cutoffs(p["cutoff1"], p["cutoff2"], response, fs)
+        shown_cutoff = cutoff if cutoff2 is None else f"{cutoff:g} - {cutoff2:g}"
+    if model == FILTER_IIR:
+        family = p["family"]
+        y_out = apply_iir_filter(
+            y, fs, family=family, response=response, order=p["order"],
+            cutoff=cutoff, cutoff2=cutoff2,
+            ripple=p["ripple"] if IIR_FAMILIES[family].ripple else None,
+            atten=p["atten"] if IIR_FAMILIES[family].attenuation else None,
+        )
+        return y_out, {"family": p["family_text"], "response": p["response_text"], "order": p["order"],
+                       "cutoff": shown_cutoff, "fs": fs}
+    if model == FILTER_FIR:
+        y_out = apply_fir_filter(
+            y, fs, numtaps=p["numtaps"], window=p["window"], response=response,
+            cutoff=cutoff, cutoff2=cutoff2,
+        )
+        return y_out, {"response": p["response_text"], "taps": p["numtaps"], "window": p["window"],
+                       "cutoff": shown_cutoff, "fs": fs}
+    if model == FILTER_ANALYTIC:
+        return analytic_signal(y, fs, p["analytic"]), {"output": p["analytic_text"], "fs": fs}
+    # FILTER_DETREND
+    return apply_detrend(y, p["detrend"]), {"trend": p["detrend_text"]}

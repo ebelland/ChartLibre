@@ -53,7 +53,7 @@ two families have to disagree about: see
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -61,7 +61,7 @@ import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QComboBox, QFormLayout, QWidget
 
-from app.analysis.control_charts import (  # noqa: F401 - re-exported for the tests
+from app.analysis.control_charts import (
     CHART_C,
     CHART_INDIVIDUALS,
     CHART_MOVING_RANGE,
@@ -70,11 +70,9 @@ from app.analysis.control_charts import (  # noqa: F401 - re-exported for the te
     CHART_U,
     CHART_XBAR_R,
     CHART_XBAR_S,
-    SPC_CONSTANTS,
     ControlChart,
     Violation,
     attribute_chart,
-    attribute_limits,
     variables_chart,
 )
 from app.data.data_source import parse_roles, row_value, resolve_role_column
@@ -456,7 +454,7 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
         self._size_column_combo.blockSignals(False)
 
     def _chart(self) -> str:
-        return self.model_combo.currentText() or CHART_INDIVIDUALS
+        return self.current_model(CHART_INDIVIDUALS)
 
     # ------------------------------------------------------------------
     # Input
@@ -549,9 +547,6 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self._chart(), self.parameter_values()
-
     def read_series(self, row: Any, name: str) -> Any:
         chart = self._chart()
         if CONTROL_CHARTS[chart].attribute:
@@ -599,20 +594,6 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
             violations=outcome.violations,
             metadata=outcome.details,
         )
-
-    # -- One chart, without the window (the tests' entry points) -------
-
-
-    def _build_chart(
-        self,
-        name: str,
-        x_values: np.ndarray,
-        y_values: np.ndarray,
-        chart: str,
-        params: Mapping[str, Any],
-    ) -> ControlChartResult:
-        settings = (chart, dict(params))
-        return self.finish_series(name, self.compute_series(name, (x_values, y_values), settings), settings)
 
     # ------------------------------------------------------------------
     # Results
@@ -736,10 +717,6 @@ class SeriesControlChartDialog(SeriesOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'ControlChart'
     RESULT_TABLE_VARIANT = 'chart'
-
-    @property
-    def operation_label(self) -> str:
-        return "Control Chart"
 
     RESULTS_ARE_HTML = True
 

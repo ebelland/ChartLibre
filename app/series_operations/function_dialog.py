@@ -574,10 +574,6 @@ class SeriesFunctionDialog(SeriesOperationDialogBase):
             fallback="Function_Result",
         )
 
-    @property
-    def operation_label(self) -> str:
-        return "Function"
-
     RESULTS_ARE_HTML = True
 
     def format_results(self, results: Sequence[FunctionResult]) -> str:

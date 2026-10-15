@@ -246,9 +246,6 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self.current_model(), self.parameter_values()
-
     def compute_series(
         self, name: str, data: tuple[np.ndarray, np.ndarray], settings: tuple[str, dict[str, Any]]
     ) -> RegressionResult:
@@ -334,10 +331,6 @@ class SeriesRegressionDialog(SeriesOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Regression'
     RESULT_TABLE_VARIANT = 'model'
-
-    @property
-    def operation_label(self) -> str:
-        return "Regression"
 
     RESULTS_ARE_HTML = True
 

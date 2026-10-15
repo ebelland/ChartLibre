@@ -69,7 +69,8 @@ def test_preview_is_the_only_thing_that_computes_a_baseline_result(
     figure_id, _axis_id = figure
     dialog = SeriesBaselineDialog(repo=repo, figure_id=figure_id)
     try:
-        dialog._lambda_spin.setValue(dialog._lambda_spin.value() + 1.0)
+        lam = dialog._parameter_form_spec.field("lam")
+        lam.setValue(lam.value() + 1.0)
         assert dialog._last_results == []
 
         assert dialog.preview() is True

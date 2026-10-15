@@ -171,14 +171,11 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
 
 
     def _kernel(self) -> str:
-        return self.model_combo.currentText() or KERNEL_RBF
+        return self.current_model(KERNEL_RBF)
 
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
-
-    def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self._kernel(), self.parameter_values()
 
     def compute_series(
         self, name: str, data: tuple[np.ndarray, np.ndarray], settings: tuple[str, dict[str, Any]]
@@ -281,10 +278,6 @@ class SeriesGPRegressionDialog(SeriesOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'GP'
     RESULT_TABLE_VARIANT = 'model'
-
-    @property
-    def operation_label(self) -> str:
-        return "GP Regression"
 
     RESULTS_ARE_HTML = True
 

@@ -320,9 +320,6 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
 
-    def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self.current_model(), self.parameter_values()
-
     def read_series(self, row: Any, name: str) -> Any:
         if CALCULUS_MODELS[self.current_model()].surface:
             return self.series_grid_xyz(row, name)
@@ -620,10 +617,6 @@ class SeriesCalculusDialog(SeriesOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Calculus'
     RESULT_TABLE_VARIANT = 'model'
-
-    @property
-    def operation_label(self) -> str:
-        return "Calculus"
 
     RESULTS_ARE_HTML = True
 

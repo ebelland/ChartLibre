@@ -17,7 +17,8 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.control_chart_dialog import CHART_C, CHART_P, CHART_U, SeriesControlChartDialog, attribute_limits
+from app.analysis.control_charts import attribute_limits
+from app.series_operations.control_chart_dialog import CHART_C, CHART_P, CHART_U, SeriesControlChartDialog
 from app.utils.dialog_state import clear_state
 
 # Montgomery, Introduction to Statistical Quality Control, Example 6.1:

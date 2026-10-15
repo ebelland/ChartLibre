@@ -171,6 +171,10 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
 
     #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
     RUN_IN_BACKGROUND = True
+    #: A series with a z role is a surface: its "roots" are a whole level
+    #: curve (z = level), not a handful of x crossings, so it gets contour
+    #: extraction rather than the bracket-then-SciPy machinery.
+    READS_SURFACES = True
 
     # A crossing is a property of consecutive samples, so x has to be in
     # order and each x can only have one y.
@@ -286,16 +290,6 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
-
-    def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self.current_model(), self.parameter_values()
-
-    def read_series(self, row: Any, name: str) -> tuple[bool, Any]:
-        # A series with a z role is a surface: "the roots" are a whole level
-        # *curve* (z = level), not a handful of x crossings, so it gets its
-        # own path (contour extraction) rather than the bracket-then-SciPy
-        # machinery, which assumes a single-valued y(x).
-        return self.read_curve_or_surface(row, name)
 
     def compute_series(
         self, name: str, data: tuple[bool, Any], settings: tuple[str, dict[str, Any]]
@@ -431,10 +425,6 @@ class SeriesRootsDialog(SeriesOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Roots'
     RESULT_TABLE_VARIANT = None
-
-    @property
-    def operation_label(self) -> str:
-        return "Roots"
 
     RESULTS_ARE_HTML = True
 

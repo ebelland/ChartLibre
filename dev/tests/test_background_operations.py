@@ -25,10 +25,12 @@ from app.utils.dialog_state import clear_state
 
 #: module, class: every operation that computes in the background.
 BACKGROUND_OPERATIONS = [
+    ("baseline_dialog", "SeriesBaselineDialog"),
     ("calculus_dialog", "SeriesCalculusDialog"),
     ("cluster_dialog", "SeriesClusterDialog"),
     ("control_chart_dialog", "SeriesControlChartDialog"),
     ("decomposition_dialog", "SeriesDecompositionDialog"),
+    ("filter_dialog", "SeriesFilterDialog"),
     ("gp_regression_dialog", "SeriesGPRegressionDialog"),
     ("interpolate_dialog", "SeriesInterpolateDialog"),
     ("peaks_dialog", "SeriesPeaksDialog"),

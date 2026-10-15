@@ -474,7 +474,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
         )
 
         uses_custom_x = spacing == "custom X values"
-        uses_original_x = spacing == "original data X"
         uses_step = spacing == "integer step"
         uses_points = spacing not in {
             "custom X values",
@@ -512,8 +511,6 @@ class SeriesInterpolateDialog(SeriesOperationDialogBase):
             )
             self._params_edit.blockSignals(False)
 
-        # Suppress unused variable warning while keeping logic readable.
-        _unused = uses_original_x
         self.mark_results_stale()
 
     # ------------------------------------------------------------------

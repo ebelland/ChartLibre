@@ -114,8 +114,8 @@ class EvaluationMixin:
     # ------------------------------------------------------------------
     @property
     def operation_label(self) -> str:
-        """Human readable operation name used in messages/logs."""
-        return self.windowTitle() or self.__class__.__name__
+        """Human readable operation name used in messages/logs: the operation's Name."""
+        return self.Name or self.windowTitle() or self.__class__.__name__
 
     @property
     def generated_style_filter(self) -> Mapping[str, Any]:
@@ -169,11 +169,22 @@ class EvaluationMixin:
     # -- Per series: the common case ------------------------------------
 
     def series_settings(self) -> Any:
-        """Everything compute_series needs besides the data, read on the GUI thread."""
+        """Everything compute_series needs besides the data, read on the GUI thread.
+
+        ``(model, parameters)`` for an operation with MODELS, else the parameters.
+        """
+        if self.MODELS:
+            return self.current_model(), self.parameter_values()
         return self.parameter_values()
+
+    #: Whether a series with a z role is read as a surface: read_series then
+    #: gives read_curve_or_surface's ``(is_surface, data)`` instead of x and y.
+    READS_SURFACES: bool = False
 
     def read_series(self, row: Any, name: str) -> Any:
         """One selected series' data, read on the GUI thread; x and y by default."""
+        if self.READS_SURFACES:
+            return self.read_curve_or_surface(row, name)
         return self.series_xy(row, name)
 
     def read_curve_or_surface(self, row: Any, name: str) -> tuple[bool, Any]:

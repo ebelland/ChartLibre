@@ -29,16 +29,16 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QCheckBox, QDoubleSpinBox, QFormLayout, QSpinBox, QWidget
+from PySide6.QtWidgets import QWidget
 from app.analysis.baseline import (
     ASLS_MINIMUM_POINTS,
     METHOD_ASLS,
     METHOD_RUBBER_BAND,
     correct_baseline,
 )
-from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.series_operations.parameter_spec import BoolParam, FloatParam, IntParam
 from app.series_operations.results import TableResult
 from app.series_operations.dialog_base import (
     OperationModel,
@@ -96,6 +96,24 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
     INPUT_REQUIRES_UNIQUE_X = True
     INPUT_MINIMUM_POINTS = ASLS_MINIMUM_POINTS
 
+    #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
+
+    PARAMS = (
+        FloatParam("lam", "Lambda:", tooltip="Smoothness. Larger makes the baseline stiffer, so it bends "
+                                             "less to follow narrow peaks.",
+                   default_value=100_000.0, minimum=10.0, maximum=1e10, decimals=0, step=10_000.0,
+                   visible_for={"model": (BASELINE_ASLS,)}),
+        FloatParam("p", "p:", tooltip="Asymmetry. Smaller pushes the baseline further below the "
+                                      "peaks; it should stay well under 0.5.",
+                   default_value=0.01, minimum=0.0001, maximum=0.5, decimals=4, step=0.001,
+                   visible_for={"model": (BASELINE_ASLS,)}),
+        IntParam("iterations", "Iterations:", tooltip="Re-weighting passes.",
+                 default_value=10, minimum=1, maximum=50, visible_for={"model": (BASELINE_ASLS,)}),
+        BoolParam("draw_baseline", "Draw the baseline:", tooltip="Draw the estimated baseline itself.",
+                  default_value=True),
+    )
+
     Icon = """
     <path d="M3 17c3 0 3-10 6-10s3 10 6 10 3-6 6-6"/>
     <path d="M3 19h18" stroke-dasharray="2 2"/>
@@ -106,7 +124,6 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
     ) -> None:
         if repo is None:
             applogger.error("SeriesBaselineDialog requires a repository instance.")
-
         self._last_results: list[BaselineResult] = []
         super().__init__(
             repo=repo, figure_id=figure_id, title="Baseline Correction", parent=parent,
@@ -117,113 +134,34 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         self.mark_results_stale()
 
     # ------------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------------
-    def init_operation_widgets(self) -> None:
-        self._lambda_spin = QDoubleSpinBox(self)
-        self._p_spin = QDoubleSpinBox(self)
-        self._iterations_spin = QSpinBox(self)
-        self._draw_baseline_check = QCheckBox("", self)
-
-    def build_parameter_selector(self) -> QWidget:
-        widget = QWidget(self)
-        self._parameter_form = QFormLayout(widget)
-        self._parameter_form.setContentsMargins(0, 0, 0, 0)
-        self._parameter_form.setFieldGrowthPolicy(
-            QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow
-        )
-
-        self._lambda_spin.setRange(10.0, 1e10)
-        self._lambda_spin.setDecimals(0)
-        self._lambda_spin.setSingleStep(10_000.0)
-        self._lambda_spin.setValue(100_000.0)
-        self._lambda_spin.setToolTip(
-            _("Smoothness. Larger makes the baseline stiffer, so it bends "
-              "less to follow narrow peaks.")
-        )
-        self._parameter_form.addRow(_("Lambda:"), self._lambda_spin)
-
-        self._p_spin.setRange(0.0001, 0.5)
-        self._p_spin.setDecimals(4)
-        self._p_spin.setSingleStep(0.001)
-        self._p_spin.setValue(0.01)
-        self._p_spin.setToolTip(
-            _("Asymmetry. Smaller pushes the baseline further below the "
-              "peaks; it should stay well under 0.5.")
-        )
-        self._parameter_form.addRow(_("p:"), self._p_spin)
-
-        self._iterations_spin.setRange(1, 50)
-        self._iterations_spin.setValue(10)
-        self._iterations_spin.setToolTip(_("Re-weighting passes."))
-        self._parameter_form.addRow(_("Iterations:"), self._iterations_spin)
-
-        self._draw_baseline_check.setChecked(True)
-        self._draw_baseline_check.setToolTip(_("Draw the estimated baseline itself."))
-        self._parameter_form.addRow(_("Draw the baseline:"), self._draw_baseline_check)
-
-        return widget
-
-    def connect_operation_signals(self) -> None:
-        super().connect_operation_signals()
-        self._draw_baseline_check.toggled.connect(self.mark_results_stale)
-        for spin in (self._lambda_spin, self._p_spin, self._iterations_spin):
-            spin.valueChanged.connect(self.mark_results_stale)
-
-
-    def _refresh_visibility(self) -> None:
-        is_asls = self.current_model() == BASELINE_ASLS
-        self.set_row_visible(self._lambda_spin, is_asls)
-        self.set_row_visible(self._p_spin, is_asls)
-        self.set_row_visible(self._iterations_spin, is_asls)
-
-
-    # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
-    def compute_results(self) -> list[BaselineResult]:
-        model = self.current_model()
-        results: list[BaselineResult] = []
-        errors: list[str] = []
 
-        for row in self.selected_series():
-            name = str(row_value(row, "name", "series_name", default="Series"))
-            try:
-                x_values, y_values = self.series_xy(row, name)
-                is_asls = model == BASELINE_ASLS
-                correction = correct_baseline(
-                    METHOD_ASLS if is_asls else METHOD_RUBBER_BAND,
-                    x_values,
-                    y_values,
-                    lam=float(self._lambda_spin.value()),
-                    p=float(self._p_spin.value()),
-                    iterations=int(self._iterations_spin.value()),
-                )
-                meta: dict[str, Any] = (
-                    {"lambda": self._lambda_spin.value(), "p": self._p_spin.value()}
-                    if is_asls else {}
-                )
-                meta["baseline area"] = correction.area
-                baseline, corrected = correction.baseline, correction.corrected
-                results.append(
-                    BaselineResult(
-                        source_name=name,
-                        result_name=f"{name} - baseline corrected",
-                        model=model,
-                        x=x_values,
-                        corrected=corrected,
-                        baseline=baseline,
-                        metadata=meta,
-                    )
-                )
-            except Exception as exc:  # noqa: BLE001 - collected, then reported
-                errors.append(f"{name}: {exc}")
-
-        if errors and not results:
-            raise ValueError("; ".join(errors))
-        for message in errors:
-            applogger.warning(message)
-        return results
+    def compute_series(
+        self, name: str, data: tuple[np.ndarray, np.ndarray], settings: tuple[str, dict[str, Any]]
+    ) -> BaselineResult:
+        model, params = settings
+        x_values, y_values = data
+        is_asls = model == BASELINE_ASLS
+        correction = correct_baseline(
+            METHOD_ASLS if is_asls else METHOD_RUBBER_BAND,
+            x_values,
+            y_values,
+            lam=float(params["lam"]),
+            p=float(params["p"]),
+            iterations=int(params["iterations"]),
+        )
+        meta: dict[str, Any] = {"lambda": params["lam"], "p": params["p"]} if is_asls else {}
+        meta["baseline area"] = correction.area
+        return BaselineResult(
+            source_name=name,
+            result_name=f"{name} - baseline corrected",
+            model=model,
+            x=x_values,
+            corrected=correction.corrected,
+            baseline=correction.baseline,
+            metadata=meta,
+        )
 
     # ------------------------------------------------------------------
     # Results
@@ -253,7 +191,7 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
         self, axis_id: int, table_name: str, result: BaselineResult,
     ) -> Sequence[ResultSeriesSpec]:
         specs: list[ResultSeriesSpec] = []
-        if self._draw_baseline_check.isChecked():
+        if self.parameter_values()["draw_baseline"]:
             specs.append(
                 ResultSeriesSpec(
                     name=f"{result.result_name} - baseline",
@@ -269,10 +207,6 @@ class SeriesBaselineDialog(SeriesOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Baseline'
     RESULT_TABLE_VARIANT = None
-
-    @property
-    def operation_label(self) -> str:
-        return "Baseline Correction"
 
     def format_results(self, results: Sequence[BaselineResult]) -> str:
         if not results:

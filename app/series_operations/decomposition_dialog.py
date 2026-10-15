@@ -411,10 +411,6 @@ class SeriesDecompositionDialog(SeriesOperationDialogBase):
             fallback="Decomposition_Result",
         )
 
-    @property
-    def operation_label(self) -> str:
-        return "Decomposition"
-
     RESULTS_ARE_HTML = True
 
     def format_results(self, results: Sequence[DecompositionResult]) -> str:

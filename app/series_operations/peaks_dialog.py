@@ -115,6 +115,9 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
 
     #: Computed on a worker thread: see SeriesOperationDialogBase.evaluate.
     RUN_IN_BACKGROUND = True
+    #: A series with a z role is a surface, not a curve: the 1D find_peaks
+    #: search has nothing to say about it, so it gets a 2D local-maximum search.
+    READS_SURFACES = True
 
     # A peak is defined by its neighbours, so the points must be in x order.
     INPUT_REQUIRES_SORTED_X = True
@@ -232,15 +235,6 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
-
-    def series_settings(self) -> tuple[str, dict[str, Any]]:
-        return self.current_model(), self.parameter_values()
-
-    def read_series(self, row: Any, name: str) -> tuple[bool, Any]:
-        # A series with a z role is a surface, not a curve - see
-        # series_origin. The 1D find_peaks search has nothing to say about
-        # it, so it gets its own 2D local-maximum search instead.
-        return self.read_curve_or_surface(row, name)
 
     def compute_series(
         self, name: str, data: tuple[bool, Any], settings: tuple[str, dict[str, Any]]
@@ -362,10 +356,6 @@ class SeriesPeaksDialog(SeriesOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Peaks'
     RESULT_TABLE_VARIANT = None
-
-    @property
-    def operation_label(self) -> str:
-        return "Peaks"
 
     RESULTS_ARE_HTML = True
 
