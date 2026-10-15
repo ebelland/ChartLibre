@@ -231,7 +231,7 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         )
         self._residual_axis_id: int | None = None
         self._fit_vs_measured_axis_id: int | None = None
-        self._accessory_table_name: str | None = None
+        self._accessory_table_names: set[str] = set()
         self._applied = False
 
     def build_model_selector(self) -> QWidget:

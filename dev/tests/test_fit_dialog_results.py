@@ -52,7 +52,7 @@ def test_fit_writes_the_optimum_into_the_parameter_table() -> None:
 
 
 def test_the_report_has_a_row_per_parameter_with_its_error() -> None:
-    body = _body(FIT_SOURCE, "_results_html")
+    body = _body(FIT_SOURCE, "_report_sections")
 
     assert "Std. error" in body
     # The row label carries the parameter's meaning, not just its index.

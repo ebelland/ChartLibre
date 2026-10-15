@@ -146,3 +146,83 @@ def test_each_curve_separately_fits_every_series_alone(dialog: SeriesFitDialog) 
     dialog._fit_mode_combo.setCurrentIndex(0)  # back to global: the shared choice is still there
     assert dialog._shared_button.isEnabled()
     assert dialog._shared_button.text() == "A"
+
+
+# ----------------------------------------------------------------------
+# The formula with the fitted values in it (the report's and the result's expression)
+# ----------------------------------------------------------------------
+def _formula(expression: str, names: list[str], values: list[float]) -> str:
+    import re
+
+    from app.series_operations.fit_dialog.common import _substitute_expression_parameters
+
+    return re.sub(r"<[^>]+>", "", _substitute_expression_parameters(expression, names, np.array(values)))
+
+
+def test_fitted_values_take_the_place_of_the_formulas_symbols() -> None:
+    # The catalogue names a parameter by its role ("offset", "rate k"), the formula by its symbol (C, k).
+    assert _formula("y = A exp(-k x) + C", ["A", "rate k", "offset"], [4, 0.5, 1]) == "y = 4 exp(-0.5 x) + 1"
+    assert _formula("<b>Linear</b><br>y = b + m x", ["intercept", "slope"], [1.5, 2]) == "Linear" "y = 1.5 + 2 x"
+    # Greek words, subscripts, a symbol run into x, an exponent after the symbol.
+    assert _formula("y = A sin(ωx + φ) + C", ["amplitude A", "angular frequency omega", "phase phi", "offset"],
+                    [1, 2, 3, 4]) == "y = 1 sin(2x + 3) + 4"
+    assert _formula("y = A₁ exp(-k₁x) + A₂ exp(-k₂x) + C", ["A1", "k1", "A2", "k2", "offset"],
+                    [1, 2, 3, 4, 5]) == "y = 1 exp(-2x) + 3 exp(-4x) + 5"
+    assert _formula("y = C + A exp(-(x - x₀)² / (2 σ²))", ["amplitude A", "center x0", "sigma", "offset"],
+                    [2.5, -0.5, 1.25, 0.1]) == "y = 0.1 + 2.5 exp(-(x - (-0.5))² / (2 1.25²))"
+
+
+def test_a_symbol_is_not_found_inside_another_and_never_inside_a_tag() -> None:
+    assert _formula("y = C + A exp(-Ea / (kB T))", ["A", "Ea eV", "offset"], [1, 0.7, 0.1]) == "y = 0.1 + 1 exp(-0.7 / (kB T))"
+    from app.series_operations.fit_dialog.common import _substitute_expression_parameters
+
+    out = _substitute_expression_parameters('<span class="A">A</span>', ["A"], np.array([3.0]))
+    assert out == '<span class="A">3</span>'  # the attribute is untouched
+
+
+def test_the_catalogue_formulas_get_most_of_their_parameters() -> None:
+    import importlib
+    import inspect
+    import re
+
+    from app.functions.base import base_function
+    from app.series_operations.fit_dialog.common import _expression_symbols
+
+    placed = total = 0
+    for name in ("app.functions.functions", "app.functions.nist_functions"):
+        module = importlib.import_module(name)
+        for cls in vars(module).values():
+            if inspect.isclass(cls) and issubclass(cls, base_function) and cls is not base_function and cls.__module__ == name:
+                expression, params = getattr(cls, "expression", None), getattr(cls, "params", None)
+                if expression and params:
+                    symbols = _expression_symbols(re.sub(r"<[^>]+>", " ", str(expression)), list(params))
+                    placed += sum(symbol is not None for symbol in symbols)
+                    total += len(params)
+    assert placed / total > 0.9, (placed, total)
+
+
+def test_every_series_is_reported_in_one_document_with_its_own_columns(dialog: SeriesFitDialog) -> None:
+    import re
+
+    assert dialog.select_model("Exponential decay")
+    dialog._fit_mode_combo.setCurrentIndex(1)
+    dialog.on_estimate_initial_values()
+    dialog.evaluate(dialog._after_fit, background=False, optimise=True)
+    results = dialog.compute_results()
+    report = dialog.format_results(results)
+    # A page has one <html> and one <body>; a report per series pasted in turn nested them.
+    assert report.count("<html>") == 1 and report.count("<body") == 1
+    text = re.sub(r"<[^>]+>", " ", report)
+    assert "Series: s0" in text and "Series: s1" in text
+    assert [result.target_col for result in results] == ["y0", "y1"]  # not both the last series'
+    assert len({result.output_table for result in results}) == 2
+    assert all(f"{result.params[0]:.8g}" in re.sub(r"<[^>]+>", "", result.evaluated_expression) for result in results)
+
+
+def test_one_result_is_the_plain_report(dialog: SeriesFitDialog) -> None:
+    assert dialog.select_model("Exponential decay")
+    dialog.series_selector.series_list.item(1).setCheckState(Qt.CheckState.Unchecked)
+    dialog.on_estimate_initial_values()
+    dialog.evaluate(dialog._after_fit, background=False, optimise=True)
+    report = dialog.format_results(dialog.compute_results())
+    assert report.count("<html>") == 1 and "Series:" not in report

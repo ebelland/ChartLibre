@@ -73,12 +73,12 @@ class EvaluationMixin:
         """
         content = str(text or "")
 
-        if hasattr(self._results_label, "setContent"):
-            self._results_label.setContent(content)
-            return
-
         if looks_like_html(content):
             self._results_label.setHtml(content)
+            return
+
+        if hasattr(self._results_label, "setContent"):
+            self._results_label.setContent(content)
         else:
             self._results_label.setText(content)
 

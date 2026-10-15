@@ -4,6 +4,8 @@ from __future__ import annotations
 from typing import Sequence
 
 from app.series_operations.dialog_base import ResultSeriesSpec
+from app.utils import report_html
+from app.utils.i18n import _
 
 from app.series_operations.fit_dialog.common import SeriesFitResult
 
@@ -27,7 +29,8 @@ class FitHooksMixin:
         return super().compute_results()
 
     def result_table_name(self, axis_id: int, result: SeriesFitResult) -> str:
-        return self._output_table_name()
+        del axis_id
+        return result.output_table
 
     def result_series_spec(self, axis_id: int, table_name: str, result: SeriesFitResult) -> ResultSeriesSpec:
         del axis_id
@@ -116,4 +119,13 @@ class FitHooksMixin:
         """Return the fit report as an HTML table."""
         if not results:
             return "<p>Run Fit, or press Preview to draw the current parameters.</p>"
-        return self._results_html(results[0])
+        if len(results) == 1:
+            return self._results_html(results[0])
+        # One document for all the series, each under its own heading: a
+        # report per series pasted one after the other nested one <html> and
+        # <body> in the next.
+        sections: list[str] = []
+        for result in results:
+            sections.append(report_html.section(f"{_('Series')}: {result.source_table}"))
+            sections.extend(self._report_sections(result))
+        return report_html.document(_("Fit"), results[0].model_name, *sections)

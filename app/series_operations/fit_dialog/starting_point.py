@@ -266,7 +266,16 @@ class StartingPointMixin:
         self._results_table.resizeColumnsToContents()
 
     def _results_html(self, result: SeriesFitResult) -> str:
-        """Return the fit report in the shared house style."""
+        """Return the fit report of one result in the shared house style."""
+        return report_html.document(_("Fit"), result.model_name, *self._report_sections(result))
+
+    def _report_sections(self, result: SeriesFitResult) -> list[str]:
+        """The sections of one result's report, without the document around them.
+
+        Several results share one document: a page holds one ``<html>``
+        and one ``<body>``, and a report per result pasted into the next
+        nested them.
+        """
         params = np.asarray(result.params, dtype=float)
         std = np.asarray(result.param_std, dtype=float)
         names = result.param_names or [self._param_label(row) for row in range(params.size)]
@@ -330,9 +339,7 @@ class StartingPointMixin:
         summary_rows.append((_("Target"), result.target_col or ""))
         summary_rows.append((_("Status"), result.message))
 
-        return report_html.document(
-            _("Fit"),
-            result.model_name,
+        return [
             report_html.section(
                 _("Curve"),
                 report_html.summary_table(summary_rows),
@@ -373,7 +380,7 @@ class StartingPointMixin:
                     empty_message=_("No metrics available."),
                 ),
             ),
-        )
+        ]
 
     @staticmethod
     def _std_text(std: np.ndarray, row: int) -> str:

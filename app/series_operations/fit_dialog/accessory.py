@@ -65,38 +65,35 @@ class AccessoryChartsMixin:
         axis_id_attr: str,
         title: str,
         query_builder: Callable[[SeriesFitResult, str], tuple[str, dict[str, str], str, str]],
-        result: SeriesFitResult,
-        table_name: str,
+        results: Sequence[SeriesFitResult],
     ) -> None:
         if not checkbox.isChecked():
             self._remove_accessory_axis(axis_id_attr)
             return
-
-        sql_query, roles, x_label, y_label = query_builder(result, table_name)
+        first = results[0]
+        first_table = self.result_table_name(0, first)
+        _query, _roles, x_label, y_label = query_builder(first, first_table)
         axis_id = getattr(self, axis_id_attr)
         if axis_id is None:
             axis_id = self.create_result_axis(
-                chart_type="Scatter Plot",
-                title=title,
-                x_label=x_label,
-                y_label=y_label,
-                options={"grid": True},
+                chart_type="Scatter Plot", title=title, x_label=x_label,
+                y_label=y_label, options={"grid": True},
             )
             setattr(self, axis_id_attr, axis_id)
-
-        # This axis exists for exactly one series; replacing rather than
-        # appending is what keeps repeated Previews from stacking copies.
         for row in self._repo.get_series(axis_id) or []:
             self._repo.delete_series(int(row["id"]))
-        self._repo.create_series_descriptor(
-            axis_id=axis_id,
-            series_index=self._repo.next_series_index(axis_id),
-            name=title,
-            sql_query=sql_query,
-            roles=roles,
-            style={"marker": "o", "linestyle": ""},
-        )
-
+        for result in results:
+            table_name = self.result_table_name(0, result)
+            sql_query, roles, _x_label, _y_label = query_builder(result, table_name)
+            self._repo.create_series_descriptor(
+                axis_id=axis_id,
+                series_index=self._repo.next_series_index(axis_id),
+                name=f"{title}: {result.source_table}",
+                sql_query=sql_query, roles=roles,
+                style={"marker": "o", "linestyle": "",
+                       "source_series": result.source_table,
+                       "generated_fit": True, "fit_dialog": "series_fit"},
+            )
     def _remove_accessory_axis(self, axis_id_attr: str) -> None:
         axis_id = getattr(self, axis_id_attr, None)
         if axis_id is None:
@@ -107,41 +104,25 @@ class AccessoryChartsMixin:
         except Exception:
             applogger.exception("Failed to remove accessory axis (%s)", axis_id_attr)
 
-    def _sync_accessory_charts(self, result: SeriesFitResult, table_name: str) -> None:
-        if not (
-            self._residual_chart_check.isChecked()
-            or self._fit_vs_measured_chart_check.isChecked()
-        ):
+    def _sync_accessory_charts(self, results: Sequence[SeriesFitResult]) -> None:
+        if not results:
+            return
+        if not (self._residual_chart_check.isChecked() or self._fit_vs_measured_chart_check.isChecked()):
             self._remove_accessory_axis("_residual_axis_id")
             self._remove_accessory_axis("_fit_vs_measured_axis_id")
             return
-
-        # The accessory axes read the *final* output table rather than the
-        # preview one, so it has to exist by now - on Preview it otherwise
-        # would not, and both charts would be empty until Apply. Written
-        # here, outside the preview savepoint, for the same reason the axes
-        # are (see resolve_target_axis_id); Apply overwrites it with the same
-        # content, and Close without Apply drops it again.
-        self.write_result_table(table_name, result)
-        self._accessory_table_name = table_name
-
+        for result in results:
+            table_name = self.result_table_name(0, result)
+            self.write_result_table(table_name, result)
+            self._accessory_table_names.add(table_name)
         self._sync_accessory_axis(
-            checkbox=self._residual_chart_check,
-            axis_id_attr="_residual_axis_id",
-            title=_("Residuals"),
-            query_builder=self._residual_axis_query,
-            result=result,
-            table_name=table_name,
+            checkbox=self._residual_chart_check, axis_id_attr="_residual_axis_id",
+            title=_("Residuals"), query_builder=self._residual_axis_query, results=results,
         )
         self._sync_accessory_axis(
-            checkbox=self._fit_vs_measured_chart_check,
-            axis_id_attr="_fit_vs_measured_axis_id",
-            title=_("Measured vs. fit"),
-            query_builder=self._fit_vs_measured_axis_query,
-            result=result,
-            table_name=table_name,
+            checkbox=self._fit_vs_measured_chart_check, axis_id_attr="_fit_vs_measured_axis_id",
+            title=_("Measured vs. fit"), query_builder=self._fit_vs_measured_axis_query, results=results,
         )
-
     def resolve_target_axis_id(
         self, selected_axis_id: int, results: Sequence[SeriesFitResult]
     ) -> int:
@@ -163,9 +144,7 @@ class AccessoryChartsMixin:
         exactly this reason.
         """
         if results:
-            self._sync_accessory_charts(
-                results[0], self.result_table_name(selected_axis_id, results[0])
-            )
+            self._sync_accessory_charts(results)
         return selected_axis_id
 
     def apply_results_to_axis(self, axis_id: int, results: Sequence[SeriesFitResult]) -> None:
@@ -183,9 +162,9 @@ class AccessoryChartsMixin:
         self._remove_accessory_axis("_residual_axis_id")
         self._remove_accessory_axis("_fit_vs_measured_axis_id")
 
-        table_name = self._accessory_table_name
-        self._accessory_table_name = None
-        if table_name:
+        table_names = set(self._accessory_table_names)
+        self._accessory_table_names.clear()
+        for table_name in table_names:
             try:
                 self._repo.delete_table(table_name)
             except Exception:

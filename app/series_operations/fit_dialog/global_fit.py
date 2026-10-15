@@ -206,8 +206,12 @@ class GlobalFitMixin:
         """Every checked series, stacked: x as (value, series), clean with a series column."""
         rows = self._global_rows()
         frames = []
+        #: Each series' own (x, target) columns: loading a series overwrites
+        #: _source_x_col/_source_y_col, so after the loop they name the last one.
+        self._global_columns = []
         for number, row in enumerate(rows):
             _x, _y, clean = self._load_fit_data_1d(row)
+            self._global_columns.append((self._source_x_col, self._source_y_col))
             clean = clean.copy()
             clean["series"] = number
             clean["series_name"] = self._series_label(row)
@@ -253,8 +257,12 @@ class GlobalFitMixin:
                     if key in outcome.metrics:
                         metrics[f"global_{key}"] = outcome.metrics[key]
             square = np.ix_(index, index)
+            columns = getattr(self, "_global_columns", [])
+            x_col, target_col = columns[number] if number < len(columns) else (job.x_col, job.target_col)
             part_job = replace(
                 job,
+                x_col=x_col or job.x_col,
+                target_col=target_col or job.target_col,
                 model=base_model,
                 x=np.asarray(job.x, dtype=float)[mask, 0],
                 target=target,

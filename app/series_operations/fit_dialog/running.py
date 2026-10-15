@@ -42,7 +42,7 @@ class FitRunMixin:
         self._set_initial_params(np.asarray(self._last_table_params, dtype=float))
         self._fill_results_table(result.params, result.param_std)
         self._btn_use_fit_params.setEnabled(True)
-        self.publish_results(self.format_results([result]))
+        self.publish_results(self.format_results(results))
 
         # A fit nobody can see is only half an answer.
         self.preview()
