@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.baseline_dialog import BASELINE_ASLS, SeriesBaselineDialog
+from app.data_operations.baseline_dialog import BASELINE_ASLS, SeriesBaselineDialog
 from app.utils.dialog_state import clear_state
 
 X = np.linspace(0.0, 100.0, 400)

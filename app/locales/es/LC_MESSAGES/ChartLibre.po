@@ -16,7 +16,7 @@ msgstr "\"{name}\" ya está siendo utilizado por un tipo de gráfico existente."
 msgid "\"{name}\" is already used by an existing function."
 msgstr "\"{name}\" ya está siendo utilizado por una función existente."
 
-msgid "\"{name}\" is already used by an existing series operation."
+msgid "\"{name}\" is already used by an existing data operation."
 msgstr "\"{name}\" ya está siendo utilizado por una operación en serie existente."
 
 msgid "'{key}' back to Matplotlib's default."
@@ -94,8 +94,8 @@ msgstr "Ya existe un archivo llamado \"{file}\" en user/charts/."
 msgid "A file named \"{file}\" already exists under user/functions/."
 msgstr "Ya existe un archivo llamado \"{file}\" en user/functions/."
 
-msgid "A file named \"{file}\" already exists under user/series_operations/."
-msgstr "Ya existe un archivo llamado \"{file}\" en user/series_operations/."
+msgid "A file named \"{file}\" already exists under user/data_operations/."
+msgstr "Ya existe un archivo llamado \"{file}\" en user/data_operations/."
 
 msgid "A guide line under the pointer, shared across every axes of this figure."
 msgstr "Una línea guía debajo del puntero, compartida en todos los ejes de esta figura."
@@ -2287,7 +2287,7 @@ msgstr ""
 msgid "One axis cannot hold this many series of this chart type."
 msgstr ""
 
-msgid "One line, shown in the Series Operations panel."
+msgid "One line, shown in the Data Operations panel."
 msgstr ""
 
 msgid "One line, shown in the chart picker."
@@ -3061,7 +3061,7 @@ msgstr ""
 msgid "Series"
 msgstr ""
 
-msgid "Series Operation Builder"
+msgid "Data Operation Builder"
 msgstr ""
 
 msgid "Series name"
@@ -3355,7 +3355,7 @@ msgstr ""
 msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
 msgstr ""
 
-msgid "The class imported, but series_operation_scanner did not discover it as an operation - check that it subclasses SeriesOperationDialogBase directly."
+msgid "The class imported, but data_operation_scanner did not discover it as an operation - check that it subclasses DataOperationDialogBase directly."
 msgstr ""
 
 msgid "The column holding the sample size (units inspected) at each point."
@@ -3778,7 +3778,7 @@ msgstr ""
 msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
 msgstr ""
 
-msgid "Writes a new file under user/series_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
+msgid "Writes a new file under user/data_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
 msgstr ""
 
 msgid "Written by"
@@ -4256,9 +4256,6 @@ msgid "Scale and direction"
 msgstr ""
 
 msgid "Search operations"
-msgstr ""
-
-msgid "Series operations"
 msgstr ""
 
 msgid "Share X"

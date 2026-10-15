@@ -105,10 +105,10 @@ It uses the power of SQLite to store the data, the Qt6 GUI multiplatform library
   [*Axis*], [Matplotlib object: a chart inside a figure, with a chart type and one or more series.],
   [*Series*], [Matplotlib object: the data drawn on an axis: a SQL query whose columns are named after the *roles* the chart type reads — `x` and `y`, `value`, `time` and `event`, ...],
   [*Chart type* (renderer)], [The code that turns a series' rows into a drawing. See @renderers.],
-  [*Data operation*], [A calculation on the data of one or more series, whose result is added to the chart. See @series-operations.],
+  [*Data operation*], [A calculation on the data of one or more series, whose result is added to the chart. See @data-operations.],
   [*Analysis*], [A model of a table's columns — a response and what might explain it. See @analysis-chapter.],
 )
 
 == How this manual is organised
 
-@getting-started covers installation, projects and demos. @main-window tours the window. @data-chapter explains importing, editing and querying data. @creating-a-chart and @renderers cover charts: how to make one, then every chart type in detail. @series-operations describes every data operation, @analysis-chapter the analyses of a table and Guided analysis, and @statistics the statistical tests. @output covers saving and reporting, and @settings-chapter the preferences, the log and the credits. The last chapter, @advanced, is for those who want to extend ChartLibre with their own chart types, operations or functions.
+@getting-started covers installation, projects and demos. @main-window tours the window. @data-chapter explains importing, editing and querying data. @creating-a-chart and @renderers cover charts: how to make one, then every chart type in detail. @data-operations describes every data operation, @analysis-chapter the analyses of a table and Guided analysis, and @statistics the statistical tests. @output covers saving and reporting, and @settings-chapter the preferences, the log and the credits. The last chapter, @advanced, is for those who want to extend ChartLibre with their own chart types, operations or functions.

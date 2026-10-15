@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.transform_dialog import TRANSFORM_MODELS, SeriesTransformDialog
+from app.data_operations.transform_dialog import TRANSFORM_MODELS, SeriesTransformDialog
 
 N = 60
 

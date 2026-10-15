@@ -20,7 +20,7 @@ things it cannot conjure off a Mac:
 
 * *SF Symbols*, which need AppKit through pyobjc. The macOS nav rail draws
   five of its six icons from its own inline SVG (identical everywhere), so
-  only "Series Operations" is affected - it falls back to a freedesktop
+  only "Data Operations" is affected - it falls back to a freedesktop
   theme icon, or to nothing where no icon theme is installed.
 * *The system font*. macos_native.qss names no font-family at all, so the
   text is whatever Qt calls the UI font - SF Pro on a Mac, something else
@@ -213,15 +213,15 @@ def main() -> int:
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_chart_options.png")
 
-    # 3. Series Operations: the grid of operations and its hint bar, in a
+    # 3. Data Operations: the grid of operations and its hint bar, in a
     #    panel as wide as four tiles rather than the Tables page's width,
     #    which left most of it empty.
-    _show_page(window, "series_operations")
+    _show_page(window, "data_operations")
     _settle(app)
     _fit_operations_panel(window, columns=4)
     _settle(app)
     _quieten_status_bar(window)
-    _grab(app, window, "screenshot_series_operations.png")
+    _grab(app, window, "screenshot_data_operations.png")
 
     # 4. Guided analysis on the penguins table: what it holds, its own
     #    questions, the goals.
@@ -252,17 +252,17 @@ def _show_page(window, key: str) -> None:
         raise RuntimeError(f"no page {key!r} on the navigation rail")
 
 
-#: Width of the Series Operations list in the manual's pictures: the longest
+#: Width of the Data Operations list in the manual's pictures: the longest
 #: Italian name ("Correzione linea di base") with its icon, unelided.
 OPERATIONS_PANEL_WIDTH: int = 260
 
 
 def _fit_operations_panel(window, *, columns: int = 1) -> None:
-    """Narrow the left column to the Series Operations list's width."""
-    from app.widgets.series_operation import SeriesOperationWidget
+    """Narrow the left column to the Data Operations list's width."""
+    from app.widgets.data_operation import DataOperationWidget
 
     del columns  # the panel was a grid of tiles; it is one list now
-    panel = window.findChild(SeriesOperationWidget)
+    panel = window.findChild(DataOperationWidget)
     if panel is None:
         return
     sizes = window._main_split.sizes()

@@ -96,9 +96,9 @@
       "SegoeFluent": "E710",
       "ThemeIcon": "document-new"
     },
-    "create_series_operation": {
+    "create_data_operation": {
       "text": "Create Operation",
-      "description": "Scaffold the new series-operation file",
+      "description": "Scaffold the new data-operation file",
       "SFSymbol": "doc.badge.plus",
       "SegoeFluent": "E710",
       "ThemeIcon": "document-new"
@@ -153,9 +153,9 @@
       "SegoeFluent": "E774",
       "ThemeIcon": "preferences-desktop-locale"
     },
-    "series_operation_builder": {
-      "text": "Series Operation Builder",
-      "description": "Scaffold a new series-operation dialog from a template",
+    "data_operation_builder": {
+      "text": "Data Operation Builder",
+      "description": "Scaffold a new data-operation dialog from a template",
       "SFSymbol": "puzzlepiece.extension",
       "SegoeFluent": "EA86",
       "ThemeIcon": "applications-development"
@@ -345,9 +345,9 @@
       "SegoeFluent": "e8e5",
       "ThemeIcon": "open-menu"
     },
-    "nav_series_operations": {
-      "text": "Series Operations",
-      "description": "Show series operations",
+    "nav_data_operations": {
+      "text": "Data Operations",
+      "description": "Show data operations",
       "SFSymbol": "function",
       "SegoeFluent": "e9d2",
       "ThemeIcon": "accessories-calculator"
@@ -632,7 +632,7 @@
     },
     "search_functions": {
       "text": "Search functions…",
-      "description": "Find an analysis, a series operation, a chart type or a table tool by what it does (Ctrl+K)",
+      "description": "Find an analysis, a data operation, a chart type or a table tool by what it does (Ctrl+K)",
       "SFSymbol": "magnifyingglass",
       "SegoeFluent": "E721",
       "ThemeIcon": "edit-find"
@@ -1054,14 +1054,14 @@
       "title": "Renderer Helper",
       "text": "{path} was written, but it did not check out as a valid renderer: {error}. Fix the file directly and reopen it."
     },
-    "dev.series_operation_created": {
+    "dev.data_operation_created": {
       "level": "info",
-      "title": "Series Operation Builder",
-      "text": "\"{name}\" was written to {path} and is already discoverable - it will appear in the Series Operations panel. Open it and replace compute_results with the real computation."
+      "title": "Data Operation Builder",
+      "text": "\"{name}\" was written to {path} and is already discoverable - it will appear in the Data Operations panel. Open it and replace compute_results with the real computation."
     },
-    "dev.series_operation_create_failed": {
+    "dev.data_operation_create_failed": {
       "level": "warning",
-      "title": "Series Operation Builder",
+      "title": "Data Operation Builder",
       "text": "{path} was written, but it did not check out as a valid operation: {error}. Fix the file directly and reopen it."
     },
     "dev.function_created": {

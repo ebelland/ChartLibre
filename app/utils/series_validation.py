@@ -1,6 +1,6 @@
 """Check that a series is fit to be operated on, before an operation runs.
 
-Series operations were handed whatever the query returned.  The failure modes
+Data operations were handed whatever the query returned.  The failure modes
 are not equally loud, and that is the problem: some raise somewhere deep in
 SciPy with a message that names a matrix rather than a series, and some return
 a perfectly plausible-looking array that is quietly wrong.

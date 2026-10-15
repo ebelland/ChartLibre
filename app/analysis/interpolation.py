@@ -1,4 +1,4 @@
-"""Interpolation: the arithmetic behind the Interpolation series operation.
+"""Interpolation: the arithmetic behind the Interpolation data operation.
 
 A series is fitted or interpolated - polynomial and linear fits, curve fits of
 five closed forms (exponential, logarithmic, power, Gaussian, sigmoid), NumPy's

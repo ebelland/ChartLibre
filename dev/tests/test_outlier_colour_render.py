@@ -18,11 +18,11 @@ import pytest  # noqa: E402
 from matplotlib.colors import to_hex  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 
-import app.series_operations.outlier_dialog as outlier_module  # noqa: E402
+import app.data_operations.outlier_dialog as outlier_module  # noqa: E402
 from app.analysis.outliers import OUTLIER_ZSCORE  # noqa: E402
 from app.charts.render_figure import render_figure_from_descriptor  # noqa: E402
 from app.data.sqlite_repo import SqliteRepo  # noqa: E402
-from app.series_operations.outlier_dialog import ACTION_COLOUR, SeriesOutlierDialog  # noqa: E402
+from app.data_operations.outlier_dialog import ACTION_COLOUR, SeriesOutlierDialog  # noqa: E402
 from app.utils.dialog_state import clear_state  # noqa: E402
 
 RED = "#d62728"

@@ -21,7 +21,7 @@ from matplotlib.figure import Figure  # noqa: E402
 
 from app.charts.render_figure import render_figure_from_descriptor  # noqa: E402
 from app.data.sqlite_repo import SqliteRepo  # noqa: E402
-from app.series_operations.geometry_dialog import ROTATE, SeriesGeometryDialog  # noqa: E402
+from app.data_operations.geometry_dialog import ROTATE, SeriesGeometryDialog  # noqa: E402
 from app.utils.dialog_state import clear_state  # noqa: E402
 
 SOURCE_SQL = 'SELECT "salary_eur" AS "x", "bonus_eur" AS "y" FROM "pay" WHERE "Hide" = 0'

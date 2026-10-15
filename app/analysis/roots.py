@@ -9,7 +9,7 @@ read back from matplotlib's contour extraction. Plain arrays in, no Qt,
 nothing logged (todo R-01): a bracket the interpolant does not really cross
 comes back as a note.
 
-See app/series_operations/roots_dialog.py's docstring for why the bracket,
+See app/data_operations/roots_dialog.py's docstring for why the bracket,
 not the solver, decides what can be found.
 """
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Transform: the arithmetic behind the Transform series operation.
+"""Transform: the arithmetic behind the Transform data operation.
 
 Reshapes the y values of a series point for point - a power transform, a
 quantile map, standardising or robust scaling (scikit-learn) - over plain

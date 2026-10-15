@@ -1,6 +1,6 @@
 """The operations applied to a project, kept in it (todo R-03).
 
-A result table says what was computed, not how. Each Apply of a series
+A result table says what was computed, not how. Each Apply of a data
 operation adds a row to ``__operations__``: which operation, every entry of
 its dialog, the series it read and the tables it wrote, when, and with
 which version of ChartLibre - the record JMP keeps as a script beside each

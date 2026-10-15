@@ -1,4 +1,4 @@
-"""Demo: the Series Operations, each run for real on a real dataset.
+"""Demo: the Data Operations, each run for real on a real dataset.
 
 Every figure here starts as an ordinary chart of one demo table, and then
 the operation's own dialog is driven exactly as a person would drive it -
@@ -41,7 +41,7 @@ class OperationDemo:
     roles: dict[str, str]
     x_label: str
     y_label: str
-    dialog: str  # "module:Class" under app.series_operations
+    dialog: str  # "module:Class" under app.data_operations
     chart_type: str = "Scatter Plot"
     style: dict[str, Any] = field(default_factory=lambda: {"marker": "o", "markersize": 2.5, "linestyle": ""})
     setup: Callable[[Any], None] | None = None
@@ -203,7 +203,7 @@ OPERATIONS_DEMO: DemoProject = next(
 
 def _dialog_class(path: str) -> type:
     module_name, class_name = path.split(":")
-    module = importlib.import_module(f"app.series_operations.{module_name}")
+    module = importlib.import_module(f"app.data_operations.{module_name}")
     return getattr(module, class_name)
 
 
@@ -259,7 +259,7 @@ def _store_report(repo: SqliteRepo, figure_id: int, html: str) -> None:
 
 
 def build_operations_demo(directory: Path = DEMO_DIR) -> Path:
-    """Write the Series Operations demo into *directory* and return its path."""
+    """Write the Data Operations demo into *directory* and return its path."""
     from PySide6.QtWidgets import QApplication
 
     import app.utils.config as config

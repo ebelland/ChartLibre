@@ -1,4 +1,4 @@
-"""Smoothing: the arithmetic behind the Smoothing series operation.
+"""Smoothing: the arithmetic behind the Smoothing data operation.
 
 Fourteen methods for a 1D series (a moving average up to total-variation
 denoising), six for a 2D surface and five for a 3D volume. Every function

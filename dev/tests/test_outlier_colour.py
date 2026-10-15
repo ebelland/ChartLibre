@@ -19,20 +19,20 @@ import pytest  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 from matplotlib.colors import to_rgba as _to_rgba  # noqa: E402
 
-import app.series_operations.outlier_dialog as outlier_module  # noqa: E402
+import app.data_operations.outlier_dialog as outlier_module  # noqa: E402
 from app.charts.base import SeriesData  # noqa: E402
 from app.charts.scatter import ScatterAxisRenderer  # noqa: E402
 from app.data.series_frame import SeriesFrame  # noqa: E402
 from app.data.select_sql import has_projection_alias, sql_insert_select_expression  # noqa: E402
 from app.data.sqlite_repo import SqliteRepo  # noqa: E402
-from app.series_operations.outlier_dialog import (  # noqa: E402
+from app.data_operations.outlier_dialog import (  # noqa: E402
     ACTION_COLOUR,
     ACTION_HIDE,
     COLOUR_COLUMN,
     SeriesOutlierDialog,
 )
-from app.series_operations.parameter_form import ParameterForm  # noqa: E402
-from app.series_operations.parameter_spec import ColorParam  # noqa: E402
+from app.data_operations.parameter_form import ParameterForm  # noqa: E402
+from app.data_operations.parameter_spec import ColorParam  # noqa: E402
 from app.utils.dialog_state import clear_state  # noqa: E402
 
 RED = "#d62728"

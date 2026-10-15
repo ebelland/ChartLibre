@@ -27,11 +27,11 @@ from app.utils.import_runner import refresh_link
 from app.logs.logger import applogger
 from app.utils.messages import ask
 from app.utils.i18n import _
-from app.widgets.series_operation import SeriesOperationWidget
+from app.widgets.data_operation import DataOperationWidget
 
 
 
-# Tables written by a series operation are prefixed, so the list can hide the
+# Tables written by a data operation are prefixed, so the list can hide the
 # whole class of them without keeping a registry of what it produced.
 GENERATED_TABLE_PREFIX: str = "_"
 
@@ -40,7 +40,7 @@ CONFIG_SHOW_GENERATED: str = "show_generated"
 
 
 def _is_generated(name: str) -> bool:
-    """Return True for a table written by a series operation."""
+    """Return True for a table written by a data operation."""
     return str(name).startswith(GENERATED_TABLE_PREFIX)
 
 
@@ -571,12 +571,12 @@ class TableListPanel(QWidget):
                     tooltip=_("Create a new plot tab for the current table"),
                     callback=self._on_new_plot_tab,
                     # Built from the same source as the "Plot" row at the top
-                    # of the Series Operations panel (SeriesOperationWidget.
+                    # of the Data Operations panel (DataOperationWidget.
                     # plot_operation -> NewPlotTabDialog.Icon), rather than the
                     # unrelated "plot" catalogue/file icon, so the same action
                     # carries the same glyph everywhere it appears.
-                    icon=SeriesOperationWidget.plugin_icon(
-                        SeriesOperationWidget.plot_operation()
+                    icon=DataOperationWidget.plugin_icon(
+                        DataOperationWidget.plot_operation()
                     ),
                 )
             )
@@ -767,7 +767,7 @@ class TableListPanel(QWidget):
         OperationHistoryDialog(self._repo, current[0], parent=self.window()).exec()
 
     def set_generated_visible(self, visible: bool) -> None:
-        """Show or hide the tables written by series operations."""
+        """Show or hide the tables written by data operations."""
         self._show_generated = bool(visible)
         update_section(CONFIG_SECTION, **{CONFIG_SHOW_GENERATED: self._show_generated})
         self.reload()

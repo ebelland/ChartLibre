@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.regression_dialog import REGRESSION_MODELS, SeriesRegressionDialog
+from app.data_operations.regression_dialog import REGRESSION_MODELS, SeriesRegressionDialog
 
 N = 60
 

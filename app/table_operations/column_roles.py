@@ -1,6 +1,6 @@
 """Cast a table's columns into the roles an operation needs: Y, factors, a block...
 
-The table operations' counterpart of the series operations' axis/series
+The table operations' counterpart of the data operations' axis/series
 selector, after JMP's "Cast Selected Columns into Roles": the columns on
 the left, each with its modelling type, and one box per role on the right.
 Select columns, press a role's button, and they move into it; double-click
@@ -192,7 +192,7 @@ class ColumnRolesWidget(QWidget):
         assert roles_layout is not None
         roles_layout.addLayout(right)
 
-        # Tabs, as the series operations' dialogs: the data first (the
+        # Tabs, as the data operations' dialogs: the data first (the
         # columns and their roles), then whatever the operation adds (a
         # model's settings, its charts) - one page of all of it is taller
         # than a laptop's screen.
@@ -205,7 +205,7 @@ class ColumnRolesWidget(QWidget):
         self.tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._tab_layouts: dict[str, QVBoxLayout] = {}
         data = self.add_tab(_("Data"))
-        # The Data tab says it, as in the series operations: no titles above the frames.
+        # The Data tab says it, as in the data operations: no titles above the frames.
         columns_card.title_label.hide()
         roles_card.title_label.hide()
         data.addWidget(columns_card, 1)

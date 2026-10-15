@@ -48,7 +48,7 @@ from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.credits_dialog import CreditsDialog
 from app.widgets.database_info_panel import DatabaseInfoPanel
 from app.developer_helpers.renderer_helper import RendererHelperDialog
-from app.developer_helpers.series_operation_helper import SeriesOperationBuilderDialog
+from app.developer_helpers.data_operation_helper import DataOperationBuilderDialog
 from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
 from app.developer_helpers.localization_helper import EditLocalizationDialog
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
@@ -56,8 +56,8 @@ from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget
 from app.widgets.chart_properties.overlay_properties import OverlayPropertiesWidget
 from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
 from app.widgets.chart_properties.series_properties import SeriesPropertiesWidget
-from app.widgets.series_operation import SeriesOperationWidget
-from app.scanners.series_operation_scanner import import_class_from_file
+from app.widgets.data_operation import DataOperationWidget
+from app.scanners.data_operation_scanner import import_class_from_file
 from app.styles.style import (
     EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
@@ -112,7 +112,7 @@ USER_MANUAL_PATH: Path = Path(__file__).resolve().parents[2] / "docs" / "manual"
 CHART_PANE_MIN_WIDTH: int = get_constant("chart_pane_min_width", 260)
 
 # How wide the panel *beside* the navigation rail starts out - the table
-# list, the property pages, the series-operation panels. Added to the rail's
+# list, the property pages, the data-operation panels. Added to the rail's
 # own width rather than used as the whole left pane, since the rail's width
 # differs per platform; see _create_main_split.
 PANEL_DEFAULT_WIDTH: int = get_constant("panel_default_width", 340)
@@ -179,7 +179,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self.resize(1200, 800)
         # 800 is taller than many laptops leave free: fitted when shown.
         fit_on_show(self)
-        # The scientific libraries the series operations need, imported in
+        # The scientific libraries the data operations need, imported in
         # the background once the window is up, so the first operation of
         # the session opens at once (app/utils/warm_up.py).
         from app.utils.warm_up import warm_up_in_background
@@ -452,15 +452,15 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._data_split = page.splitter
         return page
 
-    def _create_series_operations_page(self) -> QWidget:
-        """Create the series operations page."""
-        widget = SeriesOperationWidget(self)
-        widget.operation_requested.connect(self._on_series_operation_requested)
+    def _create_data_operations_page(self) -> QWidget:
+        """Create the data operations page."""
+        widget = DataOperationWidget(self)
+        widget.operation_requested.connect(self._on_data_operation_requested)
         return widget
 
-    def _on_series_operation_requested(self, operation: dict) -> None:
-        """Handle a built-in or runtime series-operation request."""
-        icon = SeriesOperationWidget.plugin_icon(operation)
+    def _on_data_operation_requested(self, operation: dict) -> None:
+        """Handle a built-in or runtime data-operation request."""
+        icon = DataOperationWidget.plugin_icon(operation)
 
         if operation.get("name") == "NewPlotTabDialog":
             self._on_new_plot_tab(icon)
@@ -469,12 +469,12 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         dialog_class = import_class_from_file(operation)
         if dialog_class is None:
             applogger.error(
-                "Could not load series operation class: %r",
+                "Could not load data operation class: %r",
                 operation.get("name"),
             )
             return
 
-        self._open_series_operation(dialog_class, icon)
+        self._open_data_operation(dialog_class, icon)
 
     def _configure_tabs(self) -> None:
         """Make the chart tabs shrink-friendly in both directions.
@@ -648,7 +648,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         """The project's history and database, then the scaffolding tools.
 
         The Database page's content lives here since that page went; Query
-        Builder moved to the Series Operations list. Each tool has a frame
+        Builder moved to the Data Operations list. Each tool has a frame
         of its own with its catalogue sentence under the button.
         """
         page = NavPanel(self)
@@ -658,7 +658,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         page.add_widget(self._database_info_panel)
         for action_id, handler in (
             ("edit_localization", self._on_edit_localization),
-            ("series_operation_builder", self._on_series_operation_builder),
+            ("data_operation_builder", self._on_data_operation_builder),
             ("function_creator", self._on_function_creator),
             ("renderer_helper", self._on_renderer_helper),
             ("log_viewer", self._show_log_viewer),
@@ -697,7 +697,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         tables_panel = self._data_page
         new_table_panel = self._create_new_table_page()
         chart_properties_panel = self._properties_control
-        series_operations_panel = self._create_series_operations_page()
+        data_operations_panel = self._create_data_operations_page()
         analysis_panel = AnalysisPanel(self)
         analysis_panel.operation_requested.connect(self._on_table_operation_requested)
         self._rail_search = CatalogSearch(self, collapsed=True, compact=True)
@@ -732,9 +732,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                     _("Chart properties"), self._navigation_icon("nav_chart_options"),
                     chart_properties_panel, _("Edit the current chart"),
                 ),
-                "series_operations": NavBarItem(
-                    _("Data operations"), self._navigation_icon("nav_series_operations"),
-                    series_operations_panel, _("Transform or analyse a chart's series or a table's columns"),
+                "data_operations": NavBarItem(
+                    _("Data operations"), self._navigation_icon("nav_data_operations"),
+                    data_operations_panel, _("Transform or analyse a chart's series or a table's columns"),
                 ),
                 "analysis": NavBarItem(
                     _("Analysis"), self._navigation_icon("nav_analysis"),
@@ -888,7 +888,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         # holds the navigation rail *and* the panel beside it, and the rail
         # is 200px wide on macOS against 132 on Windows. A fixed 360 left
         # the macOS panel 160px of usable width - the table list and the
-        # series-operation panels were unreadably narrow in it - while
+        # data-operation panels were unreadably narrow in it - while
         # giving Windows 228 for the same panel.
         split.setSizes([self._left_panel.visible_bar_width + PANEL_DEFAULT_WIDTH, 840])
 
@@ -1136,7 +1136,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         """Create a chart tab, optionally using the operation-list icon.
 
         ``TableListPanel`` invokes this callback without arguments, while the
-        series-operation page supplies the Plot operation icon.
+        data-operation page supplies the Plot operation icon.
         """
         panel = self._current_chart_panel()
         dialog = NewPlotTabDialog(
@@ -1152,7 +1152,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             dialog.select_chart_type(chart_type)
 
         if icon is None or icon.isNull():
-            icon = SeriesOperationWidget.plugin_icon(
+            icon = DataOperationWidget.plugin_icon(
                 {
                     "name": "NewPlotTabDialog",
                     "value": "Plot",
@@ -1195,7 +1195,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             self.open_catalog_entry(entry)
 
     def open_catalog_entry(self, entry) -> None:
-        """Open what a search found: an analysis, a series operation, a chart type, a table tool."""
+        """Open what a search found: an analysis, a data operation, a chart type, a table tool."""
         from app.analysis import catalog
 
         if entry.kind == catalog.ANALYSIS:
@@ -1204,7 +1204,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             if entry.payload.get("name") != "NewPlotTabDialog" and self._current_chart_panel() is None:
                 show_message(self, "catalog.open_a_chart", name=_(entry.name))
                 return
-            self._on_series_operation_requested(entry.payload)
+            self._on_data_operation_requested(entry.payload)
         elif entry.kind == catalog.CHART:
             self._on_new_plot_tab(chart_type=str(entry.payload))
         elif entry.kind == catalog.TOOL:
@@ -1226,7 +1226,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     def refresh(self, *, reload_preview: bool = True) -> None:
         """Bring the chart, the tables and the properties back in step with the project.
 
-        After a series operation (Preview, Apply, or the rollback of a
+        After a data operation (Preview, Apply, or the rollback of a
         Preview), a table edited or duplicated, an Undo. *reload_preview*
         is False when the data preview asked for this itself, having just
         reloaded.
@@ -1275,12 +1275,12 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if figures:
             self._reload_tabs(select_figure_id=figures[0])
 
-    def _open_series_operation(
+    def _open_data_operation(
         self,
         dialog_class: type,
         icon: QIcon | None = None,
     ) -> None:
-        """Open one runtime series-operation dialog on the current chart."""
+        """Open one runtime data-operation dialog on the current chart."""
         panel = self._current_chart_panel()
         if panel is None:
             return
@@ -1365,9 +1365,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         """Open Edit Localization: browse/edit a translation catalogue."""
         EditLocalizationDialog(self).exec()
 
-    def _on_series_operation_builder(self) -> None:
-        """Open the Series Operation Builder: scaffold a new operation file."""
-        SeriesOperationBuilderDialog(self).exec()
+    def _on_data_operation_builder(self) -> None:
+        """Open the Data Operation Builder: scaffold a new operation file."""
+        DataOperationBuilderDialog(self).exec()
 
     def _on_function_creator(self) -> None:
         """Open the Function Creator: scaffold a new fit-function file."""

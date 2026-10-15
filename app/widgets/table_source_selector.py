@@ -1,6 +1,6 @@
-"""A table, its X column and its Y columns: a series operation's data straight from a table.
+"""A table, its X column and its Y columns: a data operation's data straight from a table.
 
-The other half of the Axis / Series page (see ``SeriesOperationDialogBase``):
+The other half of the Axis / Series page (see ``DataOperationDialogBase``):
 instead of the series a chart already draws, the columns of a table. The
 dialog draws them first, as a chart of their own, and then runs on it like on
 any other - so every operation reads a table without knowing it does.

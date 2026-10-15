@@ -93,7 +93,7 @@ def _two_way_steps(penguins: pd.DataFrame) -> str:
     rows = {row["source"]: row for row in st.two_way_anova(known["species"], known["sex"], known["body_mass_g"])["table"]}
     interaction = rows["A × B"]
     return (
-        "Series Operations > <b>Statistics</b>, model <b>Two-way ANOVA</b>: species, sex and their "
+        "Data Operations > <b>Statistics</b>, model <b>Two-way ANOVA</b>: species, sex and their "
         f"interaction on body mass, Type II. The interaction is real - F = {interaction['F']:.2f}, "
         f"p = {interaction['pvalue']:.4f} - but small beside the two main effects (partial eta² "
         f"{interaction['partial_eta2']:.2f} against {rows['A']['partial_eta2']:.2f} for species). "
@@ -105,7 +105,7 @@ def _contingency_steps(penguins: pd.DataFrame) -> str:
     table = st.contingency_table(penguins["island"], penguins["species"])
     pearson = st.contingency_tests(table.to_numpy())[0]
     return (
-        "Series Operations > <b>Statistics</b>, model <b>Contingency table</b>: the counts, Pearson's "
+        "Data Operations > <b>Statistics</b>, model <b>Contingency table</b>: the counts, Pearson's "
         f"chi-squared ({pearson['statistic']:.1f}, {pearson['note'].split(';')[0]}), the likelihood-ratio "
         f"test and Fisher's exact test; {pearson['note'].split('; ')[1]} - a strong association."
     )
@@ -121,7 +121,7 @@ def _survival_steps() -> str:
         high = "not reached" if np.isnan(row["median_high"]) else f"{row['median_high']:g}"
         parts.append(f"{row['group']} {row['median']:g} weeks (95% CI {row['median_low']:g} to {high})")
     return (
-        "Series Operations > <b>Statistics</b>, model <b>Survival</b>: per arm the patients, relapses, "
+        "Data Operations > <b>Statistics</b>, model <b>Survival</b>: per arm the patients, relapses, "
         f"censored and the median remission - {'; '.join(parts)} - and the log-rank test."
     )
 
@@ -196,7 +196,7 @@ def build_diagnostics_demo(directory: Path = DEMO_DIR) -> Path:
           "Adelie and Chinstrap follow their lines inside the 95% bands. Gentoo's shortest flippers "
           "leave the band at the lower left: a heavier lower tail than a normal - mild, and an ANOVA "
           "copes with it. The steps are the measurements' 1 mm resolution, not a departure.",
-          "Series Operations > <b>Statistics</b>, the three species checked, model <b>Normality / shape "
+          "Data Operations > <b>Statistics</b>, the three species checked, model <b>Normality / shape "
           "tests</b>: Shapiro-Wilk, Anderson-Darling and the rest, per species. Tick <b>Add a chart</b> and "
           "pick <b>Q-Q Plot</b> or <b>P-P Plot</b> to draw this figure from there.")
 

@@ -89,7 +89,7 @@ class DemoProject:
     summary: str
     figures: tuple[str, ...]
     #: "module:function" that writes this file itself, for a demo that is
-    #: not a selection of figures - the Series Operations one runs the
+    #: not a selection of figures - the Data Operations one runs the
     #: operations' dialogs. Empty: built from ``figures`` as usual.
     builder: str = ""
     #: The figure the preview pictures, by (part of) its name; the first
@@ -343,8 +343,8 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         ("sparse_calibration_scatter",),
     ),
     DemoProject(
-        "3D Series Operations - Fit, Peaks, Roots and Calculus on a surface",
-        "A Gaussian bump and a saddle, run through the four Series "
+        "3D Data Operations - Fit, Peaks, Roots and Calculus on a surface",
+        "A Gaussian bump and a saddle, run through the four Data "
         "Operations that now understand a series with a z role: a "
         "Gaussian2D surface fitted to 500 scattered points, the bump's one "
         "peak found on its exact grid, a saddle's z=0 level curve traced "
@@ -408,8 +408,8 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         references=(REF_PENGUINS, REF_FREIREICH, REF_COLDITZ, REF_MICHELSON,),
     ),
     DemoProject(
-        "Series operations - fifteen operations, each with its report",
-        "Fifteen Series Operations run for real, one per chart, each on a "
+        "Data operations - fifteen operations, each with its report",
+        "Fifteen Data Operations run for real, one per chart, each on a "
         "dataset suited to it - smoothing, spectrum, filtering, baseline, "
         "peaks, roots, calculus, fit, interpolation, statistics, outliers, "
         "clustering, a control chart, a robust regression and a transform - "

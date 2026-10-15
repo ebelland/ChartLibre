@@ -22,7 +22,7 @@ The window has three parts: the *navigation rail* at the far left — the pages 
   [*Tables*], [The tables and saved queries of the project, with a preview of the selected one (see @data-chapter).],
   [*New table*], [A blank table, a designed experiment or a table built from others (see @data-chapter).],
   [*Chart properties*], [The settings of the selected figure, axis and series (see @customizing). A click on the chart selects what it landed on: outside the axes the figure, on an axis that axis, on a line, points or bar that series.],
-  [*Data operations*], [New plot, the Query Builder and the operations on a chart's series (see @series-operations).],
+  [*Data operations*], [New plot, the Query Builder and the operations on a chart's series (see @data-operations).],
   [*Analysis*], [Models of a table's columns: Fit Model, Partition, Discriminant, Partial Least Squares (see @analysis-chapter).],
   [*Guided analysis*], [Search, quick answers and suggestions, starting from what you want to find out (see @guided-analysis).],
   [*Developer*], [The project's history and database information, and the tools for extending ChartLibre (see below).],
@@ -65,7 +65,7 @@ Despite its name, the first part of this page is for everyone:
   [*Optimize DB*], [Checks the project file for problems, reports them, and compacts it — it can shrink a project noticeably after large tables were deleted.],
 )
 
-The rest of the page holds the tools for extending ChartLibre — *Edit Localization*, *Series Operation Builder*, *Function Creator*, *Renderer Helper* (see @advanced) — and the *Log viewer* (see @log).
+The rest of the page holds the tools for extending ChartLibre — *Edit Localization*, *Data Operation Builder*, *Function Creator*, *Renderer Helper* (see @advanced) — and the *Log viewer* (see @log).
 
 == The chart panel
 

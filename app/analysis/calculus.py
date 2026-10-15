@@ -1,4 +1,4 @@
-"""Calculus: the arithmetic behind the Calculus series operation.
+"""Calculus: the arithmetic behind the Calculus data operation.
 
 Derivatives of a sampled curve (Savitzky-Golay, finite difference, smoothing
 spline), its running and definite integrals (trapezoid, Simpson) with an

@@ -6,7 +6,7 @@ A chart in ChartLibre is never a picture of a spreadsheet range: it is a *query*
 
 == The New plot window
 
-*Plot*, the first entry of the *Data operations* list (see @series-operations), opens the chart-creation window. Building a chart takes three decisions:
+*Plot*, the first entry of the *Data operations* list (see @data-operations), opens the chart-creation window. Building a chart takes three decisions:
 
 + *The chart type.* The picker lists all the chart types grouped by family, with a search box that matches a name or a whole family ("stat" brings up the statistical charts at once). Selecting one shows its description, the roles it needs and a link to the corresponding Matplotlib documentation.
 + *The data.* Pick a data source — a table or a saved query — then pick which of its columns plays each role. The window writes the SQL for you (`SELECT pressure AS x, flow AS y FROM operating_points`) and shows it; you can edit it directly for a filter, a join or a computed column. Only reading queries (`SELECT`, `WITH`) are accepted.
@@ -87,7 +87,7 @@ Role names are written as the query must return them. Where a role is shown in c
 Charts of one quantity against another: the everyday x/y family.
 
 === Scatter Plot
-One mark per row at (x, y). Optional columns colour each point (`color`: numbers through a colormap, integers as categories) and size it (`size`). The basic chart for two measured quantities, and the one most series operations add their results to.
+One mark per row at (x, y). Optional columns colour each point (`color`: numbers through a colormap, integers as categories) and size it (`size`). The basic chart for two measured quantities, and the one most data operations add their results to.
 #roles[`x`, `y`][`color`, `size`, `xerr`, `yerr`, `xerr_low`, `xerr_high`, `yerr_low`, `yerr_high`]
 #mpl("Axes.scatter", "Axes.errorbar")
 #example("chart_scatter_plot")

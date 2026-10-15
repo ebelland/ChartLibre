@@ -12,7 +12,7 @@ import pytest
 
 from app.analysis.spectral import METHOD_ACORR, METHOD_PSD, METHOD_XCORR
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.spectral_dialog import SeriesSpectralDialog
+from app.data_operations.spectral_dialog import SeriesSpectralDialog
 from app.utils.dialog_state import clear_state
 
 FS = 200.0

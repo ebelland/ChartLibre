@@ -1,4 +1,4 @@
-"""Series operations on a dated x axis.
+"""Data operations on a dated x axis.
 
 ``pd.to_numeric`` turns a timestamp column into all-NaN, so an operation
 reading its x that way reports "0 usable points" about a series of a
@@ -100,7 +100,7 @@ def _dialog(cls, repo: SqliteRepo, figure_id: int):
 def test_a_derivative_of_a_dated_series_is_scaled_per_day_not_per_second(
     qapp, repo: SqliteRepo, dated_figure
 ) -> None:
-    from app.series_operations.calculus_dialog import (
+    from app.data_operations.calculus_dialog import (
         DERIV_GRADIENT,
         SeriesCalculusDialog,
     )
@@ -136,7 +136,7 @@ def test_every_other_operation_produces_a_result_too(
 
     figure_id, _axis_id = dated_figure
     cls = getattr(
-        importlib.import_module(f"app.series_operations.{module_name}"), class_name
+        importlib.import_module(f"app.data_operations.{module_name}"), class_name
     )
 
     results = _dialog(cls, repo, figure_id).compute_results()
@@ -150,7 +150,7 @@ def test_every_other_operation_produces_a_result_too(
 def test_a_result_computed_from_dates_is_written_back_as_dates(
     qapp, repo: SqliteRepo, dated_figure
 ) -> None:
-    from app.series_operations.roots_dialog import SeriesRootsDialog
+    from app.data_operations.roots_dialog import SeriesRootsDialog
 
     figure_id, axis_id = dated_figure
     dialog = _dialog(SeriesRootsDialog, repo, figure_id)

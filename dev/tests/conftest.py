@@ -41,11 +41,11 @@ def _operations_compute_in_place(request: pytest.FixtureRequest):
     reads the chart straight after preview() would read it too early. The
     tests of the background path itself are marked ``background``.
     """
-    from app.series_operations.dialog_base import SeriesOperationDialogBase
+    from app.data_operations.dialog_base import DataOperationDialogBase
 
-    SeriesOperationDialogBase.BACKGROUND_ENABLED = request.node.get_closest_marker("background") is not None
+    DataOperationDialogBase.BACKGROUND_ENABLED = request.node.get_closest_marker("background") is not None
     yield
-    SeriesOperationDialogBase.BACKGROUND_ENABLED = True
+    DataOperationDialogBase.BACKGROUND_ENABLED = True
 
 
 @pytest.fixture(autouse=True)

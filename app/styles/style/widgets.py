@@ -68,10 +68,10 @@ def create_compact_section_title(
 
     ``create_section_title`` alone (the QSS rule's own 11pt / weight 600) is
     right for a dialog with one or two section headers. A panel that lists
-    several of them one after another - the Series Operations list's own
+    several of them one after another - the Data Operations list's own
     Analysis/Statistics/... headings - reads better with this shorter,
     lighter version, which used to be a copy of this exact font math kept
-    inside ``SeriesOperationWidget``; other panels asking to match it is
+    inside ``DataOperationWidget``; other panels asking to match it is
     what gave it this one home instead.
     """
     label = create_section_title(text, parent)
@@ -234,7 +234,7 @@ def create_action_button(
     different words wants its own action id.
 
     ``presentation`` supplies ``(icon, text, tooltip)`` directly, for the
-    callers that are deliberately not in the catalogue: a series operation
+    callers that are deliberately not in the catalogue: a data operation
     carries its own name, description and icon so that the plugin is one
     self-contained file.  Passing it skips the lookup entirely rather than
     overriding it afterwards - an id that is not in config.json is worth a

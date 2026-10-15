@@ -12,7 +12,7 @@ from scipy import stats
 from app.analysis import statistics as st
 from app.data.select_sql import projection_source
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.statistics_dialog import SeriesStatisticsDialog
+from app.data_operations.statistics_dialog import SeriesStatisticsDialog
 
 # Agresti (2007), table 2.5: party identification by gender.
 PARTY = {("female", "Democrat"): 762, ("female", "Independent"): 327, ("female", "Republican"): 468,

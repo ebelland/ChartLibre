@@ -16,7 +16,7 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.cluster_dialog import SeriesClusterDialog
+from app.data_operations.cluster_dialog import SeriesClusterDialog
 from app.utils.dialog_state import clear_state
 
 

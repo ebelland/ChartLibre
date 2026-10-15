@@ -47,7 +47,7 @@ def _rail(qapp: QApplication) -> tuple[QWidget, NavigationBar]:
                 "workspace": NavBarItem("Workspace", icon, None),
                 "file": NavBarItem("File", icon, None),
                 "tables": NavBarItem("Tables", icon, page),
-                "series_operations": NavBarItem("Series operations", icon, None),
+                "data_operations": NavBarItem("Data operations", icon, None),
             },
             "Charts": {"chart:1": NavBarItem("A chart with a long title", icon, None)},
         },

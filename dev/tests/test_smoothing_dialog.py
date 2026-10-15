@@ -12,10 +12,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import app.series_operations.smoothing_dialog as dialog_module
+import app.data_operations.smoothing_dialog as dialog_module
 from app.analysis.smoothing import SMOOTH_MOVING_AVERAGE
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.smoothing_dialog import SeriesSmoothingDialog
+from app.data_operations.smoothing_dialog import SeriesSmoothingDialog
 from app.utils.dialog_state import clear_state
 
 

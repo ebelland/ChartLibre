@@ -1,6 +1,6 @@
 """Search everything the application can do: the rail's Search panel, and Cmd/Ctrl+K.
 
-A field and the matches under it - analyses, series operations, chart types,
+A field and the matches under it - analyses, data operations, chart types,
 table tools (app.analysis.catalog) - each with its kind, the pointed one's
 sentence below. Return opens the best match (or the one the arrows chose);
 choosing emits :attr:`CatalogSearch.entry_chosen` and the window opens it.

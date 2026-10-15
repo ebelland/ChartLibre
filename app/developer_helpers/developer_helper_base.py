@@ -1,6 +1,6 @@
 """Shared plumbing for the Developer menu's code-scaffolding tools.
 
-Renderer Helper, Series Operation Builder and Function Creator all do the
+Renderer Helper, Data Operation Builder and Function Creator all do the
 same four things - turn a display name into a file/class name, write a
 templated .py file into the matching user/ folder (kept out of the app's
 own shipped source, see app.utils.config.USER_CONTENT_DIR), import it back

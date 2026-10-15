@@ -16,7 +16,7 @@ msgstr "\"{name}\" est déjà utilisé par un type de graphique existant."
 msgid "\"{name}\" is already used by an existing function."
 msgstr "\"{name}\" est déjà utilisé par une fonction existante."
 
-msgid "\"{name}\" is already used by an existing series operation."
+msgid "\"{name}\" is already used by an existing data operation."
 msgstr "\"{name}\" est déjà utilisé par une opération sur les séries existante."
 
 msgid "'{key}' back to Matplotlib's default."
@@ -94,8 +94,8 @@ msgstr "Un fichier nommé \"{file}\" existe déjà dans user/charts/."
 msgid "A file named \"{file}\" already exists under user/functions/."
 msgstr "Un fichier nommé \"{file}\" existe déjà dans user/functions/."
 
-msgid "A file named \"{file}\" already exists under user/series_operations/."
-msgstr "Un fichier nommé \"{file}\" existe déjà dans user/series_operations/."
+msgid "A file named \"{file}\" already exists under user/data_operations/."
+msgstr "Un fichier nommé \"{file}\" existe déjà dans user/data_operations/."
 
 msgid "A guide line under the pointer, shared across every axes of this figure."
 msgstr "Une ligne de repère sous le pointeur, partagée entre tous les axes de cette figure."
@@ -2287,7 +2287,7 @@ msgstr "Décalage"
 msgid "One axis cannot hold this many series of this chart type."
 msgstr "Un axe ne peut pas contenir autant de séries de ce type de graphique."
 
-msgid "One line, shown in the Series Operations panel."
+msgid "One line, shown in the Data Operations panel."
 msgstr "Une ligne, affichée dans le panneau Opérations sur les séries."
 
 msgid "One line, shown in the chart picker."
@@ -3061,7 +3061,7 @@ msgstr "Sélectionnez d'abord les lignes à supprimer."
 msgid "Series"
 msgstr "Série"
 
-msgid "Series Operation Builder"
+msgid "Data Operation Builder"
 msgstr "Créateur d'opérations"
 
 msgid "Series name"
@@ -3355,8 +3355,8 @@ msgstr "La classe a été importée, mais axis_renderer_scanner ne l'a pas recon
 msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
 msgstr "La classe a été importée, mais functions_scanner ne l'a pas reconnue comme fonction - vérifiez qu'elle hérite directement de base_function."
 
-msgid "The class imported, but series_operation_scanner did not discover it as an operation - check that it subclasses SeriesOperationDialogBase directly."
-msgstr "La classe a été importée, mais series_operation_scanner ne l'a pas reconnue comme opération - vérifiez qu'elle hérite directement de SeriesOperationDialogBase."
+msgid "The class imported, but data_operation_scanner did not discover it as an operation - check that it subclasses DataOperationDialogBase directly."
+msgstr "La classe a été importée, mais data_operation_scanner ne l'a pas reconnue comme opération - vérifiez qu'elle hérite directement de DataOperationDialogBase."
 
 msgid "The column holding the sample size (units inspected) at each point."
 msgstr "La colonne contenant la taille d'échantillon (unités inspectées) à chaque point."
@@ -3778,8 +3778,8 @@ msgstr "Écrit un nouveau fichier dans user/charts/ avec une classe déjà rempl
 msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
 msgstr "Écrit un nouveau fichier dans user/functions/ avec une classe déjà remplie à partir de ces champs - aucune étape d'enregistrement, le scanner la détecte dès que le fichier existe. execute(x, p) évalue déjà un vrai polynôme dans les paramètres déclarés ; remplacez-le par la formule réelle."
 
-msgid "Writes a new file under user/series_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
-msgstr "Écrit un nouveau fichier dans user/series_operations/ avec une classe déjà remplie à partir de ces champs - aucune étape d'enregistrement, le scanner la détecte dès que le fichier existe. compute_results transmet déjà chaque série sélectionnée sans modification ; remplacez-le par le vrai calcul."
+msgid "Writes a new file under user/data_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
+msgstr "Écrit un nouveau fichier dans user/data_operations/ avec une classe déjà remplie à partir de ces champs - aucune étape d'enregistrement, le scanner la détecte dès que le fichier existe. compute_results transmet déjà chaque série sélectionnée sans modification ; remplacez-le par le vrai calcul."
 
 msgid "Written by"
 msgstr "Écrit par"
@@ -4141,7 +4141,7 @@ msgstr "Une fonction tracée sert généralement à être comparée aux données
 msgid "A new language is applied the next time the app starts."
 msgstr "Une nouvelle langue est appliquée au prochain démarrage de l'application."
 
-msgid "A process that shifts part-way through. Run Series operations, Control Chart on the series to see the shift caught."
+msgid "A process that shifts part-way through. Run Data operations, Control Chart on the series to see the shift caught."
 msgstr "Un processus qui se décale en cours de route. Lancez Opérations sur les séries, Carte de contrôle sur la série pour voir le décalage détecté."
 
 msgid "A query named '{name}' already exists. Replace it?"
@@ -5080,7 +5080,7 @@ msgstr "Désactivé"
 msgid "On"
 msgstr "Activé"
 
-msgid "One Gaussian peak on a sloping baseline. Run Series operations, Fit and pick Gaussian peak: the starting values come from the data."
+msgid "One Gaussian peak on a sloping baseline. Run Data operations, Fit and pick Gaussian peak: the starting values come from the data."
 msgstr "Un pic gaussien sur une ligne de base inclinée. Lancez Opérations sur les séries, Ajustement et choisissez Pic gaussien : les valeurs de départ viennent des données."
 
 msgid "Open a database"
@@ -5431,10 +5431,10 @@ msgstr "Série '{series}' : sélectionnez le rôle requis '{role}'."
 msgid "Series '{series}': the renderer could not be loaded."
 msgstr "Série '{series}' : le moteur de rendu n'a pas pu être chargé."
 
-msgid "Series Operations"
+msgid "Data Operations"
 msgstr "Opérations sur les séries"
 
-msgid "Series operation"
+msgid "Data operation"
 msgstr "Opération sur les séries"
 
 msgid "Most of the code: the interface, the analysis engines, the renderers and the test suite, written in conversation with the author."
@@ -5461,7 +5461,7 @@ msgstr "Afficher la grille"
 msgid "Show main menu"
 msgstr "Afficher le menu principal"
 
-msgid "Show series operations"
+msgid "Show data operations"
 msgstr "Afficher les opérations sur les séries"
 
 msgid "Sigmoidal curves"
@@ -6097,7 +6097,7 @@ msgstr "Soustraire le fond d'un spectre (AsLS ou rubber band)"
 msgid "Three teaching examples from mathematics, physics and signal processing: Anscombe's quartet on a shared-scale grid (the matplotlib gallery's own multi-axis example), four Lissajous figures at different frequency ratios, and a noisy signal beside the frequency spectrum that recovers its three true tones - the same signal the Filtering operation's IIR/FIR/Hilbert models can run on directly (its 5, 20 and 50 Hz tones are exact targets for a lowpass, a bandpass, or an envelope)."
 msgstr "Trois exemples pédagogiques des mathématiques, de la physique et du traitement du signal : le quartet d'Anscombe sur une grille à échelle partagée (l'exemple multi-axes de la galerie matplotlib), quatre figures de Lissajous à différents rapports de fréquence, et un signal bruité à côté du spectre de fréquence qui retrouve ses trois vraies tonalités - le même signal sur lequel les modèles IIR/FIR/Hilbert de l'opération Filtrage peuvent s'exécuter directement (ses tonalités à 5, 20 et 50 Hz sont des cibles exactes pour un passe-bas, un passe-bande ou une enveloppe)."
 
-msgid "Quality and spectroscopy - two new series operations"
+msgid "Quality and spectroscopy - two new data operations"
 msgstr "Qualité et spectroscopie - deux nouvelles opérations sur les séries"
 
 msgid "Textbook defective-unit counts for the Attribute Chart operation (p/np/c/u), and a synthetic spectrum with a drifting, wandering background for Baseline Correction (AsLS or rubber band) - both figures already carry an annotation and a reference line with an explicit colour, so opening Overlay properties shows its colour/line/font/size editors populated rather than empty."
@@ -6310,7 +6310,7 @@ msgstr "Outils d'échafaudage et catalogue de traduction"
 msgid "Browse and edit the translation catalogue without a .po editor"
 msgstr "Parcourir et modifier le catalogue de traduction sans éditeur .po"
 
-msgid "Scaffold a new series-operation dialog from a template"
+msgid "Scaffold a new data-operation dialog from a template"
 msgstr "Créer une nouvelle boîte de dialogue d'opération sur les séries à partir d'un modèle"
 
 msgid "Scaffold a new curve-fit / analytic function"
@@ -6601,7 +6601,7 @@ msgstr "\"{name}\" a été écrit dans {path} et est déjà détectable - il app
 msgid "{path} was written, but it did not check out as a valid renderer: {error}. Fix the file directly and reopen it."
 msgstr "{path} a été écrit, mais ne s'est pas révélé être un moteur de rendu valide : {error}. Corrigez le fichier directement et rouvrez-le."
 
-msgid "\"{name}\" was written to {path} and is already discoverable - it will appear in the Series Operations panel. Open it and replace compute_results with the real computation."
+msgid "\"{name}\" was written to {path} and is already discoverable - it will appear in the Data Operations panel. Open it and replace compute_results with the real computation."
 msgstr "\"{name}\" a été écrit dans {path} et est déjà détectable - il apparaîtra dans le panneau Opérations sur les séries. Ouvrez-le et remplacez compute_results par le vrai calcul."
 
 msgid "{path} was written, but it did not check out as a valid operation: {error}. Fix the file directly and reopen it."
@@ -6715,10 +6715,10 @@ msgstr "Courbe d'étalonnage clairsemée - prête pour l'Interpolation"
 msgid "A logistic response curve sampled at only nine irregular points - exact by construction, so Interpolation's generated curve can be checked against the true shape rather than against noise."
 msgstr "Une courbe de réponse logistique échantillonnée en seulement neuf points irréguliers - exacte par construction, de sorte que la courbe générée par l'Interpolation peut être comparée à la vraie forme plutôt qu'à du bruit."
 
-msgid "3D Series Operations - Fit, Peaks, Roots and Calculus on a surface"
+msgid "3D Data Operations - Fit, Peaks, Roots and Calculus on a surface"
 msgstr "Opérations sur les séries 3D - Ajustement, Pics, Racines et Calcul sur une surface"
 
-msgid "A Gaussian bump and a saddle, run through the four Series Operations that now understand a series with a z role: a Gaussian2D surface fitted to 500 scattered points, the bump's one peak found on its exact grid, a saddle's z=0 level curve traced as its two true diagonals, and the bump's gradient magnitude with the volume under it reported alongside."
+msgid "A Gaussian bump and a saddle, run through the four Data Operations that now understand a series with a z role: a Gaussian2D surface fitted to 500 scattered points, the bump's one peak found on its exact grid, a saddle's z=0 level curve traced as its two true diagonals, and the bump's gradient magnitude with the volume under it reported alongside."
 msgstr "Une bosse gaussienne et une selle, passées dans les quatre opérations sur les séries qui comprennent désormais une série avec un rôle z : une surface Gaussian2D ajustée à 500 points dispersés, le pic unique de la bosse trouvé sur sa grille exacte, la courbe de niveau z=0 d'une selle tracée comme ses deux vraies diagonales, et le module du gradient de la bosse avec le volume sous celle-ci indiqué à côté."
 
 msgid "Add a horizontal line to the selected axis"
@@ -6751,7 +6751,7 @@ msgstr "Créer le nouveau fichier de type de graphique"
 msgid "Scaffold the new fit-function file"
 msgstr "Créer le nouveau fichier de fonction d'ajustement"
 
-msgid "Scaffold the new series-operation file"
+msgid "Scaffold the new data-operation file"
 msgstr "Créer le nouveau fichier d'opération sur les séries"
 
 msgid "Show workspace"
@@ -7096,10 +7096,10 @@ msgstr "Analyse des causes profondes - un diagramme d'Ishikawa et son diagramme 
 msgid "Why circuit boards are rejected, twice over: the possible causes brainstormed on a fishbone by the six Ms (method, machine, material, manpower, measurement, environment), with finer causes under some of them, and the defects actually counted as a Pareto chart - the two quality tools that are used together."
 msgstr "Pourquoi des cartes électroniques sont rejetées, vu deux fois : les causes possibles recherchées en remue-méninges sur une arête de poisson selon les 6 M (méthode, machine, matière, main-d'œuvre, mesure, milieu), avec des causes plus fines sous certaines d'entre elles, et les défauts réellement comptés en diagramme de Pareto - les deux outils qualité qu'on utilise ensemble."
 
-msgid "Series operations - fifteen operations, each with its report"
+msgid "Data operations - fifteen operations, each with its report"
 msgstr "Opérations sur les séries - quinze opérations, chacune avec son rapport"
 
-msgid "Fifteen Series Operations run for real, one per chart, each on a dataset suited to it - smoothing, spectrum, filtering, baseline, peaks, roots, calculus, fit, interpolation, statistics, outliers, clustering, a control chart, a robust regression and a transform - with the result drawn on the chart and the operation's own report in the results pane below it, exactly as the operation leaves them."
+msgid "Fifteen Data Operations run for real, one per chart, each on a dataset suited to it - smoothing, spectrum, filtering, baseline, peaks, roots, calculus, fit, interpolation, statistics, outliers, clustering, a control chart, a robust regression and a transform - with the result drawn on the chart and the operation's own report in the results pane below it, exactly as the operation leaves them."
 msgstr "Quinze opérations sur les séries exécutées pour de vrai, une par graphique, chacune sur un jeu de données qui lui convient - lissage, spectre, filtrage, ligne de base, pics, racines, calcul, ajustement, interpolation, statistiques, valeurs aberrantes, clustering, carte de contrôle, régression robuste et transformation - avec le résultat dessiné sur le graphique et le rapport de l'opération dans le panneau de résultats en dessous, exactement comme l'opération les laisse."
 
 msgid "Tools"

@@ -1,4 +1,4 @@
-"""Every series operation runs on a table's columns as on a chart's series (Data from: Table)."""
+"""Every data operation runs on a table's columns as on a chart's series (Data from: Table)."""
 from __future__ import annotations
 
 import importlib
@@ -11,19 +11,19 @@ import pandas as pd
 import pytest
 from PySide6.QtWidgets import QDialog
 
-import app.series_operations as package
+import app.data_operations as package
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.dialog_base import SeriesOperationDialogBase
+from app.data_operations.dialog_base import DataOperationDialogBase
 from app.utils import dialog_state
 
 
-def _operations() -> list[type[SeriesOperationDialogBase]]:
+def _operations() -> list[type[DataOperationDialogBase]]:
     found = []
     for path in sorted(Path(next(iter(package.__path__))).glob("*_dialog.py")):
-        module = importlib.import_module(f"app.series_operations.{path.stem}")
+        module = importlib.import_module(f"app.data_operations.{path.stem}")
         for _name, cls in inspect.getmembers(module, inspect.isclass):
-            if (issubclass(cls, SeriesOperationDialogBase) and cls.__module__ == module.__name__
+            if (issubclass(cls, DataOperationDialogBase) and cls.__module__ == module.__name__
                     and cls.READS_TABLES and cls.SHOWS_SERIES_SELECTOR and cls.SHOWS_AXIS_SERIES_PAGE):
                 found.append(cls)
     return found
@@ -33,7 +33,7 @@ def _operations() -> list[type[SeriesOperationDialogBase]]:
 def test_the_operation_runs_on_a_tables_columns(qapp, repo: SqliteRepo, operation, monkeypatch) -> None:
     dialog_state.clear_state(operation.__name__)
     told: list[str] = []
-    for module in (sys.modules[operation.__module__], sys.modules[SeriesOperationDialogBase.__module__]):
+    for module in (sys.modules[operation.__module__], sys.modules[DataOperationDialogBase.__module__]):
         # A message box would wait for a click that never comes.
         monkeypatch.setattr(module, "show_message", lambda _parent, key, **k: told.append(key), raising=False)
     for level in ("error", "critical"):

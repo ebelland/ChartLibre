@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QTableWidgetItem
 
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.fit_dialog import SeriesFitDialog
+from app.data_operations.fit_dialog import SeriesFitDialog
 
 X = np.array([0.0, 0.5, 1.0, 2.0, 2.5, 3.0, 4.5, 6.0, 8.0])
 #: A logistic curve: bottom 0, span 10, steepness 1, midpoint 3.

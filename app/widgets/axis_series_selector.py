@@ -149,7 +149,7 @@ class AxisSeriesSelector(QWidget):
         # What kind of data the current selection actually is - 2D, a 3D
         # grid, scattered 3D points, or a vector field. Purely presentational:
         # the text is computed and set by the owning dialog (series_origin()
-        # in SeriesOperationDialogBase), which is the one place that already
+        # in DataOperationDialogBase), which is the one place that already
         # reads the series' roles and data. This widget only displays it.
         self.origin_label = QLabel("", self)
         self.origin_label.setProperty("muted", True)
@@ -283,7 +283,7 @@ class AxisSeriesSelector(QWidget):
     def set_figure_locked(self, locked: bool) -> None:
         """Show which figure this is, but stop it being changed.
 
-        A series operation is constructed with one figure id and keeps it:
+        A data operation is constructed with one figure id and keeps it:
         ``create_result_axis`` adds to that figure, and the results are written
         to the axis selected within it. Letting the combo change figures
         desynchronises the two - the axis list would come from the figure on
@@ -319,7 +319,7 @@ class AxisSeriesSelector(QWidget):
         """Show (or hide, for an empty text) the data-origin caption.
 
         Called by the owning dialog whenever the selection changes - see
-        ``SeriesOperationDialogBase.series_origin``. Kept as a plain setter
+        ``DataOperationDialogBase.series_origin``. Kept as a plain setter
         here because this widget has no access to the series' SQL/roles by
         itself; it only knows how to display what it is told.
         """

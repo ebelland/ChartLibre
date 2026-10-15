@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt
 from app.analysis.fit import GlobalLayout, fit_curve, fit_separately, global_model
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.fit_dialog import SeriesFitDialog
+from app.data_operations.fit_dialog import SeriesFitDialog
 
 X = np.linspace(0.0, 6.0, 40)
 RATES = (0.5, 1.5)
@@ -154,7 +154,7 @@ def test_each_curve_separately_fits_every_series_alone(dialog: SeriesFitDialog) 
 def _formula(expression: str, names: list[str], values: list[float]) -> str:
     import re
 
-    from app.series_operations.fit_dialog.common import _substitute_expression_parameters
+    from app.data_operations.fit_dialog.common import _substitute_expression_parameters
 
     return re.sub(r"<[^>]+>", "", _substitute_expression_parameters(expression, names, np.array(values)))
 
@@ -174,7 +174,7 @@ def test_fitted_values_take_the_place_of_the_formulas_symbols() -> None:
 
 def test_a_symbol_is_not_found_inside_another_and_never_inside_a_tag() -> None:
     assert _formula("y = C + A exp(-Ea / (kB T))", ["A", "Ea eV", "offset"], [1, 0.7, 0.1]) == "y = 0.1 + 1 exp(-0.7 / (kB T))"
-    from app.series_operations.fit_dialog.common import _substitute_expression_parameters
+    from app.data_operations.fit_dialog.common import _substitute_expression_parameters
 
     out = _substitute_expression_parameters('<span class="A">A</span>', ["A"], np.array([3.0]))
     assert out == '<span class="A">3</span>'  # the attribute is untouched
@@ -186,7 +186,7 @@ def test_the_catalogue_formulas_get_most_of_their_parameters() -> None:
     import re
 
     from app.functions.base import base_function
-    from app.series_operations.fit_dialog.common import _expression_symbols
+    from app.data_operations.fit_dialog.common import _expression_symbols
 
     placed = total = 0
     for name in ("app.functions.functions", "app.functions.nist_functions"):

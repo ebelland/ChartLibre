@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QPushButton
 
 from app.analysis import catalog
 from app.scanners.axis_renderer_scanner import renderers
-from app.scanners.series_operation_scanner import series_operations
+from app.scanners.data_operation_scanner import data_operations
 from app.scanners.table_operation_scanner import table_operations
 from app.widgets.catalog_search import CatalogSearch
 from app.widgets.guided_panel import GuidedAnalysisPanel
@@ -21,7 +21,7 @@ def test_the_catalogue_lists_every_analysis_operation_chart_and_tool() -> None:
     entries = catalog.build_catalog()
     keys = {entry.key for entry in entries}
     assert {f"analysis:{op['value']}" for op in table_operations} <= keys
-    assert {f"series:{op['value']}" for op in series_operations} | {"series:Plot"} <= keys
+    assert {f"series:{op['value']}" for op in data_operations} | {"series:Plot"} <= keys
     assert {f"chart:{renderer['value']}" for renderer in renderers} <= keys
     assert {entry.payload for entry in entries if entry.kind == catalog.TOOL} == set(catalog.TOOLS)
     goals = {key for key, _title, _sentence in catalog.GOALS}

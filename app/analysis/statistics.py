@@ -1,6 +1,6 @@
 """Descriptive statistics and hypothesis tests on plain arrays.
 
-The engine behind the Statistics series operation. Nothing here knows about
+The engine behind the Statistics data operation. Nothing here knows about
 Qt, the repository or a chart: every function takes numbers and returns
 numbers, so it can be tested against reference values and called from a
 script exactly as the dialog calls it.

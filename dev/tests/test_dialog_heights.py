@@ -51,8 +51,8 @@ def test_the_settings_column_scrolls_instead_of_stretching_the_dialog(qapp, repo
 
 def test_the_other_dialogs_stay_within_a_laptop_too(qapp, repo: SqliteRepo) -> None:
     from app.dialogs.settings_dialog import SettingsDialog
-    from app.series_operations.spectral_dialog import SeriesSpectralDialog
-    from app.series_operations.filter_dialog import SeriesFilterDialog
+    from app.data_operations.spectral_dialog import SeriesSpectralDialog
+    from app.data_operations.filter_dialog import SeriesFilterDialog
 
     figure_id = repo.create_figure_descriptor(name="F")
     for build in (

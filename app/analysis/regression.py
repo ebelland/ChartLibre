@@ -1,4 +1,4 @@
-"""Regression: the arithmetic behind the Regression series operation.
+"""Regression: the arithmetic behind the Regression data operation.
 
 Robust (RANSAC, Huber) and non-parametric (isotonic, random forest,
 gradient boosting) regression of one series, predicted over a dense evenly

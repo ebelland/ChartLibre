@@ -765,7 +765,7 @@ class BaseAxisRenderer(Protocol):
         Only the DEFAULT sentinel - the "Default" entry in the Line style
         combo - means "I want whatever the axis or the style sheet says".
         That falls back to the axis' own ``linestyle`` option (set by the
-        Function/Fit-style series operations, which want every series they
+        Function/Fit-style data operations, which want every series they
         add using the same linestyle) and finally to the active style
         sheet's ``lines.linestyle``, returned as ``(None, ...)`` so the
         caller omits the keyword rather than restating whatever rcParams

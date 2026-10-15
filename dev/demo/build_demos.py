@@ -9,7 +9,7 @@ demo" could only ever be as fast as the slowest table it built.
 The demo set is built ahead of time instead, from the CSV and Excel files
 under ``sample data/`` beside this module - mostly real, ordinary
 datasets (Palmer penguins, a stock's daily close, a DLVO force curve, the
-classic driver-clustering set) each shaped for a chart type or a Series
+classic driver-clustering set) each shaped for a chart type or a Data
 Operations tool, plus a handful of classic teaching examples from
 mathematics and physics that are exact by construction rather than measured
 (Anscombe's quartet, Lissajous curves, a signal built from known
@@ -736,7 +736,7 @@ def _surface_bump_peaks_result() -> pd.DataFrame:
     real algorithm.
     """
     from app.analysis.peaks import MAXIMA, PeakSettings, find_peaks_2d
-    from app.series_operations.peaks_dialog import PeakResult
+    from app.data_operations.peaks_dialog import PeakResult
 
     xx, yy, zz = _bump_grid_arrays()
     peaks = find_peaks_2d(xx, yy, zz, MAXIMA, PeakSettings(distance=5))
@@ -756,7 +756,7 @@ def _surface_saddle_roots_result() -> pd.DataFrame:
     run directly on the exact grid.
     """
     from app.analysis.roots import find_level_curve
-    from app.series_operations.roots_dialog import RootResult
+    from app.data_operations.roots_dialog import RootResult
 
     xx, yy, zz = _saddle_grid_arrays()
     search = find_level_curve(xx, yy, zz, level=0.0, limit=10**9)
@@ -2282,7 +2282,7 @@ def _multi_axis_figure_specs() -> list[MultiAxisFigureSpec]:
 
 
 def _ops_3d_showcase_spec() -> MultiAxisFigureSpec:
-    """One Gaussian bump and one saddle, run through every Series Operation
+    """One Gaussian bump and one saddle, run through every Data Operation
     that now understands a series with a z role.
 
     Every derived panel is computed by the operation's own code
@@ -2300,7 +2300,7 @@ def _ops_3d_showcase_spec() -> MultiAxisFigureSpec:
     volume = surface_volume(xx, yy, zz).total
 
     return MultiAxisFigureSpec(
-        name="24 · Series Operations on 3D data - Fit, Peaks, Roots, Calculus",
+        name="24 · Data Operations on 3D data - Fit, Peaks, Roots, Calculus",
         key="ops3d_showcase",
         tables=(
             "surface_bump_scattered",

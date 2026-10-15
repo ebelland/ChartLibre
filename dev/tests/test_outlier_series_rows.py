@@ -14,11 +14,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import app.series_operations.outlier_dialog as outlier_module
+import app.data_operations.outlier_dialog as outlier_module
 from app.analysis.outliers import OUTLIER_ZSCORE
 from app.data.select_sql import sql_insert_select_expression
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.outlier_dialog import ACTION_HIDE, SeriesOutlierDialog
+from app.data_operations.outlier_dialog import ACTION_HIDE, SeriesOutlierDialog
 from app.utils.dialog_state import clear_state
 
 

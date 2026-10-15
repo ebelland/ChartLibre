@@ -2,7 +2,7 @@
 Generic static class discovery and dynamic class loading.
 
 This module is intentionally independent from axis renderers, chart renderers,
-series operation dialogs, or any other plugin-like class family.
+data operation dialogs, or any other plugin-like class family.
 
 It provides:
 - AST-based discovery of classes that directly inherit from a named base class.

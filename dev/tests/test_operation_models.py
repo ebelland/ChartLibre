@@ -13,11 +13,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import app.series_operations as package
+import app.data_operations as package
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.dialog_base import SeriesOperationDialogBase
-from app.series_operations.interpolate_dialog import (
+from app.data_operations.dialog_base import DataOperationDialogBase
+from app.data_operations.interpolate_dialog import (
     MODEL_EXPONENTIAL,
     MODEL_SCIPY_PCHIP,
     SeriesInterpolateDialog,
@@ -25,7 +25,7 @@ from app.series_operations.interpolate_dialog import (
 from dev.tests._cases import check_all
 
 
-def _operations_with_models() -> list[type[SeriesOperationDialogBase]]:
+def _operations_with_models() -> list[type[DataOperationDialogBase]]:
     found = []
     for module_info in pkgutil.iter_modules(package.__path__):
         if not module_info.name.endswith("_dialog"):
@@ -34,7 +34,7 @@ def _operations_with_models() -> list[type[SeriesOperationDialogBase]]:
         for _name, cls in inspect.getmembers(module, inspect.isclass):
             if (
                 cls.__module__ == module.__name__
-                and issubclass(cls, SeriesOperationDialogBase)
+                and issubclass(cls, DataOperationDialogBase)
                 and cls.MODELS
             ):
                 found.append(cls)

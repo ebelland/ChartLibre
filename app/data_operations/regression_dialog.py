@@ -1,0 +1,370 @@
+"""Robust and machine-learning regression of a chart series (todo.txt P2-15).
+
+A separate dialog from Fit rather than another model on its combo: Fit's
+whole shape is "an algebraic expression with named parameters" - Gaussian,
+polynomial, a user function - fitted through ``scipy.optimize.curve_fit``
+and reported as those parameters. None of the five models here have that
+shape. RANSAC and Huber are still linear regressions, but robust to
+outliers rather than interpretable beyond a slope and an intercept;
+Isotonic, Random Forest and Gradient Boosting are non-parametric - there is
+no "amplitude, center, width" to report, only a fitted curve. Bolting them
+onto Fit's model tree would mean pretending they belong to a family they
+do not.
+
+Every model here reads one series' (x, y), fits against it, and predicts
+over a dense evenly-spaced grid across the series' own x range - not only
+at the original x's, which is what keeps a Random Forest or Gradient
+Boosting fit from reading as a jagged line through exactly the input
+points.
+"""
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
+from typing import Any
+
+import numpy as np
+from PySide6.QtWidgets import QFormLayout, QWidget
+from app.analysis.regression import (
+    KIND_GRADIENT_BOOSTING,
+    KIND_HUBER,
+    KIND_ISOTONIC,
+    KIND_RANDOM_FOREST,
+    KIND_RANSAC,
+    RegressionSettings,
+    fit_regression,
+)
+from app.data.sqlite_repo import SqliteRepo
+from app.logs.logger import applogger
+from app.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.data_operations.results import XYResult
+from app.data_operations.dialog_base import (
+    OperationModel,
+    ResultSeriesSpec,
+    DataOperationDialogBase,
+)
+from app.utils import report_html
+from app.utils.i18n import _
+
+# --- Models -------------------------------------------------------------
+
+REGRESSION_RANSAC = "RANSAC (robust linear)"
+REGRESSION_HUBER = "Huber (robust linear)"
+REGRESSION_ISOTONIC = "Isotonic (monotone)"
+REGRESSION_RANDOM_FOREST = "Random Forest"
+REGRESSION_GRADIENT_BOOSTING = "Gradient Boosting"
+
+#: The models offered, in combo order, with their documentation.
+REGRESSION_MODELS: dict[str, OperationModel] = {
+    REGRESSION_RANSAC: OperationModel(
+        doc_title="scikit-learn RANSACRegressor",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.RANSACRegressor.html",
+    ),
+    REGRESSION_HUBER: OperationModel(
+        doc_title="scikit-learn HuberRegressor",
+        doc_url="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.HuberRegressor.html",
+    ),
+    REGRESSION_ISOTONIC: OperationModel(
+        doc_title="Isotonic regression",
+        doc_url="https://en.wikipedia.org/wiki/Isotonic_regression",
+    ),
+    REGRESSION_RANDOM_FOREST: OperationModel(
+        doc_title="Random forest",
+        doc_url="https://en.wikipedia.org/wiki/Random_forest",
+    ),
+    REGRESSION_GRADIENT_BOOSTING: OperationModel(
+        doc_title="Gradient boosting",
+        doc_url="https://en.wikipedia.org/wiki/Gradient_boosting",
+    ),
+}
+
+#: The engine's name for each model.
+_KIND: dict[str, str] = {
+    REGRESSION_RANSAC: KIND_RANSAC,
+    REGRESSION_HUBER: KIND_HUBER,
+    REGRESSION_ISOTONIC: KIND_ISOTONIC,
+    REGRESSION_RANDOM_FOREST: KIND_RANDOM_FOREST,
+    REGRESSION_GRADIENT_BOOSTING: KIND_GRADIENT_BOOSTING,
+}
+
+# Re-exported for callers/tests, matching calculus_dialog.py's own convention.
+DEST_SAME_AXIS = DataOperationDialogBase.DEST_SAME_AXIS
+DEST_NEW_AXIS = DataOperationDialogBase.DEST_NEW_AXIS
+DEST_NEW_FIGURE = DataOperationDialogBase.DEST_NEW_FIGURE
+
+
+@dataclass(slots=True)
+class RegressionResult(XYResult):
+    """One fitted curve for one source series."""
+
+    source_name: str
+    result_name: str
+    model: str
+    x: np.ndarray
+    y: np.ndarray
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+class SeriesRegressionDialog(DataOperationDialogBase):
+    """Fit a robust or non-parametric regression model to a chart series."""
+
+    MODELS = REGRESSION_MODELS
+    MODEL_TOOLTIP = 'Choose the regression model.'
+
+    Name: str = "Regression"
+    Description = "Robust and ML regression models"
+
+    #: Computed on a worker thread: see DataOperationDialogBase.evaluate.
+    RUN_IN_BACKGROUND = True
+
+    PARAMS = (
+        IntParam(
+            "max_trials",
+            "Max trials:",
+            tooltip="How many random subsets RANSAC tries before keeping the best one.",
+            default_value=100,
+            minimum=10,
+            maximum=10_000,
+            visible_for={"model": (REGRESSION_RANSAC,)},
+        ),
+        FloatParam(
+            "epsilon",
+            "Epsilon:",
+            tooltip=(
+                "Robustness/efficiency trade-off: values closer to 1 down-weight "
+                "more points as outliers, larger values behave more like an "
+                "ordinary least-squares fit."
+            ),
+            default_value=1.35,
+            minimum=1.0,
+            maximum=10.0,
+            visible_for={"model": (REGRESSION_HUBER,)},
+        ),
+        FloatParam(
+            "alpha",
+            "Regularization:",
+            tooltip="L2 regularization strength.",
+            default_value=0.0001,
+            minimum=0.0,
+            maximum=10.0,
+            decimals=6,
+            step=0.0001,
+            visible_for={"model": (REGRESSION_HUBER,)},
+        ),
+        ChoiceParam(
+            "increasing",
+            "Direction:",
+            tooltip="Whether the fitted curve must rise, fall, or whichever the data itself suggests.",
+            choices=(
+                ("Auto", "auto"),
+                ("Increasing", "true"),
+                ("Decreasing", "false"),
+            ),
+            default_value="auto",
+            visible_for={"model": (REGRESSION_ISOTONIC,)},
+        ),
+        IntParam(
+            "n_estimators",
+            "Trees:",
+            tooltip="Number of trees in the ensemble. More is smoother and slower.",
+            default_value=100,
+            minimum=10,
+            maximum=2000,
+            visible_for={"model": (REGRESSION_RANDOM_FOREST, REGRESSION_GRADIENT_BOOSTING)},
+        ),
+        IntParam(
+            "max_depth",
+            "Max depth:",
+            tooltip="Deepest a single tree may grow. 0 means unlimited.",
+            default_value=0,
+            minimum=0,
+            maximum=100,
+            visible_for={"model": (REGRESSION_RANDOM_FOREST, REGRESSION_GRADIENT_BOOSTING)},
+        ),
+        FloatParam(
+            "learning_rate",
+            "Learning rate:",
+            tooltip="How much each boosting stage corrects the previous one.",
+            default_value=0.1,
+            minimum=0.001,
+            maximum=1.0,
+            decimals=3,
+            step=0.01,
+            visible_for={"model": (REGRESSION_GRADIENT_BOOSTING,)},
+        ),
+        DataOperationDialogBase.destination_param(
+            tooltip=(
+                "A fitted curve usually shares its source's scale, so the same "
+                "axis overlays it directly on the data. A new axis or figure "
+                "keeps the two apart instead."
+            ),
+            default=DataOperationDialogBase.DEST_SAME_AXIS,
+        ),
+    )
+
+    Icon = """
+    <path d="M4 18c3-1 4-8 6-8s2 6 4 6 3-9 6-9"/>
+    <circle cx="6" cy="15" r="1"/>
+    <circle cx="12" cy="9" r="1"/>
+    <circle cx="16" cy="14" r="1"/>
+    """
+
+    def __init__(
+        self,
+        *,
+        repo: SqliteRepo,
+        figure_id: int,
+        parent: QWidget | None = None,
+    ) -> None:
+        if repo is None:
+            applogger.error("SeriesRegressionDialog requires a repository instance.")
+
+        self._last_results: list[RegressionResult] = []
+        self._parameter_form: QFormLayout | None = None
+        self._result_axis_id: int | None = None
+        self._result_figure_id: int | None = None
+        self._applied = False
+
+        super().__init__(
+            repo=repo,
+            figure_id=figure_id,
+            title="Series Regression",
+            parent=parent,
+            width=760,
+            height=640,
+        )
+        self.series_selector.reload(select_all_series=True)
+        self._refresh_visibility()
+        self.mark_results_stale()
+
+    # ------------------------------------------------------------------
+    # UI
+    # ------------------------------------------------------------------
+
+
+    # ------------------------------------------------------------------
+    # Computation
+    # ------------------------------------------------------------------
+
+    def compute_series(
+        self, name: str, data: tuple[np.ndarray, np.ndarray], settings: tuple[str, dict[str, Any]]
+    ) -> RegressionResult:
+        model, params = settings
+        x_values, y_values = data
+        return self._fit_one(name, x_values, y_values, model, params)
+
+    def _fit_one(
+        self,
+        name: str,
+        x_values: np.ndarray,
+        y_values: np.ndarray,
+        model: str,
+        params: Mapping[str, Any],
+    ) -> RegressionResult:
+        fitted = fit_regression(
+            _KIND[model],
+            x_values,
+            y_values,
+            RegressionSettings(
+                max_trials=int(params.get("max_trials", 100)),
+                epsilon=float(params.get("epsilon", 1.35)),
+                alpha=float(params.get("alpha", 0.0001)),
+                increasing=str(params.get("increasing", "auto")),
+                n_estimators=int(params.get("n_estimators", 100)),
+                max_depth=int(params.get("max_depth", 0)),
+                learning_rate=float(params.get("learning_rate", 0.1)),
+            ),
+        )
+        return RegressionResult(
+            source_name=name,
+            result_name=f"{name} - {model}",
+            model=model,
+            x=fitted.x,
+            y=fitted.y,
+            metadata=fitted.details,
+        )
+
+    # ------------------------------------------------------------------
+    # Where the result is drawn
+    # ------------------------------------------------------------------
+
+    def resolve_target_axis_id(
+        self,
+        selected_axis_id: int,
+        results: Sequence[Any],
+    ) -> int:
+        model = self.current_model()
+        axis_id = self.resolve_destination_axis(
+            selected_axis_id,
+            chart_type="Scatter Plot",
+            title=model,
+            figure_name=self.result_figure_name(results, model),
+            options={"grid": True, "linestyle": "-", "marker": ""},
+        )
+        return axis_id
+
+    # ------------------------------------------------------------------
+    # Results
+    # ------------------------------------------------------------------
+
+    def result_series_spec(
+        self,
+        axis_id: int,
+        table_name: str,
+        result: RegressionResult,
+    ) -> ResultSeriesSpec:
+        del axis_id
+        return ResultSeriesSpec(
+            name=result.result_name,
+            sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
+            roles={"x": "x", "y": "y"},
+            style={
+                "generated_regression": True,
+                "regression_dialog": "series_regression",
+                "source_name": result.source_name,
+                "model": result.model,
+                "linestyle": "-",
+                "linewidth": 1.6,
+                "marker": "",
+            },
+        )
+
+    RESULT_TABLE_PREFIX = 'Regression'
+    RESULT_TABLE_VARIANT = 'model'
+
+    RESULTS_ARE_HTML = True
+
+    def format_results(self, results: Sequence[RegressionResult]) -> str:
+        if not results:
+            return report_html.note(_("No results."))
+
+        rows = [
+            (
+                result.source_name,
+                result.model,
+                report_html.format_number(result.y.size, digits=0),
+                report_html.format_number(result.metadata["r2"])
+                if "r2" in result.metadata
+                else "&mdash;",
+                ", ".join(
+                    f"{key}: {value}"
+                    for key, value in result.metadata.items()
+                    if key != "r2" and value not in (None, "")
+                ),
+            )
+            for result in results
+        ]
+
+        return report_html.document(
+            _("Regression"),
+            self.current_model(),
+            report_html.section(
+                _("Results"),
+                report_html.table(
+                    (_("Series"), _("Model"), _("Points"), _("R²"), _("Detail")),
+                    rows,
+                    align=("left", "left", "right", "right", "left"),
+                    empty_message=_("No results for this selection."),
+                ),
+            ),
+        )

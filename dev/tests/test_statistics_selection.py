@@ -21,7 +21,7 @@ import pytest
 from PySide6.QtCore import Qt
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.statistics_dialog import SeriesStatisticsDialog
+from app.data_operations.statistics_dialog import SeriesStatisticsDialog
 
 NAMES = ("Neomycin", "Penicillin", "Streptomycin")
 

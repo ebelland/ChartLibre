@@ -14,11 +14,11 @@ from typing import Any, TypeVar, cast
 import numpy as np
 import pytest
 
-from app.series_operations.calculus_dialog import BASELINE_NONE, DERIV_GRADIENT, DERIV_SAVGOL, DERIV_SPLINE, DEST_NEW_AXIS, INTEGRAL_DEFINITE, SeriesCalculusDialog
+from app.data_operations.calculus_dialog import BASELINE_NONE, DERIV_GRADIENT, DERIV_SAVGOL, DERIV_SPLINE, DEST_NEW_AXIS, INTEGRAL_DEFINITE, SeriesCalculusDialog
 from app.analysis.control_charts import SPC_CONSTANTS
-from app.series_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SeriesControlChartDialog
+from app.data_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SeriesControlChartDialog
 from app.analysis.function_plot import SPACING_LINEAR, build_range
-from app.series_operations.peaks_dialog import PEAKS_MAXIMA, SeriesPeaksDialog
+from app.data_operations.peaks_dialog import PEAKS_MAXIMA, SeriesPeaksDialog
 from dev.tests._cases import check_all
 
 
@@ -240,7 +240,7 @@ def _calculus_with_axis(destination: str) -> tuple[SeriesCalculusDialog, _AxisSp
 
 
 def _derivative_result(order: int = 1, model: str = DERIV_SAVGOL):
-    from app.series_operations.calculus_dialog import CalculusResult
+    from app.data_operations.calculus_dialog import CalculusResult
 
     return CalculusResult(
         source_name="s",

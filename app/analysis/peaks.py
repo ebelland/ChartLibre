@@ -1,4 +1,4 @@
-"""Peak finding: the arithmetic behind the Peaks series operation.
+"""Peak finding: the arithmetic behind the Peaks data operation.
 
 A curve's peaks come from ``scipy.signal.find_peaks`` filtered by prominence
 (default) or height, and are measured by their width at half prominence and

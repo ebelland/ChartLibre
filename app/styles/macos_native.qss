@@ -265,7 +265,7 @@ QDialog {
 
 QFrame#ChartPanel {
   /* White, not the grey window ground: everything else (cards, toolbox
-     pages, the series-operations content) reads as one white surface
+     pages, the data-operations content) reads as one white surface
      now, and this was the one panel still showing palette(window)'s
      grey wherever the toolbar row or the canvas did not fully cover it -
      a grey panel behind the chart. */
@@ -640,14 +640,14 @@ HtmlResultsView#chartNotesView {
   border-top: 1px solid rgba(@SHADOW_RGB@, 0.10);
 }
 
-/* The Series Operations list: a sidebar, like the chart list in the
+/* The Data Operations list: a sidebar, like the chart list in the
    navigation rail - grey section titles (disabled items), rows with the
    operation's icon and name, a rounded tint under the pointer. */
-QLineEdit#seriesOperationsSearch {
+QLineEdit#dataOperationsSearch {
     margin: 10px 10px 4px 10px;
 }
 
-QListWidget#seriesOperationsList {
+QListWidget#dataOperationsList {
     background: palette(base);
     border: none;
     padding: 0 6px;
@@ -655,23 +655,23 @@ QListWidget#seriesOperationsList {
     font-size: 13pt;
 }
 
-QListWidget#seriesOperationsList::item {
+QListWidget#dataOperationsList::item {
     color: palette(text);
     border-radius: 6px;
     padding: 0 6px;
 }
 
-QListWidget#seriesOperationsList::item:disabled {
+QListWidget#dataOperationsList::item:disabled {
     background: transparent;
     color: rgba(@SHADOW_RGB@, 0.45);
     padding-left: 4px;
 }
 
-QListWidget#seriesOperationsList::item:hover:enabled {
+QListWidget#dataOperationsList::item:hover:enabled {
     background: rgba(@SHADOW_RGB@, 0.06);
 }
 
-QListWidget#seriesOperationsList::item:selected {
+QListWidget#dataOperationsList::item:selected {
     background: rgba(@ACCENT_RGB@, 0.16);
     color: palette(highlight);
 }

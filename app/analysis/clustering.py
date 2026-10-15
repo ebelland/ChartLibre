@@ -1,4 +1,4 @@
-"""Clustering: the arithmetic behind the Clustering series operation.
+"""Clustering: the arithmetic behind the Clustering data operation.
 
 SciPy's k-means and vector quantisation, its hierarchical linkages, and
 scikit-learn's algorithms (k-means, DBSCAN, OPTICS, mean shift, spectral,

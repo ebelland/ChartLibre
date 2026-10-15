@@ -56,18 +56,18 @@ CONFIG_PATH = _repo_root().parent / "config.json"
 USER_CONFIG_PATH = _repo_root().parent / "user.json"
 MPLSTYLES_DIR = _repo_root().parent / "mplstyles"
 
-#: Where a user-authored plugin (a renderer, a series operation, a fit
+#: Where a user-authored plugin (a renderer, a data operation, a fit
 #: function) lives, one subfolder per kind, mirroring the shipped folder it
 #: extends - see app/developer_helpers/renderer_helper.py and its Developer-menu
 #: siblings. Kept beside config.json/user.json/mplstyles/ rather than inside
 #: app/ itself: a packaged build's own app/ tree may be read-only, and
 #: user-authored code has no business living alongside the app's own shipped
 #: source anyway. Each scanner (axis_renderer_scanner.py,
-#: series_operation_scanner.py, functions_scanner.py) reads both its
+#: data_operation_scanner.py, functions_scanner.py) reads both its
 #: built-in folder and the matching one here.
 USER_CONTENT_DIR = _repo_root().parent / "user"
 USER_CHARTS_DIR = USER_CONTENT_DIR / "charts"
-USER_SERIES_OPERATIONS_DIR = USER_CONTENT_DIR / "series_operations"
+USER_DATA_OPERATIONS_DIR = USER_CONTENT_DIR / "data_operations"
 USER_FUNCTIONS_DIR = USER_CONTENT_DIR / "functions"
 
 #: The only top-level keys ``config.json`` owns.  Closed on purpose: a key

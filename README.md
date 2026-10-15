@@ -96,7 +96,7 @@ Peaks · Roots · Calculus · Statistics · Outliers · Clustering · Regression
 
 Each previews its result on the chart before anything is committed, and a long calculation runs in the background with a *Stop* button.
 
-![The Data operations page](docs/manual/screenshots/screenshot_series_operations.png)
+![The Data operations page](docs/manual/screenshots/screenshot_data_operations.png)
 
 Highlights:
 
@@ -119,7 +119,7 @@ Highlights:
 
 - **Matplotlib style editor** — edit rcParams and save `.mplstyle` files; styles that look like JMP, Minitab and SPSS ship ready to use.
 - **Click to edit** — a click on a figure, an axis or a series opens its properties.
-- **Extensible without forking** — drop a Python file into `user/charts/`, `user/series_operations/` or `user/functions/` and it appears in the application. GUI scaffolding tools generate a working skeleton for each.
+- **Extensible without forking** — drop a Python file into `user/charts/`, `user/data_operations/` or `user/functions/` and it appears in the application. GUI scaffolding tools generate a working skeleton for each.
 - **Localisation** — English and Italian complete, German nearly so, French in progress — with a built-in catalogue editor and machine translation for adding more.
 
 ---

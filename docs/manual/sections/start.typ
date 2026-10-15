@@ -43,13 +43,13 @@ A project is a database, and every change is written to it as it is made: there 
   [*Save As…*], [Saves the project under a new name and switches to the copy, leaving the original untouched.],
 )
 
-*Undo* (in the main menu, and in the macOS Edit menu) takes back the last recorded action — an import, a table edit, a series operation, deleting a figure, hiding points, applying a template — up to the last ten, and names the action it is about to undo. Settings changed in Chart properties are not recorded: change them back by hand.
+*Undo* (in the main menu, and in the macOS Edit menu) takes back the last recorded action — an import, a table edit, a data operation, deleting a figure, hiding points, applying a template — up to the last ten, and names the action it is about to undo. Settings changed in Chart properties are not recorded: change them back by hand.
 
 == Demo projects <demos>
 
 *Load demo* (on the *File* page) opens a ready-made project with data and charts already built. Twenty-six demos ship with ChartLibre. The window lists them with a picture of each one's first chart and a short summary, so you can see what you are opening.
 
-Between them they cover every chart family and give most series operations a dataset built for them: a sparse curve for *Interpolation*, a drifting spectrum for *Baseline Correction*, a three-tone signal for *Filtering* and *Spectral Analysis*, a Gaussian bump and a saddle for the surface operations, the NIST reference data sets for *Fit*, and a *Diagnostic plots* demo with Q-Q and P-P plots, a survival study, a forest plot, a mosaic and a two-factor experiment — whose notes suggest which *Statistics* model to try on each.
+Between them they cover every chart family and give most data operations a dataset built for them: a sparse curve for *Interpolation*, a drifting spectrum for *Baseline Correction*, a three-tone signal for *Filtering* and *Spectral Analysis*, a Gaussian bump and a saddle for the surface operations, the NIST reference data sets for *Fit*, and a *Diagnostic plots* demo with Q-Q and P-P plots, a survival study, a forest plot, a mosaic and a two-factor experiment — whose notes suggest which *Statistics* model to try on each.
 
 A demo opens as a copy in your home folder, under the demo's own name, so you can change it freely. Loading the same demo again replaces that copy with a fresh one.
 

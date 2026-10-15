@@ -17,7 +17,7 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.utils.dialog_state import clear_state
-from app.series_operations.calculus_dialog import (
+from app.data_operations.calculus_dialog import (
     DERIV_GRADIENT_SURFACE,
     INTEGRAL_VOLUME_SURFACE,
     SeriesCalculusDialog,

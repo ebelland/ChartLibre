@@ -18,7 +18,7 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.geometry_dialog import (
+from app.data_operations.geometry_dialog import (
     MATRIX,
     MIRROR,
     ROTATE,
@@ -360,7 +360,7 @@ def test_the_picture_keeps_the_screen_dpi_whatever_the_charts_use(qapp, repo: Sq
     """The charts' figure.dpi (200, for export) drew it twice as large."""
     from matplotlib import rcParams
 
-    from app.series_operations.geometry_dialog import PREVIEW_DPI, _BeforeAfterView
+    from app.data_operations.geometry_dialog import PREVIEW_DPI, _BeforeAfterView
 
     monkeypatch.setitem(rcParams, "figure.dpi", 200.0)
     view = _BeforeAfterView()
@@ -370,7 +370,7 @@ def test_the_picture_keeps_the_screen_dpi_whatever_the_charts_use(qapp, repo: Sq
 
 
 def test_the_picture_is_meshes_and_at_most_two_hundred_points_each(qapp, dialog: SeriesGeometryDialog) -> None:
-    from app.series_operations.geometry_dialog import MAX_PICTURE_POINTS, _BeforeAfterView
+    from app.data_operations.geometry_dialog import MAX_PICTURE_POINTS, _BeforeAfterView
 
     _configure(dialog, ROTATE, angle_deg=30.0)
     result = dialog.compute_results()[0]

@@ -16,7 +16,7 @@ msgstr "\"{name}\" já está sendo usado por um tipo de gráfico existente."
 msgid "\"{name}\" is already used by an existing function."
 msgstr "\"{name}\" já está a ser utilizado por uma função existente."
 
-msgid "\"{name}\" is already used by an existing series operation."
+msgid "\"{name}\" is already used by an existing data operation."
 msgstr "\"{name}\" já está sendo usado por uma operação em série existente."
 
 msgid "'{key}' back to Matplotlib's default."
@@ -94,8 +94,8 @@ msgstr "Já existe um ficheiro com o nome \"{file}\" em user/charts/."
 msgid "A file named \"{file}\" already exists under user/functions/."
 msgstr "Já existe um ficheiro chamado \"{file}\" em user/functions/."
 
-msgid "A file named \"{file}\" already exists under user/series_operations/."
-msgstr "Um arquivo chamado \"{file}\" já existe em user/series_operations/."
+msgid "A file named \"{file}\" already exists under user/data_operations/."
+msgstr "Um arquivo chamado \"{file}\" já existe em user/data_operations/."
 
 msgid "A guide line under the pointer, shared across every axes of this figure."
 msgstr "Uma linha guia sob o ponteiro, compartilhada em todos os eixos desta figura."
@@ -2308,7 +2308,7 @@ msgstr "Deslocamento"
 msgid "One axis cannot hold this many series of this chart type."
 msgstr "Um eixo não pode conter tantas séries deste tipo de gráfico."
 
-msgid "One line, shown in the Series Operations panel."
+msgid "One line, shown in the Data Operations panel."
 msgstr "Uma linha, mostrada no painel Operações em Série."
 
 msgid "One line, shown in the chart picker."
@@ -3079,7 +3079,7 @@ msgstr "Seleccione primeiro as linhas a eliminar."
 msgid "Series"
 msgstr "Série"
 
-msgid "Series Operation Builder"
+msgid "Data Operation Builder"
 msgstr "Construtor de Operações em Série"
 
 msgid "Series name"
@@ -3373,8 +3373,8 @@ msgstr "A classe importada, mas axis_renderer_scanner não a descobriu como um r
 msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
 msgstr "A classe importada, mas functions_scanner não a descobriu como uma função - verifique se ela subclasse base_function diretamente."
 
-msgid "The class imported, but series_operation_scanner did not discover it as an operation - check that it subclasses SeriesOperationDialogBase directly."
-msgstr "A classe importada, mas series_operation_scanner não a descobriu como uma operação - verifique se ela subclasse SeriesOperationDialogBase diretamente."
+msgid "The class imported, but data_operation_scanner did not discover it as an operation - check that it subclasses DataOperationDialogBase directly."
+msgstr "A classe importada, mas data_operation_scanner não a descobriu como uma operação - verifique se ela subclasse DataOperationDialogBase diretamente."
 
 msgid "The column holding the sample size (units inspected) at each point."
 msgstr "A coluna que contém o tamanho da amostra (unidades inspecionadas) em cada ponto."
@@ -3799,8 +3799,8 @@ msgstr "Grava um novo arquivo em user/charts/ com uma classe já preenchida a pa
 msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
 msgstr "Grava um novo arquivo em user/functions/ com uma classe já preenchida a partir desses campos - sem etapa de cadastro, o scanner o pega assim que o arquivo existe. execute(x, p) já avalia um polinômio real nos parâmetros declarados; substitua-o pela fórmula real."
 
-msgid "Writes a new file under user/series_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
-msgstr "Grava um novo arquivo em user/series_operations/ com uma classe já preenchida a partir desses campos - sem etapa de registro, o scanner o pega assim que o arquivo existe. compute_results já passa cada série selecionada por inalterada; substitua-o pelo cálculo real."
+msgid "Writes a new file under user/data_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
+msgstr "Grava um novo arquivo em user/data_operations/ com uma classe já preenchida a partir desses campos - sem etapa de registro, o scanner o pega assim que o arquivo existe. compute_results já passa cada série selecionada por inalterada; substitua-o pelo cálculo real."
 
 msgid "Written by"
 msgstr "Escrito por"

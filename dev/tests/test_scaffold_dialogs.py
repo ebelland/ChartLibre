@@ -8,7 +8,7 @@ import pytest
 import app.developer_helpers.developer_helper_base as common
 from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
 from app.developer_helpers.renderer_helper import RendererHelperDialog
-from app.developer_helpers.series_operation_helper import SeriesOperationBuilderDialog
+from app.developer_helpers.data_operation_helper import DataOperationBuilderDialog
 
 
 @pytest.fixture
@@ -25,8 +25,8 @@ def shown(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
     ("dialog_class", "name", "file_name", "created"),
     [
         (FunctionCreatorDialog, "Stretched Exponential Test", "stretched_exponential_test.py", "dev.function_created"),
-        (SeriesOperationBuilderDialog, "Envelope Detector Test", "envelope_detector_test_dialog.py",
-         "dev.series_operation_created"),
+        (DataOperationBuilderDialog, "Envelope Detector Test", "envelope_detector_test_dialog.py",
+         "dev.data_operation_created"),
         (RendererHelperDialog, "Ridgeline Test", "ridgeline_test.py", "dev.renderer_created"),
     ],
 )
@@ -72,7 +72,7 @@ def test_a_built_in_name_is_refused_and_a_typed_file_name_is_kept(qapp, shown: l
     assert dialog._file_edit.text() == "custom.py"
 
 
-@pytest.mark.parametrize("dialog_class", [FunctionCreatorDialog, SeriesOperationBuilderDialog, RendererHelperDialog])
+@pytest.mark.parametrize("dialog_class", [FunctionCreatorDialog, DataOperationBuilderDialog, RendererHelperDialog])
 def test_every_text_a_tool_shows_is_found_for_the_catalogues(dialog_class) -> None:
     from app.utils.i18n import TRANSLATED_ATTRIBUTES, source_translator_calls
 

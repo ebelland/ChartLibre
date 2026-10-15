@@ -251,7 +251,7 @@ def show_message(
     """Show one catalogued message.
 
     ``title`` overrides the catalogue for the dialogs that name themselves at
-    runtime (a series operation titles its boxes after the operation).
+    runtime (a data operation titles its boxes after the operation).
 
     ``details`` is for findings rather than prose - the list of problems a
     database check turned up, say.  It goes behind Show Details, which is

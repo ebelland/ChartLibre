@@ -17,10 +17,10 @@ import pandas as pd
 import pytest
 from PySide6.QtWidgets import QApplication, QDialog, QStatusBar
 
-import app.series_operations as operations
+import app.data_operations as operations
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.dialog_base import SeriesOperationDialogBase
+from app.data_operations.dialog_base import DataOperationDialogBase
 from app.utils.dialog_state import clear_state
 
 #: module, class: every operation that computes in the background.
@@ -50,8 +50,8 @@ def _wait_for(condition: Callable[[], bool], timeout: float = 30.0) -> None:
         time.sleep(0.005)
 
 
-def _dialog_class(module: str, name: str) -> type[SeriesOperationDialogBase]:
-    return getattr(importlib.import_module(f"app.series_operations.{module}"), name)
+def _dialog_class(module: str, name: str) -> type[DataOperationDialogBase]:
+    return getattr(importlib.import_module(f"app.data_operations.{module}"), name)
 
 
 @pytest.fixture
@@ -89,13 +89,13 @@ def _fresh_dialog_state() -> Iterator[None]:
         clear_state(name)
 
 
-def _open(cls: type[SeriesOperationDialogBase], repo: SqliteRepo, figure_id: int) -> SeriesOperationDialogBase:
+def _open(cls: type[DataOperationDialogBase], repo: SqliteRepo, figure_id: int) -> DataOperationDialogBase:
     dialog = cls(repo=repo, figure_id=figure_id, parent=None)
     dialog.series_selector.reload(select_all_series=True)
     return dialog
 
 
-def _preview_tables(dialog: SeriesOperationDialogBase, repo: SqliteRepo) -> dict[str, pd.DataFrame]:
+def _preview_tables(dialog: DataOperationDialogBase, repo: SqliteRepo) -> dict[str, pd.DataFrame]:
     # Named after the axis they land on, and an operation that draws on a
     # new axis gets a new one each run: the number is not part of the result.
     return {
@@ -109,11 +109,11 @@ def test_every_background_operation_is_covered_here() -> None:
     for info in pkgutil.iter_modules(operations.__path__):
         if not info.name.endswith("_dialog"):
             continue
-        module = importlib.import_module(f"app.series_operations.{info.name}")
+        module = importlib.import_module(f"app.data_operations.{info.name}")
         for value in vars(module).values():
             if (
                 isinstance(value, type)
-                and issubclass(value, SeriesOperationDialogBase)
+                and issubclass(value, DataOperationDialogBase)
                 and value.__module__ == module.__name__
                 and value.RUN_IN_BACKGROUND
             ):
@@ -129,7 +129,7 @@ def _comparable(result: object) -> object:
     return getattr(result, "frame", repr(result))
 
 
-def _preview(dialog: SeriesOperationDialogBase) -> list[object]:
+def _preview(dialog: DataOperationDialogBase) -> list[object]:
     """Preview, and what was handed to the chart."""
     delivered: list[object] = []
     original = dialog.preview_results_to_axis
@@ -160,13 +160,13 @@ def test_a_background_preview_writes_what_the_gui_thread_writes(
 ) -> None:
     cls = _dialog_class(module, name)
 
-    SeriesOperationDialogBase.BACKGROUND_ENABLED = False
+    DataOperationDialogBase.BACKGROUND_ENABLED = False
     dialog = _open(cls, repo, figure_id)
     expected_results = _preview(dialog)
     expected_tables = _preview_tables(dialog, repo)
     dialog.close()
 
-    SeriesOperationDialogBase.BACKGROUND_ENABLED = True
+    DataOperationDialogBase.BACKGROUND_ENABLED = True
     dialog = _open(cls, repo, figure_id)
     got_results = _preview(dialog)
     got_tables = _preview_tables(dialog, repo)

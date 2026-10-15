@@ -17,7 +17,7 @@ APP_DIR = Path(__file__).resolve().parents[2] / "app"
 # The Fit dialog is a package of modules now; their sources, together.
 FIT_SOURCE = "\n".join(
     path.read_text(encoding="utf-8")
-    for path in sorted((APP_DIR / "series_operations" / "fit_dialog").glob("*.py"))
+    for path in sorted((APP_DIR / "data_operations" / "fit_dialog").glob("*.py"))
 )
 
 

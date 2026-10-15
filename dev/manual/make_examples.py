@@ -42,7 +42,7 @@ PREFERRED = {
     "Time Series": "Stock prices",
     "Bar Chart": "Transactions by channel",
 }
-#: Data operation picture -> part of its figure's name in the "Series operations" demo.
+#: Data operation picture -> part of its figure's name in the "Data operations" demo.
 OPERATIONS = {
     "op_smoothing": "01 · Smoothing", "op_spectral": "02 · Spectral", "op_filtering": "03 · Filtering",
     "op_baseline": "04 · Baseline", "op_peaks": "05 · Peaks", "op_roots": "06 · Roots",
@@ -179,8 +179,8 @@ def main() -> int:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     print("Writing examples:")
     charts(demos)
-    demo_figures(demos, "Series operations", OPERATIONS, SINGLE)
-    demo_figures(demos, "3D Series Operations", {"op_surface": "Series Operations on 3D data"}, MULTI)
+    demo_figures(demos, "Data operations", OPERATIONS, SINGLE)
+    demo_figures(demos, "3D Data Operations", {"op_surface": "Data Operations on 3D data"}, MULTI)
     demo_figures(demos, "Designed experiment", {"analysis_fit_model": "Fit Model · Yield"}, (9.0, 3.4))
     demo_figures(demos, "Quick answers", {"answer_differences": "Are there differences?",
                                           "answer_impact": "What has the most impact?",

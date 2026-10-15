@@ -40,7 +40,7 @@ class SeriesDescriptor(Descriptor):
 
     ``roles`` maps a renderer's role names ("x", "y", "value", ...) to columns
     of ``sql_query``; ``options`` is the series' style - whatever the
-    renderer accepts, plus the markers the series-operation dialogs use to
+    renderer accepts, plus the markers the data-operation dialogs use to
     find series they generated.
     """
 

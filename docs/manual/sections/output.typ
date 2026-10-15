@@ -46,7 +46,7 @@ Templates are kept in the `user/templates` folder of the ChartLibre installation
 
 == History <history>
 
-Every series operation applied with *OK* is recorded in the project: when it ran, which operation and model, on which series, with which parameters, which tables it wrote, and its report. The record lives in the `.dhub` file, so it travels with the project.
+Every data operation applied with *OK* is recorded in the project: when it ran, which operation and model, on which series, with which parameters, which tables it wrote, and its report. The record lives in the `.dhub` file, so it travels with the project.
 
 - *Project history…* (on the *Developer* page) lists every operation in the project, oldest first.
 - *History…* (right-click a table on the Tables page) lists the operations that read from or wrote to that table.

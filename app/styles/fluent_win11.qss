@@ -1147,7 +1147,7 @@ QDialog
 
 /* ==========================================================
    Fluent 2 / macOS Command List
-   SeriesOperationWidget
+   DataOperationWidget
    ========================================================== */
 
 /* ----------------------------------------------------------
@@ -1177,33 +1177,33 @@ QLabel[sectionTitle="true"] {
    neutral tint as in a Fluent NavigationView.
    ---------------------------------------------------------- */
 
-QLineEdit#seriesOperationsSearch {
+QLineEdit#dataOperationsSearch {
     margin: 10px 10px 4px 10px;
 }
 
-QListWidget#seriesOperationsList {
+QListWidget#dataOperationsList {
     background: palette(base);
     border: none;
     padding: 0 6px;
     outline: 0;
 }
 
-QListWidget#seriesOperationsList::item {
+QListWidget#dataOperationsList::item {
     color: palette(window-text);
     border-radius: 4px;
     padding: 0 4px;
 }
 
-QListWidget#seriesOperationsList::item:disabled {
+QListWidget#dataOperationsList::item:disabled {
     background: transparent;
     color: rgba(@NEUTRAL_RGB@, 0.9);
 }
 
-QListWidget#seriesOperationsList::item:hover:enabled {
+QListWidget#dataOperationsList::item:hover:enabled {
     background: rgba(@SHADOW_RGB@, 0.05);
 }
 
-QListWidget#seriesOperationsList::item:selected {
+QListWidget#dataOperationsList::item:selected {
     background: rgba(@SHADOW_RGB@, 0.09);
     color: palette(window-text);
 }
@@ -1211,7 +1211,7 @@ QListWidget#seriesOperationsList::item:selected {
 /* ----------------------------------------------------------
    Operation hint bar
    Fixed at the panel's bottom, outside the scroll area - see
-   SeriesOperationWidget. A hairline top border marks it as its
+   DataOperationWidget. A hairline top border marks it as its
    own strip rather than the last section bleeding into it.
    ---------------------------------------------------------- */
 

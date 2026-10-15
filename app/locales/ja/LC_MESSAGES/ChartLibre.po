@@ -16,7 +16,7 @@ msgstr "\"{name}\"は既に既存のチャートタイプで使用されてい�
 msgid "\"{name}\" is already used by an existing function."
 msgstr "\"{name}\"はすでに既存の関数によって使用されています。"
 
-msgid "\"{name}\" is already used by an existing series operation."
+msgid "\"{name}\" is already used by an existing data operation."
 msgstr "\"{name}\"はすでに既存のシリーズオペレーションで使用されています。"
 
 msgid "'{key}' back to Matplotlib's default."
@@ -94,8 +94,8 @@ msgstr "\"{file}\"という名前のファイルは、ユーザー/charts/の下
 msgid "A file named \"{file}\" already exists under user/functions/."
 msgstr "\"{file}\"という名前のファイルは、ユーザー/functions/の下に既に存在します。"
 
-msgid "A file named \"{file}\" already exists under user/series_operations/."
-msgstr "\"{file}\"という名前のファイルは、ユーザー/series_operations/の下に既に存在します。"
+msgid "A file named \"{file}\" already exists under user/data_operations/."
+msgstr "\"{file}\"という名前のファイルは、ユーザー/data_operations/の下に既に存在します。"
 
 msgid "A guide line under the pointer, shared across every axes of this figure."
 msgstr "ポインタの下にあるガイドラインは、この図のすべての軸で共有されています。"
@@ -2287,7 +2287,7 @@ msgstr "オフセット"
 msgid "One axis cannot hold this many series of this chart type."
 msgstr "1つの軸では、このチャートタイプのこれだけの数のシリーズを保持することはできません。"
 
-msgid "One line, shown in the Series Operations panel."
+msgid "One line, shown in the Data Operations panel."
 msgstr "[シリーズオペレーション]パネルに示されている1行です。"
 
 msgid "One line, shown in the chart picker."
@@ -3061,7 +3061,7 @@ msgstr "最初に削除する行を選択します。"
 msgid "Series"
 msgstr "シリーズ"
 
-msgid "Series Operation Builder"
+msgid "Data Operation Builder"
 msgstr "シリーズオペレーションビルダー"
 
 msgid "Series name"
@@ -3355,8 +3355,8 @@ msgstr "クラスはインポートされましたが、axis_renderer_scannerは
 msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
 msgstr "クラスはインポートされましたが、functions_scannerはそれを関数として検出しませんでした。base_functionが直接サブクラスになっていることを確認してください。"
 
-msgid "The class imported, but series_operation_scanner did not discover it as an operation - check that it subclasses SeriesOperationDialogBase directly."
-msgstr "クラスはインポートされましたが、series_operation_scannerはそれを操作として検出しませんでした。SeriesOperationDialogBaseを直接サブクラスにしていることを確認してください。"
+msgid "The class imported, but data_operation_scanner did not discover it as an operation - check that it subclasses DataOperationDialogBase directly."
+msgstr "クラスはインポートされましたが、data_operation_scannerはそれを操作として検出しませんでした。DataOperationDialogBaseを直接サブクラスにしていることを確認してください。"
 
 msgid "The column holding the sample size (units inspected) at each point."
 msgstr "各ポイントでサンプルサイズ（検査した単位）を保持するカラム。"
@@ -3778,8 +3778,8 @@ msgstr "これらのフィールドからすでに入力されたクラスを使
 msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
 msgstr "これらのフィールドからすでに入力されたクラスを使用して、user/functions/の下に新しいファイルを書き込みます。登録ステップはありません。ファイルが存在するとすぐにスキャナがそれをピックアップします。execute (x, p)は、宣言されたパラメータで実多項式をすでに評価しています。実際の数式に置き換えます。"
 
-msgid "Writes a new file under user/series_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
-msgstr "これらのフィールドからすでに入力されたクラスを使用して、user/series_operations/の下に新しいファイルを書き込みます。登録ステップはありません。ファイルが存在するとすぐにスキャナーがそれをピックアップします。compute_resultsはすでに選択された各シリーズを変更されずに渡します。実際の計算に置き換えます。"
+msgid "Writes a new file under user/data_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
+msgstr "これらのフィールドからすでに入力されたクラスを使用して、user/data_operations/の下に新しいファイルを書き込みます。登録ステップはありません。ファイルが存在するとすぐにスキャナーがそれをピックアップします。compute_resultsはすでに選択された各シリーズを変更されずに渡します。実際の計算に置き換えます。"
 
 msgid "Written by"
 msgstr "著者："

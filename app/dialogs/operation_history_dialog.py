@@ -1,6 +1,6 @@
 """How a table came to be: the operations recorded in the project (todo R-03).
 
-Every Apply of a series operation is kept in ``__operations__`` (see
+Every Apply of a data operation is kept in ``__operations__`` (see
 ``app/data/repo/operations.py``); this shows the ones that read or wrote one
 table - or, without a table, every one in the project - oldest first - what was run, on which series, with which entries, and
 the report it gave - in the house report style, so it can be copied like

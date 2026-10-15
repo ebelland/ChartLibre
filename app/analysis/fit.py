@@ -1,6 +1,6 @@
 """Least-squares curve fitting on plain arrays: estimates, errors, inference.
 
-The engine behind the Fit series operation. A model is any callable
+The engine behind the Fit data operation. A model is any callable
 ``model(x, p) -> y`` - the scanned fit functions, the multi-peak builder, a
 user formula - and the result carries everything the report prints:
 parameters, standard errors, covariance and correlation, t and p values,

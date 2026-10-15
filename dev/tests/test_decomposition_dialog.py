@@ -1,6 +1,6 @@
 """Decomposition and manifold learning across several series (todo.txt P2-15).
 
-Unlike every other series operation, this one combines several *selected*
+Unlike every other data operation, this one combines several *selected*
 series into one shared-grid feature matrix rather than reading each one
 independently - see the dialog module's own docstring for why.
 """
@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.decomposition_dialog import DECOMP_PCA, SeriesDecompositionDialog
+from app.data_operations.decomposition_dialog import DECOMP_PCA, SeriesDecompositionDialog
 
 
 def _dialog(repo: SqliteRepo, figure_id: int, *, select_all: bool = True):

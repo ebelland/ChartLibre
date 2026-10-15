@@ -12,7 +12,7 @@ APP_VERSION: str = "0.1.0"
 #: The application's own mark: an open bracket - "libre", a structure left
 #: open to write into rather than a locked box - graduated like a ruler,
 #: with a small three-point chart breaking out past it. Bare path data, the
-#: same shape ``SeriesOperationDialogBase.Icon`` uses for a plugin's own
+#: same shape ``DataOperationDialogBase.Icon`` uses for a plugin's own
 #: icon; ``app.styles.style.icon_from_svg_source`` wraps it in the standard
 #: stroke-only SVG document at whatever size a window icon needs.
 APP_ICON: str = (

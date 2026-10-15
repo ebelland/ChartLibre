@@ -441,7 +441,7 @@ class TablesMixin(RepoHost):
 
         ``DataFrame.to_sql`` converts every cell on its way in and was ten
         times slower than SQLite itself on a file (0.28 s against 0.03 s for
-        20,000 rows of 8 columns): the cost of every Preview of a series
+        20,000 rows of 8 columns): the cost of every Preview of a data
         operation, which writes its result table each time. This writes the
         same table - INTEGER for integers and booleans, REAL for floats, TEXT
         for the rest, NaN as NULL - for the frames operations produce, and

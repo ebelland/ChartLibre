@@ -16,7 +16,7 @@ msgstr "\"{name}\" مستخدم بالفعل من قبل نوع مخطط موج�
 msgid "\"{name}\" is already used by an existing function."
 msgstr "\"{name}\" مستخدم بالفعل من قبل وظيفة موجودة."
 
-msgid "\"{name}\" is already used by an existing series operation."
+msgid "\"{name}\" is already used by an existing data operation."
 msgstr "\"{name}\" مستخدم بالفعل من قبل عملية سلسلة موجودة."
 
 msgid "'{key}' back to Matplotlib's default."
@@ -94,8 +94,8 @@ msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن user/charts/."
 msgid "A file named \"{file}\" already exists under user/functions/."
 msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن user/functions/."
 
-msgid "A file named \"{file}\" already exists under user/series_operations/."
-msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن USER/SERIES_OPERATIONS/."
+msgid "A file named \"{file}\" already exists under user/data_operations/."
+msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن USER/DATA_OPERATIONS/."
 
 msgid "A guide line under the pointer, shared across every axes of this figure."
 msgstr "خط إرشادي أسفل المؤشر، مشترك عبر كل محاور هذا الشكل."
@@ -2287,7 +2287,7 @@ msgstr "الإزاحة"
 msgid "One axis cannot hold this many series of this chart type."
 msgstr "لا يمكن لمحور واحد الاحتفاظ بهذه السلسلة العديدة من هذا النوع من المخططات."
 
-msgid "One line, shown in the Series Operations panel."
+msgid "One line, shown in the Data Operations panel."
 msgstr "سطر واحد، كما هو موضح في لوحة عمليات السلسلة."
 
 msgid "One line, shown in the chart picker."
@@ -3061,7 +3061,7 @@ msgstr "حدد الصفوف المراد حذفها أولاً."
 msgid "Series"
 msgstr "السلسلة"
 
-msgid "Series Operation Builder"
+msgid "Data Operation Builder"
 msgstr "منشئ عمليات السلسلة"
 
 msgid "Series name"
@@ -3355,8 +3355,8 @@ msgstr "تم استيراد الفئة، ولكن لم يكتشفها AXIS_RENDE
 msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
 msgstr "تم استيراد الفئة، لكن FUNCTIONS_SCANNER لم تكتشفها كدالة - تحقق من أنها تصنف BASE_FUNCTION مباشرة."
 
-msgid "The class imported, but series_operation_scanner did not discover it as an operation - check that it subclasses SeriesOperationDialogBase directly."
-msgstr "تم استيراد الفئة، لكن series_operation_scanner لم يكتشفها كعملية - تحقق من أنها تصنف الفئات الفرعية SeriesOperationDialogBase مباشرة."
+msgid "The class imported, but data_operation_scanner did not discover it as an operation - check that it subclasses DataOperationDialogBase directly."
+msgstr "تم استيراد الفئة، لكن data_operation_scanner لم يكتشفها كعملية - تحقق من أنها تصنف الفئات الفرعية DataOperationDialogBase مباشرة."
 
 msgid "The column holding the sample size (units inspected) at each point."
 msgstr "العمود الذي يحمل حجم العينة (الوحدات التي تم فحصها) في كل نقطة."
@@ -3778,8 +3778,8 @@ msgstr "يكتب ملفًا جديدًا تحت المستخدم/المخططا�
 msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
 msgstr "يكتب ملفًا جديدًا تحت المستخدم/الوظائف/ مع فئة مملوءة بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطها الماسح الضوئي بمجرد وجود الملف. يقوم(x، p) بالفعل بتقييم متعدد الحدود الحقيقي في المعلمات المعلنة ؛ استبدله بالصيغة الفعلية."
 
-msgid "Writes a new file under user/series_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
-msgstr "يكتب ملفًا جديدًا ضمن USER/SERIES_OPERATIONS/ مع فئة مملوءة بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطها الماسح الضوئي بمجرد وجود الملف. تمر COMPUTE_RESULTS بالفعل بكل سلسلة محددة دون تغيير ؛ استبدلها بالحساب الحقيقي."
+msgid "Writes a new file under user/data_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
+msgstr "يكتب ملفًا جديدًا ضمن USER/DATA_OPERATIONS/ مع فئة مملوءة بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطها الماسح الضوئي بمجرد وجود الملف. تمر COMPUTE_RESULTS بالفعل بكل سلسلة محددة دون تغيير ؛ استبدلها بالحساب الحقيقي."
 
 msgid "Written by"
 msgstr "كتبه"

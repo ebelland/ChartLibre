@@ -1,6 +1,6 @@
 """What the application can do, in one list: for search, and for the guided analysis.
 
-Every analysis (table operations), series operation, chart type and table
+Every analysis (table operations), data operation, chart type and table
 tool is an entry with its name and sentence - read from the classes, as the
 panels read them - plus what this file adds: the words someone might look
 for it by (synonyms, in English and Italian, so a search finds "ANOVA" or
@@ -613,31 +613,31 @@ def _words(text: str) -> tuple[str, ...]:
     return tuple(text.split())
 
 
-#: The New plot "operation", as the Series operations panel lists it.
+#: The New plot "operation", as the Data operations panel lists it.
 _PLOT: dict[str, Any] = {"name": "NewPlotTabDialog", "value": "Plot", "description": "Create a new plot",
                          "builtin": True}
 
 
 def build_catalog(
     table_operations: list[dict] | None = None,
-    series_operations: list[dict] | None = None,
+    data_operations: list[dict] | None = None,
     renderers: list[dict] | None = None,
 ) -> list[CatalogEntry]:
-    """Every entry: analyses, series operations, chart types, table tools - in that order.
+    """Every entry: analyses, data operations, chart types, table tools - in that order.
 
     The lists default to what the scanners found; tests pass their own.
     """
     if table_operations is None:
         from app.scanners.table_operation_scanner import table_operations
-    if series_operations is None:
-        from app.scanners.series_operation_scanner import series_operations
+    if data_operations is None:
+        from app.scanners.data_operation_scanner import data_operations
     if renderers is None:
         from app.scanners.axis_renderer_scanner import renderers
 
     entries: list[CatalogEntry] = []
     for kind, found, extra in (
         (ANALYSIS, table_operations, _ANALYSES),
-        (SERIES, [_PLOT, *series_operations], _SERIES),
+        (SERIES, [_PLOT, *data_operations], _SERIES),
         (CHART, renderers, _CHARTS),
     ):
         for item in found:

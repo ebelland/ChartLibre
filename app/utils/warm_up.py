@@ -1,6 +1,6 @@
 """Import the scientific libraries ahead of time, off the main thread.
 
-The first series operation of a session used to take two to three seconds
+The first data operation of a session used to take two to three seconds
 to open: SciPy's signal and optimisation modules, scikit-learn, statsmodels,
 scikit-image and PyWavelets are imported when an operation's module first
 loads, and that is a second or more of a frozen window each. Imported here
@@ -19,7 +19,7 @@ import threading
 
 from app.logs.logger import applogger
 
-#: The modules the series operations import, slowest first.
+#: The modules the data operations import, slowest first.
 MODULES: tuple[str, ...] = (
     "sklearn.ensemble",
     "sklearn.cluster",

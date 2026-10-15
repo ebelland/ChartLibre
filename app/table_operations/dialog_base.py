@@ -1,6 +1,6 @@
 """The base of every table operation: an analysis of a table's columns, not of a chart's series.
 
-A series operation reads the x and y of the series it is given; a table
+A data operation reads the x and y of the series it is given; a table
 operation reads a whole table - several factors, numeric and categorical,
 several responses - the way JMP's Fit Model does. Otherwise it works the
 same way, so it reads the same: the inputs on the left (the table and its
@@ -53,9 +53,9 @@ from PySide6.QtWidgets import (
 from app import APP_VERSION
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.series_operations.dialog_base import OperationModel
-from app.series_operations.parameter_form import ParameterForm
-from app.series_operations.parameter_spec import Param
+from app.data_operations.dialog_base import OperationModel
+from app.data_operations.parameter_form import ParameterForm
+from app.data_operations.parameter_spec import Param
 from app.styles.style import (
     TitledCard,
     apply_dialog_shell,
@@ -206,7 +206,7 @@ class TableOperationDialogBase(QDialog):
         if self.PARAMS:
             self._parameter_form = ParameterForm(self.PARAMS, self, on_change=self.inputs_changed)
             parameters = TitledCard(self._inputs_panel, _("Parameters"))
-            parameters.title_label.hide()  # the tab says it, as in the series operations
+            parameters.title_label.hide()  # the tab says it, as in the data operations
             parameters.card.layout().addWidget(self._parameter_form.widget)
             self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(parameters)
         self.roles_widget.finish_tabs()
@@ -400,7 +400,7 @@ class TableOperationDialogBase(QDialog):
         super().accept()
 
     def _record(self, written: Sequence[Mapping[str, Any]], result: Any) -> None:
-        """The Apply in the project's history, like a series operation's. Logged, never raised."""
+        """The Apply in the project's history, like a data operation's. Logged, never raised."""
         casting = self.roles_widget.casting()
         try:
             self._repo.record_operation(

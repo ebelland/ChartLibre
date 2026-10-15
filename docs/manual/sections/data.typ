@@ -15,7 +15,7 @@ The list has four columns:
   [*Source*], [Where its data comes from: a file name for a file or web import, "connection → table" for a database import, the SQL itself for a saved query (the full text in the tooltip), nothing for a table with no link.],
 )
 
-Tables written by series operations start with `_`. *Show generated tables* hides or shows them, so the list can show only your own data.
+Tables written by data operations start with `_`. *Show generated tables* hides or shows them, so the list can show only your own data.
 
 Right-clicking a table offers:
 

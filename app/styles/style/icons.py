@@ -817,7 +817,7 @@ _SVG_SOURCE_ICON_CACHE: dict[tuple[str, int, float], QIcon] = {}
 
 
 #: The document a bare icon body is wrapped in.  An operation declares its
-#: artwork as path data alone - see ``SeriesOperationDialogBase.Icon`` - which
+#: artwork as path data alone - see ``DataOperationDialogBase.Icon`` - which
 #: is the readable half; the frame around it is always the same and repeating
 #: it in eleven plugins would only be eleven places to get the viewBox wrong.
 SVG_ICON_DOCUMENT: str = (
@@ -841,9 +841,9 @@ def icon_from_svg_source(
     """Return a QIcon drawn from an SVG document held in memory.
 
     For icons that travel inside the thing they belong to rather than in
-    ``app/icons``: a series operation is a plugin, and one .py file dropped
-    into ``app/series_operations`` has to be the whole of it, artwork
-    included.  See ``SeriesOperationDialogBase.Icon``.
+    ``app/icons``: a data operation is a plugin, and one .py file dropped
+    into ``app/data_operations`` has to be the whole of it, artwork
+    included.  See ``DataOperationDialogBase.Icon``.
 
     Unlike the theme and glyph paths this rasterises once at a chosen size, because the
     QIcon is built from a pixmap rather than from a file Qt can re-read.  So

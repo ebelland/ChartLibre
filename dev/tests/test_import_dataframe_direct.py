@@ -1,7 +1,7 @@
 """import_dataframe writes plain frames directly and leaves the rest to pandas.
 
 DataFrame.to_sql was ten times slower than SQLite on a file, and every Preview
-of a series operation writes its result table. The direct write has to leave
+of a data operation writes its result table. The direct write has to leave
 the same table behind - same columns, SQL types and values - as to_sql did.
 """
 from __future__ import annotations

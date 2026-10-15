@@ -1,4 +1,4 @@
-"""Read-only HTML results pane used by the series-operation dialogs.
+"""Read-only HTML results pane used by the data-operation dialogs.
 
 Displays formatted operation output and supports copying it to the clipboard as
 HTML, which makes results pasteable into reports.

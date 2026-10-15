@@ -1,6 +1,6 @@
 """Rigid and affine motions of 2D and 3D points, and how to spell them in SQL.
 
-The engine behind the Geometry series operation. Every transform here is
+The engine behind the Geometry data operation. Every transform here is
 
     p' = centre + M (p - centre) + t
 

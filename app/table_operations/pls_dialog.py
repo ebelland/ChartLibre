@@ -16,7 +16,7 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import pls as pl
-from app.series_operations.parameter_spec import BoolParam, IntParam
+from app.data_operations.parameter_spec import BoolParam, IntParam
 from app.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html

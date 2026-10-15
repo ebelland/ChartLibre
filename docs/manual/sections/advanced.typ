@@ -2,16 +2,16 @@
 
 = Advanced: extending ChartLibre <advanced>
 
-ChartLibre discovers chart types and series operations the same way: by scanning a folder for Python classes that directly subclass a known base class, at import time — no registration list to edit and keep in sync. Dropping a well-formed file into the right folder is enough for it to appear in the application.
+ChartLibre discovers chart types and data operations the same way: by scanning a folder for Python classes that directly subclass a known base class, at import time — no registration list to edit and keep in sync. Dropping a well-formed file into the right folder is enough for it to appear in the application.
 
 The *Developer* page offers a form for each of the sections below, so writing the file by hand is the fallback, not the only way:
 
 / *Renderer Helper*: a short form (name, category, description, link, required/optional roles) that scaffolds a new chart-type file.
-/ *Series Operation Builder*: the same, for a new series-operation dialog - the scaffolded file already runs, passing each selected series through unchanged, ready to have the real computation dropped in.
+/ *Data Operation Builder*: the same, for a new data-operation dialog - the scaffolded file already runs, passing each selected series through unchanged, ready to have the real computation dropped in.
 / *Function Creator*: the same, for a new fit function - the scaffolded `execute(x, p)` already evaluates a real polynomial in the declared parameters.
 / *Edit Localization*: a table editor for a language's translation catalogue, filterable to untranslated strings only, with a button to create a new language from scratch and an optional machine-translation pass to draft from — with Google, MyMemory, DeepL when a DeepL key is set in Settings, or Argos Translate, which runs on this computer once `ctranslate2` and `sentencepiece` are installed (`pip install ctranslate2 sentencepiece`) and downloads each language's model (85–150 MB) the first time it is used.
 
-Every scaffolded file from the first three goes under `user/` at the project root (`user/charts/`, `user/series_operations/`, `user/functions/`) rather than into `app/`'s own shipped source - kept separate on purpose, so a packaged build's own files are never touched and a person's own additions are never confused with what shipped.
+Every scaffolded file from the first three goes under `user/` at the project root (`user/charts/`, `user/data_operations/`, `user/functions/`) rather than into `app/`'s own shipped source - kept separate on purpose, so a packaged build's own files are never touched and a person's own additions are never confused with what shipped.
 
 == Writing a custom chart renderer <advanced-renderer>
 
@@ -53,9 +53,9 @@ which receives one `SeriesData` per series — already queried, with its columns
 
 `app/charts/text.py` is a good, compact, complete example to read or copy as a starting point: a handful of roles, a short `Kwargs` block, and a straightforward `render_axis`.
 
-== Writing a custom series operation <advanced-operation>
+== Writing a custom data operation <advanced-operation>
 
-A series operation lives in `app/series_operations/`, as a class that subclasses `SeriesOperationDialogBase` (from `app.series_operations.dialog_base`) *directly* — discovered the same way, by `app/scanners/series_operation_scanner.py`.
+A data operation lives in `app/data_operations/`, as a class that subclasses `DataOperationDialogBase` (from `app.data_operations.dialog_base`) *directly* — discovered the same way, by `app/scanners/data_operation_scanner.py`.
 
 The base class supplies the whole dialog shell (series picker, parameter form, preview pane, action buttons) and the plumbing that turns a result into a new series or table on the chart. A subclass sets a few class attributes —
 
@@ -74,7 +74,7 @@ The base class supplies the whole dialog shell (series picker, parameter form, p
   columns: (auto, 1fr),
   stroke: none,
   inset: 6pt,
-  [`build_parameter_selector()`], [Build the parameter form. Simple operations describe their parameters declaratively with the helpers in `app.series_operations.parameter_spec` (`FloatParam`, `IntParam`, `ChoiceParam`, ...) rather than laying out widgets by hand.],
+  [`build_parameter_selector()`], [Build the parameter form. Simple operations describe their parameters declaratively with the helpers in `app.data_operations.parameter_spec` (`FloatParam`, `IntParam`, `ChoiceParam`, ...) rather than laying out widgets by hand.],
   [`prepare_job()` / `finish_job()`], [Read the widgets into a *job* whose `run()` does the calculation without touching the window, and turn its outcome into results. With these two, *Preview* and *OK* work unchanged, and `evaluate(..., background=True)` runs the job on a worker thread with the shared *Stop* button — see the developer guide. An operation that does not need that can override `compute_results()` instead.],
   [`result_series_spec(s)()`], [The series metadata (name, roles, style) the base class writes to the chart. The DataFrame comes from the result's own `to_df()`, and the table name from the `RESULT_TABLE_PREFIX` class attribute, unless you override them.],
   [`format_results()`], [Render the results as the text/HTML shown in the preview pane.],
@@ -83,10 +83,10 @@ The base class supplies the whole dialog shell (series picker, parameter form, p
 
 *Practical steps:*
 
-+ Create `app/series_operations/my_operation_dialog.py`.
-+ Subclass `SeriesOperationDialogBase`, set `Name`, `Description`, `Icon`.
++ Create `app/data_operations/my_operation_dialog.py`.
++ Subclass `DataOperationDialogBase`, set `Name`, `Description`, `Icon`.
 + Declare parameters (e.g. with `FloatParam`/`IntParam`/`ChoiceParam`) and implement `build_parameter_selector`.
 + Implement `prepare_job`/`finish_job` (or `compute_results`), `result_series_spec`, and `format_results`. Put the arithmetic in a Qt-free module under `app/analysis/`, so it can be tested on its own.
 + Restart the application — the operation appears in the Data operations list, under *Other* until its name is added to a section.
 
-`app/series_operations/function_dialog.py` is the smallest complete dialog and a reasonable starting template; `app/series_operations/calculus_dialog.py` is a good second read for an operation that consumes an existing series rather than generating one from scratch.
+`app/data_operations/function_dialog.py` is the smallest complete dialog and a reasonable starting template; `app/data_operations/calculus_dialog.py` is a good second read for an operation that consumes an existing series rather than generating one from scratch.

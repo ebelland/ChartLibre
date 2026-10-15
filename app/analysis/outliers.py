@@ -1,4 +1,4 @@
-"""Outliers: the arithmetic behind the Outliers series operation.
+"""Outliers: the arithmetic behind the Outliers data operation.
 
 Four detectors test y alone - z-score, interquartile range, median absolute
 deviation, residual from a rolling median - and four fit the joint (x, y)

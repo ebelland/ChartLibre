@@ -1,4 +1,4 @@
-"""Discovery of table operations, as series_operation_scanner discovers series operations.
+"""Discovery of table operations, as data_operation_scanner discovers data operations.
 
 Classes directly subclassing TableOperationDialogBase in app/table_operations
 (and user/table_operations, for the user's own) are found by an AST scan at
@@ -11,7 +11,7 @@ from pathlib import Path
 from app.scanners.class_discovery import discover_classes_merged, import_class_from_discovery_entry
 from app.utils.config import USER_CONTENT_DIR
 
-#: Where the user's own table operations live, beside the series operations.
+#: Where the user's own table operations live, beside the data operations.
 USER_TABLE_OPERATIONS_DIR: Path = USER_CONTENT_DIR / "table_operations"
 
 

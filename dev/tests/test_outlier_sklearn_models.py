@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.series_operations.outlier_dialog import (
+from app.data_operations.outlier_dialog import (
     OUTLIER_ELLIPTIC_ENVELOPE,
     OUTLIER_ISOLATION_FOREST,
     OUTLIER_LOCAL_OUTLIER_FACTOR,

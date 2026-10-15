@@ -1,4 +1,4 @@
-"""The calculations behind the series operations, without any Qt.
+"""The calculations behind the data operations, without any Qt.
 
 Each module takes plain arrays and parameters and returns plain results, so
 the same code runs behind a dialog, in a test, in a script or on a worker

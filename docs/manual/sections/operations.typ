@@ -1,6 +1,6 @@
 #import "helpers.typ": *
 
-= Data operations <series-operations>
+= Data operations <data-operations>
 
 A *data operation* takes the data of one or more series already on a chart and computes something from it: a smoothed curve, a fitted model, a spectrum, the position of the peaks, a statistical test. The result is added to the chart as new series (and, where it is data, as a new table), so it can be styled, exported and operated on again like anything else. Under each operation, *Computed with* names the SciPy, scikit-learn, statsmodels or NumPy functions that do the calculation, each linked to its documentation — the place to read exactly what a method does and what its parameters mean.
 
@@ -21,7 +21,7 @@ The *Data operations* page of the navigation rail is a list, organized in sectio
 An operation added by you or a plugin (see @advanced-operation) appears under *Other* unless it is given a section.
 
 #figure(
-  image("../screenshots/screenshot_series_operations.png", width: 100%),
+  image("../screenshots/screenshot_data_operations.png", width: 100%),
   caption: [The Data operations page.],
 )
 

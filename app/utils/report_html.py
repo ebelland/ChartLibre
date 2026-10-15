@@ -1,4 +1,4 @@
-"""One house style for every series-operation report.
+"""One house style for every data-operation report.
 
 Five dialogs produced HTML and each invented its own: three shades of header
 grey, two table borders, three ways of writing a p-value, and a fit report that

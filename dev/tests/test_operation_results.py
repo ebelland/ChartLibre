@@ -1,4 +1,4 @@
-"""Every series operation's result is an OperationResult."""
+"""Every data operation's result is an OperationResult."""
 from __future__ import annotations
 
 import importlib
@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import app.series_operations as package
-from app.series_operations.filter_dialog import FilterResult
-from app.series_operations.results import OperationResult, TableResult
+import app.data_operations as package
+from app.data_operations.filter_dialog import FilterResult
+from app.data_operations.results import OperationResult, TableResult
 from dev.tests._cases import check_all
 
 

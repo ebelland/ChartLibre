@@ -7,7 +7,7 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.utils.dialog_state import clear_state
-from app.series_operations.filter_dialog import FILTER_IIR, SeriesFilterDialog
+from app.data_operations.filter_dialog import FILTER_IIR, SeriesFilterDialog
 
 FS = 200.0
 T = np.arange(0.0, 10.0, 1.0 / FS)

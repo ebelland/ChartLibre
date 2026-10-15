@@ -1,7 +1,7 @@
 # Developer guide
 
 This document is for anyone changing the code, not using the app. It covers
-the architecture, the extension points (new chart type, new series
+the architecture, the extension points (new chart type, new data
 operation), the figure layout system, styling, localization and testing.
 
 For user-facing behaviour and known issues, see `todo.txt` at the repo root.
@@ -45,7 +45,7 @@ app/
                       descriptors.py, queries.py, maintenance.py - plus
                       demos.py, the catalogue "Load demo" offers and the
                       copy it makes (the demos are built in dev/demo/).
-  analysis/           The calculations behind the series operations, with no
+  analysis/           The calculations behind the data operations, with no
                       Qt: statistics.py, fit.py, geometry.py so far. Plain
                       arrays in, plain results out - testable against
                       reference values and runnable on a worker thread
@@ -54,13 +54,13 @@ app/
   dialogs/            Top-level QDialog/QMainWindow windows.
   widgets/            Panels embedded in dialogs/the main window
                       (properties editors, table list/preview, chart panel).
-  series_operations/  One module per series operation (fit, smoothing,
+  data_operations/  One module per data operation (fit, smoothing,
                       outlier removal, spectral analysis, clustering,
                       calculus, peaks, filtering, baseline correction, ...),
                       plus dialog_base.py and parameter_spec.py /
                       parameter_form.py, the declarative parameter support
                       shared by all of them (see §7.2).
-  scanners/           AST-based plugin discovery for renderers and series
+  scanners/           AST-based plugin discovery for renderers and data
                       operations (see §7).
   styles/             style.py (the shared widget/action/icon factory),
                       macos_native.qss, fluent_win11.qss, palettes.py.
@@ -83,7 +83,7 @@ dev/                  Everything a developer needs and an end user never
                       SqliteRepo itself, so a demo cannot drift from the
                       real schema: `python -m dev.demo.build_demos` after a
                       schema or renderer change. demo_operations.py builds
-                      the Series Operations demo, fetch_case_study_data.py
+                      the Data Operations demo, fetch_case_study_data.py
                       downloads the case-study data, and "sample data/"
                       holds every source dataset.
   manual/             The manual's generated parts: make_screenshots.py
@@ -365,13 +365,13 @@ every axis is drawn — and Matplotlib's default colorbar path builds a
 constrained or compressed engine set afterwards then divides by that zero and
 the whole figure fails to draw. See `ContourAxisRenderer._colorbar`.
 
-### 7.2 Adding a series operation
+### 7.2 Adding a data operation
 
-A series operation is a self-contained plugin: one file under
-`app/series_operations/`, dialog and artwork included (`Icon` is inline SVG
-path data on the class, not a file — see `app/series_operations/
+A data operation is a self-contained plugin: one file under
+`app/data_operations/`, dialog and artwork included (`Icon` is inline SVG
+path data on the class, not a file — see `app/data_operations/
 dialog_base.py`'s module docstring and any existing
-operation for the shape). `app/scanners/series_operation_scanner.py`
+operation for the shape). `app/scanners/data_operation_scanner.py`
 discovers it the same way the renderer scanner discovers chart types.
 Operations write their result back as a new table prefixed with `_`
 (`generated_table_name`) so the source list can group/hide generated tables
@@ -386,7 +386,7 @@ calls the engine and shows what comes back. Statistics, Fit and Geometry
 are split this way; the other operations still compute inside their
 dialogs and move over one at a time (todo.txt R-01).
 
-`SeriesOperationDialogBase` gives every operation one way to compute:
+`DataOperationDialogBase` gives every operation one way to compute:
 
 - `prepare_job(**options)` runs on the GUI thread and reads everything the
   calculation needs - data, parameters, and the names the result will need
@@ -420,7 +420,7 @@ model cannot evaluate is "bad, move on") and would swallow a stop request.
 #### Results
 
 Every operation's result class derives from `OperationResult`
-(`app/series_operations/results.py`):
+(`app/data_operations/results.py`):
 
 | Member | What it is |
 | --- | --- |
@@ -473,9 +473,9 @@ name whether or not its row is visible — an operation reading a parameter
 belonging to another model gets that parameter's default rather than a
 `KeyError`.
 
-- `app/series_operations/parameter_spec.py` — the declarations. Plain data,
+- `app/data_operations/parameter_spec.py` — the declarations. Plain data,
   no Qt import, so they stay testable without a window server.
-- `app/series_operations/parameter_form.py` — builds the widgets.
+- `app/data_operations/parameter_form.py` — builds the widgets.
 
 `visible_for` maps *another* parameter's name to the values for which this
 row is shown. It may name something the form does not own — `model` is the
@@ -795,7 +795,7 @@ Tests: `dev/tests/test_chart_panel_selection.py`,
   box when no `image` is given.
 
   Inline SVG *source* (`icon_from_svg_source`) is unaffected and is still how
-  plugin-carried artwork arrives — a series operation carries its `Icon` as
+  plugin-carried artwork arrives — a data operation carries its `Icon` as
   path data on the class, not as a file.
 
   `style.report_icon_sources()` returns the action ids each backend answers
@@ -838,7 +838,7 @@ and gets a sweep of its own in `test_icons_and_actions.py`:
 | --- | --- |
 | `test_every_translated_string_is_in_the_italian_catalogue` | every `_()`/`tr()` literal in the source |
 | `test_the_italian_locale_covers_every_action` | `config.json`'s action catalogue: every button's text and description |
-| `test_the_italian_locale_covers_every_operation` | every series operation's `Name` and `Description` |
+| `test_the_italian_locale_covers_every_operation` | every data operation's `Name` and `Description` |
 | `test_the_italian_locale_covers_every_renderer` | every chart type's `Name`, `Description` and `Category` |
 
 The last two exist because a plugin declares its wording on the class, so it

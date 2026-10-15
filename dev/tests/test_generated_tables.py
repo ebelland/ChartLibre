@@ -1,4 +1,4 @@
-"""Tests for the tables a series operation writes.
+"""Tests for the tables a data operation writes.
 
 They used to be named like anything else, so a project with a few fits and a
 spectral analysis showed more generated tables in the source list than imported
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.series_operations.dialog_base import (
+from app.data_operations.dialog_base import (
     GENERATED_TABLE_PREFIX,
     generated_table_name,
 )

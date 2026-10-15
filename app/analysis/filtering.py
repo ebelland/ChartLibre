@@ -1,4 +1,4 @@
-"""Filtering: the arithmetic behind the Filtering series operation.
+"""Filtering: the arithmetic behind the Filtering data operation.
 
 Zero-phase IIR and FIR filters, the analytic signal (envelope, phase,
 instantaneous frequency) and detrending, over plain arrays - no Qt, no
