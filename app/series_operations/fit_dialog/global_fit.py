@@ -13,7 +13,7 @@ per series, each with its own curve, report and output table.
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -26,6 +26,14 @@ from app.series_operations.dialog_base import generated_table_name
 
 class GlobalFitMixin:
     """Global fit with shared parameters. A part of SeriesFitDialog (see dialog.py)."""
+
+    if TYPE_CHECKING:  # what the other parts of SeriesFitDialog give this one
+        _source_x_col: str
+        _source_y_col: str
+        _global_columns: list[tuple[str, str]]
+
+        def mark_results_stale(self, *_ignored: Any) -> None: ...
+
 
     # -- which layout ---------------------------------------------------
 

@@ -8,6 +8,8 @@ says where they appear and keeps Undo and Open recent current.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from functools import partial
 
 from PySide6.QtCore import QTimer
@@ -30,6 +32,9 @@ from app.utils.i18n import _
 
 class MainWindowMenus:
     """Menu building for MainWindow; ``self`` is the window."""
+
+    if TYPE_CHECKING:  # MainWindow's
+        def focus_search(self) -> None: ...
 
     #: Actions moved into the real macOS menu bar via QAction.MenuRole -
     #: Preferences and About are relocated by Cocoa itself into the

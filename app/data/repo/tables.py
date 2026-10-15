@@ -494,7 +494,12 @@ class TablesMixin(RepoHost):
             elif dtype.kind == "f":
                 array = series.to_numpy(dtype=float)
                 missing = np.isnan(array)
-                values = np.where(missing, None, array).tolist() if missing.any() else array.tolist()
+                if missing.any():
+                    boxed = array.astype(object)
+                    boxed[missing] = None  # NaN is NULL
+                    values = boxed.tolist()
+                else:
+                    values = array.tolist()
                 kind = "REAL"
             elif dtype.kind in "iu":
                 values, kind = series.tolist(), "INTEGER"
@@ -504,7 +509,7 @@ class TablesMixin(RepoHost):
                 values = series.tolist()
                 if not set(map(type, values)) <= set(self._PLAIN_TYPES):
                     return None, []
-                if series.isna().any():  # NaN in an object column is NULL too
+                if bool(series.isna().to_numpy().any()):  # NaN in an object column is NULL too
                     values = [None if item != item else item for item in values]
                 kind = "TEXT"
             else:

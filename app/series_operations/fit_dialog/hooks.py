@@ -1,7 +1,7 @@
 """What the fit gives SeriesOperationDialogBase: results, result tables and series."""
 from __future__ import annotations
 
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from app.series_operations.dialog_base import ResultSeriesSpec
 from app.utils import report_html
@@ -12,6 +12,11 @@ from app.series_operations.fit_dialog.common import SeriesFitResult
 
 class FitHooksMixin:
     """What the fit gives SeriesOperationDialogBase: results, result tables and series. A part of SeriesFitDialog (see dialog.py)."""
+
+    if TYPE_CHECKING:  # StartingPointMixin's
+        def _report_sections(self, result: SeriesFitResult) -> list[str]: ...
+        def _results_html(self, result: SeriesFitResult) -> str: ...
+
 
     # ------------------------------------------------------------------
     # SeriesOperationDialogBase hooks

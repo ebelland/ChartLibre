@@ -180,11 +180,12 @@ class MainWindowFrame(_MainWindowFrameBase):
         an interior one with nothing to resize.
         """
         bar = self.statusBar() if hasattr(self, "statusBar") else None
-        bar_shown = bar is not None and bar.isVisible()
-        if bar_shown and watched is bar:
-            # The bar's top is the host's bottom: not an edge of the window.
-            return resize_edges(pos, bar.size(), self._RESIZE_MARGIN, top=False, corner=self._RESIZE_CORNER)
-        return resize_edges(pos, self._central_host.size(), self._RESIZE_MARGIN, bottom=not bar_shown)
+        if bar is not None and bar.isVisible():
+            if watched is bar:
+                # The bar's top is the host's bottom: not an edge of the window.
+                return resize_edges(pos, bar.size(), self._RESIZE_MARGIN, top=False, corner=self._RESIZE_CORNER)
+            return resize_edges(pos, self._central_host.size(), self._RESIZE_MARGIN, bottom=False)
+        return resize_edges(pos, self._central_host.size(), self._RESIZE_MARGIN)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Give the frameless Windows window edge-drag resizing.

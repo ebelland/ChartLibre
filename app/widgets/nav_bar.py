@@ -453,7 +453,7 @@ class NavigationBar(QWidget):
             if item is None:
                 continue
             widget = item.widget()
-            if isinstance(widget, QLabel) or widget in self._row_widgets.values():
+            if widget is not None and (isinstance(widget, QLabel) or widget in self._row_widgets.values()):
                 widget.setVisible(not compact)
         moved = self.visible_bar_width - before
         self._restore_width = max(self._restore_width + moved, self._panel_min_width + self.visible_bar_width)

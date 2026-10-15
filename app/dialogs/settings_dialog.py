@@ -26,6 +26,7 @@ whatever is constructed next and leaves the rest in the old language.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from PySide6.QtWidgets import QCheckBox, QComboBox, QFormLayout, QLabel, QLineEdit, QWidget
@@ -266,7 +267,7 @@ class SettingsDialog(PanelDialog):
     # ------------------------------------------------------------------
     @staticmethod
     def _combo(
-        parent: QWidget, choices: list[tuple[str, str] | None], current: str
+        parent: QWidget, choices: Sequence[tuple[str, str] | None], current: str
     ) -> QComboBox:
         """Return a combo of (stored value, shown label), on *current*.
 

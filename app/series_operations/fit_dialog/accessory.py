@@ -1,7 +1,7 @@
 """Accessory charts (residuals, measured vs. fit) and the parameter table's menu."""
 from __future__ import annotations
 
-from typing import Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -19,6 +19,12 @@ from app.series_operations.fit_dialog.common import SeriesFitResult
 
 class AccessoryChartsMixin:
     """Accessory charts (residuals, measured vs. fit) and the parameter table's menu. A part of SeriesFitDialog (see dialog.py)."""
+
+    if TYPE_CHECKING:  # the dialog's state and the base dialog's
+        _accessory_table_names: set[str]
+
+        def result_table_name(self, axis_id: int, result: Any) -> str: ...
+
 
     # ------------------------------------------------------------------
     # Optional accessory charts: residuals, and measured vs. fit

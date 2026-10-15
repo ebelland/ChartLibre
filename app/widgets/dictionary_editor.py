@@ -313,7 +313,10 @@ class DictValueDelegate(QStyledItemDelegate):
             return
         if isinstance(editor, (QDoubleSpinBox, QSpinBox)):
             if text:
-                editor.setValue(float(text) if isinstance(editor, QDoubleSpinBox) else int(text))
+                if isinstance(editor, QDoubleSpinBox):
+                    editor.setValue(float(text))
+                else:
+                    editor.setValue(int(text))
             else:
                 # Unset: the box can only show its minimum, which is not a value
                 # the user chose. Committing it untouched would write that

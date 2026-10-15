@@ -1,7 +1,7 @@
 """Running the fit: the job, its result, the results it reports."""
 from __future__ import annotations
 
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 from PySide6.QtWidgets import QWidget
@@ -16,6 +16,10 @@ from app.series_operations.fit_dialog.common import SeriesFitResult, _FitJob, _e
 
 class FitRunMixin:
     """Running the fit: the job, its result, the results it reports. A part of SeriesFitDialog (see dialog.py)."""
+
+    if TYPE_CHECKING:  # GlobalFitMixin's
+        def _fit_is_global(self) -> bool: ...
+
 
     def on_fit(self) -> None:
         """Optimise the parameters in the background, then show and preview them.

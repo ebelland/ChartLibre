@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from typing import cast
+
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from app.styles.style import (
@@ -103,12 +105,12 @@ class SettingsTableDialog(PanelDialog):
         self.settings_frame = settings_widget.card if isinstance(settings_widget, TitledCard) else settings_widget
         settings_widget.setFixedWidth(width)
         settings_widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
-        self.settings_layout = self.settings_frame.layout()
+        self.settings_layout = cast(QVBoxLayout, self.settings_frame.layout())
 
         content_widget = self._panel(content_title, "dialogContentCard")
         self.content_frame = content_widget.card if isinstance(content_widget, TitledCard) else content_widget
         content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.content_layout = self.content_frame.layout()
+        self.content_layout = cast(QVBoxLayout, self.content_frame.layout())
 
         columns.addWidget(settings_widget, 0)
         columns.addWidget(content_widget, 1)
