@@ -6,10 +6,12 @@ from typing import Any
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QProgressBar,
     QRadioButton,
+    QScrollArea,
     QSizePolicy,
     QSplitter,
     QStackedWidget,
@@ -69,6 +71,18 @@ class LayoutMixin:
         page_layout.addWidget(card, 1)
         return page
 
+    @staticmethod
+    def _scrolled(page: QWidget, parent: QWidget) -> QScrollArea:
+        """*page* in a frameless vertical scroll area on the same ground."""
+        scroll = QScrollArea(parent)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(page)
+        scroll.viewport().setProperty("toolboxPage", True)
+        scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        return scroll
+
     def _build_common_ui(self) -> None:
         """Build the common shell: the inputs as tabs on the left, the results on the right."""
         # Tabs, as Chart properties: the accordion's three stacked headers took
@@ -116,6 +130,11 @@ class LayoutMixin:
             page.setProperty("toolboxPage", True)
             page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             page.layout().setContentsMargins(*MARGIN_TOOLBOX_PAGE)
+            if content is not self.axis_series_panel:
+                # Scrolled when the window is shorter than the page, as the
+                # table analyses' pages: a long parameter form set the whole
+                # window's minimum height, too tall for a laptop.
+                page = self._scrolled(page, left_tabs)
             left_tabs.addTab(page, title)
         left_tabs.setCurrentIndex(0)
         self.left_tabs = left_tabs

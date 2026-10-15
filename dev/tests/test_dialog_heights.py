@@ -65,3 +65,26 @@ def test_the_other_dialogs_stay_within_a_laptop_too(qapp, repo: SqliteRepo) -> N
         qapp.processEvents()
         assert dialog.minimumSizeHint().height() <= LAPTOP_CLIENT_HEIGHT, type(dialog).__name__
         dialog.close()
+
+
+def test_every_data_operation_fits_a_laptop(qapp, repo: SqliteRepo) -> None:
+    """Their pages scroll, so no parameter form sets the window's minimum height."""
+    import importlib
+    import pkgutil
+
+    import app.data_operations as operations
+    from app.data_operations.dialog_base import DataOperationDialogBase
+
+    figure_id = repo.create_figure_descriptor(name="F")
+    for info in pkgutil.iter_modules(operations.__path__):
+        if not info.name.endswith("_dialog"):
+            continue
+        module = importlib.import_module(f"app.data_operations.{info.name}")
+        for value in vars(module).values():
+            if (isinstance(value, type) and issubclass(value, DataOperationDialogBase)
+                    and value.__module__ == module.__name__):
+                dialog = value(repo=repo, figure_id=figure_id, parent=None)
+                dialog.show()
+                qapp.processEvents()
+                assert dialog.minimumSizeHint().height() <= LAPTOP_CLIENT_HEIGHT - 150, value.__name__
+                dialog.close()
