@@ -647,6 +647,23 @@ QLineEdit#dataOperationsSearch {
     margin: 10px 10px 4px 10px;
 }
 
+/* The search field - in the rail under Workspace, and in Guided analysis.
+   Drawn here rather than by the native style, which made it a square box
+   edge to edge in the rail: rounded and bordered like the other fields,
+   with the rail's rows' rounding. */
+QLineEdit#catalogSearchField {
+    background: palette(base);
+    color: palette(text);
+    border: 1px solid rgba(@SHADOW_RGB@, 0.16);
+    border-radius: 6px;
+    padding: 3px 6px;
+    min-height: 20px;
+}
+
+QLineEdit#catalogSearchField:focus {
+    border: 1px solid palette(highlight);
+}
+
 QListWidget#dataOperationsList {
     background: palette(base);
     border: none;
