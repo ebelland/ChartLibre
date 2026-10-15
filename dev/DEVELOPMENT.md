@@ -92,7 +92,10 @@ dev/                  Everything a developer needs and an end user never
                       (sections/equivalents.typ).
   tests/              The test suite (`python -m pytest dev/tests -q`);
                       results and artefacts go to dev/test_results/.
-  tools/              make_launcher.py, the double-clickable launchers.
+  tools/              make_launcher.py, the double-clickable launchers;
+                      update_dependencies.py (.command / .bat): every
+                      library to its latest release, with --dry-run,
+                      --write-pins and --test.
 ```
 
 ## 3. The descriptor model
