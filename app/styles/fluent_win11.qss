@@ -356,6 +356,21 @@ QToolButton::menu-indicator {
     image: none;
 }
 
+/* The buttons a QLineEdit makes for itself - the leading search icon, the
+   clear button - are QToolButtons too, and the box above (36 px minimum, 8 px
+   of side padding) made each one 54 x 38 inside a 32 px field: the icon sat
+   below the field's bottom-left corner and the text was pushed right to make
+   room for it. Back to the glyph's own size. */
+QLineEdit QToolButton {
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+}
+
 /* -------------------------------
    Menus
 -------------------------------- */
