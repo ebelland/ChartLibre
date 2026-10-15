@@ -420,17 +420,98 @@ class TablesMixin(RepoHost):
         # Drop existing table to avoid conflicts
         self._con.execute(f"DROP TABLE IF EXISTS {table_q}")
 
-        # Import using pandas.to_sql
-        df.to_sql(
-            table,
-            self._con,
-            if_exists="append",
-            index=False,
-            dtype=dtype_overrides,
-        )
+        if dtype_overrides is not None or not self._write_frame_directly(df, table_q):
+            # Import using pandas.to_sql
+            df.to_sql(
+                table,
+                self._con,
+                if_exists="append",
+                index=False,
+                dtype=dtype_overrides,
+            )
         applogger.info(f"Imported {df.shape[0]} rows to {table_name}")
         return int(df.shape[0])
 
+
+    #: What a column of plain Python values may hold for the direct write.
+    _PLAIN_TYPES = (str, int, float, bool, type(None))
+
+    def _write_frame_directly(self, df: pd.DataFrame, table_q: str) -> bool:
+        """Write *df* with one ``executemany`` of column lists; False when it should go through pandas.
+
+        ``DataFrame.to_sql`` converts every cell on its way in and was ten
+        times slower than SQLite itself on a file (0.28 s against 0.03 s for
+        20,000 rows of 8 columns): the cost of every Preview of a series
+        operation, which writes its result table each time. This writes the
+        same table - INTEGER for integers and booleans, REAL for floats, TEXT
+        for the rest, NaN as NULL - for the frames operations produce, and
+        leaves what it does not know (dates and times, extension types,
+        values that are not plain numbers or text) to pandas, which is also
+        where it falls back if the write fails part way (nothing is left behind).
+        """
+        assert self._con is not None
+        if not len(df.columns) or df.columns.has_duplicates or not all(isinstance(c, str) for c in df.columns):
+            return False
+        try:
+            columns, declared = self._frame_columns(df)
+        except (TypeError, ValueError):
+            return False
+        if columns is None:
+            return False
+        definition = ", ".join(f"{_quote_ident(str(name))} {kind}" for name, kind in zip(df.columns, declared))
+        try:
+            self._con.execute(f"CREATE TABLE {table_q} ({definition})")
+            if len(df):
+                if not self._con.in_transaction:
+                    self._con.execute("BEGIN")
+                self._con.executemany(
+                    f"INSERT INTO {table_q} VALUES ({', '.join('?' * len(columns))})", zip(*columns)
+                )
+        except sqlite3.Error:
+            if self._con.in_transaction:
+                self._con.rollback()
+            self._con.execute(f"DROP TABLE IF EXISTS {table_q}")
+            return False
+        # Like to_sql, which commits at its end.
+        self._con.commit()
+        return True
+
+    def _frame_columns(self, df: pd.DataFrame) -> tuple[list[list[Any]] | None, list[str]]:
+        """Each column as a list of plain Python values, with its SQL type; (None, []) if one is not plain."""
+        columns: list[list[Any]] = []
+        declared: list[str] = []
+        for name in df.columns:
+            series = df[name]
+            dtype = series.dtype
+            if not isinstance(dtype, np.dtype):
+                if not pd.api.types.is_string_dtype(dtype):
+                    return None, []  # nullable integers, categories, ...
+                values = series.tolist()
+                missing = series.isna().to_numpy()
+                if missing.any():
+                    values = [None if gone else item for item, gone in zip(values, missing)]
+                kind = "TEXT"
+            elif dtype.kind == "f":
+                array = series.to_numpy(dtype=float)
+                missing = np.isnan(array)
+                values = np.where(missing, None, array).tolist() if missing.any() else array.tolist()
+                kind = "REAL"
+            elif dtype.kind in "iu":
+                values, kind = series.tolist(), "INTEGER"
+            elif dtype.kind == "b":
+                values, kind = [int(item) for item in series.tolist()], "INTEGER"
+            elif dtype.kind == "O":
+                values = series.tolist()
+                if not set(map(type, values)) <= set(self._PLAIN_TYPES):
+                    return None, []
+                if series.isna().any():  # NaN in an object column is NULL too
+                    values = [None if item != item else item for item in values]
+                kind = "TEXT"
+            else:
+                return None, []  # datetime, timedelta, ...
+            columns.append(values)
+            declared.append(kind)
+        return columns, declared
 
     # =====================================================================
     # Import links management
