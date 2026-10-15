@@ -9216,3 +9216,177 @@ msgstr "Una colonna alla volta: quantili, momenti, test di normalità e capacit�
 
 msgid "Y against each X, the analysis chosen by their types: bivariate fit, oneway ANOVA with pairwise comparisons, contingency table, or logistic fit."
 msgstr "Y rispetto a ciascuna X, con l'analisi scelta dai loro tipi: regressione bivariata, ANOVA a una via con confronti a coppie, tabella di contingenza o regressione logistica."
+
+msgid "(row numbers)"
+msgstr "(numeri di riga)"
+
+msgid "Add a Match column"
+msgstr "Aggiungi una colonna Match"
+
+msgid "Add a Source column with each row's table"
+msgstr "Aggiungi una colonna Source con la tabella di ogni riga"
+
+msgid "Bins:"
+msgstr "Classi:"
+
+msgid "Build"
+msgstr "Costruisci"
+
+msgid "Column:"
+msgstr "Colonna:"
+
+msgid "Combine:"
+msgstr "Combina:"
+
+msgid "Data column:"
+msgstr "Colonna dei dati:"
+
+msgid "Drop repeated rows (UNION instead of UNION ALL)"
+msgstr "Elimina le righe ripetute (UNION invece di UNION ALL)"
+
+msgid "Each row's origin: Both, Left only or Right only."
+msgstr "L'origine di ogni riga: Both, Left only o Right only."
+
+msgid "Edges:"
+msgstr "Limiti:"
+
+msgid "Equal counts (quantiles)"
+msgstr "Stessa numerosità (quantili)"
+
+msgid "Equal width"
+msgstr "Stessa ampiezza"
+
+msgid "Full outer: every row"
+msgstr "Full outer: tutte le righe"
+
+msgid "How many:"
+msgstr "Quante:"
+
+msgid "How two rows for the same group and label are combined."
+msgstr "Come si combinano due righe con lo stesso gruppo ed etichetta."
+
+msgid "Inner: matched rows only"
+msgstr "Inner: solo le righe che corrispondono"
+
+msgid "Intervals [a, b)"
+msgstr "Intervalli [a, b)"
+
+msgid "Keep:"
+msgstr "Tieni:"
+
+msgid "Label column:"
+msgstr "Colonna delle etichette:"
+
+msgid "Labels:"
+msgstr "Etichette:"
+
+msgid "Leave out empty values"
+msgstr "Escludi i valori vuoti"
+
+msgid "Left:"
+msgstr "Sinistra:"
+
+msgid "Left: every left row"
+msgstr "Left: tutte le righe di sinistra"
+
+msgid "Match:"
+msgstr "Corrispondenza:"
+
+msgid "Midpoints"
+msgstr "Punti medi"
+
+msgid "My edges"
+msgstr "I miei limiti"
+
+msgid "Name columns by:"
+msgstr "Nomi delle colonne da:"
+
+msgid "New column:"
+msgstr "Nuova colonna:"
+
+msgid "New value"
+msgstr "Nuovo valore"
+
+msgid "No saved query"
+msgstr "Nessuna query salvata"
+
+msgid "None checked: the n-th value of every label goes in row n."
+msgstr "Nessuna selezionata: l'n-esimo valore di ogni etichetta va nella riga n."
+
+msgid "Numbers 1, 2, 3..."
+msgstr "Numeri 1, 2, 3..."
+
+msgid "Of:"
+msgstr "Di:"
+
+msgid "Put this operation's statement in the editor and run it"
+msgstr "Scrive l'istruzione di questa operazione nell'editor e la esegue"
+
+msgid "Right:"
+msgstr "Destra:"
+
+msgid "Right: every right row"
+msgstr "Right: tutte le righe di destra"
+
+msgid "Save as table"
+msgstr "Salva come tabella"
+
+msgid "Split by:"
+msgstr "Dividi per:"
+
+msgid "Stack:"
+msgstr "Impila:"
+
+msgid "Statistic:"
+msgstr "Statistica:"
+
+msgid "Transpose:"
+msgstr "Trasponi:"
+
+msgid "Values:"
+msgstr "Valori:"
+
+msgid "Write SQL"
+msgstr "Scrivi SQL"
+
+msgid "Write what the statement returns as a new table: fixed rows, not read again like a saved query"
+msgstr "Scrive come nuova tabella ciò che l'istruzione restituisce: righe fisse, non rilette come una query salvata"
+
+msgid "empty: replace the column"
+msgstr "vuoto: sostituisce la colonna"
+
+msgid "Stack"
+msgstr "Impila"
+
+msgid "Transpose"
+msgstr "Trasponi"
+
+msgid "Recode"
+msgstr "Ricodifica"
+
+msgid "Bin"
+msgstr "Classi"
+
+msgid "Rows of two tables matched on one or more columns: inner, left, right or full outer."
+msgstr "Righe di due tabelle abbinate su una o più colonne: inner, left, right o full outer."
+
+msgid "Tables one under the other (concatenate), columns matched by name."
+msgstr "Tabelle una sotto l'altra (concatena), colonne abbinate per nome."
+
+msgid "Wide to long: the chosen columns become rows of Label and Data, the others repeated."
+msgstr "Da largo a lungo: le colonne scelte diventano righe di Label e Data, le altre ripetute."
+
+msgid "Long to wide: one column's values become columns, filled from another."
+msgstr "Da lungo a largo: i valori di una colonna diventano colonne, riempite da un'altra."
+
+msgid "Columns become rows and rows columns, named by a label column or numbered."
+msgstr "Le colonne diventano righe e le righe colonne, con i nomi da una colonna di etichette o numerate."
+
+msgid "Replace a column's values with new ones; the values not given stay as they are."
+msgstr "Sostituisce i valori di una colonna; quelli non indicati restano come sono."
+
+msgid "A numeric column cut into intervals: equal width, equal counts (quantiles) or your edges."
+msgstr "Una colonna numerica divisa in intervalli: stessa ampiezza, stessa numerosità (quantili) o i tuoi limiti."
+
+msgid "One row per group: counts, sums, means... of the chosen columns (summary table)."
+msgstr "Una riga per gruppo: conteggi, somme, medie... delle colonne scelte (tabella riassuntiva)."

@@ -433,6 +433,24 @@ class TableToolsMixin(RepoHost):
         return name
 
 
+    @ensure_connection_wrapper
+    def create_table_from_query(self, name: str, sql: str) -> str:
+        """Write what *sql* returns as a new table *name* (undoable); its name.
+
+        The rows are fixed, unlike a saved query, which is read again each
+        time: the Query Builder's Save as table.
+        """
+        name = name.strip()
+        if not _is_ident(name):
+            raise ValueError(f"'{name}' is not a usable table name")
+        if name != self.free_table_name(name):
+            raise ValueError(f"a table or query named '{name}' already exists")
+        self.snapshot_for_undo([name], label=f"Save a query as '{name}'")
+        assert self._con is not None
+        self._con.execute(f"CREATE TABLE {_quote_ident(name)} AS SELECT * FROM ({sql.strip().rstrip(';')})")
+        self._commit()
+        return name
+
 def _plain(value: Any) -> Any:
     """A value sqlite3 can bind: numpy scalars unboxed, NaN as NULL."""
     if value is None:

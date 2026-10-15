@@ -281,7 +281,8 @@ TOOLS: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "query": (
         "Create Query Table",
         "Create a table from a database query.",
-        "query interrogazione sql join select filtro filter",
+        "query interrogazione sql join select filtro filter union unione concatenate concatena stack impila "
+        "split dividi transpose trasponi recode ricodifica bin classi intervalli reshape wide long",
         ("prepare",),
     ),
     "new_table": (
@@ -621,6 +622,30 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "JMP": "DOE > Custom Design / Classical",
         "SPSS": "Data > Orthogonal Design > Generate",
         "Minitab": "Stat > DOE > Create Factorial / Response Surface Design",
+    }),
+    ("Join tables", "Create Query Table > Build > Join", "tool:query", {
+        "JMP": "Tables > Join",
+        "SPSS": "Data > Merge Files > Add Variables",
+        "Minitab": "Data > Merge Worksheets",
+        "Origin / Excel": "Excel: XLOOKUP / Power Query > Merge Queries",
+    }),
+    ("Concatenate tables", "Create Query Table > Build > Union", "tool:query", {
+        "JMP": "Tables > Concatenate",
+        "SPSS": "Data > Merge Files > Add Cases",
+        "Minitab": "Data > Stack Worksheets",
+        "Origin / Excel": "Excel: Power Query > Append Queries",
+    }),
+    ("Stack, split, transpose", "Create Query Table > Build > Stack / Split / Transpose", "tool:query", {
+        "JMP": "Tables > Stack / Split / Transpose",
+        "SPSS": "Data > Restructure",
+        "Minitab": "Data > Stack / Unstack Columns; Data > Transpose Columns",
+        "Origin / Excel": "Excel: Power Query > Unpivot / Pivot Column; Paste Special > Transpose",
+    }),
+    ("Recode and bin", "Create Query Table > Build > Recode / Bin", "tool:query", {
+        "JMP": "Cols > Recode; Cols > Utilities > Make Binning Formula",
+        "SPSS": "Transform > Recode into Different Variables; Transform > Visual Binning",
+        "Minitab": "Data > Recode; Data > Code",
+        "Origin / Excel": "Excel: IFS / XLOOKUP; Data Analysis > Histogram bins",
     }),
     ("Summary table (group and aggregate)", "Edit table > Group and aggregate", "tool:edit_table", {
         "JMP": "Tables > Summary",

@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 92,919 lines in 252 files; tests 17,405 lines in 137 files (updated at each commit).
+Size: app 93,610 lines in 254 files; tests 17,526 lines in 138 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -31,6 +31,9 @@ DONE Dialogs fit a 1280x720 laptop: data operations' Model/Parameters pages scro
      test over every operation.
 DONE macOS: rail search field rounded like the other fields.
 DONE dev/tools/update_dependencies.py (.command/.bat): every library to its latest release.
+DONE AN-11: Create Query Table > Build: Join (inner/left/right/full, 1-2 key pairs, Match column), Union
+     (Source column), Stack, Split (by order with no group), Transpose, Recode, Bin, Group - each writes plain
+     SQLite into the editor and runs it; Save as table beside Save as query. (Imputation: Fill empty in the table editor.)
 DONE PY-15: Python 3.15 (.venv-3.15) passes the suite but the old chrome test. PySide6 6.12 was not at fault:
      the venv on the Desktop had every file flagged hidden, so Qt saw no plugins (main.py already works
      around it; update_dependencies now clears the flag). statsmodels 0.15 (design_info in model_spec,
@@ -49,7 +52,6 @@ NEXT - ANALYSIS (table operations, JMP-like)
 - AN-04 M  Multivariate: correlations with p, PCA and factor analysis (AN-21).
 - AN-05 M  Time series: ACF/PACF, STL, ARIMA / ETS forecasts.
 - AN-10 M  Clustering on table columns, silhouette to choose k (AN-23).
-- AN-11 M  Data prep: stack/split, join, recode, bin, imputation (AN-22).
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
            repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
 - R-08  M  Column metadata: label, unit, missing codes, value labels.

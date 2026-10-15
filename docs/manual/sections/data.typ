@@ -96,20 +96,31 @@ The *Query Builder* (in the *Data* section of Data operations, or from the table
 
 The window has:
 
-- on the left, the *saved queries* (add, delete, pick one to edit) and the project's *tables* with their *fields*;
-- in the middle, the *SQL* editor and the query's *name*;
-- *snippet* buttons that insert ready-made SQL for the selected table and field:
+- on the left, the *saved queries* (pick one to edit, *Add*, *Delete*); *Build*, the Tables operations of JMP and the like, each a form that writes its SQL; the project's *tables* with their *fields*, and three snippets;
+- on the right, the *SQL* editor over the *result preview*.
+
+*Build* — choose the operation, fill its form, press *Write SQL*: the statement goes into the editor and runs, so the preview shows the result at once. It is ordinary SQL, to read, change, save as a query or as a table:
 
 #defs(
-  [*Select*], [`SELECT` the chosen fields from the table.],
-  [*Join*], [Opens *Build a JOIN*: the main table and field, the table and field to join on, and the join type.],
-  [*Union*], [Opens *Build a UNION*: two tables, stacked, using the fields they have in common.],
-  [*Summary*], [Count, average, minimum and maximum, grouped by a field.],
+  [*Join*], [Rows of two tables matched on one or two pairs of columns. *Keep*: inner (matched rows only), left, right or full outer (every row, empty where there is no match). A column both tables have gets the suffix `_2`; *Add a Match column* says where each row came from (Both, Left only, Right only).],
+  [*Union*], [Two or more tables one under the other (concatenate), columns matched by name — empty where a table lacks one — with a *Source* column naming each row's table. UNION ALL keeps repeated rows; *Drop repeated rows* writes UNION.],
+  [*Stack*], [Wide to long: each chosen column becomes a row of two, *Label* (the column's name) and *Data* (its value); the other columns are repeated. Optionally without the empty values.],
+  [*Split*], [Long to wide, the opposite of Stack: the values of *Split by* become columns, filled from *Values*. With *Group by* columns, one row per combination of them; with none, the n-th value of every label goes in row n. *Combine* says how two values for the same row and label are combined.],
+  [*Transpose*], [Columns become rows and rows columns; the new columns are named by a label column, or Row 1, Row 2...],
+  [*Recode*], [A column's values replaced by new ones, typed against each distinct value; the ones left empty stay as they are. Into a new column, or the column itself.],
+  [*Bin*], [A numeric column cut into intervals: equal width, equal counts (quantiles) or your edges, labelled `[a, b)`, 1, 2, 3... or by midpoint. A new column.],
+  [*Group*], [One row per combination of the grouping columns, with the row count and a statistic (sum, average, minimum, maximum, count, distinct count) of the chosen columns.],
+)
+
+The snippets act on the selected table and field:
+
+#defs(
+  [*Select*], [`SELECT` the chosen field from the table.],
   [*Order*], [`ORDER BY` the field, with an explicit direction.],
   [*Filter*], [`WHERE` with the comparison written out.],
 )
 
-Placeholders in a snippet are written in `<angle brackets>`, which is not valid SQL, so a snippet left unfinished fails instead of running on the wrong column. *Run* shows the first 500 rows of the result below the editor. *Save query* saves it under its name; *OK* saves and closes the window — and stays open if the query could not be saved, showing why.
+*Run* shows the first 500 rows of the result. *OK* saves the statement as a query — read again each time, so it follows its tables — and closes the window, or stays open showing why it could not. *Save as table* writes what the statement returns as a new table instead: fixed rows, undoable, for a result that should not change when its sources do.
 
 #note[
   By default ChartLibre refuses any SQL that would change the database — `UPDATE`, `DELETE`, `DROP` and the like — when a query is saved or typed. The data is changed only through the import window, the table editor and the operations, which all keep the undo history. The guard can be switched off in Settings (see @settings-chapter).

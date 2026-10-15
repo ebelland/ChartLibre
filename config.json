@@ -581,12 +581,12 @@
         "edit-find"
       ]
     },
-    "sql_join": {
-      "text": "Join",
-      "description": "LEFT JOIN keeping every row of the chosen table",
-      "SFSymbol": "link",
-      "SegoeFluent": "E71B",
-      "ThemeIcon": "insert-link"
+    "save_as_table": {
+      "text": "Save as table",
+      "description": "Write what the statement returns as a new table",
+      "SFSymbol": "tablecells.badge.ellipsis",
+      "SegoeFluent": "E8A5",
+      "ThemeIcon": "document-save-as"
     },
     "sql_order": {
       "text": "Order",
@@ -602,19 +602,12 @@
       "SegoeFluent": "E71C",
       "ThemeIcon": "edit-select-all"
     },
-    "sql_summary": {
-      "text": "Summary",
-      "description": "Count, average, min and max, grouped by a column",
-      "SFSymbol": "sum",
-      "SegoeFluent": "E9D9",
-      "ThemeIcon": "accessories-calculator"
-    },
-    "sql_union": {
-      "text": "Union",
-      "description": "UNION ALL of two tables with the same columns",
-      "SFSymbol": "arrow.triangle.merge",
-      "SegoeFluent": "E8F1",
-      "ThemeIcon": "insert-link"
+    "sql_write": {
+      "text": "Write SQL",
+      "description": "Put this operation's statement in the editor and run it",
+      "SFSymbol": "square.and.pencil",
+      "SegoeFluent": "E70F",
+      "ThemeIcon": "document-edit"
     },
     "undo": {
       "text": "Undo",

@@ -19,14 +19,13 @@ from typing import Any
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
-    QDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
-    QDialogButtonBox,
     QFormLayout,
     QPlainTextEdit,
     QSizePolicy,
+    QStackedWidget,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -51,6 +50,7 @@ from app.utils.dialog_state import (
 from app.utils.messages import ask, show_message
 from app.widgets.table_preview import DataFrameTableModel
 from app.utils.i18n import _
+from app.dialogs.query_operations import FORMS, OperationForm
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 
 # Rows fetched by Run.  Enough to see whether the query is right, few enough
@@ -65,7 +65,9 @@ STATE_KEY: str = "query_builder_dialog"
 # Each builder receives the already-quoted table name.  Placeholders are
 # written in <angle brackets>: they are invalid SQL, so a snippet left
 # unfinished fails validation instead of running against the wrong column.
-_SNIPPET_IDS = ("select", "join", "union", "summary", "order", "filter")
+# Join, union and the summary are in the Build frame now, with the other
+# Tables operations (app.dialogs.query_operations).
+_SNIPPET_IDS = ("select", "order", "filter")
 
 
 class QueryBuilderDialog(SettingsTableDialog):
@@ -119,6 +121,10 @@ class QueryBuilderDialog(SettingsTableDialog):
             parent=self, action_id="run", action=self.run, layout=None
         )
         self.action_row.insertWidget(0, run_button)
+        table_button = self.add_action("save_as_table", self.save_as_table)
+        table_button.setText(_("Save as table"))
+        table_button.setToolTip(_("Write what the statement returns as a new table: fixed rows, "
+                                  "not read again like a saved query"))
         self.add_action("apply", self.accept, default=True)
         self.add_action("close", self.reject)
 
@@ -129,18 +135,22 @@ class QueryBuilderDialog(SettingsTableDialog):
         self._query_combo = QComboBox(card)
         self._query_combo.setToolTip(_("Pick a saved query."))
         self._query_combo.currentTextChanged.connect(self._on_saved_query_changed)
-        layout.addWidget(self._query_combo)
-
+        # The combo and its two buttons on one row: the Build frame below needs the height.
         add_row = QWidget(card)
         add_layout = QHBoxLayout(add_row)
         stdSizeAndlayout(add_layout)
+        self._query_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._query_combo.setMinimumContentsLength(8)
+        self._query_combo.setPlaceholderText(_("No saved query"))
+        add_layout.addWidget(self._query_combo, 1)
         create_action_button(parent=add_row, action_id="add", action=self._new_query, layout=add_layout)
         create_action_button(
             parent=add_row, action_id="delete",
             action=self._delete_current_query, layout=add_layout
         )
-        add_layout.addStretch(1)
         layout.addWidget(add_row)
+
+        self._build_operations_card()
 
         card = self.add_settings_card(_("Table and field"))
         form = QFormLayout()
@@ -157,12 +167,80 @@ class QueryBuilderDialog(SettingsTableDialog):
         card.layout().addWidget(self._build_snippet_rows(card))
         self._settings_column.layout().addStretch(1)
 
+    def _build_operations_card(self) -> None:
+        """Build: an operation of the Tables menu (join, stack, split...), its form, and Write SQL."""
+        card = self.add_settings_card(_("Build"))
+        layout = card.layout()
+        self._operation_combo = QComboBox(card)
+        self._operation_description = QLabel("", card)
+        self._operation_description.setWordWrap(True)
+        self._operation_description.setProperty("muted", True)
+        self._operation_stack = QStackedWidget(card)
+        self._operation_forms: list[OperationForm] = []
+        for form_class in FORMS:
+            self._operation_combo.addItem(_(form_class.NAME))
+            form = form_class(self._repo, self._operation_stack)
+            self._operation_forms.append(form)
+            self._operation_stack.addWidget(form)
+        self._operation_combo.currentIndexChanged.connect(self._on_operation_changed)
+        layout.addWidget(self._operation_combo)
+        layout.addWidget(self._operation_description)
+        layout.addWidget(self._operation_stack)
+        write = create_action_button(parent=card, action_id="sql_write", action=self.write_operation_sql,
+                                     layout=None)
+        write.setText(_("Write SQL"))
+        write.setToolTip(_("Put this operation's statement in the editor and run it"))
+        row = QHBoxLayout()
+        row.addStretch(1)
+        row.addWidget(write)
+        layout.addLayout(row)
+        self._on_operation_changed(0)
+
+    def _on_operation_changed(self, index: int) -> None:
+        self._operation_stack.setCurrentIndex(index)
+        self._operation_description.setText(_(FORMS[index].DESCRIPTION))
+        # Only the shown form takes height: the others would size the stack to the tallest.
+        for position, form in enumerate(self._operation_forms):
+            form.setSizePolicy(QSizePolicy.Policy.Preferred,
+                               QSizePolicy.Policy.Preferred if position == index else QSizePolicy.Policy.Ignored)
+        self._operation_stack.adjustSize()
+
+    def write_operation_sql(self) -> bool:
+        """The chosen operation's statement into the editor, then run."""
+        form = self._operation_forms[self._operation_combo.currentIndex()]
+        try:
+            sql = form.sql()
+        except ValueError as exc:
+            self._status.setText(f"Error - {exc}")
+            return False
+        self._editor.setPlainText(sql)
+        return self.run()
+
+    def save_as_table(self) -> bool:
+        """Write the statement's rows as a new table, under a name asked for."""
+        if not self.validate():
+            show_message(self, "query.invalid", error=self._status.text())
+            return False
+        suggested = self._repo.free_table_name((self._current_name or "query_table").replace(" ", "_"))
+        name, accepted = QInputDialog.getText(self, _("Save as table"), _("Table name:"), text=suggested)
+        if not accepted or not name.strip():
+            return False
+        try:
+            created = self._repo.create_table_from_query(name.strip(), self.sql)
+        except Exception as exc:  # noqa: BLE001 - shown, the dialog stays open
+            applogger.exception("Failed to save the query as a table")
+            self._status.setText(f"Error - {exc}")
+            return False
+        self._status.setText(_("Table '{name}' created.").format(name=created))
+        applogger.info("Created table '%s' from a query.", created)
+        return True
+
     def _build_snippet_rows(self, parent: QWidget) -> QWidget:
-        """Build the six SQL command buttons in two rows of three."""
+        """Build the SQL command buttons in a row."""
         container = QWidget(parent)
         outer = QVBoxLayout(container)
         stdSizeAndlayout(outer)
-        for first in (0, 3):
+        for first in (0,):
             row = QWidget(container)
             row_layout = QHBoxLayout(row)
             stdSizeAndlayout(row_layout)
@@ -335,9 +413,6 @@ class QueryBuilderDialog(SettingsTableDialog):
             "select": self._select_field,
             "order": self._order_by_field,
             "filter": self._filter_by_field,
-            "join": self._build_join,
-            "union": self._build_union,
-            "summary": self._build_summary,
         }
         handler = handlers.get(command)
         if handler:
@@ -381,113 +456,6 @@ class QueryBuilderDialog(SettingsTableDialog):
             sql = f"{sql[:match.start()].rstrip()}\n{predicate}\n{sql[match.start():].lstrip()}"
         else:
             sql = f"{sql.rstrip()}\n{predicate}"
-        self._editor.setPlainText(sql)
-
-    def _build_join(self) -> None:
-        tables = self._repo.list_table_names()
-        if len(tables) < 2:
-            self._status.setText(_("A JOIN needs at least two tables."))
-            return
-        dialog = QDialog(self)
-        dialog.setWindowTitle(_("Build a JOIN"))
-        form = QFormLayout(dialog)
-        left_table, right_table = QComboBox(dialog), QComboBox(dialog)
-        left_field, right_field = QComboBox(dialog), QComboBox(dialog)
-        join_type = QComboBox(dialog)
-        left_table.addItems(tables); right_table.addItems(tables)
-        right_table.setCurrentIndex(1)
-        join_type.addItems(["INNER", "LEFT", "RIGHT", "FULL OUTER", "CROSS"])
-
-        def reload_left() -> None:
-            left_field.clear(); left_field.addItems(self._repo.get_columns(left_table.currentText()))
-        def reload_right() -> None:
-            right_field.clear(); right_field.addItems(self._repo.get_columns(right_table.currentText()))
-        left_table.currentTextChanged.connect(reload_left)
-        right_table.currentTextChanged.connect(reload_right)
-        reload_left(); reload_right()
-        form.addRow(_("Main table:"), left_table)
-        form.addRow(_("Table to join:"), right_table)
-        form.addRow(_("Main field:"), left_field)
-        form.addRow(_("Field to join on:"), right_field)
-        form.addRow(_("JOIN type:"), join_type)
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
-            parent=dialog,
-        )
-        buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject)
-        form.addRow(buttons)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        lt, rt = left_table.currentText(), right_table.currentText()
-        kind = join_type.currentText()
-        sql = (
-            f"SELECT a.*, b.*\nFROM {quote_identifier(lt)} AS a\n"
-            f"{kind} JOIN {quote_identifier(rt)} AS b"
-        )
-        if kind != "CROSS":
-            sql += (
-                f"\n  ON a.{quote_identifier(left_field.currentText())} = "
-                f"b.{quote_identifier(right_field.currentText())}"
-            )
-        self._editor.setPlainText(sql)
-
-    def _build_union(self) -> None:
-        tables = self._repo.list_table_names()
-        if len(tables) < 2:
-            self._status.setText(_("A UNION needs at least two tables."))
-            return
-        dialog = QDialog(self)
-        dialog.setWindowTitle(_("Build a UNION"))
-        form = QFormLayout(dialog)
-        first, second, union_type = QComboBox(dialog), QComboBox(dialog), QComboBox(dialog)
-        first.addItems(tables); second.addItems(tables); second.setCurrentIndex(1)
-        union_type.addItems(["UNION ALL", "UNION"])
-        form.addRow(_("First table:"), first)
-        form.addRow(_("Second table:"), second)
-        form.addRow(_("Type:"), union_type)
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
-            parent=dialog,
-        )
-        buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject)
-        form.addRow(buttons)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        first_cols = self._repo.get_columns(first.currentText())
-        second_cols = set(self._repo.get_columns(second.currentText()))
-        common = [col for col in first_cols if col in second_cols]
-        if not common:
-            self._status.setText(_("The tables have no fields in common to UNION."))
-            return
-        fields = ", ".join(quote_identifier(col) for col in common)
-        self._editor.setPlainText(
-            f"SELECT {fields}\nFROM {quote_identifier(first.currentText())}\n"
-            f"{union_type.currentText()}\n"
-            f"SELECT {fields}\nFROM {quote_identifier(second.currentText())}"
-        )
-
-    def _build_summary(self) -> None:
-        selected = self._require_table_field()
-        if not selected:
-            return
-        table, field = selected
-        info = self._repo.table_info(table)
-        declared = next((str(row[2]).upper() for row in info if str(row[1]) == field), "")
-        numeric = any(token in declared for token in ("INT", "REAL", "NUM", "DEC", "FLOAT", "DOUBLE"))
-        qtable, qfield = quote_identifier(table), quote_identifier(field)
-        if numeric:
-            sql = (
-                f"SELECT COUNT(*) AS n,\n"
-                f"       SUM({qfield}) AS totale,\n"
-                f"       AVG({qfield}) AS media,\n"
-                f"       MIN({qfield}) AS minimo,\n"
-                f"       MAX({qfield}) AS massimo\nFROM {qtable}"
-            )
-        else:
-            sql = (
-                f"SELECT {qfield}, COUNT(*) AS occorrenze\nFROM {qtable}\n"
-                f"GROUP BY {qfield}\nORDER BY occorrenze DESC"
-            )
         self._editor.setPlainText(sql)
 
     # ------------------------------------------------------------------

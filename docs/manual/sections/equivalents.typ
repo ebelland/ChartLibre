@@ -59,6 +59,10 @@ too: typing "Fit Y by X", "Crosstabs" or "Control Chart Builder" finds the Chart
   [*Interpolation, missing values*], [Data operations > Interpolation], [—], [Transform > Replace Missing Values], [—], [Origin: Analysis > Mathematics > Interpolate/Extrapolate],
   [*Transformations (log, Box-Cox, standardize)*], [Data operations > Transform], [Cols > New Formula Column > Transform], [Transform > Compute Variable], [Calc > Standardize; Stat > Control Charts > Box-Cox Transformation], [Origin: Analysis > Mathematics > Normalize],
   [*Design of experiments*], [Tables > Create a table from a DOE], [DOE > Custom Design / Classical], [Data > Orthogonal Design > Generate], [Stat > DOE > Create Factorial / Response Surface Design], [—],
+  [*Join tables*], [Create Query Table > Build > Join], [Tables > Join], [Data > Merge Files > Add Variables], [Data > Merge Worksheets], [Excel: XLOOKUP / Power Query > Merge Queries],
+  [*Concatenate tables*], [Create Query Table > Build > Union], [Tables > Concatenate], [Data > Merge Files > Add Cases], [Data > Stack Worksheets], [Excel: Power Query > Append Queries],
+  [*Stack, split, transpose*], [Create Query Table > Build > Stack / Split / Transpose], [Tables > Stack / Split / Transpose], [Data > Restructure], [Data > Stack / Unstack Columns; Data > Transpose Columns], [Excel: Power Query > Unpivot / Pivot Column; Paste Special > Transpose],
+  [*Recode and bin*], [Create Query Table > Build > Recode / Bin], [Cols > Recode; Cols > Utilities > Make Binning Formula], [Transform > Recode into Different Variables; Transform > Visual Binning], [Data > Recode; Data > Code], [Excel: IFS / XLOOKUP; Data Analysis > Histogram bins],
   [*Summary table (group and aggregate)*], [Edit table > Group and aggregate], [Tables > Summary], [Data > Aggregate], [Stat > Tables > Descriptive Statistics], [Excel: Insert > PivotTable],
   [*Charts*], [Data operations > Plot], [Graph > Graph Builder], [Graphs > Chart Builder], [Graph], [Origin: Plot; Excel: Insert > Charts],
 )
