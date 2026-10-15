@@ -647,23 +647,6 @@ QLineEdit#dataOperationsSearch {
     margin: 10px 10px 4px 10px;
 }
 
-/* The search field - in the rail under Workspace, and in Guided analysis.
-   Drawn here rather than by the native style, which made it a square box
-   edge to edge in the rail: rounded and bordered like the other fields,
-   with the rail's rows' rounding. */
-QLineEdit#catalogSearchField {
-    background: palette(base);
-    color: palette(text);
-    border: 1px solid rgba(@SHADOW_RGB@, 0.16);
-    border-radius: 6px;
-    padding: 3px 6px;
-    min-height: 20px;
-}
-
-QLineEdit#catalogSearchField:focus {
-    border: 1px solid palette(highlight);
-}
-
 QListWidget#dataOperationsList {
     background: palette(base);
     border: none;
@@ -799,6 +782,41 @@ QAbstractSpinBox {
   border-radius: 6px;
   padding: 3px 26px 3px 6px;
   min-height: 20px;
+}
+
+/* Text fields as the spin boxes above: rounded and bordered. Left to the
+   native style they were square boxes (the figure's name, the style box,
+   the rail's search) beside rounded spin boxes and text areas. */
+QLineEdit {
+  background: palette(base);
+  color: palette(text);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.22);
+  border-radius: 6px;
+  padding: 3px 6px;
+  min-height: 20px;
+}
+
+QLineEdit:focus,
+QAbstractSpinBox:focus {
+  border: 1px solid palette(highlight);
+}
+
+/* ...but not the editors inside other controls, which draw their own frame:
+   a spin box's or an editable combo's text, a table cell being edited. */
+QAbstractSpinBox QLineEdit,
+QComboBox QLineEdit {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  min-height: 0;
+}
+
+QAbstractItemView QLineEdit {
+  border: 1px solid palette(highlight);
+  border-radius: 0;
+  padding: 0 2px;
+  min-height: 0;
 }
 
 QAbstractSpinBox::up-button,
