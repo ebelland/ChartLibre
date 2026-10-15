@@ -566,12 +566,18 @@ def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respon
                 method="bfgs", disp=0, maxiter=500)
         model = sm.Logit((codes == 0).astype(int), exog) if len(levels) == 2 else sm.MNLogit(codes, exog)
         try:
-            return model.fit(disp=0, maxiter=200)
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                fitted = model.fit(disp=0, maxiter=200)
+            # statsmodels 0.15 no longer raises on separation: it warns.
+            if not any(issubclass(w.category, _separation_warnings()) for w in caught):
+                return fitted
         except (np.linalg.LinAlgError, *_separation_errors()):
-            # The effects separate the levels: Newton's Hessian is singular.
-            # As JMP, fit anyway by a gradient method and say it is unstable.
-            unstable.append(True)
-            return model.fit(method="bfgs", disp=0, maxiter=2000)
+            pass
+        # The effects separate the levels: Newton's Hessian is singular.
+        # As JMP, fit anyway by a gradient method and say it is unstable.
+        unstable.append(True)
+        return model.fit(method="bfgs", disp=0, maxiter=2000)
 
     columns = list(design.columns)
     from statsmodels.tools.sm_exceptions import ConvergenceWarning, HessianInversionWarning
@@ -583,6 +589,15 @@ def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respon
             warnings.simplefilter("ignore", category)
         return _logistic_report(response, spec, prep, levels, terms, ordinal, codes, design, slices, fit,
                                 columns, unstable)
+
+
+def _separation_warnings() -> tuple[type[Warning], ...]:
+    """statsmodels' perfect-separation warning, the only signal from 0.15 on."""
+    try:
+        from statsmodels.tools.sm_exceptions import PerfectSeparationWarning
+    except ImportError:
+        return ()
+    return (PerfectSeparationWarning,)
 
 
 def _separation_errors() -> tuple[type[Exception], ...]:
@@ -755,13 +770,15 @@ def _patsy_name(piece_text: str) -> str:
 def _term_slices(model) -> dict[str, slice]:
     """Each formula term's columns among the estimates.
 
-    Read from the formula's design (``data.design_info``); rebuilt from the
+    Read from the formula's design (``data.design_info``, ``data.model_spec``
+    from statsmodels 0.15); rebuilt from the
     formula and its data when a model carries none - a statsmodels build or
     a model path that does not keep it ("'PandasData' object has no
     attribute 'design_info'").
     """
     inner = model.model
-    info = getattr(inner.data, "design_info", None) or getattr(inner, "design_info", None)
+    info = (getattr(inner.data, "design_info", None) or getattr(inner.data, "model_spec", None)
+            or getattr(inner, "design_info", None))
     if info is None:
         import patsy
 

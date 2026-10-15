@@ -31,16 +31,36 @@ def test_linear_matches_the_known_iris_values() -> None:
     assert (result.summary["DF num"], result.summary["DF den"]) == (8.0, 288.0)
     np.testing.assert_allclose(result.canonical["Eigenvalue"], [32.1919, 0.2854], atol=1e-4)
     sklearn = LinearDiscriminantAnalysis().fit(frame[covariates], frame["species"])
-    np.testing.assert_allclose(np.abs(result.scores.to_numpy()), np.abs(sklearn.transform(frame[covariates])),
-                               atol=1e-9)
+    # The same canonical directions as scikit-learn; its scale moved in 1.9.1
+    # (by sqrt((n - k) / n)), so the comparison is by correlation, and the
+    # scale is checked on its own: unit pooled within-group variance.
+    ours, theirs = result.scores.to_numpy(), sklearn.transform(frame[covariates])
+    for column in range(ours.shape[1]):
+        assert abs(np.corrcoef(ours[:, column], theirs[:, column])[0, 1]) == pytest.approx(1.0, abs=1e-9)
+    groups = frame["species"].to_numpy()
+    within = sum(((ours[groups == g] - ours[groups == g].mean(axis=0)) ** 2).sum(axis=0) for g in set(groups))
+    np.testing.assert_allclose(within / (len(groups) - 3), 1.0, atol=1e-9)
     assert (result.predicted == sklearn.predict(frame[covariates])).all()
 
 
 def test_quadratic_matches_scikit_learn() -> None:
     frame, covariates = _iris()
     result = discriminant(frame, "species", covariates, method=QUADRATIC)
-    sklearn = QuadraticDiscriminantAnalysis().fit(frame[covariates], frame["species"])
-    np.testing.assert_allclose(result.probabilities.to_numpy(), sklearn.predict_proba(frame[covariates]), atol=1e-12)
+    # Worked here rather than read from scikit-learn, whose QDA moved in 1.9.1:
+    # each group's normal (its own covariance, n - 1) times its share of the rows.
+    from scipy.stats import multivariate_normal
+
+    x, groups = frame[covariates].to_numpy(), frame["species"].to_numpy()
+    levels = sorted(set(groups))
+    log = np.column_stack([
+        np.log(np.mean(groups == g)) + multivariate_normal(x[groups == g].mean(axis=0),
+                                                           np.cov(x[groups == g], rowvar=False)).logpdf(x)
+        for g in levels
+    ])
+    expected = np.exp(log - log.max(axis=1, keepdims=True))
+    expected /= expected.sum(axis=1, keepdims=True)
+    np.testing.assert_allclose(result.probabilities.to_numpy(), expected, atol=1e-9)
+    assert (result.predicted == QuadraticDiscriminantAnalysis().fit(x, groups).predict(x)).all()
 
 
 def test_rows_without_a_response_are_classified_and_without_a_covariate_are_not() -> None:

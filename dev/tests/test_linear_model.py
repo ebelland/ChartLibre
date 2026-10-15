@@ -218,7 +218,9 @@ def test_a_model_without_design_info_still_has_its_effect_tests_and_estimates() 
 
     model = smf.ols("y ~ a + C(g, Sum)", data=frame).fit()
     expected = lm._effect_tests(model, terms, piece)
-    del model.model.data.design_info
+    for name in ("design_info", "model_spec"):  # where statsmodels keeps it: before 0.15, from 0.15
+        if name in vars(model.model.data):
+            delattr(model.model.data, name)
     tests = lm._effect_tests(model, terms, piece)
     pd.testing.assert_frame_equal(tests, expected)
     assert len(lm._estimates(model, terms, piece)) == 4

@@ -10,9 +10,10 @@
 It is ``pip install --upgrade`` over requirements.txt with the pins taken
 off, so each line's own marker (python_version, sys_platform) still decides
 whether it applies - with HOLD as constraints, for the releases known not
-to work. Before and after, it lists what changed. With --write-pins the
-lines that apply to this interpreter get the installed versions; the other
-interpreter's lines (the 3.15 pins, say) are left as they are.
+to work (none at present). Before and after, it lists what changed. With
+--write-pins the lines that apply to this interpreter get the installed
+versions; the other interpreter's lines (the 3.15 pins, say) are left as
+they are.
 
 Standard library only, like install.py, so any Python can run it.
 """
@@ -32,14 +33,7 @@ REQUIREMENTS = ROOT / "requirements.txt"
 
 #: Upper bounds kept on purpose, each with its reason. Remove a line once the
 #: release it guards against is fixed.
-HOLD: dict[str, str] = {
-    # 6.12.0 on macOS: Qt's QDir lists the plugin folder as empty, so no
-    # platform plugin (cocoa, offscreen) is found and no window can open.
-    "PySide6": "<6.12",
-    "PySide6_Essentials": "<6.12",
-    "PySide6_Addons": "<6.12",
-    "shiboken6": "<6.12",
-}
+HOLD: dict[str, str] = {}
 
 _LINE = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(?:\[[^\]]*\])?\s*(?:[=<>!~]=?[^;#]*)?(;[^#]*)?")
 
@@ -135,6 +129,14 @@ def main(argv: list[str] | None = None) -> int:
             return 1
     if args.dry_run:
         return 0
+
+    # A folder macOS syncs (Desktop, Documents) gets its new files flagged
+    # hidden, and Qt then skips its own plugins - "Could not find the Qt
+    # platform plugin" - so the flag is cleared, as install.py does.
+    prefix = subprocess.run([str(python), "-c", "import sys; print(sys.prefix)"], capture_output=True,
+                            text=True).stdout.strip()
+    if sys.platform == "darwin" and prefix:
+        subprocess.run(["chflags", "-R", "nohidden", prefix], check=False, capture_output=True)
 
     after = installed(python)
     changed = sorted(name for name in after if before.get(name) != after[name])
