@@ -23,9 +23,12 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QMenu,
+    QScrollArea,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
@@ -34,10 +37,12 @@ from PySide6.QtWidgets import (
 )
 from app.utils.config import get_import_data_dialog_config, set_import_data_dialog_config
 from app.data.sqlite_repo import SqliteRepo
+from app.widgets.pair_grid import PairGrid
 from app.widgets.table_preview import TablePreviewPanel
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.styles.style import (
+    fit_spin_width,
     action_presentation,
     create_action_button,
     load_icon,
@@ -358,14 +363,14 @@ class ImportDataDialog(SettingsTableDialog):
         self._skip_rows.setValue(int(cfg.get("skip_rows", 0) or 0))
         self._skip_rows.setKeyboardTracking(False)
         self._skip_rows.setAccelerated(True)
-        options_form.addRow(_("Skip top rows"), self._skip_rows)
+        fit_spin_width(self._skip_rows)
 
         self._skip_last = QSpinBox(read.card)
         self._skip_last.setRange(0, 1_000_000)
         self._skip_last.setValue(int(cfg.get("skip_last", 0) or 0))
         self._skip_last.setKeyboardTracking(False)
         self._skip_last.setAccelerated(True)
-        options_form.addRow(_("Skip last rows"), self._skip_last)
+        fit_spin_width(self._skip_last)
 
         # Delimiter dropdown (editable)
         self._delim = QComboBox(read.card)
@@ -383,7 +388,6 @@ class ImportDataDialog(SettingsTableDialog):
         if saved_delim:
             self._delim.setEditText(saved_delim)
         stdSizeAndlayout(self._delim)
-        options_form.addRow(_("Delimiter"), self._delim)
 
         # Encoding dropdown (editable)
         self._encoding = QComboBox(read.card)
@@ -394,9 +398,22 @@ class ImportDataDialog(SettingsTableDialog):
         saved_enc = (cfg.get("encoding", "auto") or "auto").strip() or "auto"
         self._encoding.setCurrentText(saved_enc)
         stdSizeAndlayout(self._encoding)
-        options_form.addRow(_("Encoding"), self._encoding)
 
         read.card.layout().addLayout(options_form)
+        # Two to a row (PairGrid drops to one when the panel is too narrow):
+        # four rows of one short field each were most of this card's height,
+        # and the dialog's minimum height was taller than a laptop's screen.
+        read.card.layout().addWidget(
+            PairGrid(
+                [
+                    (QLabel(_("Skip top rows"), read.card), self._skip_rows),
+                    (QLabel(_("Skip last rows"), read.card), self._skip_last),
+                    (QLabel(_("Delimiter"), read.card), self._delim),
+                    (QLabel(_("Encoding"), read.card), self._encoding),
+                ],
+                read.card,
+            )
+        )
         left_layout.addWidget(read)
 
         # -- Columns: what the preview found, and the type each will get.
@@ -409,7 +426,7 @@ class ImportDataDialog(SettingsTableDialog):
         self._col_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self._col_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._col_table.horizontalHeader().setStretchLastSection(True)
-        self._col_table.setMinimumHeight(140)
+        self._col_table.setMinimumHeight(96)
         mark_editor_panel(self._col_table)
         columns.card.layout().addWidget(self._col_table, 1)
         columns_layout = columns.layout()
@@ -417,7 +434,15 @@ class ImportDataDialog(SettingsTableDialog):
             columns_layout.setStretch(columns_layout.count() - 1, 1)
         left_layout.addWidget(columns, 1)
 
-        self.settings_layout.addWidget(left, 1)
+        # Scrolls rather than sets the dialog's minimum height: stacked, the
+        # cards needed 826 px, more than a 1366 x 768 laptop's screen has
+        # (the Columns card still takes whatever height is spare).
+        scroll = QScrollArea(self.settings_frame)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(left)
+        self.settings_layout.addWidget(scroll, 1)
 
         # ---------------- Right: preview ----------------
         self._preview = TablePreviewPanel(self.content_frame, self._repo)
