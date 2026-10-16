@@ -53,6 +53,27 @@ class TableToolsMixin(RepoHost):
             index += 1
         return f"{base}_{index}"
 
+    @ensure_connection_wrapper
+    def free_hidden_table_name(self, base: str) -> str:
+        """A free name for a table the user should not see: "_base_".
+
+        The Tables list, the chart data sources and the project's counts leave
+        out the names that begin and end with an underscore (the application's
+        own "__operations__" is one), so a table that only feeds a chart is
+        marked as such by its name. The numeric suffix of a taken name goes
+        inside the underscores, or the name would stop being hidden.
+        """
+        assert self._con is not None
+        taken = {
+            str(row[0]).lower()
+            for row in self._con.execute("SELECT name FROM sqlite_master").fetchall()
+        }
+        name, index = f"_{base}_", 2
+        while name.lower() in taken:
+            name = f"_{base}_{index}_"
+            index += 1
+        return name
+
     def _require_column(self, table_name: str, column_name: str | None) -> str:
         """Return *column_name* if the table has it, or raise a readable error."""
         if not column_name or column_name not in {n for n, _k in self._schema(table_name)}:

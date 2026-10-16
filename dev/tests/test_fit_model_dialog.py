@@ -92,7 +92,11 @@ def test_preview_reports_and_ok_writes_the_results_and_the_figure(qapp, doe_tabl
         _wait(qapp, dialog)
         assert applied == [True]
         tables = list(repo.list_user_tables()["Table"])
-        assert {f"{name}_fit", f"{name}_fit_effects", f"{name}_fit_profile"} <= set(tables)
+        assert f"{name}_fit" in tables
+        # What only feeds the charts is marked by its name and left out of the list.
+        feeding = {f"_{name}_fit_effects_", f"_{name}_fit_profile_"}
+        assert not feeding & set(tables)
+        assert feeding <= set(repo.list_user_tables(include_internal=True)["Table"])
         results = repo.table_frame(f"{name}_fit")
         assert {"Predicted Response_1", "Residual Response_1"} <= set(results.columns)
         assert len(dialog.created_figure_ids) == 1
@@ -204,7 +208,7 @@ def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, 
         _wait(qapp, dialog)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Pareto Chart", "Scatter Plot", "Scatter Plot"]  # + ROC
-        effects = repo.table_frame(f"{name}_fit_effects")
+        effects = repo.table_frame(f"_{name}_fit_effects_")
         assert "Prob > ChiSq" in effects.columns
     finally:
         dialog.close()
@@ -310,11 +314,38 @@ def test_a_logistic_fit_draws_its_roc_curve(qapp, doe_table) -> None:
         assert dialog.personality() == "nominal" and "roc" in dialog.charts()
         dialog.ok()
         _wait(qapp, dialog)
-        curve = repo.table_frame(f"{name}_fit_roc")
+        curve = repo.table_frame(f"_{name}_fit_roc_")
         assert {"good", "Chance"} <= set(curve["Level"])
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         roc_axis = next(axis for axis in figure.axes if axis.title == "ROC curve")
         assert [s.name for s in roc_axis.series][-1] == "Chance"
         assert "AUC" in roc_axis.series[0].name
+    finally:
+        dialog.close()
+
+
+def test_several_responses_share_one_figure_and_one_report(qapp, doe_table) -> None:
+    repo, name = doe_table
+    frame = repo.table_frame(name)
+    frame["Response_2"] = 3 * frame["Factor_1"] + frame["Factor_3"]
+    repo.delete_table(name)
+    repo.import_dataframe(frame.drop(columns=[c for c in ("Hide", "Selected") if c in frame]), table_name=name,
+                          normalize_columns=False)
+    dialog = FitModelDialog(repo=repo, table=name)
+    try:
+        dialog.roles_widget.assign("response", ["Response_1", "Response_2"])
+        _select(dialog, "Factor_1", "Factor_2", "Factor_3")
+        dialog._apply_macro("main", edited=True)
+        dialog._chart_checks["qq"].setChecked(True)
+        dialog.ok()
+        _wait(qapp, dialog)
+        assert len(dialog.created_figure_ids) == 1  # every response in it, not the first only
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        titles = [axis.title for axis in figure.axes]
+        assert any(t.startswith("Response_1: ") for t in titles) and any(t.startswith("Response_2: ") for t in titles)
+        notes = repo.get_figure_options(dialog.created_figure_ids[0])["view"]["notes_html"]
+        assert "Response Response_1" in notes and "Response Response_2" in notes
+        effects = repo.query_df(f'SELECT DISTINCT "Response" FROM "_{name}_fit_effects_"')
+        assert set(effects["Response"]) == {"Response_1", "Response_2"}
     finally:
         dialog.close()

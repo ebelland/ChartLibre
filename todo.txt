@@ -45,7 +45,7 @@ P0-3 Analysis must have plugin structure too.
 P0-5 Import data. Windows. Left frame. gray area.
 P0-6 After Import move to tables and select the last imported table.
 P0-7 After Open/new move to Tables
-P0-8 Fit Mode: only the first Y is shown. Revise the panel. Generated tables should be marked as so, with underscore to hide them.
+DONE P0-8 Fit Model: every response in one figure and one report (titles say which); the tables that only feed the charts are named _name_ and hidden from the Tables list (repo.free_hidden_table_name). Same for the other table operations: not done yet.
 P0-9 Import from clipboard. Add checkbox Translated: move to Add table panel. than open the Import dialog for preview. Remove from clipboard from import dialog.
 P0-10 Database corrupts when table deleted
 P0-11 Python3.15 is default. remove requirements for <3.15

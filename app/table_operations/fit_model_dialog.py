@@ -575,9 +575,10 @@ class FitModelDialog(TableOperationDialogBase):
         repo, table = self._repo, self.table
         names = {
             "results": repo.free_table_name(f"{table}_fit"),
-            "effects": repo.free_table_name(f"{table}_fit_effects"),
-            "profile": repo.free_table_name(f"{table}_fit_profile"),
-            "roc": repo.free_table_name(f"{table}_fit_roc"),
+            # What only feeds the charts is hidden from the Tables list: "_name_".
+            "effects": repo.free_hidden_table_name(f"{table}_fit_effects"),
+            "profile": repo.free_hidden_table_name(f"{table}_fit_profile"),
+            "roc": repo.free_hidden_table_name(f"{table}_fit_roc"),
         }
         charts = self.charts()
         repo.snapshot_for_undo(
@@ -614,10 +615,10 @@ class FitModelDialog(TableOperationDialogBase):
 
         self.created_figure_ids = []
         if charts:
-            for fit in result:
-                figure_id = self._make_figure(fit, names, charts)
-                self.created_figure_ids.append(figure_id)
-                written.append({"figure": figure_id, "name": fit.response})
+            # One figure for every response, so that all of them are shown.
+            figure_id = self._make_figure(result, names, charts)
+            self.created_figure_ids.append(figure_id)
+            written.append({"figure": figure_id, "name": ", ".join(fit.response for fit in result)})
         return written
 
     def _panels(self, fit: lm.ResponseFit, names: Mapping[str, str], charts: list[str]) -> list[tuple]:
@@ -670,7 +671,16 @@ class FitModelDialog(TableOperationDialogBase):
                                [one("results", {"x": a, "y": fit.response, "trace": b})]))
         return panels
 
-    def _make_figure(self, fit: lm.ResponseFit, names: Mapping[str, str], charts: list[str]) -> int:
-        """A figure of the charts ticked, two to a row, with the response's report in its notes."""
-        notes = report_html.document(_("Fit Model"), f"{self.table} · {fit.response}", self._report(fit))
-        return self.create_report_figure(f"Fit Model · {fit.response}", notes, self._panels(fit, names, charts))
+    def _make_figure(self, result: list[lm.ResponseFit], names: Mapping[str, str], charts: list[str]) -> int:
+        """One figure of the charts ticked for every response, two to a row, the reports in its notes.
+
+        With several responses each chart's title says which it is.
+        """
+        responses = ", ".join(fit.response for fit in result)
+        panels: list[tuple] = []
+        for fit in result:
+            for chart, title, *rest in self._panels(fit, names, charts):
+                panels.append((chart, f"{fit.response}: {title}" if len(result) > 1 else title, *rest))
+        notes = report_html.document(_("Fit Model"), f"{self.table} · {responses}",
+                                     *(self._report(fit) for fit in result))
+        return self.create_report_figure(f"Fit Model · {responses}", notes, panels)
