@@ -197,6 +197,12 @@ class SeriesSpectralDialog(DataOperationDialogBase):
     <path d="M16 16V6"/>
     <path d="M19 16v-4"/>
     """
+    Keywords: str = (
+        "analisi spettrale fft fourier frequency frequenza spectrum spettro periodogram periodogramma "
+        "welch power density densita spettrale"
+    )
+    Goals: list[str] = ["signal"]
+
     def __init__(
         self,
         *,

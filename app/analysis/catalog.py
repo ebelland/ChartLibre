@@ -1,10 +1,13 @@
 """What the application can do, in one list: for search, and for the guided analysis.
 
 Every analysis (table operations), data operation, chart type and table
-tool is an entry with its name and sentence - read from the classes, as the
-panels read them - plus what this file adds: the words someone might look
-for it by (synonyms, in English and Italian, so a search finds "ANOVA" or
-"anomalie" whichever language the window is in) and the goals it serves.
+tool is an entry with its name and sentence, and the words someone might
+look for it by (synonyms, in English and Italian, so a search finds "ANOVA"
+or "anomalie" whichever language the window is in) and the goals it serves.
+For the plugins all of it is read from the class - Name, Description,
+Keywords and Goals, as the panels read them - so a new plugin joins search
+and the guided analysis by declaring them. Only the table tools, which are
+not classes, are listed here.
 
 The goals are the guided analysis's first question - "what do you want to
 do?" - in everyday words; each entry says which of them it answers.
@@ -70,193 +73,6 @@ class CatalogEntry:
         """"analysis:Fit Model", "series:Smoothing", "chart:Box Plot", "tool:doe"."""
         return f"{self.kind}:{self.payload if self.kind == TOOL else self.name}"
 
-
-# ----------------------------------------------------------------------
-# What this file adds to the classes: words and goals, by name
-# ----------------------------------------------------------------------
-
-#: name -> (keywords, goals). Keywords in both languages, lower case.
-_ANALYSES: dict[str, tuple[str, tuple[str, ...]]] = {
-    "Are there differences?": (
-        "ci sono differenze differenza differences compare confronta confronto gruppi groups t-test "
-        "anova kruskal mann-whitney chi-squared chi quadrato significant significativo quick answer "
-        "risposta rapida",
-        ("compare",),
-    ),
-    "What has the most impact?": (
-        "cosa impatta di più impatto impact most important factors fattori importanti drivers key driver "
-        "importance importanza influence influenza cause cosa conta what matters ranking classifica "
-        "quick answer risposta rapida",
-        ("explain",),
-    ),
-    "Has it changed over time?": (
-        "è cambiato nel tempo cambiamento change changed over time trend tendenza drift deriva step gradino "
-        "change point punto di cambiamento before after prima dopo mann-kendall pettitt sen slope stabile "
-        "stable quick answer risposta rapida",
-        ("signal", "process"),
-    ),
-    "Distribution": (
-        "distribution distribuzione quantiles quantili percentiles percentili moments momenti normality "
-        "normalità histogram istogramma",
-        ("describe",),
-    ),
-    "Fit Y by X": (
-        "fit y by x bivariate bivariata oneway one-way anova post hoc tukey games-howell dunn holm "
-        "pairwise comparisons confronti multipli contingency contingenza crosstabs chi-squared logistic "
-        "logistica regression line retta correlation correlazione",
-        ("compare", "relate"),
-    ),
-    "Partial Least Squares": (
-        "pls partial least squares minimi quadrati parziali spectra spettri spectrum spettro nir chemometrics "
-        "chemiometria calibration calibrazione vip latent components componenti latenti multivariate calibration",
-        ("predict", "explain"),
-    ),
-    "Fit Model": (
-        "regression regressione linear model modello lineare least squares minimi quadrati anova "
-        "analysis of variance analisi della varianza doe design of experiments response surface "
-        "superficie di risposta effects effetti screening stepwise glm logistic logistica ordinal "
-        "ordinale nominal nominale poisson interaction interazione factors fattori lasso ridge elastic net "
-        "generalized regression regressione generalizzata penalized penalizzata regularization regolarizzazione",
-        ("explain", "predict", "classify", "compare", "experiment"),
-    ),
-    "Discriminant": (
-        "discriminant discriminante lda qda linear discriminant analysis analisi discriminante "
-        "classification classificazione canonical canonica wilks groups gruppi",
-        ("classify", "groups"),
-    ),
-    "Partition": (
-        "decision tree albero decisionale albero di decisione classification classificazione "
-        "regression tree cart split partizioni partizione segmentation segmentazione rules regole "
-        "drivers importance importanza",
-        ("explain", "predict", "classify", "groups"),
-    ),
-}
-
-_SERIES: dict[str, tuple[str, tuple[str, ...]]] = {
-    "Statistics": (
-        "statistiche descriptive descrittive mean media median mediana standard deviation "
-        "deviazione standard summary riepilogo min max quantile percentile",
-        ("describe",),
-    ),
-    "Outliers": (
-        "anomalies anomalie outlier valori anomali esclusi grubbs iqr z-score mahalanobis "
-        "isolation forest",
-        ("anomalies",),
-    ),
-    "Clustering": (
-        "cluster raggruppamento gruppi groups k-means kmeans dbscan hierarchical gerarchico "
-        "segmentation segmentazione",
-        ("groups",),
-    ),
-    "Control Chart": (
-        "carta di controllo spc statistical process control controllo statistico di processo "
-        "shewhart i-mr x-bar xbar r chart p chart c chart u chart limits limiti stability stabilita "
-        "capability capacità di processo process capability cp cpk pp ppk cpm spec limits limiti di specifica "
-        "lsl usl ppm",
-        ("process", "anomalies"),
-    ),
-    "Transform": (
-        "trasforma trasformazione log logarithm logaritmo box-cox normalize normalizza "
-        "standardize standardizza scale scala rank",
-        ("prepare", "describe"),
-    ),
-    "Decomposition": (
-        "decomposizione pca principal components componenti principali ica nmf t-sne tsne umap "
-        "dimensionality reduction riduzione dimensionale embedding",
-        ("groups", "explain"),
-    ),
-    "Peaks": (
-        "picchi peak detection trova picchi maxima massimi width larghezza area prominence "
-        "prominenza spectrum spettro",
-        ("signal",),
-    ),
-    "Roots": (
-        "radici zeri zeros crossing attraversamento threshold soglia level livello",
-        ("signal",),
-    ),
-    "Calculus": (
-        "calcolo derivative derivata integral integrale differentiate integrate area slope pendenza",
-        ("signal",),
-    ),
-    "Geometry": (
-        "geometria rotate ruota translate trasla scale scala mirror specchia coordinates coordinate",
-        ("prepare",),
-    ),
-    "Smoothing": (
-        "smussamento lisciatura noise rumore moving average media mobile savitzky-golay lowess "
-        "loess filtro smooth",
-        ("signal",),
-    ),
-    "Spectral Analysis": (
-        "analisi spettrale fft fourier frequency frequenza spectrum spettro periodogram "
-        "periodogramma welch power density densita spettrale",
-        ("signal",),
-    ),
-    "Filtering": (
-        "filtro filtraggio filter low-pass passa basso high-pass passa alto band-pass butterworth "
-        "detrend trend demodulate scipy signal",
-        ("signal",),
-    ),
-    "Baseline Correction": (
-        "correzione linea di base baseline background fondo spectrum spettro asls rubber band",
-        ("signal",),
-    ),
-    "Fit": (
-        "fit adattamento curve fitting curva regression regressione polynomial polinomio "
-        "exponential esponenziale gaussian gaussiana sine model modello nonlinear non lineare "
-        "trend tendenza",
-        ("relate", "predict"),
-    ),
-    "Interpolation": (
-        "interpolazione missing values valori mancanti fill riempi spline linear lineare resample "
-        "ricampiona",
-        ("prepare", "signal"),
-    ),
-    "Function": (
-        "funzione formula expression espressione plot function grafico di funzione",
-        (),
-    ),
-    "Regression": (
-        "regressione robust robusta machine learning random forest gradient boosting svr "
-        "huber ransac theil-sen ml",
-        ("relate", "predict"),
-    ),
-    "GP Regression": (
-        "gaussian process processo gaussiano kriging uncertainty incertezza confidence band "
-        "banda di confidenza",
-        ("predict", "relate"),
-    ),
-    "Plot": (
-        "nuovo grafico new plot chart grafico draw disegna",
-        (),
-    ),
-}
-
-_CHARTS: dict[str, tuple[str, tuple[str, ...]]] = {
-    "Box Plot": ("box plot boxplot scatola baffi whisker quartili quartiles groups gruppi", ("compare", "describe")),
-    "Violin Plot": ("violino violin density densita groups gruppi", ("compare", "describe")),
-    "Histogram": ("istogramma frequency frequenza distribution distribuzione bins classi", ("describe",)),
-    "ECDF": ("cumulative cumulativa distribution distribuzione empirical empirica", ("describe",)),
-    "Q-Q Plot": ("normal normale normality normalita quantili quantiles probability plot", ("describe",)),
-    "P-P Plot": ("normal normale probability probabilita distribution distribuzione", ("describe",)),
-    "Scatter Plot": ("dispersione scatter xy correlation correlazione punti points", ("relate",)),
-    "Pair Plot": ("matrice di dispersione scatterplot matrix correlation correlazione multivariate multivariata",
-                  ("relate", "explain")),
-    "Hexbin": ("density densita many points molti punti 2d", ("relate",)),
-    "Time Series": ("serie temporale time series tempo trend andamento date", ("signal", "process")),
-    "Pareto Chart": ("pareto causes cause defects difetti 80/20 priority priorita", ("process", "describe")),
-    "Mosaic Plot": ("mosaico contingency contingenza two categorical due categoriali crosstab tabella incrociata",
-                    ("compare", "relate")),
-    "Interaction Plot": ("interazione interaction factors fattori means medie doe", ("explain", "experiment")),
-    "Kaplan-Meier": ("sopravvivenza survival reliability affidabilita censored censurati log-rank time to event",
-                     ("compare", "predict")),
-    "Forest Plot": ("intervalli di confidenza confidence intervals estimates stime meta-analysis meta-analisi",
-                    ("compare",)),
-    "Fishbone Diagram": ("ishikawa causa effetto cause effect root cause causa radice", ("process", "explain")),
-    "Heatmap": ("mappa di calore heat map matrix matrice correlation correlazione", ("relate",)),
-    "Contour Plot": ("curve di livello contour isolinee surface superficie response surface", ("explain",)),
-    "Surface Plot": ("superficie 3d response surface superficie di risposta", ("explain",)),
-}
 
 #: The table tools: key -> (name, description, keywords, goals).
 TOOLS: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
@@ -681,9 +497,10 @@ def _words(text: str) -> tuple[str, ...]:
     return tuple(text.split())
 
 
-#: The New plot "operation", as the Data operations panel lists it.
+#: The New plot "operation", as the Data operations panel lists it: the one
+#: entry that is not a plugin class, so it carries its own words and goals.
 _PLOT: dict[str, Any] = {"name": "NewPlotTabDialog", "value": "Plot", "description": "Create a new plot",
-                         "builtin": True}
+                         "builtin": True, "keywords": "nuovo grafico new plot chart grafico draw disegna", "goals": []}
 
 
 def build_catalog(
@@ -703,16 +520,19 @@ def build_catalog(
         from app.scanners.axis_renderer_scanner import renderers
 
     entries: list[CatalogEntry] = []
-    for kind, found, extra in (
-        (ANALYSIS, table_operations, _ANALYSES),
-        (SERIES, [_PLOT, *data_operations], _SERIES),
-        (CHART, renderers, _CHARTS),
+    for kind, found in (
+        (ANALYSIS, table_operations),
+        (SERIES, [_PLOT, *data_operations]),
+        (CHART, renderers),
     ):
         for item in found:
             name = str(item.get("value") or item.get("name") or "")
             if not name:
                 continue
-            words, goals = extra.get(name, ("", ()))
+            # The words and goals are the plugin's own (its Keywords and Goals
+            # class attributes), as its name and sentence are.
+            words = str(item.get("keywords") or "")
+            goals = tuple(item.get("goals") or ())
             entries.append(CatalogEntry(
                 kind=kind, name=name, description=str(item.get("description") or ""),
                 keywords=_words(words), goals=goals, payload=item if kind != CHART else name,

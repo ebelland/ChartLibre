@@ -37,6 +37,8 @@ class PairPlotAxisRenderer(BaseAxisRenderer):
         "Every numeric variable against every other in one grid, with each one's distribution "
         "on the diagonal and the correlations above it."
     )
+    Keywords: str = "matrice di dispersione scatterplot matrix correlation correlazione multivariate multivariata"
+    Goals: list[str] = ["relate", "explain"]
     Link: str = "https://pandas.pydata.org/docs/reference/api/pandas.plotting.scatter_matrix.html"
 
     RequiredRoles: list[str] = []

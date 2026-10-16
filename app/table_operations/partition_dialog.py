@@ -115,6 +115,12 @@ class PartitionDialog(TableOperationDialogBase):
     <circle cx="3.5" cy="19.5" r="1.6"/><circle cx="9" cy="19.5" r="1.6"/>
     <path d="M10.6 6l-3.2 4.4M13.4 6l3.2 4.4M5 13.8l-1 4M7 13.8l1.4 4"/>
     """
+    Keywords: str = (
+        "decision tree albero decisionale albero di decisione classification classificazione "
+        "regression tree cart split partizioni partizione segmentation segmentazione rules regole "
+        "drivers importance importanza"
+    )
+    Goals: list[str] = ["explain", "predict", "classify", "groups"]
 
     ROLES = (
         ColumnRole("response", "Y", "The column to predict: continuous gives a regression tree, nominal a classification tree.",

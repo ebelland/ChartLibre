@@ -170,6 +170,11 @@ class SeriesTransformDialog(DataOperationDialogBase):
     <path d="M4 15c4-8 5 8 9 0s5-8 7 0" transform="translate(0 -2)"/>
     <path d="M4 19h16" opacity="0.4"/>
     """
+    Keywords: str = (
+        "trasforma trasformazione log logarithm logaritmo box-cox normalize normalizza standardize "
+        "standardizza scale scala rank"
+    )
+    Goals: list[str] = ["prepare", "describe"]
 
     def __init__(
         self,

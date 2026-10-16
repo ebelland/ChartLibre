@@ -196,6 +196,12 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
     <path d="M17 16v-8"/>
     <path d="M6 5h12"/>
     """
+    Keywords: str = (
+        "statistiche descriptive descrittive mean media median mediana standard deviation deviazione "
+        "standard summary riepilogo min max quantile percentile"
+    )
+    Goals: list[str] = ["describe"]
+
     def __init__(
         self,
         repo: SqliteRepo,

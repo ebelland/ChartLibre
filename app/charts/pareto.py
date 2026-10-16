@@ -39,6 +39,8 @@ class ParetoAxisRenderer(BarAxisRenderer, BaseAxisRenderer):
         "Categories sorted by descending magnitude with a cumulative "
         "percentage line, for finding the few causes behind most of an effect."
     )
+    Keywords: str = "pareto causes cause defects difetti 80/20 priority priorita"
+    Goals: list[str] = ["process", "describe"]
     Link: str = (
         "https://matplotlib.org/stable/gallery/lines_bars_and_markers/bar_label_demo.html"
     )

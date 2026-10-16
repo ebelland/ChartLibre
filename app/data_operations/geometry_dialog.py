@@ -340,6 +340,8 @@ class SeriesGeometryDialog(DataOperationDialogBase):
     <rect x="3" y="9" width="10" height="10" rx="1"/>
     <path d="M14.5 4.5l6.2 6.2-6.2 6.2-6.2-6.2z"/>
     """
+    Keywords: str = "geometria rotate ruota translate trasla scale scala mirror specchia coordinates coordinate"
+    Goals: list[str] = ["prepare"]
 
     #: ``dims`` in a visible_for rule is not a parameter: it is "2D" or "3D"
     #: from the selected series' roles (see parameter_context), so a 3D

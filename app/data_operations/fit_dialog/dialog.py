@@ -88,6 +88,11 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
     <circle cx="11" cy="10.8" r="1.2"/>
     <circle cx="16.5" cy="8" r="1.2"/>
     """
+    Keywords: str = (
+        "fit adattamento curve fitting curva regression regressione polynomial polinomio exponential "
+        "esponenziale gaussian gaussiana sine model modello nonlinear non lineare trend tendenza"
+    )
+    Goals: list[str] = ["relate", "predict"]
     saved = Signal(str)
 
     # format_results returns a table.

@@ -61,6 +61,8 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
     Description = "Time series"
     Name = "Time Series"
     Category: str = "Pairwise data"
+    Keywords: str = "serie temporale time series tempo trend andamento date"
+    Goals: list[str] = ["signal", "process"]
 
     Kwargs: dict[str, Any] = {
         "alpha": {

@@ -30,6 +30,12 @@ class ImpactDialog(TableOperationDialogBase):
     <rect x="3" y="4" width="18" height="3.2" rx="1"/><rect x="3" y="10.4" width="11" height="3.2" rx="1"/>
     <rect x="3" y="16.8" width="5" height="3.2" rx="1"/>
     """
+    Keywords: str = (
+        "cosa impatta di più impatto impact most important factors fattori importanti drivers key "
+        "driver importance importanza influence influenza cause cosa conta what matters ranking "
+        "classifica quick answer risposta rapida"
+    )
+    Goals: list[str] = ["explain"]
 
     ROLES = (
         ColumnRole("response", "Result", "What you want to explain: numbers (a yield, a time) or categories "

@@ -279,6 +279,8 @@ class SeriesCalculusDialog(DataOperationDialogBase):
     <path d="M5 12h9"/>
     <path d="M14 19h5"/>
     """
+    Keywords: str = "calcolo derivative derivata integral integrale differentiate integrate area slope pendenza"
+    Goals: list[str] = ["signal"]
 
     def __init__(
         self,

@@ -34,6 +34,11 @@ class DistributionDialog(TableOperationDialogBase):
     Icon = """
     <path d="M4 20V14h3v6M8.5 20V8h3v12M13 20V5h3v15M17.5 20v-9h3v9"/><path d="M3 20h18"/>
     """
+    Keywords: str = (
+        "distribution distribuzione quantiles quantili percentiles percentili moments momenti "
+        "normality normalità histogram istogramma"
+    )
+    Goals: list[str] = ["describe"]
 
     ROLES = (
         ColumnRole("response", "Y", "The columns to describe, one report each.",

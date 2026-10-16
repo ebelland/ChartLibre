@@ -89,8 +89,10 @@ def _discover_axis_renderers() -> list:
         string_attrs=(
             "Category",
             "Description",
+            "Keywords",
         ),
         string_list_attrs=(
+            "Goals",
             "RequiredRoles",
             "OptionalRoles",
         ),

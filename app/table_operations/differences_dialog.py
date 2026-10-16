@@ -42,6 +42,12 @@ class DifferencesDialog(TableOperationDialogBase):
     <rect x="3" y="8" width="5" height="9" rx="1"/><rect x="10" y="4" width="5" height="9" rx="1"/>
     <rect x="17" y="11" width="4" height="8" rx="1"/><path d="M2 21h20"/>
     """
+    Keywords: str = (
+        "ci sono differenze differenza differences compare confronta confronto gruppi groups t-test "
+        "anova kruskal mann-whitney chi-squared chi quadrato significant significativo quick answer "
+        "risposta rapida"
+    )
+    Goals: list[str] = ["compare"]
 
     ROLES = (
         ColumnRole("response", "Measure", "What to compare: numbers (a weight, a time) or categories (pass/fail).",

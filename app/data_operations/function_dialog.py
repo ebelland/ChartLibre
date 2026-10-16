@@ -165,6 +165,8 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     <path d="M4 20c4 0 4-16 8-16"/>
     <path d="M12 4c4 0 4 16 8 16"/>
     """
+    Keywords: str = "funzione formula expression espressione plot function grafico di funzione"
+    Goals: list[str] = []
 
     def __init__(
         self,

@@ -29,6 +29,12 @@ class ChangeDialog(TableOperationDialogBase):
     Icon = """
     <path d="M3 17l4-2 3 1 3-5 3-1 5-6"/><path d="M3 21h18"/><circle cx="13" cy="11" r="1.6"/>
     """
+    Keywords: str = (
+        "è cambiato nel tempo cambiamento change changed over time trend tendenza drift deriva step "
+        "gradino change point punto di cambiamento before after prima dopo mann-kendall pettitt sen "
+        "slope stabile stable quick answer risposta rapida"
+    )
+    Goals: list[str] = ["signal", "process"]
 
     ROLES = (
         ColumnRole("response", "Measure", "The numbers to follow over time.",

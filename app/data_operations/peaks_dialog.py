@@ -201,6 +201,11 @@ class SeriesPeaksDialog(DataOperationDialogBase):
     <path d="M3 18l4-8 3 5 4-11 3 8 4-4"/>
     <circle cx="14" cy="4" r="1.6"/>
     """
+    Keywords: str = (
+        "picchi peak detection trova picchi maxima massimi width larghezza area prominence prominenza "
+        "spectrum spettro"
+    )
+    Goals: list[str] = ["signal"]
 
     def __init__(
         self,

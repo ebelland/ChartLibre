@@ -35,6 +35,12 @@ class PLSDialog(TableOperationDialogBase):
     Icon = """
     <path d="M3 18c2-9 4-12 6-6s3 6 5-2 3-6 7 1"/><path d="M3 21h18"/>
     """
+    Keywords: str = (
+        "pls partial least squares minimi quadrati parziali spectra spettri spectrum spettro nir "
+        "chemometrics chemiometria calibration calibrazione vip latent components componenti latenti "
+        "multivariate calibration"
+    )
+    Goals: list[str] = ["predict", "explain"]
 
     ROLES = (
         ColumnRole("response", "Y", "The values to predict: a concentration, a property.",

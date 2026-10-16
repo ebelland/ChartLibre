@@ -118,6 +118,8 @@ class SeriesBaselineDialog(DataOperationDialogBase):
     <path d="M3 17c3 0 3-10 6-10s3 10 6 10 3-6 6-6"/>
     <path d="M3 19h18" stroke-dasharray="2 2"/>
     """
+    Keywords: str = "correzione linea di base baseline background fondo spectrum spettro asls rubber band"
+    Goals: list[str] = ["signal"]
 
     def __init__(
         self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None,

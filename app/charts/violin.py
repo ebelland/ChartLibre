@@ -56,6 +56,8 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
     Name = "Violin Plot"
     Category: str = "Statistical distributions"
     Description = "Show the estimated distribution of one or more samples."
+    Keywords: str = "violino violin density densita groups gruppi"
+    Goals: list[str] = ["compare", "describe"]
     Link: str = (
         "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.violinplot.html"
     )

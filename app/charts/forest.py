@@ -38,6 +38,8 @@ class ForestAxisRenderer(BaseAxisRenderer):
         "Estimates and their confidence intervals, one row per study or effect, against a line "
         "of no effect; summary rows as diamonds."
     )
+    Keywords: str = "intervalli di confidenza confidence intervals estimates stime meta-analysis meta-analisi"
+    Goals: list[str] = ["compare"]
     Link: str = "https://en.wikipedia.org/wiki/Forest_plot"
 
     RequiredRoles: list[str] = ["label", "estimate", "lower", "upper"]

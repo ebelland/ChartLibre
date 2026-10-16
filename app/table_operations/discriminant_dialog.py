@@ -36,6 +36,11 @@ class DiscriminantDialog(TableOperationDialogBase):
     <circle cx="17" cy="15" r="1.6"/><circle cx="19" cy="19" r="1.6"/><circle cx="15" cy="19.5" r="1.6"/>
     <path d="M3 21L21 3"/>
     """
+    Keywords: str = (
+        "discriminant discriminante lda qda linear discriminant analysis analisi discriminante "
+        "classification classificazione canonical canonica wilks groups gruppi"
+    )
+    Goals: list[str] = ["classify", "groups"]
 
     ROLES = (
         ColumnRole("response", "Y, group", "The column whose groups the rows are classified into.",

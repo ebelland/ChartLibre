@@ -30,6 +30,8 @@ class FishboneAxisRenderer(BaseAxisRenderer):
         "Ishikawa cause-and-effect diagram: one row per cause, grouped by "
         "category on bones that lead to the problem."
     )
+    Keywords: str = "ishikawa causa effetto cause effect root cause causa radice"
+    Goals: list[str] = ["process", "explain"]
     Link: str = "https://matplotlib.org/stable/gallery/specialty_plots/ishikawa_diagram.html"
 
     RequiredRoles: list[str] = ["category", "cause"]

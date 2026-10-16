@@ -115,6 +115,8 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
     Name: str = "ECDF"
     Category: str = "Statistical distributions"
     Description: str = "Empirical cumulative distribution function."
+    Keywords: str = "cumulative cumulativa distribution distribuzione empirical empirica"
+    Goals: list[str] = ["describe"]
     Link: str = "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.ecdf.html"
 
     # Options this renderer consumes itself.  They must not reach ax.scatter,

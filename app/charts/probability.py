@@ -71,6 +71,8 @@ class QQPlotAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
         "Sample quantiles against those of a fitted distribution: a straight line means the "
         "distribution fits. Sharpest in the tails."
     )
+    Keywords: str = "normal normale normality normalita quantili quantiles probability plot"
+    Goals: list[str] = ["describe"]
     Link: str = "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.probplot.html"
 
     RequiredRoles: list[str] = ["value"]
@@ -183,6 +185,8 @@ class PPPlotAxisRenderer(QQPlotAxisRenderer, BaseAxisRenderer):
         "Sample probabilities against those of a fitted distribution: points on the diagonal "
         "mean the distribution fits. Sharpest in the middle."
     )
+    Keywords: str = "normal normale probability probabilita distribution distribuzione"
+    Goals: list[str] = ["describe"]
     Link: str = "https://en.wikipedia.org/wiki/P%E2%80%93P_plot"
 
     RequiredRoles: list[str] = ["value"]

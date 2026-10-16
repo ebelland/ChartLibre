@@ -251,6 +251,11 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
     <circle cx="13.9" cy="13.7" r="1"/>
     <circle cx="18.1" cy="7.5" r="1"/>
     """
+    Keywords: str = (
+        "interpolazione missing values valori mancanti fill riempi spline linear lineare resample "
+        "ricampiona"
+    )
+    Goals: list[str] = ["prepare", "signal"]
     applied = Signal()
 
     def __init__(

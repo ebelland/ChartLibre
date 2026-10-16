@@ -208,6 +208,11 @@ class SeriesRegressionDialog(DataOperationDialogBase):
     <circle cx="12" cy="9" r="1"/>
     <circle cx="16" cy="14" r="1"/>
     """
+    Keywords: str = (
+        "regressione robust robusta machine learning random forest gradient boosting svr huber ransac "
+        "theil-sen ml"
+    )
+    Goals: list[str] = ["relate", "predict"]
 
     def __init__(
         self,

@@ -39,6 +39,8 @@ class KaplanMeierAxisRenderer(BaseAxisRenderer):
         "Survival curves from time-to-event data with censored rows, their confidence bands, "
         "and the log-rank test between groups."
     )
+    Keywords: str = "sopravvivenza survival reliability affidabilita censored censurati log-rank time to event"
+    Goals: list[str] = ["compare", "predict"]
     Link: str = "https://en.wikipedia.org/wiki/Kaplan%E2%80%93Meier_estimator"
 
     RequiredRoles: list[str] = ["time", "event"]

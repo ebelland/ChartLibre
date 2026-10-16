@@ -26,8 +26,8 @@ def _discover_table_operations() -> list[dict]:
         roots=(builtin_root, USER_TABLE_OPERATIONS_DIR),
         base_class_name="TableOperationDialogBase",
         value_attr="Name",
-        string_attrs=("Description", "Category", "Icon"),
-        string_list_attrs=(),
+        string_attrs=("Description", "Category", "Icon", "Keywords"),
+        string_list_attrs=("Goals",),
         require_value_attr=False,
     )
 

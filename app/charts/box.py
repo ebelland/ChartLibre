@@ -60,6 +60,8 @@ class BoxAxisRenderer(BaseAxisRenderer):
     Name = "Box Plot"
     Category: str = "Statistical distributions"
     Description = "Draw a box and whisker plot."
+    Keywords: str = "box plot boxplot scatola baffi whisker quartili quartiles groups gruppi"
+    Goals: list[str] = ["compare", "describe"]
     Link="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html"
     
     Kwargs: dict[str, Any] = {

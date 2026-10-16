@@ -263,6 +263,12 @@ class SeriesOutlierDialog(DataOperationDialogBase):
     <circle cx="19" cy="5.5" r="1.5"/>
     <path d="M17.8 6.7l-2 2"/>
     """
+    Keywords: str = (
+        "anomalies anomalie outlier valori anomali esclusi grubbs iqr z-score mahalanobis isolation "
+        "forest"
+    )
+    Goals: list[str] = ["anomalies"]
+
     def __init__(self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None) -> None:
         if repo is None:
             applogger.error("SeriesOutlierDialog requires a repository instance.")

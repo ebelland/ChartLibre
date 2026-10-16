@@ -36,6 +36,8 @@ class InteractionAxisRenderer(BaseAxisRenderer):
         "Mean response at each level of one factor, one line per level of another: parallel "
         "lines mean no interaction."
     )
+    Keywords: str = "interazione interaction factors fattori means medie doe"
+    Goals: list[str] = ["explain", "experiment"]
     Link: str = "https://www.statsmodels.org/stable/generated/statsmodels.graphics.factorplots.interaction_plot.html"
 
     RequiredRoles: list[str] = ["x", "y"]

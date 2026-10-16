@@ -213,6 +213,11 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
     <circle cx="17" cy="17" r="2"/>
     <path d="M12 13l-5-6M12 13l4-7M12 13l-6 4M12 13l5 4" stroke-dasharray="1 2"/>
     """
+    Keywords: str = (
+        "decomposizione pca principal components componenti principali ica nmf t-sne tsne umap "
+        "dimensionality reduction riduzione dimensionale embedding"
+    )
+    Goals: list[str] = ["groups", "explain"]
 
     def __init__(
         self,

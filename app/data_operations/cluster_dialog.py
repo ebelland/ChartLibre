@@ -337,6 +337,12 @@ class SeriesClusterDialog(DataOperationDialogBase):
     <path d="M15 8.3l-3.6 6.1"/>
     <path d="M12 16h4"/>
     """
+    Keywords: str = (
+        "cluster raggruppamento gruppi groups k-means kmeans dbscan hierarchical gerarchico "
+        "segmentation segmentazione"
+    )
+    Goals: list[str] = ["groups"]
+
     def __init__(
         self,
         *,

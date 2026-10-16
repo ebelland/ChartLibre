@@ -49,8 +49,9 @@ def _discover_data_operations() -> list:
             # attribute.  Nothing here has to know it is markup: the widget
             # hands it to style.icon_from_svg_source and Qt does the rest.
             "Icon",
+            "Keywords",
         ),
-        string_list_attrs=(),
+        string_list_attrs=("Goals",),
         require_value_attr=False,
     )
 

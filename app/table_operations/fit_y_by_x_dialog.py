@@ -43,6 +43,12 @@ class FitYByXDialog(TableOperationDialogBase):
     <path d="M4 4v16h16"/><circle cx="8" cy="15" r="1.2"/><circle cx="11" cy="12" r="1.2"/>
     <circle cx="14" cy="11" r="1.2"/><circle cx="17" cy="7" r="1.2"/><path d="M6 17L19 6"/>
     """
+    Keywords: str = (
+        "fit y by x bivariate bivariata oneway one-way anova post hoc tukey games-howell dunn holm "
+        "pairwise comparisons confronti multipli contingency contingenza crosstabs chi-squared "
+        "logistic logistica regression line retta correlation correlazione"
+    )
+    Goals: list[str] = ["compare", "relate"]
 
     ROLES = (
         ColumnRole("response", "Y", "The response: its type and X's choose the analysis.", minimum=1, maximum=1),

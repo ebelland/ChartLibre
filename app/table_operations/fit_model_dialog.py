@@ -106,6 +106,15 @@ class FitModelDialog(TableOperationDialogBase):
     <circle cx="8" cy="15" r="1"/><circle cx="11" cy="11" r="1"/><circle cx="15" cy="10" r="1"/><circle cx="18" cy="6" r="1"/>
     <path d="M6 17L19 5"/>
     """
+    Keywords: str = (
+        "regression regressione linear model modello lineare least squares minimi quadrati anova "
+        "analysis of variance analisi della varianza doe design of experiments response surface "
+        "superficie di risposta effects effetti screening stepwise glm logistic logistica ordinal "
+        "ordinale nominal nominale poisson interaction interazione factors fattori lasso ridge "
+        "elastic net generalized regression regressione generalizzata penalized penalizzata "
+        "regularization regolarizzazione"
+    )
+    Goals: list[str] = ["explain", "predict", "classify", "compare", "experiment"]
 
     ROLES = (
         ColumnRole("response", "Y", "The columns to model: one model each.", minimum=1),

@@ -84,6 +84,8 @@ class ContourAxisRenderer(BaseAxisRenderer):
     Name: str = "Contour Plot"
     Category: str = "Gridded data"
     Description: str = "Filled or line contours of z over a regular x/y grid."
+    Keywords: str = "curve di livello contour isolinee surface superficie response surface"
+    Goals: list[str] = ["explain"]
     Link: str = "https://matplotlib.org/stable/plot_types/arrays/contourf.html"
 
     RequiredRoles: list[str] = ["x", "y", "z"]

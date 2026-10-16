@@ -40,6 +40,8 @@ class MosaicAxisRenderer(BaseAxisRenderer):
         "Two categorical variables as tiles whose areas are the share of rows in each pair, "
         "optionally shaded by how far each is from independence."
     )
+    Keywords: str = "mosaico contingency contingenza two categorical due categoriali crosstab tabella incrociata"
+    Goals: list[str] = ["compare", "relate"]
     Link: str = "https://www.statsmodels.org/stable/generated/statsmodels.graphics.mosaicplot.mosaic.html"
 
     RequiredRoles: list[str] = ["x", "y"]

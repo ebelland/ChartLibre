@@ -377,6 +377,13 @@ class SeriesControlChartDialog(DataOperationDialogBase):
     <path d="M3 12h18" stroke-dasharray="2 2"/>
     <path d="M5 13l3-2 3 3 3-5 3 4 3-2"/>
     """
+    Keywords: str = (
+        "carta di controllo spc statistical process control controllo statistico di processo shewhart "
+        "i-mr x-bar xbar r chart p chart c chart u chart limits limiti stability stabilita capability "
+        "capacità di processo process capability cp cpk pp ppk cpm spec limits limiti di specifica "
+        "lsl usl ppm"
+    )
+    Goals: list[str] = ["process", "anomalies"]
 
     def __init__(
         self,

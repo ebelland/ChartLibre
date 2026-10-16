@@ -55,6 +55,8 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
         "Raw per-cell colour over a regular x/y grid, no interpolation "
         "between cells - the value actually measured in each one."
     )
+    Keywords: str = "mappa di calore heat map matrix matrice correlation correlazione"
+    Goals: list[str] = ["relate"]
     Link: str = "https://matplotlib.org/stable/plot_types/arrays/pcolormesh.html"
 
     RequiredRoles: list[str] = ["x", "y", "z"]

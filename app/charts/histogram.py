@@ -57,6 +57,8 @@ class HistogramAxisRenderer(BaseAxisRenderer):
     Name: str = "Histogram"
     Category: str = "Statistical distributions"
     Description: str = "Histogram supporting multiple data sets."
+    Keywords: str = "istogramma frequency frequenza distribution distribuzione bins classi"
+    Goals: list[str] = ["describe"]
     Link: str = (
         "https://matplotlib.org/stable/gallery/statistics/histogram_multihist.html"
     )

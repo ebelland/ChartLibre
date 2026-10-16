@@ -332,6 +332,12 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
     <path d="M4 13c1.7-4 3.4 4 5.1 0s3.4-4 5.1 0 3.4 4 5.8-1"/>
     <path d="M4 17c3.3-2.3 6.7-2.3 10 0 2 1.3 4 1.3 6 0"/>
     """
+    Keywords: str = (
+        "smussamento lisciatura noise rumore moving average media mobile savitzky-golay lowess loess "
+        "filtro smooth"
+    )
+    Goals: list[str] = ["signal"]
+
     def __init__(
         self,
         *,

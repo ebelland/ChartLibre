@@ -136,6 +136,11 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
     <path d="M4 12c3-6 6-6 8 0s5 6 8 0"/>
     <path d="M4 8c3-4 6-4 8 0s5 4 8 0" stroke-dasharray="2 2"/>
     """
+    Keywords: str = (
+        "gaussian process processo gaussiano kriging uncertainty incertezza confidence band banda di "
+        "confidenza"
+    )
+    Goals: list[str] = ["predict", "relate"]
 
     def __init__(
         self,

@@ -40,7 +40,7 @@ DONE PY-15: Python 3.15 (.venv-3.15) passes the suite but the old chrome test. P
      separation only warned) and scikit-learn 1.9.1 (LDA scale, QDA) handled.
 
 P0-1 Series Operations do not start anymore
-P0-2 catalog.py: app has a plugin structure. never use catalogs but get information from the plugin (e.g Description field for charts)
+DONE P0-2 catalog.py: keywords and goals are now the plugins' own Keywords / Goals class attributes (analyses, data operations, charts); catalog.py only collects them. Left in catalog.py: the table tools (not classes), GUIDE (goal -> best entries, with why) and EQUIVALENTS.
 P0-3 Analysis must have plugin structure too.
 P0-5 Import data. Windows. Left frame. gray area.
 P0-6 After Import move to tables and select the last imported table.

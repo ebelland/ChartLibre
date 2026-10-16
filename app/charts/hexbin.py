@@ -59,6 +59,8 @@ class HexbinAxisRenderer(BaseAxisRenderer):
         "2D density of x/y pairs binned into hexagons - where a scatter "
         "with too many points to read individually actually piles up."
     )
+    Keywords: str = "density densita many points molti punti 2d"
+    Goals: list[str] = ["relate"]
     Link: str = "https://matplotlib.org/stable/plot_types/stats/hexbin.html"
 
     RequiredRoles: list[str] = ["x", "y"]

@@ -160,6 +160,11 @@ class SeriesFilterDialog(DataOperationDialogBase):
     Icon = """
     <path d="M3 12h4l2-7 4 14 2-7h6"/>
     """
+    Keywords: str = (
+        "filtro filtraggio filter low-pass passa basso high-pass passa alto band-pass butterworth "
+        "detrend trend demodulate scipy signal"
+    )
+    Goals: list[str] = ["signal"]
 
     def __init__(
         self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None,

@@ -257,6 +257,8 @@ class SeriesRootsDialog(DataOperationDialogBase):
     <path d="M3 19c4 0 5-14 9-14s5 10 9 10"/>
     <circle cx="8.4" cy="12" r="1.8"/>
     """
+    Keywords: str = "radici zeri zeros crossing attraversamento threshold soglia level livello"
+    Goals: list[str] = ["signal"]
 
     def __init__(
         self,

@@ -71,6 +71,8 @@ class ScatterAxisRenderer(BaseAxisRenderer):
     Name = "Scatter Plot"
     Category: str = "Pairwise data"
     Description = "Scatter Plot"
+    Keywords: str = "dispersione scatter xy correlation correlazione punti points"
+    Goals: list[str] = ["relate"]
     Link:str="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.scatter.html#matplotlib.axes.Axes.scatter"
 
     def _float_option(self, name: str, options: dict[str, Any], default: float = 0.0) -> float:

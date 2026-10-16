@@ -84,6 +84,8 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
     Name: str = "Surface Plot"
     Category: str = "3D and volumetric data"
     Description: str = "3D surface over a regular x/y grid."
+    Keywords: str = "superficie 3d response surface superficie di risposta"
+    Goals: list[str] = ["explain"]
     Link: str = "https://matplotlib.org/stable/gallery/mplot3d/surface3d.html"
 
     RequiredRoles: list[str] = ["x", "y", "z"]
