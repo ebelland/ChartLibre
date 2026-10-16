@@ -74,7 +74,7 @@ msgid "A new language is applied the next time the app starts."
 msgstr "La nuova lingua verrà applicata al prossimo avvio dell'applicazione."
 
 msgid "A process that shifts part-way through. Run Data operations, Control Chart on the series to see the shift caught."
-msgstr "Un processo che si sposta a metà percorso. Esegui Operazioni sulle serie, Carta di controllo sulla serie per vedere lo spostamento rilevato."
+msgstr "Un processo che si sposta a metà percorso. Esegui Operazioni sui dati, Carta di controllo sulla serie per vedere lo spostamento rilevato."
 
 msgid "A query named '{name}' already exists. Replace it?"
 msgstr "Esiste già una query di nome '{name}'. Sostituirla?"
@@ -1874,7 +1874,7 @@ msgid "On"
 msgstr "Attiva"
 
 msgid "One Gaussian peak on a sloping baseline. Run Data operations, Fit and pick Gaussian peak: the starting values come from the data."
-msgstr "Un picco gaussiano su una linea di base inclinata. Esegui Operazioni sulle serie, Fit e scegli picco gaussiano: i valori iniziali vengono dai dati."
+msgstr "Un picco gaussiano su una linea di base inclinata. Esegui Operazioni sui dati, Fit e scegli picco gaussiano: i valori iniziali vengono dai dati."
 
 msgid "One-sample t-test"
 msgstr "Test t a un campione"
@@ -2517,7 +2517,7 @@ msgid "Series '{series}': the renderer could not be loaded."
 msgstr "Serie '{series}': impossibile caricare il renderer."
 
 msgid "Data Operations"
-msgstr "Operazioni sulle serie"
+msgstr "Operazioni sui dati"
 
 msgid "Series name"
 msgstr "Nome della serie"
@@ -2526,7 +2526,7 @@ msgid "Series name:"
 msgstr "Nome della serie:"
 
 msgid "Data operation"
-msgstr "Operazione sulla serie"
+msgstr "Operazione sui dati"
 
 msgid "Most of the code: the interface, the analysis engines, the renderers and the test suite, written in conversation with the author."
 msgstr "La maggior parte del codice: l'interfaccia, i motori di analisi, i renderer e la suite di test, scritti in conversazione con l'autore."
@@ -2580,7 +2580,7 @@ msgid "Show main menu"
 msgstr "Mostra il menu principale"
 
 msgid "Show data operations"
-msgstr "Mostra le operazioni sulle serie"
+msgstr "Mostra le operazioni sui dati"
 
 msgid "Show the tables written by fits, smoothing, outlier and spectral operations. Their names start with an underscore."
 msgstr "Mostra le tabelle scritte dalle operazioni di fit, smoothing, outlier e spettrali. I loro nomi iniziano con un trattino basso."
@@ -3943,7 +3943,7 @@ msgid "Three teaching examples from mathematics, physics and signal processing: 
 msgstr "Tre esempi didattici da matematica, fisica ed elaborazione dei segnali: il quartetto di Anscombe su una griglia a scala condivisa (l'esempio multi-asse della stessa galleria di matplotlib), quattro figure di Lissajous a diversi rapporti di frequenza, e un segnale rumoroso accanto allo spettro di frequenza che ne recupera i tre toni veri - lo stesso segnale su cui i modelli IIR/FIR/Hilbert dell'operazione Filtraggio possono lavorare direttamente (i suoi toni a 5, 20 e 50 Hz sono bersagli esatti per un passa-basso, un passa-banda o un inviluppo)."
 
 msgid "Quality and spectroscopy - two new data operations"
-msgstr "Qualità e spettroscopia - due nuove operazioni sulle serie"
+msgstr "Qualità e spettroscopia - due nuove operazioni sui dati"
 
 msgid "Textbook defective-unit counts for the Attribute Chart operation (p/np/c/u), and a synthetic spectrum with a drifting, wandering background for Baseline Correction (AsLS or rubber band) - both figures already carry an annotation and a reference line with an explicit colour, so opening Overlay properties shows its colour/line/font/size editors populated rather than empty."
 msgstr "Conteggi di unità difettose da manuale per l'operazione Carta per attributi (p/np/c/u), e uno spettro sintetico con uno sfondo che deriva e ondeggia per la Correzione della linea di base (AsLS o rubber band) - entrambe le figure portano già un'annotazione e una linea di riferimento con un colore esplicito, cosi' aprendo le proprietà delle sovrapposizioni si vedono gli editor di colore/linea/carattere/dimensione già popolati invece che vuoti."
@@ -4231,7 +4231,7 @@ msgid "Data Operation Builder"
 msgstr "Creatore di operazioni"
 
 msgid "Scaffold a new data-operation dialog from a template"
-msgstr "Genera una nuova finestra di operazione sulle serie da un modello"
+msgstr "Genera una nuova finestra di operazione sui dati da un modello"
 
 msgid "Function Creator"
 msgstr "Creatore di funzioni"
@@ -4753,7 +4753,7 @@ msgid "Writes a new file under user/charts/ with a class already filled in from 
 msgstr "Scrive un nuovo file in user/charts/ con una classe già compilata da questi campi - nessuna registrazione necessaria, lo scanner lo rileva non appena il file esiste. render_axis viene lasciato a te per scrivere il codice di disegno vero e proprio."
 
 msgid "\"{name}\" is already used by an existing data operation."
-msgstr "\"{name}\" è già usato da un'operazione sulle serie esistente."
+msgstr "\"{name}\" è già usato da un'operazione sui dati esistente."
 
 msgid "A file named \"{file}\" already exists under user/data_operations/."
 msgstr "Un file chiamato \"{file}\" esiste già in user/data_operations/."
@@ -5049,10 +5049,10 @@ msgid "A logistic response curve sampled at only nine irregular points - exact b
 msgstr "Una curva di risposta logistica campionata in soli nove punti irregolari - esatta per costruzione, cosi' la curva generata da Interpolation può essere verificata contro la forma vera anziché contro il rumore."
 
 msgid "3D Data Operations - Fit, Peaks, Roots and Calculus on a surface"
-msgstr "Operazioni sulle serie 3D - Fit, Picchi, Radici e Calcolo su una superficie"
+msgstr "Operazioni sui dati 3D - Fit, Picchi, Radici e Calcolo su una superficie"
 
 msgid "A Gaussian bump and a saddle, run through the four Data Operations that now understand a series with a z role: a Gaussian2D surface fitted to 500 scattered points, the bump's one peak found on its exact grid, a saddle's z=0 level curve traced as its two true diagonals, and the bump's gradient magnitude with the volume under it reported alongside."
-msgstr "Una gobba gaussiana e una sella, elaborate con le quattro Operazioni sulle serie che ora comprendono una serie con un ruolo z: una superficie Gaussian2D adattata a 500 punti sparsi, l'unico picco della gobba trovato sulla sua griglia esatta, la curva di livello z=0 di una sella tracciata come le sue due vere diagonali, e la magnitudine del gradiente della gobba con il volume sottostante riportato accanto."
+msgstr "Una gobba gaussiana e una sella, elaborate con le quattro Operazioni sui dati che ora comprendono una serie con un ruolo z: una superficie Gaussian2D adattata a 500 punti sparsi, l'unico picco della gobba trovato sulla sua griglia esatta, la curva di livello z=0 di una sella tracciata come le sue due vere diagonali, e la magnitudine del gradiente della gobba con il volume sottostante riportato accanto."
 
 msgid "Add a horizontal line to the selected axis"
 msgstr "Aggiungi una linea orizzontale all'asse selezionato"
@@ -5085,7 +5085,7 @@ msgid "Scaffold the new fit-function file"
 msgstr "Genera il nuovo file della funzione di fit"
 
 msgid "Scaffold the new data-operation file"
-msgstr "Genera il nuovo file dell'operazione sulle serie"
+msgstr "Genera il nuovo file dell'operazione sui dati"
 
 msgid "2D (x, y)"
 msgstr "2D (x, y)"
@@ -5691,7 +5691,7 @@ msgid "Data operations - fifteen operations, each with its report"
 msgstr "Operazioni sui dati - quindici operazioni, ognuna con il suo rapporto"
 
 msgid "Fifteen Data Operations run for real, one per chart, each on a dataset suited to it - smoothing, spectrum, filtering, baseline, peaks, roots, calculus, fit, interpolation, statistics, outliers, clustering, a control chart, a robust regression and a transform - with the result drawn on the chart and the operation's own report in the results pane below it, exactly as the operation leaves them."
-msgstr "Quindici operazioni sulle serie eseguite davvero, una per grafico, ognuna su dati adatti - smussatura, spettro, filtro, linea di base, picchi, radici, calcolo, fit, interpolazione, statistiche, valori anomali, clustering, una carta di controllo, una regressione robusta e una trasformazione - con il risultato disegnato sul grafico e il rapporto dell'operazione nel pannello dei risultati sotto, esattamente come li lascia l'operazione."
+msgstr "Quindici operazioni sui dati eseguite davvero, una per grafico, ognuna su dati adatti - smussatura, spettro, filtro, linea di base, picchi, radici, calcolo, fit, interpolazione, statistiche, valori anomali, clustering, una carta di controllo, una regressione robusta e una trasformazione - con il risultato disegnato sul grafico e il rapporto dell'operazione nel pannello dei risultati sotto, esattamente come li lascia l'operazione."
 
 msgid "Tools"
 msgstr "Strumenti"
@@ -7022,7 +7022,7 @@ msgid "SQLite type"
 msgstr "Tipo SQLite"
 
 msgid "Data operations"
-msgstr "Operazioni sulle serie"
+msgstr "Operazioni sui dati"
 
 msgid "Showing the first {count} rows."
 msgstr "Sono mostrate le prime {count} righe."
@@ -8081,7 +8081,7 @@ msgid "Search functions…"
 msgstr "Cerca funzioni…"
 
 msgid "Find an analysis, a data operation, a chart type or a table tool by what it does (Ctrl+K)"
-msgstr "Trova un'analisi, un'operazione sulle serie, un tipo di grafico o uno strumento tabella da ciò che fa (Ctrl+K)"
+msgstr "Trova un'analisi, un'operazione sui dati, un tipo di grafico o uno strumento tabella da ciò che fa (Ctrl+K)"
 
 msgid "{name} works on a chart's series: open or create a chart first, then choose it again."
 msgstr "{name} lavora sulle serie di un grafico: apri o crea prima un grafico, poi sceglila di nuovo."

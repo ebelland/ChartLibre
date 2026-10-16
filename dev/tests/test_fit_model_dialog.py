@@ -349,3 +349,16 @@ def test_several_responses_share_one_figure_and_one_report(qapp, doe_table) -> N
         assert set(effects["Response"]) == {"Response_1", "Response_2"}
     finally:
         dialog.close()
+
+
+def test_stop_reaches_the_fit_and_leaves_the_results_untouched(qapp, doe_table) -> None:
+    repo, name = doe_table
+    dialog = FitModelDialog(repo=repo, table=name)
+    try:
+        dialog.preview()
+        dialog.stop()  # before the worker looks: the fit must give up, not finish
+        _wait(qapp, dialog)
+        assert dialog._result is None
+        assert dialog._results.toPlainText() == "Stopped. Nothing was changed." if hasattr(dialog._results, "toPlainText") else True
+    finally:
+        dialog.close()

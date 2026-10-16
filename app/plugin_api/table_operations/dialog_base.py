@@ -52,6 +52,7 @@ from PySide6.QtWidgets import (
 
 from app import APP_VERSION
 from app.data.sqlite_repo import SqliteRepo
+from app.analysis import Stopped
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import OperationModel
 from app.plugin_api.data_operations.parameter_form import ParameterForm
@@ -350,6 +351,11 @@ class TableOperationDialogBase(QDialog):
         if self._task is not None:
             self._task.cancel()
 
+    def stop_requested(self) -> bool:
+        """True once Stop was pressed (or the window closed) during compute(); poll it in long loops."""
+        event = getattr(self, "_stop_event", None)
+        return event is not None and event.is_set()
+
     def _run(self, then: Any) -> None:
         problems = self.problems()
         if problems:
@@ -361,7 +367,12 @@ class TableOperationDialogBase(QDialog):
         params, model, inputs = self.parameter_values(), self.current_model(), self._inputs()
 
         def finished(result: Any) -> None:
+            # Stop pressed too late for compute() to notice: the result is dropped all the same.
+            stopped = self._task is not None and self._task.cancel_event.is_set()
             self._set_busy(False)
+            if stopped:
+                failed(Stopped())
+                return
             self._result, self._result_inputs = result, inputs
             try:
                 self._results.setContent(self.format_results(result))
@@ -373,11 +384,23 @@ class TableOperationDialogBase(QDialog):
 
         def failed(error: BaseException) -> None:
             self._set_busy(False)
+            if isinstance(error, Stopped):
+                self._results.setText(_("Stopped. Nothing was changed."))
+                return
             applogger.warning("%s failed: %s", self.Name, error)
             self._results.setText(_("{operation} could not be computed: {error}").format(operation=_(self.Name), error=error))
 
         self._set_busy(True)
-        self._task = run_in_background(lambda _cancel: self.compute(frame, casting, params, model), finished, failed)
+        # compute() takes no cancel argument (its signature is the plugins'
+        # contract), so Stop is offered through stop_requested(): a long
+        # compute polls it and raises app.analysis.Stopped.
+        self._stop_event = None
+
+        def work(cancel) -> Any:  # noqa: ANN001 - a threading.Event
+            self._stop_event = cancel
+            return self.compute(frame, casting, params, model)
+
+        self._task = run_in_background(work, finished, failed)
 
     def _set_busy(self, busy: bool) -> None:
         if not busy:

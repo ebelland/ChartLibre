@@ -1247,11 +1247,6 @@
       "title": "Documentation",
       "text": "Could not open a browser. The documentation is at:\n{url}"
     },
-    "catalog.open_a_chart": {
-      "level": "info",
-      "title": "Search",
-      "text": "{name} works on a chart's series: open or create a chart first, then choose it again."
-    },
     "catalog.select_a_table": {
       "level": "info",
       "title": "Search",

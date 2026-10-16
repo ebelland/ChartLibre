@@ -498,7 +498,7 @@ class FitModelDialog(TableOperationDialogBase):
             penalty=str(params.get("penalty", "lasso")),
             direction=str(params.get("direction", "backward")),
         )
-        return lm.fit_models(frame, spec)
+        return lm.fit_models(frame, spec, should_stop=self.stop_requested)
 
     def format_results(self, result: list[lm.ResponseFit]) -> str:
         sections = [self._report(fit) for fit in result]

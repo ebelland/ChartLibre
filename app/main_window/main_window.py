@@ -1142,9 +1142,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if entry.kind == catalog.ANALYSIS:
             self._on_table_operation_requested(entry.payload)
         elif entry.kind == catalog.SERIES:
-            if entry.payload.get("name") != "NewPlotTabDialog" and self._current_chart_panel() is None:
-                show_message(self, "catalog.open_a_chart", name=_(entry.name))
-                return
             self._on_data_operation_requested(entry.payload)
         elif entry.kind == catalog.CHART:
             self._on_new_plot_tab(chart_type=str(entry.payload))
@@ -1216,16 +1213,54 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if figures:
             self._reload_tabs(select_figure_id=figures[0])
 
+    def _scratch_figure(self) -> int | None:
+        """An empty chart to open a data operation on when the project has none.
+
+        The operations are opened on a chart - their series selector reads its
+        axes - but they can also read a table's columns, so with only tables
+        in the project they still have to open. The figure is deleted again
+        if nothing comes of it (_drop_scratch_figure).
+        """
+        from app.scanners.axis_renderer_scanner import get_renderer, renderers
+
+        chart_type = "Scatter Plot" if get_renderer("Scatter Plot") else (renderers[0]["value"] if renderers else None)
+        if chart_type is None:
+            applogger.error("No chart type is installed: a data operation cannot be opened without a chart.")
+            return None
+        figure_id = int(self._repo.create_figure_descriptor(name=_("Chart")))
+        self._repo.create_axis_descriptor(
+            figure_id=figure_id, axis_index=0, chart_type=str(chart_type),
+            title="", x_label="", y_label="", options={},
+        )
+        return figure_id
+
+    def _drop_scratch_figure(self, figure_id: int) -> bool:
+        """Delete the scratch figure unless the operation drew on it; True when deleted."""
+        descriptor = self._repo.load_figure_descriptor(figure_id)
+        if descriptor is not None and any(axis.series for axis in descriptor.axes):
+            return False
+        self._repo.delete_figure(figure_id)
+        return True
+
     def _open_data_operation(
         self,
         dialog_class: type,
         icon: QIcon | None = None,
     ) -> None:
-        """Open one runtime data-operation dialog on the current chart."""
+        """Open one runtime data-operation dialog on the current chart, or on a scratch one.
+
+        With no chart in the project the operation opens on an empty chart that
+        is kept only if the operation drew something (or reported) on it.
+        """
         panel = self._current_chart_panel()
+        scratch: int | None = None
         if panel is None:
-            return
-        figure_id = panel.figure_id
+            scratch = self._scratch_figure()
+            if scratch is None:
+                return
+            figure_id = scratch
+        else:
+            figure_id = panel.figure_id
 
         dialog = dialog_class(
             repo=self._repo,
@@ -1237,16 +1272,29 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             dialog.setWindowIcon(icon)
 
         dialog.applied.connect(self.refresh)
-        # Bind results to the panel active when the dialog was opened.
-        dialog.results_published.connect(
-            lambda markup, target=panel: target.set_notes_html(
-                markup,
-                append=True,
+        # Bind results to the panel active when the dialog was opened - or, on a
+        # scratch chart, to the figure once its tab exists.
+        published: list[str] = []
+        if panel is not None:
+            dialog.results_published.connect(
+                lambda markup, target=panel: target.set_notes_html(
+                    markup,
+                    append=True,
+                )
             )
-        )
+        else:
+            dialog.results_published.connect(published.append)
         figures_before = {figure_id for figure_id, _name in self._repo.load_figures_from_db()}
         dialog.exec()
-        panel.reload()
+        if panel is not None:
+            panel.reload()
+        elif published or not self._drop_scratch_figure(figure_id):
+            # Kept: it is a chart of the operation's now.
+            self._reload_tabs(select_figure_id=figure_id)
+            target = self._current_chart_panel()
+            for markup in published:
+                if target is not None:
+                    target.set_notes_html(markup, append=True)
         self._table_panel.reload()
 
         # An operation may have created a figure of its own, which is a new
@@ -1257,12 +1305,14 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         # redraw every chart regardless of how many the operation actually
         # touched. Only worth paying for when a figure was actually added;
         # the panel.reload() above already covers the ordinary case.
-        created = {figure_id for figure_id, _name in self._repo.load_figures_from_db()} - figures_before
+        existing = {figure_id for figure_id, _name in self._repo.load_figures_from_db()}
+        created = existing - figures_before
         if created:
             # Shown: the figure the operation made is what its Apply produced.
             self._reload_tabs(select_figure_id=max(created))
+        elif scratch is not None and scratch not in existing:
+            self._reload_tabs()
         self._update_properties_for_current_chart()
-   
 
     def _on_credits(self) -> None:
         """Show who made this and what it is made of."""
