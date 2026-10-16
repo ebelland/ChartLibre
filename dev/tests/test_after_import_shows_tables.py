@@ -66,3 +66,36 @@ def test_import_from_clipboard_opens_the_dialog_on_it_and_honours_the_transposed
     finally:
         window.close()
         repo.close()
+
+
+def test_the_import_button_does_not_open_a_file_called_false(qapp, tmp_path: Path, monkeypatch) -> None:
+    from app.dialogs import import_data_dialog as dialog_module
+
+    repo, window = _window(qapp, tmp_path)
+    loaded: list[object] = []
+    try:
+        monkeypatch.setattr(dialog_module.ImportDataDialog, "exec", lambda self: 0)
+        monkeypatch.setattr(dialog_module.ImportDataDialog, "load_file", lambda self, path: loaded.append(path))
+        window._on_import_data(False)  # what a button's clicked(bool) delivers
+        assert loaded == []
+        window._on_import_data(tmp_path / "data.csv")
+        assert loaded == [tmp_path / "data.csv"]
+    finally:
+        window.close()
+        repo.close()
+
+
+def test_the_workspace_row_stays_selected_while_the_panels_are_hidden(qapp, tmp_path: Path) -> None:
+    repo, window = _window(qapp, tmp_path)
+    try:
+        bar = window._left_panel
+        bar.select("tables")
+        assert bar.button("tables").isChecked() and not bar.button("workspace").isChecked()
+        bar.select("workspace")  # the action row: hides the panels
+        assert not bar.panel_visible
+        assert bar.button("workspace").isChecked() and not bar.button("tables").isChecked()
+        bar.select("tables")  # shows them again
+        assert bar.button("tables").isChecked() and not bar.button("workspace").isChecked()
+    finally:
+        window.close()
+        repo.close()

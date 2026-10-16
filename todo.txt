@@ -59,6 +59,24 @@ DONE P0-11 Python3.15 is default. remove requirements for <3.15 -> requirements:
 DONE p0-12 WARNING  | action | No action 'query' in config.json; the widget will have no label or icon. -> action 'query' added to config.json
 
 
+BUGS.PPTX (visual bugs from the user's Windows screenshots, 2026-10-16; slide numbers in brackets)
+DONE B-01 [2] Import dialog title and table named "False": the button's clicked(bool) was read as a file path.
+DONE B-02 [2] Checkboxes: white tick on the highlight colour in the Fluent sheet (QCheckBox::indicator, drawn tick).
+DONE B-03 [2] Clipboard buttons moved to the New table page (P0-9); the Web source (5) is still in the Import dialog.
+DONE B-04 [3] Load demo: window icon (load_demo) and a title on the preview frame ("Preview"). Same fix for the New chart, DOE, Query Builder and Table editor icons (ids that were not actions).
+DONE B-05 [4] Workspace row stays selected while the panels are hidden.
+DONE B-06 [5] Create Query Table has its icon (action "query", P0-12).
+OPEN  B-07 [1] File panel, Open recent frame: list square on top, round below (QSS).
+OPEN  B-08 [2] Import dialog: grey background, frame inside a frame (QSS / PanelDialog).
+OPEN  B-09 [2] Move the Web source to the New table page too (item 5 of the slide).
+OPEN  B-10 [4] Tables page: wasted space (also below), square border, round the edges or continue the border to the panel side and align the height to the chart panel.
+OPEN  B-11 [6] Chart properties / Overlay: QTabWidget header stuck to the frame, double frame - drop the outer one.
+OPEN  B-12 [7] New chart window: splitters white -> grey; grey background; some renderers ask for the group twice (a "group" role and "Group by"); double scroll bar in the renderer list.
+OPEN  B-13 [7] New chart: add a field such as "Axes group" to make separate axes (series filtered with WHERE AxesGroup = xxx, one axis per distinct value).
+OPEN  B-14 [8] Data operation windows (base class): QTabWidget with white space at the end - a frame titled "Settings", moved down and aligned to Results so the tab header stays inside the white frame.
+OPEN  B-15 [9] Distribution (and Fit Y by X, ...): square frame, no title, stuck to the Results frame.
+
+
 NOW
 G-02  M  Guided analysis for beginners: a wizard dialog (~820x560), columns first.
          1) Which columns? - the table's columns as chips with a type icon, the first rows

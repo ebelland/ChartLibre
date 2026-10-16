@@ -456,7 +456,9 @@ class MainWindowProject(_MainWindowProjectBase):
         is the whole point of dropping it rather than browsing for it.
         """
         dlg = ImportDataDialog(self._repo, parent=self)
-        if source_path is not None:
+        # Only a path counts: a button's clicked(bool) arrives here as False, which
+        # used to be opened as a file called "False".
+        if isinstance(source_path, (str, Path)) and str(source_path):
             dlg.load_file(source_path)
         if clipboard and not dlg.load_clipboard(transposed):
             return  # nothing on the clipboard: said, and no empty dialog left behind

@@ -67,7 +67,7 @@ class DOEExperimentDialog(SettingsTableDialog):
         super().__init__(
             parent,
             title=_(self.Name),
-            icon=load_icon("new_table"),
+            icon=load_icon("new"),
             settings_title=_("Experiment settings"),
             content_title=_("Test matrix preview"),
             settings_width=460,

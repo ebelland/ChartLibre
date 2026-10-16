@@ -102,7 +102,7 @@ class NewPlotTabDialog(QDialog):
         self._axis_name_user_modified = False
 
         self.setWindowTitle(_("New plot"))
-        self.setWindowIcon(load_icon("plot"))
+        self.setWindowIcon(load_icon("new_plot"))
         self.setModal(False)
         # Size and root padding come from the shared dialog shell.
 

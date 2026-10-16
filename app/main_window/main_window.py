@@ -795,6 +795,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         )
         # The search sits in the rail under Workspace; its matches list under it while typing.
         navigation.set_row_widget("workspace", self._rail_search)
+        navigation.set_hidden_panels_key("workspace")
         navigation.action_clicked.connect(self._on_navigation_action)
         navigation.panel_changed.connect(self._on_navigation_panel_changed)
         navigation.bar_hidden_changed.connect(self._on_bar_hidden_changed)

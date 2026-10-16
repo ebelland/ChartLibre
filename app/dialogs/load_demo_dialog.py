@@ -48,8 +48,9 @@ class LoadDemoDialog(SettingsTableDialog):
         super().__init__(
             parent,
             title=_("Load demo"),
-            icon=load_icon("plot"),
+            icon=load_icon("load_demo"),
             settings_title=_("Demo projects"),
+            content_title=_("Preview"),
             size="medium",
             settings_width=380,
         )

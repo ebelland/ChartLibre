@@ -5,14 +5,15 @@ import re
 import tempfile
 import sys
 from functools import lru_cache
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
-from PySide6.QtCore import QByteArray, QRect, QRectF, QSize, Qt
+from PySide6.QtCore import QByteArray, QPointF, QRect, QRectF, QSize, Qt
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtGui import QColor, QFont, QFontDatabase, QGuiApplication, QIcon, QImage, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QGuiApplication, QIcon, QImage, QPainter, QPen, QPixmap
 from app.logs.logger import applogger
 from app.styles.style.metrics import _IS_MACOS, _IS_WINDOWS
 from app.styles.style.catalogue import ActionSpec, _catalog, action
@@ -910,8 +911,40 @@ QSS_SYMBOLS: dict[str, tuple[str, str, str]] = {
 _QSS_SYMBOL_RE = re.compile(r"@ICON:([A-Za-z0-9_]+)@")
 
 
+#: Images drawn here rather than taken from a symbol font: name -> a function
+#: that paints the 48 x 48 pixmap. A check mark is white whatever the theme,
+#: because it sits on the highlight colour of a checked box.
+def _paint_checkbox_tick(pixmap: QPixmap) -> None:
+    painter = QPainter(pixmap)
+    try:
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pen = QPen(QColor("#ffffff"))
+        pen.setWidthF(5.0)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        painter.drawPolyline([QPointF(12, 25), QPointF(21, 34), QPointF(37, 15)])
+    finally:
+        painter.end()
+
+
+QSS_DRAWN: dict[str, Callable[[QPixmap], None]] = {"checkbox_tick": _paint_checkbox_tick}
+
+
 def _qss_symbol_file(name: str) -> str | None:
     """Render one QSS_SYMBOLS entry to a PNG and return its path, or None."""
+    painter_for = QSS_DRAWN.get(name)
+    if painter_for is not None:
+        pixmap = QPixmap(48, 48)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter_for(pixmap)
+        target = Path(tempfile.gettempdir()) / "chartlibre-qss" / f"{name}.png"
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            return target.as_posix() if pixmap.save(str(target), "PNG") else None
+        except Exception:
+            applogger.debug("Could not draw the QSS image %s.", name, exc_info=True)
+            return None
     spec = QSS_SYMBOLS.get(name)
     if spec is None:
         return None

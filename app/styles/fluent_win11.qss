@@ -808,6 +808,32 @@ QRadioButton {
   spacing: 6px;
 }
 
+/* A checked box: a white tick on the highlight colour (the native one drew it
+   dark on blue, which has no contrast). */
+QCheckBox::indicator {
+  width: 14px;
+  height: 14px;
+}
+
+QCheckBox::indicator:unchecked {
+  background: palette(base);
+  border: 1px solid palette(mid);
+  border-radius: 4px;
+}
+
+QCheckBox::indicator:checked {
+  background: palette(highlight);
+  border: 1px solid palette(highlight);
+  border-radius: 4px;
+  image: url(@ICON:checkbox_tick@);
+}
+
+QCheckBox::indicator:indeterminate {
+  background: palette(highlight);
+  border: 1px solid palette(highlight);
+  border-radius: 4px;
+}
+
 QRadioButton::indicator {
   width: 14px;
   height: 14px;

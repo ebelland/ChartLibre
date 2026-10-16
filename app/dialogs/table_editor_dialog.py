@@ -204,7 +204,7 @@ class TableEditorDialog(SettingsTableDialog):
         super().__init__(
             parent,
             title=_("Edit table '{table}'").format(table=table),
-            icon=load_icon("document-edit"),
+            icon=load_icon("edit"),
             size="medium",
             settings_width=250,
         )

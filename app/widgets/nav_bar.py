@@ -324,6 +324,10 @@ class NavigationBar(QWidget):
         panels_layout.addLayout(stack_layout, 1)
         root.addWidget(self.panels, 1)
 
+        #: The action row that stands for "panels hidden" (the Workspace row): it shows
+        #: as selected while the panels are hidden, and the selected panel's row again
+        #: once they are shown.
+        self._hidden_panels_key: str | None = None
         self._button_group = QButtonGroup(self)
         self._button_group.setExclusive(True)
         self._button_group.buttonClicked.connect(self._button_clicked)
@@ -426,6 +430,30 @@ class NavigationBar(QWidget):
         self.panels.setVisible(visible)
         self._apply_width_limits()
         self._resize_in_splitter(self._restore_width if visible else self.visible_bar_width)
+        self._sync_hidden_panels_row()
+
+    def set_hidden_panels_key(self, key: str | None) -> None:
+        """Make the action row *key* the one that is selected while the panels are hidden."""
+        self._hidden_panels_key = key
+        self._rebuild()
+        self._sync_hidden_panels_row()
+
+    def _sync_hidden_panels_row(self) -> None:
+        """Select the hidden-panels row while they are hidden, else the shown panel's row."""
+        key = self._hidden_panels_key
+        button = self._buttons.get(key) if key else None
+        if button is None or not button.isCheckable():
+            return
+        if self.panel_visible:
+            selected = self._buttons.get(self._selected_key or "")
+            if selected is not None:
+                selected.setChecked(True)  # exclusive: the Workspace row lets go
+            else:
+                self._button_group.setExclusive(False)
+                button.setChecked(False)
+                self._button_group.setExclusive(True)
+        else:
+            button.setChecked(True)
 
     def toggle_panels(self) -> None:
         """Hide the panels if shown, show them if hidden."""
@@ -589,13 +617,14 @@ class NavigationBar(QWidget):
         for panel in old_panels - new_panels:
             self.panel_stack.removeWidget(panel)
         self.set_compact(self._compact)
+        self._sync_hidden_panels_row()
 
     def _make_button(self, key: str, item: NavBarItem) -> QToolButton:
         button = QToolButton(self._section_widget)
         button.setObjectName("navigationItem")
         button.setProperty("navKey", key)
         button.setAutoRaise(False)
-        button.setCheckable(item.panel is not None)
+        button.setCheckable(item.panel is not None or key == self._hidden_panels_key)
         button.setIcon(item.icon)
         button.setIconSize(QSize(20, 20))
         button.setText(_(item.title))

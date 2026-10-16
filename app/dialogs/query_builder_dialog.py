@@ -84,7 +84,7 @@ class QueryBuilderDialog(SettingsTableDialog):
         super().__init__(
             parent,
             title=_("Query Builder"),
-            icon=load_icon("data"),
+            icon=load_icon("query_builder"),
             size="large",
             settings_width=340,
             sections=True,
