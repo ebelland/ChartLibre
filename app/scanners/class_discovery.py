@@ -161,6 +161,34 @@ def extract_class_string_attr(
     return None
 
 
+def extract_class_int_attr(
+    class_node: ast.ClassDef,
+    attr_name: str,
+) -> int | None:
+    """
+    Extract a class-level int attribute from a class body.
+
+    Accepted:
+        Order = 20
+        Order: int = 20
+
+    Rejected: anything that is not an int literal (a bool included).
+    """
+    for stmt in class_node.body:
+        target, value_node = None, None
+        if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1:
+            target, value_node = stmt.targets[0], stmt.value
+        elif isinstance(stmt, ast.AnnAssign):
+            target, value_node = stmt.target, stmt.value
+        if isinstance(target, ast.Name) and target.id == attr_name and value_node is not None:
+            try:
+                value = ast.literal_eval(value_node)
+            except _NOT_A_LITERAL:
+                return None
+            return value if isinstance(value, int) and not isinstance(value, bool) else None
+    return None
+
+
 def extract_class_string_list_attr(
     class_node: ast.ClassDef,
     attr_name: str,
@@ -240,6 +268,7 @@ def discover_classes(
     value_attr: str | None = "Name",
     string_attrs: tuple[str, ...] = (),
     string_list_attrs: tuple[str, ...] = (),
+    int_attrs: tuple[str, ...] = (),
     require_value_attr: bool = True,
     skip_init: bool = True,
 ) -> list[dict[str, Any]]:
@@ -303,6 +332,9 @@ def discover_classes(
                     attr_name,
                 )
 
+            for attr_name in int_attrs:
+                entry[attr_name_to_key(attr_name)] = extract_class_int_attr(node, attr_name)
+
             discovered.append(entry)
 
     return discovered
@@ -315,7 +347,9 @@ def discover_classes_merged(
     value_attr: str | None = "Name",
     string_attrs: tuple[str, ...] = (),
     string_list_attrs: tuple[str, ...] = (),
+    int_attrs: tuple[str, ...] = (),
     require_value_attr: bool = True,
+    family: str = "",
 ) -> list[dict[str, Any]]:
     """Discover across several roots at once, earlier roots winning ties.
 
@@ -336,6 +370,7 @@ def discover_classes_merged(
             value_attr=value_attr,
             string_attrs=string_attrs,
             string_list_attrs=string_list_attrs,
+            int_attrs=int_attrs,
             require_value_attr=require_value_attr,
         ):
             if entry["value"] in seen_values:
@@ -349,6 +384,15 @@ def discover_classes_merged(
                 continue
             seen_values.add(entry["value"])
             discovered.append(entry)
+    if family and not discovered:
+        # Plugins are files that can be removed: a family left with none is an
+        # installation problem, and the feature that lists them will be empty.
+        applogger.error(
+            "No %s found (classes deriving from %s in %s); the application will have none.",
+            family,
+            base_class_name,
+            ", ".join(str(root) for root in roots),
+        )
     return discovered
 
 

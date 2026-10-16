@@ -65,7 +65,10 @@ class ModelDataMixin:
                 continue
             for j in range(cat.childCount()):
                 child = cat.child(j)
-                match = needle in child.text(0).lower()
+                payload = child.data(0, Qt.ItemDataRole.UserRole)
+                words = str(payload.get("keywords", "")) if isinstance(payload, dict) else ""
+                # The name, or the words the function declares (its keywords).
+                match = needle in child.text(0).lower() or needle in words.lower()
                 child.setHidden(not match)
                 any_visible = any_visible or match
             cat.setHidden(not any_visible)

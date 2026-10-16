@@ -41,7 +41,10 @@ DONE PY-15: Python 3.15 (.venv-3.15) passes the suite but the old chrome test. P
 
 P0-1 Series Operations do not start anymore
 DONE P0-2 catalog.py: keywords and goals are now the plugins' own Keywords / Goals class attributes (analyses, data operations, charts); catalog.py only collects them. Left in catalog.py: the table tools (not classes), GUIDE (goal -> best entries, with why) and EQUIVALENTS.
-P0-3 Analysis must have plugin structure too.
+DONE P0-3 Plugin independence: data operations declare Category/Order (no _SECTIONS list), every plugin family
+     declares Keywords/Goals (functions: lowercase keywords/goals, searched in the fit dialog), the helper templates write
+     them, a family with no plugin logs an error, a report skips a chart type that is not installed.
+     Still named in the core: GUIDE (goal -> best entries; missing ones skipped), TOOLS, chart CATEGORY_ORDER/aliases.
 P0-5 Import data. Windows. Left frame. gray area.
 P0-6 After Import move to tables and select the last imported table.
 P0-7 After Open/new move to Tables

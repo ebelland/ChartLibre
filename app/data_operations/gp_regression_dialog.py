@@ -141,6 +141,8 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
         "confidenza"
     )
     Goals: list[str] = ["predict", "relate"]
+    Category: str = "Modeling"
+    Order: int = 54
 
     def __init__(
         self,

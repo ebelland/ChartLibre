@@ -268,6 +268,8 @@ class SeriesOutlierDialog(DataOperationDialogBase):
         "forest"
     )
     Goals: list[str] = ["anomalies"]
+    Category: str = "Statistics"
+    Order: int = 21
 
     def __init__(self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None) -> None:
         if repo is None:

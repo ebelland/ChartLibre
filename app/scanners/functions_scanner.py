@@ -38,6 +38,9 @@ class FitFunctionSpec:
     p0: tuple[float, ...]
     params: tuple[str, ...]
     discovery_entry: dict[str, Any]
+    #: Words to find it by, and the guided analysis goals it serves.
+    keywords: str = ""
+    goals: tuple[str, ...] = ()
     #: Number of independent variables: 1 for y = f(x) (``base_function``),
     #: 2 for z = f(x, y) (``base_surface_function``). Carried on the spec
     #: rather than re-derived from the class each time, because the fit
@@ -60,6 +63,8 @@ class FitFunctionSpec:
             "kind": "function",  # internal dialog dispatch only, not a base_function field
             "category": self.category,
             "description": self.description,
+            "keywords": self.keywords,
+            "goals": list(self.goals),
             "expression": self.expression,
             "p0": list(self.p0),
             "params": list(self.params),
@@ -184,9 +189,10 @@ class FunctionScanner:
             roots=(self.root, *self.extra_roots),
             base_class_name=self.BASE_CLASS_NAME,
             value_attr="name",
-            string_attrs=("category", "description", "expression"),
-            string_list_attrs=("params",),
+            string_attrs=("category", "description", "expression", "keywords"),
+            string_list_attrs=("params", "goals"),
             require_value_attr=False,
+            family="fit functions" if self.NDIM == 1 else "surface fit functions",
         )
 
         specs: list[FitFunctionSpec] = []
@@ -213,6 +219,8 @@ class FunctionScanner:
             category = str(entry.get("category") or getattr(cls, "category", self.DEFAULT_CATEGORY) or self.DEFAULT_CATEGORY)
             description = str(entry.get("description") or getattr(cls, "description", "") or "")
             expression = str(entry.get("expression") or getattr(cls, "expression", "") or "")
+            keywords = str(entry.get("keywords") or getattr(cls, "keywords", "") or "")
+            goals = self._string_tuple(entry.get("goals") or getattr(cls, "goals", []))
             params = self._string_tuple(entry.get("params") or getattr(cls, "params", []))
             p0 = self._float_tuple(getattr(cls, "p0", []), fallback_length=len(params))
 
@@ -229,6 +237,8 @@ class FunctionScanner:
                     name=display_name,
                     category=category,
                     description=description,
+                    keywords=keywords,
+                    goals=goals,
                     expression=expression,
                     p0=p0,
                     params=params,

@@ -165,6 +165,8 @@ class SeriesFilterDialog(DataOperationDialogBase):
         "detrend trend demodulate scipy signal"
     )
     Goals: list[str] = ["signal"]
+    Category: str = "Signal Processing"
+    Order: int = 42
 
     def __init__(
         self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None,

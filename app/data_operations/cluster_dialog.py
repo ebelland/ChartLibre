@@ -342,6 +342,8 @@ class SeriesClusterDialog(DataOperationDialogBase):
         "segmentation segmentazione"
     )
     Goals: list[str] = ["groups"]
+    Category: str = "Statistics"
+    Order: int = 22
 
     def __init__(
         self,

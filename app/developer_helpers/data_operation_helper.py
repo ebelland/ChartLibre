@@ -100,6 +100,11 @@ class {class_name}(DataOperationDialogBase):
 
     Name: str = {name!r}
     Description: str = {description!r}
+    #: Words to find it by in the search, beyond its name and description
+    #: (synonyms, in English and Italian), and the guided analysis goals it
+    #: serves (keys of app.analysis.catalog.GOALS): "describe", "compare", ...
+    Keywords: str = ""
+    Goals: list[str] = []
 
     def __init__(
         self,

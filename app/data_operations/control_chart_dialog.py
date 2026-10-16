@@ -384,6 +384,8 @@ class SeriesControlChartDialog(DataOperationDialogBase):
         "lsl usl ppm"
     )
     Goals: list[str] = ["process", "anomalies"]
+    Category: str = "Statistics"
+    Order: int = 23
 
     def __init__(
         self,

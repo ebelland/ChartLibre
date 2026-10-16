@@ -212,6 +212,10 @@ class base_function:
     name: ClassVar[str] = ""
     category: ClassVar[str] = "Functions"
     description: ClassVar[str] = ""
+    #: Words to find it by, beyond its name and description (synonyms, in English
+    #: and Italian), and the guided analysis goals it serves (app.analysis.catalog.GOALS).
+    keywords: ClassVar[str] = ""
+    goals: ClassVar[list[str]] = []
     expression: ClassVar[str] = ""
     #: Declared starting values, one per entry of ``params``.  A ClassVar
     #: because nothing instantiates these classes; a dataclass field with a
@@ -254,6 +258,10 @@ class base_surface_function:
     name: ClassVar[str] = ""
     category: ClassVar[str] = "Surfaces"
     description: ClassVar[str] = ""
+    #: Words to find it by, beyond its name and description (synonyms, in English
+    #: and Italian), and the guided analysis goals it serves (app.analysis.catalog.GOALS).
+    keywords: ClassVar[str] = ""
+    goals: ClassVar[list[str]] = []
     expression: ClassVar[str] = ""
     p0: ClassVar[list[float]] = []
     params: ClassVar[list[str]] = []

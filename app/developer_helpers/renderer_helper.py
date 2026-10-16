@@ -130,6 +130,11 @@ class {class_name}(BaseAxisRenderer):
     Name: str = {name!r}
     Category: str = {category!r}
     Description: str = {description!r}
+    #: Words to find it by in the search, beyond its name and description
+    #: (synonyms, in English and Italian), and the guided analysis goals it
+    #: serves (keys of app.analysis.catalog.GOALS): "describe", "compare", ...
+    Keywords: str = ""
+    Goals: list[str] = []
     Link: str = {link!r}
 
     RequiredRoles: list[str] = {_roles_literal(required_roles)}

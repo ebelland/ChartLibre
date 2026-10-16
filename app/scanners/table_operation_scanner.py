@@ -29,6 +29,7 @@ def _discover_table_operations() -> list[dict]:
         string_attrs=("Description", "Category", "Icon", "Keywords"),
         string_list_attrs=("Goals",),
         require_value_attr=False,
+        family="table operations (analyses)",
     )
 
 

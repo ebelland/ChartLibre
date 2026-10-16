@@ -41,34 +41,12 @@ from app.widgets.nav_bar import NavPanel
 
 _ACCENT = "#2563EB"
 
-#: Section name -> the operation Name strings (DataOperationDialogBase.Name)
-#: it holds, in display order. An operation whose Name is not listed here
-#: - a new plugin dropped in without this being updated - lands in
-#: _FALLBACK_SECTION rather than disappearing, so being forgotten here costs
-#: it a good home, not a listing at all.
-#:
-#: Titles are left untranslated here and passed through _() in
-#: _group_by_section instead: this tuple is built once, at module import, so
-#: a _() call made here would freeze the section headers in whatever
-#: language was active at first import - English, since that runs before
-#: the saved language preference is applied - and the app-wide language
-#: switch would never reach them again.
-_SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("Analysis", ("Peaks", "Roots", "Calculus")),
-    (
-        "Statistics",
-        (
-            "Statistics", "Outliers", "Clustering", "Control Chart",
-            "Transform", "Decomposition",
-        ),
-    ),
-    ("Geometry", ("Geometry",)),
-    (
-        "Signal Processing",
-        ("Smoothing", "Spectral Analysis", "Filtering", "Baseline Correction"),
-    ),
-    ("Modeling", ("Fit", "Interpolation", "Function", "Regression", "GP Regression")),
-)
+#: The section of an operation that declares no Category. An operation names
+#: its own section (DataOperationDialogBase.Category) and its place in it
+#: (Order), so this panel knows no operation: one added or removed as a plugin
+#: file changes the panel and nothing else. Titles are passed through _() in
+#: _group_by_section, not here: this runs at import, before the saved language
+#: is applied.
 _FALLBACK_SECTION = "Other"
 
 
@@ -77,25 +55,26 @@ def _operation_action_id(operation: dict) -> str:
 
 
 def _group_by_section(operations: list[dict]) -> list[tuple[str, list[dict]]]:
-    """Sort *operations* into ``_SECTIONS``' order, dropping empty sections.
+    """Sort *operations* into sections by their Category, in Order.
 
-    A section with none of its operations discovered - every one of them
-    failed to import, say - is left out rather than shown as an empty
-    header with nothing under it.
+    A section is placed by its lowest Order; operations without a Category
+    form the last one, "Other".
     """
-    by_name = {_operation_action_id(op): op for op in operations}
-    grouped: list[tuple[str, list[dict]]] = []
-    placed: set[str] = set()
+    def order(operation: dict) -> int:
+        value = operation.get("order")
+        return value if isinstance(value, int) else 0
 
-    for title, names in _SECTIONS:
-        items = [by_name[name] for name in names if name in by_name]
-        placed.update(names)
-        if items:
-            grouped.append((_(title), items))
+    sections: dict[str, list[dict]] = {}
+    for operation in operations:
+        sections.setdefault(str(operation.get("category") or ""), []).append(operation)
 
-    leftover = [op for op in operations if _operation_action_id(op) not in placed]
-    if leftover:
-        grouped.append((_(_FALLBACK_SECTION), leftover))
+    known = sorted(
+        ((title, sorted(items, key=lambda op: (order(op), _operation_action_id(op)))) for title, items in sections.items() if title),
+        key=lambda section: (min(order(op) for op in section[1]), section[0]),
+    )
+    grouped = [(_(title), items) for title, items in known]
+    if "" in sections:
+        grouped.append((_(_FALLBACK_SECTION), sections[""]))
     return grouped
 
 

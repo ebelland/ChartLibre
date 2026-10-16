@@ -218,6 +218,8 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
         "dimensionality reduction riduzione dimensionale embedding"
     )
     Goals: list[str] = ["groups", "explain"]
+    Category: str = "Statistics"
+    Order: int = 25
 
     def __init__(
         self,

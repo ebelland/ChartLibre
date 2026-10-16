@@ -93,6 +93,10 @@ class {class_name}(base_function):
     name = {name!r}
     category = "User functions"
     description = {description!r}
+    # Words to find it by in the model search, and the guided analysis goals
+    # it serves (keys of app.analysis.catalog.GOALS).
+    keywords = ""
+    goals: list[str] = []
     # TODO: update to match execute() below - shown in the fit dialog
     # before anything has been fitted, so it is what tells a person what
     # p[0], p[1], ... actually mean.

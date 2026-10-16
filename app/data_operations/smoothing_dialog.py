@@ -337,6 +337,8 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         "filtro smooth"
     )
     Goals: list[str] = ["signal"]
+    Category: str = "Signal Processing"
+    Order: int = 40
 
     def __init__(
         self,

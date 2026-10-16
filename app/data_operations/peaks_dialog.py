@@ -206,6 +206,8 @@ class SeriesPeaksDialog(DataOperationDialogBase):
         "spectrum spettro"
     )
     Goals: list[str] = ["signal"]
+    Category: str = "Analysis"
+    Order: int = 10
 
     def __init__(
         self,

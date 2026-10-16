@@ -467,7 +467,21 @@ class TableOperationDialogBase(QDialog):
         optionally the axis options last (annotations, reference lines); each
         series ``(name, sql, roles, style)`` - see series_select.
         """
+        from app.scanners.axis_renderer_scanner import get_renderer
         from app.widgets.chart_panel import FIGURE_VIEW_OPTIONS_KEY
+
+        # Chart types are plugins that can be removed: a panel whose chart type
+        # is not installed is left out (and logged) - the report is still made.
+        available = []
+        for panel in panels:
+            if get_renderer(str(panel[0])) is None:
+                applogger.warning(
+                    "%s: the chart type %r is not installed; the panel %r is left out.",
+                    self.Name, panel[0], panel[1],
+                )
+                continue
+            available.append(panel)
+        panels = available
 
         repo = self._repo
         columns = 2 if len(panels) > 1 else 1

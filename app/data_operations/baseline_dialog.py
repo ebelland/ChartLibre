@@ -120,6 +120,8 @@ class SeriesBaselineDialog(DataOperationDialogBase):
     """
     Keywords: str = "correzione linea di base baseline background fondo spectrum spettro asls rubber band"
     Goals: list[str] = ["signal"]
+    Category: str = "Signal Processing"
+    Order: int = 43
 
     def __init__(
         self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None,

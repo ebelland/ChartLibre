@@ -259,6 +259,8 @@ class SeriesRootsDialog(DataOperationDialogBase):
     """
     Keywords: str = "radici zeri zeros crossing attraversamento threshold soglia level livello"
     Goals: list[str] = ["signal"]
+    Category: str = "Analysis"
+    Order: int = 11
 
     def __init__(
         self,

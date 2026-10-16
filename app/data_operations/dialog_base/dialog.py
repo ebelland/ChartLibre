@@ -58,6 +58,16 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
     #: an import.
     Name: str = ""
     Description: str = ""
+    #: The Data operations panel's section for it, and its place: sections are
+    #: ordered by their lowest Order, an operation within one by its own. No
+    #: Category lists it under "Other". Nothing else in the application names
+    #: an operation, so a plugin file can be added or removed on its own.
+    Category: str = ""
+    Order: int = 0
+    #: Words to find it by in the search (synonyms, English and Italian), and the
+    #: guided analysis goals it serves (keys of app.analysis.catalog.GOALS).
+    Keywords: str = ""
+    Goals: list[str] = []
 
     #: Shown in the results pane whenever a control changes, until Preview or
     #: OK actually computes something. Controls no longer trigger compute_results()

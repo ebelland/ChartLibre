@@ -342,6 +342,8 @@ class SeriesGeometryDialog(DataOperationDialogBase):
     """
     Keywords: str = "geometria rotate ruota translate trasla scale scala mirror specchia coordinates coordinate"
     Goals: list[str] = ["prepare"]
+    Category: str = "Geometry"
+    Order: int = 30
 
     #: ``dims`` in a visible_for rule is not a parameter: it is "2D" or "3D"
     #: from the selected series' roles (see parameter_context), so a 3D

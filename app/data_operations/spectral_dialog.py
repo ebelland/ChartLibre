@@ -202,6 +202,8 @@ class SeriesSpectralDialog(DataOperationDialogBase):
         "welch power density densita spettrale"
     )
     Goals: list[str] = ["signal"]
+    Category: str = "Signal Processing"
+    Order: int = 41
 
     def __init__(
         self,

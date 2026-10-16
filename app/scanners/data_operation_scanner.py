@@ -50,9 +50,12 @@ def _discover_data_operations() -> list:
             # hands it to style.icon_from_svg_source and Qt does the rest.
             "Icon",
             "Keywords",
+            "Category",
         ),
         string_list_attrs=("Goals",),
+        int_attrs=("Order",),
         require_value_attr=False,
+        family="data operations",
     )
 
 

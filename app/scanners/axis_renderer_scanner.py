@@ -97,6 +97,7 @@ def _discover_axis_renderers() -> list:
             "OptionalRoles",
         ),
         require_value_attr=True,
+        family="chart types (axis renderers)",
     )
 
 
