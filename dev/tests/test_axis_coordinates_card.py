@@ -1,7 +1,7 @@
 """Axis properties: tabs Properties, X, Y, Z, Kwargs; one coordinate page shown in X, Y and Z."""
 from __future__ import annotations
 
-from app.charts import axis_options
+from app.plugin_api.charts import axis_options
 from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget
 
 
@@ -52,7 +52,7 @@ def test_minor_ticks_have_their_own_length_and_rotation(qapp) -> None:
 
     from matplotlib.figure import Figure
 
-    from app.charts.render_figure import _apply_tick_sizes
+    from app.plugin_api.charts.render_figure import _apply_tick_sizes
 
     ax = Figure().add_subplot()
     ax.minorticks_on()

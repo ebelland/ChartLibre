@@ -57,7 +57,7 @@ def slug(text: str) -> str:
 
 
 def _save(repo, figure_id: int, name: str, size: tuple[float, float]) -> None:
-    from app.charts.render_figure import render_figure_from_descriptor
+    from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
     figure = Figure(figsize=size, dpi=DPI)
     render_figure_from_descriptor(figure=figure, descriptor=repo.load_figure_descriptor(int(figure_id)), repo=repo)

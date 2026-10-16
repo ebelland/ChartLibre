@@ -73,7 +73,7 @@ def test_every_data_operation_fits_a_laptop(qapp, repo: SqliteRepo) -> None:
     import pkgutil
 
     import app.data_operations as operations
-    from app.data_operations.dialog_base import DataOperationDialogBase
+    from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 
     figure_id = repo.create_figure_descriptor(name="F")
     for info in pkgutil.iter_modules(operations.__path__):

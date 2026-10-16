@@ -19,10 +19,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app.analysis import partition as pt
-from app.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.styles.style import TitledCard
-from app.table_operations.column_roles import CATEGORICAL, ORDINAL, ColumnCasting, ColumnRole
-from app.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.column_roles import CATEGORICAL, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 

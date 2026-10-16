@@ -6,7 +6,7 @@ import pandas as pd
 from PySide6.QtWidgets import QPushButton
 
 from app.analysis import catalog
-from app.table_operations import table_profile
+from app.plugin_api.table_operations import table_profile
 from app.widgets.guided_panel import GuidedAnalysisPanel
 
 FRAME = pd.DataFrame({
@@ -64,7 +64,7 @@ def test_the_panel_follows_the_table(qapp) -> None:
 def test_a_question_opens_its_answer_with_the_columns_cast(qapp, tmp_path, monkeypatch) -> None:
     from app.data.sqlite_repo import SqliteRepo
     from app.main_window.main_window import MainWindow
-    from app.table_operations.dialog_base import TableOperationDialogBase
+    from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 
     repo = SqliteRepo(db_path=tmp_path / "g.dhub")
     repo.import_dataframe(FRAME, table_name="lines", normalize_columns=False)
@@ -88,7 +88,7 @@ def test_a_question_opens_its_answer_with_the_columns_cast(qapp, tmp_path, monke
 def test_y_and_x_chosen_open_the_suggestion_with_them_cast(qapp, tmp_path, monkeypatch) -> None:
     from app.data.sqlite_repo import SqliteRepo
     from app.main_window.main_window import MainWindow
-    from app.table_operations.dialog_base import TableOperationDialogBase
+    from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 
     repo = SqliteRepo(db_path=tmp_path / "x.dhub")
     repo.import_dataframe(FRAME, table_name="lines", normalize_columns=False)

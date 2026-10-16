@@ -15,10 +15,6 @@ pandas==3.0.6; python_version >= "3.15"
 openpyxl==3.1.5
 PyWavelets==1.9.0; python_version < "3.15"
 PyWavelets==1.10.0; python_version >= "3.15"
-# Optional (only the total-variation smoothing uses it, behind
-# app.analysis.smoothing._require_dependency): no cp315 wheel yet, so it is
-# left out on 3.15 and that one smoother says it is missing.
-scikit-image==0.26.0; python_version < "3.15"
 scikit-learn==1.9.0; python_version < "3.15"
 scikit-learn==1.9.1; python_version >= "3.15"
 scipy==1.18.0; python_version < "3.15"

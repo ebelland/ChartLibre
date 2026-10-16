@@ -35,9 +35,9 @@ from app.analysis.outliers import (
 from app.data.data_source import parse_roles, row_value
 from app.data.select_sql import has_projection_alias, sql_insert_select_expression
 from app.data.sqlite_repo import SqliteRepo
-from app.data_operations.parameter_spec import ChoiceParam, ColorParam, FloatParam, IntParam
-from app.data_operations.results import TableResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, ColorParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
     DataOperationDialogBase,

@@ -4,7 +4,7 @@ Two shapes of input, two Matplotlib functions - the same split the contour
 renderers (app/charts/contour.py) are built around, and for the same
 reason: a grid and a scattered cloud need genuinely different drawing
 calls, not one call fed differently-shaped arrays.  The decision itself -
-is this actually a grid? - is shared with them, in app/charts/grids.py.
+is this actually a grid? - is shared with them, in app/plugin_api/charts/grids.py.
 
 ``SurfaceAxisRenderer`` pivots x/y/z rows into a regular grid and draws
 ``Axes.plot_surface``, for data sampled at every combination of some set of
@@ -40,7 +40,7 @@ from typing import Any
 import numpy as np
 from matplotlib import rcParams
 
-from app.charts.base import (
+from app.plugin_api.charts.base import (
     ARTIST_KWARGS,
     CMAP_KWARGS,
     LINE_KWARGS,
@@ -50,7 +50,7 @@ from app.charts.base import (
     merge,
     pick,
 )
-from app.charts.grids import finite_xyz, pivot_to_grid
+from app.plugin_api.charts.grids import finite_xyz, pivot_to_grid
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 

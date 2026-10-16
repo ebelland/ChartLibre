@@ -12,10 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.logs.logger import applogger
-from app.scanners.class_discovery import (
-    discover_classes_merged,
-    import_class_from_discovery_entry,
-)
+from app.scanners.plugin_family import PluginFamily
 from app.utils.config import USER_CHARTS_DIR
 
 
@@ -29,14 +26,26 @@ CHART_TYPE_ALIASES: dict[str, str] = {
 }
 
 
+#: Classes that directly inherit from BaseAxisRenderer, built-in first, so a
+#: name collision (which the Renderer Helper already refuses to create)
+#: resolves to the built-in one rather than silently shadowing it.
+FAMILY = PluginFamily(
+    label="chart types (axis renderers)",
+    base_class="BaseAxisRenderer",
+    builtin_root=Path(__file__).resolve().parent.parent / "charts",
+    user_root=USER_CHARTS_DIR,
+    module_prefix="_dynamic_axis_renderer",
+    string_attrs=("Category", "Description", "Keywords"),
+    string_list_attrs=("RequiredRoles", "OptionalRoles", "Goals"),
+    require_name=True,
+)
+
+
 def import_class_from_file(renderer: dict):
     """
     Return the renderer class described by a discovery entry.
     """
-    return import_class_from_discovery_entry(
-        renderer,
-        module_prefix="_dynamic_axis_renderer",
-    )
+    return FAMILY.load(renderer)
 
 
 def get_renderer(name: str) -> dict | None:
@@ -73,33 +82,5 @@ def get_renderer(name: str) -> dict | None:
     )
 
 
-def _discover_axis_renderers() -> list:
-    """
-    Scan app/charts, then user/charts, for classes that directly inherit
-    from BaseAxisRenderer - built-in first, so a name collision (which the
-    Renderer Helper already refuses to create) resolves to the built-in
-    one rather than silently shadowing it.
-    """
-    builtin_root = Path(__file__).resolve().parent.parent / "charts"
-
-    return discover_classes_merged(
-        roots=(builtin_root, USER_CHARTS_DIR),
-        base_class_name="BaseAxisRenderer",
-        value_attr="Name",
-        string_attrs=(
-            "Category",
-            "Description",
-            "Keywords",
-        ),
-        string_list_attrs=(
-            "Goals",
-            "RequiredRoles",
-            "OptionalRoles",
-        ),
-        require_value_attr=True,
-        family="chart types (axis renderers)",
-    )
-
-
 # Scanned once at import time; the renderer set is fixed for the process.
-renderers: list[dict] = _discover_axis_renderers()
+renderers: list[dict] = FAMILY.discover()

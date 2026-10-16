@@ -151,7 +151,7 @@ class TransactionMixin:
         return finish(self._deliver_results(results, int(axis_id_value), commit=commit, inputs=inputs))
 
     def _runs_in_background(self) -> bool:
-        from app.data_operations.dialog_base.dialog import DataOperationDialogBase  # the class this is part of
+        from app.plugin_api.data_operations.dialog_base.dialog import DataOperationDialogBase  # the class this is part of
 
         return bool(
             self.RUN_IN_BACKGROUND

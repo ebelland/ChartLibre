@@ -16,7 +16,7 @@ from matplotlib import rcParams
 from matplotlib.colors import to_rgba
 from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
 
-from app.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numbers

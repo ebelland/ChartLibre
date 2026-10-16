@@ -14,8 +14,8 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import change as ch
-from app.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
-from app.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.table_operations.differences_dialog import answer_html
 from app.utils import report_html
 from app.utils.i18n import _

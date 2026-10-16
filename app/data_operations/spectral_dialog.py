@@ -66,8 +66,8 @@ import html
 
 from app.utils.messages import show_message
 from app.utils import report_html
-from app.data_operations.results import TableResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
     DataOperationDialogBase,

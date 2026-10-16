@@ -173,8 +173,6 @@ _CASES_GRIDDED_ONLY_METHODS_REFUSE_SCATTERED_POINTS = [(2, sm.SMOOTH2D_TV), (3, 
 def _gridded_only_methods_refuse_scattered_points(dimension: int, method: str) -> None:
     """These used to report the problem and then smooth the points as if they
     were one long vector - a result with no meaning, drawn as if it had."""
-    if method in (sm.SMOOTH2D_TV, sm.SMOOTH3D_TV) and not sm.is_available(method):
-        pytest.skip("scikit-image not installed")
     x, y, z = (RNG.uniform(size=120) for _ in range(3))
     values = np.sin(3 * x)
     with pytest.raises(ValueError, match="gridded"):
@@ -246,3 +244,19 @@ def _the_window_shrinks_at_the_ends_like_pandas(centered: bool) -> None:
 
 def test_the_window_shrinks_at_the_ends_like_pandas() -> None:
     check_all(_the_window_shrinks_at_the_ends_like_pandas, _CASES_THE_WINDOW_SHRINKS_AT_THE_ENDS_LIKE_PANDAS)
+
+
+def test_total_variation_denoising_flattens_noise_and_keeps_the_steps_in_every_dimension() -> None:
+    rng = np.random.default_rng(1)
+    for shape in ((200,), (30, 40), (10, 12, 14)):
+        steps = np.zeros(shape)
+        steps[tuple(slice(size // 2, None) for size in shape)] = 1.0
+        noisy = steps + rng.normal(0, 0.15, shape)
+        cleaned = sm._denoise_tv_chambolle(noisy, weight=0.3)
+        assert cleaned.shape == shape
+        assert np.abs(cleaned - steps).mean() < np.abs(noisy - steps).mean()
+        # the total variation fell: that is what the algorithm minimises
+        variation = lambda a: sum(np.abs(np.diff(a, axis=axis)).sum() for axis in range(a.ndim))  # noqa: E731
+        assert variation(cleaned) < variation(noisy)
+    # a single point, and no weight to speak of, come back as they are
+    assert sm._denoise_tv_chambolle(np.array([2.0]), weight=0.1).tolist() == [2.0]

@@ -38,9 +38,9 @@ from app.analysis.baseline import (
 )
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
-from app.data_operations.results import TableResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
     DataOperationDialogBase,

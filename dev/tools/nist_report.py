@@ -21,7 +21,7 @@ import numpy as np  # noqa: E402
 from app.analysis.fit import fit_curve  # noqa: E402
 from app.analysis.interpolation import MODEL_POLYNOMIAL, InterpolationSettings, interpolate  # noqa: E402
 from app.analysis.statistics import describe, group_tests  # noqa: E402
-from app.functions.optimizers import DOGBOX, LEVENBERG, TRUST_REGION  # noqa: E402
+from app.plugin_api.functions.optimizers import DOGBOX, LEVENBERG, TRUST_REGION  # noqa: E402
 from dev.tests import _nist_strd as nist  # noqa: E402
 from dev.tests._nist_models import LOG_RESPONSE, MODELS  # noqa: E402
 

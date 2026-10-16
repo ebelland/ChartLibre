@@ -29,7 +29,7 @@ from matplotlib.backends.backend_qt import NavigationToolbar2QT
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
-from app.charts.render_figure import render_figure_from_descriptor
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.styles.style import SPLITTER_HANDLE_WIDTH, create_toolbar_button

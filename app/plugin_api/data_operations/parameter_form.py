@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.data_operations.parameter_spec import (
+from app.plugin_api.data_operations.parameter_spec import (
     BoolParam,
     ChoiceParam,
     ColorParam,

@@ -9,10 +9,10 @@ import numpy as np
 
 from app.logs.logger import applogger
 from app.utils.coercion import to_numeric_axis
-from app.data_operations.results import OperationResult
-from app.data_operations.parameter_spec import ChoiceParam, Param
+from app.plugin_api.data_operations.results import OperationResult
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, Param
 
-from app.data_operations.dialog_base.common import generated_table_name
+from app.plugin_api.data_operations.dialog_base.common import generated_table_name
 
 
 class ResultsMixin:

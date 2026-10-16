@@ -15,7 +15,7 @@ from typing import Any
 
 import numpy as np
 
-from app.charts.base import (
+from app.plugin_api.charts.base import (
     ARTIST_KWARGS,
     BaseAxisRenderer,
     SeriesData,
@@ -23,7 +23,7 @@ from app.charts.base import (
     merge,
     pick,
 )
-from app.charts.grids import finite_xyz
+from app.plugin_api.charts.grids import finite_xyz
 from app.logs.logger import applogger
 
 

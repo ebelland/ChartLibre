@@ -31,15 +31,15 @@ from app.analysis import decomposition as dc
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.data_operations.results import TableResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.dialog_base import (
     CallJob,
     OperationModel,
     ResultSeriesSpec,
     DataOperationDialogBase,
     generated_table_name,
 )
-from app.data_operations.parameter_spec import FloatParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import FloatParam, IntParam
 from app.utils import report_html
 from app.utils.i18n import _
 

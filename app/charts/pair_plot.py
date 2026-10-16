@@ -20,7 +20,7 @@ from typing import Any
 import numpy as np
 from matplotlib.lines import Line2D
 
-from app.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
+from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 

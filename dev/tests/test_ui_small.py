@@ -32,7 +32,7 @@ from PySide6.QtGui import QIcon
 matplotlib.use("Agg")
 from matplotlib.figure import Figure  # noqa: E402
 
-from app.charts.render_figure import _apply_font_scale, font_scale_option  # noqa: E402
+from app.plugin_api.charts.render_figure import _apply_font_scale, font_scale_option  # noqa: E402
 
 
 def _figure_with_one_axis():

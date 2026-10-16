@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QApplication, QSizePolicy, QWidget
 
 from matplotlib import rcParams
 
-from app.charts.descriptor_grid import descriptor_axis_count, descriptor_prepared_for_render
+from app.plugin_api.charts.descriptor_grid import descriptor_axis_count, descriptor_prepared_for_render
 from app.logs.logger import applogger
 from app.utils.config import get_section
 from app.utils.figure_metrics import (

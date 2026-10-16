@@ -185,7 +185,7 @@ def test_the_catalogue_formulas_get_most_of_their_parameters() -> None:
     import inspect
     import re
 
-    from app.functions.base import base_function
+    from app.plugin_api.functions.base import base_function
     from app.data_operations.fit_dialog.common import _expression_symbols
 
     placed = total = 0

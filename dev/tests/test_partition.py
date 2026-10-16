@@ -104,7 +104,7 @@ def test_split_prune_and_ok_write_the_leaves_and_the_figure(qapp, repo: SqliteRe
     assert graph.options["lines"][0]["orientation"] == "horizontal"
     from matplotlib.figure import Figure
 
-    from app.charts.render_figure import render_figure_from_descriptor
+    from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
     drawn = Figure()
     render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)
@@ -183,7 +183,7 @@ def test_permutation_importance_and_partial_dependence_for_any_method(qapp, repo
         assert names[0] == "Pareto Chart" and "Bar Chart" in names and "Scatter Plot" in names
         from matplotlib.figure import Figure
 
-        from app.charts.render_figure import render_figure_from_descriptor
+        from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
         drawn = Figure()
         render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)

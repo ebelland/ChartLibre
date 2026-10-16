@@ -11,7 +11,7 @@ import numpy as np
 
 from app.analysis import NUMERICAL_FAILURES
 
-from app.functions.base import base_surface_function
+from app.plugin_api.functions.base import base_surface_function
 
 
 class plane(base_surface_function):

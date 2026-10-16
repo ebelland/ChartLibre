@@ -14,8 +14,8 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import impact as im
-from app.table_operations.column_roles import ColumnCasting, ColumnRole
-from app.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole
+from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.table_operations.differences_dialog import answer_html
 from app.utils import report_html
 from app.utils.i18n import _

@@ -68,8 +68,8 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 from app.utils.messages import show_message
-from app.data_operations.results import FrameResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.results import FrameResult
+from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
     SeriesJob,

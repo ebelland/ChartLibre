@@ -15,7 +15,7 @@ from matplotlib import rcParams
 from matplotlib.patches import Ellipse
 from matplotlib.transforms import Affine2D
 
-from app.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numbers
 

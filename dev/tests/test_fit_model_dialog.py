@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt
 
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.doe_dialog import DOEExperimentDialog
-from app.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
+from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
 from app.table_operations.fit_model_dialog import FitModelDialog
 
 
@@ -111,7 +111,7 @@ def test_preview_reports_and_ok_writes_the_results_and_the_figure(qapp, doe_tabl
         # Every chart draws its data: a series reads its columns under its roles' names.
         from matplotlib.figure import Figure
 
-        from app.charts.render_figure import render_figure_from_descriptor
+        from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
         drawn = Figure()
         render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)

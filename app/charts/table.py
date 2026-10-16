@@ -23,8 +23,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.charts import kwarg_spec
-from app.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts import kwarg_spec
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
 from app.utils.config import get_constant
 

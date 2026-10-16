@@ -30,7 +30,7 @@ from app.utils import report_html
 from app.utils.i18n import _
 
 if TYPE_CHECKING:
-    from app.data_operations.dialog_base import DataOperationDialogBase
+    from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 
 
 class OperationResult(ABC):

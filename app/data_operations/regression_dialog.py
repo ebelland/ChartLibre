@@ -36,9 +36,9 @@ from app.analysis.regression import (
 )
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
-from app.data_operations.results import XYResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import XYResult
+from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
     DataOperationDialogBase,

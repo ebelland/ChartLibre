@@ -20,3 +20,10 @@ APP_ICON: str = (
     '<path d="M4 9h3M4 15h3"/>'
     '<path d="M10 16l5-6 4-5"/>'
 )
+
+
+# Plugins written before the shared modules moved to app.plugin_api import them
+# by their old paths; these keep working (see app/plugin_api/__init__.py).
+from app.plugin_api import install_old_path_aliases  # noqa: E402
+
+install_old_path_aliases()

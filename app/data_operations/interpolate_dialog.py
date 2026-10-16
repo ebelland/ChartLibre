@@ -38,8 +38,8 @@ from PySide6.QtWidgets import (
 
 from app.data.data_source import parse_roles, resolve_role_column
 from app.data.sqlite_repo import SqliteRepo
-from app.data_operations.results import TableResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.dialog_base import (
     CallJob,
     OperationModel,
     ResultSeriesSpec,

@@ -44,6 +44,8 @@ DONE P0-2 catalog.py: keywords and goals are now the plugins' own Keywords / Goa
 DONE P0-3 Plugin independence: data operations declare Category/Order (no _SECTIONS list), every plugin family
      declares Keywords/Goals (functions: lowercase keywords/goals, searched in the fit dialog), the helper templates write
      them, a family with no plugin logs an error, a report skips a chart type that is not installed.
+     Shared plugin code moved to app/plugin_api/<family> (old import paths still work, with a log warning); one PluginFamily
+     declaration per family in app/scanners; scikit-image dropped (own Chambolle TV in analysis/smoothing.py).
      Still named in the core: GUIDE (goal -> best entries; missing ones skipped), TOOLS, chart CATEGORY_ORDER/aliases.
 P0-5 Import data. Windows. Left frame. gray area.
 P0-6 After Import move to tables and select the last imported table.

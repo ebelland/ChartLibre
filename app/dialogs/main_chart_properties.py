@@ -14,7 +14,7 @@ from typing import Any, cast
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMessageBox, QScrollArea, QSizePolicy, QTabWidget, QWidget
 
-from app.charts import layout_presets
+from app.plugin_api.charts import layout_presets
 from app.data.repo._common import ensure_read_only_select
 from app.logs.logger import applogger
 from app.styles.style import MARGIN_TOOLBOX_PAGE, stdSizeAndlayout

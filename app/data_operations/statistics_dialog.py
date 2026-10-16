@@ -40,8 +40,8 @@ from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
 from app.data.select_sql import projection_source
 from app.data.sqlite_repo import SqliteRepo
-from app.data_operations.results import OperationResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.results import OperationResult
+from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     DataOperationDialogBase,
 )

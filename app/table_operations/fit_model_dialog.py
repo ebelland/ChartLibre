@@ -40,9 +40,9 @@ from PySide6.QtWidgets import (
 )
 
 from app.analysis import linear_model as lm
-from app.data_operations.parameter_spec import FloatParam
-from app.table_operations.column_roles import CATEGORICAL, CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
-from app.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.parameter_spec import FloatParam
+from app.plugin_api.table_operations.column_roles import CATEGORICAL, CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
 from app.utils.i18n import _

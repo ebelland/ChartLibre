@@ -31,10 +31,10 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from app.functions.optimizers import DEFAULT_OPTIMIZER, LOSSES, OPTIMIZERS
+from app.plugin_api.functions.optimizers import DEFAULT_OPTIMIZER, LOSSES, OPTIMIZERS
 
 from app.data.sqlite_repo import SqliteRepo
-from app.data_operations.dialog_base import DataOperationDialogBase
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 
 from app.styles.style import CardFrame, TitledCard, create_action_button, mark_editor_panel, stdSizeAndlayout
 from app.utils.i18n import _

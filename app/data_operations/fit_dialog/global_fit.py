@@ -22,7 +22,7 @@ from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QMenu, QPushButton
 from app.analysis import fit as fit_engine
 from app.data.data_source import parse_roles, row_value
 from app.utils.i18n import _
-from app.data_operations.dialog_base import generated_table_name
+from app.plugin_api.data_operations.dialog_base import generated_table_name
 
 class GlobalFitMixin:
     """Global fit with shared parameters. A part of SeriesFitDialog (see dialog.py)."""

@@ -40,11 +40,6 @@ except ImportError:  # pragma: no cover
     hpfilter = None
 
 try:
-    from skimage.restoration import denoise_tv_chambolle
-except ImportError:  # pragma: no cover
-    denoise_tv_chambolle = None
-
-try:
     import pywt
 except ImportError:  # pragma: no cover
     pywt = None
@@ -97,9 +92,6 @@ SMOOTH3D_TV = "3D Total Variation Volume Denoising"
 _NEEDS: dict[str, Any] = {
     SMOOTH_LOWESS: sm_lowess,
     SMOOTH_HP: hpfilter,
-    SMOOTH_TV: denoise_tv_chambolle,
-    SMOOTH2D_TV: denoise_tv_chambolle,
-    SMOOTH3D_TV: denoise_tv_chambolle,
     SMOOTH_WAVELET: pywt,
 }
 
@@ -112,6 +104,59 @@ def is_available(method: str) -> bool:
 # ---------------------------------------------------------------------------
 # Numeric helpers
 # ---------------------------------------------------------------------------
+
+def _denoise_tv_chambolle(
+    values: np.ndarray,
+    weight: float = 0.1,
+    eps: float = 2.0e-4,
+    max_iterations: int = 200,
+) -> np.ndarray:
+    """Total-variation denoising of an n-dimensional array, by Chambolle's dual projection.
+
+    The larger *weight*, the flatter the result (and the further from the data).
+    The iteration stops when the cost falls by less than ``eps`` times its first
+    value between two steps, or after *max_iterations*. Written here, in NumPy,
+    rather than taken from scikit-image: it was the only use of that package, and
+    a dependency without a wheel for every Python is not worth one function.
+    """
+    data = np.asarray(values, dtype=float)
+    ndim = data.ndim
+    dual = np.zeros((ndim, *data.shape))
+    gradient = np.zeros_like(dual)
+    step = 1.0 / (2.0 * ndim)
+    result = data
+    divergence = np.zeros_like(data)
+    first_cost = previous_cost = 0.0
+
+    for iteration in range(max_iterations):
+        if iteration:
+            divergence = -dual.sum(axis=0)
+            for axis in range(ndim):
+                head = [slice(None)] * ndim
+                tail = [slice(None)] * ndim
+                head[axis], tail[axis] = slice(1, None), slice(0, -1)
+                divergence[tuple(head)] += dual[axis][tuple(tail)]
+            result = data + divergence
+        cost = float((divergence**2).sum())
+
+        for axis in range(ndim):
+            front = [slice(None)] * ndim
+            front[axis] = slice(0, -1)
+            gradient[axis][tuple(front)] = np.diff(result, axis=axis)
+        magnitude = np.sqrt((gradient**2).sum(axis=0))
+        cost += weight * float(magnitude.sum())
+
+        dual = (dual - step * gradient) / (1.0 + (step / weight) * magnitude)
+
+        cost /= data.size
+        if iteration == 0:
+            first_cost = previous_cost = cost
+        elif abs(previous_cost - cost) < eps * first_cost:
+            break
+        else:
+            previous_cost = cost
+    return result
+
 
 def _moving_average(y_values: np.ndarray, window: int, centered: bool) -> np.ndarray:
     """Moving average whose window shrinks at the ends instead of reading zeros.
@@ -416,9 +461,8 @@ def smooth_1d(
         return np.asarray(trend, dtype=float)
 
     if method == SMOOTH_TV:
-        denoise_fn = _require_dependency(denoise_tv_chambolle, "scikit-image")
         return np.asarray(
-            denoise_fn(
+            _denoise_tv_chambolle(
                 y_clean,
                 weight=float(params.get("tv_weight", 0.15)),
             ),
@@ -601,9 +645,8 @@ def smooth_2d(
     if method == SMOOTH2D_TV:
         if z_clean.ndim != 2:
             raise ValueError("2D total variation expects gridded data.")
-        denoise_fn = _require_dependency(denoise_tv_chambolle, "scikit-image")
         return x_clean, y_clean, np.asarray(
-            denoise_fn(
+            _denoise_tv_chambolle(
                 z_clean,
                 weight=float(params.get("tv_weight", 0.15)),
             ),
@@ -711,9 +754,8 @@ def smooth_3d(
     if method == SMOOTH3D_TV:
         if values.ndim != 3:
             raise ValueError("3D total variation expects gridded volume data.")
-        denoise_fn = _require_dependency(denoise_tv_chambolle, "scikit-image")
         return x_clean, y_clean, z_clean, np.asarray(
-            denoise_fn(
+            _denoise_tv_chambolle(
                 values,
                 weight=float(params.get("tv_weight", 0.15)),
             ),

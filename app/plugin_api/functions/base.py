@@ -8,7 +8,7 @@ static and why ``p0`` is a ClassVar.
 
 ``initial_guess`` is optional and returns None when it has nothing to say.
 That is a different answer from a bad guess: the caller then searches for a
-starting point instead (see ``app/functions/monte_carlo.py``), rather than
+starting point instead (see ``app/plugin_api/functions/monte_carlo.py``), rather than
 starting the optimiser from a number somebody invented.
 
 The private helpers below are what those estimators are made of - a peak's

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication
 from app import APP_VERSION
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.operation_history_dialog import OperationHistoryDialog, history_html
-from app.data_operations.dialog_base import DataOperationDialogBase
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from app.data_operations.transform_dialog import SeriesTransformDialog
 from app.utils.dialog_state import clear_state
 

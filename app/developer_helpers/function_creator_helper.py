@@ -1,7 +1,7 @@
 """Function Creator: scaffold a new fit-function file (todo.txt P3-4).
 
 A fit function lives entirely in one file, as a class that directly
-subclasses base_function (app/functions/base.py) - functions_scanner.py
+subclasses base_function (app/plugin_api/functions/base.py) - functions_scanner.py
 AST-scans app/functions/ (built in, including the hand-written example
 app/functions/user_functions.py's own sample_user_function - the template
 this dialog's default follows) and user/functions/ (user-authored, kept
@@ -68,7 +68,7 @@ def render_stub_source(
 TODO: describe what this function models and when to reach for it, the
 way app/functions/user_functions.py's own sample_user_function does -
 read it alongside this one, and base_function's own docstring
-(app/functions/base.py) documents the full contract.
+(app/plugin_api/functions/base.py) documents the full contract.
 
 Parameters:
 {param_lines}
@@ -86,7 +86,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from app.functions.base import base_function
+from app.plugin_api.functions.base import base_function
 
 
 class {class_name}(base_function):

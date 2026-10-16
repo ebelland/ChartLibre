@@ -13,7 +13,7 @@ import pytest
 from scipy import stats
 
 from app.analysis.diagnostics import kaplan_meier, log_rank
-from app.charts.base import SeriesData
+from app.plugin_api.charts.base import SeriesData
 from app.charts.survival import KaplanMeierAxisRenderer
 from app.data.series_frame import SeriesFrame
 

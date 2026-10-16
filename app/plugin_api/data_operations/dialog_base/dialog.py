@@ -31,12 +31,12 @@ from app.utils.dialog_state import (
 )
 from app.widgets.html_results import HtmlResultsView
 
-from app.data_operations.dialog_base.hooks import BuilderHooksMixin
-from app.data_operations.dialog_base.layout import LayoutMixin
-from app.data_operations.dialog_base.evaluation import EvaluationMixin
-from app.data_operations.dialog_base.inputs import InputsMixin
-from app.data_operations.dialog_base.results import ResultsMixin
-from app.data_operations.dialog_base.transaction import TransactionMixin
+from app.plugin_api.data_operations.dialog_base.hooks import BuilderHooksMixin
+from app.plugin_api.data_operations.dialog_base.layout import LayoutMixin
+from app.plugin_api.data_operations.dialog_base.evaluation import EvaluationMixin
+from app.plugin_api.data_operations.dialog_base.inputs import InputsMixin
+from app.plugin_api.data_operations.dialog_base.results import ResultsMixin
+from app.plugin_api.data_operations.dialog_base.transaction import TransactionMixin
 
 
 class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, InputsMixin, ResultsMixin, TransactionMixin, QDialog):

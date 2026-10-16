@@ -4,7 +4,7 @@ import numpy as np
 import scipy.special as spsp
 
 from app.analysis import NUMERICAL_FAILURES
-from app.functions.base import (
+from app.plugin_api.functions.base import (
     _baseline,
     _eps,
     _exponential,

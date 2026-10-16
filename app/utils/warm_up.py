@@ -1,8 +1,8 @@
 """Import the scientific libraries ahead of time, off the main thread.
 
 The first data operation of a session used to take two to three seconds
-to open: SciPy's signal and optimisation modules, scikit-learn, statsmodels,
-scikit-image and PyWavelets are imported when an operation's module first
+to open: SciPy's signal and optimisation modules, scikit-learn, statsmodels
+and PyWavelets are imported when an operation's module first
 loads, and that is a second or more of a frozen window each. Imported here
 instead, in a background thread a few seconds after the window appears, so
 by the time an operation is opened they are already in memory.
@@ -39,7 +39,6 @@ MODULES: tuple[str, ...] = (
     "scipy.interpolate",
     "scipy.stats",
     "scipy.cluster.hierarchy",
-    "skimage.restoration",
     "pywt",
 )
 

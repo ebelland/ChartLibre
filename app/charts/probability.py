@@ -23,7 +23,7 @@ import numpy as np
 
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis.diagnostics import PROBABILITY_DISTRIBUTIONS, ProbabilityPlot, pp_plot, qq_plot
-from app.charts.base import BaseAxisRenderer, SeriesData, merge
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData, merge
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger

@@ -101,7 +101,7 @@ def test_ok_writes_the_rows_and_draws_the_canonical_plot(qapp, repo: SqliteRepo)
         assert len(figure.axes[0].series) == 3  # a series per species
         from matplotlib.figure import Figure
 
-        from app.charts.render_figure import render_figure_from_descriptor
+        from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
         drawn = Figure()
         render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)

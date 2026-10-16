@@ -8,7 +8,7 @@ import matplotlib.dates as mdates  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 
-from app.charts.base import SeriesData  # noqa: E402
+from app.plugin_api.charts.base import SeriesData  # noqa: E402
 from app.charts.scatter import ScatterAxisRenderer  # noqa: E402
 from app.data.series_frame import SeriesFrame  # noqa: E402
 

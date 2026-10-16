@@ -26,8 +26,8 @@ from typing import Any
 
 import numpy as np
 
-from app.charts.base import BaseAxisRenderer, SeriesData
-from app.charts.grids import finite_xyz, pivot_to_grid
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.grids import finite_xyz, pivot_to_grid
 from app.logs.logger import applogger
 from app.utils.config import get_constant
 

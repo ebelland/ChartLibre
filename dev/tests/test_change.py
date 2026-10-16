@@ -63,7 +63,7 @@ def test_ok_draws_the_values_with_the_change(qapp, repo: SqliteRepo) -> None:
         assert len(figure.axes[0].series) == 3  # the values, the median before, the median after
         from matplotlib.figure import Figure
 
-        from app.charts.render_figure import render_figure_from_descriptor
+        from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
         drawn = Figure()
         render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)

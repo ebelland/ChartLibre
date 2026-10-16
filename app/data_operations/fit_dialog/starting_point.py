@@ -8,8 +8,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QTableWidgetItem
-from app.functions.optimizers import DEFAULT_OPTIMIZER, BY_KEY
-from app.functions.starting_point import (
+from app.plugin_api.functions.optimizers import DEFAULT_OPTIMIZER, BY_KEY
+from app.plugin_api.functions.starting_point import (
     FROM_DECLARED,
     FROM_FUNCTION,
     FROM_SEARCH,
@@ -18,7 +18,7 @@ from app.functions.starting_point import (
     clip_into_bounds,
 )
 
-from app.data_operations.dialog_base import generated_table_name
+from app.plugin_api.data_operations.dialog_base import generated_table_name
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.utils import report_html

@@ -3,7 +3,7 @@
 Edits one axis: its title and labels, its scale and limits, its grid and
 legend, and the selected renderer's own Kwargs/Options, which are built from
 the renderer's declarations rather than laid out by hand (see
-``app/charts/base.py``).
+``app/plugin_api/charts/base.py``).
 
 Reloads route every control through ``_FormSignalBlocker`` so that
 repopulating the form does not read back as the user editing it - a cascade
@@ -35,8 +35,8 @@ from PySide6.QtWidgets import (
 
 from app.widgets.font_scale_control import FontScaleControl
 from app.logs.logger import applogger
-from app.charts import axis_options
-from app.charts.render_figure import SUPPORTED_AXIS_SCALES
+from app.plugin_api.charts import axis_options
+from app.plugin_api.charts.render_figure import SUPPORTED_AXIS_SCALES
 from app.styles.style import (
     MARGIN_PANEL,
     CardFrame,
@@ -61,7 +61,7 @@ MAX_QT_HEIGHT: int = 16_777_215
 # cannot drift: these come straight from render_figure.
 AXIS_SCALES: Final[tuple[str, ...]] = SUPPORTED_AXIS_SCALES
 #: Kept for the figure options elsewhere in this module; the axis grid and
-#: tick controls now come from app.charts.axis_options, which is the same
+#: tick controls now come from app.plugin_api.charts.axis_options, which is the same
 #: vocabulary the renderer applies.
 # The empty entry means "leave the Matplotlib default alone".
 

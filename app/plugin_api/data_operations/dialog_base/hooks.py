@@ -20,11 +20,11 @@ from app.analysis.sampling import sampling_frequency
 from app.data.sqlite_repo import DatabaseError
 from app.styles.style import create_doc_link, CardFrame, stdSizeAndlayout
 from app.logs.logger import applogger
-from app.data_operations.parameter_form import ParameterForm
-from app.data_operations.parameter_spec import Param, defaults
+from app.plugin_api.data_operations.parameter_form import ParameterForm
+from app.plugin_api.data_operations.parameter_spec import Param, defaults
 from app.utils.i18n import _
 
-from app.data_operations.dialog_base.common import OperationModel
+from app.plugin_api.data_operations.dialog_base.common import OperationModel
 
 
 class BuilderHooksMixin:

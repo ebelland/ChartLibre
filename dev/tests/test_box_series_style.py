@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from app.charts.box import BoxAxisRenderer
-from app.charts.kwarg_spec import DEFAULT
+from app.plugin_api.charts.kwarg_spec import DEFAULT
 
 
 def _box():

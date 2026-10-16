@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.dialog_base import (
     GENERATED_TABLE_PREFIX,
     generated_table_name,
 )

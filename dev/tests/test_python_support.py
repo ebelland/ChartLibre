@@ -30,7 +30,7 @@ def _requirements() -> dict[str, list[tuple[str, str]]]:
 
 def test_a_package_pinned_below_315_is_pinned_for_315_or_left_out_on_purpose() -> None:
     """A pin with `python_version < "3.15"` and no partner for 3.15 is a package 3.15 does not install."""
-    left_out_on_purpose = {"scikit-image"}  # optional; no cp315 wheel yet (see requirements.txt)
+    left_out_on_purpose: set[str] = set()  # every pin below 3.15 has a partner
     for name, specs in _requirements().items():
         markers = [marker for _spec, marker in specs]
         if any("< \"3.15\"" in marker for marker in markers):

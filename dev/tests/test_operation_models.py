@@ -16,7 +16,7 @@ import pytest
 import app.data_operations as package
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.data_operations.dialog_base import DataOperationDialogBase
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from app.data_operations.interpolate_dialog import (
     MODEL_EXPONENTIAL,
     MODEL_SCIPY_PCHIP,

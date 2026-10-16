@@ -20,7 +20,7 @@ import numpy as np
 from scipy import stats
 
 from app.analysis import Stopped
-from app.functions.optimizers import BY_KEY, DEFAULT_OPTIMIZER, RELATIVE_STEP, run_optimizer
+from app.plugin_api.functions.optimizers import BY_KEY, DEFAULT_OPTIMIZER, RELATIVE_STEP, run_optimizer
 
 Model = Callable[[np.ndarray, np.ndarray], np.ndarray]
 

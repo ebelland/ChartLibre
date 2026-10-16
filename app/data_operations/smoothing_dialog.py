@@ -58,8 +58,8 @@ from app.analysis.smoothing import (
 from app.data.data_source import parse_roles, row_value
 
 from app.data.sqlite_repo import SqliteRepo
-from app.data_operations.results import TableResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
     SeriesJob,
@@ -218,8 +218,8 @@ _ALL_MODELS: dict[str, ModelSpec] = {
     ),
     SMOOTH_TV: ModelSpec(
         dimension=DIM_1D,
-        doc_title="scikit-image total variation",
-        doc_url="https://scikit-image.org/docs/stable/api/skimage.restoration.html",
+        doc_title="Total variation denoising (Chambolle)",
+        doc_url="https://en.wikipedia.org/wiki/Total_variation_denoising",
         fields=frozenset(("tv_weight",)),
     ),
     SMOOTH2D_GAUSSIAN: ModelSpec(
@@ -254,8 +254,8 @@ _ALL_MODELS: dict[str, ModelSpec] = {
     ),
     SMOOTH2D_TV: ModelSpec(
         dimension=DIM_2D,
-        doc_title="scikit-image total variation",
-        doc_url="https://scikit-image.org/docs/stable/api/skimage.restoration.html",
+        doc_title="Total variation denoising (Chambolle)",
+        doc_url="https://en.wikipedia.org/wiki/Total_variation_denoising",
         fields=frozenset(("tv_weight",)),
     ),
     SMOOTH3D_GAUSSIAN: ModelSpec(
@@ -284,8 +284,8 @@ _ALL_MODELS: dict[str, ModelSpec] = {
     ),
     SMOOTH3D_TV: ModelSpec(
         dimension=DIM_3D,
-        doc_title="scikit-image total variation",
-        doc_url="https://scikit-image.org/docs/stable/api/skimage.restoration.html",
+        doc_title="Total variation denoising (Chambolle)",
+        doc_url="https://en.wikipedia.org/wiki/Total_variation_denoising",
         fields=frozenset(("tv_weight",)),
     ),
 }

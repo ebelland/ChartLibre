@@ -18,7 +18,7 @@ from typing import Any
 import numpy as np
 from matplotlib.patches import Patch
 
-from app.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.charts.box import BoxAxisRenderer
 from app.logs.logger import applogger
 

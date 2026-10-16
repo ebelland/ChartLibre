@@ -21,8 +21,8 @@ from typing import Any, cast
 
 import numpy as np
 
-from app.charts import kwarg_spec
-from app.charts.base import (
+from app.plugin_api.charts import kwarg_spec
+from app.plugin_api.charts.base import (
     LEGEND_OPTIONS,
     BaseAxisRenderer,
     SeriesData,

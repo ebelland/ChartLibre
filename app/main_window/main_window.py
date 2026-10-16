@@ -1012,7 +1012,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
 
     def _guided_table(self, table: str) -> tuple[Any, dict[str, str]]:
         """A table as the analysis windows read it - visible rows, no application columns - and its SQL types."""
-        from app.table_operations.dialog_base import APPLICATION_COLUMNS
+        from app.plugin_api.table_operations.dialog_base import APPLICATION_COLUMNS
 
         frame = self._repo.table_frame(table)
         if "Hide" in frame.columns:

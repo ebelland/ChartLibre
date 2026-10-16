@@ -16,7 +16,7 @@ from typing import Any
 
 import numpy as np
 
-from app.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 

@@ -53,9 +53,9 @@ from PySide6.QtWidgets import (
 from app import APP_VERSION
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.data_operations.dialog_base import OperationModel
-from app.data_operations.parameter_form import ParameterForm
-from app.data_operations.parameter_spec import Param
+from app.plugin_api.data_operations.dialog_base import OperationModel
+from app.plugin_api.data_operations.parameter_form import ParameterForm
+from app.plugin_api.data_operations.parameter_spec import Param
 from app.styles.style import (
     TitledCard,
     apply_dialog_shell,
@@ -63,7 +63,7 @@ from app.styles.style import (
     icon_from_svg_source,
     stdSizeAndlayout,
 )
-from app.table_operations.column_roles import ColumnCasting, ColumnRole, ColumnRolesWidget
+from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole, ColumnRolesWidget
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.config import get_section, set_section
 from app.utils.dialog_state import (

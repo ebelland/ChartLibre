@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 from matplotlib import dates as mdates
 
-from app.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger

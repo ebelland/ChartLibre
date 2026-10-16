@@ -44,7 +44,7 @@ from scipy.optimize import (
     shgo,
 )
 
-from app.functions.monte_carlo import _sampling_bounds, monte_carlo_search
+from app.plugin_api.functions.monte_carlo import _sampling_bounds, monte_carlo_search
 
 Residual = Callable[[np.ndarray], np.ndarray]
 

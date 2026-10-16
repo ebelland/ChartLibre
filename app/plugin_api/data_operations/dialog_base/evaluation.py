@@ -14,7 +14,7 @@ from app.widgets.html_results import looks_like_html
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.i18n import _
 
-from app.data_operations.dialog_base.common import OperationJob, SeriesOutcome, SeriesJob
+from app.plugin_api.data_operations.dialog_base.common import OperationJob, SeriesOutcome, SeriesJob
 
 
 class EvaluationMixin:
@@ -209,7 +209,7 @@ class EvaluationMixin:
         return outcome
 
     def _computes_per_series(self) -> bool:
-        from app.data_operations.dialog_base.dialog import DataOperationDialogBase  # the class this is part of
+        from app.plugin_api.data_operations.dialog_base.dialog import DataOperationDialogBase  # the class this is part of
 
         return type(self).compute_series is not DataOperationDialogBase.compute_series
 

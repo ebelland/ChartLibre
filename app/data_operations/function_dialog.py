@@ -49,9 +49,9 @@ from app.analysis.function_plot import (
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
-from app.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
-from app.data_operations.results import TableResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     DataOperationDialogBase,
     generated_table_name,

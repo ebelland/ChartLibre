@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 from matplotlib.figure import Figure
 
-from app.charts.render_figure import render_figure_from_descriptor
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.data.sqlite_repo import SqliteRepo
 
 

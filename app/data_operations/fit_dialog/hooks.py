@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 
-from app.data_operations.dialog_base import ResultSeriesSpec
+from app.plugin_api.data_operations.dialog_base import ResultSeriesSpec
 from app.utils import report_html
 from app.utils.i18n import _
 

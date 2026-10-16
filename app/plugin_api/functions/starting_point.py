@@ -31,7 +31,7 @@ import numpy as np
 
 from app.logs.logger import applogger
 
-from app.functions.monte_carlo import monte_carlo_p0, sum_of_squares
+from app.plugin_api.functions.monte_carlo import monte_carlo_p0, sum_of_squares
 from app.utils.config import get_constant
 
 #: Samples drawn when no estimator is available.  Enough to find the right

@@ -27,8 +27,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.charts import layout_presets
-from app.charts.render_figure import (
+from app.plugin_api.charts import layout_presets
+from app.plugin_api.charts.render_figure import (
     OPT_DOWNSAMPLE_THRESHOLD,
     OPT_SHARED_HORIZONTAL_SPACE,
     OPT_SHARED_VERTICAL_SPACE,
@@ -85,7 +85,7 @@ class FigurePropertiesWidget(BaseProperties):
     style_applied_to_all = Signal(str)
     grid_layout_requested = Signal(int, int)
     figure_options_requested = Signal(dict)
-    #: Emitted with one of app.charts.layout_presets.PRESETS.
+    #: Emitted with one of app.plugin_api.charts.layout_presets.PRESETS.
     layout_preset_requested = Signal(str)
 
     #: (label, preset constant) for the layout preset combo, in the order
@@ -992,7 +992,7 @@ class FigurePropertiesWidget(BaseProperties):
             editor's own rcParams are what it is drawn with."""
             from dataclasses import replace
 
-            from app.charts.render_figure import render_figure_from_descriptor
+            from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
             descriptor = repo.load_figure_descriptor(figure_id)
             if descriptor is None:
@@ -1034,7 +1034,7 @@ class FigurePropertiesWidget(BaseProperties):
 
         Unlike ``_apply_grid_layout`` (a uniform rows x cols the person
         chose), a preset computes its own grid size from how many axes the
-        figure has - see app.charts.layout_presets - so there is nothing
+        figure has - see app.plugin_api.charts.layout_presets - so there is nothing
         here to read from the Rows/Cols combos.
 
         Guarded on a connected figure: ``_reload_from_descriptor`` resets

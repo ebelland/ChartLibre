@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from app.analysis import fit as fit_engine
 
-from app.data_operations.results import FrameResult
+from app.plugin_api.data_operations.results import FrameResult
 from app.logs.logger import applogger
 
 def _split_xy(value: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -24,7 +24,7 @@ class _SurfaceInitialGuessAdapter:
     """Adapt a surface function's 3-argument ``initial_guess`` to the plain
     ``(x, y)`` shape ``ask_the_function``/``choose_starting_point`` expect.
 
-    Those two (``app/functions/starting_point.py``) are shared with every 1D
+    Those two (``app/plugin_api/functions/starting_point.py``) are shared with every 1D
     fit function, whose ``initial_guess(x, y)`` reads ``x`` as the sole
     independent variable and ``y`` as the target. A surface function's own
     ``initial_guess(x, y, z)`` needs x and y separately and z as the target -

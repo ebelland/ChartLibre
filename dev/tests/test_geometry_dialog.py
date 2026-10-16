@@ -435,7 +435,7 @@ def test_a_turned_surface_gets_an_axis_of_its_own_and_is_drawn(qapp, repo: Sqlit
     """A surface chart draws one series: added beside the source, the result was saved and never drawn."""
     from matplotlib.figure import Figure
 
-    from app.charts.render_figure import render_figure_from_descriptor
+    from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
     dialog, figure_id = _surface_dialog(repo, "Surface Plot")
     try:

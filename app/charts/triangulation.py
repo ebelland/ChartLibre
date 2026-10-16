@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 from matplotlib import rcParams
 
-from app.charts.base import (
+from app.plugin_api.charts.base import (
     ARTIST_KWARGS,
     CMAP_KWARGS,
     BaseAxisRenderer,
@@ -33,7 +33,7 @@ from app.charts.base import (
     merge,
     pick,
 )
-from app.charts.grids import finite_xyz
+from app.plugin_api.charts.grids import finite_xyz
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers

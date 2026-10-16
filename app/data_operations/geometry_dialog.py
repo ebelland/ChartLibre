@@ -42,13 +42,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractSpinBox, QGridLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from app.analysis import geometry as geo
-from app.charts.grids import pivot_to_grid
+from app.plugin_api.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, quote_identifier, row_value, resolve_role_column
 from app.logs.logger import applogger
 from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
-from app.data_operations.results import OperationResult
-from app.data_operations.dialog_base import OperationModel, ResultSeriesSpec, DataOperationDialogBase
-from app.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
+from app.plugin_api.data_operations.results import OperationResult
+from app.plugin_api.data_operations.dialog_base import OperationModel, ResultSeriesSpec, DataOperationDialogBase
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
 from app.styles.style import CardFrame
 from app.utils import report_html
 from app.utils.config import get_constant

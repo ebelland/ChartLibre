@@ -19,9 +19,9 @@ import pandas as pd
 from matplotlib import colormaps, rcParams  # pyright: ignore[reportAttributeAccessIssue]
 from matplotlib.colors import to_rgba
 
-from app.charts import kwarg_spec
+from app.plugin_api.charts import kwarg_spec
 from app.data.series_frame import SeriesFrame
-from app.charts.kwarg_spec import (
+from app.plugin_api.charts.kwarg_spec import (
     ARTIST_ADVANCED_KWARGS,
     ARTIST_KWARGS,
     CMAP_KWARGS,
@@ -40,7 +40,7 @@ from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 
 # Re-exported deliberately.  Renderers are re-executed from disk by the
-# renderer scanner while ``app.charts.base`` stays cached in sys.modules, so a
+# renderer scanner while ``app.plugin_api.charts.base`` stays cached in sys.modules, so a
 # renderer edited while the application runs can be newer than the base module
 # it imports; a missing name then fails as an ImportError naming the name.
 # Every renderer already imports from base, so the shared vocabulary is
@@ -95,7 +95,7 @@ class SeriesData:
 # Error bars
 # ----------------------------------------------------------------------
 # Kept at module level, not only on the class: renderers are re-executed from
-# disk by the renderer scanner while ``app.charts.base`` stays cached in
+# disk by the renderer scanner while ``app.plugin_api.charts.base`` stays cached in
 # sys.modules, so a renderer edited while the app runs can be newer than the
 # base module it imports.  Importing a named symbol fails with an ImportError
 # that says which symbol is missing; reading a class attribute fails with an

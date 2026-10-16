@@ -12,8 +12,8 @@ import math
 import matplotlib
 import numpy as np
 
-from app.charts import kwarg_spec
-from app.charts.base import (
+from app.plugin_api.charts import kwarg_spec
+from app.plugin_api.charts.base import (
     ARTIST_ADVANCED_KWARGS,
     ARTIST_KWARGS,
     LEGEND_OPTIONS,

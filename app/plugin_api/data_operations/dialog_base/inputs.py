@@ -10,14 +10,14 @@ import pandas as pd
 
 from scipy.interpolate import griddata
 
-from app.charts.grids import pivot_to_grid
+from app.plugin_api.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, row_value, resolve_role_column
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
 from app.utils.series_validation import SeriesIssue, clean_xy, errors, validate_xy
 from app.utils.i18n import _
 
-from app.data_operations.dialog_base.common import generated_table_name, ResultSeriesSpec
+from app.plugin_api.data_operations.dialog_base.common import generated_table_name, ResultSeriesSpec
 
 
 class InputsMixin:
@@ -308,7 +308,7 @@ class InputsMixin:
 
         Preference order, and why it is this order:
 
-        1. **Exact.** ``pivot_to_grid`` (``app/charts/grids.py``) recognises a
+        1. **Exact.** ``pivot_to_grid`` (``app/plugin_api/charts/grids.py``) recognises a
            complete Cartesian product of the distinct x and y values and
            returns it untouched - no smoothing, no invented values. This is
            always tried first and always preferred, because it is the only

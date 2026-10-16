@@ -42,7 +42,7 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
-from app.charts.render_figure import DEFAULT_MPL_STYLE_KEY
+from app.plugin_api.charts.render_figure import DEFAULT_MPL_STYLE_KEY
 from app.utils.config import MPLSTYLES_DIR, get_language, get_value, set_value
 from app.utils.machine_translation import DEEPL_KEY_SETTING
 from app.utils.i18n import AUTO_LANGUAGE, available_languages, platform_language, tr

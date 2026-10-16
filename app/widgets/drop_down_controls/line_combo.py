@@ -24,7 +24,7 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
-from app.charts.kwarg_spec import DEFAULT
+from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.styles.style import create_hidpi_pixmap
 from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 
@@ -37,7 +37,7 @@ _LINE_WIDTH = 2
 #: since it is what a brand-new series should start on: it defers to
 #: whatever the active style sheet's ``lines.linestyle`` says, rather than
 #: this combo silently overriding it with a hard-coded "Solid" the moment a
-#: series exists - see app.charts.base.BaseAxisRenderer.series_linestyle.
+#: series exists - see app.plugin_api.charts.base.BaseAxisRenderer.series_linestyle.
 _ENTRIES: tuple[ComboEntry, ...] = (
     ("Default", DEFAULT),
     ("Solid", "-"),

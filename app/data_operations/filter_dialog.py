@@ -49,8 +49,8 @@ from app.analysis.filtering import (
 )
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.data_operations.results import XYResult
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.results import XYResult
+from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
     DataOperationDialogBase,

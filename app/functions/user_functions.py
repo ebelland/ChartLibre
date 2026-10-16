@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from app.functions.base import base_function
+from app.plugin_api.functions.base import base_function
 
 
 class sample_user_function(base_function):

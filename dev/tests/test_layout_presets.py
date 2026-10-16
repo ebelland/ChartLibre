@@ -1,4 +1,4 @@
-"""Pure arithmetic tests for app.charts.layout_presets.
+"""Pure arithmetic tests for app.plugin_api.charts.layout_presets.
 
 No Qt, no SqliteRepo, no Figure: a preset is just "given these axis ids, what
 grid size and options does each one get", which is exactly what is asserted
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.charts import layout_presets as lp
+from app.plugin_api.charts import layout_presets as lp
 from dev.tests._cases import check_all
 
 

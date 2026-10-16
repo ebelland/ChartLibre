@@ -22,7 +22,7 @@ from app.scanners.axis_renderer_scanner import (
     import_class_from_file,
     renderers,
 )
-from app.charts.base import BaseAxisRenderer
+from app.plugin_api.charts.base import BaseAxisRenderer
 from app.logs.logger import applogger
 from app.data.repo._common import ensure_read_only_select
 from app.data.sqlite_repo import SqliteRepo

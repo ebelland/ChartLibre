@@ -13,7 +13,7 @@ that passes each selected series' data through unchanged, and the rest of
 the dialog shell (model selector, parameter form, preview pane) left at
 their base-class defaults for the user to override where their operation
 actually needs one. See DataOperationDialogBase's own docstring
-(app/data_operations/dialog_base/, hooks.py) for the full contract, and
+(app/plugin_api/data_operations/dialog_base/, hooks.py) for the full contract, and
 app/data_operations/function_dialog.py for the smallest complete,
 hand-written dialog to read alongside it.
 """
@@ -69,11 +69,11 @@ import pandas as pd
 from app.data.data_source import row_value
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.data_operations.dialog_base import (
+from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     DataOperationDialogBase,
 )
-from app.data_operations.results import TableResult
+from app.plugin_api.data_operations.results import TableResult
 
 
 @dataclass(slots=True)

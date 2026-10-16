@@ -15,7 +15,7 @@ lives in a SQLite database (a `.dhub` file). The three moving parts:
   writes, plus three descriptor tables (`__figure_descriptors__`,
   `__axis_descriptors__`, `__series_descriptors__`) that describe how to draw
   them.
-- **Render pipeline** — `app/charts/render_figure.py`. Pure function of a
+- **Render pipeline** — `app/plugin_api/charts/render_figure.py`. Pure function of a
   descriptor tree + a `SqliteRepo` → a populated `matplotlib.figure.Figure`.
   No Qt in this module; it is unit-testable headlessly (see §11).
 - **UI** — `app/main_window/main_window.py` plus the widgets in `app/widgets/`.
@@ -142,7 +142,7 @@ via `AS`. Roles are not positional arguments; a renderer declares the
 columns it needs (`RequiredRoles`/`OptionalRoles`) and the query is
 responsible for aliasing to them.
 
-## 4. Render pipeline (`app/charts/render_figure.py`)
+## 4. Render pipeline (`app/plugin_api/charts/render_figure.py`)
 
 `render_figure_from_descriptor(*, figure, descriptor, repo)` is the entry
 point. Order of operations, all of it re-run on every redraw:
@@ -308,7 +308,7 @@ distinct from any axis's own spines (`hide_spine_*` in axis options).
 ### 7.1 Adding a chart type
 
 Add a module under `app/charts/`, a class implementing
-`BaseAxisRenderer` (`app/charts/base.py` — read the protocol docstring
+`BaseAxisRenderer` (`app/plugin_api/charts/base.py` — read the protocol docstring
 first, it documents the full contract). Nothing else: `axis_renderer_scanner`
 AST-scans `app/charts` at import time and finds it by base class name, so a
 new file is sufficient — there is no registry to edit.
@@ -349,7 +349,7 @@ active property cycle, float columns → a colormap), `error_values` /
 `error_kwargs` (symmetric or asymmetric `xerr`/`yerr` from `ERROR_BAR_ROLES`
 columns), `apply_annotations`.
 
-For x/y/z renderers there is also `app/charts/grids.py`:
+For x/y/z renderers there is also `app/plugin_api/charts/grids.py`:
 `pivot_to_grid(df)` returns `(X, Y, Z)` when the rows form a *complete*
 Cartesian product of the distinct x and y values — any spacing, but no
 missing pairs — and `None` when they do not, and `finite_xyz(df)` returns
@@ -423,7 +423,7 @@ model cannot evaluate is "bad, move on") and would swallow a stop request.
 #### Results
 
 Every operation's result class derives from `OperationResult`
-(`app/data_operations/results.py`):
+(`app/plugin_api/data_operations/results.py`):
 
 | Member | What it is |
 | --- | --- |
@@ -476,9 +476,9 @@ name whether or not its row is visible — an operation reading a parameter
 belonging to another model gets that parameter's default rather than a
 `KeyError`.
 
-- `app/data_operations/parameter_spec.py` — the declarations. Plain data,
+- `app/plugin_api/data_operations/parameter_spec.py` — the declarations. Plain data,
   no Qt import, so they stay testable without a window server.
-- `app/data_operations/parameter_form.py` — builds the widgets.
+- `app/plugin_api/data_operations/parameter_form.py` — builds the widgets.
 
 `visible_for` maps *another* parameter's name to the values for which this
 row is shown. It may name something the form does not own — `model` is the

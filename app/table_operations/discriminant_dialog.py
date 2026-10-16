@@ -15,9 +15,9 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import discriminant as da
-from app.data_operations.parameter_spec import ChoiceParam
-from app.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
-from app.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam
+from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 

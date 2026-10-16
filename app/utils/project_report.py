@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 
 from matplotlib.figure import Figure
 
-from app.charts.render_figure import render_figure_from_descriptor
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.utils import report_html
 from app.utils.i18n import _
 

@@ -19,9 +19,9 @@ from typing import Any
 
 import numpy as np
 
-from app.charts.base import merge
+from app.plugin_api.charts.base import merge
 from app.charts.bar import BarAxisRenderer
-from app.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers

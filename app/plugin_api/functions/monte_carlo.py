@@ -12,7 +12,7 @@ on the forty-five functions that have no estimator and on user functions this
 library has never seen.
 
 ``monte_carlo_p0`` is also offered as an optimiser in its own right (see
-``app/functions/optimizers.py``), where it is followed by a local fit: random
+``app/plugin_api/functions/optimizers.py``), where it is followed by a local fit: random
 search finds the right valley, gradient descent finds its floor, and neither
 does the other's job well.
 

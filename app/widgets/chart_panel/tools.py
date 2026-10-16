@@ -11,7 +11,7 @@ from matplotlib.patches import Rectangle
 
 from app.data.data_source import quote_identifier
 from app.logs.logger import applogger
-from app.data_operations.dialog_base import generated_table_name
+from app.plugin_api.data_operations.dialog_base import generated_table_name
 from app.utils.i18n import _
 
 from app.widgets.chart_panel.constants import LIVE_REFRESH_INTERVAL_MS

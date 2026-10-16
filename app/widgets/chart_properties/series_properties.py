@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 
 from matplotlib import rcParams
 
-from app.charts.kwarg_spec import DEFAULT
+from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.styles.style import (
     MARGIN_PANEL,
     TitledCard,

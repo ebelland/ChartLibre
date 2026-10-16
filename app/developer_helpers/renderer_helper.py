@@ -10,7 +10,7 @@ needs (Name, Category, Description, Link, required/optional roles) that
 writes a new, immediately-importable file into user/charts/ with those
 fields already filled in and a render_axis stub left for the user to write
 the actual drawing code into. See BaseAxisRenderer's own docstring
-(app/charts/base.py) for the full contract, and app/charts/text.py for a
+(app/plugin_api/charts/base.py) for the full contract, and app/charts/text.py for a
 short, complete renderer to read alongside it.
 """
 from __future__ import annotations
@@ -105,7 +105,7 @@ def render_stub_source(
 TODO: describe what this chart type draws and when to reach for it, the
 way every renderer under app/charts/ does at the top of its own file -
 app/charts/text.py is a short, complete example to read alongside this
-one, and BaseAxisRenderer's own docstring (app/charts/base.py) documents
+one, and BaseAxisRenderer's own docstring (app/plugin_api/charts/base.py) documents
 every class attribute below.
 
 Role columns:
@@ -121,7 +121,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 
 
 class {class_name}(BaseAxisRenderer):
@@ -142,7 +142,7 @@ class {class_name}(BaseAxisRenderer):
 
     #: Matplotlib keyword arguments forwarded verbatim to the plot call, as
     #: {{name: metadata}}. See BaseAxisRenderer.Kwargs' own docstring
-    #: (app/charts/base.py) for the metadata shape ("default", "type",
+    #: (app/plugin_api/charts/base.py) for the metadata shape ("default", "type",
     #: "min"/"max", "kind", "group", "description") that drives the
     #: generated editor UI automatically - a new keyword needs no widget code.
     Kwargs: dict[str, object] = {{}}

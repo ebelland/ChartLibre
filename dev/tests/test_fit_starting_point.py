@@ -13,8 +13,8 @@ import numpy as np
 import pytest
 
 from app.functions import functions as library
-from app.functions.optimizers import OPTIMIZERS, TRUST_REGION, run_optimizer
-from app.functions.starting_point import choose_starting_point
+from app.plugin_api.functions.optimizers import OPTIMIZERS, TRUST_REGION, run_optimizer
+from app.plugin_api.functions.starting_point import choose_starting_point
 from dev.tests._cases import check_all
 
 X = np.linspace(0.5, 10.0, 240)

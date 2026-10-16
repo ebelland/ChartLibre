@@ -28,8 +28,8 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import NullLocator
 
 from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
-from app.charts import axis_options
-from app.charts.base import SeriesData
+from app.plugin_api.charts import axis_options
+from app.plugin_api.charts.base import SeriesData
 from app.data.descriptors import AxisDescriptor, FigureDescriptor, SeriesDescriptor
 from app.data.series_frame import SeriesFrame
 from app.data.sqlite_repo import SqliteRepo
@@ -714,7 +714,7 @@ OPT_DOWNSAMPLE_THRESHOLD = "downsample_threshold"
 DEFAULT_DOWNSAMPLE_THRESHOLD = get_constant("default_downsample_threshold", 1_000)
 
 #: Chart types whose renderer needs a *complete* x/y/z grid (pivot_to_grid,
-#: app/charts/grids.py) and refuses anything less. Row-based downsampling
+#: app/plugin_api/charts/grids.py) and refuses anything less. Row-based downsampling
 #: (SqliteRepo.downsampled_series_frame) keeps one row out of every stride
 #: after ORDER BY x - fine for an ordinary curve, but on a grid table an odd
 #: number of rows per x-block shifts which y-values survive from one block

@@ -1,7 +1,7 @@
 """Settings > Default chart style: a figure with no style of its own takes it."""
 from __future__ import annotations
 
-from app.charts.render_figure import DEFAULT_MPL_STYLE_KEY, default_style_text
+from app.plugin_api.charts.render_figure import DEFAULT_MPL_STYLE_KEY, default_style_text
 from app.utils.config import set_value
 
 

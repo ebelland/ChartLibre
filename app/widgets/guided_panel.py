@@ -12,7 +12,7 @@ It follows the table selected in the Tables panel (set_table): it says what
 the table holds, asks concrete questions of it - each opening its quick
 answer with the columns already cast (:attr:`question_requested`) - and puts
 the goals and suggestions the table can feed first, the others greyed with
-what they lack (app.table_operations.table_profile).
+what they lack (app.plugin_api.table_operations.table_profile).
 """
 from __future__ import annotations
 
@@ -39,8 +39,8 @@ from app.analysis import catalog
 from app.analysis.catalog import CatalogEntry
 from app.logs.logger import applogger
 from app.styles.style import CardFrame, stdSizeAndlayout
-from app.table_operations import table_profile
-from app.table_operations.table_profile import TableProfile
+from app.plugin_api.table_operations import table_profile
+from app.plugin_api.table_operations.table_profile import TableProfile
 from app.utils.i18n import _
 from app.widgets.catalog_search import entry_icon
 from app.widgets.nav_bar import NavPanel

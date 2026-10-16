@@ -108,7 +108,7 @@ def test_the_check_names_every_library_an_empty_venv_lacks(tmp_path: Path) -> No
 def test_every_library_the_check_imports_is_in_requirements() -> None:
     text = (ROOT / "requirements.txt").read_text().lower()
     for package in ("pyside6", "matplotlib", "numpy", "pandas", "openpyxl", "scipy",
-                    "scikit-learn", "statsmodels", "scikit-image", "pywavelets"):
+                    "scikit-learn", "statsmodels", "pywavelets"):
         assert package in text
 
 

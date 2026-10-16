@@ -37,7 +37,7 @@ from typing import Any, Callable
 import numpy as np
 import pandas as pd
 
-from app.charts import layout_presets
+from app.plugin_api.charts import layout_presets
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject, project_side_files
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -114,7 +114,7 @@ class AxisSpec:
 class MultiAxisFigureSpec:
     """A figure with more than one axis, arranged by a layout preset.
 
-    ``layout`` is one of app.charts.layout_presets.PRESETS - the same
+    ``layout`` is one of app.plugin_api.charts.layout_presets.PRESETS - the same
     one-click arrangements Figure Properties offers, applied here through
     SqliteRepo.apply_axis_layout once every axis exists, so a demo figure is
     built by exactly the code path a user picking a preset would run.

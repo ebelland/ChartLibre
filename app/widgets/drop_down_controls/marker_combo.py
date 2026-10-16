@@ -29,7 +29,7 @@ from PySide6.QtGui import (
 from matplotlib import rcParams
 from PySide6.QtWidgets import QWidget
 
-from app.charts.kwarg_spec import DEFAULT
+from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 from app.styles.style import create_hidpi_pixmap
 
@@ -44,7 +44,7 @@ _PEN_WIDTH = 1.4
 # first and is what a brand-new series should start on: it defers to the
 # active style sheet's marker rcParam rather than this combo hard-coding
 # "None" the moment a series exists - see
-# app.charts.base.BaseAxisRenderer.series_marker.
+# app.plugin_api.charts.base.BaseAxisRenderer.series_marker.
 _ENTRIES: tuple[ComboEntry, ...] = (
     ("Default", DEFAULT),
     ("None", ""),

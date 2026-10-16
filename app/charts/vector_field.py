@@ -20,7 +20,7 @@ is not cosmetic:
     on a rectangular grid with evenly spaced x and y. Rows that are not such
     a grid are refused with a message naming Quiver, the same way the
     gridded contour and surface renderers name their scattered
-    counterparts (see app/charts/grids.py). Anything else would mean
+    counterparts (see app/plugin_api/charts/grids.py). Anything else would mean
     inventing the values between the samples and drawing streamlines
     through data nobody measured.
 
@@ -36,7 +36,7 @@ from typing import Any
 import numpy as np
 from matplotlib import rcParams
 
-from app.charts.base import (
+from app.plugin_api.charts.base import (
     ARTIST_KWARGS,
     CMAP_KWARGS,
     BaseAxisRenderer,
@@ -44,7 +44,7 @@ from app.charts.base import (
     merge,
     pick,
 )
-from app.charts.grids import pivot_to_grid
+from app.plugin_api.charts.grids import pivot_to_grid
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers

@@ -43,7 +43,6 @@ CHECKS: tuple[str, ...] = (
     "scipy",
     "sklearn",
     "statsmodels",
-    "skimage",
     "pywt",
 )
 

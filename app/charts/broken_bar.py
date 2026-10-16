@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.patches import Rectangle
 
-from app.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.utils.coercion import to_numbers
 
 Orientation = Literal["horizontal", "vertical"]
