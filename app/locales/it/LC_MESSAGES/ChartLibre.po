@@ -9447,3 +9447,18 @@ msgstr "Con un limite di specifica il report dà la capacità di processo: Cp, C
 
 msgid "One column at a time: the histogram, quantiles, moments and normality tests."
 msgstr "Una colonna alla volta: istogramma, quantili, momenti e test di normalità."
+
+msgid "Import from clipboard"
+msgstr "Importa dagli appunti"
+
+msgid "Create a table from the table copied to the clipboard."
+msgstr "Crea una tabella da quella copiata negli appunti."
+
+msgid "Rows and columns swapped (transposed)"
+msgstr "Righe e colonne scambiate (trasposta)"
+
+msgid "For data copied one series per row: the clipboard is read with rows and columns exchanged."
+msgstr "Per dati copiati una serie per riga: gli appunti sono letti scambiando righe e colonne."
+
+msgid "Create a table from a file or a web source."
+msgstr "Crea una tabella da un file o da una fonte web."

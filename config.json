@@ -407,6 +407,13 @@
       "SegoeFluent": "E890",
       "ThemeIcon": "document-print-preview"
     },
+    "query": {
+      "text": "Create Query Table",
+      "description": "Create a table from a database query",
+      "SFSymbol": "text.magnifyingglass",
+      "SegoeFluent": "F003",
+      "ThemeIcon": "edit-find"
+    },
     "query_builder": {
       "text": "Query Builder",
       "description": "Write, validate and save SQL queries",

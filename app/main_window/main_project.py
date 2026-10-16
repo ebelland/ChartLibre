@@ -258,6 +258,8 @@ class MainWindowProject(_MainWindowProjectBase):
             self._recent_view.refresh()
         finally:
             contents.setUpdatesEnabled(True)
+        # A project opened, created or switched to: the Tables page, as the place to start.
+        self._select_navigation("tables")
 
     def _on_new_file(self) -> None:
         """Create a new database, safely replacing an existing file if possible."""
@@ -296,6 +298,7 @@ class MainWindowProject(_MainWindowProjectBase):
             set_last_database(db_path)
             self._table_panel.reload()
             self._reload_tabs()
+            self._select_navigation("tables")
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Failed to create database: %s", exc)
             show_message(self, "database.create_failed", error=exc)
@@ -439,7 +442,13 @@ class MainWindowProject(_MainWindowProjectBase):
         # The copy has its own name, so its own preview.
         self._refresh_project_preview()
 
-    def _on_import_data(self, source_path: Path | None = None) -> None:
+    def _on_import_clipboard(self) -> None:
+        """Import what is on the clipboard: the dialog opens on it, for the preview."""
+        self._on_import_data(clipboard=True, transposed=self._clipboard_transposed.isChecked())
+
+    def _on_import_data(
+        self, source_path: Path | None = None, *, clipboard: bool = False, transposed: bool = False
+    ) -> None:
         """Open the import dialog and refresh UI if import succeeds.
 
         ``source_path`` is the file a drop arrived with; the dialog then opens
@@ -449,9 +458,12 @@ class MainWindowProject(_MainWindowProjectBase):
         dlg = ImportDataDialog(self._repo, parent=self)
         if source_path is not None:
             dlg.load_file(source_path)
+        if clipboard and not dlg.load_clipboard(transposed):
+            return  # nothing on the clipboard: said, and no empty dialog left behind
         if dlg.exec():
-            self._table_panel.reload()
             self._reload_tabs()
+            result = getattr(dlg, "import_result", None)
+            self._show_table(result.table_name if result is not None else None)
 
     def _on_database_table_import(self) -> None:
         """Import a table - or what a query returns - from another database, as a linked table."""
@@ -504,12 +516,12 @@ class MainWindowProject(_MainWindowProjectBase):
             settings=link_settings,
         ):
             applogger.warning("Failed to create link for imported table '%s'", table_name)
-        self._table_panel.reload()
+        self._show_table(table_name)
 
     def _on_create_query_table(self) -> None:
         dialog = QueryBuilderDialog(self._repo, parent=self)
         dialog.exec()
-        self._table_panel.reload()
+        self._show_table(getattr(dialog, "created_table_name", None))
 
     def _on_optimize_db(self) -> None:
         """Check the database, report what it found, then compact it.

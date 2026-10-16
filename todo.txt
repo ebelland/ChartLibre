@@ -50,13 +50,13 @@ DONE P0-3 Plugin independence: data operations declare Category/Order (no _SECTI
      declaration per family in app/scanners; scikit-image dropped (own Chambolle TV in analysis/smoothing.py).
      Still named in the core: GUIDE (goal -> best entries; missing ones skipped), TOOLS, chart CATEGORY_ORDER/aliases.
 P0-5 Import data. Windows. Left frame. gray area.
-P0-6 After Import move to tables and select the last imported table.
-P0-7 After Open/new move to Tables
+DONE P0-6 After Import move to tables and select the last imported table. -> _show_table: Tables page, new table selected, also after DB import, query, blank, DOE
+DONE P0-7 After Open/new move to Tables -> open, new, load demo and save as go to Tables
 DONE P0-8 Fit Model: every response in one figure and one report (titles say which); the tables that only feed the charts are named _name_ and hidden from the Tables list (repo.free_hidden_table_name). Same for the other table operations: not done yet.
-P0-9 Import from clipboard. Add checkbox Translated: move to Add table panel. than open the Import dialog for preview. Remove from clipboard from import dialog.
-P0-10 Database corrupts when table deleted
-P0-11 Python3.15 is default. remove requirements for <3.15
-p0-12 WARNING  | action | No action 'query' in config.json; the widget will have no label or icon.
+DONE P0-9 Import from clipboard. Add checkbox Translated: move to Add table panel. than open the Import dialog for preview. Remove from clipboard from import dialog. -> 'Import from clipboard' + 'transposed' box on the New table page; dialog opens on it; buttons and Ctrl+V removed from the Import dialog
+DONE P0-10 Database corrupts when table deleted -> delete_table now deletes the import link too (the check reported it); Undo restores it
+DONE P0-11 Python3.15 is default. remove requirements for <3.15 -> requirements: one pin per package, no python_version markers
+DONE p0-12 WARNING  | action | No action 'query' in config.json; the widget will have no label or icon. -> action 'query' added to config.json
 
 
 NOW

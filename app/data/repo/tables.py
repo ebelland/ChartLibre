@@ -887,12 +887,17 @@ class TablesMixin(RepoHost):
         # tables, because this deletes both - the data, and the series
         # descriptors that drew it.
         self.snapshot_for_undo(
-            [table, "__series_descriptors__", "__table_descriptors__"], label=f"Delete table '{table}'"
+            [table, "__series_descriptors__", "__table_descriptors__", "__import_links__"],
+            label=f"Delete table '{table}'",
         )
 
         with self.transaction(immediate=True):
             self._con.execute(f"DROP TABLE IF EXISTS {_quote_ident(table)}")
             self._con.execute("DELETE FROM __table_descriptors__ WHERE name = ?", (table,))
+            # The link to the file or database the table was read from goes with
+            # it: left behind it points at a table that no longer exists, which
+            # the database check reports as a problem.
+            self._con.execute("DELETE FROM __import_links__ WHERE table_name = ?", (table,))
             self._propagate_table_name(table, None, mode="delete")
 
     @ensure_connection_wrapper

@@ -231,6 +231,7 @@ class QueryBuilderDialog(SettingsTableDialog):
             applogger.exception("Failed to save the query as a table")
             self._status.setText(f"Error - {exc}")
             return False
+        self.created_table_name = created
         self._status.setText(_("Table '{name}' created.").format(name=created))
         applogger.info("Created table '%s' from a query.", created)
         return True

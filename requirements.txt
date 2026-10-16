@@ -1,26 +1,16 @@
-# Python 3.15: these pins have no cp315 wheel (they would be built from source,
-# which needs a compiler and, for matplotlib, a network). The next patch
-# releases do, and the test suite runs on them: hence a second pin each,
-# chosen by the interpreter. Below 3.15 nothing changes.
-PySide6==6.11.1; python_version < "3.15"
-PySide6==6.12.0; python_version >= "3.15"
-matplotlib==3.11.1; python_version < "3.15"
-matplotlib==3.11.2; python_version >= "3.15"
-numpy==2.5.1; python_version < "3.15"
-numpy==2.5.4; python_version >= "3.15"
-pandas==3.0.5; python_version < "3.15"
-pandas==3.0.6; python_version >= "3.15"
+# Python 3.15 is the interpreter the pins are for (the first releases with a cp315
+# wheel; older interpreters take the same pins where those releases support them).
+PySide6==6.12.0
+matplotlib==3.11.2
+numpy==2.5.4
+pandas==3.0.6
 # Required for every .xlsx/.xlsm import and export - app.dialogs.import_data_dialog
 # and app.widgets.table_list both hardcode engine="openpyxl", with no fallback.
 openpyxl==3.1.5
-PyWavelets==1.9.0; python_version < "3.15"
-PyWavelets==1.10.0; python_version >= "3.15"
-scikit-learn==1.9.0; python_version < "3.15"
-scikit-learn==1.9.1; python_version >= "3.15"
-scipy==1.18.0; python_version < "3.15"
-scipy==1.18.1; python_version >= "3.15"
-statsmodels==0.14.6; python_version < "3.15"
-statsmodels==0.15.0; python_version >= "3.15"
+PyWavelets==1.10.0
+scikit-learn==1.9.1
+scipy==1.18.1
+statsmodels==0.15.0
 pytest==9.1.1
 
 # macOS only: SF Symbols are drawn through AppKit.  Without it the

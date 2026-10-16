@@ -86,6 +86,7 @@ from app.utils.i18n import _
 from PySide6.QtWidgets import (
     QApplication,
     QBoxLayout,
+    QCheckBox,
     QLabel,
     QInputDialog,
     QMessageBox,
@@ -532,13 +533,33 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             NavButton("new", self._on_new_table_from_doe, _("Create a table from a DOE"),
                       _("Generate an experiment matrix with factors and responses."), described=True),
             NavButton("import", self._on_import_data, _("Import Data"),
-                      _("Create a table from a file, clipboard or web source."), described=True),
+                      _("Create a table from a file or a web source."), described=True),
+            NavButton("paste", self._on_import_clipboard, _("Import from clipboard"),
+                      _("Create a table from the table copied to the clipboard."), described=True),
             NavButton("import", self._on_database_table_import, _("Import Database Table"),
                       _("Create a table from a database table."), described=True),
             NavButton("query", self._on_create_query_table, _("Create Query Table"),
                       _("Create a table from a database query."), described=True),
         ], object_name="newTableCard")
+        # An option of Import from clipboard, which reads it when pressed.
+        self._clipboard_transposed = QCheckBox(_("Rows and columns swapped (transposed)"))
+        self._clipboard_transposed.setToolTip(
+            _("For data copied one series per row: the clipboard is read with rows and columns exchanged.")
+        )
+        page.add_frame(_("Clipboard"), self._clipboard_transposed, object_name="clipboardOptionsCard")
         return page
+
+    def _show_table(self, table_name: str | None = None) -> None:
+        """Go to the Tables page, with *table_name* (when there is one) selected and previewed.
+
+        What follows an import, a new table or a project opened or created:
+        the person sees where the data went.
+        """
+        self._table_panel.reload()
+        if table_name:
+            self._table_panel.select_table(str(table_name))
+            self._preview.set_context(self._repo, str(table_name))
+        self._select_navigation("tables")
 
     def _on_new_table_from_doe(self) -> None:
         from app.dialogs.doe_dialog import DOEExperimentDialog
@@ -547,11 +568,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             dialog = DOEExperimentDialog(self._repo, parent=self)
             dialog.applied.connect(self.refresh)
             dialog.exec()
-            self._table_panel.reload()
             table_name = getattr(dialog, "created_table_name", None)
             if table_name:
-                self._preview.set_context(self._repo, str(table_name))
-                self._select_navigation("tables")
+                self._show_table(table_name)
+            else:
+                self._table_panel.reload()
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Failed to create a table from DOE: %s", exc)
             QMessageBox.warning(self, _("DOE table"), str(exc))
@@ -608,9 +629,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                 table_name=name,
                 normalize_columns=False,
             )
-            self._table_panel.reload()
-            self._preview.set_context(self._repo, name)
-            self._select_navigation("tables")
+            self._show_table(name)
         except Exception as exc:  # noqa: BLE001
             applogger.exception("Failed to create blank table: %s", exc)
             QMessageBox.warning(self, _("New Blank Table"), str(exc))
@@ -1153,6 +1172,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             handlers = {
                 "doe": self._on_new_table_from_doe,
                 "import": self._on_import_data,
+                "import_clipboard": self._on_import_clipboard,
                 "import_database": self._on_database_table_import,
                 "query": self._on_create_query_table,
                 "new_table": self._on_new_blank_table,

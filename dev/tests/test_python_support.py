@@ -28,26 +28,19 @@ def _requirements() -> dict[str, list[tuple[str, str]]]:
     return found
 
 
-def test_a_package_pinned_below_315_is_pinned_for_315_or_left_out_on_purpose() -> None:
-    """A pin with `python_version < "3.15"` and no partner for 3.15 is a package 3.15 does not install."""
-    left_out_on_purpose: set[str] = set()  # every pin below 3.15 has a partner
+def test_no_requirement_depends_on_the_python_version() -> None:
+    """Python 3.15 is the default: one pin per package, with no `python_version` marker."""
     for name, specs in _requirements().items():
-        markers = [marker for _spec, marker in specs]
-        if any("< \"3.15\"" in marker for marker in markers):
-            has_315 = any(">= \"3.15\"" in marker for marker in markers)
-            assert has_315 or name in left_out_on_purpose, f"{name} has no pin for Python 3.15"
+        for _spec, marker in specs:
+            assert "python_version" not in marker, f"{name} still has a python_version marker"
 
 
-def test_the_pins_for_315_are_exact_and_not_older_than_the_ones_they_replace() -> None:
-    def version(spec: str) -> tuple[int, ...]:
-        return tuple(int(part) for part in spec.removeprefix("==").split("."))
-
+def test_every_pin_is_exact() -> None:
     for name, specs in _requirements().items():
-        old = [spec for spec, marker in specs if "< \"3.15\"" in marker]
-        new = [spec for spec, marker in specs if ">= \"3.15\"" in marker]
-        if old and new:
-            assert new[0].startswith("=="), name
-            assert version(new[0]) >= version(old[0]), name
+        for spec, marker in specs:
+            if "sys_platform" in marker:
+                continue  # a platform-only package (pyobjc) may take a floor
+            assert spec.startswith("=="), f"{name} is not pinned exactly: {spec}"
 
 
 def _text_opens_without_encoding() -> list[str]:

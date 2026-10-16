@@ -111,6 +111,7 @@ def _import_database(repo: SqliteRepo, path: Path, monkeypatch: pytest.MonkeyPat
     window = QWidget()  # the dialog's parent, as the main window is
     window._repo = repo
     window._table_panel = SimpleNamespace(reload=lambda: None)
+    window._show_table = lambda name=None: None
     MainWindowProject._on_database_table_import(window)
 
 

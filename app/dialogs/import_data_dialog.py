@@ -254,7 +254,7 @@ class ImportDataDialog(SettingsTableDialog):
         left_layout = QVBoxLayout(left)
         stdSizeAndlayout(left_layout)
 
-        # -- Source: a file, the clipboard; Excel's sheet.
+        # -- Source: a file (the clipboard has its own button on the New table page); Excel's sheet.
         source = TitledCard(left, _("Source"), "importSourceCard")
         source_layout = source.card.layout()
         src_row = QHBoxLayout()
@@ -266,22 +266,6 @@ class ImportDataDialog(SettingsTableDialog):
             presentation=(
                 action_presentation("open")[0], _("File"),
                 _("Import a file: CSV or other delimited text, Excel, JSON"),
-            ),
-        )
-        create_action_button(
-            parent=source.card, action_id="paste", action=self._on_load_clipboard, layout=src_row,
-            presentation=(
-                action_presentation("paste")[0], _("Clipboard"),
-                _("Import the table on the clipboard"),
-            ),
-        )
-        create_action_button(
-            parent=source.card, action_id="paste_transposed",
-            action=lambda: self._on_load_clipboard(transposed=True), layout=src_row,
-            presentation=(
-                action_presentation("paste")[0], _("Clipboard transposed"),
-                _("Import the table on the clipboard with rows and columns swapped - "
-                  "for data copied one series per row"),
             ),
         )
         src_row.addStretch(1)
@@ -465,10 +449,6 @@ class ImportDataDialog(SettingsTableDialog):
         self._delim.editTextChanged.connect(self._schedule_preview)  # type: ignore
         self._encoding.currentIndexChanged.connect(self._schedule_preview)  # type: ignore
         self._encoding.editTextChanged.connect(self._schedule_preview)  # type: ignore
-
-        # Clipboard shortcut
-        self._sc_paste = QShortcut(QKeySequence(QKeySequence.StandardKey.Paste), self)
-        self._sc_paste.activated.connect(self._on_load_clipboard)  # type: ignore
 
         self._preview_timer = QTimer(self)
         self._preview_timer.setSingleShot(True)
@@ -836,6 +816,14 @@ class ImportDataDialog(SettingsTableDialog):
             delimiter="\t" if transposed else self._current_delim(),
         )
 
+    def load_clipboard(self, transposed: bool = False) -> bool:
+        """Show the clipboard's table as the source - what Import from clipboard opens the dialog with.
+
+        False when there is nothing usable on the clipboard (the reason has been shown).
+        """
+        self._on_load_clipboard(transposed=transposed)
+        return self._source_mode == "clipboard"
+
     def _on_load_clipboard(self, transposed: bool = False) -> None:
         """Replace whatever is loaded with what is on the clipboard.
 
@@ -1058,7 +1046,7 @@ class ImportDataDialog(SettingsTableDialog):
             show_message(self, "import.failed", error=exc)
             return
 
-        self.import_result = ImportResult(table_name=table, rows=int(len(df2)), cols=int(len(df2.columns)))
+        self.import_result = ImportResult(table_name=table_name, rows=int(len(df2)), cols=int(len(df2.columns)))
         self.accept()
 
     def _link_source_settings(self) -> dict[str, object] | None:
