@@ -39,6 +39,18 @@ DONE PY-15: Python 3.15 (.venv-3.15) passes the suite but the old chrome test. P
      around it; update_dependencies now clears the flag). statsmodels 0.15 (design_info in model_spec,
      separation only warned) and scikit-learn 1.9.1 (LDA scale, QDA) handled.
 
+P0-1 Series Operations do not start anymore
+P0-2 catalog.py: app has a plugin structure. never use catalogs but get information from the plugin (e.g Description field for charts)
+P0-3 Analysis must have plugin structure too.
+P0-5 Import data. Windows. Left frame. gray area.
+P0-6 After Import move to tables and select the last imported table.
+P0-7 After Open/new move to Tables
+P0-8 Fit Mode: only the first Y is shown. Revise the panel. Generated tables should be marked as so, with underscore to hide them.
+P0-9 Import from clipboard. Add checkbox Translated: move to Add table panel. than open the Import dialog for preview. Remove from clipboard from import dialog.
+P0-10 Database corrupts when table deleted
+P0-11 Python3.15 is default. remove requirements for <3.15
+p0-12 WARNING  | action | No action 'query' in config.json; the widget will have no label or icon.
+
 
 NOW
 G-02  M  Guided analysis for beginners: a wizard dialog (~820x560), columns first.
