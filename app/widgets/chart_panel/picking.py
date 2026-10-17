@@ -96,6 +96,14 @@ class PickingMixin:
         series = self._series_name_at(axes, event) if axis_id is not None and part is None else None
         self.chart_object_clicked.emit({"axis_id": axis_id, "series": series, "part": part})
 
+    def _on_escape_to_figure(self, event: Any) -> None:
+        """Esc on the chart goes back to the figure, as a click outside every axis would."""
+        if event.key != "escape":
+            return
+        if str(getattr(self._toolbar, "mode", "")) != "" or getattr(self, "_select_mode_enabled", False):
+            return
+        self.chart_object_clicked.emit({"axis_id": None, "series": None, "part": None})
+
     def _axis_part_at(self, event: Any) -> tuple[Any, str | None]:
         """(the axes, "x"/"y"/"z") for a click on an axis' ticks or labels, (the axes, "title")
         on its title, (None, None) elsewhere."""

@@ -89,3 +89,14 @@ def test_hovering_an_axis_says_what_a_click_will_edit(panel: ChartPanel) -> None
     assert "X axis" in panel._canvas.toolTip()
     panel._show_axis_part_hint(None)
     assert panel._canvas.toolTip() == ""
+
+
+def test_escape_on_the_chart_goes_back_to_the_figure(panel: ChartPanel) -> None:
+    """S-01: Esc says "the figure", as a click outside every axis does - not while a tool owns the mouse."""
+    from types import SimpleNamespace
+
+    hits: list[dict] = []
+    panel.chart_object_clicked.connect(hits.append)
+    panel._on_escape_to_figure(SimpleNamespace(key="a"))
+    panel._on_escape_to_figure(SimpleNamespace(key="escape"))
+    assert hits == [{"axis_id": None, "series": None, "part": None}]

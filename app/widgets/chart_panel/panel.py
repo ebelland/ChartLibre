@@ -345,6 +345,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
         # A plain click also selects what it landed on in Chart properties.
         self._canvas.mpl_connect("button_press_event", self._on_object_click_press)
         self._canvas.mpl_connect("button_release_event", self._on_object_click_release)
+        self._canvas.mpl_connect("key_press_event", self._on_escape_to_figure)
         # Ctrl + left click creates an axis-level annotation at the clicked
         # data coordinates.  This is deliberately a mouse-button event, not
         # a pick event, so it works even when there is no marker exactly
