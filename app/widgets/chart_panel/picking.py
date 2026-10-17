@@ -5,6 +5,10 @@ import math
 from typing import Any
 
 import numpy as np
+from matplotlib.collections import PathCollection
+from matplotlib.colors import to_rgba
+from matplotlib.lines import Line2D
+from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Patch, Rectangle, Wedge
 
 from app.utils.i18n import _
@@ -16,6 +20,51 @@ from app.widgets.chart_panel.constants import PICK_TOLERANCE_POINTS, axis_text
 FLASH_MS = 900
 #: The highlight's colour: the application's accent.
 FLASH_COLOR = "#2563EB"
+#: A series' style keys the chart can show by changing its lines and points, with no new render.
+PREVIEW_STYLE_SETTERS = frozenset({"color", "linestyle", "marker", "markersize"})
+#: The values that mean "no line" or "no marker".
+_NONE_STYLES = frozenset({"", " ", "None", "none"})
+
+
+def _style_steps(artist: Any, changes: dict[str, Any], *, has_points: bool, sizes: bool) -> tuple[bool, list[Any]]:
+    """(whether *artist* can show *changes* as it is, the calls that do it).
+
+    A line keeps being a line and its markers markers; on a series drawn as
+    a line and points, the marker belongs to the points.
+    """
+    steps: list[Any] = []
+    for key, value in changes.items():
+        if isinstance(artist, Line2D):
+            if key == "color":
+                to_rgba(value)  # ValueError for a colour Matplotlib does not know
+                steps.append(lambda v=value: artist.set_color(v))
+            elif key == "linestyle":
+                if str(value) in _NONE_STYLES or artist.get_linestyle() in _NONE_STYLES:
+                    return False, []
+                steps.append(lambda v=value: artist.set_linestyle(v))
+            elif not has_points:
+                if str(artist.get_marker()) in _NONE_STYLES or (key == "marker" and str(value) in _NONE_STYLES):
+                    return False, []
+                setter = artist.set_marker if key == "marker" else artist.set_markersize
+                steps.append(lambda v=value, set_=setter: set_(v))
+        else:  # the points
+            if key == "color":
+                if artist.get_array() is not None:
+                    return False, []
+                to_rgba(value)  # ValueError for a colour Matplotlib does not know
+                follows = np.array_equal(artist.get_edgecolor(), artist.get_facecolor())
+                steps.append(lambda v=value, edge=follows: (artist.set_facecolor(v), edge and artist.set_edgecolor(v)))
+            elif key == "marker":
+                if str(value) in _NONE_STYLES:
+                    return False, []
+                style = MarkerStyle(value)
+                path = style.get_path().transformed(style.get_transform())
+                steps.append(lambda p=path: artist.set_paths([p]))
+            elif key == "markersize" and sizes:
+                if len(artist.get_sizes()) > 1:
+                    return False, []  # sized by a column
+                steps.append(lambda v=value: artist.set_sizes([float(v) ** 2]))
+    return True, steps
 
 
 class PickingMixin:
@@ -469,4 +518,48 @@ class PickingMixin:
             self._canvas.draw_idle()
 
         QTimer.singleShot(FLASH_MS, clear)
+        return True
+
+    def preview_series_style(self, axis_id: int, series: str, changes: dict[str, Any]) -> bool:
+        """Show a series' new colour, line style, marker or marker size on the chart as drawn - no render.
+
+        On the artists its renderer tagged with its name (SeriesArtistTags)
+        and its legend entry. False - for the caller to render the chart -
+        for any other key, a renderer that does not tag, a series drawn with
+        more than lines and points (error bars, bars, a band), a line or
+        points the edit would add or remove, colour-mapped points, or a value
+        Matplotlib refuses.
+        """
+        if not changes or not set(changes) <= set(PREVIEW_STYLE_SETTERS):
+            return False
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)
+        if axes is None:
+            return False
+        mine = [a for a in axes.get_children() if getattr(a, "_dhub_series", None) == series]
+        lines = [a for a in mine if isinstance(a, Line2D)]
+        points = [a for a in mine if isinstance(a, PathCollection)]
+        if not mine or len(lines) + len(points) != len(mine):
+            return False
+        labels = {str(a.get_label()) for a in mine if not str(a.get_label()).startswith("_")}
+        handles = [
+            handle
+            for legend in (axes.get_legend(), *self._canvas.figure.legends) if legend is not None
+            for handle, text in zip(legend.legend_handles, legend.get_texts()) if text.get_text() in labels
+        ]
+        if any(not isinstance(h, (Line2D, PathCollection)) for h in handles):
+            return False
+        try:
+            plan = [(a, *_style_steps(a, changes, has_points=bool(points), sizes=a not in handles))
+                    for a in (*lines, *points, *handles)]
+        except ValueError:
+            return False
+        if any(not ok for _artist, ok, _steps in plan):
+            return False
+        try:
+            for _artist, _ok, steps in plan:
+                for step in steps:
+                    step()
+        except (TypeError, ValueError):
+            return False
+        self._canvas.draw_idle()
         return True

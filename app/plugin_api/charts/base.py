@@ -158,6 +158,36 @@ ERROR_BAR_KWARGS: dict[str, Any] = {
 }
 
 
+class SeriesArtistTags:
+    """Marks what each series draws with its name, as ``artist._dhub_series``.
+
+    For the viewer to find a series' own lines and points again - the chart
+    panel previews a style edit on them (S-01) - without relying on their
+    labels, which a legend label or a companion line change. A renderer
+    calls ``next(name)`` before each series and ``done()`` after the last.
+    """
+
+    def __init__(self, ax: Any) -> None:
+        self._ax = ax
+        self._name: str | None = None
+        self._seen = {id(artist) for artist in ax.get_children()}
+
+    def next(self, name: str) -> None:
+        self._tag()
+        self._name = str(name)
+
+    def done(self) -> None:
+        self._tag()
+        self._name = None
+
+    def _tag(self) -> None:
+        for artist in self._ax.get_children():
+            if id(artist) not in self._seen:
+                self._seen.add(id(artist))
+                if self._name is not None:
+                    artist._dhub_series = self._name  # noqa: SLF001 - our own attribute
+
+
 class BaseAxisRenderer(Protocol):
     """Base class for every chart renderer: one chart type, one subclass.
 

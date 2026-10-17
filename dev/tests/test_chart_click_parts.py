@@ -100,3 +100,30 @@ def test_escape_on_the_chart_goes_back_to_the_figure(panel: ChartPanel) -> None:
     panel._on_escape_to_figure(SimpleNamespace(key="a"))
     panel._on_escape_to_figure(SimpleNamespace(key="escape"))
     assert hits == [{"axis_id": None, "series": None, "part": None}]
+
+
+def test_a_series_style_edit_shows_on_its_lines_without_a_render(panel: ChartPanel) -> None:
+    """S-01: colour, line and marker edits change what is drawn; anything else asks for a render."""
+    from matplotlib.colors import to_hex
+
+    panel.ensure_rendered()
+    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
+    axis_id = axes._dhub_axis_id
+    # The showcase's points are coloured and sized by columns: only a render redoes those.
+    cloud = next(a for a in axes.collections if getattr(a, "_dhub_series", None))
+    assert not panel.preview_series_style(axis_id, cloud._dhub_series, {"color": "#ff0000"})
+    assert not panel.preview_series_style(axis_id, cloud._dhub_series, {"markersize": 9})
+    assert panel.preview_series_style(axis_id, cloud._dhub_series, {"marker": "s"})
+
+    # A series drawn as a line and points, as the Scatter Plot renderer tags them.
+    line, = axes.plot([1, 2, 3], [1, 2, 3], linestyle="-", marker="None")
+    points = axes.scatter([1, 2, 3], [1, 2, 3], s=36)
+    line._dhub_series = points._dhub_series = "manual"
+    assert panel.preview_series_style(axis_id, "manual", {"color": "#ff0000", "markersize": 9, "linestyle": "--"})
+    assert to_hex(line.get_color()) == to_hex(points.get_facecolor()[0]) == "#ff0000"
+    assert list(points.get_sizes()) == [81.0] and line.get_linestyle() == "--"
+    assert not panel.preview_series_style(axis_id, "manual", {"label": "other"})
+    assert not panel.preview_series_style(axis_id, "manual", {"marker": ""})  # the points would go
+    assert not panel.preview_series_style(axis_id, "manual", {"linestyle": "None"})  # the line would go
+    assert not panel.preview_series_style(axis_id, "manual", {"color": "not a colour"})
+    assert not panel.preview_series_style(axis_id, "no such series", {"color": "#00ff00"})

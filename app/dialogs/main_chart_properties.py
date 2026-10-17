@@ -614,6 +614,7 @@ class MainWindowChartProperties:
             applogger.error("Series id=%r has invalid style.", series_desc.id)
             return
         self._snapshot_descriptors(_("Series properties"))
+        before = dict(style)
         # Same rule as the axis and figure handlers: everything the widget
         # sends is stored, minus the addressing keys.
         for key, value in payload.items():
@@ -635,4 +636,19 @@ class MainWindowChartProperties:
         else:
             self._repo.update_series_sql_query(series_id, sql_query)
         self._reload_property_widgets()
+        changes = {key: style.get(key) for key in {*before, *style} if before.get(key) != style.get(key)}
+        if sql_query == str(series_desc.sql_query or "").strip() and self._preview_series_style(
+            str(series_desc.name), changes
+        ):
+            return
         self._redraw_properties_chart()
+
+    def _preview_series_style(self, series: str, changes: dict[str, Any]) -> bool:
+        """A colour, line or marker edit shown on the chart's own lines - no render (S-01)."""
+        panel = self._properties_panel
+        axis_id = self._axis_widget.current_axis_id()
+        if panel is None or axis_id is None or not hasattr(panel, "preview_series_style"):
+            return False
+        if any(value is None for value in changes.values()):
+            return False  # back to the style's default: only a render knows it
+        return bool(panel.preview_series_style(int(axis_id), series, changes))

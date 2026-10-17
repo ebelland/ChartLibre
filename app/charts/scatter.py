@@ -15,7 +15,7 @@ from matplotlib import rcParams
 from matplotlib.patches import Ellipse
 from matplotlib.transforms import Affine2D
 
-from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numbers
 
@@ -284,7 +284,9 @@ class ScatterAxisRenderer(BaseAxisRenderer):
         legend_handles_found = False
         temporal = False
 
+        tags = SeriesArtistTags(ax)
         for series_index, sd in enumerate(series):
+            tags.next(sd.name)
             style = dict(sd.style or {})
             if not bool(style.get("visible", True)) or not self.ensure_required_roles(sd.df):
                 continue
@@ -590,6 +592,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                     ):
                         legend_handles_found = True
 
+        tags.done()
         if temporal:
             # Only on a dated axis: on a numeric one AutoDateLocator would
             # read the values as days since 1970.

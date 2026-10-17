@@ -62,6 +62,22 @@ def test_clicks_select_the_figure_the_axis_and_the_series(qapp, tmp_path) -> Non
         # Outside every axis: the Figure page.
         _click(panel, 2.0, 2.0)
         assert control.tabText(control.currentIndex()) == "Figure"
+
+        # A colour edit in Series properties shows on the drawn points at once,
+        # and is stored - with no render of the chart; a label edit renders it.
+        from matplotlib.colors import to_hex
+
+        series = window._series_widget
+        series.select_series_named("high")
+        stored = window._properties_series_descriptor(series._current_series_id)
+        payload = {"series_id": stored.id, "color": "#ff0000", "sql_query": stored.sql_query}
+        window._on_series_options_requested(payload)
+        assert not window._properties_redraw_timer.isActive()
+        points = next(a for a in axes.collections if getattr(a, "_dhub_series", None) == "high")
+        assert to_hex(points.get_facecolor()[0]) == "#ff0000"
+        assert window._properties_series_descriptor(series._current_series_id).options["color"] == "#ff0000"
+        window._on_series_options_requested({**payload, "label": "High"})
+        assert window._properties_redraw_timer.isActive()
     finally:
         window.close()
         repo.close()
