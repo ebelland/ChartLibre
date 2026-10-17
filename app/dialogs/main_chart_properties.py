@@ -84,6 +84,10 @@ class MainWindowChartProperties:
         self._figure_widget.layout_preset_requested.connect(self._on_layout_preset_requested)
         self._figure_widget.figure_options_requested.connect(self._on_figure_options_requested)
         self._axis_widget.axis_selected.connect(self._on_axis_selected)
+        # Chosen here, shown there: the chart highlights the axis or series for a moment (S-01).
+        self._axis_widget.axis_picked.connect(self._flash_on_chart)
+        self._series_widget.series_picked.connect(
+            lambda _series_id, name: self._flash_on_chart(self._axis_widget.current_axis_id(), name))
         self._axis_widget.renderer_changed.connect(self._on_axis_renderer_changed)
         self._axis_widget.axis_options_requested.connect(self._on_axis_options_requested)
         self._axis_widget.axis_action_requested.connect(self._on_axis_action_requested)
@@ -463,6 +467,11 @@ class MainWindowChartProperties:
         if part:
             self._axis_widget.show_coordinate(None if part == "title" else str(part))
         show(self._axis_widget)
+
+    def _flash_on_chart(self, axis_id: int | None, series: str | None = None) -> None:
+        panel = self._current_chart_panel()
+        if panel is not None and axis_id is not None and hasattr(panel, "flash"):
+            panel.flash(int(axis_id), series)
 
     def _on_axis_selected(self, axis_id: int) -> None:
         self._series_widget.set_current_axis_id(axis_id)

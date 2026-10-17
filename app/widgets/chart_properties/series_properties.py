@@ -107,6 +107,8 @@ class SeriesPropertiesWidget(BaseProperties):
     """Compact editor for series descriptor style/options."""
 
     series_selected = Signal(int)
+    #: A series chosen here by the person (not a reload): its id and name, for the chart to show it.
+    series_picked = Signal(int, str)
     series_options_requested = Signal(dict)
     series_order_requested = Signal(list)
     series_delete_requested = Signal(int)
@@ -222,6 +224,12 @@ class SeriesPropertiesWidget(BaseProperties):
         stdSizeAndlayout(self._series_combo)
         self._series_combo.currentIndexChanged.connect(
             self._on_series_combo_changed
+        )
+        # activated: a choice made here, never a reload's - only that is shown on the chart.
+        self._series_combo.activated.connect(
+            lambda index: self.series_picked.emit(int(self._series_combo.itemData(index) or 0),
+                                                  self._series_combo.itemText(index))
+            if self._series_combo.itemData(index) is not None else None
         )
         layout.addWidget(self._series_combo)
 

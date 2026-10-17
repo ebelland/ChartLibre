@@ -79,6 +79,8 @@ class AxisPropertiesWidget(BaseProperties):
     """
 
     axis_selected = Signal(int)
+    #: An axis chosen here by the person (not a reload), for the chart to show it.
+    axis_picked = Signal(int)
     axis_options_requested = Signal(dict)
     axis_action_requested = Signal(dict)
     renderer_changed = Signal(str)
@@ -509,6 +511,10 @@ class AxisPropertiesWidget(BaseProperties):
         # The tooltip that keeps the elided name readable is wired by
         # configure_combo_width, so it is not repeated here.
         self._axis_combo.currentIndexChanged.connect(self._on_axis_combo_changed)
+        self._axis_combo.activated.connect(
+            lambda index: self.axis_picked.emit(int(self._axis_combo.itemData(index)))
+            if self._axis_combo.itemData(index) is not None else None
+        )
         layout.addWidget(self._axis_combo)
 
         action_row = QWidget(section)

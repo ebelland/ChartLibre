@@ -47,3 +47,24 @@ def test_a_click_on_an_axis_ticks_or_title_names_that_part(panel: ChartPanel) ->
     if axes.title.get_text():
         assert panel._axis_part_at(at(axes.title.get_window_extent(renderer))) == (axes, "title")
     assert panel._axis_part_at(SimpleNamespace(x=1, y=1)) == (None, None)
+
+
+def test_flash_highlights_an_axis_or_a_series_for_a_moment(panel: ChartPanel) -> None:
+    """S-01, the other way: what Chart properties selects is shown on the chart, then gone."""
+    import app.widgets.chart_panel.picking as picking
+
+    panel.ensure_rendered()
+    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
+    before = len(axes.patches) + len(axes.lines) + len(axes.collections)
+    name = next(str(a.get_label()) for a in (*axes.collections, *axes.lines) if not str(a.get_label()).startswith("_"))
+
+    assert panel.flash(axes._dhub_axis_id, name)
+    assert len(axes.patches) + len(axes.lines) + len(axes.collections) > before
+    end = time.monotonic() + picking.FLASH_MS / 1000 + 0.5
+    while time.monotonic() < end:
+        QApplication.processEvents()
+    assert len(axes.patches) + len(axes.lines) + len(axes.collections) == before
+
+    assert panel.flash(axes._dhub_axis_id)  # no series: a frame round the axis
+    assert any(str(p.get_label()) == "_flash" for p in axes.patches)
+    assert not panel.flash(-1)

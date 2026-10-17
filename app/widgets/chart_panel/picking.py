@@ -12,6 +12,12 @@ from app.utils.i18n import _
 from app.widgets.chart_panel.constants import PICK_TOLERANCE_POINTS, axis_text
 
 
+#: How long a selection made in Chart properties stays highlighted on the chart.
+FLASH_MS = 900
+#: The highlight's colour: the application's accent.
+FLASH_COLOR = "#2563EB"
+
+
 class PickingMixin:
     """Clicks on the chart: picking a point, a bar, a legend entry; scroll zoom. A part of ChartPanel (see panel.py)."""
 
@@ -409,3 +415,50 @@ class PickingMixin:
         except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             pass
         return axis_text(axis, position)
+
+    # ------------------------------------------------------------------
+    # Chart properties -> chart: show what is selected there (S-01)
+    # ------------------------------------------------------------------
+    def flash(self, axis_id: int, series: str | None = None) -> bool:
+        """Highlight an axis (a frame round it) or one of its series (a halo under it), for a moment.
+
+        Drawn as extra artists over the real ones and removed after
+        FLASH_MS, so nothing of the chart itself changes. False when the
+        axis is not on this chart.
+        """
+        from PySide6.QtCore import QTimer
+
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)
+        if axes is None:
+            return False
+        added: list[Any] = []
+        if series:
+            for line in axes.lines:
+                if str(line.get_label()) == series or str(line.get_label()).startswith(f"{series} "):
+                    halo, = axes.plot(line.get_xdata(), line.get_ydata(), color=FLASH_COLOR, alpha=0.35,
+                                      linewidth=float(line.get_linewidth()) + 6, solid_capstyle="round",
+                                      zorder=line.get_zorder() - 0.01, label="_flash")
+                    added.append(halo)
+            for collection in axes.collections:
+                offsets = getattr(collection, "get_offsets", lambda: [])()
+                if str(collection.get_label()) == series and len(offsets):
+                    sizes = collection.get_sizes()
+                    size = float(sizes[0]) if len(sizes) else 36.0
+                    added.append(axes.scatter(offsets[:, 0], offsets[:, 1], s=size * 4, color=FLASH_COLOR, alpha=0.3,
+                                              linewidths=0, zorder=collection.get_zorder() - 0.01, label="_flash"))
+        if not added:
+            added.append(axes.add_patch(Rectangle((0, 0), 1, 1, transform=axes.transAxes, fill=False,
+                                                  edgecolor=FLASH_COLOR, linewidth=2.5, clip_on=False,
+                                                  zorder=1000, label="_flash")))
+        self._canvas.draw_idle()
+
+        def clear() -> None:
+            for artist in added:
+                try:
+                    artist.remove()
+                except (ValueError, NotImplementedError):  # already gone with a redraw of the figure
+                    pass
+            self._canvas.draw_idle()
+
+        QTimer.singleShot(FLASH_MS, clear)
+        return True
