@@ -694,7 +694,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         """Show the tools for contributors on the Project page only in developer mode (todo H-13)."""
         shown = developer_mode()
         for card in getattr(self, "_developer_cards", []):
-            card.setVisible(shown)
+            # The whole frame, its title too: the box alone left the titles behind.
+            card.parentWidget().setVisible(shown)
 
     # ------------------------------------------------------------------
     # Navigation bar

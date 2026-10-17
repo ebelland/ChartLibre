@@ -22,13 +22,13 @@ def test_the_tools_for_contributors_follow_developer_mode(qapp, tmp_path: Path) 
         names = [card.objectName() for card in window._developer_cards]
         assert names == ["edit_localizationCard", "data_operation_builderCard",
                          "function_creatorCard", "renderer_helperCard"]
-        assert not any(card.isVisible() for card in window._developer_cards)
+        assert not any(card.isVisible() or card.parentWidget().isVisible() for card in window._developer_cards)
         assert window._left_panel._buttons["developer"].toolTip().startswith("The project's history")
 
         config.set_value(config.DEVELOPER_MODE_KEY, True)
         window._apply_developer_mode()
         qapp.processEvents()
-        assert all(card.isVisible() for card in window._developer_cards)
+        assert all(card.isVisible() and card.parentWidget().isVisible() for card in window._developer_cards)
     finally:
         config.set_value(config.DEVELOPER_MODE_KEY, False)
         window.close()
