@@ -240,8 +240,15 @@ class HtmlResultsView(QWidget):
         try:
             from PySide6.QtWebEngineWidgets import QWebEngineView
 
+            # The page first, a child of this pane rather than of the view: Qt
+            # deletes a widget's children in the order they were made, so when
+            # the window goes - closed and collected at any moment - the page
+            # is deleted before its view, the order QtWebEngine needs. Owned
+            # by the view, it went after it, and Chromium aborted (SIGTRAP in
+            # ~WebContentsAdapter).
+            page = _ExternalLinksPage(self)
             view = QWebEngineView(self)
-            view.setPage(_ExternalLinksPage(view))
+            view.setPage(page)
             _WEB_VIEWS.add(view)
             _hook_release()
             return cast(QWidget, view)
