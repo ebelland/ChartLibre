@@ -119,3 +119,11 @@ def test_every_build_operation_writes_sql_that_runs(qapp, repo) -> None:
             repo.create_table_from_query("grouped", dialog.sql)
     finally:
         dialog.close()
+
+
+def test_select_writes_columns_a_test_and_an_order() -> None:
+    assert sb.select("t") == 'SELECT *\nFROM "t"'
+    sql = sb.select("t", ["a", "b"], where=("a", ">=", "2.5"), order=("b", True))
+    assert sql == 'SELECT "a", "b"\nFROM "t"\nWHERE "a" >= 2.5\nORDER BY "b" DESC'
+    assert sb.select("t", where=("name", "=", "O'Hara")).endswith("WHERE \"name\" = 'O''Hara'")
+    assert sb.select("t", where=("a", "IS NULL", "ignored")).endswith('WHERE "a" IS NULL')

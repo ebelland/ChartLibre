@@ -53,3 +53,26 @@ def test_settings_shows_the_deepl_key_only_in_developer_mode(qapp) -> None:
     finally:
         config.set_value(config.DEVELOPER_MODE_KEY, False)
         dialog.close()
+
+
+def test_the_file_page_has_project_save_with_export_demo_and_recent(qapp, tmp_path: Path) -> None:
+    """Import is on New table, Project info with Settings: the File page keeps the project's own steps."""
+    from PySide6.QtWidgets import QFrame, QPushButton
+
+    from app.main_window.main_window import IS_MACOS
+
+    repo = SqliteRepo(db_path=tmp_path / "f.dhub")
+    window = main_window_module.MainWindow(repo=repo, db_path=repo.db_path)
+    try:
+        assert window.findChild(QFrame, "fileImportCard") is None
+        assert window.findChild(QFrame, "fileProjectInfoCard") is None
+        save = window.findChild(QFrame, "fileSaveCard")
+        assert [b.text() for b in save.findChildren(QPushButton)][-1] == "Export…"
+        if IS_MACOS:
+            items = [item for _title, group in window._app_menu_items() for item in group if item is not None]
+            assert any("Project info" in str(getattr(item, "text", "")) for item in items)
+        else:
+            assert window._left_panel.button("project_info") is not None
+    finally:
+        window.close()
+        repo.close()

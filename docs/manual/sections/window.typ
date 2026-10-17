@@ -32,17 +32,15 @@ On Windows and Linux the rail ends with *Settings* and a *Menu* button (Undo, He
 == The File page
 
 #defs(
-  [*Workspace*], [*New* and *Open* a project, and *Project info…* (see below).],
+  [*Project*], [*New* and *Open* a project.],
+  [*Save*], [*Save* and *Save As…* (see @getting-started), and *Export…*, the project report — the whole project as one HTML or PDF document (see @output).],
   [*Demo*], [*Load demo* (see @demos).],
-  [*Import*], [*Import* data into the project (see @importing).],
-  [*Save*], [*Save* and *Save As…* (see @getting-started).],
-  [*Export*], [*Project report* — the whole project as one HTML or PDF document (see @output).],
   [*Open recent*], [The projects opened recently. Click one to see its preview, author, dates, size and the start of its notes — read from the file without opening it — then *Open* it (or double-click). *Clear list* forgets them.],
 )
 
 === Project info
 
-*Project info…* holds what a project says about itself, kept inside the `.dhub` file so that it travels with it:
+*Project info…* — with *Settings* in the rail on Windows and Linux, in the ChartLibre menu after Settings on macOS — holds what a project says about itself, kept inside the `.dhub` file so that it travels with it:
 
 #defs(
   [*Author*], [Who made it. Remembered on the computer, and filled in for every new project.],

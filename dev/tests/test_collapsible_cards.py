@@ -47,3 +47,30 @@ def test_the_query_builder_build_form_follows_its_remembered_operation(qapp, tmp
     finally:
         again.close()
         repo.close()
+
+
+def test_select_in_build_writes_the_old_snippets_and_clear_empties_the_editor(qapp, tmp_path: Path) -> None:
+    from app.data.sqlite_repo import SqliteRepo
+    from app.dialogs import query_builder_dialog as qb
+    from app.dialogs.query_operations import SelectForm
+
+    repo = SqliteRepo(db_path=tmp_path / "s.dhub")
+    repo.import_dataframe(pd.DataFrame({"g": ["a", "b", "a"], "v": [3.0, 1.0, 2.0]}), table_name="t",
+                          normalize_columns=False)
+    dialog = qb.QueryBuilderDialog(repo)
+    try:
+        dialog._operation_combo.setCurrentIndex(0)
+        form = dialog._operation_forms[0]
+        assert isinstance(form, SelectForm)
+        assert [form.columns_list.item(i).text() for i in range(form.columns_list.count())] == ["g", "v"]
+        form.where_column.setCurrentText("g")
+        form.value.setText("a")
+        form.order_column.setCurrentText("v")
+        assert dialog.write_operation_sql()
+        assert dialog.sql == 'SELECT *\nFROM "t"\nWHERE "g" = \'a\'\nORDER BY "v" ASC'
+        assert dialog._result_view.model().rowCount() == 2
+        dialog._editor.clear()
+        assert dialog.sql == ""
+    finally:
+        dialog.close()
+        repo.close()

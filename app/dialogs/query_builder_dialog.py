@@ -13,7 +13,6 @@ and only on demand.
 """
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from PySide6.QtCore import Qt
@@ -22,16 +21,13 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QInputDialog,
     QLabel,
-    QFormLayout,
     QPlainTextEdit,
     QSizePolicy,
     QStackedWidget,
     QTableView,
-    QVBoxLayout,
     QWidget,
 )
 
-from app.data.data_source import quote_identifier
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.styles.style import (
@@ -67,7 +63,6 @@ STATE_KEY: str = "query_builder_dialog"
 # unfinished fails validation instead of running against the wrong column.
 # Join, union and the summary are in the Build frame now, with the other
 # Tables operations (app.dialogs.query_operations).
-_SNIPPET_IDS = ("select", "order", "filter")
 
 
 class QueryBuilderDialog(SettingsTableDialog):
@@ -101,18 +96,13 @@ class QueryBuilderDialog(SettingsTableDialog):
 
         self._build_ui()
         self._reload_queries()
-        self._reload_tables()
 
         # Restore after the lists are populated so combo selections exist.
         restore_window_geometry(self, STATE_KEY)
         restore_dialog_state(self, STATE_KEY)
-        # Restored quietly: the Build form and the field list follow their
-        # combos now - the form under "Group" was Join's, the fields another
-        # table's.
+        # Restored quietly: the Build form follows its combo now - the form
+        # under "Group" was Join's.
         self._on_operation_changed(self._operation_combo.currentIndex())
-        field = self._field_combo.currentText()
-        self._reload_fields()
-        self._field_combo.setCurrentIndex(max(0, self._field_combo.findText(field)))
 
         if query_name:
             self.load_query(query_name)
@@ -142,7 +132,7 @@ class QueryBuilderDialog(SettingsTableDialog):
         self.add_action("close", self.reject)
 
     def _build_side_panel(self) -> None:
-        """The settings column: saved queries, Build, and the table, field and snippets to insert (closed)."""
+        """The settings column: saved queries, then Build - Select (the old snippets), Join and the other Tables operations."""
         card = self.add_settings_card(_("Saved queries"))
         layout = card.layout()
         self._query_combo = QComboBox(card)
@@ -165,19 +155,6 @@ class QueryBuilderDialog(SettingsTableDialog):
 
         self._build_operations_card()
 
-        # A table, a field and the snippets that act on them: helpers for
-        # typing SQL, closed until wanted (todo H-10).
-        card = self.add_settings_card(_("Insert into the SQL"), collapsible=True, collapsed=True)
-        form = QFormLayout()
-        stdSizeAndlayout(form)
-        self._table_combo = QComboBox(card)
-        self._table_combo.currentTextChanged.connect(self._reload_fields)
-        form.addRow(_("Table"), self._table_combo)
-        self._field_combo = QComboBox(card)
-        self._field_combo.setToolTip(_("The field the SQL buttons below act on."))
-        form.addRow(_("Field"), self._field_combo)
-        card.layout().addLayout(form)
-        card.layout().addWidget(self._build_snippet_rows(card))
         self._settings_column.layout().addStretch(1)
 
     def _build_operations_card(self) -> None:
@@ -216,6 +193,9 @@ class QueryBuilderDialog(SettingsTableDialog):
         for position, form in enumerate(self._operation_forms):
             form.setSizePolicy(QSizePolicy.Policy.Preferred,
                                QSizePolicy.Policy.Preferred if position == index else QSizePolicy.Policy.Ignored)
+        # Never less than the shown form needs: its last row (Join's "Add a
+        # Match column") was cut at the bottom when the column was short.
+        self._operation_stack.setMinimumHeight(self._operation_forms[index].minimumSizeHint().height())
         self._operation_stack.adjustSize()
 
     def write_operation_sql(self) -> bool:
@@ -249,26 +229,6 @@ class QueryBuilderDialog(SettingsTableDialog):
         applogger.info("Created table '%s' from a query.", created)
         return True
 
-    def _build_snippet_rows(self, parent: QWidget) -> QWidget:
-        """Build the SQL command buttons in a row."""
-        container = QWidget(parent)
-        outer = QVBoxLayout(container)
-        stdSizeAndlayout(outer)
-        for first in (0,):
-            row = QWidget(container)
-            row_layout = QHBoxLayout(row)
-            stdSizeAndlayout(row_layout)
-            for snippet_id in _SNIPPET_IDS[first:first + 3]:
-                create_action_button(
-                    parent=row,
-                    action_id=f"sql_{snippet_id}",
-                    action=lambda _checked=False, key=snippet_id: self._apply_command(key),
-                    layout=row_layout,
-                )
-            row_layout.addStretch(1)
-            outer.addWidget(row)
-        return container
-
     def _build_editor_panel(self) -> None:
         """The content column: the SQL editor over the result preview, a titled frame each."""
         card = self.add_content_card(_("SQL"), stretch=2)
@@ -282,7 +242,11 @@ class QueryBuilderDialog(SettingsTableDialog):
         self._status = QLabel("", card)
         self._status.setWordWrap(True)
         self._status.setProperty("muted", True)
-        card.layout().addWidget(self._status, 0)
+        status_row = QHBoxLayout()
+        status_row.addWidget(self._status, 1)
+        clear = create_action_button(parent=card, action_id="clear", action=self._editor.clear, layout=status_row)
+        clear.setToolTip(_("Empty the editor"))
+        card.layout().addLayout(status_row)
 
         card = self.add_content_card(_("Result preview"), stretch=3)
         self._result_view = QTableView(card)
@@ -315,25 +279,6 @@ class QueryBuilderDialog(SettingsTableDialog):
             self._query_combo.setCurrentIndex(selected)
         finally:
             self._query_combo.blockSignals(False)
-
-    def _reload_tables(self) -> None:
-        """Refill the table and field drop-downs."""
-        self._table_combo.blockSignals(True)
-        try:
-            self._table_combo.clear()
-            self._table_combo.addItems(self._repo.list_table_names())
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
-            applogger.exception("Failed to list tables for the query builder")
-        finally:
-            self._table_combo.blockSignals(False)
-        self._reload_fields()
-
-    def _reload_fields(self, _table: str = "") -> None:
-        """Show the fields belonging to the selected table."""
-        self._field_combo.clear()
-        table = self._current_table()
-        if table:
-            self._field_combo.addItems(self._repo.get_columns(table))
 
     def load_query(self, name: str) -> None:
         """Load a saved query into the editor."""
@@ -408,69 +353,6 @@ class QueryBuilderDialog(SettingsTableDialog):
 
     def _on_text_changed(self) -> None:
         self._status.setText("")
-
-    def _current_table(self) -> str:
-        return self._table_combo.currentText().strip()
-
-    def _current_field(self) -> str:
-        return self._field_combo.currentText().strip()
-
-    def _require_table_field(self) -> tuple[str, str] | None:
-        table, field = self._current_table(), self._current_field()
-        if not table or not field:
-            self._status.setText(_("Pick a table and a field."))
-            return None
-        return table, field
-
-    def _apply_command(self, command: str) -> None:
-        handlers = {
-            "select": self._select_field,
-            "order": self._order_by_field,
-            "filter": self._filter_by_field,
-        }
-        handler = handlers.get(command)
-        if handler:
-            handler()
-
-    def _select_field(self) -> None:
-        selected = self._require_table_field()
-        if not selected:
-            return
-        table, field = selected
-        self._editor.setPlainText(
-            f"SELECT {quote_identifier(field)}\nFROM {quote_identifier(table)}"
-        )
-
-    @staticmethod
-    def _remove_clause(sql: str, clause: str, following: str) -> str:
-        pattern = rf"(?is)\s+{clause}\b.*?(?=\s+(?:{following})\b|$)"
-        return re.sub(pattern, "", sql).strip().rstrip(";")
-
-    def _order_by_field(self) -> None:
-        selected = self._require_table_field()
-        if not selected:
-            return
-        _table, field = selected
-        sql = self.sql or f"SELECT * FROM {quote_identifier(self._current_table())}"
-        sql = self._remove_clause(sql, r"ORDER\s+BY", r"LIMIT|OFFSET")
-        self._editor.setPlainText(f"{sql}\nORDER BY {quote_identifier(field)} ASC")
-
-    def _filter_by_field(self) -> None:
-        selected = self._require_table_field()
-        if not selected:
-            return
-        table, field = selected
-        sql = self.sql or f"SELECT * FROM {quote_identifier(table)}"
-        sql = self._remove_clause(
-            sql, "WHERE", r"GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT|OFFSET"
-        )
-        match = re.search(r"(?is)\s+(GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT|OFFSET)\b", sql)
-        predicate = f"WHERE {quote_identifier(field)} = "
-        if match:
-            sql = f"{sql[:match.start()].rstrip()}\n{predicate}\n{sql[match.start():].lstrip()}"
-        else:
-            sql = f"{sql.rstrip()}\n{predicate}"
-        self._editor.setPlainText(sql)
 
     # ------------------------------------------------------------------
     # Actions

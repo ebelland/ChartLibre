@@ -1,6 +1,6 @@
 """The Query Builder's Build frame: a form per Tables operation that writes its SQL (AN-11).
 
-Join, Union, Stack, Split, Transpose, Recode, Bin, Group: each form collects
+Select, Join, Union, Stack, Split, Transpose, Recode, Bin, Group: each form collects
 the choices JMP's Tables menu asks for and returns the statement
 app.data.sql_builders writes, which the Query Builder puts in its editor and
 runs. Where the statement needs values from the data - split's and
@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QSizePolicy,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
@@ -31,6 +32,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.data import sql_builders as sb
+from app.data.sqlite_repo import ROW_ID
 from app.data.repo.table_tools import AGGREGATES
 from app.data.sqlite_repo import SqliteRepo
 from app.styles.style import apply_fusion_for_item_view_styling, stdSizeAndlayout
@@ -91,10 +93,28 @@ class OperationForm(QWidget):
             declared = str(row[2]).upper()
             if any(token in declared for token in ("INT", "REAL", "NUM", "DEC", "FLOA", "DOUB")):
                 numeric.append(str(row[1]))
-        return [c for c in numeric if c != "Hide"]
+        return [c for c in numeric if c not in ("Hide", ROW_ID)]
+
+    def row(self, *widgets: QWidget | tuple[QWidget, int]) -> QWidget:
+        """Widgets side by side in one form row, as tall as they are (a (widget, stretch) pair stretches)."""
+        row = QWidget(self)
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        for widget in widgets:
+            widget, stretch = widget if isinstance(widget, tuple) else (widget, 0)
+            layout.addWidget(widget, stretch)
+        row.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        return row
+
+    def combo(self) -> QComboBox:
+        """A combo that asks for little width: a long table name must not push its label out of the form."""
+        combo = QComboBox(self)
+        combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        combo.setMinimumContentsLength(6)
+        return combo
 
     def table_combo(self, on_change=None) -> QComboBox:
-        combo = QComboBox(self)
+        combo = self.combo()
         combo.addItems(self.tables())
         if on_change is not None:
             combo.currentTextChanged.connect(on_change)
@@ -108,6 +128,56 @@ class OperationForm(QWidget):
 
     def sql(self) -> str:
         raise NotImplementedError
+
+
+class SelectForm(OperationForm):
+    NAME = "Select"
+    DESCRIPTION = "Some columns of a table, the rows that pass a test, in the order of a column."
+
+    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
+        super().__init__(repo, parent)
+        self.table = self.table_combo(self._reload)
+        self.columns_list = _check_list(self)
+        self.columns_list.setToolTip(_("The columns to show; none checked: all of them."))
+        self.where_column = self.combo()
+        self.operator = QComboBox(self)
+        self.operator.addItems(sb.SELECT_OPERATORS)
+        self.operator.setCurrentText("=")
+        self.value = QLineEdit(self)
+        self.value.setPlaceholderText(_("value"))
+        self.operator.currentTextChanged.connect(
+            lambda text: self.value.setEnabled(not text.startswith("IS")))
+        test = self.row(self.operator, (self.value, 1))
+        self.order_column = self.combo()
+        self.descending = QCheckBox(_("Descending"), self)
+        self.form.addRow(_("Table:"), self.table)
+        self.form.addRow(_("Columns:"), self.columns_list)
+        self.form.addRow(_("Where:"), self.where_column)
+        self.form.addRow("", test)
+        self.form.addRow(_("Order by:"), self.order_column)
+        self.form.addRow("", self.descending)
+        self._reload()
+
+    def _reload(self, *_args: object) -> None:
+        names = self.columns(self.table.currentText())
+        _fill_checks(self.columns_list, names, set())
+        for combo in (self.where_column, self.order_column):
+            combo.clear()
+            combo.addItem(_NONE)
+            combo.addItems(names)
+
+    def sql(self) -> str:
+        table = self.table.currentText()
+        if not table:
+            raise ValueError(_("choose a table"))
+        where_column, order_column = self.where_column.currentText(), self.order_column.currentText()
+        where = None
+        if where_column not in ("", _NONE):
+            if not self.operator.currentText().startswith("IS") and not self.value.text().strip():
+                raise ValueError(_("give the value to compare {column} with").format(column=where_column))
+            where = (where_column, self.operator.currentText(), self.value.text().strip())
+        order = (order_column, self.descending.isChecked()) if order_column not in ("", _NONE) else None
+        return sb.select(table, _checked(self.columns_list) or None, where=where, order=order)
 
 
 class JoinForm(OperationForm):
@@ -129,7 +199,7 @@ class JoinForm(OperationForm):
         self.form.addRow(_("Keep:"), self.kind)
         self.pairs: list[tuple[QComboBox, QComboBox]] = []
         for index in range(2):
-            pair = (QComboBox(self), QComboBox(self))
+            pair = (self.combo(), self.combo())
             for combo in pair:
                 # Two to a row: each asks for little, or the row squeezes the form's labels.
                 combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
@@ -230,8 +300,8 @@ class SplitForm(OperationForm):
     def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
         super().__init__(repo, parent)
         self.table = self.table_combo(self._reload)
-        self.label = QComboBox(self)
-        self.value = QComboBox(self)
+        self.label = self.combo()
+        self.value = self.combo()
         self.groups = _check_list(self)
         self.groups.setToolTip(_("None checked: the n-th value of every label goes in row n."))
         self.aggregate = QComboBox(self)
@@ -267,7 +337,7 @@ class TransposeForm(OperationForm):
     def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
         super().__init__(repo, parent)
         self.table = self.table_combo(self._reload)
-        self.label = QComboBox(self)
+        self.label = self.combo()
         self.chosen = _check_list(self)
         self.form.addRow(_("Table:"), self.table)
         self.form.addRow(_("Name columns by:"), self.label)
@@ -299,7 +369,7 @@ class RecodeForm(OperationForm):
     def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
         super().__init__(repo, parent)
         self.table = self.table_combo(self._reload)
-        self.column = QComboBox(self)
+        self.column = self.combo()
         self.column.currentTextChanged.connect(self._fill_values)
         self.mapping = QTableWidget(0, 2, self)
         self.mapping.setHorizontalHeaderLabels([_("Value"), _("New value")])
@@ -351,7 +421,7 @@ class BinForm(OperationForm):
     def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
         super().__init__(repo, parent)
         self.table = self.table_combo(self._reload)
-        self.column = QComboBox(self)
+        self.column = self.combo()
         self.column.currentTextChanged.connect(lambda name: self.new_column.setText(f"{name}_bin" if name else ""))
         self.method = QComboBox(self)
         for method, label in (("equal width", _("Equal width")), ("quantiles", _("Equal counts (quantiles)")),
@@ -431,5 +501,5 @@ class GroupForm(OperationForm):
         return self._repo._group_select(self.table.currentText(), _checked(self.groups), measures)
 
 
-FORMS: tuple[type[OperationForm], ...] = (JoinForm, UnionForm, StackForm, SplitForm, TransposeForm, RecodeForm,
+FORMS: tuple[type[OperationForm], ...] = (SelectForm, JoinForm, UnionForm, StackForm, SplitForm, TransposeForm, RecodeForm,
                                           BinForm, GroupForm)

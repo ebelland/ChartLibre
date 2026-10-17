@@ -42,6 +42,8 @@ class MainWindowMenus:
     #: they read here exactly the way they read in the rail's popup menu.
     _MACOS_MENU_ROLES: dict[str, QAction.MenuRole] = {
         "settings": QAction.MenuRole.PreferencesRole,
+        # The application menu too, after Settings.
+        "project_info": QAction.MenuRole.ApplicationSpecificRole,
         "credits": QAction.MenuRole.AboutRole,
     }
 
@@ -99,7 +101,8 @@ class MainWindowMenus:
                     # what the rail's own dedicated Settings tile already
                     # does one click away.
                     *(
-                        [action_menu_item("settings", self._on_settings)]
+                        [action_menu_item("settings", self._on_settings),
+                         action_menu_item("project_info", self._on_project_info)]
                         if IS_MACOS else []
                     ),
                     # Elsewhere the rail's Search row (below Workspace) is the way.

@@ -9564,3 +9564,36 @@ msgstr "Avanzate"
 
 msgid "Insert into the SQL"
 msgstr "Inserisci nell'SQL"
+
+msgid "Choose the file: CSV or other delimited text, Excel, JSON"
+msgstr "Scegli il file: CSV o altro testo delimitato, Excel, JSON"
+
+msgid "Descending"
+msgstr "Decrescente"
+
+msgid "Empty the editor"
+msgstr "Svuota l'editor"
+
+msgid "Order by:"
+msgstr "Ordina per:"
+
+msgid "The columns to show; none checked: all of them."
+msgstr "Le colonne da mostrare; nessuna spuntata: tutte."
+
+msgid "Where:"
+msgstr "Dove:"
+
+msgid "choose a table"
+msgstr "scegli una tabella"
+
+msgid "give the value to compare {column} with"
+msgstr "indica il valore con cui confrontare {column}"
+
+msgid "value"
+msgstr "valore"
+
+msgid "{rows} rows, {columns} columns"
+msgstr "{rows} righe, {columns} colonne"
+
+msgid "Some columns of a table, the rows that pass a test, in the order of a column."
+msgstr "Alcune colonne di una tabella, le righe che passano un test, nell'ordine di una colonna."

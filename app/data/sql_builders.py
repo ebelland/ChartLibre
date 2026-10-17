@@ -247,6 +247,29 @@ def bin_column(table: str, columns: Sequence[str], column: str, cuts: Sequence[f
     return "SELECT " + _LIST_SEPARATOR.join(select) + f"\nFROM {q(table)}"
 
 
+#: The comparisons Select offers: those after the first two take a value.
+SELECT_OPERATORS: tuple[str, ...] = ("IS NULL", "IS NOT NULL", "=", "<>", "<", "<=", ">", ">=", "LIKE")
+
+
+def select(table: str, columns: Sequence[str] | None = None, *, where: tuple[str, str, str] | None = None,
+           order: tuple[str, bool] | None = None) -> str:
+    """*columns* of *table* (None: all), the rows where (column, operator, value) holds, ordered by (column, descending).
+
+    The value is typed by a person: a number stays one, anything else is
+    quoted text; LIKE takes % and _ as they are.
+    """
+    if where is not None and where[1] not in SELECT_OPERATORS:
+        raise ValueError(f"'{where[1]}' is not one of {', '.join(SELECT_OPERATORS)}")
+    sql = f"SELECT {'*' if not columns else ', '.join(q(c) for c in columns)}\nFROM {q(table)}"
+    if where is not None:
+        column, operator, value = where
+        test = operator if operator.startswith("IS") else f"{operator} {_typed(value)}"
+        sql += f"\nWHERE {q(column)} {test}"
+    if order is not None:
+        sql += f"\nORDER BY {q(order[0])} {'DESC' if order[1] else 'ASC'}"
+    return sql
+
+
 def select_rows(table: str, columns: Sequence[str] | None = None, rowids: Sequence[int] | None = None) -> str:
     """The rows and columns picked in a table's preview: *columns* (None: all) of the rows *rowids* (None: all)."""
     select = "*" if not columns else ", ".join(q(c) for c in columns)

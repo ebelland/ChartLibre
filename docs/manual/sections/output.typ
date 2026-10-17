@@ -15,7 +15,7 @@ For a figure that must match a journal's column width, set the figure *size* in 
 A *report* is a document for people who read results rather than queries: each figure drawn again, with its notes (the reports of the operations applied to it), and optionally the project's tables and history. The SQL behind the charts is deliberately left out.
 
 #defs(
-  [*Project report*], [*File* page → *Export* → *Project report*: every figure of the project, then — if ticked — the tables with their size and notes, and the operation history.],
+  [*Project report*], [*File* page → *Save* → *Export…*: every figure of the project, then — if ticked — the tables with their size and notes, and the operation history.],
   [*Export report…*], [Chart menu: the same report for *this figure alone*, titled after it.],
 )
 

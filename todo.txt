@@ -1,89 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 95,092 lines in 260 files; tests 18,438 lines in 147 files (updated at each commit).
-
-DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
-DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
-DONE P0-3: move search below workspace in NavBar using the same "temporary" list. Windows: remove from help.Rmove the dialog
-DONE P0-4: Windows: cannot resize by dragging bottom right corner.
-DONE P0-5: Chart Properties. FIgure. Name and notes in the same frame to save space.
-DONE P0-6: Chart Properties. FIgure. Reorganize on two columns to save space. Name+notes merged, style buttons 2x2; Figure options, Grid and Manual spacing stay on two columns down to ~280 px (PairGrid stacks label over field when side by side does not fit).
-DONE P0-7: Chart Properties. FIgure. Style. Reorganize the 4 button in two rows.
-DONE P0-8: Settings appearance. App Style. Remove native Qt Themes. Drop down only with qss files in style and Automatic. No browse.
-DONE P0-9: Settings appearance. Charts. Default chart style. CHart libre default on top. than Matplotlib default. separator. Apps. seprator. Journals. [Separator, other folders if any]
-DONE PF-1: Survival: improve the algorithm for performances.
-DONE P0-10: Fit. Only one series is fitted!
-DONE P0-11: Markersize to kwargs! (scatter kwarg "markersize" in points; Series panel "Marker size")
-DONE P0-12: Scatter x wrong data coercion to datetime when series query returns no data
-DONE P0-13: Series Markersize, Line style changes when other parameters are changed
-DONE P0-14: Sometimes labels disapper when other parameters are changed
-DONE AN-02: Distribution (table analysis): quantile table, moments, normality; capability Cp/Cpk/Pp/Ppk/Cpm
-     against LSL/USL/target with the share out of specification; histogram + normal fit + limits, Q-Q plot.
-DONE AN-03: Fit Y by X: bivariate / oneway (Tukey, Games-Howell, Dunn-Holm) / contingency / logistic,
-     chosen by the two columns' types.
-DONE Series Operations renamed Data Operations (package app/data_operations, DataOperationDialogBase,
-     texts, translations, demos, manual; user plug-ins in user/data_operations).
-DONE Data operations: base-class defaults (operation_label, series_settings, READS_SURFACES); Baseline and
-     Filter on compute_series (background, Stop); dead code removed.
-DONE Navigation rail: the Charts list removed (the jump bar above the chart chooses the chart).
-DONE Dialogs fit a 1280x720 laptop: data operations' Model/Parameters pages scroll (min height <= 438 px);
-     test over every operation.
-DONE macOS: rail search field rounded like the other fields.
-DONE dev/tools/update_dependencies.py (.command/.bat): every library to its latest release.
-DONE One Analysis panel (JMP's Analyze): data operations, table analyses, New chart and the DOE, a frame per
-     category from the plugins' own Category/Order - Graph, Basic Analysis, Fitting Linear Models, Predictive and
-     Specialized Modeling, Multivariate Methods, Screening, Quality and Process, Curves (was Analysis: Peaks, Roots,
-     Calculus), Signal Processing, Transform, Design of Experiments. The Data operations rail item is gone.
-DONE R-12b: every 'except Exception' narrowed (26: conversions, JSON, files, optional imports, rcParams)
-     or marked a boundary with its reason (noqa: BLE001 - Matplotlib draw, plugin code, per-series errors,
-     user actions, cleanup, chart interaction).
-DONE AN-11: Create Query Table > Build: Join (inner/left/right/full, 1-2 key pairs, Match column), Union
-     (Source column), Stack, Split (by order with no group), Transpose, Recode, Bin, Group - each writes plain
-     SQLite into the editor and runs it; Save as table beside Save as query. (Imputation: Fill empty in the table editor.)
-DONE PY-15: Python 3.15 (.venv-3.15) passes the suite but the old chrome test. PySide6 6.12 was not at fault:
-     the venv on the Desktop had every file flagged hidden, so Qt saw no plugins (main.py already works
-     around it; update_dependencies now clears the flag). statsmodels 0.15 (design_info in model_spec,
-     separation only warned) and scikit-learn 1.9.1 (LDA scale, QDA) handled.
-
-P0-1 Series Operations do not start anymore
-DONE P0-2 catalog.py: keywords and goals are now the plugins' own Keywords / Goals class attributes (analyses, data operations, charts); catalog.py only collects them. Left in catalog.py: the table tools (not classes), GUIDE (goal -> best entries, with why) and EQUIVALENTS.
-DONE P0-1 Data operations open with no chart in the project (scratch chart, dropped if unused); Italian name "Operazioni sui dati".
-DONE Fit Model: Stop reaches the fit (stop_requested). OPEN: Fit/Estimate hang with NaN not reproduced - Estimate runs on the GUI thread, no Stop.
-DONE P0-3 Plugin independence: data operations declare Category/Order (no _SECTIONS list), every plugin family
-     declares Keywords/Goals (functions: lowercase keywords/goals, searched in the fit dialog), the helper templates write
-     them, a family with no plugin logs an error, a report skips a chart type that is not installed.
-     Shared plugin code moved to app/plugin_api/<family> (old import paths still work, with a log warning); one PluginFamily
-     declaration per family in app/scanners; scikit-image dropped (own Chambolle TV in analysis/smoothing.py).
-     Still named in the core: GUIDE (goal -> best entries; missing ones skipped), TOOLS, chart CATEGORY_ORDER/aliases.
-P0-5 Import data. Windows. Left frame. gray area.
-DONE P0-6 After Import move to tables and select the last imported table. -> _show_table: Tables page, new table selected, also after DB import, query, blank, DOE
-DONE P0-7 After Open/new move to Tables -> open, new, load demo and save as go to Tables
-DONE P0-8 Fit Model: every response in one figure and one report (titles say which); the tables that only feed the charts are named _name_ and hidden from the Tables list (repo.free_hidden_table_name). Same for the other table operations: not done yet.
-DONE P0-9 Import from clipboard. Add checkbox Translated: move to Add table panel. than open the Import dialog for preview. Remove from clipboard from import dialog. -> 'Import from clipboard' + 'transposed' box on the New table page; dialog opens on it; buttons and Ctrl+V removed from the Import dialog
-DONE P0-10 Database corrupts when table deleted -> delete_table now deletes the import link too (the check reported it); Undo restores it
-DONE P0-11 Python3.15 is default. remove requirements for <3.15 -> requirements: one pin per package, no python_version markers
-DONE p0-12 WARNING  | action | No action 'query' in config.json; the widget will have no label or icon. -> action 'query' added to config.json
-
-
-BUGS.PPTX (visual bugs from the user's Windows screenshots, 2026-10-16; slide numbers in brackets)
-DONE B-01 [2] Import dialog title and table named "False": the button's clicked(bool) was read as a file path.
-DONE B-02 [2] Checkboxes: white tick on the highlight colour in the Fluent sheet (QCheckBox::indicator, drawn tick).
-DONE B-03 [2] Clipboard buttons moved to the New table page (P0-9); the Web source (5) is still in the Import dialog.
-DONE B-04 [3] Load demo: window icon (load_demo) and a title on the preview frame ("Preview"). Same fix for the New chart, DOE, Query Builder and Table editor icons (ids that were not actions).
-DONE B-05 [4] Workspace row stays selected while the panels are hidden.
-DONE B-06 [5] Create Query Table has its icon (action "query", P0-12).
-DONE  B-07 [1] File panel, Open recent frame: list square on top, round below (QSS).
-DONE  B-08 [2] Import dialog: grey background, frame inside a frame (QSS / PanelDialog).
-DONE  B-09 [2] Move the Web source to the New table page too (item 5 of the slide).
-DONE  B-10 [4] Tables page: wasted space (also below), square border, round the edges or continue the border to the panel side and align the height to the chart panel.
-DONE  B-11 [6] Chart properties / Overlay: QTabWidget header stuck to the frame, double frame - drop the outer one.
-DONE  B-12 [7] New chart window: splitters white -> grey; grey background; some renderers ask for the group twice (a "group" role and "Group by"); double scroll bar in the renderer list.
-DONE  B-13 [7] New chart: add a field such as "Axes group" to make separate axes (series filtered with WHERE AxesGroup = xxx, one axis per distinct value).
-DONE  B-14 [8] Data operation windows (base class): QTabWidget with white space at the end - a frame titled "Settings", moved down and aligned to Results so the tab header stays inside the white frame.
-OPEN  B-15 [9] Distribution (and Fit Y by X, ...): square frame, no title, stuck to the Results frame.
-DONE  B-16 HTML report: "R²" read as "RÂ²", "·" as "Â·" in a browser - the page now says it is UTF-8 (the PDF was right).
-
+Size: app 95,101 lines in 260 files; tests 18,504 lines in 147 files (updated at each commit).
 
 NOW
 G-02  M  Guided analysis for beginners: a wizard dialog (~820x560), columns first.
@@ -100,8 +18,7 @@ G-02  M  Guided analysis for beginners: a wizard dialog (~820x560), columns firs
          The rail panel becomes light: the table in one line, the three quick answers, and
          "Help me choose..." opening the wizard. No Y/X wording anywhere. Catalogue and
          suggestion logic unchanged. (Mockups in the 2026-10-16 session.)
-DONE T-01 The collapsed rail's rows were 61 px in a 56 px bar (a QToolButton's own hint), their
-         icons cut on the right: each row is now the bar's width less its margins.
+
 D-01  M  Demos rethought around the questions: per goal still to do (the
          quick answers' demo is done), still covering every function.
 R-03  M  Reproducibility: re-run recorded operations; export a Python script.

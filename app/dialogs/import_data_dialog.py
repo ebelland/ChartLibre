@@ -267,8 +267,8 @@ class ImportDataDialog(SettingsTableDialog):
         create_action_button(
             parent=source.card, action_id="open", action=self._on_browse, layout=src_row,
             presentation=(
-                action_presentation("open")[0], _("File"),
-                _("Import a file: CSV or other delimited text, Excel, JSON"),
+                action_presentation("open")[0], _("Browse…"),
+                _("Choose the file: CSV or other delimited text, Excel, JSON"),
             ),
         )
         src_row.addStretch(1)
@@ -423,6 +423,10 @@ class ImportDataDialog(SettingsTableDialog):
         self._col_table.setMinimumHeight(96)
         mark_editor_panel(self._col_table)
         columns.card.layout().addWidget(self._col_table, 1)
+        # How much was read: the rows and columns the table will have.
+        self._size_label = QLabel("", columns.card)
+        self._size_label.setProperty("muted", True)
+        columns.card.layout().addWidget(self._size_label)
         columns_layout = columns.layout()
         if isinstance(columns_layout, QBoxLayout):
             columns_layout.setStretch(columns_layout.count() - 1, 1)
@@ -625,6 +629,8 @@ class ImportDataDialog(SettingsTableDialog):
                 self._preview.clear()
             else:
                 self._preview.set_model(DataFramePreviewModel(df_prev, parent=self._preview.view))
+                # A column picked in the preview is picked in Columns, for its type.
+                self._preview.view.selectionModel().currentChanged.connect(self._select_column_from_preview)
 
             return None
 
@@ -701,9 +707,26 @@ class ImportDataDialog(SettingsTableDialog):
     # ------------------------------------------------------------------
     # Column typing
     # ------------------------------------------------------------------
+    def _select_column_from_preview(self, current: QModelIndex, _previous: QModelIndex = QModelIndex()) -> None:
+        """The column of the preview's current cell, selected in Columns - where its type is set."""
+        model = self._preview.view.model()
+        if not current.isValid() or model is None:
+            return
+        name = str(model.headerData(current.column(), Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole))
+        for row in range(self._col_table.rowCount()):
+            item = self._col_table.item(row, 0)
+            if item is not None and item.text() == name:
+                self._col_table.selectRow(row)
+                self._col_table.scrollToItem(item)
+                return
+
     def _build_columns_table(self, *, include_empty: bool) -> None:
         df = self._df
         self._col_table.setRowCount(0)
+        self._size_label.setText(
+            "" if df is None
+            else _("{rows} rows, {columns} columns").format(rows=f"{len(df):,}", columns=len(df.columns))
+        )
         if df is None or df.empty:
             return
 

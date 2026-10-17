@@ -44,10 +44,10 @@ The preview shows the selected table's rows. Each column header carries the colu
 
 == Importing data <importing>
 
-*Import* (on the *File* page) opens the import window with four sources:
+The *New table* page opens the import window from four sources:
 
 #defs(
-  [*Open*], [A local file: `.csv`, `.tsv`, `.txt`, `.xlsx`, `.xlsm`, `.xls`, `.json`, `.xml`. For a workbook with several sheets, you choose the sheet.],
+  [*Import from file*], [*Browse…* for a local file: `.csv`, `.tsv`, `.txt`, `.xlsx`, `.xlsm`, `.xls`, `.json`, `.xml`. For a workbook with several sheets, you choose the sheet.],
   [*Paste*], [Whatever table is on the clipboard — for example cells copied from a spreadsheet.],
   [*Database*], [A table, or the result of a query, from another database: SQLite, another ChartLibre project, PostgreSQL or MySQL.],
   [*Web*], [Whatever an http(s) address returns — a CSV download, a JSON API, a spreadsheet.],
@@ -58,7 +58,7 @@ Whatever the source, the window shows a preview before anything is written, and 
 #defs(
   [*Source*], [Where the data comes from.],
   [*Read options*], [Closed until you open it from its title: the header row, rows to skip, the delimiter and the text encoding — the delimiter and the encoding are found by themselves. These describe how to read *text*, so they are disabled for a database source, which has its own column types.],
-  [*New table*], [Its *Name*, and the type of each column (number, text, date, ...) — change it when a column was guessed wrong.],
+  [*New table*], [Its *Name*, the type of each column (number, text, date, ...) — change it when a column was guessed wrong; a column clicked in the preview is selected here — and how many rows and columns were read.],
 )
 
 *Database* opens its own window: pick an engine, give a file path or a host, port, user and password (*Connect* then lists the server's databases, and picking one lists its tables), choose a table — or tick *Use a query* and write a `SELECT` for a join, a filter or an aggregate — and confirm. The last connection is remembered, except its password.
@@ -96,12 +96,13 @@ The *Query Builder* (in the *Data* section of Data operations, or from the table
 
 The window has:
 
-- on the left, the *saved queries* (pick one to edit, *Add*, *Delete*); *Build*, the Tables operations of JMP and the like, each a form that writes its SQL; and, closed until opened from its title, *Insert into the SQL*: the project's *tables* with their *fields*, and three snippets;
-- on the right, the *SQL* editor over the *result preview*.
+- on the left, the *saved queries* (pick one to edit, *Add*, *Delete*) and *Build*, the Tables operations of JMP and the like, each a form that writes its SQL;
+- on the right, the *SQL* editor (*Clear* empties it) over the *result preview*.
 
 *Build* — choose the operation, fill its form, press *Write SQL*: the statement goes into the editor and runs, so the preview shows the result at once. It is ordinary SQL, to read, change, save as a query or as a table:
 
 #defs(
+  [*Select*], [Some columns of a table (none checked: all), the rows that pass a test — a column, a comparison (`=`, `<>`, `<`, `>`, `LIKE`, `IS NULL`, ...) and a value — in the order of a column, ascending or descending.],
   [*Join*], [Rows of two tables matched on one or two pairs of columns. *Keep*: inner (matched rows only), left, right or full outer (every row, empty where there is no match). A column both tables have gets the suffix `_2`; *Add a Match column* says where each row came from (Both, Left only, Right only).],
   [*Union*], [Two or more tables one under the other (concatenate), columns matched by name — empty where a table lacks one — with a *Source* column naming each row's table. UNION ALL keeps repeated rows; *Drop repeated rows* writes UNION.],
   [*Stack*], [Wide to long: each chosen column becomes a row of two, *Label* (the column's name) and *Data* (its value); the other columns are repeated. Optionally without the empty values.],
@@ -110,14 +111,6 @@ The window has:
   [*Recode*], [A column's values replaced by new ones, typed against each distinct value; the ones left empty stay as they are. Into a new column, or the column itself.],
   [*Bin*], [A numeric column cut into intervals: equal width, equal counts (quantiles) or your edges, labelled `[a, b)`, 1, 2, 3... or by midpoint. A new column.],
   [*Group*], [One row per combination of the grouping columns, with the row count and a statistic (sum, average, minimum, maximum, count, distinct count) of the chosen columns.],
-)
-
-The snippets act on the selected table and field:
-
-#defs(
-  [*Select*], [`SELECT` the chosen field from the table.],
-  [*Order*], [`ORDER BY` the field, with an explicit direction.],
-  [*Filter*], [`WHERE` with the comparison written out.],
 )
 
 *Run* shows the first 500 rows of the result. *OK* saves the statement as a query — read again each time, so it follows its tables — and closes the window, or stays open showing why it could not. *Save as table* writes what the statement returns as a new table instead: fixed rows, undoable, for a result that should not change when its sources do.

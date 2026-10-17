@@ -228,3 +228,11 @@ def test_web_sources_json_sits_beside_config_and_is_read_afresh(tmp_path, monkey
     assert [s.name for s in data_sources._bundled_web_data_sources()] == ["Mine", "Second"]
     path.write_text('[{"name": "Mine",}]', encoding="utf-8")  # a comma too many
     assert data_sources._bundled_web_data_sources() == ()
+
+
+def test_a_column_picked_in_the_preview_is_picked_in_columns_and_the_size_is_said(dialog) -> None:
+    _paste(dialog, "a\tb\tc\n1\t2\t3\n4\t5\t6\n")
+    assert dialog._size_label.text() == "2 rows, 3 columns"
+    view = dialog._preview.view
+    view.setCurrentIndex(view.model().index(0, 2))
+    assert [index.row() for index in dialog._col_table.selectionModel().selectedRows()] == [2]

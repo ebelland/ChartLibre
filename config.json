@@ -571,36 +571,12 @@
       "SegoeFluent": "E713",
       "ThemeIcon": "preferences-system"
     },
-    "sql_filter": {
-      "text": "Filter",
-      "description": "WHERE with the comparisons spelled out",
-      "SFSymbol": "line.3.horizontal.decrease.circle",
-      "SegoeFluent": "E71C",
-      "ThemeIcon": [
-        "view-filter",
-        "edit-find"
-      ]
-    },
     "save_as_table": {
       "text": "Save as table",
       "description": "Write what the statement returns as a new table",
       "SFSymbol": "tablecells.badge.ellipsis",
       "SegoeFluent": "E8A5",
       "ThemeIcon": "document-save-as"
-    },
-    "sql_order": {
-      "text": "Order",
-      "description": "ORDER BY with an explicit direction",
-      "SFSymbol": "arrow.up.arrow.down",
-      "SegoeFluent": "E8CB",
-      "ThemeIcon": "view-sort-ascending"
-    },
-    "sql_select": {
-      "text": "Select",
-      "description": "SELECT over the chosen table",
-      "SFSymbol": "line.3.horizontal.decrease",
-      "SegoeFluent": "E71C",
-      "ThemeIcon": "edit-select-all"
     },
     "sql_write": {
       "text": "Write SQL",

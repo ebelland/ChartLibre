@@ -635,24 +635,23 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             QMessageBox.warning(self, _("New Blank Table"), str(exc))
 
     def _create_file_page(self) -> NavPanel:
-        """Workspace, Import, Save, Project information, Export, Demo, Open recent.
+        """Project, Save (and Export), Demo, Open recent.
 
-        Import adds tables to the open project, where New and Open replace
-        it - a different kind of step, so a frame of its own. The report and
-        the demos say in a sentence what they do, under their button.
+        Import is on the New table page, with the other ways to make a
+        table; Project info sits with Settings (the rail, or the application
+        menu on macOS). The demos say in a sentence what they do, under
+        their button.
         """
         page = NavPanel(self)
-        page.add_buttons(_("Workspace"), [
+        page.add_buttons(_("Project"), [
             NavButton("new", self._on_new_file),
             NavButton("open", self._on_open_database),
         ], object_name="fileWorkspaceCard")
-        page.add_buttons(_("Import"), [NavButton("import", self._on_import_data)], object_name="fileImportCard")
-        page.add_buttons(_("Save"), [NavButton("save", self._on_save), NavButton("save_as", self._on_save_as)],
-                         object_name="fileSaveCard")
-        page.add_buttons(_("Project information"), [NavButton("project_info", self._on_project_info)],
-                         object_name="fileProjectInfoCard")
-        page.add_buttons(_("Export"), [NavButton("project_report", self._on_project_report, described=True)],
-                         object_name="fileExportCard")
+        page.add_buttons(_("Save"), [
+            NavButton("save", self._on_save),
+            NavButton("save_as", self._on_save_as),
+            NavButton("project_report", self._on_project_report, text=_("Export…")),
+        ], object_name="fileSaveCard")
         page.add_buttons(_("Demo"), [NavButton("load_demo", self._on_load_demo, described=True)],
                          object_name="fileDemoCard")
         self._recent_view = RecentProjectsView(page)
@@ -793,6 +792,12 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                 _("Settings"), self._navigation_icon("settings"), None,
                 _("Open application settings"),
             )
+        if not IS_MACOS:
+            # With Settings: on macOS it is in the application menu, after Settings.
+            sections.setdefault("Settings", {})["project_info"] = NavBarItem(
+                _("Project info"), self._navigation_icon("project_info"), None,
+                _("Author, date and notes, kept in the project file"),
+            )
 
         header = CustomTitleBar(cast(Any, self), is_macos=True) if IS_MACOS else None
         # The pages keep the same gap from the rail as from the panel's right
@@ -818,6 +823,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             return
         if key == "settings":
             self._on_settings()
+            return
+        if key == "project_info":
+            self._on_project_info()
             return
         if key == "help":
             self._popup_help_menu()
