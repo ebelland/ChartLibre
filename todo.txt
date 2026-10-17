@@ -142,3 +142,75 @@ IDEAS
 - A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
 - A-05 GitHub: description, topics, social preview, first release.
 - A-06 Test Linux
+
+HINTS (Claude's review, 2026-10-17)
+Who it is for. Engineers, scientists and students without a JMP/Origin/Minitab
+licence: the niche is real - a free desktop app that goes from a CSV to a
+fitted, documented chart and a report, with SQL underneath and Matplotlib's
+quality on top. Its strongest cards: the data stays a SQLite project (open,
+queryable, versionable), every result names the library function and the
+method (Computed with), the NIST-checked fits, the reports, the plugin model,
+and the Guided analysis for people who do not know the name of the test.
+
+Add (highest value first)
+- H-01 Reproducibility as a feature (R-03): every operation in the history
+  re-runnable, and "Export as Python script" (pandas + SciPy/statsmodels +
+  Matplotlib) - what a thesis, a paper or a lab notebook needs, and what
+  turns a GUI user into a learner.
+- H-02 Units and uncertainty: a unit per column (pint), carried into axis
+  labels and fits; values +/- error propagated - engineers and physics labs.
+- H-03 Templates: "same chart for the next file" - apply a figure's design
+  and operations to a new table (R-14), and batch over a folder of files.
+- H-04 Teaching mode: each report with a "How to read this" box (what the
+  p-value, R2, Cpk mean here, in two sentences) - students first.
+- H-05 Export for publication: figure size by journal column (85/180 mm),
+  fonts embedded, vector PDF/SVG at once; LaTeX/Word table of the results.
+- H-06 Data from instruments: a folder watcher / serial / CSV append feeds a
+  live chart (Live updates exists); common lab formats (Excel with metadata
+  blocks, .txt from spectrometers, HDF5).
+- H-07 Collaboration: a project-to-HTML "notebook" (charts + notes + reports)
+  to share without the app.
+
+Change
+- H-08 First run: open on the Guided analysis wizard (G-02) with a demo
+  table, not on an empty window; a 3-step tour of the rail.
+- H-09 One vocabulary: JMP's names everywhere (done for the Analysis panel);
+  menu, manual, catalogue and dialogs titled the same way.
+- H-10 Fewer frames, more white: some dialogs still stack 4-5 titled frames;
+  aim for one primary frame plus a collapsible "More options".
+- H-11 Error messages: every failure says what to do next (which column,
+  which type) - Fit and the analyses already do; extend to import and SQL.
+- H-12 Windows parity: test every dialog at 1366x768 and 125% scaling in CI
+  (the dialog-height test is the start).
+
+Remove or hide
+- H-13 Developer tools behind a setting (Renderer helper, Function creator,
+  localization editor): they are for contributors, not users.
+- H-14 Duplicate ways to the same thing: one entry per action across rail,
+  menus and context menus (Plot vs New Chart, Query Builder twice before).
+- H-15 Options nobody changes: hide rarely-used kwargs behind "Advanced" in
+  Chart properties; keep the defaults good instead.
+
+G-02 wizard, refined
+- Two steps, columns first (see G-02 above): pick 1-3 columns with a preview
+  of the first rows; then "See it" (chart thumbnails) and "Ask a question"
+  (analyses phrased with the column names). A "Not sure" link to the goals.
+- The result of the wizard is never a dead end: the chart or the analysis
+  opens with its columns cast, and its report says which next question fits
+  (differences -> impact -> model).
+- Remember the last choices per table; offer "again with another column".
+
+S-01 Selection <-> Chart properties (bidirectional feedback)
+- Chart -> properties (done: a click selects the Figure/Axis/Series page).
+  Next: a hover highlight before the click (axis outline, series glow), so
+  the person sees what a click will select; Esc returns to the Figure.
+- Properties -> chart: the series/axis selected in the panel is highlighted
+  on the chart (thicker line or a soft outline for 1 s, then subtle), and
+  the axis being edited gets a faint frame; the row in the series list
+  shows the series' colour swatch.
+- Edits preview live on the selected element only (no full redraw), with
+  Undo per element.
+- Multiple selection: Cmd/Ctrl-click series to edit common properties
+  (colour, line width) at once.
+- Selected data points (Select points) shown in the table preview and as a
+  "Selected" flag - the start of R-07 (linked selection).
