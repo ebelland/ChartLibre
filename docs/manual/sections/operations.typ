@@ -26,7 +26,7 @@ An operation added by you or a plugin (see @advanced-operation) names its own ca
 
 #figure(
   image("../screenshots/screenshot_data_operations.png", width: 100%),
-  caption: [The Data operations page.],
+  caption: [The Analysis page.],
 )
 
 == How every operation window works
@@ -82,8 +82,193 @@ The *Axis / Series* selector labels each series with the shape it found:
 Five operations also work on surfaces: *Fit Curve*, *Function*, *Peaks*, *Roots* and *Calculus*. *Smoothing* has its own 2D and 3D models, and *Geometry* moves 3D series in space. Each is described below.
 #example("op_surface", width: 90%)
 
+
 // ======================================================================
-== Analysis
+== Graph
+
+=== Function — plot a function
+Evaluates a function from the same library as Fit over a range and draws it, with no data and nothing fitted. Choose the function, type its parameter values, the *start* and *stop* of the range, the number of *points* and the *spacing* (linear, or logarithmic for log axes). For a surface function, the range is a grid in x and y.
+
+#use[Seeing the shape of a model before choosing it, drawing a theoretical or reference curve beside measurements, checking starting values before a fit, generating synthetic test data.]
+
+// ======================================================================
+== Basic Analysis
+
+=== Statistics — tests and summaries
+Reports descriptive statistics and hypothesis tests on the ticked series, and can add a chart of what was tested. It is described fully in @statistics.
+
+// ======================================================================
+== Predictive and Specialized Modeling
+
+=== Regression — robust and machine-learning regression
+Fits a curve through a series with models that do not assume an algebraic formula, and evaluates it on a dense grid over the data's x range.
+
+#defs(
+  [*RANSAC*], [Robust straight line: fits random subsets (*max trials*) and keeps the one most points agree with. Ignores gross outliers completely.],
+  [*Huber*], [Robust straight line that down-weights large residuals; *epsilon* near 1 is more robust, larger behaves like ordinary least squares; *alpha* regularizes.],
+  [*Isotonic*], [The best-fitting curve that only rises (or only falls, or *auto*). No shape assumed beyond monotonicity.],
+  [*Random Forest*], [Average of many regression trees (*estimators*, *max depth*). Flexible, step-like.],
+  [*Gradient Boosting*], [Trees added one after another, each correcting the last (*learning rate*). Flexible and often accurate.],
+)
+
+#refs("sklearn.linear_model.HuberRegressor", "sklearn.linear_model.RANSACRegressor", "sklearn.isotonic.IsotonicRegression", "sklearn.ensemble.RandomForestRegressor", "sklearn.ensemble.GradientBoostingRegressor")
+#example("op_regression")
+#use[A trend through outlier-heavy data (RANSAC, Huber), a calibration that must be monotone (Isotonic), a flexible non-parametric trend when no formula is known.]
+
+=== Fit Curve — fit a model to data
+Fits a mathematical model y = f(x; parameters) to a series by least squares and adds the fitted curve beside the data. It is the most complete operation in ChartLibre.
+
+*The model.* The model tree lists the function library by family, with a search box:
+
+#defs(
+  [*Basic functions*], [Constant, linear, polynomials up to degree 10, reciprocal, logarithmic, power law, rational.],
+  [*Growth and saturation*], [Exponential growth and decay, double exponential, saturation, Michaelis–Menten, Hill.],
+  [*Sigmoidal curves*], [4- and 5-parameter logistic, Richards, Gompertz, error-function, tanh and arctan sigmoids, double-logistic pulse.],
+  [*Peak functions*], [Gaussian, Lorentzian, pseudo-Voigt, Voigt, asymmetric Gaussian, Pearson VII.],
+  [*Periodic functions*], [Sine, cosine, damped sine, linear chirp.],
+  [*Statistical distributions*], [Normal, lognormal, Weibull, gamma, beta and Cauchy densities and distribution functions.],
+  [*Reliability models*], [Exponential and Weibull survival, Weibull hazard.],
+  [*Semiconductor and process*], [Arrhenius, inverse-temperature linear, dose-response power, Poisson yield, process window.],
+  [*Adsorption and surface*], [Langmuir, Freundlich, Temkin isotherms.],
+  [*NIST reference models*], [The models of the NIST StRD nonlinear regression benchmarks.],
+  [*Surfaces*], [For z = f(x, y): plane, paraboloid, 2D Gaussian, saddle, ripple.],
+  [*User functions / User surfaces*], [Your own, written with the Function Creator (see @advanced).],
+)
+
+The *Multi-peak builder* creates a sum of *N* Gaussian, Lorentzian or pseudo-Voigt peaks plus an offset, optionally with one *shared width* (and shared η) for all peaks — for overlapping peaks in a spectrum.
+
+*The parameters.* The table lists each parameter with its *initial value*, *lower and upper bounds* and a *fixed* flag. *Estimate* fills the initial values from the data — with the function's own estimator when it has one, or a random search of the parameter space when it does not. A good starting point matters: a least-squares fit started in the wrong place converges confidently to the wrong answer.
+
+*The algorithm.*
+#defs(
+  [*Trust region* (default)], [Bounded least squares. Right for most fits.],
+  [*Dogleg box*], [Bounded least squares, often better when a parameter ends up on a bound.],
+  [*Levenberg-Marquardt*], [Classic unbounded least squares; bounds are ignored.],
+  [*Nelder-Mead*, *Powell*], [Derivative-free local methods, for rough or noisy objective functions.],
+  [*Differential evolution*, *Dual annealing*, *Basin hopping*, *SHGO*, *Monte Carlo*], [Global methods: search the whole box defined by the bounds, then finish with a local fit. Use them when the result depends on the starting point.],
+)
+*Loss* sets how large residuals are weighted: plain least squares trusts every point; the robust losses (soft L1, Huber, Cauchy, arctan) limit how much one bad point can pull the fit. *Max evaluations* caps the work.
+
+*Weights* says how much each point counts: *Equal*; *Relative* (each residual divided by its value, for data spanning orders of magnitude); or *Error bars*, each residual divided by the error in the series' *yerr* column, so a precise point counts more — the report then gives the chi-squared and the chi-squared per degree of freedom.
+
+*Global fit.* Tick two or more series and the fit is global: one model fitted to all of them at once. Under the parameter table, *Shared* lists the parameters: a shared one has one value for every series (one row of the table), the others one value per series (a row each, named after its series). Fit, Preview and OK work as for one series; each series gets its own curve, report and output table, and the errors account for what the series share.
+
+*The report* gives the fitted expression, each parameter with its standard error, t value, p value and 95% confidence interval, the parameter correlation matrix, and goodness of fit (R², RMSE, residual sum of squares, reduced chi-squared, AIC and BIC). Parameters can be copied, saved as CSV, or reused as the starting point of the next fit.
+
+*Extra output:* *95% confidence band* (where the true curve lies, given the parameter uncertainty), *95% prediction band* (where a new measurement would fall), a *residuals vs x* chart (structure in the residuals means the model is missing something) and a *measured vs fit* chart (a perfect fit lies on the diagonal). Fitted values and residuals are saved to the *output table*.
+
+#refs("scipy.optimize.least_squares", "scipy.optimize.minimize", "scipy.optimize.differential_evolution", "scipy.optimize.dual_annealing", "scipy.optimize.basinhopping", "scipy.optimize.shgo")
+#example("op_fit")
+#use[Extracting physical parameters (a rate constant, a peak position, an EC50), calibration curves, comparing candidate models. ChartLibre's fit has been checked against the certified NIST StRD reference results.]
+
+=== Gaussian Process — a fit with its own uncertainty
+Gaussian process regression: a smooth curve through the data *and* a ±2σ band saying how certain the curve is at each x — narrow where the data are dense, wide in gaps and beyond the ends. The result is three series: the mean and the two band edges.
+
+#defs(
+  [*RBF*], [Very smooth curves.],
+  [*Matern (ν = 1.5)* / *(ν = 2.5)*], [Rougher curves (once / twice differentiable) — often more realistic for physical data.],
+  [*Rational Quadratic*], [A mix of length scales — for data with both slow and fast variation.],
+)
+
+*Length scale* (how quickly the curve may vary with x) and *noise level* are starting guesses; both are optimized during the fit, and the fitted kernel and log marginal likelihood are reported.
+
+#refs("sklearn.gaussian_process.GaussianProcessRegressor", "sklearn.gaussian_process.kernels.RBF", "sklearn.gaussian_process.kernels.Matern", "sklearn.gaussian_process.kernels.RationalQuadratic", "sklearn.gaussian_process.kernels.WhiteKernel")
+#use[Interpolating sparse or expensive measurements with an honest uncertainty; deciding where the next measurement would be most informative.]
+
+// ======================================================================
+== Multivariate Methods
+
+=== Decomposition — several series together
+The one operation that combines *several* series into one calculation. Every ticked series is resampled onto a common grid of *n grid* points over their shared x range, giving a matrix with one column per series.
+
+#defs(
+  [*PCA*], [Principal components: the directions of greatest shared variation, ranked by the share of variance each explains (reported).],
+  [*Fast ICA*], [Independent components: separates signals that were mixed together (the classic "cocktail party" problem).],
+  [*NMF*], [Non-negative factors: parts that add up to the series, for data that cannot be negative (spectra, concentrations).],
+  [*t-SNE*, *Isomap*, *Locally Linear Embedding*], [Manifold learning: places each grid sample as a point in 2D so that similar samples are close, drawn as a scatter on a new axis. Exploratory — the axes of the map have no units. *Perplexity* (t-SNE) and *neighbours* (Isomap, LLE) set how local the structure is.],
+)
+
+*Components* sets how many to extract. PCA, ICA and NMF draw each component as a curve over the shared x.
+
+#refs("sklearn.decomposition.PCA", "sklearn.decomposition.FastICA", "sklearn.decomposition.NMF", "sklearn.manifold.TSNE", "sklearn.manifold.Isomap", "sklearn.manifold.LocallyLinearEmbedding")
+#use[Finding the few patterns behind many correlated signals (several sensors, many spectra), separating mixed sources, exploring similarity.]
+
+=== Clustering — group similar data
+Groups the points of a series into clusters and writes each row's cluster number into a `ClusterId` column of the source table. The result is drawn either as *one series coloured by ClusterId* or as *separate series per cluster* (each with its own legend entry and style).
+
+#defs(
+  [*K-means / vector quantization*], [SciPy's k-means: a fixed *number of clusters*, each the set of points nearest one centre. *Whiten* rescales features first; *iterations* and *threshold* control convergence.],
+  [*Hierarchical / agglomerative*], [Merges the closest points and groups step by step. *Linkage*: single, complete, average, weighted, centroid, median, Ward. Cut either at a number of clusters or at a *distance threshold*.],
+  [*scikit-learn*], [K-Means, Mini-Batch K-Means, Bisecting K-Means, Agglomerative, *DBSCAN* and *OPTICS* (density-based: find clusters of any shape and leave noise points unassigned; set the neighbourhood radius *eps* and *min samples*), Birch, Mean Shift, Spectral Clustering, Gaussian Mixture.],
+)
+
+*Features* chooses which numeric columns of the series are used. A *max runtime* stops algorithms that scale badly on large tables.
+
+#refs("scipy.cluster.vq.kmeans2", "scipy.cluster.hierarchy.linkage", "scipy.cluster.hierarchy.fcluster", "sklearn.cluster.KMeans", "sklearn.cluster.MiniBatchKMeans", "sklearn.cluster.DBSCAN", "sklearn.cluster.OPTICS", "sklearn.cluster.AgglomerativeClustering", "sklearn.cluster.SpectralClustering", "sklearn.cluster.Birch", "sklearn.cluster.MeanShift", "sklearn.mixture.GaussianMixture")
+#example("op_clustering")
+#use[Finding natural groups — material phases, customer segments, operating regimes — and then analysing each group separately.]
+
+// ======================================================================
+== Screening
+
+=== Explore Outliers — detect anomalies
+Flags the points of a series that do not belong with the rest, and either *hides* them from the chart or *colours* them.
+
+#defs(
+  [*Z-score threshold*], [Points more than *threshold* standard deviations from the mean. Simple, but the outliers themselves inflate the standard deviation.],
+  [*Interquartile range*], [Points beyond Q1 − k·IQR or Q3 + k·IQR (*IQR factor* k, 1.5 by default — the box-plot rule). Robust to the outliers it is looking for.],
+  [*Median absolute deviation*], [Like the z-score but built on the median and the MAD, so a few extreme values cannot hide each other.],
+  [*Rolling median residual*], [Compares each point with the median of a moving *window* around it — finds spikes in a signal that trends or oscillates, where a global rule would flag the peaks of the signal itself.],
+  [*Isolation Forest*], [Machine learning: points that are easy to isolate by random splits are anomalous. *Contamination* is the expected fraction of outliers.],
+  [*Local Outlier Factor*], [Points in regions much sparser than their *neighbours'* regions.],
+  [*One-Class SVM*], [Learns the boundary of the normal points; *nu* bounds the fraction treated as outliers.],
+  [*Elliptic Envelope*], [Fits a robust ellipse (Minimum Covariance Determinant) to the cloud; points far outside it are outliers.],
+)
+
+The last four judge a point by its position relative to the others in (x, y), not by its value alone, so they can find points that are unusual for their x even when their y is ordinary. Both coordinates are rescaled robustly first, so x and y in different units weigh equally.
+
+*Action*: *Hide them* marks the rows in the table's `Hide` column, which every chart skips — the data stays in the table, and the rows can be un-hidden from the table editor (see @table-editor). *Colour them* keeps every point on the chart and draws the outliers in the chosen *colour*.
+
+#refs("sklearn.ensemble.IsolationForest", "sklearn.neighbors.LocalOutlierFactor", "sklearn.svm.OneClassSVM", "sklearn.covariance.EllipticEnvelope", "scipy.ndimage.median_filter")
+#example("op_outliers")
+#use[Cleaning measurement glitches before a fit, flagging anomalous batches, checking how sensitive a result is to a few points.]
+
+// ======================================================================
+== Quality and Process
+
+=== Control Chart — monitor process stability
+Builds a Shewhart control chart and flags the points that signal a change in the process. The chart is drawn on a new axis with its centre line, control limits and, optionally, the A/B/C zones.
+
+The key point of a control chart is where its limits come from: never from the standard deviation of all the data (a process that drifted has a large overall spread *because* it drifted), but from the variation *within* short stretches of it — the moving range for individual values, the range or standard deviation within subgroups otherwise.
+
+#defs(
+  [*Individuals (I-MR)*], [One measurement per point; sigma from the average moving range.],
+  [*Moving range (MR)*], [The companion chart of point-to-point ranges.],
+  [*X-bar and R*], [Means of consecutive *subgroups* of size n (2–25), sigma from the average range. For n up to about 8.],
+  [*X-bar and S*], [The same, sigma from the subgroup standard deviations. Better for larger subgroups.],
+  [*p*], [Fraction defective per sample. Needs a *sample size column*; limits widen and narrow with the sample size.],
+  [*np*], [Count defective per sample, constant sample size.],
+  [*c*], [Defects per unit, constant area of opportunity.],
+  [*u*], [Defects per unit with a varying sample size (needs the sample size column).],
+)
+
+#defs(
+  [*Sigma limit*], [Distance of the limits from the centre, in sigmas; 3 is the Shewhart convention (about one false alarm per 370 points on a stable process).],
+  [*Nelson rules*], [Besides points beyond the limits (rule 1), flag patterns inside them: 9 points in a row on one side of the centre (2), 6 steadily rising or falling (3), 14 alternating up and down (4), 2 of 3 beyond 2σ (5), 4 of 5 beyond 1σ (6), 15 in a row within 1σ (7), 8 in a row outside 1σ on both sides (8). The zone rules (5–8) are switched off on charts whose limits move with the sample size.],
+  [*Exclude violations*], [Recompute the limits without the flagged points — the "trial limits, then revised limits" step. Use it only when the flagged points have a known cause that has been removed.],
+  [*Draw*], [Centre line, limits, zones, and violations as separate markers.],
+  [*LSL, USL, Target*], [Specification limits, either or both, for the *process capability* of an Individuals or X-bar chart. Empty: none.],
+)
+
+The report lists each signalling point and the rule it broke. A chart with no signals says the process is *stable* — which is not the same as meeting a specification.
+
+With a specification limit the report adds the *process capability*, from the chart's own within sigma (moving range or subgroups): *Cp* = (USL − LSL) / 6σ#sub[within] and *Cpk*, the nearer limit's distance from the mean over 3σ#sub[within] (with *Cpl* and *Cpu*); *Pp* and *Ppk*, the same with the overall standard deviation; *Cpm* with a target; and the share below LSL and above USL — observed, and expected under a normal, in % and parts per million. On an Individuals chart the limits are drawn as lines. Capability describes a stable process: when points signal, the report says to read the indices with care.
+
+#use[Manufacturing and laboratory quality control, monitoring any process over time.]
+#example("op_control_chart")
+
+// ======================================================================
+== Curves
 
 === Peaks — find and measure peaks
 Finds the local maxima (and/or minima) of a series and measures each one: position, height, *prominence*, width at half prominence and the x bounds of that width. The peaks are marked on the chart and listed in the report.
@@ -145,137 +330,27 @@ Derivatives are drawn on a new axis by default (a slope is in different units fr
 #example("op_calculus")
 #use[Rates of change (velocity from position, growth rate), finding inflection points, peak areas (concentration from a chromatogram), totals from rates (energy from power).]
 
-// ======================================================================
-== Statistics
-
-=== Statistics — tests and summaries
-Reports descriptive statistics and hypothesis tests on the ticked series, and can add a chart of what was tested. It is described fully in @statistics.
-
-=== Explore Outliers — detect anomalies
-Flags the points of a series that do not belong with the rest, and either *hides* them from the chart or *colours* them.
+=== Interpolation — fill gaps and resample
+Evaluates a smooth or fitted curve through a series at new x values: to fill gaps, to resample onto a regular grid, or to extend a little beyond the data.
 
 #defs(
-  [*Z-score threshold*], [Points more than *threshold* standard deviations from the mean. Simple, but the outliers themselves inflate the standard deviation.],
-  [*Interquartile range*], [Points beyond Q1 − k·IQR or Q3 + k·IQR (*IQR factor* k, 1.5 by default — the box-plot rule). Robust to the outliers it is looking for.],
-  [*Median absolute deviation*], [Like the z-score but built on the median and the MAD, so a few extreme values cannot hide each other.],
-  [*Rolling median residual*], [Compares each point with the median of a moving *window* around it — finds spikes in a signal that trends or oscillates, where a global rule would flag the peaks of the signal itself.],
-  [*Isolation Forest*], [Machine learning: points that are easy to isolate by random splits are anomalous. *Contamination* is the expected fraction of outliers.],
-  [*Local Outlier Factor*], [Points in regions much sparser than their *neighbours'* regions.],
-  [*One-Class SVM*], [Learns the boundary of the normal points; *nu* bounds the fraction treated as outliers.],
-  [*Elliptic Envelope*], [Fits a robust ellipse (Minimum Covariance Determinant) to the cloud; points far outside it are outliers.],
+  [*NumPy interp*, *Linear*], [Straight lines between points.],
+  [*SciPy CubicSpline*], [A smooth cubic through every point, with a choice of *boundary condition*.],
+  [*SciPy PCHIP*], [Monotone cubic: never overshoots between points — the safe choice for data that must not wiggle.],
+  [*SciPy Akima*], [A cubic that is less affected by outliers than a natural spline.],
+  [*SciPy spline family*], [UnivariateSpline / B-spline of degree *k* with smoothing *s*.],
+  [*Polynomial*], [A least-squares polynomial of a given *degree*.],
+  [*Exponential*, *Logarithmic*, *Power*, *Gaussian*, *Sigmoid*], [Simple fitted models, with optional starting parameters.],
 )
 
-The last four judge a point by its position relative to the others in (x, y), not by its value alone, so they can find points that are unusual for their x even when their y is ordinary. Both coordinates are rescaled robustly first, so x and y in different units weigh equally.
+*X spacing* chooses where the new values are computed: a number of *points* spaced linearly, logarithmically, geometrically or at Chebyshev nodes over the data range (optionally *extended* by a percentage on both sides, or over an explicit *X range*); a fixed integer *step*; the *original data x* values; or a custom list of x values. *Allow extrapolation* permits values outside the data's x range.
 
-*Action*: *Hide them* marks the rows in the table's `Hide` column, which every chart skips — the data stays in the table, and the rows can be un-hidden from the table editor (see @table-editor). *Colour them* keeps every point on the chart and draws the outliers in the chosen *colour*.
-
-#refs("sklearn.ensemble.IsolationForest", "sklearn.neighbors.LocalOutlierFactor", "sklearn.svm.OneClassSVM", "sklearn.covariance.EllipticEnvelope", "scipy.ndimage.median_filter")
-#example("op_outliers")
-#use[Cleaning measurement glitches before a fit, flagging anomalous batches, checking how sensitive a result is to a few points.]
-
-=== Clustering — group similar data
-Groups the points of a series into clusters and writes each row's cluster number into a `ClusterId` column of the source table. The result is drawn either as *one series coloured by ClusterId* or as *separate series per cluster* (each with its own legend entry and style).
-
-#defs(
-  [*K-means / vector quantization*], [SciPy's k-means: a fixed *number of clusters*, each the set of points nearest one centre. *Whiten* rescales features first; *iterations* and *threshold* control convergence.],
-  [*Hierarchical / agglomerative*], [Merges the closest points and groups step by step. *Linkage*: single, complete, average, weighted, centroid, median, Ward. Cut either at a number of clusters or at a *distance threshold*.],
-  [*scikit-learn*], [K-Means, Mini-Batch K-Means, Bisecting K-Means, Agglomerative, *DBSCAN* and *OPTICS* (density-based: find clusters of any shape and leave noise points unassigned; set the neighbourhood radius *eps* and *min samples*), Birch, Mean Shift, Spectral Clustering, Gaussian Mixture.],
-)
-
-*Features* chooses which numeric columns of the series are used. A *max runtime* stops algorithms that scale badly on large tables.
-
-#refs("scipy.cluster.vq.kmeans2", "scipy.cluster.hierarchy.linkage", "scipy.cluster.hierarchy.fcluster", "sklearn.cluster.KMeans", "sklearn.cluster.MiniBatchKMeans", "sklearn.cluster.DBSCAN", "sklearn.cluster.OPTICS", "sklearn.cluster.AgglomerativeClustering", "sklearn.cluster.SpectralClustering", "sklearn.cluster.Birch", "sklearn.cluster.MeanShift", "sklearn.mixture.GaussianMixture")
-#example("op_clustering")
-#use[Finding natural groups — material phases, customer segments, operating regimes — and then analysing each group separately.]
-
-=== Control Chart — monitor process stability
-Builds a Shewhart control chart and flags the points that signal a change in the process. The chart is drawn on a new axis with its centre line, control limits and, optionally, the A/B/C zones.
-
-The key point of a control chart is where its limits come from: never from the standard deviation of all the data (a process that drifted has a large overall spread *because* it drifted), but from the variation *within* short stretches of it — the moving range for individual values, the range or standard deviation within subgroups otherwise.
-
-#defs(
-  [*Individuals (I-MR)*], [One measurement per point; sigma from the average moving range.],
-  [*Moving range (MR)*], [The companion chart of point-to-point ranges.],
-  [*X-bar and R*], [Means of consecutive *subgroups* of size n (2–25), sigma from the average range. For n up to about 8.],
-  [*X-bar and S*], [The same, sigma from the subgroup standard deviations. Better for larger subgroups.],
-  [*p*], [Fraction defective per sample. Needs a *sample size column*; limits widen and narrow with the sample size.],
-  [*np*], [Count defective per sample, constant sample size.],
-  [*c*], [Defects per unit, constant area of opportunity.],
-  [*u*], [Defects per unit with a varying sample size (needs the sample size column).],
-)
-
-#defs(
-  [*Sigma limit*], [Distance of the limits from the centre, in sigmas; 3 is the Shewhart convention (about one false alarm per 370 points on a stable process).],
-  [*Nelson rules*], [Besides points beyond the limits (rule 1), flag patterns inside them: 9 points in a row on one side of the centre (2), 6 steadily rising or falling (3), 14 alternating up and down (4), 2 of 3 beyond 2σ (5), 4 of 5 beyond 1σ (6), 15 in a row within 1σ (7), 8 in a row outside 1σ on both sides (8). The zone rules (5–8) are switched off on charts whose limits move with the sample size.],
-  [*Exclude violations*], [Recompute the limits without the flagged points — the "trial limits, then revised limits" step. Use it only when the flagged points have a known cause that has been removed.],
-  [*Draw*], [Centre line, limits, zones, and violations as separate markers.],
-  [*LSL, USL, Target*], [Specification limits, either or both, for the *process capability* of an Individuals or X-bar chart. Empty: none.],
-)
-
-The report lists each signalling point and the rule it broke. A chart with no signals says the process is *stable* — which is not the same as meeting a specification.
-
-With a specification limit the report adds the *process capability*, from the chart's own within sigma (moving range or subgroups): *Cp* = (USL − LSL) / 6σ#sub[within] and *Cpk*, the nearer limit's distance from the mean over 3σ#sub[within] (with *Cpl* and *Cpu*); *Pp* and *Ppk*, the same with the overall standard deviation; *Cpm* with a target; and the share below LSL and above USL — observed, and expected under a normal, in % and parts per million. On an Individuals chart the limits are drawn as lines. Capability describes a stable process: when points signal, the report says to read the indices with care.
-
-#use[Manufacturing and laboratory quality control, monitoring any process over time.]
-#example("op_control_chart")
-
-=== Transform — rescale or reshape a distribution
-Replaces y with a transformed version of itself, point for point (same x, same number of points), on a new axis.
-
-#defs(
-  [*Power transform*], [Makes a skewed distribution closer to normal. *Yeo-Johnson* accepts any values; *Box-Cox* often fits better but needs strictly positive values. The fitted λ is reported.],
-  [*Quantile transform*], [Maps values through their ranks onto a *uniform* or *normal* distribution. Very strong: any shape becomes the target shape.],
-  [*Standard scaler*], [z-scores: subtract the mean, divide by the standard deviation.],
-  [*Robust scaler*], [Subtract the median, divide by the IQR — unaffected by outliers. *With centering* and *with scaling* switch the two steps.],
-)
-
-#refs("sklearn.preprocessing.PowerTransformer", "sklearn.preprocessing.QuantileTransformer", "sklearn.preprocessing.StandardScaler", "sklearn.preprocessing.RobustScaler")
-#example("op_transform")
-#use[Preparing data for a method that assumes normality or comparable scales — a test, a control chart, a clustering on several variables.]
-
-=== Decomposition — several series together
-The one operation that combines *several* series into one calculation. Every ticked series is resampled onto a common grid of *n grid* points over their shared x range, giving a matrix with one column per series.
-
-#defs(
-  [*PCA*], [Principal components: the directions of greatest shared variation, ranked by the share of variance each explains (reported).],
-  [*Fast ICA*], [Independent components: separates signals that were mixed together (the classic "cocktail party" problem).],
-  [*NMF*], [Non-negative factors: parts that add up to the series, for data that cannot be negative (spectra, concentrations).],
-  [*t-SNE*, *Isomap*, *Locally Linear Embedding*], [Manifold learning: places each grid sample as a point in 2D so that similar samples are close, drawn as a scatter on a new axis. Exploratory — the axes of the map have no units. *Perplexity* (t-SNE) and *neighbours* (Isomap, LLE) set how local the structure is.],
-)
-
-*Components* sets how many to extract. PCA, ICA and NMF draw each component as a curve over the shared x.
-
-#refs("sklearn.decomposition.PCA", "sklearn.decomposition.FastICA", "sklearn.decomposition.NMF", "sklearn.manifold.TSNE", "sklearn.manifold.Isomap", "sklearn.manifold.LocallyLinearEmbedding")
-#use[Finding the few patterns behind many correlated signals (several sensors, many spectra), separating mixed sources, exploring similarity.]
+#refs("numpy.interp", "scipy.interpolate.CubicSpline", "scipy.interpolate.PchipInterpolator", "scipy.interpolate.Akima1DInterpolator", "scipy.interpolate.make_interp_spline", "scipy.interpolate.UnivariateSpline", "scipy.optimize.curve_fit")
+#example("op_interpolation")
+#use[Putting two series on the same x grid before comparing or subtracting them; filling missing readings; producing a smooth curve for display.]
 
 // ======================================================================
-== Geometry <geometry>
-
-=== Geometry — move a series' coordinates
-Rotates, translates, scales, mirrors or shears a series, or applies any matrix you type. It answers "put this where that is": rotate a scan onto a reference frame, shift a profile, flip it, scale a model onto measured units.
-
-#defs(
-  [*Rotate*], [Turns the series counter-clockwise about a centre, by an angle in degrees.],
-  [*Translate*], [Adds a fixed amount to every x and y (and z).],
-  [*Roto-translation*], [A rotation about the centre followed by a translation: a rigid motion; shape and size never change.],
-  [*Scale*], [Multiplies x and y (and z) by their own factors about the centre. Unequal factors change the shape.],
-  [*Mirror*], [Reflects across a horizontal, vertical or diagonal line through the centre.],
-  [*Shear*], [Leans the series over: so much x added per unit of y, or y per unit of x.],
-  [*Matrix*], [Any linear map you type. *2 × 2*: $x' = a_(11) x + a_(12) y$, $y' = a_(21) x + a_(22) y$ — every motion above except a move is one of these. *3 × 2* adds a third row of offsets, $b_1$ and $b_2$, added afterwards. The matrix acts about the centre; for the formula exactly as written, turn off *Centre on the data* and set the centre to 0, 0.],
-)
-
-*Centre on the data* (on by default) uses the middle of the series' own extent as the fixed point — "turn this shape" rather than "turn it about the origin". Turn it off to type the centre.
-
-*In 3D.* A series with a z column is moved in space: three rotation angles (about x, then y, then z, each by the right-hand rule), and translation, scale and centre gain a z value. Mirror, Shear and Matrix act in the x–y plane. The preview becomes a 3D view.
-
-The Results pane shows a picture with no axes or labels: the source points in blue, the result in red (at most 200 of each) and, with *Show the deformation grid*, a square mesh around the source before and after (a cube in 3D), which makes a shear or an uneven scale easy to read.
-
-#note[
-  Geometry computes nothing and writes no table. The new series carries a SQL query — the source series' own query wrapped in the transform's arithmetic, with a 2D rotation written as `cos(radians(30))` so it stays readable. The moved series therefore *follows its source* (change the source and the transform applies to the new data), costs no extra space, and can be adjusted afterwards in the Query Builder.
-]
-
-// ======================================================================
-== Signal processing
+== Signal Processing
 
 === Smoothing — reduce noise
 Produces a smoothed copy of a series, drawn beside the original. The *data type* selector chooses between models for curves (1D), surfaces (2D) and volumes (3D).
@@ -304,6 +379,22 @@ Produces a smoothed copy of a series, drawn beside the original. The *data type*
 #example("op_smoothing")
 #use[Making a trend visible in noisy data, preparing a signal for peak finding or differentiation. When in doubt, start with Savitzky-Golay or LOWESS.]
 
+=== Filtering — filter, detrend or demodulate
+Changes the signal itself in the frequency domain — the complement of Spectral Analysis, which only measures it.
+
+#defs(
+  [*IIR filter*], [Family *Butterworth* (maximally flat), *Chebyshev I/II* or *Elliptic* (sharper roll-off with ripple: set *ripple* and *attenuation* in dB), or *Bessel* (best preserves wave shape). Response *lowpass*, *highpass*, *bandpass* or *bandstop*, with an *order* and one or two *cutoffs*. Applied forward and backward, so there is no phase shift.],
+  [*FIR filter*], [Linear-phase filter with a number of *taps* and a *window*. No ringing on steps.],
+  [*Analytic signal*], [Via the Hilbert transform: the *amplitude envelope*, *instantaneous phase* or *instantaneous frequency*. Used for AM demodulation and vibration envelopes.],
+  [*Detrend*], [Removes a *linear* trend or a *constant* (the mean), on its own or before filtering.],
+)
+
+The cutoffs are in the same units as the sampling frequency, which is taken from x as in Spectral Analysis.
+
+#refs("scipy.signal.iirfilter", "scipy.signal.firwin", "scipy.signal.sosfiltfilt", "scipy.signal.filtfilt", "scipy.signal.hilbert", "scipy.signal.detrend")
+#example("op_filtering")
+#use[Removing mains hum (bandstop at 50/60 Hz), separating slow drift from fast signal, extracting an envelope.]
+
 === Spectral Analysis — analyse frequencies
 Computes how a signal's energy is distributed over frequency, or how it correlates with itself or another signal over lag. The results are drawn on a new axis.
 
@@ -324,22 +415,6 @@ The *sampling frequency* is derived from the spacing of x (with a warning if the
 #example("op_spectral")
 #use[Vibration analysis, finding periodicities (seasonal cycles, mains hum), comparing two sensors, checking what a filter should remove.]
 
-=== Filtering — filter, detrend or demodulate
-Changes the signal itself in the frequency domain — the complement of Spectral Analysis, which only measures it.
-
-#defs(
-  [*IIR filter*], [Family *Butterworth* (maximally flat), *Chebyshev I/II* or *Elliptic* (sharper roll-off with ripple: set *ripple* and *attenuation* in dB), or *Bessel* (best preserves wave shape). Response *lowpass*, *highpass*, *bandpass* or *bandstop*, with an *order* and one or two *cutoffs*. Applied forward and backward, so there is no phase shift.],
-  [*FIR filter*], [Linear-phase filter with a number of *taps* and a *window*. No ringing on steps.],
-  [*Analytic signal*], [Via the Hilbert transform: the *amplitude envelope*, *instantaneous phase* or *instantaneous frequency*. Used for AM demodulation and vibration envelopes.],
-  [*Detrend*], [Removes a *linear* trend or a *constant* (the mean), on its own or before filtering.],
-)
-
-The cutoffs are in the same units as the sampling frequency, which is taken from x as in Spectral Analysis.
-
-#refs("scipy.signal.iirfilter", "scipy.signal.firwin", "scipy.signal.sosfiltfilt", "scipy.signal.filtfilt", "scipy.signal.hilbert", "scipy.signal.detrend")
-#example("op_filtering")
-#use[Removing mains hum (bandstop at 50/60 Hz), separating slow drift from fast signal, extracting an envelope.]
-
 === Baseline Correction — subtract a background
 Estimates the slowly varying background under a spectrum or chromatogram and subtracts it. Peak heights and especially peak areas are wrong until this is done.
 
@@ -355,103 +430,41 @@ Estimates the slowly varying background under a spectrum or chromatogram and sub
 #use[Raman, IR, XRD and fluorescence spectra; chromatograms with drift — always before measuring peak areas.]
 
 // ======================================================================
-== Modeling
+== Transform
 
-=== Fit Curve — fit a model to data
-Fits a mathematical model y = f(x; parameters) to a series by least squares and adds the fitted curve beside the data. It is the most complete operation in ChartLibre.
-
-*The model.* The model tree lists the function library by family, with a search box:
+=== Transform — rescale or reshape a distribution
+Replaces y with a transformed version of itself, point for point (same x, same number of points), on a new axis.
 
 #defs(
-  [*Basic functions*], [Constant, linear, polynomials up to degree 10, reciprocal, logarithmic, power law, rational.],
-  [*Growth and saturation*], [Exponential growth and decay, double exponential, saturation, Michaelis–Menten, Hill.],
-  [*Sigmoidal curves*], [4- and 5-parameter logistic, Richards, Gompertz, error-function, tanh and arctan sigmoids, double-logistic pulse.],
-  [*Peak functions*], [Gaussian, Lorentzian, pseudo-Voigt, Voigt, asymmetric Gaussian, Pearson VII.],
-  [*Periodic functions*], [Sine, cosine, damped sine, linear chirp.],
-  [*Statistical distributions*], [Normal, lognormal, Weibull, gamma, beta and Cauchy densities and distribution functions.],
-  [*Reliability models*], [Exponential and Weibull survival, Weibull hazard.],
-  [*Semiconductor and process*], [Arrhenius, inverse-temperature linear, dose-response power, Poisson yield, process window.],
-  [*Adsorption and surface*], [Langmuir, Freundlich, Temkin isotherms.],
-  [*NIST reference models*], [The models of the NIST StRD nonlinear regression benchmarks.],
-  [*Surfaces*], [For z = f(x, y): plane, paraboloid, 2D Gaussian, saddle, ripple.],
-  [*User functions / User surfaces*], [Your own, written with the Function Creator (see @advanced).],
+  [*Power transform*], [Makes a skewed distribution closer to normal. *Yeo-Johnson* accepts any values; *Box-Cox* often fits better but needs strictly positive values. The fitted λ is reported.],
+  [*Quantile transform*], [Maps values through their ranks onto a *uniform* or *normal* distribution. Very strong: any shape becomes the target shape.],
+  [*Standard scaler*], [z-scores: subtract the mean, divide by the standard deviation.],
+  [*Robust scaler*], [Subtract the median, divide by the IQR — unaffected by outliers. *With centering* and *with scaling* switch the two steps.],
 )
 
-The *Multi-peak builder* creates a sum of *N* Gaussian, Lorentzian or pseudo-Voigt peaks plus an offset, optionally with one *shared width* (and shared η) for all peaks — for overlapping peaks in a spectrum.
+#refs("sklearn.preprocessing.PowerTransformer", "sklearn.preprocessing.QuantileTransformer", "sklearn.preprocessing.StandardScaler", "sklearn.preprocessing.RobustScaler")
+#example("op_transform")
+#use[Preparing data for a method that assumes normality or comparable scales — a test, a control chart, a clustering on several variables.]
 
-*The parameters.* The table lists each parameter with its *initial value*, *lower and upper bounds* and a *fixed* flag. *Estimate* fills the initial values from the data — with the function's own estimator when it has one, or a random search of the parameter space when it does not. A good starting point matters: a least-squares fit started in the wrong place converges confidently to the wrong answer.
-
-*The algorithm.*
-#defs(
-  [*Trust region* (default)], [Bounded least squares. Right for most fits.],
-  [*Dogleg box*], [Bounded least squares, often better when a parameter ends up on a bound.],
-  [*Levenberg-Marquardt*], [Classic unbounded least squares; bounds are ignored.],
-  [*Nelder-Mead*, *Powell*], [Derivative-free local methods, for rough or noisy objective functions.],
-  [*Differential evolution*, *Dual annealing*, *Basin hopping*, *SHGO*, *Monte Carlo*], [Global methods: search the whole box defined by the bounds, then finish with a local fit. Use them when the result depends on the starting point.],
-)
-*Loss* sets how large residuals are weighted: plain least squares trusts every point; the robust losses (soft L1, Huber, Cauchy, arctan) limit how much one bad point can pull the fit. *Max evaluations* caps the work.
-
-*Weights* says how much each point counts: *Equal*; *Relative* (each residual divided by its value, for data spanning orders of magnitude); or *Error bars*, each residual divided by the error in the series' *yerr* column, so a precise point counts more — the report then gives the chi-squared and the chi-squared per degree of freedom.
-
-*Global fit.* Tick two or more series and the fit is global: one model fitted to all of them at once. Under the parameter table, *Shared* lists the parameters: a shared one has one value for every series (one row of the table), the others one value per series (a row each, named after its series). Fit, Preview and OK work as for one series; each series gets its own curve, report and output table, and the errors account for what the series share.
-
-*The report* gives the fitted expression, each parameter with its standard error, t value, p value and 95% confidence interval, the parameter correlation matrix, and goodness of fit (R², RMSE, residual sum of squares, reduced chi-squared, AIC and BIC). Parameters can be copied, saved as CSV, or reused as the starting point of the next fit.
-
-*Extra output:* *95% confidence band* (where the true curve lies, given the parameter uncertainty), *95% prediction band* (where a new measurement would fall), a *residuals vs x* chart (structure in the residuals means the model is missing something) and a *measured vs fit* chart (a perfect fit lies on the diagonal). Fitted values and residuals are saved to the *output table*.
-
-#refs("scipy.optimize.least_squares", "scipy.optimize.minimize", "scipy.optimize.differential_evolution", "scipy.optimize.dual_annealing", "scipy.optimize.basinhopping", "scipy.optimize.shgo")
-#example("op_fit")
-#use[Extracting physical parameters (a rate constant, a peak position, an EC50), calibration curves, comparing candidate models. ChartLibre's fit has been checked against the certified NIST StRD reference results.]
-
-=== Interpolation — fill gaps and resample
-Evaluates a smooth or fitted curve through a series at new x values: to fill gaps, to resample onto a regular grid, or to extend a little beyond the data.
+=== Geometry — move a series' coordinates <geometry>
+Rotates, translates, scales, mirrors or shears a series, or applies any matrix you type. It answers "put this where that is": rotate a scan onto a reference frame, shift a profile, flip it, scale a model onto measured units.
 
 #defs(
-  [*NumPy interp*, *Linear*], [Straight lines between points.],
-  [*SciPy CubicSpline*], [A smooth cubic through every point, with a choice of *boundary condition*.],
-  [*SciPy PCHIP*], [Monotone cubic: never overshoots between points — the safe choice for data that must not wiggle.],
-  [*SciPy Akima*], [A cubic that is less affected by outliers than a natural spline.],
-  [*SciPy spline family*], [UnivariateSpline / B-spline of degree *k* with smoothing *s*.],
-  [*Polynomial*], [A least-squares polynomial of a given *degree*.],
-  [*Exponential*, *Logarithmic*, *Power*, *Gaussian*, *Sigmoid*], [Simple fitted models, with optional starting parameters.],
+  [*Rotate*], [Turns the series counter-clockwise about a centre, by an angle in degrees.],
+  [*Translate*], [Adds a fixed amount to every x and y (and z).],
+  [*Roto-translation*], [A rotation about the centre followed by a translation: a rigid motion; shape and size never change.],
+  [*Scale*], [Multiplies x and y (and z) by their own factors about the centre. Unequal factors change the shape.],
+  [*Mirror*], [Reflects across a horizontal, vertical or diagonal line through the centre.],
+  [*Shear*], [Leans the series over: so much x added per unit of y, or y per unit of x.],
+  [*Matrix*], [Any linear map you type. *2 × 2*: $x' = a_(11) x + a_(12) y$, $y' = a_(21) x + a_(22) y$ — every motion above except a move is one of these. *3 × 2* adds a third row of offsets, $b_1$ and $b_2$, added afterwards. The matrix acts about the centre; for the formula exactly as written, turn off *Centre on the data* and set the centre to 0, 0.],
 )
 
-*X spacing* chooses where the new values are computed: a number of *points* spaced linearly, logarithmically, geometrically or at Chebyshev nodes over the data range (optionally *extended* by a percentage on both sides, or over an explicit *X range*); a fixed integer *step*; the *original data x* values; or a custom list of x values. *Allow extrapolation* permits values outside the data's x range.
+*Centre on the data* (on by default) uses the middle of the series' own extent as the fixed point — "turn this shape" rather than "turn it about the origin". Turn it off to type the centre.
 
-#refs("numpy.interp", "scipy.interpolate.CubicSpline", "scipy.interpolate.PchipInterpolator", "scipy.interpolate.Akima1DInterpolator", "scipy.interpolate.make_interp_spline", "scipy.interpolate.UnivariateSpline", "scipy.optimize.curve_fit")
-#example("op_interpolation")
-#use[Putting two series on the same x grid before comparing or subtracting them; filling missing readings; producing a smooth curve for display.]
+*In 3D.* A series with a z column is moved in space: three rotation angles (about x, then y, then z, each by the right-hand rule), and translation, scale and centre gain a z value. Mirror, Shear and Matrix act in the x–y plane. The preview becomes a 3D view.
 
-=== Function — plot a function
-Evaluates a function from the same library as Fit over a range and draws it, with no data and nothing fitted. Choose the function, type its parameter values, the *start* and *stop* of the range, the number of *points* and the *spacing* (linear, or logarithmic for log axes). For a surface function, the range is a grid in x and y.
+The Results pane shows a picture with no axes or labels: the source points in blue, the result in red (at most 200 of each) and, with *Show the deformation grid*, a square mesh around the source before and after (a cube in 3D), which makes a shear or an uneven scale easy to read.
 
-#use[Seeing the shape of a model before choosing it, drawing a theoretical or reference curve beside measurements, checking starting values before a fit, generating synthetic test data.]
-
-=== Regression — robust and machine-learning regression
-Fits a curve through a series with models that do not assume an algebraic formula, and evaluates it on a dense grid over the data's x range.
-
-#defs(
-  [*RANSAC*], [Robust straight line: fits random subsets (*max trials*) and keeps the one most points agree with. Ignores gross outliers completely.],
-  [*Huber*], [Robust straight line that down-weights large residuals; *epsilon* near 1 is more robust, larger behaves like ordinary least squares; *alpha* regularizes.],
-  [*Isotonic*], [The best-fitting curve that only rises (or only falls, or *auto*). No shape assumed beyond monotonicity.],
-  [*Random Forest*], [Average of many regression trees (*estimators*, *max depth*). Flexible, step-like.],
-  [*Gradient Boosting*], [Trees added one after another, each correcting the last (*learning rate*). Flexible and often accurate.],
-)
-
-#refs("sklearn.linear_model.HuberRegressor", "sklearn.linear_model.RANSACRegressor", "sklearn.isotonic.IsotonicRegression", "sklearn.ensemble.RandomForestRegressor", "sklearn.ensemble.GradientBoostingRegressor")
-#example("op_regression")
-#use[A trend through outlier-heavy data (RANSAC, Huber), a calibration that must be monotone (Isotonic), a flexible non-parametric trend when no formula is known.]
-
-=== Gaussian Process — a fit with its own uncertainty
-Gaussian process regression: a smooth curve through the data *and* a ±2σ band saying how certain the curve is at each x — narrow where the data are dense, wide in gaps and beyond the ends. The result is three series: the mean and the two band edges.
-
-#defs(
-  [*RBF*], [Very smooth curves.],
-  [*Matern (ν = 1.5)* / *(ν = 2.5)*], [Rougher curves (once / twice differentiable) — often more realistic for physical data.],
-  [*Rational Quadratic*], [A mix of length scales — for data with both slow and fast variation.],
-)
-
-*Length scale* (how quickly the curve may vary with x) and *noise level* are starting guesses; both are optimized during the fit, and the fitted kernel and log marginal likelihood are reported.
-
-#refs("sklearn.gaussian_process.GaussianProcessRegressor", "sklearn.gaussian_process.kernels.RBF", "sklearn.gaussian_process.kernels.Matern", "sklearn.gaussian_process.kernels.RationalQuadratic", "sklearn.gaussian_process.kernels.WhiteKernel")
-#use[Interpolating sparse or expensive measurements with an honest uncertainty; deciding where the next measurement would be most informative.]
+#note[
+  Geometry computes nothing and writes no table. The new series carries a SQL query — the source series' own query wrapped in the transform's arithmetic, with a 2D rotation written as `cos(radians(30))` so it stays readable. The moved series therefore *follows its source* (change the source and the transform applies to the new data), costs no extra space, and can be adjusted afterwards in the Query Builder.
+]

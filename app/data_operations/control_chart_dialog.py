@@ -403,7 +403,6 @@ class SeriesControlChartDialog(DataOperationDialogBase):
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Control Chart",
             parent=parent,
             width=800,
             height=680,

@@ -230,7 +230,6 @@ class SeriesSpectralDialog(DataOperationDialogBase):
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Series Spectral Analysis",
             parent=parent,
             width=900,
             height=680,

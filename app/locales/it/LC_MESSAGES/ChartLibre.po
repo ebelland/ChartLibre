@@ -4761,8 +4761,8 @@ msgstr "Un file chiamato \"{file}\" esiste già in user/data_operations/."
 msgid "File name must be a valid Python file name, e.g. my_operation_dialog.py."
 msgstr "Il nome del file deve essere un nome file Python valido, es. my_operation_dialog.py."
 
-msgid "One line, shown in the Data Operations panel."
-msgstr "Una riga, mostrata nel pannello Data Operations."
+msgid "One line, shown in the Analysis panel."
+msgstr "Una riga, mostrata nel pannello Analisi."
 
 msgid "The class imported, but data_operation_scanner did not discover it as an operation - check that it subclasses DataOperationDialogBase directly."
 msgstr "La classe è stata importata, ma data_operation_scanner non l'ha rilevata come operazione - verifica che erediti direttamente da DataOperationDialogBase."
@@ -4776,8 +4776,8 @@ msgstr "es. Envelope Detector"
 msgid "e.g. envelope_detector_dialog.py"
 msgstr "es. envelope_detector_dialog.py"
 
-msgid "\"{name}\" was written to {path} and is already discoverable - it will appear in the Data Operations panel. Open it and replace compute_results with the real computation."
-msgstr "\"{name}\" è stato scritto in {path} ed è già rilevabile - apparirà nel pannello Data Operations. Aprilo e sostituisci compute_results con il calcolo reale."
+msgid "\"{name}\" was written to {path} and is already discoverable - it will appear in the Analysis panel. Open it and replace compute_results with the real computation."
+msgstr "\"{name}\" è stato scritto in {path} ed è già rilevabile - apparirà nel pannello Analisi. Aprilo e sostituisci compute_results con il calcolo reale."
 
 msgid "{path} was written, but it did not check out as a valid operation: {error}. Fix the file directly and reopen it."
 msgstr "{path} è stato scritto, ma non è risultato un'operazione valida: {error}. Correggi direttamente il file e riaprilo."

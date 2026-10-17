@@ -345,13 +345,6 @@
       "SegoeFluent": "e8e5",
       "ThemeIcon": "open-menu"
     },
-    "nav_data_operations": {
-      "text": "Data Operations",
-      "description": "Show data operations",
-      "SFSymbol": "function",
-      "SegoeFluent": "e9d2",
-      "ThemeIcon": "accessories-calculator"
-    },
     "new": {
       "text": "New",
       "description": "Create a new database",
@@ -1057,7 +1050,7 @@
     "dev.data_operation_created": {
       "level": "info",
       "title": "Data Operation Builder",
-      "text": "\"{name}\" was written to {path} and is already discoverable - it will appear in the Data Operations panel. Open it and replace compute_results with the real computation."
+      "text": "\"{name}\" was written to {path} and is already discoverable - it will appear in the Analysis panel. Open it and replace compute_results with the real computation."
     },
     "dev.data_operation_create_failed": {
       "level": "warning",

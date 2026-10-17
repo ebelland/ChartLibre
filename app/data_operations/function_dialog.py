@@ -195,7 +195,6 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Plot Function",
             parent=parent,
             width=820,
             height=680,

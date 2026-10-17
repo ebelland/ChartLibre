@@ -197,7 +197,7 @@ class DataOperationBuilderDialog(DeveloperDialogBase):
     )
     NAME_PLACEHOLDER = "e.g. Envelope Detector"
     FILE_PLACEHOLDER = "e.g. envelope_detector_dialog.py"
-    DESCRIPTION_PLACEHOLDER = "One line, shown in the Data Operations panel."
+    DESCRIPTION_PLACEHOLDER = "One line, shown in the Analysis panel."
     FILE_SUFFIX = "_dialog.py"
     CLASS_SUFFIX = "Dialog"
     CREATE_ACTION = "create_data_operation"

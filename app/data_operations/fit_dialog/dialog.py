@@ -112,7 +112,6 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Series Fit",
             parent=parent,
             width=900,
             height=560

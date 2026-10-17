@@ -20,6 +20,7 @@ from app.data.sqlite_repo import SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.styles.style import icon_from_svg_source, set_doc_link
 from app.logs.logger import applogger
+from app.utils.i18n import _
 from app.utils.dialog_state import (
     dialog_entries,
     restore_dialog_state,
@@ -114,14 +115,16 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         self,
         repo: SqliteRepo,
         figure_id: int,
-        title: str="Data Operation",
+        title: str | None = None,
         parent: QWidget | None = None,
         width: int = 900,
         height: int = 640
     ) -> None:
         super().__init__(parent)
 
-        self.setWindowTitle(title)
+        # The operation's own Name, as the Analysis panel, the catalogue and
+        # the report call it (todo H-09) - not a second name of its own.
+        self.setWindowTitle(_(title or str(getattr(type(self), "Name", "") or "Data Operation")))
         self.resize(width, height)
 
         # The window icon is the operation's own artwork, set once here rather

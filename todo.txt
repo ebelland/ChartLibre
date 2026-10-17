@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 95,035 lines in 260 files; tests 18,387 lines in 146 files (updated at each commit).
+Size: app 95,021 lines in 260 files; tests 18,387 lines in 146 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -189,7 +189,11 @@ Change
 - H-08 First run: open on the Guided analysis wizard (G-02) with a demo
   table, not on an empty window; a 3-step tour of the rail.
 - H-09 One vocabulary: JMP's names everywhere (done for the Analysis panel);
-  menu, manual, catalogue and dialogs titled the same way.
+  menu, manual, catalogue and dialogs titled the same way. Done: a data
+  operation's window is titled with its Name, translated ("Series Fit" was
+  "Fit Curve" in the panel); the manual's Data operations chapter follows the
+  panel's categories; "Spectral Analysis" in its report; the last "Data
+  Operations panel" texts say Analysis.
 - H-10 Fewer frames, more white: some dialogs still stack 4-5 titled frames;
   aim for one primary frame plus a collapsible "More options".
 - H-11 Error messages: every failure says what to do next (which column,

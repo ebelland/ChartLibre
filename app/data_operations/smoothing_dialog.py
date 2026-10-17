@@ -362,7 +362,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Series Smoothing",
             parent=parent,
             width=720,
             height=640,

@@ -225,7 +225,6 @@ class SeriesPeaksDialog(DataOperationDialogBase):
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Series Peaks",
             parent=parent,
             width=780,
             height=640,

@@ -240,7 +240,6 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Series Decomposition",
             parent=parent,
             width=780,
             height=640,

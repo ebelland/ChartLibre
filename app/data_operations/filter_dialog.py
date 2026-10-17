@@ -176,7 +176,7 @@ class SeriesFilterDialog(DataOperationDialogBase):
 
         self._last_results: list[FilterResult] = []
         super().__init__(
-            repo=repo, figure_id=figure_id, title="Filtering", parent=parent,
+            repo=repo, figure_id=figure_id, parent=parent,
             width=820, height=660,
         )
         self.series_selector.reload(select_all_series=True)

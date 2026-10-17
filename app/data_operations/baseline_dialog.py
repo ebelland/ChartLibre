@@ -130,7 +130,7 @@ class SeriesBaselineDialog(DataOperationDialogBase):
             applogger.error("SeriesBaselineDialog requires a repository instance.")
         self._last_results: list[BaselineResult] = []
         super().__init__(
-            repo=repo, figure_id=figure_id, title="Baseline Correction", parent=parent,
+            repo=repo, figure_id=figure_id, parent=parent,
             width=800, height=620,
         )
         self.series_selector.reload(select_all_series=True)

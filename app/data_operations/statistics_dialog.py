@@ -227,7 +227,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Statistics",
             parent=parent,
             width=1060,
             height=720,

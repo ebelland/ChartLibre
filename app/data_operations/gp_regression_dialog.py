@@ -163,7 +163,6 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
         super().__init__(
             repo=repo,
             figure_id=figure_id,
-            title="Series GP Regression",
             parent=parent,
             width=760,
             height=640,
