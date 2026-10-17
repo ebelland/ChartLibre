@@ -260,9 +260,12 @@ class PartitionDialog(TableOperationDialogBase):
         if self._auto and self._parameter_form is not None and result.method == pt.TREE:
             # What Automatic chose becomes the count Split and Prune go on from.
             self._parameter_form.set_values({"splits": result.splits})
-        return report_html.document(_(self.Name), f"{self.table} · {result.response}", self._report(result))
+        return self.report_document(result)
 
-    def _report(self, result: pt.PartitionResult) -> str:
+    def report_subtitle(self, result: pt.PartitionResult) -> str:
+        return f"{self.table} · {result.response}"
+
+    def report_body(self, result: pt.PartitionResult) -> str:
         blocks = []
         if result.note:
             blocks.append(report_html.note(result.note))
@@ -355,7 +358,7 @@ class PartitionDialog(TableOperationDialogBase):
         self.created_figure_ids = []
         panels = self._panels(result, names, charts, layout)
         if panels:
-            notes = report_html.document(_(self.Name), f"{table} · {result.response}", self._report(result))
+            notes = self.report_document(result)
             figure_id = self.create_report_figure(f"Partition · {result.response}", notes, panels)
             self.created_figure_ids.append(figure_id)
             written.append({"figure": figure_id, "name": result.response})

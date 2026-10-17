@@ -132,9 +132,22 @@ class TableOperationDialogBase(QDialog):
         """The calculation, on a worker thread: no widget, no database."""
         raise NotImplementedError
 
-    def format_results(self, result: Any) -> str:
-        """The report of *result*, as HTML."""
+    def report_body(self, result: Any) -> str:
+        """The report of *result* - its sections, as HTML - under the analysis' title."""
         raise NotImplementedError
+
+    def report_subtitle(self, result: Any) -> str:
+        """The line under the title: the table, by default; an analysis adds its columns."""
+        del result
+        return str(self.table)
+
+    def report_document(self, result: Any) -> str:
+        """The whole report: shown in Results, and kept as the notes of the figure OK draws."""
+        return report_html.document(_(self.Name), self.report_subtitle(result), self.report_body(result))
+
+    def format_results(self, result: Any) -> str:
+        """The report of *result*, as HTML (report_document unless an analysis does more)."""
+        return self.report_document(result)
 
     def apply_results(self, result: Any) -> list[dict[str, Any]]:
         """Write *result* into the project; return what was written, for the history.

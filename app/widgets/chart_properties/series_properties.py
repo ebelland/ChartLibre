@@ -662,11 +662,6 @@ class SeriesPropertiesWidget(BaseProperties):
         if not matched:
             self._color_combo.setCurrentIndex(0)
 
-    def _set_combo_value(self, combo: QComboBox, value: str) -> None:
-        """Set combo data when present, otherwise select the first item."""
-        index = combo.findData(value)
-        combo.setCurrentIndex(index if index >= 0 else 0)
-
     # ------------------------------------------------------------------
     # Events and actions
     # ------------------------------------------------------------------

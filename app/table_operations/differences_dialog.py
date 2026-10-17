@@ -67,10 +67,11 @@ class DifferencesDialog(TableOperationDialogBase):
         del params, model
         return answers.differences(frame, casting.columns("response")[0], casting.columns("group")[0])
 
-    def format_results(self, result: answers.Answer) -> str:
-        return report_html.document(_(self.Name), str(self.table), self._report(result))
+    def report_subtitle(self, result: answers.Answer) -> str:
+        casting = self.roles_widget.casting()
+        return f"{self.table} · {casting.columns('response')[0]} / {casting.columns('group')[0]}"
 
-    def _report(self, result: answers.Answer) -> str:
+    def report_body(self, result: answers.Answer) -> str:
         blocks = [
             answer_html(result),
             report_html.section(_("The groups"), self.report_table(result.groups)),
@@ -99,7 +100,7 @@ class DifferencesDialog(TableOperationDialogBase):
             sql, roles = self.series_select(table, {"x": group, "y": measure}, where=shown)
             panel = ("Mosaic Plot", _("{measure} by {group}").format(measure=measure, group=group), group, measure,
                      [(measure, sql, roles, {})])
-        notes = report_html.document(_(self.Name), f"{table} · {measure} / {group}", self._report(result))
+        notes = self.report_document(result)
         figure_id = self.create_report_figure(f"{_(self.Name)} · {measure}", notes, [panel])
         self.created_figure_ids = [figure_id]
         return [{"table": name}, {"figure": figure_id, "name": measure}]

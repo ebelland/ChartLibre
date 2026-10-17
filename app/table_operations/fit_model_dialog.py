@@ -501,12 +501,13 @@ class FitModelDialog(TableOperationDialogBase):
         )
         return lm.fit_models(frame, spec, should_stop=self.stop_requested)
 
-    def format_results(self, result: list[lm.ResponseFit]) -> str:
-        sections = [self._report(fit) for fit in result]
-        subtitle = _("{table} · {count} response(s)").format(table=self.table, count=len(result))
-        return report_html.document(_(self.Name), subtitle, *sections)
+    def report_subtitle(self, result: list[lm.ResponseFit]) -> str:
+        return f"{self.table} · {', '.join(fit.response for fit in result)}"
 
-    def _report(self, fit: lm.ResponseFit) -> str:
+    def report_body(self, result: list[lm.ResponseFit]) -> str:
+        return "".join(self._fit_report(fit) for fit in result)
+
+    def _fit_report(self, fit: lm.ResponseFit) -> str:
         blocks = []
         if fit.note:
             blocks.append(report_html.note(_(fit.note)))
@@ -682,6 +683,5 @@ class FitModelDialog(TableOperationDialogBase):
         for fit in result:
             for chart, title, *rest in self._panels(fit, names, charts):
                 panels.append((chart, f"{fit.response}: {title}" if len(result) > 1 else title, *rest))
-        notes = report_html.document(_("Fit Model"), f"{self.table} · {responses}",
-                                     *(self._report(fit) for fit in result))
+        notes = self.report_document(result)
         return self.create_report_figure(f"Fit Model · {responses}", notes, panels)

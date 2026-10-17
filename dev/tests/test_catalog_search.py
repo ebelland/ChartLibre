@@ -27,7 +27,7 @@ def test_the_catalogue_lists_every_analysis_operation_chart_and_tool() -> None:
     goals = {key for key, _title, _sentence in catalog.GOALS}
     assert all(set(entry.goals) <= goals for entry in entries)
     # Every goal leads somewhere.
-    assert all(catalog.for_goal(entries, goal) for goal in goals)
+    assert all(any(goal in entry.goals for entry in entries) for goal in goals)
 
 
 def test_search_finds_by_synonym_in_either_language_and_ranks_names_first() -> None:

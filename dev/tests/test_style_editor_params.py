@@ -20,7 +20,8 @@ def test_every_rcparam_toggles_or_opens_an_editor(qapp, tmp_path, monkeypatch) -
     keys = style_rc_keys()
     for key in keys:
         dialog._param_schema[key] = dialog._schema_for_key(key, "")
-    dialog._rebuild_editor({key: "" for key in keys})
+    dialog.editor.set_config(dialog._param_schema)
+    dialog.editor.set_values({key: "" for key in keys})
     delegate = editor.tree.itemDelegateForColumn(1)
 
     stuck = []

@@ -558,11 +558,6 @@ def build_catalog(
             for entry in entries]
 
 
-def for_goal(entries: list[CatalogEntry], goal: str) -> list[CatalogEntry]:
-    """The entries answering *goal*, in catalogue order."""
-    return [entry for entry in entries if goal in entry.goals]
-
-
 # ----------------------------------------------------------------------
 # Search
 # ----------------------------------------------------------------------

@@ -242,14 +242,6 @@ def fit_distributions(
     return fits
 
 
-def best_fit(
-    values: np.ndarray, *, exhaustive: bool = False, rank_by: str = DEFAULT_RANK
-) -> DistributionFit | None:
-    """Return the best-ranked candidate, or None when none of them fit."""
-    fits = fit_distributions(values, exhaustive=exhaustive, rank_by=rank_by)
-    return fits[0] if fits else None
-
-
 #: What a ``distribution_fit`` option may say.  "best" and "top N" need the
 #: whole sweep and then take the head of it; anything else is read as one or
 #: more distribution names, comma separated.

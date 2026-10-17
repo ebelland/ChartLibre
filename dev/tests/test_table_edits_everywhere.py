@@ -113,17 +113,17 @@ def _hidden(repo: SqliteRepo) -> list[str]:
 def test_hide_rows_by_comparison(editor: TableEditorDialog, repo: SqliteRepo, told: list[str], monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(QInputDialog, "getText", staticmethod(lambda *_a, **_k: ("2", True)))
     _select_column(editor, 1)
-    editor._hide_rows(">=")
+    editor._flag_rows("Hide", ">=")
     assert _hidden(repo) == ["beta", "gamma"]
     assert told == ["2 row(s) hidden."]
 
 
 def test_hide_empty_cells_and_the_selected_value(editor: TableEditorDialog, repo: SqliteRepo, told: list[str]) -> None:
     _select_column(editor, 1)
-    editor._hide_rows(None)
+    editor._flag_rows("Hide", None)
     assert _hidden(repo) == ["delta"]
     _select_column(editor, 0, row=0)
-    editor._hide_rows("=", from_cell=True)
+    editor._flag_rows("Hide", "=", from_cell=True)
     assert _hidden(repo) == ["alpha", "delta"]
 
 
@@ -131,7 +131,7 @@ def test_cancel_puts_the_hidden_rows_back(
     editor: TableEditorDialog, repo: SqliteRepo, told: list[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _select_column(editor, 1)
-    editor._hide_rows(None)
+    editor._flag_rows("Hide", None)
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *_a, **_k: QMessageBox.StandardButton.Yes))
     editor.reject()
     assert _hidden(repo) == []

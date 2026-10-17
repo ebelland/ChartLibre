@@ -58,10 +58,10 @@ class DistributionDialog(TableOperationDialogBase):
     # The report
     # ------------------------------------------------------------------
 
-    def format_results(self, report: DistributionReport) -> str:
-        return report_html.document(_(self.Name), str(self.table), self._report(report))
+    def report_subtitle(self, result: DistributionReport) -> str:
+        return f"{self.table} · {', '.join(r.column for r in result.results)}"
 
-    def _report(self, report: DistributionReport) -> str:
+    def report_body(self, report: DistributionReport) -> str:
         blocks = []
         for result in report.results:
             parts = [report_html.note(_(note)) for note in result.notes]
@@ -101,7 +101,7 @@ class DistributionDialog(TableOperationDialogBase):
             panels.append(("Q-Q Plot", _("Normal quantile plot"), _("Normal quantiles"), column,
                            [(column, sql, roles, {})]))
         columns = ", ".join(result.column for result in report.results)
-        notes = report_html.document(_(self.Name), f"{table} · {columns}", self._report(report))
+        notes = self.report_document(report)
         figure_id = self.create_report_figure(f"{_(self.Name)} · {columns}", notes, panels)
         self.created_figure_ids = [figure_id]
         written.append({"figure": figure_id, "name": columns})

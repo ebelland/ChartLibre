@@ -746,15 +746,6 @@ class MplStyleEditorDialog(SettingsTableDialog):
     def _editor_values(self) -> dict[str, object]:
         return self.editor.get_values()
 
-    def _rebuild_editor(self, values: dict[str, object] | None = None) -> None:
-        filter_text = self.editor.filter_text()
-        current_key = self.editor.current_key()
-        self.editor.set_config(self._param_schema)
-        if values:
-            self.editor.set_values(values)
-        self.editor.set_filter_text(filter_text)
-        self.editor.set_current_key(current_key)
-
     def _load_dict_into_table(self, d: dict[str, str]) -> None:
         keys = set(style_rc_keys()) | set(d)
         self._param_schema = {

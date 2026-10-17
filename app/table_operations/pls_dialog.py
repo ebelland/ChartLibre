@@ -82,11 +82,10 @@ class PLSDialog(TableOperationDialogBase):
                       components=components or None, folds=int(params.get("folds", 7)),
                       scale=bool(params.get("scale", False)))
 
-    def format_results(self, result: pl.PLSResult) -> str:
-        return report_html.document(_(self.Name), f"{self.table} · {', '.join(result.responses)}",
-                                    self._report(result))
+    def report_subtitle(self, result: pl.PLSResult) -> str:
+        return f"{self.table} · {', '.join(result.responses)}"
 
-    def _report(self, result: pl.PLSResult) -> str:
+    def report_body(self, result: pl.PLSResult) -> str:
         blocks = [report_html.note(_(note)) for note in result.notes]
         blocks.append(report_html.section(_("Summary"), report_html.summary_table(
             (_(key), report_html.format_number(value)) for key, value in result.summary.items())))
@@ -129,7 +128,7 @@ class PLSDialog(TableOperationDialogBase):
         sql, roles = self.series_select(names["rows"], {"x": f"Predicted {response}", "y": response})
         panels.append(("Scatter Plot", _("Actual by predicted"), f"Predicted {response}", response,
                        [(response, sql, roles, {})]))
-        notes = report_html.document(_(self.Name), f"{table} · {', '.join(result.responses)}", self._report(result))
+        notes = self.report_document(result)
         figure_id = self.create_report_figure(f"PLS · {response}", notes, panels)
         self.created_figure_ids = [figure_id]
         written.append({"figure": figure_id, "name": response})

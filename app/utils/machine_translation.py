@@ -42,7 +42,6 @@ import json
 import os
 import re
 import shutil
-import ssl
 import sys
 import threading
 import time
@@ -54,6 +53,7 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from app.utils.data_sources import _web_fetch_ssl_context
 
 #: The services offered, as (key, name shown in the dialog).
 PROVIDERS: tuple[tuple[str, str], ...] = (
@@ -156,7 +156,7 @@ class DeepLTranslator:
         self.api_key = api_key.strip()
         self.target = target
         self.url = DEEPL_FREE_URL if self.api_key.endswith(":fx") else DEEPL_PRO_URL
-        self._open = opener or functools.partial(urllib.request.urlopen, context=_ssl_context())
+        self._open = opener or functools.partial(urllib.request.urlopen, context=_web_fetch_ssl_context())
 
     def translate(self, text: str) -> str:
         lines = text.split("\n")
@@ -246,7 +246,7 @@ def argos_model(language: str, root: Path, *, opener: Callable[..., Any] | None 
     folder = root / f"en_{language.lower()}"
     if (folder / "sentencepiece.model").is_file() and (folder / "model" / "model.bin").is_file():
         return folder
-    fetch = opener or functools.partial(urllib.request.urlopen, context=_ssl_context())
+    fetch = opener or functools.partial(urllib.request.urlopen, context=_web_fetch_ssl_context())
     try:
         with fetch(ARGOS_INDEX_URL, timeout=30) as response:
             index = json.loads(response.read().decode("utf-8"))
@@ -304,17 +304,6 @@ def _unpack_argos(archive: Path, folder: Path) -> None:
         raise RuntimeError("Argos Translate's model archive is damaged") from exc
     finally:
         shutil.rmtree(staging, ignore_errors=True)
-
-
-def _ssl_context() -> ssl.SSLContext | None:
-    """certifi's CA bundle when installed: a python.org macOS build has no
-    trust store until "Install Certificates.command" is run (the same reason
-    as data_sources._web_fetch_ssl_context)."""
-    try:
-        import certifi
-    except ImportError:
-        return None
-    return ssl.create_default_context(cafile=certifi.where())
 
 
 def _deepl_refusal(status: int) -> str:

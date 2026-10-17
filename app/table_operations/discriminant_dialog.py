@@ -81,10 +81,10 @@ class DiscriminantDialog(TableOperationDialogBase):
             priors=str(params.get("priors") or da.PROPORTIONAL),
         )
 
-    def format_results(self, result: da.DiscriminantResult) -> str:
-        return report_html.document(_(self.Name), f"{self.table} · {result.response}", self._report(result))
+    def report_subtitle(self, result: da.DiscriminantResult) -> str:
+        return f"{self.table} · {result.response}"
 
-    def _report(self, result: da.DiscriminantResult) -> str:
+    def report_body(self, result: da.DiscriminantResult) -> str:
         blocks = [report_html.note(_(note)) for note in result.notes]
         method = _(dict(da.METHODS)[result.method])
         blocks.append(report_html.section(_("Summary"), report_html.summary_table(
@@ -122,7 +122,7 @@ class DiscriminantDialog(TableOperationDialogBase):
             repo.import_dataframe(getattr(result, key), table_name=names[key], normalize_columns=False)
         written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
 
-        notes = report_html.document(_(self.Name), f"{table} · {result.response}", self._report(result))
+        notes = self.report_document(result)
         figure_id = self.create_report_figure(f"Discriminant · {result.response}", notes,
                                               [self._canonical_plot(result, names["rows"])])
         self.created_figure_ids = [figure_id]

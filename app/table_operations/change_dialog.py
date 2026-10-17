@@ -17,7 +17,6 @@ from app.analysis import change as ch
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.table_operations.differences_dialog import answer_html
-from app.utils import report_html
 from app.utils.i18n import _
 
 
@@ -59,8 +58,11 @@ class ChangeDialog(TableOperationDialogBase):
         time = casting.columns("time")
         return ch.has_changed(frame, casting.columns("response")[0], time[0] if time else ch.ROW_ORDER)
 
-    def format_results(self, result: ch.ChangeAnswer) -> str:
-        return report_html.document(_(self.Name), str(self.table), answer_html(result))
+    def report_body(self, result: ch.ChangeAnswer) -> str:
+        return answer_html(result)
+
+    def report_subtitle(self, result: ch.ChangeAnswer) -> str:
+        return f"{self.table} · {self.roles_widget.casting().columns('response')[0]}"
 
     def apply_results(self, result: ch.ChangeAnswer) -> list[dict[str, Any]]:
         repo, table = self._repo, self.table
@@ -94,7 +96,7 @@ class ChangeDialog(TableOperationDialogBase):
             if pd.notna(step) and step > pd.Timedelta(0):
                 options["gap_threshold"] = f"{int((5 * step).total_seconds())}s"
         panel = ("Time Series", _("{measure} over time").format(measure=measure), x_label, measure, series, options)
-        notes = report_html.document(_(self.Name), f"{table} · {measure}", answer_html(result))
+        notes = self.report_document(result)
         figure_id = self.create_report_figure(f"{_(self.Name)} · {measure}", notes, [panel])
         self.created_figure_ids = [figure_id]
         return [{"table": name}, {"figure": figure_id, "name": measure}]

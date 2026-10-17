@@ -689,16 +689,6 @@ class TableListPanel(QWidget):
             return current[0]
         return None
 
-    def _open_query_builder(self) -> None:
-        """Edit the selected saved query if there is one, else open the Query Builder empty."""
-        if self._repo is None:
-            return
-        if self._single_selected_query() is not None:
-            self._edit_selected_query()
-            return
-        QueryBuilderDialog(self._repo, parent=self.window()).exec()
-        self.reload()
-
     def _edit_selected_query(self) -> None:
         """Open the selected saved query in the Query Builder.
 

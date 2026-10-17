@@ -58,10 +58,10 @@ class ImpactDialog(TableOperationDialogBase):
         del params, model
         return im.impact(frame, casting.columns("response")[0], casting.columns("factor"))
 
-    def format_results(self, result: im.ImpactAnswer) -> str:
-        return report_html.document(_(self.Name), str(self.table), self._report(result))
+    def report_subtitle(self, result: im.ImpactAnswer) -> str:
+        return f"{self.table} · {self.roles_widget.casting().columns('response')[0]}"
 
-    def _report(self, result: im.ImpactAnswer) -> str:
+    def report_body(self, result: im.ImpactAnswer) -> str:
         ranking = result.ranking.copy()
         ranking["Direction"] = [self._direction(value) for value in ranking["Direction"]]
         return answer_html(result) + report_html.section(
@@ -86,7 +86,7 @@ class ImpactDialog(TableOperationDialogBase):
         sql, roles = self.series_select(name, {"Y": "Impact %", "X": "Factor"})
         panel = ("Pareto Chart", _("What has the most impact on {response}").format(response=response), "",
                  _("Impact %"), [(response, sql, roles, {})])
-        notes = report_html.document(_(self.Name), f"{table} · {response}", self._report(result))
+        notes = self.report_document(result)
         figure_id = self.create_report_figure(f"{_(self.Name)} · {response}", notes, [panel])
         self.created_figure_ids = [figure_id]
         return [{"table": name}, {"figure": figure_id, "name": response}]

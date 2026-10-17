@@ -349,10 +349,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             self._status_project.setText(project)
             self._status_project.setToolTip(str(self._db_path) if self._db_path else "")
 
-    def _toggle_workspace(self) -> None:
-        """Hide the panel beside the bar, or bring it back (the Workspace row)."""
-        self._left_panel.toggle_panels()
-
     #: config.json key remembering whether the rail is collapsed to icons.
     NAV_COMPACT_KEY: str = "navigation_compact"
 

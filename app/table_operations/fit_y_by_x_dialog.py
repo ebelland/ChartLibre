@@ -87,10 +87,10 @@ class FitYByXDialog(TableOperationDialogBase):
     # The report
     # ------------------------------------------------------------------
 
-    def format_results(self, report: FitYByXReport) -> str:
-        return report_html.document(_(self.Name), str(self.table), self._report(report))
+    def report_subtitle(self, result: FitYByXReport) -> str:
+        return f"{self.table} · {result.results[0].y}"
 
-    def _report(self, report: FitYByXReport) -> str:
+    def report_body(self, report: FitYByXReport) -> str:
         blocks = []
         for result in report.results:
             parts = [report_html.note(_(note)) for note in result.notes]
@@ -127,7 +127,7 @@ class FitYByXDialog(TableOperationDialogBase):
         panels = [self._panel(result, next(curve_tables) if not result.curve.empty else None)
                   for result in report.results]
         y = report.results[0].y
-        notes = report_html.document(_(self.Name), f"{table} · {y}", self._report(report))
+        notes = self.report_document(report)
         figure_id = self.create_report_figure(f"{_(self.Name)} · {y}", notes, panels)
         self.created_figure_ids = [figure_id]
         written.append({"figure": figure_id, "name": y})

@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from app.utils.distribution_fit import best_fit, curve_points, fit_distributions, fit_one
+from app.utils.distribution_fit import curve_points, fit_distributions, fit_one
 from dev.tests._cases import check_all
 
 RNG = np.random.default_rng(11)
@@ -66,7 +66,7 @@ def test_a_sample_ranks_its_own_family_at_the_top() -> None:
 # ----------------------------------------------------------------------
 def test_the_density_curve_integrates_to_about_one() -> None:
     """It is a probability density, which is why the histogram must be one too."""
-    fit = best_fit(RNG.normal(10.0, 2.0, 3000))
+    fit = fit_distributions(RNG.normal(10.0, 2.0, 3000))[0]
     assert fit is not None
 
     x, pdf = curve_points(fit, 0.0, 20.0, points=2000)

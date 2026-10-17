@@ -665,10 +665,6 @@ class TableEditorDialog(SettingsTableDialog):
     # Data tools
     # ------------------------------------------------------------------
 
-    def _hide_rows(self, operator: str | None, *, from_cell: bool = False) -> None:
-        """Hide the rows where the selected column compares to a value."""
-        self._flag_rows("Hide", operator, from_cell=from_cell)
-
     def _flag_rows(self, flag: str, operator: str | None, *, from_cell: bool = False) -> None:
         """Set *flag* (Hide or Selected) on the rows where the selected column
         compares to a value.

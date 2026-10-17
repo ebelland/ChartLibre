@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Sequence, cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QFrame, QMessageBox, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QSplitter, QToolBox
+from PySide6.QtWidgets import QFrame, QMessageBox, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QSplitter, QToolBox
 
 from app.scanners.axis_renderer_scanner import (
     get_renderer,
@@ -29,7 +29,6 @@ from app.data.sqlite_repo import SqliteRepo
 from app.data.data_source import quote_identifier
 from app.utils.messages import show_message
 from app.styles.style import (
-    apply_dialog_shell,
     apply_toolbox_header_metrics,
     create_doc_link,
     set_doc_link,
@@ -42,6 +41,7 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.i18n import _, tr
+from app.dialogs.two_panels_dialog_base import PanelDialog
 
 
 @dataclass(slots=True)
@@ -63,7 +63,7 @@ class NewPlotTabResult:
     series_count: int
 
 
-class NewPlotTabDialog(QDialog):
+class NewPlotTabDialog(PanelDialog):
     """Dialog used to create a figure/axis and one or more plot series.
 
     Role selection is renderer-driven: the scrollable roles panel is rebuilt
@@ -86,7 +86,8 @@ class NewPlotTabDialog(QDialog):
         preferred_columns: Sequence[str] | None = None,
         parent: QWidget | None = None,
     ) -> None:
-        super().__init__(parent)
+        # The shell - title, icon, padding, the row of buttons - is PanelDialog's.
+        super().__init__(parent, title=_("New Chart"), icon=load_icon("new_plot"), size="large")
 
         self._repo = repo
         #: Columns picked in the table preview, mapped onto x, y and z in
@@ -101,10 +102,7 @@ class NewPlotTabDialog(QDialog):
         self._figure_name_user_modified = False
         self._axis_name_user_modified = False
 
-        self.setWindowTitle(_("New plot"))
-        self.setWindowIcon(load_icon("new_plot"))
         self.setModal(False)
-        # Size and root padding come from the shared dialog shell.
 
         # ------------------------------------------------------------------
         # Left: renderer list.
@@ -374,27 +372,9 @@ class NewPlotTabDialog(QDialog):
         splitter.setStretchFactor(2, 1)
         splitter.setSizes([230, 430, 330])
 
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-
-        action_row.addStretch(1)
-        create_action_button(
-            parent=self,
-            action_id="apply",
-            action=self._on_accept,
-            layout=action_row,
-        )
-        create_action_button(
-            parent=self,
-            action_id="close",
-            action=self.reject,
-            layout=action_row,
-        )
-        root = QVBoxLayout(self)
-        apply_dialog_shell(self, root, size="large")
-        root.addWidget(splitter)
-        root.addLayout(action_row)
-        self.setLayout(root)
+        self.body_layout.addWidget(splitter, 1)
+        self.add_action("apply", self._on_accept)
+        self.add_action("close", self.reject)
     
         # ------------------------------------------------------------------
         # Wiring.
@@ -466,13 +446,12 @@ class NewPlotTabDialog(QDialog):
                 item.setToolTip(tr(str(renderer.get("description") or "")))
                 renderer_list.addItem(item)
 
-            # As tall as its rows: the accordion's page scrolls when needed,
-            # not the list inside it as well - two scroll bars side by side (B-12).
-            renderer_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            # The list scrolls, filling its accordion page; asking for next to
+            # no height, it never makes the page scroll too - one scroll bar,
+            # not two side by side (B-12).
             renderer_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            rows = max(1, renderer_list.count())
-            renderer_list.setFixedHeight(rows * max(renderer_list.sizeHintForRow(0), 18)
-                                         + 2 * renderer_list.frameWidth() + 4)
+            renderer_list.setMinimumHeight(40)
+            renderer_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
             self._lists_by_category[category] = renderer_list
             self._types_toolbox.addItem(renderer_list, tr(category))
 

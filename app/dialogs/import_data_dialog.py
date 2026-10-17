@@ -15,7 +15,6 @@ from collections.abc import Callable
 
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt, QTimer
-from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QBoxLayout,
     QApplication,

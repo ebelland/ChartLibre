@@ -1,4 +1,4 @@
-"""The table list's context menu: Query Builder edits the selected query, if any."""
+"""The table list's context menu: Edit query opens the Query Builder on the selected query."""
 from __future__ import annotations
 
 import pandas as pd
@@ -47,24 +47,11 @@ def _select(panel: TableListPanel, name: str) -> None:
     raise AssertionError(f"{name} is not in the list")
 
 
-def test_with_a_saved_query_selected_the_builder_opens_on_that_query(panel: TableListPanel) -> None:
+def test_edit_query_opens_the_builder_on_the_selected_query(panel: TableListPanel) -> None:
     _select(panel, "evens")
     assert panel._single_selected_query() == "evens"
-    panel._open_query_builder()
+    panel._edit_selected_query()
     assert _Recorder.opened == ["evens"]
-
-
-def test_with_a_table_selected_the_builder_opens_empty(panel: TableListPanel) -> None:
-    _select(panel, "numbers")
-    assert panel._single_selected_query() is None
-    panel._open_query_builder()
-    assert _Recorder.opened == [None]
-
-
-def test_with_nothing_selected_the_builder_still_opens(panel: TableListPanel) -> None:
-    panel._view.selectionModel().clearSelection()
-    panel._open_query_builder()
-    assert _Recorder.opened == [None]
 
 
 def test_ok_saves_and_closes_and_stays_open_on_a_bad_query(qapp, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch) -> None:
