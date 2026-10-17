@@ -692,7 +692,7 @@ class ImportDataDialog(SettingsTableDialog):
                 ss = s.astype(str).str.strip().replace("nan", "")
                 if ss.eq("").all():
                     empties.append(str(col))
-            except Exception:
+            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
                 pass
         return empties
 
@@ -741,7 +741,7 @@ class ImportDataDialog(SettingsTableDialog):
                 return "INTEGER"
             if pd.api.types.is_datetime64_any_dtype(s):
                 return "DATETIME"
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             pass
         return "TEXT"
 

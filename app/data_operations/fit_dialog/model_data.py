@@ -447,7 +447,7 @@ class ModelDataMixin:
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
             return scanner.make_model(self._selected_model), p0
-        except Exception:
+        except Exception:  # noqa: BLE001 - a plugin's own code
             applogger.exception(
                 "Failed to build scanned fit function: %s",
                 self._selected_model.get("name", ""),

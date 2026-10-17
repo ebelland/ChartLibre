@@ -54,7 +54,7 @@ class GeometryMixin:
         handled = super().event(event)
         try:
             event_type = event.type()
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             return handled
         if event_type == QEvent.Type.Show:
             self._schedule_canvas_geometry_sync(redraw=True, late=True)
@@ -88,7 +88,7 @@ class GeometryMixin:
         """
         try:
             event_type = event.type()
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             return False
 
         if event_type != QEvent.Type.Resize:
@@ -473,7 +473,7 @@ class GeometryMixin:
             width_in, height_in = self._fixed_figure_size_inches
             width_value = float(width_in)
             height_value = float(height_in)
-        except Exception:
+        except (TypeError, ValueError):
             return DEFAULT_ASPECT_RATIO
 
         if width_value <= 0.0 or height_value <= 0.0:
@@ -648,7 +648,7 @@ class GeometryMixin:
             # descriptor was drawn. Which is exactly how they "were ignored".
             self._fixed_figure_size_inches = (width_in, height_in)
             self._fixed_figure_dpi = float(dpi)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to apply figure metrics (figure_id=%s)", self._figure_id
             )
@@ -672,7 +672,7 @@ class GeometryMixin:
                 # drawing at it scaled the text with it - a 200 dpi figure in
                 # a FIT panel came out with letters twice the size.
                 self._set_configured_dpi(FIXED_MODE_SCREEN_DPI)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to reset figure metrics from rcParams (figure_id=%s)",
                 self._figure_id,
@@ -721,7 +721,7 @@ class GeometryMixin:
             # rcParams holds the dpi the user configured, with neither factor
             # in it.  That is the only stable baseline.
             self._fixed_figure_dpi = float(rcParams.get("figure.dpi", 100.0) or 100.0)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to capture rendered figure metrics (figure_id=%s)",
                 self._figure_id,
@@ -741,7 +741,7 @@ class GeometryMixin:
         """
         try:
             width_in, height_in = self._fixed_figure_size_inches
-        except Exception:
+        except (TypeError, ValueError):
             width_in, height_in = 16.0, 9.0
 
         zoom = self._zoom_percent / 100.0 if apply_zoom else 1.0
@@ -758,7 +758,7 @@ class GeometryMixin:
             # figure's own dpi stays in _fixed_figure_dpi, for saving.
             self._set_configured_dpi(FIXED_MODE_SCREEN_DPI)
             self._figure.set_size_inches(width_in, height_in, forward=False)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to restore unzoomed figure metrics (figure_id=%s)",
                 self._figure_id,
@@ -798,7 +798,7 @@ class GeometryMixin:
                 logical_to_inches(pixels.height(), self._figure, self._canvas),
                 forward=False,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to apply fixed-mode pixel size (figure_id=%s)",
                 self._figure_id,

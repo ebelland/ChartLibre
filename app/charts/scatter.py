@@ -435,7 +435,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                             label="_nolegend_",
                             **error_kwargs,
                         )
-                    except Exception:
+                    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                         applogger.exception(
                             "Failed to draw error bars for series '%s'.", sd.name
                         )

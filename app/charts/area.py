@@ -121,7 +121,7 @@ class StackplotAxisRenderer(BaseAxisRenderer):
 
         try:
             ax.stackplot(x, *columns, labels=labels, **base_kwargs)
-        except Exception:
+        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
             applogger.exception("Stack plot failed to draw.")
             return
 
@@ -218,7 +218,7 @@ class StairsAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.stairs(values, edges, **kwargs)
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Stairs failed to draw series '%s'.", sd.name)
         # Draw descriptor annotations after renderer-owned artists.
         self.apply_annotations(ax, options or {})
@@ -322,7 +322,7 @@ class StemAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.stem(x[mask], y[mask], **kwargs)
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Stem Plot failed to draw series '%s'.", sd.name)
 
         self.apply_annotations(ax, axis_options)
@@ -493,7 +493,7 @@ class BarbsAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.barbs(*(column[mask] for column in columns), **base_kwargs)
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Wind barbs failed to draw series '%s'.", sd.name)
         # Draw descriptor annotations after renderer-owned artists.
         self.apply_annotations(ax, options or {})

@@ -75,6 +75,6 @@ def axis_text(axis: Any, value: float) -> str:
     """
     try:
         text = axis.get_major_formatter().format_data_short(value).strip()
-    except Exception:
+    except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
         text = ""
     return text or f"{value:g}"

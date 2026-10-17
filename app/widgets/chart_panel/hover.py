@@ -180,7 +180,7 @@ class HoverMixin:
                     continue
 
                 pixels = axes.transData.transform(np.column_stack([xs, ys]))
-            except Exception:
+            except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
                 continue
 
             offsets = pixels - np.array([event.x, event.y], dtype=float)
@@ -208,7 +208,7 @@ class HoverMixin:
         if self._hover_annotation is not None:
             try:
                 self._hover_annotation.remove()
-            except Exception:
+            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
                 pass
             # The annotation was part of the old axes' contents, so the cached
             # background no longer matches what is on screen.
@@ -252,7 +252,7 @@ class HoverMixin:
             canvas.restore_region(self._hover_background)
             axes.draw_artist(annotation)
             canvas.blit(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             # Any backend that cannot blit still gets a correct, slower chart.
             self._hover_background = None
             canvas.draw_idle()
@@ -269,6 +269,6 @@ class HoverMixin:
                 self._canvas.restore_region(self._hover_background)
                 self._canvas.blit(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
                 return
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             self._hover_background = None
         self._canvas.draw_idle()

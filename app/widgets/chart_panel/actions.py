@@ -58,7 +58,7 @@ class ActionsMixin:
                 return
             PySide6.QtGui.QGuiApplication.clipboard().setImage(image)
             applogger.info("Chart copied to clipboard (figure_id=%s)", self._figure_id)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to copy chart to clipboard (figure_id=%s)",
                 self._figure_id,
@@ -104,7 +104,7 @@ class ActionsMixin:
                 file_path,
                 selected_filter,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception("Failed to save chart (figure_id=%s)", self._figure_id)
             show_message(self, "chart.save_failed")
 
@@ -208,7 +208,7 @@ class ActionsMixin:
                 file_path,
                 len(rows),
             )
-        except Exception:
+        except OSError:
             applogger.exception("Failed to export chart view (figure_id=%s)", self._figure_id)
             show_message(self, "chart.save_failed")
 

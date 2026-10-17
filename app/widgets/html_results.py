@@ -245,7 +245,7 @@ class HtmlResultsView(QWidget):
             _WEB_VIEWS.add(view)
             _hook_release()
             return cast(QWidget, view)
-        except Exception:
+        except (ImportError, RuntimeError):
             pass
 
         browser = QTextBrowser(self)

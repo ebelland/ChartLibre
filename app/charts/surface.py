@@ -437,7 +437,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.scatter(x, y, z, **kwargs)
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception(
                     "Scatter Plot (3D) failed to draw series '%s'.", sd.name
                 )
@@ -560,7 +560,7 @@ class Line3DAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.plot(x, y, z, **kwargs)
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception(
                     "3D Line Plot failed to draw series '%s'.", sd.name
                 )

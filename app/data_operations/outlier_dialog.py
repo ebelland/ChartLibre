@@ -324,7 +324,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
         for row in usable:
             try:
                 results.append(self._detect_outliers(row, model, params))
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - collected per series, reported with the others
                 errors.append(f"{self._series_display_name(row)}: {exc}")
 
         if errors and not results:
@@ -721,7 +721,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
                     count=len(results), colour=colour)
             self.set_results_html(self.format_results(results) + report_html.note(message))
             return True
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to preview outlier hide flags")
             show_message(self, "series.preview_failed", error=exc)
             return False

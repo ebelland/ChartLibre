@@ -416,7 +416,7 @@ class MainWindowChartProperties:
                 name=name,
                 options=descriptor.options or {},
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to rename figure_id=%s", figure_id)
             return
 

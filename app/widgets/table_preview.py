@@ -119,7 +119,7 @@ class DataFrameTableModel(QAbstractTableModel):
             return None
         try:
             value = self._frame.iat[index.row(), index.column()]
-        except Exception:
+        except IndexError:
             return None
         return "" if value is None else str(value)
 
@@ -233,7 +233,7 @@ class TablePreviewPanel(QWidget):
 
             self.view.setModel(LazyTableModel(self._repo, self._table, parent=self.view))
             self.view.resizeColumnsToContents()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Preview model init failed for source=%s: %s", self._table, exc)
             self.view.setModel(None)
 
@@ -412,7 +412,7 @@ class TablePreviewPanel(QWidget):
             return
         try:
             stats = self._repo.column_stats(self._table, column)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Column statistics failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -444,7 +444,7 @@ class TablePreviewPanel(QWidget):
             return
         try:
             name = self._repo.duplicate_table(self._table)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Duplicate table failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -474,7 +474,7 @@ class TablePreviewPanel(QWidget):
             else:
                 assert self._repo is not None
                 frame = self._repo.visible_rows(self._table)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Export rows failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -495,7 +495,7 @@ class TablePreviewPanel(QWidget):
                 frame.to_excel(target, index=False, engine="openpyxl")
             else:
                 frame.to_csv(target, index=False)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Export rows failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -569,7 +569,7 @@ class TablePreviewPanel(QWidget):
             return
         try:
             self._flag_done(flag, self._repo.flag_rows_by_value(self._table, flag, column, operator, value))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("%s rows failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 
@@ -578,7 +578,7 @@ class TablePreviewPanel(QWidget):
             return
         try:
             self._flag_done(flag, self._repo.flag_rows_special(self._table, flag, column, mode))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("%s rows failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 
@@ -590,7 +590,7 @@ class TablePreviewPanel(QWidget):
         value = index.data(Qt.ItemDataRole.DisplayRole)
         try:
             self._flag_done(flag, self._repo.flag_rows_by_value(self._table, flag, column, "=", value))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("%s selected value failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 

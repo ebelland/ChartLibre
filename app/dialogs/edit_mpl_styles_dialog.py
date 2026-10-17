@@ -188,7 +188,7 @@ def _rc_enum_choices(key: str) -> tuple[list[str], bool] | None:
         if lower == "savefig.format":
             try:
                 choices = sorted(plt.gcf().canvas.get_supported_filetypes().keys()) or choices
-            except Exception:
+            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
                 pass
         return choices, False
     if lower in _KEY_CHOICES:
@@ -199,7 +199,7 @@ def _rc_enum_choices(key: str) -> tuple[list[str], bool] | None:
         from matplotlib import rcsetup
 
         validator = rcsetup._validators.get(key)  # pyright: ignore[reportAttributeAccessIssue]
-    except Exception:
+    except (ImportError, AttributeError):
         return None
     if isinstance(validator, type) and issubclass(validator, Enum):
         # JoinStyle, CapStyle: the members' own values.
@@ -271,7 +271,7 @@ def _font_choices(*, generic: bool) -> list[str]:
             {entry.name for entry in font_manager.fontManager.ttflist if not entry.name.startswith(".")},
             key=str.lower,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - an optional platform feature: absent or refusing is not an error
         installed = []
     return [*(_GENERIC_FONT_FAMILIES if generic else ()), *installed]
 
@@ -301,7 +301,7 @@ def _rcparam_kind(key: str) -> str:
             return "number"
         if isinstance(cur, _cycler.Cycler):
             return "cycler"
-    except Exception:
+    except KeyError:
         pass
     return "string"
 
@@ -734,7 +734,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
             try:
                 choices = [str(name) for name in plt.colormaps()]  # pyright: ignore[reportAttributeAccessIssue]
                 choices.sort()
-            except Exception:
+            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
                 choices = []
             meta["type"] = choices
             meta["kind"] = "enum"
@@ -792,7 +792,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
         finally:
             try:
                 tmp_path.unlink(missing_ok=True)
-            except Exception:
+            except OSError:
                 pass
 
         self._load_dict_into_table(
@@ -884,7 +884,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
 
                 cast(Any, validator)[key] = val_obj
                 valid[key] = val_obj
-            except Exception as ex:
+            except Exception as ex:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
                 invalid.append((key, raw, str(ex)))
 
         # Why here: this is the single funnel every override passes through on
@@ -922,7 +922,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
             else:
                 self.status.setText(_("Preview updated: {count} changed parameters").format(count=len(style_dict)))
                 self.status.setToolTip("")
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             self.status.setText(_("Preview failed — see error dialog."))
             show_message(self, "style.preview_failed", error=ex)
 
@@ -957,7 +957,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
             self.status.setText(
                 f"Saved {len(style_dict)} parameter(s): "
                 f"{os.path.basename(path)}")
-        except Exception as ex:
+        except OSError as ex:
             show_message(self, "style.save_failed", error=ex)
 
     def _load_from_file(self) -> None:
@@ -969,7 +969,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
             return
         try:
             params = mpl.rc_params_from_file(path, use_default_template=False)
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             show_message(self, "style.load_failed", error=ex)
             return
         self._load_dict_into_table(
@@ -988,7 +988,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
             for k, v in overrides.items():
                 try:
                     cast(Any, mpl.rcParams)[k] = v
-                except Exception:
+                except (KeyError, ValueError, TypeError):
                     pass
             merged: dict[str, object] = {k: v for k, v in mpl.rcParams.items()
                       if k not in _NON_STYLE_KEYS}
@@ -1011,14 +1011,14 @@ class MplStyleEditorDialog(SettingsTableDialog):
                     if k in _NON_STYLE_KEYS:
                         continue
                     f.write(f"{k}: {_to_file_str(style_dict[k])}\n")
-        except Exception:
+        except OSError:
             try:
                 tmp_path.unlink(missing_ok=True)  # Python 3.8+
-            except Exception:
+            except OSError:
                 if tmp_path.exists():
                     try:
                         tmp_path.unlink()
-                    except Exception:
+                    except OSError:
                         pass
             raise
         return str(tmp_path)
@@ -1030,21 +1030,21 @@ class MplStyleEditorDialog(SettingsTableDialog):
         try:
             style_dict: dict[str, object] = self._current_merged_style()
             temp_path: str = self._write_temp_style_file(style_dict)
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             show_message(self, "style.apply_failed", error=ex)
             return
 
         # Emit signal with path
         try:
             self.styleApplied.emit(temp_path)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             pass
 
         # Call user callback with path
         if callable(self.apply_callback):
             try:
                 self.apply_callback(temp_path)
-            except Exception as ex:
+            except Exception as ex:  # noqa: BLE001 - a plugin's own code
                 show_message(self, "style.apply_callback_failed", error=ex)
                 return
 

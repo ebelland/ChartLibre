@@ -380,6 +380,6 @@ class PickingMixin:
             for location, label in zip(locations, labels):
                 if abs(float(location) - position) < 0.5 and label:
                     return str(label)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             pass
         return axis_text(axis, position)

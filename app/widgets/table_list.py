@@ -864,7 +864,7 @@ class TableListPanel(QWidget):
         try:
             refresh_link(self._repo, link_id=int(link["id"]), password=password)
             self.changed.emit()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception(f"Link refresh failed: {exc}")
 
     def _delete_selected(self) -> None:

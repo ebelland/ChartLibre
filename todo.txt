@@ -31,6 +31,9 @@ DONE Dialogs fit a 1280x720 laptop: data operations' Model/Parameters pages scro
      test over every operation.
 DONE macOS: rail search field rounded like the other fields.
 DONE dev/tools/update_dependencies.py (.command/.bat): every library to its latest release.
+DONE R-12b: every 'except Exception' narrowed (26: conversions, JSON, files, optional imports, rcParams)
+     or marked a boundary with its reason (noqa: BLE001 - Matplotlib draw, plugin code, per-series errors,
+     user actions, cleanup, chart interaction).
 DONE AN-11: Create Query Table > Build: Join (inner/left/right/full, 1-2 key pairs, Match column), Union
      (Source column), Stack, Split (by order with no group), Transpose, Recode, Bin, Group - each writes plain
      SQLite into the editor and runs it; Save as table beside Save as query. (Imputation: Fill empty in the table editor.)
@@ -123,7 +126,6 @@ LATER
 - R-07  L  Linked selection across charts and table, then a data filter
            (idea to evaluate: a "Selected" column; not for queries).
 - N-09  M  "Colour by value" dialog.
-- R-12b M  Narrow "except Exception" to true boundaries.
 
 
 IDEAS

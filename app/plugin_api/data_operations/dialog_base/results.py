@@ -123,7 +123,7 @@ class ResultsMixin:
                 int(figure_id) if figure_id is not None else self._figure_id
             )
             axis_ids = {int(axis.id) for axis in (descriptor.axes if descriptor else [])}
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Could not check the result target after a rollback")
             axis_ids = set()
         if axis_id is not None and int(axis_id) not in axis_ids:
@@ -154,7 +154,7 @@ class ResultsMixin:
             elif axis_id is not None:
                 self._repo.delete_axis(int(axis_id))
                 applogger.info("Discarded the unapplied axis %s.", axis_id)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to discard the unapplied result target")
 
     def create_result_figure(
@@ -245,7 +245,7 @@ class ResultsMixin:
         for row in self._repo.get_series(axis_id) or []:
             try:
                 style = json.loads(str(row["style_json"] or "{}"))
-            except Exception:
+            except (TypeError, ValueError):
                 style = {}
             if all(style.get(key) == value for key, value in expected.items()):
                 self._repo.delete_series(int(row["id"]))
@@ -342,7 +342,7 @@ class ResultsMixin:
         """Notify the owner window that chart/data panes must refresh."""
         try:
             self.applied.emit()
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to emit preview refresh signal.")
 
     def _reset_preview_state_flags(self) -> None:
@@ -363,7 +363,7 @@ class ResultsMixin:
             rows = int(getattr(descriptor, "nrows", 1) or 1)
             cols = int(getattr(descriptor, "ncols", 1) or 1)
             return max(1, rows), max(1, cols)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to capture original figure grid.")
             return None
 
@@ -378,5 +378,5 @@ class ResultsMixin:
             current_cols = int(getattr(descriptor, "ncols", 1) or 1)
             if (current_rows, current_cols) != (rows, cols):
                 self._repo.set_figure_grid(self._figure_id, nrows=rows, ncols=cols)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to restore original figure grid.")

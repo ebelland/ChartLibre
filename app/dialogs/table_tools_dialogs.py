@@ -281,7 +281,7 @@ class GroupAggregateDialog(SettingsTableDialog):
                 self.measures(),
                 include_hidden=self.include_hidden.isChecked(),
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             self._preview.setModel(None)
             self._status.setText(str(exc))
             self._ok.setEnabled(False)
@@ -392,7 +392,7 @@ class ComputedColumnDialog(SettingsTableDialog):
             return
         try:
             values = self._repo.preview_expression(self._table, expression)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             self._status.setText(str(exc))
             self._ok.setEnabled(False)
             return

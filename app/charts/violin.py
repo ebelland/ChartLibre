@@ -260,7 +260,7 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
 
             try:
                 result = ax.violinplot([data], **violin_kwargs)
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception(
                     "Failed to draw violin '%s' of series '%s'.",
                     item["category_label"],
@@ -324,7 +324,7 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
                     body.set_linewidth(float(linewidth))
                 if zorder not in (None, ""):
                     body.set_zorder(float(zorder))
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Failed to style a violin body")
 
         for part_name, _option in _MARKER_PARTS:
@@ -337,7 +337,7 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
                     collection.set_linewidth(float(linewidth))
                 if zorder not in (None, ""):
                     collection.set_zorder(float(zorder))
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Failed to style violin part %s", part_name)
 
         quantile_collection = result.get("cquantiles")
@@ -345,5 +345,5 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
             try:
                 quantile_collection.set_edgecolor(face_color)
                 quantile_collection.set_linestyle("--")
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Failed to style violin quantiles")

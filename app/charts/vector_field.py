@@ -218,7 +218,7 @@ class QuiverAxisRenderer(BaseAxisRenderer):
                     kwargs.pop("vmin", None)
                     kwargs.pop("vmax", None)
                     ax.quiver(x, y, u, v, **kwargs)
-            except Exception:
+            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Quiver failed to draw series '%s'.", sd.name)
 
         self.apply_annotations(ax, axis_options)
@@ -362,7 +362,7 @@ class StreamAxisRenderer(BaseAxisRenderer):
 
         try:
             ax.streamplot(x_axis, y_axis, u_grid, v_grid, **kwargs)
-        except Exception:
+        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
             applogger.exception("Stream Plot failed to draw series '%s'.", sd.name)
 
         self.apply_annotations(ax, axis_options)

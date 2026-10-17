@@ -157,7 +157,7 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
                 z - bottom,
                 **kwargs,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
             applogger.exception("3D Bar Chart failed to draw series '%s'.", sd.name)
 
         self.apply_view(ax, axis_options)

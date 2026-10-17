@@ -48,7 +48,7 @@ class TransactionMixin:
             return False
         try:
             return bool(self._repo.rollback_preview_savepoint())
-        except Exception:
+        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
             applogger.exception("Failed to roll back the preview savepoint")
             return False
 
@@ -58,7 +58,7 @@ class TransactionMixin:
             return
         try:
             self._repo.release_preview_savepoint()
-        except Exception:
+        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
             applogger.exception("Failed to commit the preview savepoint")
 
     def _finalize_successful_operation(
@@ -146,7 +146,7 @@ class TransactionMixin:
                     return finish(False)
                 return True
             results = list(self.compute_results())
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             return finish(self._operation_failed(exc, commit=commit))
         return finish(self._deliver_results(results, int(axis_id_value), commit=commit, inputs=inputs))
 
@@ -239,7 +239,7 @@ class TransactionMixin:
             )
             return True
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             return self._operation_failed(exc, commit=commit)
 
     def operation_inputs(self) -> dict[str, Any]:
@@ -276,7 +276,7 @@ class TransactionMixin:
                 for result in results
             ]
             report = self.format_results(results) or ""
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception(
                 f"Could not record {self.operation_label} in the project's history",
             )
@@ -308,7 +308,7 @@ class TransactionMixin:
                 app_version=str(APP_VERSION),
                 report=report,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception(
                 f"Could not record {self.operation_label} in the project's history",
             )

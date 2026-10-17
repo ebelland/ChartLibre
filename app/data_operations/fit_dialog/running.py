@@ -113,7 +113,7 @@ class FitRunMixin:
         parts = self._split_global(job, outcome) if job.global_parts is not None else [(job, outcome)]
         try:
             results = [self._result_from(part_job, part, optimise=job.optimise) for part_job, part in parts]
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             self._last_result = None
             raise
         self._last_result = results[0]

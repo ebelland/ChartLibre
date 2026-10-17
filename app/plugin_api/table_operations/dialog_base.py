@@ -436,7 +436,7 @@ class TableOperationDialogBase(QDialog):
                 app_version=str(APP_VERSION),
                 report=self.format_results(result),
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Could not record %s in the project's history", self.Name)
 
     # ------------------------------------------------------------------

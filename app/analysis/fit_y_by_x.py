@@ -230,7 +230,7 @@ def _logistic(yv: pd.Series, xv: pd.Series, y: str, x: str) -> FitYByXResult:
     if len(levels) == 2:
         # The probability of the first level, as JMP models it.
         model = sm.Logit((codes == 0).astype(float), design).fit(disp=False)
-        names = [f"Intercept", x]
+        names = ["Intercept", x]
         estimates = pd.DataFrame({"Term": names, "Estimate": model.params, "Std Error": model.bse,
                                   "z": model.tvalues, "pvalue": model.pvalues})
         estimates["Odds ratio"] = np.exp(estimates["Estimate"])

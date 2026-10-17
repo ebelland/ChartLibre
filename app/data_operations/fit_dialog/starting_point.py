@@ -63,7 +63,7 @@ class StartingPointMixin:
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
             cls = scanner.load_class(self._selected_model)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a plugin's own code
             applogger.exception(
                 "Could not load the class for %s", self._selected_model.get("name", "")
             )
@@ -98,7 +98,7 @@ class StartingPointMixin:
             return self._fill_global_initial_from_estimator(function_class)
         try:
             x_data, target_data, _clean = self._load_fit_data()
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             # A query that does not run, or a series with no numeric columns.
             # The declared defaults stay, and nothing is reported.
             return False
@@ -159,7 +159,7 @@ class StartingPointMixin:
         """The function's own estimate, series by series (a global fit)."""
         try:
             series = self._per_series_xy()
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             return False
         n_params = len(self._param_defaults)
         estimates = [ask_the_function(function_class, x, y, expected=n_params) for x, y in series]

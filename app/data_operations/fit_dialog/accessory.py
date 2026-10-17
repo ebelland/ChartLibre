@@ -107,7 +107,7 @@ class AccessoryChartsMixin:
         setattr(self, axis_id_attr, None)
         try:
             self._repo.delete_axis(int(axis_id))
-        except Exception:
+        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
             applogger.exception("Failed to remove accessory axis (%s)", axis_id_attr)
 
     def _sync_accessory_charts(self, results: Sequence[SeriesFitResult]) -> None:
@@ -173,7 +173,7 @@ class AccessoryChartsMixin:
         for table_name in table_names:
             try:
                 self._repo.delete_table(table_name)
-            except Exception:
+            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
                 applogger.exception(
                     "Failed to remove the accessory result table %s", table_name
                 )

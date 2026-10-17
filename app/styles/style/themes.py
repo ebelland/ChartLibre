@@ -35,7 +35,7 @@ def _read_qss_path(path: Path) -> tuple[str | None, Path | None]:
 
     try:
         return path.read_text(encoding="utf-8"), path
-    except Exception:
+    except (OSError, UnicodeDecodeError):
         applogger.exception("Failed to read QSS: %s", path)
         return None, None
 

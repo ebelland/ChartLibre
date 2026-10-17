@@ -535,7 +535,7 @@ class SeriesPropertiesWidget(BaseProperties):
                     if int(axis_id) == self._current_axis_id:
                         name = str(title or "").strip()
                         break
-            except Exception:
+            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
                 applogger.debug("Could not resolve the series axis title.", exc_info=True)
         name = name or _("Axis {id}").format(id=self._current_axis_id)
         self._series_title.setText(_("Axis: {name}").format(name=name))

@@ -393,7 +393,7 @@ def _create_theme_icon(name: str | None) -> QIcon:
             if not QIcon.hasThemeIcon(candidate):
                 continue
             found = QIcon.fromTheme(candidate)
-        except Exception:  # pragma: no cover - defensive; fromTheme does not raise
+        except Exception:  # noqa: BLE001 - pragma: no cover - defensive; fromTheme does not raise
             applogger.exception("Failed to read theme icon %r", candidate)
             continue
         if not found.isNull():
@@ -476,7 +476,7 @@ def _pyobjc_core_is_safe_to_import() -> bool:
         import importlib.metadata
 
         installed = importlib.metadata.version("pyobjc-core")
-    except Exception:
+    except ImportError:
         return True
 
     try:
@@ -617,7 +617,7 @@ def _create_sf_symbol_icon(symbol: str, *, size: int = 20) -> QIcon:
         icon = QIcon(
             _tinted_pixmap(QPixmap.fromImage(qimage), size, tint, ratio=ratio)
         )
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
         applogger.warning(
             "SF Symbol %r could not be rendered (%s); using the SVG icon instead.",
             name,
@@ -733,7 +733,7 @@ def _opaque_bounding_rect(pixmap: QPixmap) -> QRect:
             int(xs.max() - xs.min()) + 1,
             int(ys.max() - ys.min()) + 1,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
         return pixmap.rect()
 
 
@@ -942,7 +942,7 @@ def _qss_symbol_file(name: str) -> str | None:
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
             return target.as_posix() if pixmap.save(str(target), "PNG") else None
-        except Exception:
+        except OSError:
             applogger.debug("Could not draw the QSS image %s.", name, exc_info=True)
             return None
     spec = QSS_SYMBOLS.get(name)
@@ -963,7 +963,7 @@ def _qss_symbol_file(name: str) -> str | None:
         target.parent.mkdir(parents=True, exist_ok=True)
         if not icon.pixmap(QSize(48, 48)).save(str(target), "PNG"):
             return None
-    except Exception:
+    except OSError:
         applogger.debug("Could not render the QSS symbol %s.", name, exc_info=True)
         return None
     return target.as_posix()

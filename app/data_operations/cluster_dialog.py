@@ -676,7 +676,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
             try:
                 series = self._series_choice_from_row(row)
                 inputs.append((self._series_display_name(row), (series, self._feature_columns(series))))
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - collected per series, reported with the others
                 errors.append(f"{self._series_display_name(row)}: {exc}")
         return SeriesJob(inputs, settings, self.compute_series, errors)
 
@@ -847,7 +847,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
             had_column = self._repo.snapshot_column(
                 source_table, CLUSTER_COLUMN, CLUSTER_BACKUP_COLUMN
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception(
                 "Failed to snapshot %s.%s before preview", source_table, CLUSTER_COLUMN
             )
@@ -863,7 +863,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
             self._series_sql_snapshots[series_id] = str(
                 self._repo.get_series_sql_query(series_id) or ""
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to snapshot SQL for series id=%s", series_id)
 
     def restore_operation_snapshots(self) -> bool:
@@ -880,7 +880,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
                     source_table, CLUSTER_COLUMN, CLUSTER_BACKUP_COLUMN
                 )
                 restored = True
-            except Exception:
+            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
                 applogger.exception(
                     "Failed to restore %s.%s after preview", source_table, CLUSTER_COLUMN
                 )
@@ -890,7 +890,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
             try:
                 self._repo.update_series_sql_query(int(series_id), sql_query)
                 restored = True
-            except Exception:
+            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
                 applogger.exception("Failed to restore SQL for series id=%s", series_id)
         self._series_sql_snapshots.clear()
 
@@ -901,7 +901,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
         for source_table in list(self._cluster_snapshots):
             try:
                 self._repo.discard_column_snapshot(source_table, CLUSTER_BACKUP_COLUMN)
-            except Exception:
+            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
                 applogger.exception(
                     "Failed to discard the %s snapshot on %s",
                     CLUSTER_BACKUP_COLUMN,

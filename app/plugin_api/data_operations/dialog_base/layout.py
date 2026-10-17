@@ -302,7 +302,7 @@ class LayoutMixin:
             self._prepare_table_source()
         except ValueError:
             return  # no Y yet: drawn when there is one
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Could not draw the table's columns")
             return
         self._refresh_after_preview_state_change()
@@ -365,6 +365,6 @@ class LayoutMixin:
         if not getattr(self, "_applied", False):
             try:
                 self._repo.delete_figure(int(figure_id))
-            except Exception:
+            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
                 applogger.exception("Failed to discard the figure drawn from a table")
         self._use_figure(self._chart_figure_id)

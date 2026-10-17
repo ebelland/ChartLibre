@@ -541,7 +541,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
             self._repo.delete_figure(figure_id=self._figure_id)
             self._deleted = True
             self.delete_requested.emit(self._figure_id)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to delete figure (figure_id=%s)",
                 self._figure_id,
@@ -592,7 +592,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
             # source for real chart-axis count, and it has already been
             # normalized before rendering. Re-normalizing from rendered axes is
             # what kept a 2x1 layout after a preview axis was deleted.
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception("Failed to render figure_id=%s", self._figure_id)
             self._figure.clear()
 
@@ -621,7 +621,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
         """Restore this figure's own resize mode and zoom when present."""
         try:
             options = self._repo.get_figure_options(self._figure_id)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to read view state for figure_id=%s", self._figure_id
             )
@@ -671,7 +671,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
                 return
             options[FIGURE_VIEW_OPTIONS_KEY] = new_view
             self._repo.set_figure_options(self._figure_id, options)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
             applogger.exception(
                 "Failed to persist view state for figure_id=%s", self._figure_id
             )

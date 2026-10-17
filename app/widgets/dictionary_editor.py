@@ -125,7 +125,7 @@ def _parse_text_value(text: str) -> object:
         return None
     try:
         return ast.literal_eval(stripped)
-    except Exception:
+    except (ValueError, SyntaxError, TypeError):
         return text
 
 

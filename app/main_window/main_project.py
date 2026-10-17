@@ -179,7 +179,7 @@ class MainWindowProject(_MainWindowProjectBase):
         """
         try:
             found = self._repo.scan_user_sql()
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("The project SQL check failed.")
             return
         if not found:
@@ -226,7 +226,7 @@ class MainWindowProject(_MainWindowProjectBase):
             if prepare is not None:
                 try:
                     prepare()
-                except Exception:
+                except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
                     self._repo = SqliteRepo(db_path=self._db_path)
                     self._table_panel.set_repo(self._repo)
                     self._database_info_panel.set_repo(self._repo)

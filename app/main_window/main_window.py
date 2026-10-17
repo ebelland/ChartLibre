@@ -1208,7 +1208,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             guided = getattr(self, "_guided_panel", None)
             if guided is not None:
                 guided.set_table(self._table_panel.current)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to refresh the data panes.")
         self._update_properties_for_current_chart()
         self._refresh_undo_item()

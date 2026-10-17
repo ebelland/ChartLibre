@@ -194,7 +194,7 @@ class ToolsMixin:
                 continue
             try:
                 hit, _details = artist.contains(event)
-            except Exception:
+            except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
                 continue
             if hit:
                 return int(index), artist
@@ -633,7 +633,7 @@ class ToolsMixin:
         for artist in self._ruler_artists:
             try:
                 artist.remove()
-            except Exception:
+            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
                 pass
         self._ruler_artists = []
         self._ruler_start = None

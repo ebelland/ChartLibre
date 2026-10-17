@@ -871,7 +871,7 @@ class AxisPropertiesWidget(BaseProperties):
             if renderer_class is None:
                 raise RuntimeError("Renderer class not found")
             renderer_instance = renderer_class()
-        except Exception:
+        except Exception:  # noqa: BLE001 - a plugin's own code
             applogger.exception("Failed to load renderer kwargs schema")
             self._abandon_kwargs_editor()
             self.set_kwargs_widget(

@@ -220,7 +220,7 @@ class InputsMixin:
             x, y, z = self.series_xyz(row, name)
             frame = pd.DataFrame({"x": x, "y": y, "z": z})
             grid = pivot_to_grid(frame)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             # Any failure to read/pivot the data still leaves a true fact
             # standing: there is a z role, so this is 3D of some kind. Which
             # kind is a detail the label can afford to get wrong here - the
@@ -245,7 +245,7 @@ class InputsMixin:
             return
         try:
             selector.set_origin_text(self.series_origin(rows[0]))
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to describe the selected series' data shape.")
             selector.set_origin_text("")
 
@@ -490,7 +490,7 @@ class InputsMixin:
         for row in self._repo.get_series(axis_id) or []:
             try:
                 style = json.loads(str(row["style_json"] or "{}"))
-            except Exception:
+            except (TypeError, ValueError):
                 style = {}
             if all(style.get(key) == value for key, value in expected.items()):
                 self._repo.delete_series(int(row["id"]))

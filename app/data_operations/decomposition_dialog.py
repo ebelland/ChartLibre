@@ -278,7 +278,7 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
                 x_values, y_values = self.series_xy(row, name)
                 names.append(name)
                 xy_pairs.append((x_values, y_values))
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - collected per series, reported with the others
                 errors.append(f"{name}: {exc}")
 
         if len(xy_pairs) < 2:

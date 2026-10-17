@@ -496,7 +496,7 @@ class MainWindowMenus:
 
         try:
             import AppKit  # type: ignore[import-not-found]
-        except Exception:
+        except ImportError:
             return
 
         try:
@@ -519,5 +519,5 @@ class MainWindowMenus:
                 bare_text = self._MACOS_APP_MENU_SELECTORS.get(selector)
                 if bare_text is not None:
                     item.setTitle_(_(bare_text))
-        except Exception:
+        except Exception:  # noqa: BLE001 - an optional platform feature: absent or refusing is not an error
             applogger.exception("Failed to rename the native macOS app menu items.")

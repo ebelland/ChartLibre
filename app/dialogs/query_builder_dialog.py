@@ -309,7 +309,7 @@ class QueryBuilderDialog(SettingsTableDialog):
         try:
             self._table_combo.clear()
             self._table_combo.addItems(self._repo.list_table_names())
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to list tables for the query builder")
         finally:
             self._table_combo.blockSignals(False)
@@ -478,7 +478,7 @@ class QueryBuilderDialog(SettingsTableDialog):
                 f"SELECT * FROM ({self.sql.rstrip(';')}) AS _preview "
                 f"LIMIT {PREVIEW_ROW_LIMIT}"
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Query preview failed")
             self._status.setText(f"Error - {exc}")
             return False
@@ -507,7 +507,7 @@ class QueryBuilderDialog(SettingsTableDialog):
 
         try:
             self._repo.save_query(clean, self.sql)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to save query '%s'", clean)
             show_message(self, "query.save_failed", error=exc)
             return False

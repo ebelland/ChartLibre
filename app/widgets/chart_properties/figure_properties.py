@@ -1082,7 +1082,7 @@ class FigurePropertiesWidget(BaseProperties):
     def _rcparams_dpi(self) -> int:
         try:
             dpi = int(round(float(rcParams.get("figure.dpi", DEFAULT_FIGURE_DPI))))
-        except Exception:
+        except (TypeError, ValueError):
             return int(DEFAULT_FIGURE_DPI)
         return max(1, dpi)
 
@@ -1146,7 +1146,7 @@ class FigurePropertiesWidget(BaseProperties):
             width_in, height_in = rcParams.get("figure.figsize", DEFAULT_FIGURE_SIZE_IN)
             width_cm = float(width_in) * CM_PER_INCH
             height_cm = float(height_in) * CM_PER_INCH
-        except Exception:
+        except (TypeError, ValueError):
             width_cm = DEFAULT_FIGURE_SIZE_IN[0] * CM_PER_INCH
             height_cm = DEFAULT_FIGURE_SIZE_IN[1] * CM_PER_INCH
 
@@ -1186,7 +1186,7 @@ class FigurePropertiesWidget(BaseProperties):
             dpi = float(rcParams.get("figure.dpi", DEFAULT_FIGURE_DPI))
             apply_configured_dpi(self._figure, self._figure.canvas, dpi)
             self._figure.set_size_inches(float(width_in), float(height_in), forward=False)
-        except Exception:
+        except Exception:  # noqa: BLE001 - Matplotlib applies the settings: a bad one is skipped
             return
         # The chart panel owns how the figure is shown (its FIXED-mode zoom
         # lives in the dpi just overwritten): let it put that back.

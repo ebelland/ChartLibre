@@ -626,7 +626,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             table_name = sql.strip().strip('"')
             if table_name:
                 return self._repo.table_frame(table_name)
-        except Exception:
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.debug("Failed to read series data for statistics.", exc_info=True)
         return pd.DataFrame()
 
@@ -793,7 +793,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         """Format numeric results compactly but readably for HTML tables."""
         try:
             number = float(value)
-        except Exception:
+        except (TypeError, ValueError):
             return html.escape(str(value))
         if not np.isfinite(number):
             return ""
@@ -1130,7 +1130,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                 self.record_applied([], formatted or "")
                 self.applied.emit()
             return True
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.error("Statistics failed: %s", exc)
             return False
 
@@ -1310,7 +1310,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             return
         try:
             self._repo.delete_axis(axis_id)
-        except Exception:
+        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
             applogger.exception("Failed to remove the statistics axis %s", axis_id)
 
     def discard_operation_artifacts(self) -> None:
