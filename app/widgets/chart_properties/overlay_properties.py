@@ -41,7 +41,6 @@ from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.logs.logger import applogger
 from app.styles.style import (
     MARGIN_PANEL,
-    CardFrame,
     mark_destructive_button,
     stdSizeAndlayout,
 )
@@ -217,9 +216,19 @@ class OverlayPropertiesWidget(BaseProperties):
         add_text: str,
         tooltip: str,
     ) -> QTableWidget:
-        """Build one tab (table + Add/Delete row) and return its table."""
-        card = CardFrame(self._tabs, card_name)
-        layout = card.layout()
+        """Build one tab (table + Add/Delete row) and return its table.
+
+        The page is the tab's own ground, as Axis properties' tabs: no card
+        around the table, whose frame is enough - a card made a frame inside
+        a frame with the tab bar stuck to its top edge (B-11).
+        """
+        card = QWidget(self._tabs)
+        card.setObjectName(card_name)
+        card.setProperty("toolboxPage", True)
+        card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(8)
 
         table = QTableWidget(0, len(cols), card)
         table.setObjectName(table_name)
