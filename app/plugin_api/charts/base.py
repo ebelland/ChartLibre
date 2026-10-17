@@ -164,17 +164,24 @@ class SeriesArtistTags:
     For the viewer to find a series' own lines and points again - the chart
     panel previews a style edit on them (S-01) - without relying on their
     labels, which a legend label or a companion line change. A renderer
-    calls ``next(name)`` before each series and ``done()`` after the last.
+    calls ``next(name)`` before each series and ``done()`` after the last;
+    ``follow(keys)`` before a companion artist that takes only some of the
+    series' style (``_dhub_follows``; none: only a render redraws it).
     """
 
     def __init__(self, ax: Any) -> None:
         self._ax = ax
         self._name: str | None = None
+        self._follows: frozenset[str] | None = None
         self._seen = {id(artist) for artist in ax.get_children()}
 
     def next(self, name: str) -> None:
         self._tag()
-        self._name = str(name)
+        self._name, self._follows = str(name), None
+
+    def follow(self, keys: Any) -> None:
+        self._tag()
+        self._follows = frozenset(keys)
 
     def done(self) -> None:
         self._tag()
@@ -185,7 +192,9 @@ class SeriesArtistTags:
             if id(artist) not in self._seen:
                 self._seen.add(id(artist))
                 if self._name is not None:
-                    artist._dhub_series = self._name  # noqa: SLF001 - our own attribute
+                    artist._dhub_series = self._name  # noqa: SLF001 - our own attributes
+                    if self._follows is not None:
+                        artist._dhub_follows = self._follows  # noqa: SLF001
 
 
 class BaseAxisRenderer(Protocol):

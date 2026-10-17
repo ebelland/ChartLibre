@@ -26,6 +26,11 @@ PREVIEW_STYLE_SETTERS = frozenset({"color", "linestyle", "marker", "markersize"}
 _NONE_STYLES = frozenset({"", " ", "None", "none"})
 
 
+def _follows(artist: Any) -> frozenset[str]:
+    """The series' style keys *artist* takes (SeriesArtistTags.follow): all of them unless said."""
+    return getattr(artist, "_dhub_follows", PREVIEW_STYLE_SETTERS)
+
+
 def _style_steps(artist: Any, changes: dict[str, Any], *, has_points: bool, sizes: bool) -> tuple[bool, list[Any]]:
     """(whether *artist* can show *changes* as it is, the calls that do it).
 
@@ -34,6 +39,8 @@ def _style_steps(artist: Any, changes: dict[str, Any], *, has_points: bool, size
     """
     steps: list[Any] = []
     for key, value in changes.items():
+        if key not in _follows(artist):
+            continue
         if isinstance(artist, Line2D):
             if key == "color":
                 to_rgba(value)  # ValueError for a colour Matplotlib does not know
@@ -540,16 +547,20 @@ class PickingMixin:
         points = [a for a in mine if isinstance(a, PathCollection)]
         if not mine or len(lines) + len(points) != len(mine):
             return False
-        labels = {str(a.get_label()) for a in mine if not str(a.get_label()).startswith("_")}
-        handles = [
-            handle
-            for legend in (axes.get_legend(), *self._canvas.figure.legends) if legend is not None
-            for handle, text in zip(legend.legend_handles, legend.get_texts()) if text.get_text() in labels
-        ]
-        if any(not isinstance(h, (Line2D, PathCollection)) for h in handles):
-            return False
+        if any(not any(key in _follows(a) for a in mine) for key in changes):
+            return False  # nothing drawn takes it: only a render can show it
+        labelled = {str(a.get_label()): a for a in mine if not str(a.get_label()).startswith("_")}
+        handles = []
+        for legend in (axes.get_legend(), *self._canvas.figure.legends):
+            for handle, text in zip(legend.legend_handles, legend.get_texts()) if legend is not None else ():
+                if text.get_text() in labelled:
+                    if not isinstance(handle, (Line2D, PathCollection)):
+                        return False
+                    handle._dhub_follows = _follows(labelled[text.get_text()])  # noqa: SLF001
+                    handles.append(handle)
+        has_points = any("marker" in _follows(a) for a in points)
         try:
-            plan = [(a, *_style_steps(a, changes, has_points=bool(points), sizes=a not in handles))
+            plan = [(a, *_style_steps(a, changes, has_points=has_points, sizes=a not in handles))
                     for a in (*lines, *points, *handles)]
         except ValueError:
             return False

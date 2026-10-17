@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 94,502 lines in 260 files; tests 18,103 lines in 143 files (updated at each commit).
+Size: app 94,528 lines in 260 files; tests 18,122 lines in 143 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -223,11 +223,12 @@ S-01 Selection <-> Chart properties (bidirectional feedback)
   shows the series' colour swatch (done: a flash, then gone; the swatch
   was already there).
 - Edits preview live on the selected element only (done for a series'
-  colour, line style, marker and marker size on the Scatter Plot: its lines
-  and points change in place, no render; any other edit, or a renderer that
-  does not tag its artists with SeriesArtistTags, renders as before).
-  Next: tag the other line/point renderers (Time Series, Stairs, Stem,
-  ECDF, 3D Line); Undo per element.
+  colour, line style, marker and marker size on the Scatter Plot and the
+  Time Series: its lines and points change in place, no render - a rolling
+  mean takes the colour, not the line style; any other edit, or a renderer
+  that does not tag its artists with SeriesArtistTags, renders as before).
+  Next: tag the other line/point renderers (Stairs, Stem, ECDF, 3D Line);
+  Undo per element.
 - Multiple selection: Cmd/Ctrl-click series to edit common properties
   (colour, line width) at once.
 - Selected data points (Select points) shown in the table preview and as a

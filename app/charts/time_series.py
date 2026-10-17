@@ -16,7 +16,7 @@ from matplotlib import rcParams
 from matplotlib.colors import to_rgba
 from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
 
-from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numbers
@@ -211,7 +211,9 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
         legend_handles_found = False
         any_temporal_axis = False
 
+        tags = SeriesArtistTags(ax)
         for series_index, sd in enumerate(series):
+            tags.next(sd.name)
             style = dict(sd.style or {})
             if not bool(style.get("visible", True)) or not self.ensure_required_roles(sd.df):
                 continue
@@ -336,6 +338,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                     raw_kwargs["label"] = "_nolegend_"
 
                 if "color" in frame.columns:
+                    tags.follow(())  # coloured by the column
                     # Cluster/color role: ax.plot can only use one color for the
                     # whole artist, so draw same-color contiguous line segments
                     # and color markers with scatter. This mirrors scatter-axis
@@ -399,6 +402,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                             legend_handles_found = True
 
             if marked_points is not None and len(marked_points[0]):
+                tags.follow(())  # each in its own colour
                 ax.scatter(
                     marked_points[0],
                     marked_points[1],
@@ -409,6 +413,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                 )
 
             if show_rolling:
+                tags.follow(("color", "marker", "markersize"))  # its own line style
                 rolling_kwargs = dict(common_line_kwargs)
                 rolling_linestyle = str(
                     style.get(
@@ -456,6 +461,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                     ):
                         legend_handles_found = True
 
+        tags.done()
         # Only install date machinery when the axis really is temporal: on a
         # numeric axis AutoDateLocator reads the values as days since the epoch,
         # so a plain 0..4000 x range was labelled "1970 ... 1980".

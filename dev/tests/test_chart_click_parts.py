@@ -127,3 +127,22 @@ def test_a_series_style_edit_shows_on_its_lines_without_a_render(panel: ChartPan
     assert not panel.preview_series_style(axis_id, "manual", {"linestyle": "None"})  # the line would go
     assert not panel.preview_series_style(axis_id, "manual", {"color": "not a colour"})
     assert not panel.preview_series_style(axis_id, "no such series", {"color": "#00ff00"})
+
+
+def test_a_time_series_edit_restyles_its_rolling_line_only_where_it_follows(qapp, tmp_path: Path) -> None:
+    """S-01: the rolling mean takes the series' colour, not its line style."""
+    from matplotlib.colors import to_hex
+
+    ids = create_renderer_showcase_db(tmp_path / "ts.dhub", n_points=20)
+    repo = SqliteRepo(db_path=tmp_path / "ts.dhub")
+    widget = ChartPanel(repo, ids["Time Series"])
+    try:
+        widget.ensure_rendered()
+        axes = next(a for a in widget._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
+        raw, rolling = (l for l in axes.lines if getattr(l, "_dhub_series", None) == "second")
+        assert widget.preview_series_style(axes._dhub_axis_id, "second", {"color": "#ff0000", "linestyle": ":"})
+        assert to_hex(raw.get_color()) == to_hex(rolling.get_color()) == "#ff0000"
+        assert raw.get_linestyle() == ":" and rolling.get_linestyle() == "--"
+    finally:
+        widget.close()
+        repo.close()
