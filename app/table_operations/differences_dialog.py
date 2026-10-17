@@ -87,9 +87,7 @@ class DifferencesDialog(TableOperationDialogBase):
         repo, table = self._repo, self.table
         casting = self.roles_widget.casting()
         measure, group = casting.columns("response")[0], casting.columns("group")[0]
-        name = repo.free_table_name(f"{table}_differences")
-        repo.snapshot_for_undo([name, *repo.DESCRIPTOR_TABLES], label=f"Differences on '{table}'")
-        repo.import_dataframe(result.groups, table_name=name, normalize_columns=False)
+        name = self.write_result_tables({"differences": result.groups})["differences"]
         # The chart leaves the hidden rows out, as the test did.
         shown = 'COALESCE("Hide", 0) = 0' if repo.has_column(table, "Hide") else ""
         if result.numeric:

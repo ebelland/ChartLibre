@@ -348,8 +348,7 @@ class SeriesPeaksDialog(DataOperationDialogBase):
             sql_query=sql_query,
             roles=roles,
             style={
-                "generated_peaks": True,
-                "peaks_dialog": "series_peaks",
+                **self.generated_style_filter,
                 "source_name": result.source_name,
                 "model": result.model,
                 # Markers with no connecting line: the peaks are separate

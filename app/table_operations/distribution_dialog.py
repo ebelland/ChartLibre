@@ -77,20 +77,17 @@ class DistributionDialog(TableOperationDialogBase):
     # ------------------------------------------------------------------
 
     def apply_results(self, report: DistributionReport) -> list[dict[str, Any]]:
-        repo, table = self._repo, self.table
+        table = self.table
         frames: dict[str, list[pd.DataFrame]] = {"quantiles": [], "moments": [], "normality": []}
         for result in report.results:
             for key, frame in (("quantiles", result.quantiles), ("moments", result.moments),
                                ("normality", result.normality)):
                 frames[key].append(frame.assign(Column=result.column))
-        names = {key: repo.free_table_name(f"{table}_distribution_{key}") for key, parts in frames.items() if parts}
-        repo.snapshot_for_undo([*names.values(), *repo.DESCRIPTOR_TABLES], label=f"Distribution on '{table}'")
-        written: list[dict[str, Any]] = []
-        for key, name in names.items():
-            frame = pd.concat(frames[key], ignore_index=True)
-            frame = frame[["Column", *[c for c in frame.columns if c != "Column"]]]
-            repo.import_dataframe(frame, table_name=name, normalize_columns=False)
-            written.append({"table": name})
+        tables = {}
+        for key, parts in frames.items():
+            frame = pd.concat(parts, ignore_index=True)
+            tables[f"distribution_{key}"] = frame[["Column", *[c for c in frame.columns if c != "Column"]]]
+        written: list[dict[str, Any]] = [{"table": name} for name in self.write_result_tables(tables).values()]
 
         panels = []
         for result in report.results:

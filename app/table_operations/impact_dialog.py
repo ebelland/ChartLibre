@@ -78,11 +78,8 @@ class ImpactDialog(TableOperationDialogBase):
         return ""
 
     def apply_results(self, result: im.ImpactAnswer) -> list[dict[str, Any]]:
-        repo, table = self._repo, self.table
         response = self.roles_widget.casting().columns("response")[0]
-        name = repo.free_table_name(f"{table}_impact")
-        repo.snapshot_for_undo([name, *repo.DESCRIPTOR_TABLES], label=f"Impact on '{table}'")
-        repo.import_dataframe(result.ranking, table_name=name, normalize_columns=False)
+        name = self.write_result_tables({"impact": result.ranking})["impact"]
         sql, roles = self.series_select(name, {"Y": "Impact %", "X": "Factor"})
         panel = ("Pareto Chart", _("What has the most impact on {response}").format(response=response), "",
                  _("Impact %"), [(response, sql, roles, {})])

@@ -643,8 +643,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
     #: leaving orphaned limit lines behind when it is re-applied.
     def _series_style(self, result: ControlChartResult, **overrides: Any) -> dict[str, Any]:
         style: dict[str, Any] = {
-            "generated_control_chart": True,
-            "control_chart_dialog": "series_control_chart",
+            **self.generated_style_filter,
             "source_name": result.source_name,
             "chart": result.chart,
         }

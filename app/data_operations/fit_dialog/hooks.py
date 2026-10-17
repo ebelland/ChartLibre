@@ -58,8 +58,7 @@ class FitHooksMixin:
                 "source_z_col": result.target_col,
                 "fit_model": result.model_name,
                 "fit_mode": "2D",
-                "generated_fit": True,
-                "fit_dialog": "series_fit",
+                **self.generated_style_filter,
             }
         else:
             sql_query = f'SELECT x, y_fit AS y FROM "{table_name}" ORDER BY x'
@@ -73,8 +72,7 @@ class FitHooksMixin:
                 "source_y_col": result.target_col,
                 "fit_model": result.model_name,
                 "fit_mode": "1D",
-                "generated_fit": True,
-                "fit_dialog": "series_fit",
+                **self.generated_style_filter,
             }
 
         return ResultSeriesSpec(
@@ -112,8 +110,7 @@ class FitHooksMixin:
                         "draw_as": "band",
                         "alpha": alpha,
                         "label": label,
-                        "generated_fit": True,
-                        "fit_dialog": "series_fit",
+                        **self.generated_style_filter,
                         "fit_model": result.model_name,
                     },
                 )

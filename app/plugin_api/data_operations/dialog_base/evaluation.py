@@ -1,7 +1,9 @@
 """Computing: the results text, the generated-series pipeline, evaluation here or on a worker thread."""
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 from typing import Any, ClassVar
 
 from PySide6.QtCore import QTimer
@@ -128,11 +130,18 @@ class EvaluationMixin:
         ``remove_previous_generated_series`` deletes only descriptors whose
         ``style_json`` contains all these key/value pairs.
 
-        Derived from the module name by default - smoothing_dialog.py gives
-        the example above. Four operations predate the rule and keep their
-        own values, which are stored in existing projects.
+        Derived from the source file's name by default - smoothing_dialog.py
+        gives the example above; an operation that is a package
+        (fit_dialog/dialog.py) takes its folder's name. The file, not the
+        module: the scanner loads a plugin under a module name of its own,
+        different every session (_dynamic_data_operation_..._<hash>), and
+        keys made from that were neither stable nor the ones the series were
+        stored with. Four operations predate the rule and keep their own
+        values, which are stored in existing projects.
         """
-        stem = type(self).__module__.rsplit(".", 1)[-1].removesuffix("_dialog")
+        path = Path(inspect.getfile(type(self)))
+        name = path.stem if path.stem.endswith("_dialog") else path.parent.name
+        stem = name.removesuffix("_dialog")
         return {f"generated_{stem}": True, f"{stem}_dialog": f"series_{stem}"}
 
     def compute_results(self) -> Sequence[Any]:

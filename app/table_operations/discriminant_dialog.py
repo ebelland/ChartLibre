@@ -104,12 +104,6 @@ class DiscriminantDialog(TableOperationDialogBase):
         return report_html.section(_("Response {name}").format(name=result.response), *blocks)
 
     def apply_results(self, result: da.DiscriminantResult) -> list[dict[str, Any]]:
-        repo, table = self._repo, self.table
-        names = {key: repo.free_table_name(f"{table}_discriminant{suffix}") for key, suffix in (
-            ("rows", ""), ("canonical", "_canonical"), ("coefficients", "_coefficients"), ("means", "_means"),
-        )}
-        repo.snapshot_for_undo([*names.values(), *repo.DESCRIPTOR_TABLES], label=f"Discriminant on '{table}'")
-
         # Each row's group, probabilities and canonical scores beside its data, as Partition does.
         frame = self._frame.copy()
         predicted = f"Predicted {result.response}"
@@ -117,10 +111,12 @@ class DiscriminantDialog(TableOperationDialogBase):
         for part in (result.probabilities, result.scores):
             for column in part.columns:
                 frame[column] = part[column].reindex(frame.index)
-        repo.import_dataframe(frame, table_name=names["rows"], normalize_columns=False)
-        for key in ("canonical", "coefficients", "means"):
-            repo.import_dataframe(getattr(result, key), table_name=names[key], normalize_columns=False)
-        written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
+        tables = self.write_result_tables({
+            "discriminant": frame, "discriminant_canonical": result.canonical,
+            "discriminant_coefficients": result.coefficients, "discriminant_means": result.means,
+        })
+        names = {"rows": tables["discriminant"]}
+        written: list[dict[str, Any]] = [{"table": name} for name in tables.values()]
 
         notes = self.report_document(result)
         figure_id = self.create_report_figure(f"Discriminant · {result.response}", notes,

@@ -492,6 +492,20 @@ class TableOperationDialogBase(QDialog):
         return report_html.table([_(str(c)) for c in frame.columns],
                                  self.report_rows(frame, p_columns=p_columns, digits=digits))
 
+    def write_result_tables(self, frames: Mapping[str, pd.DataFrame]) -> dict[str, str]:
+        """Each frame as a new table named after the source and its key ("penguins_pls_vip"), one undo step.
+
+        Returns {key: the name it got} - a free one, so an earlier run's tables
+        stay. The figure's own tables are in the same step: Undo takes the
+        tables and the figure the analysis draws away together.
+        """
+        repo, table = self._repo, self.table
+        names = {key: repo.free_table_name(f"{table}_{key}") for key in frames}
+        repo.snapshot_for_undo([*names.values(), *repo.DESCRIPTOR_TABLES], label=f"{self.Name} on '{table}'")
+        for key, frame in frames.items():
+            repo.import_dataframe(frame, table_name=names[key], normalize_columns=False)
+        return names
+
     def series_select(self, table: str, roles: Mapping[str, str], where: str = "") -> tuple[str, dict[str, str]]:
         """A series query naming each role's column as the role, the way every series reads its data."""
         columns = ", ".join(f"{self.quoted(column)} AS {self.quoted(role)}" for role, column in roles.items())

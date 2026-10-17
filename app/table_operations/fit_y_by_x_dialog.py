@@ -105,27 +105,16 @@ class FitYByXDialog(TableOperationDialogBase):
     # ------------------------------------------------------------------
 
     def apply_results(self, report: FitYByXReport) -> list[dict[str, Any]]:
-        repo, table = self._repo, self.table
-        planned: list[tuple[str, pd.DataFrame]] = []
+        frames: dict[str, pd.DataFrame] = {}
         for result in report.results:
-            stem = f"{table}_{result.y}_by_{result.x}"
+            stem = f"{result.y}_by_{result.x}"
             for title, frame in result.tables.items():
-                planned.append((f"{stem}_{_slug(title)}", frame))
+                frames[f"{stem}_{_slug(title)}"] = frame
             if not result.curve.empty:
-                planned.append((f"{stem}_curve", result.curve))
-        names = [repo.free_table_name(name) for name, _frame in planned]
-        repo.snapshot_for_undo([*names, *repo.DESCRIPTOR_TABLES], label=f"Fit Y by X on '{table}'")
-        written: list[dict[str, Any]] = []
-        curves: dict[int, str] = {}
-        for name, (planned_name, frame) in zip(names, planned):
-            repo.import_dataframe(frame, table_name=name, normalize_columns=False)
-            written.append({"table": name})
-            if planned_name.endswith("_curve"):
-                curves[len(written) - 1] = name
-
-        curve_tables = iter(curves.values())
-        panels = [self._panel(result, next(curve_tables) if not result.curve.empty else None)
-                  for result in report.results]
+                frames[f"{stem}_curve"] = result.curve
+        names = self.write_result_tables(frames)
+        written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
+        panels = [self._panel(result, names.get(f"{result.y}_by_{result.x}_curve")) for result in report.results]
         y = report.results[0].y
         notes = self.report_document(report)
         figure_id = self.create_report_figure(f"{_(self.Name)} · {y}", notes, panels)

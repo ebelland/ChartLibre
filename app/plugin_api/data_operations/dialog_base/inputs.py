@@ -8,7 +8,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from scipy.interpolate import griddata
 
 from app.plugin_api.charts.grids import pivot_to_grid
 from app.data.data_source import parse_roles, row_value, resolve_role_column
@@ -346,6 +345,8 @@ class InputsMixin:
         x_lin = np.linspace(float(np.min(x_finite)), float(np.max(x_finite)), int(resolution))
         y_lin = np.linspace(float(np.min(y_finite)), float(np.max(y_finite)), int(resolution))
         x_grid, y_grid = np.meshgrid(x_lin, y_lin)
+
+        from scipy.interpolate import griddata  # here, not at import: 0.5 s of startup
 
         z_grid = griddata(
             (x_finite, y_finite),

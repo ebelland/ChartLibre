@@ -172,8 +172,7 @@ class SeriesBaselineDialog(DataOperationDialogBase):
     # ------------------------------------------------------------------
     def _series_style(self, result: BaselineResult, **overrides: Any) -> dict[str, Any]:
         style: dict[str, Any] = {
-            "generated_baseline": True,
-            "baseline_dialog": "series_baseline",
+            **self.generated_style_filter,
             "source_name": result.source_name,
             "model": result.model,
         }

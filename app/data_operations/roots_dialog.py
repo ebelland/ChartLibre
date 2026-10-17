@@ -399,8 +399,7 @@ class SeriesRootsDialog(DataOperationDialogBase):
                 sql_query=f'SELECT x, y, z, curve_index FROM "{table_name}" ORDER BY curve_index, rowid',
                 roles={"x": "x", "y": "y", "z": "z"},
                 style={
-                    "generated_roots": True,
-                    "roots_dialog": "series_roots",
+                    **self.generated_style_filter,
                     "source_name": result.source_name,
                     "model": result.model,
                     "level": result.level,
@@ -413,8 +412,7 @@ class SeriesRootsDialog(DataOperationDialogBase):
             sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
             roles={"x": "x", "y": "y"},
             style={
-                "generated_roots": True,
-                "roots_dialog": "series_roots",
+                **self.generated_style_filter,
                 "source_name": result.source_name,
                 "model": result.model,
                 "level": result.level,

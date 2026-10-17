@@ -96,21 +96,14 @@ class PLSDialog(TableOperationDialogBase):
         return "".join(blocks)
 
     def apply_results(self, result: pl.PLSResult) -> list[dict[str, Any]]:
-        repo, table = self._repo, self.table
-        names = {key: repo.free_table_name(f"{table}_pls{suffix}") for key, suffix in (
-            ("rows", ""), ("vip", "_vip"), ("loadings", "_loadings"), ("coefficients", "_coefficients"),
-            ("cv", "_cv"),
-        )}
-        repo.snapshot_for_undo([*names.values(), *repo.DESCRIPTOR_TABLES], label=f"PLS on '{table}'")
         frame = self._frame.copy()
         for part in (result.scores, result.predicted):
             for column in part.columns:
                 frame[column] = part[column].reindex(frame.index)
-        repo.import_dataframe(frame, table_name=names["rows"], normalize_columns=False)
-        for key, data in (("vip", result.vip), ("loadings", result.loadings),
-                          ("coefficients", result.coefficients), ("cv", result.cross_validation)):
-            repo.import_dataframe(data, table_name=names[key], normalize_columns=False)
-        written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
+        tables = self.write_result_tables({"pls": frame, "pls_vip": result.vip, "pls_loadings": result.loadings,
+                                           "pls_coefficients": result.coefficients, "pls_cv": result.cross_validation})
+        names = {"rows": tables["pls"], "vip": tables["pls_vip"], "cv": tables["pls_cv"]}
+        written: list[dict[str, Any]] = [{"table": name} for name in tables.values()]
 
         line = {"linestyle": "-", "marker": "o"}
         sql, roles = self.series_select(names["cv"], {"x": "Components", "y": "RMSECV"})

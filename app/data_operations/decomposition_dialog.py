@@ -388,8 +388,7 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
     ) -> Sequence[ResultSeriesSpec]:
         del axis_id
         base_style = {
-            "generated_decomposition": True,
-            "decomposition_dialog": "series_decomposition",
+            **self.generated_style_filter,
             "model": result.model,
         }
         if result.kind == "manifold":

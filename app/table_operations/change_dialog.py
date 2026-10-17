@@ -65,13 +65,10 @@ class ChangeDialog(TableOperationDialogBase):
         return f"{self.table} · {self.roles_widget.casting().columns('response')[0]}"
 
     def apply_results(self, result: ch.ChangeAnswer) -> list[dict[str, Any]]:
-        repo, table = self._repo, self.table
         casting = self.roles_widget.casting()
         measure = casting.columns("response")[0]
         time = casting.columns("time")
-        name = repo.free_table_name(f"{table}_change")
-        repo.snapshot_for_undo([name, *repo.DESCRIPTOR_TABLES], label=f"Change over time on '{table}'")
-        repo.import_dataframe(result.series, table_name=name, normalize_columns=False)
+        name = self.write_result_tables({"change": result.series})["change"]
 
         series = []
         sql, roles = self.series_select(name, {"x": "Order", "y": "Value"})

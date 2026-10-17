@@ -80,3 +80,17 @@ def test_a_report_leaves_out_a_chart_type_that_is_not_installed(qapp, tmp_path: 
         assert repo.load_figure_descriptor(figure_id).axes == []
     finally:
         repo.close()
+
+
+def test_a_loaded_operation_marks_its_series_with_keys_from_its_file(qapp) -> None:
+    """The scanner loads a plugin under a module name that changes every session; the
+    generated-series keys must not: they are stored in projects and matched on re-apply."""
+    from app.scanners.data_operation_scanner import data_operations, import_class_from_file
+
+    for operation in data_operations:
+        cls = import_class_from_file(operation)
+        keys = cls.generated_style_filter.fget(cls.__new__(cls))
+        assert not any("_dynamic" in str(key) or "_dynamic" in str(value) for key, value in keys.items()), keys
+    fit = next(op for op in data_operations if op["value"] == "Fit Curve")
+    cls = import_class_from_file(fit)
+    assert cls.generated_style_filter.fget(cls.__new__(cls)) == {"generated_fit": True, "fit_dialog": "series_fit"}

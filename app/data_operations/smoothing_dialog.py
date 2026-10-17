@@ -888,8 +888,7 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
             sql_query=sql_query,
             roles=roles,
             style={
-                "generated_smoothing": True,
-                "smoothing_dialog": "series_smoothing",
+                **self.generated_style_filter,
                 "source_name": result.source_name,
                 "source_series_id": result.metadata.get("source_series_id"),
                 "method": result.method,

@@ -380,8 +380,7 @@ class SeriesFilterDialog(DataOperationDialogBase):
             sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
             roles={"x": "x", "y": "y"},
             style={
-                "generated_filter": True,
-                "filter_dialog": "series_filter",
+                **self.generated_style_filter,
                 "source_name": result.source_name,
                 "model": result.model,
                 "linestyle": "-",

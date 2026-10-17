@@ -598,8 +598,7 @@ class SeriesCalculusDialog(DataOperationDialogBase):
                 sql_query=f'SELECT x, y, z FROM "{table_name}"',
                 roles={"x": "x", "y": "y", "z": "z"},
                 style={
-                    "generated_calculus": True,
-                    "calculus_dialog": "series_calculus",
+                    **self.generated_style_filter,
                     "source_name": result.source_name,
                     "model": result.model,
                 },
@@ -609,8 +608,7 @@ class SeriesCalculusDialog(DataOperationDialogBase):
             sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
             roles={"x": "x", "y": "y"},
             style={
-                "generated_calculus": True,
-                "calculus_dialog": "series_calculus",
+                **self.generated_style_filter,
                 "source_name": result.source_name,
                 "model": result.model,
                 "linestyle": "-",

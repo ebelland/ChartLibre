@@ -284,8 +284,7 @@ class SeriesTransformDialog(DataOperationDialogBase):
             sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
             roles={"x": "x", "y": "y"},
             style={
-                "generated_transform": True,
-                "transform_dialog": "series_transform",
+                **self.generated_style_filter,
                 "source_name": result.source_name,
                 "model": result.model,
                 "linestyle": "-",

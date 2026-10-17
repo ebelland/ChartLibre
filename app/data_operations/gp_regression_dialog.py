@@ -250,8 +250,7 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
     ) -> Sequence[ResultSeriesSpec]:
         del axis_id
         base_style = {
-            "generated_gp_regression": True,
-            "gp_regression_dialog": "series_gp_regression",
+            **self.generated_style_filter,
             "source_name": result.source_name,
             "model": result.model,
         }
