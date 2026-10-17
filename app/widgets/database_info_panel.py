@@ -1,11 +1,9 @@
 """Database Info: path, size, tables and import links, in one place.
 
-Everything here already existed somewhere - TableListPanel's own context
-menu already exports, renames and refreshes the link of a table - this is a
-read-only overview that puts the whole database's shape (how many tables,
-how big, which ones are fed by a link) on screen at once, with those same
-actions one click away for whichever row is selected, rather than requiring
-a right-click per table.
+A read-only overview that puts the whole database's shape (how many tables,
+how big, which ones are fed by a link) on screen at once. Exporting,
+renaming and refreshing a table's link are the Tables page's, in its
+list's menu - one place for each action (todo H-14).
 
 A plain embeddable QWidget, not a QDialog: it sits at the top of
 MainWindow's Project page (see main_window._create_developer_page), with
@@ -18,13 +16,10 @@ from typing import Callable
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QHeaderView,
-    QInputDialog,
     QLabel,
-    QLineEdit,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -36,12 +31,10 @@ from app.logs.logger import applogger
 from app.styles.style import (
     TitledCard,
     create_action_button,
-    load_icon,
     mark_editor_panel,
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
-from app.utils.import_runner import refresh_link
 
 
 def _human_size(num_bytes: int) -> str:
@@ -112,93 +105,19 @@ class DatabaseInfoPanel(QWidget):
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self._table.itemSelectionChanged.connect(self._update_button_states)
         mark_editor_panel(self._table)
         self._card_layout.addWidget(self._table, 1)
 
         root.addWidget(self._titled_card, 1)
 
-        # A separate card, not more rows tacked onto Database Info above:
-        # these four act on whichever row is selected in the table list,
-        # not on the database as a whole, and each gets the full row to
-        # itself - one full-text button per line, rather than the
-        # icon-only pair this replaces, reads best spelled out when there
-        # is no longer a second button competing for the same row's width.
-        self._selected_table_card = TitledCard(
-            self, _("Table (selected table)"), "selectedTableCard"
-        )
-        selected_table_layout = self._selected_table_card.card.layout()
-
-        update_row = QHBoxLayout()
-        stdSizeAndlayout(update_row)
-        self._update_link_button = create_action_button(
-            parent=self,
-            action_id="update_link",
-            action=self._update_selected_link,
-            layout=update_row,
-            presentation=(
-                load_icon("reload"),
-                _("Update link"),
-                _("Refresh the selected table from its import link"),
-            ),
-        )
-        update_row.addStretch(1)
-        selected_table_layout.addLayout(update_row)
-
-        export_xlsx_row = QHBoxLayout()
-        stdSizeAndlayout(export_xlsx_row)
-        self._export_xlsx_button = create_action_button(
-            parent=self,
-            action_id="export_xlsx",
-            action=self._export_selected_xlsx,
-            layout=export_xlsx_row,
-            presentation=(
-                load_icon("export_xlsx"),
-                _("Export as Excel"),
-                _("Export as an Excel workbook"),
-            ),
-        )
-        export_xlsx_row.addStretch(1)
-        selected_table_layout.addLayout(export_xlsx_row)
-
-        export_csv_row = QHBoxLayout()
-        stdSizeAndlayout(export_csv_row)
-        self._export_csv_button = create_action_button(
-            parent=self,
-            action_id="export_csv",
-            action=self._export_selected_csv,
-            layout=export_csv_row,
-            presentation=(
-                load_icon("export_csv"),
-                _("Export as text file"),
-                _("Export as a CSV file"),
-            ),
-        )
-        export_csv_row.addStretch(1)
-        selected_table_layout.addLayout(export_csv_row)
-
-        rename_row = QHBoxLayout()
-        stdSizeAndlayout(rename_row)
-        self._rename_button = create_action_button(
-            parent=self,
-            action_id="rename",
-            action=self._rename_selected_table,
-            layout=rename_row,
-        )
-        rename_row.addStretch(1)
-        selected_table_layout.addLayout(rename_row)
-
-        root.addWidget(self._selected_table_card)
 
         self._reload_tables()
-        self._update_button_states()
 
     def set_repo(self, repo: SqliteRepo) -> None:
         """Point the panel at a newly-opened database and refresh everything."""
         self._repo = repo
         self._build_form()
         self._reload_tables()
-        self._update_button_states()
 
     def _build_form(self) -> None:
         """(Re)build the path/size/pragma rows for the current repo."""
@@ -313,106 +232,3 @@ class DatabaseInfoPanel(QWidget):
             return None
         item = self._table.item(row, 0)
         return item.text() if item else None
-
-    def _selected_table_has_link(self) -> bool:
-        row = self._table.currentRow()
-        if row < 0:
-            return False
-        item = self._table.item(row, 2)
-        return bool(item and item.text())
-
-    def _update_button_states(self) -> None:
-        table = self._selected_table()
-        self._export_csv_button.setEnabled(table is not None)
-        self._export_xlsx_button.setEnabled(table is not None)
-        self._rename_button.setEnabled(table is not None)
-        self._update_link_button.setEnabled(
-            table is not None and self._selected_table_has_link()
-        )
-
-    def _export_selected_csv(self) -> None:
-        table = self._selected_table()
-        if not table:
-            return
-        file_path, _unused = QFileDialog.getSaveFileName(
-            self, _("Export CSV"), f"{table}.csv", "CSV files (*.csv)"
-        )
-        if not file_path:
-            return
-        try:
-            self._repo.query_df(f'SELECT * FROM "{table}"').to_csv(
-                file_path, index=False
-            )
-        except Exception as exc:  # noqa: BLE001
-            applogger.exception("CSV export failed: %s", exc)
-
-    def _export_selected_xlsx(self) -> None:
-        table = self._selected_table()
-        if not table:
-            return
-        file_path, _unused = QFileDialog.getSaveFileName(
-            self, _("Export XLSX"), f"{table}.xlsx", "Excel files (*.xlsx)"
-        )
-        if not file_path:
-            return
-        try:
-            self._repo.query_df(f'SELECT * FROM "{table}"').to_excel(
-                file_path, index=False, engine="openpyxl"
-            )
-        except Exception as exc:  # noqa: BLE001
-            applogger.exception("XLSX export failed: %s", exc)
-
-    def _update_selected_link(self) -> None:
-        table = self._selected_table()
-        if not table:
-            return
-        link = self._repo.get_table_link(table)
-        if not link:
-            return
-
-        source = (link.get("settings") or {}).get("source") or {}
-        password: str | None = None
-        if source.get("kind") in ("postgres", "mysql"):
-            entered, ok = QInputDialog.getText(
-                self,
-                _("Update link"),
-                _("Password for {username}@{host}:").format(
-                    username=source.get("username", ""), host=source.get("host", "")
-                ),
-                QLineEdit.EchoMode.Password,
-            )
-            if not ok:
-                return
-            password = entered
-
-        try:
-            refresh_link(self._repo, link_id=int(link["id"]), password=password)
-        except Exception as exc:  # noqa: BLE001
-            applogger.exception("Link refresh failed: %s", exc)
-        self._reload_tables()
-
-    def _rename_selected_table(self) -> None:
-        """Rename the selected table - the same action TableListPanel's own
-        context menu offers (see its _rename_table), reached from here too
-        since this panel already tracks which table is selected."""
-        table = self._selected_table()
-        if not table:
-            return
-        new, ok = QInputDialog.getText(
-            self,
-            _("Rename table"),
-            _("New name for table '{table}':").format(table=table),
-            QLineEdit.EchoMode.Normal,
-            table,
-        )
-        if not ok:
-            return
-        new = (new or "").strip()
-        if not new or new == table:
-            return
-        try:
-            self._repo.rename_table(table, new)
-        except Exception as exc:  # noqa: BLE001
-            applogger.exception("Rename failed: %s", exc)
-            return
-        self._reload_tables()

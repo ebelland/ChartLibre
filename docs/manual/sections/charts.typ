@@ -6,7 +6,7 @@ A chart in ChartLibre is never a picture of a spreadsheet range: it is a *query*
 
 == The New plot window
 
-*Plot*, the first entry of the *Data operations* list (see @data-operations), opens the chart-creation window. Building a chart takes three decisions:
+*New Chart*, the first entry of the *Analysis* page (see @data-operations) and of a table's menu in the Tables page, opens the chart-creation window. Building a chart takes three decisions:
 
 + *The chart type.* The picker lists all the chart types grouped by family, with a search box that matches a name or a whole family ("stat" brings up the statistical charts at once). Selecting one shows its description, the roles it needs and a link to the corresponding Matplotlib documentation.
 + *The data.* Pick a data source — a table or a saved query — then pick which of its columns plays each role. The window writes the SQL for you (`SELECT pressure AS x, flow AS y FROM operating_points`) and shows it; you can edit it directly for a filter, a join or a computed column. Only reading queries (`SELECT`, `WITH`) are accepted.
@@ -37,7 +37,7 @@ A *figure* is one page of the chart panel, listed under *Charts* in the rail. It
 
 Most chart types accept any number of series per axis and draw them together (several lines on one Time Series, several samples in one Histogram). A few accept only one — a Pie Chart, a Heatmap, a Surface Plot, a Mosaic Plot — because two of them on the same axis would hide each other; for these the application offers a new axis instead of a second series that would be silently dropped.
 
-*Add series* in Chart properties adds a series to the selected axis. To add an axis to a figure, open *Plot* with *Use current figure* and *Add new axis*.
+*Add series* in Chart properties adds a series to the selected axis. To add an axis to a figure, open *New Chart* with *Use current figure* and *Add new axis*.
 
 == Customizing a chart <customizing>
 

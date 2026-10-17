@@ -57,8 +57,8 @@ The window opens by itself when a project is created, and when a project is save
 #defs(
   [*Project information*], [*Project info…*: author, dates, notes and references (see above).],
   [*History*], [*Project history…* lists every operation applied in the project, oldest first: what was run, on which series, with which settings (see @history).],
-  [*Database information*], [The project file's path and size, everything SQLite reports about it (tables and rows, page usage and how much *Optimize DB* would reclaim, journal mode, SQLite version, file dates), and every table with its row count and import link. From here a table can be exported to CSV or Excel or refreshed from its link.],
-  [*Optimize DB*], [Checks the project file for problems, reports them, and compacts it — it can shrink a project noticeably after large tables were deleted.],
+  [*Database information*], [The project file's path and size, everything SQLite reports about it (tables and rows, page usage and how much *Optimize DB* would reclaim, journal mode, SQLite version, file dates), and every table with its row count and import link. Exporting, renaming and refreshing a table from its link are in its menu on the Tables page.],
+  [*Optimize DB*], [Checks the project file for problems and offers to fix those it can — axes and series left from a deleted figure, series and import links of a table that is gone, the tables ChartLibre made for a chart since deleted (a table you made or imported is never touched; Undo puts everything back) — then compacts it: it can shrink a project noticeably after large tables were deleted.],
 )
 
 Then the *Log viewer* (see @log). With *Developer mode* on in Settings, the page also holds the tools for extending ChartLibre — *Edit Localization*, *Data Operation Builder*, *Function Creator*, *Renderer Helper* (see @advanced); they are hidden otherwise, being for people who add to the app rather than use it.

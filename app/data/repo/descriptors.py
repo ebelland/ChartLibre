@@ -292,15 +292,14 @@ class DescriptorsMixin(RepoHost):
         """Return all series descriptors as dicts."""
         assert self._con is not None
         rows = self._con.execute(
-            "SELECT series_index, name, sql_query FROM __series_descriptors__"
+            "SELECT id, series_index, name, sql_query FROM __series_descriptors__"
         ).fetchall()
-        if not rows:
-            return []
         return [
             {
-                "series_index": int(r[0]),
-                "name": str(r[1]),
-                "sql_query": str(r[2]),
+                "id": int(r[0]),
+                "series_index": int(r[1]),
+                "name": str(r[2]),
+                "sql_query": str(r[3]),
             }
             for r in rows
         ]

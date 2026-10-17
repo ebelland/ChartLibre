@@ -21,6 +21,7 @@ from app.data.repo._common import (
     RepoHost,
     DatabasePragmaInfo,
     DatabaseReport,
+    _quote_ident,
     ensure_connection_wrapper,
 )
 from app.logs.logger import applogger
@@ -289,6 +290,8 @@ class MaintenanceMixin(RepoHost):
         assert self._con is not None
 
         existing = set(self.list_table_names())
+        # Hidden ones too ("_name_", a chart's own): a series over one is not broken.
+        every_table = self._every_table()
 
         # Series whose SQL selects from a table that is gone.
         for row in self._con.execute(
@@ -300,7 +303,7 @@ class MaintenanceMixin(RepoHost):
             if not self.is_table_backed_sql(sql):
                 continue
             table = self.query_source_table(sql)
-            if table and table not in existing:
+            if table and table not in every_table:
                 report.dangling_series.append(
                     f"series id={row['id']} '{row['name']}' reads from missing table '{table}'"
                 )
@@ -325,7 +328,7 @@ class MaintenanceMixin(RepoHost):
         for row in self._con.execute(
             "SELECT id, table_name FROM __import_links__"
         ).fetchall():
-            if str(row["table_name"]) not in existing:
+            if str(row["table_name"]) not in every_table:
                 report.dangling_links.append(
                     f"import link id={row['id']} targets missing table '{row['table_name']}'"
                 )
@@ -348,4 +351,75 @@ class MaintenanceMixin(RepoHost):
             referenced.add(str(row["table_name"]))
 
         report.unreferenced_tables.extend(sorted(existing - referenced))
+        report.leftover_tables.extend(
+            f"table '{name}' is no longer used" for name in self._leftover_tables()
+        )
+
+    def _every_table(self) -> set[str]:
+        """Every table in the file, the hidden and the application's own included."""
+        assert self._con is not None
+        return {str(row[0]) for row in self._con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+
+    def _leftover_tables(self) -> list[str]:
+        """Hidden "_name_" tables no series or saved query reads, and "__rebuild_" ones."""
+        assert self._con is not None
+        names = [str(row[0]) for row in self._con.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").fetchall()]
+        hidden = [n for n in names if n.startswith("__rebuild_")
+                  or (len(n) > 2 and n.startswith("_") and n.endswith("_") and not n.startswith("__"))]
+        if not hidden:
+            return []
+        sql_texts = [str(row[0] or "") for row in self._con.execute(
+            "SELECT sql_query FROM __series_descriptors__").fetchall()]
+        sql_texts += [str(saved.sql or "") for saved in self.list_queries()]
+        used = " ".join(sql_texts)
+        return [n for n in hidden
+                if n.startswith("__rebuild_") or not re.search(rf"(?<!\w){re.escape(n)}(?!\w)", used)]
+
+    @ensure_connection_wrapper
+    def repair_database(self) -> list[str]:
+        """Fix what check_database finds that can be fixed (undoable); what was done, one line each.
+
+        Axes of a deleted figure and series of a deleted axis, series reading
+        a table that is gone (their chart was broken), import links to a
+        table that is gone, and the tables the application made that nothing
+        uses any more. A table someone made or imported is never touched,
+        used or not: it is data.
+        """
+        assert self._con is not None
+        leftovers = self._leftover_tables()
+        self.snapshot_for_undo([*self.DESCRIPTOR_TABLES, "__import_links__", *leftovers],
+                               label="Fix the database")
+        done: list[str] = []
+        existing = self._every_table()
+        dangling = [
+            int(row["id"]) for row in self._con.execute(
+                "SELECT id, sql_query FROM __series_descriptors__").fetchall()
+            if self.is_table_backed_sql(str(row["sql_query"] or ""))
+            and (table := self.query_source_table(str(row["sql_query"] or ""))) and table not in existing
+        ]
+        for statement, what in (
+            ("DELETE FROM __axis_descriptors__ WHERE figure_id NOT IN (SELECT id FROM __figure_descriptors__)",
+             "axis/axes of a deleted figure"),
+            ("DELETE FROM __series_descriptors__ WHERE axis_id NOT IN (SELECT id FROM __axis_descriptors__)",
+             "series of a deleted axis"),
+        ):
+            count = self._con.execute(statement).rowcount
+            if count:
+                done.append(f"{count} {what} deleted")
+        if dangling:
+            self._con.executemany("DELETE FROM __series_descriptors__ WHERE id = ?", [(i,) for i in dangling])
+            done.append(f"{len(dangling)} series reading a missing table deleted")
+        links = [str(row[0]) for row in self._con.execute("SELECT table_name FROM __import_links__").fetchall()
+                 if str(row[0]) not in existing]
+        if links:
+            self._con.executemany("DELETE FROM __import_links__ WHERE table_name = ?", [(t,) for t in links])
+            done.append(f"{len(links)} import link(s) to a missing table deleted")
+        for name in leftovers:
+            self._con.execute(f"DROP TABLE IF EXISTS {_quote_ident(name)}")
+            done.append(f"table '{name}' dropped")
+        self._commit()
+        for line in done:
+            applogger.info("Database repair: %s", line)
+        return done
 

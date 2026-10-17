@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 95,092 lines in 260 files; tests 18,500 lines in 147 files (updated at each commit).
+Size: app 95,016 lines in 260 files; tests 18,576 lines in 148 files (updated at each commit).
 
 NOW
 G-02  M  Guided analysis for beginners: a wizard dialog (~820x560), columns first.
@@ -135,6 +135,16 @@ Remove or hide
   app's own plugins, catalogue and translations and need its running code.
 - H-14 Duplicate ways to the same thing: one entry per action across rail,
   menus and context menus (Plot vs New Chart, Query Builder twice before).
+  Done: the table menu's "Plot" is "New Chart", as on the Analysis page; the
+  Project page's Database information lost its own Update link / Export /
+  Rename (the table menu's); Import left the File page, Project info is on
+  the Project page. The macOS menu bar still mirrors the pages, as a Mac
+  application's must. Optimize DB now offers to fix what it finds (stray
+  descriptors, series and links of a missing table, the app's leftover
+  "_name_" / "__rebuild_" tables; never a table of data; undoable). Fixed on
+  the way: deleting or renaming a table found its series by series_index -
+  every chart's series in that place was deleted or rewritten; and the check
+  took a series over a hidden table (Fit Model's charts) for a broken one.
 - H-15 Options nobody changes: hide rarely-used kwargs behind "Advanced" in
   Chart properties; keep the defaults good instead.
 

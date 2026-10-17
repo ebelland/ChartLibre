@@ -9597,3 +9597,12 @@ msgstr "{rows} righe, {columns} colonne"
 
 msgid "Some columns of a table, the rows that pass a test, in the order of a column."
 msgstr "Alcune colonne di una tabella, le righe che passano un test, nell'ordine di una colonna."
+
+msgid "A new chart of this table"
+msgstr "Un nuovo grafico di questa tabella"
+
+msgid "Fixed: {what}"
+msgstr "Corretto: {what}"
+
+msgid "{report}\n\nFix them now? Tables you made or imported are never touched, and Undo puts everything back."
+msgstr "{report}\n\nCorreggerli ora? Le tabelle che hai creato o importato non vengono mai toccate, e Annulla rimette tutto com'era."

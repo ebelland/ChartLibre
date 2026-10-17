@@ -20,7 +20,7 @@ Tables written by data operations start with `_`. *Show generated tables* hides 
 Right-clicking a table offers:
 
 #defs(
-  [*Plot*], [Opens New plot on this table.],
+  [*New Chart*], [Opens New Chart on this table.],
   [*Query Builder…* / *Edit…*], [Opens the Query Builder; on a saved query, opens that query for editing.],
   [*Rename…*, *Duplicate table*, *Delete…*], [Manage the table. Several tables can be selected and deleted at once.],
   [*Export → CSV…* / *Export → XLSX…*], [Save the table as a CSV text file or an Excel workbook.],

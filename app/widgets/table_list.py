@@ -567,10 +567,11 @@ class TableListPanel(QWidget):
         if fn is not None:
             items.append(
                 MenuItem(
-                    text=_("Plot"),
-                    tooltip=_("Create a new plot tab for the current table"),
+                    # The Analysis panel's name for it: one action, one name (todo H-14).
+                    text=_("New Chart"),
+                    tooltip=_("A new chart of this table"),
                     callback=self._on_new_plot_tab,
-                    # Built from the same source as the "Plot" row of the
+                    # Built from the same source as the "New Chart" row of the
                     # Analysis panel (analysis_panel.plot_operation ->
                     # NewPlotTabDialog.Icon), rather than the
                     # unrelated "plot" catalogue/file icon, so the same action

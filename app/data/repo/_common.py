@@ -347,6 +347,10 @@ class DatabaseReport:
     dangling_series: list[str] = field(default_factory=list)
     dangling_links: list[str] = field(default_factory=list)
     orphan_descriptors: list[str] = field(default_factory=list)
+    #: Tables only the application made and nothing uses any more: a hidden
+    #: "_name_" table that fed a chart since deleted, or a "__rebuild_" one an
+    #: interrupted rebuild left. Clutter, not data - repair_database drops them.
+    leftover_tables: list[str] = field(default_factory=list)
     unreferenced_tables: list[str] = field(default_factory=list)
 
     @property
@@ -358,7 +362,13 @@ class DatabaseReport:
             *self.orphan_descriptors,
             *self.dangling_series,
             *self.dangling_links,
+            *self.leftover_tables,
         ]
+
+    @property
+    def fixable(self) -> list[str]:
+        """The findings repair_database can fix: everything but a damaged file."""
+        return [*self.orphan_descriptors, *self.dangling_series, *self.dangling_links, *self.leftover_tables]
 
     @property
     def is_healthy(self) -> bool:
@@ -385,6 +395,7 @@ class DatabaseReport:
         ("orphan_descriptors", "Orphan descriptors"),
         ("dangling_series", "Series reading a missing table"),
         ("dangling_links", "Import links to a missing table"),
+        ("leftover_tables", "Tables left over by the application"),
         ("unreferenced_tables", "Unreferenced tables (not a problem)"),
     )
 

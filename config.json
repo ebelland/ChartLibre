@@ -958,6 +958,11 @@
       "title": "Series",
       "text": "Series '{series}' has no SQL."
     },
+    "database.fix_problems": {
+      "level": "question",
+      "title": "Database check",
+      "text": "{report}\n\nFix them now? Tables you made or imported are never touched, and Undo puts everything back."
+    },
     "database.check_found_problems": {
       "level": "warning",
       "title": "Database check",

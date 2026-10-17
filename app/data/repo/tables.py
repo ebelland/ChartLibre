@@ -1032,7 +1032,10 @@ class TablesMixin(RepoHost):
 
         for s in self.list_series_dict():
             sql = str(s.get("sql_query", "") or "")
-            series_id = s.get("series_index")
+            # Its id: series_index is a place within an axis, the same on
+            # every chart - deleting a table deleted every chart's series in
+            # that place, renaming one rewrote theirs.
+            series_id = s.get("id")
             if series_id is None:
                 continue
 
@@ -1048,16 +1051,20 @@ class TablesMixin(RepoHost):
                 continue
 
             if mode == "rename":
-                # Replace old table name with new
-                repl = sql.replace(table_name, new_name or "")
+                # The table's name where it stands as a name, quoted or bare -
+                # not inside a longer name or a column ("sales" in "sales_2023").
+                repl = re.sub(
+                    rf'"{re.escape(table_name)}"|(?<![\w"]){re.escape(table_name)}(?![\w"])',
+                    lambda _m: f'"{new_name}"' if new_name else "", sql,
+                )
                 self._con.execute(
-                    "UPDATE __series_descriptors__ SET sql_query = ? WHERE series_index = ?",
+                    "UPDATE __series_descriptors__ SET sql_query = ? WHERE id = ?",
                     (repl, series_id),
                 )
             else:
                 # Delete series referencing deleted table
                 self._con.execute(
-                    "DELETE FROM __series_descriptors__ WHERE series_index = ?",
+                    "DELETE FROM __series_descriptors__ WHERE id = ?",
                     (series_id,),
                 )
 

@@ -26,7 +26,7 @@ from app.logs.logger import applogger
 from app.utils.config import clear_recent_databases, get_constant, set_last_database
 from app.utils.data_sources import SERVER_DATABASE_QUERY_READERS, SERVER_DATABASE_READERS
 from app.utils.i18n import _
-from app.utils.messages import show_message
+from app.utils.messages import ask, show_message
 from app.utils.startup import PROJECT_FILE_FILTER
 
 # A run of same-label descriptor snapshots inside this many seconds is
@@ -133,13 +133,17 @@ class MainWindowProject(_MainWindowProjectBase):
             return
 
         applogger.info("Undid: %s", entry.describe())
+        # The entry just consumed - the menu then names the next one (or is
+        # disabled). On macOS this rebuilds the bar; safe here because Cocoa
+        # has already closed the menu before dispatching this.
+        self._refresh_after_undo_or_repair()
+
+    def _refresh_after_undo_or_repair(self) -> None:
+        """Tables, charts and Chart properties shown again from the database, and the Undo item updated."""
         self._table_panel.reload()
         self._preview.clear()
         self._reload_tabs()
         self._update_properties_for_current_chart()
-        # The entry just consumed - update the menu to name the next one (or
-        # disable it). On macOS this rebuilds the bar; safe here because Cocoa
-        # has already closed the menu before dispatching this.
         self._refresh_undo_item()
 
     def _on_open_recent(self, db_path: Path) -> None:
@@ -539,6 +543,18 @@ class MainWindowProject(_MainWindowProjectBase):
         where it scrolls and can be copied into a bug report.  The status bar
         keeps the count, which is all it has room for.
         """
+        # What can be fixed is offered first - stray descriptors, series and
+        # links to a table that is gone, tables the app left behind - then
+        # the file is checked again and compacted.
+        found = self._repo.check_database()
+        if found.fixable:
+            shown = found.fixable[: self.MAX_PROBLEMS_SHOWN]
+            more = len(found.fixable) - len(shown)
+            listing = "\n".join([*shown, *([_("...and {count} more.").format(count=more)] if more else [])])
+            if ask(self, "database.fix_problems", report=listing, default_yes=True):
+                fixed = self._repo.repair_database()
+                self.statusBar().showMessage(_("Fixed: {what}").format(what="; ".join(fixed)), 10_000)
+                self._refresh_after_undo_or_repair()
         report = self._repo.optimize_db()
         self.statusBar().showMessage(report.summary(), 10_000)
 
