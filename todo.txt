@@ -127,8 +127,20 @@ LATER
 - R-13  S  Known-answer tests where NIST has no dataset; Longley.
 - R-14  L  Multichart templates; signed macOS app, Windows installer.
 - P2-12 M  Small chart beside operation results.
-- R-07  L  Linked selection across charts and table, then a data filter
-           (idea to evaluate: a "Selected" column; not for queries).
+- R-07  L  Linked selection across charts and table, then a data filter.
+           Design: every table gets an explicit row id column ("_id INTEGER
+           PRIMARY KEY", added on import and to existing projects by a
+           migration, numbered in row order) - the implicit rowid the Hide
+           and Selected code uses today is renumbered by VACUUM and by every
+           rebuild (import_dataframe, sort, cast). Each series query selects
+           it too, under an "id" role the renderers ignore; a picked or
+           rectangle-selected point then names its table row(s): highlighted
+           in the Data preview, flagged in a "Selected" column, the same rows
+           highlighted on every other chart of that table. A saved query keeps
+           the id of its main table (FROM); a GROUP BY or a join without it
+           has no row identity and its charts do not take part. The id column
+           is hidden in the table views and the column lists, and kept out of
+           exports unless asked.
 - N-09  M  "Colour by value" dialog.
 
 
