@@ -1462,3 +1462,17 @@ QListWidget#recentProjectsList::item {
   border-radius: 6px;
   padding: 2px 4px;
 }
+
+/* The Tables page (B-10): its frames draw the one rounded border; the
+   table views inside them have none of their own. */
+QFrame#tablesFrame QTableView,
+QFrame#dataFrame QTableView {
+  border: none;
+  border-radius: 0;
+}
+
+QFrame#tablesFrame QAbstractScrollArea::corner,
+QFrame#dataFrame QAbstractScrollArea::corner {
+  background: transparent;
+  border: none;
+}

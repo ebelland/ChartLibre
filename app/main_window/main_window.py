@@ -446,8 +446,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         page.setProperty("toolboxPage", True)
         page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        page.add_frame(_("Tables"), self._table_panel, object_name="tablesFrame", stretch=1, margins=(0, 0, 0, 0))
-        page.add_frame(_("Data"), self._preview, object_name="dataFrame", stretch=2, margins=(0, 0, 0, 0))
+        # A small inset: the tables' square headers and scroll corners stay
+        # inside the frame's rounded corners instead of squaring them (B-10);
+        # the frame's border is the only one (the sheets drop the views').
+        page.add_frame(_("Tables"), self._table_panel, object_name="tablesFrame", stretch=1, margins=(4, 4, 4, 4))
+        page.add_frame(_("Data"), self._preview, object_name="dataFrame", stretch=2, margins=(4, 4, 4, 4))
         assert page.splitter is not None
         self._data_split = page.splitter
         return page
