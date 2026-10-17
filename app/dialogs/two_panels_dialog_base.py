@@ -45,9 +45,13 @@ class PanelDialog(QDialog):
         self.action_row.addStretch(1)
         self.root_layout.addLayout(self.action_row)
 
-    def add_card(self, title: str, object_name: str | None = None, *, stretch: int = 0) -> CardFrame:
-        """A frame titled *title* (the title above its box); its box, to fill."""
-        titled = TitledCard(self, title, object_name)
+    def add_card(self, title: str, object_name: str | None = None, *, stretch: int = 0,
+                 collapsible: bool = False, collapsed: bool = False) -> CardFrame:
+        """A frame titled *title* (the title above its box); its box, to fill.
+
+        *collapsible*: one that opens and closes from its title (TitledCard).
+        """
+        titled = TitledCard(self, title, object_name, collapsible=collapsible, collapsed=collapsed)
         self.body_layout.addWidget(titled, stretch)
         if stretch:
             titled.layout().setStretchFactor(titled.card, 1)
@@ -132,10 +136,10 @@ class ColumnsDialog(PanelDialog):
         return self._columns[index]
 
     def add_column_card(self, index: int, title: str, object_name: str | None = None, *,
-                        stretch: int = 0) -> CardFrame:
-        """A titled frame at the bottom of column *index*; its box, to fill."""
+                        stretch: int = 0, collapsible: bool = False, collapsed: bool = False) -> CardFrame:
+        """A titled frame at the bottom of column *index*; its box, to fill (*collapsible*: see add_card)."""
         column = self._columns[index]
-        titled = TitledCard(column, title, object_name)
+        titled = TitledCard(column, title, object_name, collapsible=collapsible, collapsed=collapsed)
         column.layout().addWidget(titled, stretch)
         if stretch:
             titled.layout().setStretchFactor(titled.card, 1)
@@ -177,9 +181,11 @@ class SettingsTableDialog(ColumnsDialog):
         self._settings_column.layout().addWidget(settings_widget, 1)
         self._content_column.layout().addWidget(content_widget, 1)
 
-    def add_settings_card(self, title: str, object_name: str | None = None, *, stretch: int = 0) -> CardFrame:
+    def add_settings_card(self, title: str, object_name: str | None = None, *, stretch: int = 0,
+                          collapsible: bool = False, collapsed: bool = False) -> CardFrame:
         """With sections=True: a titled frame in the settings column; its box, to fill."""
-        return self.add_column_card(0, title, object_name, stretch=stretch)
+        return self.add_column_card(0, title, object_name, stretch=stretch,
+                                    collapsible=collapsible, collapsed=collapsed)
 
     def add_content_card(self, title: str, object_name: str | None = None, *, stretch: int = 0) -> CardFrame:
         """With sections=True: a titled frame in the content column; its box, to fill."""

@@ -211,7 +211,11 @@ class SettingsDialog(PanelDialog):
         self._mpl_style_combo.setToolTip(tr("The chart style of every figure that has none of its own."))
         form.addRow(tr("Default chart style"), self._mpl_style_combo)
 
-        form = self._section(tr("Safety"), forms)
+        # What most people never change, closed - unless something in it is
+        # not as it came (todo H-10).
+        form = self._section(
+            tr("Advanced"), forms, collapsible=True, collapsed=sql_guard_enabled() and not developer_mode()
+        )
         # Red: switching it off lets typed SQL change the database.
         self._sql_guard_check = QCheckBox(
             tr("Refuse SQL that would change the database"), card
@@ -228,7 +232,6 @@ class SettingsDialog(PanelDialog):
         form.addRow(tr("SQL guard"), self._sql_guard_check)
 
         # The tools for contributors, and what only they use (todo H-13).
-        form = self._section(tr("Developer"), forms)
         self._developer_check = QCheckBox(tr("Show the tools for extending the app"), card)
         self._developer_check.setToolTip(
             tr(
@@ -270,11 +273,13 @@ class SettingsDialog(PanelDialog):
         self.add_action("save", self._save)
         self.add_action("close", self.reject)
 
-    def _section(self, title: str, forms: list[QFormLayout]) -> QFormLayout:
+    def _section(self, title: str, forms: list[QFormLayout], *, collapsible: bool = False,
+                 collapsed: bool = False) -> QFormLayout:
         """A titled frame and its form; the form, to fill."""
         form = QFormLayout()
         stdSizeAndlayout(form)
-        self.add_card(title, f"settings{title.replace(' ', '')}Card").layout().addLayout(form)
+        self.add_card(title, f"settings{title.replace(' ', '')}Card", collapsible=collapsible,
+                      collapsed=collapsed).layout().addLayout(form)
         forms.append(form)
         return form
 

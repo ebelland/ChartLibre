@@ -9558,3 +9558,9 @@ msgstr "Modifica localizzazione, Creatore di operazioni, Creatore di funzioni e 
 
 msgid "The project's history, database and log - and, in developer mode, the tools for extending the app"
 msgstr "Cronologia, database e log del progetto - e, in modalità sviluppatore, gli strumenti per estendere l'app"
+
+msgid "Advanced"
+msgstr "Avanzate"
+
+msgid "Insert into the SQL"
+msgstr "Inserisci nell'SQL"

@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 95,021 lines in 260 files; tests 18,387 lines in 146 files (updated at each commit).
+Size: app 95,092 lines in 260 files; tests 18,438 lines in 147 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -195,7 +195,15 @@ Change
   panel's categories; "Spectral Analysis" in its report; the last "Data
   Operations panel" texts say Analysis.
 - H-10 Fewer frames, more white: some dialogs still stack 4-5 titled frames;
-  aim for one primary frame plus a collapsible "More options".
+  aim for one primary frame plus a collapsible "More options". Done: a
+  TitledCard (add_card, add_column_card) can be collapsible - an arrow and
+  the title open and close it. Query Builder: "Table and field" and
+  "Snippets" are one closed "Insert into the SQL" (6 frames -> 4 open);
+  Import: "Read options" closed, the table's name with its columns in "New
+  table"; Settings: Safety and Developer are one "Advanced", closed unless
+  changed. Fixed on the way: the Build form did not follow its remembered
+  operation (the form under "Group" was Join's). Next: Fit Curve's and the
+  table analyses' parameter groups.
 - H-11 Error messages: every failure says what to do next (which column,
   which type) - Fit and the analyses already do; extend to import and SQL.
 - H-12 Windows parity: test every dialog at 1366x768 and 125% scaling in CI

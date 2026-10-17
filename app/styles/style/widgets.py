@@ -4,7 +4,7 @@ from __future__ import annotations
 import html
 
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import QRect, QSize, Qt
 from PySide6.QtGui import QAction, QFont, QIcon, QPixmap, QTextOption
 from PySide6.QtWidgets import (
@@ -149,6 +149,10 @@ class TitledCard(QWidget):
     travel with its card as one block. ``self.title_label`` is the title
     QLabel itself, for the rare card whose title changes at runtime
     (series_properties.py's own count-in-the-title, for one).
+
+    *collapsible*: an arrow before the title shows or hides the box - a
+    click on the title too - for the options most people leave alone
+    ("More options", todo H-10); *collapsed* is how it starts.
     """
 
     def __init__(
@@ -160,18 +164,64 @@ class TitledCard(QWidget):
         orientation: Qt.Orientation = Qt.Orientation.Vertical,
         margins: tuple[int, int, int, int] = MARGIN_CARD,
         spacing: int = SPACING_DEFAULT,
+        collapsible: bool = False,
+        collapsed: bool = False,
     ) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
         self.title_label = create_section_title(title, self)
-        layout.addWidget(self.title_label)
+        self.disclosure: QtWidgets.QToolButton | None = None
+        if collapsible:
+            header = QHBoxLayout()
+            header.setContentsMargins(0, 0, 0, 0)
+            header.setSpacing(2)
+            self.disclosure = QtWidgets.QToolButton(self)
+            self.disclosure.setObjectName("cardDisclosure")
+            self.disclosure.setAutoRaise(True)
+            self.disclosure.setCheckable(True)
+            self.disclosure.setToolTip(title)
+            self.disclosure.toggled.connect(lambda shown: self.set_collapsed(not shown))
+            self.title_label.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.title_label.installEventFilter(self)
+            header.addWidget(self.disclosure)
+            header.addWidget(self.title_label)
+            header.addStretch(1)
+            layout.addLayout(header)
+        else:
+            layout.addWidget(self.title_label)
 
         self.card = CardFrame(
             self, object_name, orientation=orientation, margins=margins, spacing=spacing,
         )
         layout.addWidget(self.card)
+        if collapsible:
+            self.set_collapsed(collapsed)
+
+    @property
+    def collapsed(self) -> bool:
+        return self.disclosure is not None and not self.card.isVisibleTo(self)
+
+    def set_collapsed(self, collapsed: bool) -> None:
+        """Hide the box (the title stays, its arrow pointing right) or show it again."""
+        if self.disclosure is None:
+            return
+        self.card.setVisible(not collapsed)
+        self.disclosure.blockSignals(True)
+        self.disclosure.setChecked(not collapsed)
+        self.disclosure.blockSignals(False)
+        self.disclosure.setArrowType(Qt.ArrowType.RightArrow if collapsed else Qt.ArrowType.DownArrow)
+
+    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:  # noqa: N802
+        if (
+            watched is self.title_label
+            and self.disclosure is not None
+            and event.type() == QtCore.QEvent.Type.MouseButtonRelease
+        ):
+            self.disclosure.toggle()
+            return True
+        return super().eventFilter(watched, event)
 
 
 def mark_editor_panel(widget: QWidget) -> QWidget:

@@ -57,8 +57,8 @@ Whatever the source, the window shows a preview before anything is written, and 
 
 #defs(
   [*Source*], [Where the data comes from.],
-  [*Read options*], [The destination table name, the header row, rows to skip, the delimiter and the text encoding. These describe how to read *text*, so they are disabled for a database source, which has its own column types.],
-  [*Columns*], [The type of each column (number, text, date, ...) — change it when a column was guessed wrong.],
+  [*Read options*], [Closed until you open it from its title: the header row, rows to skip, the delimiter and the text encoding — the delimiter and the encoding are found by themselves. These describe how to read *text*, so they are disabled for a database source, which has its own column types.],
+  [*New table*], [Its *Name*, and the type of each column (number, text, date, ...) — change it when a column was guessed wrong.],
 )
 
 *Database* opens its own window: pick an engine, give a file path or a host, port, user and password (*Connect* then lists the server's databases, and picking one lists its tables), choose a table — or tick *Use a query* and write a `SELECT` for a join, a filter or an aggregate — and confirm. The last connection is remembered, except its password.
@@ -96,7 +96,7 @@ The *Query Builder* (in the *Data* section of Data operations, or from the table
 
 The window has:
 
-- on the left, the *saved queries* (pick one to edit, *Add*, *Delete*); *Build*, the Tables operations of JMP and the like, each a form that writes its SQL; the project's *tables* with their *fields*, and three snippets;
+- on the left, the *saved queries* (pick one to edit, *Add*, *Delete*); *Build*, the Tables operations of JMP and the like, each a form that writes its SQL; and, closed until opened from its title, *Insert into the SQL*: the project's *tables* with their *fields*, and three snippets;
 - on the right, the *SQL* editor over the *result preview*.
 
 *Build* — choose the operation, fill its form, press *Write SQL*: the statement goes into the editor and runs, so the preview shows the result at once. It is ordinary SQL, to read, change, save as a query or as a table:

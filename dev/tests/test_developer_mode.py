@@ -43,9 +43,11 @@ def test_settings_shows_the_deepl_key_only_in_developer_mode(qapp) -> None:
     try:
         dialog.show()
         qapp.processEvents()
-        assert not dialog._developer_check.isChecked() and not dialog._deepl_key_edit.isVisible()
+        card = dialog._deepl_key_edit.parentWidget()
+        assert not dialog._developer_check.isChecked() and not dialog._deepl_key_edit.isVisibleTo(card)
+        assert not card.isVisibleTo(dialog)  # Advanced starts closed when nothing in it was changed
         dialog._developer_check.setChecked(True)
-        assert dialog._deepl_key_edit.isVisible()
+        assert dialog._deepl_key_edit.isVisibleTo(card)
         dialog._save()
         assert config.developer_mode()
     finally:

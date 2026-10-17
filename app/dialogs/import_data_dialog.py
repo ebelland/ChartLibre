@@ -335,15 +335,11 @@ class ImportDataDialog(SettingsTableDialog):
         source.setVisible(not web_mode)
         web.setVisible(web_mode)
 
-        # -- Read options
-        read = TitledCard(left, _("Read options"), "importReadCard")
+        # -- Read options: closed - the delimiter and the encoding are found
+        # by themselves, the header nearly always is the first row (todo H-10).
+        read = TitledCard(left, _("Read options"), "importReadCard", collapsible=True, collapsed=True)
         options_form = QFormLayout()
         stdSizeAndlayout(options_form)
-
-        self._table = QLineEdit(read.card)
-        self._table.setText(str(cfg.get("table", "")))
-        stdSizeAndlayout(self._table)
-        options_form.addRow(_("Table"), self._table)
 
         self._has_header = QCheckBox(_("First row is header"), read.card)
         self._has_header.setChecked(bool(cfg.get("header", True)))
@@ -407,8 +403,15 @@ class ImportDataDialog(SettingsTableDialog):
         )
         left_layout.addWidget(read)
 
-        # -- Columns: what the preview found, and the type each will get.
-        columns = TitledCard(left, _("Columns"), "importColumnsCard")
+        # -- The new table: its name, then the columns the preview found and the type each will get.
+        columns = TitledCard(left, _("New table"), "importColumnsCard")
+        name_form = QFormLayout()
+        stdSizeAndlayout(name_form)
+        self._table = QLineEdit(columns.card)
+        self._table.setText(str(cfg.get("table", "")))
+        stdSizeAndlayout(self._table)
+        name_form.addRow(_("Name"), self._table)
+        columns.card.layout().addLayout(name_form)
         self._col_table = QTableWidget(columns.card)
         self._col_table.setColumnCount(2)
         self._col_table.setHorizontalHeaderLabels([_("Column"), _("Type")])

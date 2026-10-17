@@ -106,6 +106,13 @@ class QueryBuilderDialog(SettingsTableDialog):
         # Restore after the lists are populated so combo selections exist.
         restore_window_geometry(self, STATE_KEY)
         restore_dialog_state(self, STATE_KEY)
+        # Restored quietly: the Build form and the field list follow their
+        # combos now - the form under "Group" was Join's, the fields another
+        # table's.
+        self._on_operation_changed(self._operation_combo.currentIndex())
+        field = self._field_combo.currentText()
+        self._reload_fields()
+        self._field_combo.setCurrentIndex(max(0, self._field_combo.findText(field)))
 
         if query_name:
             self.load_query(query_name)
@@ -135,7 +142,7 @@ class QueryBuilderDialog(SettingsTableDialog):
         self.add_action("close", self.reject)
 
     def _build_side_panel(self) -> None:
-        """The settings column: saved queries, table and field, snippets - a titled frame each."""
+        """The settings column: saved queries, Build, and the table, field and snippets to insert (closed)."""
         card = self.add_settings_card(_("Saved queries"))
         layout = card.layout()
         self._query_combo = QComboBox(card)
@@ -158,7 +165,9 @@ class QueryBuilderDialog(SettingsTableDialog):
 
         self._build_operations_card()
 
-        card = self.add_settings_card(_("Table and field"))
+        # A table, a field and the snippets that act on them: helpers for
+        # typing SQL, closed until wanted (todo H-10).
+        card = self.add_settings_card(_("Insert into the SQL"), collapsible=True, collapsed=True)
         form = QFormLayout()
         stdSizeAndlayout(form)
         self._table_combo = QComboBox(card)
@@ -168,8 +177,6 @@ class QueryBuilderDialog(SettingsTableDialog):
         self._field_combo.setToolTip(_("The field the SQL buttons below act on."))
         form.addRow(_("Field"), self._field_combo)
         card.layout().addLayout(form)
-
-        card = self.add_settings_card(_("Snippets"))
         card.layout().addWidget(self._build_snippet_rows(card))
         self._settings_column.layout().addStretch(1)
 
