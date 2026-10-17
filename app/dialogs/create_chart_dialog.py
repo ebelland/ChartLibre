@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Sequence, cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QMessageBox, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QSplitter, QToolBox
+from PySide6.QtWidgets import QFrame, QMessageBox, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QToolBox
 
 from app.scanners.axis_renderer_scanner import (
     get_renderer,
@@ -41,7 +41,7 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.i18n import _, tr
-from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
 from app.utils.config import get_constant
 
 
@@ -64,7 +64,7 @@ class NewPlotTabResult:
     series_count: int
 
 
-class NewPlotTabDialog(PanelDialog):
+class NewPlotTabDialog(ColumnsDialog):
     """Dialog used to create a figure/axis and one or more plot series.
 
     Role selection is renderer-driven: the scrollable roles panel is rebuilt
@@ -87,8 +87,10 @@ class NewPlotTabDialog(PanelDialog):
         preferred_columns: Sequence[str] | None = None,
         parent: QWidget | None = None,
     ) -> None:
-        # The shell - title, icon, padding, the row of buttons - is PanelDialog's.
-        super().__init__(parent, title=_("New Chart"), icon=load_icon("new_plot"), size="large")
+        # The shell - title, icon, padding, three columns with handles between
+        # them, the row of buttons - is ColumnsDialog's.
+        super().__init__(parent, title=_("New Chart"), icon=load_icon("new_plot"), size="large", resizable=True,
+                         columns=(Column(stretch=0, minimum=220), Column(minimum=380), Column(minimum=260)))
 
         self._repo = repo
         #: Columns picked in the table preview, mapped onto x, y and z in
@@ -345,35 +347,13 @@ class NewPlotTabDialog(PanelDialog):
         renderer_layout.addWidget(self._types_toolbox, 1)
         renderer_layout.addWidget(self._renderer_details, 0)
 
-        target_series_panel = QWidget()
-        target_series_panel.setMinimumWidth(260)
-        target_series_panel.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-        target_series_layout = QVBoxLayout(target_series_panel)
-        stdSizeAndlayout(target_series_layout)
-        target_series_layout.addWidget(fig_group, 0)
-        target_series_layout.addWidget(series_list_group, 1)
-
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        # The handles on the window's grey between the cards, not white strips (B-12).
-        splitter.setStyleSheet("QSplitter::handle { background: transparent; }")
-        editor_group.setMinimumWidth(380)
-        editor_group.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-
-        splitter.addWidget(renderer_panel)
-        splitter.addWidget(editor_group)
-        splitter.addWidget(target_series_panel)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-        splitter.setStretchFactor(2, 1)
-        splitter.setSizes([230, 430, 330])
-
-        self.body_layout.addWidget(splitter, 1)
+        editor_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.column(0).layout().addWidget(renderer_panel, 1)
+        self.column(1).layout().addWidget(editor_group, 1)
+        self.column(2).layout().addWidget(fig_group, 0)
+        self.column(2).layout().addWidget(series_list_group, 1)
+        assert self.splitter is not None
+        self.splitter.setSizes([230, 430, 330])
         self.add_action("apply", self._on_accept)
         self.add_action("close", self.reject)
     
