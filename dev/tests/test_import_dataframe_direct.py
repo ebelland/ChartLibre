@@ -48,8 +48,10 @@ def test_a_plain_frame_gives_the_table_to_sql_gave(repo: SqliteRepo) -> None:
     repo.import_dataframe(frame, table_name="pandas", normalize_columns=False, dtype_overrides={})  # {} is the to_sql path
     assert _table(repo, "direct") == _table(repo, "pandas")
     schema, rows = _table(repo, "direct")
-    assert dict(schema) == {"x": "REAL", "n": "INTEGER", "flag": "INTEGER", "label": "TEXT", "mixed": "TEXT"}
-    assert rows[2][0] is None and rows[1][3] is None  # NaN and None are NULL
+    # The row id first (R-07), numbered from 1.
+    assert schema[0] == ("_id", "INTEGER") and [row[0] for row in rows] == [1, 2, 3, 4]
+    assert dict(schema[1:]) == {"x": "REAL", "n": "INTEGER", "flag": "INTEGER", "label": "TEXT", "mixed": "TEXT"}
+    assert rows[2][1] is None and rows[1][4] is None  # NaN and None are NULL
 
 
 def test_dates_go_through_pandas(repo: SqliteRepo) -> None:
@@ -64,7 +66,7 @@ def test_an_empty_frame_and_a_replaced_table(repo: SqliteRepo) -> None:
     repo.import_dataframe(pd.DataFrame({"a": pd.Series([], dtype=float), "b": pd.Series([], dtype=object)}),
                           table_name="t", normalize_columns=False)
     schema, rows = _table(repo, "t")
-    assert [name for name, _kind in schema] == ["a", "b"] and rows == []
+    assert [name for name, _kind in schema] == ["_id", "a", "b"] and rows == []
 
 
 def test_values_that_are_not_plain_fall_back_and_still_import(repo: SqliteRepo) -> None:

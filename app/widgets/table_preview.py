@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, Qt, Signal
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu
 from app.data.data_source import quote_identifier as _quote_table
 from app.data.sqlite_repo import SqliteRepo
@@ -141,6 +141,8 @@ class TablePreviewPanel(QWidget):
     histogram_requested = Signal(str, str)
     #: A SELECT of the selected cells' columns and rows, for the Query Builder.
     query_requested = Signal(str)
+    #: Rows of these tables were marked Selected here: the charts ring them too (todo R-07).
+    selected_rows_changed = Signal(list)
 
     def __init__(self, parent: QWidget, repo:SqliteRepo) -> None:
         super().__init__(parent)
@@ -578,7 +580,20 @@ class TablePreviewPanel(QWidget):
             action=lambda _=False: self._flag_selected_cell_value(flag),
         )
 
+    def show_selected_rows(self, tables: list[str]) -> None:
+        """Rows of *tables* were marked Selected elsewhere (a chart): shown, the first one scrolled to."""
+        if self._repo is None or self._table not in tables:
+            return
+        self._reload_model()
+        model = self._model()
+        ids = self._repo.selected_row_ids(self._table) if model is not None else []
+        if ids:
+            position = self._repo.row_position(self._table, ids[0])
+            self.view.scrollTo(model.index(position, 0), QTableView.ScrollHint.PositionAtCenter)
+
     def _flag_done(self, flag: str, count: int) -> None:
+        if flag == "Selected" and self._table:
+            self.selected_rows_changed.emit([self._table])
         self._reload_model()
         show_message(self, "preview.rows_hidden" if flag == "Hide" else "preview.rows_selected", count=count)
 
@@ -646,7 +661,8 @@ class LazyTableModel(QAbstractTableModel):
     def _load_schema_and_count(self) -> None:
         if not self._repo.is_open:
             return
-        rows = self._repo.table_info(self._table)
+        shown = set(self._repo.get_columns(self._table))  # not the row id column
+        rows = [row for row in self._repo.table_info(self._table) if str(row[1]) in shown]
         self._columns = [str(row[1]) for row in rows]
         self._codes = [_type_code(str(row[2])) for row in rows]
         self._row_count = int(self._repo.row_count(self._table))
@@ -669,9 +685,14 @@ class LazyTableModel(QAbstractTableModel):
             return None
         return str(section + 1)
 
+    #: The tint of a row marked Selected - by a box selection on a chart, or here.
+    SELECTED_ROW_TINT = QColor(31, 119, 180, 46)
+
     def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
+        if role == Qt.ItemDataRole.BackgroundRole:
+            return self._selected_tint(index.row())
         if role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             return None
         row_index = index.row()
@@ -688,6 +709,16 @@ class LazyTableModel(QAbstractTableModel):
             return None
         value = rows[offset][column_index]
         return "" if value is None else str(value)
+
+    def _selected_tint(self, row_index: int) -> QColor | None:
+        """The row's tint when it is marked Selected; None otherwise."""
+        if "Selected" not in self._columns or row_index >= self._row_count:
+            return None
+        chunk, offset = divmod(row_index, self._chunk_size)
+        rows = self._cache.get(chunk)
+        if rows is None or offset >= len(rows):
+            return None  # not read yet: its text, read first, brings it
+        return self.SELECTED_ROW_TINT if rows[offset][self._columns.index("Selected")] == 1 else None
 
     def _fetch_chunk(self, chunk_index: int) -> list[list[Any]]:
         last_rowid = self._chunk_rowid.get(chunk_index - 1, 0) if chunk_index > 0 else 0

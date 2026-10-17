@@ -81,7 +81,7 @@ The preview is read-only. To change the data, right-click it and choose *Edit ta
   [*Cells*], [Double-click and type. An emptied cell becomes NULL (not measured) rather than an empty text, which would turn a numeric column into text.],
   [*Rows*], [*Add row* at the end, *Insert row above* the selected one, *Delete rows* with a selected cell.],
   [*Columns*], [Type a name and pick a type, then *Add column* (at the end) or *Insert before selected*; *Rename selected*; *Delete selected*.],
-  [*Managed columns*], [`Hide` marks rows every chart skips; `Selected` marks rows for your own queries and operations (`WHERE "Selected" = 1`, or *Group by* `Selected` in New plot), with no effect on drawing; `ClusterId` is written by Clustering. Mark rows by a comparison on the selected column, or create, reset or invert the columns, from the editor's last button.],
+  [*Managed columns*], [`Hide` marks rows every chart skips; `Selected` marks rows for your own queries and operations (`WHERE "Selected" = 1`, or *Group by* `Selected` in New plot) - the charts of the table ring them, and a box selection on a chart sets it (see @main-window); `ClusterId` is written by Clustering. Mark rows by a comparison on the selected column, or create, reset or invert the columns, from the editor's last button.],
 )
 
 Every change is written as it is made, yet *Cancel* still puts the table back: the editor takes a snapshot before the first change. *OK* keeps the changes (and the snapshot stays in the undo history), *Cancel* restores the snapshot after asking.

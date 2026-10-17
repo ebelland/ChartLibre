@@ -23,9 +23,16 @@ from pandas._typing import DtypeArg
 
 from app import APP_NAME
 from app.data.data_source import DataSource, quote_identifier
-from app.data.select_sql import top_level_from, top_level_match
+from app.data.select_sql import (
+    has_projection_alias,
+    split_top_level_select_items,
+    sql_insert_select_expression,
+    top_level_from,
+    top_level_match,
+)
 from app.data.repo._common import (
     READ_FAILURES,
+    ROW_ID,
     RepoHost,
     _RETURNS_ROWS_RE,
     _dumps_json,
@@ -156,7 +163,7 @@ class TablesMixin(RepoHost):
             cursor = self._con.execute(source.columns_sql())
             if cursor.description is None:
                 return []
-            return [str(item[0]) for item in cursor.description if item and item[0]]
+            return [str(item[0]) for item in cursor.description if item and item[0] and item[0] != ROW_ID]
         except READ_FAILURES:
             applogger.exception("Failed to read columns of query '%s'", source.name)
             return []
@@ -240,13 +247,77 @@ class TablesMixin(RepoHost):
             applogger.exception("Failed to read table schema for %s", table)
             return []
 
-    def get_columns(self, table: str) -> list[str]:
-        """A table's column names, in order; empty when there is no such table."""
-        return [str(row[1]) for row in self.table_info(table)]
+    def get_columns(self, table: str, *, with_id: bool = False) -> list[str]:
+        """A table's column names, in order; empty when there is no such table.
+
+        Without its row id (ROW_ID) unless *with_id*: what a person sees
+        and chooses from.
+        """
+        return [str(row[1]) for row in self.table_info(table) if with_id or str(row[1]) != ROW_ID]
 
     def has_column(self, table_name: str, col_name: str) -> bool:
         """True when the table has a column with this name."""
-        return col_name in self.get_columns(table_name)
+        return col_name in self.get_columns(table_name, with_id=True)
+
+    def row_id_column(self, table: str) -> str | None:
+        """The column that is *table*'s rowid - its INTEGER PRIMARY KEY - or None."""
+        keys = [row for row in self.table_info(table) if int(row[5] or 0) > 0]
+        if len(keys) == 1 and str(keys[0][2] or "").strip().upper() == "INTEGER":
+            return str(keys[0][1])
+        return None
+
+    @ensure_connection_wrapper
+    def ensure_row_id(self, table: str) -> None:
+        """Give *table* its row id column (ROW_ID), numbered in row order - unless it has one.
+
+        A rebuild of the table: SQLite cannot add a primary key to a table.
+        An "_id" column already there that holds distinct integers (the
+        table was saved from a query of another) keeps its values; any other
+        is the person's own and is renamed out of the way, "_id_2".
+        """
+        assert self._con is not None
+        info = self.table_info(table)
+        if not info or self.row_id_column(table) is not None:
+            return
+        table_sql = _quote_ident(table)
+        id_sql = _quote_ident(ROW_ID)
+        source = "rowid"
+        if any(str(row[1]) == ROW_ID for row in info):
+            total, distinct, integers = self._con.execute(
+                f"SELECT COUNT(*), COUNT(DISTINCT {id_sql}), "
+                f"COALESCE(SUM(typeof({id_sql}) = 'integer'), 0) FROM {table_sql}"
+            ).fetchone()
+            if total == distinct == integers:
+                source = id_sql
+            else:
+                taken = {str(row[1]).lower() for row in info}
+                index = 2
+                while f"{ROW_ID}_{index}".lower() in taken:
+                    index += 1
+                self._con.execute(
+                    f"ALTER TABLE {table_sql} RENAME COLUMN {id_sql} TO {_quote_ident(f'{ROW_ID}_{index}')}"
+                )
+                info = self.table_info(table)
+        columns = [(str(row[1]), str(row[2] or "")) for row in info if str(row[1]) != ROW_ID]
+        temporary = _quote_ident(f"__rebuild_{table}")
+        definition = ", ".join([f"{id_sql} INTEGER PRIMARY KEY"] + [f"{_quote_ident(n)} {k}".strip() for n, k in columns])
+        names = "".join(f", {_quote_ident(n)}" for n, _k in columns)
+        self._con.execute(f"DROP TABLE IF EXISTS {temporary}")
+        self._con.execute(f"CREATE TABLE {temporary} ({definition})")
+        self._con.execute(
+            f"INSERT INTO {temporary} ({id_sql}{names}) SELECT {source}{names} FROM {table_sql} ORDER BY rowid"
+        )
+        self._con.execute(f"DROP TABLE {table_sql}")
+        self._con.execute(f"ALTER TABLE {temporary} RENAME TO {table_sql}")
+        self._commit()
+
+    def ensure_row_ids(self) -> None:
+        """Every user table with its row id: a project made before R-07, the first time it opens."""
+        for table in self.list_user_tables()["Table"]:
+            try:
+                self.ensure_row_id(str(table))
+            except sqlite3.Error:
+                applogger.exception("Could not give table '%s' its row id column.", table)
 
 
     @ensure_connection_wrapper
@@ -321,14 +392,16 @@ class TablesMixin(RepoHost):
     def read_rows_after_rowid(self, table: str, last_rowid: int, limit: int) -> list[tuple[Any, ...]]:
         """Return up to *limit* rows of *table* with a rowid above *last_rowid*.
 
-        Each row is ``(rowid, *columns)``, in rowid order. Reading a table in
-        blocks by "the rowid after the last one seen" rather than by OFFSET
-        keeps every block as cheap as the first - the way the table preview
-        and the table editor page through a table of any size.
+        Each row is ``(rowid, *columns)``, in rowid order, the columns those
+        of get_columns - not the row id column, which is the rowid. Reading
+        a table in blocks by "the rowid after the last one seen" rather than
+        by OFFSET keeps every block as cheap as the first - the way the table
+        preview and the table editor page through a table of any size.
         """
         assert self._con is not None
+        columns = "".join(f", {_quote_ident(name)}" for name in self.get_columns(table))
         cursor = self._con.execute(
-            f"SELECT rowid, * FROM {_quote_ident(table)} WHERE rowid > ? ORDER BY rowid LIMIT ?",
+            f"SELECT rowid{columns} FROM {_quote_ident(table)} WHERE rowid > ? ORDER BY rowid LIMIT ?",
             (int(last_rowid), int(limit)),
         )
         return [tuple(row) for row in cursor.fetchall()]
@@ -362,11 +435,12 @@ class TablesMixin(RepoHost):
 
 
     @ensure_connection_wrapper
-    def query_df(self, sql: str, params: tuple[Any, ...] | None = None) -> pd.DataFrame:
+    def query_df(self, sql: str, params: tuple[Any, ...] | None = None, *, row_id: bool = False) -> pd.DataFrame:
         """Execute SQL and return DataFrame (or empty DF for non-SELECT).
         
         Detects SELECT/WITH/PRAGMA/EXPLAIN and returns data.
         For DDL/DML (CREATE/INSERT/UPDATE/DELETE), executes and returns empty DF.
+        Rows come without the tables' row id column (ROW_ID) unless *row_id*.
         """
         sql_text = (sql or "").strip()
         if not sql_text or self._con is None:
@@ -376,7 +450,10 @@ class TablesMixin(RepoHost):
         # SQL the opening scan found would write is refused, whatever it is.
         self.refuse_if_blocked(sql_text)
         if _RETURNS_ROWS_RE.match(sql_text):
-            return pd.read_sql_query(sql_text, self._con, params=params or ())
+            frame = pd.read_sql_query(sql_text, self._con, params=params or ())
+            if not row_id and ROW_ID in frame.columns:
+                frame = frame.loc[:, frame.columns != ROW_ID]
+            return frame
         else:
             self._con.execute(sql_text, params or ())
             return pd.DataFrame()
@@ -429,6 +506,7 @@ class TablesMixin(RepoHost):
                 index=False,
                 dtype=dtype_overrides,
             )
+        self.ensure_row_id(table)
         applogger.info(f"Imported {df.shape[0]} rows to {table_name}")
         return int(df.shape[0])
 
@@ -459,13 +537,17 @@ class TablesMixin(RepoHost):
         if columns is None:
             return False
         definition = ", ".join(f"{_quote_ident(str(name))} {kind}" for name, kind in zip(df.columns, declared))
+        if ROW_ID not in df.columns:
+            # The row id from the start: no rebuild after (ensure_row_id).
+            definition = f"{_quote_ident(ROW_ID)} INTEGER PRIMARY KEY, {definition}"
+        names = ", ".join(_quote_ident(str(name)) for name in df.columns)
         try:
             self._con.execute(f"CREATE TABLE {table_q} ({definition})")
             if len(df):
                 if not self._con.in_transaction:
                     self._con.execute("BEGIN")
                 self._con.executemany(
-                    f"INSERT INTO {table_q} VALUES ({', '.join('?' * len(columns))})", zip(*columns)
+                    f"INSERT INTO {table_q} ({names}) VALUES ({', '.join('?' * len(columns))})", zip(*columns)
                 )
         except sqlite3.Error:
             if self._con.in_transaction:
@@ -596,6 +678,8 @@ class TablesMixin(RepoHost):
     def rename_table_column(self, table_name: str, old_name: str, new_name: str) -> None:
         """Rename one column of a user table."""
         assert self._con is not None
+        if ROW_ID in (old_name, new_name):
+            raise ValueError(f"'{ROW_ID}' is the table's row id")
         self._con.execute(
             f"ALTER TABLE {_quote_ident(table_name)} "
             f"RENAME COLUMN {_quote_ident(old_name)} TO {_quote_ident(new_name)}"
@@ -724,6 +808,36 @@ class TablesMixin(RepoHost):
         if re.search(r'"?\bhide\b"?\s*(?:=\s*0|is\s+false)', sql, flags=re.IGNORECASE):
             return sql
         return self._sql_with_where_clause(sql, '"Hide" = 0')
+
+    def sql_with_row_id(self, sql_query: str) -> str:
+        """*sql_query* selecting its table's row id too, as ROW_ID - where a point is one row.
+
+        For a series' query (todo R-07): a point drawn from it then names
+        its table row. Left as it is when its rows are not rows of one table
+        - a saved query, a WITH, a join, a union, a grouping or an aggregate
+        - and when it selects the row id already, or ``*``.
+        """
+        sql = str(sql_query or "").strip().rstrip(";")
+        if not self.is_table_backed_sql(sql) or has_projection_alias(sql, ROW_ID):
+            return sql
+        if top_level_match(sql, r"\bgroup\s+by\b|\bjoin\b|\bunion\b|\bintersect\b|\bexcept\b"):
+            return sql
+        start = re.match(r"(?is)^\s*select\s+", sql)
+        from_match = top_level_from(sql)
+        if start is None or from_match is None or re.match(r"(?i)distinct\b", sql[start.end():]):
+            return sql
+        items = split_top_level_select_items(sql[start.end():from_match.start()])
+        aggregate = re.compile(r"(?i)^(?:count|sum|avg|min|max|total|group_concat)\s*\(")
+        if any(item == "*" or item.endswith(".*") or item.strip('"`[]') == ROW_ID or aggregate.match(item)
+               for item in items):
+            return sql
+        if top_level_match(sql[from_match.end():], r","):  # FROM a, b: a join
+            return sql
+        column = self.row_id_column(self.query_source_table(sql))
+        if column is None:
+            return sql
+        expression = _quote_ident(ROW_ID) if column == ROW_ID else f"{_quote_ident(column)} AS {_quote_ident(ROW_ID)}"
+        return sql_insert_select_expression(sql, expression)
 
     @staticmethod
     def _sql_with_where_clause(sql: str, clause: str) -> str:
@@ -976,6 +1090,8 @@ class TablesMixin(RepoHost):
         cols_sql = [
             f"{_quote_ident(col)} {types.get(col, 'TEXT')}" for col in df.columns
         ]
+        if ROW_ID not in df.columns:
+            cols_sql.insert(0, f"{_quote_ident(ROW_ID)} INTEGER PRIMARY KEY")
         self._con.execute(f"CREATE TABLE {tq} ({', '.join(cols_sql)})")
 
         # Prepare batch insert
@@ -998,6 +1114,7 @@ class TablesMixin(RepoHost):
         )
         self._con.executemany(sql, records)
         self._commit()
+        self.ensure_row_id(table)
 
     @staticmethod
     def _normalize_sqlite_value(val: Any, decl: str) -> Any:
@@ -1075,8 +1192,8 @@ class TablesMixin(RepoHost):
         if not self._is_connected or self._con is None:
             self._connect()
         assert self._con is not None
-        if column_name.lower() == "rowid":
-            applogger.error("Cannot delete rowid.")
+        if column_name.lower() == "rowid" or column_name == ROW_ID:
+            raise ValueError(f"'{column_name}' is the table's row id and cannot be deleted")
         if column_name == "Hide":
             applogger.error(
                 "Column 'Hide' is managed by %s and cannot be deleted.", APP_NAME

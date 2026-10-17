@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 94,605 lines in 260 files; tests 18,149 lines in 143 files (updated at each commit).
+Size: app 94,983 lines in 260 files; tests 18,334 lines in 145 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -129,19 +129,20 @@ LATER
 - R-14  L  Multichart templates; signed macOS app, Windows installer.
 - P2-12 M  Small chart beside operation results.
 - R-07  L  Linked selection across charts and table, then a data filter.
-           Design: every table gets an explicit row id column ("_id INTEGER
-           PRIMARY KEY", added on import and to existing projects by a
-           migration, numbered in row order) - the implicit rowid the Hide
-           and Selected code uses today is renumbered by VACUUM and by every
-           rebuild (import_dataframe, sort, cast). Each series query selects
-           it too, under an "id" role the renderers ignore; a picked or
-           rectangle-selected point then names its table row(s): highlighted
-           in the Data preview, flagged in a "Selected" column, the same rows
-           highlighted on every other chart of that table. A saved query keeps
-           the id of its main table (FROM); a GROUP BY or a join without it
-           has no row identity and its charts do not take part. The id column
-           is hidden in the table views and the column lists, and kept out of
-           exports unless asked.
+           Done: every table has "_id INTEGER PRIMARY KEY" (on import, on
+           every copy, cast, sort - renumbered - and grouping, and on older
+           projects once when they open; a table with an INTEGER PRIMARY KEY
+           of its own uses it; someone's own "_id" is renamed "_id_2"),
+           hidden from get_columns, query_df, the previews and the exports.
+           A series' query selects it (sql_with_row_id: not for a grouping,
+           an aggregate, a join or a saved query); the renderers get it as
+           SeriesData.ids, never as a column. A box selection marks the rows
+           Selected; every chart of the table rings them and the preview
+           tints them and scrolls to the first; Selected set in the preview
+           rings them on the charts.
+           Next: a click on one point selects its row (Shift adds); a series
+           over a saved query that keeps "_id"; dates and categories on x;
+           the data filter ("show only Selected" on every chart of a table).
 - N-09  M  "Colour by value" dialog.
 
 
@@ -235,4 +236,4 @@ S-01 Selection <-> Chart properties (bidirectional feedback)
   "Also editing: ..." under the series list, Clear ends it; every change
   but the legend label goes to all, previewed live where it can be).
 - Selected data points (Select points) shown in the table preview and as a
-  "Selected" flag - the start of R-07 (linked selection).
+  "Selected" flag - the start of R-07 (done, see R-07).

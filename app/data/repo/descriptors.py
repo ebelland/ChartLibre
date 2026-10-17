@@ -577,7 +577,7 @@ class DescriptorsMixin(RepoHost):
             Primary key id of created series (or 0 on error)
         """
         assert self._con is not None
-        filtered_sql_query = self.sql_with_hide_filter(str(sql_query))
+        filtered_sql_query = self.sql_with_row_id(self.sql_with_hide_filter(str(sql_query)))
 
         # Only a table-backed series gets a Hide column; a series over a saved
         # query reads from a subquery that has no row identity to hide.

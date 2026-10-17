@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from app.data.repo._common import RepoHost, _is_ident, _quote_ident, ensure_connection_wrapper
+from app.data.repo._common import ROW_ID, RepoHost, _is_ident, _quote_ident, ensure_connection_wrapper
 
 
 class EditingMixin(RepoHost):
@@ -42,12 +42,11 @@ class EditingMixin(RepoHost):
         ``INTEGER PRIMARY KEY`` makes a column *be* the rowid rather than
         shadow it. Renumbering rowids to reorder rows would then be silently
         rewriting the user's own key values, so the positional insert below
-        refuses on such a table rather than doing that quietly.
+        refuses on such a table rather than doing that quietly. The row id
+        this application gives every table (ROW_ID) is not one: renumbering
+        it is what it is there for.
         """
-        return any(
-            int(row[5] or 0) == 1 and str(row[2] or "").strip().upper() == "INTEGER"
-            for row in self.table_info(table_name)
-        )
+        return self.row_id_column(table_name) not in (None, ROW_ID)
 
     @ensure_connection_wrapper
     def update_table_cell(
@@ -190,7 +189,7 @@ class EditingMixin(RepoHost):
             raise ValueError(f"'{name}' is not a usable column name")
 
         table_sql = _quote_ident(table_name)
-        existing = self.get_columns(table_name)
+        existing = self.get_columns(table_name, with_id=True)
         if name in existing:
             raise ValueError(f"'{name}' is already a column of this table")
 
@@ -211,7 +210,7 @@ class EditingMixin(RepoHost):
             self._commit()
             return
 
-        types = {str(row[1]): str(row[2] or "") for row in self.table_info(table_name)}
+        types = dict(self._schema(table_name))
         types[name] = declared
         order = list(existing)
         order.insert(order.index(before), name)

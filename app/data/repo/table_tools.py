@@ -13,7 +13,7 @@ from typing import Any, Sequence
 
 import pandas as pd
 
-from app.data.repo._common import RepoHost, _is_ident, _quote_ident, ensure_connection_wrapper
+from app.data.repo._common import ROW_ID, RepoHost, _is_ident, _quote_ident, ensure_connection_wrapper
 from app.utils.coercion import to_numbers
 
 #: The declared types a column can be changed to, in SQLite's own names.
@@ -35,8 +35,11 @@ class TableToolsMixin(RepoHost):
     # Helpers
     # ------------------------------------------------------------------
     def _schema(self, table_name: str) -> list[tuple[str, str]]:
-        """(column, declared type) pairs, in table order."""
-        return [(str(row[1]), str(row[2] or "")) for row in self.table_info(table_name)]
+        """(column, declared type) pairs, in table order - the row id's as "INTEGER PRIMARY KEY", for a copy to keep it."""
+        return [
+            (str(row[1]), "INTEGER PRIMARY KEY" if str(row[1]) == ROW_ID and int(row[5] or 0) else str(row[2] or ""))
+            for row in self.table_info(table_name)
+        ]
 
     @ensure_connection_wrapper
     def free_table_name(self, base: str) -> str:
@@ -76,7 +79,7 @@ class TableToolsMixin(RepoHost):
 
     def _require_column(self, table_name: str, column_name: str | None) -> str:
         """Return *column_name* if the table has it, or raise a readable error."""
-        if not column_name or column_name not in {n for n, _k in self._schema(table_name)}:
+        if not column_name or column_name == ROW_ID or column_name not in {n for n, _k in self._schema(table_name)}:
             raise ValueError(f"'{column_name}' is not a column of '{table_name}'")
         return column_name
 
@@ -86,11 +89,15 @@ class TableToolsMixin(RepoHost):
         schema: Sequence[tuple[str, str]],
         select_sql: str,
     ) -> None:
-        """Replace *table_name* with *schema*, filled by *select_sql* (no rowids kept)."""
+        """Replace *table_name* with *schema*, filled by *select_sql* (no rowids kept).
+
+        *select_sql* returns the schema's columns but the row id (ROW_ID),
+        which numbers the rows anew in the order it returns them.
+        """
         assert self._con is not None
         temporary = _quote_ident(f"__rebuild_{table_name}")
         columns_sql = ", ".join(f"{_quote_ident(name)} {kind}".strip() for name, kind in schema)
-        names = ", ".join(_quote_ident(name) for name, _kind in schema)
+        names = ", ".join(_quote_ident(name) for name, _kind in schema if name != ROW_ID)
         self._con.execute(f"DROP TABLE IF EXISTS {temporary}")
         self._con.execute(f"CREATE TABLE {temporary} ({columns_sql})")
         self._con.execute(f"INSERT INTO {temporary} ({names}) {select_sql}")
@@ -146,14 +153,14 @@ class TableToolsMixin(RepoHost):
         if self.has_integer_primary_key(table_name):
             raise ValueError("this table's row ids are its own key column and cannot be renumbered")
         schema = self._schema(table_name)
-        if column_name not in {name for name, _kind in schema}:
+        if column_name == ROW_ID or column_name not in {name for name, _kind in schema}:
             raise ValueError(f"'{column_name}' is not a column of this table")
         self.snapshot_for_undo(
             [table_name], label=f"Sort '{table_name}' by '{column_name}'", entry_id=undo_entry
         )
         column = _quote_ident(column_name)
         direction = "DESC" if descending else "ASC"
-        names = ", ".join(_quote_ident(name) for name, _kind in schema)
+        names = ", ".join(_quote_ident(name) for name, _kind in schema if name != ROW_ID)
         self._rebuild(
             table_name,
             schema,
@@ -179,7 +186,7 @@ class TableToolsMixin(RepoHost):
         if kind not in CAST_TYPES:
             raise ValueError(f"'{new_type}' is not one of {', '.join(CAST_TYPES)}")
         schema = self._schema(table_name)
-        if column_name not in {name for name, _kind in schema}:
+        if column_name == ROW_ID or column_name not in {name for name, _kind in schema}:
             raise ValueError(f"'{column_name}' is not a column of this table")
         self.snapshot_for_undo(
             [table_name],
@@ -323,7 +330,7 @@ class TableToolsMixin(RepoHost):
             raise ValueError("there is nothing to find")
         schema = self._schema(table_name)
         known = {name: kind.upper() for name, kind in schema}
-        targets = [c for c in (columns or [n for n, _k in schema]) if c in known and c.lower() != "rowid"]
+        targets = [c for c in (columns or [n for n, _k in schema]) if c in known and c.lower() != "rowid" and c != ROW_ID]
         self.snapshot_for_undo(
             [table_name], label=f"Replace '{find}' in '{table_name}'", entry_id=undo_entry
         )
@@ -363,7 +370,7 @@ class TableToolsMixin(RepoHost):
         *measures* are (aggregate, column) pairs; COUNT with no column counts
         rows. No grouping column is allowed too: one row of totals.
         """
-        schema_names = [name for name, _kind in self._schema(table_name)]
+        schema_names = [name for name, _kind in self._schema(table_name) if name != ROW_ID]
         groups = [g for g in group_by if g in schema_names]
         if not measures:
             raise ValueError("add at least one measure")
@@ -450,6 +457,7 @@ class TableToolsMixin(RepoHost):
         self.snapshot_for_undo([name], label=f"Group '{table_name}' into '{name}'")
         assert self._con is not None
         self._con.execute(f"CREATE TABLE {_quote_ident(name)} AS {sql}")
+        self.ensure_row_id(name)
         self._commit()
         return name
 
@@ -469,6 +477,7 @@ class TableToolsMixin(RepoHost):
         self.snapshot_for_undo([name], label=f"Save a query as '{name}'")
         assert self._con is not None
         self._con.execute(f"CREATE TABLE {_quote_ident(name)} AS SELECT * FROM ({sql.strip().rstrip(';')})")
+        self.ensure_row_id(name)
         self._commit()
         return name
 

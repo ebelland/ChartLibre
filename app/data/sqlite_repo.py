@@ -44,6 +44,7 @@ from app.data.repo._common import (  # noqa: F401 - re-export
     DatabaseError,
     DatabasePragmaInfo,
     DatabaseReport,
+    ROW_ID,
     SavedQuery,
     _dumps_json,
     _is_ident,
@@ -222,6 +223,13 @@ class SqliteRepo(
 
         # Create system tables
         self._create_system_tables()
+        # A project from before R-07: its tables get their row id column once,
+        # and its series' queries select it.
+        self.ensure_row_ids()
+        try:
+            self.add_row_ids_to_series()
+        except sqlite3.Error:
+            applogger.exception("Could not add the row id to the series queries")
         try:
             self.repair_misplaced_hide_filters()
         except sqlite3.Error:

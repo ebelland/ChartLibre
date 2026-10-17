@@ -10,6 +10,7 @@ import numpy as np
 from matplotlib.patches import Rectangle
 
 from app.data.data_source import quote_identifier
+from app.data.sqlite_repo import ROW_ID
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import generated_table_name
 from app.utils.i18n import _
@@ -387,6 +388,8 @@ class ToolsMixin:
 
         axis_id = int(getattr(axes, "_dhub_axis_id"))
         self._last_selection = self._collect_selection(axis_id, axes, x_min, x_max, y_min, y_max)
+        if self._last_selection is not None:
+            self._select_table_rows(self._last_selection)
         self._canvas.draw_idle()
 
         if self._last_selection is None:
@@ -453,6 +456,88 @@ class ToolsMixin:
             "y1": y_max,
             "series": matches,
         }
+
+    def _select_table_rows(self, selection: dict[str, Any]) -> None:
+        """Mark the rows behind the selected points Selected in their tables, and show them (todo R-07).
+
+        Only for a series whose query names its rows (the row id, ROW_ID);
+        every chart of those tables then rings the same rows
+        (rows_selected), and so does the table preview.
+        """
+        by_table: dict[str, set[int]] = {}
+        for info in selection["series"].values():
+            table = self._repo.row_table(info["sql_query"])
+            if not table:
+                continue
+            rows = self._repo.series_rows(info["sql_query"], info["roles"])
+            inside = rows[rows["x"].between(selection["x0"], selection["x1"])
+                          & rows["y"].between(selection["y0"], selection["y1"])]
+            by_table.setdefault(table, set()).update(int(i) for i in inside[ROW_ID])
+        for table, ids in by_table.items():
+            self._repo.select_rows(table, sorted(ids))
+        if by_table:
+            self._draw_selected_rows()
+            self.rows_selected.emit(sorted(by_table))
+
+    #: Label of the rings round the points whose rows are Selected.
+    SELECTED_ROWS_LABEL: Final[str] = "_selected_rows"
+
+    def show_selected_rows(self, tables: list[str] | None = None) -> None:
+        """Ring again the points whose rows are Selected - after *tables* (None: any) changed elsewhere."""
+        if tables is not None and not set(tables) & self._row_tables():
+            return
+        self._draw_selected_rows()
+        self._canvas.draw_idle()
+
+    def _row_tables(self) -> set[str]:
+        tables: set[str] = set()
+        for axes in self._canvas.figure.axes:
+            axis_id = getattr(axes, "_dhub_axis_id", None)
+            for row in (self._repo.get_series(int(axis_id)) or []) if axis_id is not None else []:
+                table = self._repo.row_table(str(row["sql_query"] or ""))
+                if table:
+                    tables.add(table)
+        return tables
+
+    def _draw_selected_rows(self) -> None:
+        """A ring round every point of this chart whose table row is Selected (todo R-07).
+
+        Drawn over the chart, not part of it: on flat axes, for a series
+        whose query names its rows and whose x and y are numbers. Never
+        the reason a chart is not drawn.
+        """
+        try:
+            self._draw_selected_row_rings()
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+            applogger.exception("Could not ring the selected rows.")
+
+    def _draw_selected_row_rings(self) -> None:
+        for axes in self._canvas.figure.axes:
+            for artist in [a for a in axes.collections if a.get_label() == self.SELECTED_ROWS_LABEL]:
+                artist.remove()
+        selected: dict[str, set[int]] = {}
+        for axes in self._canvas.figure.axes:
+            axis_id = getattr(axes, "_dhub_axis_id", None)
+            if axis_id is None or axes.name != "rectilinear":
+                continue
+            for row in self._repo.get_series(int(axis_id)) or []:
+                sql = str(row["sql_query"] or "")
+                table = self._repo.row_table(sql)
+                if not table:
+                    continue
+                if table not in selected:
+                    selected[table] = set(self._repo.selected_row_ids(table))
+                if not selected[table]:
+                    continue
+                roles = json.loads(row["roles"]) if row["roles"] else {}
+                rows = self._repo.series_rows(sql, roles)
+                picked = rows[rows[ROW_ID].isin(selected[table])]
+                if picked.empty:
+                    continue
+                axes.scatter(
+                    picked["x"], picked["y"], s=110, facecolors="none", edgecolors=self.SELECT_COLOR,
+                    linewidths=1.6, zorder=9_000, label=self.SELECTED_ROWS_LABEL,
+                )
 
     def _hide_selection(self) -> None:
         """Hide every selected point by rewriting its series' own query.

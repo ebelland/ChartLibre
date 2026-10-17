@@ -89,6 +89,9 @@ class SeriesData:
     df: SeriesFrame
     style: dict
     roles: dict = field(default_factory=dict)
+    #: The table row id of each row of ``df`` (todo R-07), when the series'
+    #: query selects it - taken out of ``df``, so no renderer draws it.
+    ids: np.ndarray | None = None
 
 
 # ----------------------------------------------------------------------

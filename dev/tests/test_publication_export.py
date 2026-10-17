@@ -71,7 +71,7 @@ def test_a_template_carries_the_look_and_not_the_content(showcase, tmp_path: Pat
     assert axis_options["grid"] is True and "annotations" not in axis_options
     series = applied.axes[0].series[0]
     assert series.options == {"label": "keep me", "color": "#d62728", "marker": "^", "markersize": 9.0}
-    assert series.sql_query.startswith("SELECT x, y FROM src_xy")
+    assert series.sql_query.startswith("SELECT x, y") and "FROM src_xy" in series.sql_query  # its data kept
     gt.delete_template("Paper look", tmp_path)
     assert gt.list_templates(tmp_path) == []
 

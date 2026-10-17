@@ -17,7 +17,7 @@ from typing import Any, Mapping, Sequence
 import pandas as pd
 
 from app.data.data_source import resolve_role_column
-from app.data.repo._common import RepoHost, _quote_ident, ensure_connection_wrapper
+from app.data.repo._common import READ_FAILURES, ROW_ID, RepoHost, _quote_ident, ensure_connection_wrapper
 from app.data.select_sql import sql_insert_select_expression
 from app.logs.logger import applogger
 
@@ -92,6 +92,80 @@ class FlagsMixin(RepoHost):
         )
         self._commit()
         return int(cur.rowcount or 0)
+
+    # ------------------------------------------------------------------
+    # Selected, from a chart: the rows behind points (todo R-07)
+    # ------------------------------------------------------------------
+
+    def row_table(self, sql_query: str) -> str | None:
+        """The table whose row ids *sql_query* returns as ROW_ID - through a saved query too - or None."""
+        sql = str(sql_query or "").strip()
+        if not sql:
+            return None
+        name = self.query_source_table(sql) if self.is_table_backed_sql(sql) else ""
+        source = self.get_data_source(name) if name else None
+        if source is not None and source.is_query:
+            inner = str(source.sql or "")
+            name = self.query_source_table(inner) if self.is_table_backed_sql(inner) else ""
+            source = self.get_data_source(name) if name else None
+        if source is None or source.is_query or self.row_id_column(source.name) is None:
+            return None
+        return source.name
+
+    @ensure_connection_wrapper
+    def series_rows(self, sql_query: str, roles: Mapping[str, Any]) -> pd.DataFrame:
+        """A series' rows with their table row id: ROW_ID, ``x``, ``y`` (numbers); empty when it has no ids.
+
+        Read through the series' own query, so only the rows it draws.
+        """
+        empty = pd.DataFrame(columns=[ROW_ID, "x", "y"])
+        try:
+            frame = self.query_df(f"SELECT * FROM ({str(sql_query).strip().rstrip(';')})", row_id=True)
+        except READ_FAILURES:
+            return empty
+        x_col = resolve_role_column(frame.columns, roles, "x")
+        y_col = resolve_role_column(frame.columns, roles, "y")
+        if ROW_ID not in frame.columns or not x_col or not y_col or frame.columns.duplicated().any():
+            return empty
+        return pd.DataFrame({
+            ROW_ID: pd.to_numeric(frame[ROW_ID], errors="coerce"),
+            "x": pd.to_numeric(frame[x_col], errors="coerce"),
+            "y": pd.to_numeric(frame[y_col], errors="coerce"),
+        }).dropna()
+
+    @ensure_connection_wrapper
+    def select_rows(self, table_name: str, row_ids: Sequence[int], *, add: bool = False) -> int:
+        """Mark exactly *row_ids* Selected - with *add*, as well as those already; how many are."""
+        assert self._con is not None
+        self.ensure_column(table_name=table_name, col_name="Selected", col_type="INTEGER")
+        table_sql = _quote_ident(table_name)
+        if not add:
+            self._con.execute(f'UPDATE {table_sql} SET "Selected" = 0 WHERE COALESCE("Selected", 0) <> 0')
+        self._con.executemany(
+            f'UPDATE {table_sql} SET "Selected" = 1 WHERE rowid = ?', [(int(i),) for i in row_ids]
+        )
+        self._commit()
+        return len(self.selected_row_ids(table_name))
+
+    @ensure_connection_wrapper
+    def row_position(self, table_name: str, row_id: int) -> int:
+        """Where row *row_id* is in *table_name*'s row order, from 0 - its row in the table preview."""
+        assert self._con is not None
+        row = self._con.execute(
+            f"SELECT COUNT(*) FROM {_quote_ident(table_name)} WHERE rowid < ?", (int(row_id),)
+        ).fetchone()
+        return int(row[0]) if row else 0
+
+    @ensure_connection_wrapper
+    def selected_row_ids(self, table_name: str) -> list[int]:
+        """The row ids of the rows of *table_name* marked Selected."""
+        assert self._con is not None
+        if not self.has_column(table_name, "Selected"):
+            return []
+        rows = self._con.execute(
+            f'SELECT rowid FROM {_quote_ident(table_name)} WHERE "Selected" = 1 ORDER BY rowid'
+        ).fetchall()
+        return [int(row[0]) for row in rows]
 
     # ------------------------------------------------------------------
     # Hide

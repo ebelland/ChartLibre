@@ -65,6 +65,28 @@ class MaintenanceMixin(RepoHost):
             )
         return fixed
 
+    @ensure_connection_wrapper
+    def add_row_ids_to_series(self) -> int:
+        """Every series' query selecting its table's row id too (sql_with_row_id); how many changed.
+
+        Run when a project opens, after its tables got their row id column:
+        a series made before R-07 then names its table rows like a new one.
+        A query that would no longer run is left as it was.
+        """
+        assert self._con is not None
+        changed = 0
+        for row in self._con.execute("SELECT id, sql_query FROM __series_descriptors__").fetchall():
+            sql = str(row["sql_query"] or "")
+            with_id = self.sql_with_row_id(sql)
+            if with_id != sql.strip().rstrip(";") and self._compiles(with_id):
+                self._con.execute(
+                    "UPDATE __series_descriptors__ SET sql_query = ? WHERE id = ?", (with_id, int(row["id"]))
+                )
+                changed += 1
+        if changed:
+            self._commit()
+        return changed
+
     def _compiles(self, sql: str) -> bool:
         assert self._con is not None
         try:

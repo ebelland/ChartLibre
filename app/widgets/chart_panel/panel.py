@@ -84,6 +84,8 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
     selection_changed = Signal(str)
     #: A plain click on the chart: {"axis_id": int | None, "series": str | None} (see PickingMixin).
     chart_object_clicked = Signal(dict)
+    #: The tables whose Selected rows a box selection on this chart just set (todo R-07).
+    rows_selected = Signal(list)
 
     def __init__(
         self,
@@ -585,6 +587,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
                 repo=self._repo,
             )
             self._make_data_artists_pickable()
+            self._draw_selected_rows()
             self._connect_x_sync_callbacks()
 
             # Do not normalize again from len(self._figure.axes). Matplotlib can

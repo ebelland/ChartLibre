@@ -32,7 +32,7 @@ from app.plugin_api.charts import axis_options
 from app.plugin_api.charts.base import SeriesData
 from app.data.descriptors import AxisDescriptor, FigureDescriptor, SeriesDescriptor
 from app.data.series_frame import SeriesFrame
-from app.data.sqlite_repo import SqliteRepo
+from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.logs.logger import applogger
 from app.utils.config import MPLSTYLES_DIR, get_constant, get_value
 from app.utils.mpl_latex import filter_latex_style_text
@@ -762,12 +762,17 @@ def _build_series_data_list(
             repo=repo, series_desc=series_desc, downsample_threshold=downsample_threshold
         )
         roles = series_desc.roles if isinstance(series_desc.roles, dict) else {}
+        ids = None
+        if ROW_ID in df.columns:
+            ids = to_numbers(df[ROW_ID]).to_numpy()
+            df = df.drop_column(ROW_ID)
         output.append(
             SeriesData(
                 name=str(series_desc.name or ""),
                 df=df,
                 style=style,
                 roles=dict(roles),
+                ids=ids,
             )
         )
 

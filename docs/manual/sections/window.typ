@@ -111,6 +111,10 @@ With *Select points* on, drag a rectangle over the chart: every point it covers,
   [*New series from selection*], [Adds a series holding only the selected points — to isolate a peak or a cluster for its own analysis.],
 )
 
+The rows behind the selected points are also marked `Selected` in their table: every other chart of that table rings the same points, and the Data preview tints those rows and scrolls to the first. Rows marked `Selected` in the preview are ringed on the charts the same way. This works for series that read a table directly, or through a saved query that keeps the table's rows, with numeric x and y; a grouped or joined query has no rows of one table to point at.
+
+Every table has a hidden row id column, `_id`, numbered in row order when the table is created. It is what lets a point name its row: a series' query selects it, and your own queries can too (`SELECT "_id", ... FROM ...`). It is not shown in the table views or the column lists, and not exported.
+
 == Window size
 
 Every window of ChartLibre opens fully visible on the screen it appears on, shrinking if needed to fit a small laptop display. Each dialog remembers its size and position between sessions.

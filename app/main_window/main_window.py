@@ -220,6 +220,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._table_panel.changed.connect(self.refresh)
         self._preview.chart_requested.connect(self._on_chart_from_columns)
         self._preview.histogram_requested.connect(self._on_histogram_from_column)
+        self._preview.selected_rows_changed.connect(self._on_rows_selected)
         self._preview.query_requested.connect(lambda sql: self._on_create_query_table(sql=sql))
         # Left-side pages.
         self._data_page = self._create_data_page()
@@ -949,6 +950,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                 panel.chart_object_clicked.connect(
                     lambda hit, source=panel: self._on_chart_object_clicked(source, hit)
                 )
+                panel.rows_selected.connect(self._on_rows_selected)
                 self._tabs.addTab(panel, name)
         finally:
             self._tabs.blockSignals(False)
@@ -1392,6 +1394,14 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _on_rows_selected(self, tables: list[str]) -> None:
+        """Rows of *tables* were marked Selected (a box on a chart, the preview): every chart and the preview show them (R-07)."""
+        for index in range(self._tabs.count()):
+            panel = self._tabs.widget(index)
+            if isinstance(panel, ChartPanel):
+                panel.show_selected_rows(list(tables))
+        self._preview.show_selected_rows(list(tables))
 
     def _current_chart_panel(self) -> ChartPanel | None:
         """Return the currently selected chart panel, if any."""
