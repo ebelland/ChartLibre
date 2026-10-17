@@ -68,3 +68,24 @@ def test_flash_highlights_an_axis_or_a_series_for_a_moment(panel: ChartPanel) ->
     assert panel.flash(axes._dhub_axis_id)  # no series: a frame round the axis
     assert any(str(p.get_label()) == "_flash" for p in axes.patches)
     assert not panel.flash(-1)
+    # Let it clear here: its timer would otherwise redraw this chart during the next test.
+    end = time.monotonic() + picking.FLASH_MS / 1000 + 0.5
+    while time.monotonic() < end:
+        QApplication.processEvents()
+    assert not any(str(p.get_label()) == "_flash" for p in axes.patches)
+
+
+def test_hovering_an_axis_says_what_a_click_will_edit(panel: ChartPanel) -> None:
+    from types import SimpleNamespace
+
+    from PySide6.QtCore import Qt
+
+    panel.ensure_rendered()
+    panel._canvas.draw()
+    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
+    box = axes.xaxis.get_tightbbox(panel._canvas.get_renderer())
+    panel._show_axis_part_hint(SimpleNamespace(x=(box.x0 + box.x1) / 2, y=(box.y0 + box.y1) / 2))
+    assert panel._canvas.cursor().shape() == Qt.CursorShape.PointingHandCursor
+    assert "X axis" in panel._canvas.toolTip()
+    panel._show_axis_part_hint(None)
+    assert panel._canvas.toolTip() == ""

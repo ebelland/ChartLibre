@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 
 import numpy as np
 
@@ -121,7 +121,9 @@ class HoverMixin:
 
         if inaxes is None:
             self._hide_hover_annotation()
+            self._show_axis_part_hint(event)
             return
+        self._show_axis_part_hint(None)
 
         hit = self._nearest_point_to(event)
         if hit is None:
@@ -152,6 +154,27 @@ class HoverMixin:
             self._canvas.draw_idle()
         else:
             self._blit_hover(axes, annotation)
+
+    def _show_axis_part_hint(self, event: Any) -> None:
+        """Over an axis' ticks, label or title: a pointing hand and what a click will edit (S-01).
+
+        Nothing is drawn - the cursor and the canvas' tooltip only - so
+        hovering stays as cheap as before. Left alone while a navigation tool
+        owns the cursor.
+        """
+        part = None
+        if event is not None and str(getattr(self._toolbar, "mode", "")) == "":
+            _axes, part = self._axis_part_at(event)
+        hints = {"x": _("X axis: click to edit it"), "y": _("Y axis: click to edit it"),
+                 "z": _("Z axis: click to edit it"), "title": _("Axis title: click to edit the axis")}
+        if part in hints:
+            self._canvas.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._canvas.setToolTip(hints[part])
+            self._axis_hint_shown = True
+        elif getattr(self, "_axis_hint_shown", False):
+            self._canvas.unsetCursor()
+            self._canvas.setToolTip("")
+            self._axis_hint_shown = False
 
     def _nearest_point_to(self, event: Any) -> tuple[Any, float, float] | None:
         """Return (artist, x, y) for the closest data point, or None.

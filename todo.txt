@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 94,328 lines in 260 files; tests 18,028 lines in 143 files (updated at each commit).
+Size: app 94,351 lines in 260 files; tests 18,049 lines in 143 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -213,9 +213,10 @@ G-02 wizard, refined
 - Remember the last choices per table; offer "again with another column".
 
 S-01 Selection <-> Chart properties (bidirectional feedback)
-- Chart -> properties (done: a click selects the Figure/Axis/Series page).
-  Next: a hover highlight before the click (axis outline, series glow), so
-  the person sees what a click will select; Esc returns to the Figure.
+- Chart -> properties (done: a click selects the Figure/Axis/Series page,
+  on an axis' ticks or label its X/Y/Z tab; hovering an axis part shows a
+  pointing hand and says what a click will edit).
+  Next: Esc returns to the Figure.
 - Properties -> chart: the series/axis selected in the panel is highlighted
   on the chart (thicker line or a soft outline for 1 s, then subtle), and
   the axis being edited gets a faint frame; the row in the series list
