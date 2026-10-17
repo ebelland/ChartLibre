@@ -13,7 +13,7 @@ The data operations are on the *Analysis* page of the navigation rail, with the 
   [*Basic Analysis*], [Distribution, Fit Y by X (analyses of a table), Statistics.],
   [*Fitting Linear Models*], [Fit Model.],
   [*Predictive and Specialized Modeling*], [Partition, Regression, Fit Curve, Gaussian Process.],
-  [*Multivariate Methods*], [Decomposition, Discriminant, Partial Least Squares, Clustering.],
+  [*Multivariate Methods*], [Multivariate, Principal Components, Decomposition, Discriminant, Partial Least Squares, Clustering.],
   [*Screening*], [Explore Outliers.],
   [*Quality and Process*], [Control Chart, with the process capability.],
   [*Curves*], [Peaks, Roots, Calculus, Interpolation.],

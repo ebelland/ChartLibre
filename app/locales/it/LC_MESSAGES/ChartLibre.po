@@ -9606,3 +9606,123 @@ msgstr "Corretto: {what}"
 
 msgid "{report}\n\nFix them now? Tables you made or imported are never touched, and Undo puts everything back."
 msgstr "{report}\n\nCorreggerli ora? Le tabelle che hai creato o importato non vengono mai toccate, e Annulla rimette tutto com'era."
+
+msgid "Multivariate"
+msgstr "Multivariata"
+
+msgid "Principal Components"
+msgstr "Componenti principali"
+
+msgid "How continuous columns move together: the correlation matrix, each pair's correlation with its confidence interval and p-value, and the scatterplot matrix."
+msgstr "Come variano insieme le colonne continue: la matrice di correlazione, la correlazione di ogni coppia con il suo intervallo di confidenza e il p-value, e la matrice di dispersione."
+
+msgid "A few directions that carry most of the variation of many columns: eigenvalues and their share, loadings, each row's scores; scree, score and loading plots."
+msgstr "Poche direzioni che portano la maggior parte della variazione di molte colonne: autovalori e la loro quota, loadings, i punteggi di ogni riga; grafici scree, dei punteggi e dei loadings."
+
+msgid "Y, columns"
+msgstr "Y, colonne"
+
+msgid "The continuous columns to correlate, two by two."
+msgstr "Le colonne continue da correlare, a due a due."
+
+msgid "The continuous columns whose variation is summed up."
+msgstr "Le colonne continue di cui riassumere la variazione."
+
+msgid "Correlation:"
+msgstr "Correlazione:"
+
+msgid "On:"
+msgstr "Su:"
+
+msgid "Pearson measures a straight-line relation; Spearman and Kendall any relation that keeps going one way, and are not swayed by outliers."
+msgstr "Pearson misura una relazione lineare; Spearman e Kendall qualsiasi relazione che vada sempre nello stesso verso, e non si lasciano influenzare dai valori anomali."
+
+msgid "Correlations weigh every column the same, whatever its unit - the usual choice. Covariances let the columns with the widest spread lead, for columns in one unit."
+msgstr "Le correlazioni pesano allo stesso modo ogni colonna, qualunque sia la sua unità - la scelta abituale. Le covarianze lasciano guidare le colonne più disperse, per colonne nella stessa unità."
+
+msgid "Pearson (linear)"
+msgstr "Pearson (lineare)"
+
+msgid "Spearman's rho (ranks)"
+msgstr "Rho di Spearman (ranghi)"
+
+msgid "Kendall's tau (ranks)"
+msgstr "Tau di Kendall (ranghi)"
+
+msgid "Correlations (columns standardized)"
+msgstr "Correlazioni (colonne standardizzate)"
+
+msgid "Covariances (columns as they are)"
+msgstr "Covarianze (colonne così come sono)"
+
+msgid "Correlations"
+msgstr "Correlazioni"
+
+msgid "Eigenvalue"
+msgstr "Autovalore"
+
+msgid "Eigenvalues"
+msgstr "Autovalori"
+
+msgid "Eigenvectors"
+msgstr "Autovettori"
+
+msgid "Loading matrix"
+msgstr "Matrice dei loadings"
+
+msgid "Loading plot"
+msgstr "Grafico dei loadings"
+
+msgid "Pairwise correlations, strongest evidence first"
+msgstr "Correlazioni a coppie, prima le più evidenti"
+
+msgid "Scatterplot matrix"
+msgstr "Matrice di dispersione"
+
+msgid "Score plot"
+msgstr "Grafico dei punteggi"
+
+msgid "Scree plot"
+msgstr "Grafico scree"
+
+msgid "Pairs"
+msgstr "Coppie"
+
+msgid "by Variable"
+msgstr "per variabile"
+
+msgid "Correlation"
+msgstr "Correlazione"
+
+msgid "Percent"
+msgstr "Percentuale"
+
+msgid "Cum Percent"
+msgstr "Percentuale cumulata"
+
+msgid "Number"
+msgstr "Numero"
+
+msgid "Lower 95%"
+msgstr "Inferiore 95%"
+
+msgid "Upper 95%"
+msgstr "Superiore 95%"
+
+msgid "Rows with every column"
+msgstr "Righe con tutte le colonne"
+
+msgid "Components with eigenvalue > 1"
+msgstr "Componenti con autovalore > 1"
+
+msgid "Some rows miss a value: each pair uses the rows where both its columns have one."
+msgstr "Ad alcune righe manca un valore: ogni coppia usa le righe in cui entrambe le sue colonne ne hanno uno."
+
+msgid "Every pair of columns at once: correlations (Pearson, Spearman, Kendall) with their p-values, and the scatterplot matrix."
+msgstr "Tutte le coppie di colonne insieme: correlazioni (Pearson, Spearman, Kendall) con i loro p-value, e la matrice di dispersione."
+
+msgid "A few directions that carry most of many columns' variation: the score plot shows the groups."
+msgstr "Poche direzioni che portano la maggior parte della variazione di molte colonne: il grafico dei punteggi mostra i gruppi."
+
+msgid "PCA, t-SNE on a chart's series: see groups among many variables."
+msgstr "PCA, t-SNE sulle serie di un grafico: vedere gruppi tra molte variabili."

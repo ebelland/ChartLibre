@@ -164,7 +164,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
                                 "contingency table or logistic fit.", ANY),
         ("chart:Scatter Plot", "One measure against the other: trend, curvature, clusters.", NUMERIC),
         ("series:Fit Curve", "A curve through the points: line, polynomial, exponential, your own formula.", NUMERIC),
-        ("series:Statistics", "Correlation coefficients (Pearson, Spearman, Kendall) with p-values.", NUMERIC),
+        ("analysis:Multivariate", "Every pair of columns at once: correlations (Pearson, Spearman, Kendall) "
+                                  "with their p-values, and the scatterplot matrix.", NUMERIC),
         ("chart:Pair Plot", "Every variable against every other, to choose which to look at.", ANY),
         ("chart:Mosaic Plot", "Two categorical variables: does one depend on the other?", CATEGORICAL),
     ),
@@ -208,7 +209,9 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     ),
     "groups": (
         ("series:Clustering", "k-means, DBSCAN, hierarchical: rows that are alike, coloured.", ANY),
-        ("series:Decomposition", "PCA, t-SNE: see groups among many variables.", ANY),
+        ("analysis:Principal Components", "A few directions that carry most of many columns' variation: "
+                                          "the score plot shows the groups.", NUMERIC),
+        ("series:Decomposition", "PCA, t-SNE on a chart's series: see groups among many variables.", ANY),
         ("analysis:Partition", "Segments described by rules on the factors.", ANY),
     ),
     "experiment": (
@@ -316,7 +319,7 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > ANOVA > General Linear Model",
         "Origin / Excel": "Origin: Statistics > ANOVA > Two-Way ANOVA; Excel: Data Analysis > Anova: Two-Factor",
     }),
-    ("Correlation", "Analysis > Statistics > Correlation / association", "series:Statistics", {
+    ("Correlation", "Analysis > Multivariate Methods > Multivariate", "analysis:Multivariate", {
         "JMP": "Analyze > Multivariate Methods > Multivariate",
         "SPSS": "Analyze > Correlate > Bivariate",
         "Minitab": "Stat > Basic Statistics > Correlation",
@@ -386,7 +389,7 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > Multivariate > Cluster K-Means / Cluster Observations",
         "Origin / Excel": "Origin: Statistics > Multivariate Analysis > K-Means Cluster Analysis",
     }),
-    ("Principal components", "Analysis > Decomposition", "series:Decomposition", {
+    ("Principal components", "Analysis > Multivariate Methods > Principal Components", "analysis:Principal Components", {
         "JMP": "Analyze > Multivariate Methods > Principal Components",
         "SPSS": "Analyze > Dimension Reduction > Factor",
         "Minitab": "Stat > Multivariate > Principal Components",

@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 95,016 lines in 260 files; tests 18,576 lines in 148 files (updated at each commit).
+Size: app 95,371 lines in 263 files; tests 18,691 lines in 149 files (updated at each commit).
 
 NOW
 G-02  M  Guided analysis for beginners: a wizard dialog (~820x560), columns first.
@@ -26,6 +26,11 @@ R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - AN-04 M  Multivariate: correlations with p, PCA and factor analysis (AN-21).
+           Done: Multivariate (matrix, each pair's r with Fisher-z CI, p and N, pairwise rows;
+           Pearson/Spearman/Kendall; scatterplot matrix) and Principal Components (on correlations
+           or covariances: eigenvalues, loadings, eigenvectors, row scores; scree, score, loading
+           plots), checked against SciPy and scikit-learn. Next: factor analysis (rotations),
+           colour the score plot by a group column, biplot.
 - AN-05 M  Time series: ACF/PACF, STL, ARIMA / ETS forecasts.
 - AN-10 M  Clustering on table columns, silhouette to choose k (AN-23).
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
