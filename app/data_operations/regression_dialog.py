@@ -213,8 +213,8 @@ class SeriesRegressionDialog(DataOperationDialogBase):
         "theil-sen ml"
     )
     Goals: list[str] = ["relate", "predict"]
-    Category: str = "Modeling"
-    Order: int = 53
+    Category: str = "Predictive and Specialized Modeling"
+    Order: int = 33
 
     def __init__(
         self,

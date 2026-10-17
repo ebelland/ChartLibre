@@ -255,7 +255,7 @@ PROGRAMS: tuple[str, ...] = ("JMP", "SPSS", "Minitab", "Origin / Excel")
 #: equivalent. Menu paths as of JMP 18, SPSS 29, Minitab 22, Origin 2024 and
 #: Excel 365; indicative - versions move things.
 EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
-    ("Descriptive statistics", "Data operations > Statistics > Descriptive", "series:Statistics", {
+    ("Descriptive statistics", "Analysis > Statistics > Descriptive", "series:Statistics", {
         "JMP": "Analyze > Distribution",
         "SPSS": "Analyze > Descriptive Statistics > Descriptives / Explore",
         "Minitab": "Stat > Basic Statistics > Display Descriptive Statistics",
@@ -267,33 +267,33 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > Basic Statistics > Graphical Summary",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics > Statistics on Columns",
     }),
-    ("Process capability (Cp, Cpk, Pp, Ppk)", "Data operations > Control Chart (spec limits)",
+    ("Process capability (Cp, Cpk, Pp, Ppk)", "Analysis > Control Chart (spec limits)",
      "series:Control Chart", {
         "JMP": "Distribution > Process Capability; Analyze > Quality and Process > Process Capability",
         "SPSS": "Analyze > Quality Control > Control Charts (Process Capability statistics)",
         "Minitab": "Stat > Quality Tools > Capability Analysis > Normal",
         "Origin / Excel": "Origin: Statistics > Quality > Process Capability Analysis",
     }),
-    ("Normality test", "Data operations > Statistics > Normality / shape", "series:Statistics", {
+    ("Normality test", "Analysis > Statistics > Normality / shape", "series:Statistics", {
         "JMP": "Distribution > Continuous Fit > Normal (Goodness of Fit)",
         "SPSS": "Analyze > Descriptive Statistics > Explore > Normality plots with tests",
         "Minitab": "Stat > Basic Statistics > Normality Test",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics > Normality Test",
     }),
-    ("One-sample t-test", "Data operations > Statistics > One-sample tests", "series:Statistics", {
+    ("One-sample t-test", "Analysis > Statistics > One-sample tests", "series:Statistics", {
         "JMP": "Distribution > Test Mean",
         "SPSS": "Analyze > Compare Means > One-Sample T Test",
         "Minitab": "Stat > Basic Statistics > 1-Sample t",
         "Origin / Excel": "Origin: Statistics > Hypothesis Testing > One-Sample t-Test",
     }),
-    ("Two-sample and paired tests", "Data operations > Statistics > Independent / Paired-sample tests",
+    ("Two-sample and paired tests", "Analysis > Statistics > Independent / Paired-sample tests",
      "series:Statistics", {
         "JMP": "Analyze > Fit Y by X > Oneway > t Test; Analyze > Specialized Modeling > Matched Pairs",
         "SPSS": "Analyze > Compare Means > Independent-Samples / Paired-Samples T Test",
         "Minitab": "Stat > Basic Statistics > 2-Sample t / Paired t",
         "Origin / Excel": "Origin: Statistics > Hypothesis Testing > Two-Sample t-Test; Excel: Data Analysis > t-Test",
     }),
-    ("One-way ANOVA", "Data operations > Statistics > Group comparison (ANOVA)", "series:Statistics", {
+    ("One-way ANOVA", "Analysis > Statistics > Group comparison (ANOVA)", "series:Statistics", {
         "JMP": "Analyze > Fit Y by X > Oneway > Means/Anova",
         "SPSS": "Analyze > Compare Means > One-Way ANOVA",
         "Minitab": "Stat > ANOVA > One-Way",
@@ -310,25 +310,25 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > ANOVA > One-Way > Comparisons (Tukey, Games-Howell)",
         "Origin / Excel": "Origin: Statistics > ANOVA > One-Way ANOVA > Means Comparison",
     }),
-    ("Two-way ANOVA", "Data operations > Statistics > Two-way ANOVA", "series:Statistics", {
+    ("Two-way ANOVA", "Analysis > Statistics > Two-way ANOVA", "series:Statistics", {
         "JMP": "Analyze > Fit Model (two factors and their interaction)",
         "SPSS": "Analyze > General Linear Model > Univariate",
         "Minitab": "Stat > ANOVA > General Linear Model",
         "Origin / Excel": "Origin: Statistics > ANOVA > Two-Way ANOVA; Excel: Data Analysis > Anova: Two-Factor",
     }),
-    ("Correlation", "Data operations > Statistics > Correlation / association", "series:Statistics", {
+    ("Correlation", "Analysis > Statistics > Correlation / association", "series:Statistics", {
         "JMP": "Analyze > Multivariate Methods > Multivariate",
         "SPSS": "Analyze > Correlate > Bivariate",
         "Minitab": "Stat > Basic Statistics > Correlation",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics > Correlation Coefficient; Excel: Data Analysis > Correlation",
     }),
-    ("Contingency table, chi-squared", "Data operations > Statistics > Contingency table", "series:Statistics", {
+    ("Contingency table, chi-squared", "Analysis > Statistics > Contingency table", "series:Statistics", {
         "JMP": "Analyze > Fit Y by X > Contingency",
         "SPSS": "Analyze > Descriptive Statistics > Crosstabs",
         "Minitab": "Stat > Tables > Cross Tabulation and Chi-Square",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics > Cross Tabulation",
     }),
-    ("Distribution fit", "Data operations > Statistics > Distribution fit", "series:Statistics", {
+    ("Distribution fit", "Analysis > Statistics > Distribution fit", "series:Statistics", {
         "JMP": "Distribution > Continuous Fit",
         "SPSS": "Analyze > Nonparametric Tests > One Sample (Kolmogorov-Smirnov)",
         "Minitab": "Stat > Quality Tools > Individual Distribution Identification",
@@ -361,38 +361,38 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "SPSS": "Analyze > Classify > Tree",
         "Minitab": "Stat > Predictive Analytics > CART Classification / Regression",
     }),
-    ("Curve fitting, nonlinear regression", "Data operations > Fit", "series:Fit", {
+    ("Curve fitting, nonlinear regression", "Analysis > Fit", "series:Fit", {
         "JMP": "Analyze > Fit Y by X > Bivariate > Fit Polynomial; Analyze > Specialized Modeling > Nonlinear",
         "SPSS": "Analyze > Regression > Curve Estimation / Nonlinear",
         "Minitab": "Stat > Regression > Fitted Line Plot / Nonlinear Regression",
         "Origin / Excel": "Origin: Analysis > Fitting > Nonlinear Curve Fit; Excel: chart Trendline",
     }),
-    ("Robust and machine-learning regression", "Data operations > Regression", "series:Regression", {
+    ("Robust and machine-learning regression", "Analysis > Regression", "series:Regression", {
         "JMP": "Analyze > Predictive Modeling > Bootstrap Forest / Boosted Tree",
         "Minitab": "Stat > Predictive Analytics > Random Forests / TreeNet",
     }),
-    ("Gaussian process", "Data operations > GP Regression", "series:GP Regression", {
+    ("Gaussian process", "Analysis > GP Regression", "series:GP Regression", {
         "JMP": "Analyze > Specialized Modeling > Gaussian Process",
     }),
-    ("Outliers", "Data operations > Outliers", "series:Outliers", {
+    ("Outliers", "Analysis > Outliers", "series:Outliers", {
         "JMP": "Analyze > Screening > Explore Outliers",
         "SPSS": "Analyze > Descriptive Statistics > Explore (Outliers)",
         "Minitab": "Stat > Basic Statistics > Outlier Test",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics > Grubbs Test",
     }),
-    ("Cluster analysis", "Data operations > Clustering", "series:Clustering", {
+    ("Cluster analysis", "Analysis > Clustering", "series:Clustering", {
         "JMP": "Analyze > Clustering > K Means Cluster / Hierarchical Cluster",
         "SPSS": "Analyze > Classify > K-Means Cluster / Hierarchical Cluster",
         "Minitab": "Stat > Multivariate > Cluster K-Means / Cluster Observations",
         "Origin / Excel": "Origin: Statistics > Multivariate Analysis > K-Means Cluster Analysis",
     }),
-    ("Principal components", "Data operations > Decomposition", "series:Decomposition", {
+    ("Principal components", "Analysis > Decomposition", "series:Decomposition", {
         "JMP": "Analyze > Multivariate Methods > Principal Components",
         "SPSS": "Analyze > Dimension Reduction > Factor",
         "Minitab": "Stat > Multivariate > Principal Components",
         "Origin / Excel": "Origin: Statistics > Multivariate Analysis > Principal Component Analysis",
     }),
-    ("Control charts", "Data operations > Control Chart", "series:Control Chart", {
+    ("Control charts", "Analysis > Control Chart", "series:Control Chart", {
         "JMP": "Analyze > Quality and Process > Control Chart Builder",
         "SPSS": "Analyze > Quality Control > Control Charts",
         "Minitab": "Stat > Control Charts",
@@ -408,46 +408,46 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "JMP": "Analyze > Quality and Process > Diagram",
         "Minitab": "Stat > Quality Tools > Cause-and-Effect",
     }),
-    ("Survival analysis", "Data operations > Statistics > Survival; Chart: Kaplan-Meier", "chart:Kaplan-Meier", {
+    ("Survival analysis", "Analysis > Statistics > Survival; Chart: Kaplan-Meier", "chart:Kaplan-Meier", {
         "JMP": "Analyze > Reliability and Survival > Survival",
         "SPSS": "Analyze > Survival > Kaplan-Meier",
         "Minitab": "Stat > Reliability/Survival > Distribution Analysis (Right Censoring) > Nonparametric",
         "Origin / Excel": "Origin: Statistics > Survival Analysis > Kaplan-Meier Estimator",
     }),
-    ("Smoothing, moving average", "Data operations > Smoothing", "series:Smoothing", {
+    ("Smoothing, moving average", "Analysis > Smoothing", "series:Smoothing", {
         "JMP": "Analyze > Fit Y by X > Bivariate > Flexible > Kernel Smoother / Fit Spline",
         "SPSS": "Transform > Create Time Series (moving averages, smoothing)",
         "Minitab": "Stat > Time Series > Moving Average / Single Exp Smoothing",
         "Origin / Excel": "Origin: Analysis > Signal Processing > Smooth; Excel: Data Analysis > Moving Average",
     }),
-    ("Spectrum, FFT", "Data operations > Spectral Analysis", "series:Spectral Analysis", {
+    ("Spectrum, FFT", "Analysis > Spectral Analysis", "series:Spectral Analysis", {
         "JMP": "Analyze > Specialized Modeling > Time Series > Spectral Density",
         "SPSS": "Analyze > Forecasting > Spectral Analysis",
         "Origin / Excel": "Origin: Analysis > Signal Processing > FFT; Excel: Data Analysis > Fourier Analysis",
     }),
-    ("Digital filters, detrending", "Data operations > Filtering", "series:Filtering", {
+    ("Digital filters, detrending", "Analysis > Filtering", "series:Filtering", {
         "Origin / Excel": "Origin: Analysis > Signal Processing > FFT Filters / IIR Filter",
     }),
-    ("Peaks", "Data operations > Peaks", "series:Peaks", {
+    ("Peaks", "Analysis > Peaks", "series:Peaks", {
         "Origin / Excel": "Origin: Analysis > Peaks and Baseline > Peak Analyzer",
     }),
-    ("Baseline subtraction", "Data operations > Baseline Correction", "series:Baseline Correction", {
+    ("Baseline subtraction", "Analysis > Baseline Correction", "series:Baseline Correction", {
         "Origin / Excel": "Origin: Analysis > Peaks and Baseline > Peak Analyzer (Subtract Baseline)",
     }),
-    ("Derivative, integral", "Data operations > Calculus", "series:Calculus", {
+    ("Derivative, integral", "Analysis > Calculus", "series:Calculus", {
         "Origin / Excel": "Origin: Analysis > Mathematics > Differentiate / Integrate",
     }),
-    ("Interpolation, missing values", "Data operations > Interpolation", "series:Interpolation", {
+    ("Interpolation, missing values", "Analysis > Interpolation", "series:Interpolation", {
         "SPSS": "Transform > Replace Missing Values",
         "Origin / Excel": "Origin: Analysis > Mathematics > Interpolate/Extrapolate",
     }),
-    ("Transformations (log, Box-Cox, standardize)", "Data operations > Transform", "series:Transform", {
+    ("Transformations (log, Box-Cox, standardize)", "Analysis > Transform", "series:Transform", {
         "JMP": "Cols > New Formula Column > Transform",
         "SPSS": "Transform > Compute Variable",
         "Minitab": "Calc > Standardize; Stat > Control Charts > Box-Cox Transformation",
         "Origin / Excel": "Origin: Analysis > Mathematics > Normalize",
     }),
-    ("Design of experiments", "Tables > Create a table from a DOE", "tool:doe", {
+    ("Design of experiments", "Analysis > Design of Experiments", "tool:doe", {
         "JMP": "DOE > Custom Design / Classical",
         "SPSS": "Data > Orthogonal Design > Generate",
         "Minitab": "Stat > DOE > Create Factorial / Response Surface Design",
@@ -482,7 +482,7 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > Tables > Descriptive Statistics",
         "Origin / Excel": "Excel: Insert > PivotTable",
     }),
-    ("Charts", "Data operations > Plot", "series:Plot", {
+    ("Charts", "Analysis > Plot", "series:Plot", {
         "JMP": "Graph > Graph Builder",
         "SPSS": "Graphs > Chart Builder",
         "Minitab": "Graph",

@@ -46,8 +46,8 @@ def test_the_shipped_plugins_are_found_in_every_family() -> None:
     assert all(op.get("category") for op in data_operations)
 
 
-def test_the_data_operations_panel_groups_by_the_plugins_own_category(qapp) -> None:
-    from app.widgets.data_operation import _group_by_section
+def test_the_analysis_panel_groups_by_the_plugins_own_category(qapp) -> None:
+    from app.widgets.analysis_panel import group_by_category as _group_by_section
 
     operations = [
         {"value": "B", "category": "Zeta", "order": 20},

@@ -167,8 +167,8 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     """
     Keywords: str = "funzione formula expression espressione plot function grafico di funzione"
     Goals: list[str] = []
-    Category: str = "Modeling"
-    Order: int = 52
+    Category: str = "Graph"
+    Order: int = 5
 
     def __init__(
         self,

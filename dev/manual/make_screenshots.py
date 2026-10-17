@@ -216,7 +216,7 @@ def main() -> int:
     # 3. Data Operations: the grid of operations and its hint bar, in a
     #    panel as wide as four tiles rather than the Tables page's width,
     #    which left most of it empty.
-    _show_page(window, "data_operations")
+    _show_page(window, "analysis")
     _settle(app)
     _fit_operations_panel(window, columns=4)
     _settle(app)

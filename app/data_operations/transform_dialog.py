@@ -175,8 +175,8 @@ class SeriesTransformDialog(DataOperationDialogBase):
         "standardizza scale scala rank"
     )
     Goals: list[str] = ["prepare", "describe"]
-    Category: str = "Statistics"
-    Order: int = 24
+    Category: str = "Transform"
+    Order: int = 90
 
     def __init__(
         self,

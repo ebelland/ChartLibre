@@ -100,7 +100,8 @@ class FitModelDialog(TableOperationDialogBase):
         "factors: effect tests, estimates, analysis of variance and lack of fit - "
         "for a designed experiment, or any table."
     )
-    Category = "Models"
+    Category = "Fitting Linear Models"
+    Order = 20
     Icon = """
     <path d="M4 20V4"/><path d="M4 20h16"/>
     <circle cx="8" cy="15" r="1"/><circle cx="11" cy="11" r="1"/><circle cx="15" cy="10" r="1"/><circle cx="18" cy="6" r="1"/>

@@ -338,7 +338,7 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
     )
     Goals: list[str] = ["signal"]
     Category: str = "Signal Processing"
-    Order: int = 40
+    Order: int = 80
 
     def __init__(
         self,

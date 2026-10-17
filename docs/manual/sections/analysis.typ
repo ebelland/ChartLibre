@@ -2,7 +2,7 @@
 
 = Analysis <analysis-chapter>
 
-Where a data operation works on the series of a chart, an *analysis* works on the columns of a table: you say which column is the response and which ones might explain it, and it fits a model of the whole table. The *Analysis* page of the navigation rail lists them; each opens on the table selected in the Tables page. Each names, under *Computed with*, the library functions that fit it, linked to their documentation.
+Where a data operation works on the series of a chart, an *analysis* works on the columns of a table: you say which column is the response and which ones might explain it, and it fits a model of the whole table. The *Analysis* page of the navigation rail lists them with the data operations; each opens on the table selected in the Tables page. Each names, under *Computed with*, the library functions that fit it, linked to their documentation.
 
 == How every analysis window works
 

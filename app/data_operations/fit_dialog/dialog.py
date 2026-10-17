@@ -93,8 +93,8 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         "esponenziale gaussian gaussiana sine model modello nonlinear non lineare trend tendenza"
     )
     Goals: list[str] = ["relate", "predict"]
-    Category: str = "Modeling"
-    Order: int = 50
+    Category: str = "Predictive and Specialized Modeling"
+    Order: int = 34
     saved = Signal(str)
 
     # format_results returns a table.

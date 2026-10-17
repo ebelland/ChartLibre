@@ -9477,3 +9477,36 @@ msgstr "Assi separati per:"
 
 msgid "One axis per value of this column - one per species, per batch, per site - each with every series, filtered to that value."
 msgstr "Un asse per ogni valore di questa colonna - uno per specie, per lotto, per sito - ognuno con tutte le serie, filtrate su quel valore."
+
+msgid "Graph"
+msgstr "Grafico"
+
+msgid "Basic Analysis"
+msgstr "Analisi di base"
+
+msgid "Fitting Linear Models"
+msgstr "Modelli lineari"
+
+msgid "Predictive and Specialized Modeling"
+msgstr "Modelli predittivi e specializzati"
+
+msgid "Multivariate Methods"
+msgstr "Metodi multivariati"
+
+msgid "Screening"
+msgstr "Screening"
+
+msgid "Quality and Process"
+msgstr "Qualità e processo"
+
+msgid "Curves"
+msgstr "Curve"
+
+msgid "Design of Experiments"
+msgstr "Disegno degli esperimenti"
+
+msgid "Every analysis and data operation, by category, as JMP's Analyze menu"
+msgstr "Tutte le analisi e le operazioni sui dati, per categoria, come il menu Analyze di JMP"
+
+msgid "Generate an experiment matrix with factors and responses; analyse it with Fit Model."
+msgstr "Genera una matrice di esperimenti con fattori e risposte; analizzala con Fit Model."

@@ -203,7 +203,7 @@ class SeriesSpectralDialog(DataOperationDialogBase):
     )
     Goals: list[str] = ["signal"]
     Category: str = "Signal Processing"
-    Order: int = 41
+    Order: int = 82
 
     def __init__(
         self,

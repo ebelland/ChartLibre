@@ -31,7 +31,8 @@ class PLSDialog(TableOperationDialogBase):
         "Y from many X that move together - a spectrum's wavelengths: a few latent components, "
         "their number chosen by cross-validation; variable importance (VIP), loadings, scores, predictions."
     )
-    Category = "Models"
+    Category = "Multivariate Methods"
+    Order = 43
     Icon = """
     <path d="M3 18c2-9 4-12 6-6s3 6 5-2 3-6 7 1"/><path d="M3 21h18"/>
     """

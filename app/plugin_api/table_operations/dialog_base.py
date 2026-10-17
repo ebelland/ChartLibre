@@ -88,6 +88,8 @@ class TableOperationDialogBase(QDialog):
     Name: ClassVar[str] = ""
     Description: ClassVar[str] = ""
     Category: ClassVar[str] = ""
+    #: Its place among the Analysis panel's entries: categories by their lowest Order.
+    Order: ClassVar[int] = 0
     Icon: ClassVar[str] = ""
 
     ROLES: ClassVar[tuple[ColumnRole, ...]] = ()

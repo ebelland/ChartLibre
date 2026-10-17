@@ -4,21 +4,25 @@
 
 A *data operation* takes the data of one or more series already on a chart and computes something from it: a smoothed curve, a fitted model, a spectrum, the position of the peaks, a statistical test. The result is added to the chart as new series (and, where it is data, as a new table), so it can be styled, exported and operated on again like anything else. Under each operation, *Computed with* names the SciPy, scikit-learn, statsmodels or NumPy functions that do the calculation, each linked to its documentation — the place to read exactly what a method does and what its parameters mean.
 
-== The Data operations page
+== The Analysis page
 
-The *Data operations* page of the navigation rail is a list, organized in sections like a system sidebar. Each row has an icon and a name; resting the pointer on a row shows a one-line description in the bar at the bottom of the page. To find an operation by what it does, use the search of *Guided analysis* or *Cmd/Ctrl+K* from anywhere (see @guided-analysis).
+The data operations are on the *Analysis* page of the navigation rail, with the table analyses (see @analysis-chapter), New chart and the design of experiments: a titled frame per category, named as in JMP's Analyze menu where it has one. Each row has an icon and a name, and its sentence as the tooltip; a click opens it. To find an operation by what it does, use the search of *Guided analysis* or *Cmd/Ctrl+K* from anywhere (see @guided-analysis).
 
 #defs(
-  [*Plot*], [*Plot* — creates a new chart (see @creating-a-chart).],
-  [*Data*], [*Query Builder* — writes and saves SQL queries (see @query-builder).],
-  [*Analysis*], [Peaks, Roots, Calculus.],
-  [*Statistics*], [Statistics, Outliers, Clustering, Control Chart, Transform, Decomposition.],
-  [*Geometry*], [Geometry.],
-  [*Signal Processing*], [Smoothing, Spectral Analysis, Filtering, Baseline Correction.],
-  [*Modeling*], [Fit, Interpolation, Function, Regression, GP Regression.],
+  [*Graph*], [*Plot* — creates a new chart (see @creating-a-chart); Function.],
+  [*Basic Analysis*], [Distribution, Fit Y by X (analyses of a table), Statistics.],
+  [*Fitting Linear Models*], [Fit Model.],
+  [*Predictive and Specialized Modeling*], [Partition, Regression, Fit, GP Regression.],
+  [*Multivariate Methods*], [Decomposition, Discriminant, Partial Least Squares, Clustering.],
+  [*Screening*], [Outliers.],
+  [*Quality and Process*], [Control Chart, with the process capability.],
+  [*Curves*], [Peaks, Roots, Calculus, Interpolation.],
+  [*Signal Processing*], [Smoothing, Filtering, Spectral Analysis, Baseline Correction.],
+  [*Transform*], [Transform, Geometry.],
+  [*Design of Experiments*], [Create a table from a DOE.],
 )
 
-An operation added by you or a plugin (see @advanced-operation) appears under *Other* unless it is given a section.
+An operation added by you or a plugin (see @advanced-operation) names its own category and place (its `Category` and `Order`); without one it appears under *Other*. The Query Builder is on the *New table* page.
 
 #figure(
   image("../screenshots/screenshot_data_operations.png", width: 100%),

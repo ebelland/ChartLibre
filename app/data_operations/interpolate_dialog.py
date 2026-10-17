@@ -256,8 +256,8 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
         "ricampiona"
     )
     Goals: list[str] = ["prepare", "signal"]
-    Category: str = "Modeling"
-    Order: int = 51
+    Category: str = "Curves"
+    Order: int = 74
     applied = Signal()
 
     def __init__(

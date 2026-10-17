@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 94,261 lines in 261 files; tests 17,921 lines in 142 files (updated at each commit).
+Size: app 94,192 lines in 260 files; tests 17,861 lines in 141 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -31,6 +31,10 @@ DONE Dialogs fit a 1280x720 laptop: data operations' Model/Parameters pages scro
      test over every operation.
 DONE macOS: rail search field rounded like the other fields.
 DONE dev/tools/update_dependencies.py (.command/.bat): every library to its latest release.
+DONE One Analysis panel (JMP's Analyze): data operations, table analyses, New chart and the DOE, a frame per
+     category from the plugins' own Category/Order - Graph, Basic Analysis, Fitting Linear Models, Predictive and
+     Specialized Modeling, Multivariate Methods, Screening, Quality and Process, Curves (was Analysis: Peaks, Roots,
+     Calculus), Signal Processing, Transform, Design of Experiments. The Data operations rail item is gone.
 DONE R-12b: every 'except Exception' narrowed (26: conversions, JSON, files, optional imports, rcParams)
      or marked a boundary with its reason (noqa: BLE001 - Matplotlib draw, plugin code, per-series errors,
      user actions, cleanup, chart interaction).

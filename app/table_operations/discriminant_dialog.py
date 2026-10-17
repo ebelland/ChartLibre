@@ -30,7 +30,8 @@ class DiscriminantDialog(TableOperationDialogBase):
         "Which group a row belongs to, from continuous measures: linear or quadratic "
         "discriminant analysis, canonical plot, Wilks' lambda and the misclassified rows."
     )
-    Category = "Models"
+    Category = "Multivariate Methods"
+    Order = 42
     Icon = """
     <circle cx="6" cy="8" r="1.6"/><circle cx="8.5" cy="5" r="1.6"/><circle cx="5" cy="12.5" r="1.6"/>
     <circle cx="17" cy="15" r="1.6"/><circle cx="19" cy="19" r="1.6"/><circle cx="15" cy="19.5" r="1.6"/>

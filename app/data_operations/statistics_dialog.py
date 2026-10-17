@@ -201,8 +201,8 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         "standard summary riepilogo min max quantile percentile"
     )
     Goals: list[str] = ["describe"]
-    Category: str = "Statistics"
-    Order: int = 20
+    Category: str = "Basic Analysis"
+    Order: int = 13
 
     def __init__(
         self,

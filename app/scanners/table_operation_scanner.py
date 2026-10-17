@@ -23,6 +23,7 @@ FAMILY = PluginFamily(
     module_prefix="_dynamic_table_operation",
     string_attrs=("Description", "Category", "Icon", "Keywords"),
     string_list_attrs=("Goals",),
+    int_attrs=("Order",),
 )
 
 

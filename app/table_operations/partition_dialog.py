@@ -109,7 +109,8 @@ class PartitionDialog(TableOperationDialogBase):
         "split and prune a step at a time, or automatically on validation rows; "
         "leaves, column contributions and each row's leaf and prediction."
     )
-    Category = "Models"
+    Category = "Predictive and Specialized Modeling"
+    Order = 30
     Icon = """
     <circle cx="12" cy="4.5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/>
     <circle cx="3.5" cy="19.5" r="1.6"/><circle cx="9" cy="19.5" r="1.6"/>

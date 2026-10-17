@@ -39,7 +39,7 @@ from app.main_window.main_project import MainWindowProject
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.widgets.chart_panel import ChartPanel
 from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
-from app.widgets.analysis_panel import AnalysisPanel
+from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_icon
 from app.widgets.guided_panel import GuidedAnalysisPanel
 from app.widgets.catalog_search import CatalogSearch
 from app.scanners.table_operation_scanner import import_class_from_file as import_table_operation
@@ -56,7 +56,6 @@ from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget
 from app.widgets.chart_properties.overlay_properties import OverlayPropertiesWidget
 from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
 from app.widgets.chart_properties.series_properties import SeriesPropertiesWidget
-from app.widgets.data_operation import DataOperationWidget
 from app.scanners.data_operation_scanner import import_class_from_file
 from app.styles.style import (
     EXPANDED_CLIENT_AREA_HINT,
@@ -94,7 +93,6 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QTabWidget,
-    QWidget,
 )
 
 # config.json keys for the remembered window layout.
@@ -455,15 +453,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._data_split = page.splitter
         return page
 
-    def _create_data_operations_page(self) -> QWidget:
-        """Create the data operations page."""
-        widget = DataOperationWidget(self)
-        widget.operation_requested.connect(self._on_data_operation_requested)
-        return widget
-
     def _on_data_operation_requested(self, operation: dict) -> None:
         """Handle a built-in or runtime data-operation request."""
-        icon = DataOperationWidget.plugin_icon(operation)
+        icon = plugin_icon(operation)
 
         if operation.get("name") == "NewPlotTabDialog":
             self._on_new_plot_tab(icon)
@@ -533,8 +525,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         page.add_buttons(_("Create a new table"), [
             NavButton("new", self._on_new_blank_table, _("New Blank Table"),
                       _("Create an empty table with named columns."), described=True),
-            NavButton("new", self._on_new_table_from_doe, _("Create a table from a DOE"),
-                      _("Generate an experiment matrix with factors and responses."), described=True),
             NavButton("import", self._on_import_data, _("Import Data"),
                       _("Create a table from a file: CSV, Excel, JSON."), described=True),
             NavButton("paste", self._on_import_clipboard, _("Import from clipboard"),
@@ -565,6 +555,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             self._table_panel.select_table(str(table_name))
             self._preview.set_context(self._repo, str(table_name))
         self._select_navigation("tables")
+
+    def _on_analysis_tool_requested(self, tool: str) -> None:
+        """A tool of the Analysis panel: the design of experiments."""
+        if tool == "doe":
+            self._on_new_table_from_doe()
 
     def _on_new_table_from_doe(self) -> None:
         from app.dialogs.doe_dialog import DOEExperimentDialog
@@ -720,9 +715,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         tables_panel = self._data_page
         new_table_panel = self._create_new_table_page()
         chart_properties_panel = self._properties_control
-        data_operations_panel = self._create_data_operations_page()
         analysis_panel = AnalysisPanel(self)
-        analysis_panel.operation_requested.connect(self._on_table_operation_requested)
+        # Data operations, table analyses and the DOE in one panel, as JMP's Analyze menu.
+        analysis_panel.data_operation_requested.connect(self._on_data_operation_requested)
+        analysis_panel.table_operation_requested.connect(self._on_table_operation_requested)
+        analysis_panel.tool_requested.connect(self._on_analysis_tool_requested)
         self._rail_search = CatalogSearch(self, collapsed=True, compact=True)
         self._rail_search.entry_chosen.connect(self.open_catalog_entry)
         guided_panel = GuidedAnalysisPanel(self)
@@ -755,13 +752,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                     _("Chart properties"), self._navigation_icon("nav_chart_options"),
                     chart_properties_panel, _("Edit the current chart"),
                 ),
-                "data_operations": NavBarItem(
-                    _("Data operations"), self._navigation_icon("nav_data_operations"),
-                    data_operations_panel, _("Transform or analyse a chart's series or a table's columns"),
-                ),
                 "analysis": NavBarItem(
                     _("Analysis"), self._navigation_icon("nav_analysis"),
-                    analysis_panel, _("Models of a table's columns"),
+                    analysis_panel, _("Every analysis and data operation, by category, as JMP's Analyze menu"),
                 ),
                 # After Analysis, in the accent colour: the way in for someone
                 # who does not know which analysis to choose.
@@ -1118,14 +1111,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             dialog.select_chart_type(chart_type)
 
         if icon is None or icon.isNull():
-            icon = DataOperationWidget.plugin_icon(
-                {
-                    "name": "NewPlotTabDialog",
-                    "value": "Plot",
-                    "icon": NewPlotTabDialog.Icon,
-                    "builtin": True,
-                }
-            )
+            icon = plugin_icon(plot_operation())
 
         if not icon.isNull():
             dialog.setWindowIcon(icon)

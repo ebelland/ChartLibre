@@ -27,7 +27,7 @@ from app.utils.import_runner import refresh_link
 from app.logs.logger import applogger
 from app.utils.messages import ask
 from app.utils.i18n import _
-from app.widgets.data_operation import DataOperationWidget
+from app.widgets.analysis_panel import plot_operation, plugin_icon
 
 
 
@@ -570,14 +570,12 @@ class TableListPanel(QWidget):
                     text=_("Plot"),
                     tooltip=_("Create a new plot tab for the current table"),
                     callback=self._on_new_plot_tab,
-                    # Built from the same source as the "Plot" row at the top
-                    # of the Data Operations panel (DataOperationWidget.
-                    # plot_operation -> NewPlotTabDialog.Icon), rather than the
+                    # Built from the same source as the "Plot" row of the
+                    # Analysis panel (analysis_panel.plot_operation ->
+                    # NewPlotTabDialog.Icon), rather than the
                     # unrelated "plot" catalogue/file icon, so the same action
                     # carries the same glyph everywhere it appears.
-                    icon=DataOperationWidget.plugin_icon(
-                        DataOperationWidget.plot_operation()
-                    ),
+                    icon=plugin_icon(plot_operation()),
                 )
             )
             items.append(None)

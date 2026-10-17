@@ -166,7 +166,7 @@ class SeriesFilterDialog(DataOperationDialogBase):
     )
     Goals: list[str] = ["signal"]
     Category: str = "Signal Processing"
-    Order: int = 42
+    Order: int = 81
 
     def __init__(
         self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None,
