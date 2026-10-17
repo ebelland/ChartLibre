@@ -478,3 +478,27 @@ def test_a_recent_project_is_shown_before_it_is_opened(qapp, tmp_path: Path, mon
     assert opened == [tmp_path / "Other study.dhub"]
     window.close()
     repo.close()
+
+
+def test_separate_axes_by_makes_one_axis_per_value(qapp, tmp_path: Path) -> None:
+    """B-13: every series on every axis, filtered to its value; the value is the axis's title."""
+    from app.dialogs.create_chart_dialog import NewPlotTabDialog
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    repo.import_dataframe(pd.DataFrame({
+        "length": [1.0, 2.0, 3.0, 4.0],
+        "depth": [10.0, 20.0, 30.0, 40.0],
+        "island": ["Biscoe", "Dream", "Biscoe", "Dream"],
+    }), table_name="penguins", normalize_columns=False)
+    dialog = NewPlotTabDialog(repo, current_table="penguins", preferred_columns=["length", "depth"])
+    assert dialog._select_renderer_by_name("Scatter Plot")
+    dialog._combo_axes_by.setCurrentIndex(dialog._combo_axes_by.findData("island"))
+    assert not dialog._edit_axis_name.isEnabled()
+    dialog._on_accept()
+    result = dialog.chart_result
+    assert result is not None
+    descriptor = repo.load_figure_descriptor(figure_id=result.figure_id)
+    assert [axis.title for axis in descriptor.axes] == ["island = Biscoe", "island = Dream"]
+    rows = [repo.query_df(axis.series[0].sql_query) for axis in descriptor.axes]
+    assert list(rows[0]["x"]) == [1.0, 3.0] and list(rows[1]["x"]) == [2.0, 4.0]
+    repo.close()

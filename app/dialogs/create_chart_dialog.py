@@ -199,6 +199,16 @@ class NewPlotTabDialog(QDialog):
         axis_layout.addRow(self._rb_new_axis)
         axis_layout.addRow(self._rb_existing_axis)
         axis_layout.addRow(_("Axis name:"), self._edit_axis_name)
+        # One axis per value of a column (B-13): the same series on each,
+        # filtered to that value - small multiples, one panel per group.
+        self._combo_axes_by = QComboBox()
+        self._combo_axes_by.addItem(_("(none)"), None)
+        self._combo_axes_by.setToolTip(_(
+            "One axis per value of this column - one per species, per batch, per site - "
+            "each with every series, filtered to that value."
+        ))
+        self._combo_axes_by.currentIndexChanged.connect(lambda _index: self._sync_controls())
+        axis_layout.addRow(_("Separate axes by:"), self._combo_axes_by)
 
         axis_row = QWidget(fig_group.card)
         axis_row_layout = QHBoxLayout(axis_row)
@@ -846,7 +856,10 @@ class NewPlotTabDialog(QDialog):
         )
         # Each axis of a split takes its own series' name, so there is nothing
         # for one axis-name field to name.
-        self._edit_axis_name.setEnabled(self._rb_new_axis.isChecked() and not splitting)
+        separate = self._rb_new_axis.isChecked() and self._combo_axes_by.currentData() is not None
+        self._edit_axis_name.setEnabled(self._rb_new_axis.isChecked() and not splitting and not separate)
+        # Separate axes are new axes: nothing to choose with an existing one.
+        self._combo_axes_by.setEnabled(self._rb_new_axis.isChecked())
 
         if not can_use_existing_axis:
             self._rb_new_axis.setChecked(True)
@@ -1100,6 +1113,24 @@ class NewPlotTabDialog(QDialog):
         if item is not None:
             data = self._combo_group.currentData()
             self._draft_for_item(item).group_by = str(data) if isinstance(data, str) and data else None
+        self._populate_axes_by_columns()
+
+    def _populate_axes_by_columns(self) -> None:
+        """Every column of the source, for Separate axes by; the choice kept when it is still there."""
+        combo = getattr(self, "_combo_axes_by", None)
+        if combo is None:
+            return
+        wanted = combo.currentData()
+        combo.blockSignals(True)
+        try:
+            combo.clear()
+            combo.addItem(_("(none)"), None)
+            for column in self._columns_from_table():
+                combo.addItem(column, column)
+            index = combo.findData(wanted) if wanted else 0
+            combo.setCurrentIndex(max(index, 0))
+        finally:
+            combo.blockSignals(False)
 
     # ------------------------------------------------------------------
     # Columns / roles.
@@ -1464,6 +1495,14 @@ class NewPlotTabDialog(QDialog):
         # surface, a pie, a contour map - gets one axis each rather than one
         # axis that keeps the first series and logs the others away.
         groups = self._axis_groups(drafts)
+        titles: list[str] | None = None
+        axes_by = self._combo_axes_by.currentData() if self._rb_new_axis.isChecked() else None
+        if axes_by:
+            split = self._split_into_axes(drafts, str(axes_by))
+            if not split:
+                return
+            titles = [title for title, _group in split]
+            groups = [group for _title, group in split]
 
         if self._rb_existing_axis.isChecked() and self._rb_current_figure.isChecked():
             axis_id_data = self._combo_axes.currentData()
@@ -1476,7 +1515,7 @@ class NewPlotTabDialog(QDialog):
             axis_ids = [axis_id]
             groups = [drafts]
         else:
-            axis_ids = self._create_axes_for_groups(figure_id, chart_type, groups)
+            axis_ids = self._create_axes_for_groups(figure_id, chart_type, groups, titles=titles)
 
         created = 0
         for axis_id, group in zip(axis_ids, groups):
@@ -1571,11 +1610,50 @@ class NewPlotTabDialog(QDialog):
         )
         return False
 
+    #: Most axes Separate axes by may make: past this a column is an identifier, not a grouping.
+    MAX_AXES: int = 24
+
+    def _split_into_axes(self, drafts: list[SeriesDraft], column: str) -> list[tuple[str, list[SeriesDraft]]]:
+        """(title, drafts) per value of *column*: every draft filtered to that value (B-13).
+
+        The axes keep the renderer's own limit: a chart of one series per axis
+        still gets one axis per series within each value. Empty when it could
+        not be done, and the person has been told why.
+        """
+        source = self._current_table_name()
+        try:
+            values = self._repo.distinct_values(source, column, limit=self.MAX_AXES)
+        except Exception as exc:  # noqa: BLE001 - shown, not swallowed
+            show_message(self, "chart.group_failed", column=column, reason=str(exc))
+            return []
+        if len(values) > self.MAX_AXES:
+            show_message(self, "chart.too_many_groups", column=column, limit=self.MAX_AXES)
+            return []
+        hide = self._repo.source_has_hide_column(source)
+        split: list[tuple[str, list[SeriesDraft]]] = []
+        for value in values:
+            label = _("(empty)") if self._repo.sql_literal(value) == "NULL" else str(value)
+            filtered = []
+            for draft in drafts:
+                try:
+                    sql = self._repo.sql_with_value_filter(draft.sql, column, value)
+                    if hide and '"Hide"' not in sql:
+                        sql = self._repo.sql_with_hide_filter(sql)
+                except ValueError as exc:
+                    show_message(self, "chart.group_failed", column=column, reason=str(exc))
+                    return []
+                filtered.append(SeriesDraft(name=draft.name, sql=sql, roles=dict(draft.roles), user_named=True))
+            for group in self._axis_groups(filtered):
+                split.append((f"{column} = {label}", group))
+        return split
+
     def _create_axes_for_groups(
         self,
         figure_id: int,
         chart_type: str,
         groups: list[list[SeriesDraft]],
+        *,
+        titles: list[str] | None = None,
     ) -> list[int]:
         """Create one axis per group and return their ids, in order.
 
@@ -1593,8 +1671,8 @@ class NewPlotTabDialog(QDialog):
         typed_name = (self._edit_axis_name.text() or "").strip()
         axis_ids: list[int] = []
         for offset, group in enumerate(groups):
-            title = self._axis_title_from_series(group)
-            if len(groups) == 1 and typed_name:
+            title = titles[offset] if titles else self._axis_title_from_series(group)
+            if len(groups) == 1 and typed_name and not titles:
                 title = typed_name
             axis_ids.append(
                 int(

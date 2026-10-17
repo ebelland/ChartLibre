@@ -9471,3 +9471,9 @@ msgstr "Crea una tabella da un indirizzo web o da una fonte di dati aperti dell'
 
 msgid "Create a table from a file: CSV, Excel, JSON."
 msgstr "Crea una tabella da un file: CSV, Excel, JSON."
+
+msgid "Separate axes by:"
+msgstr "Assi separati per:"
+
+msgid "One axis per value of this column - one per species, per batch, per site - each with every series, filtered to that value."
+msgstr "Un asse per ogni valore di questa colonna - uno per specie, per lotto, per sito - ognuno con tutte le serie, filtrate su quel valore."
