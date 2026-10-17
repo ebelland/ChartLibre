@@ -72,6 +72,7 @@ from app.styles.style import (
 from app.widgets.table_list import TableListPanel
 from app.widgets.table_preview import TablePreviewPanel
 from app.utils.config import (
+    developer_mode,
     get_constant,
     get_section,
     set_section,
@@ -417,6 +418,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         dialog = SettingsDialog(self)
         if dialog.exec():
             self._build_app_menu()
+            self._apply_developer_mode()
 
     def _show_log_viewer(self) -> None:
         """Open a read-only viewer for recent in-memory log records.
@@ -661,27 +663,39 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         return page
 
     def _create_developer_page(self) -> NavPanel:
-        """The project's history and database, then the scaffolding tools.
+        """The Project page: the project's history, database and log - then, in developer mode, the scaffolding tools.
 
         The Database page's content lives here since that page went; Query
         Builder moved to the Data Operations list. Each tool has a frame
-        of its own with its catalogue sentence under the button.
+        of its own with its catalogue sentence under the button. The tools
+        for contributors show only with Settings' Developer mode (todo H-13).
         """
         page = NavPanel(self)
         page.add_buttons(_("History"), [NavButton("project_history", self._on_project_history)],
                          object_name="projectHistoryCard")
         self._database_info_panel = DatabaseInfoPanel(self._repo, page, optimize_action=self._on_optimize_db)
         page.add_widget(self._database_info_panel)
-        for action_id, handler in (
-            ("edit_localization", self._on_edit_localization),
-            ("data_operation_builder", self._on_data_operation_builder),
-            ("function_creator", self._on_function_creator),
-            ("renderer_helper", self._on_renderer_helper),
-            ("log_viewer", self._show_log_viewer),
-        ):
+        page.add_buttons(action_presentation("log_viewer")[1],
+                         [NavButton("log_viewer", self._show_log_viewer, described=True)],
+                         object_name="log_viewerCard")
+        self._developer_cards = [
             page.add_buttons(action_presentation(action_id)[1], [NavButton(action_id, handler, described=True)],
                              object_name=f"{action_id}Card")
+            for action_id, handler in (
+                ("edit_localization", self._on_edit_localization),
+                ("data_operation_builder", self._on_data_operation_builder),
+                ("function_creator", self._on_function_creator),
+                ("renderer_helper", self._on_renderer_helper),
+            )
+        ]
+        self._apply_developer_mode()
         return page
+
+    def _apply_developer_mode(self) -> None:
+        """Show the tools for contributors on the Project page only in developer mode (todo H-13)."""
+        shown = developer_mode()
+        for card in getattr(self, "_developer_cards", []):
+            card.setVisible(shown)
 
     # ------------------------------------------------------------------
     # Navigation bar
@@ -761,8 +775,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                     guided_panel, _("Find the function for what you want to find out"),
                 ),
                 "developer": NavBarItem(
-                    _("Developer"), self._navigation_icon("nav_developer"), developer_panel,
-                    _("Developer tools"),
+                    _("Project"), self._navigation_icon("database_info"), developer_panel,
+                    _("The project's history, database and log - and, in developer mode, the tools for extending the app"),
                 ),
             },
         }
@@ -1346,7 +1360,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._table_panel.reload()
 
     def _on_database_info(self) -> None:
-        """Show the database overview, at the top of the Developer page (the
+        """Show the database overview, at the top of the Project page (the
         Database menu lands here - see _create_developer_page)."""
         self._select_navigation("developer")
 

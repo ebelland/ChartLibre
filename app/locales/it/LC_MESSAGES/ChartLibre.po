@@ -9546,3 +9546,15 @@ msgstr "Titolo dell'asse: clic per modificare l'asse"
 
 msgid "Also editing: {names}"
 msgstr "Modifichi anche: {names}"
+
+msgid "Developer mode"
+msgstr "Modalità sviluppatore"
+
+msgid "Show the tools for extending the app"
+msgstr "Mostra gli strumenti per estendere l'app"
+
+msgid "Edit Localization, Data Operation Builder, Function Creator and Renderer Helper on the Project page, and the DeepL key below."
+msgstr "Modifica localizzazione, Creatore di operazioni, Creatore di funzioni e Assistente renderer nella pagina Progetto, e la chiave DeepL qui sotto."
+
+msgid "The project's history, database and log - and, in developer mode, the tools for extending the app"
+msgstr "Cronologia, database e log del progetto - e, in modalità sviluppatore, gli strumenti per estendere l'app"

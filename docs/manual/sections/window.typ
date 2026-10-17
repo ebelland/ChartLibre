@@ -24,7 +24,7 @@ The window has three parts: the *navigation rail* at the far left, the *page* it
   [*Chart properties*], [The settings of the selected figure, axis and series (see @customizing). A click on the chart selects what it landed on: outside the axes the figure, on an axis that axis (on its ticks or label, that coordinate), on a line, points or bar that series; Shift-click adds a series to those edited together.],
   [*Analysis*], [Every analysis and data operation, a frame per category as in JMP's Analyze menu: New chart, Distribution, Fit Y by X, Fit Model, the models, the multivariate methods, the control chart, the curve and signal operations, and the design of experiments (see @data-operations and @analysis-chapter).],
   [*Guided analysis*], [Search, quick answers and suggestions, starting from what you want to find out (see @guided-analysis).],
-  [*Developer*], [The project's history and database information, and the tools for extending ChartLibre (see below).],
+  [*Project*], [The project's history, database information and log - and, with *Developer mode* on in Settings, the tools for extending ChartLibre (see below).],
 )
 
 On Windows and Linux the rail ends with *Settings* and a *Menu* button (Undo, Help, Credits, ...); on macOS these live in the menu bar.
@@ -54,9 +54,7 @@ On Windows and Linux the rail ends with *Settings* and a *Menu* button (Undo, He
 
 The window opens by itself when a project is created, and when a project is saved without an author or notes — once per session: close it to fill it in another time.
 
-== The Developer page
-
-Despite its name, the first part of this page is for everyone:
+== The Project page
 
 #defs(
   [*History*], [*Project history…* lists every operation applied in the project, oldest first: what was run, on which series, with which settings (see @history).],
@@ -64,7 +62,7 @@ Despite its name, the first part of this page is for everyone:
   [*Optimize DB*], [Checks the project file for problems, reports them, and compacts it — it can shrink a project noticeably after large tables were deleted.],
 )
 
-The rest of the page holds the tools for extending ChartLibre — *Edit Localization*, *Data Operation Builder*, *Function Creator*, *Renderer Helper* (see @advanced) — and the *Log viewer* (see @log).
+Then the *Log viewer* (see @log). With *Developer mode* on in Settings, the page also holds the tools for extending ChartLibre — *Edit Localization*, *Data Operation Builder*, *Function Creator*, *Renderer Helper* (see @advanced); they are hidden otherwise, being for people who add to the app rather than use it.
 
 == The chart panel
 

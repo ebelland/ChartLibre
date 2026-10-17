@@ -4,7 +4,7 @@
 
 ChartLibre discovers chart types and data operations the same way: by scanning a folder for Python classes that directly subclass a known base class, at import time — no registration list to edit and keep in sync. Dropping a well-formed file into the right folder is enough for it to appear in the application.
 
-The *Developer* page offers a form for each of the sections below, so writing the file by hand is the fallback, not the only way:
+With *Developer mode* on in Settings, the *Project* page offers a form for each of the sections below, so writing the file by hand is the fallback, not the only way:
 
 / *Renderer Helper*: a short form (name, category, description, link, required/optional roles) that scaffolds a new chart-type file.
 / *Data Operation Builder*: the same, for a new data-operation dialog - the scaffolded file already runs, passing each selected series through unchanged, ready to have the real computation dropped in.

@@ -8,7 +8,7 @@ actions one click away for whichever row is selected, rather than requiring
 a right-click per table.
 
 A plain embeddable QWidget, not a QDialog: it sits at the top of
-MainWindow's Developer page (see main_window._create_developer_page), with
+MainWindow's Project page (see main_window._create_developer_page), with
 its own Optimize DB action, rather than opening as its own modal window.
 """
 from __future__ import annotations

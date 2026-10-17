@@ -43,7 +43,7 @@ from app.styles.style import (
 )
 from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
 from app.plugin_api.charts.render_figure import DEFAULT_MPL_STYLE_KEY
-from app.utils.config import MPLSTYLES_DIR, get_language, get_value, set_value
+from app.utils.config import DEVELOPER_MODE_KEY, MPLSTYLES_DIR, developer_mode, get_language, get_value, set_value
 from app.utils.machine_translation import DEEPL_KEY_SETTING
 from app.utils.i18n import AUTO_LANGUAGE, available_languages, platform_language, tr
 
@@ -227,10 +227,21 @@ class SettingsDialog(PanelDialog):
         self._sql_guard_check.setChecked(sql_guard_enabled())
         form.addRow(tr("SQL guard"), self._sql_guard_check)
 
+        # The tools for contributors, and what only they use (todo H-13).
+        form = self._section(tr("Developer"), forms)
+        self._developer_check = QCheckBox(tr("Show the tools for extending the app"), card)
+        self._developer_check.setToolTip(
+            tr(
+                "Edit Localization, Data Operation Builder, Function Creator and "
+                "Renderer Helper on the Project page, and the DeepL key below."
+            )
+        )
+        self._developer_check.setChecked(developer_mode())
+        form.addRow(tr("Developer mode"), self._developer_check)
+
         # The one secret in here: shown as dots, kept in user.json on this
         # computer - never in config.json or a project - and sent only to
         # DeepL. Edit Localization offers DeepL once it is set (todo A-08).
-        form = self._section(tr("Translation"), forms)
         self._deepl_key_edit = QLineEdit(card)
         self._deepl_key_edit.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
         self._deepl_key_edit.setPlaceholderText(tr("Free plan keys end in :fx"))
@@ -243,6 +254,11 @@ class SettingsDialog(PanelDialog):
         )
         self._deepl_key_edit.setText(str(get_value(DEEPL_KEY_SETTING, "") or ""))
         form.addRow(tr("DeepL API key"), self._deepl_key_edit)
+        deepl_label = form.labelForField(self._deepl_key_edit)
+        self._developer_check.toggled.connect(self._deepl_key_edit.setVisible)
+        if deepl_label is not None:
+            self._developer_check.toggled.connect(deepl_label.setVisible)
+        self._developer_check.toggled.emit(self._developer_check.isChecked())
 
         note = QLabel(tr("The style and the language are applied the next time the app starts."), self)
         note.setProperty("muted", True)
@@ -317,6 +333,7 @@ class SettingsDialog(PanelDialog):
         set_value(DEFAULT_MPL_STYLE_KEY, self._value(self._mpl_style_combo))
         set_value(SQL_GUARD_KEY, bool(self._sql_guard_check.isChecked()))
         set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
+        set_value(DEVELOPER_MODE_KEY, bool(self._developer_check.isChecked()))
 
         applogger.info(
             "Settings saved: style=%s language=%s format=%s",

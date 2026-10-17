@@ -327,6 +327,17 @@ def set_value(name: str, value: Any) -> None:
 # ----------------------------------------------------------------------
 # Named preferences
 # ----------------------------------------------------------------------
+#: Shows the tools for contributors - Edit Localization, Data Operation
+#: Builder, Function Creator, Renderer Helper - and the DeepL key in
+#: Settings (todo H-13). Off: they are for people extending the app.
+DEVELOPER_MODE_KEY = "developer_mode"
+
+
+def developer_mode() -> bool:
+    """True when Settings' Developer mode is on."""
+    return bool(get_value(DEVELOPER_MODE_KEY, False))
+
+
 def get_last_database() -> Path | None:
     """Return the last opened database, or None if it is gone."""
     raw = get_value("last_database")
