@@ -820,6 +820,11 @@ class AxisPropertiesWidget(BaseProperties):
             self._axis_combo.setCurrentIndex(index)
         return True
 
+    def show_coordinate(self, coordinate: str | None) -> None:
+        """The tab of *coordinate* ("x", "y", "z"), or Properties for None (a click on the title)."""
+        axes = axis_options.AXES
+        self._tabs.setCurrentIndex(axes.index(coordinate) + 1 if coordinate in axes else 0)
+
     def set_kwargs_widget(self, widget: QWidget) -> None:
         """Replace kwargs host content."""
         self._replace_layout_widget(self._kwargs_layout, widget)

@@ -66,7 +66,9 @@ class PickingMixin:
         """A plain left click on the chart: say which figure, axis and series it landed on.
 
         Emitted as ``chart_object_clicked`` with ``axis_id`` (None outside every
-        axis: the figure) and ``series`` (the series' name, or None); the main
+        axis: the figure), ``series`` (the series' name, or None) and ``part``
+        ("x", "y" or "z" for a click on that coordinate's ticks or label,
+        "title" on the axis' title, None inside the plotting area); the main
         window selects that object in Chart properties when the panel is
         shown. Not after a drag, nor while a navigation tool, box selection
         or an annotation drag owns the mouse.
@@ -79,10 +81,34 @@ class PickingMixin:
             return
         if str(getattr(self._toolbar, "mode", "")) != "" or getattr(self, "_select_mode_enabled", False):
             return
-        axes = event.inaxes
+        axes, part = event.inaxes, None
+        if axes is None:
+            # Outside every plotting area may still be on an axis: its ticks,
+            # tick labels or label, or its title - not the figure.
+            axes, part = self._axis_part_at(event)
         axis_id = getattr(axes, "_dhub_axis_id", None) if axes is not None else None
-        series = self._series_name_at(axes, event) if axis_id is not None else None
-        self.chart_object_clicked.emit({"axis_id": axis_id, "series": series})
+        series = self._series_name_at(axes, event) if axis_id is not None and part is None else None
+        self.chart_object_clicked.emit({"axis_id": axis_id, "series": series, "part": part})
+
+    def _axis_part_at(self, event: Any) -> tuple[Any, str | None]:
+        """(the axes, "x"/"y"/"z") for a click on an axis' ticks or labels, (the axes, "title")
+        on its title, (None, None) elsewhere."""
+        renderer = self._canvas.get_renderer()
+        # The canvas' figure: the one drawn, and so the one clicked.
+        for axes in self._canvas.figure.axes:
+            if getattr(axes, "_dhub_axis_id", None) is None:
+                continue
+            title = axes.title
+            if title.get_visible() and title.get_text() and title.get_window_extent(renderer).contains(event.x, event.y):
+                return axes, "title"
+            for coordinate in ("x", "y", "z"):
+                axis = getattr(axes, f"{coordinate}axis", None)
+                if axis is None or not axis.get_visible():
+                    continue
+                box = axis.get_tightbbox(renderer)
+                if box is not None and box.contains(event.x, event.y):
+                    return axes, coordinate
+        return None, None
 
     @staticmethod
     def _series_name_at(axes: Any, event: Any) -> str | None:

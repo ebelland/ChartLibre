@@ -436,7 +436,9 @@ class MainWindowChartProperties:
         """A click on the chart selects what it landed on here - when Chart properties is shown.
 
         Outside every axis: the Figure page. On an axis: the Axis page on that
-        axis. On a series' line, points or bar: the Series page on that series.
+        axis - on its X, Y or Z tab for a click on that coordinate's ticks or
+        label, on Properties for its title. On a series' line, points or bar:
+        the Series page on that series.
         """
         control = self._properties_control
         if not control.isVisible() or panel is not self._current_chart_panel():
@@ -456,8 +458,11 @@ class MainWindowChartProperties:
         series = hit.get("series")
         if series and self._series_widget.select_series_named(str(series)):
             show(self._series_widget)
-        else:
-            show(self._axis_widget)
+            return
+        part = hit.get("part")
+        if part:
+            self._axis_widget.show_coordinate(None if part == "title" else str(part))
+        show(self._axis_widget)
 
     def _on_axis_selected(self, axis_id: int) -> None:
         self._series_widget.set_current_axis_id(axis_id)
