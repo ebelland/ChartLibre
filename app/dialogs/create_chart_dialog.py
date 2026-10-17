@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Sequence, cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QMessageBox, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QSplitter, QToolBox
+from PySide6.QtWidgets import QDialog, QFrame, QMessageBox, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QSplitter, QToolBox
 
 from app.scanners.axis_renderer_scanner import (
     get_renderer,
@@ -280,10 +280,16 @@ class NewPlotTabDialog(QDialog):
         stdSizeAndlayout(self._roles_layout)
 
         self._roles_scroll = QScrollArea()
+        self._roles_scroll.setObjectName("plotRolesScroll")
         self._roles_scroll.setWidgetResizable(True)
         self._roles_scroll.setMinimumHeight(110)
         stdSizeAndlayout(self._roles_scroll)
-        mark_editor_panel(self._roles_scroll)
+        # On the Series card's own white, like the fields above it - not a
+        # grey editor panel set into it (B-12).
+        self._roles_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._roles_scroll.setStyleSheet(
+            "QScrollArea#plotRolesScroll, QScrollArea#plotRolesScroll > QWidget > QWidget { background: transparent; }"
+        )
         self._roles_scroll.setWidget(self._roles_panel)
         self._rebuild_role_combos()
 
@@ -307,6 +313,8 @@ class NewPlotTabDialog(QDialog):
         editor_form_layout.addRow(_("Query:"), self._edit_sql)
         editor_form_layout.addRow(self._roles_scroll)
         editor_form_layout.addRow(_("Group by:"), self._combo_group)
+        self._editor_form_layout = editor_form_layout
+        self._show_group_by()
         editor_layout.addWidget(editor_form, 1)
 
         # Dialog buttons and layout.
@@ -340,6 +348,8 @@ class NewPlotTabDialog(QDialog):
         target_series_layout.addWidget(series_list_group, 1)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        # The handles on the window's grey between the cards, not white strips (B-12).
+        splitter.setStyleSheet("QSplitter::handle { background: transparent; }")
         editor_group.setMinimumWidth(380)
         editor_group.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -446,6 +456,13 @@ class NewPlotTabDialog(QDialog):
                 item.setToolTip(tr(str(renderer.get("description") or "")))
                 renderer_list.addItem(item)
 
+            # As tall as its rows: the accordion's page scrolls when needed,
+            # not the list inside it as well - two scroll bars side by side (B-12).
+            renderer_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            renderer_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            rows = max(1, renderer_list.count())
+            renderer_list.setFixedHeight(rows * max(renderer_list.sizeHintForRow(0), 18)
+                                         + 2 * renderer_list.frameWidth() + 4)
             self._lists_by_category[category] = renderer_list
             self._types_toolbox.addItem(renderer_list, tr(category))
 
@@ -1173,6 +1190,17 @@ class NewPlotTabDialog(QDialog):
             label.setProperty("requiredRole", True)
         return label
 
+    def _show_group_by(self) -> None:
+        """Group by only for a chart without a group role of its own: one way to ask for groups (B-12)."""
+        layout = getattr(self, "_editor_form_layout", None)
+        combo = getattr(self, "_combo_group", None)
+        if layout is None or combo is None:
+            return
+        own = "group" in self._role_combos
+        if own and combo.currentIndex() > 0:
+            combo.setCurrentIndex(0)
+        layout.setRowVisible(combo, not own)
+
     def _rebuild_role_combos(self) -> None:
         """Rebuild the scrollable role panel for the selected renderer."""
         previous = {
@@ -1204,6 +1232,7 @@ class NewPlotTabDialog(QDialog):
             self._roles_layout.addRow(
                 QLabel(_("No renderer roles declared."), self._roles_panel)
             )
+        self._show_group_by()
 
     def _populate_role_columns(self, cols: list[str]) -> None:
         """Fill every role combo with available table or query columns."""
