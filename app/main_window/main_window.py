@@ -638,9 +638,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         """Project, Save (and Export), Demo, Open recent.
 
         Import is on the New table page, with the other ways to make a
-        table; Project info sits with Settings (the rail, or the application
-        menu on macOS). The demos say in a sentence what they do, under
-        their button.
+        table; Project info on the Project page, with what else is about the
+        open project. The demos say in a sentence what they do, under their
+        button.
         """
         page = NavPanel(self)
         page.add_buttons(_("Project"), [
@@ -662,7 +662,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         return page
 
     def _create_developer_page(self) -> NavPanel:
-        """The Project page: the project's history, database and log - then, in developer mode, the scaffolding tools.
+        """The Project page: the project's information, history, database and log - then, in developer mode, the scaffolding tools.
 
         The Database page's content lives here since that page went; Query
         Builder moved to the Data Operations list. Each tool has a frame
@@ -670,6 +670,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         for contributors show only with Settings' Developer mode (todo H-13).
         """
         page = NavPanel(self)
+        page.add_buttons(_("Project information"), [NavButton("project_info", self._on_project_info, described=True)],
+                         object_name="projectInfoCard")
         page.add_buttons(_("History"), [NavButton("project_history", self._on_project_history)],
                          object_name="projectHistoryCard")
         self._database_info_panel = DatabaseInfoPanel(self._repo, page, optimize_action=self._on_optimize_db)
@@ -776,7 +778,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                 ),
                 "developer": NavBarItem(
                     _("Project"), self._navigation_icon("database_info"), developer_panel,
-                    _("The project's history, database and log - and, in developer mode, the tools for extending the app"),
+                    _("The project's information, history, database and log - and, in developer mode, the tools for extending the app"),
                 ),
             },
         }
@@ -792,12 +794,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             sections.setdefault("Settings", {})["settings"] = NavBarItem(
                 _("Settings"), self._navigation_icon("settings"), None,
                 _("Open application settings"),
-            )
-        if not IS_MACOS:
-            # With Settings: on macOS it is in the application menu, after Settings.
-            sections.setdefault("Settings", {})["project_info"] = NavBarItem(
-                _("Project info"), self._navigation_icon("project_info"), None,
-                _("Author, date and notes, kept in the project file"),
             )
 
         header = CustomTitleBar(cast(Any, self), is_macos=True) if IS_MACOS else None
@@ -824,9 +820,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             return
         if key == "settings":
             self._on_settings()
-            return
-        if key == "project_info":
-            self._on_project_info()
             return
         if key == "help":
             self._popup_help_menu()

@@ -23,7 +23,7 @@ def test_the_tools_for_contributors_follow_developer_mode(qapp, tmp_path: Path) 
         assert names == ["edit_localizationCard", "data_operation_builderCard",
                          "function_creatorCard", "renderer_helperCard"]
         assert not any(card.isVisible() or card.parentWidget().isVisible() for card in window._developer_cards)
-        assert window._left_panel._buttons["developer"].toolTip().startswith("The project's history")
+        assert window._left_panel._buttons["developer"].toolTip().startswith("The project's information")
 
         config.set_value(config.DEVELOPER_MODE_KEY, True)
         window._apply_developer_mode()
@@ -59,8 +59,6 @@ def test_the_file_page_has_project_save_with_export_demo_and_recent(qapp, tmp_pa
     """Import is on New table, Project info with Settings: the File page keeps the project's own steps."""
     from PySide6.QtWidgets import QFrame, QPushButton
 
-    from app.main_window.main_window import IS_MACOS
-
     repo = SqliteRepo(db_path=tmp_path / "f.dhub")
     window = main_window_module.MainWindow(repo=repo, db_path=repo.db_path)
     try:
@@ -68,11 +66,9 @@ def test_the_file_page_has_project_save_with_export_demo_and_recent(qapp, tmp_pa
         assert window.findChild(QFrame, "fileProjectInfoCard") is None
         save = window.findChild(QFrame, "fileSaveCard")
         assert [b.text() for b in save.findChildren(QPushButton)][-1] == "Export…"
-        if IS_MACOS:
-            items = [item for _title, group in window._app_menu_items() for item in group if item is not None]
-            assert any("Project info" in str(getattr(item, "text", "")) for item in items)
-        else:
-            assert window._left_panel.button("project_info") is not None
+        # Project info is on the Project page, with what else is about the open project.
+        assert window.findChild(QFrame, "projectInfoCard") is not None
+        assert window._left_panel.button("project_info") is None
     finally:
         window.close()
         repo.close()

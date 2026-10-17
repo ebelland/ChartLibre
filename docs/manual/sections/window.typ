@@ -24,7 +24,7 @@ The window has three parts: the *navigation rail* at the far left, the *page* it
   [*Chart properties*], [The settings of the selected figure, axis and series (see @customizing). A click on the chart selects what it landed on: outside the axes the figure, on an axis that axis (on its ticks or label, that coordinate), on a line, points or bar that series; Shift-click adds a series to those edited together.],
   [*Analysis*], [Every analysis and data operation, a frame per category as in JMP's Analyze menu: New chart, Distribution, Fit Y by X, Fit Model, the models, the multivariate methods, the control chart, the curve and signal operations, and the design of experiments (see @data-operations and @analysis-chapter).],
   [*Guided analysis*], [Search, quick answers and suggestions, starting from what you want to find out (see @guided-analysis).],
-  [*Project*], [The project's history, database information and log - and, with *Developer mode* on in Settings, the tools for extending ChartLibre (see below).],
+  [*Project*], [The project's information, history, database information and log - and, with *Developer mode* on in Settings, the tools for extending ChartLibre (see below).],
 )
 
 On Windows and Linux the rail ends with *Settings* and a *Menu* button (Undo, Help, Credits, ...); on macOS these live in the menu bar.
@@ -40,7 +40,7 @@ On Windows and Linux the rail ends with *Settings* and a *Menu* button (Undo, He
 
 === Project info
 
-*Project info…* — with *Settings* in the rail on Windows and Linux, in the ChartLibre menu after Settings on macOS — holds what a project says about itself, kept inside the `.dhub` file so that it travels with it:
+*Project info…* — at the top of the *Project* page — holds what a project says about itself, kept inside the `.dhub` file so that it travels with it:
 
 #defs(
   [*Author*], [Who made it. Remembered on the computer, and filled in for every new project.],
@@ -55,6 +55,7 @@ The window opens by itself when a project is created, and when a project is save
 == The Project page
 
 #defs(
+  [*Project information*], [*Project info…*: author, dates, notes and references (see above).],
   [*History*], [*Project history…* lists every operation applied in the project, oldest first: what was run, on which series, with which settings (see @history).],
   [*Database information*], [The project file's path and size, everything SQLite reports about it (tables and rows, page usage and how much *Optimize DB* would reclaim, journal mode, SQLite version, file dates), and every table with its row count and import link. From here a table can be exported to CSV or Excel or refreshed from its link.],
   [*Optimize DB*], [Checks the project file for problems, reports them, and compacts it — it can shrink a project noticeably after large tables were deleted.],
