@@ -13,10 +13,17 @@ Rules, all of them for crash safety:
   can collect it while the worker is still running;
 - connect ``finished``/``failed`` to methods of a QObject (the dialog): if
   that object is destroyed first, Qt drops the connection instead of
-  calling into a deleted widget.
+  calling into a deleted widget;
+- Python's cyclic garbage collector is paused while any task runs, and
+  resumed on the GUI thread. It runs in whichever thread allocates when its
+  threshold is reached - a worker's, mid-calculation - and destroyed there
+  whatever widgets were waiting to be freed: a closed window's
+  QWebEngineView among them, which Chromium refuses off its own thread
+  (a SIGTRAP that killed the process).
 """
 from __future__ import annotations
 
+import gc
 import threading
 from collections.abc import Callable
 from typing import Any
@@ -72,6 +79,8 @@ class BackgroundTask(QObject):
         self.finished.connect(self._release)
         self.failed.connect(self._release)
         self._running = True
+        if not _ACTIVE:
+            _pause_gc()
         _ACTIVE.add(self)
         QThreadPool.globalInstance().start(self._runner)
 
@@ -83,10 +92,30 @@ class BackgroundTask(QObject):
     def _release(self, _payload: object) -> None:
         self._running = False
         _ACTIVE.discard(self)
+        if not _ACTIVE:
+            _resume_gc()
 
 
 #: Tasks still running or not yet delivered. See the module docstring.
 _ACTIVE: set[BackgroundTask] = set()
+#: Whether the collector was paused here (and so is to be resumed here).
+_GC_PAUSED = False
+
+
+def _pause_gc() -> None:
+    """No cyclic collection while a worker runs: it would run on the worker's thread (see the docstring)."""
+    global _GC_PAUSED
+    if gc.isenabled():
+        gc.disable()
+        _GC_PAUSED = True
+
+
+def _resume_gc() -> None:
+    """Back on, from the GUI thread: the next collection runs here."""
+    global _GC_PAUSED
+    if _GC_PAUSED:
+        _GC_PAUSED = False
+        gc.enable()
 
 
 def run_in_background(
