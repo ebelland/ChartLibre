@@ -26,9 +26,10 @@ from app.logs.logger import applogger
 from app.utils.i18n import _
 from app.styles.style import load_icon, mark_editor_panel, stdSizeAndlayout
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
+from app.utils.config import get_constant
 
 _TABLE_RE = re.compile(r"[^A-Za-z0-9_]+")
-_MAX_PREVIEW_ROWS = 500
+_MAX_PREVIEW_ROWS = get_constant("doe_preview_rows", 500)
 
 
 @dataclass(frozen=True, slots=True)

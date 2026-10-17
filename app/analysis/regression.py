@@ -17,6 +17,7 @@ from app.analysis import NUMERICAL_FAILURES
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import HuberRegressor, RANSACRegressor
+from app.utils.config import get_constant
 
 KIND_RANSAC = "ransac"
 KIND_HUBER = "huber"
@@ -25,7 +26,7 @@ KIND_RANDOM_FOREST = "random_forest"
 KIND_GRADIENT_BOOSTING = "gradient_boosting"
 
 #: Points in the dense evaluation grid every model predicts over.
-GRID_POINTS = 200
+GRID_POINTS = get_constant("regression_curve_points", 200)
 
 
 @dataclass(frozen=True, slots=True)

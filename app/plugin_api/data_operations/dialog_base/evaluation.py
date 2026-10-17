@@ -17,6 +17,7 @@ from app.utils.background import BackgroundTask, run_in_background
 from app.utils.i18n import _
 
 from app.plugin_api.data_operations.dialog_base.common import OperationJob, SeriesOutcome, SeriesJob
+from app.utils.config import get_constant
 
 
 class EvaluationMixin:
@@ -173,7 +174,7 @@ class EvaluationMixin:
 
     #: How long a background run may take before Stop and the progress bar
     #: appear: a run that ends sooner shows nothing, rather than a flicker.
-    BUSY_DELAY_MS: ClassVar[int] = 300
+    BUSY_DELAY_MS: ClassVar[int] = get_constant("background_busy_delay_ms", 300)
 
     # -- Per series: the common case ------------------------------------
 

@@ -42,6 +42,7 @@ from app.styles.style import (
 )
 from app.utils.i18n import _, tr
 from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.utils.config import get_constant
 
 
 @dataclass(slots=True)
@@ -1521,7 +1522,7 @@ class NewPlotTabDialog(PanelDialog):
 
     #: Most series one "Group by" may make: past this the column is an
     #: identifier or a measurement, not a grouping, and the legend unreadable.
-    MAX_GROUPS: int = 50
+    MAX_GROUPS: int = get_constant("chart_max_groups", 50)
 
     def _split_into_groups(self, drafts: list[SeriesDraft]) -> list[SeriesDraft]:
         """Each draft with a Group by column becomes one draft per value of it.
@@ -1590,7 +1591,7 @@ class NewPlotTabDialog(PanelDialog):
         return False
 
     #: Most axes Separate axes by may make: past this a column is an identifier, not a grouping.
-    MAX_AXES: int = 24
+    MAX_AXES: int = get_constant("chart_max_separate_axes", 24)
 
     def _split_into_axes(self, drafts: list[SeriesDraft], column: str) -> list[tuple[str, list[SeriesDraft]]]:
         """(title, drafts) per value of *column*: every draft filtered to that value (B-13).

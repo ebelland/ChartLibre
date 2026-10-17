@@ -18,11 +18,12 @@ import pandas as pd
 
 from app.analysis import catalog
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
+from app.utils.config import get_constant
 
 #: A column with at most this many levels groups the rows; an ordinal one with more is a measure.
-MAX_GROUP_LEVELS = 20
+MAX_GROUP_LEVELS = get_constant("guided_max_group_levels", 20)
 #: The concrete questions offered at most.
-MAX_QUESTIONS = 3
+MAX_QUESTIONS = get_constant("guided_max_questions", 3)
 
 _TIME_TYPES = ("DATE", "TIME")
 

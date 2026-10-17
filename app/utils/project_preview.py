@@ -14,10 +14,11 @@ from pathlib import Path
 
 from app.data.sqlite_repo import SqliteRepo
 from app.utils.project_report import render_figure_bytes
+from app.utils.config import get_constant
 
 #: Inches and dots per inch of a preview: 1280 x 800 pixels at 200 dpi.
 PREVIEW_SIZE_IN: tuple[float, float] = (6.4, 4.0)
-PREVIEW_DPI: int = 200
+PREVIEW_DPI: int = get_constant("project_preview_dpi", 200)
 
 #: What the project-info entry is called.
 PREVIEW_KEY = "preview_path"

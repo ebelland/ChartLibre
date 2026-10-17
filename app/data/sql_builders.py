@@ -29,11 +29,12 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 import numpy as np
+from app.utils.config import get_constant
 
 JOIN_KINDS: tuple[str, ...] = ("INNER", "LEFT", "RIGHT", "FULL OUTER")
 SPLIT_AGGREGATES: tuple[str, ...] = ("MAX", "MIN", "SUM", "AVG", "COUNT")
 #: The most columns a split or a transpose writes: a wide table past this is a mistake, not a result.
-MAX_NEW_COLUMNS = 500
+MAX_NEW_COLUMNS = get_constant("query_max_new_columns", 500)
 #: Between the items of a long SELECT list: one per line, aligned under the first.
 _LIST_SEPARATOR = ",\n       "
 

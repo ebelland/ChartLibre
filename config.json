@@ -1394,6 +1394,27 @@
     "combo_min_contents_length": 6,
     "splitter_handle_width": 6,
     "panel_min_width": 240,
-    "panel_default_width": 340
+    "panel_default_width": 340,
+    "chart_max_groups": 50,
+    "chart_max_separate_axes": 24,
+    "query_recode_values": 200,
+    "query_max_new_columns": 500,
+    "doe_preview_rows": 500,
+    "guided_max_group_levels": 20,
+    "guided_max_questions": 3,
+    "search_results_limit": 12,
+    "series_cache_entries": 64,
+    "project_preview_dpi": 200,
+    "quick_answer_alpha": 0.05,
+    "fisher_resamples": 9999,
+    "fit_model_cv_folds": 5,
+    "fit_model_profile_points": 21,
+    "partition_dependence_factors": 4,
+    "regression_curve_points": 200,
+    "change_max_pairs": 4000,
+    "background_busy_delay_ms": 300,
+    "font_scale_min_percent": 50,
+    "font_scale_max_percent": 300,
+    "font_scale_step_percent": 10
   }
 }

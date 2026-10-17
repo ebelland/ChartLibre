@@ -35,7 +35,7 @@ from app.data.select_sql import has_projection_alias
 from app.data.series_frame import SeriesFrame
 from app.data.undo_store import UndoEntry, UndoStore
 from app.logs.logger import applogger
-from app.utils.config import load_config
+from app.utils.config import load_config, get_constant
 
 # Re-exported, not just imported: "from app.data.sqlite_repo import
 # DatabaseReport" is what the rest of the application writes, and the split
@@ -67,7 +67,7 @@ from app.data.repo.tables import TablesMixin
 
 # Series cache defaults, overridable from config.json under "series_cache".
 _SERIES_CACHE_DEFAULT_ENABLED = True
-_SERIES_CACHE_DEFAULT_MAX_ENTRIES = 64
+_SERIES_CACHE_DEFAULT_MAX_ENTRIES = get_constant("series_cache_entries", 64)
 
 
 @dataclass(slots=True)

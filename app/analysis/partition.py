@@ -22,6 +22,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from app.utils.config import get_constant
 
 CONTINUOUS = "continuous"
 NOMINAL = "nominal"
@@ -393,7 +394,7 @@ def partition(frame: pd.DataFrame, spec: PartitionSpec) -> PartitionResult:
 
 
 #: Partial dependence is drawn for at most this many factors, the most important first.
-DEPENDENCE_FACTORS = 4
+DEPENDENCE_FACTORS = get_constant("partition_dependence_factors", 4)
 
 
 def _explain(result: PartitionResult, model: Any, x: np.ndarray, y: np.ndarray, train: np.ndarray,

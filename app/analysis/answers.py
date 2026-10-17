@@ -21,9 +21,10 @@ import pandas as pd
 from scipy import stats
 
 from app.analysis.statistics import cohens_d, tukey_hsd, welch_anova
+from app.utils.config import get_constant
 
 #: Below this p-value a difference is called shown.
-ALPHA = 0.05
+ALPHA = get_constant("quick_answer_alpha", 0.05)
 
 YES, NO = "yes", "no"
 

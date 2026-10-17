@@ -35,6 +35,7 @@ import numpy as np
 import pandas as pd
 
 from app.analysis import Stopped
+from app.utils.config import get_constant
 
 CONTINUOUS = "continuous"
 NOMINAL = "nominal"
@@ -130,7 +131,7 @@ PENALTIES: tuple[tuple[str, str], ...] = (
     ("elastic", "Elastic Net"),
 )
 #: Folds of the cross-validation that chooses the penalty.
-CV_FOLDS = 5
+CV_FOLDS = get_constant("fit_model_cv_folds", 5)
 #: Generalized linear model families, each with its canonical link (log for Gamma).
 FAMILIES: tuple[tuple[str, str], ...] = (
     ("normal", "Normal"),
@@ -727,7 +728,7 @@ def _probability_profile(model, design: pd.DataFrame, prep: _Prepared, factors, 
 
 
 #: Points along each factor in the prediction profile.
-PROFILE_POINTS = 21
+PROFILE_POINTS = get_constant("fit_model_profile_points", 21)
 
 
 def _profile(model, data: pd.DataFrame, factors: Sequence[Factor], safe: dict[str, str],

@@ -35,9 +35,10 @@ from app.data.repo.table_tools import AGGREGATES
 from app.data.sqlite_repo import SqliteRepo
 from app.styles.style import apply_fusion_for_item_view_styling, stdSizeAndlayout
 from app.utils.i18n import _
+from app.utils.config import get_constant
 
 #: The most distinct values Recode lists.
-RECODE_LIMIT = 200
+RECODE_LIMIT = get_constant("query_recode_values", 200)
 _NONE = "(none)"
 
 

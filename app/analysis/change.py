@@ -26,9 +26,10 @@ import pandas as pd
 from scipy import stats
 
 from app.analysis.answers import ALPHA, NO, YES
+from app.utils.config import get_constant
 
 #: Above this many values the O(n²) trend statistics run on an even subsample.
-MAX_PAIRS_N = 4000
+MAX_PAIRS_N = get_constant("change_max_pairs", 4000)
 #: Above this lag-1 autocorrelation (of the detrended values) the answer warns.
 AUTOCORRELATION_WARNING = 0.3
 ROW_ORDER = ""

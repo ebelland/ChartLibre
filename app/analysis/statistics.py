@@ -24,6 +24,7 @@ from app.analysis import NUMERICAL_FAILURES
 from scipy import stats
 
 from app.utils.i18n import _
+from app.utils.config import get_constant
 
 #: The alternatives SciPy's tests accept.
 
@@ -496,7 +497,7 @@ def tukey_hsd(groups: Mapping[str, Any]) -> list[dict[str, Any]]:
 # ----------------------------------------------------------------------
 #: Monte Carlo tables for Fisher's test on tables larger than 2x2, and the
 #: seed that makes its p-value the same every run.
-FISHER_RESAMPLES: int = 9999
+FISHER_RESAMPLES: int = get_constant("fisher_resamples", 9999)
 FISHER_SEED: int = 0
 
 

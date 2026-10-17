@@ -24,11 +24,12 @@ from app.analysis import catalog
 from app.analysis.catalog import CatalogEntry
 from app.styles.style import icon_from_svg_source, load_icon
 from app.utils.i18n import tr
+from app.utils.config import get_constant
 
 _ENTRY_ROLE = Qt.ItemDataRole.UserRole
 _ICON_SIZE = 18
 #: Matches listed at most: past these the words typed are too few to choose by.
-_LIMIT = 12
+_LIMIT = get_constant("search_results_limit", 12)
 
 #: The table tools' icons, by catalogue key.
 _TOOL_ICONS = {

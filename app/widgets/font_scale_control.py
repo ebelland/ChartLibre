@@ -12,11 +12,12 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QSpinBox, QWidget
 
 from app.utils.i18n import _
+from app.utils.config import get_constant
 
 #: Allowed range, in percent; 100 is "as the style says".
-FONT_SCALE_MIN_PERCENT: int = 50
-FONT_SCALE_MAX_PERCENT: int = 300
-FONT_SCALE_STEP_PERCENT: int = 10
+FONT_SCALE_MIN_PERCENT: int = get_constant("font_scale_min_percent", 50)
+FONT_SCALE_MAX_PERCENT: int = get_constant("font_scale_max_percent", 300)
+FONT_SCALE_STEP_PERCENT: int = get_constant("font_scale_step_percent", 10)
 
 
 class FontScaleControl(QSpinBox):
