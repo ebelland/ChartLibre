@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 94,123 lines in 261 files; tests 17,897 lines in 142 files (updated at each commit).
+Size: app 94,151 lines in 261 files; tests 17,897 lines in 142 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -67,8 +67,8 @@ DONE B-04 [3] Load demo: window icon (load_demo) and a title on the preview fram
 DONE B-05 [4] Workspace row stays selected while the panels are hidden.
 DONE B-06 [5] Create Query Table has its icon (action "query", P0-12).
 DONE  B-07 [1] File panel, Open recent frame: list square on top, round below (QSS).
-OPEN  B-08 [2] Import dialog: grey background, frame inside a frame (QSS / PanelDialog).
-OPEN  B-09 [2] Move the Web source to the New table page too (item 5 of the slide).
+DONE  B-08 [2] Import dialog: grey background, frame inside a frame (QSS / PanelDialog).
+DONE  B-09 [2] Move the Web source to the New table page too (item 5 of the slide).
 OPEN  B-10 [4] Tables page: wasted space (also below), square border, round the edges or continue the border to the panel side and align the height to the chart panel.
 DONE  B-11 [6] Chart properties / Overlay: QTabWidget header stuck to the frame, double frame - drop the outer one.
 OPEN  B-12 [7] New chart window: splitters white -> grey; grey background; some renderers ask for the group twice (a "group" role and "Group by"); double scroll bar in the renderer list.

@@ -32,7 +32,7 @@ _LIMIT = 12
 
 #: The table tools' icons, by catalogue key.
 _TOOL_ICONS = {
-    "doe": "new", "import": "import", "import_clipboard": "paste", "import_database": "import", "query": "query",
+    "doe": "new", "import": "import", "import_clipboard": "paste", "import_web": "web_sources", "import_database": "import", "query": "query",
     "new_table": "new", "edit_table": "document-edit",
 }
 

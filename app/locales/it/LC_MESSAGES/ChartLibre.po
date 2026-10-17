@@ -9462,3 +9462,12 @@ msgstr "Per dati copiati una serie per riga: gli appunti sono letti scambiando r
 
 msgid "Create a table from a file or a web source."
 msgstr "Crea una tabella da un file o da una fonte web."
+
+msgid "Import from the web"
+msgstr "Importa dal web"
+
+msgid "Create a table from a web address or a listed open-data source."
+msgstr "Crea una tabella da un indirizzo web o da una fonte di dati aperti dell'elenco."
+
+msgid "Create a table from a file: CSV, Excel, JSON."
+msgstr "Crea una tabella da un file: CSV, Excel, JSON."

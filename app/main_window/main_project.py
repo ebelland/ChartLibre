@@ -446,8 +446,13 @@ class MainWindowProject(_MainWindowProjectBase):
         """Import what is on the clipboard: the dialog opens on it, for the preview."""
         self._on_import_data(clipboard=True, transposed=self._clipboard_transposed.isChecked())
 
+    def _on_import_web(self) -> None:
+        """Import from a web address or a listed web source: the dialog opens on its Web frame."""
+        self._on_import_data(web=True)
+
     def _on_import_data(
-        self, source_path: Path | None = None, *, clipboard: bool = False, transposed: bool = False
+        self, source_path: Path | None = None, *, clipboard: bool = False, transposed: bool = False,
+        web: bool = False,
     ) -> None:
         """Open the import dialog and refresh UI if import succeeds.
 
@@ -455,7 +460,7 @@ class MainWindowProject(_MainWindowProjectBase):
         already showing it, with its preview and its default table name, which
         is the whole point of dropping it rather than browsing for it.
         """
-        dlg = ImportDataDialog(self._repo, parent=self)
+        dlg = ImportDataDialog(self._repo, parent=self, web=web)
         # Only a path counts: a button's clicked(bool) arrives here as False, which
         # used to be opened as a file called "False".
         if isinstance(source_path, (str, Path)) and str(source_path):

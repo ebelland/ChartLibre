@@ -215,15 +215,19 @@ class ImportDataDialog(SettingsTableDialog):
         "utf-16",
     ]
 
-    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
+    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None, *, web: bool = False) -> None:
+        """*web*: the dialog for a web address (New table > Import from the web) rather than a file."""
+        web_mode = web
         super().__init__(
             parent,
             title=_("Import data"),
             icon=load_icon("import"),
-            settings_title=_("Settings"),
-            content_title=_("Preview"),
             settings_width=420,
+            # A column of titled frames on the window's own ground, not one
+            # "Settings" frame with those frames on grey inside it (B-08).
+            sections=True,
         )
+        self.settings_frame = self._settings_column
         self._repo = repo
         self.import_result: ImportResult | None = None
         self._df: pd.DataFrame | None = None
@@ -327,6 +331,10 @@ class ImportDataDialog(SettingsTableDialog):
         )
         web_layout.addLayout(url_row)
         left_layout.addWidget(web)
+        # One source per way in (B-09): a file here, the web from its own
+        # button on the New table page - the clipboard has its own too.
+        source.setVisible(not web_mode)
+        web.setVisible(web_mode)
 
         # -- Read options
         read = TitledCard(left, _("Read options"), "importReadCard")
@@ -422,16 +430,22 @@ class ImportDataDialog(SettingsTableDialog):
         # cards needed 826 px, more than a 1366 x 768 laptop's screen has
         # (the Columns card still takes whatever height is spare).
         scroll = QScrollArea(self.settings_frame)
+        scroll.setObjectName("importSettingsScroll")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # The window's ground shows through: no grey band behind the frames.
+        scroll.setStyleSheet("QScrollArea#importSettingsScroll, QScrollArea#importSettingsScroll > QWidget > QWidget "
+                             "{ background: transparent; }")
+        left.setAutoFillBackground(False)
         scroll.setWidget(left)
-        self.settings_layout.addWidget(scroll, 1)
+        self.settings_frame.layout().addWidget(scroll, 1)
 
         # ---------------- Right: preview ----------------
-        self._preview = TablePreviewPanel(self.content_frame, self._repo)
+        preview_card = self.add_content_card(_("Preview"), "importPreviewCard", stretch=1)
+        self._preview = TablePreviewPanel(preview_card, self._repo)
         self._preview.refresh.connect(self._schedule_preview)
-        self.content_layout.addWidget(self._preview, 1)
+        preview_card.layout().addWidget(self._preview, 1)
 
         self._btn_ok = self.add_action("apply", self._on_accept, default=True)
         self.add_action("close", self.reject)

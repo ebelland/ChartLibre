@@ -85,8 +85,14 @@ TOOLS: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     ),
     "import": (
         "Import Data",
-        "Create a table from a file or a web source.",
-        "importa import csv excel xlsx file web",
+        "Create a table from a file: CSV, Excel, JSON.",
+        "importa import csv excel xlsx json file",
+        ("prepare",),
+    ),
+    "import_web": (
+        "Import from the web",
+        "Create a table from a web address or a listed open-data source.",
+        "importa import web internet url http download scarica open data dati aperti",
         ("prepare",),
     ),
     "import_clipboard": (
