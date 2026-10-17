@@ -1448,3 +1448,17 @@ QScrollArea#seriesOptionsScrollArea QWidget#qt_scrollarea_viewport > QWidget {
     background: palette(base);
     border: none;
 }
+
+/* The File page's Open recent list (B-07): rounded on all four corners,
+   its rows inset and rounded too, so the selected one no longer squares off
+   the top of the box. */
+QListWidget#recentProjectsList {
+  border: 1px solid rgba(@SHADOW_RGB@, 0.10);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+QListWidget#recentProjectsList::item {
+  border-radius: 6px;
+  padding: 2px 4px;
+}

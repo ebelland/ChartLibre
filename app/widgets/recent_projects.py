@@ -60,7 +60,6 @@ class RecentProjectsView(QWidget):
         self._list = QListWidget(self)
         self._list.setObjectName("recentProjectsList")
         apply_fusion_for_item_view_styling(self._list)
-        self._list.setAlternatingRowColors(True)
         self._list.setFrameShape(QFrame.Shape.NoFrame)
         self._list.setUniformItemSizes(True)
         self._list.setIconSize(QSize(20, 20))
