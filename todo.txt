@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 94,983 lines in 260 files; tests 18,334 lines in 145 files (updated at each commit).
+Size: app 94,993 lines in 260 files; tests 18,334 lines in 145 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -100,8 +100,8 @@ G-02  M  Guided analysis for beginners: a wizard dialog (~820x560), columns firs
          The rail panel becomes light: the table in one line, the three quick answers, and
          "Help me choose..." opening the wizard. No Y/X wording anywhere. Catalogue and
          suggestion logic unchanged. (Mockups in the 2026-10-16 session.)
-T-01  S  test_windows_chrome::test_collapsing_keeps_icons_only_and_expanding_restores_the_labels
-         fails (since before the rail changes).
+DONE T-01 The collapsed rail's rows were 61 px in a 56 px bar (a QToolButton's own hint), their
+         icons cut on the right: each row is now the bar's width less its margins.
 D-01  M  Demos rethought around the questions: per goal still to do (the
          quick answers' demo is done), still covering every function.
 R-03  M  Reproducibility: re-run recorded operations; export a Python script.

@@ -468,8 +468,18 @@ class NavigationBar(QWidget):
         before = self.visible_bar_width
         self._compact = bool(compact)
         self.bar.setFixedWidth(self._compact_width if compact else self._bar_width)
+        margins = self._bar_layout.contentsMargins()
+        # The icon and the sheets' 10 px padding each side, inside the bar's
+        # margins: left to itself, a QToolButton's hint with no text was
+        # wider than the collapsed bar, and its icon was cut (T-01).
+        icon_row = self._compact_width - margins.left() - margins.right()
         for key, button in self._buttons.items():
             item = self._items[key]
+            if compact:
+                button.setFixedWidth(icon_row)
+            else:
+                button.setMinimumWidth(0)
+                button.setMaximumWidth(16_777_215)  # QWIDGETSIZE_MAX: no limit
             button.setText("" if compact else _(item.title))
             button.setToolButtonStyle(
                 Qt.ToolButtonStyle.ToolButtonIconOnly
