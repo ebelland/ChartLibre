@@ -100,6 +100,16 @@ QWidget[toolboxPage="true"] {
   background: palette(base);
 }
 
+/* A data operation's Settings frame (B-14): its tab pages and the cards on
+   them take the frame's own surface - one box, not a box in a box. */
+QFrame#operationSettingsCard QWidget[toolboxPage="true"],
+QFrame#operationSettingsCard QFrame[card="true"],
+QFrame#operationSettingsCard QWidget[card="true"] {
+  background: transparent;
+  border: none;
+}
+
+
 QWidget[editorPanel="true"],
 QAbstractItemView[editorPanel="true"] {
   background: palette(base);

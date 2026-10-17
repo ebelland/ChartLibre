@@ -145,8 +145,17 @@ class LayoutMixin:
         right.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         right.card.layout().addWidget(self._results_widget, 3)
 
+        # The tabs in a titled frame like Results beside it: the tab bar starts
+        # at the same height inside the white box instead of above it, with
+        # no white strip after the last tab (B-14). The pages' own cards are
+        # flattened inside it by the sheets (#operationSettingsCard).
+        left = TitledCard(self, _("Settings"), "operationSettingsCard", margins=(6, 6, 6, 6))
+        left.layout().setStretchFactor(left.card, 1)
+        left.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        left.card.layout().addWidget(left_tabs, 1)
+
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.addWidget(left_tabs)
+        splitter.addWidget(left)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)

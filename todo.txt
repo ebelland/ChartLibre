@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 93,637 lines in 255 files; tests 17,545 lines in 138 files (updated at each commit).
+Size: app 94,115 lines in 261 files; tests 17,897 lines in 142 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -73,7 +73,7 @@ OPEN  B-10 [4] Tables page: wasted space (also below), square border, round the 
 OPEN  B-11 [6] Chart properties / Overlay: QTabWidget header stuck to the frame, double frame - drop the outer one.
 OPEN  B-12 [7] New chart window: splitters white -> grey; grey background; some renderers ask for the group twice (a "group" role and "Group by"); double scroll bar in the renderer list.
 OPEN  B-13 [7] New chart: add a field such as "Axes group" to make separate axes (series filtered with WHERE AxesGroup = xxx, one axis per distinct value).
-OPEN  B-14 [8] Data operation windows (base class): QTabWidget with white space at the end - a frame titled "Settings", moved down and aligned to Results so the tab header stays inside the white frame.
+DONE  B-14 [8] Data operation windows (base class): QTabWidget with white space at the end - a frame titled "Settings", moved down and aligned to Results so the tab header stays inside the white frame.
 OPEN  B-15 [9] Distribution (and Fit Y by X, ...): square frame, no title, stuck to the Results frame.
 
 
