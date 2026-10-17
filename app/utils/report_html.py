@@ -202,6 +202,8 @@ def document(title: str, subtitle: str = "", *sections: str) -> str:
         head += "<div style='margin:0 0 12px 0;'></div>"
 
     return (
-        f"<html><body style='{_FONT}color:{_TEXT};'>"
+        # The charset said: a report saved as a file is UTF-8, and a browser
+        # reading it without being told showed "R²" as "RÂ²".
+        f"<html><head><meta charset='utf-8'></head><body style='{_FONT}color:{_TEXT};'>"
         f"{head}{''.join(sections)}</body></html>"
     )

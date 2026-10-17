@@ -230,3 +230,11 @@ def test_a_charts_own_report_has_that_chart_alone(qapp, showcase, tmp_path: Path
     page = (tmp_path / "km.html").read_text(encoding="utf-8")
     assert page.count("data:image/png;base64,") == 1
     panel.close()
+
+
+def test_a_report_page_says_it_is_utf8() -> None:
+    """A browser reading the saved HTML without a charset showed "R²" as "RÂ²"."""
+    from app.utils import report_html
+
+    page = report_html.document("R²", "α · β")
+    assert "<meta charset='utf-8'>" in page and page.count("<html>") == 1
