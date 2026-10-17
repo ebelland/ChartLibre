@@ -78,6 +78,7 @@ class QueryBuilderDialog(SettingsTableDialog):
         repo: SqliteRepo,
         *,
         query_name: str | None = None,
+        initial_sql: str | None = None,
         parent: QWidget | None = None,
     ) -> None:
         """Open the builder, optionally on an existing saved query."""
@@ -108,6 +109,11 @@ class QueryBuilderDialog(SettingsTableDialog):
 
         if query_name:
             self.load_query(query_name)
+        elif initial_sql:
+            # A statement made elsewhere (the preview's selection): shown and run, not yet saved.
+            self._new_query()
+            self._editor.setPlainText(initial_sql)
+            self.run()
 
     # ------------------------------------------------------------------
     # UI

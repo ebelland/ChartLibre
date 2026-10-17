@@ -29,6 +29,7 @@ from app.styles.style import (
 from app.utils.messages import show_message
 from app.utils.i18n import _
 from app.utils.coercion import to_numbers
+from app.data import sql_builders
 
 
 # Rows loaded when previewing a saved query.  A preview is for judging shape
@@ -138,6 +139,8 @@ class TablePreviewPanel(QWidget):
     chart_requested = Signal(str, list)
     #: "Histogram and statistics": the source and its one selected column.
     histogram_requested = Signal(str, str)
+    #: A SELECT of the selected cells' columns and rows, for the Query Builder.
+    query_requested = Signal(str)
 
     def __init__(self, parent: QWidget, repo:SqliteRepo) -> None:
         super().__init__(parent)
@@ -316,6 +319,15 @@ class TablePreviewPanel(QWidget):
                     tooltip=_("A new figure with this column's histogram, and its statistics in the figure's notes"),
                 )
             )
+        if lazy_model is not None:
+            items.append(
+                MenuItem(
+                    _("Create query from selection"),
+                    callback=self._request_query,
+                    icon="query",
+                    tooltip=_("Open the Query Builder on the selected columns and rows of this table"),
+                )
+            )
         items.append(
             MenuItem(
                 _("New chart from selected columns"),
@@ -432,6 +444,18 @@ class TablePreviewPanel(QWidget):
         QMessageBox.information(
             self, _("Statistics of '{column}'").format(column=column), "\n".join(lines)
         )
+
+    def _request_query(self) -> None:
+        """A SELECT of what is selected: its columns (all when every column is), its rows (all when every row is)."""
+        model = self._model()
+        if model is None or not self._table:
+            return
+        rows, positions = self._selected_block()
+        columns = None if len(positions) >= model.columnCount() else self._column_names(positions)
+        rowids = None
+        if rows and len(rows) < model.rowCount():
+            rowids = [rid for rid in (model.row_id(row) for row in rows) if rid is not None]
+        self.query_requested.emit(sql_builders.select_rows(str(self._table), columns, rowids))
 
     def _request_chart(self) -> None:
         if not self._table:
@@ -607,6 +631,8 @@ class LazyTableModel(QAbstractTableModel):
         self._chunk_size = 5000
         self._cache: dict[int, list[list[Any]]] = {}
         self._chunk_rowid: dict[int, int] = {}
+        #: Each fetched chunk's rowids, row by row: what a selection in the view is in the table.
+        self._chunk_rowids: dict[int, list[int]] = {}
         self._load_schema_and_count()
 
     @property
@@ -671,8 +697,21 @@ class LazyTableModel(QAbstractTableModel):
         if not rows:
             return []
         self._chunk_rowid[chunk_index] = int(rows[-1][0])
+        self._chunk_rowids[chunk_index] = [int(row[0]) for row in rows]
         return [list(row[1:]) for row in rows]
+
+    def row_id(self, row_index: int) -> int | None:
+        """The table's rowid of view row *row_index*, reading its chunk if need be."""
+        chunk, offset = divmod(row_index, self._chunk_size)
+        if chunk not in self._cache:
+            # Chunks are read in order: each starts after the previous one's last rowid.
+            for earlier in range(chunk + 1):
+                if earlier not in self._cache:
+                    self._cache[earlier] = self._fetch_chunk(earlier)
+        ids = self._chunk_rowids.get(chunk, [])
+        return ids[offset] if offset < len(ids) else None
 
     def clear_cache(self) -> None:
         self._cache.clear()
         self._chunk_rowid.clear()
+        self._chunk_rowids.clear()

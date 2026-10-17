@@ -116,3 +116,31 @@ def test_a_selected_block_can_be_exported(qapp, tmp_db_path: Path) -> None:
     menu = panel._build_context_menu(QPoint(0, 0))
     assert menu is not None
     assert "Export selected rows..." in {action.text() for action in menu.actions()}
+
+
+def test_create_query_from_selection_selects_those_columns_and_rows(qapp, tmp_db_path: Path) -> None:
+    repo = _repo_with_table_and_query(tmp_db_path)
+    host = QWidget()
+    panel = TablePreviewPanel(parent=host, repo=repo)
+    panel.set_context(repo, "t1")
+    model = panel.view.model()
+    panel.view.setCurrentIndex(model.index(0, 0))
+    texts = {action.text() for action in panel._build_context_menu(QPoint(0, 0)).actions()}
+    assert "Create query from selection" in texts
+
+    asked: list[str] = []
+    panel.query_requested.connect(asked.append)
+    selection = panel.view.selectionModel()
+    selection.clearSelection()
+    for row in (0, 2):  # rows 1 and 3 of column b
+        selection.select(model.index(row, 1), QItemSelectionModel.SelectionFlag.Select)
+    panel._request_query()
+    assert repo.query_df(asked[-1])["b"].tolist() == [4, 6]
+    assert list(repo.query_df(asked[-1]).columns) == ["b"]
+
+    selection.clearSelection()
+    for row in range(3):
+        for col in range(model.columnCount()):
+            selection.select(model.index(row, col), QItemSelectionModel.SelectionFlag.Select)
+    panel._request_query()
+    assert asked[-1].strip() == 'SELECT *\nFROM "t1"'

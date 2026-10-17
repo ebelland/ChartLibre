@@ -245,3 +245,12 @@ def bin_column(table: str, columns: Sequence[str], column: str, cuts: Sequence[f
     expression = "CASE\n" + "\n".join(cases) + "\n  END"
     select = [q(c) for c in columns] + [f"{expression} AS {q(new_column)}"]
     return "SELECT " + _LIST_SEPARATOR.join(select) + f"\nFROM {q(table)}"
+
+
+def select_rows(table: str, columns: Sequence[str] | None = None, rowids: Sequence[int] | None = None) -> str:
+    """The rows and columns picked in a table's preview: *columns* (None: all) of the rows *rowids* (None: all)."""
+    select = "*" if not columns else ", ".join(q(c) for c in columns)
+    sql = f"SELECT {select}\nFROM {q(table)}"
+    if rowids:
+        sql += f"\nWHERE rowid IN ({', '.join(str(int(r)) for r in sorted(set(rowids)))})"
+    return sql

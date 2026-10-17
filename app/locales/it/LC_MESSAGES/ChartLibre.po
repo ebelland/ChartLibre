@@ -9525,3 +9525,9 @@ msgstr "Nuovo grafico"
 
 msgid "Import from file"
 msgstr "Importa da file"
+
+msgid "Create query from selection"
+msgstr "Crea query dalla selezione"
+
+msgid "Open the Query Builder on the selected columns and rows of this table"
+msgstr "Apre il Query Builder sulle colonne e righe selezionate di questa tabella"

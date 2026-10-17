@@ -220,6 +220,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._table_panel.changed.connect(self.refresh)
         self._preview.chart_requested.connect(self._on_chart_from_columns)
         self._preview.histogram_requested.connect(self._on_histogram_from_column)
+        self._preview.query_requested.connect(lambda sql: self._on_create_query_table(sql=sql))
         # Left-side pages.
         self._data_page = self._create_data_page()
         self._properties_control = self._create_properties_control()

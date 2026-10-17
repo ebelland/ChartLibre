@@ -525,8 +525,8 @@ class MainWindowProject(_MainWindowProjectBase):
             applogger.warning("Failed to create link for imported table '%s'", table_name)
         self._show_table(table_name)
 
-    def _on_create_query_table(self) -> None:
-        dialog = QueryBuilderDialog(self._repo, parent=self)
+    def _on_create_query_table(self, *, sql: str | None = None) -> None:
+        dialog = QueryBuilderDialog(self._repo, initial_sql=sql, parent=self)
         dialog.exec()
         self._show_table(getattr(dialog, "created_table_name", None))
 
