@@ -9510,3 +9510,18 @@ msgstr "Tutte le analisi e le operazioni sui dati, per categoria, come il menu A
 
 msgid "Generate an experiment matrix with factors and responses; analyse it with Fit Model."
 msgstr "Genera una matrice di esperimenti con fattori e risposte; analizzala con Fit Model."
+
+msgid "Fit Curve"
+msgstr "Adatta curva"
+
+msgid "Gaussian Process"
+msgstr "Processo gaussiano"
+
+msgid "Explore Outliers"
+msgstr "Esplora outlier"
+
+msgid "New Chart"
+msgstr "Nuovo grafico"
+
+msgid "Import from file"
+msgstr "Importa da file"

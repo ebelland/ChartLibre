@@ -9,12 +9,12 @@ A *data operation* takes the data of one or more series already on a chart and c
 The data operations are on the *Analysis* page of the navigation rail, with the table analyses (see @analysis-chapter), New chart and the design of experiments: a titled frame per category, named as in JMP's Analyze menu where it has one. Each row has an icon and a name, and its sentence as the tooltip; a click opens it. To find an operation by what it does, use the search of *Guided analysis* or *Cmd/Ctrl+K* from anywhere (see @guided-analysis).
 
 #defs(
-  [*Graph*], [*Plot* — creates a new chart (see @creating-a-chart); Function.],
+  [*Graph*], [*New Chart* — creates a new chart (see @creating-a-chart); Function.],
   [*Basic Analysis*], [Distribution, Fit Y by X (analyses of a table), Statistics.],
   [*Fitting Linear Models*], [Fit Model.],
-  [*Predictive and Specialized Modeling*], [Partition, Regression, Fit, GP Regression.],
+  [*Predictive and Specialized Modeling*], [Partition, Regression, Fit Curve, Gaussian Process.],
   [*Multivariate Methods*], [Decomposition, Discriminant, Partial Least Squares, Clustering.],
-  [*Screening*], [Outliers.],
+  [*Screening*], [Explore Outliers.],
   [*Quality and Process*], [Control Chart, with the process capability.],
   [*Curves*], [Peaks, Roots, Calculus, Interpolation.],
   [*Signal Processing*], [Smoothing, Filtering, Spectral Analysis, Baseline Correction.],
@@ -50,7 +50,7 @@ The workflow is always the same:
 ]
 
 #note[
-  A calculation that takes a while — a *Fit* above all — runs in the background. The window stays usable, a *Stop* button and a progress bar appear beside *Preview*, and *Stop* ends the calculation at its next step without changing anything. Closing the window stops it too.
+  A calculation that takes a while — a *Fit Curve* above all — runs in the background. The window stays usable, a *Stop* button and a progress bar appear beside *Preview*, and *Stop* ends the calculation at its next step without changing anything. Closing the window stops it too.
 ]
 
 === What an operation writes
@@ -79,7 +79,7 @@ The *Axis / Series* selector labels each series with the shape it found:
   [`vector field (x, y, u, v)`], [Shown for information; no operation computes on vector fields yet.],
 )
 
-Five operations also work on surfaces: *Fit*, *Function*, *Peaks*, *Roots* and *Calculus*. *Smoothing* has its own 2D and 3D models, and *Geometry* moves 3D series in space. Each is described below.
+Five operations also work on surfaces: *Fit Curve*, *Function*, *Peaks*, *Roots* and *Calculus*. *Smoothing* has its own 2D and 3D models, and *Geometry* moves 3D series in space. Each is described below.
 #example("op_surface", width: 90%)
 
 // ======================================================================
@@ -151,7 +151,7 @@ Derivatives are drawn on a new axis by default (a slope is in different units fr
 === Statistics — tests and summaries
 Reports descriptive statistics and hypothesis tests on the ticked series, and can add a chart of what was tested. It is described fully in @statistics.
 
-=== Outliers — detect anomalies
+=== Explore Outliers — detect anomalies
 Flags the points of a series that do not belong with the rest, and either *hides* them from the chart or *colours* them.
 
 #defs(
@@ -357,7 +357,7 @@ Estimates the slowly varying background under a spectrum or chromatogram and sub
 // ======================================================================
 == Modeling
 
-=== Fit — fit a model to data
+=== Fit Curve — fit a model to data
 Fits a mathematical model y = f(x; parameters) to a series by least squares and adds the fitted curve beside the data. It is the most complete operation in ChartLibre.
 
 *The model.* The model tree lists the function library by family, with a search box:
@@ -442,7 +442,7 @@ Fits a curve through a series with models that do not assume an algebraic formul
 #example("op_regression")
 #use[A trend through outlier-heavy data (RANSAC, Huber), a calibration that must be monotone (Isotonic), a flexible non-parametric trend when no formula is known.]
 
-=== GP Regression — a fit with its own uncertainty
+=== Gaussian Process — a fit with its own uncertainty
 Gaussian process regression: a smooth curve through the data *and* a ±2σ band saying how certain the curve is at each x — narrow where the data are dense, wide in gaps and beyond the ends. The result is three series: the mean and the two band edges.
 
 #defs(

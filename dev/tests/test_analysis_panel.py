@@ -30,7 +30,7 @@ def _names(panel: AnalysisPanel) -> list[str]:
 
 def test_every_operation_and_analysis_is_a_row(panel: AnalysisPanel) -> None:
     names = _names(panel)
-    assert names[0] == "Plot" and names[-1] == "Create a table from a DOE"
+    assert names[0] == "New Chart" and names[-1] == "Create a table from a DOE"
     assert {str(op["value"]) for op in data_operations} <= set(names)
     analyses = {str(op["value"]) for op in table_operations if op.get("category") != "Quick answers"}
     assert analyses <= set(names)
@@ -57,11 +57,11 @@ def test_a_click_opens_the_right_kind_of_entry(panel: AnalysisPanel) -> None:
     panel.table_operation_requested.connect(lambda e: opened.append(("table", e["value"])))
     panel.tool_requested.connect(lambda key: opened.append(("tool", key)))
     by_name = {item.data(Qt.ItemDataRole.UserRole)["value"]: item for item in panel.items()}
-    for name in ("Fit", "Fit Model", "Create a table from a DOE"):
+    for name in ("Fit Curve", "Fit Model", "Create a table from a DOE"):
         item = by_name[name]
         view = item.listWidget()
         QTest.mouseClick(view.viewport(), Qt.MouseButton.LeftButton, pos=view.visualItemRect(item).center())
-    view = by_name["Plot"].listWidget()
-    view.setCurrentItem(by_name["Plot"])
+    view = by_name["New Chart"].listWidget()
+    view.setCurrentItem(by_name["New Chart"])
     QTest.keyClick(view, Qt.Key.Key_Return)
-    assert opened == [("data", "Fit"), ("table", "Fit Model"), ("tool", "doe"), ("data", "Plot")]
+    assert opened == [("data", "Fit Curve"), ("table", "Fit Model"), ("tool", "doe"), ("data", "New Chart")]

@@ -72,7 +72,7 @@ def group_by_category(entries: list[dict]) -> list[tuple[str, list[dict]]]:
 def plot_operation() -> dict:
     """New chart, as an entry like the operations'."""
     return {
-        "value": "Plot", "name": NewPlotTabDialog.__name__, "kind": DATA, "builtin": True,
+        "value": "New Chart", "name": NewPlotTabDialog.__name__, "kind": DATA, "builtin": True,
         "category": _PLOT_CATEGORY, "order": _PLOT_ORDER, "icon": NewPlotTabDialog.Icon,
         "description": unescape(str(getattr(NewPlotTabDialog, "Description", "Create a new plot"))),
     }

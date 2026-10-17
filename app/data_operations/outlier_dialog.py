@@ -156,7 +156,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
     MODELS = OUTLIER_METHODS
     RESULTS_ARE_HTML = True
     MODEL_TOOLTIP = "Choose the outlier detection method."
-    Name: str = "Outliers"
+    Name: str = "Explore Outliers"
     Description = "Detect anomalies"
 
     # The rolling-median detectors walk the series in order; an unsorted x

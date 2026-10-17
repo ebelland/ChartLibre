@@ -21,7 +21,7 @@ def test_the_catalogue_lists_every_analysis_operation_chart_and_tool() -> None:
     entries = catalog.build_catalog()
     keys = {entry.key for entry in entries}
     assert {f"analysis:{op['value']}" for op in table_operations} <= keys
-    assert {f"series:{op['value']}" for op in data_operations} | {"series:Plot"} <= keys
+    assert {f"series:{op['value']}" for op in data_operations} | {"series:New Chart"} <= keys
     assert {f"chart:{renderer['value']}" for renderer in renderers} <= keys
     assert {entry.payload for entry in entries if entry.kind == catalog.TOOL} == set(catalog.TOOLS)
     goals = {key for key, _title, _sentence in catalog.GOALS}
@@ -35,7 +35,7 @@ def test_search_finds_by_synonym_in_either_language_and_ranks_names_first() -> N
     assert "Fit Model" in _names(catalog.search(entries, "anova"))[:2]
     assert _names(catalog.search(entries, "albero"))[0] == "Partition"
     assert _names(catalog.search(entries, "decision tree"))[0] == "Partition"
-    assert _names(catalog.search(entries, "anomalie"))[0] == "Outliers"
+    assert _names(catalog.search(entries, "anomalie"))[0] == "Explore Outliers"
     assert _names(catalog.search(entries, "stabilità"))[0] == "Control Chart"  # accents do not matter
     assert _names(catalog.search(entries, "box"))[0] == "Box Plot"  # the name before a keyword
     # A translated name is found too.

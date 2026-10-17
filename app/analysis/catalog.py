@@ -84,7 +84,7 @@ TOOLS: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
         ("experiment",),
     ),
     "import": (
-        "Import Data",
+        "Import from file",
         "Create a table from a file: CSV, Excel, JSON.",
         "importa import csv excel xlsx json file",
         ("prepare",),
@@ -163,7 +163,7 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("analysis:Fit Y by X", "Y against X, the analysis chosen by their types: line, ANOVA, "
                                 "contingency table or logistic fit.", ANY),
         ("chart:Scatter Plot", "One measure against the other: trend, curvature, clusters.", NUMERIC),
-        ("series:Fit", "A curve through the points: line, polynomial, exponential, your own formula.", NUMERIC),
+        ("series:Fit Curve", "A curve through the points: line, polynomial, exponential, your own formula.", NUMERIC),
         ("series:Statistics", "Correlation coefficients (Pearson, Spearman, Kendall) with p-values.", NUMERIC),
         ("chart:Pair Plot", "Every variable against every other, to choose which to look at.", ANY),
         ("chart:Mosaic Plot", "Two categorical variables: does one depend on the other?", CATEGORICAL),
@@ -182,7 +182,7 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("analysis:Fit Model", "A model you can read and write down, with confidence intervals.", NUMERIC),
         ("analysis:Partition", "Bootstrap Forest or Boosted Tree: accurate, no formula needed.", ANY),
         ("series:Regression", "Robust or machine-learning regression on one X.", NUMERIC),
-        ("series:GP Regression", "A smooth prediction with its uncertainty band.", NUMERIC),
+        ("series:Gaussian Process", "A smooth prediction with its uncertainty band.", NUMERIC),
     ),
     "classify": (
         ("analysis:Partition", "Classification tree or forest: rules and the probability of each class.", CATEGORICAL),
@@ -202,7 +202,7 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("chart:Time Series", "The values over time.", NUMERIC),
     ),
     "anomalies": (
-        ("series:Outliers", "Mark the points that do not belong, by several methods.", NUMERIC),
+        ("series:Explore Outliers", "Mark the points that do not belong, by several methods.", NUMERIC),
         ("series:Control Chart", "Points outside the process limits, and runs that break the rules.", NUMERIC),
         ("chart:Box Plot", "Points beyond the whiskers.", NUMERIC),
     ),
@@ -361,7 +361,7 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "SPSS": "Analyze > Classify > Tree",
         "Minitab": "Stat > Predictive Analytics > CART Classification / Regression",
     }),
-    ("Curve fitting, nonlinear regression", "Analysis > Fit", "series:Fit", {
+    ("Curve fitting, nonlinear regression", "Analysis > Fit Curve", "series:Fit Curve", {
         "JMP": "Analyze > Fit Y by X > Bivariate > Fit Polynomial; Analyze > Specialized Modeling > Nonlinear",
         "SPSS": "Analyze > Regression > Curve Estimation / Nonlinear",
         "Minitab": "Stat > Regression > Fitted Line Plot / Nonlinear Regression",
@@ -371,10 +371,10 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "JMP": "Analyze > Predictive Modeling > Bootstrap Forest / Boosted Tree",
         "Minitab": "Stat > Predictive Analytics > Random Forests / TreeNet",
     }),
-    ("Gaussian process", "Analysis > GP Regression", "series:GP Regression", {
+    ("Gaussian process", "Analysis > Gaussian Process", "series:Gaussian Process", {
         "JMP": "Analyze > Specialized Modeling > Gaussian Process",
     }),
-    ("Outliers", "Analysis > Outliers", "series:Outliers", {
+    ("Outliers", "Analysis > Explore Outliers", "series:Explore Outliers", {
         "JMP": "Analyze > Screening > Explore Outliers",
         "SPSS": "Analyze > Descriptive Statistics > Explore (Outliers)",
         "Minitab": "Stat > Basic Statistics > Outlier Test",
@@ -482,7 +482,7 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > Tables > Descriptive Statistics",
         "Origin / Excel": "Excel: Insert > PivotTable",
     }),
-    ("Charts", "Analysis > Plot", "series:Plot", {
+    ("Charts", "Analysis > New Chart", "series:New Chart", {
         "JMP": "Graph > Graph Builder",
         "SPSS": "Graphs > Chart Builder",
         "Minitab": "Graph",
@@ -511,7 +511,7 @@ def _words(text: str) -> tuple[str, ...]:
 
 #: The New plot "operation", as the Data operations panel lists it: the one
 #: entry that is not a plugin class, so it carries its own words and goals.
-_PLOT: dict[str, Any] = {"name": "NewPlotTabDialog", "value": "Plot", "description": "Create a new plot",
+_PLOT: dict[str, Any] = {"name": "NewPlotTabDialog", "value": "New Chart", "description": "Create a new plot",
                          "builtin": True, "keywords": "nuovo grafico new plot chart grafico draw disegna", "goals": []}
 
 

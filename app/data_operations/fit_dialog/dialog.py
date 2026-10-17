@@ -64,7 +64,7 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
     Preview used to re-fit, which made a starting guess impossible to see: the
     optimiser replaced it before anything reached the chart.
     """
-    Name: str  = "Fit"
+    Name: str = "Fit Curve"
     Description = "Fit data models"
 
     # least_squares needs residuals that actually vary: a flat y makes the
@@ -89,7 +89,7 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
     <circle cx="16.5" cy="8" r="1.2"/>
     """
     Keywords: str = (
-        "fit adattamento curve fitting curva regression regressione polynomial polinomio exponential "
+        "fit fit curve adatta curva adattamento curve fitting curva regression regressione polynomial polinomio exponential "
         "esponenziale gaussian gaussiana sine model modello nonlinear non lineare trend tendenza"
     )
     Goals: list[str] = ["relate", "predict"]

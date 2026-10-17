@@ -267,7 +267,7 @@ class StartingPointMixin:
 
     def _results_html(self, result: SeriesFitResult) -> str:
         """Return the fit report of one result in the shared house style."""
-        return report_html.document(_("Fit"), result.model_name, *self._report_sections(result))
+        return report_html.document(_("Fit Curve"), result.model_name, *self._report_sections(result))
 
     def _report_sections(self, result: SeriesFitResult) -> list[str]:
         """The sections of one result's report, without the document around them.

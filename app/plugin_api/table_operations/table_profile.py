@@ -97,7 +97,7 @@ NEEDS_ORDER = "Needs a date column, or a numeric one to order the values by."
 _ENTRY_NEEDS: dict[str, str] = {
     "chart:Mosaic Plot": NEEDS_TWO_GROUPS,
     "chart:Scatter Plot": NEEDS_TWO_MEASURES,
-    "series:Fit": NEEDS_TWO_MEASURES,
+    "series:Fit Curve": NEEDS_TWO_MEASURES,
     "chart:Pair Plot": NEEDS_TWO_MEASURES,
     "series:Clustering": NEEDS_TWO_MEASURES,
     "series:Decomposition": NEEDS_TWO_MEASURES,

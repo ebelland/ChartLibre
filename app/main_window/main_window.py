@@ -525,7 +525,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         page.add_buttons(_("Create a new table"), [
             NavButton("new", self._on_new_blank_table, _("New Blank Table"),
                       _("Create an empty table with named columns."), described=True),
-            NavButton("import", self._on_import_data, _("Import Data"),
+            NavButton("import", self._on_import_data, _("Import from file"),
                       _("Create a table from a file: CSV, Excel, JSON."), described=True),
             NavButton("paste", self._on_import_clipboard, _("Import from clipboard"),
                       _("Create a table from the table copied to the clipboard."), described=True),

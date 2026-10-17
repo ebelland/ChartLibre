@@ -88,7 +88,7 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
     MODEL_TOOLTIP = "Choose the kernel."
     MODEL_LABEL = "Kernel:"
 
-    Name: str = "GP Regression"
+    Name: str = "Gaussian Process"
     Description = "Gaussian process regression with an uncertainty band"
 
     INPUT_REQUIRES_SORTED_X = True
@@ -137,7 +137,7 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
     <path d="M4 8c3-4 6-4 8 0s5 4 8 0" stroke-dasharray="2 2"/>
     """
     Keywords: str = (
-        "gaussian process processo gaussiano kriging uncertainty incertezza confidence band banda di "
+        "gaussian process gp regression regressione gp processo gaussiano kriging uncertainty incertezza confidence band banda di "
         "confidenza"
     )
     Goals: list[str] = ["predict", "relate"]
@@ -303,7 +303,7 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
         ]
 
         return report_html.document(
-            _("GP Regression"),
+            _("Gaussian Process"),
             self._kernel(),
             report_html.section(
                 _("Results"),
