@@ -9543,3 +9543,6 @@ msgstr "Asse Z: clic per modificarlo"
 
 msgid "Axis title: click to edit the axis"
 msgstr "Titolo dell'asse: clic per modificare l'asse"
+
+msgid "Also editing: {names}"
+msgstr "Modifichi anche: {names}"

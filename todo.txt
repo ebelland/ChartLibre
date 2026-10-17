@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 94,528 lines in 260 files; tests 18,122 lines in 143 files (updated at each commit).
+Size: app 94,603 lines in 260 files; tests 18,141 lines in 143 files (updated at each commit).
 
 DONE P0-1: Data Operations/Geometry: white rectangle on top right: un-hidden control from base class?
 DONE P0-2: Analysis base panel inconsistent. Titles outside the frame. simalar to DataOperations base class: consider using the same base class with different tabs.
@@ -229,7 +229,9 @@ S-01 Selection <-> Chart properties (bidirectional feedback)
   that does not tag its artists with SeriesArtistTags, renders as before).
   Next: tag the other line/point renderers (Stairs, Stem, ECDF, 3D Line);
   Undo per element.
-- Multiple selection: Cmd/Ctrl-click series to edit common properties
-  (colour, line width) at once.
+- Multiple selection (done: Shift-click series of the same axis on the
+  chart - Cmd/Ctrl-click is taken by annotations - to edit them together;
+  "Also editing: ..." under the series list, Clear ends it; every change
+  but the legend label goes to all, previewed live where it can be).
 - Selected data points (Select points) shown in the table preview and as a
   "Selected" flag - the start of R-07 (linked selection).

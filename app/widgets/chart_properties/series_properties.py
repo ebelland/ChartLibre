@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QFormLayout,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QPlainTextEdit,
     QScrollArea,
@@ -226,12 +227,18 @@ class SeriesPropertiesWidget(BaseProperties):
             self._on_series_combo_changed
         )
         # activated: a choice made here, never a reload's - only that is shown on the chart.
-        self._series_combo.activated.connect(
-            lambda index: self.series_picked.emit(int(self._series_combo.itemData(index) or 0),
-                                                  self._series_combo.itemText(index))
-            if self._series_combo.itemData(index) is not None else None
-        )
+        self._series_combo.activated.connect(self._on_series_combo_activated)
         layout.addWidget(self._series_combo)
+
+        # Shift-click on the chart adds series edited together with this one.
+        self._also_ids: list[int] = []
+        self._also_label = QLabel(section)
+        self._also_label.setObjectName("seriesAlsoEditing")
+        self._also_label.setWordWrap(True)
+        self._also_label.setTextFormat(Qt.TextFormat.RichText)
+        self._also_label.linkActivated.connect(lambda _link: self.clear_also_series())
+        self._also_label.hide()
+        layout.addWidget(self._also_label)
 
         row = QWidget(section)
         row_layout = QHBoxLayout(row)
@@ -393,7 +400,10 @@ class SeriesPropertiesWidget(BaseProperties):
 
     def set_current_axis_id(self, axis_id: int | None) -> None:
         """Limit the series selector to one axis."""
-        self._current_axis_id = int(axis_id) if axis_id is not None else None
+        axis_id = int(axis_id) if axis_id is not None else None
+        if axis_id != self._current_axis_id:
+            self._also_ids.clear()
+        self._current_axis_id = axis_id
         if self._repo is not None and self._figure_id is not None:
             self.reload_controls()
 
@@ -409,16 +419,62 @@ class SeriesPropertiesWidget(BaseProperties):
         companion line ("name (rolling)") - so an exact match wins, then
         the longest name the label starts with.
         """
+        series_id = self._series_id_named(name)
+        if series_id is None:
+            return False
+        self._select_series(series_id)
+        return True
+
+    def _series_id_named(self, name: str) -> int | None:
         matches = [
             (len(str(desc.name)), series_id)
             for series_id, desc in self._series_map.items()
             if name == str(desc.name) or name.startswith(str(desc.name))
         ]
         if not matches:
-            return False
+            return None
         exact = [series_id for series_id, desc in self._series_map.items() if name == str(desc.name)]
-        self._select_series(exact[0] if exact else max(matches)[1])
+        return exact[0] if exact else max(matches)[1]
+
+    def add_series_named(self, name: str) -> bool:
+        """Edit the series called *name* together with the shown one (a Shift-click on it in the chart).
+
+        Its name matched as in select_series_named. One already added is
+        taken out again; with none shown yet it becomes the shown one.
+        """
+        picked = self._series_id_named(name)
+        if picked is None or self._current_series_id is None:
+            return self.select_series_named(name)
+        if picked in self._also_ids:
+            self._also_ids.remove(picked)
+        elif picked != self._current_series_id:
+            self._also_ids.append(picked)
+        self._refresh_also_series()
         return True
+
+    def also_series_ids(self) -> list[int]:
+        """The series edited together with the shown one."""
+        return list(self._also_ids)
+
+    def clear_also_series(self) -> None:
+        self._also_ids.clear()
+        self._refresh_also_series()
+
+    def _refresh_also_series(self) -> None:
+        """Keep the added series that are still on this axis, and say which they are."""
+        self._also_ids = [i for i in self._also_ids if i in self._series_map and i != self._current_series_id]
+        names = ", ".join(str(self._series_map[i].name) for i in self._also_ids)
+        self._also_label.setText(
+            _("Also editing: {names}").format(names=names) + f' <a href="clear">{_("Clear")}</a>'
+            if names else ""
+        )
+        self._also_label.setVisible(bool(names))
+
+    def _on_series_combo_activated(self, index: int) -> None:
+        """A series chosen here: it alone is edited, and it is shown on the chart."""
+        self.clear_also_series()
+        if self._series_combo.itemData(index) is not None:
+            self.series_picked.emit(int(self._series_combo.itemData(index)), self._series_combo.itemText(index))
 
     # ------------------------------------------------------------------
     # Descriptor loading
@@ -723,6 +779,7 @@ class SeriesPropertiesWidget(BaseProperties):
             return
 
         self._load_series_descriptor(series_desc)
+        self._refresh_also_series()
         self.series_selected.emit(series_id)
 
     def _on_delete_clicked(self) -> None:
@@ -791,6 +848,7 @@ class SeriesPropertiesWidget(BaseProperties):
         self.series_options_requested.emit(
             {
                 "series_id": self._current_series_id,
+                "also_series_ids": list(self._also_ids),
                 "label": self._legend_label_edit.text().strip(),
                 "sql_query": self._sql_query_edit.toPlainText().strip(),
                 "visible": bool(self._visible_check.isChecked()),

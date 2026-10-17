@@ -47,6 +47,8 @@ Most chart types accept any number of series per axis and draw them together (se
 / Axis: chart type, title, axis labels, ranges, scales (linear, log with its base, symlog with its threshold) and direction (invert), shared x/y/z with neighbouring axes, grid, ticks, spines, the axis position and span in the grid, and the chart type's own *options* (number of bins, which distribution to compare with, whether to draw a colour bar, ...).
 / Series: name, SQL query, colour, line style, marker, legend label, visibility, sort by x, and the *plot arguments* passed to Matplotlib (line width, transparency, hatch, ...).
 
+A click on an axis' ticks or label opens its *X*, *Y* or *Z* tab, on its title the axis' *Properties*; over these parts the pointer becomes a hand and a tooltip says what a click will edit. *Esc* on the chart goes back to the Figure tab. The other way round, an axis or series chosen in its list flashes on the chart for a moment - a frame round the axis, a halo under the series. *Shift*-click on more series of the same axis to edit them together: a colour, line style or marker set on the series shown applies to all of them (*Clear* under the list ends it). On scatter and time-series charts, a series' colour, line style, marker and marker size change on the chart at once, without redrawing it.
+
 Every setting has a description shown in its tooltip and beside it, so Matplotlib's own documentation is rarely needed. Settings are split into two families:
 
 - *Options* are read by ChartLibre's own chart code: whether to draw a legend, how many bins, which reference line, how to colour tiles.

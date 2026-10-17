@@ -130,7 +130,8 @@ class PickingMixin:
         Emitted as ``chart_object_clicked`` with ``axis_id`` (None outside every
         axis: the figure), ``series`` (the series' name, or None) and ``part``
         ("x", "y" or "z" for a click on that coordinate's ticks or label,
-        "title" on the axis' title, None inside the plotting area); the main
+        "title" on the axis' title, None inside the plotting area) and
+        ``add`` (Shift held: add the series to those edited together); the main
         window selects that object in Chart properties when the panel is
         shown. Not after a drag, nor while a navigation tool, box selection
         or an annotation drag owns the mouse.
@@ -150,7 +151,8 @@ class PickingMixin:
             axes, part = self._axis_part_at(event)
         axis_id = getattr(axes, "_dhub_axis_id", None) if axes is not None else None
         series = self._series_name_at(axes, event) if axis_id is not None and part is None else None
-        self.chart_object_clicked.emit({"axis_id": axis_id, "series": series, "part": part})
+        add = "shift" in str(event.key or "")
+        self.chart_object_clicked.emit({"axis_id": axis_id, "series": series, "part": part, "add": add})
 
     def _on_escape_to_figure(self, event: Any) -> None:
         """Esc on the chart goes back to the figure, as a click outside every axis would."""

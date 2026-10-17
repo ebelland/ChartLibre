@@ -21,7 +21,7 @@ The window has three parts: the *navigation rail* at the far left, the *page* it
   [*File*], [Projects, demos, import, save and export (see below).],
   [*Tables*], [The tables and saved queries of the project, with a preview of the selected one (see @data-chapter).],
   [*New table*], [A blank table, a designed experiment or a table built from others (see @data-chapter).],
-  [*Chart properties*], [The settings of the selected figure, axis and series (see @customizing). A click on the chart selects what it landed on: outside the axes the figure, on an axis that axis, on a line, points or bar that series.],
+  [*Chart properties*], [The settings of the selected figure, axis and series (see @customizing). A click on the chart selects what it landed on: outside the axes the figure, on an axis that axis (on its ticks or label, that coordinate), on a line, points or bar that series; Shift-click adds a series to those edited together.],
   [*Analysis*], [Every analysis and data operation, a frame per category as in JMP's Analyze menu: New chart, Distribution, Fit Y by X, Fit Model, the models, the multivariate methods, the control chart, the curve and signal operations, and the design of experiments (see @data-operations and @analysis-chapter).],
   [*Guided analysis*], [Search, quick answers and suggestions, starting from what you want to find out (see @guided-analysis).],
   [*Developer*], [The project's history and database information, and the tools for extending ChartLibre (see below).],

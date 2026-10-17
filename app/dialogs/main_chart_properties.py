@@ -442,7 +442,8 @@ class MainWindowChartProperties:
         Outside every axis: the Figure page. On an axis: the Axis page on that
         axis - on its X, Y or Z tab for a click on that coordinate's ticks or
         label, on Properties for its title. On a series' line, points or bar:
-        the Series page on that series.
+        the Series page on that series - with Shift, added to the series
+        edited together.
         """
         control = self._properties_control
         if not control.isVisible() or panel is not self._current_chart_panel():
@@ -460,7 +461,8 @@ class MainWindowChartProperties:
             show(self._figure_widget)
             return
         series = hit.get("series")
-        if series and self._series_widget.select_series_named(str(series)):
+        pick = self._series_widget.add_series_named if hit.get("add") else self._series_widget.select_series_named
+        if series and pick(str(series)):
             show(self._series_widget)
             return
         part = hit.get("part")
@@ -618,7 +620,7 @@ class MainWindowChartProperties:
         # Same rule as the axis and figure handlers: everything the widget
         # sends is stored, minus the addressing keys.
         for key, value in payload.items():
-            if key in {"series_id", "sql_query"}:
+            if key in {"series_id", "also_series_ids", "sql_query"}:
                 continue
             if value is None:
                 style.pop(key, None)
@@ -635,10 +637,23 @@ class MainWindowChartProperties:
             QMessageBox.warning(self, _("SQL blocked"), str(exc))
         else:
             self._repo.update_series_sql_query(series_id, sql_query)
-        self._reload_property_widgets()
         changes = {key: style.get(key) for key in {*before, *style} if before.get(key) != style.get(key)}
-        if sql_query == str(series_desc.sql_query or "").strip() and self._preview_series_style(
-            str(series_desc.name), changes
+        # The series edited together take the same change - all but a name.
+        shared = {key: value for key, value in changes.items() if key != "label"}
+        others = [self._properties_series_descriptor(int(i)) for i in payload.get("also_series_ids") or ()]
+        others = [desc for desc in others if desc is not None and shared]
+        for desc in others:
+            other_style = dict(desc.options) if isinstance(desc.options, dict) else {}
+            for key, value in shared.items():
+                if value is None:
+                    other_style.pop(key, None)
+                else:
+                    other_style[key] = value
+            self._repo.update_series_style(int(desc.id), other_style)
+        self._reload_property_widgets()
+        if sql_query == str(series_desc.sql_query or "").strip() and all(
+            self._preview_series_style(str(desc.name), changes if desc is series_desc else shared)
+            for desc in (series_desc, *others)
         ):
             return
         self._redraw_properties_chart()

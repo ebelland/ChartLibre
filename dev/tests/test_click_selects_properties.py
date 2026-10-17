@@ -18,11 +18,11 @@ def _spin(qapp, seconds: float) -> None:
         time.sleep(0.005)
 
 
-def _click(panel, x_px: float, y_px: float) -> None:
+def _click(panel, x_px: float, y_px: float, key: str | None = None) -> None:
     canvas = panel.canvas
     for name, handler in (("button_press_event", panel._on_object_click_press),
                           ("button_release_event", panel._on_object_click_release)):
-        handler(MouseEvent(name, canvas, x_px, y_px, button=1))
+        handler(MouseEvent(name, canvas, x_px, y_px, button=1, key=key))
 
 
 def test_clicks_select_the_figure_the_axis_and_the_series(qapp, tmp_path) -> None:
@@ -78,6 +78,25 @@ def test_clicks_select_the_figure_the_axis_and_the_series(qapp, tmp_path) -> Non
         assert window._properties_series_descriptor(series._current_series_id).options["color"] == "#ff0000"
         window._on_series_options_requested({**payload, "label": "High"})
         assert window._properties_redraw_timer.isActive()
+        window._properties_redraw_timer.stop()
+        window._flush_properties_chart_redraw()
+        _spin(qapp, 0.2)
+
+        # Shift-click on the other series: edited together with this one.
+        axes = panel._canvas.figure.axes[0]
+        x_px, y_px = axes.transData.transform((5.0, 5.0))
+        _click(panel, x_px, y_px, key="shift")
+        low_id = next(i for i, d in series._series_map.items() if d.name == "low")
+        assert series.also_series_ids() == [low_id] and series._also_label.isVisibleTo(window)
+        payload = {**payload, "label": "High", "color": "#00aa00", "also_series_ids": series.also_series_ids()}
+        window._on_series_options_requested(payload)
+        assert not window._properties_redraw_timer.isActive()
+        assert window._properties_series_descriptor(low_id).options["color"] == "#00aa00"
+        assert "label" not in (window._properties_series_descriptor(low_id).options or {})
+        assert all(to_hex(a.get_facecolor()[0]) == "#00aa00" for a in axes.collections
+                   if getattr(a, "_dhub_series", None) in ("low", "high"))
+        _click(panel, x_px, y_px, key="shift")  # again: taken out
+        assert series.also_series_ids() == []
     finally:
         window.close()
         repo.close()
