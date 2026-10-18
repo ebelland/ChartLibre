@@ -1,38 +1,36 @@
-ChartLibre TODO - updated 2026-10-15
+ChartLibre TODO - updated 2026-10-18
 One line per item, highest priority first. [YOU] = no code needed.
-Effort: S one session, M 2-3, L 4+.
+Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
 Size: app 95,997 lines in 266 files; tests 18,791 lines in 150 files (updated at each commit).
 
 NOW
-G-02  M  Guided analysis for beginners - done: Help me choose (app/dialogs/guided_wizard_dialog.py),
-         columns first (1-3, typed, first rows), then See it (charts sketched from the rows, made at
-         once) and Ask a question (analyses phrased with the columns, opened cast; "Which one is the
-         result?" only for two measures or more); Not sure leads to the goals and their suggestions;
-         the columns remembered per table. The logic is app/plugin_api/table_operations/guided_plan.py.
-         The rail panel is light: the table in one line, the quick answers, Help me choose.
-         Next: the report says which next question fits (differences -> impact -> model);
-         "again with another column".
-
-D-01  M  Demos rethought around the questions: per goal still to do (the
-         quick answers' demo is done), still covering every function.
-         Done: Relate, Classify, Describe and compare (dev/demo/demo_goals.py, built as a
-         person asks: Help me choose's chart, then the analyses). Next: Predict, Signal,
-         Anomalies, Groups, Process, Experiment.
-R-03  M  Reproducibility: re-run recorded operations; export a Python script.
-
+AN-05 M  Time series (table analysis): ACF/PACF, seasonal decomposition (STL), ARIMA / ETS
+         forecasts with intervals.
+D-01  M  Demos per goal: Predict, Signal, Anomalies, Groups, Process, Experiment still to do
+         (Quick answers, Relate, Classify, Describe and compare done - dev/demo/demo_goals.py).
+G-02  S  Help me choose, next: each report says which next question fits (differences ->
+         impact -> model); "again with another column".
+R-03  M  Reproducibility: re-run recorded operations; export a Python script (H-01).
 
 NEXT - ANALYSIS (table operations, JMP-like)
-- AN-04 M  Multivariate: correlations with p, PCA and factor analysis (AN-21).
-           Done: Multivariate (matrix, each pair's r with Fisher-z CI, p and N, pairwise rows;
-           Pearson/Spearman/Kendall; scatterplot matrix) and Principal Components (on correlations
-           or covariances: eigenvalues, loadings, eigenvectors, row scores; scree, score, loading
-           plots), checked against SciPy and scikit-learn. Next: factor analysis (rotations),
-           colour the score plot by a group column, biplot.
-- AN-05 M  Time series: ACF/PACF, STL, ARIMA / ETS forecasts.
+- AN-04 S  Factor analysis (rotations); PCA: colour the score plot by a group column, biplot.
 - AN-10 M  Clustering on table columns, silhouette to choose k (AN-23).
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
            repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
 - R-08  M  Column metadata: label, unit, missing codes, value labels.
+
+NEXT - INTERFACE
+- R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series
+           over a saved query that keeps "_id"; dates and categories on x; the data filter
+           ("show only Selected" on every chart of a table).
+- S-01  S  Live style preview on the other line/point renderers (Stairs, Stem, ECDF, 3D Line,
+           via SeriesArtistTags); Undo per element.
+- H-10  S  Fewer frames: Fit Curve's and the table analyses' parameter groups (collapsible
+           TitledCard exists).
+- H-15  M  Options nobody changes: rarely-used kwargs behind "Advanced" in Chart properties.
+- H-11  M  Error messages that say what to do next, for import and SQL.
+- H-12  M  Windows parity: every dialog at 1366x768 and 125% scaling in CI.
+- H-08  M  First run: open on Help me choose with a demo table; a 3-step tour of the rail.
 
 LATER
 - AN-06 M  Quality: Gage R&R, capability with non-normal fits, multi-vari.
@@ -47,23 +45,7 @@ LATER
 - R-13  S  Known-answer tests where NIST has no dataset; Longley.
 - R-14  L  Multichart templates; signed macOS app, Windows installer.
 - P2-12 M  Small chart beside operation results.
-- R-07  L  Linked selection across charts and table, then a data filter.
-           Done: every table has "_id INTEGER PRIMARY KEY" (on import, on
-           every copy, cast, sort - renumbered - and grouping, and on older
-           projects once when they open; a table with an INTEGER PRIMARY KEY
-           of its own uses it; someone's own "_id" is renamed "_id_2"),
-           hidden from get_columns, query_df, the previews and the exports.
-           A series' query selects it (sql_with_row_id: not for a grouping,
-           an aggregate, a join or a saved query); the renderers get it as
-           SeriesData.ids, never as a column. A box selection marks the rows
-           Selected; every chart of the table rings them and the preview
-           tints them and scrolls to the first; Selected set in the preview
-           rings them on the charts.
-           Next: a click on one point selects its row (Shift adds); a series
-           over a saved query that keeps "_id"; dates and categories on x;
-           the data filter ("show only Selected" on every chart of a table).
 - N-09  M  "Colour by value" dialog.
-
 
 IDEAS
 - Animated charts: a Frame column (like ClusterId), per-figure player.
@@ -103,82 +85,3 @@ Add (highest value first)
   blocks, .txt from spectrometers, HDF5).
 - H-07 Collaboration: a project-to-HTML "notebook" (charts + notes + reports)
   to share without the app.
-
-Change
-- H-08 First run: open on the Guided analysis wizard (G-02) with a demo
-  table, not on an empty window; a 3-step tour of the rail.
-- H-09 One vocabulary: JMP's names everywhere (done for the Analysis panel);
-  menu, manual, catalogue and dialogs titled the same way. Done: a data
-  operation's window is titled with its Name, translated ("Series Fit" was
-  "Fit Curve" in the panel); the manual's Data operations chapter follows the
-  panel's categories; "Spectral Analysis" in its report; the last "Data
-  Operations panel" texts say Analysis.
-- H-10 Fewer frames, more white: some dialogs still stack 4-5 titled frames;
-  aim for one primary frame plus a collapsible "More options". Done: a
-  TitledCard (add_card, add_column_card) can be collapsible - an arrow and
-  the title open and close it. Query Builder: "Table and field" and
-  "Snippets" are one closed "Insert into the SQL" (6 frames -> 4 open);
-  Import: "Read options" closed, the table's name with its columns in "New
-  table"; Settings: Safety and Developer are one "Advanced", closed unless
-  changed. Fixed on the way: the Build form did not follow its remembered
-  operation (the form under "Group" was Join's). Next: Fit Curve's and the
-  table analyses' parameter groups.
-- H-11 Error messages: every failure says what to do next (which column,
-  which type) - Fit and the analyses already do; extend to import and SQL.
-- H-12 Windows parity: test every dialog at 1366x768 and 125% scaling in CI
-  (the dialog-height test is the start).
-
-Remove or hide
-- H-13 Developer tools behind a setting (Renderer helper, Function creator,
-  localization editor): they are for contributors, not users. Done: a
-  "Developer mode" switch in Settings (off by default, applied at once)
-  shows them and the DeepL key; the rail page is "Project" (history,
-  database, log). A separate app was weighed and left: the tools edit this
-  app's own plugins, catalogue and translations and need its running code.
-- H-14 Duplicate ways to the same thing: one entry per action across rail,
-  menus and context menus (Plot vs New Chart, Query Builder twice before).
-  Done: the table menu's "Plot" is "New Chart", as on the Analysis page; the
-  Project page's Database information lost its own Update link / Export /
-  Rename (the table menu's); Import left the File page, Project info is on
-  the Project page. The macOS menu bar still mirrors the pages, as a Mac
-  application's must. Optimize DB now offers to fix what it finds (stray
-  descriptors, series and links of a missing table, the app's leftover
-  "_name_" / "__rebuild_" tables; never a table of data; undoable). Fixed on
-  the way: deleting or renaming a table found its series by series_index -
-  every chart's series in that place was deleted or rewritten; and the check
-  took a series over a hidden table (Fit Model's charts) for a broken one.
-- H-15 Options nobody changes: hide rarely-used kwargs behind "Advanced" in
-  Chart properties; keep the defaults good instead.
-
-G-02 wizard, refined
-- Two steps, columns first (see G-02 above): pick 1-3 columns with a preview
-  of the first rows; then "See it" (chart thumbnails) and "Ask a question"
-  (analyses phrased with the column names). A "Not sure" link to the goals.
-- The result of the wizard is never a dead end: the chart or the analysis
-  opens with its columns cast, and its report says which next question fits
-  (differences -> impact -> model).
-- Remember the last choices per table; offer "again with another column".
-
-S-01 Selection <-> Chart properties (bidirectional feedback)
-- Chart -> properties (done: a click selects the Figure/Axis/Series page,
-  on an axis' ticks or label its X/Y/Z tab; hovering an axis part shows a
-  pointing hand and says what a click will edit; Esc on the chart returns
-  to the Figure page).
-- Properties -> chart: the series/axis selected in the panel is highlighted
-  on the chart (thicker line or a soft outline for 1 s, then subtle), and
-  the axis being edited gets a faint frame; the row in the series list
-  shows the series' colour swatch (done: a flash, then gone; the swatch
-  was already there).
-- Edits preview live on the selected element only (done for a series'
-  colour, line style, marker and marker size on the Scatter Plot and the
-  Time Series: its lines and points change in place, no render - a rolling
-  mean takes the colour, not the line style; any other edit, or a renderer
-  that does not tag its artists with SeriesArtistTags, renders as before).
-  Next: tag the other line/point renderers (Stairs, Stem, ECDF, 3D Line);
-  Undo per element.
-- Multiple selection (done: Shift-click series of the same axis on the
-  chart - Cmd/Ctrl-click is taken by annotations - to edit them together;
-  "Also editing: ..." under the series list, Clear ends it; every change
-  but the legend label goes to all, previewed live where it can be).
-- Selected data points (Select points) shown in the table preview and as a
-  "Selected" flag - the start of R-07 (done, see R-07).
