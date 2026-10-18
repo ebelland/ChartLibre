@@ -19,6 +19,12 @@ I-01  M  Import more formats (fixed already: .xls needed xlrd, XML needed lxml -
          netCDF4), R .rds (pyreadr), BioLogic .mpr (galvani), Bruker OPUS (brukeropusreader),
          automotive MDF4 (asammdf, large). Closed formats - JMP .jmp, Minitab .mtw, Origin .opju - no
          reader: say so and ask for CSV/Excel. Optional packages: the import says which to install.
+         Microelectronics: Keysight B1500 / Keithley 4200A I-V and C-V exports (CSV/XLSX with
+         metadata blocks before the data, several sweeps per file -> one table, a Sweep column),
+         Touchstone .sNp S-parameters (scikit-rf or own reader), STDF test data (pystdf), SPICE
+         .raw from LTspice/ngspice (spicelib) and Spectre PSF (psf_utils), oscilloscope waveforms
+         Tektronix .isf/.wfm, LeCroy .trc (lecroyparser), Keysight .bin/.h5, logic VCD (vcdvcd),
+         KLARF defect files and wafer maps (text), Igor .ibw/.pxp (igor2), PANalytical .xrdml (XML).
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - AN-04 S  Factor analysis (rotations); PCA: colour the score plot by a group column, biplot.
