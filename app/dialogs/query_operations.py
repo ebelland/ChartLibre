@@ -77,7 +77,8 @@ class OperationForm(QWidget):
         self._repo = repo
         self.form = QFormLayout(self)
         stdSizeAndlayout(self.form)
-        self.form.setContentsMargins(0, 0, 0, 0)
+        # A little room at the bottom: a check box on the last row lost its descenders.
+        self.form.setContentsMargins(0, 0, 0, 4)
         self.form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
 
     # -- helpers ----------------------------------------------------------

@@ -181,6 +181,7 @@ class TitledCard(QWidget):
             self.disclosure.setObjectName("cardDisclosure")
             self.disclosure.setAutoRaise(True)
             self.disclosure.setCheckable(True)
+            self.disclosure.setFixedSize(16, 16)
             self.disclosure.setToolTip(title)
             self.disclosure.toggled.connect(lambda shown: self.set_collapsed(not shown))
             self.title_label.setCursor(Qt.CursorShape.PointingHandCursor)

@@ -172,3 +172,14 @@ QMessageBox QLabel {
     min-width: 0px;
     max-width: 360px;
 }
+
+/* A collapsible frame's arrow (TitledCard, collapsible=True): an arrow only,
+   no button around it, open or closed. */
+QToolButton#cardDisclosure,
+QToolButton#cardDisclosure:checked,
+QToolButton#cardDisclosure:hover,
+QToolButton#cardDisclosure:pressed {
+    border: none;
+    background: transparent;
+    padding: 0px;
+}

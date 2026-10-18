@@ -186,16 +186,22 @@ class QueryBuilderDialog(SettingsTableDialog):
         layout.addLayout(row)
         self._on_operation_changed(0)
 
+    def showEvent(self, event) -> None:  # noqa: N802
+        super().showEvent(event)
+        # Styled and with its fonts now: the shown form's height is its real one.
+        self._on_operation_changed(self._operation_combo.currentIndex())
+
     def _on_operation_changed(self, index: int) -> None:
         self._operation_stack.setCurrentIndex(index)
         self._operation_description.setText(_(FORMS[index].DESCRIPTION))
         # Only the shown form takes height: the others would size the stack to the tallest.
         for position, form in enumerate(self._operation_forms):
+            # The shown form never below its own height: squeezed, its last row was cut.
             form.setSizePolicy(QSizePolicy.Policy.Preferred,
-                               QSizePolicy.Policy.Preferred if position == index else QSizePolicy.Policy.Ignored)
+                               QSizePolicy.Policy.Minimum if position == index else QSizePolicy.Policy.Ignored)
         # Never less than the shown form needs: its last row (Join's "Add a
         # Match column") was cut at the bottom when the column was short.
-        self._operation_stack.setMinimumHeight(self._operation_forms[index].minimumSizeHint().height())
+        self._operation_stack.setMinimumHeight(self._operation_forms[index].sizeHint().height())
         self._operation_stack.adjustSize()
 
     def write_operation_sql(self) -> bool:
