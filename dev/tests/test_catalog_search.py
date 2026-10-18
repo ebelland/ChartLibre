@@ -94,15 +94,10 @@ def test_every_goal_has_suggestions_that_exist() -> None:
     assert all(catalog.suggestions(entries, goal) for goal in catalog.GUIDE)
 
 
-def test_the_guided_panel_suggests_by_goal_and_response_and_opens_one(qapp) -> None:
+def test_the_guided_panel_opens_the_wizard_on_its_table(qapp) -> None:
     panel = GuidedAnalysisPanel()
-    opened = []
-    panel.entry_requested.connect(opened.append)
-    keys = [key for key, _title, _sentence in catalog.GOALS]
-    panel.goals.setCurrentRow(keys.index("compare"))
-    assert "chart:Mosaic Plot" in [e.key for e in panel.shown()]
-    panel._response.setCurrentIndex(panel._response.findData(catalog.NUMERIC))
-    shown = [e.key for e in panel.shown()]
-    assert shown[:2] == ["analysis:Are there differences?", "analysis:Fit Y by X"] and "chart:Mosaic Plot" not in shown
-    panel._cards()[0].findChild(QPushButton).click()
-    assert [e.key for e in opened] == ["analysis:Are there differences?"]
+    asked = []
+    panel.wizard_requested.connect(asked.append)
+    panel.set_table("penguins")
+    panel.help_button.click()
+    assert asked == ["penguins"]

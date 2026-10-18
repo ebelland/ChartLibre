@@ -233,6 +233,19 @@ def main() -> int:
     _quieten_status_bar(window)
     _grab(app, window, "screenshot_guided_analysis.png")
 
+    # 5. Help me choose: two columns of the penguins, and what they allow.
+    from app.dialogs.guided_wizard_dialog import GuidedWizardDialog
+    from app.plugin_api.table_operations import table_profile
+
+    frame, declared = window._guided_table("penguins")
+    wizard = GuidedWizardDialog("penguins", frame, table_profile.profile("penguins", frame, declared), parent=window)
+    wizard.choose(["species", "body_mass_g"])
+    wizard._go_next()
+    wizard.show()
+    _settle(app)
+    _grab(app, wizard, "screenshot_guided_wizard.png")
+    wizard.close()
+
     window.close()
     repo.close()
     applogger.set_status_bar(None)
@@ -258,11 +271,11 @@ OPERATIONS_PANEL_WIDTH: int = 260
 
 
 def _fit_operations_panel(window, *, columns: int = 1) -> None:
-    """Narrow the left column to the Data Operations list's width."""
-    from app.widgets.data_operation import DataOperationWidget
+    """Narrow the left column to the Analysis panel's width."""
+    from app.widgets.analysis_panel import AnalysisPanel
 
     del columns  # the panel was a grid of tiles; it is one list now
-    panel = window.findChild(DataOperationWidget)
+    panel = window.findChild(AnalysisPanel)
     if panel is None:
         return
     sizes = window._main_split.sizes()

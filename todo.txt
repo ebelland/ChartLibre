@@ -1,26 +1,23 @@
 ChartLibre TODO - updated 2026-10-15
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+.
-Size: app 95,371 lines in 263 files; tests 18,691 lines in 149 files (updated at each commit).
+Size: app 95,997 lines in 266 files; tests 18,791 lines in 150 files (updated at each commit).
 
 NOW
-G-02  M  Guided analysis for beginners: a wizard dialog (~820x560), columns first.
-         1) Which columns? - the table's columns as chips with a type icon, the first rows
-            as a preview; "Not sure where to start" opens the 12 goals instead.
-         2) What you can do with them - "See it": 2-3 charts with thumbnails drawn from the
-            data (1 measure: histogram/box/Q-Q; 1 category: bars/Pareto; 2 measures:
-            scatter/hexbin; measure+category: box/violin/bar of means; 2 categories: mosaic;
-            date+measure: time series; 3+ measures: pair plot/correlation heatmap) and "Ask a
-            question": 2-3 analyses phrased with the column names ("Does body_mass_g differ
-            between species?"), why in one line. Roles inferred from the types; asked only
-            when two measures could be the result. Create chart / Open analysis with the
-            columns cast. Only what the columns allow is shown - nothing greyed.
-         The rail panel becomes light: the table in one line, the three quick answers, and
-         "Help me choose..." opening the wizard. No Y/X wording anywhere. Catalogue and
-         suggestion logic unchanged. (Mockups in the 2026-10-16 session.)
+G-02  M  Guided analysis for beginners - done: Help me choose (app/dialogs/guided_wizard_dialog.py),
+         columns first (1-3, typed, first rows), then See it (charts sketched from the rows, made at
+         once) and Ask a question (analyses phrased with the columns, opened cast; "Which one is the
+         result?" only for two measures or more); Not sure leads to the goals and their suggestions;
+         the columns remembered per table. The logic is app/plugin_api/table_operations/guided_plan.py.
+         The rail panel is light: the table in one line, the quick answers, Help me choose.
+         Next: the report says which next question fits (differences -> impact -> model);
+         "again with another column".
 
 D-01  M  Demos rethought around the questions: per goal still to do (the
          quick answers' demo is done), still covering every function.
+         Done: Relate, Classify, Describe and compare (dev/demo/demo_goals.py, built as a
+         person asks: Help me choose's chart, then the analyses). Next: Predict, Signal,
+         Anomalies, Groups, Process, Experiment.
 R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 
 

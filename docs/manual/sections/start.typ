@@ -47,7 +47,7 @@ A project is a database, and every change is written to it as it is made: there 
 
 == Demo projects <demos>
 
-*Load demo* (on the *File* page) opens a ready-made project with data and charts already built. Twenty-six demos ship with ChartLibre. The window lists them with a picture of each one's first chart and a short summary, so you can see what you are opening.
+*Load demo* (on the *File* page) opens a ready-made project with data and charts already built. Thirty-one demos ship with ChartLibre; those named after a goal — *Relate*, *Classify*, *Describe and compare*, and *Quick answers* — start from what you want to find out and go the way *Help me choose* leads. The window lists them with a picture of each one's first chart and a short summary, so you can see what you are opening.
 
 Between them they cover every chart family and give most data operations a dataset built for them: a sparse curve for *Interpolation*, a drifting spectrum for *Baseline Correction*, a three-tone signal for *Filtering* and *Spectral Analysis*, a Gaussian bump and a saddle for the surface operations, the NIST reference data sets for *Fit Curve*, and a *Diagnostic plots* demo with Q-Q and P-P plots, a survival study, a forest plot, a mosaic and a two-factor experiment — whose notes suggest which *Statistics* model to try on each.
 

@@ -43,11 +43,11 @@ Where a data operation works on the series of a chart, an *analysis* works on th
 
 == Guided analysis <guided-analysis>
 
-*Guided analysis* starts from what you want to find out rather than from the name of a function. It follows the table selected in the Tables page and says what it holds — how many numeric columns, categories and dates.
+*Guided analysis* starts from your data and what you want to find out rather than from the name of a function. It follows the table selected in the Tables page and says in one line what it holds — how many numeric columns, categories and dates.
 
 #figure(
   image("../screenshots/screenshot_guided_analysis.png", width: 100%),
-  caption: [Guided analysis on the Palmer penguins table: what it holds, its own questions, the goals.],
+  caption: [Guided analysis on the Palmer penguins table: what it holds, its own questions, the quick answers and Help me choose.],
 )
 
 - *Search* finds any function by what it does, in English or Italian, and by the names other programs give it ("anova", "crosstabs", "control chart"). The same search opens from anywhere with *Cmd/Ctrl+K*.
@@ -58,7 +58,16 @@ Where a data operation works on the series of a chart, an *analysis* works on th
   #refs("scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu", "scipy.stats.kruskal", "scipy.stats.tukey_hsd", "scipy.stats.chi2_contingency", "scipy.stats.fisher_exact", "sklearn.ensemble.RandomForestRegressor", "statsmodels.stats.anova.anova_lm", "scipy.stats.theilslopes")
 
   Above them, questions asked of the selected table itself — "Does “weight” change between the groups of “line”?" — open the answer with its columns already chosen.
-- *What do you want to do?* lists goals — describe, compare, relate, explain, predict, monitor… With *Y* and *X* chosen from the table, *Open* starts the suggested analysis or chart with them cast. Suggestions the table cannot feed come last, greyed, saying what they lack.
+- *Help me choose…* opens a window in two steps, columns first:
+  + *Which columns?* — the table's columns with their type (▲ number, ● category, ◐ ordered category, ◷ date); pick one to three, and their first rows show beside them.
+  + *What you can do with them* — *See it*: two or three charts that suit those columns, sketched from their rows; *Create chart* makes one at once. *Ask a question*: the analyses that answer a question asked with the columns' own names ("Does “body_mass_g” change between the groups of “species”?"), each with why in a line; *Open* starts it with the columns already in their roles. Only what the columns allow is offered. When two numbers could be the result, *Which one is the result?* asks which.
+
+  *Not sure where to start?* leads instead to the goals in everyday words — describe, compare, relate, explain, predict, monitor… — with what fits each; those the table cannot feed come last, saying what they lack. The columns picked are remembered for each table.
+
+#figure(
+  image("../screenshots/screenshot_guided_wizard.png", width: 80%),
+  caption: [Help me choose, with the penguins' species and body mass picked: three charts, and the two questions they allow.],
+)
 
 #figure(
   example("answer_differences", "answer_impact", "answer_change", width: 100%),
@@ -66,5 +75,5 @@ Where a data operation works on the series of a chart, an *analysis* works on th
 )
 
 #note[
-  The demo *Quick answers – three questions asked of real data* has each quick answer already asked, its answer in the chart's notes.
+  The demo *Quick answers – three questions asked of real data* has each quick answer already asked, its answer in the chart's notes; *Relate*, *Classify* and *Describe and compare* go from a goal through the charts and the analyses *Help me choose* offers, on the penguins and on a table of salaries.
 ]

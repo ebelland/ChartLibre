@@ -56,6 +56,20 @@
       "SegoeFluent": "E894",
       "ThemeIcon": "edit-clear"
     },
+    "back": {
+      "text": "Back",
+      "description": "The previous step",
+      "SFSymbol": "chevron.left",
+      "SegoeFluent": "E72B",
+      "ThemeIcon": "go-previous"
+    },
+    "next": {
+      "text": "Next",
+      "description": "The next step",
+      "SFSymbol": "chevron.right",
+      "SegoeFluent": "E72A",
+      "ThemeIcon": "go-next"
+    },
     "close": {
       "text": "Cancel",
       "description": "Close the current window",
@@ -987,6 +1001,11 @@
       "level": "warning",
       "title": "Group by",
       "text": "'{column}' takes more than {limit} different values - one series each would make an unreadable chart. Group by a column with fewer values, such as a category."
+    },
+    "chart.create_failed": {
+      "level": "error",
+      "title": "New chart",
+      "text": "Could not make the chart:\n{reason}"
     },
     "chart.histogram_failed": {
       "level": "error",

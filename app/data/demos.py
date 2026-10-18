@@ -159,6 +159,38 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         references=(REF_PENGUINS, REF_GISTEMP,),
     ),
     DemoProject(
+        "Relate - how the penguins' measures move together",
+        "Start from a goal: how do the penguins' bill, flipper and body mass relate? "
+        "The way Help me choose leads - a scatter plot of two measures, then "
+        "Multivariate (every pair's correlation with its p-value), Fit Y by X on "
+        "body mass by flipper length, and Principal Components, whose score plot "
+        "already separates the species.",
+        (),
+        builder="dev.demo.demo_goals:build_relate_demo",
+        preview="Multivariate",
+        references=(REF_PENGUINS,),
+    ),
+    DemoProject(
+        "Classify - telling the penguin species apart",
+        "Start from a goal: which species is a penguin, from its measures? A box plot "
+        "of bill depth by species, then Discriminant (the canonical plot and the "
+        "rows misclassified), Partition (the rules of a tree) and Fit Y by X on "
+        "species by island.",
+        (),
+        builder="dev.demo.demo_goals:build_classify_demo",
+        preview="Discriminant",
+        references=(REF_PENGUINS,),
+    ),
+    DemoProject(
+        "Describe and compare - salaries across departments",
+        "Start from a goal: what do the salaries look like, and do the departments "
+        "pay differently? A histogram, Distribution, Are there differences? and "
+        "What has the most impact? - each answer in the chart's notes.",
+        (),
+        builder="dev.demo.demo_goals:build_describe_compare_demo",
+        preview="Are there differences?",
+    ),
+    DemoProject(
         "Antibiotics - grouped bars from a classic dataset",
         "1930s antibiotic potency data for sixteen bacteria, as a horizontal "
         "bar chart sorted by effectiveness.",

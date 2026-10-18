@@ -739,6 +739,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         guided_panel = GuidedAnalysisPanel(self)
         guided_panel.entry_requested.connect(self.open_catalog_entry)
         guided_panel.question_requested.connect(self._open_catalog_entry_with_columns)
+        guided_panel.wizard_requested.connect(self._open_guided_wizard)
         guided_panel.set_loader(self._guided_table)
         guided_panel.set_table(self._table_panel.current)
         self._guided_panel = guided_panel
@@ -1098,6 +1099,37 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if isinstance(panel, ChartPanel):
             panel.set_notes_html(column_summary.summary_html(column, values))
         applogger.info("Histogram of %s.%s made as figure %d.", source, column, figure_id)
+
+    def _open_guided_wizard(self, table: str | None = None) -> None:
+        """Help me choose (G-02): the wizard on *table* - the selected one by default."""
+        from app.dialogs.guided_wizard_dialog import GuidedWizardDialog
+        from app.plugin_api.table_operations import table_profile
+
+        table = table or self._table_panel.current
+        if not table or self._repo.get_data_source(table) is None:
+            show_message(self, "catalog.select_a_table", title=_("Help me choose"))
+            return
+        frame, declared = self._guided_table(table)
+        dialog = GuidedWizardDialog(table, frame, table_profile.profile(table, frame, declared), parent=self)
+        dialog.chart_requested.connect(self._create_guided_chart)
+        dialog.question_requested.connect(self._open_catalog_entry_with_columns)
+        dialog.entry_requested.connect(self.open_catalog_entry)
+        self._guided_wizard = dialog
+        dialog.exec()
+
+    def _create_guided_chart(self, table: str, idea: Any) -> int | None:
+        """The wizard's chart, made at once and shown; its figure id."""
+        from app.plugin_api.table_operations import guided_plan
+
+        try:
+            figure_id = guided_plan.make_chart(self._repo, table, idea)
+        except DatabaseError as exc:
+            show_message(self, "chart.create_failed", title=_(idea.chart_type), reason=str(exc))
+            return None
+        self._reload_tabs(select_figure_id=figure_id)
+        self._refresh_undo_item()
+        applogger.info("Guided chart %s of %s made as figure %d.", idea.chart_type, table, figure_id)
+        return figure_id
 
     def _on_new_plot_tab(
         self,

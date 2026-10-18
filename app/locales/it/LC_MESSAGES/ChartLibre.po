@@ -9726,3 +9726,195 @@ msgstr "Poche direzioni che portano la maggior parte della variazione di molte c
 
 msgid "PCA, t-SNE on a chart's series: see groups among many variables."
 msgstr "PCA, t-SNE sulle serie di un grafico: vedere gruppi tra molte variabili."
+
+msgid "Ask a question"
+msgstr "Fai una domanda"
+
+msgid "Columns first: the charts that show them and the analyses that answer questions about them."
+msgstr "Prima le colonne: i grafici che le mostrano e le analisi che rispondono a domande su di esse."
+
+msgid "Create chart"
+msgstr "Crea il grafico"
+
+msgid "First rows"
+msgstr "Prime righe"
+
+msgid "Help me choose"
+msgstr "Aiutami a scegliere"
+
+msgid "Help me choose…"
+msgstr "Aiutami a scegliere…"
+
+msgid "Mean {column}"
+msgstr "Media di {column}"
+
+msgid "No table selected."
+msgstr "Nessuna tabella selezionata."
+
+msgid "Not sure where to start? Start from what you want to find out"
+msgstr "Non sai da dove cominciare? Parti da ciò che vuoi scoprire"
+
+msgid "Not sure which analysis?"
+msgstr "Non sai quale analisi?"
+
+msgid "Nothing to offer for these columns alone: add a number to them."
+msgstr "Niente da proporre per queste sole colonne: aggiungi un numero."
+
+msgid "Pick one to three columns of “{table}”."
+msgstr "Scegli da una a tre colonne di “{table}”."
+
+msgid "Pick the columns: see the charts and the questions they allow. Or start from what you want to find out."
+msgstr "Scegli le colonne: vedi i grafici e le domande che permettono. Oppure parti da ciò che vuoi scoprire."
+
+msgid "See it"
+msgstr "Guardale"
+
+msgid "The column the others might explain or predict."
+msgstr "La colonna che le altre potrebbero spiegare o prevedere."
+
+msgid "What do you want to find out?"
+msgstr "Che cosa vuoi scoprire?"
+
+msgid "What you can do with {names}"
+msgstr "Che cosa puoi fare con {names}"
+
+msgid "Which columns?"
+msgstr "Quali colonne?"
+
+msgid "Which one is the result?"
+msgstr "Quale è il risultato?"
+
+msgid "{measures} numbers, {groups} categories, {times} dates"
+msgstr "{measures} numeri, {groups} categorie, {times} date"
+
+msgid "▲ number · ● category · ◐ ordered category · ◷ date"
+msgstr "▲ numero · ● categoria · ◐ categoria ordinata · ◷ data"
+
+msgid "“{m}” over “{t}”"
+msgstr "“{m}” nel tempo (“{t}”)"
+
+msgid "How “{m}” is spread"
+msgstr "Come si distribuisce “{m}”"
+
+msgid "“{m}”: median, quartiles and outliers"
+msgstr "“{m}”: mediana, quartili e valori anomali"
+
+msgid "Is “{m}” normal?"
+msgstr "“{m}” è normale?"
+
+msgid "How is “{m}” distributed?"
+msgstr "Come è distribuito “{m}”?"
+
+msgid "Its quantiles, mean and spread, and whether it looks normal."
+msgstr "I quantili, la media e la dispersione, e se sembra normale."
+
+msgid "How often each “{g}” occurs, most frequent first"
+msgstr "Quante volte compare ogni “{g}”, prima il più frequente"
+
+msgid "Rows per “{g}”"
+msgstr "Righe per “{g}”"
+
+msgid "“{a}” against “{b}”"
+msgstr "“{a}” contro “{b}”"
+
+msgid "Does “{a}” depend on “{b}”?"
+msgstr "“{a}” dipende da “{b}”?"
+
+msgid "A contingency table, with the chi-squared test and Fisher's."
+msgstr "Una tabella di contingenza, con il test chi quadrato e quello di Fisher."
+
+msgid "“{y}” against “{x}”"
+msgstr "“{y}” contro “{x}”"
+
+msgid "Where the points of “{y}” against “{x}” crowd"
+msgstr "Dove si addensano i punti di “{y}” contro “{x}”"
+
+msgid "How does “{y}” change with “{x}”?"
+msgstr "Come cambia “{y}” con “{x}”?"
+
+msgid "The fitted line, how well it fits, and the correlation."
+msgstr "La retta adattata, quanto bene si adatta, e la correlazione."
+
+msgid "Are “{x}” and “{y}” related?"
+msgstr "“{x}” e “{y}” sono legati?"
+
+msgid "Their correlation, with its confidence interval and p-value."
+msgstr "La loro correlazione, con l'intervallo di confidenza e il p-value."
+
+msgid "“{m}” by “{g}”"
+msgstr "“{m}” per “{g}”"
+
+msgid "The shape of “{m}” in each “{g}”"
+msgstr "La forma di “{m}” in ogni “{g}”"
+
+msgid "Mean “{m}” per “{g}”"
+msgstr "Media di “{m}” per “{g}”"
+
+msgid "Does “{m}” change between the groups of “{g}”?"
+msgstr "“{m}” cambia tra i gruppi di “{g}”?"
+
+msgid "The right test is chosen for you, and the answer given in words."
+msgstr "Il test giusto viene scelto per te, e la risposta data a parole."
+
+msgid "Which groups of “{g}” differ in “{m}”?"
+msgstr "Quali gruppi di “{g}” differiscono in “{m}”?"
+
+msgid "The means, the ANOVA and every pair of groups compared."
+msgstr "Le medie, l'ANOVA e ogni coppia di gruppi confrontata."
+
+msgid "“{m}” over “{t}”, by “{g}”"
+msgstr "“{m}” nel tempo (“{t}”), per “{g}”"
+
+msgid "Has “{m}” changed over time?"
+msgstr "“{m}” è cambiato nel tempo?"
+
+msgid "A steady trend or a sudden change: the tests are chosen for you."
+msgstr "Una tendenza costante o un cambiamento improvviso: i test vengono scelti per te."
+
+msgid "Every pair of the measures"
+msgstr "Ogni coppia delle misure"
+
+msgid "“{y}” against “{x}”, coloured by “{g}”"
+msgstr "“{y}” contro “{x}”, colorato per “{g}”"
+
+msgid "What has the most impact on “{y}”?"
+msgstr "Che cosa influisce di più su “{y}”?"
+
+msgid "The other columns ranked by how much they move it, said in words."
+msgstr "Le altre colonne ordinate per quanto lo spostano, detto a parole."
+
+msgid "How do {names} move together?"
+msgstr "Come variano insieme {names}?"
+
+msgid "Every pair's correlation with its p-value, and the scatterplot matrix."
+msgstr "La correlazione di ogni coppia con il p-value, e la matrice di dispersione."
+
+msgid "Which few directions carry most of {names}?"
+msgstr "Quali poche direzioni portano la maggior parte di {names}?"
+
+msgid "Principal components: what the measures share, and the groups the rows form."
+msgstr "Componenti principali: ciò che le misure hanno in comune, e i gruppi che formano le righe."
+
+msgid "Do the measures tell the groups of “{g}” apart?"
+msgstr "Le misure distinguono i gruppi di “{g}”?"
+
+msgid "Which group a row belongs to, from its measures, and how often that is right."
+msgstr "A quale gruppo appartiene una riga, dalle sue misure, e quanto spesso è giusto."
+
+msgid "Relate - how the penguins' measures move together"
+msgstr "Relazioni - come variano insieme le misure dei pinguini"
+
+msgid "Start from a goal: how do the penguins' bill, flipper and body mass relate? The way Help me choose leads - a scatter plot of two measures, then Multivariate (every pair's correlation with its p-value), Fit Y by X on body mass by flipper length, and Principal Components, whose score plot already separates the species."
+msgstr "Parti da un obiettivo: come sono legati becco, pinna e massa corporea dei pinguini? Come porta Aiutami a scegliere - un diagramma di dispersione di due misure, poi Multivariata (la correlazione di ogni coppia con il suo p-value), Fit Y by X sulla massa corporea in funzione della lunghezza della pinna, e Componenti principali, il cui grafico dei punteggi separa già le specie."
+
+msgid "Classify - telling the penguin species apart"
+msgstr "Classificare - distinguere le specie di pinguini"
+
+msgid "Start from a goal: which species is a penguin, from its measures? A box plot of bill depth by species, then Discriminant (the canonical plot and the rows misclassified), Partition (the rules of a tree) and Fit Y by X on species by island."
+msgstr "Parti da un obiettivo: di quale specie è un pinguino, dalle sue misure? Un box plot della profondità del becco per specie, poi Discriminante (il grafico canonico e le righe classificate male), Partizione (le regole di un albero) e Fit Y by X sulla specie per isola."
+
+msgid "Describe and compare - salaries across departments"
+msgstr "Descrivere e confrontare - gli stipendi nei reparti"
+
+msgid "Start from a goal: what do the salaries look like, and do the departments pay differently? A histogram, Distribution, Are there differences? and What has the most impact? - each answer in the chart's notes."
+msgstr "Parti da un obiettivo: come sono gli stipendi, e i reparti pagano in modo diverso? Un istogramma, Distribuzione, Ci sono differenze? e Che cosa influisce di più? - ogni risposta nelle note del grafico."

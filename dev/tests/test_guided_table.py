@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QPushButton, QWidget
 
 from app.analysis import catalog
 from app.plugin_api.table_operations import table_profile
@@ -48,15 +48,6 @@ def test_the_panel_follows_the_table(qapp) -> None:
     panel._questions.findChildren(QPushButton)[2].click()
     assert asked == [("analysis:Are there differences?", {"response": ["peso"], "group": ["linea"]})]
 
-    # Goals the table cannot answer go last; suggestions it cannot feed after the others, saying why.
-    last = panel.goals.item(panel.goals.count() - 1)
-    assert table_profile.goal_missing(panel.profile(), str(last.data(0x0100))) is not None
-    panel.goals.setCurrentRow([str(panel.goals.item(row).data(0x0100)) for row in range(panel.goals.count())]
-                              .index("relate"))
-    cards = panel._cards()
-    flags = [bool(card.property("missing")) for card in cards]
-    assert flags == sorted(flags) and any(flags)
-
     panel.set_table(None)
     assert panel.profile() is None and not panel._questions.isVisibleTo(panel)
 
@@ -85,40 +76,83 @@ def test_a_question_opens_its_answer_with_the_columns_cast(qapp, tmp_path, monke
         repo.close()
 
 
-def test_y_and_x_chosen_open_the_suggestion_with_them_cast(qapp, tmp_path, monkeypatch) -> None:
+def _wizard():
+    from app.dialogs.guided_wizard_dialog import GuidedWizardDialog
+
+    return GuidedWizardDialog("lines", FRAME, table_profile.profile("lines", FRAME, DECLARED))
+
+
+def test_the_wizard_offers_what_the_picked_columns_allow(qapp) -> None:
+    """G-02: columns first; then charts sketched from the rows and questions in the columns' words."""
+    from app.dialogs.guided_wizard_dialog import MAX_COLUMNS
+
+    wizard = _wizard()
+    try:
+        assert not wizard._next.isEnabled()
+        wizard.choose(["peso", "linea", "turno", "giorno"])
+        assert wizard.chosen() == ["peso", "linea", "turno"][:MAX_COLUMNS]
+        wizard.choose(["peso", "linea"])
+        assert wizard.preview.model().columnCount() == 2 and wizard._next.isEnabled()
+        wizard._go_next()
+        assert not wizard.result.isVisibleTo(wizard)  # one measure: nothing to ask
+        charts = [card.property("chart_type") for card in wizard.findChildren(QWidget, "wizardChart")
+                  if card.isVisibleTo(wizard)]
+        assert charts == ["Box Plot", "Violin Plot", "Bar Chart"]
+        questions = [card.property("entry").key for card in wizard.findChildren(QWidget, "wizardQuestion")
+                     if card.isVisibleTo(wizard)]
+        assert questions[0] == "analysis:Are there differences?"
+        asked = []
+        wizard.question_requested.connect(lambda entry, roles, kinds: asked.append((entry.key, roles)))
+        first = next(card for card in wizard.findChildren(QWidget, "wizardQuestion") if card.isVisibleTo(wizard))
+        first.findChild(QPushButton).click()
+        assert asked == [("analysis:Are there differences?", {"response": ["peso"], "group": ["linea"]})]
+    finally:
+        wizard.close()
+    again = _wizard()  # the columns picked last, remembered for the table
+    assert again.chosen() == ["peso", "linea"]
+    again.close()
+
+
+def test_not_sure_leads_to_the_goals_and_their_suggestions(qapp) -> None:
+    wizard = _wizard()
+    try:
+        opened = []
+        wizard.entry_requested.connect(opened.append)
+        wizard._show_page(2)
+        keys = [str(wizard.goals.item(i).data(0x0100)) for i in range(wizard.goals.count())]
+        # Goals the table cannot answer go last.
+        assert table_profile.goal_missing(wizard._profile, keys[-1]) is not None
+        wizard.goals.setCurrentRow(keys.index("compare"))
+        cards = [c for c in wizard.findChildren(QWidget, "guidedSuggestion") if c.isVisibleTo(wizard)]
+        assert cards[0].property("entry").key == "analysis:Are there differences?"
+        cards[0].findChild(QPushButton).click()
+        assert [entry.key for entry in opened] == ["analysis:Are there differences?"]
+    finally:
+        wizard.close()
+
+
+def test_create_chart_makes_the_figure_and_an_analysis_opens_cast(qapp, tmp_path, monkeypatch) -> None:
     from app.data.sqlite_repo import SqliteRepo
     from app.main_window.main_window import MainWindow
+    from app.plugin_api.table_operations import guided_plan
     from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 
     repo = SqliteRepo(db_path=tmp_path / "x.dhub")
     repo.import_dataframe(FRAME, table_name="lines", normalize_columns=False)
     window = MainWindow(repo, tmp_path / "x.dhub")
     opened = []
-
-    def capture(self):
-        opened.append((type(self).__name__, self.roles_widget.casting().roles, list(getattr(self, "_terms", []))))
-        return 0
-
-    monkeypatch.setattr(TableOperationDialogBase, "exec", capture)
+    monkeypatch.setattr(TableOperationDialogBase, "exec",
+                        lambda self: opened.append(self.roles_widget.casting().roles) or 0)
     try:
-        window._table_panel.reload()
-        window._table_panel.select_table("lines")
-        qapp.processEvents()
-        panel = window._guided_panel
-        panel.profile()
-        panel._y_combo.setCurrentIndex(panel._y_combo.findData("peso"))
-        assert panel.response() == catalog.NUMERIC  # Y's own type
-        for action in panel._x_menu.actions():
-            action.setChecked(action.text() in ("linea", "turno"))
-        assert panel.chosen_x() == ["linea", "turno"]
-        rows = [str(panel.goals.item(row).data(0x0100)) for row in range(panel.goals.count())]
-        panel.goals.setCurrentRow(rows.index("explain"))
-        by_key = {card.property("entry").key: card for card in panel._cards()}
-        by_key["analysis:What has the most impact?"].findChildren(QPushButton)[-1].click()
-        by_key["analysis:Fit Model"].findChildren(QPushButton)[-1].click()
-        impact, fit = opened
-        assert impact[1]["response"] == ["peso"] and impact[1]["factor"] == ["linea", "turno"]
-        assert fit[1]["response"] == ["peso"] and len(fit[2]) == 2  # the two main effects
+        profile = table_profile.profile("lines", FRAME, DECLARED)
+        idea = guided_plan.plan(profile, ["peso", "linea"]).charts[2]  # the mean of peso per linea
+        figure_id = window._create_guided_chart("lines", idea)
+        axis = repo.load_figure_descriptor(figure_id).axes[0]
+        assert axis.name == "Bar Chart" and len(repo.query_df(axis.series[0].sql_query)) == 3
+        question = guided_plan.plan(profile, ["peso", "linea", "turno"]).questions[0]
+        window._open_catalog_entry_with_columns(
+            next(e for e in catalog.build_catalog() if e.key == question.key), question.roles, question.kinds)
+        assert opened[0]["response"] == ["peso"] and opened[0]["factor"] == ["linea", "turno"]
     finally:
         window.close()
         repo.close()
