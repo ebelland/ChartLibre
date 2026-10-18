@@ -61,7 +61,7 @@ def test_ok_writes_the_ranking_and_draws_a_pareto(qapp, repo: SqliteRepo) -> Non
         assert not dialog.problems()
         dialog.ok()
         _wait(qapp, dialog)
-        ranking = repo.table_frame("plant_impact")
+        ranking = repo.table_frame("_plant_impact")
         assert ranking["Factor"].iloc[0] == "temp"
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Pareto Chart"]

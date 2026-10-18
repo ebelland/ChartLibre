@@ -69,7 +69,7 @@ def test_the_dialog_answers_and_ok_draws_the_comparison(qapp, repo: SqliteRepo, 
         assert "Yes:" in dialog.format_results(dialog._result)
         dialog.ok()
         _wait(qapp, dialog)
-        assert "lines_differences" in set(repo.list_user_tables()["Table"])
+        assert "_lines_differences" in set(repo.list_user_tables()["Table"])
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == [chart]
     finally:

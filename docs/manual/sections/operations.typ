@@ -12,7 +12,7 @@ The data operations are on the *Analysis* page of the navigation rail, with the 
   [*Graph*], [*New Chart* — creates a new chart (see @creating-a-chart); Function.],
   [*Basic Analysis*], [Distribution, Fit Y by X (analyses of a table), Statistics.],
   [*Fitting Linear Models*], [Fit Model.],
-  [*Predictive and Specialized Modeling*], [Partition, Regression, Fit Curve, Gaussian Process.],
+  [*Predictive and Specialized Modeling*], [Partition, Regression, Fit Curve, Gaussian Process, Time Series.],
   [*Multivariate Methods*], [Multivariate, Principal Components, Decomposition, Discriminant, Partial Least Squares, Clustering.],
   [*Screening*], [Explore Outliers.],
   [*Quality and Process*], [Control Chart, with the process capability.],

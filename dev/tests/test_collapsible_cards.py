@@ -17,9 +17,9 @@ def test_a_collapsible_card_opens_and_closes_from_its_arrow_and_its_title(qapp) 
     host.show()
     qapp.processEvents()
     assert card.collapsed and not card.card.isVisibleTo(host)
-    assert card.disclosure.arrowType() == Qt.ArrowType.RightArrow
+    assert not card.disclosure.isChecked() and not card.disclosure.icon().isNull()
     card.disclosure.click()
-    assert not card.collapsed and card.disclosure.arrowType() == Qt.ArrowType.DownArrow
+    assert not card.collapsed and card.disclosure.isChecked()
     release = QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(2, 2), QPointF(2, 2),
                           Qt.MouseButton.LeftButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
     QApplication.sendEvent(card.title_label, release)

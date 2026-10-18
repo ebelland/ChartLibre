@@ -50,7 +50,7 @@ def test_ok_writes_the_scores_and_draws_four_charts(qapp, repo: SqliteRepo) -> N
         while dialog._task is not None and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
-        rows = repo.table_frame("nir_pls")
+        rows = repo.table_frame("_nir_pls")
         assert {"T1", "T2", "Predicted conc"} <= set(rows.columns)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert len(figure.axes) == 4

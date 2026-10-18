@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-18
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 95,997 lines in 266 files; tests 18,791 lines in 150 files (updated at each commit).
+Size: app 96,526 lines in 268 files; tests 18,930 lines in 151 files (updated at each commit).
 
 NOW
 AN-05 M  Time series (table analysis): ACF/PACF, seasonal decomposition (STL), ARIMA / ETS
@@ -11,6 +11,16 @@ D-01  M  Demos per goal: Predict, Signal, Anomalies, Groups, Process, Experiment
 G-02  S  Help me choose, next: each report says which next question fits (differences ->
          impact -> model); "again with another column".
 R-03  M  Reproducibility: re-run recorded operations; export a Python script (H-01).
+
+I-01  M  Import more formats (fixed already: .xls needed xlrd, XML needed lxml - now etree).
+         No new package: Stata .dta, SAS .sas7bdat/.xpt (pandas), MATLAB .mat and WAV (scipy),
+         JCAMP-DX spectra .jdx/.dx, LabVIEW .lvm, GPX tracks, GraphPad .pzfx (text/XML: own readers).
+         One small package each: SPSS .sav (pyreadstat, keeps value labels -> R-08), Parquet/Feather
+         (pyarrow), LibreOffice .ods (odfpy), Excel .xlsb (pyxlsb), NI TDMS (npTDMS), Galactic SPC
+         (spc-spectra), flow cytometry FCS (flowio), EDF/BDF biosignals (pyedflib), HDF5/NetCDF (h5py,
+         netCDF4), R .rds (pyreadr), BioLogic .mpr (galvani), Bruker OPUS (brukeropusreader),
+         automotive MDF4 (asammdf, large). Closed formats - JMP .jmp, Minitab .mtw, Origin .opju - no
+         reader: say so and ask for CSV/Excel. Optional packages: the import says which to install.
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - AN-04 S  Factor analysis (rotations); PCA: colour the score plot by a group column, biplot.

@@ -208,9 +208,21 @@ def test_a_loaded_demo_brings_its_preview(tmp_path: Path) -> None:
 def test_load_demo_shows_the_selected_demos_picture(qapp) -> None:
     from app.dialogs.load_demo_dialog import LoadDemoDialog
 
+    from PySide6.QtCore import Qt
+
     dialog = LoadDemoDialog()
-    for row in (0, len(DEMO_PROJECTS) - 1):
+    dialog.category.setCurrentIndex(0)  # All demos: every one, each category under its heading
+    rows = [row for row in range(dialog._list.count())
+            if dialog._list.item(row).data(Qt.ItemDataRole.UserRole) is not None]
+    assert len(rows) == len(DEMO_PROJECTS) and dialog._list.count() > len(DEMO_PROJECTS)
+    for row in (rows[0], rows[-1]):
         dialog._list.setCurrentRow(row)
         picture = dialog._preview.pixmap()
         assert not picture.isNull() and picture.width() / picture.devicePixelRatio() <= dialog.PREVIEW_SIZE.width()
+    dialog.category.setCurrentIndex(dialog.category.findData("Guided Analysis"))
+    shown = [dialog._list.item(row).data(Qt.ItemDataRole.UserRole) for row in range(dialog._list.count())]
+    assert shown and all(demo.category == "Guided Analysis" for demo in shown)
     dialog.close()
+    again = LoadDemoDialog()  # the category shown last
+    assert again.category.currentData() == "Guided Analysis"
+    again.close()

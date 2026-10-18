@@ -92,10 +92,10 @@ def test_ok_writes_the_rows_and_draws_the_canonical_plot(qapp, repo: SqliteRepo)
         assert not dialog.problems()
         dialog.ok()
         _wait(qapp, dialog)
-        rows = repo.table_frame("iris_discriminant")
+        rows = repo.table_frame("_iris_discriminant")
         assert {"Predicted species", "Prob(setosa)", "Canonical1", "Canonical2"} <= set(rows.columns)
-        assert {"iris_discriminant_canonical", "iris_discriminant_coefficients",
-                "iris_discriminant_means"} <= set(repo.list_user_tables()["Table"])
+        assert {"_iris_discriminant_canonical", "_iris_discriminant_coefficients",
+                "_iris_discriminant_means"} <= set(repo.list_user_tables()["Table"])
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Scatter Plot"]
         assert len(figure.axes[0].series) == 3  # a series per species

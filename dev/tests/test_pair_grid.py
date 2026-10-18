@@ -9,6 +9,16 @@ from app.widgets.pair_grid import PairGrid
 from dev.tests._cases import check_all
 
 
+@pytest.fixture(autouse=True, scope="module")
+def _native_sheet(qapp):
+    """The widths below are the native sheet's: a test before this one may leave another applied
+    (Fluent's wider fields put two pairs on two rows at 260 px)."""
+    from app.styles import style
+
+    style.apply_platform_style(qapp, "macos_native")
+    yield
+
+
 def _spin(qapp, suffix: str = "", maximum: float = 500.0) -> QDoubleSpinBox:
     spin = QDoubleSpinBox()
     spin.setRange(0.1, maximum)

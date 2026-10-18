@@ -4,7 +4,7 @@ from __future__ import annotations
 import html
 
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import QRect, QSize, Qt
 from PySide6.QtGui import QAction, QFont, QIcon, QPixmap, QTextOption
 from PySide6.QtWidgets import (
@@ -135,6 +135,25 @@ class CardFrame(QFrame):
         return self._box_layout
 
 
+def _chevron_icon(*, down: bool, color: QtGui.QColor) -> QIcon:
+    """A thin chevron, right or down, 10 px: the platforms' own arrows were heavy and of every size."""
+    pixmap = QPixmap(40, 40)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QtGui.QPainter(pixmap)
+    try:
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        pen = QtGui.QPen(color)
+        pen.setWidthF(4.5)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        points = ((10, 15), (20, 26), (30, 15)) if down else ((15, 10), (26, 20), (15, 30))
+        painter.drawPolyline([QtCore.QPointF(x, y) for x, y in points])
+    finally:
+        painter.end()
+    return QIcon(pixmap)
+
+
 class TitledCard(QWidget):
     """A section title *above* a CardFrame, never inside its own border.
 
@@ -181,13 +200,14 @@ class TitledCard(QWidget):
             self.disclosure.setObjectName("cardDisclosure")
             self.disclosure.setAutoRaise(True)
             self.disclosure.setCheckable(True)
-            self.disclosure.setFixedSize(16, 16)
+            self.disclosure.setFixedSize(14, 14)
+            self.disclosure.setIconSize(QSize(10, 10))
             self.disclosure.setToolTip(title)
             self.disclosure.toggled.connect(lambda shown: self.set_collapsed(not shown))
             self.title_label.setCursor(Qt.CursorShape.PointingHandCursor)
             self.title_label.installEventFilter(self)
-            header.addWidget(self.disclosure)
-            header.addWidget(self.title_label)
+            header.addWidget(self.disclosure, 0, Qt.AlignmentFlag.AlignVCenter)
+            header.addWidget(self.title_label, 0, Qt.AlignmentFlag.AlignVCenter)
             header.addStretch(1)
             layout.addLayout(header)
         else:
@@ -212,7 +232,8 @@ class TitledCard(QWidget):
         self.disclosure.blockSignals(True)
         self.disclosure.setChecked(not collapsed)
         self.disclosure.blockSignals(False)
-        self.disclosure.setArrowType(Qt.ArrowType.RightArrow if collapsed else Qt.ArrowType.DownArrow)
+        self.disclosure.setIcon(_chevron_icon(down=not collapsed, color=self.title_label.palette().color(
+            QtGui.QPalette.ColorRole.WindowText)))
 
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:  # noqa: N802
         if (

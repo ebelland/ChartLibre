@@ -88,9 +88,9 @@ def test_split_prune_and_ok_write_the_leaves_and_the_figure(qapp, repo: SqliteRe
     dialog.ok()
     _wait(qapp, dialog)
     tables = set(repo.list_user_tables()["Table"])
-    assert {"process_partition", "process_partition_leaves", "process_partition_history",
-            "process_partition_contributions", "process_partition_graph"} <= tables
-    rows = repo.table_frame("process_partition")
+    assert {"_process_partition", "_process_partition_leaves", "_process_partition_history",
+            "_process_partition_contributions", "_process_partition_graph"} <= tables
+    rows = repo.table_frame("_process_partition")
     assert {"Leaf", "Predicted y", "Partition role", "Partition x"} <= set(rows.columns)
     assert set(rows["Leaf"].dropna().astype(int)) == {1, 2}
     # JMP's graph: each leaf a band as wide as its rows, left to right.
@@ -148,8 +148,8 @@ def test_a_forest_or_boosted_trees_fit_and_ok_writes_no_leaves(qapp, repo: Sqlit
     dialog.ok()
     _wait(qapp, dialog)
     tables = set(repo.list_user_tables()["Table"])
-    assert "process_partition_leaves" not in tables and "process_partition_history" in tables
-    assert "Leaf" not in repo.table_frame("process_partition").columns
+    assert "_process_partition_leaves" not in tables and "_process_partition_history" in tables
+    assert "Leaf" not in repo.table_frame("_process_partition").columns
     figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
     assert "Scatter Plot" in [axis.name for axis in figure.axes]  # the fit by number of trees
 
@@ -177,7 +177,7 @@ def test_permutation_importance_and_partial_dependence_for_any_method(qapp, repo
             check.setChecked(key in ("importance", "dependence"))
         dialog.ok()
         _wait(qapp, dialog)
-        assert {"plant_partition_importance", "plant_partition_dependence"} <= set(repo.list_user_tables()["Table"])
+        assert {"_plant_partition_importance", "_plant_partition_dependence"} <= set(repo.list_user_tables()["Table"])
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         names = [axis.name for axis in figure.axes]
         assert names[0] == "Pareto Chart" and "Bar Chart" in names and "Scatter Plot" in names

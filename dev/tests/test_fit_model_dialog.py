@@ -92,12 +92,12 @@ def test_preview_reports_and_ok_writes_the_results_and_the_figure(qapp, doe_tabl
         _wait(qapp, dialog)
         assert applied == [True]
         tables = list(repo.list_user_tables()["Table"])
-        assert f"{name}_fit" in tables
+        assert f"_{name}_fit" in tables
         # What only feeds the charts is marked by its name and left out of the list.
         feeding = {f"_{name}_fit_effects_", f"_{name}_fit_profile_"}
         assert not feeding & set(tables)
         assert feeding <= set(repo.list_user_tables(include_internal=True)["Table"])
-        results = repo.table_frame(f"{name}_fit")
+        results = repo.table_frame(f"_{name}_fit")
         assert {"Predicted Response_1", "Residual Response_1"} <= set(results.columns)
         assert len(dialog.created_figure_ids) == 1
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])

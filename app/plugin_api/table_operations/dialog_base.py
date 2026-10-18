@@ -82,6 +82,10 @@ from app.widgets.html_results import HtmlResultsView
 APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
 
 
+#: What marks a table an analysis wrote (as the data operations' results): hidden from the Tables list by default.
+GENERATED_PREFIX = "_"
+
+
 class TableOperationDialogBase(QDialog):
     """Inputs on the left, the report on the right; Preview, Copy, OK, Close."""
 
@@ -239,9 +243,18 @@ class TableOperationDialogBase(QDialog):
         right.card.layout().addWidget(self._results)
         right.setMinimumWidth(260)
 
+        # In a titled frame like Results beside it, as the data operations'
+        # Settings (B-14): one box with the title above it, its cards
+        # flattened by the sheets (#operationSettingsCard) - it was a square
+        # block with no title, stuck to Results (B-15).
+        left = TitledCard(self, _("Settings"), "operationSettingsCard", margins=(6, 6, 6, 6))
+        left.layout().setStretchFactor(left.card, 1)
+        left.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        left.card.layout().addWidget(self._inputs_panel, 1)
+
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setChildrenCollapsible(False)
-        splitter.addWidget(self._inputs_panel)
+        splitter.addWidget(left)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
@@ -492,16 +505,24 @@ class TableOperationDialogBase(QDialog):
         return report_html.table([_(str(c)) for c in frame.columns],
                                  self.report_rows(frame, p_columns=p_columns, digits=digits))
 
+    def result_table_name(self, key: str) -> str:
+        """A free name for a table the analysis writes: "_penguins_pls_vip".
+
+        The leading underscore marks it generated, as the data operations'
+        results are: the Tables list leaves it out until Show generated tables.
+        """
+        return self._repo.free_table_name(f"{GENERATED_PREFIX}{self.table}_{key}")
+
     def write_result_tables(self, frames: Mapping[str, pd.DataFrame]) -> dict[str, str]:
-        """Each frame as a new table named after the source and its key ("penguins_pls_vip"), one undo step.
+        """Each frame as a new table named after the source and its key ("_penguins_pls_vip"), one undo step.
 
         Returns {key: the name it got} - a free one, so an earlier run's tables
         stay. The figure's own tables are in the same step: Undo takes the
         tables and the figure the analysis draws away together.
         """
-        repo, table = self._repo, self.table
-        names = {key: repo.free_table_name(f"{table}_{key}") for key in frames}
-        repo.snapshot_for_undo([*names.values(), *repo.DESCRIPTOR_TABLES], label=f"{self.Name} on '{table}'")
+        repo = self._repo
+        names = {key: self.result_table_name(key) for key in frames}
+        repo.snapshot_for_undo([*names.values(), *repo.DESCRIPTOR_TABLES], label=f"{self.Name} on '{self.table}'")
         for key, frame in frames.items():
             repo.import_dataframe(frame, table_name=names[key], normalize_columns=False)
         return names

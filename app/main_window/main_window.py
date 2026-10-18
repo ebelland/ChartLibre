@@ -650,7 +650,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         page.add_buttons(_("Save"), [
             NavButton("save", self._on_save),
             NavButton("save_as", self._on_save_as),
-            NavButton("project_report", self._on_project_report, text=_("Export…")),
+            # A row of its own, with its sentence: three buttons did not fit the panel on Windows.
+            NavButton("project_report", self._on_project_report, text=_("Export…"), described=True),
         ], object_name="fileSaveCard")
         page.add_buttons(_("Demo"), [NavButton("load_demo", self._on_load_demo, described=True)],
                          object_name="fileDemoCard")

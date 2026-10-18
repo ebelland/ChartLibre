@@ -57,7 +57,7 @@ def test_ok_draws_the_values_with_the_change(qapp, repo: SqliteRepo) -> None:
         while dialog._task is not None and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
-        assert {"Order", "Value", "Trend", "Segment", "Segment median"} <= set(repo.table_frame("line_change").columns)
+        assert {"Order", "Value", "Trend", "Segment", "Segment median"} <= set(repo.table_frame("_line_change").columns)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Time Series"]
         assert len(figure.axes[0].series) == 3  # the values, the median before, the median after

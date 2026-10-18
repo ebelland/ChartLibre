@@ -576,7 +576,7 @@ class FitModelDialog(TableOperationDialogBase):
     def apply_results(self, result: list[lm.ResponseFit]) -> list[dict[str, Any]]:
         repo, table = self._repo, self.table
         names = {
-            "results": repo.free_table_name(f"{table}_fit"),
+            "results": self.result_table_name("fit"),
             # What only feeds the charts is hidden from the Tables list: "_name_".
             "effects": repo.free_hidden_table_name(f"{table}_fit_effects"),
             "profile": repo.free_hidden_table_name(f"{table}_fit_profile"),

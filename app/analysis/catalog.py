@@ -178,6 +178,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("chart:Interaction Plot", "Does the effect of one factor depend on another?", NUMERIC),
     ),
     "predict": (
+        ("analysis:Time Series", "The next values of a series in time: ARIMA or exponential smoothing, "
+                                 "with a prediction interval.", NUMERIC),
         ("analysis:Partial Least Squares", "Many X that move together, like a spectrum: a few components, "
                                            "chosen by cross-validation.", NUMERIC),
         ("analysis:Fit Model", "A model you can read and write down, with confidence intervals.", NUMERIC),
@@ -194,6 +196,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     "signal": (
         ("analysis:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
                                                "and the answer is given in words.", NUMERIC),
+        ("analysis:Time Series", "Its memory (autocorrelation), its trend and season, and a forecast with "
+                                 "its prediction interval.", NUMERIC),
         ("series:Smoothing", "Reduce the noise and keep the shape.", NUMERIC),
         ("series:Spectral Analysis", "Which frequencies the signal holds.", NUMERIC),
         ("series:Peaks", "Find peaks and measure their height, width and area.", NUMERIC),
@@ -422,6 +426,13 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "SPSS": "Transform > Create Time Series (moving averages, smoothing)",
         "Minitab": "Stat > Time Series > Moving Average / Single Exp Smoothing",
         "Origin / Excel": "Origin: Analysis > Signal Processing > Smooth; Excel: Data Analysis > Moving Average",
+    }),
+    ("Time series forecast, ARIMA, ACF", "Analysis > Predictive and Specialized Modeling > Time Series",
+     "analysis:Time Series", {
+        "JMP": "Analyze > Specialized Modeling > Time Series",
+        "SPSS": "Analyze > Forecasting > Create Traditional Models / Autocorrelations",
+        "Minitab": "Stat > Time Series > ARIMA / Autocorrelation / Decomposition",
+        "Origin / Excel": "Origin: Statistics > Time Series Analysis; Excel: Forecast Sheet (ETS)",
     }),
     ("Spectrum, FFT", "Analysis > Spectral Analysis", "series:Spectral Analysis", {
         "JMP": "Analyze > Specialized Modeling > Time Series > Spectral Density",

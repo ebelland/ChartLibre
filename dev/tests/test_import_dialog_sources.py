@@ -236,3 +236,20 @@ def test_a_column_picked_in_the_preview_is_picked_in_columns_and_the_size_is_sai
     view = dialog._preview.view
     view.setCurrentIndex(view.model().index(0, 2))
     assert [index.row() for index in dialog._col_table.selectionModel().selectedRows()] == [2]
+
+
+def test_xml_reads_without_lxml_and_xls_says_what_it_needs(tmp_path: Path) -> None:
+    """pandas' XML reader wanted lxml, not installed; an .xls went to openpyxl, which cannot read it."""
+    import importlib.util
+
+    from app.utils.data_sources import excel_engine, read_any_file
+
+    xml = tmp_path / "rows.xml"
+    xml.write_text("<rows><row><a>1</a><b>x</b></row><row><a>2</a><b>y</b></row></rows>")
+    assert read_any_file(str(xml))["a"].tolist() == [1, 2]
+    assert excel_engine("book.xlsx") == "openpyxl"
+    if importlib.util.find_spec("xlrd") is None:
+        with pytest.raises(ValueError, match="xlrd"):
+            excel_engine("book.xls")
+    else:
+        assert excel_engine("book.xls") == "xlrd"

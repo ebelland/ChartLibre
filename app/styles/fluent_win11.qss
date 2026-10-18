@@ -571,11 +571,18 @@ QComboBox::down-arrow {
   image: url(@ICON:chevron_down@);
 }
 
-/* Popup */
+/* Popup: one rounded frame - the popup's own container's. A border on the
+   list inside it too drew a second frame within the first. */
+QComboBoxPrivateContainer {
+  background: palette(base);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.12);
+  border-radius: 8px;
+}
+
 QComboBox QAbstractItemView {
   background: palette(base);
   color: palette(text);
-  border: 1px solid rgba(@SHADOW_RGB@, 0.12);
+  border: none;
   border-radius: 8px;
   padding: 6px;
 }
@@ -674,6 +681,12 @@ QTreeView {
   color: palette(text);
   border: 1px solid rgba(@SHADOW_RGB@, 0.08);
   border-radius: 8px;
+}
+
+/* A list's rows breathe as WinUI's do: the demos, the chart types and
+   the guided goals read as one dense block without it. */
+QListView::item {
+  padding: 3px 6px;
 }
 
 /* Hover must stay readable on accent backgrounds */

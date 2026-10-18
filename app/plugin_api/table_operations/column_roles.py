@@ -205,9 +205,9 @@ class ColumnRolesWidget(QWidget):
         self.tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._tab_layouts: dict[str, QVBoxLayout] = {}
         data = self.add_tab(_("Data"))
-        # The Data tab says it, as in the data operations: no titles above the frames.
-        columns_card.title_label.hide()
-        roles_card.title_label.hide()
+        # Their titles stay: inside the Settings frame the two are flattened
+        # into one surface, and without the tab bar (an analysis with no
+        # parameters) nothing else would say what each part is for.
         data.addWidget(columns_card, 1)
         data.addWidget(roles_card, 0)
         #: Where the operation adds its own frames, on the tab after Data: a

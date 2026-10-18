@@ -15,6 +15,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QComboBox,
     QFrame,
     QLabel,
     QListWidget,
@@ -24,8 +25,9 @@ from PySide6.QtWidgets import (
 )
 
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
-from app.data.demos import DEMO_PROJECTS, DemoProject
+from app.data.demos import DEMO_CATEGORIES, DEMO_PROJECTS, DemoProject
 from app.styles.style import load_icon, mark_editor_panel
+from app.utils.config import get_value, set_value
 from app.utils.i18n import _
 
 
@@ -57,15 +59,25 @@ class LoadDemoDialog(SettingsTableDialog):
         self.chosen: DemoProject | None = None
         card = self.content_frame
 
+        # By category (JMP's platform names where a demo is about one): all of
+        # them, under a heading each, or one category's.
+        self.category = QComboBox(self.settings_frame)
+        self.category.addItem(_("All demos"), "")
+        for name in DEMO_CATEGORIES:
+            count = sum(1 for demo in DEMO_PROJECTS if demo.category == name)
+            if count:
+                self.category.addItem(f"{_(name)} ({count})", name)
+        self.category.setToolTip(_("Show the demos of one kind"))
+        self.settings_layout.addWidget(self.category)
+
         self._list = QListWidget(self.settings_frame)
+        # Long names end in "…" rather than scroll sideways; the tooltip says the rest.
+        self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._list.setTextElideMode(Qt.TextElideMode.ElideRight)
         mark_editor_panel(self._list)
-        for demo in DEMO_PROJECTS:
-            item = QListWidgetItem(_(demo.file_name), self._list)
-            item.setToolTip(_(demo.description))
-            item.setData(Qt.ItemDataRole.UserRole, demo)
-        self._list.setCurrentRow(0)
         self._list.currentRowChanged.connect(self._update_summary)
         self.settings_layout.addWidget(self._list, 1)
+        self.category.currentIndexChanged.connect(lambda _index: self._fill_list())
         details = self.content_layout
         self._preview = QLabel(card)
         self._preview.setFixedSize(self.PREVIEW_SIZE)
@@ -90,10 +102,41 @@ class LoadDemoDialog(SettingsTableDialog):
         summary_box.setMinimumHeight(self._summary.fontMetrics().lineSpacing() * self._SUMMARY_LINES + 4)
         summary_box.setMinimumWidth(self.PREVIEW_SIZE.width())
         details.addWidget(summary_box, 1)
-        self._update_summary(0)
+        remembered = self.category.findData(str(get_value(self.CATEGORY_KEY, "") or ""))
+        self.category.setCurrentIndex(max(remembered, 0))
+        self._fill_list()
 
         self.add_action("apply", self._confirm, default=True)
         self.add_action("close", self.reject)
+
+    #: The category shown last, in user.json.
+    CATEGORY_KEY = "load_demo_category"
+
+    def _fill_list(self) -> None:
+        """The chosen category's demos - or all, each category under its heading."""
+        chosen = str(self.category.currentData() or "")
+        set_value(self.CATEGORY_KEY, chosen)
+        self._list.blockSignals(True)
+        self._list.clear()
+        for name in ([chosen] if chosen else DEMO_CATEGORIES):
+            demos = [demo for demo in DEMO_PROJECTS if demo.category == name]
+            if not demos:
+                continue
+            if not chosen:
+                heading = QListWidgetItem(_(name).upper(), self._list)
+                heading.setFlags(Qt.ItemFlag.NoItemFlags)
+                font = heading.font()
+                font.setBold(True)
+                heading.setFont(font)
+            for demo in demos:
+                item = QListWidgetItem(_(demo.file_name), self._list)
+                item.setToolTip(f"<b>{_(demo.file_name)}</b><br>{_(demo.description)}")
+                item.setData(Qt.ItemDataRole.UserRole, demo)
+        self._list.blockSignals(False)
+        first = next((row for row in range(self._list.count())
+                      if self._list.item(row).data(Qt.ItemDataRole.UserRole) is not None), -1)
+        self._list.setCurrentRow(first)
+        self._update_summary(first)
 
     def _update_summary(self, row: int) -> None:
         item = self._list.item(row)

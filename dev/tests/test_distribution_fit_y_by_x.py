@@ -114,7 +114,7 @@ def test_both_windows_write_their_tables_and_a_figure(qapp, repo, frame) -> None
     dialog.roles_widget.set_casting({"response": ["y"]}, kinds)
     _ok(qapp, dialog)
     assert dialog.created_figure_ids
-    quantiles = repo.query_df('SELECT * FROM "data_distribution_quantiles"')
+    quantiles = repo.query_df('SELECT * FROM "_data_distribution_quantiles"')
     assert len(quantiles) == len(dist.QUANTILES)
     dialog.close()
 
@@ -123,12 +123,12 @@ def test_both_windows_write_their_tables_and_a_figure(qapp, repo, frame) -> None
     _ok(qapp, dialog)
     assert dialog.created_figure_ids
     names = repo.list_table_names()
-    assert "data_y_by_x_linear_fit" in names and "data_y_by_group_games_howell_unequal_variances" in names
+    assert "_data_y_by_x_linear_fit" in names and "_data_y_by_group_games_howell_unequal_variances" in names
     dialog.close()
 
     dialog = FitYByXDialog(repo=repo, table="data")
     dialog.roles_widget.set_casting({"response": ["flag"], "factor": ["x", "group"]}, kinds)
     _ok(qapp, dialog)
     names = repo.list_table_names()
-    assert "data_flag_by_x_whole_model_test" in names and "data_flag_by_group_tests" in names
+    assert "_data_flag_by_x_whole_model_test" in names and "_data_flag_by_group_tests" in names
     dialog.close()

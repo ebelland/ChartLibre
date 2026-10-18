@@ -98,7 +98,7 @@ def test_ok_writes_the_tables_and_draws_the_charts(qapp, tmp_path, frame: pd.Dat
         dialog.roles_widget.set_casting({"response": ["a", "b", "c"]})
         assert not dialog.problems()
         _run(qapp, dialog)
-        assert len(repo.table_frame("m_correlation_pairs")) == 3
+        assert len(repo.table_frame("_m_correlation_pairs")) == 3
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Pair Plot"]
         dialog.close()
@@ -106,7 +106,7 @@ def test_ok_writes_the_tables_and_draws_the_charts(qapp, tmp_path, frame: pd.Dat
         dialog = PrincipalComponentsDialog(repo=repo, table="m")
         dialog.roles_widget.set_casting({"response": ["a", "b", "c", "d"]})
         _run(qapp, dialog)
-        rows = repo.table_frame("m_pca")
+        rows = repo.table_frame("_m_pca")
         assert {"Prin1", "Prin4"} <= set(rows.columns)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert len(figure.axes) == 3 and len(figure.axes[2].series) == 4  # scree, scores, a loading per column

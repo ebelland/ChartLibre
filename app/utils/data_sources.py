@@ -180,6 +180,20 @@ def transpose_delimited_text(text: str, delimiter: str | None = None) -> str:
     return out.getvalue()
 
 
+def excel_engine(path: str | Path) -> str:
+    """The reader of an Excel file: openpyxl for .xlsx/.xlsm, xlrd for the old .xls - which openpyxl cannot read."""
+    if Path(path).suffix.lower() != ".xls":
+        return "openpyxl"
+    import importlib.util
+
+    if importlib.util.find_spec("xlrd") is None:
+        raise ValueError(
+            "Reading an .xls file (Excel 97-2003) needs the xlrd package (pip install xlrd); "
+            "or save the file as .xlsx in Excel and import that."
+        )
+    return "xlrd"
+
+
 def read_excel_file(
     path: str,
     *,
@@ -189,7 +203,8 @@ def read_excel_file(
     header: bool = True,
 ) -> pd.DataFrame:
     hdr = 0 if header else None
-    df = pd.read_excel(path, sheet_name=sheet_name or 0, skiprows=int(skiprows), header=hdr, engine="openpyxl")
+    df = pd.read_excel(path, sheet_name=sheet_name or 0, skiprows=int(skiprows), header=hdr,
+                       engine=excel_engine(path))
     if skipfooter:
         df = df.iloc[: max(0, len(df) - int(skipfooter))]
     return df
@@ -209,7 +224,8 @@ def read_json_file(path: str, *, skiprows: int = 0, skipfooter: int = 0) -> pd.D
 
 
 def read_xml_file(path: str, *, skiprows: int = 0, skipfooter: int = 0) -> pd.DataFrame:
-    df = pd.read_xml(path)
+    # Python's own parser: pandas' default, lxml, is a package of its own, not installed.
+    df = pd.read_xml(path, parser="etree")
     if skiprows:
         df = df.iloc[int(skiprows) :]
     if skipfooter:

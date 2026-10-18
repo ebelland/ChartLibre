@@ -70,6 +70,7 @@ from app.utils.data_sources import (
     IMPORT_FILE_FILTER,
     WebDataSource,
     add_user_web_source,
+    excel_engine,
     filename_from_url,
     is_valid_web_url,
     load_web_data_sources,
@@ -542,9 +543,7 @@ class ImportDataDialog(SettingsTableDialog):
 
         sheets: list[str] = []
         try:
-            ext = (Path(path).suffix or "").lower()
-            engine = "openpyxl" if ext in (".xlsx", ".xlsm") else None
-            xls = pd.ExcelFile(path, engine=engine)
+            xls = pd.ExcelFile(path, engine=excel_engine(path))
             sheets = [str(s) for s in (xls.sheet_names or [])]
         except Exception as exc:  # noqa: BLE001
             applogger.warning("Cannot read Excel sheet names for %s: %s", path, exc)

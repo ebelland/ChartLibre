@@ -98,6 +98,8 @@ class DemoProject:
     #: Where its data comes from.
     references: tuple[Reference, ...] = ()
     author: str = "ChartLibre"
+    #: Its group in Load demo (DEMO_CATEGORIES): JMP's platform names where it is about one.
+    category: str = "Graph"
 
     @property
     def path_name(self) -> str:
@@ -137,6 +139,12 @@ class DemoProject:
 
 #: The demo set.  The first is the complete project - every chart type over
 #: every table - and the rest are one real dataset each.
+#: Load demo's groups, in its drop-down's order: how to start, then by JMP's platforms.
+DEMO_CATEGORIES: tuple[str, ...] = (
+    "Getting Started", "Guided Analysis", "Graph", "Basic Analysis", "Curves", "Signal Processing",
+    "Screening", "Multivariate Methods", "Quality and Process", "Design of Experiments",
+)
+
 DEMO_PROJECTS: tuple[DemoProject, ...] = (
     DemoProject(
         "Getting started - real data across every chart type",
@@ -145,6 +153,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         (),
         preview="Penguin flipper length - spread",
         references=(REF_PENGUINS, REF_ANTIBIOTICS, REF_YEAST, REF_ANSCOMBE,),
+        category="Getting Started",
     ),
     DemoProject(
         "Quick answers - three questions asked of real data",
@@ -157,6 +166,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         builder="dev.demo.demo_questions:build_questions_demo",
         preview="Are there differences?",
         references=(REF_PENGUINS, REF_GISTEMP,),
+        category="Guided Analysis",
     ),
     DemoProject(
         "Relate - how the penguins' measures move together",
@@ -169,6 +179,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         builder="dev.demo.demo_goals:build_relate_demo",
         preview="Multivariate",
         references=(REF_PENGUINS,),
+        category="Guided Analysis",
     ),
     DemoProject(
         "Classify - telling the penguin species apart",
@@ -180,6 +191,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         builder="dev.demo.demo_goals:build_classify_demo",
         preview="Discriminant",
         references=(REF_PENGUINS,),
+        category="Guided Analysis",
     ),
     DemoProject(
         "Describe and compare - salaries across departments",
@@ -189,6 +201,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         (),
         builder="dev.demo.demo_goals:build_describe_compare_demo",
         preview="Are there differences?",
+        category="Guided Analysis",
     ),
     DemoProject(
         "Antibiotics - grouped bars from a classic dataset",
@@ -220,6 +233,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "Random Forest/Gradient Boosting models and for GP Regression's "
         "uncertainty band.",
         ("dlvo_force",),
+        category="Curves",
     ),
     DemoProject(
         "Stock prices - three tickers, ready for Smoothing",
@@ -228,6 +242,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "a date axis, which is what Decomposition needs to run PCA/ICA "
         "across them together.",
         ("stock_timeseries",),
+        category="Signal Processing",
     ),
     DemoProject(
         "Employee compensation - ready for the Outlier operation",
@@ -236,6 +251,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "distribution Transform's Power/Quantile models can reshape, too - "
         "plus a pie chart of the same five departments' headcount.",
         ("employee_box", "employee_dept_pie"),
+        category="Screening",
     ),
     DemoProject(
         "Driver behaviour - ready for the Cluster operation",
@@ -244,6 +260,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "population for Outliers' Isolation Forest/Local Outlier Factor "
         "models to earn their keep over a plain Z-score.",
         ("driver_scatter",),
+        category="Multivariate Methods",
     ),
     DemoProject(
         "Transactions - histogram and a saved query",
@@ -313,6 +330,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "editors populated rather than empty - and seven rejected-board "
         "causes as a Pareto chart, the tool this kind of table exists for.",
         ("attribute_counts", "baseline_spectrum", "defect_causes_pareto"),
+        category="Quality and Process",
     ),
     DemoProject(
         "New chart types - heatmap, hexbin, event plot, and true 3D",
@@ -349,6 +367,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
             "machine_box", "machine_ecdf", "machine_scatter", "machine_table",
             "machine_downtime_hbar", "machine_downtime_vbar",
         ),
+        category="Quality and Process",
     ),
     DemoProject(
         "Release history and regional sales - timeline and text",
@@ -373,6 +392,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "exact by construction, so Interpolation's generated curve can be "
         "checked against the true shape rather than against noise.",
         ("sparse_calibration_scatter",),
+        category="Curves",
     ),
     DemoProject(
         "3D Data Operations - Fit, Peaks, Roots and Calculus on a surface",
@@ -383,6 +403,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "as its two true diagonals, and the bump's gradient magnitude "
         "with the volume under it reported alongside.",
         ("ops3d_showcase",),
+        category="Curves",
     ),
     DemoProject(
         "Real case studies - CO2, sunspots, earthquakes and warming",
@@ -404,6 +425,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
             "global_temperature",
         ),
         references=(REF_CO2, REF_SUNSPOTS, REF_USGS, REF_GISTEMP,),
+        category="Getting Started",
     ),
     DemoProject(
         "Root cause analysis - an Ishikawa diagram and its Pareto chart",
@@ -413,6 +435,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "under some of them, and the defects actually counted as a Pareto "
         "chart - the two quality tools that are used together.",
         ("defect_root_causes_fishbone", "defect_causes_pareto"),
+        category="Quality and Process",
     ),
     DemoProject(
         "NIST reference datasets - certified answers for Fit and Statistics",
@@ -426,6 +449,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         builder="dev.demo.nist_demo:build_nist_demo",
         preview="NIST Gauss3",
         references=(REF_NIST,),
+        category="Basic Analysis",
     ),
     DemoProject(
         "Diagnostic plots - Q-Q, survival, forest, mosaic and more",
@@ -449,6 +473,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "the results pane below it, exactly as the operation leaves them.",
         (),
         builder="dev.demo.demo_operations:build_operations_demo",
+        category="Curves",
     ),
     DemoProject(
         "Designed experiment - a Box-Behnken design analysed with Fit Model",
@@ -460,6 +485,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         (),
         builder="dev.demo.demo_fit_model:build_fit_model_demo",
         preview="Yield",
+        category="Design of Experiments",
     ),
 )
 

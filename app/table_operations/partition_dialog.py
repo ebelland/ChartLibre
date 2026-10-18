@@ -319,7 +319,7 @@ class PartitionDialog(TableOperationDialogBase):
         # A forest or a boosted model has no single tree: no leaves to write or draw.
         tree = not result.leaves.empty
         graph = "partition" in charts and result.kind != pt.NOMINAL and tree
-        names = {key: repo.free_table_name(f"{table}_partition{suffix}") for key, suffix in (
+        names = {key: self.result_table_name(f"partition{suffix}") for key, suffix in (
             ("rows", ""), *((("leaves", "_leaves"),) if tree else ()), ("history", "_history"),
             ("contributions", "_contributions"), *((("graph", "_graph"),) if graph else ()),
             *((("importance", "_importance"),) if not result.importance.empty else ()),
