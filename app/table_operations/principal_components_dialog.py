@@ -48,7 +48,11 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
     ROLES = (
         ColumnRole("response", "Y, columns", "The continuous columns whose variation is summed up.",
                    kinds=(CONTINUOUS, ORDINAL), minimum=2),
+        ColumnRole("by", "By", "Optional: a column of groups - species, batch, site; the score plot and the "
+                               "biplot colour the rows by it.", maximum=1),
     )
+    #: More groups than this are one colour: a legend of fifty is no help.
+    MAX_GROUPS = 20
     PARAMETERS_TAB = "Principal Components"
     PARAMS = (
         ChoiceParam("on", "On:", choices=tuple((label, key) for key, label in mv.PCA_ON),
@@ -59,6 +63,28 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
     def __init__(self, **kwargs: Any) -> None:
         self.created_figure_ids: list[int] = []
         super().__init__(**kwargs)
+
+    def problems(self) -> list[str]:
+        found = super().problems()
+        casting = self.roles_widget.casting()
+        if not found and set(casting.columns("response")) & set(casting.columns("by")):
+            found.append(_("The By column cannot also be one of the columns."))
+        return found
+
+    def _row_series(self, table: str, x: str, y: str) -> list[tuple]:
+        """The rows as one series, or one per group of the By column."""
+        by = self.roles_widget.casting().columns("by")
+        if by:
+            levels = [value for value in pd.unique(self._frame[by[0]].dropna())][: self.MAX_GROUPS + 1]
+            if 1 < len(levels) <= self.MAX_GROUPS:
+                series = []
+                for level in sorted(levels, key=str):
+                    sql, roles = self.series_select(table, {"x": x, "y": y},
+                                                    where=f"{self.quoted(by[0])} = {self.literal(str(level))}")
+                    series.append((str(level), sql, roles, {}))
+                return series
+        sql, roles = self.series_select(table, {"x": x, "y": y})
+        return [(_("Rows"), sql, roles, {})]
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
@@ -93,16 +119,34 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
             zero = {"lines": [{"orientation": orientation, "value": 0.0,
                                "kwargs": {"color": "0.6", "linestyle": "--", "linewidth": 0.8}}
                               for orientation in ("horizontal", "vertical")]}
-            sql, roles = self.series_select(tables["pca"], {"x": "Prin1", "y": "Prin2"})
-            panels.append(("Scatter Plot", _("Score plot"), "Prin1", "Prin2", [(_("Rows"), sql, roles, {})], zero))
+            panels.append(("Scatter Plot", _("Score plot"), "Prin1", "Prin2",
+                           self._row_series(tables["pca"], "Prin1", "Prin2"), zero))
             loading_series = []
             for column in result.columns:
                 sql, roles = self.series_select(tables["pca_loadings"], {"x": "Prin1", "y": "Prin2"},
                                                 where=f'"Variable" = {self.literal(column)}')
                 loading_series.append((column, sql, roles, {"marker": "o"}))
             panels.append(("Scatter Plot", _("Loading plot"), "Prin1", "Prin2", loading_series, zero))
+            panels.append(self._biplot(result, tables["pca"], zero))
         figure_id = self.create_report_figure(f"Principal Components · {self.table}", self.report_document(result),
                                               panels)
         self.created_figure_ids = [figure_id]
         written.append({"figure": figure_id, "name": self.table})
         return written
+
+    def _biplot(self, result: mv.PCAResult, table: str, zero: dict[str, Any]) -> tuple:
+        """The rows' scores and, as arrows from the centre, the columns' loadings - scaled to the scores' spread."""
+        loadings = result.loadings[["Prin1", "Prin2"]].to_numpy(float)
+        scores = result.scores[["Prin1", "Prin2"]].to_numpy(float)
+        reach = float(abs(scores).max()) if scores.size else 1.0
+        scale = 0.85 * reach / max(float(abs(loadings).max()), 1e-12)
+        annotations = []
+        for name, (x, y) in zip(result.columns, loadings * scale):
+            annotations.append({"type": "arrow", "x": float(x), "y": float(y), "text": "",
+                                "kwargs": {"xytext": [0.0, 0.0], "textcoords": "data",
+                                           "arrowprops": {"arrowstyle": "->", "color": "#c2410c", "lw": 1.2}}})
+            annotations.append({"type": "text", "x": float(x), "y": float(y), "text": str(name),
+                                "kwargs": {"color": "#c2410c", "fontsize": 8,
+                                           "ha": "left" if x >= 0 else "right", "va": "bottom" if y >= 0 else "top"}})
+        series = [(*item[:3], {**item[3], "alpha": 0.6}) for item in self._row_series(table, "Prin1", "Prin2")]
+        return ("Scatter Plot", _("Biplot"), "Prin1", "Prin2", series, {**zero, "annotations": annotations})

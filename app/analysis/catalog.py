@@ -176,6 +176,8 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("analysis:Partition", "A tree finds the factors and the cut points that split the response best.", ANY),
         ("analysis:Fit Model", "Logistic regression: how each factor moves the odds of each level.", CATEGORICAL),
         ("chart:Interaction Plot", "Does the effect of one factor depend on another?", NUMERIC),
+        ("analysis:Factor Analysis", "A few hidden factors behind many correlated measures - the traits a "
+                                     "questionnaire's items measure.", NUMERIC),
     ),
     "predict": (
         ("analysis:Time Series", "The next values of a series in time: ARIMA or exponential smoothing, "
@@ -401,6 +403,12 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "SPSS": "Analyze > Dimension Reduction > Factor",
         "Minitab": "Stat > Multivariate > Principal Components",
         "Origin / Excel": "Origin: Statistics > Multivariate Analysis > Principal Component Analysis",
+    }),
+    ("Factor analysis", "Analysis > Multivariate Methods > Factor Analysis", "analysis:Factor Analysis", {
+        "JMP": "Analyze > Multivariate Methods > Factor Analysis",
+        "SPSS": "Analyze > Dimension Reduction > Factor (Extraction, Rotation)",
+        "Minitab": "Stat > Multivariate > Factor Analysis",
+        "Origin / Excel": "Origin: Statistics > Multivariate Analysis > Factor Analysis",
     }),
     ("Control charts", "Analysis > Control Chart", "series:Control Chart", {
         "JMP": "Analyze > Quality and Process > Control Chart Builder",

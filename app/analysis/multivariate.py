@@ -154,3 +154,167 @@ def principal_components(frame: pd.DataFrame, columns: list[str], *, on: str = C
         eigenvectors=pd.DataFrame(vectors, columns=names).assign(Variable=list(columns))[["Variable", *names]],
         scores=scores, summary=summary, notes=notes,
     )
+
+
+# ----------------------------------------------------------------------
+# Factor Analysis (AN-04)
+# ----------------------------------------------------------------------
+ML = "ml"
+PRINCIPAL_AXIS = "principal"
+FA_METHODS: tuple[tuple[str, str], ...] = ((ML, "Maximum Likelihood"), (PRINCIPAL_AXIS, "Principal Axis"))
+VARIMAX, QUARTIMAX, EQUAMAX, PROMAX, NO_ROTATION = "varimax", "quartimax", "equamax", "promax", "none"
+ROTATIONS: tuple[tuple[str, str], ...] = (
+    (VARIMAX, "Varimax"), (QUARTIMAX, "Quartimax"), (EQUAMAX, "Equamax"), (PROMAX, "Promax (oblique)"),
+    (NO_ROTATION, "None"),
+)
+
+
+@dataclass(slots=True)
+class FactorResult:
+    columns: list[str]
+    method: str
+    rotation: str
+    factors: int
+    eigenvalues: pd.DataFrame        # of the correlation matrix, for the scree plot
+    loadings: pd.DataFrame           # Variable, Factor1.. (rotated; the pattern when oblique)
+    communalities: pd.DataFrame      # Variable, Communality, Uniqueness
+    variance: pd.DataFrame           # Factor, Variance (SS loadings), Percent, Cum Percent
+    factor_correlations: pd.DataFrame  # oblique rotations only; empty otherwise
+    scores: pd.DataFrame             # each row's factor scores (regression method)
+    summary: dict[str, Any] = field(default_factory=dict)
+    notes: list[str] = field(default_factory=list)
+
+
+def orthomax(loadings: np.ndarray, gamma: float, *, iterations: int = 1000,
+             tolerance: float = 1e-10) -> tuple[np.ndarray, np.ndarray]:
+    """The orthomax rotation of *loadings* (gamma 1 varimax, 0 quartimax, k/2 equamax): (rotated, rotation)."""
+    p, k = loadings.shape
+    rotation = np.eye(k)
+    criterion = 0.0
+    for _ in range(iterations):
+        rotated = loadings @ rotation
+        target = rotated ** 3 - (gamma / p) * rotated @ np.diag(np.sum(rotated ** 2, axis=0))
+        u, s, vt = np.linalg.svd(loadings.T @ target)
+        rotation = u @ vt
+        previous, criterion = criterion, float(np.sum(s))
+        if criterion - previous < tolerance * max(criterion, 1.0):
+            break
+    return loadings @ rotation, rotation
+
+
+def promax(loadings: np.ndarray, power: int = 4) -> tuple[np.ndarray, np.ndarray]:
+    """Promax: varimax, then an oblique fit to its loadings raised to *power*: (pattern, factor correlations)."""
+    varimax, _rotation = orthomax(loadings, 1.0)
+    target = varimax * np.abs(varimax) ** (power - 1)
+    transform, *_rest = np.linalg.lstsq(varimax, target, rcond=None)
+    transform = transform @ np.diag(np.sqrt(np.diag(np.linalg.inv(transform.T @ transform))))
+    inverse = np.linalg.inv(transform)
+    return varimax @ transform, inverse @ inverse.T
+
+
+def _principal_axis(correlation: np.ndarray, factors: int, iterations: int = 200) -> tuple[np.ndarray, bool]:
+    """Iterated principal-axis loadings, from the squared multiple correlations; and whether it converged."""
+    try:
+        communality = 1.0 - 1.0 / np.diag(np.linalg.inv(correlation))
+    except np.linalg.LinAlgError:
+        communality = np.full(len(correlation), 0.5)
+    loadings = np.zeros((len(correlation), factors))
+    for _ in range(iterations):
+        reduced = correlation.copy()
+        np.fill_diagonal(reduced, communality)
+        values, vectors = np.linalg.eigh(reduced)
+        order = np.argsort(values)[::-1][:factors]
+        loadings = vectors[:, order] * np.sqrt(np.clip(values[order], 0.0, None))
+        updated = np.clip(np.sum(loadings ** 2, axis=1), 0.0, 0.995)  # a Heywood case stops just short of 1
+        if np.max(np.abs(updated - communality)) < 1e-6:
+            return loadings, True
+        communality = updated
+    return loadings, False
+
+
+def factor_analysis(frame: pd.DataFrame, columns: list[str], *, factors: int = 0, method: str = ML,
+                    rotation: str = VARIMAX) -> FactorResult:
+    """The common factors of *columns*: loadings, communalities, variance explained, each row's scores.
+
+    On the correlations (the columns standardized), as JMP's Factor Analysis.
+    *factors* 0 takes as many as the correlation matrix has eigenvalues above 1.
+    """
+    if len(columns) < 3:
+        raise ValueError("choose three columns or more")
+    if method not in dict(FA_METHODS):
+        raise ValueError(f"'{method}' is not one of {', '.join(key for key, _label in FA_METHODS)}")
+    if rotation not in dict(ROTATIONS):
+        raise ValueError(f"'{rotation}' is not one of {', '.join(key for key, _label in ROTATIONS)}")
+    data = _numbers(frame, columns).dropna()
+    if len(data) <= len(columns):
+        raise ValueError(f"{len(data)} complete rows for {len(columns)} columns: more rows than columns are needed")
+    spread = data.std(ddof=1)
+    constant = [c for c in columns if not spread[c] > 0]
+    if constant:
+        raise ValueError(f"{', '.join(constant)} does not vary")
+    standardized = ((data - data.mean()) / spread).to_numpy(float)
+    correlation = np.corrcoef(standardized, rowvar=False)
+    values = np.sort(np.linalg.eigvalsh(correlation))[::-1]
+    p = len(columns)
+    notes: list[str] = []
+    count = int(factors) if factors else max(1, int((values > 1.0).sum()))
+    if count >= p:
+        raise ValueError(f"{count} factors for {p} columns: fewer factors than columns are needed")
+    if not factors:
+        notes.append(f"{count} factor(s): the eigenvalues of the correlations above 1.")
+
+    if method == ML:
+        from sklearn.decomposition import FactorAnalysis
+
+        model = FactorAnalysis(n_components=count, random_state=0).fit(standardized)
+        loadings = model.components_.T
+    else:
+        loadings, converged = _principal_axis(correlation, count)
+        if not converged:
+            notes.append("Principal Axis did not converge in 200 iterations: the loadings are the last ones.")
+
+    phi = np.eye(count)
+    if rotation in (VARIMAX, QUARTIMAX, EQUAMAX) and count > 1:
+        gamma = {VARIMAX: 1.0, QUARTIMAX: 0.0, EQUAMAX: count / 2.0}[rotation]
+        loadings, _rotation = orthomax(loadings, gamma)
+    elif rotation == PROMAX and count > 1:
+        loadings, phi = promax(loadings)
+    # A fixed sign (the largest loading positive) and the factors by the variance they carry.
+    signs = np.sign(loadings[np.argmax(np.abs(loadings), axis=0), np.arange(count)])
+    loadings = loadings * np.where(signs == 0, 1.0, signs)
+    phi = phi * np.outer(np.where(signs == 0, 1.0, signs), np.where(signs == 0, 1.0, signs))
+    variance = np.sum(loadings ** 2, axis=0)
+    order = np.argsort(variance)[::-1]
+    loadings, variance, phi = loadings[:, order], variance[order], phi[np.ix_(order, order)]
+
+    structure = loadings @ phi
+    communality = np.sum(loadings * structure, axis=1)
+    names = [f"Factor{k + 1}" for k in range(count)]
+    try:
+        weights = np.linalg.solve(correlation, structure)  # Thurstone's regression scores
+        scores = pd.DataFrame(standardized @ weights, index=data.index, columns=names)
+    except np.linalg.LinAlgError:
+        scores = pd.DataFrame(index=data.index, columns=names, dtype=float)
+        notes.append("The correlation matrix is singular: no factor scores.")
+    if np.any(communality > 0.99):
+        notes.append("A communality near 1 (a Heywood case): a column is all common factor - fewer factors may fit better.")
+    if len(data) < len(frame):
+        notes.append(f"{len(frame) - len(data)} row(s) miss a value in some column and have no scores.")
+    percent = 100.0 * variance / p
+    oblique = rotation == PROMAX and count > 1
+    if oblique:
+        notes.append("Promax is oblique: the factors correlate, and their variances overlap (no cumulative share).")
+    summary: dict[str, Any] = {"Columns": p, "Rows": len(data), "Factors": count,
+                               "Common variance explained %": float(np.sum(communality) / p * 100.0)}
+    return FactorResult(
+        columns=list(columns), method=method, rotation=rotation, factors=count,
+        eigenvalues=pd.DataFrame({"Number": np.arange(1, p + 1), "Eigenvalue": values}),
+        loadings=pd.DataFrame(loadings, columns=names).assign(Variable=list(columns))[["Variable", *names]],
+        communalities=pd.DataFrame({"Variable": list(columns), "Communality": communality,
+                                    "Uniqueness": 1.0 - communality}),
+        variance=pd.DataFrame({"Factor": names, "Variance": variance, "Percent": percent,
+                               "Cum Percent": np.nan if oblique else np.cumsum(percent)}),
+        factor_correlations=pd.DataFrame(phi, columns=names).assign(Factor=names)[["Factor", *names]]
+        if oblique else pd.DataFrame(),
+        scores=scores, summary=summary, notes=notes,
+    )

@@ -10215,3 +10215,78 @@ msgstr "Con k a 0: k da 2 a questo."
 
 msgid "Each column divided by its standard deviation, so that each counts the same whatever its unit - leave on unless the columns share one unit and scale."
 msgstr "Ogni colonna divisa per la sua deviazione standard, perché ognuna conti lo stesso qualunque sia l'unità - lascialo attivo salvo colonne con la stessa unità e scala."
+
+msgid "0 takes as many as the correlations have eigenvalues above 1 (see the scree plot)."
+msgstr "0 ne prende quanti sono gli autovalori delle correlazioni sopra 1 (vedi lo scree plot)."
+
+msgid "A few hidden factors behind many correlated columns: Maximum Likelihood or Principal Axis, rotated (Varimax, Quartimax, Equamax, Promax); loadings, communalities, each row's scores."
+msgstr "Pochi fattori nascosti dietro molte colonne correlate: Massima verosimiglianza o Assi principali, ruotati (Varimax, Quartimax, Equamax, Promax); saturazioni, comunalità, i punteggi di ogni riga."
+
+msgid "A few hidden factors behind many correlated measures - the traits a questionnaire's items measure."
+msgstr "Pochi fattori nascosti dietro molte misure correlate - i tratti che le domande di un questionario misurano."
+
+msgid "Analysis > Multivariate Methods > Factor Analysis"
+msgstr "Analisi > Metodi multivariati > Analisi fattoriale"
+
+msgid "Biplot"
+msgstr "Biplot"
+
+msgid "By"
+msgstr "Per"
+
+msgid "Communalities"
+msgstr "Comunalità"
+
+msgid "Equamax"
+msgstr "Equamax"
+
+msgid "Factor Analysis"
+msgstr "Analisi fattoriale"
+
+msgid "Factor analysis"
+msgstr "Analisi fattoriale"
+
+msgid "Factor correlations"
+msgstr "Correlazioni tra fattori"
+
+msgid "Factor loading plot"
+msgstr "Grafico delle saturazioni"
+
+msgid "Maximum Likelihood"
+msgstr "Massima verosimiglianza"
+
+msgid "Maximum Likelihood: JMP's default, for columns roughly normal. Principal Axis: no assumption of normality, steadier with few rows."
+msgstr "Massima verosimiglianza: il predefinito di JMP, per colonne all'incirca normali. Assi principali: nessuna ipotesi di normalità, più stabile con poche righe."
+
+msgid "Optional: a column of groups - species, batch, site; the score plot and the biplot colour the rows by it."
+msgstr "Facoltativa: una colonna di gruppi - specie, lotto, sito; lo score plot e il biplot colorano le righe secondo essa."
+
+msgid "Principal Axis"
+msgstr "Assi principali"
+
+msgid "Promax (oblique)"
+msgstr "Promax (obliqua)"
+
+msgid "Quartimax"
+msgstr "Quartimax"
+
+msgid "Rotated factor loadings"
+msgstr "Saturazioni ruotate"
+
+msgid "Rotation:"
+msgstr "Rotazione:"
+
+msgid "The By column cannot also be one of the columns."
+msgstr "La colonna Per non può essere anche una delle colonne."
+
+msgid "The continuous columns whose correlations the factors explain."
+msgstr "Le colonne continue le cui correlazioni sono spiegate dai fattori."
+
+msgid "Variance explained"
+msgstr "Varianza spiegata"
+
+msgid "Varimax"
+msgstr "Varimax"
+
+msgid "Varimax: each factor with few large loadings, the usual choice. Quartimax: each column on few factors. Equamax: between the two. Promax: lets the factors correlate, when the traits they stand for do."
+msgstr "Varimax: ogni fattore con poche saturazioni grandi, la scelta usuale. Quartimax: ogni colonna su pochi fattori. Equamax: a metà fra i due. Promax: lascia correlare i fattori, quando lo fanno i tratti che rappresentano."

@@ -109,7 +109,21 @@ def test_ok_writes_the_tables_and_draws_the_charts(qapp, tmp_path, frame: pd.Dat
         rows = repo.table_frame("_m_pca")
         assert {"Prin1", "Prin4"} <= set(rows.columns)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
-        assert len(figure.axes) == 3 and len(figure.axes[2].series) == 4  # scree, scores, a loading per column
+        # scree, scores, a loading per column, the biplot with an arrow per column
+        assert len(figure.axes) == 4 and len(figure.axes[2].series) == 4
+        assert [a["type"] for a in figure.axes[3].options["annotations"]].count("arrow") == 4
+        dialog.close()
+
+        repo.import_dataframe(frame.assign(site=["north", "south", "east"] * 20), table_name="g",
+                              normalize_columns=False)
+        dialog = PrincipalComponentsDialog(repo=repo, table="g")
+        dialog.roles_widget.set_casting({"response": ["a", "b", "c"], "by": ["site"]})
+        assert not dialog.problems()
+        _run(qapp, dialog)
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        assert [series.name for series in figure.axes[1].series] == ["east", "north", "south"]
+        dialog.roles_widget.set_casting({"response": ["a", "b", "site"], "by": ["site"]})
+        assert dialog.problems()
         dialog.close()
     finally:
         repo.close()
