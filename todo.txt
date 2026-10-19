@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-19
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 98,748 lines in 284 files; tests 19,394 lines in 156 files (updated at each commit).
+Size: app 98,886 lines in 284 files; tests 19,462 lines in 156 files (updated at each commit).
 
 NOW
 D-01  M  Demos per goal: Predict, Signal, Anomalies, Groups, Process, Experiment still to do
@@ -27,8 +27,8 @@ A-01  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in 
          Waiting for the go; Q1-Q5 to answer.
 
 NEXT - ANALYSIS (table operations, JMP-like)
-- AN-05 S  Time Series, next: seasonal ARIMA, automatic order (AIC search), differencing tests
-           (ADF/KPSS), cross-correlation of two series, transfer functions.
+- AN-05 S  Time Series, next: transfer functions (an input X in the model, ARIMAX), prewhitened
+           cross-correlation, intervention analysis.
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
            repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
 - R-08  M  Column metadata: label, unit, missing codes, value labels.

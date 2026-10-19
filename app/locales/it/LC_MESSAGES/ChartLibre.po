@@ -9931,8 +9931,6 @@ msgstr "La misura, un valore per istante."
 msgid "Forecast:"
 msgstr "Previsione:"
 
-msgid "ARIMA: the next value from the last ones (p), the changes (d) and the last errors (q). Exponential smoothing: a level, a trend and a season that each follow the newest values most."
-msgstr "ARIMA: il valore successivo dagli ultimi (p), dalle differenze (d) e dagli ultimi errori (q). Livellamento esponenziale: un livello, un trend e una stagionalità che seguono soprattutto i valori più recenti."
 
 msgid "ARIMA p (autoregressive):"
 msgstr "ARIMA p (autoregressivo):"
@@ -10266,3 +10264,57 @@ msgstr "Varimax"
 
 msgid "Varimax: each factor with few large loadings, the usual choice. Quartimax: each column on few factors. Equamax: between the two. Promax: lets the factors correlate, when the traits they stand for do."
 msgstr "Varimax: ogni fattore con poche saturazioni grandi, la scelta usuale. Quartimax: ogni colonna su pochi fattori. Equamax: a metà fra i due. Promax: lascia correlare i fattori, quando lo fanno i tratti che rappresentano."
+
+msgid "1 takes away last season's value: for a season that repeats steadily."
+msgstr "1 toglie il valore della stagione precedente: per una stagionalità che si ripete costante."
+
+msgid "ARIMA (p, d, q)(P, D, Q)"
+msgstr "ARIMA (p, d, q)(P, D, Q)"
+
+msgid "ARIMA with a season: how many past seasons the next value depends on (the ACF's spikes at the season's multiples)."
+msgstr "ARIMA con stagione: da quante stagioni passate dipende il valore successivo (i picchi dell'ACF ai multipli della stagione)."
+
+msgid "ARIMA, order chosen by AIC"
+msgstr "ARIMA, ordine scelto con l'AIC"
+
+msgid "ARIMA: the next value from the last ones (p), the changes (d) and the last errors (q), with a season (P, D, Q) of its own. ARIMA, order chosen by AIC: the differences from the stationarity tests, then the p, q, P, Q with the lowest AIC. Exponential smoothing: a level, a trend and a season that each follow the newest values most."
+msgstr "ARIMA: il valore successivo dagli ultimi valori (p), dalle variazioni (d) e dagli ultimi errori (q), con una stagione (P, D, Q) propria. ARIMA, ordine scelto con l'AIC: le differenze dai test di stazionarietà, poi i p, q, P, Q con l'AIC più basso. Livellamento esponenziale: un livello, un trend e una stagione che seguono soprattutto i valori più recenti."
+
+msgid "Cross-correlation with {input}"
+msgstr "Cross-correlazione con {input}"
+
+msgid "Cross-correlation with {input}, strongest lags"
+msgstr "Cross-correlazione con {input}, i ritardi più forti"
+
+msgid "Differences suggested (ADF, KPSS)"
+msgstr "Differenze suggerite (ADF, KPSS)"
+
+msgid "How many past seasons' errors the next value depends on."
+msgstr "Da quanti errori delle stagioni passate dipende il valore successivo."
+
+msgid "Models tried, best AIC first"
+msgstr "Modelli provati, il miglior AIC per primo"
+
+msgid "Optional: another series measured at the same times - the cross-correlation says whether it leads or follows Y, and by how much."
+msgstr "Facoltativa: un'altra serie misurata agli stessi tempi - la cross-correlazione dice se anticipa o segue Y, e di quanto."
+
+msgid "Seasonal D:"
+msgstr "D stagionale:"
+
+msgid "Seasonal P:"
+msgstr "P stagionale:"
+
+msgid "Seasonal Q:"
+msgstr "Q stagionale:"
+
+msgid "Seasonal strength"
+msgstr "Forza della stagionalità"
+
+msgid "Stationarity tests"
+msgstr "Test di stazionarietà"
+
+msgid "The input must be another column than the measure and the time."
+msgstr "L'input deve essere una colonna diversa dalla misura e dal tempo."
+
+msgid "X, input"
+msgstr "X, input"

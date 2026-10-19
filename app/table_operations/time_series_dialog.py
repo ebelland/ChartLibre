@@ -1,9 +1,10 @@
 """Time Series (Analysis): a measure in time order - its autocorrelation, its parts, its forecast (AN-05).
 
 As JMP's Time Series platform: Y is the measure, the time column orders it
-(the rows' order without one). The report gives the autocorrelation and
-partial autocorrelation with the Ljung-Box test, the model's parameters and
-fit, and the forecast with its 95% prediction interval. OK writes the rows
+(the rows' order without one); an input X gives the cross-correlation. The report gives the autocorrelation and
+partial autocorrelation with the Ljung-Box test, the ADF and KPSS tests of
+stationarity, the models tried when the order is chosen by AIC, the model's
+parameters and fit, and the forecast with its 95% prediction interval. OK writes the rows
 (fitted values, residuals, the seasonal decomposition), the correlations
 and the forecast as tables, and draws the series with its forecast, the
 ACF, the PACF and - with a season - the trend, seasonal part and remainder.
@@ -50,13 +51,18 @@ class TimeSeriesDialog(TableOperationDialogBase):
                    kinds=(CONTINUOUS, ORDINAL), minimum=1, maximum=1),
         ColumnRole("time", "Time or order", "Optional: dates, times or a run number. Without it, the rows' order.",
                    maximum=1),
+        ColumnRole("input", "X, input", "Optional: another series measured at the same times - the "
+                                        "cross-correlation says whether it leads or follows Y, and by how much.",
+                   kinds=(CONTINUOUS, ORDINAL), maximum=1),
     )
     PARAMETERS_TAB = "Time Series"
     PARAMS = (
         ChoiceParam("model", "Forecast:", choices=tuple((label, key) for key, label in tsa.MODELS),
                     tooltip="ARIMA: the next value from the last ones (p), the changes (d) and the last "
-                            "errors (q). Exponential smoothing: a level, a trend and a season that each "
-                            "follow the newest values most."),
+                            "errors (q), with a season (P, D, Q) of its own. ARIMA, order chosen by AIC: the "
+                            "differences from the stationarity tests, then the p, q, P, Q with the lowest AIC. "
+                            "Exponential smoothing: a level, a trend and a season that each follow the newest "
+                            "values most."),
         IntParam("p", "ARIMA p (autoregressive):", tooltip="How many past values the next depends on: the "
                                                          "lags where the PACF stands out.",
                  default_value=1, minimum=0, maximum=10),
@@ -66,6 +72,14 @@ class TimeSeriesDialog(TableOperationDialogBase):
         IntParam("q", "ARIMA q (moving average):", tooltip="How many past errors the next value depends on: the "
                                                           "lags where the ACF stands out.",
                  default_value=0, minimum=0, maximum=10),
+        IntParam("P", "Seasonal P:", tooltip="ARIMA with a season: how many past seasons the next value "
+                                             "depends on (the ACF's spikes at the season's multiples).",
+                 default_value=0, minimum=0, maximum=3),
+        IntParam("D", "Seasonal D:", tooltip="1 takes away last season's value: for a season that repeats "
+                                             "steadily.",
+                 default_value=0, minimum=0, maximum=1),
+        IntParam("Q", "Seasonal Q:", tooltip="How many past seasons' errors the next value depends on.",
+                 default_value=0, minimum=0, maximum=3),
         IntParam("season", "Season length:", tooltip="0 finds it from the dates (12 for months, 7 for days, "
                                                      "4 for quarters); 1 means none.",
                  default_value=0, minimum=0, maximum=400),
@@ -84,16 +98,21 @@ class TimeSeriesDialog(TableOperationDialogBase):
         casting = self.roles_widget.casting()
         if not found and set(casting.columns("response")) & set(casting.columns("time")):
             found.append(_("The measure and the time must be two different columns."))
+        if not found and set(casting.columns("input")) & set(casting.columns("response") + casting.columns("time")):
+            found.append(_("The input must be another column than the measure and the time."))
         return found
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
         time = casting.columns("time")
+        given = casting.columns("input")
         season = int(params.get("season", 0) or 0)
         return tsa.analyse(
             frame, casting.columns("response")[0], time[0] if time else tsa.ROW_ORDER,
             model=str(params.get("model") or tsa.ARIMA),
             order=(int(params.get("p", 1)), int(params.get("d", 0)), int(params.get("q", 0))),
+            seasonal_order=(int(params.get("P", 0)), int(params.get("D", 0)), int(params.get("Q", 0))),
+            input=given[0] if given else "",
             season=-1 if season == 0 else (0 if season == 1 else season),
             horizon=int(params.get("horizon", 12)), lags=int(params.get("lags", 25)),
         )
@@ -109,8 +128,18 @@ class TimeSeriesDialog(TableOperationDialogBase):
         if not result.parameters.empty:
             blocks.append(report_html.section(_("Parameter estimates"),
                                               self.report_table(result.parameters, p_columns=("Prob>|z|",))))
+        if not result.candidates.empty:
+            blocks.append(report_html.section(_("Models tried, best AIC first"),
+                                              self.report_table(result.candidates.head(10), digits=5)))
         if not result.forecast.empty:
             blocks.append(report_html.section(_("Forecast"), self.report_table(result.forecast, digits=5)))
+        if not result.stationarity.empty:
+            blocks.append(report_html.section(_("Stationarity tests"),
+                                              self.report_table(result.stationarity, p_columns=("Prob",), digits=4)))
+        if not result.cross.empty:
+            strongest = result.cross.reindex(result.cross["CCF"].abs().sort_values(ascending=False).index).head(8)
+            blocks.append(report_html.section(_("Cross-correlation with {input}, strongest lags").format(
+                input=result.input), self.report_table(strongest[["Lag", "CCF"]], digits=4)))
         shown = result.correlations[["Lag", "ACF", "PACF", "Ljung-Box Q", "Prob>Q"]].head(12)
         blocks.append(report_html.section(_("Autocorrelation, first 12 lags"),
                                           self.report_table(shown, p_columns=("Prob>Q",), digits=4)))
@@ -118,6 +147,8 @@ class TimeSeriesDialog(TableOperationDialogBase):
 
     def apply_results(self, result: tsa.TimeSeriesResult) -> list[dict[str, Any]]:
         frames = {"time_series": result.rows, "time_series_acf": result.correlations}
+        if not result.cross.empty:
+            frames["time_series_ccf"] = result.cross
         if not result.forecast.empty:
             frames["time_series_forecast"] = result.forecast
         tables = self.write_result_tables(frames)
@@ -158,6 +189,10 @@ class TimeSeriesDialog(TableOperationDialogBase):
         for column, title in (("ACF", _("Autocorrelation (ACF)")), ("PACF", _("Partial autocorrelation (PACF)"))):
             sql, roles = self.series_select(tables["time_series_acf"], {"x": "Lag", "y": column})
             panels.append(("Stem Plot", title, _("Lag"), column, [(column, sql, roles, {})], lines))
+        if "time_series_ccf" in tables:
+            sql, roles = self.series_select(tables["time_series_ccf"], {"x": "Lag", "y": "CCF"})
+            panels.append(("Stem Plot", _("Cross-correlation with {input}").format(input=result.input), _("Lag"),
+                           "CCF", [("CCF", sql, roles, {})], lines))
         if "Trend" in result.rows:
             # Without the trend, whose scale would flatten them: it is on the first chart.
             parts = []

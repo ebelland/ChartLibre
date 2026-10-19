@@ -9,7 +9,11 @@ a number (the rows' order when there is none):
 * Seasonal decomposition (STL): trend, seasonal part and remainder, for a
   season length given or found from the dates (12 for months, 7 for days,
   4 for quarters, 24 for hours, 52 for weeks).
-* A forecast: ARIMA (p, d, q) or exponential smoothing (ETS: additive
+* Stationarity: ADF (null: a unit root) and KPSS (null: stationary), as
+  the series is and differenced, and the differences it needs.
+* Cross-correlation with an input series, at lags both ways.
+* A forecast: seasonal ARIMA (p, d, q)(P, D, Q), its order given or chosen
+  by AIC (d from the tests, D from the season's strength), or exponential smoothing (ETS: additive
   errors, an additive trend, and an additive season when there is one),
   with its 95% prediction interval, the fitted values and the residuals.
   AIC, BIC and the residuals' RMSE say how well it fits.
@@ -29,11 +33,17 @@ import pandas as pd
 
 ROW_ORDER = ""
 ARIMA = "arima"
+AUTO = "auto"
 ETS = "ets"
 NONE = "none"
 MODELS: tuple[tuple[str, str], ...] = (
-    (ETS, "Exponential smoothing (ETS)"), (ARIMA, "ARIMA (p, d, q)"), (NONE, "No forecast"),
+    (ETS, "Exponential smoothing (ETS)"), (AUTO, "ARIMA, order chosen by AIC"),
+    (ARIMA, "ARIMA (p, d, q)(P, D, Q)"), (NONE, "No forecast"),
 )
+#: The orders the automatic search tries: p and q up to this; P and Q up to 1.
+AUTO_MAX_ORDER = 2
+#: A season stronger than this (STL's seasonal strength, 0 to 1) is differenced once (Hyndman's rule).
+SEASONAL_STRENGTH_LIMIT = 0.64
 #: The prediction interval's level.
 CONFIDENCE = 0.95
 
@@ -52,8 +62,103 @@ class TimeSeriesResult:
     #: Time, Forecast, Lower 95%, Upper 95%.
     forecast: pd.DataFrame
     parameters: pd.DataFrame
+    #: ADF and KPSS on the series as it is and differenced: Test, Series, Statistic, Prob, Says.
+    stationarity: pd.DataFrame = field(default_factory=pd.DataFrame)
+    #: The automatic search's models, best AIC first: Model, AIC, BIC.
+    candidates: pd.DataFrame = field(default_factory=pd.DataFrame)
+    #: Cross-correlation with the input: Lag, CCF, Upper band, Lower band (empty without an input).
+    cross: pd.DataFrame = field(default_factory=pd.DataFrame)
+    input: str = ""
     summary: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+
+
+def stationarity(y: np.ndarray) -> tuple[pd.DataFrame, int]:
+    """ADF (null: a unit root) and KPSS (null: stationary) on *y*, then differenced; and the differences
+    it needs - the first of 0, 1, 2 where ADF rejects and KPSS does not."""
+    from statsmodels.tsa.stattools import adfuller, kpss
+
+    rows = []
+    needed = None
+    series = np.asarray(y, float)
+    for d in range(3):
+        if series.size < 8:
+            break
+        if np.ptp(series) == 0:  # a straight line, differenced: nothing left to test - it is stationary
+            needed = d if needed is None else needed
+            break
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # KPSS's p is read from a table: clipped to 0.01-0.10, said so
+            adf_stat, adf_p, *_rest = adfuller(series, autolag="AIC")
+            kpss_stat, kpss_p, *_rest = kpss(series, regression="c", nlags="auto")
+        label = {0: "As it is", 1: "Differenced once", 2: "Differenced twice"}[d]
+        rows.append({"Test": "ADF (unit root)", "Series": label, "Statistic": float(adf_stat),
+                     "Prob": float(adf_p), "Says": "stationary" if adf_p < 0.05 else "not stationary"})
+        rows.append({"Test": "KPSS (stationary)", "Series": label, "Statistic": float(kpss_stat),
+                     "Prob": float(kpss_p), "Says": "not stationary" if kpss_p < 0.05 else "stationary"})
+        if needed is None and adf_p < 0.05 and kpss_p >= 0.05:
+            needed = d
+            break
+        series = np.diff(series)
+    return pd.DataFrame(rows), 1 if needed is None else needed
+
+
+def seasonal_strength(y: np.ndarray, season: int) -> float:
+    """STL's seasonal strength, 0 (none) to 1: how much of the detrended variation the season is."""
+    from statsmodels.tsa.seasonal import STL
+
+    parts = STL(y, period=season, robust=True).fit()
+    detrended = parts.seasonal + parts.resid
+    variance = float(np.var(detrended))
+    return max(0.0, 1.0 - float(np.var(parts.resid)) / variance) if variance > 0 else 0.0
+
+
+def _arima_label(order: tuple[int, int, int], seasonal: tuple[int, int, int], season: int) -> str:
+    label = f"ARIMA({', '.join(str(int(v)) for v in order)})"
+    if season >= 2 and any(seasonal):
+        label += f"({', '.join(str(int(v)) for v in seasonal)}){season}"
+    return label
+
+
+def search_arima(y: np.ndarray, d: int, season: int, seasonal_d: int) -> pd.DataFrame:
+    """Every ARIMA(p, d, q)(P, D, Q) with p, q up to AUTO_MAX_ORDER and P, Q up to 1, by AIC."""
+    from statsmodels.tsa.arima.model import ARIMA as ArimaModel
+
+    seasonals = [(0, seasonal_d, 0)]
+    if season >= 2:
+        seasonals += [(1, seasonal_d, 0), (0, seasonal_d, 1)]
+    rows = []
+    for p in range(AUTO_MAX_ORDER + 1):
+        for q in range(AUTO_MAX_ORDER + 1):
+            for seasonal in seasonals:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    try:
+                        fitted = ArimaModel(y, order=(p, d, q), seasonal_order=(*seasonal, season)
+                                            if season >= 2 else (0, 0, 0, 0)).fit()
+                    except Exception:  # noqa: BLE001 - statsmodels' own failures: a model left out of the search
+                        continue
+                if np.isfinite(fitted.aic):
+                    rows.append({"Model": _arima_label((p, d, q), seasonal, season), "AIC": float(fitted.aic),
+                                 "BIC": float(fitted.bic), "order": (p, d, q), "seasonal": seasonal})
+    if not rows:
+        raise ValueError("No ARIMA model could be fitted to these values.")
+    return pd.DataFrame(rows).sort_values("AIC", kind="stable").reset_index(drop=True)
+
+
+def cross_correlation(y: np.ndarray, x: np.ndarray, lags: int) -> pd.DataFrame:
+    """The correlation of y now with x *k* steps earlier, k from -lags to lags (positive: x leads)."""
+    yc, xc = y - y.mean(), x - x.mean()
+    scale = float(np.sqrt(np.sum(yc ** 2) * np.sum(xc ** 2)))
+    n = y.size
+    values = []
+    for k in range(-lags, lags + 1):
+        if k >= 0:
+            values.append(float(np.sum(yc[k:] * xc[: n - k])) / scale)
+        else:
+            values.append(float(np.sum(yc[: n + k] * xc[-k:])) / scale)
+    band = 2.0 / np.sqrt(n)
+    return pd.DataFrame({"Lag": np.arange(-lags, lags + 1), "CCF": values, "Upper band": band, "Lower band": -band})
 
 
 def _order(data: pd.DataFrame, time: str) -> tuple[pd.Series, bool]:
@@ -111,18 +216,23 @@ def _future(times: pd.Series, temporal: bool, steps: int) -> pd.Series:
 
 
 def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: str = ARIMA,
-            order: tuple[int, int, int] = (1, 0, 0), season: int = -1, horizon: int = 12,
-            lags: int = 25) -> TimeSeriesResult:
+            order: tuple[int, int, int] = (1, 0, 0), seasonal_order: tuple[int, int, int] = (0, 0, 0),
+            season: int = -1, horizon: int = 12, lags: int = 25, input: str = "") -> TimeSeriesResult:
     """*measure* in the order of *time*: autocorrelations, its decomposition and a forecast.
 
-    *season* -1 finds it from the dates (none for numbers), 0 means none.
+    *season* -1 finds it from the dates (none for numbers), 0 means none. *seasonal_order* (P, D, Q)
+    applies with a season. *input*, another column, gives the cross-correlation with the measure.
     """
     from statsmodels.stats.diagnostic import acorr_ljungbox
     from statsmodels.tsa.stattools import acf, pacf
 
     columns = [measure, time] if time else [measure]
+    if input:
+        columns.append(input)
     data = frame[columns].copy()
     data[measure] = pd.to_numeric(data[measure], errors="coerce")
+    if input:
+        data[input] = pd.to_numeric(data[input], errors="coerce")
     data = data.dropna().reset_index(drop=True)
     if len(data) < 10:
         raise ValueError(f"{len(data)} values are too few for a time series: at least 10 are needed.")
@@ -164,22 +274,52 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
 
     summary: dict[str, Any] = {"Values": n, "Mean": float(y.mean()), "Std Dev": float(y.std(ddof=1)),
                                "Season length": season or "none"}
+    tests, differences = stationarity(y)
+    summary["Differences suggested (ADF, KPSS)"] = differences
+    cross = pd.DataFrame()
+    if input:
+        cross = cross_correlation(y, data[input].to_numpy(float), lags)
+        strongest = cross.loc[cross["CCF"].abs().idxmax()]
+        summary[f"Strongest cross-correlation with {input}"] = (
+            f"{strongest['CCF']:.3f} at lag {int(strongest['Lag'])}")
+        notes.append(f"Lag k > 0: {measure} follows {input} by k steps; k < 0: it leads. Each series' own "
+                     "autocorrelation can make the bars outside the band look stronger than they are.")
+    candidates = pd.DataFrame()
+    seasonal = tuple(int(v) for v in seasonal_order) if season >= 2 else (0, 0, 0)
+    if model == AUTO:
+        seasonal_d = 0
+        if season >= 2:
+            strength = seasonal_strength(y, season)
+            summary["Seasonal strength"] = strength
+            seasonal_d = int(strength > SEASONAL_STRENGTH_LIMIT)
+        # The season's differencing first: what is left is tested again for the ordinary one.
+        rest = y[season:] - y[:-season] if seasonal_d else y
+        _tests, d = stationarity(rest)
+        candidates = search_arima(y, d, season, seasonal_d)
+        best = candidates.iloc[0]
+        order, seasonal = best["order"], best["seasonal"]
+        notes.append(f"{best['Model']}: the lowest AIC of {len(candidates)} models, with d = {d} from the "
+                     f"ADF and KPSS tests" + (f" and D = {seasonal_d} from the season's strength."
+                                              if season >= 2 else "."))
+        candidates = candidates.drop(columns=["order", "seasonal"])
     forecast = pd.DataFrame(columns=["Time", "Forecast", f"Lower {CONFIDENCE:.0%}", f"Upper {CONFIDENCE:.0%}"])
     parameters = pd.DataFrame(columns=["Term", "Estimate", "Std Error", "Prob>|z|"])
     if model != NONE:
         alpha = 1 - CONFIDENCE
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # convergence chatter: the AIC and residuals say how it went
-            if model == ARIMA:
+            if model in (ARIMA, AUTO):
                 from statsmodels.tsa.arima.model import ARIMA as ArimaModel
 
-                fitted = ArimaModel(y, order=tuple(int(v) for v in order)).fit()
+                fitted = ArimaModel(y, order=tuple(int(v) for v in order),
+                                    seasonal_order=(*seasonal, season) if season >= 2 and any(seasonal)
+                                    else (0, 0, 0, 0)).fit()
                 prediction = fitted.get_forecast(horizon).summary_frame(alpha=alpha)
                 mean, low, high = prediction["mean"], prediction["mean_ci_lower"], prediction["mean_ci_upper"]
                 fitted_values = fitted.fittedvalues
                 names = list(fitted.param_names)
                 standard_errors, p_values = fitted.bse, fitted.pvalues
-                label = f"ARIMA({', '.join(str(int(v)) for v in order)})"
+                label = _arima_label(tuple(order), seasonal, season)
             elif model == ETS:
                 from statsmodels.tsa.exponential_smoothing.ets import ETSModel
 
@@ -205,7 +345,7 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         parameters = pd.DataFrame({"Term": names, "Estimate": np.asarray(fitted.params, float),
                                    "Std Error": np.asarray(standard_errors, float),
                                    "Prob>|z|": np.asarray(p_values, float)})
-        burn = max(order[1], 1) if model == ARIMA else 0  # ARIMA's first fitted values are the start, not a fit
+        burn = (max(order[1], 1) + (season * seasonal[1] if season >= 2 else 0)) if model in (ARIMA, AUTO) else 0  # ARIMA's first fitted values are the start, not a fit
         summary.update({"Model": label, "AIC": float(fitted.aic), "BIC": float(fitted.bic),
                         "RMSE of residuals": float(np.sqrt(np.mean(residuals[burn:] ** 2))),
                         "Forecast periods": horizon})
@@ -216,4 +356,5 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
                          "a pattern behind - try another order, or a season.")
     return TimeSeriesResult(measure=measure, time=time, temporal=temporal, model=model, season=season,
                             rows=rows, correlations=correlations, forecast=forecast, parameters=parameters,
+                            stationarity=tests, candidates=candidates, cross=cross, input=input,
                             summary=summary, notes=notes)

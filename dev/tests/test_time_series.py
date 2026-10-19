@@ -98,3 +98,71 @@ def test_mid_month_dates_are_monthly_too() -> None:
     frame["month"] = pd.to_datetime(frame["month"]).map(lambda d: d.replace(day=15)).dt.strftime("%Y-%m-%d")
     result = ts.analyse(frame, "sales", "month", horizon=3)
     assert result.season == 12 and list(result.forecast["Time"]) == ["2024-01-15", "2024-02-15", "2024-03-15"]
+
+
+def _seasonal_walk(n: int = 144) -> pd.DataFrame:
+    rng = np.random.default_rng(0)
+    t = np.arange(n)
+    y = 100 + 0.5 * t + 10 * np.sin(2 * np.pi * t / 12) + np.cumsum(rng.normal(0, 1, n))
+    dates = pd.date_range("2010-01-01", periods=n, freq="MS")
+    return pd.DataFrame({"y": y, "month": dates.strftime("%Y-%m-%d"),
+                         "x": np.roll(y, 3) + rng.normal(0, 1, n)})  # x is y three months late
+
+
+def test_stationarity_tests_ask_for_one_difference_of_a_random_walk() -> None:
+    walk = np.cumsum(np.random.default_rng(1).normal(size=300))
+    tests, d = ts.stationarity(walk)
+    assert d == 1
+    assert tests.iloc[0]["Says"] == "not stationary" and tests.iloc[2]["Says"] == "stationary"
+    assert ts.stationarity(np.random.default_rng(2).normal(size=300))[1] == 0
+
+
+def test_the_order_chosen_by_aic_is_seasonal_and_differenced() -> None:
+    result = ts.analyse(_seasonal_walk(), "y", "month", model=ts.AUTO, horizon=6)
+    assert result.season == 12 and result.summary["Seasonal strength"] > 0.64
+    assert result.summary["Model"].startswith("ARIMA(") and result.summary["Model"].endswith(")12")
+    assert ", 1, " in result.summary["Model"].split(")(")[0] + ","  # d = 1
+    assert result.candidates["AIC"].is_monotonic_increasing and len(result.candidates) == 27
+    assert result.summary["AIC"] == pytest.approx(result.candidates["AIC"].iloc[0])
+    assert len(result.forecast) == 6
+
+
+def test_a_given_seasonal_order_is_fitted() -> None:
+    result = ts.analyse(_seasonal_walk(), "y", "month", model=ts.ARIMA, order=(1, 1, 0), seasonal_order=(0, 1, 1))
+    assert result.summary["Model"] == "ARIMA(1, 1, 0)(0, 1, 1)12"
+    assert "ma.S.L12" in result.parameters["Term"].tolist()
+
+
+def test_the_cross_correlation_finds_which_leads_and_by_how_much() -> None:
+    result = ts.analyse(_seasonal_walk(), "y", "month", model=ts.NONE, input="x")
+    strongest = result.cross.loc[result.cross["CCF"].abs().idxmax()]
+    assert int(strongest["Lag"]) == -3 and strongest["CCF"] > 0.9  # y leads x by three months
+    assert result.cross["Lag"].min() == -result.cross["Lag"].max()
+
+
+def test_ok_with_an_input_draws_the_cross_correlation(qapp, tmp_path) -> None:
+    import time
+
+    from app.data.sqlite_repo import SqliteRepo
+    from app.table_operations.time_series_dialog import TimeSeriesDialog
+
+    repo = SqliteRepo(db_path=tmp_path / "x.dhub")
+    repo.import_dataframe(_seasonal_walk(), table_name="plant", normalize_columns=False)
+    dialog = TimeSeriesDialog(repo=repo, table="plant")
+    try:
+        dialog.roles_widget.set_casting({"response": ["y"], "time": ["month"], "input": ["x"]})
+        assert not dialog.problems()
+        dialog._parameter_form.set_values({"model": ts.AUTO})
+        dialog.ok()
+        deadline = time.monotonic() + 120
+        while dialog._task is not None and time.monotonic() < deadline:
+            qapp.processEvents()
+            time.sleep(0.01)
+        assert len(repo.table_frame("_plant_time_series_ccf")) > 10
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        assert any(axis.title.startswith("Cross-correlation") for axis in figure.axes)
+        dialog.roles_widget.set_casting({"response": ["y"], "time": ["month"], "input": ["y"]})
+        assert dialog.problems()
+    finally:
+        dialog.close()
+        repo.close()

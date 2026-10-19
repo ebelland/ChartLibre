@@ -15,7 +15,7 @@ The list has four columns:
   [*Source*], [Where its data comes from: a file name for a file or web import, "connection → table" for a database import, the SQL itself for a saved query (the full text in the tooltip), nothing for a table with no link.],
 )
 
-Tables written by data operations and analyses start with `_` ("_penguins_pls_vip"), and are hidden until *Show generated tables* (in the table list's menu) shows them: the list shows only your own data by default.
+Tables written by data operations and analyses start with `_` (`_penguins_pls_vip`), and are hidden until *Show generated tables* (in the table list's menu) shows them: the list shows only your own data by default.
 
 Right-clicking a table offers:
 
