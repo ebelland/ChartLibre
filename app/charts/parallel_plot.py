@@ -97,12 +97,16 @@ class ParallelPlotAxisRenderer(BaseAxisRenderer):
             ax.plot(positions, lines.T, color=colour, linewidth=kwargs.get("linewidth", 0.8),
                     alpha=kwargs.get("alpha", 0.5))
         for position in positions:
-            ax.axvline(position, color="0.35", linewidth=0.8, zorder=0)
+            ax.plot([position, position], [0, 1] if scale == "range" else ax.get_ylim(), color="0.35",
+                    linewidth=0.8, zorder=0)
         ax.set_xticks(positions, [name for _column, name in variables])
         ax.set_xlim(-0.1, len(variables) - 0.9)
         if scale == "range":
-            ax.set_ylim(-0.04, 1.08)
+            # The axes are the vertical lines: no frame, and room for each one's ends above and below.
+            ax.set_ylim(-0.09, 1.09)
             ax.set_yticks([])
+            for side in ("top", "bottom", "left", "right"):
+                ax.spines[side].set_visible(False)
             for position, (bottom, top) in enumerate(zip(low, high)):
                 ax.text(position, 1.02, f"{top:.4g}", ha="center", va="bottom", fontsize="x-small")
                 ax.text(position, -0.02, f"{bottom:.4g}", ha="center", va="top", fontsize="x-small")

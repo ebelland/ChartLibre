@@ -10149,3 +10149,69 @@ msgstr "Diagramma ternario"
 
 msgid "Three parts of a whole as points in a triangle."
 msgstr "Tre parti di un intero come punti in un triangolo."
+
+msgid "Cluster Analysis"
+msgstr "Analisi dei cluster"
+
+msgid "K Means"
+msgstr "K medie"
+
+msgid "Hierarchical (Ward)"
+msgstr "Gerarchico (Ward)"
+
+msgid "Normal Mixtures"
+msgstr "Miscele normali"
+
+msgid "Clusters (k):"
+msgstr "Cluster (k):"
+
+msgid "Largest k tried:"
+msgstr "k massimo provato:"
+
+msgid "Columns standardized"
+msgstr "Colonne standardizzate"
+
+msgid "Cluster means"
+msgstr "Medie dei cluster"
+
+msgid "Choosing k"
+msgstr "Scelta di k"
+
+msgid "Mean silhouette by k"
+msgstr "Silhouette media per k"
+
+msgid "Silhouette"
+msgstr "Silhouette"
+
+msgid "Cluster {n}"
+msgstr "Cluster {n}"
+
+msgid "Clusters on the principal components"
+msgstr "Cluster sulle componenti principali"
+
+msgid "Cluster profiles"
+msgstr "Profili dei cluster"
+
+msgid "Clusters"
+msgstr "Cluster"
+
+msgid "Mean silhouette"
+msgstr "Silhouette media"
+
+msgid "Group the rows on several columns - K Means, Hierarchical (Ward) or Normal Mixtures - with k chosen by the silhouette; each cluster's size and means, its rows on the principal components."
+msgstr "Raggruppa le righe su più colonne - K medie, Gerarchico (Ward) o Miscele normali - con k scelto dalla silhouette; dimensione e medie di ogni cluster, le sue righe sulle componenti principali."
+
+msgid "The continuous columns the rows are grouped on."
+msgstr "Le colonne continue su cui si raggruppano le righe."
+
+msgid "K Means: round clusters of similar size, the usual choice. Hierarchical (Ward): merges the closest rows step by step. Normal Mixtures: clusters of any shape and spread, each row with its most likely cluster."
+msgstr "K medie: cluster tondi di dimensioni simili, la scelta usuale. Gerarchico (Ward): unisce passo passo le righe più vicine. Miscele normali: cluster di qualsiasi forma e dispersione, ogni riga nel suo cluster più probabile."
+
+msgid "0 tries every k up to the maximum and keeps the one with the highest mean silhouette."
+msgstr "0 prova ogni k fino al massimo e tiene quello con la silhouette media più alta."
+
+msgid "With k at 0: k from 2 to this."
+msgstr "Con k a 0: k da 2 a questo."
+
+msgid "Each column divided by its standard deviation, so that each counts the same whatever its unit - leave on unless the columns share one unit and scale."
+msgstr "Ogni colonna divisa per la sua deviazione standard, perché ognuna conti lo stesso qualunque sia l'unità - lascialo attivo salvo colonne con la stessa unità e scala."

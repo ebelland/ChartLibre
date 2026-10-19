@@ -212,7 +212,10 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("chart:Box Plot", "Points beyond the whiskers.", NUMERIC),
     ),
     "groups": (
-        ("series:Clustering", "k-means, DBSCAN, hierarchical: rows that are alike, coloured.", ANY),
+        ("analysis:Cluster Analysis", "A table's rows grouped on its columns - k means, hierarchical, "
+                                      "normal mixtures - k chosen by the silhouette.", NUMERIC),
+        ("series:Clustering", "k-means, DBSCAN, hierarchical on a chart's series: rows that are alike, coloured.",
+         ANY),
         ("analysis:Principal Components", "A few directions that carry most of many columns' variation: "
                                           "the score plot shows the groups.", NUMERIC),
         ("series:Decomposition", "PCA, t-SNE on a chart's series: see groups among many variables.", ANY),
@@ -387,7 +390,7 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > Basic Statistics > Outlier Test",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics > Grubbs Test",
     }),
-    ("Cluster analysis", "Analysis > Clustering", "series:Clustering", {
+    ("Cluster analysis", "Analysis > Multivariate Methods > Cluster Analysis", "analysis:Cluster Analysis", {
         "JMP": "Analyze > Clustering > K Means Cluster / Hierarchical Cluster",
         "SPSS": "Analyze > Classify > K-Means Cluster / Hierarchical Cluster",
         "Minitab": "Stat > Multivariate > Cluster K-Means / Cluster Observations",

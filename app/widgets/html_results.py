@@ -22,7 +22,7 @@ import re
 import weakref
 from typing import cast
 
-from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
+from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, Qt, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
@@ -121,6 +121,10 @@ def plain_to_html(text: str) -> str:
 #: Every web view still alive, so they can be torn down in order before Qt is.
 _WEB_VIEWS: "weakref.WeakSet[QWidget]" = weakref.WeakSet()
 _RELEASE_HOOKED = False
+#: Views taken out of closed windows, held until their deferred deletion (or
+#: release_web_views at exit): parentless, a collected wrapper would delete
+#: them at whatever moment Python's collector ran.
+_PARKED: list[QObject] = []
 
 
 def release_web_views() -> None:
@@ -137,7 +141,7 @@ def release_web_views() -> None:
     """
     try:
         import shiboken6
-        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtCore import QCoreApplication
     except ImportError:  # pragma: no cover - PySide6 is always there
         return
     views = [view for view in list(_WEB_VIEWS) if shiboken6.isValid(view)]
@@ -150,6 +154,7 @@ def release_web_views() -> None:
             shiboken6.delete(view)
     if views and QCoreApplication.instance() is not None:
         QCoreApplication.sendPostedEvents(None, int(QEvent.Type.DeferredDelete))
+    _PARKED.clear()
 
 
 def _hook_release() -> None:
@@ -185,8 +190,64 @@ class HtmlResultsView(QWidget):
         self._viewer = self._create_viewer()
         mark_editor_panel(self._viewer)
         root.addWidget(self._viewer, 1)
+        self._watched_window: QWidget | None = None
+        self._parked = False
 
         self._install_context_menu()
+
+    # ------------------------------------------------------------------
+    # A closed window's web view goes at once, from the event loop
+    # ------------------------------------------------------------------
+    # A closed dialog is deleted when Python's collector reaches it - at any
+    # moment, even inside Chromium's own call into the page's
+    # acceptNavigationRequest of another view, and Chromium aborts when a web
+    # view is destroyed there (SIGTRAP in ~WebContentsAdapter, seen in the full
+    # test run). So when the window hides, its view and page leave it and are
+    # deleted by the event loop, page first; a window shown again gets a new
+    # view with the same report.
+    def showEvent(self, event) -> None:  # noqa: N802, ANN001 - Qt override
+        super().showEvent(event)
+        window = self.window()
+        if window is not self._watched_window and window is not self:
+            if self._watched_window is not None:
+                self._watched_window.removeEventFilter(self)
+            window.installEventFilter(self)
+            self._watched_window = window
+        if self._parked:
+            self._unpark_viewer()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt override
+        if (watched is self._watched_window and event.type() == QEvent.Type.Hide
+                and not self._watched_window.isMinimized()):
+            self._park_viewer()
+        return super().eventFilter(watched, event)
+
+    def _park_viewer(self) -> None:
+        view = self._viewer
+        page = view.page() if hasattr(view, "page") else None
+        if self._parked or page is None:
+            return  # a QTextBrowser needs none of this
+        self._parked = True
+        for item in (page, view):
+            item.setParent(None)
+            _PARKED.append(item)
+            item.deleteLater()
+        import shiboken6
+
+        # Only those the loop has deleted: a dropped wrapper of a live one would delete it itself.
+        _PARKED[:] = [item for item in _PARKED if shiboken6.isValid(item)]
+
+    def _unpark_viewer(self) -> None:
+        self._parked = False
+        self._viewer = self._create_viewer()
+        mark_editor_panel(self._viewer)
+        layout = self.layout()
+        if layout is not None:
+            layout.addWidget(self._viewer, 1)
+        self._viewer.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._viewer.customContextMenuRequested.connect(self._show_context_menu)
+        if self._html:
+            self.setHtml(self._html, plain_source=self._plain_text)
 
     def _install_context_menu(self) -> None:
         """Install the same custom menu on the wrapper and the concrete viewer.
@@ -272,6 +333,8 @@ class HtmlResultsView(QWidget):
         """Show HTML markup directly."""
         self._html = str(markup or "")
         self._plain_text = str(plain_source or "")
+        if self._parked:
+            return  # shown again, the new view gets it
 
         setter = getattr(self._viewer, "setHtml", None) or getattr(
             self._viewer,
