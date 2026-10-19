@@ -1,0 +1,254 @@
+CUSTOM MODELS FOR FIT AND FUNCTION - IMPLEMENTATION PLAN
+Written 2026-10-19. Status: PLAN ONLY, NOTHING IMPLEMENTED YET. Wait for the owner's go before coding.
+Interactive mock-up of the Model tab: https://claude.ai/artifact/Bn7SE5dxLGLhaCSWWB6Kvf (private, owner only)
+
+======================================================================
+1. GOAL
+======================================================================
+In the Fit dialog (app/data_operations/fit_dialog) and in the Function dialog
+(app/data_operations/function_dialog.py - "plot a function over a range") a model
+can come from THREE sources, all producing the same callable the engine already
+uses, execute(x, p) (curves) or execute(x, y, p) (surfaces):
+
+  1. Library      the predefined functions (FunctionScanner; unchanged).
+  2. Expression   a string, e.g.  p[0]*exp(-x/p[1]) + p[2]
+  3. Code         a Python function in a minimal text editor.
+
+Models written by the user can be SAVED in a dedicated table of the project
+database, and EXPORTED / IMPORTED as text or XML to be exchanged between users.
+
+======================================================================
+2. DECISIONS ALREADY TAKEN (by the owner, in the discussion)
+======================================================================
+ D1  Parameters are passed as an ARRAY p[]  (p[0], p[1], ...): the contract
+     execute(x, p) every function already has. No named symbols in the model text.
+     The number of parameters = highest index used + 1 (indices must be
+     contiguous from 0). Names (amplitude, tau...) are OPTIONAL labels for the table.
+ D2  Curves AND surfaces from the start:  y = f(x)  and  z = f(x, y).
+     The kind follows the selected series (a series with x, y, z roles = surface).
+ D3  Editor: a plain, minimal text editor (no highlighting, no autocomplete).
+     The code is CHECKED WHEN THE USER PRESSES OK (also Preview / Save), not live.
+ D4  Expressions accept ALL SymPy functions, not a short list (gamma, erf, besselj,
+     Piecewise, Heaviside, zeta, ...). SymPy is therefore REQUIRED for Expression
+     mode (lazy import; first use costs about half a second).
+ D5  Models are NOT saved as function files (user/functions/*.py). They go into a
+     DEDICATED TABLE of the project database, with export to TEXT or XML.
+     (The Function Creator and user/functions stay as they are, for real plugins.)
+
+======================================================================
+3. WHAT EXISTS TODAY (verified in the code)
+======================================================================
+ - Fit model chooser: app/data_operations/fit_dialog/model_data.py
+     _apply_model_choice_from_payload, on_multi_peak (multi-peak builder builds a
+     payload with "_multi_peak": True), _build_model (returns (model, p0)),
+     _make_multi_peak_model. The payload dict is self._selected_model.
+ - Parameter table: _ensure_params_rows / _populate_params_defaults /
+     _collect_params_from_table (columns: Parameter, Initial, Lower, Upper, Fix).
+ - Starting values: app/plugin_api/functions/starting_point.py
+     choose_starting_point (Monte Carlo search works for ANY model; Estimate button).
+ - Engine: app/analysis/fit.py  fit_curve(model, x, target, p0, ...),
+     model_jacobian = central differences (numeric).
+ - Function base: app/plugin_api/functions/base.py (base_function, base_surface_function).
+ - Plot-a-function dialog and its output table / series creation:
+     app/data_operations/function_dialog.py (ResultSeriesSpec, TableResult).
+ - Internal tables are hidden by the name convention "_..._" (e.g. __operations__);
+     repo.free_hidden_table_name for chart-feeding tables.
+ - No eval anywhere in the app today.
+
+======================================================================
+4. ARCHITECTURE
+======================================================================
+4.1 New module (no Qt): app/analysis/model_source.py   (or app/plugin_api/functions/)
+     compile_expression(text, ndim) -> CompiledModel
+     compile_code(source, ndim)     -> CompiledModel
+     CompiledModel: execute(x[, y], p), n_params, ndim, source, kind,
+                    latex (str|None), jacobian (callable|None), message
+     check_*  functions return a list of readable errors (Italian/English via _()).
+
+4.2 Expression mode (SymPy)
+   - Step A, shape filter on the TEXT with ast.parse(mode="eval") BEFORE SymPy sees it.
+     Allowed nodes: numbers, + - * / ** unary, parentheses, names, calls whose
+     function is a plain Name, Subscript of p with an integer constant, list/tuple
+     (needed by Piecewise), comparisons and boolean operators inside Piecewise.
+     Rejected: attribute access (a.b), any name containing "__", lambda,
+     comprehensions, import, strings, f-strings, starred/walrus, keyword tricks,
+     calls to Python builtins (open, eval, exec, getattr, ...).
+   - Step B, every Name must be x (and y for surfaces), p, or a public name that
+     exists in the sympy namespace (functions, constants, classes). Anything else:
+     error "'xyz' is neither a variable nor a SymPy name". Special hint:
+     "e" does not exist in SymPy -> "write E (or exp(1))".
+   - Step C, parse with sympy.parse_expr(text, local_dict={x, y, p=IndexedBase('p')},
+     global_dict=restricted sympy namespace with __builtins__ = {}).
+   - Step D, parameters: collect Indexed(p, k) atoms; indices must be integers,
+     contiguous from 0 ("p[2] is used but p[1] is not").
+   - Step E, numeric version: sympy.lambdify([x(,y), p], expr, modules=["numpy","scipy"])
+     (gamma/erf/bessel map to scipy.special). At OK, evaluate on a small test grid
+     with p = ones: result must be array-like, shape-compatible with x, finite on
+     most points. A function with no numeric implementation -> clear error.
+   - Step F, free extras: exact Jacobian (sympy.diff for each p[k], lambdified once)
+     used by the Fit engine in place of central differences when available;
+     LaTeX of the formula for the Results pane and the report.
+   - Never call simplify / solve in the fit path (SymPy cannot be interrupted by Stop).
+
+4.3 Code mode
+   - Source must define  def model(x, p):  (curve)  or  def model(x, y, p):  (surface).
+   - Namespace given to the code: np (NumPy), math, scipy.special as special;
+     no imports allowed (import statement is rejected with a message).
+   - Number of parameters: constant  N = <int>  if present, else highest p[<int>]
+     index + 1 found with ast; if p is used dynamically and there is no N: error.
+   - Check at OK: syntax, signature, a test call on a few points with p = ones,
+     result finite and shaped like x. Errors are listed with line numbers.
+   - THE CODE RUNS IN THE APPLICATION PROCESS, with full trust, like a plugin.
+     The dialog says so. It is not a sandbox.
+
+4.4 Plugging into the existing dialogs (minimal changes)
+   - Fit: a "Model source" selector (Library | Expression | Code) at the top of the
+     Model tab. Expression/Code produce a payload like the multi-peak one:
+       {"name", "_custom": True, "kind": "expression"|"code", "source": text,
+        "params": [labels], "p0": [1.0,...], "expression": html (latex), "ndim"}
+     _build_model returns compiled.execute for it, p0 from the table.
+     _selected_function_class returns None for it (as for multi-peak) so
+     Estimate uses the Monte Carlo search.
+   - Function dialog: the same selector, same compiler, same payload.
+   - The parameter table keeps its values by INDEX when the text is edited.
+   - Errors never raise into the GUI: they fill a status box under the editor.
+
+======================================================================
+5. SAVING: DEDICATED TABLE IN THE PROJECT DATABASE
+======================================================================
+5.1 Table  __models__   (internal, hidden by the "__x__" naming convention)
+     id            INTEGER PRIMARY KEY
+     name          TEXT UNIQUE NOT NULL        (unique inside the project)
+     description   TEXT
+     kind          TEXT  ("expression" | "code")
+     ndim          INTEGER (1 curve, 2 surface)
+     source        TEXT                         (the expression or the code)
+     params_json   TEXT   [{"index":0,"name":"amplitude","initial":1.0,
+                            "lower":null,"upper":null,"fixed":false}, ...]
+     keywords      TEXT
+     created, modified TEXT (ISO 8601)
+     app_version   TEXT
+   Created on demand (repo method ensure_models_table), like the other internal
+   tables. Writes go through snapshot_for_undo, so Undo restores them.
+5.2 Repo API (app/data/repo/models.py, mixed into SqliteRepo):
+     list_models(), get_model(name), save_model(record) -> name,
+     rename_model, delete_model, models_to_records / records_from_*.
+5.3 UI
+   - Footer button "Save model..." (name + description) replaces the earlier idea
+     of "Save as function".
+   - Library tab: a category "Project models" in the tree (read from __models__),
+     buttons "Import..." and "Export..." under the tree; rename/delete from the
+     context menu.
+   - The operation history keeps the model text of every Apply (as every operation
+     does), so a fit can be re-run (todo R-03).
+
+======================================================================
+6. EXPORT / IMPORT FORMATS
+======================================================================
+6.1 XML  (extension .xml; one or many models per file)
+   <?xml version="1.0" encoding="UTF-8"?>
+   <chartlibre-models version="1">
+     <model name="Decay with offset" kind="expression" dimension="1">
+       <description>Exponential decay towards an offset.</description>
+       <parameters>
+         <p index="0" name="amplitude" initial="1.0" lower="" upper="" fixed="false"/>
+         <p index="1" name="tau" initial="1.0"/>
+         <p index="2" name="offset" initial="0.0"/>
+       </parameters>
+       <source><![CDATA[p[0]*exp(-x/p[1]) + p[2]]]></source>
+     </model>
+   </chartlibre-models>
+   Read with defusedxml (no external entities). Unknown attributes are ignored;
+   a higher "version" than the app knows is refused with a message.
+6.2 Text  (extension .txt; easy to read and edit by hand)
+     # chartlibre-model 1
+     name: Decay with offset
+     kind: expression
+     dimension: 1
+     description: Exponential decay towards an offset.
+     parameters: amplitude, tau, offset
+     initial: 1.0, 1.0, 0.0
+     ---
+     p[0]*exp(-x/p[1]) + p[2]
+   Several models in one file are separated by a line "=====".
+6.3 Import rules
+   - Importing NEVER executes anything.
+   - Name already used in the project: ask "replace or rename" (OPEN QUESTION Q1).
+   - A model whose dimension does not match the selected series is shown greyed
+     with the reason (OPEN QUESTION Q2).
+
+======================================================================
+7. SECURITY
+======================================================================
+ - Expression models are safe to use immediately: they pass the shape filter and
+   a restricted namespace (4.2).
+ - Code models are untrusted when they come from a file. Importing one marks it
+   "not trusted on this computer"; opening it shows the source in clear with a
+   warning, and it runs only after the user confirms. The trust flag lives in the
+   user's local settings (keyed by a hash of the source) and is NEVER written to
+   the project or to an exported file: every recipient decides for themselves.
+   Editing the source removes the trust.
+ - XML parsed with defusedxml; text parser is line based; sizes are capped.
+ - Document the limits: code mode is not a sandbox; simplify/solve are not used.
+
+======================================================================
+8. DEPENDENCIES
+======================================================================
+ - sympy: add a pin to requirements.txt (pure Python, no wheel issue on 3.15).
+   Expression mode shows a clear error if it is missing; Code mode and Library work.
+ - defusedxml: add (small, pure Python), or use xml.etree with entity expansion
+   disabled by parsing only after rejecting DOCTYPE/ENTITY.
+
+======================================================================
+9. IMPLEMENTATION STEPS (in order; each one a commit, tests first)
+======================================================================
+ S1  model_source.py: expression engine (filter + SymPy + lambdify + checks),
+     code engine, latex, jacobian. Unit tests including hostile inputs
+     (__import__, attributes, lambda, comprehension, open, huge exponents),
+     valid SymPy-only functions (gamma, erf, besselj, Piecewise, Heaviside),
+     contiguity of p indices, surfaces, "e" vs "E", missing numeric version.
+ S2  Fit dialog: Model source selector, Expression and Code panels, status box,
+     payload, _build_model, Estimate, parameter table by index, results/LaTeX.
+     Tests: fit an exponential from a string; fit a surface from a string;
+     code model with N; Stop still works; errors do not raise.
+ S3  Function dialog: same selector and compiler (plot a string/code model).
+ S4  __models__ table + repo API + "Save model..." + "Project models" in the tree
+     + Undo. Tests: save, list, rename, delete, undo, name uniqueness.
+ S5  Export / Import (XML and text), trust flow for code models.
+     Tests: round trip both formats, several models, hostile XML (entities, huge
+     files), version handling, import never executes.
+ S6  Exact Jacobian in fit_curve when the model provides one; compare against the
+     numeric Jacobian in a test; benchmark.
+ S7  Italian (and other) translations, manual page, DEVELOPMENT.md section,
+     todo.txt entries (G-/R- ids), catalogue keywords for search.
+ Effort: M to L (about 5-6 sessions). Suggested order of review: S1+S2 first, as a
+ usable slice (Fit from a string and from code), then S3..S7.
+
+======================================================================
+10. TESTS AND CHECKS (summary)
+======================================================================
+ - Unit: model_source (S1), repo models (S4), import/export (S5).
+ - Dialog: Fit with a string/code model (offscreen Qt, as dev/tests/test_fit_status.py).
+ - Plugin independence rules still hold: nothing in the core names a specific plugin.
+ - Whole suite before each push (known failures today: 2 NIST numeric, One-Class SVM,
+   test_pair_grid, test_ui_small::left_pane, test_windows_chrome T-01).
+
+======================================================================
+11. OPEN QUESTIONS (waiting for the owner)
+======================================================================
+ Q1  Import of a model whose name already exists: ask (replace / rename), or
+     import as "name (2)"?
+ Q2  A surface model loaded on a series that has only x and y: hide it, or show it
+     greyed with the reason?
+ Q3  Where in the Function dialog (plot-a-function) should "Save model..." live?
+ Q4  Extension names: .xml and .txt, or dedicated ones (.clmodel.xml, .clmodel.txt)?
+
+======================================================================
+12. OUT OF SCOPE (for now)
+======================================================================
+ - Symbolic data operations on series (derivative, integral, solve) - a separate
+   data operation later, if wanted.
+ - A true sandbox for code models.
+ - Autocomplete, syntax highlighting, live checking in the editor.
+ - A new plugin family "symbolic" (iSymBase): replaced by this feature, because the
+   Function dialog already does what to_table / to_series would do.

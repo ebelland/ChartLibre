@@ -8,6 +8,7 @@ D-01  M  Demos per goal: Predict, Signal, Anomalies, Groups, Process, Experiment
          (Quick answers, Relate, Classify, Describe and compare done - dev/demo/demo_goals.py).
 G-02  S  Help me choose, next: each report says which next question fits (differences ->
          impact -> model); "again with another column".
+R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
 R-03  M  Reproducibility: re-run recorded operations; export a Python script (H-01).
 
 I-01  M  Import more formats (fixed already: .xls needed xlrd, XML needed lxml - now etree).
