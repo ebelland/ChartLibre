@@ -90,6 +90,24 @@ def doe_tool() -> dict:
     }
 
 
+def quality_charts() -> list[dict]:
+    """The charts JMP lists under Quality and Process: Pareto Plot and the Ishikawa diagram (its Diagram).
+
+    Chart types, in New chart; here too, where someone who looks for them as
+    JMP's users do will find them. A tool "chart:<type>" opens New chart on it.
+    """
+    return [
+        {"value": "Pareto Plot", "kind": TOOL, "tool": "chart:Pareto Chart", "category": "Quality and Process",
+         "order": 61, "description": "The causes or defects by count, largest first, with the cumulative share.",
+         "icon": '<path d="M4 20V6M8 20V9M12 20v-7M16 20v-4M20 20v-2"/><path d="M4 6l4 -2 4 -1 4 -0.5 4 -0.3"/>'},
+        {"value": "Ishikawa Diagram", "kind": TOOL, "tool": "chart:Fishbone Diagram",
+         "category": "Quality and Process", "order": 62,
+         "description": "Cause and effect (fishbone): the causes of a problem, grouped by category.",
+         "icon": '<path d="M3 12h16l2 0"/><path d="M6 12l3-5M11 12l3-5M6 12l3 5M11 12l3 5"/>'
+                 '<path d="M19 9l2 3-2 3"/>'},
+    ]
+
+
 def plugin_icon(entry: dict) -> QIcon:
     """The entry's own SVG icon (in the panel's accent), or a catalogue action's."""
     if entry.get("action_icon"):
@@ -106,6 +124,7 @@ def panel_entries() -> list[dict]:
     entries += [{**operation, "kind": DATA} for operation in data_operations]
     entries += [{**operation, "kind": TABLE} for operation in table_operations
                 if operation.get("category") != "Quick answers"]
+    entries += quality_charts()
     entries.append(doe_tool())
     return entries
 

@@ -65,3 +65,13 @@ def test_a_click_opens_the_right_kind_of_entry(panel: AnalysisPanel) -> None:
     view.setCurrentItem(by_name["New Chart"])
     QTest.keyClick(view, Qt.Key.Key_Return)
     assert opened == [("data", "Fit Curve"), ("table", "Fit Model"), ("tool", "doe"), ("data", "New Chart")]
+
+
+def test_quality_and_process_lists_the_pareto_plot_and_the_ishikawa_diagram(qapp) -> None:
+    """As JMP's Quality and Process: Pareto Plot and Diagram (Ishikawa), opening New chart on them."""
+    from app.widgets.analysis_panel import panel_entries
+
+    quality = {e["value"]: e for e in panel_entries() if e.get("category") == "Quality and Process"}
+    assert {"Control Chart", "Pareto Plot", "Ishikawa Diagram"} <= set(quality)
+    assert quality["Ishikawa Diagram"]["tool"] == "chart:Fishbone Diagram"
+    assert quality["Pareto Plot"]["tool"] == "chart:Pareto Chart"

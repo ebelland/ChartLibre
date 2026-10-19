@@ -25,12 +25,13 @@ class FishboneAxisRenderer(BaseAxisRenderer):
     """Causes grouped on bones along a spine that ends in the problem."""
 
     Name: str = "Fishbone Diagram"
-    Category: str = "Statistical distributions"
+    # With the other quality charts' kin, not the distributions it never was one of.
+    Category: str = "Diagnostic plots"
     Description: str = (
         "Ishikawa cause-and-effect diagram: one row per cause, grouped by "
         "category on bones that lead to the problem."
     )
-    Keywords: str = "ishikawa causa effetto cause effect root cause causa radice"
+    Keywords: str = "ishikawa diagram diagramma fishbone lisca di pesce causa effetto cause effect root cause causa radice"
     Goals: list[str] = ["process", "explain"]
     Link: str = "https://matplotlib.org/stable/gallery/specialty_plots/ishikawa_diagram.html"
 

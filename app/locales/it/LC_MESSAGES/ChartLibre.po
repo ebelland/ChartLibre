@@ -10074,3 +10074,15 @@ msgstr "Per cominciare"
 
 msgid "Guided Analysis"
 msgstr "Analisi guidata"
+
+msgid "Pareto Plot"
+msgstr "Diagramma di Pareto"
+
+msgid "Ishikawa Diagram"
+msgstr "Diagramma di Ishikawa"
+
+msgid "The causes or defects by count, largest first, with the cumulative share."
+msgstr "Le cause o i difetti per numero, il più frequente prima, con la quota cumulata."
+
+msgid "Cause and effect (fishbone): the causes of a problem, grouped by category."
+msgstr "Causa ed effetto (lisca di pesce): le cause di un problema, raggruppate per categoria."

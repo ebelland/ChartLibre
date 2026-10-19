@@ -557,9 +557,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._select_navigation("tables")
 
     def _on_analysis_tool_requested(self, tool: str) -> None:
-        """A tool of the Analysis panel: the design of experiments."""
+        """A tool of the Analysis panel: the design of experiments, or New chart on a chart type ("chart:<type>")."""
         if tool == "doe":
             self._on_new_table_from_doe()
+        elif tool.startswith("chart:"):
+            self._on_new_plot_tab(chart_type=tool.split(":", 1)[1])
 
     def _on_new_table_from_doe(self) -> None:
         from app.dialogs.doe_dialog import DOEExperimentDialog

@@ -15,7 +15,7 @@ The data operations are on the *Analysis* page of the navigation rail, with the 
   [*Predictive and Specialized Modeling*], [Partition, Regression, Fit Curve, Gaussian Process, Time Series.],
   [*Multivariate Methods*], [Multivariate, Principal Components, Decomposition, Discriminant, Partial Least Squares, Clustering.],
   [*Screening*], [Explore Outliers.],
-  [*Quality and Process*], [Control Chart, with the process capability.],
+  [*Quality and Process*], [Control Chart, with the process capability; *Pareto Plot* and *Ishikawa Diagram* (cause and effect, the fishbone), which open New chart on those chart types.],
   [*Curves*], [Peaks, Roots, Calculus, Interpolation.],
   [*Signal Processing*], [Smoothing, Filtering, Spectral Analysis, Baseline Correction.],
   [*Transform*], [Transform, Geometry.],
