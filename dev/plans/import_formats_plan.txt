@@ -1,0 +1,231 @@
+IMPORT OF MORE FILE FORMATS - IMPLEMENTATION PLAN (todo I-01)
+Written 2026-10-19. Status: PLAN ONLY, NOTHING IMPLEMENTED YET (but the two fixes in section 3).
+Wait for the owner's go before coding.
+
+======================================================================
+1. GOAL
+======================================================================
+Import from file reads more than delimited text, Excel, JSON and XML:
+
+  - other programs' files (statistics packages, scientific formats,
+    columnar data), so a table made elsewhere opens without a CSV detour;
+  - measuring instruments' exports, microelectronics first (parameter
+    analysers, VNAs, ATE test data, oscilloscopes, circuit simulators),
+    so a measurement opens as a table ready to plot, with the instrument's
+    metadata kept and several sweeps in one file kept apart.
+
+Every format goes through the same Import dialog (preview, column types,
+the table's name), and a linked import refreshes from the same reader.
+
+======================================================================
+2. DECISIONS FOR THE OWNER (proposed answers in brackets)
+======================================================================
+ Q1  Readers as a PLUGIN FAMILY ("importers"), like charts and operations,
+     so a lab can add its own instrument's format in user/importers/?
+     [Yes - same PluginFamily mechanism; the built-in ones in app/importers.]
+ Q2  Optional packages: install them all in requirements.txt, or keep them
+     optional and have the dialog say which one to install?
+     [Optional, except pyarrow and pyreadstat, which are common and small;
+     the dialog says "pip install npTDMS" when a reader's package is missing.]
+ Q3  A file with several datasets (a TDMS group, an STDF wafer, a B1500 file
+     with one sweep per gate voltage, an HDF5 tree): one table with a
+     "Sweep"/"Dataset" column, or a table per dataset?
+     [One table with a Dataset column by default - what Group by and Separate
+     axes by in New chart already use; "a table per dataset" as an option.]
+ Q4  The instrument's metadata (setup, date, device, operator): where?
+     [In the table's info (__table_descriptors__.info_json, "source_metadata")
+     and summed up in the table's notes; shown in a closed "Metadata" frame of
+     the Import dialog.]
+ Q5  Closed formats (JMP .jmp, Minitab .mtw/.mpx, Origin .opju): refuse with a
+     message saying how to export from that program?  [Yes.]
+ Q6  Sample files: the owner provides real exports of the instruments in the
+     lab (Keysight B1500/EasyEXPERT, Keithley 4200A/Clarius, the VNA, the
+     oscilloscope) - the vendors' formats vary by firmware, and the readers
+     are tested on real files.  [Needed before phase 2.]
+
+======================================================================
+3. WHAT EXISTS TODAY (verified in the code)
+======================================================================
+ - app/utils/data_sources.py: IMPORTABLE_SUFFIXES (.csv .tsv .txt .xlsx .xlsm
+   .xls .json .xml), IMPORT_FILE_FILTER, read_any_file(path, skiprows,
+   skipfooter, header, sheet, delim, encoding) dispatching by suffix to
+   read_text_file / read_excel_file / read_json_file / read_xml_file; the
+   unknown suffix falls back to delimited text. Database and web sources have
+   their own readers (read_sqlite_*, read_postgres_*, read_mysql_*, read_web_url).
+ - Fixed on 2026-10-18 (82400b3): XML read with parser="etree" (pandas'
+   default wanted lxml, not installed); .xls read with xlrd when installed,
+   otherwise a message (openpyxl cannot read .xls) - excel_engine().
+ - app/dialogs/import_data_dialog.py: Source (Browse...), Read options
+   (closed: header, skip rows, delimiter, encoding), New table (name, column
+   types, rows x columns read), Preview; a Sheet combo shown for Excel only
+   (_is_excel_path, _update_sheet_choices, _on_sheet_changed).
+ - app/utils/import_runner.py refresh_link: re-imports a linked table from the
+   settings saved by the dialog (settings["source"]["kind"], sheet, skip...).
+ - Plugin families: app/scanners/plugin_family.py (PluginFamily: base class,
+   builtin_root + user_root, AST scan of literal class attributes, lazy import).
+ - Installed today (Python 3.14): pandas, numpy, scipy (scipy.io: loadmat,
+   wavfile), openpyxl. Not installed: xlrd, lxml, pyarrow, pyreadstat, odfpy,
+   pyxlsb, h5py, netCDF4, npTDMS, scikit-rf, pystdf, spicelib, lecroyparser...
+
+======================================================================
+4. ARCHITECTURE
+======================================================================
+ 4.1 The plugin family (app/plugin_api/importers/base.py)
+
+     class FileImporter:
+         Name: str                 "Touchstone S-parameters"
+         Description: str          one line, shown in the dialog
+         Suffixes: list[str]       [".s1p", ".s2p", ".s3p", ".s4p", ".snp"]
+         Category: str             see 4.4 - groups the file-type filter
+         Packages: list[str]       ["scikit-rf"] - empty for pure Python
+         Order: int
+
+         def sniff(self, path) -> bool          # optional: claim a file whose
+                                                # suffix is ambiguous (.txt, .csv,
+                                                # .dat) by its first lines
+         def datasets(self, path) -> list[str]  # sheets, groups, sweeps; [] = one
+         def read(self, path, dataset, options) -> ImportResult
+
+     @dataclass ImportResult:
+         frame: DataFrame          the rows; a "Dataset" column when Q3 says so
+         metadata: dict            instrument, date, setup... (-> table info)
+         units: dict[str, str]     column -> unit, when the file says it (R-08)
+         notes: list[str]          what the reader did ("3 sweeps merged")
+
+     The family is declared in app/scanners/importer_scanner.py with
+     PluginFamily(label="importers", base_class="FileImporter",
+     builtin_root=app/importers, user_root=user/importers, string_attrs=Name,
+     Description, Category, string_list_attrs=Suffixes, Packages, int_attrs=Order).
+
+ 4.2 Dispatch. read_any_file asks the family: the importers whose Suffixes hold
+     the file's suffix, then those whose sniff() claims it (for .txt/.csv/.dat
+     instrument exports), then today's readers as the fallback. The existing
+     CSV/Excel/JSON/XML readers become the first built-in importers (no change
+     in behaviour; their tests stay).
+
+ 4.3 Missing packages. A reader whose Packages are not installed
+     (importlib.util.find_spec) stays in the filter; choosing such a file shows
+     "Reading Touchstone files needs scikit-rf: pip install scikit-rf" - the
+     message excel_engine() already gives for xlrd. The Settings' Developer
+     mode could later offer the pip command.
+
+ 4.4 Categories (the file-type filter's groups, and the manual's table):
+       Spreadsheets and text   CSV/TSV/TXT, Excel, LibreOffice .ods, .xlsb
+       Statistics software     SPSS, Stata, SAS, R, MATLAB
+       Columnar and scientific Parquet, Feather/Arrow, HDF5, NetCDF, Igor
+       Parameter analysers     Keysight B1500/B2900, Keithley 4200A/24xx
+       RF                      Touchstone .sNp
+       Production test         STDF, KLARF, wafer maps
+       Circuit simulation      SPICE .raw (LTspice, ngspice), Spectre PSF
+       Oscilloscopes and logic Tektronix, LeCroy, Keysight waveforms; VCD
+       Spectroscopy and XRD    JCAMP-DX, SPC, OPUS, .xrdml
+       Lab instruments         NI TDMS, LabVIEW .lvm, FCS, EDF/BDF, BioLogic .mpr
+       Other                   GPX, GraphPad .pzfx, MDF4
+
+ 4.5 Import dialog changes
+     - "Sheet" becomes "Dataset": shown when the importer's datasets() has more
+       than one entry (Excel sheets, TDMS groups, HDF5 paths, B1500 sweeps),
+       with "All, in one table (Dataset column)" first (Q3).
+     - A closed "Metadata" frame (collapsible TitledCard) lists ImportResult.metadata.
+     - The Source frame says which reader is used ("Read as: Touchstone S-parameters").
+     - Read options (delimiter, encoding, header, skip) are disabled for binary readers.
+     - The link settings store the importer's Name and the dataset, so a refresh
+       uses the same reader (import_runner.refresh_link).
+
+======================================================================
+5. THE FORMATS, BY PHASE
+======================================================================
+ Phase 1 - no new package (S-M)
+   Stata .dta              pandas.read_stata (value labels -> categories)
+   SAS .sas7bdat/.xpt      pandas.read_sas
+   MATLAB .mat (v5-v7)     scipy.io.loadmat; each 1-D/2-D numeric array a
+                           dataset; v7.3 (HDF5) needs h5py -> message
+   WAV audio               scipy.io.wavfile: Time and one column per channel
+   JCAMP-DX .jdx/.dx       own reader: ##TITLE/##XUNITS/##YUNITS... header ->
+                           metadata; XYDATA (X++(Y..Y)) and XYPOINTS; AFFN
+                           only at first (the compressed SQZ/DIF forms later)
+   LabVIEW .lvm            own reader: tab-separated with ***End_of_Header***
+                           blocks; one dataset per segment
+   GPX                     XML (etree): lat, lon, ele, time per point
+   GraphPad .pzfx          XML (etree): each data table a dataset
+   Keysight B1500/EasyEXPERT and Keithley 4200A/Clarius exports (CSV/XLSX)
+                           sniff(): the vendors' header keywords; the setup
+                           block -> metadata; one dataset per sweep (Vg step),
+                           merged with a "Sweep" column (Q3); units from the
+                           column headers ("Id (A)") -> ImportResult.units.
+                           NEEDS THE OWNER'S SAMPLE FILES (Q6).
+   Closed formats          .jmp .mtw .mpx .opju: an importer that only refuses,
+                           saying how to export to CSV/Excel from that program.
+
+ Phase 2 - one optional package each (M)
+   SPSS .sav/.zsav         pyreadstat (value labels kept)
+   Parquet, Feather/Arrow  pyarrow
+   LibreOffice .ods        odfpy (pandas engine "odf")
+   Excel binary .xlsb      pyxlsb
+   R .rds/.RData           pyreadr
+   Touchstone .sNp         own reader (simple: "# GHZ S MA R 50" option line,
+                           then frequency + n^2 pairs) - scikit-rf only for
+                           conversions later. Columns: Frequency, S11 mag,
+                           S11 phase, ... (or dB / real-imag as the file says)
+   STDF V4                 pystdf: PTR/FTR records -> one row per part and
+                           test (part id, X, Y, site, test number, name, value,
+                           limits, pass/fail); PRR -> bins. A wafer map is
+                           then a Heatmap of X, Y.
+   SPICE .raw              spicelib (LTspice and ngspice, binary and ASCII):
+                           one column per trace, "Step" for .step runs
+   Spectre PSF             psf_utils (ASCII PSF)
+   Oscilloscopes           lecroyparser (.trc); Tektronix .isf/.wfm and
+                           Keysight .bin/.h5 with small own readers or the
+                           vendors' Python examples
+   VCD                     vcdvcd: one column per signal, time-aligned
+   NI TDMS                 npTDMS: groups -> datasets, channels -> columns,
+                           properties -> metadata
+   HDF5 / NetCDF           h5py / netCDF4 (or xarray): a tree browser as the
+                           Dataset combo
+   Igor .ibw/.pxp          igor2
+   Spectroscopy            spc-spectra (Galactic .spc), brukeropusreader
+                           (OPUS), .xrdml (XML, own reader)
+   Lab instruments         flowio (FCS), pyedflib (EDF/BDF), galvani (BioLogic)
+
+ Phase 3 - heavy or niche (L, on request)
+   MDF4 (asammdf), KLARF and prober wafer maps (vendor variants), Cadence
+   binary PSF, mzML/mzXML (pyteomics).
+
+======================================================================
+6. TESTS
+======================================================================
+ - Each importer: a tiny fixture file written by the test itself (text formats)
+   or committed under dev/tests/data/importers (binary, a few KB, synthetic or
+   public domain): rows, columns, types, metadata, datasets.
+ - Known answers where a standard gives them: Touchstone example files from
+   the specification; JCAMP-DX examples from the IUPAC paper; an STDF file
+   written with pystdf itself.
+ - Missing package: the importer is listed, reading says what to install
+   (test with the package hidden via monkeypatch of find_spec).
+ - Dispatch: suffix first, then sniff, then today's text fallback; a .txt from
+   an instrument is claimed by its importer, a plain .txt is not.
+ - Link refresh: a linked TDMS/B1500 import refreshes through the same reader
+   and dataset.
+ - Every dialog still fits 1280x720 with the Dataset and Metadata rows.
+
+======================================================================
+7. STEPS AND EFFORT
+======================================================================
+ 1  Family + base class + scanner; today's four readers moved into it;
+    Dataset combo replaces Sheet; Metadata frame; link settings. (M)
+ 2  Phase 1 readers, B1500/4200 after the owner's sample files. (M)
+ 3  Phase 2, microelectronics first: Touchstone, STDF, SPICE .raw,
+    oscilloscopes, VCD; then the others. (M-L)
+ 4  Manual: a table of formats by category, the packages each needs;
+    an "Importers" section in the advanced chapter (writing your own). (S)
+
+======================================================================
+8. RISKS
+======================================================================
+ - Vendor formats change with firmware: readers tolerant of extra header
+   lines, tested on real files (Q6), failing with a message naming the line.
+ - Big binary files (TDMS, STDF, HDF5): read in the background (the import
+   already previews; the full read on OK should use background.run like the
+   analyses), and offer a decimation for waveforms of millions of points.
+ - Optional packages and the frozen app (R-14 installer): the installer must
+   decide which readers ship; the plan keeps every reader working or saying why.

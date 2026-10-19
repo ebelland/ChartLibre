@@ -11,7 +11,8 @@ G-02  S  Help me choose, next: each report says which next question fits (differ
 R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
 R-03  M  Reproducibility: re-run recorded operations; export a Python script (H-01).
 
-I-01  M  Import more formats (fixed already: .xls needed xlrd, XML needed lxml - now etree).
+I-01  M  Import more formats - PLAN: dev/plans/import_formats_plan.txt (waiting for the go; Q1-Q6 to answer).
+         Fixed already: .xls needed xlrd, XML needed lxml - now etree.
          No new package: Stata .dta, SAS .sas7bdat/.xpt (pandas), MATLAB .mat and WAV (scipy),
          JCAMP-DX spectra .jdx/.dx, LabVIEW .lvm, GPX tracks, GraphPad .pzfx (text/XML: own readers).
          One small package each: SPSS .sav (pyreadstat, keeps value labels -> R-08), Parquet/Feather
