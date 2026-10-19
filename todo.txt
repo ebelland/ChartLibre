@@ -104,6 +104,7 @@ T-01  S  test_windows_chrome::test_collapsing_keeps_icons_only_and_expanding_res
          fails (since before the rail changes).
 D-01  M  Demos rethought around the questions: per goal still to do (the
          quick answers' demo is done), still covering every function.
+R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
 R-03  M  Reproducibility: re-run recorded operations; export a Python script.
 
 
