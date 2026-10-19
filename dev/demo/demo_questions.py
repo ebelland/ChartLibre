@@ -22,6 +22,7 @@ import os
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject
 from app.data.sqlite_repo import SqliteRepo
@@ -43,14 +44,21 @@ def _demo() -> DemoProject:
     return next(demo for demo in DEMO_PROJECTS if demo.builder.endswith(":build_questions_demo"))
 
 
-def _ask(app, repo: SqliteRepo, dialog_path: str, table: str, roles: dict[str, list[str]]) -> None:
-    """Open the quick answer on *table*, cast the columns, press OK and wait for it."""
+def _ask(app, repo: SqliteRepo, dialog_path: str, table: str, roles: dict[str, list[str]],
+         params: dict[str, Any] | None = None, kinds: dict[str, str] | None = None) -> None:
+    """Open the analysis on *table*, cast the columns (typed by *kinds*), set *params*, press OK and wait."""
     import importlib
 
     module_name, class_name = dialog_path.split(":")
     dialog = getattr(importlib.import_module(module_name), class_name)(repo=repo, table=table)
     try:
-        dialog.roles_widget.set_casting(roles)
+        roles = dict(roles)
+        effects = roles.pop("effects", None)  # Fit Model's: its X are effects, not a role
+        dialog.roles_widget.set_casting(roles, kinds)
+        if effects:
+            dialog.cast_explanatory(list(effects))
+        if params:
+            dialog._parameter_form.set_values(params)
         problems = dialog.problems()
         if problems:
             raise RuntimeError("; ".join(problems))

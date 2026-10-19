@@ -10318,3 +10318,21 @@ msgstr "L'input deve essere una colonna diversa dalla misura e dal tempo."
 
 msgid "X, input"
 msgstr "X, input"
+
+msgid "Predict - which card transactions are fraud"
+msgstr "Prevedere - quali transazioni con carta sono frodi"
+
+msgid "Start from a goal: which transactions are fraud, and from what? A box plot of the distance from home by fraud, then What has the most impact? on fraud, Partition (a tree's rules for the suspicious ones) and a logistic Fit Model on the three strongest factors."
+msgstr "Si parte da un obiettivo: quali transazioni sono frodi, e da cosa si vede? Un box plot della distanza da casa per frode, poi Cosa impatta di più? sulla frode, Partizione (le regole di un albero per quelle sospette) e un Fit Model logistico sui tre fattori più forti."
+
+msgid "Signal - the Keeling curve's season, and the sunspots' cycle"
+msgstr "Segnale - la stagionalità della curva di Keeling e il ciclo delle macchie solari"
+
+msgid "Start from a goal: what pattern is in a measure over time? The Mauna Loa CO2 record with Time Series - its trend and yearly season, the ADF and KPSS tests, and a five-year forecast by the ARIMA the AIC chooses - and the monthly sunspots, whose autocorrelation shows the eleven-year cycle."
+msgstr "Si parte da un obiettivo: che andamento ha una misura nel tempo? La CO2 di Mauna Loa con Serie temporale - il trend e la stagione annuale, i test ADF e KPSS e una previsione a cinque anni con l'ARIMA scelto dall'AIC - e le macchie solari mensili, la cui autocorrelazione mostra il ciclo di undici anni."
+
+msgid "Groups - the penguins found again without their species"
+msgstr "Gruppi - i pinguini ritrovati senza la loro specie"
+
+msgid "Start from a goal: are there groups among the rows? Cluster Analysis on the penguins' four measures alone: the silhouette picks two clusters - the Gentoo, and the Adelie with the Chinstrap, whose measures overlap. Principal Components coloured by species, with the biplot, shows why; Factor Analysis finds a size factor and a bill-depth one."
+msgstr "Si parte da un obiettivo: ci sono gruppi tra le righe? Analisi dei cluster sulle sole quattro misure dei pinguini: la silhouette sceglie due cluster - i Gentoo, e gli Adelia con i Chinstrap, le cui misure si sovrappongono. Le Componenti principali colorate per specie, con il biplot, mostrano perché; l'Analisi fattoriale trova un fattore di taglia e uno di profondità del becco."

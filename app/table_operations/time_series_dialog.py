@@ -180,7 +180,9 @@ class TimeSeriesDialog(TableOperationDialogBase):
         if "Trend" in result.rows:
             sql, roles = self.series_select(rows, {"x": "Time", "y": "Trend"})
             series.append((_("Trend"), sql, roles, {"linestyle": "-", "marker": "", "color": "#16a34a"}))
-        panels: list[tuple] = [("Time Series", _("{measure} and its forecast").format(measure=measure),
+        title = (_("{measure} and its forecast") if "time_series_forecast" in tables else "{measure}").format(
+            measure=measure)
+        panels: list[tuple] = [("Time Series", title,
                                 x_label, measure, series, options)]
         band = float(result.correlations["Upper band"].iloc[0])
         lines = {"lines": [{"orientation": "horizontal", "value": value,

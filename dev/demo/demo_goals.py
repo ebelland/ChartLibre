@@ -1,7 +1,7 @@
 """Demos built around a goal, each asked as a person would (D-01).
 
 The quick answers' demo (demo_questions) starts from three questions; these
-start from three of the guided analysis's goals, with the data a person
+start from the guided analysis's goals, with the data a person
 would bring to them, and go the way Help me choose leads: the charts the
 columns allow first, then the analyses that answer the questions.
 
@@ -11,6 +11,12 @@ columns allow first, then the analyses that answer the questions.
   Partition, and Fit Y by X on species by island.
 * Describe and compare - salaries across departments: a histogram,
   Distribution, Are there differences?, What has the most impact?
+* Predict - which card transactions are fraud: What has the most impact?,
+  Partition and a logistic Fit Model.
+* Signal - the Keeling curve's season and trend, forecast five years by an
+  ARIMA chosen by AIC; the sunspots' eleven-year cycle in their ACF.
+* Groups - the penguins clustered on their measures without their species,
+  Principal Components coloured by species, Factor Analysis.
 
 Each is a DemoProject whose builder is one of the functions below. Run
 ``python -m dev.demo.demo_goals`` to rebuild them into ``demo/``. They run
@@ -29,6 +35,8 @@ from app.logs.logger import applogger
 from dev.demo.demo_questions import _ask
 
 PENGUIN_MEASURES = ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"]
+TRANSACTION_FACTORS = ["transaction_amount", "transaction_frequency_7d", "account_age_days", "distance_from_home_km",
+                       "time_since_last_transaction_hours", "failed_login_attempts_24h", "channel", "country"]
 
 #: A step: ("chart", table, columns picked in Help me choose, which of its charts)
 #: or ("ask", "module:Dialog", table, role -> columns).
@@ -61,6 +69,32 @@ GOAL_DEMOS: dict[str, tuple[Step, ...]] = {
          {"response": ["salary_eur"], "group": ["department"]}),
         ("ask", "app.table_operations.impact_dialog:ImpactDialog", "employee_compensation",
          {"response": ["salary_eur"], "factor": ["department", "age", "bonus_eur"]}),
+    ),
+    "build_predict_demo": (
+        ("chart", "transactions", ["distance_from_home_km", "fraud"], 0),
+        ("ask", "app.table_operations.impact_dialog:ImpactDialog", "transactions",
+         {"response": ["fraud"], "factor": TRANSACTION_FACTORS}, None, {"fraud": "nominal"}),
+        ("ask", "app.table_operations.partition_dialog:PartitionDialog", "transactions",
+         {"response": ["fraud"], "factor": TRANSACTION_FACTORS}, None, {"fraud": "nominal"}),
+        ("ask", "app.table_operations.fit_model_dialog:FitModelDialog", "transactions",
+         {"response": ["fraud"], "effects": ["distance_from_home_km", "failed_login_attempts_24h",
+                                             "transaction_amount"]}, None, {"fraud": "nominal"}),
+    ),
+    "build_signal_demo": (
+        ("chart", "co2_mauna_loa", ["date", "co2_ppm"], 0),
+        ("ask", "app.table_operations.time_series_dialog:TimeSeriesDialog", "co2_mauna_loa",
+         {"response": ["co2_ppm"], "time": ["date"]}, {"model": "auto", "horizon": 60, "lags": 48}),
+        ("ask", "app.table_operations.time_series_dialog:TimeSeriesDialog", "sunspots_monthly",
+         {"response": ["sunspot_number"], "time": ["date"]}, {"model": "none", "season": 1, "lags": 300}),
+    ),
+    "build_groups_demo": (
+        ("chart", "penguins", ["bill_length_mm", "bill_depth_mm"], 0),
+        ("ask", "app.table_operations.clustering_dialog:ClusteringDialog", "penguins",
+         {"response": PENGUIN_MEASURES}),
+        ("ask", "app.table_operations.principal_components_dialog:PrincipalComponentsDialog", "penguins",
+         {"response": PENGUIN_MEASURES, "by": ["species"]}),
+        ("ask", "app.table_operations.factor_analysis_dialog:FactorAnalysisDialog", "penguins",
+         {"response": PENGUIN_MEASURES}, {"factors": 2}),
     ),
 }
 
@@ -121,6 +155,18 @@ def build_classify_demo(directory: Path = DEMO_DIR) -> Path:
 
 def build_describe_compare_demo(directory: Path = DEMO_DIR) -> Path:
     return _build("build_describe_compare_demo", directory)
+
+
+def build_predict_demo(directory: Path = DEMO_DIR) -> Path:
+    return _build("build_predict_demo", directory)
+
+
+def build_signal_demo(directory: Path = DEMO_DIR) -> Path:
+    return _build("build_signal_demo", directory)
+
+
+def build_groups_demo(directory: Path = DEMO_DIR) -> Path:
+    return _build("build_groups_demo", directory)
 
 
 if __name__ == "__main__":

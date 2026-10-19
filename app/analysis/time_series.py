@@ -335,7 +335,11 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
             else:
                 raise ValueError(f"'{model}' is not one of {', '.join(key for key, _label in MODELS)}")
         residuals = y - np.asarray(fitted_values, dtype=float)
-        rows["Fitted"], rows["Residual"] = np.asarray(fitted_values, dtype=float), residuals
+        # ARIMA's first fitted values only start the differencing (the first season's, too): left empty.
+        start = (max(order[1], 1) + (season * seasonal[1] if season >= 2 else 0)) if model in (ARIMA, AUTO) else 0
+        shown_fitted, shown_residuals = np.asarray(fitted_values, dtype=float).copy(), residuals.copy()
+        shown_fitted[:start], shown_residuals[:start] = np.nan, np.nan
+        rows["Fitted"], rows["Residual"] = shown_fitted, shown_residuals
         future = _future(times, temporal, horizon)
         forecast = pd.DataFrame({
             "Time": future.dt.strftime("%Y-%m-%d %H:%M:%S").str.replace(" 00:00:00", "") if temporal else future,
@@ -345,7 +349,7 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         parameters = pd.DataFrame({"Term": names, "Estimate": np.asarray(fitted.params, float),
                                    "Std Error": np.asarray(standard_errors, float),
                                    "Prob>|z|": np.asarray(p_values, float)})
-        burn = (max(order[1], 1) + (season * seasonal[1] if season >= 2 else 0)) if model in (ARIMA, AUTO) else 0  # ARIMA's first fitted values are the start, not a fit
+        burn = start  # ARIMA's first fitted values are the start, not a fit
         summary.update({"Model": label, "AIC": float(fitted.aic), "BIC": float(fitted.bic),
                         "RMSE of residuals": float(np.sqrt(np.mean(residuals[burn:] ** 2))),
                         "Forecast periods": horizon})

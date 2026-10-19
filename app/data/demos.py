@@ -204,6 +204,40 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Guided Analysis",
     ),
     DemoProject(
+        "Predict - which card transactions are fraud",
+        "Start from a goal: which transactions are fraud, and from what? A box plot of the "
+        "distance from home by fraud, then What has the most impact? on fraud, Partition (a "
+        "tree's rules for the suspicious ones) and a logistic Fit Model on the three strongest factors.",
+        (),
+        builder="dev.demo.demo_goals:build_predict_demo",
+        preview="Partition",
+        category="Guided Analysis",
+    ),
+    DemoProject(
+        "Signal - the Keeling curve's season, and the sunspots' cycle",
+        "Start from a goal: what pattern is in a measure over time? The Mauna Loa CO2 record "
+        "with Time Series - its trend and yearly season, the ADF and KPSS tests, and a "
+        "five-year forecast by the ARIMA the AIC chooses - and the monthly sunspots, whose "
+        "autocorrelation shows the eleven-year cycle.",
+        (),
+        builder="dev.demo.demo_goals:build_signal_demo",
+        preview="Time Series",
+        references=(REF_CO2, REF_SUNSPOTS),
+        category="Guided Analysis",
+    ),
+    DemoProject(
+        "Groups - the penguins found again without their species",
+        "Start from a goal: are there groups among the rows? Cluster Analysis on the penguins' "
+        "four measures alone: the silhouette picks two clusters - the Gentoo, and the Adelie "
+        "with the Chinstrap, whose measures overlap. Principal Components coloured by species, "
+        "with the biplot, shows why; Factor Analysis finds a size factor and a bill-depth one.",
+        (),
+        builder="dev.demo.demo_goals:build_groups_demo",
+        preview="Cluster Analysis",
+        references=(REF_PENGUINS,),
+        category="Guided Analysis",
+    ),
+    DemoProject(
         "Antibiotics - grouped bars from a classic dataset",
         "1930s antibiotic potency data for sixteen bacteria, as a horizontal "
         "bar chart sorted by effectiveness.",

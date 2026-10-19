@@ -17,7 +17,7 @@ The window has three parts: the *navigation rail* at the far left, the *page* it
 == Navigation rail
 
 #defs(
-  [*Workspace*], [Collapses the page to give the chart panel the whole window; click again to bring the last page back.],
+  [*Workspace*], [Collapses the page to give the chart panel the whole window; click another item of the rail — Tables, Analysis… — to bring a page back.],
   [*File*], [Projects, demos, import, save and export (see below).],
   [*Tables*], [The tables and saved queries of the project, with a preview of the selected one (see @data-chapter).],
   [*New table*], [A blank table, a designed experiment or a table built from others (see @data-chapter).],
