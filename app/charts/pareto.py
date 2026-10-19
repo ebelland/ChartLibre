@@ -34,7 +34,7 @@ class ParetoAxisRenderer(BarAxisRenderer, BaseAxisRenderer):
     """Bars in descending order with a cumulative percentage overlay."""
 
     Name: str = "Pareto Chart"
-    Category: str = "Statistical distributions"
+    Category: str = "Diagnostic plots"
     Description: str = (
         "Categories sorted by descending magnitude with a cumulative "
         "percentage line, for finding the few causes behind most of an effect."

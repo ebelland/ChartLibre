@@ -374,9 +374,12 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         # combos paired per row still did. A QFormLayout gives each combo the
         # whole row to grow into, which is what a translated label this long
         # actually needs.
-        fit_options = QWidget(outer)
-        fit_options_layout = QFormLayout(fit_options)
+        # Closed (todo H-10): the default algorithm, loss and weights fit nearly
+        # every curve; the arrow opens them.
+        fit_options = TitledCard(outer, _("Advanced"), collapsible=True, collapsed=True)
+        fit_options_layout = QFormLayout()
         stdSizeAndlayout(fit_options_layout)
+        fit_options.card.layout().addLayout(fit_options_layout)
 
         for optimizer in OPTIMIZERS:
             self._combo_optimizer.addItem(_(optimizer.label), optimizer.key)
@@ -425,8 +428,10 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
                 "parameter space when it does not."
             )
         )
-        fit_options_layout.addRow("", self._btn_estimate)
-
+        estimate_row = QHBoxLayout()
+        estimate_row.addWidget(self._btn_estimate)
+        estimate_row.addStretch(1)
+        layout.addLayout(estimate_row)
         layout.addWidget(fit_options)
         self._refresh_optimizer_help()
         return outer
@@ -444,7 +449,7 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         bands.card.layout().addWidget(self._confidence_band_check)
         bands.card.layout().addWidget(self._prediction_band_check)
         layout.addWidget(bands)
-        charts = TitledCard(page, _("Extra charts"))
+        charts = TitledCard(page, _("Extra charts"), collapsible=True, collapsed=True)
         charts.card.layout().addWidget(self._residual_chart_check)
         charts.card.layout().addWidget(self._fit_vs_measured_chart_check)
         layout.addWidget(charts)

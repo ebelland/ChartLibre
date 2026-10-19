@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-19
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 96,548 lines in 268 files; tests 18,940 lines in 151 files (updated at each commit).
+Size: app 97,744 lines in 278 files; tests 19,163 lines in 153 files (updated at each commit).
 
 NOW
 D-01  M  Demos per goal: Predict, Signal, Anomalies, Groups, Process, Experiment still to do
@@ -11,22 +11,20 @@ G-02  S  Help me choose, next: each report says which next question fits (differ
 R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
 R-03  M  Reproducibility: re-run recorded operations; export a Python script (H-01).
 
-I-01  M  Import more formats - PLAN: dev/plans/import_formats_plan.txt (waiting for the go; Q1-Q6 to answer).
-         Fixed already: .xls needed xlrd, XML needed lxml - now etree.
-         No new package: Stata .dta, SAS .sas7bdat/.xpt (pandas), MATLAB .mat and WAV (scipy),
-         JCAMP-DX spectra .jdx/.dx, LabVIEW .lvm, GPX tracks, GraphPad .pzfx (text/XML: own readers).
-         One small package each: SPSS .sav (pyreadstat, keeps value labels -> R-08), Parquet/Feather
-         (pyarrow), LibreOffice .ods (odfpy), Excel .xlsb (pyxlsb), NI TDMS (npTDMS), Galactic SPC
-         (spc-spectra), flow cytometry FCS (flowio), EDF/BDF biosignals (pyedflib), HDF5/NetCDF (h5py,
-         netCDF4), R .rds (pyreadr), BioLogic .mpr (galvani), Bruker OPUS (brukeropusreader),
-         automotive MDF4 (asammdf, large). Closed formats - JMP .jmp, Minitab .mtw, Origin .opju - no
-         reader: say so and ask for CSV/Excel. Optional packages: the import says which to install.
-         Microelectronics: Keysight B1500 / Keithley 4200A I-V and C-V exports (CSV/XLSX with
-         metadata blocks before the data, several sweeps per file -> one table, a Sweep column),
-         Touchstone .sNp S-parameters (scikit-rf or own reader), STDF test data (pystdf), SPICE
-         .raw from LTspice/ngspice (spicelib) and Spectre PSF (psf_utils), oscilloscope waveforms
-         Tektronix .isf/.wfm, LeCroy .trc (lecroyparser), Keysight .bin/.h5, logic VCD (vcdvcd),
-         KLARF defect files and wafer maps (text), Igor .ibw/.pxp (igor2), PANalytical .xrdml (XML).
+I-01  M  Import more formats (dev/plans/import_formats_plan.txt). Done: the importers plugin family
+         (app/importers, user/importers), the Import dialog's Dataset combo, "Read as", Metadata frame
+         (kept as the table's source_metadata). Read now: Stata, SAS, SPSS*, R*, Parquet/Feather*, .ods*,
+         .xlsb*, MATLAB .mat, WAV, Touchstone .sNp (v1), SPICE .raw (ASCII, binary, LTspice UTF-16,
+         .step), VCD, JCAMP-DX (plain numbers), LabVIEW .lvm, GPX, GraphPad .pzfx; JMP/Minitab/Origin
+         refused with what to do (* = needs its package; the message says which).
+         Next: Touchstone v2 and compressed JCAMP (SQZ/DIF); NI TDMS, HDF5/NetCDF, STDF, Igor, FCS,
+         EDF, SPC, OPUS, .xrdml, MDF4; oscilloscopes (Tektronix, LeCroy, Keysight); B1500 / 4200A
+         exports and KLARF - NEED THE OWNER'S SAMPLE FILES; manual's Import chapter table of formats.
+I-02  M  Importer plugins for a lab's own formats - EVALUATION AND PLAN: dev/plans/importer_plugins_plan.txt
+         (sniff for .csv/.txt, Importer Builder with "Try on a file", installed list; waiting for the go).
+A-01  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in New Chart, Id included;
+         an Animation tab in Chart properties; a player; GIF/APNG/WebP/HTML/PNG frames, MP4 with ffmpeg).
+         Waiting for the go; Q1-Q5 to answer.
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - AN-04 S  Factor analysis (rotations); PCA: colour the score plot by a group column, biplot.
@@ -43,15 +41,12 @@ NEXT - INTERFACE
            ("show only Selected" on every chart of a table).
 - S-01  S  Live style preview on the other line/point renderers (Stairs, Stem, ECDF, 3D Line,
            via SeriesArtistTags); Undo per element.
-- H-10  S  Fewer frames: Fit Curve's and the table analyses' parameter groups (collapsible
-           TitledCard exists).
-- H-15  M  Options nobody changes: rarely-used kwargs behind "Advanced" in Chart properties.
+- H-16  S  Frame titles not in capitals ("Select Columns", not "SELECT COLUMNS"), as macOS's own.
+- H-17  S  Results in a grey frame is still a white page inside it (an HTML report): keep, or the frame's grey?
 - H-11  M  Error messages that say what to do next, for import and SQL.
 - H-12  M  Windows parity: every dialog at 1366x768 and 125% scaling in CI.
 - H-08  M  First run: open on Help me choose with a demo table; a 3-step tour of the rail.
-- C-01  S  Chart types in JMP's places, as Pareto Plot and Ishikawa Diagram now are under Quality
-           and Process: Graph Builder-like entries (Scatterplot Matrix, Contour, Bubble), and New
-           chart's own categories reviewed (Pareto Chart still under Statistical distributions).
+- C-02  S  JMP's Graph menu, next: Parallel Plot, Cell Plot, Ternary Plot (no chart type yet).
 
 LATER
 - AN-06 M  Quality: Gage R&R, capability with non-normal fits, multi-vari.
@@ -69,7 +64,6 @@ LATER
 - N-09  M  "Colour by value" dialog.
 
 IDEAS
-- Animated charts: a Frame column (like ClusterId), per-figure player.
 - 3D vector fields (divergence, curl); 3D parametric curves.
 - User Python/sympy operations (sandboxed); script/notebook export,
   units with pint, uncertainty propagation.

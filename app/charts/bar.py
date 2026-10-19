@@ -412,9 +412,9 @@ class BarAxisRenderer(BaseAxisRenderer):
         if rotation_option == "auto":
             if count > 40:
                 rotation_value = 90.0
-            elif count > 12 or self._labels_crowd(ax, tick_labels):
-                rotation_value = 45.0
             else:
+                # Level: the figure turns or wraps them once it can measure
+                # them, only if they overlap (render_figure._fit_x_tick_labels).
                 rotation_value = 0.0
         else:
             rotation_value = float(str(rotation_option))

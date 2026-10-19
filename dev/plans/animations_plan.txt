@@ -1,0 +1,151 @@
+ANIMATED CHARTS - IMPLEMENTATION PLAN
+Written 2026-10-19. Status: PLAN ONLY, NOTHING IMPLEMENTED YET. Wait for the owner's go before coding.
+
+======================================================================
+1. GOAL
+======================================================================
+A chart whose rows are shown a FRAME at a time: the frame is the value of one
+column - a year, a run, a step of a sweep, a time, or the row itself (its Id).
+As JMP's Bubble Plot / Graph Builder "Animation" (the column in the Frame or
+Page zone) and Plotly's animation_frame.
+
+  - New Chart asks for the animation column (optional), "Id" among the choices.
+  - Chart properties gets a new tab, "Animation", after Overlays: the column,
+    the order, the speed, what stays on screen (cumulative, trail), the loop.
+  - The chart panel plays it: play / pause, a slider over the frames, the
+    frame's value as a caption.
+  - Save as: animated GIF, MP4, animated PNG (APNG), WebP, an HTML page with
+    its own player, and a folder of PNG frames.
+
+======================================================================
+2. DECISIONS FOR THE OWNER (proposed answer in [ ])
+======================================================================
+ Q1  Where the animation lives: on the AXIS (each axis its own frame column)
+     or on the FIGURE (one frame column for every axis, played together)?
+     [Figure: one slider, every axis at the same frame - small multiples
+     animate together; an axis without that column stays still.]
+ Q2  The "Id" choice: the rows' own order (R-07 _id), one row per frame, or
+     cumulative (rows 1..k at frame k - the line "drawing itself")?
+     [Both: Id is a column like the others; "Cumulative" is the tab's option,
+     and with Id it is the drawing-itself effect.]
+ Q3  The axes' limits: fixed at the whole data's (nothing jumps), or each
+     frame's own? [Fixed by default - JMP's choice; "Follow each frame" option.]
+ Q4  MP4 needs ffmpeg (not installed here; GIF, APNG, WebP and HTML need only
+     Pillow and Matplotlib, both present). Offer MP4 only when ffmpeg is found,
+     or bundle imageio-ffmpeg (a 30 MB wheel)? [Only when found; the menu says
+     how to install it.]
+ Q5  A frame column with many values (a timestamp per row: 10 000 frames):
+     bin it to at most N frames (N in the tab, default 200)? [Yes.]
+
+======================================================================
+3. WHAT EXISTS TODAY (verified in the code)
+======================================================================
+ - Chart properties: app/dialogs/main_chart_properties.py _create_properties_control
+   builds the QTabWidget Figure / Axis / Series / Overlays (one loop over pages;
+   a new page is one more tuple), widgets in app/widgets/chart_properties/.
+ - New Chart: app/dialogs/create_chart_dialog.py NewPlotTabDialog; the role
+   combos (x, y, z, size, color, group...); "Separate axes by:" (_combo_axes_by,
+   B-13) is the nearest thing: one axis per value of a column. The animation
+   column is the same idea in time instead of in space.
+ - R-07: every table has _id INTEGER PRIMARY KEY (app/data/repo/_common.py
+   ROW_ID); SeriesData.ids carries it to the renderers; sql_with_row_id adds it.
+ - Render: app/plugin_api/charts/render_figure.py render_figure_from_descriptor
+   draws every axis from its series' SQL; the renderers are plugins
+   (BaseAxisRenderer.render_axis(ax, series, options)).
+ - The chart panel: app/widgets/chart_panel/ (canvas, hover, selection rings).
+ - matplotlib 3.11 (animation.FuncAnimation, PillowWriter, FFMpegWriter,
+   HTMLWriter, to_jshtml); Pillow 12.2 (WebP yes, APNG yes); ffmpeg: not found.
+ - todo.txt IDEAS: "Animated charts: a Frame column (like ClusterId), per-figure player."
+
+======================================================================
+4. ARCHITECTURE
+======================================================================
+ 4.1 The descriptor. FigureDescriptor.options["animation"] (Q1):
+       {"column": "year" | "_id", "order": "ascending"|"descending"|"data",
+        "cumulative": false, "trail": 0 (frames that fade behind),
+        "interval_ms": 200, "loop": true, "max_frames": 200 (Q5),
+        "limits": "fixed"|"follow" (Q3), "caption": "{column} = {value}"}
+     No column = no animation: every chart today is unchanged.
+
+ 4.2 The data. The series' SQL already selects the rows; the frame column is
+     added to the SELECT (as _id is, sql_with_row_id) under the alias
+     "__frame". Read ONCE: the frames are slices of the same SeriesFrame -
+     no query per frame.
+
+ 4.3 Drawing a frame. Two ways, chosen per renderer:
+     a) FAST: renderers that declare SupportsFrames = True (Scatter, Line,
+        Bar, Bubble, Stem, Stairs) get update_frame(ax, series, mask): they
+        keep their artists and set new data (set_offsets, set_data,
+        set_height) - smooth at 30 fps.
+     b) GENERIC: every other renderer: clear the axis and render_axis with
+        the frame's rows (render_figure's own per-axis path). Slower
+        (5-10 fps), always right. The limits are fixed first (Q3), so
+        nothing jumps.
+     The caption is a figure text, updated per frame.
+
+ 4.4 The player in the chart panel. A small bar under the canvas, shown only
+     for an animated figure: Play/Pause, the frame slider, the frame's value,
+     speed. A QTimer steps it (not FuncAnimation, which fights the panel's own
+     redraws); the slider scrubs. Selection rings and hover keep working on
+     the frame shown (they read the artists).
+
+ 4.5 New Chart. One more combo in the axis form, under "Separate axes by:":
+       "Animate by:"  (none) | Id (row order) | <every column>
+     Its tooltip says what it does; the choice goes to the descriptor (4.1).
+
+ 4.6 The Animation tab (Chart properties, after Overlays)
+       Animation      Column [combo, Id first]   Order [combo]
+       Playback       Speed (frames/s) [spin]   Loop [check]
+       Frames         Cumulative [check]   Trail [spin]   Max frames [spin]
+       Axes           Limits: fixed / follow each frame
+       Caption        [text, {column} {value}]
+       Save as...     [button -> 5]
+     Collapsible frames (TitledCard), Playback open, the rest closed (H-10).
+     Live: a change replays from the current frame.
+
+======================================================================
+5. SAVING (Export > "Animation...")
+======================================================================
+ A dialog: format, size (the figure's or W x H px), frames per second, loop,
+ frames range (from / to), and a progress bar (a background task - B-02 style,
+ cancellable). Each format through matplotlib.animation:
+
+   GIF           PillowWriter                     always available
+   APNG (.png)   Pillow, save_all=True            always available
+   WebP          Pillow, save_all=True            always available (checked)
+   MP4 (H.264)   FFMpegWriter                     only when ffmpeg is found (Q4)
+   HTML          Animation.to_jshtml(), one file  always; plays in any browser
+   PNG frames    a folder, frame_0001.png...      always; for other software
+
+ The project's own report (HTML) can embed the animation as its jshtml player.
+
+======================================================================
+6. TESTS
+======================================================================
+ - descriptor round trip of options["animation"]; a figure without it renders
+   as before (the full render suite unchanged).
+ - frames: values of a column, Id, cumulative, max_frames binning, order.
+ - fast path vs generic path give the same pixels for one frame (Agg).
+ - each writer on a 5-frame, 100 x 80 px figure: the file exists, has 5
+   frames (Pillow reads GIF/APNG/WebP back); MP4 skipped without ffmpeg.
+ - the player: the timer steps, the slider moves, Pause stops (offscreen Qt).
+ - New Chart: "Animate by" writes the option; the tab edits it.
+
+======================================================================
+7. STEPS (each one a commit, tests first)
+======================================================================
+ 1. Descriptor option + frame extraction (4.1, 4.2) - no UI.
+ 2. Generic frame drawing + the player bar (4.3b, 4.4).
+ 3. New Chart's "Animate by" (4.5) and the Animation tab (4.6).
+ 4. Saving: GIF, APNG, WebP, HTML, PNG frames; MP4 when ffmpeg (5).
+ 5. Fast path for Scatter / Line / Bar / Bubble (4.3a).
+ 6. A demo (Gapminder-like: life expectancy vs income by year, from the
+    World Bank data already in the demos), manual chapter, translations.
+
+======================================================================
+8. RISKS
+======================================================================
+ - Redraw speed of the generic path on heavy charts (3D, contour): the
+   export is offline and unaffected; the player shows its real fps.
+ - Twin axes and shared axes: one frame for all (Q1) keeps them in step.
+ - Memory for long exports: frames are written as they are drawn, never kept.

@@ -44,6 +44,8 @@ import pandas as pd
 from app import APP_NAME, APP_VERSION
 from app.data.repo._common import ensure_read_only_select, read_only
 from app.logs.logger import applogger
+from app.plugin_api.importers.base import ALL_DATASETS, FileImporter, ImportedData
+from app.scanners import importer_scanner
 from app.utils.config import get_constant
 
 # -----------------------------------------------------------------------------
@@ -59,16 +61,27 @@ CLIPBOARD_SOURCE_NAME: str = "from_clipboard"
 #: and what a drop onto the main window is accepted for.  One list: the dialog
 #: filter and the drop test used to be two literals, and a format added to the
 #: reader was a format the window still refused.
-IMPORTABLE_SUFFIXES: tuple[str, ...] = (
-    ".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".xls", ".json", ".xml",
+#: The readers here, then every file importer's (app/importers, todo I-01).
+_OWN_SUFFIXES: tuple[str, ...] = (".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".xls", ".json", ".xml")
+IMPORTABLE_SUFFIXES: tuple[str, ...] = _OWN_SUFFIXES + tuple(
+    suffix for suffix in importer_scanner.importer_suffixes() if suffix not in _OWN_SUFFIXES
 )
 
+
+def _file_filter() -> str:
+    """Every readable file first, then one entry per kind - the importers' categories."""
+    groups: dict[str, list[str]] = {"Spreadsheets and text": list(_OWN_SUFFIXES)}
+    for entry in sorted(importer_scanner.importers, key=lambda e: int(e.get("order") or 100)):
+        groups.setdefault(str(entry.get("category") or "Other"), []).extend(
+            str(s).lower() for s in entry.get("suffixes") or ())
+    parts = ["Data files (" + " ".join(f"*{suffix}" for suffix in IMPORTABLE_SUFFIXES) + ")"]
+    parts += [f"{name} (" + " ".join(f"*{s}" for s in dict.fromkeys(suffixes)) + ")"
+              for name, suffixes in groups.items() if suffixes]
+    return ";;".join(parts + ["All files (*.*)"])
+
+
 #: The same list as a QFileDialog filter.
-IMPORT_FILE_FILTER: str = (
-    "Data files ("
-    + " ".join(f"*{suffix}" for suffix in IMPORTABLE_SUFFIXES)
-    + ");;All files (*.*)"
-)
+IMPORT_FILE_FILTER: str = _file_filter()
 
 
 def is_importable(path: str | Path) -> bool:
@@ -233,6 +246,41 @@ def read_xml_file(path: str, *, skiprows: int = 0, skipfooter: int = 0) -> pd.Da
     return df
 
 
+def file_importer(path: str | Path) -> FileImporter | None:
+    """The importer reading *path* (app/importers), or None for the readers here."""
+    ext = (Path(path).suffix or "").lower()
+    if ext in _OWN_SUFFIXES:
+        return None
+    entry = importer_scanner.importer_for(path)
+    return importer_scanner.load_importer(entry) if entry else None
+
+
+def file_datasets(path: str | Path) -> list[str]:
+    """What one file holds several of - a workbook's sheets, a MATLAB file's variables...
+
+    An importer's list starts with ALL_DATASETS, "all in one table", when it
+    has more than one; [] for a file of one table.
+    """
+    ext = (Path(path).suffix or "").lower()
+    if ext in (".xlsx", ".xlsm", ".xls"):
+        return [str(name) for name in pd.ExcelFile(path, engine=excel_engine(path)).sheet_names or []]
+    importer = file_importer(path)
+    if importer is None:
+        return []
+    importer.require()
+    names = importer.datasets(str(path))
+    return [ALL_DATASETS, *names] if len(names) > 1 else names
+
+
+def read_imported(path: str | Path, dataset: str | None = None) -> ImportedData:
+    """Read *path* with its importer: the rows, and what the file says about them."""
+    importer = file_importer(path)
+    if importer is None:
+        return ImportedData(frame=read_any_file(str(path), sheet=dataset))
+    importer.require()
+    return importer.read(str(path), dataset or None)
+
+
 def read_any_file(
     path: str,
     *,
@@ -244,6 +292,8 @@ def read_any_file(
     encoding: str | None = None,
 ) -> pd.DataFrame:
     ext = (Path(path).suffix or "").lower()
+    if ext not in _OWN_SUFFIXES and importer_scanner.importer_for(path) is not None:
+        return read_imported(path, sheet).frame
     if ext in (".csv", ".tsv", ".txt"):
         return read_text_file(
             path,

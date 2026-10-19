@@ -108,6 +108,35 @@ def quality_charts() -> list[dict]:
     ]
 
 
+def graph_charts() -> list[dict]:
+    """JMP's Graph menu, after Graph Builder (New chart): its charts by JMP's names (todo C-01).
+
+    Chart types of New chart, each opened on it - "chart:<type>" - so that
+    whoever looks for Scatterplot Matrix or Bubble Plot where JMP has them
+    finds them.
+    """
+    charts = (
+        ("Scatterplot Matrix", "Pair Plot", "Every pair of columns as a scatter plot, distributions on the diagonal.",
+         '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/>'
+         '<rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>'),
+        ("Bubble Plot", "Scatter Plot", "Points sized by a third column (the Size role), coloured by a fourth.",
+         '<circle cx="7" cy="15" r="3"/><circle cx="15" cy="9" r="5"/><circle cx="18" cy="18" r="2"/>'),
+        ("Contour Plot", "Contour Plot (Scattered)", "A response over two columns, as lines of equal value.",
+         '<path d="M4 16c3-6 9-8 16-6"/><path d="M6 19c3-4 8-6 13-4"/><path d="M4 11c4-5 10-7 16-5"/>'),
+        ("Scatterplot 3D", "Scatter Plot (3D)", "Three columns as points in space, turned with the mouse.",
+         '<path d="M4 18l6-4V4M10 14l10 4"/><circle cx="14" cy="8" r="1.4"/><circle cx="17" cy="12" r="1.4"/>'
+         '<circle cx="12" cy="11" r="1.4"/>'),
+        ("Surface Plot", "Surface Plot (Scattered)", "A response over two columns, as a surface.",
+         '<path d="M3 15l5-6 5 3 8-5"/><path d="M3 19l5-6 5 3 8-5"/><path d="M3 15v4M21 7v4"/>'),
+        ("Mosaic Plot", "Mosaic Plot", "Two categorical columns: each cell's area is its share of the rows.",
+         '<rect x="3" y="4" width="7" height="9"/><rect x="3" y="13" width="7" height="7"/>'
+         '<rect x="10" y="4" width="11" height="5"/><rect x="10" y="9" width="11" height="11"/>'),
+    )
+    return [{"value": name, "kind": TOOL, "tool": f"chart:{chart}", "category": _PLOT_CATEGORY,
+             "order": _PLOT_ORDER + k + 1, "description": description, "icon": icon}
+            for k, (name, chart, description, icon) in enumerate(charts)]
+
+
 def plugin_icon(entry: dict) -> QIcon:
     """The entry's own SVG icon (in the panel's accent), or a catalogue action's."""
     if entry.get("action_icon"):
@@ -124,6 +153,7 @@ def panel_entries() -> list[dict]:
     entries += [{**operation, "kind": DATA} for operation in data_operations]
     entries += [{**operation, "kind": TABLE} for operation in table_operations
                 if operation.get("category") != "Quick answers"]
+    entries += graph_charts()
     entries += quality_charts()
     entries.append(doe_tool())
     return entries

@@ -10086,3 +10086,48 @@ msgstr "Le cause o i difetti per numero, il più frequente prima, con la quota c
 
 msgid "Cause and effect (fishbone): the causes of a problem, grouped by category."
 msgstr "Causa ed effetto (lisca di pesce): le cause di un problema, raggruppate per categoria."
+
+msgid "Scatterplot Matrix"
+msgstr "Matrice di dispersione"
+
+msgid "Every pair of columns as a scatter plot, distributions on the diagonal."
+msgstr "Ogni coppia di colonne come grafico a dispersione, le distribuzioni sulla diagonale."
+
+msgid "Bubble Plot"
+msgstr "Grafico a bolle"
+
+msgid "Points sized by a third column (the Size role), coloured by a fourth."
+msgstr "Punti grandi quanto una terza colonna (il ruolo Size), colorati da una quarta."
+
+msgid "A response over two columns, as lines of equal value."
+msgstr "Una risposta su due colonne, come linee di uguale valore."
+
+msgid "Scatterplot 3D"
+msgstr "Dispersione 3D"
+
+msgid "Three columns as points in space, turned with the mouse."
+msgstr "Tre colonne come punti nello spazio, da ruotare con il mouse."
+
+msgid "A response over two columns, as a surface."
+msgstr "Una risposta su due colonne, come superficie."
+
+msgid "Two categorical columns: each cell's area is its share of the rows."
+msgstr "Due colonne di categorie: l'area di ogni cella è la sua quota delle righe."
+
+msgid "Read as: {name}"
+msgstr "Letto come: {name}"
+
+msgid "Dataset"
+msgstr "Dataset"
+
+msgid "Metadata"
+msgstr "Metadati"
+
+msgid "All, in one table (Dataset column)"
+msgstr "Tutti, in una tabella (colonna Dataset)"
+
+msgid "The worksheet, or the part of the file to read: a MATLAB variable, a Prism table, a SPICE plot..."
+msgstr "Il foglio, o la parte del file da leggere: una variabile MATLAB, una tabella Prism, un plot SPICE..."
+
+msgid "Choose the file: CSV or other delimited text, Excel, JSON - or another program's or an instrument's: SPSS, Stata, MATLAB, Touchstone, SPICE, JCAMP-DX..."
+msgstr "Scegli il file: CSV o altro testo delimitato, Excel, JSON - o di un altro programma o di uno strumento: SPSS, Stata, MATLAB, Touchstone, SPICE, JCAMP-DX..."

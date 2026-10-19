@@ -234,6 +234,10 @@ def render_figure_from_descriptor(
         _apply_shared_z_ranges(all_axes, ax_by_id)
         _clear_redundant_shared_axis_labels(shared_axes)
         _apply_font_scale(figure, descriptor, all_axes, ax_by_id)
+        for axis_desc in all_axes:
+            ax = ax_by_id.get(int(axis_desc.id))
+            if ax is not None:
+                _fit_x_tick_labels(figure, ax, axis_desc.options if isinstance(axis_desc.options, dict) else {})
         _apply_layout(figure, descriptor)
         _normalize_axes_fill_policy(figure, descriptor)
 
@@ -1184,6 +1188,92 @@ def _apply_tick_sizes(ax: Any, options: dict[str, Any]) -> None:
                 # at the end that stays next to the tick.
                 if axis == "x":
                     label.set_horizontalalignment("right")
+
+
+def _x_labels_overlap(ax: Any, renderer: Any, angle: float = 0.0) -> bool:
+    """True when two neighbouring x tick labels touch (a 2 px gap is enough).
+
+    Turned labels are parallel lines: they clear each other when the gap
+    between their ticks, across the slant, is more than a line of text -
+    their boxes, square to the axes, overlap long before the text does.
+    """
+    labels = sorted((label for label in ax.get_xticklabels() if label.get_visible() and label.get_text()),
+                    key=lambda label: label.get_window_extent(renderer).x0)
+    if len(labels) < 2:
+        return False
+    if angle:
+        import math
+
+        centres = sorted(ax.transData.transform((tick, 0))[0] for tick in ax.get_xticks()
+                         if ax.get_xlim()[0] <= tick <= ax.get_xlim()[1] or ax.get_xlim()[1] <= tick <= ax.get_xlim()[0])
+        gap = min((b - a for a, b in zip(centres, centres[1:])), default=ax.bbox.width)
+        line = max(renderer.points_to_pixels(label.get_fontsize()) * 1.2 for label in labels)
+        return gap * math.sin(math.radians(angle)) < line + 2
+    boxes = [label.get_window_extent(renderer) for label in labels]
+    return any(left.x1 + 2 > right.x0 for left, right in zip(boxes, boxes[1:]))
+
+
+def _fit_x_tick_labels(figure: Figure, ax: Any, options: dict[str, Any]) -> None:
+    """Labels of x that would overlap: on two or three lines, else turned 30 degrees, else 90.
+
+    Only with the rotation left at 0 (a chosen angle is kept), on a 2D axes
+    whose renderer did not turn them itself. Wrapping first, at the spaces,
+    as long category labels ("Machine set-up") read best level; a label with
+    no space, or still too wide, turns. Measured at the figure's size, and
+    again whenever the canvas is resized.
+    """
+    if hasattr(ax, "zaxis") or options.get("x_tick_rotation") not in (None, 0, 0.0) or not ax.xaxis.get_visible():
+        return
+    if any(label.get_rotation() for label in ax.get_xticklabels() if label.get_text()):
+        return  # turned by the renderer already
+    ax._dhub_fit_x = ax.xaxis.get_major_formatter()  # noqa: SLF001 - our own attribute: the labels' own formatter
+    _refit_x_tick_labels(figure, ax)
+    canvas = getattr(figure, "canvas", None)
+    if canvas is not None and not getattr(figure, "_dhub_fit_x_connected", False):
+        figure._dhub_fit_x_connected = True  # noqa: SLF001
+        canvas.mpl_connect("resize_event", lambda _event, fig=figure: [
+            _refit_x_tick_labels(fig, each) for each in fig.axes if getattr(each, "_dhub_fit_x", None) is not None])
+
+
+def _refit_x_tick_labels(figure: Figure, ax: Any) -> None:
+    """Back to level, unwrapped labels; then wrapped or turned if they overlap at the size now."""
+    formatter = ax._dhub_fit_x  # noqa: SLF001
+    try:
+        import textwrap
+
+        from matplotlib.ticker import FuncFormatter
+
+        ax.xaxis.set_major_formatter(formatter)
+        for label in ax.get_xticklabels():
+            label.set_rotation(0.0)
+            label.set_horizontalalignment("center")
+            label.set_rotation_mode("default")
+        renderer = figure._get_renderer()  # noqa: SLF001 - Matplotlib's own way to measure text before a draw
+        if not _x_labels_overlap(ax, renderer):
+            return
+        labels = [label for label in ax.get_xticklabels() if label.get_text()]
+        if any(" " in label.get_text().strip() for label in labels):
+            positions = sorted(ax.get_xticks())
+            spacing_px = abs(ax.transData.transform((positions[1], 0))[0]
+                             - ax.transData.transform((positions[0], 0))[0]) if len(positions) > 1 else ax.bbox.width
+            char_px = max(label.get_window_extent(renderer).width / max(len(label.get_text()), 1) for label in labels)
+            width = max(int(spacing_px / max(char_px, 1.0)) - 1, 4)
+            ax.xaxis.set_major_formatter(FuncFormatter(
+                lambda value, pos, inner=formatter, chars=width:
+                textwrap.fill(str(inner(value, pos)), chars, break_long_words=False)))
+            if not _x_labels_overlap(ax, renderer) and \
+                    max(label.get_text().count("\n") for label in ax.get_xticklabels()) <= 2:
+                return
+            ax.xaxis.set_major_formatter(formatter)
+        for angle, align in ((30.0, "right"), (90.0, "center")):
+            for label in ax.get_xticklabels():
+                label.set_rotation(angle)
+                label.set_horizontalalignment(align)
+                label.set_rotation_mode("anchor" if angle != 90.0 else "default")
+            if not _x_labels_overlap(ax, renderer, angle):
+                return
+    except Exception:  # noqa: BLE001 - a nicety: the labels stay as they were
+        applogger.exception("Could not fit the x tick labels")
 
 
 def _tick_params(ax: Any, **kwargs: Any) -> None:

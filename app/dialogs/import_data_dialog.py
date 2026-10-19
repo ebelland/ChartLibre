@@ -65,12 +65,15 @@ from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
 # existing external imports of these names from this module - the test suite
 # and app.main_window.main_window - keep working unchanged.
 # -----------------------------------------------------------------------------
+from app.plugin_api.importers.base import ALL_DATASETS, ImportedData
 from app.utils.data_sources import (
     CLIPBOARD_SOURCE_NAME,
     IMPORT_FILE_FILTER,
     WebDataSource,
     add_user_web_source,
-    excel_engine,
+    file_datasets,
+    file_importer,
+    read_imported,
     filename_from_url,
     is_valid_web_url,
     load_web_data_sources,
@@ -269,11 +272,20 @@ class ImportDataDialog(SettingsTableDialog):
             parent=source.card, action_id="open", action=self._on_browse, layout=src_row,
             presentation=(
                 action_presentation("open")[0], _("Browse…"),
-                _("Choose the file: CSV or other delimited text, Excel, JSON"),
+                _("Choose the file: CSV or other delimited text, Excel, JSON - or another program's "
+                  "or an instrument's: SPSS, Stata, MATLAB, Touchstone, SPICE, JCAMP-DX..."),
             ),
         )
         src_row.addStretch(1)
         source_layout.addLayout(src_row)
+        # Which reader a file other than text or Excel is read with (app/importers).
+        self._reader_label = QLabel("", source.card)
+        self._reader_label.setProperty("muted", True)
+        self._reader_label.setWordWrap(True)
+        self._reader_label.setVisible(False)
+        source_layout.addWidget(self._reader_label)
+        #: What the importer said about the file last read; None for text and Excel.
+        self._imported: ImportedData | None = None
 
         # Excel worksheet selector (shown only for Excel files)
         form = QFormLayout()
@@ -281,7 +293,8 @@ class ImportDataDialog(SettingsTableDialog):
         self._sheet = QComboBox(source.card)
         self._sheet.setEnabled(False)
         self._sheet.setVisible(False)
-        self._sheet.setToolTip(_("Worksheet (for Excel sources)"))
+        self._sheet.setToolTip(_("The worksheet, or the part of the file to read: a MATLAB variable, "
+                                 "a Prism table, a SPICE plot..."))
         stdSizeAndlayout(self._sheet)
         form.addRow(_("Sheet"), self._sheet)
         self._sheet_label = form.labelForField(self._sheet)
@@ -289,6 +302,16 @@ class ImportDataDialog(SettingsTableDialog):
             self._sheet_label.setVisible(False)
         source_layout.addLayout(form)
         left_layout.addWidget(source)
+
+        # -- What the file says about its rows: the instrument, the setup, the units (closed; shown
+        # only for a file whose importer gives any). Kept with the table's information on OK.
+        self._metadata_card = TitledCard(left, _("Metadata"), "importMetadataCard", collapsible=True, collapsed=True)
+        self._metadata_text = QLabel("", self._metadata_card.card)
+        self._metadata_text.setWordWrap(True)
+        self._metadata_text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._metadata_card.card.layout().addWidget(self._metadata_text)
+        self._metadata_card.setVisible(False)
+        left_layout.addWidget(self._metadata_card)
 
         # -- Web: a quick-pick source or an address, then Fetch.
         web = TitledCard(left, _("Web"), "importWebCard")
@@ -403,6 +426,7 @@ class ImportDataDialog(SettingsTableDialog):
             )
         )
         left_layout.addWidget(read)
+        self._read_card = read
 
         # -- The new table: its name, then the columns the preview found and the type each will get.
         columns = TitledCard(left, _("New table"), "importColumnsCard")
@@ -518,7 +542,7 @@ class ImportDataDialog(SettingsTableDialog):
     def _current_sheet(self) -> str | None:
         if not hasattr(self, "_sheet"):
             return None
-        if not self._sheet.isVisible() or self._sheet.count() == 0:
+        if self._sheet.isHidden() or self._sheet.count() == 0:
             return None
         data = self._sheet.currentData()
         return str(data) if data else (str(self._sheet.currentText() or "") or None)
@@ -529,41 +553,45 @@ class ImportDataDialog(SettingsTableDialog):
         self._sheet_label.setVisible(visible)
 
     def _update_sheet_choices(self, path: str) -> None:
+        """The Sheet row: a workbook's sheets, or the parts an importer finds - "Dataset" then."""
         if not hasattr(self, "_sheet"):
             return
-
-        if not self._is_excel_path(path):
-            self._sheet.blockSignals(True)
-            try:
-                self._sheet.clear()
-                self._set_sheet_row_visible(False)
-            finally:
-                self._sheet.blockSignals(False)
-            return
-
+        importer = file_importer(path) if path else None
+        if not path:
+            self._show_metadata(None)
+        self._read_card.setEnabled(importer is None)  # the importers read their own layout
+        self._reader_label.setText(_("Read as: {name}").format(name=_(importer.Name)) if importer else "")
+        self._reader_label.setVisible(importer is not None)
         sheets: list[str] = []
-        try:
-            xls = pd.ExcelFile(path, engine=excel_engine(path))
-            sheets = [str(s) for s in (xls.sheet_names or [])]
-        except Exception as exc:  # noqa: BLE001
-            applogger.warning("Cannot read Excel sheet names for %s: %s", path, exc)
-            sheets = []
-
+        if path and (importer is not None or self._is_excel_path(path)):
+            try:
+                sheets = file_datasets(path)
+            except Exception as exc:  # noqa: BLE001 - the preview says why it cannot read the file
+                applogger.warning("Cannot list the sheets or datasets of %s: %s", path, exc)
+        if self._sheet_label is not None:
+            self._sheet_label.setText(_("Dataset") if importer is not None else _("Sheet"))
         self._sheet.blockSignals(True)
         try:
             self._sheet.clear()
-            if sheets:
-                for s in sheets:
-                    self._sheet.addItem(s, userData=s)
-                if self._desired_sheet:
-                    idx = self._sheet.findData(self._desired_sheet)
-                    if idx >= 0:
-                        self._sheet.setCurrentIndex(idx)
-                self._set_sheet_row_visible(True)
-            else:
-                self._set_sheet_row_visible(False)
+            for s in sheets:
+                self._sheet.addItem(_("All, in one table (Dataset column)") if s == ALL_DATASETS else s, userData=s)
+            if sheets and self._desired_sheet:
+                idx = self._sheet.findData(self._desired_sheet)
+                if idx >= 0:
+                    self._sheet.setCurrentIndex(idx)
+            self._set_sheet_row_visible(bool(sheets))
         finally:
             self._sheet.blockSignals(False)
+
+    def _show_metadata(self, imported: ImportedData | None) -> None:
+        """The Metadata frame: the file's own information, the units, what the reader did."""
+        lines: list[str] = []
+        if imported is not None:
+            lines += [_(note) for note in imported.notes]
+            lines += [f"{_(key)}: {value}" for key, value in imported.metadata.items()]
+            lines += [f"{column}: {unit}" for column, unit in imported.units.items()]
+        self._metadata_text.setText("\n".join(lines))
+        self._metadata_card.setVisible(bool(lines))
 
     def _on_sheet_changed(self) -> None:
         if self._source_mode == "file":
@@ -669,6 +697,12 @@ class ImportDataDialog(SettingsTableDialog):
         skipfooter = int(self._skip_last.value())
         header = bool(self._has_header.isChecked())
 
+        self._imported = None
+        if file_importer(path) is not None:
+            self._imported = read_imported(path, self._current_sheet())
+            self._show_metadata(self._imported)
+            return self._imported.frame
+        self._show_metadata(None)
         return read_any_file(
             path,
             skiprows=skiprows,
@@ -1058,6 +1092,13 @@ class ImportDataDialog(SettingsTableDialog):
         try:
             table_name=self._safe_table_name_from_filename(table)
             self._repo.import_into_sqlite(table_name, df2, types)
+            imported = self._imported if self._source_mode == "file" else None
+            if imported is not None:
+                self._repo.set_table_info(table_name, "source_metadata", {
+                    "file": Path(self._path).name, "dataset": self._current_sheet() or "",
+                    "importer": getattr(file_importer(self._path), "Name", ""),
+                    "metadata": {key: str(value) for key, value in imported.metadata.items()},
+                    "units": dict(imported.units), "notes": list(imported.notes)})
 
             source = self._link_source_settings()
             if source is not None:
@@ -1096,7 +1137,11 @@ class ImportDataDialog(SettingsTableDialog):
         nothing to offer it and none is created.
         """
         if self._source_mode == "file":
-            return {"kind": "file", "path": self._path, "sheet": self._current_sheet()}
+            importer = file_importer(self._path)
+            source: dict[str, object] = {"kind": "file", "path": self._path, "sheet": self._current_sheet()}
+            if importer is not None:
+                source["importer"] = importer.Name
+            return source
         if self._source_mode == "web":
             return {"kind": "web", "url": self._path}
         return None

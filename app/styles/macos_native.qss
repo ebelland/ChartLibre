@@ -100,6 +100,16 @@ QWidget[toolboxPage="true"] {
   background: palette(base);
 }
 
+/* A list in a grey frame is on the frame's grey, as System Settings' rows
+   are - not a white box inside the grey one. Grids of data (table views)
+   keep their white. */
+QFrame[card="true"] QListView,
+QFrame[card="true"] QTreeView {
+  background: transparent;
+  border: 1px solid rgba(@SHADOW_RGB@, 0.12);
+  border-radius: 6px;
+}
+
 /* A data operation's Settings frame (B-14): its tab pages and the cards on
    them take the frame's own surface - one box, not a box in a box. */
 QFrame#operationSettingsCard QWidget[toolboxPage="true"],
@@ -658,7 +668,7 @@ QLineEdit#dataOperationsSearch {
 }
 
 QListWidget#dataOperationsList {
-    background: palette(base);
+    background: transparent;
     border: none;
     padding: 0 6px;
     outline: 0;

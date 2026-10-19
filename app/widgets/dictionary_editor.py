@@ -104,6 +104,12 @@ _GROUP_ORDER = [
     "Appearance", "Line", "Marker", "Patch", "Error bars", "Geometry",
     "Text", "Behavior", "Other",
 ]
+#: The options nobody changes (todo H-15): real Matplotlib keywords, kept in one
+#: closed group at the bottom - "Advanced" - rather than among the ones in use.
+#: A renderer can send its own there with "advanced": True in the key's spec.
+_ADVANCED_GROUP = "Advanced"
+_ADVANCED_KEYS = frozenset({"animated", "clip_on", "in_layout", "snap", "gid", "url", "rasterized", "picker",
+                            "sketch_params", "path_effects", "agg_filter", "transform", "clip_path", "clip_box"})
 _MIN_ROW_HEIGHT = 30
 _EDITOR_MIN_HEIGHT = 26
 _DEFAULT_PROPERTY_COLUMN_WIDTH = 200
@@ -173,10 +179,12 @@ def _kind_for_key(key: str, meta: Mapping[str, Any]) -> str:
 
 
 def _group_for_key(key: str, meta: Mapping[str, Any], kind: str) -> str:
+    lower = key.strip().lower()
+    if meta.get("advanced") or lower in _ADVANCED_KEYS:
+        return _ADVANCED_GROUP
     explicit = meta.get("group")
     if explicit:
         return str(explicit)
-    lower = key.strip().lower()
     if kind == "linestyle" or lower in {"linewidth", "linewidths", "lw", "alpha"}:
         return "Line"
     if kind == "marker" or lower.startswith("marker") or lower in {"mfc", "mec", "ms"}:
@@ -555,7 +563,9 @@ class DictEditorPanel(QWidget):
             group = _group_for_key(key, meta, self.kind_for_key(key))
             grouped.setdefault(group, []).append(key)
         ordered = [group for group in _GROUP_ORDER if group in grouped]
-        ordered.extend(sorted(group for group in grouped if group not in ordered))
+        ordered.extend(sorted(group for group in grouped if group not in ordered and group != _ADVANCED_GROUP))
+        if _ADVANCED_GROUP in grouped:
+            ordered.append(_ADVANCED_GROUP)
         for group in ordered:
             group_item = QTreeWidgetItem(self.tree, [group, ""])
             group_item.setData(0, Qt.ItemDataRole.UserRole, None)

@@ -81,6 +81,9 @@ class LayoutMixin:
         scroll.setWidget(page)
         scroll.viewport().setProperty("toolboxPage", True)
         scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        # The sheet paints it; filled with the palette's window grey it was a darker box
+        # inside the Settings frame - a panel in a panel.
+        scroll.viewport().setAutoFillBackground(False)
         return scroll
 
     def _build_common_ui(self) -> None:

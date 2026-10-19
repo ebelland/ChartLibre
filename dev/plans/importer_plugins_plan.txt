@@ -1,0 +1,126 @@
+IMPORTER PLUGINS (a lab's own file formats) - EVALUATION AND PLAN
+Written 2026-10-19. Status: PLAN ONLY for the parts below marked TO DO; the
+plugin family itself is implemented with I-01 (see import_formats_plan.txt).
+
+======================================================================
+1. EVALUATION - IS IT WORTH IT?
+======================================================================
+Yes, and most of it is already there.
+
+ - Instruments write formats that no general program reads: a B1500 setup
+   exported as CSV with its own header block, a home-made LabVIEW logger, a
+   probe station's wafer map. No list of built-in readers will ever cover a
+   lab's own; a short Python class written once by whoever knows the format
+   does, and the rest of the lab uses it from the Import dialog like CSV.
+ - The cost is low because the mechanism is shared: importers are a
+   PluginFamily (app/scanners/plugin_family.py), like chart types, data
+   operations and table analyses. A class that directly subclasses
+   FileImporter, in a .py file in user/importers/, is found at start-up by
+   an AST scan - no registration, no restart of anything else.
+ - Done with I-01 (in the code now):
+     app/plugin_api/importers/base.py   FileImporter, ImportedData, combine()
+     app/scanners/importer_scanner.py   FAMILY (builtin app/importers,
+                                        user USER_CONTENT_DIR/"importers")
+     a user's importer wins over a built-in one for the same suffix
+     data_sources.read_any_file / file_datasets / read_imported dispatch to it
+     the Import dialog: "Read as: <Name>", the Dataset combo, Metadata frame
+ - What is missing is what makes it usable by someone who is not the app's
+   developer: a template, a way to try it on a file, a place to see and
+   switch off the installed ones, sniffing for .csv/.txt, and documentation.
+
+ Risk to weigh: a plugin is Python run with the user's rights - the same as
+ the chart and operation plugins today. Only files the user put in their own
+ user/ folder are loaded; nothing is downloaded. Sharing a plugin = sharing
+ a .py file, which the receiver should read (section 6).
+
+======================================================================
+2. DECISIONS FOR THE OWNER (proposed answer in [ ])
+======================================================================
+ Q1  A file whose suffix is generic (.csv, .txt, .dat): may a plugin claim it
+     by its first lines (sniff), before the CSV reader? [Yes - an optional
+     sniff(path, head: str) -> bool; the Import dialog says "Read as: Keysight
+     B1500" and offers "Read as plain CSV instead".]
+ Q2  Enable/disable per plugin, kept in user.json? [Yes - a plugin that fails
+     to load is listed with its error and disabled, never stops the app.]
+ Q3  Packaging beyond one .py: allow a folder (a package with its own helper
+     modules) in user/importers/? [Later; one file covers nearly every format.]
+ Q4  pip-installed plugins (entry points "chartlibre.importers") for a lab
+     that distributes them? [Later - after the families share one
+     plugin manager (charts, operations, analyses, importers).]
+
+======================================================================
+3. THE CONTRACT (as implemented, plus sniff)
+======================================================================
+     class KeithleyCsv(FileImporter):          # a direct subclass (AST scan)
+         Name = "Keithley 4200A export"        # literal class attributes:
+         Description = "I-V sweeps..."         # read without importing the file
+         Suffixes = [".csv"]
+         Category = "Parameter analysers"
+         Packages = []                         # pip names it needs, if any
+         Order = 100
+
+         def sniff(self, path, head) -> bool:  # TO DO (Q1): claim a .csv
+             return head.startswith("SetupTitle,")
+         def datasets(self, path) -> list[str] # sweeps, sheets; [] = one
+         def read(self, path, dataset=None) -> ImportedData
+                 # frame, metadata (dict), units (column -> unit), notes
+
+     ALL_DATASETS ("*") asks for every dataset in one table; combine() adds
+     the Dataset column. require() turns a missing package into
+     "Reading X files needs Y: pip install Y".
+
+======================================================================
+4. TO DO - TOOLS
+======================================================================
+ 4.1 Importer Builder (Developer mode, Project page, next to Data Operation
+     Builder and Renderer Builder - app/developer_helpers/): Name, Suffixes,
+     Category -> writes user/importers/<slug>.py from a template that reads a
+     header block of "key,value" lines into metadata and the table under it
+     (the most common instrument layout), with comments on each method.
+ 4.2 Try on a file: in the builder (and in Developer mode from the Import
+     dialog's "Read as" line), open a sample file, run datasets() and read(),
+     show the frame, the metadata and the traceback if it fails - without
+     restarting (FAMILY.load re-imports the file).
+ 4.3 Installed importers: a list in Settings > Import (or the Developer page):
+     Name, suffixes, built-in or user, missing packages, load error; a check
+     box per user plugin (Q2); "Open folder"; "Reload".
+ 4.4 Sniffing (Q1): data_sources reads the first 4 KB once and asks the
+     sniffing importers for a .csv/.txt/.dat, then falls back to CSV.
+
+======================================================================
+5. TO DO - DOCUMENTATION AND EXAMPLES
+======================================================================
+ - dev/DEVELOPMENT.md 7.5 "Adding a file importer" (beside 7.1 chart type and
+   7.2 data operation): the contract, ImportedData, datasets and ALL, units
+   and metadata, require(), tests.
+ - User manual, Import chapter: "Your instrument's format" - the builder,
+   where the file goes, how to share it.
+ - An example in dev/examples/importers/: a header-block CSV (B1500-like)
+   with its sample file - also the template's source.
+
+======================================================================
+6. SAFETY
+======================================================================
+ - Loaded only from user/importers (the user's own folder) and app/importers.
+ - A plugin's error is caught at scan, at datasets() and at read(): the
+   dialog shows it; the app keeps running (as for the other families).
+ - The installed list shows each user plugin's path, so the user knows what
+   runs. No network, no download, no auto-update.
+
+======================================================================
+7. TESTS
+======================================================================
+ - a user importer written in a tmp user folder is found and wins over the
+   built-in one for its suffix (FAMILY with a tmp user_root);
+ - sniff claims a .csv with its header and leaves a plain CSV to the CSV reader;
+ - a plugin that raises at import is listed with its error, disabled;
+ - the builder's template, written and read back, imports its sample file.
+
+======================================================================
+8. STEPS (each a commit)
+======================================================================
+ 1. sniff + data_sources dispatch + "Read as plain CSV instead".
+ 2. Importer Builder with "Try on a file".
+ 3. Installed importers list, enable/disable, reload.
+ 4. DEVELOPMENT.md 7.5, manual section, example; then B1500 / 4200A as the
+    first importers written this way, on the owner's sample files.
