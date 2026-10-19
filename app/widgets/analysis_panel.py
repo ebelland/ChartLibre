@@ -128,6 +128,14 @@ def graph_charts() -> list[dict]:
          '<circle cx="12" cy="11" r="1.4"/>'),
         ("Surface Plot", "Surface Plot (Scattered)", "A response over two columns, as a surface.",
          '<path d="M3 15l5-6 5 3 8-5"/><path d="M3 19l5-6 5 3 8-5"/><path d="M3 15v4M21 7v4"/>'),
+        ("Parallel Plot", "Parallel Plot", "Each row a line across one axis per column: patterns and outliers.",
+         '<path d="M5 4v16M12 4v16M19 4v16"/><path d="M5 8l7 6 7-8"/><path d="M5 16l7-9 7 11"/>'),
+        ("Cell Plot", "Cell Plot", "The table as coloured cells, each column on its own scale.",
+         '<rect x="4" y="4" width="5" height="5"/><rect x="9.5" y="4" width="5" height="5"/>'
+         '<rect x="15" y="4" width="5" height="5"/><rect x="4" y="9.5" width="5" height="5"/>'
+         '<rect x="9.5" y="9.5" width="5" height="5"/><rect x="15" y="15" width="5" height="5"/>'),
+        ("Ternary Plot", "Ternary Plot", "Three parts of a whole as points in a triangle.",
+         '<path d="M12 4L21 19H3z"/><circle cx="12" cy="13" r="1.4"/><circle cx="9" cy="16" r="1.4"/>'),
         ("Mosaic Plot", "Mosaic Plot", "Two categorical columns: each cell's area is its share of the rows.",
          '<rect x="3" y="4" width="7" height="9"/><rect x="3" y="13" width="7" height="7"/>'
          '<rect x="10" y="4" width="11" height="5"/><rect x="10" y="9" width="11" height="11"/>'),

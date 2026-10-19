@@ -10131,3 +10131,21 @@ msgstr "Il foglio, o la parte del file da leggere: una variabile MATLAB, una tab
 
 msgid "Choose the file: CSV or other delimited text, Excel, JSON - or another program's or an instrument's: SPSS, Stata, MATLAB, Touchstone, SPICE, JCAMP-DX..."
 msgstr "Scegli il file: CSV o altro testo delimitato, Excel, JSON - o di un altro programma o di uno strumento: SPSS, Stata, MATLAB, Touchstone, SPICE, JCAMP-DX..."
+
+msgid "Parallel Plot"
+msgstr "Grafico parallelo"
+
+msgid "Each row a line across one axis per column: patterns and outliers."
+msgstr "Ogni riga una linea attraverso un asse per colonna: andamenti e valori anomali."
+
+msgid "Cell Plot"
+msgstr "Grafico a celle"
+
+msgid "The table as coloured cells, each column on its own scale."
+msgstr "La tabella come celle colorate, ogni colonna sulla sua scala."
+
+msgid "Ternary Plot"
+msgstr "Diagramma ternario"
+
+msgid "Three parts of a whole as points in a triangle."
+msgstr "Tre parti di un intero come punti in un triangolo."

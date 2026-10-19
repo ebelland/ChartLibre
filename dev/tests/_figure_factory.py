@@ -63,6 +63,9 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Mosaic Plot",
     "Forest Plot",
     "Pair Plot",
+    "Parallel Plot",
+    "Cell Plot",
+    "Ternary Plot",
 )
 
 
@@ -390,6 +393,27 @@ def _showcase_definitions() -> list[dict[str, Any]]:
             "labels": ("", ""),
             "axis_options": {"title": "Pair Plot"},
             "series": [("cloud", "SELECT x, y, size FROM src_xy", {})],
+        },
+        {
+            "chart_type": "Parallel Plot",
+            "name": "Parallel showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Parallel Plot"},
+            "series": [("cloud", "SELECT x, y, size FROM src_xy LIMIT 300", {})],
+        },
+        {
+            "chart_type": "Cell Plot",
+            "name": "Cell showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Cell Plot"},
+            "series": [("cloud", "SELECT x, y, size FROM src_xy LIMIT 80", {})],
+        },
+        {
+            "chart_type": "Ternary Plot",
+            "name": "Ternary showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Ternary Plot"},
+            "series": [("mix", "SELECT abs(x) AS a, abs(y) AS b, size AS c FROM src_xy LIMIT 200", {})],
         },
         {
             "chart_type": "Fishbone Diagram",
