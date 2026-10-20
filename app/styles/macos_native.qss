@@ -509,8 +509,9 @@ QLabel#chartCoordLabel {
    CardFrame always carries the card="true" property too. */
 QFrame#leftPanelCard {
   background: palette(base);
+  /* No hairline on its right edge: white beside the chart's white, the
+     line read as a grey bar between the panel and the chart. */
   border: none;
-  border-right: 1px solid rgba(@SHADOW_RGB@, 0.10);
   border-radius: 0;
 }
 
@@ -521,6 +522,14 @@ QSplitter::handle {
 
 QSplitter::handle:horizontal {
   width: 6px;
+}
+
+/* Except between the left panel and the chart: white beside white, the
+   divider has to show where to aim - a hairline down the handle's middle. */
+QSplitter#mainSplitter::handle:horizontal {
+  background: transparent;
+  border-left: 1px solid rgba(@SHADOW_RGB@, 0.14);
+  margin-left: 2px;
 }
 
 QSplitter::handle:vertical {

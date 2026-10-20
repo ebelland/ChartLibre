@@ -871,6 +871,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
           not silently re-widen the panel the user just narrowed.
         """
         split = QSplitter(Qt.Orientation.Horizontal, self)
+        # Named for the style sheets: its handle is the one drawn as a line.
+        split.setObjectName("mainSplitter")
         split.setChildrenCollapsible(False)
         split.setOpaqueResize(True)
         split.setHandleWidth(SPLITTER_HANDLE_WIDTH)
