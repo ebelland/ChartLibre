@@ -160,6 +160,11 @@ class AxisPropertiesWidget(BaseProperties):
         self._tabs = QTabWidget(self)
         self._tabs.setObjectName("axisPropertiesTabs")
         self._tabs.setDocumentMode(True)
+        # Each tab as wide as its name: stretched to share the bar, the five
+        # did not fit a narrow panel and Kwargs, the last, went past its edge.
+        self._tabs.tabBar().setExpanding(False)
+        self._tabs.setUsesScrollButtons(True)
+        self._tabs.setElideMode(Qt.TextElideMode.ElideNone)
         self._tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._tabs.addTab(self._tab_page(self._build_shared_properties_frame()), _("Properties"))
         self._coordinate_page = self._build_coordinate_page()

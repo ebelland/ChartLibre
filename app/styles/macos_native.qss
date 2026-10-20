@@ -366,9 +366,11 @@ QTabBar::tab {
 
 /* Chart properties' four tabs (Figura | Asse | Serie | Sovrapp.): narrow,
    so the four fit the left panel at its narrowest; the bar still scrolls
-   beyond that. Direct children only - the Axis page's own tabs keep the
-   ordinary size. */
+   beyond that. The Axis page's own five (Properties, X, Y, Z, Kwargs) too:
+   at the ordinary size Kwargs, the last, went past a narrow panel's edge.
+   Direct children only. */
 QTabWidget#propertiesTabs > QTabBar::tab,
+QTabWidget#axisPropertiesTabs > QTabBar::tab,
 QTabWidget#operationTabs > QTabBar::tab {
   padding: 4px 6px;
   min-width: 0px;

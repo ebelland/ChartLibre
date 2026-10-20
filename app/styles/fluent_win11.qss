@@ -467,6 +467,17 @@ QTabBar {
       min-height: 5px;
   }
 
+/* Chart properties' tabs, the Axis page's five (Properties, X, Y, Z, Kwargs)
+   and an operation's: narrow, so they fit the left panel - at the ordinary
+   size the Axis page's last tab, Kwargs, went past a narrow panel's edge, as
+   macos_native.qss says too. Direct children only. */
+QTabWidget#propertiesTabs > QTabBar::tab,
+QTabWidget#axisPropertiesTabs > QTabBar::tab,
+QTabWidget#operationTabs > QTabBar::tab {
+    padding: 4px 6px;
+    min-width: 0px;
+}
+
 /* Hover state */
 QTabBar::tab:hover:!selected {
     background: rgba(@SHADOW_RGB@, 0.05);
