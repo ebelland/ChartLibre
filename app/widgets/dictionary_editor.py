@@ -116,7 +116,9 @@ _MIN_ROW_HEIGHT = 30
 _EDITOR_MIN_HEIGHT = 26
 _DEFAULT_PROPERTY_COLUMN_WIDTH = 200
 _DEFAULT_VALUE_COLUMN_WIDTH = 170
-_DEFAULT_MIN_PANEL_HEIGHT = 360
+# Small: the tree takes the height its panel has, and gives it back in a short
+# one - at 360 it ran past the bottom of the Axis page's Kwargs tab.
+_DEFAULT_MIN_PANEL_HEIGHT = 160
 
 
 def _normalize_meta(meta: object) -> dict[str, Any]:

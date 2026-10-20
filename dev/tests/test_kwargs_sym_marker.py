@@ -30,3 +30,18 @@ def test_the_box_plots_stats_choices_are_drop_downs() -> None:
         spec = BoxAxisRenderer.Kwargs[name]
         assert _kind_for_key(name, spec) == "enum" and spec["default"] in spec["type"]
     assert BoxAxisRenderer.Kwargs["stats_color_mode"]["editable"]  # any colour can still be typed
+
+
+def test_hatch_is_a_drop_down_of_matplotlibs_patterns() -> None:
+    from app.plugin_api.charts.kwarg_spec import PATCH_KWARGS
+
+    spec = PATCH_KWARGS["hatch"]
+    assert _kind_for_key("hatch", spec) == "enum" and spec["editable"]
+    assert {"/", "\\\\", "x", "o", "..", None} <= set(spec["type"])
+
+
+def test_the_property_tree_gives_its_height_back_in_a_short_panel(qapp) -> None:
+    from app.widgets.dictionary_editor import DictEditorPanel
+
+    panel = DictEditorPanel()
+    assert panel.minimumHeight() <= 160 and panel.tree.minimumHeight() <= 160

@@ -445,9 +445,11 @@ PATCH_KWARGS: dict[str, dict[str, Any]] = {
     },
     "hatch": {
         "default": None,
-        "type": str,
+        # A drop-down of Matplotlib's patterns (doubled, denser), editable for combinations ("/o").
+        "type": [None, "/", "\\", "|", "-", "+", "x", "o", "O", ".", "*", "//", "\\\\", "xx", "++", ".."],
+        "editable": True,
         "group": "Patch",
-        "description": "Hatch pattern, e.g. //, xx, ..",
+        "description": "Hatch pattern: / \\ | - + x o O . *, doubled for denser (//, xx, ..).",
     },
     "fill": {
         "default": True,
