@@ -26,6 +26,7 @@ import array
 import ast
 import gettext
 import os
+import re
 import struct
 import sys
 from functools import lru_cache
@@ -104,7 +105,14 @@ def _po_string(token: str) -> str:
     token = token.strip()
     if len(token) >= 2 and token[0] == '"' and token[-1] == '"':
         token = token[1:-1]
-    return token.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+    # One pass, as gettext reads it. Replaced one after the other, an escaped
+    # backslash followed by n - a typed "\\n" in the text - came out as a
+    # backslash and a line break.
+    return _PO_ESCAPE.sub(lambda match: _PO_ESCAPES.get(match.group(1), match.group(0)), token)
+
+
+_PO_ESCAPE = re.compile(r"\\(.)")
+_PO_ESCAPES: dict[str, str] = {"n": "\n", "t": "\t", '"': '"', "\\": "\\"}
 
 
 def _write_mo(entries: dict[str, str], path: Path) -> None:

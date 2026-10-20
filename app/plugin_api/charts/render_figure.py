@@ -27,6 +27,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.ticker import NullLocator
 
+from app.plugin_api.charts.text_lines import display_text, multialignment
 from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
 from app.plugin_api.charts import axis_options
 from app.plugin_api.charts.base import SeriesData
@@ -234,6 +235,7 @@ def render_figure_from_descriptor(
         _apply_shared_z_ranges(all_axes, ax_by_id)
         _clear_redundant_shared_axis_labels(shared_axes)
         _apply_font_scale(figure, descriptor, all_axes, ax_by_id)
+        _legend_text_lines(figure)
         for axis_desc in all_axes:
             ax = ax_by_id.get(int(axis_desc.id))
             if ax is not None:
@@ -879,7 +881,8 @@ def _apply_figure_options(figure: Figure, fig_desc: FigureDescriptor) -> None:
 
     suptitle = options.get("suptitle")
     if isinstance(suptitle, str) and suptitle.strip():
-        figure.suptitle(suptitle.strip())
+        align = multialignment(options, "suptitle_multialignment")
+        figure.suptitle(display_text(suptitle.strip()), **({"multialignment": align} if align else {}))
 
 
 #: Allowed range for the "font_scale" option of a figure and of an axis.
@@ -959,9 +962,11 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
     """Apply axis options after the chart renderer has drawn the axis."""
     options = axis_desc.options if isinstance(axis_desc.options, dict) else {}
 
+    # "\n" typed in a field is a new line; how the lines align is the axis' own choice.
+    lines = {"multialignment": align} if (align := multialignment(options)) else {}
     title = options.get("title") or options.get("label") or axis_desc.title
     if isinstance(title, str) and title.strip():
-        ax.set_title(title.strip())
+        ax.set_title(display_text(title.strip()), **lines)
 
     xlabel = options.get("x_label", axis_desc.x_label)
     ylabel = options.get("y_label", axis_desc.y_label)
@@ -971,11 +976,11 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
     # default label themselves (the histogram labels its count axis), and an
     # empty descriptor field means "nothing specified", not "clear it".
     if isinstance(xlabel, str) and xlabel.strip():
-        ax.set_xlabel(xlabel)
+        ax.set_xlabel(display_text(xlabel), **lines)
     if isinstance(ylabel, str) and ylabel.strip():
-        ax.set_ylabel(ylabel)
+        ax.set_ylabel(display_text(ylabel), **lines)
     if isinstance(zlabel, str) and zlabel.strip() and hasattr(ax, "set_zlabel"):
-        ax.set_zlabel(zlabel)
+        ax.set_zlabel(display_text(zlabel), **lines)
 
     # A renderer that is a drawing rather than a plot (the fishbone) marks
     # its axes so the frame and ticks it switched off stay off.
@@ -1188,6 +1193,22 @@ def _apply_tick_sizes(ax: Any, options: dict[str, Any]) -> None:
                 # at the end that stays next to the tick.
                 if axis == "x":
                     label.set_horizontalalignment("right")
+
+
+def _legend_text_lines(figure: Figure) -> None:
+    """Every legend's entries and title with their typed "\n" made line breaks.
+
+    A legend is drawn by the chart type, from the series' names, after the
+    names were typed; done here once, every chart type's legend follows.
+    """
+    legends = [ax.get_legend() for ax in figure.axes] + list(getattr(figure, "legends", []))
+    for legend in legends:
+        if legend is None:
+            continue
+        for text in [*legend.get_texts(), legend.get_title()]:
+            shown = text.get_text()
+            if "\\" in shown:
+                text.set_text(display_text(shown))
 
 
 def _x_labels_overlap(ax: Any, renderer: Any, angle: float = 0.0) -> bool:

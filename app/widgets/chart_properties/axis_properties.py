@@ -71,6 +71,20 @@ def _plain_options(value: object) -> dict[str, Any]:
         return dict(cast(dict[str, Any], value))
     return {}
 
+def parse_limit(text: str) -> float | None:
+    """A typed axis limit: "0.5", "1e-3", "1,5" (a comma for the decimal point); None when it is no number."""
+    cleaned = str(text or "").strip().replace(" ", "")
+    if not cleaned:
+        return None
+    if "," in cleaned and "." not in cleaned:
+        cleaned = cleaned.replace(",", ".")
+    try:
+        value = float(cleaned)
+    except ValueError:
+        return None
+    return value if value == value and abs(value) != float("inf") else None
+
+
 class AxisPropertiesWidget(BaseProperties):
     """Compact editor for axis descriptor properties.
 
@@ -98,7 +112,7 @@ class AxisPropertiesWidget(BaseProperties):
         # (axis_id, renderer_key, resolved kwargs values) of the editor
         # currently built - see rebuild_kwargs_editor's no-op guard.
         self._kwargs_build_signature: tuple[Any, ...] | None = None
-        self._limit_spins: dict[str, QDoubleSpinBox] = {}
+        self._limit_edits: dict[str, QLineEdit] = {}
         self._limit_auto_checks: dict[str, QCheckBox] = {}
         # Rebuilt with the editor it sits on - see rebuild_kwargs_editor.
         # create_action_button() and mark_icon_only() return a generic button
@@ -126,6 +140,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._projection_combo,
             *self._share_checks.values(),
             self._hide_axis_check,
+            self._lines_combo,
             *self._extended_option_widgets(),
             self._font_scale,
         )
@@ -203,6 +218,12 @@ class AxisPropertiesWidget(BaseProperties):
             self._projection_combo.addItem(label, value)
         self._hide_axis_check = QCheckBox(_("Hide"), section.card)
         self._font_scale = FontScaleControl(section.card)
+        # How the lines of a title or label written over several ("Time\n(s)") line up.
+        self._lines_combo = QComboBox(section.card)
+        for value, label in (("center", "Centred"), ("left", "Left"), ("right", "Right")):
+            self._lines_combo.addItem(_(label), value)
+        self._lines_combo.setToolTip(_("Titles and labels over several lines - type \\n where a line ends, "
+                                       "as in Time\\n(s): how their lines line up with each other."))
 
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
@@ -220,6 +241,7 @@ class AxisPropertiesWidget(BaseProperties):
         add_field(1, 2, _("Font"), self._font_scale)
         grid.addWidget(QLabel(_("Visible"), section.card), 2, 0)
         grid.addWidget(self._hide_axis_check, 2, 1)
+        add_field(2, 2, _("Lines"), self._lines_combo)
 
         span = self._build_span_row(section.card)
         self._row_span_spin.setMaximumWidth(72)
@@ -297,13 +319,15 @@ class AxisPropertiesWidget(BaseProperties):
             self._grid_combos[which] = grid
             self._tick_combos[which] = tick
         for edge in ("min", "max"):
-            spin = QDoubleSpinBox(self)
-            spin.setRange(-1.0e15, 1.0e15); spin.setDecimals(6)
-            # No text: the spin box says "Auto" itself while the box is ticked.
-            auto = QCheckBox(self); auto.setChecked(True)
+            # A plain field: a limit is typed (1e-3, 2.5, 1,5), not stepped -
+            # a spin box's arrows step by an amount that fits no axis.
+            edit = QLineEdit(self)
+            edit.setPlaceholderText(_("Auto"))
+            edit.setToolTip(_("The axis' end, as a number: 0.5, 1e-3; a comma works as the decimal point too."))
+            auto = QCheckBox(_("Auto"), self); auto.setChecked(True)
             auto.setToolTip(_("Automatic range"))
-            auto.toggled.connect(lambda checked, target=spin: target.setDisabled(checked))
-            self._limit_spins[edge] = spin
+            auto.toggled.connect(lambda checked, target=edit: self._limit_auto_toggled(target, checked))
+            self._limit_edits[edge] = edit
             self._limit_auto_checks[edge] = auto
         self._linthresh_spin = QDoubleSpinBox(self)
         self._linthresh_spin.setRange(1e-9, 1e9)
@@ -316,6 +340,14 @@ class AxisPropertiesWidget(BaseProperties):
         for field, signal in self._coordinate_signals().items():
             for one in signal:
                 one.connect(lambda *_args, f=field: self._store_field(f))
+
+    def _limit_auto_toggled(self, edit: QLineEdit, automatic: bool) -> None:
+        """Auto: the field off and empty. Unticked: the field on, and in focus to type the limit."""
+        edit.setEnabled(not automatic)
+        if automatic:
+            edit.clear()
+        elif self.isVisible():
+            edit.setFocus()
 
     def _coordinate_signals(self) -> dict[str, tuple[Any, ...]]:
         """Each coordinate setting and the signals that say it was changed."""
@@ -330,7 +362,7 @@ class AxisPropertiesWidget(BaseProperties):
             "tick_rotation_minor": (self._minor_tick_rotation_spin.valueChanged,),
         }
         for edge in ("min", "max"):
-            signals[edge] = (self._limit_spins[edge].valueChanged, self._limit_auto_checks[edge].toggled)
+            signals[edge] = (self._limit_edits[edge].editingFinished, self._limit_auto_checks[edge].toggled)
         for which in axis_options.WHICH:
             signals[f"grid_{which}"] = (self._grid_combos[which].currentIndexChanged,)
             signals[f"ticks_{which}"] = (self._tick_combos[which].currentIndexChanged,)
@@ -345,7 +377,7 @@ class AxisPropertiesWidget(BaseProperties):
         if field == "scale":
             return str(self._scale_combo.currentData() or "linear")
         if field in ("min", "max"):
-            return None if self._limit_auto_checks[field].isChecked() else float(self._limit_spins[field].value())
+            return None if self._limit_auto_checks[field].isChecked() else parse_limit(self._limit_edits[field].text())
         if field.startswith(("grid_", "ticks_")):
             kind, which = field.split("_", 1)
             combo = (self._grid_combos if kind == "grid" else self._tick_combos)[which]
@@ -361,10 +393,10 @@ class AxisPropertiesWidget(BaseProperties):
         elif field == "scale":
             self._select_combo_value(self._scale_combo, value, "linear")
         elif field in ("min", "max"):
-            spin, auto = self._limit_spins[field], self._limit_auto_checks[field]
+            edit, auto = self._limit_edits[field], self._limit_auto_checks[field]
             auto.setChecked(value is None)
-            spin.setValue(spin.minimum() if value is None else float(value))
-            spin.setEnabled(value is not None)
+            edit.setText("" if value is None else f"{float(value):.12g}")
+            edit.setEnabled(value is not None)
         elif field.startswith(("grid_", "ticks_")):
             kind, which = field.split("_", 1)
             combo = (self._grid_combos if kind == "grid" else self._tick_combos)[which]
@@ -384,6 +416,11 @@ class AxisPropertiesWidget(BaseProperties):
 
     def _store_field(self, field: str) -> None:
         value = self._read_field(field)
+        if field in ("min", "max") and value is None and not self._limit_auto_checks[field].isChecked():
+            # Not a number, or nothing: the limit it had stays, shown again.
+            kept = self._coordinates[self._coordinate_axis].get(field)
+            self._limit_edits[field].setText("" if kept is None else f"{float(kept):.12g}")
+            return
         for axis in self._targets():
             self._coordinates[axis][field] = value
 
@@ -425,11 +462,7 @@ class AxisPropertiesWidget(BaseProperties):
             widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             widget.setMinimumContentsLength(5)
         for edge in ("min", "max"):
-            # Auto shows in the box itself, not the spin box's -1e15 floor.
-            self._limit_spins[edge].setSpecialValueText(_("Auto"))
-            # An explicit minimum: the spin box would otherwise ask for room
-            # for all fifteen digits of its range and widen the whole panel.
-            self._limit_spins[edge].setMinimumWidth(70)
+            self._limit_edits[edge].setMinimumWidth(60)
         # Their ranges are huge; their values are short.
         for spin in (self._linthresh_spin, self._scale_base_spin, *self._value_spins().values()):
             spin.setMinimumWidth(70)
@@ -473,9 +506,9 @@ class AxisPropertiesWidget(BaseProperties):
         grid.addWidget(self._scale_parameter_caption, 1, 2)
         grid.addWidget(self._scale_parameter, 1, 3)
         grid.addWidget(QLabel(_("Min"), box), 2, 0)
-        grid.addWidget(row(box, [self._limit_spins["min"], self._limit_auto_checks["min"]], fill=True), 2, 1)
+        grid.addWidget(row(box, [self._limit_edits["min"], self._limit_auto_checks["min"]], fill=True), 2, 1)
         grid.addWidget(QLabel(_("Max"), box), 2, 2)
-        grid.addWidget(row(box, [self._limit_spins["max"], self._limit_auto_checks["max"]], fill=True), 2, 3)
+        grid.addWidget(row(box, [self._limit_edits["max"], self._limit_auto_checks["max"]], fill=True), 2, 3)
         grid.addWidget(self._invert_check, 3, 1, 1, 3)
 
         # Ticks and grid: major and minor as columns.
@@ -636,7 +669,7 @@ class AxisPropertiesWidget(BaseProperties):
             *self._limit_auto_checks.values(),
             *self._grid_combos.values(),
             *self._tick_combos.values(),
-            *self._limit_spins.values(),
+            *self._limit_edits.values(),
         )
 
     @staticmethod
@@ -1158,6 +1191,9 @@ class AxisPropertiesWidget(BaseProperties):
             self._hide_axis_check.setChecked(
                 bool(options.get("hide_axis", options.get("hidden", False)))
             )
+            self._lines_combo.setCurrentIndex(
+                max(0, self._lines_combo.findData(str(options.get("label_multialignment") or "center")))
+            )
             self._font_scale.set_factor(options.get("font_scale", 1.0))
             self._load_extended_axis_options(options)
 
@@ -1188,6 +1224,7 @@ class AxisPropertiesWidget(BaseProperties):
                 self._projection_combo,
                 *self._share_checks.values(),
                 self._hide_axis_check,
+                self._lines_combo,
             )
             + self._extended_option_widgets()
         )
@@ -1201,6 +1238,7 @@ class AxisPropertiesWidget(BaseProperties):
                 self._coordinates[axis] = dict(self._COORDINATE_DEFAULTS)
             self._projection_combo.setCurrentIndex(0)
             self._hide_axis_check.setChecked(False)
+            self._lines_combo.setCurrentIndex(0)
             self._font_scale.set_factor(1.0)
             self._clear_extended_axis_options()
         self._renderer_key = ""
@@ -1360,6 +1398,7 @@ class AxisPropertiesWidget(BaseProperties):
             "sharey": bool(self._share_checks["y"].isChecked()),
             "sharez": bool(self._share_checks["z"].isChecked()),
             "hide_axis": bool(self._hide_axis_check.isChecked()),
+            "label_multialignment": str(self._lines_combo.currentData() or "center"),
             "font_scale": float(self._font_scale.factor()),
             # The renderer's own name, never the translated one the panel shows.
             "renderer": self._renderer_key,

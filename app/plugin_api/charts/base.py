@@ -36,6 +36,7 @@ from app.plugin_api.charts.kwarg_spec import (
     merge,
     pick,
 )
+from app.plugin_api.charts.text_lines import display_text
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 
@@ -658,7 +659,7 @@ class BaseAxisRenderer(Protocol):
             return None
 
         annotation_type = str(annotation.get("type", "text") or "text").lower()
-        text = str(annotation.get("text", "") or "")
+        text = display_text(str(annotation.get("text", "") or ""))
         kwargs = annotation.get("kwargs", {})
         if not isinstance(kwargs, dict):
             kwargs = {}

@@ -10726,3 +10726,12 @@ msgstr "m32"
 
 msgid "m33"
 msgstr "m33"
+
+msgid "Centred"
+msgstr "Centrate"
+
+msgid "Titles and labels over several lines - type \\n where a line ends, as in Time\\n(s): how their lines line up with each other."
+msgstr "Titoli ed etichette su più righe - scrivi \\n dove finisce una riga, come in Tempo\\n(s): come si allineano le righe tra loro."
+
+msgid "The axis' end, as a number: 0.5, 1e-3; a comma works as the decimal point too."
+msgstr "L'estremo dell'asse, come numero: 0.5, 1e-3; vale anche la virgola come separatore decimale."
