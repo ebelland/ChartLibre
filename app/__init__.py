@@ -7,7 +7,7 @@ nowhere else.
 """
 
 APP_NAME: str = "ChartLibre"
-APP_VERSION: str = "0.1.0"
+APP_VERSION: str = "0.1.1"
 
 #: The application's own mark: an open bracket - "libre", a structure left
 #: open to write into rather than a locked box - graduated like a ruler,
