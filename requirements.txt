@@ -43,6 +43,21 @@ deep-translator==1.11.4
 # only a translator uses. Edit Localization offers it once they are there:
 #     pip install ctranslate2 sentencepiece
 
+# File importers (app/importers, todo I-01): other programs' files. Small, and
+# installed with everything else, because inside a ready-made package nobody
+# can add a library afterwards: Excel 97-2003 .xls (xlrd), LibreOffice .ods
+# (odfpy), Excel binary .xlsb (pyxlsb), SPSS .sav with its value labels
+# (pyreadstat), R .rds/.RData (pyreadr). Without one, only its format says
+# which library it needs (FileImporter.require).
+xlrd==2.0.2
+odfpy==1.4.1
+pyxlsb==1.0.10
+pyreadstat==1.3.6
+pyreadr==0.5.7
+# Optional, as large as the rest of the importers together (about 100 MB
+# installed): Parquet and Feather/Arrow files. The import says how to add it.
+#     python -m pip install pyarrow
+
 # Required for "Import - Database" against a PostgreSQL or MySQL server.
 # Pure Python, deliberately: no C extension means no wheel to be missing on
 # whatever Python this ships on next, the same reasoning as adjustText above

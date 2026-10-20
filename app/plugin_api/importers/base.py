@@ -17,6 +17,7 @@ reading says which package to install (require()).
 from __future__ import annotations
 
 import importlib.util
+import sys
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -75,11 +76,18 @@ class FileImporter:
 
     @classmethod
     def require(cls) -> None:
-        """Raise, saying what to install, when a package is missing."""
+        """Raise, saying what to install, when a package is missing.
+
+        The command names this very Python - in a ready-made package, the
+        private one in its .python folder - so it installs where ChartLibre
+        will find it, not into some other Python on the computer.
+        """
         missing = cls.missing_packages()
         if missing:
+            command = f'"{sys.executable}" -m pip install {" ".join(missing)}'
             raise ValueError(
-                f"Reading {cls.Name} files needs {' and '.join(missing)}: pip install {' '.join(missing)}"
+                f"Reading {cls.Name} files needs {' and '.join(missing)}. To add it, run in a terminal:\n"
+                f"{command}\nthen open ChartLibre again."
             )
 
 

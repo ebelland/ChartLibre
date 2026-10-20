@@ -39,9 +39,9 @@ jobs:
           - { name: macOS Apple Silicon, os: macos-15 }
           - { name: Windows, os: windows-latest }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -68,7 +68,10 @@ jobs:
           if ! python -u dev/tools/build_bundle.py --version "$VERSION" --work "$RUNNER_TEMP" 2>&1 | tee build.log; then
             # The end of the output as an annotation: unlike the log, it can
             # be read without signing in to GitHub.
-            message=$(tail -n 60 build.log | tr -d '\r' | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            # Lines cut to 240 characters: pip's one-line list of everything it
+            # installed filled the annotation's few kilobytes, and the error
+            # after it was cut off - the October macOS failure showed none.
+            message=$(tail -n 40 build.log | tr -d '\r' | cut -c1-240 | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
             echo "::error title=Build failed (${{ matrix.name }})::$message"
             exit 1
           fi

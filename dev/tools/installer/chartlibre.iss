@@ -52,6 +52,8 @@ Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
+Name: "portuguese"; MessagesFile: "compiler:Languages\Portuguese.isl"
+Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
@@ -68,8 +70,10 @@ Filename: "{app}\ChartLibre.exe"; Description: "{cm:LaunchProgram,ChartLibre}"; 
 
 [UninstallDelete]
 ; What ChartLibre wrote while it ran: settings, logs, caches. Projects saved
-; elsewhere (the home folder, by default) are not touched.
-Type: filesandordirs; Name: "{app}\user"
+; elsewhere (the home folder, by default) are not touched - nor is {app}\user,
+; which holds the charts, operations, functions and importers a user wrote
+; (app.utils.config.USER_CONTENT_DIR): their own code, which uninstalling to
+; reinstall must not lose. The folder stays when it holds anything.
 Type: files; Name: "{app}\user.json"
 Type: filesandordirs; Name: "{app}\app\logs"
 Type: filesandordirs; Name: "{app}\.python"
