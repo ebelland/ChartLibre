@@ -224,8 +224,7 @@ class SeriesRootsDialog(DataOperationDialogBase):
             ),
             default_value=9,
             minimum=3,
-            maximum=14,
-        ),
+            maximum=14, advanced=True),
         IntParam(
             "max_iter",
             "Maximum iterations:",
@@ -236,8 +235,7 @@ class SeriesRootsDialog(DataOperationDialogBase):
             ),
             default_value=100,
             minimum=5,
-            maximum=10_000,
-        ),
+            maximum=10_000, advanced=True),
         IntParam(
             "limit",
             "Report at most:",

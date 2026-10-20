@@ -146,12 +146,12 @@ class PartitionDialog(TableOperationDialogBase):
                    tooltip="Boosted Tree: how much each tree corrects the ones before. Smaller needs more trees.",
                    default_value=0.1, minimum=0.01, maximum=1.0, decimals=2, step=0.05),
         IntParam("min_leaf", "Minimum leaf size:", tooltip="The fewest rows a leaf may hold.",
-                 default_value=5, minimum=1, maximum=10_000),
+                 default_value=5, minimum=1, maximum=10_000, advanced=True),
         FloatParam("validation_fraction", "Validation share:",
                    tooltip="With no validation column: this share of rows, at random, judges the tree. 0 for none.",
-                   default_value=0.0, minimum=0.0, maximum=0.6, decimals=2, step=0.05),
+                   default_value=0.0, minimum=0.0, maximum=0.6, decimals=2, step=0.05, advanced=True),
         IntParam("seed", "Random seed:", tooltip="Which rows the validation share draws.",
-                 default_value=1, minimum=0, maximum=1_000_000),
+                 default_value=1, minimum=0, maximum=1_000_000, advanced=True),
     )
 
     def __init__(self, **kwargs: Any) -> None:

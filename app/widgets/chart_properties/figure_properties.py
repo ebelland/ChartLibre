@@ -621,7 +621,8 @@ class FigurePropertiesWidget(BaseProperties):
         spacing themselves and overwrite whatever subplots_adjust set, so the
         controls are disabled rather than silently ignored.
         """
-        section = TitledCard(self, _("Manual spacing"), "figureMarginsCard")
+        # Closed: it applies only under the Manual layout, which few figures use.
+        section = TitledCard(self, _("Manual spacing"), "figureMarginsCard", collapsible=True, collapsed=True)
         section_lay = section.card.layout()
 
         # Two fields per row - the natural pairs an edge or a gap already

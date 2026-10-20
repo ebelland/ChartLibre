@@ -89,15 +89,15 @@ class TimeSeriesDialog(TableOperationDialogBase):
                   tooltip="ARIMA only: the input enters the model at the lag where its prewhitened "
                           "cross-correlation is strongest; its coefficient says how much Y moves per unit of X. "
                           "Ahead of that lag the forecast uses X's own forecast.",
-                  default_value=False),
+                  default_value=False, advanced=True),
         TextParam("intervention", "Intervention at:", placeholder="2020-03-01",
                   tooltip="ARIMA only: a date (or a number of the time column) when something changed - a new "
-                          "process, a policy, a fault. Its estimate is the change it made."),
+                          "process, a policy, a fault. Its estimate is the change it made.", advanced=True),
         ChoiceParam("intervention_kind", "Intervention:", choices=(("Step (lasting)", "step"),
                                                                    ("Pulse (one time)", "pulse")),
-                    tooltip="A step lasts from then on; a pulse affects that one time only."),
+                    tooltip="A step lasts from then on; a pulse affects that one time only.", advanced=True),
         IntParam("lags", "Lags:", tooltip="How far back the autocorrelations look.",
-                 default_value=25, minimum=1, maximum=500),
+                 default_value=25, minimum=1, maximum=500, advanced=True),
     )
 
     def __init__(self, **kwargs: Any) -> None:

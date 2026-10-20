@@ -485,6 +485,16 @@ row is shown. It may name something the form does not own — `model` is the
 base's own combo — because `ParameterForm` takes a `context` callable;
 `parameter_context()` supplies `model` by default.
 
+`advanced=True` puts a parameter nearly nobody changes - a seed, an iteration
+cap, a drawing option - in a closed "Advanced" frame under the others, which
+its arrow opens. The plugin only declares it; the frame is the form's, shown
+while one of its rows is visible. The same holds for a table analysis' `PARAMS`.
+
+Every text a declaration shows - the label, the tooltip, a choice's label - and
+a plugin's `Name`, `Description`, `Category` and `PARAMETERS_TAB` go through
+`_()` where they are shown: `i18n.source_translator_calls` collects them too, so
+Edit Localization offers them for every language. Write them in English.
+
 `odd_only` matters more than it looks: `savgol_filter` and `medfilt` both
 reject an even window with an exception raised from inside SciPy that names
 neither the control the user moved nor the series it was moved on.
@@ -645,6 +655,24 @@ shipped default and a **Browse…** button that opens a native file picker
 rooted in `mplstyles/` (`FigurePropertiesWidget._browse_for_style_file`). Adding a style
 is just dropping a `.mplstyle` file anywhere under `mplstyles/`, including a
 new subfolder — no registration needed.
+
+### 7.5 Adding a file importer
+
+One file in `app/importers/` (built in) or `user/importers/` (a lab's own),
+holding a class that directly subclasses
+`app.plugin_api.importers.base.FileImporter`; `app/scanners/importer_scanner.py`
+finds it by an AST scan, with no registration. Literal class attributes:
+`Name`, `Description`, `Suffixes` (a user importer wins over a built-in one
+for the same suffix), `Category` (its group in the file dialog's filter),
+`Packages` (pip names it needs: `require()` turns a missing one into "Reading
+X files needs Y: pip install Y"), `Order`.
+
+`datasets(path)` lists what one file holds several of - sheets, variables,
+sweeps; `[]` for one table. `read(path, dataset)` returns `ImportedData`:
+the rows, `metadata` (kept with the table as its `source_metadata`), `units`
+and `notes`. `dataset == ALL_DATASETS` asks for every one in one table:
+`combine()` adds the Dataset column. The plan for sniffing generic suffixes and
+an Importer Builder is `dev/plans/importer_plugins_plan.txt`.
 
 ### 7.4 ChartPanel interaction
 

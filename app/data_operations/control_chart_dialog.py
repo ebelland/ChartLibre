@@ -322,8 +322,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             "draw_center",
             "Draw the centre line:",
             tooltip="The process mean the limits are built around.",
-            default_value=True,
-        ),
+            default_value=True, advanced=True),
         BoolParam(
             "draw_limits",
             "Draw the control limits:",
@@ -331,8 +330,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 "The upper and lower limits. Without them the chart is a run "
                 "chart - the points, but nothing to judge them against."
             ),
-            default_value=True,
-        ),
+            default_value=True, advanced=True),
         BoolParam(
             "draw_zones",
             "Draw the one and two sigma lines:",
@@ -340,14 +338,12 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 "The A/B/C zones the run rules are phrased in: \"two of three "
                 "beyond two sigma\" is a statement about a line worth seeing."
             ),
-            default_value=False,
-        ),
+            default_value=False, advanced=True),
         BoolParam(
             "draw_violations",
             "Highlight the flagged points:",
             tooltip="Draws the signalling points again as separate markers.",
-            default_value=True,
-        ),
+            default_value=True, advanced=True),
         BoolParam(
             "exclude_violations",
             "Exclude flagged points from the limits:",
@@ -357,8 +353,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 "Use only when the flagged points have an assigned cause you "
                 "have removed; otherwise it hides the problem."
             ),
-            default_value=False,
-        ),
+            default_value=False, advanced=True),
         TextParam("lsl", "Lower spec limit (LSL):", placeholder="none",
                   tooltip="With a specification limit the report gives the process capability: Cp, Cpk, Pp, "
                           "Ppk and the share out of specification. Empty when there is none.",

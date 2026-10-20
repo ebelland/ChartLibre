@@ -9,7 +9,6 @@ from __future__ import annotations
 from typing import Any, Literal
 
 import math
-import matplotlib
 import numpy as np
 
 from app.plugin_api.charts import kwarg_spec
@@ -371,25 +370,6 @@ class BarAxisRenderer(BaseAxisRenderer):
                 if value not in values:
                     values.append(value)
         return values
-
-    @staticmethod
-    def _labels_crowd(ax: Any, labels: list[str]) -> bool:
-        """Whether the longest label is wider than its category's share of the axis.
-
-        A few long names - "flipper_length_mm" beside "bill_depth_mm" - ran
-        into each other while the count alone said there was room. The width
-        is estimated, a character at 0.6 of the font size, which is close for
-        the sans-serif fonts the styles use.
-        """
-        if not labels:
-            return False
-        from matplotlib.font_manager import FontProperties
-
-        figure = ax.figure
-        axis_px = ax.get_position().width * figure.get_figwidth() * figure.dpi
-        size_pt = FontProperties(size=matplotlib.rcParams["xtick.labelsize"]).get_size_in_points()
-        char_px = size_pt * 0.6 * figure.dpi / 72.0
-        return max(len(label) for label in labels) * char_px > 0.9 * axis_px / len(labels)
 
     def _apply_category_ticks(self, ax: Any, categories: list[Any], options: dict[str, Any]) -> None:
         """Label the category axis, thinning and rotating labels as needed.

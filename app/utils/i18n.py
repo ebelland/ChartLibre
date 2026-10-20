@@ -248,7 +248,50 @@ def source_translator_calls(root: Path | None = None) -> set[str]:
                 and isinstance(node.value.value, str)
             ):
                 found.add(node.value.value)
+            elif isinstance(node, ast.Call) and _is_declaration(node):
+                found.update(_declared_texts(node))
     return found
+
+
+def _is_declaration(node: ast.Call) -> bool:
+    """A plugin's parameter or column role (IntParam(...), ColumnRole(...)): its texts are translated."""
+    name = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", "")
+    return name.endswith("Param") or name == "ColumnRole"
+
+
+def _declared_texts(node: ast.Call) -> set[str]:
+    """The label, tooltip and choice labels a declaration's widgets show through ``_()``."""
+    texts: set[str] = set()
+    if len(node.args) >= 2 and isinstance(node.args[1], ast.Constant) and isinstance(node.args[1].value, str):
+        texts.add(node.args[1].value)
+    if len(node.args) >= 3 and isinstance(node.args[2], ast.Constant) and isinstance(node.args[2].value, str):
+        texts.add(node.args[2].value)  # ColumnRole's tooltip, given positionally
+    for keyword in node.keywords:
+        value = keyword.value
+        if keyword.arg in ("label", "tooltip") and isinstance(value, ast.Constant) and isinstance(value.value, str):
+            texts.add(value.value)
+        elif keyword.arg in ("label", "tooltip") and isinstance(value, ast.JoinedStr):
+            continue
+        elif keyword.arg in ("label", "tooltip"):
+            joined = _joined_constant(value)
+            if joined:
+                texts.add(joined)
+        elif keyword.arg == "choices" and isinstance(value, (ast.Tuple, ast.List)):
+            for choice in value.elts:
+                if (isinstance(choice, (ast.Tuple, ast.List)) and choice.elts
+                        and isinstance(choice.elts[0], ast.Constant) and isinstance(choice.elts[0].value, str)):
+                    texts.add(choice.elts[0].value)
+    return texts
+
+
+def _joined_constant(value: ast.AST) -> str:
+    """A string written as adjacent literals in parentheses is one Constant already; "a" + "b" is not."""
+    if isinstance(value, ast.BinOp) and isinstance(value.op, ast.Add):
+        left, right = _joined_constant(value.left), _joined_constant(value.right)
+        return left + right if left and right else ""
+    if isinstance(value, ast.Constant) and isinstance(value.value, str):
+        return value.value
+    return ""
 
 
 #: Class attributes whose string value is passed through ``_()`` by the code
@@ -256,6 +299,9 @@ def source_translator_calls(root: Path | None = None) -> set[str]:
 #: DeveloperDialogBase (app/developer_helpers/developer_helper_base.py) for its texts.
 TRANSLATED_ATTRIBUTES: frozenset[str] = frozenset({
     "MODEL_LABEL", "MODEL_TOOLTIP",
+    # A plugin's own name, sentence and section, and a table analysis' parameters tab:
+    # the panels, the catalogue and the dialogs show them through _() (todo: multilanguage).
+    "Name", "Description", "Category", "PARAMETERS_TAB",
     "TITLE", "HINT", "NAME_PLACEHOLDER", "FILE_PLACEHOLDER", "DESCRIPTION_PLACEHOLDER",
     "BAD_FILE_NAME", "FILE_EXISTS", "NAME_TAKEN", "NOT_DISCOVERED",
 })

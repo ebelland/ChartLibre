@@ -65,11 +65,11 @@ class ClusteringDialog(TableOperationDialogBase):
                                                "highest mean silhouette.",
                  default_value=0, minimum=0, maximum=50),
         IntParam("k_max", "Largest k tried:", tooltip="With k at 0: k from 2 to this.",
-                 default_value=8, minimum=2, maximum=50),
+                 default_value=8, minimum=2, maximum=50, advanced=True),
         BoolParam("standardize", "Columns standardized",
                   tooltip="Each column divided by its standard deviation, so that each counts the same "
                           "whatever its unit - leave on unless the columns share one unit and scale.",
-                  default_value=True),
+                  default_value=True, advanced=True),
         BoolParam("save", "Save ClusterId in the table",
                   tooltip="As JMP's Save Clusters: each row's cluster in the table's own ClusterId column - "
                           "the one the Clustering operation writes - to colour or filter any chart by it; "

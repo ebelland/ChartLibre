@@ -44,12 +44,17 @@ class Param:
     dialogs behave - the outlier dialog shows a window size only for the
     rolling method - expressed as data rather than as a hand-written
     ``_refresh_visibility``.  An empty mapping means always visible.
+
+    ``advanced``: a setting nearly nobody changes. The form puts it in a
+    closed "Advanced" frame under the others, opened from its arrow - the
+    plugin only says which of its parameters are.
     """
 
     name: str
     label: str
     tooltip: str = ""
     visible_for: Mapping[str, Sequence[Any]] = field(default_factory=dict)
+    advanced: bool = False
 
     def is_visible(self, values: Mapping[str, Any]) -> bool:
         """Say whether this row should be shown for the current values."""

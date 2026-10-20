@@ -10543,3 +10543,186 @@ msgstr "Processo - quattro strumenti che misurano lo stesso campione"
 
 msgid "Start from a goal: is the process stable and within its specification? The four machines' readings of one 25 mm standard, a Control Chart of machine A and of machine D with the capability against 24.98-25.02 mm - A is capable (Cpk 1.8), D is not (Cpk 0.5, 13% of its readings out of specification) - and Are there differences? between the machines."
 msgstr "Si parte da un obiettivo: il processo è stabile ed entro la specifica? Le letture delle quattro macchine di un campione da 25 mm, una Control Chart della macchina A e della macchina D con la capability rispetto a 24,98-25,02 mm - A è capace (Cpk 1,8), D no (Cpk 0,5, il 13% delle letture fuori specifica) - e Ci sono differenze? tra le macchine."
+
+msgid "A GPX file's track, route and waypoints: latitude, longitude, elevation, time."
+msgstr "Traccia, percorso e waypoint di un file GPX: latitudine, longitudine, quota, ora."
+
+msgid "A LabVIEW Write To Measurement File text file: each segment a dataset."
+msgstr "Un file di testo LabVIEW Write To Measurement File: ogni segmento un dataset."
+
+msgid "A MATLAB .mat file (v4 to v7): each numeric variable a dataset, or all of one length side by side."
+msgstr "Un file MATLAB .mat (da v4 a v7): ogni variabile numerica un dataset, o tutte quelle di una lunghezza affiancate."
+
+msgid "A Prism XML project: each data table a dataset, replicates as numbered columns."
+msgstr "Un progetto XML di Prism: ogni tabella di dati un dataset, le repliche come colonne numerate."
+
+msgid "A SAS dataset (.sas7bdat) or transport file (.xpt)."
+msgstr "Un dataset SAS (.sas7bdat) o un file di trasporto (.xpt)."
+
+msgid "A Stata dataset (.dta), value labels as categories."
+msgstr "Un dataset Stata (.dta), le etichette dei valori come categorie."
+
+msgid "A VNA's .sNp file: frequency and each S (or Y, Z) parameter as its file gives it."
+msgstr "Il file .sNp di un VNA: la frequenza e ogni parametro S (o Y, Z) come lo dà il file."
+
+msgid "A WAV recording: time and one column per channel."
+msgstr "Una registrazione WAV: il tempo e una colonna per canale."
+
+msgid "A circuit simulation's waveforms: one column per trace; each plot a dataset, .step runs numbered."
+msgstr "Le forme d'onda di una simulazione circuitale: una colonna per traccia; ogni plot un dataset, le esecuzioni .step numerate."
+
+msgid "A logic analyser's or a digital simulation's signals: a row per change, every signal's value."
+msgstr "I segnali di un analizzatore logico o di una simulazione digitale: una riga per cambiamento, il valore di ogni segnale."
+
+msgid "A spectrum (IR, UV-Vis, Raman, NMR, MS) in JCAMP-DX: x and y with their units; each block a dataset."
+msgstr "Uno spettro (IR, UV-Vis, Raman, NMR, MS) in JCAMP-DX: x e y con le loro unità; ogni blocco un dataset."
+
+msgid "An .ods workbook: each sheet a dataset."
+msgstr "Una cartella .ods: ogni foglio un dataset."
+
+msgid "An .xlsb workbook: each sheet a dataset."
+msgstr "Una cartella .xlsb: ogni foglio un dataset."
+
+msgid "An Apache Arrow IPC file (Feather)."
+msgstr "Un file Apache Arrow IPC (Feather)."
+
+msgid "An Apache Parquet file."
+msgstr "Un file Apache Parquet."
+
+msgid "An R data file (.rds, .RData): each object a dataset."
+msgstr "Un file di dati R (.rds, .RData): ogni oggetto un dataset."
+
+msgid "An SPSS data file (.sav, .zsav), value labels as categories."
+msgstr "Un file di dati SPSS (.sav, .zsav), le etichette dei valori come categorie."
+
+msgid "Circuit simulation"
+msgstr "Simulazione circuitale"
+
+msgid "Closed formats (JMP, Minitab, Origin)"
+msgstr "Formati chiusi (JMP, Minitab, Origin)"
+
+msgid "Columnar and scientific"
+msgstr "Colonnari e scientifici"
+
+msgid "Create a DOE test matrix as a new table."
+msgstr "Crea una matrice di prove DOE come nuova tabella."
+
+msgid "Excel binary workbook"
+msgstr "Cartella binaria di Excel"
+
+msgid "Feather / Arrow"
+msgstr "Feather / Arrow"
+
+msgid "Files of programs whose format has no free reader: export them as CSV or Excel."
+msgstr "File di programmi il cui formato non ha un lettore libero: esportali come CSV o Excel."
+
+msgid "GPS track (GPX)"
+msgstr "Traccia GPS (GPX)"
+
+msgid "GraphPad Prism (.pzfx)"
+msgstr "GraphPad Prism (.pzfx)"
+
+msgid "JCAMP-DX spectrum"
+msgstr "Spettro JCAMP-DX"
+
+msgid "Lab instruments"
+msgstr "Strumenti di laboratorio"
+
+msgid "LabVIEW measurement (.lvm)"
+msgstr "Misura LabVIEW (.lvm)"
+
+msgid "LibreOffice / OpenDocument spreadsheet"
+msgstr "Foglio di calcolo LibreOffice / OpenDocument"
+
+msgid "MATLAB"
+msgstr "MATLAB"
+
+msgid "New Table"
+msgstr "Nuova tabella"
+
+msgid "One report per column: continuous, or the groups."
+msgstr "Un report per colonna: continua, o i gruppi."
+
+msgid "Oscilloscopes and logic"
+msgstr "Oscilloscopi e logica"
+
+msgid "Parquet"
+msgstr "Parquet"
+
+msgid "R"
+msgstr "R"
+
+msgid "RF"
+msgstr "RF"
+
+msgid "SAS"
+msgstr "SAS"
+
+msgid "SPICE raw (LTspice, ngspice)"
+msgstr "SPICE raw (LTspice, ngspice)"
+
+msgid "SPSS"
+msgstr "SPSS"
+
+msgid "Spectroscopy and XRD"
+msgstr "Spettroscopia e XRD"
+
+msgid "Spreadsheets and text"
+msgstr "Fogli di calcolo e testo"
+
+msgid "Stata"
+msgstr "Stata"
+
+msgid "Statistics software"
+msgstr "Software statistici"
+
+msgid "The columns to describe, one report each."
+msgstr "Le colonne da descrivere, un report ciascuna."
+
+msgid "The response: its type and X's choose the analysis."
+msgstr "La risposta: il suo tipo e quello delle X scelgono l'analisi."
+
+msgid "Touchstone S-parameters"
+msgstr "Parametri S Touchstone"
+
+msgid "VCD (value change dump)"
+msgstr "VCD (value change dump)"
+
+msgid "WAV audio"
+msgstr "Audio WAV"
+
+msgid "b1"
+msgstr "b1"
+
+msgid "b2"
+msgstr "b2"
+
+msgid "b3"
+msgstr "b3"
+
+msgid "m11"
+msgstr "m11"
+
+msgid "m12"
+msgstr "m12"
+
+msgid "m13"
+msgstr "m13"
+
+msgid "m21"
+msgstr "m21"
+
+msgid "m22"
+msgstr "m22"
+
+msgid "m23"
+msgstr "m23"
+
+msgid "m31"
+msgstr "m31"
+
+msgid "m32"
+msgstr "m32"
+
+msgid "m33"
+msgstr "m33"

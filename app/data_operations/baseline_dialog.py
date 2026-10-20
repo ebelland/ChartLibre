@@ -109,7 +109,7 @@ class SeriesBaselineDialog(DataOperationDialogBase):
                    default_value=0.01, minimum=0.0001, maximum=0.5, decimals=4, step=0.001,
                    visible_for={"model": (BASELINE_ASLS,)}),
         IntParam("iterations", "Iterations:", tooltip="Re-weighting passes.",
-                 default_value=10, minimum=1, maximum=50, visible_for={"model": (BASELINE_ASLS,)}),
+                 default_value=10, minimum=1, maximum=50, visible_for={"model": (BASELINE_ASLS,)}, advanced=True),
         BoolParam("draw_baseline", "Draw the baseline:", tooltip="Draw the estimated baseline itself.",
                   default_value=True),
     )

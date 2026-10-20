@@ -17,7 +17,7 @@ import pandas as pd
 from app.analysis import answers
 from app.plugin_api.table_operations.column_roles import NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
-from app.plugin_api.table_operations.next_steps import NextStep, is_level, other_columns
+from app.plugin_api.table_operations.next_steps import NextStep, other_columns
 from app.utils import report_html
 from app.utils.i18n import _
 

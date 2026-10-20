@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLineEdit,
     QSpinBox,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -35,6 +36,7 @@ from app.plugin_api.data_operations.parameter_spec import (
     Param,
     TextParam,
 )
+from app.styles.style import TitledCard
 from app.utils.i18n import _
 from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
 
@@ -75,18 +77,38 @@ class ParameterForm:
         self.after_refresh: list[Callable[[], None]] = []
 
         self.widget = QWidget(parent)
-        self.layout = QFormLayout(self.widget)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setFieldGrowthPolicy(
-            QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow
-        )
+        column = QVBoxLayout(self.widget)
+        column.setContentsMargins(0, 0, 0, 0)
+        form_widget = QWidget(self.widget)
+        #: The main rows; the advanced ones are in their own form (see below).
+        self.layout = self._new_form(form_widget)
+        column.addWidget(form_widget)
+        #: The closed "Advanced" frame, when any parameter is declared advanced.
+        self.advanced_card: TitledCard | None = None
+        advanced_form: QFormLayout | None = None
+        if any(param.advanced for param in self._params):
+            self.advanced_card = TitledCard(self.widget, _("Advanced"), "parameterAdvancedCard",
+                                            collapsible=True, collapsed=True)
+            advanced_form = self._new_form(QWidget(self.advanced_card.card))
+            self.advanced_card.card.layout().addWidget(advanced_form.parentWidget())
+            column.addWidget(self.advanced_card)
+        self._forms: dict[str, QFormLayout] = {}
 
         for param in self._params:
             widget = self._build_widget(param)
             self._widgets[param.name] = widget
-            self.layout.addRow(_(param.label), widget)
+            form = advanced_form if param.advanced and advanced_form is not None else self.layout
+            form.addRow(_(param.label), widget)
+            self._forms[param.name] = form
 
         self.refresh_visibility()
+
+    @staticmethod
+    def _new_form(owner: QWidget) -> QFormLayout:
+        form = QFormLayout(owner)
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        return form
 
     # ------------------------------------------------------------------
     # Building
@@ -233,9 +255,13 @@ class ParameterForm:
             # The label is a separate widget, and hiding only the field leaves
             # a labelled empty row - which is what makes a hand-written
             # visibility method easy to get subtly wrong.
-            label = self.layout.labelForField(widget)
+            label = self._forms.get(param.name, self.layout).labelForField(widget)
             if label is not None:
                 label.setVisible(visible)
+        if self.advanced_card is not None:
+            # No frame of nothing: shown while one of its rows is.
+            self.advanced_card.setVisible(any(
+                param.is_visible(current) for param in self._params if param.advanced))
         for callback in self.after_refresh:
             callback()
 

@@ -56,11 +56,11 @@ class PLSDialog(TableOperationDialogBase):
                  default_value=0, minimum=0, maximum=pl.MAX_COMPONENTS),
         IntParam("folds", "Cross-validation folds:", tooltip="Into how many parts the rows are split; each part "
                                                              "is predicted by a model fitted on the others.",
-                 default_value=7, minimum=2, maximum=20),
+                 default_value=7, minimum=2, maximum=20, advanced=True),
         BoolParam("scale", "Scale X to unit variance", tooltip="For X in different units. Off for a spectrum: "
                                                                 "scaling gives the wavelengths that carry only "
                                                                 "noise the weight of the bands.",
-                  default_value=False),
+                  default_value=False, advanced=True),
     )
 
     def __init__(self, **kwargs: Any) -> None:
