@@ -81,3 +81,37 @@ def test_the_preview_menu_offers_column_info(qapp, repo: SqliteRepo) -> None:
     panel.view.setCurrentIndex(panel.view.model().index(0, 1))
     menu = panel._build_context_menu(panel.view.visualRect(panel.view.model().index(0, 1)).center())
     assert any(action.text() == "Column Info..." for action in menu.actions())
+
+
+def test_the_format_shows_values_without_changing_them() -> None:
+    assert cm.format_value(1234.5678, cm.ColumnInfo(format="fixed")) == "1234.57"
+    assert cm.format_value(0.125, cm.ColumnInfo(format="percent", decimals=1)) == "12.5%"
+    assert cm.format_value(1234.5678, cm.ColumnInfo(format="scientific")) == "1.23e+03"
+    assert cm.format_value(1234.5678, cm.ColumnInfo(format="thousands", decimals=0)) == "1,235"
+    assert cm.format_value("2024-12-31", cm.ColumnInfo(format="datetime", pattern="%d/%m/%Y")) == "31/12/2024"
+    assert cm.format_value("n/d", cm.ColumnInfo(format="fixed")) == "n/d"
+    assert cm.format_value(None, cm.ColumnInfo(format="fixed")) == ""
+    assert cm.ColumnInfo.from_dict({"format": "nonsense", "decimals": 99}).format == ""
+    assert cm.ColumnInfo.from_dict({"format": "fixed", "decimals": 99}).decimals == 15
+
+
+def test_the_preview_shows_the_format_and_copies_the_stored_value(qapp, repo: SqliteRepo) -> None:
+    from PySide6.QtCore import Qt
+
+    from app.dialogs.column_info_dialog import ColumnInfoDialog
+    from app.widgets.table_preview import TablePreviewPanel
+
+    repo.import_dataframe(pd.DataFrame({"share": [0.125, 0.5]}), table_name="t", normalize_columns=False)
+    dialog = ColumnInfoDialog(repo, "t", "share")
+    dialog.format.setCurrentIndex(dialog.format.findData("percent"))
+    dialog.decimals.setValue(1)
+    assert dialog.example.text() == "0.125 is shown 12.5%"
+    dialog._apply()
+    panel = TablePreviewPanel(None, repo=repo)
+    panel.set_context(repo, "t")
+    qapp.processEvents()
+    model = panel.view.model()
+    column = next(c for c in range(model.columnCount()) if model._columns[c] == "share")
+    index = model.index(0, column)
+    assert model.data(index, Qt.ItemDataRole.DisplayRole) == "12.5%"
+    assert float(model.data(index, Qt.ItemDataRole.EditRole)) == 0.125

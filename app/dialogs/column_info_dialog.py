@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPlainTextEdit,
     QPushButton,
+    QSpinBox,
     QTableWidget,
     QTableWidgetItem,
     QWidget,
@@ -94,6 +95,33 @@ class ColumnInfoDialog(PanelDialog):
         self.notes.setFixedHeight(self.notes.fontMetrics().height() * 3 + 12)
         form.addRow(_("Notes:"), self.notes)
 
+        # How the values are shown - in the table preview, for now; the values stay as stored.
+        self.format = QComboBox(self)
+        for key, label in cm.FORMATS:
+            self.format.addItem(_(label), key)
+        self.format.setCurrentIndex(max(0, self.format.findData(self._info.format)))
+        self.format.setToolTip(_("How the values are shown in the table: the values themselves do not change."))
+        self.decimals = QSpinBox(self)
+        self.decimals.setRange(0, 15)
+        self.decimals.setValue(self._info.decimals)
+        self.decimals.setSuffix(_(" dec."))
+        format_row = QWidget(self)
+        format_layout = QHBoxLayout(format_row)
+        format_layout.setContentsMargins(0, 0, 0, 0)
+        format_layout.addWidget(self.format, 1)
+        format_layout.addWidget(self.decimals)
+        form.addRow(_("Format:"), format_row)
+        self.pattern = QLineEdit(self._info.pattern, self)
+        self.pattern.setToolTip(_("strftime codes: %d day, %m month, %Y year, %H:%M:%S time, %b month name."))
+        form.addRow(_("Pattern:"), self.pattern)
+        self._pattern_label = form.labelForField(self.pattern)
+        self.example = QLabel("", self)
+        self.example.setProperty("muted", True)
+        form.addRow("", self.example)
+        for signal in (self.format.currentIndexChanged, self.decimals.valueChanged, self.pattern.textChanged):
+            signal.connect(lambda *_args: self._show_format())
+        self._show_format()
+
         # -- The values: what counts as missing, and their labels.
         values_card = self.add_card(_("Values"), "columnValuesCard", stretch=1)
         summary = QLabel(self._summary(), values_card)
@@ -140,6 +168,18 @@ class ColumnInfoDialog(PanelDialog):
         source = self._repo.get_table_info(self._table).get("source_metadata") or {}
         return str(dict(source.get("units") or {}).get(self._column, ""))
 
+    def _show_format(self) -> None:
+        """Decimals for a number format, the pattern for dates, and the first value as it will look."""
+        kind = str(self.format.currentData() or "")
+        self.decimals.setVisible(kind in ("fixed", "percent", "scientific", "thousands"))
+        self.pattern.setVisible(kind == "datetime")
+        if self._pattern_label is not None:
+            self._pattern_label.setVisible(kind == "datetime")
+        first = next((value for value in self._values if value is not None and str(value).strip() != ""), None)
+        info = cm.ColumnInfo(format=kind, decimals=self.decimals.value(), pattern=self.pattern.text())
+        self.example.setText(_("{stored} is shown {shown}").format(stored=first, shown=cm.format_value(first, info))
+                             if kind and first is not None else "")
+
     def _summary(self) -> str:
         present = self._values.dropna()
         present = present[present.astype(str).str.strip() != ""]
@@ -179,7 +219,9 @@ class ColumnInfoDialog(PanelDialog):
         return cm.ColumnInfo(label=self.label.text().strip(), unit=self.unit.text().strip(),
                              notes=self.notes.toPlainText().strip(), kind=str(self.modelling.currentData() or ""),
                              missing=[code.strip() for code in self.missing.text().split(",") if code.strip()],
-                             value_labels=labels)
+                             value_labels=labels, format=str(self.format.currentData() or ""),
+                             decimals=self.decimals.value(),
+                             pattern=self.pattern.text().strip() or cm.DEFAULT_DATE_PATTERN)
 
     def _apply(self) -> None:
         name = self.name.text().strip()

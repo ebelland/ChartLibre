@@ -10,6 +10,9 @@ undoes with it. What it changes:
   read them as empty;
 * value_labels - {stored value: label} (1 -> "male"): the analyses see the
   labels, as levels;
+* format - how its values are shown (Best, Fixed, Percent, Scientific,
+  thousands separator, a date/time pattern): the table preview's text only,
+  never the values themselves;
 * label, unit, notes - said where the column is described.
 
 No Qt: the Column Info dialog and the table analyses both read it here.
@@ -25,6 +28,12 @@ import pandas as pd
 
 INFO_KEY = "columns"
 KINDS: tuple[str, ...] = ("continuous", "ordinal", "nominal")
+#: How a column's values may be shown, as JMP's Format: (key, label). "" is Best: the value as stored.
+FORMATS: tuple[tuple[str, str], ...] = (
+    ("", "Best"), ("fixed", "Fixed decimals"), ("percent", "Percent"), ("scientific", "Scientific"),
+    ("thousands", "Thousands separator"), ("datetime", "Date / time"),
+)
+DEFAULT_DATE_PATTERN = "%Y-%m-%d"
 
 
 @dataclass
@@ -36,17 +45,30 @@ class ColumnInfo:
     kind: str = ""
     missing: list[str] = field(default_factory=list)
     value_labels: dict[str, str] = field(default_factory=dict)
+    #: How the values are shown (FORMATS); "" shows them as stored.
+    format: str = ""
+    decimals: int = 2
+    #: The strftime pattern of the "datetime" format.
+    pattern: str = DEFAULT_DATE_PATTERN
 
     def is_empty(self) -> bool:
-        return not (self.label or self.unit or self.notes or self.kind or self.missing or self.value_labels)
+        return not (self.label or self.unit or self.notes or self.kind or self.missing or self.value_labels
+                    or self.format)
 
     @classmethod
     def from_dict(cls, values: Mapping[str, Any]) -> ColumnInfo:
         kind = str(values.get("kind") or "")
+        shown = str(values.get("format") or "")
+        try:
+            decimals = max(0, min(15, int(values.get("decimals", 2))))
+        except (TypeError, ValueError):
+            decimals = 2
         return cls(label=str(values.get("label") or ""), unit=str(values.get("unit") or ""),
                    notes=str(values.get("notes") or ""), kind=kind if kind in KINDS else "",
                    missing=[str(code) for code in values.get("missing") or []],
-                   value_labels={str(k): str(v) for k, v in dict(values.get("value_labels") or {}).items()})
+                   value_labels={str(k): str(v) for k, v in dict(values.get("value_labels") or {}).items()},
+                   format=shown if shown in dict(FORMATS) else "", decimals=decimals,
+                   pattern=str(values.get("pattern") or DEFAULT_DATE_PATTERN))
 
 
 def column_info(repo: Any, table: str) -> dict[str, ColumnInfo]:
@@ -114,3 +136,31 @@ def apply_to_frame(frame: pd.DataFrame, infos: Mapping[str, ColumnInfo]) -> pd.D
 def forced_kinds(infos: Mapping[str, ColumnInfo]) -> dict[str, str]:
     """{column: modelling type} for the columns whose type is forced."""
     return {name: info.kind for name, info in infos.items() if info.kind}
+
+
+def format_value(value: Any, info: ColumnInfo) -> str:
+    """*value* as the column's format shows it; as stored when it does not apply (text in a number format)."""
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return ""
+    kind, decimals = info.format, info.decimals
+    if kind == "datetime":
+        moment = pd.to_datetime(value, errors="coerce") if not isinstance(value, (int, float)) else pd.NaT
+        if pd.isna(moment):
+            return str(value)
+        try:
+            return moment.strftime(info.pattern or DEFAULT_DATE_PATTERN)
+        except ValueError:
+            return str(value)
+    if kind in ("fixed", "percent", "scientific", "thousands"):
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return str(value)
+        if kind == "fixed":
+            return f"{number:.{decimals}f}"
+        if kind == "percent":
+            return f"{number * 100:.{decimals}f}%"
+        if kind == "scientific":
+            return f"{number:.{decimals}e}"
+        return f"{number:,.{decimals}f}"
+    return str(value)

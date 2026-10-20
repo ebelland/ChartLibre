@@ -15,6 +15,7 @@ import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, Qt, Signal
 from PySide6.QtGui import QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu
+from app.data import column_metadata
 from app.data.data_source import quote_identifier as _quote_table
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -116,7 +117,8 @@ class DataFrameTableModel(QAbstractTableModel):
         return self._columns[index] if 0 <= index < len(self._columns) else None
 
     def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
-        if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
+        # EditRole too: copying reads the stored value, which here is the shown one.
+        if not index.isValid() or role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             return None
         try:
             value = self._frame.iat[index.row(), index.column()]
@@ -433,7 +435,8 @@ class TablePreviewPanel(QWidget):
         for row in rows:
             cells = []
             for col in columns:
-                value = model.data(model.index(row, col)) if (row, col) in selected else ""
+                # The values as stored, not as formatted: pasted, they are numbers again.
+                value = model.data(model.index(row, col), Qt.ItemDataRole.EditRole) if (row, col) in selected else ""
                 cells.append("" if value is None else str(value))
             lines.append("\t".join(cells))
         QApplication.clipboard().setText("\n".join(lines))
@@ -646,7 +649,7 @@ class TablePreviewPanel(QWidget):
         column = self._current_column_name()
         if not index.isValid() or column is None or self._repo is None or not self._table:
             return
-        value = index.data(Qt.ItemDataRole.DisplayRole)
+        value = index.data(Qt.ItemDataRole.EditRole)  # the value stored, not its format
         try:
             self._flag_done(flag, self._repo.flag_rows_by_value(self._table, flag, column, "=", value))
         except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
@@ -662,6 +665,7 @@ class LazyTableModel(QAbstractTableModel):
         self._table_q = _quote_table(table)
         self._columns: list[str] = []
         self._codes: list[str] = []
+        self._formats: list[column_metadata.ColumnInfo | None] = []
         self._row_count: int = 0
         self._chunk_size = 5000
         self._cache: dict[int, list[list[Any]]] = {}
@@ -686,6 +690,9 @@ class LazyTableModel(QAbstractTableModel):
         self._columns = [str(row[1]) for row in rows]
         self._codes = [_type_code(str(row[2])) for row in rows]
         self._row_count = int(self._repo.row_count(self._table))
+        # Each column's format from Column Info, None where it has none: the text shown only.
+        infos = column_metadata.column_info(self._repo, self._table)
+        self._formats = [infos[name] if name in infos and infos[name].format else None for name in self._columns]
 
     def column_name(self, index: int) -> str | None:
         return self._columns[index] if 0 <= index < len(self._columns) else None
@@ -728,6 +735,10 @@ class LazyTableModel(QAbstractTableModel):
         if offset >= len(rows):
             return None
         value = rows[offset][column_index]
+        # Shown in the column's format (Column Info); edited and copied as stored.
+        shown = self._formats[column_index] if role == Qt.ItemDataRole.DisplayRole else None
+        if shown is not None:
+            return column_metadata.format_value(value, shown)
         return "" if value is None else str(value)
 
     def _selected_tint(self, row_index: int) -> QColor | None:

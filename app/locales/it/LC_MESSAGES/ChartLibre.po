@@ -10735,3 +10735,33 @@ msgstr "Titoli ed etichette su più righe - scrivi \\n dove finisce una riga, co
 
 msgid "The axis' end, as a number: 0.5, 1e-3; a comma works as the decimal point too."
 msgstr "L'estremo dell'asse, come numero: 0.5, 1e-3; vale anche la virgola come separatore decimale."
+
+msgid "Best"
+msgstr "Migliore"
+
+msgid "Fixed decimals"
+msgstr "Decimali fissi"
+
+msgid "Scientific"
+msgstr "Scientifico"
+
+msgid "Thousands separator"
+msgstr "Separatore delle migliaia"
+
+msgid "Date / time"
+msgstr "Data / ora"
+
+msgid "Pattern:"
+msgstr "Schema:"
+
+msgid " dec."
+msgstr " dec."
+
+msgid "How the values are shown in the table: the values themselves do not change."
+msgstr "Come sono mostrati i valori nella tabella: i valori stessi non cambiano."
+
+msgid "strftime codes: %d day, %m month, %Y year, %H:%M:%S time, %b month name."
+msgstr "Codici strftime: %d giorno, %m mese, %Y anno, %H:%M:%S ora, %b nome del mese."
+
+msgid "{stored} is shown {shown}"
+msgstr "{stored} è mostrato {shown}"
