@@ -1,11 +1,12 @@
-ChartLibre TODO - updated 2026-10-19
+ChartLibre TODO - updated 2026-10-20
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
 Size: app 98,926 lines in 284 files; tests 19,462 lines in 156 files (updated at each commit).
 
 NOW
 D-01  M  Demos per goal: Anomalies and Process still to do - they need the data operations (Explore
-         Outliers, Control Chart) driven by dev/demo/demo_goals.py, which runs table analyses only.
+         Outliers, Control Chart) driven by dev/demo/demo_goals.py, which runs table analyses only
+         (Experiment is the Box-Behnken demo; the other seven goals have theirs).
 G-02  S  Help me choose, next: each report says which next question fits (differences ->
          impact -> model); "again with another column".
 R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
@@ -29,13 +30,16 @@ A-01  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in 
 NEXT - ANALYSIS (table operations, JMP-like)
 - AN-05 S  Time Series, next: transfer functions (an input X in the model, ARIMAX), prewhitened
            cross-correlation, intervention analysis.
+- AN-25 S  Multivariate, next: Factor Analysis's chi-square test of fit (Maximum Likelihood) and a By
+           column for its score plot; the biplot's labels kept apart; Cluster Analysis saving the
+           Cluster column in the table itself (JMP's Save Clusters).
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
            repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
-- R-08  M  Column metadata: label, unit, missing codes, value labels.
-
+- R-08  M  Column metadata: label, unit, missing codes, value labels (the importers' units and
+           source_metadata are kept with the table already).
 
 NEXT - INTERFACE
-- D-01     NaN, missing data and Cast management.
+- P-01     NaN, missing data and Cast management.
 - R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series
            over a saved query that keeps "_id"; dates and categories on x; the data filter
            ("show only Selected" on every chart of a table).
