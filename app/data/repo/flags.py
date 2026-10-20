@@ -392,6 +392,16 @@ class FlagsMixin(RepoHost):
     # ------------------------------------------------------------------
 
     @ensure_connection_wrapper
+    def set_integer_by_row_id(self, table_name: str, col_name: str, values: Mapping[int, int]) -> None:
+        """*col_name* (an INTEGER column, made if missing, 0 elsewhere) set row by row: {_id: value}."""
+        assert self._con is not None
+        self.clear_integer_column(table_name, col_name)
+        self._con.executemany(
+            f"UPDATE {_quote_ident(table_name)} SET {_quote_ident(col_name)} = ? WHERE {_quote_ident(ROW_ID)} = ?",
+            [(int(value), int(row)) for row, value in values.items()],
+        )
+        self._commit()
+
     def set_ClusterId(self,source_table,source_x_column, x_values,cluster_values) -> None:
         assert self._con is not None
         quoted_table = _quote_ident(source_table)

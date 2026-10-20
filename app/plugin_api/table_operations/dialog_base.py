@@ -51,7 +51,7 @@ from PySide6.QtWidgets import (
 )
 
 from app import APP_VERSION
-from app.data.sqlite_repo import SqliteRepo
+from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.analysis import Stopped
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import OperationModel
@@ -114,6 +114,7 @@ class TableOperationDialogBase(QDialog):
         super().__init__(parent)
         self._repo = repo
         self._frame = pd.DataFrame()
+        self.row_ids = pd.Series(dtype="Int64")
         self._result: Any = None
         self._result_inputs: tuple[Any, ...] | None = None
         self._task: BackgroundTask | None = None
@@ -334,11 +335,18 @@ class TableOperationDialogBase(QDialog):
         return self._table_combo.currentText()
 
     def table_frame(self, table: str) -> pd.DataFrame:
-        """*table*'s visible rows, without the application's own columns."""
-        frame = self._repo.table_frame(table)
+        """*table*'s visible rows, without the application's own columns.
+
+        Each row's id (R-07 ``_id``) is kept aside in ``row_ids``, in the
+        frame's order: what an analysis writes back into the table's own rows
+        (Cluster Analysis's ClusterId) finds them by it.
+        """
+        frame = self._repo.query_df(f"SELECT * FROM {self.quoted(table)}", row_id=True)
         if "Hide" in frame.columns:
             frame = frame[pd.to_numeric(frame["Hide"], errors="coerce").fillna(0) == 0]
-        return frame.drop(columns=[c for c in frame.columns if c in APPLICATION_COLUMNS]).reset_index(drop=True)
+        frame = frame.reset_index(drop=True)
+        self.row_ids = frame[ROW_ID].astype("Int64") if ROW_ID in frame.columns else pd.Series(dtype="Int64")
+        return frame.drop(columns=[c for c in frame.columns if c in APPLICATION_COLUMNS or c == ROW_ID])
 
     def _on_table_changed(self, *_args: Any) -> None:
         self._remember_casting()
@@ -544,7 +552,7 @@ class TableOperationDialogBase(QDialog):
         """
         return self._repo.free_table_name(f"{GENERATED_PREFIX}{self.table}_{key}")
 
-    def write_result_tables(self, frames: Mapping[str, pd.DataFrame]) -> dict[str, str]:
+    def write_result_tables(self, frames: Mapping[str, pd.DataFrame], *, also: Sequence[str] = ()) -> dict[str, str]:
         """Each frame as a new table named after the source and its key ("_penguins_pls_vip"), one undo step.
 
         Returns {key: the name it got} - a free one, so an earlier run's tables
@@ -553,7 +561,8 @@ class TableOperationDialogBase(QDialog):
         """
         repo = self._repo
         names = {key: self.result_table_name(key) for key in frames}
-        repo.snapshot_for_undo([*names.values(), *repo.DESCRIPTOR_TABLES], label=f"{self.Name} on '{self.table}'")
+        # *also*: tables the analysis changes besides, in the same undo step (the source's ClusterId).
+        repo.snapshot_for_undo([*names.values(), *also, *repo.DESCRIPTOR_TABLES], label=f"{self.Name} on '{self.table}'")
         for key, frame in frames.items():
             repo.import_dataframe(frame, table_name=names[key], normalize_columns=False)
         return names

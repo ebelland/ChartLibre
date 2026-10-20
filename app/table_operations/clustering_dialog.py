@@ -4,8 +4,9 @@ As JMP's Analyze > Clustering - K Means Cluster, Hierarchical Cluster,
 Normal Mixtures - on a table's continuous columns rather than on a chart's
 series (that is the Clustering data operation). The report gives the table
 of k (each k's mean silhouette and within-cluster sum of squares; BIC for
-the mixtures) and each cluster's size and means. OK writes the rows with
-their Cluster and Silhouette, the table of k and the means, and draws the
+the mixtures) and each cluster's size and means. OK writes each row's
+cluster into the table's own ClusterId column (as JMP's Save Clusters, and
+as the Clustering operation does), the rows with their Cluster and Silhouette, the table of k and the means, and draws the
 silhouette by k, the clusters on the first two principal components, and the
 clusters' profiles as a parallel plot. The engine is app.analysis.cluster_table.
 """
@@ -22,6 +23,10 @@ from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, Co
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
+
+
+#: The table's own cluster column - the name the Clustering operation writes too, so either fills it.
+CLUSTER_COLUMN = "ClusterId"
 
 
 class ClusteringDialog(TableOperationDialogBase):
@@ -65,6 +70,11 @@ class ClusteringDialog(TableOperationDialogBase):
                   tooltip="Each column divided by its standard deviation, so that each counts the same "
                           "whatever its unit - leave on unless the columns share one unit and scale.",
                   default_value=True),
+        BoolParam("save", "Save ClusterId in the table",
+                  tooltip="As JMP's Save Clusters: each row's cluster in the table's own ClusterId column - "
+                          "the one the Clustering operation writes - to colour or filter any chart by it; "
+                          "0 for a row in no cluster.",
+                  default_value=True),
     )
 
     def __init__(self, **kwargs: Any) -> None:
@@ -96,9 +106,15 @@ class ClusteringDialog(TableOperationDialogBase):
             rows["Silhouette"] = result.silhouettes.reindex(rows.index)
         for column in result.projection.columns:
             rows[column] = result.projection[column].reindex(rows.index)
+        save = bool(self.parameter_values().get("save", True)) and len(self.row_ids) == len(self._frame)
         tables = self.write_result_tables({"clusters": rows, "clusters_k": result.k_table,
-                                           "clusters_means": result.means})
+                                           "clusters_means": result.means}, also=[self.table] if save else [])
         written: list[dict[str, Any]] = [{"table": name} for name in tables.values()]
+        if save:
+            ids = self.row_ids
+            self._repo.set_integer_by_row_id(self.table, CLUSTER_COLUMN, {
+                int(ids.iloc[position]): int(cluster) for position, cluster in result.clusters.items()})
+            written.append({"table": self.table, "column": CLUSTER_COLUMN})
 
         sql, roles = self.series_select(tables["clusters_k"], {"x": "k", "y": "Silhouette"})
         panels: list[tuple] = [("Scatter Plot", _("Mean silhouette by k"), "k", _("Silhouette"),

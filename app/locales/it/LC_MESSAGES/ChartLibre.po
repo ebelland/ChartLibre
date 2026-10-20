@@ -10366,3 +10366,9 @@ msgstr "Cosa impatta di più su {measure}?"
 
 msgid "Another measure over the same time"
 msgstr "Un'altra misura nello stesso tempo"
+
+msgid "Save ClusterId in the table"
+msgstr "Salva ClusterId nella tabella"
+
+msgid "As JMP's Save Clusters: each row's cluster in the table's own ClusterId column - the one the Clustering operation writes - to colour or filter any chart by it; 0 for a row in no cluster."
+msgstr "Come Save Clusters di JMP: il cluster di ogni riga nella colonna ClusterId della tabella - la stessa che scrive l'operazione Clustering - per colorare o filtrare qualsiasi grafico; 0 per una riga senza cluster."

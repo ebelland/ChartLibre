@@ -66,3 +66,26 @@ def test_ok_writes_the_clusters_and_draws_them(qapp, repo: SqliteRepo) -> None:
         assert [axis.name for axis in figure.axes] == ["Scatter Plot", "Scatter Plot", "Parallel Plot"]
     finally:
         dialog.close()
+
+
+def test_ok_saves_clusterid_in_the_table_and_undo_takes_it_back(qapp, repo: SqliteRepo) -> None:
+    frame = _blobs()
+    frame["Hide"] = 0
+    frame.loc[0, "Hide"] = 1  # a hidden row is in no cluster: 0
+    repo.import_dataframe(frame, table_name="parts", normalize_columns=False)
+    dialog = ClusteringDialog(repo=repo, table="parts")
+    try:
+        dialog.roles_widget.set_casting({"response": ["width", "height"]})
+        dialog.ok()
+        deadline = time.monotonic() + 60
+        while dialog._task is not None and time.monotonic() < deadline:
+            qapp.processEvents()
+            time.sleep(0.01)
+        saved = repo.table_frame("parts")["ClusterId"]
+        assert saved.iloc[0] == 0 and sorted(saved.iloc[1:].unique().tolist()) == [1, 2, 3]
+        rows = repo.table_frame("_parts_clusters")
+        assert (saved.iloc[1:].to_numpy() == rows["Cluster"].to_numpy()).all()
+    finally:
+        dialog.close()
+    repo.undo_last()
+    assert "ClusterId" not in repo.table_frame("parts").columns
