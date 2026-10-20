@@ -86,3 +86,22 @@ def test_ok_writes_the_scores_and_draws_the_charts(qapp, tmp_path) -> None:
     finally:
         dialog.close()
         repo.close()
+
+
+def test_ml_tests_whether_the_factors_are_enough() -> None:
+    frame = _two_factors(n=600)
+    one = mv.factor_analysis(frame, list(frame.columns), factors=1).summary
+    two = mv.factor_analysis(frame, list(frame.columns), factors=2).summary
+    assert one["Prob>ChiSq"] < 0.001 and two["Prob>ChiSq"] > 0.05
+    assert two["DF"] == 4  # ((6 - 2)^2 - (6 + 2)) / 2
+    assert "Prob>ChiSq" not in mv.factor_analysis(frame, list(frame.columns), factors=2,
+                                                  method=mv.PRINCIPAL_AXIS).summary
+
+
+def test_biplot_labels_of_arrows_ending_together_are_kept_apart() -> None:
+    from app.table_operations.principal_components_dialog import spread_labels
+
+    tips = np.array([[2.0, 0.1], [2.0, 0.12], [-1.0, 1.5]])
+    labels = spread_labels(tips, reach=2.5)
+    assert abs(labels[0][1] - labels[1][1]) >= 0.09 * 2.5 - 1e-9
+    assert labels[2][0] < -1.0  # past its own tip, outward

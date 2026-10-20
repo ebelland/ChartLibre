@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-20
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 99,863 lines in 288 files; tests 19,777 lines in 159 files (updated at each commit).
+Size: app 99,935 lines in 288 files; tests 19,796 lines in 159 files (updated at each commit).
 
 NOW
 D-01  M  Demos per goal: Anomalies and Process still to do - they need the data operations (Explore
@@ -26,8 +26,6 @@ A-01  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in 
          Waiting for the go; Q1-Q5 to answer.
 
 NEXT - ANALYSIS (table operations, JMP-like)
-- AN-25 S  Multivariate, next: Factor Analysis's chi-square test of fit (Maximum Likelihood) and a By
-           column for its score plot; the biplot's labels kept apart.
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
            repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
 - R-08  S  Column Info, next: from the analyses' column lists too; the label and unit on the

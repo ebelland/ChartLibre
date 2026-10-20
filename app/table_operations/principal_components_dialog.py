@@ -23,6 +23,34 @@ from app.utils import report_html
 from app.utils.i18n import _
 
 
+def spread_labels(tips, reach: float) -> list[tuple[float, float]]:  # noqa: ANN001 - an (n, 2) array
+    """Where each arrow's label goes: just past its tip, moved up or down off the labels already placed.
+
+    Two columns that load alike end in nearly the same place; their names,
+    put at the tips, were one smudge. Placed longest arrow first, each label
+    is nudged vertically - away from the one it would cover - until clear.
+    """
+    import numpy as np
+
+    tips = np.asarray(tips, float)
+    gap_x, gap_y = 0.25 * reach, 0.09 * reach
+    placed: list[tuple[float, float]] = []
+    positions: dict[int, tuple[float, float]] = {}
+    for index in np.argsort(-np.hypot(tips[:, 0], tips[:, 1])):
+        x, y = tips[index]
+        length = float(np.hypot(x, y)) or 1.0
+        label_x, label_y = x + 0.04 * reach * x / length, y + 0.04 * reach * y / length
+        for _attempt in range(8):
+            clash = next(((px, py) for px, py in placed
+                          if abs(px - label_x) < gap_x and abs(py - label_y) < gap_y), None)
+            if clash is None:
+                break
+            label_y = clash[1] + (gap_y if label_y >= clash[1] else -gap_y)
+        placed.append((label_x, label_y))
+        positions[int(index)] = (float(label_x), float(label_y))
+    return [positions[i] for i in range(len(tips))]
+
+
 class PrincipalComponentsDialog(TableOperationDialogBase):
     """Principal components: eigenvalues, loadings and each row's scores."""
 
@@ -72,19 +100,8 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
         return found
 
     def _row_series(self, table: str, x: str, y: str) -> list[tuple]:
-        """The rows as one series, or one per group of the By column."""
         by = self.roles_widget.casting().columns("by")
-        if by:
-            levels = [value for value in pd.unique(self._frame[by[0]].dropna())][: self.MAX_GROUPS + 1]
-            if 1 < len(levels) <= self.MAX_GROUPS:
-                series = []
-                for level in sorted(levels, key=str):
-                    sql, roles = self.series_select(table, {"x": x, "y": y},
-                                                    where=f"{self.quoted(by[0])} = {self.literal(str(level))}")
-                    series.append((str(level), sql, roles, {}))
-                return series
-        sql, roles = self.series_select(table, {"x": x, "y": y})
-        return [(_("Rows"), sql, roles, {})]
+        return self.grouped_series(table, x, y, by[0] if by else "", max_groups=self.MAX_GROUPS)
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
@@ -141,12 +158,13 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
         reach = float(abs(scores).max()) if scores.size else 1.0
         scale = 0.85 * reach / max(float(abs(loadings).max()), 1e-12)
         annotations = []
-        for name, (x, y) in zip(result.columns, loadings * scale):
+        tips = loadings * scale
+        for name, (x, y), (label_x, label_y) in zip(result.columns, tips, spread_labels(tips, reach)):
             annotations.append({"type": "arrow", "x": float(x), "y": float(y), "text": "",
                                 "kwargs": {"xytext": [0.0, 0.0], "textcoords": "data",
                                            "arrowprops": {"arrowstyle": "->", "color": "#c2410c", "lw": 1.2}}})
-            annotations.append({"type": "text", "x": float(x), "y": float(y), "text": str(name),
-                                "kwargs": {"color": "#c2410c", "fontsize": 8,
-                                           "ha": "left" if x >= 0 else "right", "va": "bottom" if y >= 0 else "top"}})
+            annotations.append({"type": "text", "x": label_x, "y": label_y, "text": str(name),
+                                "kwargs": {"color": "#c2410c", "fontsize": 8, "ha": "left" if x >= 0 else "right",
+                                           "va": "center"}})
         series = [(*item[:3], {**item[3], "alpha": 0.6}) for item in self._row_series(table, "Prin1", "Prin2")]
         return ("Scatter Plot", _("Biplot"), "Prin1", "Prin2", series, {**zero, "annotations": annotations})

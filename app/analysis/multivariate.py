@@ -232,6 +232,31 @@ def _principal_axis(correlation: np.ndarray, factors: int, iterations: int = 200
     return loadings, False
 
 
+def _sufficiency_test(correlation: np.ndarray, loadings: np.ndarray, rows: int) -> dict[str, Any]:
+    """Maximum Likelihood's test that *k* factors are enough (Bartlett's correction), as JMP's.
+
+    The correlation the factors imply, L L' + its uniquenesses, against the
+    observed one; none when the degrees of freedom are not positive.
+    """
+    from scipy import stats
+
+    p, k = loadings.shape
+    degrees = ((p - k) ** 2 - (p + k)) / 2
+    if degrees <= 0:
+        return {}
+    implied = loadings @ loadings.T
+    np.fill_diagonal(implied, 1.0)  # each column's uniqueness makes its diagonal 1
+    try:
+        _sign, log_implied = np.linalg.slogdet(implied)
+        _sign, log_observed = np.linalg.slogdet(correlation)
+        discrepancy = log_implied - log_observed + float(np.trace(correlation @ np.linalg.inv(implied))) - p
+    except np.linalg.LinAlgError:
+        return {}
+    statistic = max(0.0, (rows - 1 - (2 * p + 5) / 6 - 2 * k / 3) * discrepancy)
+    return {"Chi-square (the factors are enough)": statistic, "DF": degrees,
+            "Prob>ChiSq": float(stats.chi2.sf(statistic, degrees))}
+
+
 def factor_analysis(frame: pd.DataFrame, columns: list[str], *, factors: int = 0, method: str = ML,
                     rotation: str = VARIMAX) -> FactorResult:
     """The common factors of *columns*: loadings, communalities, variance explained, each row's scores.
@@ -263,11 +288,13 @@ def factor_analysis(frame: pd.DataFrame, columns: list[str], *, factors: int = 0
     if not factors:
         notes.append(f"{count} factor(s): the eigenvalues of the correlations above 1.")
 
+    fit_test: dict[str, Any] = {}
     if method == ML:
         from sklearn.decomposition import FactorAnalysis
 
         model = FactorAnalysis(n_components=count, random_state=0).fit(standardized)
         loadings = model.components_.T
+        fit_test = _sufficiency_test(correlation, loadings, len(data))
     else:
         loadings, converged = _principal_axis(correlation, count)
         if not converged:
@@ -305,7 +332,10 @@ def factor_analysis(frame: pd.DataFrame, columns: list[str], *, factors: int = 0
     if oblique:
         notes.append("Promax is oblique: the factors correlate, and their variances overlap (no cumulative share).")
     summary: dict[str, Any] = {"Columns": p, "Rows": len(data), "Factors": count,
-                               "Common variance explained %": float(np.sum(communality) / p * 100.0)}
+                               "Common variance explained %": float(np.sum(communality) / p * 100.0), **fit_test}
+    if fit_test.get("Prob>ChiSq", 1.0) < 0.05:
+        notes.append(f"The chi-square test rejects {count} factor(s) as enough (p < 0.05): with many rows it "
+                     "rejects small misfits too - look at the scree plot, or try one more factor.")
     return FactorResult(
         columns=list(columns), method=method, rotation=rotation, factors=count,
         eigenvalues=pd.DataFrame({"Number": np.arange(1, p + 1), "Eigenvalue": values}),

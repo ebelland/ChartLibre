@@ -50,6 +50,8 @@ class FactorAnalysisDialog(TableOperationDialogBase):
     ROLES = (
         ColumnRole("response", "Y, columns", "The continuous columns whose correlations the factors explain.",
                    kinds=(CONTINUOUS, ORDINAL), minimum=3),
+        ColumnRole("by", "By", "Optional: a column of groups - species, batch, site; the score plot colours "
+                               "the rows by it.", maximum=1),
     )
     PARAMETERS_TAB = "Factor Analysis"
     PARAMS = (
@@ -68,6 +70,13 @@ class FactorAnalysisDialog(TableOperationDialogBase):
     def __init__(self, **kwargs: Any) -> None:
         self.created_figure_ids: list[int] = []
         super().__init__(**kwargs)
+
+    def problems(self) -> list[str]:
+        found = super().problems()
+        casting = self.roles_widget.casting()
+        if not found and set(casting.columns("response")) & set(casting.columns("by")):
+            found.append(_("The By column cannot also be one of the columns."))
+        return found
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
@@ -115,8 +124,9 @@ class FactorAnalysisDialog(TableOperationDialogBase):
                       for row in result.loadings.itertuples()]
             panels.append(("Scatter Plot", _("Factor loading plot"), "Factor1", "Factor2",
                            [(_("Columns"), sql, roles, {"marker": "o"})], {"lines": zero, "annotations": labels}))
-            sql, roles = self.series_select(tables["factors"], {"x": "Factor1", "y": "Factor2"})
-            panels.append(("Scatter Plot", _("Score plot"), "Factor1", "Factor2", [(_("Rows"), sql, roles, {})],
+            by = self.roles_widget.casting().columns("by")
+            panels.append(("Scatter Plot", _("Score plot"), "Factor1", "Factor2",
+                           self.grouped_series(tables["factors"], "Factor1", "Factor2", by[0] if by else ""),
                            {"lines": zero}))
         figure_id = self.create_report_figure(f"Factor Analysis · {self.table}", self.report_document(result), panels)
         self.created_figure_ids = [figure_id]

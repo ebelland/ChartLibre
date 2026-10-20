@@ -10504,3 +10504,9 @@ msgstr "Cross-correlazione con {input}, prewhitened"
 
 msgid "Prewhitened CCF"
 msgstr "CCF prewhitened"
+
+msgid "Chi-square (the factors are enough)"
+msgstr "Chi-quadro (i fattori bastano)"
+
+msgid "Optional: a column of groups - species, batch, site; the score plot colours the rows by it."
+msgstr "Facoltativa: una colonna di gruppi - specie, lotto, sito; lo score plot colora le righe secondo essa."

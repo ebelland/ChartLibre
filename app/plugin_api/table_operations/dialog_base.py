@@ -578,6 +578,20 @@ class TableOperationDialogBase(QDialog):
         sql = f"SELECT {columns} FROM {self.quoted(table)}" + (f" WHERE {where}" if where else "")
         return sql, {role: role for role in roles}
 
+    def grouped_series(self, table: str, x: str, y: str, by: str = "", *, max_groups: int = 20) -> list[tuple]:
+        """The rows of *table* as one scatter series, or one per value of *by* (up to *max_groups*)."""
+        if by and by in self._frame.columns:
+            levels = list(pd.unique(self._frame[by].dropna()))
+            if 1 < len(levels) <= max_groups:
+                series = []
+                for level in sorted(levels, key=str):
+                    sql, roles = self.series_select(table, {"x": x, "y": y},
+                                                    where=f"{self.quoted(by)} = {self.literal(str(level))}")
+                    series.append((str(level), sql, roles, {}))
+                return series
+        sql, roles = self.series_select(table, {"x": x, "y": y})
+        return [(_("Rows"), sql, roles, {})]
+
     def create_report_figure(self, name: str, notes_html: str, panels: Sequence[tuple]) -> int:
         """A figure of *panels*, two to a row, with *notes_html* in its notes; its id.
 
