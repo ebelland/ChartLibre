@@ -86,6 +86,8 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
     chart_object_clicked = Signal(dict)
     #: The tables whose Selected rows a box selection on this chart just set (todo R-07).
     rows_selected = Signal(list)
+    #: A "What next?" link in the notes (a report kept with the chart) was clicked: its URL.
+    next_step_requested = Signal(str)
 
     def __init__(
         self,
@@ -284,6 +286,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
 
         self._notes_html = ""
         self._notes_view = HtmlResultsView(self)
+        self._notes_view.link_requested.connect(self.next_step_requested)
         self._notes_view.setObjectName("chartNotesView")
         self._notes_view.setMinimumHeight(NOTES_MIN_HEIGHT)
         self._notes_view.clear_requested.connect(self.clear_notes)

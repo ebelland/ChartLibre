@@ -64,6 +64,7 @@ from app.styles.style import (
     icon_from_svg_source,
     stdSizeAndlayout,
 )
+from app.plugin_api.table_operations import next_steps
 from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole, ColumnRolesWidget
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.config import get_section, set_section
@@ -116,6 +117,8 @@ class TableOperationDialogBase(QDialog):
         self._result: Any = None
         self._result_inputs: tuple[Any, ...] | None = None
         self._task: BackgroundTask | None = None
+        #: The question a "What next?" link asked for: the main window opens it once this one is closed.
+        self.next_request: next_steps.NextStep | None = None
         self._state_key = type(self).__name__
         # The size is the layout's: a new layout starts from its own default
         # rather than from a size remembered for the old one.
@@ -147,7 +150,34 @@ class TableOperationDialogBase(QDialog):
 
     def report_document(self, result: Any) -> str:
         """The whole report: shown in Results, and kept as the notes of the figure OK draws."""
-        return report_html.document(_(self.Name), self.report_subtitle(result), self.report_body(result))
+        return report_html.document(_(self.Name), self.report_subtitle(result),
+                                    self.report_body(result) + next_steps.section_html(self.next_steps(result)))
+
+    def next_steps(self, result: Any) -> list[next_steps.NextStep]:
+        """The questions this answer leads to, listed under "What next?" as links (G-02); none by default."""
+        del result
+        return []
+
+    def next_step(self, label: str, operation: str, roles: Mapping[str, list[str]],
+                  kinds: Mapping[str, str] | None = None) -> next_steps.NextStep:
+        """A step on this dialog's table, the columns' types as they are cast here unless *kinds* says."""
+        casting = self.roles_widget.casting()
+        used = {column for columns in roles.values() for column in columns}
+        types = {column: kind for column, kind in casting.kinds.items() if column in used}
+        return next_steps.NextStep(label=label, operation=operation, table=str(self.table),
+                                   roles={key: list(value) for key, value in roles.items()},
+                                   kinds={**types, **dict(kinds or {})})
+
+    def _follow_link(self, url: str) -> None:
+        """A "What next?" link clicked in Results: this answer is kept (OK), then the next one opens."""
+        step = next_steps.parse_step(url)
+        if step is None:
+            return
+        self.next_request = step
+        if self._result is not None:
+            self.ok()
+        else:
+            self.reject()
 
     def format_results(self, result: Any) -> str:
         """The report of *result*, as HTML (report_document unless an analysis does more)."""
@@ -239,6 +269,7 @@ class TableOperationDialogBase(QDialog):
         right = TitledCard(self, _("Results"), "tableOperationResultsCard")
         right.layout().setStretchFactor(right.card, 1)
         self._results = HtmlResultsView(self)
+        self._results.link_requested.connect(self._follow_link)
         self._results.setText(_("Cast the columns into their roles, then press Preview."))
         right.card.layout().addWidget(self._results)
         right.setMinimumWidth(260)

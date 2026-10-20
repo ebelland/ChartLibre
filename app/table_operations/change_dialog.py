@@ -16,6 +16,7 @@ import pandas as pd
 from app.analysis import change as ch
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.next_steps import NextStep, is_level, other_columns
 from app.table_operations.differences_dialog import answer_html
 from app.utils.i18n import _
 
@@ -63,6 +64,21 @@ class ChangeDialog(TableOperationDialogBase):
 
     def report_subtitle(self, result: ch.ChangeAnswer) -> str:
         return f"{self.table} · {self.roles_widget.casting().columns('response')[0]}"
+
+    def next_steps(self, result: ch.ChangeAnswer) -> list[NextStep]:
+        """On to its trend, season and forecast, to what drives it, or to another measure over the same time."""
+        del result
+        casting = self.roles_widget.casting()
+        measure, time = casting.columns("response")[0], casting.columns("time")
+        steps = [self.next_step(_("Its trend, season and forecast: Time Series of {measure}").format(measure=measure),
+                                "Time Series", {"response": [measure], "time": time})]
+        others = other_columns(self._frame.columns, leave_out=(measure, *time), limit=8)
+        if others:
+            steps.append(self.next_step(_("What has the most impact on {measure}?").format(measure=measure),
+                                        "What has the most impact?", {"response": [measure], "factor": others}))
+        steps.append(self.next_step(_("Another measure over the same time"), "Has it changed over time?",
+                                    {"time": time}))
+        return steps
 
     def apply_results(self, result: ch.ChangeAnswer) -> list[dict[str, Any]]:
         casting = self.roles_widget.casting()

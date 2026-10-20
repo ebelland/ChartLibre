@@ -17,6 +17,7 @@ import pandas as pd
 from app.analysis import answers
 from app.plugin_api.table_operations.column_roles import NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.next_steps import NextStep, is_level, other_columns
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -82,6 +83,22 @@ class DifferencesDialog(TableOperationDialogBase):
             ])),
         ]
         return "".join(blocks)
+
+    def next_steps(self, result: answers.Answer) -> list[NextStep]:
+        """On to what drives the measure; or again, with another measure or another grouping."""
+        del result
+        casting = self.roles_widget.casting()
+        measure, group = casting.columns("response")[0], casting.columns("group")[0]
+        factors = [group, *other_columns(self._frame.columns, leave_out=(measure, group), limit=7)]
+        return [
+            self.next_step(_("What has the most impact on {measure} - {group} and the other columns, ranked")
+                           .format(measure=measure, group=group), "What has the most impact?",
+                           {"response": [measure], "factor": factors}),
+            self.next_step(_("The same groups ({group}), another measure").format(group=group),
+                           "Are there differences?", {"group": [group]}),
+            self.next_step(_("{measure} again, grouped by another column").format(measure=measure),
+                           "Are there differences?", {"response": [measure]}),
+        ]
 
     def apply_results(self, result: answers.Answer) -> list[dict[str, Any]]:
         repo, table = self._repo, self.table

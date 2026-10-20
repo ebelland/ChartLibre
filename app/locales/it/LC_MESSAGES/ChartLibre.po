@@ -10336,3 +10336,33 @@ msgstr "Gruppi - i pinguini ritrovati senza la loro specie"
 
 msgid "Start from a goal: are there groups among the rows? Cluster Analysis on the penguins' four measures alone: the silhouette picks two clusters - the Gentoo, and the Adelie with the Chinstrap, whose measures overlap. Principal Components coloured by species, with the biplot, shows why; Factor Analysis finds a size factor and a bill-depth one."
 msgstr "Si parte da un obiettivo: ci sono gruppi tra le righe? Analisi dei cluster sulle sole quattro misure dei pinguini: la silhouette sceglie due cluster - i Gentoo, e gli Adelia con i Chinstrap, le cui misure si sovrappongono. Le Componenti principali colorate per specie, con il biplot, mostrano perché; l'Analisi fattoriale trova un fattore di taglia e uno di profondità del becco."
+
+msgid "What next?"
+msgstr "E adesso?"
+
+msgid "What has the most impact on {measure} - {group} and the other columns, ranked"
+msgstr "Cosa impatta di più su {measure} - {group} e le altre colonne, in classifica"
+
+msgid "The same groups ({group}), another measure"
+msgstr "Gli stessi gruppi ({group}), un'altra misura"
+
+msgid "{measure} again, grouped by another column"
+msgstr "Di nuovo {measure}, raggruppata per un'altra colonna"
+
+msgid "A model of {response} on its strongest factors: {factors}"
+msgstr "Un modello di {response} sui fattori più forti: {factors}"
+
+msgid "Are there differences in {response} across {factor}?"
+msgstr "Ci sono differenze in {response} tra i livelli di {factor}?"
+
+msgid "Another result, the same factors"
+msgstr "Un altro risultato, gli stessi fattori"
+
+msgid "Its trend, season and forecast: Time Series of {measure}"
+msgstr "Trend, stagionalità e previsione: Serie temporale di {measure}"
+
+msgid "What has the most impact on {measure}?"
+msgstr "Cosa impatta di più su {measure}?"
+
+msgid "Another measure over the same time"
+msgstr "Un'altra misura nello stesso tempo"

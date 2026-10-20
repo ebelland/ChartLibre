@@ -971,6 +971,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                     lambda hit, source=panel: self._on_chart_object_clicked(source, hit)
                 )
                 panel.rows_selected.connect(self._on_rows_selected)
+                panel.next_step_requested.connect(self._open_next_step_url)
                 self._tabs.addTab(panel, name)
         finally:
             self._tabs.blockSignals(False)
@@ -1275,6 +1276,31 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._table_panel.reload()
         if figures:
             self._reload_tabs(select_figure_id=figures[0])
+        step = getattr(dialog, "next_request", None)
+        if step is not None:
+            self._open_next_step(step)
+
+    def _open_next_step_url(self, url: str) -> None:
+        """A "What next?" link clicked in a chart's notes."""
+        from app.plugin_api.table_operations.next_steps import parse_step
+
+        step = parse_step(url)
+        if step is not None:
+            self._open_next_step(step)
+
+    def _open_next_step(self, step) -> None:  # noqa: ANN001 - a next_steps.NextStep
+        """Open the analysis a "What next?" link asks for, on its table, the columns cast (G-02)."""
+        from app.scanners.table_operation_scanner import table_operations
+
+        operation = next((entry for entry in table_operations if entry.get("value") == step.operation), None)
+        if operation is None:
+            applogger.warning("The next step's analysis %r is not installed.", step.operation)
+            return
+        if step.table not in set(self._repo.list_user_tables()["Table"].astype(str)):
+            applogger.warning("The next step's table %r is not in the project any more.", step.table)
+            return
+        self._table_panel.select_table(step.table)
+        self._on_table_operation_requested(operation, roles=step.roles, kinds=step.kinds)
 
     def _scratch_figure(self) -> int | None:
         """An empty chart to open a data operation on when the project has none.

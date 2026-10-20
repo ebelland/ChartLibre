@@ -16,6 +16,7 @@ import pandas as pd
 from app.analysis import impact as im
 from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.next_steps import NextStep, is_level, other_columns
 from app.table_operations.differences_dialog import answer_html
 from app.utils import report_html
 from app.utils.i18n import _
@@ -76,6 +77,23 @@ class ImpactDialog(TableOperationDialogBase):
         if value.startswith("highest at "):
             return _("highest at {level}").format(level=value.removeprefix("highest at "))
         return ""
+
+    def next_steps(self, result: im.ImpactAnswer) -> list[NextStep]:
+        """On to a model of the strongest factors, the differences across the first, or another result."""
+        casting = self.roles_widget.casting()
+        response, factors = casting.columns("response")[0], casting.columns("factor")
+        top = [str(name) for name in result.ranking["Factor"].tolist()[:3]]
+        steps = []
+        if top:
+            steps.append(self.next_step(_("A model of {response} on its strongest factors: {factors}").format(
+                response=response, factors=", ".join(top)), "Fit Model", {"response": [response], "_x": top}))
+            if is_level(casting.kinds, top[0]):
+                steps.append(self.next_step(_("Are there differences in {response} across {factor}?").format(
+                    response=response, factor=top[0]), "Are there differences?",
+                    {"response": [response], "group": [top[0]]}))
+        steps.append(self.next_step(_("Another result, the same factors"), "What has the most impact?",
+                                    {"factor": factors}))
+        return steps
 
     def apply_results(self, result: im.ImpactAnswer) -> list[dict[str, Any]]:
         response = self.roles_widget.casting().columns("response")[0]

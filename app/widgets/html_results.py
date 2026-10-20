@@ -22,7 +22,7 @@ import re
 import weakref
 from typing import cast
 
-from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, Qt, Signal
+from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
@@ -73,12 +73,33 @@ try:
 
         def acceptNavigationRequest(self, url, navigation_type, is_main_frame):  # noqa: N802 - Qt override
             if navigation_type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
-                QDesktopServices.openUrl(url)
+                _open_link(self.parent(), url.toString())
                 return False
             return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
 
 except ImportError:  # QtWebEngine is optional; QTextBrowser needs no page.
     pass
+
+
+def _open_link(pane: object, url: str) -> None:
+    """A link clicked in a report: a "What next?" one to the pane's owner, any other to the browser.
+
+    Handed on from the event loop, not from inside Chromium's navigation
+    callback: what it opens - a dialog, its event loop - must not run there.
+    """
+    from app.plugin_api.table_operations.next_steps import is_step_url
+
+    if not is_step_url(url):
+        QDesktopServices.openUrl(QUrl(url))
+        return
+
+    def deliver() -> None:
+        import shiboken6
+
+        if isinstance(pane, HtmlResultsView) and shiboken6.isValid(pane):
+            pane.link_requested.emit(url)
+
+    QTimer.singleShot(0, deliver)
 
 
 def looks_like_html(value: str) -> bool:
@@ -175,6 +196,8 @@ class HtmlResultsView(QWidget):
     """Reusable HTML results pane with Copy-as-HTML support."""
 
     clear_requested = Signal()
+    #: A "What next?" link (app.plugin_api.table_operations.next_steps) was clicked.
+    link_requested = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Build the pane: the viewer and a small custom context menu."""
@@ -317,7 +340,8 @@ class HtmlResultsView(QWidget):
             pass
 
         browser = QTextBrowser(self)
-        browser.setOpenExternalLinks(True)
+        browser.setOpenLinks(False)  # each link through _open_link, as the web view's
+        browser.anchorClicked.connect(lambda url: _open_link(self, url.toString()))
         browser.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextBrowserInteraction
             | Qt.TextInteractionFlag.TextSelectableByMouse
