@@ -32,7 +32,6 @@ NEXT - ANALYSIS (table operations, JMP-like)
            charts' axes; value labels shown in the table preview (Column Info itself is done).
 
 NEXT - INTERFACE
-- P-01     NaN, missing data and Cast management.
 - R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series
            over a saved query that keeps "_id"; dates and categories on x; the data filter
            ("show only Selected" on every chart of a table).
