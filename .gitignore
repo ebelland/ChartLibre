@@ -67,6 +67,7 @@ user.json
 dist/
 
 .venv/
+venv/
 .venv-setup.log
 # The Python the launchers download on the first launch, and its archive.
 .python/
