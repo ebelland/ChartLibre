@@ -119,6 +119,21 @@ _AUTOMATIC_AXES: dict[str, frozenset[str]] = {
 }
 
 
+def axis_title(options: dict[str, Any], fallback: str = "") -> str:
+    """The axis' title: the one in its options - empty included, which means none - else *fallback*.
+
+    The Title field writes "title" (and "label") whenever the axis is
+    edited; emptied, it is "". Read with ``or``, that empty string fell back
+    on the title the axis was created with, so a title could not be removed.
+    *fallback* - the descriptor's own title - is for an axis never edited.
+    """
+    for key in ("title", "label"):
+        value = options.get(key)
+        if value is not None:
+            return str(value).strip()
+    return str(fallback or "").strip()
+
+
 def grid_key(axis: str, which: str) -> str:
     """Return the option key for one grid setting."""
     return f"grid_{axis}_{which}"

@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.plugin_api.charts import axis_options
 from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.logs.logger import applogger
 from app.styles.style import (
@@ -517,7 +518,7 @@ class OverlayPropertiesWidget(BaseProperties):
                 if int(axis_id) == int(self._current_axis_id):
                     title = str(axis_title or "").strip()
                     break
-        title = title or str(options.get("title") or options.get("label") or "").strip()
+        title = axis_options.axis_title(options, title)
         return title or _("Axis {id}").format(id=self._current_axis_id)
 
     # ------------------------------------------------------------------

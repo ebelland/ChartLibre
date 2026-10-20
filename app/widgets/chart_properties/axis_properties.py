@@ -1146,11 +1146,8 @@ class AxisPropertiesWidget(BaseProperties):
     ) -> str:
         """Build combo text for one axis."""
         options = self._axis_options(axis_desc)
-        title = str(
-            getattr(axis_desc, "title", None)
-            or options.get("label")
-            or f"Axis {axis_id}"
-        ).strip()
+        # The list names an untitled axis by its number: an empty row cannot be picked out.
+        title = axis_options.axis_title(options, getattr(axis_desc, "title", "") or "") or f"Axis {axis_id}"
         renderer = self._axis_renderer(axis_desc, options)
         return f"{title} [{renderer}]" if renderer else title
 
@@ -1166,14 +1163,7 @@ class AxisPropertiesWidget(BaseProperties):
         self._current_axis_id = int(axis_desc.id)
 
         with self._form_signal_blocker():
-            self._axis_label_edit.setText(
-                str(
-                    options.get("label")
-                    or options.get("title")
-                    or getattr(axis_desc, "title", "")
-                    or ""
-                ).strip()
-            )
+            self._axis_label_edit.setText(axis_options.axis_title(options, getattr(axis_desc, "title", "") or ""))
             for axis in axis_options.AXES:
                 # What the chart shows: the option when there is one, else the
                 # descriptor's own column (the auto label a new chart gets from

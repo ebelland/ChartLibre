@@ -964,9 +964,9 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
 
     # "\n" typed in a field is a new line; how the lines align is the axis' own choice.
     lines = {"multialignment": align} if (align := multialignment(options)) else {}
-    title = options.get("title") or options.get("label") or axis_desc.title
-    if isinstance(title, str) and title.strip():
-        ax.set_title(display_text(title.strip()), **lines)
+    title = axis_options.axis_title(options, axis_desc.title or "")
+    if title:
+        ax.set_title(display_text(title), **lines)
 
     xlabel = options.get("x_label", axis_desc.x_label)
     ylabel = options.get("y_label", axis_desc.y_label)
