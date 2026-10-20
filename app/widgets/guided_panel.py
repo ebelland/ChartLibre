@@ -1,4 +1,4 @@
-"""The Guided analysis panel (navigation rail): the table, its quick answers, and the wizard.
+"""The Guided analysis panel (navigation rail): the table, its quick answers, the common charts, the wizard.
 
 For someone who knows what they want to find out but not the name of the
 function that does it. Light on purpose (G-02): the table selected in the
@@ -26,6 +26,17 @@ from app.plugin_api.table_operations.table_profile import TableProfile
 from app.utils.i18n import _
 from app.widgets.catalog_search import entry_icon
 from app.widgets.nav_bar import NavPanel
+
+
+#: The common charts, by the chart type and what each shows - the bars, the scatter, the distribution...
+COMMON_CHARTS: tuple[tuple[str, str], ...] = (
+    ("Bar Chart", "Bars: a value per category"),
+    ("Scatter Plot", "Scatter: one measure against another"),
+    ("Histogram", "Distribution: how the values spread"),
+    ("Box Plot", "Box plot: groups compared"),
+    ("Time Series", "Line over time"),
+    ("Pie Chart", "Pie: shares of a whole"),
+)
 
 
 class GuidedAnalysisPanel(NavPanel):
@@ -70,6 +81,22 @@ class GuidedAnalysisPanel(NavPanel):
             button.clicked.connect(lambda _checked=False, e=entry: self.entry_requested.emit(e))
             box_layout.addWidget(button)
         self.add_frame(_("Quick answers"), box, object_name="guidedAnalysisCard")
+
+        # The everyday charts, by what they show: each opens New chart on its type.
+        by_key = {entry.key: entry for entry in self._entries}
+        charts = QWidget(self)
+        charts_layout = QVBoxLayout(charts)
+        charts_layout.setContentsMargins(0, 0, 0, 0)
+        for chart, label in COMMON_CHARTS:
+            entry = by_key.get(f"chart:{chart}")
+            if entry is None:  # a chart type removed (they are plugins)
+                continue
+            button = QPushButton(entry_icon(entry), _(label), charts)
+            button.setObjectName("quickAnswerButton")
+            button.setToolTip(_(entry.description))
+            button.clicked.connect(lambda _checked=False, e=entry: self.entry_requested.emit(e))
+            charts_layout.addWidget(button)
+        self.add_frame(_("Common charts"), charts, object_name="guidedChartsCard")
 
         choose = QWidget(self)
         choose_layout = QVBoxLayout(choose)

@@ -10510,3 +10510,24 @@ msgstr "Chi-quadro (i fattori bastano)"
 
 msgid "Optional: a column of groups - species, batch, site; the score plot colours the rows by it."
 msgstr "Facoltativa: una colonna di gruppi - specie, lotto, sito; lo score plot colora le righe secondo essa."
+
+msgid "Common charts"
+msgstr "Grafici comuni"
+
+msgid "Bars: a value per category"
+msgstr "Barre: un valore per categoria"
+
+msgid "Scatter: one measure against another"
+msgstr "Dispersione: una misura contro un'altra"
+
+msgid "Distribution: how the values spread"
+msgstr "Distribuzione: come si distribuiscono i valori"
+
+msgid "Box plot: groups compared"
+msgstr "Box plot: gruppi a confronto"
+
+msgid "Line over time"
+msgstr "Linea nel tempo"
+
+msgid "Pie: shares of a whole"
+msgstr "Torta: le parti di un intero"

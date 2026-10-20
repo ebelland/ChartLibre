@@ -40,10 +40,10 @@ def csv_file(tmp_path: Path) -> Path:
     return path
 
 
-def test_the_dialog_types_and_imports_them(qapp, tmp_db_path: Path, csv_file: Path) -> None:
+def test_the_dialog_types_and_imports_them(qapp, tmp_path: Path, csv_file: Path) -> None:
     from app.dialogs.import_data_dialog import ImportDataDialog
 
-    repo = SqliteRepo(db_path=tmp_db_path)
+    repo = SqliteRepo(db_path=tmp_path / "values.dhub")
     dialog = ImportDataDialog(repo)
     try:
         dialog.load_file(csv_file)

@@ -156,3 +156,15 @@ def test_create_chart_makes_the_figure_and_an_analysis_opens_cast(qapp, tmp_path
     finally:
         window.close()
         repo.close()
+
+
+def test_the_panel_offers_the_common_charts(qapp) -> None:
+    from app.widgets.guided_panel import COMMON_CHARTS, GuidedAnalysisPanel
+
+    panel = GuidedAnalysisPanel()
+    opened: list = []
+    panel.entry_requested.connect(opened.append)
+    buttons = {button.text(): button for button in panel.findChildren(type(panel.help_button))}
+    for chart, label in COMMON_CHARTS:
+        buttons[label].click()
+    assert [entry.key for entry in opened] == [f"chart:{chart}" for chart, _label in COMMON_CHARTS]
