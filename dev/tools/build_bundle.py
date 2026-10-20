@@ -61,11 +61,20 @@ ALL_LAUNCHERS = {name for names in LAUNCHERS.values() for name in names}
 #: The one file under dev/ the application uses: the Linux menu icon.
 KEEP_FROM_DEV = ("dev/tools/launcher/chartlibre.png",)
 
+#: The one file under docs/ the application uses: the manual Help opens. The
+#: manual's sources (.typ), its pictures and the README's images stay in the
+#: repository only.
+KEEP_FROM_DOCS = ("docs/manual/user_manual.pdf",)
+
 #: Tracked files that are notes for whoever develops ChartLibre, not for users.
-LEAVE_OUT = ("todo.txt", ".gitignore")
+LEAVE_OUT = ("todo.txt", ".gitignore", "bugs.pptx")
 
 #: Tracked folders that are the repository's, not the application's.
 LEAVE_OUT_FOLDERS = (".github",)
+
+#: Needed to build the package, not to run it: removed once install.py has
+#: installed the libraries (the credits then list no libraries - they say so).
+REMOVE_AFTER_INSTALL = ("requirements.txt",)
 
 
 def platform_key() -> str:
@@ -89,6 +98,8 @@ def wanted_file(path: str, system: str) -> bool:
         return False
     if top == "dev":
         return path in KEEP_FROM_DEV
+    if top == "docs":
+        return path in KEEP_FROM_DOCS
     if top in ALL_LAUNCHERS:
         return top in LAUNCHERS[system]
     return True
@@ -362,6 +373,8 @@ def main() -> int:
                    check=True)
     if not (folder / ".python" / "CHARTLIBRE_READY").exists():
         raise SystemExit("install.py finished without marking the Python ready.")
+    for name in REMOVE_AFTER_INSTALL:
+        (folder / name).unlink(missing_ok=True)
     slim(folder / ".python", key)
     smoke_test(python, folder)
     web_check(python)

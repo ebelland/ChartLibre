@@ -298,6 +298,10 @@ def test_a_package_holds_the_application_and_only_its_own_system_launchers() -> 
         assert not wanted("dev/tests/test_installer.py", system) and not wanted("todo.txt", system)
         assert not wanted(".github/workflows/bundles.yml", system) and not wanted(".gitignore", system)
         assert wanted("dev/tools/launcher/chartlibre.png", system)
+        # Notes and the manual's sources stay in the repository; the manual itself ships.
+        assert not wanted("bugs.pptx", system) and not wanted("docs/manual/user_manual.typ", system)
+        assert not wanted("docs/manual/sections/intro.typ", system) and not wanted("docs/images/gallery_penguins.png", system)
+        assert wanted("docs/manual/user_manual.pdf", system)
     assert wanted("ChartLibre.app/Contents/MacOS/ChartLibre", "macos")
     assert not wanted("ChartLibre.app/Contents/MacOS/ChartLibre", "windows")
     assert wanted("ChartLibre.exe", "windows") and wanted("ChartLibre.bat", "windows")
