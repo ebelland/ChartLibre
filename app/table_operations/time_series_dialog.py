@@ -18,7 +18,7 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import time_series as tsa
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam, TextParam
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -85,6 +85,17 @@ class TimeSeriesDialog(TableOperationDialogBase):
                  default_value=0, minimum=0, maximum=400),
         IntParam("horizon", "Forecast periods:", tooltip="How many times ahead to forecast.",
                  default_value=12, minimum=1, maximum=1000),
+        BoolParam("input_in_model", "X, input in the model (transfer function)",
+                  tooltip="ARIMA only: the input enters the model at the lag where its prewhitened "
+                          "cross-correlation is strongest; its coefficient says how much Y moves per unit of X. "
+                          "Ahead of that lag the forecast uses X's own forecast.",
+                  default_value=False),
+        TextParam("intervention", "Intervention at:", placeholder="2020-03-01",
+                  tooltip="ARIMA only: a date (or a number of the time column) when something changed - a new "
+                          "process, a policy, a fault. Its estimate is the change it made."),
+        ChoiceParam("intervention_kind", "Intervention:", choices=(("Step (lasting)", "step"),
+                                                                   ("Pulse (one time)", "pulse")),
+                    tooltip="A step lasts from then on; a pulse affects that one time only."),
         IntParam("lags", "Lags:", tooltip="How far back the autocorrelations look.",
                  default_value=25, minimum=1, maximum=500),
     )
@@ -113,6 +124,9 @@ class TimeSeriesDialog(TableOperationDialogBase):
             order=(int(params.get("p", 1)), int(params.get("d", 0)), int(params.get("q", 0))),
             seasonal_order=(int(params.get("P", 0)), int(params.get("D", 0)), int(params.get("Q", 0))),
             input=given[0] if given else "",
+            input_in_model=bool(params.get("input_in_model", False)),
+            intervention=str(params.get("intervention") or ""),
+            intervention_kind=str(params.get("intervention_kind") or "step"),
             season=-1 if season == 0 else (0 if season == 1 else season),
             horizon=int(params.get("horizon", 12)), lags=int(params.get("lags", 25)),
         )
@@ -137,9 +151,10 @@ class TimeSeriesDialog(TableOperationDialogBase):
             blocks.append(report_html.section(_("Stationarity tests"),
                                               self.report_table(result.stationarity, p_columns=("Prob",), digits=4)))
         if not result.cross.empty:
-            strongest = result.cross.reindex(result.cross["CCF"].abs().sort_values(ascending=False).index).head(8)
+            order = result.cross["Prewhitened CCF"].abs().sort_values(ascending=False).index
+            strongest = result.cross.reindex(order).head(8)
             blocks.append(report_html.section(_("Cross-correlation with {input}, strongest lags").format(
-                input=result.input), self.report_table(strongest[["Lag", "CCF"]], digits=4)))
+                input=result.input), self.report_table(strongest[["Lag", "Prewhitened CCF", "CCF"]], digits=4)))
         shown = result.correlations[["Lag", "ACF", "PACF", "Ljung-Box Q", "Prob>Q"]].head(12)
         blocks.append(report_html.section(_("Autocorrelation, first 12 lags"),
                                           self.report_table(shown, p_columns=("Prob>Q",), digits=4)))
@@ -192,9 +207,13 @@ class TimeSeriesDialog(TableOperationDialogBase):
             sql, roles = self.series_select(tables["time_series_acf"], {"x": "Lag", "y": column})
             panels.append(("Stem Plot", title, _("Lag"), column, [(column, sql, roles, {})], lines))
         if "time_series_ccf" in tables:
-            sql, roles = self.series_select(tables["time_series_ccf"], {"x": "Lag", "y": "CCF"})
-            panels.append(("Stem Plot", _("Cross-correlation with {input}").format(input=result.input), _("Lag"),
-                           "CCF", [("CCF", sql, roles, {})], lines))
+            sql, roles = self.series_select(tables["time_series_ccf"], {"x": "Lag", "y": "Prewhitened CCF"})
+            white = float(result.cross["Prewhitened band"].iloc[0])
+            white_lines = {"lines": [{"orientation": "horizontal", "value": value,
+                                      "kwargs": {"color": "0.5", "linestyle": "--", "linewidth": 0.8}}
+                                     for value in (white, -white, 0.0)]}
+            panels.append(("Stem Plot", _("Cross-correlation with {input}, prewhitened").format(input=result.input),
+                           _("Lag"), "CCF", [(_("Prewhitened CCF"), sql, roles, {})], white_lines))
         if "Trend" in result.rows:
             # Without the trend, whose scale would flatten them: it is on the first chart.
             parts = []

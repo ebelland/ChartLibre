@@ -10474,3 +10474,33 @@ msgstr "Il formato delle date, con i codici strftime: %d giorno, %m mese, %Y ann
 
 msgid "Values that mean \"no value\", separated by commas: they are imported as empty cells."
 msgstr "Valori che significano \"nessun valore\", separati da virgole: vengono importati come celle vuote."
+
+msgid "X, input in the model (transfer function)"
+msgstr "X, input nel modello (funzione di trasferimento)"
+
+msgid "ARIMA only: the input enters the model at the lag where its prewhitened cross-correlation is strongest; its coefficient says how much Y moves per unit of X. Ahead of that lag the forecast uses X's own forecast."
+msgstr "Solo ARIMA: l'input entra nel modello al ritardo dove la sua cross-correlazione prewhitened è più forte; il suo coefficiente dice di quanto si muove Y per unità di X. Oltre quel ritardo la previsione usa la previsione di X stesso."
+
+msgid "Intervention at:"
+msgstr "Intervento a:"
+
+msgid "ARIMA only: a date (or a number of the time column) when something changed - a new process, a policy, a fault. Its estimate is the change it made."
+msgstr "Solo ARIMA: una data (o un numero della colonna del tempo) in cui qualcosa è cambiato - un nuovo processo, una regola, un guasto. La sua stima è il cambiamento prodotto."
+
+msgid "Intervention:"
+msgstr "Intervento:"
+
+msgid "Step (lasting)"
+msgstr "Gradino (duraturo)"
+
+msgid "Pulse (one time)"
+msgstr "Impulso (una volta)"
+
+msgid "A step lasts from then on; a pulse affects that one time only."
+msgstr "Un gradino dura da quel momento in poi; un impulso riguarda solo quell'istante."
+
+msgid "Cross-correlation with {input}, prewhitened"
+msgstr "Cross-correlazione con {input}, prewhitened"
+
+msgid "Prewhitened CCF"
+msgstr "CCF prewhitened"

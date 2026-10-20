@@ -161,8 +161,37 @@ def test_ok_with_an_input_draws_the_cross_correlation(qapp, tmp_path) -> None:
         assert len(repo.table_frame("_plant_time_series_ccf")) > 10
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert any(axis.title.startswith("Cross-correlation") for axis in figure.axes)
+        assert "Prewhitened CCF" in repo.table_frame("_plant_time_series_ccf").columns
         dialog.roles_widget.set_casting({"response": ["y"], "time": ["month"], "input": ["y"]})
         assert dialog.problems()
     finally:
         dialog.close()
         repo.close()
+
+
+def test_a_transfer_function_and_an_intervention_are_estimated() -> None:
+    rng = np.random.default_rng(3)
+    n = 200
+    x = np.cumsum(rng.normal(size=n))  # an input that wanders
+    y = np.zeros(n)
+    y[3:] = 2 * x[:-3]  # y answers x three steps later, twice as much
+    y += rng.normal(0, 0.5, n)
+    y[np.arange(n) >= 150] += 8  # and steps up by 8 at t = 150
+    frame = pd.DataFrame({"t": np.arange(n), "y": y, "x": x})
+    result = ts.analyse(frame, "y", "t", model=ts.AUTO, input="x", input_in_model=True, intervention="150",
+                        horizon=10)
+    terms = result.parameters.set_index("Term")["Estimate"]
+    assert terms["x (lag 3)"] == pytest.approx(2.0, abs=0.1)
+    assert terms["Intervention (step)"] == pytest.approx(8.0, abs=0.8)
+    assert len(result.forecast) == 10 and result.forecast["Forecast"].notna().all()
+    assert np.isnan(result.rows["Fitted"].iloc[:3]).all()  # the lead's first rows have no input yet
+    with pytest.raises(ValueError, match="time span"):
+        ts.analyse(frame, "y", "t", model=ts.ARIMA, intervention="999")
+
+
+def test_prewhitening_removes_a_spurious_correlation() -> None:
+    rng = np.random.default_rng(7)
+    first, second = np.cumsum(rng.normal(size=400)), np.cumsum(rng.normal(size=400))  # unrelated walks
+    result = ts.analyse(pd.DataFrame({"a": first, "b": second}), "a", model=ts.NONE, input="b")
+    assert result.cross["CCF"].abs().max() > 0.3  # two walks look related...
+    assert result.cross["Prewhitened CCF"].abs().max() < 0.2  # ...until each is whitened

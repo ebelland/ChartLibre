@@ -120,8 +120,9 @@ def _arima_label(order: tuple[int, int, int], seasonal: tuple[int, int, int], se
     return label
 
 
-def search_arima(y: np.ndarray, d: int, season: int, seasonal_d: int) -> pd.DataFrame:
-    """Every ARIMA(p, d, q)(P, D, Q) with p, q up to AUTO_MAX_ORDER and P, Q up to 1, by AIC."""
+def search_arima(y: np.ndarray, d: int, season: int, seasonal_d: int,
+                 exog: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Every ARIMA(p, d, q)(P, D, Q) with p, q up to AUTO_MAX_ORDER and P, Q up to 1, by AIC (with *exog*)."""
     from statsmodels.tsa.arima.model import ARIMA as ArimaModel
 
     seasonals = [(0, seasonal_d, 0)]
@@ -134,7 +135,7 @@ def search_arima(y: np.ndarray, d: int, season: int, seasonal_d: int) -> pd.Data
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     try:
-                        fitted = ArimaModel(y, order=(p, d, q), seasonal_order=(*seasonal, season)
+                        fitted = ArimaModel(y, exog=exog, order=(p, d, q), seasonal_order=(*seasonal, season)
                                             if season >= 2 else (0, 0, 0, 0)).fit()
                     except Exception:  # noqa: BLE001 - statsmodels' own failures: a model left out of the search
                         continue
@@ -144,6 +145,29 @@ def search_arima(y: np.ndarray, d: int, season: int, seasonal_d: int) -> pd.Data
     if not rows:
         raise ValueError("No ARIMA model could be fitted to these values.")
     return pd.DataFrame(rows).sort_values("AIC", kind="stable").reset_index(drop=True)
+
+
+def prewhiten(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray, int]:
+    """X and Y filtered by X's own autoregression (its order by AIC, up to 10): (x, y, order).
+
+    What is left of X is noise; a correlation of Y with it is Y answering X,
+    not two series that each wander (Box and Jenkins' prewhitening).
+    """
+    from statsmodels.tsa.ar_model import AutoReg, ar_select_order
+
+    xc, yc = x - x.mean(), y - y.mean()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        chosen = ar_select_order(xc, maxlag=max(1, min(10, x.size // 5)), ic="aic", trend="n").ar_lags
+        order = int(max(chosen)) if chosen else 0
+        if order == 0:
+            return xc, yc, 0
+        phi = np.asarray(AutoReg(xc, lags=order, trend="n").fit().params, float)
+
+    def filtered(z: np.ndarray) -> np.ndarray:
+        return z[order:] - sum(phi[i] * z[order - 1 - i: z.size - 1 - i] for i in range(order))
+
+    return filtered(xc), filtered(yc), order
 
 
 def cross_correlation(y: np.ndarray, x: np.ndarray, lags: int) -> pd.DataFrame:
@@ -215,13 +239,87 @@ def _future(times: pd.Series, temporal: bool, steps: int) -> pd.Series:
     return pd.Series(numbers[-1] + step * np.arange(1, steps + 1))
 
 
+def _forecast_input(x: np.ndarray, steps: int) -> tuple[np.ndarray, str]:
+    """*steps* values of the input ahead, by its own ARIMA chosen by AIC (no season): (values, label)."""
+    from statsmodels.tsa.arima.model import ARIMA as ArimaModel
+
+    _tests, d = stationarity(x)
+    best = search_arima(x, d, 0, 0).iloc[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        values = ArimaModel(x, order=best["order"]).fit().get_forecast(steps).predicted_mean
+    return np.asarray(values, float), str(best["Model"])
+
+
+def _exogenous(data: pd.DataFrame, times: pd.Series, temporal: bool, input: str, lead: int, intervention: str,
+               kind: str, notes: list[str]) -> tuple[pd.DataFrame | None, Any, int]:
+    """The ARIMA's regressors - the input at its lead, an intervention's step or pulse - their values
+    ahead (a function of the horizon), and how many first rows the lead leaves without one."""
+    columns: dict[str, np.ndarray] = {}
+    future: dict[str, Any] = {}
+    skip = 0
+    n = len(data)
+    if input:
+        x = data[input].to_numpy(float)
+        name = f"{input} (lag {lead})"
+        columns[name] = np.concatenate([np.full(lead, np.nan), x[: n - lead]]) if lead else x
+        skip = lead
+
+        def ahead(steps: int, x: np.ndarray = x, lead: int = lead) -> np.ndarray:
+            known = x[n - lead: n][:steps] if lead else np.empty(0)
+            if steps <= known.size:
+                return known
+            more, label = _forecast_input(x, steps - known.size)
+            notes.append(f"Beyond {known.size} step(s) ahead the forecast uses {input}'s own forecast "
+                         f"({label}): its prediction interval does not include that forecast's uncertainty.")
+            return np.concatenate([known, more])
+
+        future[name] = ahead
+        notes.append(f"Transfer function: {input} enters the model {lead} step(s) earlier, the lag where "
+                     "its prewhitened cross-correlation is strongest.")
+    if intervention.strip():
+        if temporal:
+            when = pd.to_datetime(intervention.strip(), errors="coerce", dayfirst=True)
+            moments = pd.DatetimeIndex(times)
+        else:
+            when = pd.to_numeric(pd.Series([intervention.strip()]), errors="coerce").iloc[0]
+            moments = pd.Index(times.to_numpy(float))
+        if pd.isna(when):
+            raise ValueError(f"The intervention '{intervention}' is not a {'date' if temporal else 'number'} "
+                             "of the time column.")
+        after = np.asarray(moments >= when, dtype=float)
+        if not after.any() or after.all():
+            raise ValueError(f"The intervention '{intervention}' is not inside the series' time span.")
+        if kind == "pulse":
+            dummy = np.zeros(n)
+            dummy[int(np.argmax(after))] = 1.0
+            future["Intervention (pulse)"] = lambda steps: np.zeros(steps)
+            columns["Intervention (pulse)"] = dummy
+        else:
+            future["Intervention (step)"] = lambda steps: np.ones(steps)
+            columns["Intervention (step)"] = after
+        notes.append(f"Intervention at {intervention}: its estimate is the change the series took then "
+                     f"({'a lasting step' if kind != 'pulse' else 'a one-time pulse'}).")
+    if not columns:
+        return None, None, 0
+    exog = pd.DataFrame(columns)
+
+    def future_values(steps: int) -> pd.DataFrame:
+        return pd.DataFrame({name: make(steps) for name, make in future.items()})
+
+    return exog, future_values, skip
+
+
 def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: str = ARIMA,
             order: tuple[int, int, int] = (1, 0, 0), seasonal_order: tuple[int, int, int] = (0, 0, 0),
-            season: int = -1, horizon: int = 12, lags: int = 25, input: str = "") -> TimeSeriesResult:
+            season: int = -1, horizon: int = 12, lags: int = 25, input: str = "", input_in_model: bool = False,
+            intervention: str = "", intervention_kind: str = "step") -> TimeSeriesResult:
     """*measure* in the order of *time*: autocorrelations, its decomposition and a forecast.
 
     *season* -1 finds it from the dates (none for numbers), 0 means none. *seasonal_order* (P, D, Q)
-    applies with a season. *input*, another column, gives the cross-correlation with the measure.
+    applies with a season. *input*, another column, gives the cross-correlation with the measure and,
+    *input_in_model*, enters an ARIMA at the lag its prewhitened cross-correlation peaks (a transfer
+    function). *intervention*, a time, adds a step (or pulse) from then on to an ARIMA.
     """
     from statsmodels.stats.diagnostic import acorr_ljungbox
     from statsmodels.tsa.stattools import acf, pacf
@@ -277,13 +375,25 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
     tests, differences = stationarity(y)
     summary["Differences suggested (ADF, KPSS)"] = differences
     cross = pd.DataFrame()
+    lead = 0
     if input:
-        cross = cross_correlation(y, data[input].to_numpy(float), lags)
-        strongest = cross.loc[cross["CCF"].abs().idxmax()]
+        x_values = data[input].to_numpy(float)
+        cross = cross_correlation(y, x_values, lags)
+        white_x, white_y, ar_order = prewhiten(x_values, y)
+        cross["Prewhitened CCF"] = cross_correlation(white_y, white_x, lags)["CCF"].to_numpy()
+        cross["Prewhitened band"] = 2.0 / np.sqrt(white_y.size)
+        strongest = cross.loc[cross["Prewhitened CCF"].abs().idxmax()]
         summary[f"Strongest cross-correlation with {input}"] = (
-            f"{strongest['CCF']:.3f} at lag {int(strongest['Lag'])}")
-        notes.append(f"Lag k > 0: {measure} follows {input} by k steps; k < 0: it leads. Each series' own "
-                     "autocorrelation can make the bars outside the band look stronger than they are.")
+            f"{strongest['Prewhitened CCF']:.3f} at lag {int(strongest['Lag'])} (prewhitened)")
+        ahead = cross[cross["Lag"] >= 0]
+        lead = int(ahead.loc[ahead["Prewhitened CCF"].abs().idxmax(), "Lag"])
+        notes.append(f"Lag k > 0: {measure} follows {input} by k steps; k < 0: it leads. Prewhitened: both "
+                     f"filtered by {input}'s own AR({ar_order}), so that two series which merely wander do "
+                     "not look related.")
+    exog, exog_future_parts, skip = _exogenous(data, times, temporal, input if input_in_model else "", lead,
+                                               intervention, intervention_kind, notes)
+    y_fit = y[skip:]
+    exog_fit = exog.iloc[skip:].reset_index(drop=True) if exog is not None else None
     candidates = pd.DataFrame()
     seasonal = tuple(int(v) for v in seasonal_order) if season >= 2 else (0, 0, 0)
     if model == AUTO:
@@ -295,7 +405,7 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         # The season's differencing first: what is left is tested again for the ordinary one.
         rest = y[season:] - y[:-season] if seasonal_d else y
         _tests, d = stationarity(rest)
-        candidates = search_arima(y, d, season, seasonal_d)
+        candidates = search_arima(y_fit, d, season, seasonal_d, exog_fit)
         best = candidates.iloc[0]
         order, seasonal = best["order"], best["seasonal"]
         notes.append(f"{best['Model']}: the lowest AIC of {len(candidates)} models, with d = {d} from the "
@@ -311,12 +421,13 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
             if model in (ARIMA, AUTO):
                 from statsmodels.tsa.arima.model import ARIMA as ArimaModel
 
-                fitted = ArimaModel(y, order=tuple(int(v) for v in order),
+                fitted = ArimaModel(y_fit, exog=exog_fit, order=tuple(int(v) for v in order),
                                     seasonal_order=(*seasonal, season) if season >= 2 and any(seasonal)
                                     else (0, 0, 0, 0)).fit()
-                prediction = fitted.get_forecast(horizon).summary_frame(alpha=alpha)
+                future_exog = exog_future_parts(horizon) if exog is not None else None
+                prediction = fitted.get_forecast(horizon, exog=future_exog).summary_frame(alpha=alpha)
                 mean, low, high = prediction["mean"], prediction["mean_ci_lower"], prediction["mean_ci_upper"]
-                fitted_values = fitted.fittedvalues
+                fitted_values = np.concatenate([np.full(skip, np.nan), np.asarray(fitted.fittedvalues, float)])
                 names = list(fitted.param_names)
                 standard_errors, p_values = fitted.bse, fitted.pvalues
                 label = _arima_label(tuple(order), seasonal, season)
@@ -336,7 +447,7 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
                 raise ValueError(f"'{model}' is not one of {', '.join(key for key, _label in MODELS)}")
         residuals = y - np.asarray(fitted_values, dtype=float)
         # ARIMA's first fitted values only start the differencing (the first season's, too): left empty.
-        start = (max(order[1], 1) + (season * seasonal[1] if season >= 2 else 0)) if model in (ARIMA, AUTO) else 0
+        start = (skip + max(order[1], 1) + (season * seasonal[1] if season >= 2 else 0)) if model in (ARIMA, AUTO) else 0
         shown_fitted, shown_residuals = np.asarray(fitted_values, dtype=float).copy(), residuals.copy()
         shown_fitted[:start], shown_residuals[:start] = np.nan, np.nan
         rows["Fitted"], rows["Residual"] = shown_fitted, shown_residuals
