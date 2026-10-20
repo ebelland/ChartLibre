@@ -1077,3 +1077,30 @@ QToolButton#cardDisclosure:pressed {
     background: transparent;
     padding: 0px;
 }
+
+/* Check boxes inside lists, trees and tables (the property editor's bool
+   rows): drawn as QCheckBox's own - with a style sheet on the view, the
+   native indicator came out as a black square whatever its state. */
+QAbstractItemView::indicator {
+  width: 14px;
+  height: 14px;
+}
+
+QAbstractItemView::indicator:unchecked {
+  background: palette(base);
+  border: 1px solid palette(mid);
+  border-radius: 4px;
+}
+
+QAbstractItemView::indicator:checked {
+  background: palette(highlight);
+  border: 1px solid palette(highlight);
+  border-radius: 4px;
+  image: url(@ICON:checkbox_tick@);
+}
+
+QAbstractItemView::indicator:indeterminate {
+  background: palette(highlight);
+  border: 1px solid palette(highlight);
+  border-radius: 4px;
+}
