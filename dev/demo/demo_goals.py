@@ -15,6 +15,11 @@ columns allow first, then the analyses that answer the questions.
   Partition and a logistic Fit Model.
 * Signal - the Keeling curve's season and trend, forecast five years by an
   ARIMA chosen by AIC; the sunspots' eleven-year cycle in their ACF.
+* Anomalies - the card transactions that stand apart: their amounts'
+  distribution, Explore Outliers on amount against distance from home, and
+  whether distance tells fraud (Fit Y by X).
+* Process - four gauges measuring one standard: Control Chart with the
+  specification's capability for machines A and D, and Are there differences?
 * Groups - the penguins clustered on their measures without their species,
   Principal Components coloured by species, Factor Analysis.
 
@@ -32,14 +37,16 @@ from typing import Any
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from dev.demo.demo_operations import OperationDemo, _create_source_figure, _run_operation, _store_report
 from dev.demo.demo_questions import _ask
 
 PENGUIN_MEASURES = ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"]
 TRANSACTION_FACTORS = ["transaction_amount", "transaction_frequency_7d", "account_age_days", "distance_from_home_km",
                        "time_since_last_transaction_hours", "failed_login_attempts_24h", "channel", "country"]
 
-#: A step: ("chart", table, columns picked in Help me choose, which of its charts)
-#: or ("ask", "module:Dialog", table, role -> columns).
+#: A step: ("chart", table, columns picked in Help me choose, which of its charts),
+#: ("ask", "module:Dialog", table, role -> columns[, parameters[, column types]]) for a table
+#: analysis, or ("operate", OperationDemo) for a data operation run on a chart of its own.
 Step = tuple[Any, ...]
 
 GOAL_DEMOS: dict[str, tuple[Step, ...]] = {
@@ -87,6 +94,38 @@ GOAL_DEMOS: dict[str, tuple[Step, ...]] = {
         ("ask", "app.table_operations.time_series_dialog:TimeSeriesDialog", "sunspots_monthly",
          {"response": ["sunspot_number"], "time": ["date"]}, {"model": "none", "season": 1, "lags": 300}),
     ),
+    "build_anomalies_demo": (
+        ("chart", "transactions", ["transaction_amount"], 0),
+        ("ask", "app.table_operations.distribution_dialog:DistributionDialog", "transactions",
+         {"response": ["transaction_amount"]}),
+        ("operate", OperationDemo(
+            "Explore Outliers - the transactions that stand apart", "Amount against distance from home",
+            "transactions",
+            "SELECT distance_from_home_km AS x, transaction_amount AS y FROM transactions ORDER BY x",
+            {"x": "x", "y": "y"}, "distance from home (km)", "amount", "outlier_dialog:SeriesOutlierDialog",
+            style={"marker": "o", "markersize": 3, "linestyle": ""},
+            # Coloured, not hidden: the next question is whether they are the frauds.
+            setup=lambda dialog: dialog._parameter_form_spec.set_values({"action": "colour"}))),
+        ("ask", "app.table_operations.fit_y_by_x_dialog:FitYByXDialog", "transactions",
+         {"response": ["fraud"], "factor": ["distance_from_home_km"]}, None, {"fraud": "nominal"}),
+    ),
+    "build_process_demo": (
+        ("chart", "machine_measurements", ["value", "machine"], 0),
+        ("operate", OperationDemo(
+            "Control Chart - machine A against its specification", "Machine A, run by run",
+            "machine_measurements",
+            "SELECT run AS x, value AS y FROM machine_measurements WHERE machine = 'Machine A' ORDER BY run",
+            {"x": "x", "y": "y"}, "run", "reading (mm)", "control_chart_dialog:SeriesControlChartDialog",
+            style={"marker": "o", "markersize": 4, "linewidth": 0.8}, setup=lambda dialog: _spec(dialog))),
+        ("operate", OperationDemo(
+            "Control Chart - machine D, the one that wanders", "Machine D, run by run",
+            "machine_measurements",
+            "SELECT run AS x, value AS y FROM machine_measurements WHERE machine = 'Machine D' ORDER BY run",
+            {"x": "x", "y": "y"}, "run", "reading (mm)", "control_chart_dialog:SeriesControlChartDialog",
+            style={"marker": "o", "markersize": 4, "linewidth": 0.8}, setup=lambda dialog: _spec(dialog))),
+        ("ask", "app.table_operations.differences_dialog:DifferencesDialog", "machine_measurements",
+         {"response": ["value"], "group": ["machine"]}),
+    ),
     "build_groups_demo": (
         ("chart", "penguins", ["bill_length_mm", "bill_depth_mm"], 0),
         ("ask", "app.table_operations.clustering_dialog:ClusteringDialog", "penguins",
@@ -97,6 +136,15 @@ GOAL_DEMOS: dict[str, tuple[Step, ...]] = {
          {"response": PENGUIN_MEASURES}, {"factors": 2}),
     ),
 }
+
+
+#: The gauge standard is 25 mm; the specification allows 0.02 mm either way.
+SPEC_LIMITS = {"lsl": "24.98", "usl": "25.02"}
+
+
+def _spec(dialog: Any) -> None:
+    """The specification limits, so the report gives the capability (Cp, Cpk...)."""
+    dialog._parameter_form_spec.set_values(SPEC_LIMITS)
 
 
 def _demo(builder: str) -> DemoProject:
@@ -120,7 +168,14 @@ def _build(builder: str, directory: Path) -> Path:
     import app.utils.config as config
     from dev.demo.build_demos import TABLE_SOURCES
 
+    from PySide6.QtWidgets import QMessageBox
+
     app = QApplication.instance() or QApplication([])
+    # No one is there to click: a message box is logged instead of waited on.
+    real_exec = QMessageBox.exec
+    QMessageBox.exec = lambda box, *a, **k: (  # type: ignore[method-assign]
+        applogger.warning("Demo: message not shown: %s", box.text()) or QMessageBox.StandardButton.Yes
+    )
     real_user_config = config.USER_CONFIG_PATH
     config.USER_CONFIG_PATH = Path(tempfile.mkdtemp(prefix="dhub-demo-")) / "user.json"
     steps = GOAL_DEMOS[builder]
@@ -130,11 +185,16 @@ def _build(builder: str, directory: Path) -> Path:
         for suffix in ("", "-wal", "-shm", ".undo.db"):
             Path(f"{path}{suffix}").unlink(missing_ok=True)
         repo = SqliteRepo(db_path=path)
-        for table in dict.fromkeys(step[1] if step[0] == "chart" else step[2] for step in steps):
+        tables = [step[1] if step[0] == "chart" else step[1].table if step[0] == "operate" else step[2]
+                  for step in steps]
+        for table in dict.fromkeys(tables):
             repo.import_dataframe(TABLE_SOURCES[table](), table_name=table, normalize_columns=False)
         for step in steps:
             if step[0] == "chart":
                 _chart(repo, *step[1:])
+            elif step[0] == "operate":
+                figure_id = _create_source_figure(repo, step[1])
+                _store_report(repo, figure_id, _run_operation(repo, figure_id, step[1]))
             else:
                 _ask(app, repo, *step[1:])
         repo.close()
@@ -142,6 +202,7 @@ def _build(builder: str, directory: Path) -> Path:
         return path
     finally:
         config.USER_CONFIG_PATH = real_user_config
+        QMessageBox.exec = real_exec  # type: ignore[method-assign]
         del app
 
 
@@ -163,6 +224,14 @@ def build_predict_demo(directory: Path = DEMO_DIR) -> Path:
 
 def build_signal_demo(directory: Path = DEMO_DIR) -> Path:
     return _build("build_signal_demo", directory)
+
+
+def build_anomalies_demo(directory: Path = DEMO_DIR) -> Path:
+    return _build("build_anomalies_demo", directory)
+
+
+def build_process_demo(directory: Path = DEMO_DIR) -> Path:
+    return _build("build_process_demo", directory)
 
 
 def build_groups_demo(directory: Path = DEMO_DIR) -> Path:

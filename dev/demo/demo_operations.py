@@ -228,6 +228,26 @@ def _create_source_figure(repo: SqliteRepo, demo: OperationDemo) -> int:
     return figure_id
 
 
+def _wait_for_background(dialog: Any, timeout: float = 180.0) -> None:
+    """Let a calculation OK started on a worker thread finish - and publish its report.
+
+    Closed at once, the window cancelled it: nine of the fifteen figures of
+    the operations demo were saved without their report.
+    """
+    import time
+
+    from PySide6.QtWidgets import QApplication
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        task = getattr(dialog, "_evaluation_task", None)
+        if task is None or not task.running:
+            break
+        QApplication.processEvents()
+        time.sleep(0.01)
+    QApplication.processEvents()
+
+
 def _run_operation(repo: SqliteRepo, figure_id: int, demo: OperationDemo) -> str:
     """Drive the operation's dialog to Apply, and return the report it published."""
     reports: list[str] = []
@@ -243,6 +263,7 @@ def _run_operation(repo: SqliteRepo, figure_id: int, demo: OperationDemo) -> str
         # OK, not Apply: it is what keeps the change and publishes the report
         # for every operation, including the ones whose Apply only previews.
         dialog.ok()
+        _wait_for_background(dialog)
     finally:
         dialog.close()
     return "<hr>".join(reports)

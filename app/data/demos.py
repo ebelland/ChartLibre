@@ -226,6 +226,29 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Guided Analysis",
     ),
     DemoProject(
+        "Anomalies - the card transactions that stand apart",
+        "Start from a goal: which rows do not belong? The transactions' amounts and their "
+        "distribution, Explore Outliers on the amount against the distance from home - "
+        "several methods, the outliers marked - and whether that distance tells the frauds "
+        "(Fit Y by X).",
+        (),
+        builder="dev.demo.demo_goals:build_anomalies_demo",
+        preview="Explore Outliers",
+        category="Guided Analysis",
+    ),
+    DemoProject(
+        "Process - four gauges measuring the same standard",
+        "Start from a goal: is the process stable and within its specification? The four "
+        "machines' readings of one 25 mm standard, a Control Chart of machine A and of machine "
+        "D with the capability against 24.98-25.02 mm - A is capable (Cpk 1.8), D is not "
+        "(Cpk 0.5, 13% of its readings out of specification) - and Are there differences? "
+        "between the machines.",
+        (),
+        builder="dev.demo.demo_goals:build_process_demo",
+        preview="machine D",
+        category="Guided Analysis",
+    ),
+    DemoProject(
         "Groups - the penguins found again without their species",
         "Start from a goal: are there groups among the rows? Cluster Analysis on the penguins' "
         "four measures alone: the silhouette picks two clusters - the Gentoo, and the Adelie "

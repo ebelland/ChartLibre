@@ -10531,3 +10531,15 @@ msgstr "Linea nel tempo"
 
 msgid "Pie: shares of a whole"
 msgstr "Torta: le parti di un intero"
+
+msgid "Anomalies - the card transactions that stand apart"
+msgstr "Anomalie - le transazioni con carta che si distinguono"
+
+msgid "Start from a goal: which rows do not belong? The transactions' amounts and their distribution, Explore Outliers on the amount against the distance from home - several methods, the outliers marked - and whether that distance tells the frauds (Fit Y by X)."
+msgstr "Si parte da un obiettivo: quali righe non c'entrano? Gli importi delle transazioni e la loro distribuzione, Explore Outliers sull'importo contro la distanza da casa - più metodi, gli outlier segnati - e se quella distanza riconosce le frodi (Fit Y by X)."
+
+msgid "Process - four gauges measuring the same standard"
+msgstr "Processo - quattro strumenti che misurano lo stesso campione"
+
+msgid "Start from a goal: is the process stable and within its specification? The four machines' readings of one 25 mm standard, a Control Chart of machine A and of machine D with the capability against 24.98-25.02 mm - A is capable (Cpk 1.8), D is not (Cpk 0.5, 13% of its readings out of specification) - and Are there differences? between the machines."
+msgstr "Si parte da un obiettivo: il processo è stabile ed entro la specifica? Le letture delle quattro macchine di un campione da 25 mm, una Control Chart della macchina A e della macchina D con la capability rispetto a 24,98-25,02 mm - A è capace (Cpk 1,8), D no (Cpk 0,5, il 13% delle letture fuori specifica) - e Ci sono differenze? tra le macchine."
