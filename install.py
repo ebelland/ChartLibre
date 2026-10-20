@@ -8,7 +8,7 @@
 The launchers - ChartLibre.app, ChartLibre.exe/.bat, ChartLibre.sh - run
 this file on the first launch with the Python they download into .python
 (dev/tools/make_launcher.py), so nobody has to install one. Run by hand, it
-needs Python 3.11 or newer and an internet connection, and it uses nothing
+needs Python 3.14 or newer and an internet connection, and it uses nothing
 but the standard library, so any Python that is new enough can run it.
 
 Nothing is written outside the folder. When it has finished it imports Qt
@@ -28,7 +28,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 #: The oldest Python ChartLibre runs on.
-MINIMUM_PYTHON: tuple[int, int] = (3, 11)
+MINIMUM_PYTHON: tuple[int, int] = (3, 14)
 
 HERE = Path(__file__).resolve().parent
 

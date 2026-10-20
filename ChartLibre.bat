@@ -25,10 +25,10 @@ start "" ".venv\Scripts\pythonw.exe" "%~dp0main.py" %*
 exit /b 0
 
 :getpython
-set "URL=https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16+20261003-x86_64-pc-windows-msvc-install_only.tar.gz"
-set "SUM=5e100ee3d592ff500f4408a624f054d202e32d9dba8a12b2226bef81083fd778"
+set "URL=https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.15.0+20261013-x86_64-pc-windows-msvc-install_only.tar.gz"
+set "SUM=0d9950ba8c6399203e60ed6a2452fc4e8def35c83fb6da00ec815784b7887483"
 set "ARCHIVE=.python-download.tar.gz"
-echo Downloading Python 3.13.16 ...
+echo Downloading Python 3.15.0 ...
 curl.exe -fL --retry 3 -o "%ARCHIVE%" "%URL%" || exit /b 1
 set "GOT="
 for /f "skip=1 delims=" %%h in ('certutil -hashfile "%ARCHIVE%" SHA256') do if not defined GOT set "GOT=%%h"

@@ -83,8 +83,8 @@ def _render_icon_pngs(sizes: list[int]) -> dict[int, bytes]:
 #: Python first. Pinned to one release, and each archive is checked against
 #: its SHA-256 before anything in it runs. To move to a newer one, take the
 #: names and digests from the release page and run this file again.
-PYTHON_RELEASE: str = "20261003"
-PYTHON_VERSION: str = "3.13.16"
+PYTHON_RELEASE: str = "20261013"
+PYTHON_VERSION: str = "3.15.0"
 PYTHON_BASE_URL: str = (
     f"https://github.com/astral-sh/python-build-standalone/releases/download/{PYTHON_RELEASE}"
 )
@@ -92,25 +92,25 @@ PYTHON_BASE_URL: str = (
 PYTHON_ARCHIVES: dict[str, tuple[str, str]] = {
     "macos-arm64": (
         f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-aarch64-apple-darwin-install_only.tar.gz",
-        "d8975d7df4f08f7b1c7aafcdfacbddcec3d366415f2c1a72b2466b6850815933",
+        "f5d1d82e2f5660d4decae5d2b7470631850bcd7bd39595d9c3cca3c5ee54eae7",
     ),
     "macos-x86_64": (
         f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-x86_64-apple-darwin-install_only.tar.gz",
-        "8e9cb087305bfb8969f68a905f79f41469d4aa5220c1aa71ada7fc9953bdba0f",
+        "c4adbda246262a55920ec0804f5a6a9a3a1e5948f3423da71926320b2489e50e",
     ),
     # Windows on ARM runs this one too, emulated: Qt's own arm64 wheels are
     # not what PySide6 publishes for every library ChartLibre needs.
     "windows-x86_64": (
         f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-x86_64-pc-windows-msvc-install_only.tar.gz",
-        "5e100ee3d592ff500f4408a624f054d202e32d9dba8a12b2226bef81083fd778",
+        "0d9950ba8c6399203e60ed6a2452fc4e8def35c83fb6da00ec815784b7887483",
     ),
     "linux-x86_64": (
         f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-x86_64-unknown-linux-gnu-install_only.tar.gz",
-        "0a0272910b10417c659a9312fb3f2d7a6d774da7bd510999be7a3ba83273dc1f",
+        "e02a368dd5dc76ffe0599e5109ad6c1ee84e597910758b0e006bab25372a8921",
     ),
     "linux-aarch64": (
         f"cpython-{PYTHON_VERSION}+{PYTHON_RELEASE}-aarch64-unknown-linux-gnu-install_only.tar.gz",
-        "6477121f22904963a066ac8ff89983baae781510815590e894daa3c11ce86652",
+        "26a54e8fbde81bcc39ba35ad855a6a573295c023793c20fff1670a560649bcd7",
     ),
 }
 

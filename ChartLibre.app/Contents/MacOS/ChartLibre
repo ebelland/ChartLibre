@@ -20,11 +20,11 @@ say() {  # a notification, so the first launch is not silent; never fails
   return 0
 }
 
-get_python() {  # download Python 3.13.16 into .python, once
+get_python() {  # download Python 3.15.0 into .python, once
   [ -x "$RUNTIME/bin/python3" ] && return 0
   case "$(uname -m)" in
-    arm64) url="https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16+20261003-aarch64-apple-darwin-install_only.tar.gz"; sum="d8975d7df4f08f7b1c7aafcdfacbddcec3d366415f2c1a72b2466b6850815933" ;;
-    *)     url="https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16+20261003-x86_64-apple-darwin-install_only.tar.gz"; sum="8e9cb087305bfb8969f68a905f79f41469d4aa5220c1aa71ada7fc9953bdba0f" ;;
+    arm64) url="https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.15.0+20261013-aarch64-apple-darwin-install_only.tar.gz"; sum="f5d1d82e2f5660d4decae5d2b7470631850bcd7bd39595d9c3cca3c5ee54eae7" ;;
+    *)     url="https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.15.0+20261013-x86_64-apple-darwin-install_only.tar.gz"; sum="c4adbda246262a55920ec0804f5a6a9a3a1e5948f3423da71926320b2489e50e" ;;
   esac
   archive="$HERE/.python-download.tar.gz"
   echo "Downloading $url"

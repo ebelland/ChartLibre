@@ -6,15 +6,15 @@
 # install.py adds it to the applications menu.
 cd "$(dirname "$0")" || exit 1
 
-get_python() {  # download Python 3.13.16 into .python, once
+get_python() {  # download Python 3.15.0 into .python, once
   [ -x .python/bin/python3 ] && return 0
   case "$(uname -m)" in
-    x86_64|amd64)  url="https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16+20261003-x86_64-unknown-linux-gnu-install_only.tar.gz"; sum="0a0272910b10417c659a9312fb3f2d7a6d774da7bd510999be7a3ba83273dc1f" ;;
-    aarch64|arm64) url="https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16+20261003-aarch64-unknown-linux-gnu-install_only.tar.gz"; sum="6477121f22904963a066ac8ff89983baae781510815590e894daa3c11ce86652" ;;
+    x86_64|amd64)  url="https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.15.0+20261013-x86_64-unknown-linux-gnu-install_only.tar.gz"; sum="e02a368dd5dc76ffe0599e5109ad6c1ee84e597910758b0e006bab25372a8921" ;;
+    aarch64|arm64) url="https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.15.0+20261013-aarch64-unknown-linux-gnu-install_only.tar.gz"; sum="26a54e8fbde81bcc39ba35ad855a6a573295c023793c20fff1670a560649bcd7" ;;
     *) echo "ChartLibre has no Python for this processor ($(uname -m))."; return 1 ;;
   esac
   archive=.python-download.tar.gz
-  echo "Downloading Python 3.13.16 ..."
+  echo "Downloading Python 3.15.0 ..."
   if command -v curl >/dev/null 2>&1; then
     curl -fL --retry 3 -o "$archive" "$url" || return 1
   else

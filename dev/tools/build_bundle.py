@@ -67,10 +67,15 @@ KEEP_FROM_DEV = ("dev/tools/launcher/chartlibre.png",)
 KEEP_FROM_DOCS = ("docs/manual/user_manual.pdf",)
 
 #: Tracked files that are notes for whoever develops ChartLibre, not for users.
-LEAVE_OUT = ("todo.txt", ".gitignore", "bugs.pptx")
+LEAVE_OUT = ("todo.txt", ".gitignore", "bugs.pptx", "README.md")
 
-#: Tracked folders that are the repository's, not the application's.
-LEAVE_OUT_FOLDERS = (".github",)
+#: Tracked folders that are the repository's, not the application's, and the
+#: editors' and assistants' own, should one ever be committed.
+LEAVE_OUT_FOLDERS = (".github", ".vscode", ".claude", ".python")
+
+#: Folders left out wherever they are: caches, virtual environments and tests.
+#: (The package's own .python is downloaded into it after the copy.)
+LEAVE_OUT_ANYWHERE = ("__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "tests", "test")
 
 #: Needed to build the package, not to run it: removed once install.py has
 #: installed the libraries (the credits then list no libraries - they say so).
@@ -95,6 +100,9 @@ def wanted_file(path: str, system: str) -> bool:
     """Whether the tracked *path* goes into *system*'s package."""
     top = path.split("/")[0]
     if path in LEAVE_OUT or top in LEAVE_OUT_FOLDERS:
+        return False
+    folders = path.split("/")[:-1]
+    if any(part in LEAVE_OUT_ANYWHERE or part.startswith(".venv") for part in folders):
         return False
     if top == "dev":
         return path in KEEP_FROM_DEV

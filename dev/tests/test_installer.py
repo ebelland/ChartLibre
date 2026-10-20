@@ -20,11 +20,11 @@ install = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(install)
 
 
-def test_python_below_3_11_is_refused_and_newer_is_fine() -> None:
-    assert "3.11" in install.python_problem((3, 10, 9))
-    assert "3.10.9" in install.python_problem((3, 10, 9))
-    assert install.python_problem((3, 11, 0)) == ""
-    assert install.python_problem((3, 14, 1)) == ""
+def test_python_below_3_14_is_refused_and_newer_is_fine() -> None:
+    assert "3.14" in install.python_problem((3, 13, 9))
+    assert "3.13.9" in install.python_problem((3, 13, 9))
+    assert install.python_problem((3, 14, 0)) == ""
+    assert install.python_problem((3, 15, 0)) == ""
 
 
 def test_the_interpreter_sits_where_the_platform_puts_it(tmp_path: Path) -> None:
@@ -301,7 +301,10 @@ def test_a_package_holds_the_application_and_only_its_own_system_launchers() -> 
         # Notes and the manual's sources stay in the repository; the manual itself ships.
         assert not wanted("bugs.pptx", system) and not wanted("docs/manual/user_manual.typ", system)
         assert not wanted("docs/manual/sections/intro.typ", system) and not wanted("docs/images/gallery_penguins.png", system)
-        assert wanted("docs/manual/user_manual.pdf", system)
+        assert wanted("docs/manual/user_manual.pdf", system) and not wanted("README.md", system)
+        for stray in (".vscode/settings.json", ".claude/settings.json", ".python/bin/python3", ".venv-3.15/x.py",
+                      "app/__pycache__/main.cpython-315.pyc", "app/tests/test_x.py", ".pytest_cache/v/x"):
+            assert not wanted(stray, system), stray
     assert wanted("ChartLibre.app/Contents/MacOS/ChartLibre", "macos")
     assert not wanted("ChartLibre.app/Contents/MacOS/ChartLibre", "windows")
     assert wanted("ChartLibre.exe", "windows") and wanted("ChartLibre.bat", "windows")

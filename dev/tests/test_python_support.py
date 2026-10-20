@@ -28,10 +28,18 @@ def _requirements() -> dict[str, list[tuple[str, str]]]:
     return found
 
 
+#: Optional importers with no Python 3.15 wheels yet (2026-10): left out on 3.15,
+#: where their format says which package it needs. Drop the marker when they ship.
+WAITING_FOR_315_WHEELS = {"pyreadstat", "pyreadr"}
+
+
 def test_no_requirement_depends_on_the_python_version() -> None:
     """Python 3.15 is the default: one pin per package, with no `python_version` marker."""
     for name, specs in _requirements().items():
         for _spec, marker in specs:
+            if name in WAITING_FOR_315_WHEELS:
+                assert marker.replace(" ", "") == 'python_version<"3.15"', f"{name}: {marker}"
+                continue
             assert "python_version" not in marker, f"{name} still has a python_version marker"
 
 

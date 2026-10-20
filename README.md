@@ -186,7 +186,7 @@ On Linux, Qt needs a few system libraries a desktop usually has; if one is missi
 
 **If ChartLibre stops starting**, delete the hidden `.python` folder inside the ChartLibre folder and start it again: it downloads Python and the libraries again.
 
-With your own Python 3.11 or newer, from a terminal:
+With your own Python 3.14 or newer, from a terminal:
 
 ```bash
 git clone https://github.com/ebelland/ChartLibre.git
