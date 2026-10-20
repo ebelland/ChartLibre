@@ -14,11 +14,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, cast
 
-import pandas as pd
 from pandas._typing import DtypeArg
 
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.utils import import_cleaning
 from app.utils.data_sources import read_from_link_source
 
 
@@ -28,24 +28,6 @@ class LinkRefreshResult:
     table_name: str
     rows: int
     cols: int
-
-
-def _convert_datetime(series: pd.Series, kind: str) -> pd.Series:
-    """
-    Convert a Series to DATE/TIME/DATETIME formatted TEXT (string dtype).
-
-    Pylance/stubs fixes:
-    - Normalize to pandas 'string' dtype before to_datetime (avoids Series[Any] overload issues).
-    - Force the inferred result to be a Series so .dt is always valid (not a DatetimeIndex).
-    """
-    s = series.astype("string")
-    dt = cast(pd.Series, pd.to_datetime(s, errors="coerce"))
-
-    if kind == "DATE":
-        return dt.dt.strftime("%Y-%m-%d").astype("string")
-    if kind == "TIME":
-        return dt.dt.strftime("%H:%M:%S").astype("string")
-    return dt.dt.strftime("%Y-%m-%d %H:%M:%S").astype("string")
 
 
 def execute_import(
@@ -68,6 +50,10 @@ def execute_import(
     columns = cast(dict[str, Any], settings.get("columns", {}))
 
     df = read_from_link_source(source, read, password=password)
+    # The missing values and the dates as the Import dialog read them (app.utils.import_cleaning).
+    codes, empty_is_missing, date_order, date_format = import_cleaning.read_settings(read)
+    df = import_cleaning.clean_missing(df, codes, empty_is_missing=empty_is_missing)
+    default_order = str(read.get("date_default") or import_cleaning.MONTH_FIRST)
 
     col_types = cast(dict[str, str], columns.get("types", {}))
 
@@ -81,7 +67,7 @@ def execute_import(
         if col not in df.columns:
             continue
         if t in {"DATE", "TIME", "DATETIME"}:
-            df[col] = _convert_datetime(df[col], t)
+            df[col] = import_cleaning.convert_dates(df[col], t, date_order, date_format, default=default_order)
             dtype_overrides[col] = "TEXT"
         elif t not in {"Auto", "Ignore"}:
             dtype_overrides[col] = t

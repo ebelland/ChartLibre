@@ -66,6 +66,7 @@ from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
 # and app.main_window.main_window - keep working unchanged.
 # -----------------------------------------------------------------------------
 from app.plugin_api.importers.base import ALL_DATASETS, ImportedData
+from app.utils import import_cleaning
 from app.utils.data_sources import (
     CLIPBOARD_SOURCE_NAME,
     IMPORT_FILE_FILTER,
@@ -96,6 +97,19 @@ from app.utils.coercion import to_numbers
 # -----------------------------------------------------------------------------
 # Preview model
 # -----------------------------------------------------------------------------
+
+
+def local_date_order() -> str:
+    """This computer's own date order, for dates whose numbers do not tell (01/02/2024)."""
+    from PySide6.QtCore import QLocale
+
+    pattern = QLocale.system().dateFormat(QLocale.FormatType.ShortFormat).lower()
+    positions = {key: pattern.find(key) for key in ("d", "m", "y")}
+    if positions["y"] == 0:
+        return import_cleaning.YEAR_FIRST
+    if 0 <= positions["d"] < positions["m"]:
+        return import_cleaning.DAY_FIRST
+    return import_cleaning.MONTH_FIRST
 
 
 class DataFramePreviewModel(QAbstractTableModel):
@@ -428,6 +442,40 @@ class ImportDataDialog(SettingsTableDialog):
         left_layout.addWidget(read)
         self._read_card = read
 
+        # -- Values: what is missing, how the dates are written (closed; for every source, the
+        # importers' files too - unlike Read options).
+        values = TitledCard(left, _("Values"), "importValuesCard", collapsible=True, collapsed=True)
+        values_form = QFormLayout()
+        stdSizeAndlayout(values_form)
+        self._date_order = QComboBox(values.card)
+        for key, label in import_cleaning.DATE_ORDERS:
+            self._date_order.addItem(_(label), key)
+        self._date_order.setCurrentIndex(max(0, self._date_order.findData(str(cfg.get("dates") or "auto"))))
+        self._date_order.setToolTip(_("How the dates are written. Auto reads it from the values - a first number "
+                                      "above 12 is a day - and, when they do not tell, follows this computer's "
+                                      "own date order."))
+        stdSizeAndlayout(self._date_order)
+        values_form.addRow(_("Dates:"), self._date_order)
+        self._date_format = QLineEdit(str(cfg.get("date_format") or ""), values.card)
+        self._date_format.setPlaceholderText("%d.%m.%Y %H:%M")
+        self._date_format.setToolTip(_("The dates' format, in strftime codes: %d day, %m month, %Y year, "
+                                       "%H:%M:%S time, %b month name."))
+        values_form.addRow(_("Format:"), self._date_format)
+        self._missing_codes = QLineEdit(", ".join(cfg.get("missing", import_cleaning.DEFAULT_MISSING)), values.card)
+        self._missing_codes.setToolTip(_("Values that mean \"no value\", separated by commas: they are imported "
+                                         "as empty cells."))
+        values_form.addRow(_("Missing values:"), self._missing_codes)
+        self._empty_missing = QCheckBox(_("Empty or blank text is missing"), values.card)
+        self._empty_missing.setChecked(bool(cfg.get("empty_is_missing", True)))
+        values_form.addRow("", self._empty_missing)
+        values.card.layout().addLayout(values_form)
+        left_layout.addWidget(values)
+        self._sync_date_format()
+        self._date_order.currentIndexChanged.connect(lambda _i: (self._sync_date_format(), self._schedule_preview()))
+        self._date_format.editingFinished.connect(self._schedule_preview)
+        self._missing_codes.editingFinished.connect(self._schedule_preview)
+        self._empty_missing.toggled.connect(lambda _on: self._schedule_preview())
+
         # -- The new table: its name, then the columns the preview found and the type each will get.
         columns = TitledCard(left, _("New table"), "importColumnsCard")
         name_form = QFormLayout()
@@ -713,6 +761,14 @@ class ImportDataDialog(SettingsTableDialog):
             encoding=encoding,
         )
 
+    def _sync_date_format(self) -> None:
+        self._date_format.setEnabled(self._date_order.currentData() == import_cleaning.FORMAT)
+
+    def _date_settings(self) -> tuple[str, str, str]:
+        """(order, format, the computer's own order for dates that do not tell)."""
+        return (str(self._date_order.currentData() or import_cleaning.AUTO), self._date_format.text().strip(),
+                local_date_order())
+
     def _apply_skip_last_and_clean(self) -> None:
         if self._df is None:
             return
@@ -720,6 +776,8 @@ class ImportDataDialog(SettingsTableDialog):
         skip_last = int(self._skip_last.value())
         if skip_last > 0 and len(self._df) > 0:
             self._df = self._df.iloc[: max(0, len(self._df) - skip_last)]
+        self._df = import_cleaning.clean_missing(self._df, import_cleaning.parse_missing(self._missing_codes.text()),
+                                                 empty_is_missing=self._empty_missing.isChecked())
 
     @staticmethod
     def _empty_columns(df: pd.DataFrame) -> list[str]:
@@ -779,11 +837,25 @@ class ImportDataDialog(SettingsTableDialog):
             if col in empty_cols:
                 combo.setCurrentText("Ignore")
             else:
-                combo.setCurrentText(self._guess_sqlite_type(df[col]))
+                combo.setCurrentText(self._guess_type(df[col]))
             self._col_table.setCellWidget(r, 1, combo)
 
         self._col_table.resizeColumnsToContents()
 
+
+    def _guess_type(self, series: pd.Series) -> str:
+        """The plain guess, then text read again: numbers (once "n/d" is gone), or dates."""
+        guess = self._guess_sqlite_type(series)
+        if guess != "TEXT":
+            return guess
+        present = series.dropna()
+        numbers = pd.to_numeric(present.astype(str).str.strip(), errors="coerce")
+        if len(present) and numbers.notna().all():
+            return "INTEGER" if bool((numbers % 1 == 0).all()) else "REAL"
+        order, date_format, default = self._date_settings()
+        if import_cleaning.looks_like_dates(series, order, date_format, default=default):
+            return import_cleaning.date_kind(series, order, date_format, default=default)
+        return guess
 
     @staticmethod
     def _guess_sqlite_type(series: pd.Series) -> str:
@@ -1077,7 +1149,7 @@ class ImportDataDialog(SettingsTableDialog):
             return
 
         df2 = df[cols_keep].copy()
-        df2 = self._coerce_df(df2, types)
+        df2 = self._coerce_df(df2, types, self._date_settings())
         set_import_data_dialog_config(
             {
                 "table": table,
@@ -1087,6 +1159,10 @@ class ImportDataDialog(SettingsTableDialog):
                 "delim": self._current_delim() or "",
                 "encoding": self._current_encoding() or "auto",
                 "sheet": self._current_sheet() or "",
+                "dates": self._date_settings()[0],
+                "date_format": self._date_format.text().strip(),
+                "missing": import_cleaning.parse_missing(self._missing_codes.text()),
+                "empty_is_missing": self._empty_missing.isChecked(),
             }
         )
         try:
@@ -1110,6 +1186,11 @@ class ImportDataDialog(SettingsTableDialog):
                         "header": bool(self._has_header.isChecked()),
                         "delimiter": self._current_delim(),
                         "encoding": self._current_encoding(),
+                        "dates": self._date_settings()[0],
+                        "date_format": self._date_format.text().strip(),
+                        "date_default": self._date_settings()[2],
+                        "missing": import_cleaning.parse_missing(self._missing_codes.text()),
+                        "empty_is_missing": self._empty_missing.isChecked(),
                     },
                     "destination": {"table": table_name, "normalize_columns": True},
                     "columns": {"types": types},
@@ -1147,7 +1228,9 @@ class ImportDataDialog(SettingsTableDialog):
         return None
 
     @staticmethod
-    def _coerce_df(df: pd.DataFrame, types: dict[str, str]) -> pd.DataFrame:
+    def _coerce_df(df: pd.DataFrame, types: dict[str, str],
+                   dates: tuple[str, str, str] = (import_cleaning.AUTO, "", import_cleaning.MONTH_FIRST)
+                   ) -> pd.DataFrame:
         out = df.copy()
         for col, t in types.items():
             if col not in out.columns:
@@ -1160,13 +1243,8 @@ class ImportDataDialog(SettingsTableDialog):
             elif tt == "REAL":
                 out[col] = to_numbers(s)
             elif tt in ("DATE", "TIME", "DATETIME"):
-                dt = pd.to_datetime(s, errors="coerce")
-                if tt == "DATE":
-                    out[col] = dt.dt.date.astype("string")
-                elif tt == "TIME":
-                    out[col] = dt.dt.time.astype("string")
-                else:
-                    out[col] = dt.dt.strftime("%Y-%m-%d %H:%M:%S").astype("string")
+                order, date_format, default = dates
+                out[col] = import_cleaning.convert_dates(s, tt, order, date_format, default=default)
             elif tt == "BLOB":
                 out[col] = s.apply(
                     lambda v: v

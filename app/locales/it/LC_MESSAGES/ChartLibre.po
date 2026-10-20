@@ -10438,3 +10438,39 @@ msgstr "La colonna ha {count} valori distinti: le etichette dei valori sono per 
 
 msgid "Column Info"
 msgstr "Info colonna"
+
+msgid "Dates:"
+msgstr "Date:"
+
+msgid "Format:"
+msgstr "Formato:"
+
+msgid "Missing values:"
+msgstr "Valori mancanti:"
+
+msgid "Empty or blank text is missing"
+msgstr "Il testo vuoto o fatto di spazi è un valore mancante"
+
+msgid "Auto (from the values)"
+msgstr "Auto (dai valori)"
+
+msgid "Day first (31/12/2024)"
+msgstr "Giorno prima (31/12/2024)"
+
+msgid "Month first (12/31/2024)"
+msgstr "Mese prima (12/31/2024)"
+
+msgid "Year first (2024-12-31)"
+msgstr "Anno prima (2024-12-31)"
+
+msgid "Format..."
+msgstr "Formato..."
+
+msgid "How the dates are written. Auto reads it from the values - a first number above 12 is a day - and, when they do not tell, follows this computer's own date order."
+msgstr "Come sono scritte le date. Auto lo legge dai valori - un primo numero sopra 12 è un giorno - e, quando non lo dicono, segue l'ordine delle date di questo computer."
+
+msgid "The dates' format, in strftime codes: %d day, %m month, %Y year, %H:%M:%S time, %b month name."
+msgstr "Il formato delle date, con i codici strftime: %d giorno, %m mese, %Y anno, %H:%M:%S ora, %b nome del mese."
+
+msgid "Values that mean \"no value\", separated by commas: they are imported as empty cells."
+msgstr "Valori che significano \"nessun valore\", separati da virgole: vengono importati come celle vuote."
