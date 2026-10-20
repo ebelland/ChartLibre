@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-20
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 100,304 lines in 290 files; tests 20,040 lines in 166 files (updated at each commit).
+Size: app 100,407 lines in 290 files; tests 20,074 lines in 166 files (updated at each commit).
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
@@ -15,7 +15,7 @@ NEXT - INTERFACE
            ("show only Selected" on every chart of a table).
 - S-01  S  Live style preview on the other line/point renderers (Stairs, Stem, ECDF, 3D Line,
            via SeriesArtistTags); Undo per element.
-- H-16  S  Frame titles not in capitals ("Select Columns", not "SELECT COLUMNS"), as macOS's own.
+
 - H-17  S  Results in a grey frame is still a white page inside it (an HTML report): keep, or the frame's grey?
 - H-11  M  Error messages that say what to do next, for import and SQL.
 - H-12  M  Windows parity: every dialog at 1366x768 and 125% scaling in CI.
@@ -32,10 +32,8 @@ LATER
 - AN-24 M  Neural network (MLP).
 - R-02  M  Background computation: Outlier preview, Stop inside long loops.
 - R-13  S  Known-answer tests where NIST has no dataset; Longley.
-- R-14  L  Multichart templates; signed macOS app, Windows installer.
-- P2-12 M  Small chart beside operation results.
-- R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
-- R-03  M  Reproducibility: re-run recorded operations; export a Python script (H-01).
+
+
 
 IDEAS
 
@@ -50,11 +48,16 @@ I-01  M  Import more formats (dev/plans/import_formats_plan.txt). Done: the impo
          exports and KLARF - NEED THE OWNER'S SAMPLE FILES; manual's Import chapter table of formats.
 I-02  M  Importer plugins for a lab's own formats - EVALUATION AND PLAN: dev/plans/importer_plugins_plan.txt
          (sniff for .csv/.txt, Importer Builder with "Try on a file", installed list; waiting for the go).
-A-01  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in New Chart, Id included;
+I-03  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in New Chart, Id included;
          an Animation tab in Chart properties; a player; GIF/APNG/WebP/HTML/PNG frames, MP4 with ffmpeg).
          Waiting for the go; Q1-Q5 to answer.
-I-03     3D vector fields (divergence, curl); 3D parametric curves.
+I-04     3D vector fields (divergence, curl); 3D parametric curves.
          units with pint, uncertainty propagation.
+I-05   M  Small chart beside operation results.
+I-06   M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
+I-07   M  Reproducibility: re-run recorded operations; export a Python script (H-01).
+I-08   L  Multichart templates; signed macOS app, Windows installer.
+I-09   S  Frame titles not in capitals ("Select Columns", not "SELECT COLUMNS"), as macOS's own.
 
 [YOU]
 - A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
@@ -88,3 +91,88 @@ Add (highest value first)
   blocks, .txt from spectrometers, HDF5).
 - H-07 Collaboration: a project-to-HTML "notebook" (charts + notes + reports)
   to share without the app.
+
+GAP ANALYSIS (Claude, 2026-10-20) - what JMP, Matplotlib, scikit-learn, statsmodels and SciPy offer
+that ChartLibre does not yet. Already there: Distribution, Fit Y by X, Fit Model (least squares,
+stepwise, logistic/ordinal, GLM, response surface), Multivariate, Principal Components, Factor
+Analysis, Discriminant, PLS, Partition (tree, forest, boosting), Cluster Analysis (K Means, Ward,
+Normal Mixtures), Time Series (ACF/PACF, STL, ARIMA, ETS), control charts (I-MR, X-bar, p/np/c/u,
+run rules), capability, DOE (factorial, response surface, Latin hypercube), outliers, peaks,
+filters, spectra, GP regression, NIST-checked curve fitting, Kaplan-Meier, 40+ chart types.
+Items already listed above are named here, not repeated. Highest value first in each block.
+Suggested order overall: G-02, G-01, G-25, G-28, G-30, G-03, G-06, G-12, G-14.
+
+JMP
+- G-01  L  Graph Builder: drag columns onto X, Y, Group X/Y, Wrap, Overlay, Color, Size; change
+           the element (points, line, box, bar, smoother, contour) live. JMP's most used platform;
+           New Chart is a dialog.
+- G-02  M  Save Prediction Formula: a fitted model (Fit Model, Partition, PLS, Discriminant, Fit
+           Y by X) kept in the project and applied to new rows or another table. Nothing saves a
+           model today.
+- G-03  M  Model Screening / Model Comparison: one Y fitted by least squares, tree, forest,
+           boosting, logistic (and MLP, AN-24) on the same validation rows; R2, RMSE, AUC side by side.
+- G-04  M  Local Data Filter: sliders and check boxes that show/select rows on every chart and
+           report of a table (with R-07).
+- G-05  M  DOE more: Plackett-Burman, definitive screening, mixture designs, Taguchi arrays,
+           Augment Design, Evaluate Design (power, aliasing, correlation map). With AN-07.
+- G-06  M  Quality more: EWMA, CUSUM, Levey-Jennings, rare-event (g, t) charts; Process Screening
+           (many columns at once); measurement agreement (Bland-Altman, Deming, Passing-Bablok).
+           With AN-06.
+- G-07  S  Distribution more: tolerance and prediction intervals; equivalence test (TOST);
+           Matched Pairs platform (difference vs mean plot).
+- G-08  M  Reliability: Life Distribution with censoring (Weibull, lognormal on probability
+           paper), Fit Life by X, Reliability Growth (Crow-AMSAA). With AN-08.
+- G-09  L  Functional Data Explorer: one curve per id, spline-smoothed, functional PCA, curve
+           clusters and a model of their shapes - fits the app's series side.
+- G-10  S  Tabulate: drag-and-drop summary report (statistics by row and column groups); today
+           Group and aggregate makes a new table.
+- G-11  L  Text Explorer: word counts, n-grams, topics of a text column. Low for engineers.
+
+Matplotlib
+- G-12  S  Spectrogram chart (specgram) and STFT in Spectral analysis.
+- G-13  S  Radar (spider) chart; polar bar / wind rose (polar exists as a projection).
+- G-14  S  Dendrogram chart (scipy.cluster.hierarchy) for Cluster Analysis' Ward; clustered
+           heatmap.
+- G-15  S  Sankey (matplotlib.sankey) and waterfall charts.
+- G-16  S  Image / matrix chart: imshow/matshow of a 2D table or an image file with a colorbar;
+           contour labels (clabel).
+- G-17  S  Broken axis; secondary axis as a conversion of the first (secondary_xaxis functions:
+           degC/degF, wavelength/energy) - check what twin/inset already offer.
+- G-18  M  Figure layout for papers: subplot_mosaic multichart, shared axes, panel letters
+           (a, b, c). With I-08 and H-05. Animation is I-03.
+
+scikit-learn
+- G-19  M  More learners: k-nearest neighbours, SVM (SVC/SVR), naive Bayes, HistGradientBoosting
+           (fast, takes missing values), stacking/voting. MLP is AN-24.
+- G-20  M  Hyperparameter tuning (GridSearchCV/RandomizedSearchCV), learning and validation
+           curves, nested cross-validation. With AN-12.
+- G-21  S  Classification metrics: precision-recall and calibration curves, per-class precision,
+           recall and F1, decision threshold tuning (ROC and confusion matrix exist).
+- G-22  M  Missing values in a table: SimpleImputer, KNNImputer, IterativeImputer (MICE) as a
+           table tool; Fill missing values works on one series only.
+- G-23  S  Cluster Analysis more: DBSCAN/HDBSCAN, spectral, Birch for table rows (DBSCAN exists
+           for series only).
+- G-24  S  Preprocessing kept with the model: scaling, one-hot/target encoding, polynomial
+           features (with G-02).
+
+statsmodels (mixed models AN-09, repeated measures/ANCOVA/VIF/leverage R-04, Cox AN-08, FDR AN-14)
+- G-25  M  Regression diagnostics in Fit Model: Breusch-Pagan/White, Durbin-Watson, Ramsey RESET,
+           Jarque-Bera on residuals; WLS/GLS; robust (HC3) and cluster standard errors.
+- G-26  M  More models: negative binomial, zero-inflated Poisson, gamma/Tweedie GLM, GEE for
+           clustered rows, quantile regression (QuantReg), robust RLM.
+- G-27  M  MANOVA (Wilks, Pillai, Hotelling-Lawley, Roy) and Hotelling T2.
+- G-28  S  Categorical tests: McNemar, Cochran's Q, proportions z-test, relative risk and risk
+           difference with CIs (Mantel-Haenszel - check diagnostics.py).
+- G-29  M  Time Series more: SARIMAX with exogenous X, VAR with Granger causality and impulse
+           response, unobserved components (state space), rolling-origin forecast validation.
+
+SciPy
+- G-30  S  Nonparametric tests: Friedman, Mood's median, Fligner-Killeen, Page trend, k-sample
+           Anderson-Darling, Barnard/Boschloo exact (Kruskal, Mann-Whitney, Wilcoxon, Dunn exist).
+- G-31  M  Signal more: Lomb-Scargle for uneven sampling, resample/decimate, the designed
+           filter's frequency response (freqz, Bode), deconvolution (with AN-13).
+- G-32  M  Optimize: the X that maximise a fitted Y within limits (scipy.optimize, the
+           Profiler's Maximize Desirability, AN-07); ODE models fitted to data (solve_ivp, AN-13).
+- G-33  S  Spatial: convex hull, Voronoi, nearest-neighbour distances (KDTree); RBF interpolation
+           of scattered points onto a grid.
+- G-34  S  Circular statistics (circmean, circstd, Rayleigh test) for angles, directions, phases.
