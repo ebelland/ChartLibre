@@ -61,10 +61,12 @@ def test_the_file_page_cards_have_equal_gaps_on_three_sides(qapp: QApplication, 
     assert abs((panel_bottom - stack_bottom) - left_gap) <= 1
 
 
-def test_the_chart_surface_has_square_corners_under_its_flush_bars(
+def test_the_chart_surface_has_round_corners_its_bars_do_not_cover(
     qapp: QApplication, window: MainWindow, request: pytest.FixtureRequest
 ) -> None:
-    """todo W-02: the jump bar's square background covered a rounded corner.
+    """Windows: the chart pane is rounded like the left pane (bugs2.pptx), and its jump
+    bar is rounded with it - square, it covered the curve (todo W-02, when the pane
+    was made square instead).
 
     Windows only: on macOS the chart pane is a plain white surface with no
     outline at all.
@@ -79,8 +81,7 @@ def test_the_chart_surface_has_square_corners_under_its_flush_bars(
     def outlined(x: int, y: int) -> bool:
         return image.pixelColor(x, y).lightnessF() < page - 0.03
 
-    # The outline runs straight to the corner along both sides. Rounded,
-    # its first pixels were hidden under the bars' white and the corner
-    # read as an outline that stopped short.
-    assert all(outlined(0, y) for y in range(0, 5))
-    assert all(outlined(x, 0) for x in range(0, 5))
+    # Straight sides away from the corner, and the curve itself drawn, not under a bar's white.
+    assert outlined(0, 14) and outlined(14, 0)
+    assert any(outlined(x, y) for x in range(1, 5) for y in range(1, 5))
+    assert not outlined(0, 0)  # the corner itself is cut off by the curve

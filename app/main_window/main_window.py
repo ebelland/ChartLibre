@@ -522,7 +522,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     def _create_new_table_page(self) -> NavPanel:
         """The ways to make a source table, each with its sentence."""
         page = NavPanel(self)
-        page.add_buttons(_("Create a new table"), [
+        card = page.add_buttons(_("Create a new table"), [
             NavButton("new", self._on_new_blank_table, _("New Blank Table"),
                       _("Create an empty table with named columns."), described=True),
             NavButton("import", self._on_import_data, _("Import from file"),
@@ -536,12 +536,17 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             NavButton("query", self._on_create_query_table, _("Create Query Table"),
                       _("Create a table from a database query."), described=True),
         ], object_name="newTableCard")
-        # An option of Import from clipboard, which reads it when pressed.
-        self._clipboard_transposed = QCheckBox(_("Rows and columns swapped (transposed)"))
+        # An option of Import from clipboard, which reads it when pressed: right under it, its
+        # third and fourth items being that button's row and sentence (bugs2.pptx: it was a
+        # frame of its own at the bottom, far from the button it changes).
+        self._clipboard_transposed = QCheckBox(_("Rows and columns swapped (transposed)"), card)
+        self._clipboard_transposed.setObjectName("clipboardTransposed")
         self._clipboard_transposed.setToolTip(
             _("For data copied one series per row: the clipboard is read with rows and columns exchanged.")
         )
-        page.add_frame(_("Clipboard"), self._clipboard_transposed, object_name="clipboardOptionsCard")
+        layout = card.layout()
+        if isinstance(layout, QBoxLayout):
+            layout.insertWidget(6, self._clipboard_transposed)
         return page
 
     def _show_table(self, table_name: str | None = None) -> None:
@@ -806,7 +811,10 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         # window's edge, which showed on Windows' white page (todo W-01).
         navigation = NavigationBar(
             sections, parent=self, header=header,
-            panel_margins=(SPACING_DEFAULT, 12, SPACING_DEFAULT, SPACING_DEFAULT),
+            # Less room above the page's first title and below its last frame off macOS:
+            # there it was empty space (bugs2.pptx); macOS keeps its title strip's.
+            panel_margins=(SPACING_DEFAULT, 12, SPACING_DEFAULT, SPACING_DEFAULT) if IS_MACOS
+            else (SPACING_DEFAULT, 4, SPACING_DEFAULT, 4),
             panel_min_width=PANEL_MIN_WIDTH,
         )
         # The search sits in the rail under Workspace; its matches list under it while typing.
@@ -888,8 +896,10 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         # macos_native.qss), a margin here was just empty space with
         # nothing left to separate from - the same white on both sides
         # of it.
+        # Windows rounds the pane's corners (fluent_win11.qss): the chart is
+        # inset a little so its square edges stay inside the curve.
         self._chart_surface = CardFrame(
-            self, "chartSurfaceCard", margins=(0, 0, 0, 0),
+            self, "chartSurfaceCard", margins=(3, 1, 3, 3) if IS_WINDOWS else (0, 0, 0, 0),
         )
         self._chart_surface.setProperty("elevated", True)
         self._chart_surface.setSizePolicy(

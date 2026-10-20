@@ -22,10 +22,12 @@ from PySide6.QtWidgets import QWidget
 from app.logs.logger import applogger
 
 
-def fit_to_screen(window: QWidget) -> bool:
+def fit_to_screen(window: QWidget, *, assumed_frame: tuple[int, int] = (0, 0)) -> bool:
     """Shrink and move *window* into its screen's available area; True if it changed.
 
     Not a full-screen or maximised window: the system sized it to the screen.
+    *assumed_frame* (width, height) stands for the title bar and borders of a
+    window not on screen yet, whose frame the system has not measured.
     """
     if window.isFullScreen() or window.isMaximized() or window.isMinimized():
         return False
@@ -35,8 +37,8 @@ def fit_to_screen(window: QWidget) -> bool:
     available: QRect = screen.availableGeometry()
     frame = window.frameGeometry()
     # The title bar and borders: the part of the frame outside the client.
-    extra_width = max(0, frame.width() - window.width())
-    extra_height = max(0, frame.height() - window.height())
+    extra_width = max(0, frame.width() - window.width()) or assumed_frame[0]
+    extra_height = max(0, frame.height() - window.height()) or assumed_frame[1]
     width = min(window.width(), max(window.minimumWidth(), available.width() - extra_width))
     height = min(window.height(), max(window.minimumHeight(), available.height() - extra_height))
     changed = False
@@ -63,8 +65,16 @@ class _FitOnShow(QObject):
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if event.type() == QEvent.Type.Show and isinstance(watched, QWidget) and watched.isWindow():
-            # After the show completes: a saved geometry is often restored
-            # by the window's own showEvent, which runs after this filter.
+            # Now, before the window is on screen: fitted afterwards, it
+            # appeared at one size and place and jumped to another - the
+            # flicker of Fit Curve on a laptop (bugs2.pptx). The title bar is
+            # not measured yet, so a usual one is assumed.
+            if not watched.property(_FITTED_ONCE):
+                watched.setProperty(_FITTED_ONCE, True)
+                fit_to_screen(watched, assumed_frame=_USUAL_FRAME)
+            # And after the show completes: a saved geometry is sometimes
+            # restored by the window's own showEvent, which runs after this
+            # filter. Usually there is nothing left to change.
             QTimer.singleShot(0, lambda window=watched: _fit_if_alive(window))
         return False
 
@@ -90,3 +100,6 @@ def fit_on_show(window: QWidget) -> None:
 
 
 _INSTALLED = "_chartlibre_fit_on_show"
+_FITTED_ONCE = "_chartlibre_fitted_before_show"
+#: A title bar and borders, before the system has measured the window's own.
+_USUAL_FRAME = (16, 40)

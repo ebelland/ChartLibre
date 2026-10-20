@@ -180,7 +180,25 @@ QWidget[elevated="true"] {
    behind square (todo W-02). Square, as macos_native.qss treats the same
    pane, keeping the outline that separates it from the left panel. */
 QFrame#chartSurfaceCard {
-    border-radius: 0px;
+    border-radius: 8px;
+}
+
+/* The jump bar's own white is rounded with the pane, so the pane's corners
+   show round (bugs2.pptx: the square corner). The chart below is inset in
+   main_window so its square edges stay inside the curve. */
+QFrame#chartJumpBar {
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+}
+
+/* The left pane - the rail and the page beside it - is one surface with the
+   chart pane's outline and corners, and their tops line up (bugs2.pptx). */
+QFrame#navigationPanels {
+    background: palette(base);
+    border: 1px solid rgba(@SHADOW_RGB@, 0.08);
+    border-left: none;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
 /* Acrylic-style panels.
@@ -1408,10 +1426,13 @@ QScrollArea#tableEditorToolsScroll > QWidget > QWidget {
 
 
 /* Splitter gutters belong to the page surface, not to the neutral chrome. */
+/* Transparent: the gap shows what is behind it. White, it was a white bar
+   between the grey frames of every two-panel dialog (Partition, Distribution...,
+   bugs2.pptx). */
 QSplitter::handle,
 QSplitter::handle:horizontal,
 QSplitter::handle:vertical {
-    background: palette(base);
+    background: transparent;
     border: none;
 }
 
@@ -1423,12 +1444,12 @@ QTabWidget::pane {
     border-right: none;
 }
 
-/* Rounded navigation surface. */
+/* Rounded navigation surface: the left half of the left pane's outline. */
 QFrame#activityRail {
-    border: none;
+    border: 1px solid rgba(@SHADOW_RGB@, 0.08);
     border-right: 1px solid palette(midlight);
-    border-top-left-radius: 12px;
-    border-bottom-left-radius: 12px;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
 }
 
 /* New Plot: series controls should read as one framed, white list surface.

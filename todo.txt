@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-20
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 99,985 lines in 288 files; tests 19,808 lines in 159 files (updated at each commit).
+Size: app 100,008 lines in 288 files; tests 19,828 lines in 160 files (updated at each commit).
 
 NOW
 R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
