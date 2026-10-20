@@ -75,6 +75,8 @@ class BoxAxisRenderer(BaseAxisRenderer):
         "sym": {
             "default": None,
             "type": str,
+            # A marker, chosen from the marker list rather than typed (its own editor).
+            "kind": "marker",
             "description": (
                 "Outlier marker symbol (matplotlib marker string). "
                 "Leave empty to use the default flier marker."
@@ -160,7 +162,8 @@ class BoxAxisRenderer(BaseAxisRenderer):
         },
         "stats_type": {
             "default": "median",
-            "type": str,
+            # A list: the kwargs editor shows a drop-down of these.
+            "type": ["median", "mean", "n", "median+n", "mean+n", "all"],
             "description": (
                 "Annotation content: median, mean, n, median+n, mean+n, "
                 "or all."
@@ -176,7 +179,7 @@ class BoxAxisRenderer(BaseAxisRenderer):
         },
         "stats_position": {
             "default": "outside",
-            "type": str,
+            "type": ["outside", "median", "mean"],
             "description": "Annotation position: outside, median, or mean.",
         },
         "stats_fontsize": {
@@ -188,7 +191,9 @@ class BoxAxisRenderer(BaseAxisRenderer):
         },
         "stats_color_mode": {
             "default": "series",
-            "type": str,
+            "type": ["series", "black", "rcparams"],
+            # Editable: any Matplotlib colour can be typed in besides the three.
+            "editable": True,
             "description": "Annotation color: series, black, rcparams, or any matplotlib color.",
         },
         "stats_offset_fraction": {

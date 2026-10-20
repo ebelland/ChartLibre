@@ -44,6 +44,8 @@ _KIND_BY_EXACT_KEY: dict[str, str] = {
     "labelcolor": "color",
     # Line and marker helpers.
     "linestyle": "linestyle", "ls": "linestyle", "marker": "marker",
+    # Matplotlib's boxplot flier symbol: a marker under another name.
+    "sym": "marker",
     "joinstyle": "joinstyle", "capstyle": "capstyle",
     # Font-family lists. The rcParams schema normally sets this explicitly,
     # but exact recognition also makes the shared editor work independently.
