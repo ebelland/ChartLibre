@@ -33,6 +33,7 @@ from app.utils.i18n import _
 from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
 from app.widgets.drop_down_controls.font_combo import MatplotlibFontCombo
 from app.widgets.drop_down_controls.line_combo import LineStyleCombo
+from app.widgets.drop_down_controls.colormap_combo import ColormapCombo
 from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
 
 _KIND_BY_EXACT_KEY: dict[str, str] = {
@@ -46,6 +47,8 @@ _KIND_BY_EXACT_KEY: dict[str, str] = {
     "linestyle": "linestyle", "ls": "linestyle", "marker": "marker",
     # Matplotlib's boxplot flier symbol: a marker under another name.
     "sym": "marker",
+    # A colormap: a renderer's cmap, and the style sheet's default one.
+    "cmap": "colormap", "image.cmap": "colormap",
     "joinstyle": "joinstyle", "capstyle": "capstyle",
     # Font-family lists. The rcParams schema normally sets this explicitly,
     # but exact recognition also makes the shared editor work independently.
@@ -243,6 +246,8 @@ class DictValueDelegate(QStyledItemDelegate):
             editor = LineStyleCombo(parent)
         elif kind == "marker":
             editor = MarkerStyleCombo(parent)
+        elif kind == "colormap":
+            editor = ColormapCombo(parent)
         elif kind == "number":
             if meta.get("type") is int:
                 editor = QSpinBox(parent)
@@ -320,6 +325,9 @@ class DictValueDelegate(QStyledItemDelegate):
         if isinstance(editor, MarkerStyleCombo):
             editor.set_current_marker(text)
             return
+        if isinstance(editor, ColormapCombo):
+            editor.set_current_colormap(text)
+            return
         if isinstance(editor, QCheckBox):
             editor.setChecked(_truthy(value))
             return
@@ -371,6 +379,8 @@ class DictValueDelegate(QStyledItemDelegate):
             value = editor.current_linestyle()
         elif isinstance(editor, MarkerStyleCombo):
             value = editor.current_marker()
+        elif isinstance(editor, ColormapCombo):
+            value = editor.current_colormap() or None
         elif isinstance(editor, QCheckBox):
             value = editor.isChecked()
         elif isinstance(editor, (QDoubleSpinBox, QSpinBox)):

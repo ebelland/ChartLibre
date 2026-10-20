@@ -686,6 +686,9 @@ class MplStyleEditorDialog(SettingsTableDialog):
     def _schema_for_key(self, key: str, value: object = "") -> dict[str, Any]:
         """Build DictEditorPanel metadata for one rcParam key."""
         kind = _rcparam_kind(key)
+        if key.lower() == "image.cmap" or key.lower().endswith(".cmap"):
+            # The colormap list with each one's gradient (ColormapCombo), as the kwargs' cmap.
+            kind = "colormap"
         meta: dict[str, Any] = {
             "default": value,
             "kind": kind,
@@ -730,6 +733,9 @@ class MplStyleEditorDialog(SettingsTableDialog):
             meta["type"] = list
             meta["kind"] = "fontlist"
             meta["choices"] = _font_choices(generic=key.lower() == "font.family")
+        elif kind == "colormap":
+            meta["type"] = str
+            meta["kind"] = "colormap"
         elif kind == "cmap":
             try:
                 choices = [str(name) for name in plt.colormaps()]  # pyright: ignore[reportAttributeAccessIssue]

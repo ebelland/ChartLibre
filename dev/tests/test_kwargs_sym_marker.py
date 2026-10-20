@@ -45,3 +45,30 @@ def test_the_property_tree_gives_its_height_back_in_a_short_panel(qapp) -> None:
 
     panel = DictEditorPanel()
     assert panel.minimumHeight() <= 160 and panel.tree.minimumHeight() <= 160
+
+
+def test_cmap_is_picked_from_the_colormaps_with_their_gradients(qapp) -> None:
+    from PySide6.QtWidgets import QStyleOptionViewItem
+
+    from app.dialogs.edit_mpl_styles_dialog import MplStyleEditorDialog
+    from app.widgets.dictionary_editor import DictEditorPanel, DictValueDelegate
+    from app.widgets.drop_down_controls.colormap_combo import ColormapCombo, colormap_names
+
+    names = colormap_names()
+    assert names[:5] == ["viridis", "plasma", "inferno", "magma", "cividis"]
+    assert "viridis_r" not in names and len(names) > 50
+    assert _kind_for_key("cmap", {}) == "colormap"
+
+    panel = DictEditorPanel()
+    panel.set_config({"cmap": {"default": None, "type": str, "kind": "colormap"}})
+    index = panel.tree.indexFromItem(panel._key_items["cmap"], 1)
+    delegate = DictValueDelegate(panel)
+    editor = delegate.createEditor(panel.tree.viewport(), QStyleOptionViewItem(), index)
+    assert isinstance(editor, ColormapCombo) and editor.isEditable()
+    assert not editor.itemIcon(editor.findData("plasma")).isNull()
+    editor.set_current_colormap("magma_r")  # a reversed one, typed
+    delegate.setModelData(editor, panel.tree.model(), index)
+    assert panel.value_for_key("cmap") == "magma_r"
+
+    meta = MplStyleEditorDialog._schema_for_key(None, "image.cmap", "viridis")  # uses nothing of self
+    assert meta["kind"] == "colormap"

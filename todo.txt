@@ -1,26 +1,7 @@
 ChartLibre TODO - updated 2026-10-20
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 100,183 lines in 289 files; tests 19,966 lines in 165 files (updated at each commit).
-
-NOW
-R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
-R-03  M  Reproducibility: re-run recorded operations; export a Python script (H-01).
-
-I-01  M  Import more formats (dev/plans/import_formats_plan.txt). Done: the importers plugin family
-         (app/importers, user/importers), the Import dialog's Dataset combo, "Read as", Metadata frame
-         (kept as the table's source_metadata). Read now: Stata, SAS, SPSS*, R*, Parquet/Feather*, .ods*,
-         .xlsb*, MATLAB .mat, WAV, Touchstone .sNp (v1), SPICE .raw (ASCII, binary, LTspice UTF-16,
-         .step), VCD, JCAMP-DX (plain numbers), LabVIEW .lvm, GPX, GraphPad .pzfx; JMP/Minitab/Origin
-         refused with what to do (* = needs its package; the message says which).
-         Next: Touchstone v2 and compressed JCAMP (SQZ/DIF); NI TDMS, HDF5/NetCDF, STDF, Igor, FCS,
-         EDF, SPC, OPUS, .xrdml, MDF4; oscilloscopes (Tektronix, LeCroy, Keysight); B1500 / 4200A
-         exports and KLARF - NEED THE OWNER'S SAMPLE FILES; manual's Import chapter table of formats.
-I-02  M  Importer plugins for a lab's own formats - EVALUATION AND PLAN: dev/plans/importer_plugins_plan.txt
-         (sniff for .csv/.txt, Importer Builder with "Try on a file", installed list; waiting for the go).
-A-01  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in New Chart, Id included;
-         an Animation tab in Chart properties; a player; GIF/APNG/WebP/HTML/PNG frames, MP4 with ffmpeg).
-         Waiting for the go; Q1-Q5 to answer.
+Size: app 100,304 lines in 290 files; tests 20,040 lines in 166 files (updated at each commit).
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
@@ -53,12 +34,27 @@ LATER
 - R-13  S  Known-answer tests where NIST has no dataset; Longley.
 - R-14  L  Multichart templates; signed macOS app, Windows installer.
 - P2-12 M  Small chart beside operation results.
-- N-09  M  "Colour by value" dialog.
+- R-16  M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
+- R-03  M  Reproducibility: re-run recorded operations; export a Python script (H-01).
 
 IDEAS
-- 3D vector fields (divergence, curl); 3D parametric curves.
-- User Python/sympy operations (sandboxed); script/notebook export,
-  units with pint, uncertainty propagation.
+
+I-01  M  Import more formats (dev/plans/import_formats_plan.txt). Done: the importers plugin family
+         (app/importers, user/importers), the Import dialog's Dataset combo, "Read as", Metadata frame
+         (kept as the table's source_metadata). Read now: Stata, SAS, SPSS*, R*, Parquet/Feather*, .ods*,
+         .xlsb*, MATLAB .mat, WAV, Touchstone .sNp (v1), SPICE .raw (ASCII, binary, LTspice UTF-16,
+         .step), VCD, JCAMP-DX (plain numbers), LabVIEW .lvm, GPX, GraphPad .pzfx; JMP/Minitab/Origin
+         refused with what to do (* = needs its package; the message says which).
+         Next: Touchstone v2 and compressed JCAMP (SQZ/DIF); NI TDMS, HDF5/NetCDF, STDF, Igor, FCS,
+         EDF, SPC, OPUS, .xrdml, MDF4; oscilloscopes (Tektronix, LeCroy, Keysight); B1500 / 4200A
+         exports and KLARF - NEED THE OWNER'S SAMPLE FILES; manual's Import chapter table of formats.
+I-02  M  Importer plugins for a lab's own formats - EVALUATION AND PLAN: dev/plans/importer_plugins_plan.txt
+         (sniff for .csv/.txt, Importer Builder with "Try on a file", installed list; waiting for the go).
+A-01  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in New Chart, Id included;
+         an Animation tab in Chart properties; a player; GIF/APNG/WebP/HTML/PNG frames, MP4 with ffmpeg).
+         Waiting for the go; Q1-Q5 to answer.
+I-03     3D vector fields (divergence, curl); 3D parametric curves.
+         units with pint, uncertainty propagation.
 
 [YOU]
 - A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
