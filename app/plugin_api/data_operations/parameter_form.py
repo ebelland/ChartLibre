@@ -46,6 +46,12 @@ from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
 #: and one such box pushed every field past the panel's right edge. The
 #: field still grows to fill the row; it only no longer refuses to shrink.
 SPIN_MIN_WIDTH: int = 80
+#: The widest a field becomes in a wide window: a number needs a few digits,
+#: a choice or a line its words - stretched across the whole settings panel,
+#: "Threshold: 2.400" ran a hand's width from its label (Explore Outliers).
+SPIN_MAX_WIDTH: int = 140
+FIELD_MAX_WIDTH: int = 260
+COLOR_MAX_WIDTH: int = 180
 
 
 class ParameterForm:
@@ -169,6 +175,15 @@ class ParameterForm:
 
         if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
             widget.setMinimumWidth(SPIN_MIN_WIDTH)
+            widget.setMaximumWidth(SPIN_MAX_WIDTH)
+        elif isinstance(widget, MatplotlibColorCombo):
+            # Its longest name ("lightgoldenrodyellow") is no measure of the one shown.
+            widget.setMaximumWidth(COLOR_MAX_WIDTH)
+        elif isinstance(widget, QComboBox):
+            # As wide as its longest choice (the arrow included), never past the limit.
+            widget.setMaximumWidth(min(FIELD_MAX_WIDTH, max(widget.sizeHint().width(), SPIN_MAX_WIDTH)))
+        elif isinstance(widget, QLineEdit):
+            widget.setMaximumWidth(FIELD_MAX_WIDTH)
         if param.tooltip:
             widget.setToolTip(_(param.tooltip))
         return widget
