@@ -669,6 +669,13 @@
       "SegoeFluent": "E9D2",
       "ThemeIcon": "view-statistics"
     },
+    "column_info": {
+      "text": "Column Info...",
+      "description": "Name, type, modelling type, label, unit, missing value codes and value labels of the column",
+      "SFSymbol": "info.circle",
+      "SegoeFluent": "E946",
+      "ThemeIcon": "dialog-information"
+    },
     "table_group_aggregate": {
       "text": "Group and aggregate...",
       "description": "Summarise this table by one or more columns into a new table",
@@ -1136,6 +1143,26 @@
       "level": "warning",
       "title": "Import",
       "text": "All columns are empty or set to Ignore."
+    },
+    "column_info.no_name": {
+      "level": "warning",
+      "title": "Column Info",
+      "text": "Please enter a name for the column."
+    },
+    "column_info.failed": {
+      "level": "error",
+      "title": "Column Info",
+      "text": "The column could not be changed: {error}"
+    },
+    "column_info.cast_failed": {
+      "level": "warning",
+      "title": "Column Info",
+      "text": "{count} value(s) could not be read as {kind} and were left empty."
+    },
+    "column_info.too_many_values": {
+      "level": "info",
+      "title": "Column Info",
+      "text": "The column has {count} distinct values: value labels are for columns of at most {limit}."
     },
     "import.no_table_name": {
       "level": "warning",

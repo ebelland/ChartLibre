@@ -200,6 +200,17 @@ class TablePreviewPanel(QWidget):
         self._table = None
         self.view.setModel(None)
 
+    def _open_column_info(self, column: str) -> None:
+        """Column Info (R-08): the column's name, types and description; the preview reloads after."""
+        from app.dialogs.column_info_dialog import ColumnInfoDialog
+
+        if self._repo is None or not self._table:
+            return
+        dialog = ColumnInfoDialog(self._repo, str(self._table), column, self)
+        if dialog.exec():
+            self._reload_model()
+            self.refresh.emit()
+
     def set_context(self, repo: SqliteRepo | None, table: str | None) -> None:
         if repo is None or not table:
             self.clear()
@@ -308,6 +319,15 @@ class TablePreviewPanel(QWidget):
                     callback=lambda _=False, col=column: self._show_column_stats(col),
                     icon="column_stats",
                     tooltip=_("Count, empty cells, distinct values, and min, max, mean and median"),
+                )
+            )
+            items.append(
+                MenuItem(
+                    _("Column Info..."),
+                    callback=lambda _=False, col=column: self._open_column_info(col),
+                    icon="column_info",
+                    tooltip=_("Name, type, modelling type, label, unit, missing value codes and value labels "
+                              "of the column"),
                 )
             )
         _rows, positions = self._selected_block()

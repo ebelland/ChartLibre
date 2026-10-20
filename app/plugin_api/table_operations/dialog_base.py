@@ -51,6 +51,7 @@ from PySide6.QtWidgets import (
 )
 
 from app import APP_VERSION
+from app.data import column_metadata
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.analysis import Stopped
 from app.logs.logger import applogger
@@ -346,7 +347,9 @@ class TableOperationDialogBase(QDialog):
             frame = frame[pd.to_numeric(frame["Hide"], errors="coerce").fillna(0) == 0]
         frame = frame.reset_index(drop=True)
         self.row_ids = frame[ROW_ID].astype("Int64") if ROW_ID in frame.columns else pd.Series(dtype="Int64")
-        return frame.drop(columns=[c for c in frame.columns if c in APPLICATION_COLUMNS or c == ROW_ID])
+        frame = frame.drop(columns=[c for c in frame.columns if c in APPLICATION_COLUMNS or c == ROW_ID])
+        # Column Info (R-08): missing codes read as empty, value labels in place of their codes.
+        return column_metadata.apply_to_frame(frame, column_metadata.column_info(self._repo, table))
 
     def _on_table_changed(self, *_args: Any) -> None:
         self._remember_casting()
@@ -358,7 +361,9 @@ class TableOperationDialogBase(QDialog):
         else:
             roles, kinds = self.default_casting(table, self._frame) if table else ({}, {})
         declared = {str(row[1]): str(row[2] or "") for row in self._repo.table_info(table)} if table else {}
-        self.roles_widget.set_columns(self._frame, kinds, declared)
+        # A modelling type forced in Column Info wins over the one remembered or guessed.
+        forced = column_metadata.forced_kinds(column_metadata.column_info(self._repo, table)) if table else {}
+        self.roles_widget.set_columns(self._frame, {**dict(kinds), **forced}, declared)
         self.roles_widget.set_casting(roles)
         self._cast_table = table
         self.inputs_changed()

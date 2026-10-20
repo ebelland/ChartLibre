@@ -10372,3 +10372,69 @@ msgstr "Salva ClusterId nella tabella"
 
 msgid "As JMP's Save Clusters: each row's cluster in the table's own ClusterId column - the one the Clustering operation writes - to colour or filter any chart by it; 0 for a row in no cluster."
 msgstr "Come Save Clusters di JMP: il cluster di ogni riga nella colonna ClusterId della tabella - la stessa che scrive l'operazione Clustering - per colorare o filtrare qualsiasi grafico; 0 per una riga senza cluster."
+
+msgid "-999, NA, n/d"
+msgstr "-999, NA, n/d"
+
+msgid "A row for each distinct value not listed yet (up to {n})."
+msgstr "Una riga per ogni valore distinto non ancora elencato (fino a {n})."
+
+msgid "Column Info..."
+msgstr "Info colonna..."
+
+msgid "Column Info: {column}"
+msgstr "Info colonna: {column}"
+
+msgid "Fill from the data"
+msgstr "Riempi dai dati"
+
+msgid "From the values"
+msgstr "Dai valori"
+
+msgid "How the analyses take the column: as measurements (continuous), ordered levels (ordinal) or categories (nominal). Forced here, it is the column's type in every analysis."
+msgstr "Come le analisi considerano la colonna: misure (continua), livelli ordinati (ordinale) o categorie (nominale). Forzato qui, è il tipo della colonna in ogni analisi."
+
+msgid "How the values are stored. Changing it converts them; a value that cannot be read in the new type is left empty."
+msgstr "Come sono memorizzati i valori. Cambiarlo li converte; un valore che non si può leggere nel nuovo tipo resta vuoto."
+
+msgid "Label:"
+msgstr "Etichetta:"
+
+msgid "Missing value codes:"
+msgstr "Codici di valore mancante:"
+
+msgid "Modelling type:"
+msgstr "Tipo di modello:"
+
+msgid "Name, type, modelling type, label, unit, missing value codes and value labels of the column"
+msgstr "Nome, tipo, tipo di modello, etichetta, unità, codici di valore mancante ed etichette dei valori della colonna"
+
+msgid "Notes:"
+msgstr "Note:"
+
+msgid "Unit:"
+msgstr "Unità:"
+
+msgid "Value labels: the analyses show the label in place of the value (1 -> male)."
+msgstr "Etichette dei valori: le analisi mostrano l'etichetta al posto del valore (1 -> maschio)."
+
+msgid "Values that mean \"no value\", separated by commas: the analyses read them as empty."
+msgstr "Valori che significano \"nessun valore\", separati da virgole: le analisi li leggono come vuoti."
+
+msgid "mm, °C, mV..."
+msgstr "mm, °C, mV..."
+
+msgid "{count} values, {empty} empty, {distinct} distinct"
+msgstr "{count} valori, {empty} vuoti, {distinct} distinti"
+
+msgid "Please enter a name for the column."
+msgstr "Inserisci un nome per la colonna."
+
+msgid "The column could not be changed: {error}"
+msgstr "Non è stato possibile modificare la colonna: {error}"
+
+msgid "The column has {count} distinct values: value labels are for columns of at most {limit}."
+msgstr "La colonna ha {count} valori distinti: le etichette dei valori sono per colonne con al massimo {limit}."
+
+msgid "Column Info"
+msgstr "Info colonna"
