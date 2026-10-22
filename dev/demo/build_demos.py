@@ -30,7 +30,7 @@ import json
 
 import argparse
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
@@ -126,6 +126,10 @@ class MultiAxisFigureSpec:
     layout: str
     axes: list[AxisSpec]
     queries: tuple[str, ...] = ()
+    #: A mosaic text ("AB;CC") laid out instead of ``layout``, through layout_presets.plan_mosaic.
+    mosaic: str = ""
+    #: Figure options besides the style and layout mode: the panel letters.
+    figure_options: dict[str, Any] = field(default_factory=dict)
 
 
 # ----------------------------------------------------------------------
@@ -2273,6 +2277,86 @@ def _multi_axis_figure_specs() -> list[MultiAxisFigureSpec]:
     """
     return [
         MultiAxisFigureSpec(
+            name="67 · A paper figure - a mosaic with panel letters",
+            key="paper_mosaic",
+            tables=("penguins", "dlvo_curve"),
+            queries=(),
+            layout=layout_presets.GRID,
+            mosaic="AB;CC",
+            figure_options={"panel_labels": "(a)"},
+            axes=[
+                AxisSpec(
+                    chart_type="Scatter Plot",
+                    title="Flipper length and body mass",
+                    x_label="flipper length (mm)",
+                    y_label="body mass (g)",
+                    axis_options={"grid": True},
+                    series=[
+                        SeriesSpec(
+                            name=species,
+                            sql=("SELECT flipper_length_mm AS x, body_mass_g AS y FROM penguins "
+                                 f"WHERE species = '{species}'"),
+                            roles={"x": "x", "y": "y"},
+                            style={"marker": "o", "alpha": 0.7},
+                        )
+                        for species in ("Adelie", "Chinstrap", "Gentoo")
+                    ],
+                ),
+                AxisSpec(
+                    chart_type="Histogram",
+                    title="Body mass",
+                    x_label="body mass (g)",
+                    y_label="",
+                    axis_options={"bins": 20, "grid": True, "grid_axis": "y"},
+                    series=[
+                        SeriesSpec(name="all penguins", sql="SELECT body_mass_g AS value FROM penguins",
+                                   roles={"value": "value"}, style={}),
+                    ],
+                ),
+                AxisSpec(
+                    chart_type="Scatter Plot",
+                    title="Force between two surfaces",
+                    x_label="separation (nm)",
+                    y_label="force (nN)",
+                    axis_options={"grid": True},
+                    series=[
+                        SeriesSpec(
+                            name="Force",
+                            sql="SELECT separation_nm AS x, F_total_nN AS y FROM dlvo_curve ORDER BY separation_nm",
+                            roles={"x": "x", "y": "y"},
+                            style={"marker": "", "linestyle": "-"},
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        MultiAxisFigureSpec(
+            name="68 · Stacked panels on one time axis",
+            key="paper_stacked",
+            tables=("stock_prices",),
+            queries=(),
+            layout=layout_presets.STACKED_SHARED_X,
+            figure_options={"panel_labels": "A", "panel_label_position": "inside"},
+            axes=[
+                AxisSpec(
+                    chart_type="Time Series",
+                    title=ticker,
+                    x_label="date" if ticker == "COKE" else "",
+                    y_label="close (USD)",
+                    axis_options={"grid": True, "show_rolling": False, "gap_threshold": "5D"},
+                    series=[
+                        SeriesSpec(
+                            name=ticker,
+                            sql=f"SELECT date AS x, close AS y FROM stock_prices WHERE stock = '{ticker}' ORDER BY date",
+                            roles={"x": "x", "y": "y"},
+                            style={"linestyle": "-", "marker": ""},
+                        ),
+                    ],
+                )
+                for ticker in ("AAPL", "TSLA", "COKE")
+            ],
+        ),
+        MultiAxisFigureSpec(
             name="17 · Stock prices - main and secondary",
             key="stock_main_secondary",
             tables=("stock_prices",),
@@ -2807,7 +2891,7 @@ def _create_multi_axis_figure(repo: SqliteRepo, spec: MultiAxisFigureSpec) -> in
         name=spec.name,
         nrows=1,
         ncols=1,
-        options={"mpl_style": demo_style(), "layout_mode": "constrained"},
+        options={"mpl_style": demo_style(), "layout_mode": "constrained", **spec.figure_options},
     )
 
     axis_ids: list[int] = []
@@ -2832,7 +2916,11 @@ def _create_multi_axis_figure(repo: SqliteRepo, spec: MultiAxisFigureSpec) -> in
                 style=series.style,
             )
 
-    plan = layout_presets.plan_layout(spec.layout, axis_ids)
+    plan = (
+        layout_presets.plan_mosaic(spec.mosaic, axis_ids)
+        if spec.mosaic
+        else layout_presets.plan_layout(spec.layout, axis_ids)
+    )
     repo.apply_axis_layout(
         figure_id=figure_id,
         nrows=plan.nrows,

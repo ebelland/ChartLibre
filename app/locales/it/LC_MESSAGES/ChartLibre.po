@@ -10795,3 +10795,54 @@ msgstr "Anche in"
 
 msgid "A second scale along the top (x) or the right (y): this axis in other units."
 msgstr "Una seconda scala lungo il lato superiore (x) o destro (y): questo asse in altre unità."
+
+msgid "Figures for papers - a mosaic, panel letters and stacked panels"
+msgstr "Figure per articoli - un mosaico, lettere dei pannelli e pannelli impilati"
+
+msgid "Two multi-axis figures laid out the way a paper does: a mosaic (Figure properties > Mosaic, AB;CC - a repeated letter is one axis spanning cells) with panel letters (a), (b), (c) on each panel, and three price series stacked on one shared time axis with letters A, B, C inside the corners. Panel letters and the layouts are in Figure properties."
+msgstr "Due figure con più assi disposte come in un articolo: un mosaico (Proprietà figura > Mosaico, AB;CC - una lettera ripetuta è un solo asse che occupa più celle) con le lettere dei pannelli (a), (b), (c) su ognuno, e tre serie di prezzi impilate su un solo asse del tempo condiviso con le lettere A, B, C dentro gli angoli. Lettere dei pannelli e disposizioni sono in Proprietà figura."
+
+msgid "Stacked, shared x"
+msgstr "Impilati, x condivisa"
+
+msgid "Side by side, shared y"
+msgstr "Affiancati, y condivisa"
+
+msgid "Mosaic"
+msgstr "Mosaico"
+
+msgid "AAB;CCB"
+msgstr "AAB;CCB"
+
+msgid "Lay the axes out as a mosaic: one letter per cell, A the first axis, B the second. A repeated letter is one axis spanning those cells; a dot is an empty cell; ; or Enter starts a new row. Press Enter to apply."
+msgstr "Disponi gli assi come un mosaico: una lettera per cella, A il primo asse, B il secondo. Una lettera ripetuta è un solo asse che occupa quelle celle; un punto è una cella vuota; ; o Invio inizia una nuova riga. Premi Invio per applicare."
+
+msgid "Panel letters"
+msgstr "Lettere pannelli"
+
+msgid "Write a letter on each panel of a multi-axis figure."
+msgstr "Scrivi una lettera su ogni pannello di una figura con più assi."
+
+msgid "Above the corner"
+msgstr "Sopra l'angolo"
+
+msgid "Inside the corner"
+msgstr "Dentro l'angolo"
+
+msgid "a, b, c"
+msgstr "a, b, c"
+
+msgid "A, B, C"
+msgstr "A, B, C"
+
+msgid "(a), (b), (c)"
+msgstr "(a), (b), (c)"
+
+msgid "a), b), c)"
+msgstr "a), b), c)"
+
+msgid "(A), (B), (C)"
+msgstr "(A), (B), (C)"
+
+msgid "A., B., C."
+msgstr "A., B., C."

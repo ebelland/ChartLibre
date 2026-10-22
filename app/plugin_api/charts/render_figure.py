@@ -29,7 +29,7 @@ from matplotlib.ticker import NullLocator
 
 from app.plugin_api.charts.text_lines import display_text, multialignment
 from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
-from app.plugin_api.charts import axis_options, secondary_axis
+from app.plugin_api.charts import axis_options, panel_labels, secondary_axis
 from app.plugin_api.charts.base import SeriesData
 from app.data.descriptors import AxisDescriptor, FigureDescriptor, SeriesDescriptor
 from app.data.series_frame import SeriesFrame
@@ -243,6 +243,21 @@ def render_figure_from_descriptor(
                 _fit_x_tick_labels(figure, ax, axis_desc.options if isinstance(axis_desc.options, dict) else {})
         _apply_layout(figure, descriptor)
         _normalize_axes_fill_policy(figure, descriptor)
+        _apply_panel_labels(figure, descriptor, base_axes, ax_by_id)
+
+
+def _apply_panel_labels(
+    figure: Figure,
+    descriptor: FigureDescriptor,
+    base_axes: list[AxisDescriptor],
+    ax_by_id: dict[int, Any],
+) -> None:
+    """The figure's panel letters, on its base axes in grid order (a twin shares its target's letter)."""
+    options = descriptor.options if isinstance(descriptor.options, dict) else {}
+    if not options.get("panel_labels"):
+        return
+    ordered = sorted(base_axes, key=lambda axis_desc: (int(axis_desc.index), int(axis_desc.id)))
+    panel_labels.apply_panel_labels([ax_by_id[int(a.id)] for a in ordered if int(a.id) in ax_by_id], options)
 
 
 def _twin_targets(axes: list[AxisDescriptor]) -> dict[int, int]:

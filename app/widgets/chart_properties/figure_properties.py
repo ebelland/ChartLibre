@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.plugin_api.charts import layout_presets
+from app.plugin_api.charts import layout_presets, panel_labels
 from app.plugin_api.charts.render_figure import (
     OPT_DOWNSAMPLE_THRESHOLD,
     OPT_SHARED_HORIZONTAL_SPACE,
@@ -87,6 +87,8 @@ class FigurePropertiesWidget(BaseProperties):
     figure_options_requested = Signal(dict)
     #: Emitted with one of app.plugin_api.charts.layout_presets.PRESETS.
     layout_preset_requested = Signal(str)
+    #: Emitted with a mosaic text ("AAB;CCB") to arrange the axes by (layout_presets.plan_mosaic).
+    layout_mosaic_requested = Signal(str)
 
     #: (label, preset constant) for the layout preset combo, in the order
     #: offered. Grid first, since it is what a new figure already looks
@@ -96,6 +98,8 @@ class FigurePropertiesWidget(BaseProperties):
         ("Shared axes (grid)", layout_presets.SHARED_GRID),
         ("Main + secondary (grid)", layout_presets.MAIN_AND_SECONDARY),
         ("Overlapping (twin Y)", layout_presets.OVERLAPPING),
+        ("Stacked, shared x", layout_presets.STACKED_SHARED_X),
+        ("Side by side, shared y", layout_presets.SIDE_BY_SIDE_SHARED_Y),
     )
 
     #: The shipped style the "ChartLibreDefault" button applies (file stem in MPLSTYLES_DIR).
@@ -211,6 +215,9 @@ class FigurePropertiesWidget(BaseProperties):
         self._on_resize_mode_changed: Callable[[str], None] | None = None
         self._fig_layout_mode: QComboBox
         self._downsample_combo: QComboBox
+        self._mosaic_edit: QLineEdit
+        self._panel_labels_combo: QComboBox
+        self._panel_position_combo: QComboBox
         # Bound before _build_ui rather than declared: the layout combo's
         # currentIndexChanged handler reads them, and a stray signal during
         # construction would otherwise hit an attribute that does not exist.
@@ -285,6 +292,8 @@ class FigurePropertiesWidget(BaseProperties):
             *self._margin_spins.values(),
             self._fig_frameon,
             self._font_scale,
+            self._panel_labels_combo,
+            self._panel_position_combo,
         )
 
     def _shared_space_spin(self, parent: QWidget) -> QDoubleSpinBox:
@@ -487,6 +496,44 @@ class FigurePropertiesWidget(BaseProperties):
             )
         )
         grid_section_lay.addWidget(preset_row)
+
+        # A mosaic, as plt.subplot_mosaic reads it: letters are the axes in order, a repeated letter
+        # is one axis spanning those cells, a dot an empty cell.
+        self._mosaic_edit = QLineEdit(grid_section)
+        self._mosaic_edit.setPlaceholderText(_("AAB;CCB"))
+        self._mosaic_edit.setToolTip(
+            _("Lay the axes out as a mosaic: one letter per cell, A the first axis, B the second. "
+              "A repeated letter is one axis spanning those cells; a dot is an empty cell; ; or Enter "
+              "starts a new row. Press Enter to apply.")
+        )
+        self._mosaic_edit.returnPressed.connect(self._on_mosaic_entered)
+        mosaic_row = QWidget(grid_section)
+        mosaic_lay = QHBoxLayout(mosaic_row)
+        mosaic_lay.setContentsMargins(0, 0, 0, 0)
+        mosaic_lay.setSpacing(8)
+        mosaic_lay.addWidget(QLabel(_("Mosaic"), mosaic_row))
+        mosaic_lay.addWidget(self._mosaic_edit, 1)
+        grid_section_lay.addWidget(mosaic_row)
+
+        # Letters for the panels, for a paper's text to refer to.
+        self._panel_labels_combo = QComboBox(grid_section)
+        self._configure_combo_width(self._panel_labels_combo, minimum_contents_length=10)
+        for value, text in panel_labels.STYLES:
+            self._panel_labels_combo.addItem(_(text), value)
+        self._panel_labels_combo.setToolTip(_("Write a letter on each panel of a multi-axis figure."))
+        self._panel_position_combo = QComboBox(grid_section)
+        self._configure_combo_width(self._panel_position_combo, minimum_contents_length=10)
+        for value, text in panel_labels.POSITIONS:
+            self._panel_position_combo.addItem(_(text), value)
+        grid_section_lay.addWidget(
+            PairGrid(
+                [
+                    (QLabel(_("Panel letters"), grid_section), self._panel_labels_combo),
+                    (QLabel(_("Position"), grid_section), self._panel_position_combo),
+                ],
+                grid_section,
+            )
+        )
 
         lay.addWidget(grid_section)
 
@@ -758,6 +805,9 @@ class FigurePropertiesWidget(BaseProperties):
             self._font_scale,
             self._fig_layout_mode,
             self._downsample_combo,
+            self._mosaic_edit,
+            self._panel_labels_combo,
+            self._panel_position_combo,
         ):
             widget.setEnabled(enabled)
 
@@ -872,6 +922,12 @@ class FigurePropertiesWidget(BaseProperties):
         )
 
         self._select_layout_mode(current_layout)
+        for combo, key, default in (
+            (self._panel_labels_combo, "panel_labels", ""),
+            (self._panel_position_combo, "panel_label_position", "outside"),
+        ):
+            index = combo.findData(str(fig_opts.get(key) or default))
+            combo.setCurrentIndex(max(0, index))
 
         try:
             downsample_threshold = int(
@@ -1049,6 +1105,13 @@ class FigurePropertiesWidget(BaseProperties):
         if not preset:
             return
         self.layout_preset_requested.emit(str(preset))
+
+    def _on_mosaic_entered(self) -> None:
+        """Request the mosaic typed, applied across every axis in the figure."""
+        text = self._mosaic_edit.text().strip()
+        if self._repo is None or self._figure_id is None or not text:
+            return
+        self.layout_mosaic_requested.emit(text)
 
     def _reset_layout_preset_combo(self) -> None:
         """Put the preset combo back on its placeholder row, silently.
@@ -1233,6 +1296,8 @@ class FigurePropertiesWidget(BaseProperties):
             "layout_mode": str(
                 self._fig_layout_mode.currentData() or self.DEFAULT_LAYOUT_MODE
             ),
+            "panel_labels": str(self._panel_labels_combo.currentData() or "") or None,
+            "panel_label_position": str(self._panel_position_combo.currentData() or "outside"),
             OPT_DOWNSAMPLE_THRESHOLD: int(self._downsample_combo.currentData() or 0),
             OPT_SHARED_VERTICAL_SPACE: float(self._shared_vspace.value()),
             OPT_SHARED_HORIZONTAL_SPACE: float(self._shared_hspace.value()),

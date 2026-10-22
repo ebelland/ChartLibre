@@ -136,8 +136,9 @@ Matplotlib
            labels (clabel) already existed in Contour Plot.
 - G-17  S  Secondary axis as a conversion of the first done (Axis properties > Also in: 21 conversions).
            Left: broken axis for line charts (Broken Bar exists). Demo: "Matrices and scales".
-- G-18  M  Figure layout for papers: subplot_mosaic multichart, shared axes, panel letters
-           (a, b, c). With I-08 and H-05. Animation is I-03.
+- G-18  M  Figure layout for papers: mosaic text (Figure properties > Mosaic), stacked/side-by-side
+           shared presets and panel letters done. Left: letters in an exported figure's template (I-08), size by
+           journal column (H-05). Animation is I-03. Demo: "Figures for papers".
 
 scikit-learn
 - G-19  M  More learners: k-nearest neighbours, SVM (SVC/SVR), naive Bayes, HistGradientBoosting

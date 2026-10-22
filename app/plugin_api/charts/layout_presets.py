@@ -33,7 +33,16 @@ MAIN_AND_SECONDARY: str = "main_and_secondary"
 #: chart. An odd axis out is left as an ordinary grid cell of its own.
 OVERLAPPING: str = "overlapping"
 
-PRESETS: tuple[str, ...] = (GRID, SHARED_GRID, MAIN_AND_SECONDARY, OVERLAPPING)
+#: One column, the axes stacked, every one on the first one's x: panels over a common time or
+#: wavelength axis, the way a paper stacks them.
+STACKED_SHARED_X: str = "stacked_shared_x"
+
+#: One row, the axes side by side on the first one's y: the same quantity under different conditions.
+SIDE_BY_SIDE_SHARED_Y: str = "side_by_side_shared_y"
+
+PRESETS: tuple[str, ...] = (
+    GRID, SHARED_GRID, MAIN_AND_SECONDARY, OVERLAPPING, STACKED_SHARED_X, SIDE_BY_SIDE_SHARED_Y,
+)
 
 #: Keys a preset owns outright. Every placement sets all five, clearing the
 #: ones it does not use to ``None`` (removed by the caller rather than
@@ -164,7 +173,82 @@ def _plan_overlapping(ids: list[int]) -> LayoutPlan:
     return LayoutPlan(nrows=rows, ncols=cols, axes=tuple(placements))
 
 
+def _plan_stacked_shared_x(ids: list[int]) -> LayoutPlan:
+    placements = tuple(
+        AxisPlacement(axis_id=axis_id, axis_index=index, options=_cleared() if index == 0 else _cleared(sharex=True))
+        for index, axis_id in enumerate(ids)
+    )
+    return LayoutPlan(nrows=len(ids), ncols=1, axes=placements)
+
+
+def _plan_side_by_side_shared_y(ids: list[int]) -> LayoutPlan:
+    placements = tuple(
+        AxisPlacement(axis_id=axis_id, axis_index=index, options=_cleared() if index == 0 else _cleared(sharey=True))
+        for index, axis_id in enumerate(ids)
+    )
+    return LayoutPlan(nrows=1, ncols=len(ids), axes=placements)
+
+
+def plan_mosaic(text: str, axis_ids: list[int]) -> LayoutPlan:
+    """A figure laid out as a mosaic, like ``plt.subplot_mosaic``: ``"AAB;CCB"`` or one row per line.
+
+    Each letter names an axis by its place in *axis_ids* (A the first, B the second...);
+    a letter filling a rectangle of cells makes that axis span them, and a dot (``.``) is
+    an empty cell. Axes the mosaic does not name are placed afterwards, one full row each.
+    Raises ``ValueError``, saying what is wrong, for rows of different lengths, a letter
+    that is not a rectangle, or one with no axis behind it.
+    """
+    ids = [int(axis_id) for axis_id in axis_ids]
+    rows = [row.strip() for row in str(text or "").replace(";", "\n").splitlines() if row.strip()]
+    if not rows:
+        raise ValueError("The mosaic is empty.")
+    columns = len(rows[0])
+    if any(len(row) != columns for row in rows):
+        raise ValueError("Every row of the mosaic needs the same number of cells.")
+    cells: dict[str, list[tuple[int, int]]] = {}
+    for r, row in enumerate(rows):
+        for c, name in enumerate(row):
+            if name != ".":
+                cells.setdefault(name, []).append((r, c))
+    placements = []
+    used: list[int] = []
+    for name, spots in sorted(cells.items(), key=lambda item: item[1][0]):
+        index = ord(name.upper()) - ord("A")
+        if not name.isalpha() or index >= len(ids):
+            raise ValueError(f"'{name}' names no axis: this figure has {len(ids)}, A to {chr(ord('A') + len(ids) - 1)}.")
+        top, left = min(r for r, _c in spots), min(c for _r, c in spots)
+        bottom, right = max(r for r, _c in spots), max(c for _r, c in spots)
+        if len(spots) != (bottom - top + 1) * (right - left + 1):
+            raise ValueError(f"'{name}' is not a rectangle.")
+        if ids[index] in used:
+            raise ValueError(f"'{name}' and its other case name the same axis.")
+        used.append(ids[index])
+        placements.append((ids[index], top, left, bottom - top + 1, right - left + 1))
+    height = len(rows)
+    for axis_id in ids:
+        if axis_id not in used:
+            placements.append((axis_id, height, 0, 1, columns))
+            height += 1
+    return LayoutPlan(
+        nrows=height,
+        ncols=columns,
+        axes=tuple(
+            AxisPlacement(
+                axis_id=axis_id,
+                axis_index=top * columns + left,
+                options=_cleared(
+                    row_span=row_span if row_span > 1 else None,
+                    col_span=col_span if col_span > 1 else None,
+                ),
+            )
+            for axis_id, top, left, row_span, col_span in placements
+        ),
+    )
+
+
 _PRESET_BUILDERS = {
+    STACKED_SHARED_X: _plan_stacked_shared_x,
+    SIDE_BY_SIDE_SHARED_Y: _plan_side_by_side_shared_y,
     GRID: _plan_grid,
     SHARED_GRID: _plan_shared_grid,
     MAIN_AND_SECONDARY: _plan_main_and_secondary,

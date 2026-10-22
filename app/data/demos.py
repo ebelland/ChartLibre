@@ -208,6 +208,17 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Graph",
     ),
     DemoProject(
+        "Figures for papers - a mosaic, panel letters and stacked panels",
+        "Two multi-axis figures laid out the way a paper does: a mosaic (Figure properties > Mosaic, "
+        "AB;CC - a repeated letter is one axis spanning cells) with panel letters (a), (b), (c) on "
+        "each panel, and three price series stacked on one shared time axis with letters A, B, C "
+        "inside the corners. Panel letters and the layouts are in Figure properties.",
+        ("paper_mosaic", "paper_stacked"),
+        preview="A paper figure",
+        references=(REF_PENGUINS,),
+        category="Graph",
+    ),
+    DemoProject(
         "Quick answers - three questions asked of real data",
         "Start from a question, not a function: are the three penguin species "
         "different in body mass? What has the most impact on it? Has the "
