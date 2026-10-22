@@ -656,8 +656,12 @@ class SeriesPropertiesWidget(BaseProperties):
             )
             self._sort_x_check.setChecked(bool(style.get("sort_x", False)))
 
-            self._load_choice(self._linestyle_combo, "linestyle", style.get("linestyle", DEFAULT), none="none")
-            self._load_choice(self._marker_combo, "marker", style.get("marker", DEFAULT), none="")
+            # An absent key is read as None, not as DEFAULT: absent means "no line" (a
+            # scatter's markers only), where "default" means "the style's line". Sent
+            # back as the DEFAULT sentinel, the first edit of any other field turned a
+            # marker-only series into a line (issue #6). None is not written at all.
+            self._load_choice(self._linestyle_combo, "linestyle", style.get("linestyle"), none="none")
+            self._load_choice(self._marker_combo, "marker", style.get("marker"), none="")
             try:
                 markersize = float(style.get("markersize") or 0.0)
             except (TypeError, ValueError):

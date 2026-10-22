@@ -84,3 +84,11 @@ def test_a_label_held_in_the_descriptor_column_is_not_blanked(axis_widget: AxisP
 def test_an_option_label_wins_over_the_column_and_an_empty_one_stays_empty(axis_widget: AxisPropertiesWidget) -> None:
     payload = _axis_payload(axis_widget, {"x_label": "Mine", "y_label": ""}, x_label="Time_min", y_label="Thickness")
     assert (payload["x_label"], payload["y_label"]) == ("Mine", "")
+
+
+def test_a_series_without_a_line_style_key_stays_without_one(series_widget: SeriesPropertiesWidget) -> None:
+    """Absent means "no line" (a scatter's markers); "default" means the style's line (issue #6)."""
+    payload = _series_payload(series_widget, {"label": "Signal"})
+    assert payload["linestyle"] is None  # the handler removes a None key: nothing is written
+    assert payload["marker"] is None
+
