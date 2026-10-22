@@ -357,16 +357,67 @@ def _coerce_rc_color(value: object) -> object:
         return rgba_tuple
     raise TypeError(f"Invalid Matplotlib color value: {value!r}")
 
+def _cycler_item_to_str(prop: str, value: object) -> str:
+    """One cycler entry as text for the table: a colour tuple as bare hex, not "(0.1, 0.2, 0.3)".
+
+    A cycler can hold colours as RGB(A) tuples (a style written by another tool,
+    or Matplotlib's own conversion). Written as the tuple's repr they could not be
+    read back - "invalid RGBA argument" - so they are written as hex.
+    """
+    if prop == "color" and isinstance(value, (list, tuple)) and len(value) in (3, 4):
+        try:
+            from matplotlib.colors import to_hex
+
+            return _strip_hash(to_hex(tuple(float(v) for v in value), keep_alpha=len(value) == 4))
+        except (TypeError, ValueError):
+            pass
+    return _strip_hash(str(value))
+
+
+def _cycler_color_from_text(text: object) -> str:
+    """A cycler colour read from the table: bare hex, a name, or an RGB(A) tuple written out."""
+    raw = str(text).strip()
+    if raw[:1] in ("(", "["):
+        try:
+            parsed = ast.literal_eval(raw)
+            if isinstance(parsed, (list, tuple)) and len(parsed) in (3, 4):
+                from matplotlib.colors import to_hex
+
+                return to_hex(tuple(float(v) for v in parsed), keep_alpha=len(parsed) == 4)
+        except (ValueError, SyntaxError, TypeError):
+            pass
+    return _add_hash(raw)
+
+
+_CYCLER_PATTERN = (
+    r"^cycler\(\s*['\"]?(\w*)['\"]?\s*,\s*"
+    r"(\[(?:\s*['\"][^'\"]+['\"]\s*,?)*\])"
+    r"\s*\)$"
+)
+
+
+def _parse_cycler_text(raw: str) -> "_cycler.Cycler | None":
+    """The cycler a "cycler('color', [...])" table string stands for; None if it is not one."""
+    match = re.match(_CYCLER_PATTERN, raw)
+    if not match:
+        return None
+    prop = match.group(1) or "color"
+    values = ast.literal_eval(match.group(2))
+    if prop.strip().lower() == "color":
+        values = [_cycler_color_from_text(v) for v in values]
+    return _cycler.cycler(prop, values)
+
+
 def _to_table_str(val: object) -> str:
     """Stable, hash-free string for display in the editor table."""
     if isinstance(val, _cycler.Cycler):
         keys = list(val.keys)
         if len(keys) == 1:
             prop = keys[0]
-            items = [_strip_hash(str(d[prop])) for d in val]
+            items = [_cycler_item_to_str(prop, d[prop]) for d in val]
             return f"cycler('{prop}', {items!r})"
         parts = [
-            f"cycler('{p}', {[ _strip_hash(str(d[p])) for d in val ]!r})"
+            f"cycler('{p}', {[ _cycler_item_to_str(p, d[p]) for d in val ]!r})"
             for p in keys
         ]
         return " + ".join(parts)
@@ -842,20 +893,11 @@ class MplStyleEditorDialog(SettingsTableDialog):
 
                 if isinstance(value, str):
                     if raw.startswith("cycler("):
-                        cycler_pattern = (
-                            r"^cycler\(\s*['\"]?(\w*)['\"]?\s*,\s*"
-                            r"(\[(?:\s*['\"][^'\"]+['\"]\s*,?)*\])"
-                            r"\s*\)$"
-                        )
-                        m = re.match(cycler_pattern, raw)
-                        if not m:
+                        parsed_cycler = _parse_cycler_text(raw)
+                        if parsed_cycler is None:
                             applogger.error("Invalid cycler() syntax")
                             return  {}, []
-                        prop = m.group(1) or "color"
-                        vals = ast.literal_eval(m.group(2))
-                        if prop.strip().lower() == "color":
-                            vals = [_add_hash(str(v)) for v in vals]
-                        val_obj = _cycler.cycler(prop, vals)
+                        val_obj = parsed_cycler
                     elif (
                         (raw.startswith("[") and raw.endswith("]"))
                         or (raw.startswith("(") and raw.endswith(")"))
