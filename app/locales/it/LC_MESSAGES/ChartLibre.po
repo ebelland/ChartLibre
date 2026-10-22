@@ -10948,3 +10948,11 @@ msgstr "Rischio relativo"
 
 msgid "Odds ratio"
 msgstr "Odds ratio"
+msgid "View"
+msgstr "Vista"
+
+msgid "Border"
+msgstr "Cornice"
+
+msgid "Draw a line round the whole figure"
+msgstr "Disegna una linea attorno a tutta la figura"

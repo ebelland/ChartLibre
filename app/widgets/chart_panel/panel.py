@@ -148,7 +148,8 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
             int(chart_config.get(CONFIG_INITIAL_ZOOM, 64))
         )
         self._resize_mode = self._normalized_resize_mode(
-            chart_config.get(CONFIG_RESIZE_MODE, "FIT")
+            # Fixed by default: the figure at its own size, zoom and scroll bars.
+            chart_config.get(CONFIG_RESIZE_MODE, "FIXED")
         )
         self._background_color: str = chart_config.get(CONFIG_BACKGROUND_COLOR, "#ffffff")
 
@@ -620,9 +621,9 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
 
     @staticmethod
     def _normalized_resize_mode(value: object) -> str:
-        """Return a valid resize mode, falling back to FIT."""
+        """Return a valid resize mode, falling back to FIXED."""
         mode = str(value or "").strip().upper()
-        return mode if mode in RESIZE_MODES else "FIT"
+        return mode if mode in RESIZE_MODES else "FIXED"
 
     def _apply_persisted_view_state(self) -> None:
         """Restore this figure's own resize mode and zoom when present."""

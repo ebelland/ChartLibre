@@ -103,7 +103,6 @@ class FigurePropertiesWidget(BaseProperties):
     )
 
     #: The shipped style the "ChartLibreDefault" button applies (file stem in MPLSTYLES_DIR).
-    _DEFAULT_STYLE_NAME = "Default"
 
     #: (label, descriptor value, tooltip) for Matplotlib's layout engines.
     #:
@@ -202,6 +201,8 @@ class FigurePropertiesWidget(BaseProperties):
         self._style_text = ""
         #: Path of the .mplstyle that text came from, when it matches one on disk.
         self._style_path: Path | None = None
+        #: The layout preset last applied to each figure, shown in its combo until another is picked.
+        self._applied_presets: dict[int, str] = {}
 
         self._style_edit: QLineEdit
        
@@ -351,6 +352,25 @@ class FigurePropertiesWidget(BaseProperties):
         self._note_edit.textChanged.connect(self._note_timer.start)
         lay.addWidget(name_section)
 
+        # ----- View -----
+        # How the panel shows this figure: the first thing to change when a
+        # chart does not fit, so on its own above the style.
+        view_section = TitledCard(self, _("View"), "figureViewCard")
+        self._resize_mode_combo = QComboBox(view_section)
+        self._configure_combo_width(self._resize_mode_combo, minimum_contents_length=14)
+        for value, label, tooltip in RESIZE_MODE_CHOICES:
+            self._resize_mode_combo.addItem(_(label), value)
+            self._resize_mode_combo.setItemData(
+                self._resize_mode_combo.count() - 1,
+                _(tooltip),
+                Qt.ItemDataRole.ToolTipRole,
+            )
+        self._resize_mode_combo.currentIndexChanged.connect(
+            self._on_resize_mode_selected
+        )
+        view_section.card.layout().addWidget(self._resize_mode_combo)
+        lay.addWidget(view_section)
+
         # ----- Style -----
         style_section = TitledCard(self, _("Style"), "figureStyleCard")
         style_section_lay = style_section.card.layout()
@@ -359,7 +379,8 @@ class FigurePropertiesWidget(BaseProperties):
         self._style_edit.setReadOnly(True)
         style_section_lay.addWidget(self._style_edit)
 
-        # Two rows of two: four buttons in one row did not fit the panel's width.
+        # Browse and Edit side by side, Apply to all under them: three buttons in one
+        # row did not fit the panel's width.
         style_buttons_row = QWidget(style_section)
         style_buttons_lay = QGridLayout(style_buttons_row)
         style_buttons_lay.setContentsMargins(0, 0, 0, 0)
@@ -367,15 +388,6 @@ class FigurePropertiesWidget(BaseProperties):
         style_buttons_lay.setColumnStretch(0, 1)
         style_buttons_lay.setColumnStretch(1, 1)
 
-        self._btn_default = create_action_button(
-            parent=style_buttons_row,
-            action_id="reload",
-            action=self._set_default_style,
-            layout=None,
-            presentation=(load_icon("reload"), self._DEFAULT_STYLE_NAME,
-                          _("Use the {name} style").format(name=self._DEFAULT_STYLE_NAME)),
-        )
-        style_buttons_lay.addWidget(self._btn_default, 0, 0)
         self._btn_browse = create_action_button(
             parent=style_buttons_row,
             action_id="open",
@@ -384,14 +396,14 @@ class FigurePropertiesWidget(BaseProperties):
             presentation=(load_icon("open"), _("Browse…"),
                           _("Pick a .mplstyle file from the mplstyles folder")),
         )
-        style_buttons_lay.addWidget(self._btn_browse, 0, 1)
+        style_buttons_lay.addWidget(self._btn_browse, 0, 0)
         self._btn_edit = create_action_button(
                              parent=style_buttons_row,
                              action_id="edit",
                              action=self._edit_current_style,
                              layout=None,
                          )
-        style_buttons_lay.addWidget(self._btn_edit, 1, 0)
+        style_buttons_lay.addWidget(self._btn_edit, 0, 1)
         self._btn_style_to_all = create_action_button(
             parent=style_buttons_row,
             action_id="copy",
@@ -400,7 +412,7 @@ class FigurePropertiesWidget(BaseProperties):
             presentation=(load_icon("copy"), _("Apply to all figures"),
                           _("Give every figure of the project this style")),
         )
-        style_buttons_lay.addWidget(self._btn_style_to_all, 1, 1)
+        style_buttons_lay.addWidget(self._btn_style_to_all, 1, 0, 1, 2)
         # No Apply button: every control on this panel applies itself a
         # short moment after it changes (see _connect_auto_apply). Reload
         # and Edit stay - they are style actions, not "commit the form".
@@ -409,7 +421,7 @@ class FigurePropertiesWidget(BaseProperties):
         lay.addWidget(style_section)
 
         # ----- Grid -----
-        grid_section = TitledCard(self, _("Grid"), "figureGridCard")
+        grid_section = TitledCard(self, _("Grid"), "figureGridCard", collapsible=True)
         grid_section_lay = grid_section.card.layout()
 
         self._nrows_combo = QComboBox(grid_section)
@@ -456,7 +468,9 @@ class FigurePropertiesWidget(BaseProperties):
         self._layout_preset_combo.setToolTip(
             _("Arrange every axis in this figure using the chosen layout.")
         )
-        self._layout_preset_combo.currentIndexChanged.connect(
+        # activated, not currentIndexChanged: picking the preset already shown
+        # applies it again (after a hand edit, say).
+        self._layout_preset_combo.activated.connect(
             self._on_layout_preset_selected
         )
         preset_lay.addWidget(QLabel(_("Preset"), preset_row))
@@ -566,7 +580,9 @@ class FigurePropertiesWidget(BaseProperties):
         # No text of its own: the row's label already says "Frame", and a
         # sentence beside the box ran off the edge of the panel.
         self._fig_frameon = QCheckBox(opts_section)
-        self._fig_frameon.setToolTip(_("Draw figure frame"))
+        # A line round the whole figure. (Matplotlib's frameon is the figure's
+        # background, which on a white page showed no change at all.)
+        self._fig_frameon.setToolTip(_("Draw a line round the whole figure"))
         # Every font of the figure at once, on top of its style (todo N-12).
         self._font_scale = FontScaleControl(opts_section)
         fit_spin_width(self._font_scale)
@@ -578,19 +594,6 @@ class FigurePropertiesWidget(BaseProperties):
         # working the moment the interface language changed. One combo, next
         # to the figure's other display settings, with the mode as the
         # stored value rather than the label.
-        self._resize_mode_combo = QComboBox(opts_section)
-        self._configure_combo_width(self._resize_mode_combo, minimum_contents_length=14)
-        for value, label, tooltip in RESIZE_MODE_CHOICES:
-            self._resize_mode_combo.addItem(_(label), value)
-            self._resize_mode_combo.setItemData(
-                self._resize_mode_combo.count() - 1,
-                _(tooltip),
-                Qt.ItemDataRole.ToolTipRole,
-            )
-        self._resize_mode_combo.currentIndexChanged.connect(
-            self._on_resize_mode_selected
-        )
-
         self._fig_layout_mode = QComboBox(opts_section)
         self._configure_combo_width(self._fig_layout_mode, minimum_contents_length=14)
         for label, value, tooltip in self.LAYOUT_ENGINES:
@@ -643,10 +646,9 @@ class FigurePropertiesWidget(BaseProperties):
                     pair(_("Font size"), self._font_scale),
                     pair(_("Width"), self._fig_width_cm),
                     pair(_("Height"), self._fig_height_cm),
-                    pair(_("Display"), self._resize_mode_combo),
                     pair(_("Figure layout"), self._fig_layout_mode),
                     pair(_("Downsample"), self._downsample_combo),
-                    pair(_("Frame on"), self._fig_frameon),
+                    pair(_("Border"), self._fig_frameon),
                 ],
                 opts_section,
             )
@@ -768,7 +770,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_dpi.setValue(self._rcparams_dpi())
         self._fig_width_cm.setValue(width_cm)
         self._fig_height_cm.setValue(height_cm)
-        self._fig_frameon.setChecked(True)
+        self._fig_frameon.setChecked(False)
         self._font_scale.set_factor(1.0)
         self._select_layout_mode(self.DEFAULT_LAYOUT_MODE)
         self._select_downsample_threshold(self.DEFAULT_DOWNSAMPLE_THRESHOLD)
@@ -790,7 +792,6 @@ class FigurePropertiesWidget(BaseProperties):
         for widget in (
             self._name_edit,
             self._note_edit,
-            self._btn_default,
             self._btn_browse,
             self._btn_edit,
             self._nrows_combo,
@@ -871,7 +872,7 @@ class FigurePropertiesWidget(BaseProperties):
             self._fig_dpi.setValue(self._rcparams_dpi())
             self._fig_width_cm.setValue(width_cm)
             self._fig_height_cm.setValue(height_cm)
-            self._fig_frameon.setChecked(True)
+            self._fig_frameon.setChecked(False)
             self._font_scale.set_factor(1.0)
             self._select_layout_mode(self.DEFAULT_LAYOUT_MODE)
             self._select_downsample_threshold(self.DEFAULT_DOWNSAMPLE_THRESHOLD)
@@ -913,7 +914,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._load_metrics_into_spins(fig_opts)
         self._load_shared_spacing_into_spins(fig_opts)
         self._load_margins_into_spins(fig_opts)
-        self._fig_frameon.setChecked(bool(fig_opts.get("frameon", True)))
+        self._fig_frameon.setChecked(bool(fig_opts.get("border", False)))
         self._font_scale.set_factor(fig_opts.get("font_scale", 1.0))
 
         current_layout = str(
@@ -1011,15 +1012,6 @@ class FigurePropertiesWidget(BaseProperties):
         """Return the style text currently attached to the figure."""
         return self._style_text
 
-    def _set_default_style(self) -> None:
-        if self._repo is None or self._figure_id is None:
-            return
-        path = MPLSTYLES_DIR / f"{self._DEFAULT_STYLE_NAME}.mplstyle"
-        if not path.exists():
-            applogger.warning("Default style %s not found", path)
-            return
-        self._apply_style_file(path)
-
     def _edit_current_style(self) -> None:
         """Open the style editor preloaded with the current selected style."""
         if self._repo is None or self._figure_id is None:
@@ -1104,6 +1096,8 @@ class FigurePropertiesWidget(BaseProperties):
         preset = self._layout_preset_combo.currentData()
         if not preset:
             return
+        # Shown again after the reload the apply triggers, for this figure only.
+        self._applied_presets[self._figure_id] = str(preset)
         self.layout_preset_requested.emit(str(preset))
 
     def _on_mosaic_entered(self) -> None:
@@ -1123,7 +1117,8 @@ class FigurePropertiesWidget(BaseProperties):
         """
         self._layout_preset_combo.blockSignals(True)
         try:
-            self._layout_preset_combo.setCurrentIndex(0)
+            preset = self._applied_presets.get(self._figure_id) if self._figure_id is not None else None
+            self._layout_preset_combo.setCurrentIndex(max(0, self._layout_preset_combo.findData(preset)) if preset else 0)
         finally:
             self._layout_preset_combo.blockSignals(False)
 
@@ -1291,7 +1286,7 @@ class FigurePropertiesWidget(BaseProperties):
 
         payload = {
             "name": self._name_edit.text().strip(),
-            "frameon": bool(self._fig_frameon.isChecked()),
+            "border": bool(self._fig_frameon.isChecked()),
             "font_scale": float(self._font_scale.factor()),
             "layout_mode": str(
                 self._fig_layout_mode.currentData() or self.DEFAULT_LAYOUT_MODE

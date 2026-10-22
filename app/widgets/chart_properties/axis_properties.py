@@ -15,6 +15,7 @@ from typing import Any, Final, TypeAlias, cast
 
 from PySide6.QtCore import QEvent, QObject, QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
+    QPlainTextEdit,
     QAbstractButton,
     QCheckBox,
     QComboBox,
@@ -36,6 +37,7 @@ from PySide6.QtWidgets import (
 from app.widgets.font_scale_control import FontScaleControl
 from app.logs.logger import applogger
 from app.plugin_api.charts import axis_options, secondary_axis
+from app.plugin_api.charts.text_lines import display_text
 from app.plugin_api.charts.render_figure import AXIS_SCALE_LABELS, SUPPORTED_AXIS_SCALES
 from app.styles.style import (
     MARGIN_PANEL,
@@ -213,7 +215,12 @@ class AxisPropertiesWidget(BaseProperties):
         if not isinstance(raw_layout, QVBoxLayout):
             raise RuntimeError("TitledCard did not create a vertical box layout")
 
-        self._axis_label_edit = QLineEdit(section.card)
+        # Two lines tall: a title over two lines ("Time" / "(s)") is typed as two
+        # lines, Enter between them; stored with "\n", as typed titles were.
+        self._axis_label_edit = QPlainTextEdit(section.card)
+        self._axis_label_edit.setTabChangesFocus(True)
+        line = self._axis_label_edit.fontMetrics().lineSpacing()
+        self._axis_label_edit.setFixedHeight(2 * line + 14)
         self._projection_combo = QComboBox(section.card)
         for label, value in (
             ("rectilinear", "rectilinear"),
@@ -240,19 +247,23 @@ class AxisPropertiesWidget(BaseProperties):
             grid.addWidget(QLabel(caption, section.card), row, column)
             grid.addWidget(widget, row, column + 1)
 
-        grid.addWidget(QLabel(_("Title"), section.card), 0, 0)
+        # The title, how its lines line up and how many cells the axis spans,
+        # each on a line of its own, in that order (todo P-03).
+        title_label = QLabel(_("Title"), section.card)
+        grid.addWidget(title_label, 0, 0, Qt.AlignmentFlag.AlignTop)
         grid.addWidget(self._axis_label_edit, 0, 1, 1, 3)
-        add_field(1, 0, _("Proj."), self._projection_combo)
-        add_field(1, 2, _("Font"), self._font_scale)
-        grid.addWidget(QLabel(_("Visible"), section.card), 2, 0)
-        grid.addWidget(self._hide_axis_check, 2, 1)
-        add_field(2, 2, _("Lines"), self._lines_combo)
+        grid.addWidget(QLabel(_("Lines"), section.card), 1, 0)
+        grid.addWidget(self._lines_combo, 1, 1, 1, 3)
 
         span = self._build_span_row(section.card)
         self._row_span_spin.setMaximumWidth(72)
         self._col_span_spin.setMaximumWidth(72)
-        grid.addWidget(QLabel(_("Span"), section.card), 3, 0)
-        grid.addWidget(span, 3, 1, 1, 3)
+        grid.addWidget(QLabel(_("Span"), section.card), 2, 0)
+        grid.addWidget(span, 2, 1, 1, 3)
+        add_field(3, 0, _("Proj."), self._projection_combo)
+        add_field(3, 2, _("Font"), self._font_scale)
+        grid.addWidget(QLabel(_("Visible"), section.card), 4, 0)
+        grid.addWidget(self._hide_axis_check, 4, 1)
 
         def check_row(checks: list[QCheckBox]) -> QWidget:
             holder = QWidget(section.card)
@@ -268,10 +279,10 @@ class AxisPropertiesWidget(BaseProperties):
         for name, check in self._spine_checks().items():
             check.setText(short[name])
             check.setToolTip(names[name])
-        grid.addWidget(QLabel(_("Hide spines"), section.card), 4, 0)
-        grid.addWidget(check_row(list(self._spine_checks().values())), 4, 1, 1, 3)
-        grid.addWidget(QLabel(_("Share"), section.card), 5, 0)
-        grid.addWidget(check_row(list(self._share_checks.values())), 5, 1, 1, 3)
+        grid.addWidget(QLabel(_("Hide spines"), section.card), 5, 0)
+        grid.addWidget(check_row(list(self._spine_checks().values())), 5, 1, 1, 3)
+        grid.addWidget(QLabel(_("Share"), section.card), 6, 0)
+        grid.addWidget(check_row(list(self._share_checks.values())), 6, 1, 1, 3)
         raw_layout.addLayout(grid)
         return section
 
@@ -1182,7 +1193,9 @@ class AxisPropertiesWidget(BaseProperties):
         self._current_axis_id = int(axis_desc.id)
 
         with self._form_signal_blocker():
-            self._axis_label_edit.setText(axis_options.axis_title(options, getattr(axis_desc, "title", "") or ""))
+            # Each "\n" shown as the line break it draws.
+            self._axis_label_edit.setPlainText(
+                display_text(axis_options.axis_title(options, getattr(axis_desc, "title", "") or "")))
             for axis in axis_options.AXES:
                 # What the chart shows: the option when there is one, else the
                 # descriptor's own column (the auto label a new chart gets from
@@ -1394,7 +1407,8 @@ class AxisPropertiesWidget(BaseProperties):
 
     def _emit_axis_options_requested(self) -> None:
         """Emit the current axis options payload."""
-        label_text = self._axis_label_edit.text().strip()
+        # Line breaks stored as "\n", the way a one-line field took them.
+        label_text = self._axis_label_edit.toPlainText().strip().replace("\n", "\\n")
         payload: AxisPayload = {
             "axis_id": self._current_axis_id,
             "label": label_text,

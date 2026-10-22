@@ -900,6 +900,12 @@ def _apply_figure_options(figure: Figure, fig_desc: FigureDescriptor) -> None:
     except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
         applogger.exception("Failed to apply figure frameon")
 
+    # Border (Figure properties): a line round the whole figure, in the axes' edge colour.
+    # Twice the width wanted: half of a line on the figure's edge falls outside it.
+    if options.get("border"):
+        figure.patch.set_edgecolor(plt.rcParams["axes.edgecolor"])
+        figure.patch.set_linewidth(2.0 * float(plt.rcParams["axes.linewidth"]))
+
     suptitle = options.get("suptitle")
     if isinstance(suptitle, str) and suptitle.strip():
         align = multialignment(options, "suptitle_multialignment")
