@@ -118,6 +118,12 @@ def _resolved_line_icon(linestyle: str, *, faint: bool) -> QIcon:
     return QIcon(pixmap)
 
 
+
+def line_style_preview_icon(value: str) -> QIcon:
+    """Public preview icon for a Matplotlib line-style token."""
+    return _line_icon((value or "").strip())
+
+
 class LineStyleCombo(IconComboBox):
     """Combo box listing Matplotlib line styles with a preview icon.
 

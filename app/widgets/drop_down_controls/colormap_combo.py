@@ -56,6 +56,12 @@ def _gradient_icon(name: str) -> QIcon:
     return QIcon(QPixmap.fromImage(image.copy()))
 
 
+
+def colormap_preview_icon(name: str) -> QIcon:
+    """Public gradient preview icon for property grids."""
+    return _gradient_icon((name or "").strip())
+
+
 class ColormapCombo(IconComboBox):
     """Editable combo of Matplotlib colormaps with gradient previews."""
 

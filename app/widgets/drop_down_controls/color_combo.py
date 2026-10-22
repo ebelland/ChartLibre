@@ -31,6 +31,7 @@ from matplotlib.colors import (
     TABLEAU_COLORS,  # pyright: ignore[reportAttributeAccessIssue]
     XKCD_COLORS,  # pyright: ignore[reportAttributeAccessIssue]
     to_hex,
+    to_rgba,
 )
 
 from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
@@ -165,6 +166,21 @@ def _color_entries(include_none: bool, none_label: str = _NONE_LABEL) -> list[Co
         entries.append((none_label, _NONE_VALUE))
     entries.extend(sorted(_iter_named_colors(), key=lambda item: item[0].lower()))
     return entries
+
+
+
+def color_preview_icon(value: str) -> QIcon:
+    """Public preview icon used by property grids and colour buttons."""
+    raw = (value or "").strip()
+    if not raw:
+        return _entry_icon("")
+    try:
+        red, green, blue, alpha = to_rgba(raw)
+    except ValueError:
+        return QIcon()
+    # Qt reads "#aarrggbb", Matplotlib writes "#rrggbbaa": the colour goes to Qt as
+    # numbers, never as a hex string with an alpha, or red came out blue.
+    return _swatch_icon(QColor.fromRgbF(red, green, blue, alpha).name(QColor.NameFormat.HexArgb))
 
 
 class MatplotlibColorCombo(IconComboBox):

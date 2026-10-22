@@ -540,6 +540,12 @@ def _resolved_marker_icon(marker: str, *, faint: bool) -> QIcon:
     return QIcon(pixmap)
 
 
+
+def marker_style_preview_icon(value: str) -> QIcon:
+    """Public preview icon for a Matplotlib marker token."""
+    return _marker_icon((value or "").strip())
+
+
 class MarkerStyleCombo(IconComboBox):
     """Combo box listing Matplotlib markers with a shape-preview icon.
 

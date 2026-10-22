@@ -227,6 +227,7 @@ _SUFFIX_KIND_RULES: list[tuple[str, str]] = [
     (".cmap", "cmap"),
     (".joinstyle", "joinstyle"),
     (".capstyle", "capstyle"),
+    (".hatch", "hatch"),
 ]
 
 _NON_STYLE_KEYS = frozenset({
@@ -770,6 +771,9 @@ class MplStyleEditorDialog(SettingsTableDialog):
             meta["type"] = _CAPSTYLE_CHOICES
             meta["kind"] = "capstyle"
             meta["choices"] = _CAPSTYLE_CHOICES
+        elif kind == "hatch":
+            meta["type"] = str
+            meta["kind"] = "hatch"
         elif kind == "loc":
             meta["type"] = _LOC_CHOICES
             meta["kind"] = "loc"

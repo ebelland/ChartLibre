@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QBoxLayout,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLineEdit,
+    QPushButton,
     QSizePolicy,
     QSpinBox,
     QStyledItemDelegate,
@@ -30,11 +32,16 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
-from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
-from app.widgets.drop_down_controls.font_combo import MatplotlibFontCombo
-from app.widgets.drop_down_controls.line_combo import LineStyleCombo
-from app.widgets.drop_down_controls.colormap_combo import ColormapCombo
-from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
+from app.widgets.drop_down_controls.color_combo import color_preview_icon
+from app.widgets.drop_down_controls.color_picker import ColorPickerButton
+from app.widgets.drop_down_controls.font_combo import MatplotlibFontCombo, font_preview_icon
+from app.widgets.drop_down_controls.line_combo import LineStyleCombo, line_style_preview_icon
+from app.widgets.drop_down_controls.colormap_combo import ColormapCombo, colormap_preview_icon
+from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo, marker_style_preview_icon
+from app.widgets.drop_down_controls.hatch_combo import HatchStyleCombo, hatch_preview_icon
+from app.widgets.drop_down_controls.edge_style_combo import (
+    CapStyleCombo, JoinStyleCombo, cap_style_preview_icon, join_style_preview_icon,
+)
 
 _KIND_BY_EXACT_KEY: dict[str, str] = {
     # Colour aliases and common artist kwargs.
@@ -45,6 +52,7 @@ _KIND_BY_EXACT_KEY: dict[str, str] = {
     "labelcolor": "color",
     # Line and marker helpers.
     "linestyle": "linestyle", "ls": "linestyle", "marker": "marker",
+    "hatch": "hatch",
     # Matplotlib's boxplot flier symbol: a marker under another name.
     "sym": "marker",
     # A colormap: a renderer's cmap, and the style sheet's default one.
@@ -69,6 +77,14 @@ _KIND_BY_EXACT_KEY: dict[str, str] = {
     "in_layout": "bool", "rasterized": "bool", "fill": "bool",
     "frameon": "bool", "show_legend": "bool", "show_in_legend": "bool",
     "sort_x": "bool", "log": "bool", "grid": "bool",
+    "markerfacecoloralt": "color", "titlecolor": "color",
+    "negative_linestyle": "linestyle",
+    "solid_joinstyle": "joinstyle", "dash_joinstyle": "joinstyle",
+    "lines.solid_joinstyle": "joinstyle", "lines.dash_joinstyle": "joinstyle",
+    "solid_capstyle": "capstyle", "dash_capstyle": "capstyle",
+    "lines.solid_capstyle": "capstyle", "lines.dash_capstyle": "capstyle",
+    "hatch": "hatch", "grid.linestyle": "linestyle",
+    "contour.negative_linestyle": "linestyle",
 }
 
 # Ordered from specialised endings to broad endings. For example,
@@ -86,8 +102,11 @@ _SUFFIX_KIND_RULES: tuple[tuple[str, str], ...] = (
     ("tick.color", "color"), ("tick.labelcolor", "color"),
     (".color", "color"), ("color", "color"),
     # Line and marker selectors.
-    ("linestyle", "linestyle"), ("joinstyle", "joinstyle"),
-    ("capstyle", "capstyle"), ("marker", "marker"),
+    ("negative_linestyle", "linestyle"), ("linestyle", "linestyle"),
+    ("solid_joinstyle", "joinstyle"), ("dash_joinstyle", "joinstyle"),
+    ("joinstyle", "joinstyle"),
+    ("solid_capstyle", "capstyle"), ("dash_capstyle", "capstyle"),
+    ("capstyle", "capstyle"), ("hatch", "hatch"), ("marker", "marker"),
     # Booleans.
     ("antialiased", "bool"), ("clip_on", "bool"),
     ("in_layout", "bool"), ("rasterized", "bool"),
@@ -234,7 +253,7 @@ class DictValueDelegate(QStyledItemDelegate):
         if kind == "bool":
             return None
         if kind == "color":
-            editor = MatplotlibColorCombo(parent, include_none=True)
+            editor = ColorPickerButton(parent)
         elif kind == "fontlist":
             editor = MatplotlibFontCombo(
                 parent,
@@ -246,6 +265,12 @@ class DictValueDelegate(QStyledItemDelegate):
             editor = LineStyleCombo(parent)
         elif kind == "marker":
             editor = MarkerStyleCombo(parent)
+        elif kind == "hatch":
+            editor = HatchStyleCombo(parent)
+        elif kind == "joinstyle":
+            editor = JoinStyleCombo(parent)
+        elif kind == "capstyle":
+            editor = CapStyleCombo(parent)
         elif kind == "colormap":
             editor = ColormapCombo(parent)
         elif kind == "number":
@@ -264,7 +289,7 @@ class DictValueDelegate(QStyledItemDelegate):
                 )
                 editor.setDecimals(int(str(meta.get("decimals", 6))))
                 editor.setSingleStep(float(str(meta.get("step", 0.1))))
-        elif kind in {"enum", "joinstyle", "capstyle", "loc"}:
+        elif kind in {"enum", "loc"}:
             editor = QComboBox(parent)
             if kind == "joinstyle":
                 choices = _JOINSTYLE_CHOICES
@@ -301,11 +326,8 @@ class DictValueDelegate(QStyledItemDelegate):
             return
         value = self._panel.value_for_key(key)
         text = _value_to_text(value)
-        if isinstance(editor, MatplotlibColorCombo):
-            if text == "":
-                editor.setCurrentIndex(0)
-            elif not editor.set_current_hex(text):
-                editor.set_current_name(text)
+        if isinstance(editor, ColorPickerButton):
+            editor.set_color(value)
             return
         if isinstance(editor, MatplotlibFontCombo):
             if isinstance(value, (list, tuple)):
@@ -324,6 +346,9 @@ class DictValueDelegate(QStyledItemDelegate):
             return
         if isinstance(editor, MarkerStyleCombo):
             editor.set_current_marker(text)
+            return
+        if isinstance(editor, HatchStyleCombo):
+            editor.set_current_hatch(text)
             return
         if isinstance(editor, ColormapCombo):
             editor.set_current_colormap(text)
@@ -365,8 +390,8 @@ class DictValueDelegate(QStyledItemDelegate):
         key = self._panel.key_from_index(index)
         if key is None:
             return
-        if isinstance(editor, MatplotlibColorCombo):
-            value: object = editor.current_hex() or None
+        if isinstance(editor, ColorPickerButton):
+            value: object = editor.color() or None
         elif isinstance(editor, MatplotlibFontCombo):
             selected = editor.current_font()
             previous = self._panel.value_for_key(key)
@@ -379,6 +404,8 @@ class DictValueDelegate(QStyledItemDelegate):
             value = editor.current_linestyle()
         elif isinstance(editor, MarkerStyleCombo):
             value = editor.current_marker()
+        elif isinstance(editor, HatchStyleCombo):
+            value = editor.current_hatch()
         elif isinstance(editor, ColormapCombo):
             value = editor.current_colormap() or None
         elif isinstance(editor, QCheckBox):
@@ -594,6 +621,7 @@ class DictEditorPanel(QWidget):
                 item = QTreeWidgetItem(group_item, [label, self._display_text(key, value)])
                 item.setData(0, Qt.ItemDataRole.UserRole, key)
                 item.setData(1, Qt.ItemDataRole.UserRole, value)
+                item.setIcon(1, self._display_icon(key, value))
                 item.setToolTip(0, str(meta.get("description", "")))
                 item.setToolTip(1, str(meta.get("description", f"{key} ({self.kind_for_key(key)})")))
                 if self.kind_for_key(key) == "bool":
@@ -618,7 +646,31 @@ class DictEditorPanel(QWidget):
         else:
             item.setText(1, self._display_text(key, value))
         item.setData(1, Qt.ItemDataRole.UserRole, value)
+        item.setIcon(1, self._display_icon(key, value))
         self.tree.blockSignals(False)
+
+    def _display_icon(self, key: str, value: object) -> QIcon:
+        """Return the semantic preview shown while the value cell is not editing."""
+        kind = self.kind_for_key(key)
+        text = _value_to_text(value)
+        if kind == "color":
+            return color_preview_icon(text)
+        if kind == "linestyle":
+            return line_style_preview_icon(text)
+        if kind == "marker":
+            return marker_style_preview_icon(text)
+        if kind == "colormap":
+            return colormap_preview_icon(text)
+        if kind == "hatch":
+            return hatch_preview_icon(text)
+        if kind == "joinstyle":
+            return join_style_preview_icon(text)
+        if kind == "capstyle":
+            return cap_style_preview_icon(text)
+        if kind == "fontlist":
+            family = value[0] if isinstance(value, (list, tuple)) and value else value
+            return font_preview_icon(str(family or ""))
+        return QIcon()
 
     def _display_text(self, key: str, value: object) -> str:
         if self.kind_for_key(key) == "fontlist":
@@ -648,11 +700,14 @@ class DictEditorPanel(QWidget):
         # popups on the next event-loop turn after the editor exists.
         self.tree.setCurrentItem(item, 1)
         self.tree.editItem(item, 1)
-        if self.kind_for_key(key_str) in {
-            "fontlist", "color", "linestyle", "marker",
+        kind = self.kind_for_key(key_str)
+        if kind in {
+            "fontlist", "linestyle", "marker", "hatch",
             "enum", "joinstyle", "capstyle", "loc",
         }:
             QTimer.singleShot(0, lambda current=item: self._open_combo_editor(current))
+        elif kind == "color":
+            QTimer.singleShot(0, lambda current=item: self._click_button_editor(current))
 
     def _open_combo_editor(self, item: QTreeWidgetItem) -> None:
         """Open the combo created by the value delegate for *item*."""
@@ -661,6 +716,12 @@ class DictEditorPanel(QWidget):
         if isinstance(editor, QComboBox):
             editor.setFocus(Qt.FocusReason.MouseFocusReason)
             editor.showPopup()
+
+    def _click_button_editor(self, item: QTreeWidgetItem) -> None:
+        """Open a button-based delegate editor, currently the colour dialog."""
+        editor = self.tree.indexWidget(self.tree.indexFromItem(item, 1))
+        if isinstance(editor, QPushButton):
+            editor.click()
 
     def _on_item_changed(self, item: QTreeWidgetItem, column: int) -> None:
         if self._updating or column != 1:
