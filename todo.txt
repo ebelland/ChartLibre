@@ -127,7 +127,8 @@ JMP
 
 Matplotlib
 - G-12  S  Spectrogram chart done (specgram; NFFT, overlap, rate from x). Left: STFT in Spectral analysis.
-- G-13  S  Radar (spider) chart; polar bar / wind rose (polar exists as a projection).
+- G-13  S  Radar chart and Wind Rose (polar bar) done; both ask for a polar axes through the renderer's
+           Projection attribute. Demo: "Time, trees and circles".
 - G-14  S  Dendrogram chart done (ward/average/complete/single, cut line). Left: clustered
            heatmap; the dendrogram inside Cluster Analysis' report.
 - G-15  S  Sankey (matplotlib.sankey) and waterfall charts.

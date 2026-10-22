@@ -175,6 +175,18 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Graph",
     ),
     DemoProject(
+        "Time, trees and circles - spectrogram, dendrogram, radar and wind rose",
+        "Four charts for questions a plain x-y cannot answer: when a frequency appears "
+        "(Spectrogram of a sweeping tone and a steady hum), how rows join into groups "
+        "(Dendrogram of penguins, Ward), how profiles compare (Radar chart of the species' means), "
+        "and where a direction comes from (Wind rose, split by speed). Signal and wind readings "
+        "are synthetic with a fixed seed.",
+        ("chirp_spectrogram", "penguin_dendrogram", "penguin_radar", "wind_rose"),
+        preview="Wind rose",
+        references=(REF_PENGUINS,),
+        category="Graph",
+    ),
+    DemoProject(
         "Quick answers - three questions asked of real data",
         "Start from a question, not a function: are the three penguin species "
         "different in body mass? What has the most impact on it? Has the "

@@ -414,6 +414,11 @@ def _subplot_kwargs_for_axis(
     projection = subplot.get("projection") or options.get("projection")
     if isinstance(projection, str) and projection.strip():
         kwargs["projection"] = projection.strip()
+    else:
+        # A renderer that can only draw on one kind of axes says so (``Projection``): Radar and Wind Rose are polar.
+        entry = get_renderer(str(axis_desc.name or ""))
+        if entry and entry.get("projection"):
+            kwargs["projection"] = str(entry["projection"])
 
     sharex = subplot.get("sharex", options.get("sharex"))
     sharey = subplot.get("sharey", options.get("sharey"))
@@ -1635,7 +1640,8 @@ def _normalize_axes_fill_policy(figure: Figure, fig_desc: FigureDescriptor) -> N
             if preserve_all or bool(axis_options.get("preserve_aspect_box", False)):
                 continue
 
-            if ax.get_aspect() != "auto" and ax.get_adjustable() == "box":
+            # A polar axes keeps its own box (it overrides get_data_ratio, so "datalim" is refused).
+            if ax.get_aspect() != "auto" and ax.get_adjustable() == "box" and ax.name != "polar":
                 ax.set_adjustable("datalim")
 
             ax.set_anchor("C")

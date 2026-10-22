@@ -251,6 +251,28 @@ def _signal_spectrum() -> pd.DataFrame:
     return pd.read_csv(SAMPLE_DATA_DIR / "signal_spectrum.csv")
 
 
+def _chirp_signal() -> pd.DataFrame:
+    """A tone sweeping from 5 to 120 Hz over 4 s at 500 Hz, plus a steady 40 Hz
+    hum and noise - synthetic, fixed seed. A spectrum of it is one smear; its
+    spectrogram shows the sweep as a rising line and the hum as a flat one."""
+    rng = np.random.default_rng(7)
+    t = np.arange(0, 4, 1 / 500)
+    sweep = np.sin(2 * np.pi * (5 * t + (120 - 5) / (2 * 4) * t**2))
+    signal = sweep + 0.4 * np.sin(2 * np.pi * 40 * t) + rng.normal(0, 0.25, t.size)
+    return pd.DataFrame({"t_s": t, "amplitude": signal})
+
+
+def _wind_observations() -> pd.DataFrame:
+    """2000 hourly wind readings, synthetic with a fixed seed: mostly from the
+    south-west and, when it blows from there, stronger; a weaker north-east
+    wind besides. Direction in degrees from north, speed in m/s."""
+    rng = np.random.default_rng(11)
+    from_sw = rng.random(2000) < 0.7
+    direction = np.where(from_sw, rng.vonmises(np.deg2rad(225), 3.0, 2000), rng.vonmises(np.deg2rad(40), 2.0, 2000))
+    speed = rng.weibull(2.0, 2000) * np.where(from_sw, 7.0, 4.0)
+    return pd.DataFrame({"direction_deg": np.round(np.rad2deg(direction) % 360, 1), "speed_ms": np.round(speed, 2)})
+
+
 def _attribute_chart_counts() -> pd.DataFrame:
     """Montgomery's *Introduction to Statistical Quality Control*, Example
     6.1: 20 samples of 50 printed circuit boards, each with its count of
@@ -811,6 +833,8 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "lissajous": _lissajous,
     "signal_time_domain": _signal_time_domain,
     "signal_spectrum": _signal_spectrum,
+    "chirp_signal": _chirp_signal,
+    "wind_observations": _wind_observations,
     "attribute_chart_counts": _attribute_chart_counts,
     "baseline_spectrum": _baseline_spectrum,
     "server_events": _server_events,
@@ -2032,6 +2056,89 @@ def _figure_specs() -> list[FigureSpec]:
                     name="Rejected circuit boards",
                     sql="SELECT category, cause, subcause FROM defect_root_causes",
                     roles={"category": "category", "cause": "cause", "subcause": "subcause"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="59 · Spectrogram - a sweeping tone and a steady hum",
+            key="chirp_spectrogram",
+            tables=("chirp_signal",),
+            queries=(),
+            chart_type="Spectrogram",
+            title="A 5-120 Hz sweep and a 40 Hz hum, over time",
+            x_label="time (s)",
+            y_label="frequency (Hz)",
+            axis_options={"NFFT": 128, "noverlap": 96, "colorbar": True, "colorbar_label": "power (dB)"},
+            series=[
+                SeriesSpec(
+                    name="signal",
+                    sql="SELECT t_s AS x, amplitude AS y FROM chirp_signal ORDER BY t_s",
+                    roles={"x": "x", "y": "y"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="60 · Dendrogram - how the penguins join",
+            key="penguin_dendrogram",
+            tables=("penguins",),
+            queries=(),
+            chart_type="Dendrogram",
+            title="Ward clustering of 43 penguins on four measures",
+            x_label="",
+            y_label="",
+            axis_options={},
+            series=[
+                SeriesSpec(
+                    name="penguins",
+                    sql=(
+                        "SELECT bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, "
+                        "substr(species, 1, 3) || ' ' || island AS label "
+                        "FROM penguins WHERE rowid % 8 = 0"
+                    ),
+                    roles={"label": "label"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="61 · Radar chart - the species' profiles",
+            key="penguin_radar",
+            tables=("penguins",),
+            queries=(),
+            chart_type="Radar Chart",
+            title="Mean profile of each penguin species",
+            x_label="",
+            y_label="",
+            axis_options={},
+            series=[
+                SeriesSpec(
+                    name="penguins",
+                    sql=(
+                        "SELECT bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, "
+                        "species AS \"group\" FROM penguins"
+                    ),
+                    roles={"group": "group"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="62 · Wind rose - where the wind comes from",
+            key="wind_rose",
+            tables=("wind_observations",),
+            queries=(),
+            chart_type="Wind Rose",
+            title="2000 hourly readings: direction, split by speed (m/s)",
+            x_label="",
+            y_label="",
+            axis_options={},
+            series=[
+                SeriesSpec(
+                    name="wind",
+                    sql="SELECT direction_deg AS x, speed_ms AS y FROM wind_observations",
+                    roles={"x": "x", "y": "y"},
                     style={},
                 ),
             ],
