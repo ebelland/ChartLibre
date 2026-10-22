@@ -274,7 +274,11 @@ class SeriesControlChartDialog(DataOperationDialogBase):
     # here reads consecutive differences, and a shuffled series produces a
     # moving range that describes the sort order rather than the process.
     INPUT_REQUIRES_SORTED_X = True
-    INPUT_REQUIRES_UNIQUE_X = True
+    # Not unique: several readings on one date (a day's samples, stored as a date
+    # string without the time) are each a point of the chart, in the order they
+    # were taken - averaging them into one made 40 readings a chart of 20 and
+    # changed every limit. The sort is stable, so equal dates keep their order.
+    INPUT_REQUIRES_UNIQUE_X = False
     # A moving range needs a predecessor, and two points give one range - too
     # few to estimate anything, but enough not to crash. Nelson's run rules
     # want far more; the report says so when the series is short.

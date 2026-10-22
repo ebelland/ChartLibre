@@ -13,6 +13,7 @@ is a function rather than one call to ``pd.to_datetime`` is written on it.
 """
 from __future__ import annotations
 
+import re
 import warnings
 from typing import cast
 
@@ -69,6 +70,27 @@ def coerce_axis(values: pd.Series) -> tuple[pd.Series, bool]:
     return parsed, True
 
 
+_NUMERIC_DATE = re.compile(r"^\s*(\d{1,2})[/.\-](\d{1,2})[/.\-]\d{2,4}(?!\d)")
+
+
+def _entries_are_day_first(values: pd.Series) -> bool:
+    """True when numeric dates such as 13/02/2024 can only be day first: some first field is above 12, none of
+    the second ones is.
+
+    "01/02/2024" alone is ambiguous and stays as pandas reads it (month first), but a column that also holds
+    "13/02/2024" says which one it is. Left to pandas, such a column was read per entry: the dates it could
+    read day first, the others month first, and the series came out of order with no sign of it.
+    """
+    firsts: list[int] = []
+    seconds: list[int] = []
+    for text in values.dropna().astype(str).head(2000):
+        match = _NUMERIC_DATE.match(text)
+        if match:
+            firsts.append(int(match.group(1)))
+            seconds.append(int(match.group(2)))
+    return bool(firsts) and max(firsts) > 12 and max(seconds) <= 12
+
+
 def parse_datetimes(values: pd.Series) -> pd.Series:
     """Parse a column of timestamps, whatever shape its entries are in.
 
@@ -97,6 +119,7 @@ def parse_datetimes(values: pd.Series) -> pd.Series:
     best: pd.Series | None = None
     best_lost = -1
     present = values.notna()
+    day_first = _entries_are_day_first(values)
 
     for date_format in ("ISO8601", None, "mixed"):
         try:
@@ -106,7 +129,9 @@ def parse_datetimes(values: pd.Series) -> pd.Series:
                 # what it is here to do. Warning about a fallback that was
                 # asked for tells the user nothing they can act on.
                 warnings.simplefilter("ignore", UserWarning)
-                parsed = pd.to_datetime(values, errors="coerce", format=date_format)
+                parsed = pd.to_datetime(
+                    values, errors="coerce", format=date_format, **({"dayfirst": True} if day_first else {})
+                )
         except (TypeError, ValueError):
             continue
 
