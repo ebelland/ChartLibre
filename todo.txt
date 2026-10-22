@@ -161,8 +161,9 @@ statsmodels (mixed models AN-09, repeated measures/ANCOVA/VIF/leverage R-04, Cox
 - G-26  M  More models: negative binomial, zero-inflated Poisson, gamma/Tweedie GLM, GEE for
            clustered rows, quantile regression (QuantReg), robust RLM.
 - G-27  M  MANOVA (Wilks, Pillai, Hotelling-Lawley, Roy) and Hotelling T2.
-- G-28  S  Categorical tests: McNemar, Cochran's Q, proportions z-test, relative risk and risk
-           difference with CIs (Mantel-Haenszel - check diagnostics.py).
+- G-28  S  Categorical tests done: two-proportion z, McNemar, risk difference / relative risk / odds ratio with
+           CIs, Mantel-Haenszel over strata (role "strata") in the contingency model; Cochran's Q as an engine
+           function (no dialog yet: it needs k binary columns).
 - G-29  M  Time Series more: SARIMAX with exogenous X, VAR with Granger causality and impulse
            response, unobserved components (state space), rolling-origin forecast validation.
 

@@ -195,3 +195,84 @@ def test_the_randomness_model_reports_the_order_tests_and_is_not_part_of_all(rep
                     "Durbin-Watson", "Ljung-Box (lag 1)"):
         assert snippet in text, snippet
     assert "Wald-Wolfowitz" not in _run(repo, project["normality"], "all")
+
+
+# ----------------------------------------------------------------------
+# G-28: categorical tests
+# ----------------------------------------------------------------------
+def test_a_two_by_two_table_gets_the_z_test_mcnemar_and_the_effect_measures() -> None:
+    table = np.array([[30, 10], [20, 40]])
+    rows = {row["test"]: row for row in st.contingency_tests(table)}
+    assert rows["Two-proportion z"]["statistic"] ** 2 == pytest.approx(rows["Pearson chi-squared"]["statistic"])
+    assert rows["McNemar (paired)"]["statistic"] == pytest.approx((abs(10 - 20) - 1) ** 2 / 30)
+    measures = {m["measure"]: m for m in st.two_by_two_measures(table)}
+    assert measures["Risk difference"]["estimate"] == pytest.approx(0.75 - 1 / 3)
+    assert measures["Relative risk"]["estimate"] == pytest.approx(2.25)
+    assert measures["Odds ratio"]["estimate"] == pytest.approx(6.0)
+    low, high = measures["Odds ratio"]["low"], measures["Odds ratio"]["high"]
+    se = np.sqrt(1 / 30 + 1 / 10 + 1 / 20 + 1 / 40)
+    assert (low, high) == pytest.approx((6 * np.exp(-1.959964 * se), 6 * np.exp(1.959964 * se)), rel=1e-4)
+    assert st.two_by_two_measures(np.ones((2, 3))) == []
+
+
+def test_a_zero_cell_adds_half_for_the_ratios_and_says_so() -> None:
+    measures = st.two_by_two_measures(np.array([[5, 0], [2, 6]]))
+    assert measures[2]["estimate"] == pytest.approx((5.5 * 6.5) / (0.5 * 2.5))
+    assert "0.5" in measures[2]["note"] and measures[0]["note"].startswith("risks")
+
+
+def test_mcnemar_is_exact_for_few_discordant_pairs() -> None:
+    rows = {row["test"]: row for row in st.contingency_tests(np.array([[20, 3], [9, 18]]))}
+    assert "exact binomial" in rows["McNemar (paired)"]["note"]
+    assert rows["McNemar (paired)"]["pvalue"] == pytest.approx(stats.binomtest(3, 12, 0.5).pvalue)
+
+
+def test_cochrans_q_matches_the_formula_and_refuses_what_it_cannot_test() -> None:
+    data = pd.DataFrame({"a": [1, 1, 0, 1, 0, 0, 1, 0], "b": [1, 0, 0, 1, 1, 0, 1, 0], "c": [0, 0, 0, 1, 1, 1, 1, 1]})
+    k, t = 3, data.to_numpy()
+    cols, rows = t.sum(axis=0), t.sum(axis=1)
+    q = (k - 1) * (k * (cols**2).sum() - cols.sum() ** 2) / (k * rows.sum() - (rows**2).sum())
+    result = st.cochrans_q(data)
+    assert result["q"] == pytest.approx(q) and result["df"] == 2
+    assert result["pvalue"] == pytest.approx(stats.chi2.sf(q, 2))
+    with pytest.raises(ValueError, match="at least three"):
+        st.cochrans_q(data[["a", "b"]])
+    with pytest.raises(ValueError, match="0 and 1"):
+        st.cochrans_q(data.assign(c=[2] * 8))
+
+
+def test_mantel_haenszel_pools_strata_and_tests_that_they_agree() -> None:
+    strata_tables = [np.array([[10, 20], [5, 30]]), np.array([[8, 12], [6, 25]]), np.array([[12, 9], [10, 15]])]
+    rows, columns, strata, weights = [], [], [], []
+    for number, counts in enumerate(strata_tables):
+        for i, row in enumerate("eu"):
+            for j, column in enumerate("yn"):
+                rows.append(row); columns.append(column); strata.append(number); weights.append(counts[i, j])
+    result = st.stratified_2x2(rows, columns, strata, weights)
+    pooled = sum(t[0, 0] * t[1, 1] / t.sum() for t in strata_tables) / sum(t[0, 1] * t[1, 0] / t.sum() for t in strata_tables)
+    assert result["odds_ratio"] == pytest.approx(pooled)
+    assert result["low"] < pooled < result["high"] and 0 < result["breslow_day_p"] <= 1
+    assert [round(s["odds_ratio"], 3) for s in result["strata"]][0] == pytest.approx((10 * 30) / (20 * 5), abs=1e-3)
+    with pytest.raises(ValueError, match="at least two strata"):
+        st.stratified_2x2(["e", "u"], ["y", "n"], [1, 1])
+
+
+def test_the_contingency_report_adds_effect_measures_and_the_stratified_analysis(repo: SqliteRepo) -> None:
+    rows = []
+    for stratum, (a, b, c, d) in enumerate([(10, 20, 5, 30), (8, 12, 6, 25), (12, 9, 10, 15)]):
+        for exposure, outcome, count in (("exposed", "yes", a), ("exposed", "no", b), ("control", "yes", c),
+                                         ("control", "no", d)):
+            rows += [(exposure, outcome, f"S{stratum}")] * count
+    repo.import_dataframe(pd.DataFrame(rows, columns=["exposure", "outcome", "site"]), table_name="cohort",
+                          normalize_columns=False)
+    figure_id = int(repo.create_figure_descriptor(name="cohort"))
+    axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Mosaic Plot", title="c",
+                                              x_label="", y_label="", options={}))
+    repo.create_series_descriptor(
+        axis_id=axis_id, series_index=0, name="cohort",
+        sql_query="SELECT exposure AS x, outcome AS y, site AS strata FROM cohort",
+        roles={"x": "x", "y": "y", "strata": "strata"}, style={})
+    text = _run(repo, figure_id, "contingency")
+    for snippet in ("Effect measures", "Relative risk", "Two-proportion z", "McNemar", "Mantel-Haenszel over strata",
+                    "Common odds ratio", "Breslow-Day", "S0"):
+        assert snippet in text, snippet

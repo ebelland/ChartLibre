@@ -603,6 +603,8 @@ def contingency_tests(table: Any) -> list[dict[str, Any]]:
         rows.append(result_row(_("Chi-squared, Yates' correction"), n, _statistic(yates), _pvalue(yates), "df = 1"))
     likelihood = stats.chi2_contingency(counts, correction=False, lambda_="log-likelihood")
     rows.append(result_row(_("Likelihood-ratio G"), n, _statistic(likelihood), _pvalue(likelihood), f"df = {dof}"))
+    if counts.shape == (2, 2):
+        rows.extend(_two_by_two_tests(counts, n))
 
     integers = np.rint(counts)
     if not np.allclose(integers, counts):
@@ -618,6 +620,141 @@ def contingency_tests(table: Any) -> list[dict[str, Any]]:
             f"Monte Carlo, {FISHER_RESAMPLES} tables; statistic: probability of the table",
         ))
     return rows
+
+
+def _two_by_two_tests(counts: np.ndarray, n: int) -> list[dict[str, Any]]:
+    """The two-proportion z test of the rows' first-column shares, and McNemar's test of the table read as paired.
+
+    The z test is Pearson's chi-squared without correction in another form (z squared is its statistic); it
+    comes with the difference it tests. McNemar's test reads the table as the same subjects measured twice,
+    rows the first time and columns the second: only the discordant cells b and c carry information. It
+    answers a different question from the others, which treat the rows as two independent groups - read it
+    only for paired data.
+    """
+    from statsmodels.stats.contingency_tables import mcnemar
+    from statsmodels.stats.proportion import proportions_ztest
+
+    rows: list[dict[str, Any]] = []
+    first, second = counts[0, 0], counts[1, 0]
+    sizes = counts.sum(axis=1)
+    if np.all(sizes > 0) and np.allclose(counts, np.rint(counts)):
+        z_value, p_value = proportions_ztest([first, second], sizes)
+        rows.append(result_row(
+            _("Two-proportion z"), n, float(z_value), float(p_value),
+            f"{first / sizes[0]:.4g} against {second / sizes[1]:.4g} in the first column; difference {first / sizes[0] - second / sizes[1]:.4g}",
+        ))
+    b, c = float(counts[0, 1]), float(counts[1, 0])
+    if np.allclose(counts, np.rint(counts)):
+        exact = b + c < 25
+        result = mcnemar(counts.astype(int), exact=exact, correction=True)
+        rows.append(result_row(
+            _("McNemar (paired)"), n, float(result.statistic), float(result.pvalue),
+            f"discordant cells {b:g} and {c:g}; {'exact binomial' if exact else 'chi-squared with continuity correction'}; "
+            "only if the rows and columns are the same subjects twice",
+        ))
+    return rows
+
+
+def two_by_two_measures(table: Any) -> list[dict[str, Any]]:
+    """Risk difference, relative risk and odds ratio of a 2x2 table, each with its 95% confidence interval.
+
+    Rows are the groups (exposed first), the first column is the outcome: the risk of a row is its first
+    column's share. Risk difference is the first row's risk minus the second's (Wald interval); the relative
+    risk and the odds ratio have log-scale Wald intervals. A zero cell gets 0.5 added to every cell for the odds
+    ratio and the relative risk (Haldane-Anscombe), as the note says. Returns [] for any other shape.
+    """
+    from statsmodels.stats.contingency_tables import Table2x2
+
+    counts = np.asarray(table, dtype=float)
+    if counts.shape != (2, 2) or np.any(counts.sum(axis=1) <= 0):
+        return []
+    sizes = counts.sum(axis=1)
+    risks = counts[:, 0] / sizes
+    difference = float(risks[0] - risks[1])
+    se = float(np.sqrt(risks[0] * (1 - risks[0]) / sizes[0] + risks[1] * (1 - risks[1]) / sizes[1]))
+    out = [{"measure": _("Risk difference"), "estimate": difference, "low": difference - 1.959964 * se,
+            "high": difference + 1.959964 * se, "note": f"risks {risks[0]:.4g} and {risks[1]:.4g}"}]
+    corrected = bool(np.any(counts == 0))
+    shown = counts + 0.5 if corrected else counts
+    measures = Table2x2(shown)
+    note = "0.5 added to every cell (a zero cell)" if corrected else ""
+    for name, estimate, interval in (
+        (_("Relative risk"), measures.riskratio, measures.riskratio_confint()),
+        (_("Odds ratio"), measures.oddsratio, measures.oddsratio_confint()),
+    ):
+        out.append({"measure": name, "estimate": float(estimate), "low": float(interval[0]),
+                    "high": float(interval[1]), "note": note})
+    return out
+
+
+def cochrans_q(columns: Any) -> dict[str, Any]:
+    """Cochran's Q: do k >= 3 binary columns, measured on the same rows, have the same share of successes?
+
+    *columns* is a table of 0/1 values - one column per condition, one row per subject. The McNemar test
+    for k = 2. Rows with a missing value are left out. Returns ``q``, ``df``, ``pvalue``, ``n`` (rows used),
+    ``shares`` (per column) and ``note``; raises ValueError when the data cannot be tested.
+    """
+    from statsmodels.stats.contingency_tables import cochrans_q as q_test
+
+    frame = pd.DataFrame(columns).apply(pd.to_numeric, errors="coerce").dropna()
+    if frame.shape[1] < 3:
+        raise ValueError("Cochran's Q needs at least three columns; McNemar's test is its two-column case.")
+    if not frame.isin([0, 1]).all().all():
+        raise ValueError("Cochran's Q needs columns that hold only 0 and 1.")
+    if len(frame) < 2:
+        raise ValueError("Cochran's Q needs at least two complete rows.")
+    mixed = frame[(frame.sum(axis=1) > 0) & (frame.sum(axis=1) < frame.shape[1])]
+    result = q_test(frame.to_numpy(dtype=int))
+    note = f"{len(mixed)} of {len(frame)} rows differ between the columns and carry the information"
+    return {"q": float(result.statistic), "df": int(result.df), "pvalue": float(result.pvalue), "n": int(len(frame)),
+            "shares": {str(c): float(frame[c].mean()) for c in frame.columns}, "note": note}
+
+
+def stratified_2x2(rows: Any, columns: Any, strata: Any, weights: Any = None) -> dict[str, Any]:
+    """The Mantel-Haenszel analysis of a 2x2 table repeated over strata: one odds ratio across them.
+
+    Gives the common odds ratio with its 95% interval, the Cochran-Mantel-Haenszel test that it is 1, the
+    Breslow-Day test (with Tarone's correction) that every stratum has the same odds ratio - when it fails,
+    one pooled odds ratio hides a difference - and each stratum's own table and odds ratio. Strata that are not
+    2x2 (a level missing) are left out and counted in ``note``. Raises ValueError when no stratum is usable.
+    """
+    from statsmodels.stats.contingency_tables import StratifiedTable
+
+    frame = pd.DataFrame({
+        "r": np.asarray(rows, dtype=object), "c": np.asarray(columns, dtype=object),
+        "s": np.asarray(strata, dtype=object), "w": 1.0 if weights is None else np.asarray(weights, dtype=float),
+    }).dropna()
+    row_levels, column_levels = _level_order(pd.unique(frame["r"])), _level_order(pd.unique(frame["c"]))
+    if len(row_levels) != 2 or len(column_levels) != 2:
+        raise ValueError("The Mantel-Haenszel analysis needs a 2x2 table: two levels of each variable.")
+    tables, labels, skipped = [], [], 0
+    for level in _level_order(pd.unique(frame["s"])):
+        part = frame[frame["s"] == level]
+        counts = np.zeros((2, 2))
+        for i, row in enumerate(row_levels):
+            for j, column in enumerate(column_levels):
+                counts[i, j] = float(part.loc[(part["r"] == row) & (part["c"] == column), "w"].sum())
+        if counts.sum() > 0 and np.all(counts.sum(axis=0) > 0) and np.all(counts.sum(axis=1) > 0):
+            tables.append(counts)
+            labels.append(level)
+        else:
+            skipped += 1
+    if len(tables) < 2:
+        raise ValueError("The Mantel-Haenszel analysis needs at least two strata with both rows and both columns present.")
+    model = StratifiedTable(tables)
+    low, high = model.oddsratio_pooled_confint()
+    null = model.test_null_odds(correction=True)
+    equal = model.test_equal_odds(adjust=True)
+    per_stratum = []
+    for level, counts in zip(labels, tables):
+        a, b, c, d = (counts[0, 0], counts[0, 1], counts[1, 0], counts[1, 1])
+        odds = (a * d) / (b * c) if b * c > 0 else float("inf") if a * d > 0 else float("nan")
+        per_stratum.append({"stratum": level, "table": counts, "odds_ratio": float(odds)})
+    note = f"{len(tables)} strata" + (f"; {skipped} stratum/strata without both rows and columns left out" if skipped else "")
+    return {"odds_ratio": float(model.oddsratio_pooled), "low": float(low), "high": float(high),
+            "cmh": float(null.statistic), "cmh_p": float(null.pvalue),
+            "breslow_day": float(equal.statistic), "breslow_day_p": float(equal.pvalue),
+            "strata": per_stratum, "row_levels": row_levels, "column_levels": column_levels, "note": note}
 
 
 # ----------------------------------------------------------------------

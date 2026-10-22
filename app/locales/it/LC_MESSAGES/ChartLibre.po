@@ -10912,3 +10912,39 @@ msgstr "Ramsey RESET (forma funzionale)"
 
 msgid "Jarque-Bera (normal residuals)"
 msgstr "Jarque-Bera (residui normali)"
+
+msgid "Breslow-Day test (same odds ratio in every stratum)"
+msgstr "Test di Breslow-Day (stesso odds ratio in ogni strato)"
+
+msgid "Cochran-Mantel-Haenszel test (odds ratio = 1)"
+msgstr "Test di Cochran-Mantel-Haenszel (odds ratio = 1)"
+
+msgid "Common odds ratio (Mantel-Haenszel)"
+msgstr "Odds ratio comune (Mantel-Haenszel)"
+
+msgid "Effect measures"
+msgstr "Misure d'effetto"
+
+msgid "Mantel-Haenszel over strata"
+msgstr "Mantel-Haenszel sugli strati"
+
+msgid "When the Breslow-Day test rejects, one pooled odds ratio hides a difference between the strata."
+msgstr "Quando il test di Breslow-Day rifiuta, un solo odds ratio combinato nasconde una differenza tra gli strati."
+
+msgid "Rows are the groups and the first column the outcome: the risk of a row is its first column's share."
+msgstr "Le righe sono i gruppi e la prima colonna l'esito: il rischio di una riga è la quota della prima colonna."
+
+msgid "Two-proportion z"
+msgstr "z per due proporzioni"
+
+msgid "McNemar (paired)"
+msgstr "McNemar (appaiato)"
+
+msgid "Risk difference"
+msgstr "Differenza di rischio"
+
+msgid "Relative risk"
+msgstr "Rischio relativo"
+
+msgid "Odds ratio"
+msgstr "Odds ratio"

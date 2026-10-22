@@ -93,7 +93,7 @@ FRAME_MODELS: frozenset[str] = frozenset({"contingency", "two_way", "survival"})
 #: Where each model finds its columns: role names, tried in order, each as
 #: the role's own column and then as a column of that name.
 MODEL_COLUMNS: Mapping[str, Mapping[str, tuple[str, ...]]] = {
-    "contingency": {"rows": ("x", "group"), "columns": ("y", "trace"), "weight": ("weight",)},
+    "contingency": {"rows": ("x", "group"), "columns": ("y", "trace"), "weight": ("weight",), "strata": ("strata",)},
     "two_way": {"first": ("x",), "second": ("trace", "group"), "response": ("y", "value")},
     "survival": {"time": ("time", "x"), "event": ("event",), "group": ("group",)},
 }
@@ -1071,9 +1071,50 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             _html_test_row(labels["rows"] + " × " + labels["columns"], test, self._format_number, self._format_pvalue)
             for test in st.contingency_tests(table.to_numpy())
         ]
-        return (
-            self._table(headers, rows)
-            + self._table(["Variables", "Test", "n", "Statistic", "p-value", "Note"], tests)
+        out = self._table(headers, rows) + self._table(["Variables", "Test", "n", "Statistic", "p-value", "Note"], tests)
+        measures = st.two_by_two_measures(table.to_numpy())
+        if measures:
+            out += report_html.section(
+                _("Effect measures"),
+                self._table(
+                    ["Measure", "Estimate", "95% CI low", "95% CI high", "Note"],
+                    [[html.escape(str(m["measure"])), self._format_number(m["estimate"]), self._format_number(m["low"]),
+                      self._format_number(m["high"]), html.escape(m["note"])] for m in measures],
+                ),
+                report_html.note(_("Rows are the groups and the first column the outcome: the risk of a row is its "
+                                   "first column's share.")),
+            )
+        if "strata" in columns:
+            out += self._stratified_html(frame, columns, weights)
+        return out
+
+    def _stratified_html(self, frame: pd.DataFrame, columns: Mapping[str, str], weights: Any) -> str:
+        """The Mantel-Haenszel analysis of the 2x2 table over the strata column's values."""
+        try:
+            result = st.stratified_2x2(frame[columns["rows"]], frame[columns["columns"]], frame[columns["strata"]], weights)
+        except ValueError as exc:
+            return report_html.section(_("Mantel-Haenszel over strata"), report_html.note(str(exc)))
+        summary = [
+            [_("Common odds ratio (Mantel-Haenszel)"), self._format_number(result["odds_ratio"]),
+             f"{self._format_number(result['low'])} .. {self._format_number(result['high'])}", ""],
+            [_("Cochran-Mantel-Haenszel test (odds ratio = 1)"), self._format_number(result["cmh"]), "",
+             self._format_pvalue(result["cmh_p"])],
+            [_("Breslow-Day test (same odds ratio in every stratum)"), self._format_number(result["breslow_day"]), "",
+             self._format_pvalue(result["breslow_day_p"])],
+        ]
+        detail = [
+            [html.escape(str(item["stratum"])), *(self._count(v) for v in item["table"].ravel()),
+             self._format_number(item["odds_ratio"])]
+            for item in result["strata"]
+        ]
+        r_levels, c_levels = result["row_levels"], result["column_levels"]
+        cells = [f"{r}/{c}" for r in r_levels for c in c_levels]
+        return report_html.section(
+            _("Mantel-Haenszel over strata"),
+            self._table(["", "Statistic", "95% CI", "p-value"], summary),
+            self._table([html.escape(str(columns["strata"])), *(html.escape(str(c)) for c in cells), "Odds ratio"], detail),
+            report_html.note(html.escape(result["note"]) + ". " + _("When the Breslow-Day test rejects, one pooled odds "
+                                                                    "ratio hides a difference between the strata.")),
         )
 
     def _two_way_html(self, frame: pd.DataFrame, columns: Mapping[str, str], labels: Mapping[str, str]) -> str:
