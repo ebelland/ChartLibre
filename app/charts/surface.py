@@ -46,6 +46,7 @@ from app.plugin_api.charts.base import (
     LINE_KWARGS,
     VIEW_OPTIONS,
     BaseAxisRenderer,
+    SeriesArtistTags,
     SeriesData,
     merge,
     pick,
@@ -400,7 +401,9 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
     ) -> None:
         axis_options = options or {}
 
+        tags = SeriesArtistTags(ax)
         for index, sd in enumerate(series):
+            tags.next(sd.name)
             style = dict(sd.style or {})
             if not style.get("visible", True) or not self.ensure_required_roles(sd.df):
                 continue
@@ -435,6 +438,10 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
                 kwargs.pop("s", None)
                 kwargs["s"] = sizes
 
+            if colors is not None:
+                tags.follow(())  # coloured by the column: only a render redraws it
+            elif sizes is not None:
+                tags.follow(("color", "marker"))  # sized by the column
             try:
                 ax.scatter(x, y, z, **kwargs)
             except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
@@ -442,6 +449,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
                     "Scatter Plot (3D) failed to draw series '%s'.", sd.name
                 )
 
+        tags.done()
         self.apply_view(ax, axis_options)
 
         self.apply_annotations(ax, axis_options)
@@ -539,7 +547,9 @@ class Line3DAxisRenderer(BaseAxisRenderer):
     ) -> None:
         axis_options = options or {}
 
+        tags = SeriesArtistTags(ax)
         for index, sd in enumerate(series):
+            tags.next(sd.name)
             style = dict(sd.style or {})
             if not style.get("visible", True) or not self.ensure_required_roles(sd.df):
                 continue
@@ -565,6 +575,7 @@ class Line3DAxisRenderer(BaseAxisRenderer):
                     "3D Line Plot failed to draw series '%s'.", sd.name
                 )
 
+        tags.done()
         self.apply_view(ax, axis_options)
 
         self.apply_annotations(ax, axis_options)

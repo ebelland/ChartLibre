@@ -26,7 +26,7 @@ from typing import Any
 
 import numpy as np
 
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesArtistTags, SeriesData
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
@@ -184,7 +184,10 @@ class StairsAxisRenderer(BaseAxisRenderer):
     }
 
     def render_axis(self, ax: Any, series: list[SeriesData], options: dict) -> None:
+        tags = SeriesArtistTags(ax)
         for sd in series:
+            tags.next(sd.name)
+            tags.follow(("color", "linestyle"))  # a step line: no marker, no size
             style = dict(sd.style or {})
             if not style.get("visible", True) or not self.ensure_required_roles(sd.df):
                 continue
@@ -220,6 +223,7 @@ class StairsAxisRenderer(BaseAxisRenderer):
                 ax.stairs(values, edges, **kwargs)
             except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Stairs failed to draw series '%s'.", sd.name)
+        tags.done()
         # Draw descriptor annotations after renderer-owned artists.
         self.apply_annotations(ax, options or {})
 

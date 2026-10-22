@@ -13,8 +13,9 @@ NEXT - INTERFACE
 - R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series
            over a saved query that keeps "_id"; dates and categories on x; the data filter
            ("show only Selected" on every chart of a table).
-- S-01  S  Live style preview on the other line/point renderers (Stairs, Stem, ECDF, 3D Line,
-           via SeriesArtistTags); Undo per element.
+- S-01  S  Live style preview, done for Scatter, Time Series, ECDF (a scatter underneath), Stairs,
+           3D Line and 3D Scatter (via SeriesArtistTags). Left: Stem (its style is linefmt/markerfmt/
+           basefmt, not color/linestyle - needs the preview to read those); Undo per element.
 
 - H-17  S  Results in a grey frame is still a white page inside it (an HTML report): keep, or the frame's grey?
 - H-11  M  Error messages that say what to do next, for import and SQL.

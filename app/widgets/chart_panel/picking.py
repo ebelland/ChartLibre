@@ -9,7 +9,7 @@ from matplotlib.collections import PathCollection
 from matplotlib.colors import to_rgba
 from matplotlib.lines import Line2D
 from matplotlib.markers import MarkerStyle
-from matplotlib.patches import Patch, Rectangle, Wedge
+from matplotlib.patches import Patch, Rectangle, StepPatch, Wedge
 
 from app.utils.i18n import _
 
@@ -46,7 +46,17 @@ def _style_steps(
     for key, value in changes.items():
         if key not in _follows(artist):
             continue
-        if isinstance(artist, Line2D):
+        if isinstance(artist, Patch) and not isinstance(artist, Wedge):
+            # A step line (Stairs) and its legend swatch: an outline, and a fill if it has one.
+            if key == "color":
+                to_rgba(value)  # ValueError for a colour Matplotlib does not know
+                filled = artist.get_fill()
+                steps.append(lambda v=value, fill=filled: (artist.set_edgecolor(v), fill and artist.set_facecolor(v)))
+            elif key == "linestyle":
+                if str(value) in _NONE_STYLES or str(artist.get_linestyle()) in _NONE_STYLES:
+                    return False, []
+                steps.append(lambda v=value: artist.set_linestyle(v))
+        elif isinstance(artist, Line2D):
             if key == "color":
                 to_rgba(value)  # ValueError for a colour Matplotlib does not know
                 steps.append(lambda v=value: artist.set_color(v))
@@ -556,7 +566,8 @@ class PickingMixin:
         mine = [a for a in axes.get_children() if getattr(a, "_dhub_series", None) == series]
         lines = [a for a in mine if isinstance(a, Line2D)]
         points = [a for a in mine if isinstance(a, PathCollection)]
-        if not mine or len(lines) + len(points) != len(mine):
+        steps = [a for a in mine if isinstance(a, StepPatch)]
+        if not mine or len(lines) + len(points) + len(steps) != len(mine):
             return False
         if any(not any(key in _follows(a) for a in mine) for key in changes):
             return False  # nothing drawn takes it: only a render can show it
@@ -565,14 +576,14 @@ class PickingMixin:
         for legend in (axes.get_legend(), *self._canvas.figure.legends):
             for handle, text in zip(legend.legend_handles, legend.get_texts()) if legend is not None else ():
                 if text.get_text() in labelled:
-                    if not isinstance(handle, (Line2D, PathCollection)):
+                    if not isinstance(handle, (Line2D, PathCollection, Patch)):
                         return False
                     handle._dhub_follows = _follows(labelled[text.get_text()])  # noqa: SLF001
                     handles.append(handle)
         has_points = any("marker" in _follows(a) for a in points)
         try:
             plan = [(a, *_style_steps(a, changes, has_points=has_points, sizes=a not in handles, has_lines=bool(lines)))
-                    for a in (*lines, *points, *handles)]
+                    for a in (*lines, *points, *steps, *handles)]
         except ValueError:
             return False
         if any(not ok for _artist, ok, _steps in plan):
