@@ -58,7 +58,6 @@ I-05   M  Small chart beside operation results.
 I-06   M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
 I-07   M  Reproducibility: re-run recorded operations; export a Python script (H-01).
 I-08   L  Multichart templates; signed macOS app, Windows installer.
-I-09   S  Frame titles not in capitals ("Select Columns", not "SELECT COLUMNS"), as macOS's own.
 
 [YOU]
 - A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).

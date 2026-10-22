@@ -51,8 +51,6 @@ QLabel[sectionTitle="true"] {
   padding: 2px 0 4px 0;
   font-size: 11pt;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 

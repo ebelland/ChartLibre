@@ -1242,10 +1242,6 @@ QLabel[sectionTitle="true"] {
     font-size: 9pt;
 
     font-weight: 600;
-
-    letter-spacing: 0.04em;
-
-    text-transform: uppercase;
 }
 
 /* ----------------------------------------------------------
