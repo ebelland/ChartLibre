@@ -10846,3 +10846,9 @@ msgstr "(A), (B), (C)"
 
 msgid "A., B., C."
 msgstr "A., B., C."
+
+msgid "Randomness diagnostics"
+msgstr "Diagnostica di casualità"
+
+msgid "Residual randomness and independence"
+msgstr "Casualità e indipendenza dei residui"

@@ -21,6 +21,8 @@ import numpy as np
 import pandas as pd
 
 from app.analysis import NUMERICAL_FAILURES
+from app.analysis.randomness import all_diagnostics
+from app.logs.logger import applogger
 from scipy import stats
 
 from app.utils.i18n import _
@@ -230,6 +232,39 @@ def normality_tests(
             tests.append(note_row(_("Anderson-Darling normality"), n, str(exc)))
     return tests
 
+
+# ----------------------------------------------------------------------
+# Randomness and serial independence
+# ----------------------------------------------------------------------
+def randomness_tests(
+    values: Any,
+    *,
+    lags: Sequence[int] = (1, 5, 10, 20),
+    model_df: int = 0,
+    centre: float | None = None,
+) -> list[dict[str, Any]]:
+    """Runs, turning points, Durbin-Watson and Ljung-Box diagnostics.
+
+    The order of *values* is meaningful.  Ordinary limitations, such as a
+    short or constant series, become ``note_row`` entries and warnings rather
+    than exceptions, consistently with the rest of this module.
+    """
+    values = finite(values)
+    try:
+        diagnostics = all_diagnostics(values, lags=lags, model_df=model_df, centre=centre)
+    except Exception as exc:  # noqa: BLE001 - preserve a complete statistics report
+        applogger.error(f"Randomness diagnostics failed: {exc}")
+        return [note_row(_("Randomness diagnostics"), values.size, str(exc))]
+    rows: list[dict[str, Any]] = []
+    for diagnostic in diagnostics:
+        name = _(diagnostic.test)
+        if diagnostic.available:
+            rows.append(result_row(name, diagnostic.n, diagnostic.statistic,
+                                   diagnostic.pvalue, diagnostic.note))
+        else:
+            applogger.warning(f"{diagnostic.test}: {diagnostic.note}")
+            rows.append(note_row(name, diagnostic.n, diagnostic.note))
+    return rows
 
 # ----------------------------------------------------------------------
 # Two samples measured on the same units (paired)

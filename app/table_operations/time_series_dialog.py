@@ -98,6 +98,37 @@ class TimeSeriesDialog(TableOperationDialogBase):
                     tooltip="A step lasts from then on; a pulse affects that one time only.", advanced=True),
         IntParam("lags", "Lags:", tooltip="How far back the autocorrelations look.",
                  default_value=25, minimum=1, maximum=500, advanced=True),
+        BoolParam(
+            "show_residual_runs",
+            "Show residual runs test",
+            tooltip=("Wald-Wolfowitz test of whether positive and negative residuals occur in a random "
+                     "order around zero. Ties at zero are omitted."),
+            default_value=True,
+            advanced=True,
+        ),
+        BoolParam(
+            "show_residual_turning_points",
+            "Show residual turning-point test",
+            tooltip=("Tests whether the number of local peaks and troughs in the residuals is consistent "
+                     "with a random sequence."),
+            default_value=True,
+            advanced=True,
+        ),
+        BoolParam(
+            "show_residual_durbin_watson",
+            "Show residual Durbin-Watson statistic",
+            tooltip=("Reports the Durbin-Watson diagnostic for lag-one residual correlation. Values near "
+                     "2 indicate little lag-one correlation; no generic p-value is reported."),
+            default_value=True,
+            advanced=True,
+        ),
+        BoolParam(
+            "show_residual_ljung_box",
+            "Show residual Ljung-Box tests",
+            tooltip=("Tests whether residual autocorrelations through the selected lags are jointly zero."),
+            default_value=True,
+            advanced=True,
+        ),
     )
 
     def __init__(self, **kwargs: Any) -> None:
@@ -118,7 +149,7 @@ class TimeSeriesDialog(TableOperationDialogBase):
         time = casting.columns("time")
         given = casting.columns("input")
         season = int(params.get("season", 0) or 0)
-        return tsa.analyse(
+        result = tsa.analyse(
             frame, casting.columns("response")[0], time[0] if time else tsa.ROW_ORDER,
             model=str(params.get("model") or tsa.ARIMA),
             order=(int(params.get("p", 1)), int(params.get("d", 0)), int(params.get("q", 0))),
@@ -130,6 +161,22 @@ class TimeSeriesDialog(TableOperationDialogBase):
             season=-1 if season == 0 else (0 if season == 1 else season),
             horizon=int(params.get("horizon", 12)), lags=int(params.get("lags", 25)),
         )
+        # BoolParam values are restored and saved by the operation framework with
+        # the other declared PARAMS. Filter only the presentation table: the
+        # engine still computes every diagnostic, so model warnings and summary
+        # values remain reproducible independently of the UI selection.
+        if not result.residual_diagnostics.empty:
+            enabled = {
+                "Wald-Wolfowitz runs": bool(params.get("show_residual_runs", True)),
+                "Turning-point randomness": bool(params.get("show_residual_turning_points", True)),
+                "Durbin-Watson": bool(params.get("show_residual_durbin_watson", True)),
+                "Ljung-Box": bool(params.get("show_residual_ljung_box", True)),
+            }
+            names = result.residual_diagnostics["Test"].astype(str)
+            keep = names.map(lambda name: enabled["Ljung-Box"] if name.startswith("Ljung-Box")
+                             else enabled.get(name, True))
+            result.residual_diagnostics = result.residual_diagnostics.loc[keep].reset_index(drop=True)
+        return result
 
     def report_subtitle(self, result: tsa.TimeSeriesResult) -> str:
         return f"{self.table} · {result.measure}"
@@ -150,6 +197,11 @@ class TimeSeriesDialog(TableOperationDialogBase):
         if not result.stationarity.empty:
             blocks.append(report_html.section(_("Stationarity tests"),
                                               self.report_table(result.stationarity, p_columns=("Prob",), digits=4)))
+        if not result.residual_diagnostics.empty:
+            blocks.append(report_html.section(
+                _("Residual randomness and independence"),
+                self.report_table(result.residual_diagnostics, p_columns=("Prob",), digits=4),
+            ))
         if not result.cross.empty:
             order = result.cross["Prewhitened CCF"].abs().sort_values(ascending=False).index
             strongest = result.cross.reindex(order).head(8)
@@ -162,6 +214,8 @@ class TimeSeriesDialog(TableOperationDialogBase):
 
     def apply_results(self, result: tsa.TimeSeriesResult) -> list[dict[str, Any]]:
         frames = {"time_series": result.rows, "time_series_acf": result.correlations}
+        if not result.residual_diagnostics.empty:
+            frames["time_series_residual_diagnostics"] = result.residual_diagnostics
         if not result.cross.empty:
             frames["time_series_ccf"] = result.cross
         if not result.forecast.empty:

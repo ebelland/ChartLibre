@@ -30,6 +30,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from app.analysis.randomness import all_diagnostics
+from app.logs.logger import applogger
 
 ROW_ORDER = ""
 ARIMA = "arima"
@@ -62,6 +64,8 @@ class TimeSeriesResult:
     #: Time, Forecast, Lower 95%, Upper 95%.
     forecast: pd.DataFrame
     parameters: pd.DataFrame
+    #: Randomness and serial-independence diagnostics of fitted residuals.
+    residual_diagnostics: pd.DataFrame = field(default_factory=pd.DataFrame)
     #: ADF and KPSS on the series as it is and differenced: Test, Series, Statistic, Prob, Says.
     stationarity: pd.DataFrame = field(default_factory=pd.DataFrame)
     #: The automatic search's models, best AIC first: Model, AIC, BIC.
@@ -414,6 +418,7 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         candidates = candidates.drop(columns=["order", "seasonal"])
     forecast = pd.DataFrame(columns=["Time", "Forecast", f"Lower {CONFIDENCE:.0%}", f"Upper {CONFIDENCE:.0%}"])
     parameters = pd.DataFrame(columns=["Term", "Estimate", "Std Error", "Prob>|z|"])
+    residual_diagnostics = pd.DataFrame(columns=["Test", "n", "Statistic", "Prob", "Note"])
     if model != NONE:
         alpha = 1 - CONFIDENCE
         with warnings.catch_warnings():
@@ -464,12 +469,35 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         summary.update({"Model": label, "AIC": float(fitted.aic), "BIC": float(fitted.bic),
                         "RMSE of residuals": float(np.sqrt(np.mean(residuals[burn:] ** 2))),
                         "Forecast periods": horizon})
-        white = acorr_ljungbox(residuals[burn:], lags=[min(10, max(1, (n - burn) // 5))])
-        summary["Residuals: Ljung-Box Prob>Q"] = float(white["lb_pvalue"].iloc[0])
-        if float(white["lb_pvalue"].iloc[0]) < 0.05:
-            notes.append("The residuals are still autocorrelated (Ljung-Box p < 0.05): the model leaves "
-                         "a pattern behind - try another order, or a season.")
+        residual_values = residuals[burn:]
+        diagnostic_lag = min(10, max(1, residual_values.size // 5))
+        try:
+            diagnostics = all_diagnostics(
+                residual_values,
+                lags=tuple(dict.fromkeys((1, 5, diagnostic_lag))),
+                model_df=0,
+                centre=0.0,
+            )
+            residual_diagnostics = pd.DataFrame([
+                {"Test": item.test, "n": item.n, "Statistic": item.statistic,
+                 "Prob": item.pvalue, "Note": item.note}
+                for item in diagnostics
+            ])
+            for item in diagnostics:
+                if not item.available:
+                    applogger.warning(f"Residual diagnostic {item.test}: {item.note}")
+            ljung_rows = [item for item in diagnostics if item.test == f"Ljung-Box (lag {diagnostic_lag})"]
+            if ljung_rows and np.isfinite(ljung_rows[0].pvalue):
+                ljung_p = float(ljung_rows[0].pvalue)
+                summary["Residuals: Ljung-Box Prob>Q"] = ljung_p
+                if ljung_p < 0.05:
+                    notes.append("The residuals are still autocorrelated (Ljung-Box p < 0.05): the model leaves "
+                                 "a pattern behind - try another order, or a season.")
+        except Exception as exc:  # noqa: BLE001 - the fitted model remains usable
+            applogger.error(f"Residual randomness diagnostics failed: {exc}")
+            notes.append(f"Residual randomness diagnostics could not be computed: {exc}")
     return TimeSeriesResult(measure=measure, time=time, temporal=temporal, model=model, season=season,
                             rows=rows, correlations=correlations, forecast=forecast, parameters=parameters,
+                            residual_diagnostics=residual_diagnostics,
                             stationarity=tests, candidates=candidates, cross=cross, input=input,
                             summary=summary, notes=notes)
