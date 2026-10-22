@@ -1006,8 +1006,18 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
     _apply_aspect_options(ax, options)
 
 
-# Matplotlib scales that need no extra arguments beyond the base.
-SUPPORTED_AXIS_SCALES: tuple[str, ...] = ("linear", "log", "symlog", "logit")
+# Matplotlib scales that need no extra arguments beyond the base, and "reciprocal":
+# the 1/x scale (an Arrhenius plot's 1/T), built on Matplotlib's function scale.
+SUPPORTED_AXIS_SCALES: tuple[str, ...] = ("linear", "log", "symlog", "logit", "reciprocal")
+
+#: How a scale is named in a list, where its own name is not what people read.
+AXIS_SCALE_LABELS: dict[str, str] = {"reciprocal": "1/x"}
+
+
+def _reciprocal(values: Any) -> Any:
+    """1/x for the reciprocal scale: it is its own inverse; zero maps to infinity and is not drawn."""
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return 1.0 / np.asarray(values, dtype=float)
 
 
 def _apply_scales(ax: Any, options: dict[str, Any]) -> None:
@@ -1055,7 +1065,10 @@ def _apply_scales(ax: Any, options: dict[str, Any]) -> None:
                     applogger.warning("Invalid linthresh for %s axis: %r", axis_name, threshold)
 
         try:
-            setter(scale, **kwargs)
+            if scale == "reciprocal":
+                setter("function", functions=(_reciprocal, _reciprocal))
+            else:
+                setter(scale, **kwargs)
         except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
             applogger.exception("Failed to set %s scale to %r", axis_name, scale)
 

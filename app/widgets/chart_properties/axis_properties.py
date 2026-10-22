@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
 from app.widgets.font_scale_control import FontScaleControl
 from app.logs.logger import applogger
 from app.plugin_api.charts import axis_options
-from app.plugin_api.charts.render_figure import SUPPORTED_AXIS_SCALES
+from app.plugin_api.charts.render_figure import AXIS_SCALE_LABELS, SUPPORTED_AXIS_SCALES
 from app.styles.style import (
     MARGIN_PANEL,
     CardFrame,
@@ -301,7 +301,7 @@ class AxisPropertiesWidget(BaseProperties):
         self._coordinate_label = QLineEdit(self)
         self._scale_combo = QComboBox(self)
         for value in AXIS_SCALES:
-            self._scale_combo.addItem(value, value)
+            self._scale_combo.addItem(AXIS_SCALE_LABELS.get(value, value), value)
         self._scale_combo.currentIndexChanged.connect(self._update_scale_control_state)
         self._scale_base_spin = QDoubleSpinBox(self)
         self._scale_base_spin.setRange(1.1, 1000.0); self._scale_base_spin.setDecimals(2); self._scale_base_spin.setValue(10.0)
