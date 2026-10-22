@@ -24,6 +24,10 @@ from pathlib import Path
 from app.data.repo._common import RepoHost, ensure_connection_wrapper
 
 PROJECT_INFO_TABLE = "__project_info__"
+#: The project's preview picture, embedded: one row holding the PNG itself. A picture
+#: kept as a file beside the project is lost whenever the project alone is copied,
+#: sent or packaged (issue #8).
+PROJECT_PREVIEW_TABLE = "__project_preview__"
 
 
 def parse_references(text: str | None) -> list[dict[str, str]]:
@@ -92,6 +96,19 @@ def read_project_info(path: Path) -> dict[str, str]:
     return {str(key): str(value) for key, value in rows}
 
 
+def read_project_preview(path: Path) -> bytes | None:
+    """The preview PNG embedded in the .dhub at *path*, read without opening it; None if there is none."""
+    path = Path(path)
+    if not path.is_file():
+        return None
+    try:
+        with closing(sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)) as con:
+            row = con.execute(f"SELECT png FROM {PROJECT_PREVIEW_TABLE} WHERE id = 1").fetchone()
+    except sqlite3.Error:
+        return None
+    return bytes(row[0]) if row and row[0] else None
+
+
 class ProjectInfoMixin(RepoHost):
     """The ``__project_info__`` entries."""
 
@@ -150,3 +167,29 @@ class ProjectInfoMixin(RepoHost):
             else:
                 self._con.execute(f"DELETE FROM {PROJECT_INFO_TABLE} WHERE key = ?", (str(key),))
         self._commit()
+
+    @ensure_connection_wrapper
+    def set_project_preview(self, png: bytes | None) -> None:
+        """Embed *png* as the project's preview; None removes it."""
+        assert self._con is not None
+        self._con.execute(
+            f"CREATE TABLE IF NOT EXISTS {PROJECT_PREVIEW_TABLE} "
+            "(id INTEGER PRIMARY KEY CHECK (id = 1), png BLOB NOT NULL)"
+        )
+        if png:
+            self._con.execute(
+                f"INSERT OR REPLACE INTO {PROJECT_PREVIEW_TABLE} (id, png) VALUES (1, ?)", (sqlite3.Binary(png),)
+            )
+        else:
+            self._con.execute(f"DELETE FROM {PROJECT_PREVIEW_TABLE}")
+        self._commit()
+
+    @ensure_connection_wrapper
+    def project_preview(self) -> bytes | None:
+        """The embedded preview PNG, or None."""
+        assert self._con is not None
+        try:
+            row = self._con.execute(f"SELECT png FROM {PROJECT_PREVIEW_TABLE} WHERE id = 1").fetchone()
+        except sqlite3.Error:
+            return None
+        return bytes(row[0]) if row and row[0] else None

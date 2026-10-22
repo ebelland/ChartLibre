@@ -149,10 +149,11 @@ class LoadDemoDialog(SettingsTableDialog):
     def _picture(self, demo: DemoProject | None) -> QPixmap:
         """The demo's preview at the label's size, sharp on a high-density screen;
         empty when there is none - a clone that has not built them."""
-        preview = demo.preview_path if demo is not None else None
-        if preview is None:
+        png = demo.preview_bytes if demo is not None else None
+        if not png:
             return QPixmap()
-        picture = QPixmap(str(preview))
+        picture = QPixmap()
+        picture.loadFromData(png)
         if picture.isNull():
             return picture
         ratio = self.devicePixelRatioF()

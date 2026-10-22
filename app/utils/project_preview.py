@@ -2,9 +2,10 @@
 
 Saving a project redraws it (MainWindow._on_save), and the demo set is built
 with one (dev/demo/build_demos.py), which is what the Load demo dialog shows.
-The picture is ``<project>.preview.png`` in the project's folder; the
-project's ``preview_path`` entry (``__project_info__``) names it relative to
-the project, so the two can be moved together.
+The picture is EMBEDDED in the project (``__project_preview__``), so a copy of
+the project file alone carries it. Projects saved before that keep a
+``<project>.preview.png`` beside them, which is still read when there is no
+embedded picture (``project_preview_bytes``).
 
 No Qt here.
 """
@@ -54,20 +55,39 @@ def render_preview(repo: SqliteRepo, figure_id: int) -> bytes:
     )
 
 
-def write_project_preview(repo: SqliteRepo, *, figure_id: int | None = None) -> Path | None:
-    """Draw the project's first figure (or *figure_id*) into its preview.
+def project_preview_bytes(project: Path, entry: str | None = None) -> bytes | None:
+    """The preview PNG of the project at *project*: the embedded one, else the legacy file.
 
-    Records it as the project's ``preview_path`` and returns the file
-    written; None, with the entry removed, for a project with no figures.
+    *entry* is the project's old ``preview_path`` info entry, when the caller has it.
     """
-    project = Path(str(repo.db_path))
+    from app.data.repo.project_info import read_project_info, read_project_preview
+
+    embedded = read_project_preview(Path(project))
+    if embedded:
+        return embedded
+    legacy = resolve_preview(Path(project), entry if entry is not None else read_project_info(Path(project)).get(PREVIEW_KEY))
+    if legacy is None:
+        return None
+    try:
+        return legacy.read_bytes()
+    except OSError:
+        return None
+
+
+def write_project_preview(repo: SqliteRepo, *, figure_id: int | None = None) -> bytes | None:
+    """Draw the project's first figure (or *figure_id*) into its embedded preview.
+
+    Returns the PNG; None, with the preview removed, for a project with no figures.
+    """
     figures = repo.load_figures_from_db()
     if figure_id is None:
         if not figures:
+            repo.set_project_preview(None)
             repo.set_project_info({PREVIEW_KEY: None})
             return None
         figure_id = int(figures[0][0])
-    target = preview_file_for(project)
-    target.write_bytes(render_preview(repo, int(figure_id)))
-    repo.set_project_info({PREVIEW_KEY: target.name})
-    return target
+    png = render_preview(repo, int(figure_id))
+    repo.set_project_preview(png)
+    # The file entry of older projects is dropped: the picture is in the project now.
+    repo.set_project_info({PREVIEW_KEY: None})
+    return png

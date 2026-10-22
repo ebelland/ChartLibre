@@ -2516,7 +2516,7 @@ def describe_demo(demo: DemoProject, path: Path) -> None:
 
     Author, notes (the demo's summary), references and the creation date go
     into the project's own ``__project_info__``, the way any project
-    describes itself; the preview is drawn beside it, from the figure the
+    describes itself; the preview is drawn and embedded in it, from the figure the
     demo names (or its first). The Load demo dialog reads all of it back
     from the file.
     """

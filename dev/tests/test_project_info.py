@@ -79,13 +79,16 @@ def test_references_round_trip_and_a_bare_string_is_a_citation() -> None:
     assert parse_references("not json") == [] and dump_references([]) is None
 
 
-def test_saving_draws_the_first_figure_into_the_preview(qapp, tmp_path: Path) -> None:
+def test_saving_draws_the_first_figure_into_the_embedded_preview(qapp, tmp_path: Path) -> None:
+    import io
+
     from PIL import Image
 
-    from app.utils.project_preview import preview_file_for, resolve_preview, write_project_preview
+    from app.utils.project_preview import project_preview_bytes, write_project_preview
 
-    repo = SqliteRepo(db_path=tmp_path / "My study.dhub")
-    assert write_project_preview(repo) is None and "preview_path" not in repo.project_info()
+    project = tmp_path / "My study.dhub"
+    repo = SqliteRepo(db_path=project)
+    assert write_project_preview(repo) is None and repo.project_preview() is None
     repo.import_dataframe(pd.DataFrame({"x": [1.0, 2.0, 3.0], "y": [2.0, 1.0, 3.0]}), table_name="t",
                           normalize_columns=False)
     figure_id = int(repo.create_figure_descriptor(name="first"))
@@ -93,13 +96,31 @@ def test_saving_draws_the_first_figure_into_the_preview(qapp, tmp_path: Path) ->
                                               title="first", x_label="x", y_label="y", options={}))
     repo.create_series_descriptor(axis_id=axis_id, series_index=0, name="s", sql_query="SELECT x, y FROM t",
                                   roles={"x": "x", "y": "y"}, style={})
-    written = write_project_preview(repo)
-    assert written == preview_file_for(tmp_path / "My study.dhub") == tmp_path / "My study.preview.png"
-    assert repo.project_info()["preview_path"] == "My study.preview.png"
-    assert resolve_preview(tmp_path / "My study.dhub", "My study.preview.png") == written
-    with Image.open(written) as picture:
+    png = write_project_preview(repo)
+    assert png and repo.project_preview() == png
+    assert "preview_path" not in repo.project_info()  # nothing beside the project any more
+    assert not (tmp_path / "My study.preview.png").exists()
+    with Image.open(io.BytesIO(png)) as picture:
         assert picture.size == (1280, 800)
     repo.close()
+    # Read without opening the project - and from a copy of the project file alone.
+    assert project_preview_bytes(project) == png
+    lone = tmp_path / "elsewhere"
+    lone.mkdir()
+    (lone / project.name).write_bytes(project.read_bytes())
+    assert project_preview_bytes(lone / project.name) == png
+
+
+def test_a_legacy_preview_file_is_still_read_when_nothing_is_embedded(qapp, tmp_path: Path) -> None:
+    from app.utils.project_preview import project_preview_bytes
+
+    project = tmp_path / "old.dhub"
+    repo = SqliteRepo(db_path=project)
+    repo.set_project_info({"preview_path": "old.preview.png"})
+    repo.close()
+    assert project_preview_bytes(project) is None  # entry but no file
+    (tmp_path / "old.preview.png").write_bytes(b"\x89PNG-legacy")
+    assert project_preview_bytes(project) == b"\x89PNG-legacy"
 
 
 def test_a_figure_keeps_notes_and_its_dates_follow_its_changes(tmp_path: Path) -> None:

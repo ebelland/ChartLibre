@@ -173,6 +173,7 @@ def test_loading_a_demo_again_gives_the_pristine_copy(
 def test_every_demo_describes_itself_with_a_preview(tmp_path: Path) -> None:
     """Rebuilt with python3 -m dev.demo.build_demos after a demo changes: the
     project's own information - author, notes, references, preview."""
+    import io
     import json
     import shutil
 
@@ -182,9 +183,8 @@ def test_every_demo_describes_itself_with_a_preview(tmp_path: Path) -> None:
         info = demo.info()
         assert info.get("author") == "ChartLibre" and info.get("notes") == demo.summary, demo.file_name
         assert info.get("created")
-        assert demo.preview_path is not None, f"no preview for {demo.file_name}"
-        assert demo.preview_path.name == f"{demo.file_name}.preview.png"
-        with Image.open(demo.preview_path) as picture:
+        assert demo.preview_bytes, f"no preview for {demo.file_name}"
+        with Image.open(io.BytesIO(demo.preview_bytes)) as picture:
             assert picture.size == (1280, 800)
         assert json.loads(info.get("references", "[]")) == list(demo.references)
         if demo.preview:

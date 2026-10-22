@@ -164,7 +164,7 @@ class RecentProjectsView(QWidget):
         """Picture and information of the project *item* names, read without opening it."""
         from app.data.repo.project_info import parse_references, read_project_info
         from app.dialogs.project_info_dialog import readable_date
-        from app.utils.project_preview import resolve_preview
+        from app.utils.project_preview import project_preview_bytes
 
         path = Path(str(item.data(Qt.ItemDataRole.UserRole))) if item is not None else None
         self._open_button.setEnabled(path is not None and path.is_file())
@@ -176,8 +176,10 @@ class RecentProjectsView(QWidget):
             self._info.setText(html.escape(_("This file is no longer there: {path}").format(path=path)))
             return
         info = read_project_info(path)
-        picture_path = resolve_preview(path, info.get("preview_path"))
-        picture = QPixmap(str(picture_path)) if picture_path is not None else QPixmap()
+        picture = QPixmap()
+        png = project_preview_bytes(path, info.get("preview_path"))
+        if png:
+            picture.loadFromData(png)
         if picture.isNull():
             self._preview.setText(_("No preview"))
             self._preview.setProperty("muted", True)

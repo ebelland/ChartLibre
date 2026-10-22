@@ -135,10 +135,14 @@ class ProjectInfoDialog(PanelDialog):
     PREVIEW_SIZE = QSize(200, 125)
 
     def _show_preview(self, entry: str | None) -> None:
-        from app.utils.project_preview import resolve_preview
+        from app.utils.project_preview import project_preview_bytes
 
-        path = resolve_preview(Path(str(self._repo.db_path)), entry) if self._repo.db_path else None
-        picture = QPixmap(str(path)) if path is not None else QPixmap()
+        picture = QPixmap()
+        png = self._repo.project_preview() or (
+            project_preview_bytes(Path(str(self._repo.db_path)), entry) if self._repo.db_path else None
+        )
+        if png:
+            picture.loadFromData(png)
         if picture.isNull():
             self.preview_label.setText(_("No preview yet: it is drawn when the project is saved."))
             self.preview_label.setWordWrap(True)

@@ -128,6 +128,13 @@ class DemoProject:
         return self.info().get("notes") or self.summary
 
     @property
+    def preview_bytes(self) -> bytes | None:
+        """The built project's preview picture: the one embedded in it, else the legacy file beside it."""
+        from app.utils.project_preview import project_preview_bytes
+
+        return project_preview_bytes(self.source_path, self.info().get("preview_path"))
+
+    @property
     def preview_path(self) -> Path | None:
         """The picture the built project's ``preview_path`` names, if any."""
         entry = self.info().get("preview_path")
