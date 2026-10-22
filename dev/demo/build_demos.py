@@ -297,6 +297,15 @@ def _energy_flows() -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["source", "target", "gwh"])
 
 
+def _penguin_correlations() -> pd.DataFrame:
+    """The penguins' four measures' correlation matrix, a row per measure: a
+    table that already is the grid an Image Plot draws."""
+    measures = ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"]
+    matrix = _penguins()[measures].corr().round(3)
+    matrix.insert(0, "label", measures)
+    return matrix.reset_index(drop=True)
+
+
 def _attribute_chart_counts() -> pd.DataFrame:
     """Montgomery's *Introduction to Statistical Quality Control*, Example
     6.1: 20 samples of 50 printed circuit boards, each with its count of
@@ -859,6 +868,7 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "signal_spectrum": _signal_spectrum,
     "chirp_signal": _chirp_signal,
     "profit_bridge": _profit_bridge,
+    "penguin_correlations": _penguin_correlations,
     "energy_flows": _energy_flows,
     "wind_observations": _wind_observations,
     "attribute_chart_counts": _attribute_chart_counts,
@@ -2184,6 +2194,46 @@ def _figure_specs() -> list[FigureSpec]:
                     name="bridge",
                     sql="SELECT step AS x, change AS y, total AS total FROM profit_bridge",
                     roles={"x": "x", "y": "y", "total": "total"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="65 · Image plot - the penguins' correlation matrix",
+            key="penguin_correlation_image",
+            tables=("penguin_correlations",),
+            queries=(),
+            chart_type="Image Plot",
+            title="Correlation of four measures (the table is the image)",
+            x_label="",
+            y_label="",
+            axis_options={"cmap": "coolwarm", "vmin": -1.0, "vmax": 1.0, "annotate": True,
+                          "annotate_format": ".2f", "colorbar_label": "correlation"},
+            series=[
+                SeriesSpec(
+                    name="correlations",
+                    sql=("SELECT label, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g "
+                         "FROM penguin_correlations"),
+                    roles={"label": "label"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="66 · Secondary axis - the same temperatures in Fahrenheit",
+            key="temperature_secondary_axis",
+            tables=("daily_temperature_range",),
+            queries=(),
+            chart_type="Time Series",
+            title="Daily mean temperature, °C below and °F on the right",
+            x_label="day",
+            y_label="temperature (°C)",
+            axis_options={"grid": True, "secondary_y": "degC_degF"},
+            series=[
+                SeriesSpec(
+                    name="mean",
+                    sql="SELECT day AS x, temp_mean AS y FROM daily_temperature_range ORDER BY day",
+                    roles={"x": "x", "y": "y"},
                     style={},
                 ),
             ],

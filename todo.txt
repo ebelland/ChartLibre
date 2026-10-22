@@ -132,10 +132,10 @@ Matplotlib
 - G-14  S  Dendrogram chart done (ward/average/complete/single, cut line). Left: clustered
            heatmap; the dendrogram inside Cluster Analysis' report.
 - G-15  S  Sankey Diagram and Waterfall Chart done. Demo: "Steps and flows".
-- G-16  S  Image / matrix chart: imshow/matshow of a 2D table or an image file with a colorbar;
-           contour labels (clabel).
-- G-17  S  Broken axis; secondary axis as a conversion of the first (secondary_xaxis functions:
-           degC/degF, wavelength/energy) - check what twin/inset already offer.
+- G-16  S  Image Plot done (a table as a matrix or an image file, colorbar, values in cells); contour
+           labels (clabel) already existed in Contour Plot.
+- G-17  S  Secondary axis as a conversion of the first done (Axis properties > Also in: 21 conversions).
+           Left: broken axis for line charts (Broken Bar exists). Demo: "Matrices and scales".
 - G-18  M  Figure layout for papers: subplot_mosaic multichart, shared axes, panel letters
            (a, b, c). With I-08 and H-05. Animation is I-03.
 

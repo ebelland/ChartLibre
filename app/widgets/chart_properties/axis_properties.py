@@ -35,7 +35,7 @@ from PySide6.QtWidgets import (
 
 from app.widgets.font_scale_control import FontScaleControl
 from app.logs.logger import applogger
-from app.plugin_api.charts import axis_options
+from app.plugin_api.charts import axis_options, secondary_axis
 from app.plugin_api.charts.render_figure import AXIS_SCALE_LABELS, SUPPORTED_AXIS_SCALES
 from app.styles.style import (
     MARGIN_PANEL,
@@ -280,7 +280,7 @@ class AxisPropertiesWidget(BaseProperties):
     # ------------------------------------------------------------------
     #: A coordinate's settings as the card shows them; min/max None is Auto.
     _COORDINATE_DEFAULTS: dict[str, Any] = {
-        "label": "", "scale": "linear", "base": 10.0, "invert": False,
+        "label": "", "scale": "linear", "base": 10.0, "invert": False, "secondary": "",
         "tick_length": 0.0, "tick_rotation": 0.0, "tick_length_minor": 0.0, "tick_rotation_minor": 0.0,
         "min": None, "max": None,
         **{f"{kind}_{which}": axis_options.AUTO for kind in ("grid", "ticks") for which in axis_options.WHICH},
@@ -305,6 +305,10 @@ class AxisPropertiesWidget(BaseProperties):
         self._scale_combo.currentIndexChanged.connect(self._update_scale_control_state)
         self._scale_base_spin = QDoubleSpinBox(self)
         self._scale_base_spin.setRange(1.1, 1000.0); self._scale_base_spin.setDecimals(2); self._scale_base_spin.setValue(10.0)
+        self._secondary_combo = QComboBox(self)
+        self._secondary_combo.setToolTip(_("A second scale along the top (x) or the right (y): this axis in other units."))
+        for value, text in secondary_axis.conversion_choices():
+            self._secondary_combo.addItem(_(text), value)
         self._invert_check = QCheckBox(_("Invert"), self)
         self._invert_check.setToolTip(_("Invert direction"))
         self._tick_length_spin = QDoubleSpinBox(self)
@@ -361,6 +365,7 @@ class AxisPropertiesWidget(BaseProperties):
             "scale": (self._scale_combo.currentIndexChanged,),
             "base": (self._scale_base_spin.valueChanged,),
             "invert": (self._invert_check.toggled,),
+            "secondary": (self._secondary_combo.currentIndexChanged,),
             "tick_length": (self._tick_length_spin.valueChanged,),
             "tick_rotation": (self._tick_rotation_spin.valueChanged,),
             "tick_length_minor": (self._minor_tick_length_spin.valueChanged,),
@@ -379,6 +384,8 @@ class AxisPropertiesWidget(BaseProperties):
             return self._coordinate_label.text().strip()
         if field == "invert":
             return bool(self._invert_check.isChecked())
+        if field == "secondary":
+            return str(self._secondary_combo.currentData() or "")
         if field == "scale":
             return str(self._scale_combo.currentData() or "linear")
         if field in ("min", "max"):
@@ -395,6 +402,8 @@ class AxisPropertiesWidget(BaseProperties):
             self._coordinate_label.setText(str(value or ""))
         elif field == "invert":
             self._invert_check.setChecked(bool(value))
+        elif field == "secondary":
+            self._select_combo_value(self._secondary_combo, value, "")
         elif field == "scale":
             self._select_combo_value(self._scale_combo, value, "linear")
         elif field in ("min", "max"):
@@ -515,6 +524,8 @@ class AxisPropertiesWidget(BaseProperties):
         grid.addWidget(QLabel(_("Max"), box), 2, 2)
         grid.addWidget(row(box, [self._limit_edits["max"], self._limit_auto_checks["max"]], fill=True), 2, 3)
         grid.addWidget(self._invert_check, 3, 1, 1, 3)
+        grid.addWidget(QLabel(_("Also in"), box), 4, 0)
+        grid.addWidget(self._secondary_combo, 4, 1, 1, 3)
 
         # Ticks and grid: major and minor as columns.
         _section, grid, box = card(_("Ticks and grid"), "axisTicksCard")
@@ -663,6 +674,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._scale_base_spin,
             self._linthresh_spin,
             self._invert_check,
+            self._secondary_combo,
             self._tick_length_spin,
             self._tick_rotation_spin,
             self._minor_tick_length_spin,
@@ -713,6 +725,7 @@ class AxisPropertiesWidget(BaseProperties):
             values["scale"] = scale if scale in AXIS_SCALES else "linear"
             values["base"] = self._float_option(options, f"{axis}_scale_base", 10.0) or 10.0
             values["invert"] = bool(options.get(f"invert_{axis}", False))
+            values["secondary"] = str(options.get(f"secondary_{axis}") or "")
             values["tick_length"] = self._float_option(options, f"{axis}_tick_length", legacy_tick_length) or 0.0
             values["tick_rotation"] = self._float_option(options, f"{axis}_tick_rotation", 0.0) or 0.0
             values["tick_length_minor"] = self._float_option(options, f"{axis}_minor_tick_length", 0.0) or 0.0
@@ -767,6 +780,7 @@ class AxisPropertiesWidget(BaseProperties):
             payload[f"{axis}_scale"] = scale
             payload[f"{axis}_scale_base"] = float(values["base"]) if scale in {"log", "symlog"} else None
             payload[f"invert_{axis}"] = bool(values["invert"])
+            payload[f"secondary_{axis}"] = str(values["secondary"] or "")
             payload[f"{axis}_tick_length"] = values["tick_length"] or None
             payload[f"{axis}_tick_rotation"] = float(values["tick_rotation"])
             payload[f"{axis}_minor_tick_length"] = values["tick_length_minor"] or None

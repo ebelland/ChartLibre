@@ -29,7 +29,7 @@ from matplotlib.ticker import NullLocator
 
 from app.plugin_api.charts.text_lines import display_text, multialignment
 from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
-from app.plugin_api.charts import axis_options
+from app.plugin_api.charts import axis_options, secondary_axis
 from app.plugin_api.charts.base import SeriesData
 from app.data.descriptors import AxisDescriptor, FigureDescriptor, SeriesDescriptor
 from app.data.series_frame import SeriesFrame
@@ -1049,6 +1049,7 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
     _apply_scales(ax, options)
     _apply_limits(ax, options)
     _apply_inversion(ax, options)
+    secondary_axis.apply_secondary_axes(ax, options)
 
     _apply_ticks(ax, options)
     _apply_grid(ax, options)

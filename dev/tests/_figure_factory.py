@@ -58,6 +58,7 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Wind Rose",
     "Waterfall Chart",
     "Sankey Diagram",
+    "Image Plot",
     "Event Plot",
     "3D Line Plot",
     "3D Bar Chart",
@@ -445,6 +446,14 @@ def _showcase_definitions() -> list[dict[str, Any]]:
                 "SELECT grp AS source, 'out' AS target, count(*) AS value FROM src_samples GROUP BY grp",
                 {},
             )],
+        },
+        {
+            "chart_type": "Image Plot",
+            "name": "Image showcase",
+            "labels": ("", ""),
+            # No colorbar: see the note on Heatmap's showcase above.
+            "axis_options": {"title": "Image Plot", "colorbar": False},
+            "series": [("matrix", "SELECT x, y, color, size FROM src_xy LIMIT 12", {})],
         },
         {
             "chart_type": "Cell Plot",

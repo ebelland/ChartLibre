@@ -196,6 +196,18 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Graph",
     ),
     DemoProject(
+        "Matrices and scales - an image plot and a secondary axis",
+        "A table that already is a grid, drawn as an Image Plot (the penguins' correlation matrix, "
+        "values in the cells, with a colorbar - or point it at an image file), and a daily temperature "
+        "with a second axis on the right that is the first in degrees Fahrenheit: Axis properties > "
+        "Also in, with conversions for temperature, length, mass, time, angle and photon wavelength "
+        "to energy.",
+        ("penguin_correlation_image", "temperature_secondary_axis"),
+        preview="Image plot",
+        references=(REF_PENGUINS,),
+        category="Graph",
+    ),
+    DemoProject(
         "Quick answers - three questions asked of real data",
         "Start from a question, not a function: are the three penguin species "
         "different in body mass? What has the most impact on it? Has the "

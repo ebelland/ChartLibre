@@ -10765,3 +10765,33 @@ msgstr "Codici strftime: %d giorno, %m mese, %Y anno, %H:%M:%S ora, %b nome del 
 
 msgid "{stored} is shown {shown}"
 msgstr "{stored} è mostrato {shown}"
+
+msgid "Series styles - restyle a series and watch the chart change"
+msgstr "Stili delle serie - cambia una serie e guarda il grafico seguirti"
+
+msgid "Seven charts for trying the live style preview: open a figure, select a series and change its colour, line style, marker or size (a stem plot: its line, marker and baseline format strings) - the chart follows as you edit, with no redraw. Scatter, time series, ECDF, stairs, stem, 3D line and 3D scatter."
+msgstr "Sette grafici per provare l'anteprima dal vivo dello stile: apri una figura, seleziona una serie e cambia colore, stile della linea, marcatore o dimensione (in un grafico a stelo: i formati di linea, marcatore e base) - il grafico segue mentre modifichi, senza ridisegnarsi. Dispersione, serie temporale, ECDF, a gradini, a stelo, linea 3D e dispersione 3D."
+
+msgid "Time, trees and circles - spectrogram, dendrogram, radar and wind rose"
+msgstr "Tempo, alberi e cerchi - spettrogramma, dendrogramma, radar e rosa dei venti"
+
+msgid "Four charts for questions a plain x-y cannot answer: when a frequency appears (Spectrogram of a sweeping tone and a steady hum), how rows join into groups (Dendrogram of penguins, Ward), how profiles compare (Radar chart of the species' means), and where a direction comes from (Wind rose, split by speed). Signal and wind readings are synthetic with a fixed seed."
+msgstr "Quattro grafici per domande a cui un semplice x-y non risponde: quando compare una frequenza (spettrogramma di un tono che sale e di un ronzio costante), come le righe si uniscono in gruppi (dendrogramma dei pinguini, Ward), come si confrontano i profili (grafico radar delle medie delle specie) e da dove viene una direzione (rosa dei venti, divisa per velocità). I segnali e le letture del vento sono sintetici, con seme fisso."
+
+msgid "Steps and flows - a waterfall and a Sankey diagram"
+msgstr "Passi e flussi - una cascata e un diagramma di Sankey"
+
+msgid "Two charts for quantities that move: a Waterfall of an operating profit from last year to this, one cause at a time with a subtotal, and a Sankey diagram of a power plant's fuel energy through the boiler and steam to electricity, heat and losses. Invented, balanced figures."
+msgstr "Due grafici per quantità che si muovono: una cascata (waterfall) di un utile operativo dall'anno scorso a quest'anno, una causa alla volta e con un subtotale, e un diagramma di Sankey dell'energia del combustibile di una centrale attraverso caldaia e vapore fino a elettricità, calore e perdite. Cifre inventate ma bilanciate."
+
+msgid "Matrices and scales - an image plot and a secondary axis"
+msgstr "Matrici e scale - un grafico immagine e un asse secondario"
+
+msgid "A table that already is a grid, drawn as an Image Plot (the penguins' correlation matrix, values in the cells, with a colorbar - or point it at an image file), and a daily temperature with a second axis on the right that is the first in degrees Fahrenheit: Axis properties > Also in, with conversions for temperature, length, mass, time, angle and photon wavelength to energy."
+msgstr "Una tabella che è già una griglia, disegnata come grafico immagine (la matrice di correlazione dei pinguini, valori nelle celle, con barra dei colori - oppure punta a un file immagine), e una temperatura giornaliera con un secondo asse a destra che è il primo in gradi Fahrenheit: Proprietà dell'asse > Anche in, con conversioni per temperatura, lunghezza, massa, tempo, angolo e lunghezza d'onda del fotone in energia."
+
+msgid "Also in"
+msgstr "Anche in"
+
+msgid "A second scale along the top (x) or the right (y): this axis in other units."
+msgstr "Una seconda scala lungo il lato superiore (x) o destro (y): questo asse in altre unità."
