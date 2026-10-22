@@ -202,7 +202,20 @@ class FitModelDialog(TableOperationDialogBase):
         self._direction.setToolTip(_("Backward drops terms from the full model; forward adds them to the mean."))
         self._direction.currentIndexChanged.connect(lambda _i: self.inputs_changed())
         form.addRow(_("Direction:"), self._direction)
-        for combo in (self._personality, self._emphasis, self._family, self._penalty, self._direction):
+        self._std_errors = QComboBox()
+        for key, label in lm.STD_ERRORS:
+            self._std_errors.addItem(_(label), key)
+        self._std_errors.setToolTip(_("How the parameter estimates' standard errors are found. Robust ones stay "
+                                      "valid when the variance of the residuals changes with the factors; "
+                                      "clustered ones when rows of a group are not independent."))
+        self._std_errors.currentIndexChanged.connect(lambda _i: self._on_personality_changed())
+        form.addRow(_("Standard errors:"), self._std_errors)
+        self._cluster = QComboBox()
+        self._cluster.setToolTip(_("The column whose values name the groups of rows that may be correlated."))
+        self._cluster.currentIndexChanged.connect(lambda _i: self.inputs_changed())
+        form.addRow(_("Cluster by:"), self._cluster)
+        for combo in (self._personality, self._emphasis, self._family, self._penalty, self._direction,
+                      self._std_errors, self._cluster):
             # Long names elide instead of widening the window.
             combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
             combo.setMinimumContentsLength(12)
@@ -327,7 +340,22 @@ class FitModelDialog(TableOperationDialogBase):
             ]
             self._show_terms()
         self._personality_for_responses()
+        if hasattr(self, "_cluster") and self._cluster.count() != len(getattr(self, "_frame", pd.DataFrame()).columns) + 1:
+            self._fill_cluster_columns()
         super().inputs_changed()
+
+    def _fill_cluster_columns(self) -> None:
+        """The columns of the table, for the clusters' choice; the one chosen stays when it is still there."""
+        keep = str(self._cluster.currentData() or "")
+        self._cluster.blockSignals(True)
+        self._cluster.clear()
+        self._cluster.addItem(_("(none)"), "")
+        for column in getattr(self, "_frame", pd.DataFrame()).columns:
+            if column not in ("Hide", "Selected"):
+                self._cluster.addItem(str(column), str(column))
+        index = self._cluster.findData(keep)
+        self._cluster.setCurrentIndex(max(0, index))
+        self._cluster.blockSignals(False)
 
     def _personality_for_responses(self) -> None:
         """As JMP: the Y's modelling type picks the personality - logistic for nominal Y, least squares otherwise."""
@@ -437,6 +465,9 @@ class FitModelDialog(TableOperationDialogBase):
             (self._family, personality == "glm"),
             (self._penalty, personality == "generalized"),
             (self._direction, personality == "stepwise"),
+            (self._std_errors, personality in ("standard", "stepwise")),
+            (self._cluster, personality in ("standard", "stepwise")
+             and str(self._std_errors.currentData()) == "cluster"),
         ):
             widget.setVisible(shown)
             label = self._form.labelForField(widget)
@@ -481,6 +512,8 @@ class FitModelDialog(TableOperationDialogBase):
         values["family"] = str(self._family.currentData())
         values["penalty"] = str(self._penalty.currentData())
         values["direction"] = str(self._direction.currentData())
+        values["std_errors"] = str(self._std_errors.currentData())
+        values["cluster"] = str(self._cluster.currentData() or "")
         return values
 
     # ------------------------------------------------------------------
@@ -498,6 +531,8 @@ class FitModelDialog(TableOperationDialogBase):
             family=str(params.get("family", "normal")),
             penalty=str(params.get("penalty", "lasso")),
             direction=str(params.get("direction", "backward")),
+            std_errors=str(params.get("std_errors", "classical")),
+            cluster=str(params.get("cluster", "")),
         )
         return lm.fit_models(frame, spec, should_stop=self.stop_requested)
 
@@ -543,7 +578,13 @@ class FitModelDialog(TableOperationDialogBase):
         blocks.append(report_html.section(
             _("Parameter estimates (coded units)"),
             self.report_table(fit.estimates, p_columns=("Prob > |t|", "Prob > |z|")),
+            *([report_html.note(_(fit.std_errors_note))] if fit.std_errors_note else []),
         ))
+        if not fit.diagnostics.empty:
+            blocks.append(report_html.section(
+                _("Residual diagnostics"),
+                self.report_table(fit.diagnostics, p_columns=("Prob",), digits=4),
+            ))
         blocks.append(report_html.section(
             _("Effect tests"),
             report_html.table(

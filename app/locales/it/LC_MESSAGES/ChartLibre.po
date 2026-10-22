@@ -10870,3 +10870,45 @@ msgstr "Serie temporali - dati reali: il Nilo e i passeggeri aerei"
 
 msgid "Two classic real series, their dates stored as text: the annual flow of the Nile 1871-1970, with the drop of about 1898 a time series model has to absorb, and the monthly airline passengers 1949-1960, a trend with a growing season. Time Series gives each its forecast by the ARIMA the AIC chooses, its autocorrelations and the residual randomness tests (runs, turning points, Durbin-Watson, Ljung-Box)."
 msgstr "Due classiche serie reali, con le date salvate come testo: la portata annuale del Nilo 1871-1970, con il calo intorno al 1898 che un modello di serie temporale deve assorbire, e i passeggeri aerei mensili 1949-1960, un andamento con una stagione che cresce. Serie temporale dà a ciascuna la previsione dell'ARIMA scelto dall'AIC, le sue autocorrelazioni e i test di casualità dei residui (serie, punti di svolta, Durbin-Watson, Ljung-Box)."
+
+msgid "Cluster by:"
+msgstr "Raggruppa per:"
+
+msgid "How the parameter estimates' standard errors are found. Robust ones stay valid when the variance of the residuals changes with the factors; clustered ones when rows of a group are not independent."
+msgstr "Come si trovano gli errori standard delle stime dei parametri. Quelli robusti restano validi quando la varianza dei residui cambia con i fattori; quelli raggruppati quando le righe di un gruppo non sono indipendenti."
+
+msgid "Residual diagnostics"
+msgstr "Diagnostica dei residui"
+
+msgid "Standard errors:"
+msgstr "Errori standard:"
+
+msgid "The column whose values name the groups of rows that may be correlated."
+msgstr "La colonna i cui valori nominano i gruppi di righe che possono essere correlate."
+
+msgid "Classical"
+msgstr "Classici"
+
+msgid "Robust (HC1)"
+msgstr "Robusti (HC1)"
+
+msgid "Robust (HC3)"
+msgstr "Robusti (HC3)"
+
+msgid "Clustered"
+msgstr "Raggruppati"
+
+msgid "Breusch-Pagan (equal variances)"
+msgstr "Breusch-Pagan (varianze uguali)"
+
+msgid "White (equal variances)"
+msgstr "White (varianze uguali)"
+
+msgid "Durbin-Watson (autocorrelation)"
+msgstr "Durbin-Watson (autocorrelazione)"
+
+msgid "Ramsey RESET (functional form)"
+msgstr "Ramsey RESET (forma funzionale)"
+
+msgid "Jarque-Bera (normal residuals)"
+msgstr "Jarque-Bera (residui normali)"

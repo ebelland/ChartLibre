@@ -362,3 +362,20 @@ def test_stop_reaches_the_fit_and_leaves_the_results_untouched(qapp, doe_table) 
         assert dialog._results.toPlainText() == "Stopped. Nothing was changed." if hasattr(dialog._results, "toPlainText") else True
     finally:
         dialog.close()
+
+
+def test_robust_standard_errors_and_the_residual_diagnostics_are_reported(qapp, doe_table) -> None:
+    repo, name = doe_table
+    dialog = FitModelDialog(repo=repo, table=name)
+    try:
+        dialog._std_errors.setCurrentIndex(dialog._std_errors.findData("HC3"))
+        dialog.preview()
+        _wait(qapp, dialog)
+        fit = dialog._result[0]
+        assert "HC3" in fit.std_errors_note
+        assert set(fit.diagnostics["Test"]) >= {"Durbin-Watson (autocorrelation)", "Jarque-Bera (normal residuals)"}
+        assert "VIF" in fit.estimates.columns
+        html = dialog.report_body(dialog._result)
+        assert "Residual diagnostics" in html and "Breusch-Pagan" in html and "robust to unequal variances" in html
+    finally:
+        dialog.close()

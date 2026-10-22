@@ -69,6 +69,10 @@ class ModelSpec:
     family: str = "normal"
     #: Generalized regression: the penalty - see :data:`PENALTIES`.
     penalty: str = "lasso"
+    #: Least squares: how the parameter estimates' standard errors are found - see :data:`STD_ERRORS`.
+    std_errors: str = "classical"
+    #: With ``std_errors == "cluster"``: the column whose values name the clusters of rows.
+    cluster: str = ""
 
 
 @dataclass(slots=True)
@@ -113,6 +117,11 @@ class ResponseFit:
     roc: pd.DataFrame = field(default_factory=pd.DataFrame)
     auc: dict[str, float] = field(default_factory=dict)
     confusion: pd.DataFrame | None = None
+    #: Least squares: tests of the residuals - heteroskedasticity, autocorrelation, functional form,
+    #: normality - as Test, Statistic, Prob, Note (G-25).
+    diagnostics: pd.DataFrame = field(default_factory=pd.DataFrame)
+    #: What the standard errors in the estimates are ("" for the classical ones).
+    std_errors_note: str = ""
 
 
 #: The personalities: key, name as JMP names it.
@@ -138,6 +147,14 @@ FAMILIES: tuple[tuple[str, str], ...] = (
     ("binomial", "Binomial"),
     ("poisson", "Poisson"),
     ("gamma", "Gamma"),
+)
+#: How a least-squares fit's standard errors are found: the classical ones, the heteroskedasticity-consistent
+#: ones (HC1, HC3: a robust choice for small samples), or clustered on a column's values.
+STD_ERRORS: tuple[tuple[str, str], ...] = (
+    ("classical", "Classical"),
+    ("HC1", "Robust (HC1)"),
+    ("HC3", "Robust (HC3)"),
+    ("cluster", "Clustered"),
 )
 STEPWISE: tuple[tuple[str, str], ...] = (("backward", "Backward"), ("forward", "Forward"))
 #: The personalities whose response is a category rather than a number.
@@ -318,7 +335,10 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
         terms.remove(worst)
         removed.append(worst)
 
-    estimates = _estimates(model, terms, piece)
+    robust, std_errors_note = _robust_refit(model, prep, terms, spec, frame)
+    estimates = _estimates(robust if robust is not None else model, terms, piece)
+    estimates["VIF"] = _vif(model)
+    diagnostics = _diagnostics(model)
     anova, summary = _whole_model(model, data["y"])
     lack = _lack_of_fit(model, data, [prep.safe[f.name] for f in spec.factors])
     try:
@@ -346,7 +366,98 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
         profile=profile,
         note=note,
         personality=spec.personality,
+        diagnostics=diagnostics,
+        std_errors_note=std_errors_note,
     )
+
+
+def _robust_refit(model, prep: _Prepared, terms: list[Term], spec: ModelSpec, frame: pd.DataFrame):
+    """The least-squares fit again with the robust or clustered covariance asked for, and a note saying so.
+
+    (None, "") for the classical ones. The estimates are the same; the standard errors, t ratios and
+    p-values of the Parameter estimates table come from it. The effect tests and the analysis of
+    variance stay the classical ones - the note says so.
+    """
+    import statsmodels.formula.api as smf
+
+    kind = spec.std_errors
+    if kind == "classical" or model.df_resid <= 0:
+        return None, ""
+    if kind == "cluster":
+        if not spec.cluster or spec.cluster not in frame.columns:
+            return None, "Clustered standard errors need a column that names the clusters; the classical ones are shown."
+        groups = frame.loc[prep.data.index, spec.cluster]
+        keep = groups.notna()
+        data = prep.data.loc[keep]
+        codes = pd.factorize(groups[keep].astype(str))[0]
+        if len(set(codes)) < 2:
+            return None, "Clustered standard errors need at least two clusters; the classical ones are shown."
+        refit = smf.ols(prep.formula(terms), data=data).fit(cov_type="cluster", cov_kwds={"groups": codes})
+        dropped = int((~keep).sum())
+        note = (f"Standard errors clustered on {spec.cluster} ({len(set(codes))} clusters)"
+                + (f"; {dropped} row(s) without a cluster left out" if dropped else ""))
+    else:
+        refit = smf.ols(prep.formula(terms), data=prep.data).fit(cov_type=kind)
+        note = f"Standard errors robust to unequal variances ({kind})"
+    return refit, note + "; the effect tests and the analysis of variance are the classical ones."
+
+
+def _vif(model) -> np.ndarray:
+    """Variance inflation factor of each parameter (NaN for the intercept): 1 when the others do not explain it."""
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+    exog = np.asarray(model.model.exog, dtype=float)
+    names = list(model.params.index)
+    out = np.full(len(names), np.nan)
+    if exog.shape[1] < 3 or exog.shape[0] <= exog.shape[1]:
+        return np.where(np.array(names) == "Intercept", np.nan, 1.0) if exog.shape[1] < 3 else out
+    with np.errstate(all="ignore"):
+        for index, name in enumerate(names):
+            if name != "Intercept":
+                out[index] = float(variance_inflation_factor(exog, index))
+    return out
+
+
+def _diagnostics(model) -> pd.DataFrame:
+    """Breusch-Pagan, White, Durbin-Watson, Ramsey RESET and Jarque-Bera of one least-squares fit.
+
+    Each as a row: Test, Statistic, Prob, Note. A test the data cannot support (too few rows for the
+    White regression, no spread in the residuals) is a note, not an error.
+    """
+    from statsmodels.stats import diagnostic as diag
+    from statsmodels.stats.stattools import durbin_watson, jarque_bera
+
+    rows: list[tuple[str, float, float, str]] = []
+    n, k = int(model.nobs), int(len(model.params))
+    resid = np.asarray(model.resid, dtype=float)
+    exog = np.asarray(model.model.exog, dtype=float)
+
+    def add(name: str, run, note: str = "") -> None:
+        try:
+            statistic, p_value, extra = run()
+            rows.append((name, float(statistic), float(p_value), (extra or note)))
+        except Exception as exc:  # noqa: BLE001 - what the data cannot support is said, not raised
+            rows.append((name, math.nan, math.nan, str(exc) or "not available"))
+
+    spread = float(np.ptp(resid)) if resid.size else 0.0
+    if n - k < 1 or spread == 0.0:
+        return pd.DataFrame(
+            [("Residual diagnostics", math.nan, math.nan, "No residual degrees of freedom or no spread in the residuals.")],
+            columns=["Test", "Statistic", "Prob", "Note"],
+        )
+    add("Breusch-Pagan (equal variances)",
+        lambda: (lambda r: (r[0], r[1], "LM test: do the residuals' variances depend on the factors?"))(diag.het_breuschpagan(resid, exog)))
+    add("White (equal variances)",
+        lambda: (lambda r: (r[0], r[1], "LM test with squares and cross products of the factors."))(diag.het_white(resid, exog)))
+    add("Durbin-Watson (autocorrelation)",
+        lambda: (durbin_watson(resid), math.nan, "In row order; 2 means no lag-1 correlation; no generic p-value."))
+    add("Ramsey RESET (functional form)",
+        lambda: (lambda r: (float(np.squeeze(r.fvalue)), float(np.squeeze(r.pvalue)),
+                            "F test of fitted^2 and fitted^3 added to the model: is a curve missing?"))(
+            diag.linear_reset(model, power=3, test_type="fitted", use_f=True)))
+    add("Jarque-Bera (normal residuals)",
+        lambda: (lambda r: (r[0], r[1], f"skewness = {r[2]:.3g}; kurtosis = {r[3]:.3g}"))(jarque_bera(resid)))
+    return pd.DataFrame(rows, columns=["Test", "Statistic", "Prob", "Note"])
 
 
 def _fit_penalized(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit:

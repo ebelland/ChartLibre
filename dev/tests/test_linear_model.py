@@ -224,3 +224,60 @@ def test_a_model_without_design_info_still_has_its_effect_tests_and_estimates() 
     tests = lm._effect_tests(model, terms, piece)
     pd.testing.assert_frame_equal(tests, expected)
     assert len(lm._estimates(model, terms, piece)) == 4
+
+
+def _hetero_frame() -> pd.DataFrame:
+    rng = np.random.default_rng(0)
+    n = 120
+    x1, x2 = rng.uniform(0, 10, n), rng.normal(size=n)
+    y = 2 + 0.5 * x1 + x2 + rng.normal(size=n) * (0.2 + 0.3 * x1)
+    return pd.DataFrame({"y": y, "x1": x1, "x2": x2, "g": rng.integers(0, 8, n)})
+
+
+def _spec(**kwargs) -> lm.ModelSpec:
+    return lm.ModelSpec([lm.Factor("x1"), lm.Factor("x2")], ["y"], [("x1",), ("x2",)], **kwargs)
+
+
+def test_robust_and_clustered_standard_errors_equal_statsmodels() -> None:
+    import statsmodels.api as sm
+
+    frame = _hetero_frame()
+    classical = lm.fit_models(frame, _spec())[0]
+    robust = lm.fit_models(frame, _spec(std_errors="HC3"))[0]
+    clustered = lm.fit_models(frame, _spec(std_errors="cluster", cluster="g"))[0]
+    # The estimates do not move; the standard errors do.
+    assert np.allclose(classical.estimates["Estimate"], robust.estimates["Estimate"])
+    assert not np.allclose(classical.estimates["Std Error"], robust.estimates["Std Error"])
+    # Coded -1..+1 columns, as the fit codes them: x -> (x - centre) / half.
+    coded = pd.DataFrame({"y": frame["y"]})
+    for name in ("x1", "x2"):
+        centre, half = lm.coding(lm.Factor(name), frame[name])
+        coded[name] = (frame[name] - centre) / half
+    design = sm.add_constant(coded[["x1", "x2"]])
+    assert np.allclose(robust.estimates["Std Error"], sm.OLS(coded["y"], design).fit(cov_type="HC3").bse)
+    groups = pd.factorize(frame["g"].astype(str))[0]
+    assert np.allclose(clustered.estimates["Std Error"],
+                       sm.OLS(coded["y"], design).fit(cov_type="cluster", cov_kwds={"groups": groups}).bse)
+    assert "HC3" in robust.std_errors_note and "clustered on g" in clustered.std_errors_note
+    assert classical.std_errors_note == ""
+    missing = lm.fit_models(frame, _spec(std_errors="cluster"))[0]
+    assert "need a column" in missing.std_errors_note
+
+
+def test_heteroskedastic_data_fails_breusch_pagan_and_homoskedastic_passes() -> None:
+    diag = lm.fit_models(_hetero_frame(), _spec())[0].diagnostics.set_index("Test")
+    assert diag.loc["Breusch-Pagan (equal variances)", "Prob"] < 0.05
+    rng = np.random.default_rng(5)
+    flat = _hetero_frame().assign(y=lambda f: 2 + 0.5 * f["x1"] + f["x2"] + rng.normal(size=len(f)))
+    clean = lm.fit_models(flat, _spec())[0].diagnostics.set_index("Test")
+    assert clean.loc["Breusch-Pagan (equal variances)", "Prob"] > 0.05
+    assert 1.5 < clean.loc["Durbin-Watson (autocorrelation)", "Statistic"] < 2.5
+    assert clean.loc["Jarque-Bera (normal residuals)", "Prob"] > 0.01
+
+
+def test_vif_is_one_for_uncorrelated_factors_and_large_for_collinear_ones() -> None:
+    frame = _hetero_frame()
+    assert np.allclose(lm.fit_models(frame, _spec())[0].estimates["VIF"].dropna(), 1.0, atol=0.1)
+    collinear = frame.assign(x2=lambda f: f["x1"] + np.random.default_rng(9).normal(0, 0.05, len(f)))
+    vif = lm.fit_models(collinear, _spec())[0].estimates["VIF"].dropna()
+    assert (vif > 100).all()

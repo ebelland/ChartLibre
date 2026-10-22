@@ -155,8 +155,9 @@ scikit-learn
            features (with G-02).
 
 statsmodels (mixed models AN-09, repeated measures/ANCOVA/VIF/leverage R-04, Cox AN-08, FDR AN-14)
-- G-25  M  Regression diagnostics in Fit Model: Breusch-Pagan/White, Durbin-Watson, Ramsey RESET,
-           Jarque-Bera on residuals; WLS/GLS; robust (HC3) and cluster standard errors.
+- G-25  M  Fit Model: residual diagnostics (Breusch-Pagan, White, Durbin-Watson, RESET, Jarque-Bera), VIF,
+           robust (HC1/HC3) and clustered standard errors done. Left: WLS/GLS (the ANOVA and lack of fit
+           assume unweighted least squares).
 - G-26  M  More models: negative binomial, zero-inflated Poisson, gamma/Tweedie GLM, GEE for
            clustered rows, quantile regression (QuantReg), robust RLM.
 - G-27  M  MANOVA (Wilks, Pillai, Hotelling-Lawley, Roy) and Hotelling T2.
