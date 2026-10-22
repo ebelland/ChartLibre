@@ -176,3 +176,14 @@ def test_nperseg_is_clamped_to_the_data_and_to_eight() -> None:
     kwargs = sp.welch_kwargs(sp.SpectralParams(nperseg=64, overlap=0.25, detrend="none"), 1000)
     assert kwargs["noverlap"] == 16
     assert kwargs["detrend"] is False
+
+
+def test_the_dominant_frequency_follows_a_chirp() -> None:
+    """A tone sweeping 10 -> 60 Hz: the short-time FFT's strongest bin climbs with it."""
+    t = np.arange(0.0, DURATION, 1.0 / FS)
+    chirp = np.sin(2 * np.pi * (10.0 * t + (60.0 - 10.0) / (2 * DURATION) * t**2))
+    spectrum = sp.estimate(sp.METHOD_STFT, chirp, sp.SpectralParams(fs=FS, nperseg=128))
+    assert (spectrum.x_label, spectrum.y_label) == ("time", "frequency")
+    expected = 10.0 + (60.0 - 10.0) * spectrum.x / DURATION
+    assert np.all(np.diff(spectrum.y) >= -FS / 128)  # climbing, within a bin
+    assert np.max(np.abs(spectrum.y - expected)) <= 2 * FS / 128

@@ -50,6 +50,7 @@ from app.analysis.spectral import (
     METHOD_MAGNITUDE,
     METHOD_PHASE,
     METHOD_PSD,
+    METHOD_STFT,
     METHOD_WAVELET,
     METHOD_XCORR,
     MIN_PAIR_SAMPLES,
@@ -137,6 +138,12 @@ SPECTRAL_METHODS: dict[str, SpectralMethod] = {
         doc_title="Continuous wavelet transform",
         doc_url="https://en.wikipedia.org/wiki/Continuous_wavelet_transform",
         frequency=True,
+    ),
+    METHOD_STFT: SpectralMethod(
+        doc_title="scipy.signal.spectrogram",
+        doc_url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.spectrogram.html",
+        frequency=True,
+        welch=True,
     ),
     METHOD_ACORR: SpectralMethod(
         doc_title="Autocorrelation",
@@ -405,7 +412,8 @@ class SeriesSpectralDialog(DataOperationDialogBase):
         self.set_row_visible(self._window_combo, is_welch)
         self.set_row_visible(self._detrend_combo, is_welch)
         self.set_row_visible(self._scaling_combo, method in {METHOD_PSD, METHOD_CSD})
-        self.set_row_visible(self._onesided_check, is_welch)
+        # One-sided always: a dominant frequency is a positive one.
+        self.set_row_visible(self._onesided_check, is_welch and method != METHOD_STFT)
         self.set_row_visible(
             self._db_check,
             method in {
@@ -663,6 +671,8 @@ class SeriesSpectralDialog(DataOperationDialogBase):
         y_label = str(getattr(first, "y_label", "") or "")
         if x_label == "frequency":
             x_label = "frequency [1/x]"
+        if y_label == "frequency":  # the dominant frequency over time
+            y_label = "frequency [1/x]"
 
         self.label_result_axis(title=str(getattr(first, "model", "") or ""), x_label=x_label, y_label=y_label)
 

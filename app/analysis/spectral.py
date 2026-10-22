@@ -1,9 +1,10 @@
 """Spectral analysis: the arithmetic behind the Spectral Analysis operation.
 
-Ten estimates of one signal or a pair of them - Welch power and cross
+Eleven estimates of one signal or a pair of them - Welch power and cross
 spectral density, coherence, the plain FFT's magnitude and phase, the
 Laplace transform along a vertical line of the s-plane, a Morlet wavelet
-power spectrum, and auto- and cross-correlation. Plain arrays and a
+power spectrum, the dominant frequency over time (short-time FFT), and
+auto- and cross-correlation. Plain arrays and a
 :class:`SpectralParams` in, a :class:`Spectrum` out: no Qt, no repository,
 so the same code runs behind the dialog, in a test or on a worker thread
 (todo R-01).
@@ -31,6 +32,7 @@ METHOD_ACORR = "Autocorrelation"
 METHOD_XCORR = "Cross-correlation"
 METHOD_LAPLACE = "Laplace transform (damped FFT)"
 METHOD_WAVELET = "Wavelet power spectrum (Morlet)"
+METHOD_STFT = "Dominant frequency over time (STFT)"
 
 WINDOWS: tuple[str, ...] = (
     "hann",
@@ -258,6 +260,23 @@ def correlate(
     return lags.astype(float), raw
 
 
+def dominant_frequency(y_values: np.ndarray, params: SpectralParams) -> tuple[np.ndarray, np.ndarray]:
+    """(segment centre times, the frequency of each segment's strongest power) of a short-time FFT.
+
+    The spectrogram chart draws the whole time-frequency picture; this is the
+    one curve to read off it - how the tone moves (a chirp, a drifting motor
+    speed). Times are from the first sample, in units of x; the DC bin is
+    left out, the segments are detrended as Welch's are.
+    """
+    kwargs = welch_kwargs(params, y_values.size)
+    kwargs["return_onesided"] = True
+    frequencies, times, power = scipy_signal.spectrogram(np.asarray(y_values, dtype=float), **kwargs)
+    if power.shape[0] < 2 or power.shape[1] == 0:
+        raise ValueError("too few samples for one segment")
+    strongest = np.argmax(power[1:, :], axis=0) + 1
+    return np.asarray(times, dtype=float), np.asarray(frequencies[strongest], dtype=float)
+
+
 def _frequency_spectrum(frequencies: np.ndarray, values: np.ndarray, unit: str) -> Spectrum:
     return Spectrum(
         x=np.asarray(frequencies, dtype=float),
@@ -302,6 +321,14 @@ def estimate(method: str, y_values: np.ndarray, params: SpectralParams) -> Spect
         if params.decibels:
             return _frequency_spectrum(frequencies, to_decibels(power), "dB")
         return _frequency_spectrum(frequencies, power, "power")
+
+    if method == METHOD_STFT:
+        times, frequencies = dominant_frequency(y_values, params)
+        return Spectrum(
+            x=times, y=frequencies, x_label="time", y_label="frequency",
+            details={"fs": params.fs, "segments": int(times.size),
+                     "segment": welch_kwargs(params, y_values.size)["nperseg"]},
+        )
 
     if method == METHOD_ACORR:
         lags, correlation = correlate(
