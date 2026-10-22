@@ -201,8 +201,12 @@ def test_a_loaded_demo_brings_its_preview(tmp_path: Path) -> None:
 
     demo = DEMO_PROJECTS[1]
     target = copy_demo_project(demo, tmp_path / demo.path_name)
-    assert (tmp_path / f"{demo.file_name}.preview.png").is_file()
+    from app.data.repo.project_info import read_project_preview
+
     assert target.is_file()
+    # The picture is inside the project: the copy carries it, with no PNG beside it.
+    assert read_project_preview(target)
+    assert not (tmp_path / f"{demo.file_name}.preview.png").exists()
 
 
 def test_load_demo_shows_the_selected_demos_picture(qapp) -> None:
