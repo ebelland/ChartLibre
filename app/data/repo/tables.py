@@ -550,12 +550,17 @@ class TablesMixin(RepoHost):
                     f"INSERT INTO {table_q} ({names}) VALUES ({', '.join('?' * len(columns))})", zip(*columns)
                 )
         except sqlite3.Error:
-            if self._con.in_transaction:
+            # Not inside a dialog's Preview: a rollback there would end its
+            # savepoint too, and the DROP below is the undo needed anyway.
+            if self._con.in_transaction and not self._preview_savepoint_name:
                 self._con.rollback()
             self._con.execute(f"DROP TABLE IF EXISTS {table_q}")
             return False
-        # Like to_sql, which commits at its end.
-        self._con.commit()
+        # Like to_sql, which commits at its end - but through _commit, which
+        # leaves a Preview's savepoint open: a plain commit ended it, and the
+        # dialog's rollback then found it gone ("already gone during
+        # rollback") with the preview's writes already kept.
+        self._commit()
         return True
 
     def _frame_columns(self, df: pd.DataFrame) -> tuple[list[list[Any]] | None, list[str]]:

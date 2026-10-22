@@ -514,6 +514,7 @@ if TYPE_CHECKING:
         db_path: Path
         _con: sqlite3.Connection | None
         _is_connected: bool
+        _preview_savepoint_name: str | None
 
         def _connect(self) -> None: ...
         def _commit(self) -> None: ...
