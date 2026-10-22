@@ -53,6 +53,7 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Heatmap",
     "Hexbin",
     "Spectrogram",
+    "Dendrogram",
     "Event Plot",
     "3D Line Plot",
     "3D Bar Chart",
@@ -401,6 +402,13 @@ def _showcase_definitions() -> list[dict[str, Any]]:
             "labels": ("", ""),
             "axis_options": {"title": "Parallel Plot"},
             "series": [("cloud", "SELECT x, y, size FROM src_xy LIMIT 300", {})],
+        },
+        {
+            "chart_type": "Dendrogram",
+            "name": "Dendrogram showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Dendrogram"},
+            "series": [("cloud", "SELECT x, y, size FROM src_xy LIMIT 40", {})],
         },
         {
             "chart_type": "Cell Plot",
