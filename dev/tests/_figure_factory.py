@@ -52,6 +52,7 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Scatter Plot (3D)",
     "Heatmap",
     "Hexbin",
+    "Spectrogram",
     "Event Plot",
     "3D Line Plot",
     "3D Bar Chart",
@@ -757,6 +758,15 @@ def _showcase_definitions() -> list[dict[str, Any]]:
             "axis_options": {"title": "Hexbin", "gridsize": 20},
             "series": [
                 ("cloud", "SELECT x, y FROM src_xy", {}),
+            ],
+        },
+        {
+            "chart_type": "Spectrogram",
+            "name": "Spectrogram showcase",
+            "labels": ("t", "frequency"),
+            "axis_options": {"title": "Spectrogram", "NFFT": 32, "noverlap": 16},
+            "series": [
+                ("signal", "SELECT t AS x, v AS y FROM src_series ORDER BY t", {}),
             ],
         },
         {

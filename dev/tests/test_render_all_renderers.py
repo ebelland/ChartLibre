@@ -82,6 +82,7 @@ def _renderer_draws_and_saves(
         len(axis.lines)
         + len(axis.collections)
         + len(axis.patches)
+        + len(axis.images)  # imshow-based charts: the spectrogram
         + len(axis.containers)  # pyright: ignore[reportAttributeAccessIssue]
         # Axes.table() tracks its own artist in ax.tables - none of the four
         # collections above, so the Table renderer needs this one counted

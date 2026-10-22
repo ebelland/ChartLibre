@@ -126,7 +126,7 @@ JMP
 - G-11  L  Text Explorer: word counts, n-grams, topics of a text column. Low for engineers.
 
 Matplotlib
-- G-12  S  Spectrogram chart (specgram) and STFT in Spectral analysis.
+- G-12  S  Spectrogram chart done (specgram; NFFT, overlap, rate from x). Left: STFT in Spectral analysis.
 - G-13  S  Radar (spider) chart; polar bar / wind rose (polar exists as a projection).
 - G-14  S  Dendrogram chart (scipy.cluster.hierarchy) for Cluster Analysis' Ward; clustered
            heatmap.
