@@ -186,3 +186,12 @@ def test_a_series_without_the_columns_is_named_not_failed(repo: SqliteRepo, proj
 def test_normality_offers_the_q_q_and_p_p_plots(repo: SqliteRepo, project: dict[str, int]) -> None:
     _run(repo, project["normality"], "normality", chart="Q-Q Plot")
     assert "Q-Q Plot" in _charts(repo, project["normality"])
+
+
+def test_the_randomness_model_reports_the_order_tests_and_is_not_part_of_all(repo: SqliteRepo,
+                                                                            project: dict[str, int]) -> None:
+    text = _run(repo, project["normality"], "randomness")
+    for snippet in ("Randomness / serial independence", "Wald-Wolfowitz runs", "Turning-point randomness",
+                    "Durbin-Watson", "Ljung-Box (lag 1)"):
+        assert snippet in text, snippet
+    assert "Wald-Wolfowitz" not in _run(repo, project["normality"], "all")

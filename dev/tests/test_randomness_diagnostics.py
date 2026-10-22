@@ -50,3 +50,12 @@ def test_limits_become_notes_not_exceptions() -> None:
 def test_the_statistics_report_gets_one_row_per_diagnostic() -> None:
     rows = st.randomness_tests(np.random.default_rng(1).normal(size=100), lags=(1, 5))
     assert len(rows) == 5  # runs, turning points, Durbin-Watson, two Ljung-Box
+
+
+def test_the_statistics_dialog_offers_a_randomness_model_that_is_not_part_of_all() -> None:
+    from app.data_operations.statistics_dialog import SeriesStatisticsDialog
+
+    show = SeriesStatisticsDialog._show_section
+    assert show(None, "randomness", "randomness") is True
+    assert show(None, "all", "randomness") is False
+    assert show(None, "all", "normality") is True

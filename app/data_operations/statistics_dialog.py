@@ -176,6 +176,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
     - descriptive: summary statistics only;
     - one_sample: one-sample tests only;
     - normality: normality/shape tests only;
+    - randomness: runs, turning-point, Durbin-Watson and Ljung-Box tests of the order (opt-in);
     - paired: paired-sample tests only;
     - independent: two-sample tests for every pair (Welch, Student, Mann-Whitney);
     - groups: all checked series as groups (ANOVA, Kruskal-Wallis, Tukey HSD);
@@ -252,6 +253,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         self.model_combo.addItem(_("Descriptive statistics"), "descriptive")
         self.model_combo.addItem(_("One-sample tests"), "one_sample")
         self.model_combo.addItem(_("Normality / shape tests"), "normality")
+        self.model_combo.addItem(_("Randomness / serial independence"), "randomness")
         self.model_combo.addItem(_("Paired-sample tests"), "paired")
         self.model_combo.addItem(_("Independent-sample tests"), "independent")
         self.model_combo.addItem(_("Group comparison (ANOVA)"), "groups")
@@ -835,11 +837,13 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
     def _show_section(self, model: str, section: str) -> bool:
         if section in FRAME_MODELS:
             return model == section
+        # "randomness" is opt-in too: its tests read the rows in the order they are
+        # in, which says nothing for a sample that is not a sequence.
         # "distribution" is not part of "all": a sweep costs half a second per
         # series curated and a dozen seconds exhaustive, and All is the default
         # model.  Making it opt-in keeps the default fast.
-        if section == "distribution":
-            return model == "distribution"
+        if section in ("distribution", "randomness"):
+            return model == section
         return model == "all" or model == section
 
     def _format_statistics_html(self, result: SeriesStatsResult) -> str:
@@ -904,6 +908,20 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             parts.append(report_html.section(
                 _("Normality / shape tests"),
                 self._table(["Series", "Test", "n", "Statistic", "p-value", "Note"], rows),
+            ))
+
+        if self._show_section(result.model, "randomness"):
+            rows = []
+            for sample in result.samples:
+                for test in st.randomness_tests(sample.y):
+                    rows.append(_html_test_row(sample.name, test, self._format_number, self._format_pvalue))
+            parts.append(report_html.section(
+                _("Randomness / serial independence"),
+                self._table(["Series", "Test", "n", "Statistic", "p-value", "Note"], rows)
+                + report_html.note(_(
+                    "These tests read the values in the order they are in. A small p-value says the "
+                    "order is not random: a trend, a cycle or a memory from one value to the next."
+                )),
             ))
 
         if len(result.samples) > 1 and self._show_section(result.model, "paired"):
