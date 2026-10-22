@@ -31,11 +31,16 @@ def _follows(artist: Any) -> frozenset[str]:
     return getattr(artist, "_dhub_follows", PREVIEW_STYLE_SETTERS)
 
 
-def _style_steps(artist: Any, changes: dict[str, Any], *, has_points: bool, sizes: bool) -> tuple[bool, list[Any]]:
+def _style_steps(
+    artist: Any, changes: dict[str, Any], *, has_points: bool, sizes: bool, has_lines: bool = True
+) -> tuple[bool, list[Any]]:
     """(whether *artist* can show *changes* as it is, the calls that do it).
 
     A line keeps being a line and its markers markers; on a series drawn as
-    a line and points, the marker belongs to the points.
+    a line and points, the marker belongs to the points. A series drawn as
+    points only has no line to restyle: a line style that would draw one is for
+    the render to show (*has_lines* False), where it used to be ignored while the
+    edit was reported as shown.
     """
     steps: list[Any] = []
     for key, value in changes.items():
@@ -55,6 +60,10 @@ def _style_steps(artist: Any, changes: dict[str, Any], *, has_points: bool, size
                 setter = artist.set_marker if key == "marker" else artist.set_markersize
                 steps.append(lambda v=value, set_=setter: set_(v))
         else:  # the points
+            if key == "linestyle":
+                if not has_lines and str(value) not in _NONE_STYLES:
+                    return False, []  # it would add a line: only a render can
+                continue
             if key == "color":
                 if artist.get_array() is not None:
                     return False, []
@@ -562,7 +571,7 @@ class PickingMixin:
                     handles.append(handle)
         has_points = any("marker" in _follows(a) for a in points)
         try:
-            plan = [(a, *_style_steps(a, changes, has_points=has_points, sizes=a not in handles))
+            plan = [(a, *_style_steps(a, changes, has_points=has_points, sizes=a not in handles, has_lines=bool(lines)))
                     for a in (*lines, *points, *handles)]
         except ValueError:
             return False
