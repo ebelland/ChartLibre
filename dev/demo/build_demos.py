@@ -273,6 +273,30 @@ def _wind_observations() -> pd.DataFrame:
     return pd.DataFrame({"direction_deg": np.round(np.rad2deg(direction) % 360, 1), "speed_ms": np.round(speed, 2)})
 
 
+def _profit_bridge() -> pd.DataFrame:
+    """From last year's operating profit to this year's, one cause at a time
+    (invented figures, in thousands): the steps of a waterfall. The "total"
+    column marks the subtotal after the price and volume effects."""
+    return pd.DataFrame(
+        {
+            "step": ["Last year", "Volume", "Price", "Subtotal", "Materials", "Wages", "Energy", "FX"],
+            "change": [520.0, 140.0, 95.0, 0.0, -110.0, -70.0, -45.0, 30.0],
+            "total": [1, 0, 0, 1, 0, 0, 0, 0],
+        }
+    )
+
+
+def _energy_flows() -> pd.DataFrame:
+    """Where a small power plant's fuel energy goes (invented but balanced
+    figures, GWh): a flow table for a Sankey diagram, three stages deep."""
+    rows = [
+        ("Gas", "Boiler", 600), ("Coal", "Boiler", 250), ("Biomass", "Boiler", 150),
+        ("Boiler", "Steam", 860), ("Boiler", "Stack losses", 140),
+        ("Steam", "Electricity", 380), ("Steam", "Heat for town", 320), ("Steam", "Condenser", 160),
+    ]
+    return pd.DataFrame(rows, columns=["source", "target", "gwh"])
+
+
 def _attribute_chart_counts() -> pd.DataFrame:
     """Montgomery's *Introduction to Statistical Quality Control*, Example
     6.1: 20 samples of 50 printed circuit boards, each with its count of
@@ -834,6 +858,8 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "signal_time_domain": _signal_time_domain,
     "signal_spectrum": _signal_spectrum,
     "chirp_signal": _chirp_signal,
+    "profit_bridge": _profit_bridge,
+    "energy_flows": _energy_flows,
     "wind_observations": _wind_observations,
     "attribute_chart_counts": _attribute_chart_counts,
     "baseline_spectrum": _baseline_spectrum,
@@ -2139,6 +2165,44 @@ def _figure_specs() -> list[FigureSpec]:
                     name="wind",
                     sql="SELECT direction_deg AS x, speed_ms AS y FROM wind_observations",
                     roles={"x": "x", "y": "y"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="63 · Waterfall - from last year's profit to this year's",
+            key="profit_waterfall",
+            tables=("profit_bridge",),
+            queries=(),
+            chart_type="Waterfall Chart",
+            title="Operating profit bridge (thousands)",
+            x_label="",
+            y_label="thousands",
+            axis_options={},
+            series=[
+                SeriesSpec(
+                    name="bridge",
+                    sql="SELECT step AS x, change AS y, total AS total FROM profit_bridge",
+                    roles={"x": "x", "y": "y", "total": "total"},
+                    style={},
+                ),
+            ],
+        ),
+        FigureSpec(
+            name="64 · Sankey - where the fuel energy goes",
+            key="energy_sankey",
+            tables=("energy_flows",),
+            queries=(),
+            chart_type="Sankey Diagram",
+            title="Fuel energy to electricity, heat and losses (GWh)",
+            x_label="",
+            y_label="",
+            axis_options={"value_labels": True},
+            series=[
+                SeriesSpec(
+                    name="flows",
+                    sql="SELECT source, target, gwh AS value FROM energy_flows",
+                    roles={"source": "source", "target": "target", "value": "value"},
                     style={},
                 ),
             ],

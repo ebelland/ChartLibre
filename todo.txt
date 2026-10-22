@@ -131,7 +131,7 @@ Matplotlib
            Projection attribute. Demo: "Time, trees and circles".
 - G-14  S  Dendrogram chart done (ward/average/complete/single, cut line). Left: clustered
            heatmap; the dendrogram inside Cluster Analysis' report.
-- G-15  S  Sankey (matplotlib.sankey) and waterfall charts.
+- G-15  S  Sankey Diagram and Waterfall Chart done. Demo: "Steps and flows".
 - G-16  S  Image / matrix chart: imshow/matshow of a 2D table or an image file with a colorbar;
            contour labels (clabel).
 - G-17  S  Broken axis; secondary axis as a conversion of the first (secondary_xaxis functions:

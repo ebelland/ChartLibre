@@ -56,6 +56,8 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Dendrogram",
     "Radar Chart",
     "Wind Rose",
+    "Waterfall Chart",
+    "Sankey Diagram",
     "Event Plot",
     "3D Line Plot",
     "3D Bar Chart",
@@ -425,6 +427,24 @@ def _showcase_definitions() -> list[dict[str, Any]]:
             "labels": ("", ""),
             "axis_options": {"title": "Wind Rose"},
             "series": [("wind", "SELECT x * 90 AS x, abs(y) AS y FROM src_xy", {})],
+        },
+        {
+            "chart_type": "Waterfall Chart",
+            "name": "Waterfall showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Waterfall Chart"},
+            "series": [("steps", "SELECT t AS x, v AS y FROM src_series LIMIT 8", {})],
+        },
+        {
+            "chart_type": "Sankey Diagram",
+            "name": "Sankey showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Sankey Diagram"},
+            "series": [(
+                "flows",
+                "SELECT grp AS source, 'out' AS target, count(*) AS value FROM src_samples GROUP BY grp",
+                {},
+            )],
         },
         {
             "chart_type": "Cell Plot",

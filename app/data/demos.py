@@ -187,6 +187,15 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Graph",
     ),
     DemoProject(
+        "Steps and flows - a waterfall and a Sankey diagram",
+        "Two charts for quantities that move: a Waterfall of an operating profit from last year to "
+        "this, one cause at a time with a subtotal, and a Sankey diagram of a power plant's fuel "
+        "energy through the boiler and steam to electricity, heat and losses. Invented, balanced figures.",
+        ("profit_waterfall", "energy_sankey"),
+        preview="Sankey",
+        category="Graph",
+    ),
+    DemoProject(
         "Quick answers - three questions asked of real data",
         "Start from a question, not a function: are the three penguin species "
         "different in body mass? What has the most impact on it? Has the "
