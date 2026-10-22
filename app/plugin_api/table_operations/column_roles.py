@@ -17,6 +17,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 import pandas as pd
+from typing import Any
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -28,6 +30,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -117,6 +120,8 @@ class ColumnRolesWidget(QWidget):
 
     #: The roles or a type changed.
     changed = Signal()
+    #: "Column Info..." was chosen on a column (its name): the window that owns the table opens it.
+    column_info_requested = Signal(str)
 
     def __init__(self, roles: Sequence[ColumnRole], parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -151,6 +156,8 @@ class ColumnRolesWidget(QWidget):
         rows_height = max(self._column_list.fontMetrics().height() + 4, 18)
         self._column_list.setMinimumHeight(4 * rows_height)
         self._column_list.itemSelectionChanged.connect(self._sync_kind_combo)
+        self._column_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._column_list.customContextMenuRequested.connect(self._show_column_menu)
         columns.addWidget(self._column_list, 1)
         type_row = QHBoxLayout()
         type_row.addWidget(QLabel(_("Type:"), self))
@@ -268,6 +275,20 @@ class ColumnRolesWidget(QWidget):
     @property
     def roles(self) -> tuple[ColumnRole, ...]:
         return self._roles
+
+    def request_column_info(self, item: QListWidgetItem | None) -> None:
+        """Ask for Column Info on the column *item* stands for."""
+        name = item.data(_NAME_ROLE) if item is not None else None
+        if name:
+            self.column_info_requested.emit(str(name))
+
+    def _show_column_menu(self, position: Any) -> None:
+        item = self._column_list.itemAt(position)
+        if item is None:
+            return
+        menu = QMenu(self)
+        menu.addAction(_("Column Info...")).triggered.connect(lambda _checked=False, it=item: self.request_column_info(it))
+        menu.exec(self._column_list.viewport().mapToGlobal(position))
 
     def set_columns(self, frame: pd.DataFrame, kinds: Mapping[str, str] | None = None,
                     declared: Mapping[str, str] | None = None) -> None:
