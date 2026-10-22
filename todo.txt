@@ -29,7 +29,7 @@ LATER
 - AN-14 M  Response screening (many Y, FDR).
 - AN-24 M  Neural network (MLP).
 - R-02  M  Background computation: Outlier preview, Stop inside long loops.
-- R-13  S  Known-answer tests where NIST has no dataset; Longley.
+- R-13  S  Known-answer tests where NIST has no dataset (Longley done).
 
 
 
