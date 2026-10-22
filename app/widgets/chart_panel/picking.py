@@ -22,6 +22,8 @@ FLASH_MS = 900
 FLASH_COLOR = "#2563EB"
 #: A series' style keys the chart can show by changing its lines and points, with no new render.
 PREVIEW_STYLE_SETTERS = frozenset({"color", "linestyle", "marker", "markersize"})
+#: A Stem Plot's style: one Matplotlib format string for each of its three parts.
+STEM_FMT_KEYS = frozenset({"linefmt", "markerfmt", "basefmt"})
 #: The values that mean "no line" or "no marker".
 _NONE_STYLES = frozenset({"", " ", "None", "none"})
 
@@ -548,6 +550,51 @@ class PickingMixin:
         QTimer.singleShot(FLASH_MS, clear)
         return True
 
+    def _preview_stem_style(self, axis_id: int, series: str, changes: dict[str, Any]) -> bool:
+        """A Stem Plot's linefmt / markerfmt / basefmt on the drawn stems, baseline and marker.
+
+        False - for a render - for an empty format (it means "follow the
+        style"), one Matplotlib refuses, a part the format string does not
+        say (a colour alone on a marker would need the cycle), or a chart
+        without the tagged artists.
+        """
+        from matplotlib.axes._base import _process_plot_format  # noqa: PLC0415 - the parser ax.stem itself uses
+
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)
+        if axes is None:
+            return False
+        parts = {
+            getattr(a, "_dhub_stem"): a
+            for a in axes.get_children()
+            if getattr(a, "_dhub_series", None) == series and hasattr(a, "_dhub_stem")
+        }
+        plan = []
+        for key, fmt in changes.items():
+            artist = parts.get(key)
+            if artist is None or not str(fmt).strip():
+                return False
+            try:
+                linestyle, marker, color = _process_plot_format(str(fmt))
+            except ValueError:
+                return False
+            if key == "linefmt":
+                if linestyle in (None, "None") or color is None:
+                    return False
+                plan.append(lambda a=artist, ls=linestyle, c=color: (a.set_color(c), a.set_linestyle(ls)))
+            else:
+                if marker in (None, "None") and key == "markerfmt":
+                    return False
+                if key == "markerfmt":
+                    plan.append(lambda a=artist, m=marker, c=color: (a.set_marker(m), c and a.set_color(c)))
+                else:
+                    if color is None:
+                        return False
+                    plan.append(lambda a=artist, c=color, ls=linestyle: (a.set_color(c), ls and a.set_linestyle(ls)))
+        for step in plan:
+            step()
+        self._canvas.draw_idle()
+        return True
+
     def preview_series_style(self, axis_id: int, series: str, changes: dict[str, Any]) -> bool:
         """Show a series' new colour, line style, marker or marker size on the chart as drawn - no render.
 
@@ -558,6 +605,8 @@ class PickingMixin:
         points the edit would add or remove, colour-mapped points, or a value
         Matplotlib refuses.
         """
+        if changes and set(changes) <= STEM_FMT_KEYS:
+            return self._preview_stem_style(axis_id, series, changes)
         if not changes or not set(changes) <= set(PREVIEW_STYLE_SETTERS):
             return False
         axes = next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)

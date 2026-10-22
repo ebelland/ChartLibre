@@ -325,7 +325,15 @@ class StemAxisRenderer(BaseAxisRenderer):
             kwargs.setdefault("label", style.get("label") or sd.name)
 
             try:
-                ax.stem(x[mask], y[mask], **kwargs)
+                container = ax.stem(x[mask], y[mask], **kwargs)
+                # For the live style preview (picking.STEM_FMT_KEYS): which part each artist is.
+                for part, artist in (
+                    ("linefmt", container.stemlines),
+                    ("markerfmt", container.markerline),
+                    ("basefmt", container.baseline),
+                ):
+                    artist._dhub_series = sd.name  # noqa: SLF001 - our own attributes
+                    artist._dhub_stem = part  # noqa: SLF001
             except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Stem Plot failed to draw series '%s'.", sd.name)
 

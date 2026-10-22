@@ -11,8 +11,8 @@ NEXT - INTERFACE
            over a saved query that keeps "_id"; dates and categories on x; the data filter
            ("show only Selected" on every chart of a table).
 - S-01  S  Live style preview, done for Scatter, Time Series, ECDF (a scatter underneath), Stairs,
-           3D Line and 3D Scatter (via SeriesArtistTags). Left: Stem (its style is linefmt/markerfmt/
-           basefmt, not color/linestyle - needs the preview to read those); Undo per element.
+           3D Line, 3D Scatter and Stem (linefmt/markerfmt/basefmt). Left: Undo per element.
+           Demo: "Series styles - restyle a series and watch the chart change".
 
 - H-17  S  Results frame set to white around the white report page (try it; revert if the grey is preferred).
 - H-11  M  Error messages that say what to do next, for import and SQL.

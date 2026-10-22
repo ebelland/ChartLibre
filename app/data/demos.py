@@ -163,6 +163,18 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Getting Started",
     ),
     DemoProject(
+        "Series styles - restyle a series and watch the chart change",
+        "Seven charts for trying the live style preview: open a figure, select a series and "
+        "change its colour, line style, marker or size (a stem plot: its line, marker and "
+        "baseline format strings) - the chart follows as you edit, with no redraw. Scatter, "
+        "time series, ECDF, stairs, stem, 3D line and 3D scatter.",
+        ("penguin_scatter", "stock_timeseries", "machine_ecdf", "server_events_stairs",
+         "signal_spectrum_stem", "helix_3d_line", "parametric_scatter3d"),
+        preview="Signal spectrum as discrete tones",
+        references=(REF_PENGUINS,),
+        category="Graph",
+    ),
+    DemoProject(
         "Quick answers - three questions asked of real data",
         "Start from a question, not a function: are the three penguin species "
         "different in body mass? What has the most impact on it? Has the "

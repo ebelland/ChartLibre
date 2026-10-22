@@ -10,7 +10,7 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import StepPatch
 
-from app.charts.area import StairsAxisRenderer
+from app.charts.area import StairsAxisRenderer, StemAxisRenderer
 from app.charts.ecdf import EcdfAxisRenderer
 from app.charts.surface import Line3DAxisRenderer, Scatter3DAxisRenderer
 from app.plugin_api.charts.base import SeriesData
@@ -18,7 +18,9 @@ from app.widgets.chart_panel.picking import PickingMixin
 
 
 def _panel(axes: Any) -> SimpleNamespace:
-    return SimpleNamespace(_canvas=SimpleNamespace(figure=axes.figure, draw_idle=lambda: None))
+    panel = SimpleNamespace(_canvas=SimpleNamespace(figure=axes.figure, draw_idle=lambda: None))
+    panel._preview_stem_style = lambda *args: PickingMixin._preview_stem_style(panel, *args)
+    return panel
 
 
 def _series(name: str = "s", **columns: Any) -> SeriesData:
@@ -76,3 +78,18 @@ def test_ecdf_is_a_scatter_underneath_and_already_follows_the_preview() -> None:
     tagged = [a for a in axes.get_children() if getattr(a, "_dhub_series", None) == "s"]
     assert tagged, "the ECDF's points carry the series name"
     assert PickingMixin.preview_series_style(_panel(axes), 1, "s", {"color": "red"}) is True
+
+
+def test_stem_takes_its_three_format_strings_without_a_render() -> None:
+    axes = _draw(StemAxisRenderer(), [_series()])
+    parts = {a._dhub_stem: a for a in axes.get_children() if hasattr(a, "_dhub_stem")}
+    assert set(parts) == {"linefmt", "markerfmt", "basefmt"}
+    panel = _panel(axes)
+    assert PickingMixin.preview_series_style(panel, 1, "s", {"linefmt": "r--"}) is True
+    assert tuple(parts["linefmt"].get_color()[0][:3]) == (1.0, 0.0, 0.0)
+    assert PickingMixin.preview_series_style(panel, 1, "s", {"markerfmt": "gs"}) is True
+    assert parts["markerfmt"].get_marker() == "s"
+    assert PickingMixin.preview_series_style(panel, 1, "s", {"basefmt": "b-"}) is True
+    # empty means "follow the style", a bad string is Matplotlib's to refuse: a render says both
+    assert PickingMixin.preview_series_style(panel, 1, "s", {"linefmt": ""}) is False
+    assert PickingMixin.preview_series_style(panel, 1, "s", {"linefmt": "zz"}) is False
