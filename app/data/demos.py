@@ -65,6 +65,15 @@ REF_FREIREICH = reference("Freireich E. J. et al. (1963). The effect of 6-mercap
                           "remissions in acute leukemia. Blood 21(6), 699-716.", doi="10.1182/blood.V21.6.699.699")
 REF_COLDITZ = reference("Colditz G. A. et al. (1994). Efficacy of BCG vaccine in the prevention of tuberculosis: "
                         "meta-analysis of the published literature. JAMA 271(9), 698-702.", doi="10.1001/jama.1994.03510330076038")
+REF_OXIDE = reference("Pinheiro J. C., Bates D. M. (2000). Mixed-Effects Models in S and S-PLUS. Springer (the Oxide data, "
+                      "from R's nlme package).", doi="10.1007/b98882")
+REF_NEWCOMB = reference("Newcomb S. (1891). Measures of the velocity of light made under the direction of the Navy "
+                        "Department, 1880-1882; Stigler S. M. (1977). Do robust estimators work with real data? "
+                        "Annals of Statistics 5(6), 1055-1098.", doi="10.1214/aos/1176343997")
+REF_NILE = reference("Cobb G. W. (1978). The problem of the Nile: conditional solution to a changepoint problem. "
+                     "Biometrika 65(2), 243-251.", doi="10.1093/biomet/65.2.243")
+REF_AIRLINE = reference("Box G. E. P., Jenkins G. M., Reinsel G. C. (1976). Time Series Analysis: Forecasting and "
+                        "Control (monthly airline passengers, 1949-1960).")
 REF_MICHELSON = reference("Michelson A. A. (1882). Experimental determination of the velocity of light. "
                           "Astronomical Papers 1, 109-145. (NIST StRD dataset Michelso.)")
 
@@ -287,6 +296,31 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         preview="Time Series",
         references=(REF_CO2, REF_SUNSPOTS),
         category="Guided Analysis",
+    ),
+    DemoProject(
+        "Process - real data: oxide wafers and Newcomb's light measurements",
+        "Real measurements for statistical process control: the oxide thickness of 24 semiconductor wafers "
+        "with three sites each, on an X-bar and R chart (a wafer is a subgroup) and as a one-way comparison "
+        "by lot; and Newcomb's 66 measurements of the speed of light, in the order made, on an individuals "
+        "chart - which flags his two famous low readings - and through the randomness tests of their order.",
+        (),
+        builder="dev.demo.demo_goals:build_spc_real_demo",
+        preview="X-bar and R",
+        references=(REF_OXIDE, REF_NEWCOMB),
+        category="Quality and Process",
+    ),
+    DemoProject(
+        "Time series - real data: the Nile and the airline passengers",
+        "Two classic real series, their dates stored as text: the annual flow of the Nile 1871-1970, with "
+        "the drop of about 1898 a time series model has to absorb, and the monthly airline passengers "
+        "1949-1960, a trend with a growing season. Time Series gives each its forecast by the ARIMA the AIC "
+        "chooses, its autocorrelations and the residual randomness tests (runs, turning points, Durbin-Watson, "
+        "Ljung-Box).",
+        (),
+        builder="dev.demo.demo_goals:build_timeseries_real_demo",
+        preview="Time Series",
+        references=(REF_NILE, REF_AIRLINE),
+        category="Signal Processing",
     ),
     DemoProject(
         "Anomalies - the card transactions that stand apart",

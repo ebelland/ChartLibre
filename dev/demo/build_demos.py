@@ -310,6 +310,32 @@ def _penguin_correlations() -> pd.DataFrame:
     return matrix.reset_index(drop=True)
 
 
+def _oxide_wafers() -> pd.DataFrame:
+    """Oxide layer thickness (angstrom) on 24 semiconductor wafers, three sites each - the real
+    measurements of a lot-by-lot study (Pinheiro and Bates 2000, from R's nlme package). In
+    production order: a wafer's three sites are consecutive rows, which is a rational subgroup."""
+    return pd.read_csv(SAMPLE_DATA_DIR / "oxide_wafers.csv")
+
+
+def _newcomb_light() -> pd.DataFrame:
+    """Newcomb's 66 measurements of the passage time of light over 7442 m (1882), as deviations from
+    24800 nanoseconds, in the order they were made - the two lowest are the famous outliers
+    (R's MASS package; Stigler 1977)."""
+    return pd.read_csv(SAMPLE_DATA_DIR / "newcomb_light.csv")
+
+
+def _nile_flow() -> pd.DataFrame:
+    """Annual flow of the Nile at Aswan, 1871-1970 (10^8 m3), the dates as text - with the drop of
+    about 1898 that Cobb (1978) made the textbook example of a change point (R's datasets package)."""
+    return pd.read_csv(SAMPLE_DATA_DIR / "nile_flow.csv")
+
+
+def _air_passengers() -> pd.DataFrame:
+    """Monthly international airline passengers 1949-1960 (thousands), the dates as text: Box and
+    Jenkins' series, a trend and a season whose size grows with the level (R's datasets package)."""
+    return pd.read_csv(SAMPLE_DATA_DIR / "air_passengers.csv")
+
+
 def _attribute_chart_counts() -> pd.DataFrame:
     """Montgomery's *Introduction to Statistical Quality Control*, Example
     6.1: 20 samples of 50 printed circuit boards, each with its count of
@@ -871,6 +897,10 @@ TABLE_SOURCES: dict[str, Callable[[], pd.DataFrame]] = {
     "signal_time_domain": _signal_time_domain,
     "signal_spectrum": _signal_spectrum,
     "chirp_signal": _chirp_signal,
+    "oxide_wafers": _oxide_wafers,
+    "newcomb_light": _newcomb_light,
+    "nile_flow": _nile_flow,
+    "air_passengers": _air_passengers,
     "profit_bridge": _profit_bridge,
     "penguin_correlations": _penguin_correlations,
     "energy_flows": _energy_flows,

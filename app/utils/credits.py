@@ -134,6 +134,27 @@ DATA: tuple[Work, ...] = (
         "https://data.giss.nasa.gov/gistemp/",
     ),
     Work(
+        "Oxide wafers",
+        "Pinheiro and Bates, 2000; R's nlme package",
+        "Oxide thickness at three sites of 24 semiconductor wafers.",
+        "GPL-2 (R package); published data",
+        "https://doi.org/10.1007/b98882",
+    ),
+    Work(
+        "Newcomb's light measurements",
+        "Simon Newcomb, 1882; S. M. Stigler, 1977; R's MASS package",
+        "Sixty-six measurements of the passage time of light.",
+        "Published data",
+        "https://doi.org/10.1214/aos/1176343997",
+    ),
+    Work(
+        "Nile flow and airline passengers",
+        "Cobb, 1978; Box, Jenkins and Reinsel; R's datasets package",
+        "The annual flow of the Nile 1871-1970 and the monthly airline passengers 1949-1960.",
+        "GPL-2 (R package); published data",
+        "https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html",
+    ),
+    Work(
         "Earthquake catalogue",
         "U.S. Geological Survey",
         "One month of the global feed, for the Gutenberg-Richter law.",

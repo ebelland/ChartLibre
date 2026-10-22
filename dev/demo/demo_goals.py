@@ -126,6 +126,38 @@ GOAL_DEMOS: dict[str, tuple[Step, ...]] = {
         ("ask", "app.table_operations.differences_dialog:DifferencesDialog", "machine_measurements",
          {"response": ["value"], "group": ["machine"]}),
     ),
+    "build_spc_real_demo": (
+        ("chart", "oxide_wafers", ["thickness_angstrom"], 0),
+        ("operate", OperationDemo(
+            "X-bar and R - oxide thickness, wafer by wafer", "Three sites per wafer, 24 wafers in order",
+            "oxide_wafers", "SELECT rowid AS x, thickness_angstrom AS y FROM oxide_wafers ORDER BY rowid",
+            {"x": "x", "y": "y"}, "reading (3 per wafer)", "oxide thickness (angstrom)",
+            "control_chart_dialog:SeriesControlChartDialog",
+            style={"marker": "o", "markersize": 4, "linewidth": 0.8}, setup=lambda dialog: _xbar_r(dialog, 3))),
+        ("operate", OperationDemo(
+            "Individuals chart - Newcomb's light measurements", "66 measurements, in the order made",
+            "newcomb_light", "SELECT measurement AS x, deviation AS y FROM newcomb_light ORDER BY measurement",
+            {"x": "x", "y": "y"}, "measurement", "deviation from 24800 ns",
+            "control_chart_dialog:SeriesControlChartDialog",
+            style={"marker": "o", "markersize": 4, "linewidth": 0.8})),
+        ("operate", OperationDemo(
+            "Randomness - are Newcomb's measurements in a random order?", "66 measurements, in the order made",
+            "newcomb_light", "SELECT measurement AS x, deviation AS y FROM newcomb_light ORDER BY measurement",
+            {"x": "x", "y": "y"}, "measurement", "deviation from 24800 ns",
+            "statistics_dialog:SeriesStatisticsDialog",
+            style={"marker": "o", "markersize": 4, "linewidth": 0.8},
+            setup=lambda dialog: dialog.model_combo.setCurrentIndex(dialog.model_combo.findData("randomness")))),
+        ("ask", "app.table_operations.differences_dialog:DifferencesDialog", "oxide_wafers",
+         {"response": ["thickness_angstrom"], "group": ["lot"]}),
+    ),
+    "build_timeseries_real_demo": (
+        ("chart", "nile_flow", ["date", "flow_1e8_m3"], 0),
+        ("ask", "app.table_operations.time_series_dialog:TimeSeriesDialog", "nile_flow",
+         {"response": ["flow_1e8_m3"], "time": ["date"]}, {"model": "auto", "season": 1, "horizon": 10, "lags": 20}),
+        ("chart", "air_passengers", ["date", "passengers_thousands"], 0),
+        ("ask", "app.table_operations.time_series_dialog:TimeSeriesDialog", "air_passengers",
+         {"response": ["passengers_thousands"], "time": ["date"]}, {"model": "auto", "horizon": 24, "lags": 36}),
+    ),
     "build_groups_demo": (
         ("chart", "penguins", ["bill_length_mm", "bill_depth_mm"], 0),
         ("ask", "app.table_operations.clustering_dialog:ClusteringDialog", "penguins",
@@ -145,6 +177,14 @@ SPEC_LIMITS = {"lsl": "24.98", "usl": "25.02"}
 def _spec(dialog: Any) -> None:
     """The specification limits, so the report gives the capability (Cp, Cpk...)."""
     dialog._parameter_form_spec.set_values(SPEC_LIMITS)
+
+
+def _xbar_r(dialog: Any, subgroup: int) -> None:
+    """X-bar and R of consecutive readings, *subgroup* to each plotted point."""
+    from app.analysis.control_charts import CHART_XBAR_R
+
+    dialog.model_combo.setCurrentIndex(dialog.model_combo.findText(CHART_XBAR_R))
+    dialog._parameter_form_spec.set_values({"subgroup": subgroup})
 
 
 def _demo(builder: str) -> DemoProject:
@@ -232,6 +272,14 @@ def build_anomalies_demo(directory: Path = DEMO_DIR) -> Path:
 
 def build_process_demo(directory: Path = DEMO_DIR) -> Path:
     return _build("build_process_demo", directory)
+
+
+def build_spc_real_demo(directory: Path = DEMO_DIR) -> Path:
+    return _build("build_spc_real_demo", directory)
+
+
+def build_timeseries_real_demo(directory: Path = DEMO_DIR) -> Path:
+    return _build("build_timeseries_real_demo", directory)
 
 
 def build_groups_demo(directory: Path = DEMO_DIR) -> Path:
