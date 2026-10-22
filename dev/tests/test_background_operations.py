@@ -252,3 +252,33 @@ def test_a_warning_from_a_worker_thread_reaches_the_status_bar(qapp) -> None:
         _wait_for(lambda: bar.currentMessage() == "from the worker", timeout=5.0)
     finally:
         applogger.set_status_bar(None)
+
+
+@pytest.mark.background
+def test_stop_appearing_does_not_move_the_other_buttons(
+    qapp, repo: SqliteRepo, figure_id: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The Fit window flickered: Stop and the bar sat beside Preview and pushed the rest aside, and back."""
+    cls = _dialog_class("regression_dialog", "SeriesRegressionDialog")
+    release = threading.Event()
+    original = cls.compute_series
+
+    def slow(self, name, data, settings):  # noqa: ANN001 - the dialog's own signature
+        release.wait(10.0)
+        return original(self, name, data, settings)
+
+    monkeypatch.setattr(cls, "compute_series", slow)
+    dialog = _open(cls, repo, figure_id)
+    dialog.show()
+    buttons = [dialog.preview_button, dialog.revert_button, dialog.copy_html_button, dialog.apply_button]
+    before = [button.geometry().getRect() for button in buttons]
+    assert dialog.preview()
+    _wait_for(lambda: dialog.stop_button.isVisible())
+    qapp.processEvents()
+    assert [button.geometry().getRect() for button in buttons] == before
+    dialog.stop_evaluation()
+    release.set()
+    _wait_for(lambda: not dialog.evaluating)
+    qapp.processEvents()
+    assert [button.geometry().getRect() for button in buttons] == before
+    dialog.close()

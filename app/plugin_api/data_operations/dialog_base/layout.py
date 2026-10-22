@@ -174,6 +174,21 @@ class LayoutMixin:
                                   layout=action_row,
                               )
 
+        # Back to the defaults, beside Preview: it acts on the entries only.
+        self.revert_button = create_action_button(
+                                 parent=self,
+                                 action_id="operation_revert",
+                                 action=self.revert_entries,
+                                 layout=action_row,
+                             )
+
+        # Operation-specific buttons go next to Preview, on the left: they act
+        # on the dialog's own state, unlike Apply/Close which end it.
+        self.build_extra_action_buttons(action_row)
+
+        # After every button that stays and before the stretch, which takes up the
+        # difference: put beside Preview they pushed Revert, Fit and the rest aside
+        # each time they appeared and again when they went (the Fit dialog's flicker).
         # Shown only while a calculation runs in the background: every
         # operation gets the same Stop, in the same place. See evaluate().
         self.stop_button = create_action_button(
@@ -190,18 +205,6 @@ class LayoutMixin:
         self.progress_bar.setMaximumWidth(160)
         self.progress_bar.setVisible(False)
         action_row.addWidget(self.progress_bar)
-
-        # Back to the defaults, beside Preview: it acts on the entries only.
-        self.revert_button = create_action_button(
-                                 parent=self,
-                                 action_id="operation_revert",
-                                 action=self.revert_entries,
-                                 layout=action_row,
-                             )
-
-        # Operation-specific buttons go next to Preview, on the left: they act
-        # on the dialog's own state, unlike Apply/Close which end it.
-        self.build_extra_action_buttons(action_row)
 
         action_row.addStretch(1)
 
