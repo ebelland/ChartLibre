@@ -138,10 +138,28 @@ def forced_kinds(infos: Mapping[str, ColumnInfo]) -> dict[str, str]:
     return {name: info.kind for name, info in infos.items() if info.kind}
 
 
+def value_label_of(value: Any, labels: Mapping[str, str]) -> str | None:
+    """The label of a stored *value* ({"1": "male"}); None when it has none.
+
+    A stored 1.0 is the key "1": a number column keeps its integers as floats.
+    """
+    keys = [str(value)]
+    if isinstance(value, (float, np.floating)) and float(value).is_integer():
+        keys.append(str(int(value)))
+    for key in keys:
+        if key in labels:
+            return labels[key]
+    return None
+
+
 def format_value(value: Any, info: ColumnInfo) -> str:
     """*value* as the column's format shows it; as stored when it does not apply (text in a number format)."""
     if value is None or (isinstance(value, float) and np.isnan(value)):
         return ""
+    if info.value_labels:
+        label = value_label_of(value, info.value_labels)
+        if label is not None:
+            return label
     kind, decimals = info.format, info.decimals
     if kind == "datetime":
         moment = pd.to_datetime(value, errors="coerce") if not isinstance(value, (int, float)) else pd.NaT

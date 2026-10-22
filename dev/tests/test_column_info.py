@@ -115,3 +115,33 @@ def test_the_preview_shows_the_format_and_copies_the_stored_value(qapp, repo: Sq
     index = model.index(0, column)
     assert model.data(index, Qt.ItemDataRole.DisplayRole) == "12.5%"
     assert float(model.data(index, Qt.ItemDataRole.EditRole)) == 0.125
+
+
+def test_value_labels_are_what_the_preview_shows_for_a_stored_value() -> None:
+    info = cm.ColumnInfo(value_labels={"1": "male", "2": "female"})
+    assert cm.format_value(1, info) == "male"
+    assert cm.format_value(2.0, info) == "female"  # a number column keeps integers as floats
+    assert cm.format_value("1", info) == "male"
+    assert cm.format_value(3, info) == "3"  # no label: as stored
+    assert cm.format_value(None, info) == ""
+    # a label wins over the number format of the same column
+    both = cm.ColumnInfo(format="fixed", decimals=1, value_labels={"1": "male"})
+    assert cm.format_value(1, both) == "male" and cm.format_value(2, both) == "2.0"
+
+
+def test_the_preview_shows_value_labels_and_edits_the_stored_value(qapp, repo: SqliteRepo) -> None:
+    from PySide6.QtCore import Qt
+
+    from app.widgets.table_preview import TablePreviewPanel
+
+    repo.import_dataframe(pd.DataFrame({"sex": [1, 2, 1, 3]}), table_name="people", normalize_columns=False)
+    cm.set_column_info(repo, "people", "sex", cm.ColumnInfo(value_labels={"1": "male", "2": "female"}))
+    panel = TablePreviewPanel(None, repo=repo)
+    panel.set_context(repo, "people")
+    qapp.processEvents()
+    model = panel.view.model()
+    column = next(c for c in range(model.columnCount()) if model._columns[c] == "sex")
+    shown = [model.data(model.index(row, column), Qt.ItemDataRole.DisplayRole) for row in range(4)]
+    stored = [model.data(model.index(row, column), Qt.ItemDataRole.EditRole) for row in range(4)]
+    assert shown == ["male", "female", "male", "3"]
+    assert stored == ["1", "2", "1", "3"]  # editing and copying see the values

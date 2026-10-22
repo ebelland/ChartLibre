@@ -690,9 +690,12 @@ class LazyTableModel(QAbstractTableModel):
         self._columns = [str(row[1]) for row in rows]
         self._codes = [_type_code(str(row[2])) for row in rows]
         self._row_count = int(self._repo.row_count(self._table))
-        # Each column's format from Column Info, None where it has none: the text shown only.
+        # Each column's format and value labels from Column Info, None where it has neither: the text shown only.
         infos = column_metadata.column_info(self._repo, self._table)
-        self._formats = [infos[name] if name in infos and infos[name].format else None for name in self._columns]
+        self._formats = [
+            infos[name] if name in infos and (infos[name].format or infos[name].value_labels) else None
+            for name in self._columns
+        ]
 
     def column_name(self, index: int) -> str | None:
         return self._columns[index] if 0 <= index < len(self._columns) else None
