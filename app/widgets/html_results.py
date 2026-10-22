@@ -23,7 +23,7 @@ import weakref
 from typing import cast
 
 from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QColor, QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -333,6 +333,10 @@ class HtmlResultsView(QWidget):
             page = _ExternalLinksPage(self)
             view = QWebEngineView(self)
             view.setPage(page)
+            # The report is a white page: a white frame around it, not the
+            # theme's grey.
+            page.setBackgroundColor(QColor("white"))
+            view.setStyleSheet("QWebEngineView { background: white; }")
             _WEB_VIEWS.add(view)
             _hook_release()
             return cast(QWidget, view)
@@ -340,6 +344,7 @@ class HtmlResultsView(QWidget):
             pass
 
         browser = QTextBrowser(self)
+        browser.setStyleSheet("QTextBrowser { background: white; color: black; }")
         browser.setOpenLinks(False)  # each link through _open_link, as the web view's
         browser.anchorClicked.connect(lambda url: _open_link(self, url.toString()))
         browser.setTextInteractionFlags(

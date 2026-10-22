@@ -14,7 +14,7 @@ NEXT - INTERFACE
            3D Line and 3D Scatter (via SeriesArtistTags). Left: Stem (its style is linefmt/markerfmt/
            basefmt, not color/linestyle - needs the preview to read those); Undo per element.
 
-- H-17  S  Results in a grey frame is still a white page inside it (an HTML report): keep, or the frame's grey?
+- H-17  S  Results frame set to white around the white report page (try it; revert if the grey is preferred).
 - H-11  M  Error messages that say what to do next, for import and SQL.
 - H-12  M  Windows parity: every dialog at 1366x768 and 125% scaling in CI.
 - H-08  M  First run: open on Help me choose with a demo table; a 3-step tour of the rail.
