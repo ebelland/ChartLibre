@@ -8,6 +8,10 @@ correlation matrix or a raw instrument grid is normally read. ``pcolormesh``
 draws exactly the cells that were given it, nothing between them.
 
   https://matplotlib.org/stable/plot_types/arrays/pcolormesh.html
+
+Clustered (seaborn's clustermap): rows and/or columns reordered so that alike
+ones sit together, the tree that joined them drawn beside the cells. The
+cells are then at their place in that order, labelled with their x and y.
 """
 from __future__ import annotations
 
@@ -29,7 +33,12 @@ _RENDERER_ONLY_KWARGS: tuple[str, ...] = (
     "annotate_format",
     "annotate_fontsize",
     "annotate_color",
+    "cluster",
+    "cluster_method",
 )
+
+#: Ticks label each cell's x or y only up to this many: past it they overlap.
+MAX_CLUSTER_TICKS: int = 60
 
 #: Above this many cells, values are not written into them - one ax.text per
 #: cell is fine for the 10x10 correlation matrix this feature exists for and
@@ -153,6 +162,21 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
             "group": "Labels",
             "description": "Cell label colour. Empty means black, which reads on most colormaps.",
         },
+        "cluster": {
+            "default": "none",
+            "type": ["none", "rows", "columns", "both"],
+            "group": "Clustering",
+            "description": (
+                "Reorder the rows (y), the columns (x) or both so that alike ones sit together "
+                "(hierarchical clustering), and draw the tree beside the cells. Needs every cell filled."
+            ),
+        },
+        "cluster_method": {
+            "default": "ward",
+            "type": ["ward", "average", "complete", "single"],
+            "group": "Clustering",
+            "description": "How the distance between two groups is measured, as in the Dendrogram chart.",
+        },
         "colorbar": {
             "default": False,
             "type": bool,
@@ -201,6 +225,13 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
         for key in _RENDERER_ONLY_KWARGS:
             kwargs.pop(key, None)
 
+        cluster = str(self.opt("cluster", style) or "none")
+        if cluster != "none":
+            clustered = self._cluster(ax, x_grid, y_grid, z_grid, cluster, str(self.opt("cluster_method", style) or "ward"))
+            if clustered is not None:
+                x_grid, y_grid, z_grid = clustered
+                kwargs["shading"] = "nearest"
+
         mesh = ax.pcolormesh(x_grid, y_grid, z_grid, **kwargs)
 
         if bool(self.opt("annotate", style)):
@@ -210,6 +241,44 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
             self.add_colorbar(ax, mesh, style)
 
         self.apply_annotations(ax, axis_options)
+
+    @staticmethod
+    def _cluster(
+        ax: Any, x_grid: np.ndarray, y_grid: np.ndarray, z_grid: np.ndarray, which: str, method: str
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
+        """Reorder *z_grid* by hierarchical clustering and draw the trees; the cells' new grids.
+
+        Rows are y, columns x. Each tree goes in an inset just outside the
+        axes - above for the columns, left for the rows - its leaves (at 5,
+        15, 25... in scipy's units) lined up with the cells (at 0, 1, 2...).
+        """
+        from scipy.cluster import hierarchy
+
+        if not np.all(np.isfinite(z_grid)):
+            applogger.warning("Heatmap clustering needs every cell filled: drawn unclustered.")
+            return None
+        x_values, y_values = x_grid[0, :], y_grid[:, 0]
+        rows, columns = np.arange(z_grid.shape[0]), np.arange(z_grid.shape[1])
+        if which in ("rows", "both"):
+            tree = ax.inset_axes((-0.22, 0.0, 0.2, 1.0))
+            drawn = hierarchy.dendrogram(hierarchy.linkage(z_grid, method=method), ax=tree, orientation="left",
+                                         no_labels=True, color_threshold=0, above_threshold_color="0.35")
+            rows = np.asarray(drawn["leaves"])
+            tree.set_ylim(0, 10 * rows.size)
+            tree.set_axis_off()
+        if which in ("columns", "both"):
+            tree = ax.inset_axes((0.0, 1.02, 1.0, 0.2))
+            drawn = hierarchy.dendrogram(hierarchy.linkage(z_grid.T, method=method), ax=tree, orientation="top",
+                                         no_labels=True, color_threshold=0, above_threshold_color="0.35")
+            columns = np.asarray(drawn["leaves"])
+            tree.set_xlim(0, 10 * columns.size)
+            tree.set_axis_off()
+        z_grid = z_grid[np.ix_(rows, columns)]
+        positions_x, positions_y = np.meshgrid(np.arange(columns.size), np.arange(rows.size))
+        for axis, order, values in ((ax.xaxis, columns, x_values), (ax.yaxis, rows, y_values)):
+            if order.size <= MAX_CLUSTER_TICKS:
+                axis.set_ticks(np.arange(order.size), [f"{values[i]:g}" for i in order])
+        return positions_x.astype(float), positions_y.astype(float), z_grid
 
     def _annotate_cells(
         self,
