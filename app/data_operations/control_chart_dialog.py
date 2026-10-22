@@ -698,7 +698,10 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 # case: every one of these is an ordinary two-column series.
                 sql_query=f'SELECT x, {column} AS y FROM "{table_name}" ORDER BY x',
                 roles={"x": "x", "y": "y"},
-                style=self._series_style(result, marker="", **style),
+                # Out of the legend by default, as the signals below: the
+                # lines are read off the chart; a legend of them only crowds
+                # it (the series' Show in legend brings one back).
+                style=self._series_style(result, marker="", show_in_legend=False, **style),
             )
 
         if bool(params.get("draw_zones", False)):
@@ -753,6 +756,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                         marker="o",
                         markersize=9.0,
                         color="#c62828",
+                        show_in_legend=False,
                     ),
                 )
             )

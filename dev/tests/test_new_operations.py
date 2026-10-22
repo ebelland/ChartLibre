@@ -312,3 +312,10 @@ def test_a_control_chart_draws_its_limits_by_default() -> None:
     assert "CL" in labels
 
 
+def test_only_the_points_are_in_the_legend_by_default() -> None:
+    """The limit, zone and centre lines and the signals are read off the chart, not a legend."""
+    result = _chart_result()
+    for spec in _specs(result):
+        assert spec.style.get("show_in_legend", True) == (spec.name == result.result_name), spec.name
+
+
