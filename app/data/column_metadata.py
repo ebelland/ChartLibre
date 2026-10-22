@@ -164,3 +164,27 @@ def format_value(value: Any, info: ColumnInfo) -> str:
             return f"{number:.{decimals}e}"
         return f"{number:,.{decimals}f}"
     return str(value)
+
+
+def source_table_of(sql: str) -> str | None:
+    """The one table a plain "SELECT ... FROM table" reads; None for anything more involved."""
+    import re
+
+    text = str(sql or "")
+    if re.search(r"\b(JOIN|UNION|WITH)\b|\(\s*SELECT", text, re.IGNORECASE):
+        return None
+    match = re.search(r'\bFROM\s+("(?:[^"]|"")+"|`[^`]+`|\[[^\]]+\]|\w+)', text, re.IGNORECASE)
+    if match is None:
+        return None
+    name = match.group(1)
+    if name[0] in '"`[':
+        name = name[1:-1].replace('""', '"')
+    return name or None
+
+
+def axis_label_of(column: str, info: ColumnInfo | None) -> str:
+    """What an axis showing *column* is called: its label and unit, "Voltage (V)"; "" when it has neither."""
+    if info is None or not (info.label or info.unit):
+        return ""
+    name = info.label or column
+    return f"{name} ({info.unit})" if info.unit else name

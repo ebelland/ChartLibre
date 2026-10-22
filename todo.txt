@@ -6,8 +6,9 @@ Size: app 100,407 lines in 290 files; tests 20,089 lines in 166 files (updated a
 NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
            repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
-- R-08  S  Column Info, next: from the analyses' column lists too; the label and unit on the
-           charts' axes; value labels shown in the table preview (Column Info itself is done).
+- R-08  S  Column Info, next: from the analyses' column lists too; value labels shown in the table
+           preview (Column Info itself is done; the label and unit now name a chart's axes when no
+           label is typed).
 
 NEXT - INTERFACE
 - R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series

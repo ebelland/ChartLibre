@@ -231,6 +231,7 @@ def render_figure_from_descriptor(
                 return
 
             _apply_axis_runtime_options(ax=ax, axis_desc=axis_desc)
+            _apply_column_labels(ax=ax, axis_desc=axis_desc, repo=repo)
 
         _apply_shared_z_ranges(all_axes, ax_by_id)
         _clear_redundant_shared_axis_labels(shared_axes)
@@ -956,6 +957,51 @@ def _apply_font_scale(
     # figure.texts already holds the suptitle; each text is scaled once.
     for text in {id(t): t for t in figure.texts}.values():  # pyright: ignore[reportAttributeAccessIssue]
         text.set_fontsize(text.get_fontsize() * figure_factor)
+
+
+def _apply_column_labels(ax: Any, axis_desc: AxisDescriptor, repo: SqliteRepo) -> None:
+    """Name an axis after its column's label and unit (Column Info), when nothing else has named it.
+
+    Only an axis whose label field is empty and which the renderer left unlabelled:
+    what was typed, or what a renderer says, wins. The first series with a described
+    column gives the name; a query that is not a plain SELECT from one table gives none.
+    """
+    from app.data import column_metadata
+    from app.data.data_source import parse_roles
+
+    options = axis_desc.options if isinstance(axis_desc.options, dict) else {}
+    if bool(options.get("hide_axis", options.get("hidden", False))) or getattr(ax, "_dhub_axis_off", False):
+        return
+    wanted = {}
+    for role, current, field_label in (
+        ("x", ax.get_xlabel, axis_desc.x_label), ("y", ax.get_ylabel, axis_desc.y_label),
+    ):
+        typed = options.get(f"{role}_label", field_label)
+        if not (isinstance(typed, str) and typed.strip()) and not str(current() or "").strip():
+            wanted[role] = None
+    if not wanted:
+        return
+    infos: dict[str, dict[str, Any]] = {}
+    try:
+        for series_desc in list(axis_desc.series or []):
+            roles = parse_roles(series_desc.roles)  # a dict, or the JSON text a descriptor holds
+            table = column_metadata.source_table_of(str(series_desc.sql_query or ""))
+            if table is None:
+                continue
+            if table not in infos:
+                infos[table] = column_metadata.column_info(repo, table)
+            for role in [r for r, label in wanted.items() if label is None]:
+                column = str(roles.get(role) or "")
+                label = column_metadata.axis_label_of(column, infos[table].get(column)) if column else ""
+                if label:
+                    wanted[role] = label
+    except Exception:  # noqa: BLE001 - a label is a convenience: a failure costs it, not the chart
+        applogger.exception("Could not read the column labels of axis id=%r", axis_desc.id)
+        return
+    if wanted.get("x"):
+        ax.set_xlabel(display_text(wanted["x"]))
+    if wanted.get("y"):
+        ax.set_ylabel(display_text(wanted["y"]))
 
 
 def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
