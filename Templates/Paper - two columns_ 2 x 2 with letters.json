@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "name": "Paper - two columns, 2 x 2 with letters",
+  "nrows": 2,
+  "ncols": 2,
+  "figure": {
+    "figure_width_cm": 18.3,
+    "figure_height_cm": 13.0,
+    "figure_dpi": 300,
+    "panel_labels": "a",
+    "panel_label_position": "outside",
+    "layout_mode": "constrained"
+  },
+  "axes": [
+    {
+      "position": 0,
+      "chart_type": "",
+      "title": "",
+      "x_label": "",
+      "y_label": "",
+      "z_label": "",
+      "options": {}
+    },
+    {
+      "position": 1,
+      "chart_type": "",
+      "title": "",
+      "x_label": "",
+      "y_label": "",
+      "z_label": "",
+      "options": {}
+    },
+    {
+      "position": 2,
+      "chart_type": "",
+      "title": "",
+      "x_label": "",
+      "y_label": "",
+      "z_label": "",
+      "options": {}
+    },
+    {
+      "position": 3,
+      "chart_type": "",
+      "title": "",
+      "x_label": "",
+      "y_label": "",
+      "z_label": "",
+      "options": {}
+    }
+  ]
+}

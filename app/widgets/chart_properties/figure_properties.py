@@ -12,6 +12,7 @@ from typing import Any, Callable
 from matplotlib import rcParams
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
+    QInputDialog,
     QGridLayout,
     QCheckBox,
     QComboBox,
@@ -101,6 +102,9 @@ class FigurePropertiesWidget(BaseProperties):
     figure_options_requested = Signal(dict)
     #: Emitted with one of app.plugin_api.charts.layout_presets.PRESETS.
     layout_preset_requested = Signal(str)
+    #: A figure template to apply (its file's path), and a name to save this figure as one under.
+    template_requested = Signal(str)
+    template_save_requested = Signal(str)
     #: Emitted with a mosaic text ("AAB;CCB") to arrange the axes by (layout_presets.plan_mosaic).
     layout_mosaic_requested = Signal(str)
 
@@ -476,8 +480,7 @@ class FigurePropertiesWidget(BaseProperties):
         # would otherwise claim to describe a figure it merely rearranged
         # once, including after switching to a different chart.
         self._layout_preset_combo.addItem(_("Apply a preset…"), None)
-        for label, preset in self.LAYOUT_PRESETS:
-            self._layout_preset_combo.addItem(_(label), preset)
+        self._fill_layout_preset_combo()
         self._configure_combo_width(self._layout_preset_combo, minimum_contents_length=20)
         self._layout_preset_combo.setToolTip(
             _("Arrange every axis in this figure using the chosen layout.")
@@ -1119,6 +1122,18 @@ class FigurePropertiesWidget(BaseProperties):
         preset = self._layout_preset_combo.currentData()
         if not preset:
             return
+        if preset == self.SAVE_TEMPLATE:
+            self._reset_layout_preset_combo()
+            name, accepted = QInputDialog.getText(self, _("Save as template"), _("Template name:"))
+            if accepted and name.strip():
+                self.template_save_requested.emit(name.strip())
+                self._fill_layout_preset_combo()
+                self._reset_layout_preset_combo()
+            return
+        if str(preset).startswith(self.TEMPLATE_PREFIX):
+            self._applied_presets[self._figure_id] = str(preset)
+            self.template_requested.emit(str(preset)[len(self.TEMPLATE_PREFIX):])
+            return
         # Shown again after the reload the apply triggers, for this figure only.
         self._applied_presets[self._figure_id] = str(preset)
         self.layout_preset_requested.emit(str(preset))
@@ -1133,6 +1148,31 @@ class FigurePropertiesWidget(BaseProperties):
         self._fig_width_cm.setValue(float(width))
         if old_width > 0:
             self._fig_height_cm.setValue(round(old_height * float(width) / old_width, 2))
+
+    #: The combo's data for a template (a prefix before its path) and for "save one".
+    TEMPLATE_PREFIX = "template:"
+    SAVE_TEMPLATE = "save-template"
+
+    def _fill_layout_preset_combo(self) -> None:
+        """The presets, then the templates in Templates/, then "Save this layout as a template..."."""
+        from app.data import figure_templates
+
+        combo = self._layout_preset_combo
+        combo.blockSignals(True)
+        try:
+            while combo.count() > 1:
+                combo.removeItem(1)
+            for label, preset in self.LAYOUT_PRESETS:
+                combo.addItem(_(label), preset)
+            found = figure_templates.available()
+            if found:
+                combo.insertSeparator(combo.count())
+                for name, path in found:
+                    combo.addItem(name, f"{self.TEMPLATE_PREFIX}{path}")
+            combo.insertSeparator(combo.count())
+            combo.addItem(_("Save this layout as a template…"), self.SAVE_TEMPLATE)
+        finally:
+            combo.blockSignals(False)
 
     def _on_mosaic_entered(self) -> None:
         """Request the mosaic typed, applied across every axis in the figure."""

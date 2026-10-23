@@ -11116,3 +11116,18 @@ msgstr "APS - due colonne (17,8 cm)"
 msgid "A4 page width, 2 cm margins (17.0 cm)"
 msgstr "Larghezza A4, margini di 2 cm (17,0 cm)"
 
+
+msgid "Template"
+msgstr "Template"
+
+msgid "Figure template"
+msgstr "Template della figura"
+
+msgid "Save this layout as a template…"
+msgstr "Salva questa disposizione come template…"
+
+msgid "Template name:"
+msgstr "Nome del template:"
+
+msgid "Template saved: {path}"
+msgstr "Template salvato: {path}"

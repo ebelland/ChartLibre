@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "name": "Paper - one column, three panels stacked",
+  "nrows": 3,
+  "ncols": 1,
+  "figure": {
+    "figure_width_cm": 8.9,
+    "figure_height_cm": 15.0,
+    "figure_dpi": 300,
+    "panel_labels": "a",
+    "panel_label_position": "outside",
+    "layout_mode": "constrained",
+    "font_scale": 0.9
+  },
+  "axes": [
+    {
+      "position": 0,
+      "chart_type": "",
+      "title": "",
+      "x_label": "",
+      "y_label": "",
+      "z_label": "",
+      "options": {}
+    },
+    {
+      "position": 1,
+      "chart_type": "",
+      "title": "",
+      "x_label": "",
+      "y_label": "",
+      "z_label": "",
+      "options": {
+        "sharex": true
+      }
+    },
+    {
+      "position": 2,
+      "chart_type": "",
+      "title": "",
+      "x_label": "",
+      "y_label": "",
+      "z_label": "",
+      "options": {
+        "sharex": true
+      }
+    }
+  ]
+}

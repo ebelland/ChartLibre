@@ -9,6 +9,7 @@ options written back to the project. A mixin of MainWindow.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, cast
 
 from PySide6.QtCore import Qt
@@ -83,6 +84,8 @@ class MainWindowChartProperties:
         self._figure_widget.grid_layout_requested.connect(self._on_grid_layout_requested)
         self._figure_widget.layout_preset_requested.connect(self._on_layout_preset_requested)
         self._figure_widget.layout_mosaic_requested.connect(self._on_layout_mosaic_requested)
+        self._figure_widget.template_requested.connect(self._on_template_requested)
+        self._figure_widget.template_save_requested.connect(self._on_template_save_requested)
         self._figure_widget.figure_options_requested.connect(self._on_figure_options_requested)
         self._axis_widget.axis_selected.connect(self._on_axis_selected)
         # Chosen here, shown there: the chart highlights the axis or series for a moment (S-01).
@@ -361,6 +364,36 @@ class MainWindowChartProperties:
         )
         self._reload_property_widgets()
         self._redraw_properties_chart()
+
+    def _on_template_requested(self, path: str) -> None:
+        """Lay the current figure out as the template at *path* says, one undo step; what it could not do, said."""
+        from app.data import figure_templates
+
+        if self._properties_figure_id is None:
+            return
+        try:
+            template = figure_templates.load(Path(path))
+        except ValueError as exc:
+            QMessageBox.warning(self, _("Template"), str(exc))
+            return
+        self._snapshot_descriptors(_("Figure template"))
+        notes = figure_templates.apply_template(self._repo, int(self._properties_figure_id), template)
+        for note in notes:
+            applogger.info(note)
+        self._reload_property_widgets()
+        self._redraw_properties_chart()
+
+    def _on_template_save_requested(self, name: str) -> None:
+        """The current figure's layout and settings saved as template *name*, in Templates/."""
+        from app.data import figure_templates
+
+        if self._properties_figure_id is None:
+            return
+        descriptor = self._repo.load_figure_descriptor(int(self._properties_figure_id))
+        if descriptor is None:
+            return
+        path = figure_templates.save(figure_templates.to_template(descriptor, name))
+        applogger.info(_("Template saved: {path}").format(path=path))
 
     def _on_layout_preset_requested(self, preset: str) -> None:
         """Arrange every axis of the current figure using *preset*.

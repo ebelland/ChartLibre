@@ -58,3 +58,15 @@ def test_a_chart_type_the_series_cannot_take_is_kept_with_a_note(repo: SqliteRep
                                   roles={"x": "x", "y": "y"})
     notes = ft.apply_template(repo, target, template)
     assert repo.load_figure_descriptor(target).axes[0].name == "Scatter Plot" and notes
+
+
+def test_the_preset_combo_lists_the_shipped_templates_and_offers_to_save(qapp) -> None:
+    from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
+
+    panel = FigurePropertiesWidget(None)
+    combo = panel._layout_preset_combo
+    data = [combo.itemData(index) for index in range(combo.count())]
+    templates = [value for value in data if isinstance(value, str) and value.startswith(panel.TEMPLATE_PREFIX)]
+    assert len(templates) >= 4 and data[-1] == panel.SAVE_TEMPLATE
+    for value in templates:
+        assert ft.load(Path(value[len(panel.TEMPLATE_PREFIX):]))["axes"]
