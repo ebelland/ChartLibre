@@ -6,9 +6,11 @@ example lives in ``app/functions/user_functions.py``, and a function the
 Function Creator (Developer menu) scaffolds lives in ``user/functions/``
 instead (kept out of the app's own shipped source, see
 ``app.utils.config.USER_FUNCTIONS_DIR``) - this scanner reads all of
-``app/functions/`` plus that folder together.  It uses the generic
-``class_discovery`` helpers to find classes that directly inherit from
-``base_function`` and then loads their ``execute(x, p)`` method on demand.
+``app/functions/`` plus that folder together.  Fit functions are a plugin
+family like the others (app.scanners.plugin_family): classes that directly
+inherit from ``base_function``, their name, category, parameters and
+starting values read from the source, the module imported only when a
+function is used.
 """
 
 from __future__ import annotations
@@ -20,10 +22,7 @@ from typing import Any, Callable, ClassVar
 import numpy as np
 
 from app.logs.logger import applogger
-from app.scanners.class_discovery import (
-    discover_classes_merged,
-    import_class_from_discovery_entry,
-)
+from app.scanners.plugin_family import PluginFamily
 from app.utils.config import USER_FUNCTIONS_DIR
 
 
@@ -144,7 +143,7 @@ class FunctionScanner:
         if not isinstance(entry, dict):
             raise ValueError("Function payload has no discovery_entry.")
 
-        cls = import_class_from_discovery_entry(entry, module_prefix="_fit_function")
+        cls = self._family().load(entry)
         if cls is None:
             raise ValueError(f"Could not load function class from entry: {entry!r}")
         return cls
@@ -184,16 +183,22 @@ class FunctionScanner:
 
         return model
 
-    def _discover(self) -> list[FitFunctionSpec]:
-        entries = discover_classes_merged(
-            roots=(self.root, *self.extra_roots),
-            base_class_name=self.BASE_CLASS_NAME,
-            value_attr="name",
+    def _family(self) -> PluginFamily:
+        """This library as a plugin family: its base class, its folders, the attributes read from the source."""
+        return PluginFamily(
+            label="fit functions" if self.NDIM == 1 else "surface fit functions",
+            base_class=self.BASE_CLASS_NAME,
+            builtin_root=self.root,
+            user_root=self.extra_roots[0] if self.extra_roots else None,
+            module_prefix="_fit_function",
             string_attrs=("category", "description", "expression", "keywords"),
             string_list_attrs=("params", "goals"),
-            require_value_attr=False,
-            family="fit functions" if self.NDIM == 1 else "surface fit functions",
+            number_list_attrs=("p0",),
+            value_attr="name",
         )
+
+    def _discover(self) -> list[FitFunctionSpec]:
+        entries = self._family().discover()
 
         specs: list[FitFunctionSpec] = []
         seen: set[tuple[str, str]] = set()
@@ -206,23 +211,28 @@ class FunctionScanner:
                 continue
             seen.add(key)
 
-            cls = import_class_from_discovery_entry(entry, module_prefix="_fit_function_meta")
-            if cls is None:
-                continue
+            # Everything from the source; the module is imported only for what is not
+            # a literal there (a p0 computed in code).
+            cls = None
+            if entry.get("p0") is None:
+                cls = self._family().load(entry)
+                if cls is None:
+                    continue
+                if not callable(getattr(cls, "execute", None)):
+                    applogger.warning("Fit function %s in %s has no execute(x, p); skipped.", cls_name, path)
+                    continue
 
-            execute = getattr(cls, "execute", None)
-            if not callable(execute):
-                applogger.warning("Fit function %s in %s has no execute(x, p); skipped.", cls_name, path)
-                continue
+            def attr(key: str, default: Any) -> Any:
+                return entry.get(key) or (getattr(cls, key, default) if cls is not None else default) or default
 
-            display_name = str(entry.get("value") or getattr(cls, "name", cls_name) or cls_name)
-            category = str(entry.get("category") or getattr(cls, "category", self.DEFAULT_CATEGORY) or self.DEFAULT_CATEGORY)
-            description = str(entry.get("description") or getattr(cls, "description", "") or "")
-            expression = str(entry.get("expression") or getattr(cls, "expression", "") or "")
-            keywords = str(entry.get("keywords") or getattr(cls, "keywords", "") or "")
-            goals = self._string_tuple(entry.get("goals") or getattr(cls, "goals", []))
-            params = self._string_tuple(entry.get("params") or getattr(cls, "params", []))
-            p0 = self._float_tuple(getattr(cls, "p0", []), fallback_length=len(params))
+            display_name = str(entry.get("value") or (getattr(cls, "name", "") if cls else "") or cls_name)
+            category = str(attr("category", self.DEFAULT_CATEGORY))
+            description = str(attr("description", ""))
+            expression = str(attr("expression", ""))
+            keywords = str(attr("keywords", ""))
+            goals = self._string_tuple(attr("goals", []))
+            params = self._string_tuple(attr("params", []))
+            p0 = self._float_tuple(attr("p0", []), fallback_length=len(params))
 
             if params and len(params) != len(p0):
                 applogger.warning(

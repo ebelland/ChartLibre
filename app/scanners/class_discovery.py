@@ -220,6 +220,26 @@ def extract_class_string_list_attr(
     return None
 
 
+def extract_class_number_list_attr(class_node: ast.ClassDef, attr_name: str) -> list[float] | None:
+    """A class-level literal list (or tuple) of numbers - a fit function's ``p0 = [1.0, 0.5]`` - else None."""
+    for stmt in class_node.body:
+        target, value_node = None, None
+        if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1:
+            target, value_node = stmt.targets[0], stmt.value
+        elif isinstance(stmt, ast.AnnAssign):
+            target, value_node = stmt.target, stmt.value
+        if isinstance(target, ast.Name) and target.id == attr_name and value_node is not None:
+            try:
+                value = ast.literal_eval(value_node)
+            except _NOT_A_LITERAL:
+                return None
+            if isinstance(value, (list, tuple)) and all(
+                    isinstance(item, (int, float)) and not isinstance(item, bool) for item in value):
+                return [float(item) for item in value]
+            return None
+    return None
+
+
 def literal_string_list(node: ast.AST) -> list[str] | None:
     """
     Return a literal list[str] from an AST node, else None.
@@ -269,6 +289,7 @@ def discover_classes(
     string_attrs: tuple[str, ...] = (),
     string_list_attrs: tuple[str, ...] = (),
     int_attrs: tuple[str, ...] = (),
+    number_list_attrs: tuple[str, ...] = (),
     require_value_attr: bool = True,
     skip_init: bool = True,
 ) -> list[dict[str, Any]]:
@@ -335,6 +356,9 @@ def discover_classes(
             for attr_name in int_attrs:
                 entry[attr_name_to_key(attr_name)] = extract_class_int_attr(node, attr_name)
 
+            for attr_name in number_list_attrs:
+                entry[attr_name_to_key(attr_name)] = extract_class_number_list_attr(node, attr_name)
+
             discovered.append(entry)
 
     return discovered
@@ -348,6 +372,7 @@ def discover_classes_merged(
     string_attrs: tuple[str, ...] = (),
     string_list_attrs: tuple[str, ...] = (),
     int_attrs: tuple[str, ...] = (),
+    number_list_attrs: tuple[str, ...] = (),
     require_value_attr: bool = True,
     family: str = "",
 ) -> list[dict[str, Any]]:
@@ -371,6 +396,7 @@ def discover_classes_merged(
             string_attrs=string_attrs,
             string_list_attrs=string_list_attrs,
             int_attrs=int_attrs,
+            number_list_attrs=number_list_attrs,
             require_value_attr=require_value_attr,
         ):
             if entry["value"] in seen_values:
