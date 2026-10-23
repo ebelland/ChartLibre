@@ -22,12 +22,8 @@ class ResultsMixin:
     # Where results are drawn
     # ------------------------------------------------------------------
 
-    #: The three places a generated result can go. Shared because the choice
-    #: is the same wherever it appears, and two operations offering the same
-    #: decision under different words would be worse than either.
-    DEST_SAME_AXIS: str = "same_axis"
-    DEST_NEW_AXIS: str = "new_axis"
-    DEST_NEW_FIGURE: str = "new_figure"
+    # The three places a generated result can go (DEST_*) are OperationShell's: the same words in every
+    # analysis window.
 
     @classmethod
     def destination_param(

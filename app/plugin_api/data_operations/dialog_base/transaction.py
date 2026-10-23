@@ -7,7 +7,6 @@ from typing import Any
 
 from PySide6.QtGui import QCloseEvent
 
-from app import APP_VERSION
 from app.data.data_source import parse_roles, row_value
 from app.data.repo.operations import OPERATIONS_TABLE
 from app.logs.logger import applogger
@@ -297,22 +296,15 @@ class TransactionMixin:
         written) call this themselves when their own Apply is kept. Logged,
         never raised, for the same reason as record_operation.
         """
-        try:
-            inputs = inputs if inputs is not None else self.operation_inputs()
-            self._repo.record_operation(
-                operation=self.operation_label,
-                dialog=f"{type(self).__module__.rsplit('.', 1)[-1]}:{type(self).__name__}",
-                parameters=dict(inputs.get("parameters", {})),
-                entries=dict(inputs.get("entries", {})),
-                sources=list(inputs.get("sources", [])),
-                results=[dict(item) for item in written],
-                app_version=str(APP_VERSION),
-                report=report,
-            )
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
-            applogger.exception(
-                f"Could not record {self.operation_label} in the project's history",
-            )
+        inputs = inputs if inputs is not None else self.operation_inputs()
+        self.record_in_history(
+            operation=self.operation_label,
+            parameters=inputs.get("parameters", {}),
+            entries=inputs.get("entries", {}),
+            sources=list(inputs.get("sources", [])),
+            results=written,
+            report=report,
+        )
 
     def operation_succeeded(self, *, commit: bool) -> None:
         """Called once a Preview (commit False) or an Apply has gone through."""

@@ -149,11 +149,9 @@ class BuilderHooksMixin:
         panel = CardFrame(self, "operationChartsCard")
         layout = panel.layout()
         if self.DESTINATIONS:
-            labels = {self.DEST_SAME_AXIS: _("Current axis"), self.DEST_NEW_AXIS: _("New axis in this figure"),
-                      self.DEST_NEW_FIGURE: _("New figure")}
             self.destination_combo = QComboBox(panel)
             for value in self.DESTINATIONS:
-                self.destination_combo.addItem(labels[value], value)
+                self.destination_combo.addItem(self.destination_label(value), value)
             index = self.destination_combo.findData(self.DEFAULT_DESTINATION or self.DESTINATIONS[0])
             self.destination_combo.setCurrentIndex(max(0, index))
             self.destination_combo.setToolTip(_("Where the result is drawn: on the axis of its data, on a new "

@@ -11341,3 +11341,9 @@ msgstr "Esponenziale"
 
 msgid "Prob > D"
 msgstr "Prob > D"
+
+msgid "Nothing was computed."
+msgstr "Non è stato calcolato nulla."
+
+msgid "Nothing was written."
+msgstr "Non è stato scritto nulla."

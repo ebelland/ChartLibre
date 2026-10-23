@@ -38,9 +38,11 @@ from app.plugin_api.data_operations.dialog_base.evaluation import EvaluationMixi
 from app.plugin_api.data_operations.dialog_base.inputs import InputsMixin
 from app.plugin_api.data_operations.dialog_base.results import ResultsMixin
 from app.plugin_api.data_operations.dialog_base.transaction import TransactionMixin
+from app.plugin_api.operation_shell import OperationShell
 
 
-class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, InputsMixin, ResultsMixin, TransactionMixin, QDialog):
+class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, InputsMixin, ResultsMixin,
+                              TransactionMixin, OperationShell, QDialog):
     """Abstract shell for all chart-data operation dialogs.
 
     Subclasses should:

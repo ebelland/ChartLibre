@@ -1,7 +1,6 @@
 """Computing: the results text, the generated-series pipeline, evaluation here or on a worker thread."""
 from __future__ import annotations
 
-import html
 
 import inspect
 from collections.abc import Callable, Mapping, Sequence
@@ -14,7 +13,6 @@ from PySide6.QtWidgets import QWidget
 from app.analysis import Stopped
 from app.data.data_source import parse_roles, row_value
 from app.logs.logger import applogger
-from app.widgets.html_results import looks_like_html
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.i18n import _
 
@@ -68,24 +66,12 @@ class EvaluationMixin:
     RESULTS_ARE_HTML: bool = False
 
     def set_results_text(self, text: str) -> None:
-        """Show results in the results pane.
+        """Show results in the results pane: markup rendered, plain text escaped (OperationShell.show_results)."""
+        self.show_results(text)
 
-        Several operation dialogs return generated HTML reports while older
-        callers still pass plain-text summaries through this same method.
-        Route HTML-looking content to ``setHtml`` so tags render as markup,
-        and route everything else through ``setText`` so plain text remains
-        escaped and safe.
-        """
-        content = str(text or "")
-
-        if looks_like_html(content):
-            self._results_label.setHtml(content)
-            return
-
-        if hasattr(self._results_label, "setContent"):
-            self._results_label.setContent(content)
-        else:
-            self._results_label.setText(content)
+    def results_widget(self) -> Any:
+        """The Results pane, for OperationShell."""
+        return self._results_label
 
     def set_results_html(self, markup: str) -> None:
         """Show markup in the results pane."""
@@ -343,12 +329,6 @@ class EvaluationMixin:
             return
         applogger.error(f"{self.operation_label} failed: {error}")
         self.show_failure(error)
-
-    def show_failure(self, error: BaseException) -> None:
-        """Say in the Results pane why nothing was drawn: the log alone left it on "Press Preview"."""
-        self.set_results_text(
-            "<p style='color:#a40000'><b>" + html.escape(_("Nothing was drawn.")) + "</b></p>"
-            + "<p>" + html.escape(str(error) or type(error).__name__) + "</p>")
 
     def _set_evaluating(self, running: bool) -> None:
         # The buttons go off at once - a second click must not start a second

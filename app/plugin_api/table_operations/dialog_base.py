@@ -51,7 +51,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app import APP_VERSION
 from app.data import column_metadata
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.analysis import Stopped
@@ -80,6 +79,7 @@ from app.utils.dialog_state import (
 from app.utils import report_html
 from app.utils.i18n import _
 from app.widgets.html_results import HtmlResultsView
+from app.plugin_api.operation_shell import OperationShell
 
 #: Columns the application keeps on every table for itself: never offered.
 APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
@@ -89,7 +89,7 @@ APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
 GENERATED_PREFIX = "_"
 
 
-class TableOperationDialogBase(QDialog):
+class TableOperationDialogBase(OperationShell, QDialog):
     """Inputs on the left, the report on the right; Preview, Copy, OK, Close."""
 
     Name: ClassVar[str] = ""
@@ -114,9 +114,6 @@ class TableOperationDialogBase(QDialog):
     #: Preview drew its figure (its id), or took it away again (-1): the window shows or drops it.
     preview_drawn = Signal(int)
 
-    #: The Charts tab's "Draw on": a new figure, or new axes in the figure the window shows.
-    DRAW_NEW_FIGURE: ClassVar[str] = "new_figure"
-    DRAW_NEW_AXIS: ClassVar[str] = "new_axis"
     #: The chart types the analysis draws panels of: with two or more, the Charts tab has a box for each,
     #: and the report figure leaves out the panels whose box is cleared.
     CHART_PANELS: ClassVar[tuple[str, ...]] = ()
@@ -465,8 +462,7 @@ class TableOperationDialogBase(QDialog):
             self._preview_active = True
             self._discard_preview()
             applogger.exception("%s: the preview could not be drawn", self.Name)
-            self._results.setText(_("{operation} could not be drawn: {error}").format(operation=_(self.Name),
-                                                                                        error=exc))
+            self.show_failure(exc)
             return
         self._previewing = False
         self._preview_active = True
@@ -514,7 +510,7 @@ class TableOperationDialogBase(QDialog):
                 return
             self._result, self._result_inputs = result, inputs
             try:
-                self._results.setContent(self.format_results(result))
+                self.show_results(self.format_results(result))
             except Exception as exc:  # noqa: BLE001 - shown like a failed run
                 failed(exc)
                 return
@@ -527,7 +523,7 @@ class TableOperationDialogBase(QDialog):
                 self._results.setText(_("Stopped. Nothing was changed."))
                 return
             applogger.warning("%s failed: %s", self.Name, error)
-            self._results.setText(_("{operation} could not be computed: {error}").format(operation=_(self.Name), error=error))
+            self.show_failure(error, headline=_("Nothing was computed."))
 
         self._set_busy(True)
         # compute() takes no cancel argument (its signature is the plugins'
@@ -554,7 +550,7 @@ class TableOperationDialogBase(QDialog):
             written = self.apply_results(result)
         except Exception as exc:  # noqa: BLE001 - reported, the dialog stays open
             applogger.exception("%s could not be written", self.Name)
-            self._results.setText(_("{operation} could not be written: {error}").format(operation=_(self.Name), error=exc))
+            self.show_failure(exc, headline=_("Nothing was written."))
             return
         self._record(written, result)
         self.applied.emit()
@@ -562,21 +558,20 @@ class TableOperationDialogBase(QDialog):
         super().accept()
 
     def _record(self, written: Sequence[Mapping[str, Any]], result: Any) -> None:
-        """The Apply in the project's history, like a data operation's. Logged, never raised."""
+        """The Apply in the project's history, like a data operation's (OperationShell.record_in_history)."""
         casting = self.roles_widget.casting()
-        try:
-            self._repo.record_operation(
-                operation=self.Name,
-                dialog=f"{type(self).__module__.rsplit('.', 1)[-1]}:{type(self).__name__}",
-                parameters={**self.parameter_values(), "model": self.current_model()},
-                entries=dialog_entries(self, inputs_only=True),
-                sources=[{"table": self.table, "roles": casting.roles, "kinds": casting.kinds}],
-                results=[dict(item) for item in written],
-                app_version=str(APP_VERSION),
-                report=self.format_results(result),
-            )
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
-            applogger.exception("Could not record %s in the project's history", self.Name)
+        self.record_in_history(
+            operation=self.Name,
+            parameters={**self.parameter_values(), "model": self.current_model()},
+            entries=dialog_entries(self, inputs_only=True),
+            sources=[{"table": self.table, "roles": casting.roles, "kinds": casting.kinds}],
+            results=written,
+            report=self.format_results(result),
+        )
+
+    def results_widget(self) -> Any:
+        """The Results pane, for OperationShell."""
+        return self._results
 
     # ------------------------------------------------------------------
     # Results as a figure: charts of the tables written, the report in its notes
@@ -689,7 +684,7 @@ class TableOperationDialogBase(QDialog):
                   or checks[str(panel[0])].isChecked()]
 
         repo = self._repo
-        target = getattr(self, "current_figure_id", None) if self.draw_on() == self.DRAW_NEW_AXIS else None
+        target = getattr(self, "current_figure_id", None) if self.draw_on() == self.DEST_NEW_AXIS else None
         descriptor = repo.load_figure_descriptor(int(target)) if target is not None else None
         if descriptor is not None:
             # New axes after the figure's own, its grid grown to show them.
@@ -733,8 +728,9 @@ class TableOperationDialogBase(QDialog):
         form = QFormLayout()
         stdSizeAndlayout(form)
         self.draw_on_combo = QComboBox(box)
-        self.draw_on_combo.addItem(_("New figure"), self.DRAW_NEW_FIGURE)
-        self.draw_on_combo.addItem(_("New axis in the current figure"), self.DRAW_NEW_AXIS)
+        # A table analysis has no axis of its own: a new figure, or new axes in the figure the window shows.
+        for value in (self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS):
+            self.draw_on_combo.addItem(self.destination_label(value), value)
         self.draw_on_combo.setToolTip(_("Where the charts are drawn: a figure of their own, or beside the "
                                         "figure the window shows."))
         self.draw_on_combo.currentIndexChanged.connect(lambda _i: self.inputs_changed())
@@ -754,8 +750,8 @@ class TableOperationDialogBase(QDialog):
         """The Charts tab's choice; a new figure when there is no current one to add to."""
         combo = getattr(self, "draw_on_combo", None)
         if getattr(self, "current_figure_id", None) is None or combo is None:
-            return self.DRAW_NEW_FIGURE
-        return str(combo.currentData() or self.DRAW_NEW_FIGURE)
+            return self.DEST_NEW_FIGURE
+        return str(combo.currentData() or self.DEST_NEW_FIGURE)
 
     def _remember(self) -> None:
         self._remember_casting()
