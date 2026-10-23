@@ -38,6 +38,7 @@ class ClusteringDialog(TableOperationDialogBase):
         "chosen by the silhouette; each cluster's size and means, its rows on the principal components."
     )
     Category = "Multivariate Methods"
+    CHART_PANELS = ('Scatter Plot', 'Parallel Plot')
     Order = 46
     Icon = """
     <circle cx="6" cy="7" r="1.3"/><circle cx="8.5" cy="5.5" r="1.3"/><circle cx="7.5" cy="9" r="1.3"/>

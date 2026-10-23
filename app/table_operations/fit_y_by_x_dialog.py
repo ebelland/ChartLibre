@@ -39,6 +39,7 @@ class FitYByXDialog(TableOperationDialogBase):
     Description = ("Y against each X, the analysis chosen by their types: bivariate fit, oneway ANOVA "
                    "with pairwise comparisons, contingency table, or logistic fit.")
     Category = "Basic Analysis"
+    CHART_PANELS = ('Scatter Plot', 'Box Plot', 'Mosaic Plot')
     Order = 11
     Icon = """
     <path d="M4 4v16h16"/><circle cx="8" cy="15" r="1.2"/><circle cx="11" cy="12" r="1.2"/>

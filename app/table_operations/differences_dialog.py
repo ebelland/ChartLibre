@@ -39,6 +39,7 @@ class DifferencesDialog(TableOperationDialogBase):
     Description = ("Is a measure different from one group to another? The right test is chosen for you, "
                    "and the answer is given in words.")
     Category = "Quick answers"
+    CHART_PANELS = ('Box Plot', 'Mosaic Plot')
     Icon = """
     <rect x="3" y="8" width="5" height="9" rx="1"/><rect x="10" y="4" width="5" height="9" rx="1"/>
     <rect x="17" y="11" width="4" height="8" rx="1"/><path d="M2 21h20"/>

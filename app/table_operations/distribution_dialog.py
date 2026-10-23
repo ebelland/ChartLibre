@@ -31,6 +31,7 @@ class DistributionDialog(TableOperationDialogBase):
     Name = "Distribution"
     Description = "One column at a time: the histogram, quantiles, moments and normality tests."
     Category = "Basic Analysis"
+    CHART_PANELS = ('Histogram', 'Q-Q Plot')
     Order = 10
     Icon = """
     <path d="M4 20V14h3v6M8.5 20V8h3v12M13 20V5h3v15M17.5 20v-9h3v9"/><path d="M3 20h18"/>

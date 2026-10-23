@@ -38,6 +38,7 @@ import pandas as pd
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QFormLayout,
@@ -116,6 +117,9 @@ class TableOperationDialogBase(QDialog):
     #: The Charts tab's "Draw on": a new figure, or new axes in the figure the window shows.
     DRAW_NEW_FIGURE: ClassVar[str] = "new_figure"
     DRAW_NEW_AXIS: ClassVar[str] = "new_axis"
+    #: The chart types the analysis draws panels of: with two or more, the Charts tab has a box for each,
+    #: and the report figure leaves out the panels whose box is cleared.
+    CHART_PANELS: ClassVar[tuple[str, ...]] = ()
 
     def __init__(self, *, repo: SqliteRepo, table: str | None = None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -679,7 +683,10 @@ class TableOperationDialogBase(QDialog):
                 )
                 continue
             available.append(panel)
-        panels = available
+        # The panels whose chart type is cleared in the Charts tab are left out.
+        checks = getattr(self, "_panel_checks", {})
+        panels = [panel for panel in available if checks.get(str(panel[0])) is None
+                  or checks[str(panel[0])].isChecked()]
 
         repo = self._repo
         target = getattr(self, "current_figure_id", None) if self.draw_on() == self.DRAW_NEW_AXIS else None
@@ -733,6 +740,14 @@ class TableOperationDialogBase(QDialog):
         self.draw_on_combo.currentIndexChanged.connect(lambda _i: self.inputs_changed())
         form.addRow(_("Draw on:"), self.draw_on_combo)
         box.card.layout().addLayout(form)
+        self._panel_checks: dict[str, QCheckBox] = {}
+        if len(self.CHART_PANELS) > 1:
+            for chart in self.CHART_PANELS:
+                check = QCheckBox(_(chart), box)
+                check.setChecked(True)
+                check.toggled.connect(lambda _on: self.inputs_changed())
+                self._panel_checks[chart] = check
+                box.card.layout().addWidget(check)
         self.roles_widget.add_tab(_("Charts")).addWidget(box)
 
     def draw_on(self) -> str:

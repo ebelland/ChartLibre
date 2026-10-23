@@ -25,6 +25,7 @@ class VectorFieldDialog(TableOperationDialogBase):
     Description = ("A vector field sampled on a grid: its divergence (where it spreads out or gathers) and its "
                    "curl (where and how fast it turns), in 2D or 3D.")
     Category = "Curves"
+    CHART_PANELS = ('Heatmap', 'Quiver 3D')
     Order = 70
     Icon = """
     <path d="M4 18l5-5"/><path d="M9 13l-1 3"/><path d="M9 13l-3 1"/><path d="M12 8l6-3"/><path d="M18 5l-3 0"/>

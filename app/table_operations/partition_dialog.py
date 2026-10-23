@@ -110,6 +110,7 @@ class PartitionDialog(TableOperationDialogBase):
         "leaves, column contributions and each row's leaf and prediction."
     )
     Category = "Predictive and Specialized Modeling"
+    CHART_PANELS = ('Bar Chart', 'Pareto Chart', 'Scatter Plot', 'Box Plot')
     Order = 30
     Icon = """
     <circle cx="12" cy="4.5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/>

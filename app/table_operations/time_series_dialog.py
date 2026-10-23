@@ -34,6 +34,7 @@ class TimeSeriesDialog(TableOperationDialogBase):
         "(STL), and an ARIMA or exponential-smoothing forecast with its prediction interval."
     )
     Category = "Predictive and Specialized Modeling"
+    CHART_PANELS = ('Time Series', 'Stem Plot')
     Order = 36
     Icon = """
     <path d="M3 16l3-4 3 2 3-6 3 3"/><path d="M15 11l3-2 3 1" stroke-dasharray="2 2"/>

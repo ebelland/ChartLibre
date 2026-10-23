@@ -101,6 +101,7 @@ class FitModelDialog(TableOperationDialogBase):
         "for a designed experiment, or any table."
     )
     Category = "Fitting Linear Models"
+    CHART_PANELS = ('Scatter Plot', 'Q-Q Plot', 'Pareto Chart', 'Interaction Plot')
     Order = 20
     Icon = """
     <path d="M4 20V4"/><path d="M4 20h16"/>
