@@ -325,3 +325,54 @@ def test_identical_files_become_links_to_the_first(tmp_path: Path) -> None:
     assert saved == 300_000
     links = [path for path in tmp_path.rglob("*") if path.is_symlink()]
     assert len(links) == 1 and links[0].read_bytes() == data
+
+
+def _translocated_launcher(tmp_path: Path) -> tuple[Path, Path, dict[str, str]]:
+    """The macOS launcher copied alone under an AppTranslocation path, with stub osascript/open/xattr."""
+    import os
+    import shutil
+    import stat
+
+    app = tmp_path / "AppTranslocation" / "A1B2" / "d" / "ChartLibre.app"
+    (app / "Contents" / "MacOS").mkdir(parents=True)
+    launcher = app / "Contents" / "MacOS" / "ChartLibre"
+    shutil.copy(ROOT / "ChartLibre.app" / "Contents" / "MacOS" / "ChartLibre", launcher)
+    stubs = tmp_path / "bin"
+    stubs.mkdir()
+    calls = tmp_path / "calls.txt"
+    for name in ("osascript", "open", "xattr"):
+        stub = stubs / name
+        # xattr -p (is it quarantined?) fails: nothing is, once cleared.
+        stub.write_text(f'#!/bin/bash\necho "{name} $*" >> "{calls}"\n[ "{name} $1" = "xattr -p" ] && exit 1\nexit 0\n')
+        stub.chmod(stub.stat().st_mode | stat.S_IEXEC)
+    home = tmp_path / "home"
+    home.mkdir()
+    env = {**os.environ, "PATH": f"{stubs}:/usr/bin:/bin", "HOME": str(home)}
+    return launcher, calls, env
+
+
+def test_a_translocated_launcher_opens_the_real_folder(tmp_path: Path) -> None:
+    """macOS App Translocation (issue #4): the app run from a temporary copy finds its folder, not a first launch."""
+    import subprocess
+
+    if not (ROOT / "ChartLibre.app").is_dir():
+        pytest.skip("no macOS launcher in this checkout")
+    launcher, calls, env = _translocated_launcher(tmp_path)
+    real = Path(env["HOME"]) / "Applications" / "ChartLibre"
+    (real / "ChartLibre.app").mkdir(parents=True)
+    (real / "main.py").write_text("")
+    subprocess.run(["/bin/bash", str(launcher)], env=env, timeout=30)
+    recorded = calls.read_text()
+    assert f"xattr -dr com.apple.quarantine {real}" in recorded
+    assert f"open -n {real}/ChartLibre.app" in recorded
+    assert "First launch" not in recorded
+
+
+def test_a_translocated_launcher_with_no_folder_says_what_to_do(tmp_path: Path) -> None:
+    import subprocess
+
+    if not (ROOT / "ChartLibre.app").is_dir():
+        pytest.skip("no macOS launcher in this checkout")
+    launcher, calls, env = _translocated_launcher(tmp_path)
+    done = subprocess.run(["/bin/bash", str(launcher)], env=env, timeout=30)
+    assert done.returncode == 1 and "temporary copy" in calls.read_text()

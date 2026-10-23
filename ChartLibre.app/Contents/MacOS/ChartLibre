@@ -4,6 +4,25 @@
 # libraries into .python inside that folder (a ready-made package already
 # has them); every later launch just starts the application.
 HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
+# macOS App Translocation (issue #4): a downloaded, still quarantined app is
+# run from a random read-only copy of the .app alone - its folder, with
+# .python and main.py, left behind - so it looked like a first launch and
+# offered to download Python. Find the real folder, clear its quarantine and
+# open the app there, where it is not moved again. On the disk image itself
+# (read-only) that cannot work: say to copy the folder to Applications.
+if [ ! -f "$HERE/main.py" ] && [[ "$0" == */AppTranslocation/* ]]; then
+  for candidate in "/Applications/ChartLibre" "$HOME/Applications/ChartLibre" "$HOME/Desktop/ChartLibre" \
+                   "$HOME/Downloads/ChartLibre"; do
+    if [ -f "$candidate/main.py" ] && [ -d "$candidate/ChartLibre.app" ]; then
+      xattr -dr com.apple.quarantine "$candidate" 2>/dev/null
+      if ! xattr -p com.apple.quarantine "$candidate/ChartLibre.app" >/dev/null 2>&1; then
+        exec open -n "$candidate/ChartLibre.app" --args "$@"
+      fi
+    fi
+  done
+  osascript -e 'display dialog "macOS opened ChartLibre from a temporary copy, away from its folder.\n\nDrag the ChartLibre folder from the disk image into Applications, then open ChartLibre.app inside Applications/ChartLibre." buttons {"OK"} default button 1 with title "ChartLibre" with icon caution' >/dev/null 2>&1
+  exit 1
+fi
 cd "$HERE" || exit 1
 VENV="$HERE/.venv"
 RUNTIME="$HERE/.python"
