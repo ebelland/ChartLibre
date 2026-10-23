@@ -6,7 +6,6 @@ from typing import Any, ClassVar
 
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
@@ -21,7 +20,7 @@ from app.analysis.sampling import sampling_frequency
 from app.data.sqlite_repo import DatabaseError
 from app.styles.style import create_doc_link, CardFrame, stdSizeAndlayout
 from app.logs.logger import applogger
-from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, ParameterForm
+from app.plugin_api.data_operations.parameter_form import ParameterForm
 from app.plugin_api.data_operations.parameter_spec import Param, defaults
 from app.utils.i18n import _
 
@@ -149,15 +148,8 @@ class BuilderHooksMixin:
         panel = CardFrame(self, "operationChartsCard")
         layout = panel.layout()
         if self.DESTINATIONS:
-            self.destination_combo = QComboBox(panel)
-            for value in self.DESTINATIONS:
-                self.destination_combo.addItem(self.destination_label(value), value)
-            index = self.destination_combo.findData(self.DEFAULT_DESTINATION or self.DESTINATIONS[0])
-            self.destination_combo.setCurrentIndex(max(0, index))
-            self.destination_combo.setToolTip(_("Where the result is drawn: on the axis of its data, on a new "
-                                                "axis beside it, or in a figure of its own."))
-            self.destination_combo.setMaximumWidth(FIELD_MAX_WIDTH)
-            self.destination_combo.currentIndexChanged.connect(self.mark_results_stale)
+            self.destination_combo = self.destination_combo_for(
+                panel, self.DESTINATIONS, self.DEFAULT_DESTINATION or self.DESTINATIONS[0], self.mark_results_stale)
             row = QFormLayout()
             stdSizeAndlayout(row)
             row.addRow(_("Draw on:"), self.destination_combo)

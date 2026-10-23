@@ -41,6 +41,22 @@ class OperationShell:
         return {cls.DEST_SAME_AXIS: _("Current axis"), cls.DEST_NEW_AXIS: _("New axis in the current figure"),
                 cls.DEST_NEW_FIGURE: _("New figure")}[value]
 
+    def destination_combo_for(self, parent: Any, values: Sequence[str], default: str, on_change: Any) -> Any:
+        """The Charts tab's "Draw on" list: *values* (DEST_*), *default* selected, as wide as its words."""
+        from PySide6.QtWidgets import QComboBox
+
+        from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH
+
+        combo = QComboBox(parent)
+        for value in values:
+            combo.addItem(self.destination_label(value), value)
+        combo.setCurrentIndex(max(0, combo.findData(default)))
+        combo.setToolTip(_("Where the result is drawn: on the axis of its data, on a new axis beside it, or in "
+                           "a figure of its own."))
+        combo.setMaximumWidth(FIELD_MAX_WIDTH)
+        combo.currentIndexChanged.connect(lambda _index: on_change())
+        return combo
+
     # ------------------------------------------------------------------
     # The Results pane
     # ------------------------------------------------------------------

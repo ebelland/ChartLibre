@@ -727,13 +727,9 @@ class TableOperationDialogBase(OperationShell, QDialog):
         box.title_label.hide()  # the tab says it
         form = QFormLayout()
         stdSizeAndlayout(form)
-        self.draw_on_combo = QComboBox(box)
         # A table analysis has no axis of its own: a new figure, or new axes in the figure the window shows.
-        for value in (self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS):
-            self.draw_on_combo.addItem(self.destination_label(value), value)
-        self.draw_on_combo.setToolTip(_("Where the charts are drawn: a figure of their own, or beside the "
-                                        "figure the window shows."))
-        self.draw_on_combo.currentIndexChanged.connect(lambda _i: self.inputs_changed())
+        self.draw_on_combo = self.destination_combo_for(box, (self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS),
+                                                        self.DEST_NEW_FIGURE, self.inputs_changed)
         form.addRow(_("Draw on:"), self.draw_on_combo)
         box.card.layout().addLayout(form)
         self._panel_checks: dict[str, QCheckBox] = {}
