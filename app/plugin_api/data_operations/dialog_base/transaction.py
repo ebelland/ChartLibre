@@ -167,6 +167,7 @@ class TransactionMixin:
             applogger.critical(f"{action} failed: {exc}")
         else:
             applogger.error(f"{action} failed: {exc}")
+        self.show_failure(exc)
         return False
 
     def _deliver_results(

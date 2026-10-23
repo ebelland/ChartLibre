@@ -1,6 +1,8 @@
 """Computing: the results text, the generated-series pipeline, evaluation here or on a worker thread."""
 from __future__ import annotations
 
+import html
+
 import inspect
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
@@ -340,6 +342,13 @@ class EvaluationMixin:
             self.set_results_text(_("Stopped. Nothing was changed."))
             return
         applogger.error(f"{self.operation_label} failed: {error}")
+        self.show_failure(error)
+
+    def show_failure(self, error: BaseException) -> None:
+        """Say in the Results pane why nothing was drawn: the log alone left it on "Press Preview"."""
+        self.set_results_text(
+            "<p style='color:#a40000'><b>" + html.escape(_("Nothing was drawn.")) + "</b></p>"
+            + "<p>" + html.escape(str(error) or type(error).__name__) + "</p>")
 
     def _set_evaluating(self, running: bool) -> None:
         # The buttons go off at once - a second click must not start a second
