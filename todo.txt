@@ -1,7 +1,7 @@
-ChartLibre TODO - updated 2026-10-20
+ChartLibre TODO - updated 2026-10-23
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 100,409 lines in 290 files; tests 20,089 lines in 166 files (updated at each commit).
+Size: app 103,699 lines in 308 files; tests 21,290 lines in 186 files (updated at each commit).
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
@@ -10,11 +10,8 @@ NEXT - INTERFACE
 - R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series
            over a saved query that keeps "_id"; dates and categories on x; the data filter
            ("show only Selected" on every chart of a table).
-- S-01  S  Live style preview, done for Scatter, Time Series, ECDF (a scatter underneath), Stairs,
-           3D Line, 3D Scatter and Stem (linefmt/markerfmt/basefmt). Left: Undo per element.
-           Demo: "Series styles - restyle a series and watch the chart change".
+- S-01  S  Live style preview: Undo per element.
 
-- H-17  S  Results frame set to white around the white report page (try it; revert if the grey is preferred).
 - H-11  M  Error messages that say what to do next, for import and SQL.
 - H-12  M  Windows parity: every dialog at 1366x768 and 125% scaling in CI.
 - H-08  M  First run: open on Help me choose with a demo table; a 3-step tour of the rail.
@@ -29,19 +26,13 @@ LATER
 - AN-14 M  Response screening (many Y, FDR).
 - AN-24 M  Neural network (MLP).
 - R-02  M  Background computation: Outlier preview, Stop inside long loops.
-- R-13  S  Known-answer tests where NIST has no dataset (Longley done).
+- R-13  S  Known-answer tests where NIST has no dataset.
 
 
 
 IDEAS
 
-I-01  M  Import more formats (dev/plans/import_formats_plan.txt). Done: the importers plugin family
-         (app/importers, user/importers), the Import dialog's Dataset combo, "Read as", Metadata frame
-         (kept as the table's source_metadata). Read now: Stata, SAS, SPSS*, R*, Parquet/Feather*, .ods*,
-         .xlsb*, MATLAB .mat, WAV, Touchstone .sNp (v1), SPICE .raw (ASCII, binary, LTspice UTF-16,
-         .step), VCD, JCAMP-DX (plain numbers), LabVIEW .lvm, GPX, GraphPad .pzfx; JMP/Minitab/Origin
-         refused with what to do (* = needs its package; the message says which).
-         Next: Touchstone v2 and compressed JCAMP (SQZ/DIF); NI TDMS, HDF5/NetCDF, STDF, Igor, FCS,
+I-01  M  Import more formats (dev/plans/import_formats_plan.txt): Touchstone v2 and compressed JCAMP (SQZ/DIF); NI TDMS, HDF5/NetCDF, STDF, Igor, FCS,
          EDF, SPC, OPUS, .xrdml, MDF4; oscilloscopes (Tektronix, LeCroy, Keysight); B1500 / 4200A
          exports and KLARF - NEED THE OWNER'S SAMPLE FILES; manual's Import chapter table of formats.
 I-02  M  Importer plugins for a lab's own formats - EVALUATION AND PLAN: dev/plans/importer_plugins_plan.txt
@@ -58,7 +49,7 @@ I-08   L  Multichart templates; signed macOS app, Windows installer.
 
 [YOU]
 - A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
-- A-05 GitHub: description, topics, social preview, first release.
+- A-05 GitHub: description, topics, social preview.
 - A-06 Test Linux
 
 HINTS (Claude's review, 2026-10-17)
@@ -126,19 +117,7 @@ JMP
 - G-11  L  Text Explorer: word counts, n-grams, topics of a text column. Low for engineers.
 
 Matplotlib
-- G-12  S  Spectrogram chart done (specgram; NFFT, overlap, rate from x). Left: STFT in Spectral analysis.
-- G-13  S  Radar chart and Wind Rose (polar bar) done; both ask for a polar axes through the renderer's
-           Projection attribute. Demo: "Time, trees and circles".
-- G-14  S  Dendrogram chart done (ward/average/complete/single, cut line). Left: clustered
-           heatmap; the dendrogram inside Cluster Analysis' report.
-- G-15  S  Sankey Diagram and Waterfall Chart done. Demo: "Steps and flows".
-- G-16  S  Image Plot done (a table as a matrix or an image file, colorbar, values in cells); contour
-           labels (clabel) already existed in Contour Plot.
-- G-17  S  Secondary axis as a conversion of the first done (Axis properties > Also in: 21 conversions).
-           Left: broken axis for line charts (Broken Bar exists). Demo: "Matrices and scales".
-- G-18  M  Figure layout for papers: mosaic text (Figure properties > Mosaic), stacked/side-by-side
-           shared presets and panel letters done. Left: letters in an exported figure's template (I-08), size by
-           journal column (H-05). Animation is I-03. Demo: "Figures for papers".
+- G-18  S  Panel letters in an exported figure's template (with I-08 templates).
 
 scikit-learn
 - G-19  M  More learners: k-nearest neighbours, SVM (SVC/SVR), naive Bayes, HistGradientBoosting
