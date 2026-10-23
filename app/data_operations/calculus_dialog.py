@@ -312,7 +312,6 @@ class SeriesCalculusDialog(DataOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
@@ -612,8 +611,6 @@ class SeriesCalculusDialog(DataOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Calculus'
     RESULT_TABLE_VARIANT = 'model'
-
-    RESULTS_ARE_HTML = True
 
     def format_results(self, results: Sequence[CalculusResult]) -> str:
         if not results:

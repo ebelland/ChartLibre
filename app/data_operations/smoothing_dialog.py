@@ -375,7 +375,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         self._refresh_visibility()
         self.mark_results_stale()
 
-
     def build_model_selector(self) -> QWidget:
         self.dimension_combo = QComboBox(self)
         self.dimension_combo.addItems([DIM_1D, DIM_2D, DIM_3D])
@@ -414,7 +413,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         self.dimension_combo.currentIndexChanged.connect(self.mark_results_stale)
         self.method_combo.currentIndexChanged.connect(self._refresh_visibility)
         self.method_combo.currentIndexChanged.connect(self.mark_results_stale)
-
 
     def init_operation_widgets(self) -> None:
         """Create all parameter widgets once; visibility is managed dynamically."""
@@ -620,7 +618,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         for key, label, widget in rows:
             self.add_field_row(self.form, key, label, widget, self._PARAMETER_TOOLTIPS.get(key, ""))
 
-
     def _series_choice_from_row(self, row: Any) -> SeriesChoice|None:
         name = row_value(row, "name", "series_name", "label", "title", default="Series")
         sql_query = row_value(row, "sql_query", "query", "sql", default="")
@@ -694,10 +691,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
             values=values,
             source=row,
         )
-
-    def _on_axis_changed(self, axis_name: str) -> None:
-        del axis_name
-        self.mark_results_stale()
 
     def _refresh_methods(self) -> None:
         """Rebuild method list from the registry for the selected dimension."""

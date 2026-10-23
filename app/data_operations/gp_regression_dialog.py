@@ -172,7 +172,6 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-
     def _kernel(self) -> str:
         return self.current_model(KERNEL_RBF)
 
@@ -280,8 +279,6 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'GP'
     RESULT_TABLE_VARIANT = 'model'
-
-    RESULTS_ARE_HTML = True
 
     def format_results(self, results: Sequence[GPRegressionResult]) -> str:
         if not results:

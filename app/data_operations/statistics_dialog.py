@@ -526,12 +526,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             )
         ]
 
-    #: The report is HTML, so the base must not escape it. This used to be
-    #: worked around by overriding results_report_html to hand the markup back
-    #: untouched, which also dropped the heading and timestamp every other
-    #: operation's report carries into the notes pane.
-    RESULTS_ARE_HTML = True
-
     def format_results(self, results: Sequence[Any]) -> str:
         if not results:
             return ""

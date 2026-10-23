@@ -773,8 +773,6 @@ class SeriesControlChartDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'ControlChart'
     RESULT_TABLE_VARIANT = 'chart'
 
-    RESULTS_ARE_HTML = True
-
     def format_results(self, results: Sequence[ControlChartResult]) -> str:
         if not results:
             return report_html.note(_("No results."))

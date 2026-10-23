@@ -154,7 +154,6 @@ class SeriesOutlierDialog(DataOperationDialogBase):
     """Dialog to detect outliers and mark source rows with Hide=True."""
 
     MODELS = OUTLIER_METHODS
-    RESULTS_ARE_HTML = True
     MODEL_TOOLTIP = "Choose the outlier detection method."
     Name: str = "Explore Outliers"
     Description = "Detect anomalies"
@@ -296,10 +295,8 @@ class SeriesOutlierDialog(DataOperationDialogBase):
         self._refresh_visibility()
         self.mark_results_stale()
 
-
     def _populate_axes(self) -> None:
         self.series_selector.reload(select_all_series=True)
-
 
     def compute_results(self) -> list[OutlierResult]:
         """Detect outliers for each selected source series.
@@ -535,7 +532,6 @@ class SeriesOutlierDialog(DataOperationDialogBase):
                 nu=float(params.get("nu", 0.05)),
             ),
         )
-
 
     @staticmethod
     def _format_results(results: Sequence[OutlierResult], colour: str | None = None) -> str:

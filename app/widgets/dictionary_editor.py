@@ -83,7 +83,7 @@ _KIND_BY_EXACT_KEY: dict[str, str] = {
     "lines.solid_joinstyle": "joinstyle", "lines.dash_joinstyle": "joinstyle",
     "solid_capstyle": "capstyle", "dash_capstyle": "capstyle",
     "lines.solid_capstyle": "capstyle", "lines.dash_capstyle": "capstyle",
-    "hatch": "hatch", "grid.linestyle": "linestyle",
+    "grid.linestyle": "linestyle",
     "contour.negative_linestyle": "linestyle",
 }
 

@@ -54,12 +54,6 @@ class EvaluationMixin:
         return rows[0]
     
 
-    #: Whether ``format_results`` returns markup rather than plain text.
-    #: A dialog that builds a table has to set this, or its markup is escaped
-    #: and the user reads ``<tr><td>`` instead of a table - which is what the
-    #: spectral dialog did, and why the cluster dialog gave up on HTML.
-    RESULTS_ARE_HTML: bool = False
-
     def set_results_text(self, text: str) -> None:
         """Show results in the results pane: markup rendered, plain text escaped (OperationShell.show_results)."""
         self.show_results(text)
@@ -70,20 +64,11 @@ class EvaluationMixin:
 
     def set_results_html(self, markup: str) -> None:
         """Show markup in the results pane."""
-        self._results_label.setHtml(str(markup or ""))
+        self.show_results(str(markup or ""))
 
     def publish_results(self, formatted: str) -> None:
-        """Show ``format_results`` output, as text or as markup.
-
-        One entry point so every code path - preview, apply, refresh - honours
-        RESULTS_ARE_HTML.  Three of them used to call set_results_text
-        directly, so a dialog that returned HTML had it escaped in some places
-        and rendered in others.
-        """
-        if self.RESULTS_ARE_HTML:
-            self.set_results_html(formatted)
-        else:
-            self.set_results_text(formatted)
+        """Show ``format_results`` output: markup rendered, plain text escaped (OperationShell.show_results)."""
+        self.show_results(formatted)
 
     def mark_results_stale(self, *_ignored: Any) -> None:
         """Invalidate any previewed results without recomputing anything.

@@ -203,7 +203,6 @@ class SeriesTransformDialog(DataOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
@@ -288,8 +287,6 @@ class SeriesTransformDialog(DataOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Transform'
     RESULT_TABLE_VARIANT = 'model'
-
-    RESULTS_ARE_HTML = True
 
     def format_results(self, results: Sequence[TransformResult]) -> str:
         if not results:

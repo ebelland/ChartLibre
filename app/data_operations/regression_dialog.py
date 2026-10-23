@@ -243,7 +243,6 @@ class SeriesRegressionDialog(DataOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
@@ -332,8 +331,6 @@ class SeriesRegressionDialog(DataOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Regression'
     RESULT_TABLE_VARIANT = 'model'
-
-    RESULTS_ARE_HTML = True
 
     def format_results(self, results: Sequence[RegressionResult]) -> str:
         if not results:

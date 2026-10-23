@@ -237,7 +237,6 @@ class SeriesPeaksDialog(DataOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
@@ -361,8 +360,6 @@ class SeriesPeaksDialog(DataOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Peaks'
     RESULT_TABLE_VARIANT = None
-
-    RESULTS_ARE_HTML = True
 
     def format_results(self, results: Sequence[PeakResult]) -> str:
         if not results:

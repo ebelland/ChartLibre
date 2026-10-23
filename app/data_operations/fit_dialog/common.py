@@ -11,14 +11,6 @@ import pandas as pd
 from app.analysis import fit as fit_engine
 
 from app.plugin_api.data_operations.results import FrameResult
-from app.logs.logger import applogger
-
-def _split_xy(value: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    arr = np.asarray(value, dtype=float)
-    if arr.ndim != 2 or arr.shape[1] < 2:
-        applogger.error("This model requires 2D input with x and y independent columns.")
-    return arr[:, 0], arr[:, 1]
-
 
 class _SurfaceInitialGuessAdapter:
     """Adapt a surface function's 3-argument ``initial_guess`` to the plain

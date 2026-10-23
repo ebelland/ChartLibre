@@ -256,7 +256,6 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
     # UI
     # ------------------------------------------------------------------
 
-
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
@@ -419,8 +418,6 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
             f"Decomposition_axis{axis_id}_{label}_{result.model}",
             fallback="Decomposition_Result",
         )
-
-    RESULTS_ARE_HTML = True
 
     def format_results(self, results: Sequence[DecompositionResult]) -> str:
         if not results:

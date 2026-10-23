@@ -98,9 +98,6 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
     Order: int = 34
     saved = Signal(str)
 
-    # format_results returns a table.
-    RESULTS_ARE_HTML: bool = True
-
     def __init__(
         self,
         *,

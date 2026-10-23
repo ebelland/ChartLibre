@@ -571,8 +571,6 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             fallback="Function_Result",
         )
 
-    RESULTS_ARE_HTML = True
-
     def format_results(self, results: Sequence[FunctionResult]) -> str:
         if not results:
             return report_html.note(_("No results."))

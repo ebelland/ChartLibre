@@ -12,7 +12,7 @@ from app.data.repo.operations import OPERATIONS_TABLE
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.utils.dialog_state import dialog_entries
-from app.widgets.html_results import plain_to_html
+from app.widgets.html_results import looks_like_html, plain_to_html
 
 
 class TransactionMixin:
@@ -88,7 +88,7 @@ class TransactionMixin:
         """
         from datetime import datetime
 
-        body = formatted if self.RESULTS_ARE_HTML else plain_to_html(formatted)
+        body = formatted if looks_like_html(formatted) else plain_to_html(formatted)
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
         return (
             f"<h3 style='margin:0 0 4px 0;'>{html.escape(self.operation_label)}</h3>"
