@@ -6,7 +6,6 @@ from pathlib import Path
 
 
 from PySide6 import QtWidgets
-from PySide6.QtCore import QEvent, QObject
 from PySide6.QtWidgets import QApplication, QWidget
 from app.logs.logger import applogger
 from app.styles.palettes import themed_qss
@@ -109,42 +108,6 @@ def resolve_app_style(preference: str | None = None) -> str:
     return lowered if lowered in APP_STYLE_QSS else APP_STYLE_AUTOMATIC
 
 
-#: A combo's pop-up list sits in this private Qt frame.
-_POPUP_CONTAINER = "QComboBoxPrivateContainer"
-_POPUP_CONTAINER_SHEET = "background: palette(base); border: none;"
-
-
-class _PopupFrameFix(QObject):
-    """Gives every combo pop-up's container a frameless sheet of its own (todo P-02).
-
-    On macOS the container paints a grey rounded menu panel inside the pop-up
-    window, which the system already frames with its own rounded edge and
-    shadow: two frames. The application's sheet does not reach that private
-    widget (neither by its class name nor as a QComboBox's child), a sheet set
-    on the widget itself does - so it is set when each container is first polished.
-    """
-
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt's name
-        if (event.type() == QEvent.Type.Polish and isinstance(watched, QWidget)
-                and watched.metaObject().className() == _POPUP_CONTAINER and not watched.styleSheet()):
-            watched.setStyleSheet(_POPUP_CONTAINER_SHEET)
-        return False
-
-
-_popup_frame_fix: _PopupFrameFix | None = None
-
-
-def _fix_popup_frames(app: QApplication, on: bool) -> None:
-    """Install (macOS sheet) or remove the pop-up frame fix, once per application."""
-    global _popup_frame_fix
-    if on and _popup_frame_fix is None:
-        _popup_frame_fix = _PopupFrameFix(app)
-        app.installEventFilter(_popup_frame_fix)
-    elif not on and _popup_frame_fix is not None:
-        app.removeEventFilter(_popup_frame_fix)
-        _popup_frame_fix = None
-
-
 def apply_platform_style(
     app: QApplication, preference: str | None = None
 ) -> PlatformStyle:
@@ -195,11 +158,9 @@ def apply_platform_style(
         # Nothing to install, so clear whatever the previous choice left rather
         # than leaving half of it behind.
         app.setStyleSheet("")
-        _fix_popup_frames(app, False)
         return PlatformStyle(system, None)
 
     app.setStyleSheet(themed)
-    _fix_popup_frames(app, str(qss_name).startswith("macos_native"))
     return PlatformStyle(system, path)
 
 
