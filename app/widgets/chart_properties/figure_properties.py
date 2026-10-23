@@ -71,6 +71,20 @@ def _read_text_any_encoding(path: Path) -> str:
     return raw.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
 
 
+#: Figure widths journals ask for, in cm: (label, width). A figure set to one keeps its proportions.
+JOURNAL_WIDTHS: tuple[tuple[str, float], ...] = (
+    ("Nature - one column (8.9 cm)", 8.9), ("Nature - two columns (18.3 cm)", 18.3),
+    ("Science - one column (5.5 cm)", 5.5), ("Science - two columns (12.0 cm)", 12.0),
+    ("Science - three columns (18.3 cm)", 18.3),
+    ("Cell - one column (8.5 cm)", 8.5), ("Cell - 1.5 columns (11.4 cm)", 11.4),
+    ("Cell - two columns (17.4 cm)", 17.4),
+    ("PNAS - one column (8.7 cm)", 8.7), ("PNAS - two columns (17.8 cm)", 17.8),
+    ("IEEE - one column (8.89 cm)", 8.89), ("IEEE - two columns (18.19 cm)", 18.19),
+    ("APS - one column (8.6 cm)", 8.6), ("APS - two columns (17.8 cm)", 17.8),
+    ("A4 page width, 2 cm margins (17.0 cm)", 17.0),
+)
+
+
 class FigurePropertiesWidget(BaseProperties):
     """Reusable Figure properties editor extracted from the old dialog Figure tab.
 
@@ -580,6 +594,14 @@ class FigurePropertiesWidget(BaseProperties):
         # No text of its own: the row's label already says "Frame", and a
         # sentence beside the box ran off the edge of the panel.
         self._fig_frameon = QCheckBox(opts_section)
+        # The width a journal's column asks for (todo H-05); the height follows, the proportions kept.
+        self._journal_combo = QComboBox(opts_section)
+        self._configure_combo_width(self._journal_combo, minimum_contents_length=14)
+        self._journal_combo.addItem(_("Journal column…"), None)
+        for label, width in JOURNAL_WIDTHS:
+            self._journal_combo.addItem(_(label), width)
+        self._journal_combo.setToolTip(_("Set the width a journal's column asks for; the height keeps the proportions."))
+        self._journal_combo.activated.connect(self._on_journal_width_selected)
         # A line round the whole figure. (Matplotlib's frameon is the figure's
         # background, which on a white page showed no change at all.)
         self._fig_frameon.setToolTip(_("Draw a line round the whole figure"))
@@ -646,6 +668,7 @@ class FigurePropertiesWidget(BaseProperties):
                     pair(_("Font size"), self._font_scale),
                     pair(_("Width"), self._fig_width_cm),
                     pair(_("Height"), self._fig_height_cm),
+                    pair(_("Journal"), self._journal_combo),
                     pair(_("Figure layout"), self._fig_layout_mode),
                     pair(_("Downsample"), self._downsample_combo),
                     pair(_("Border"), self._fig_frameon),
@@ -1099,6 +1122,17 @@ class FigurePropertiesWidget(BaseProperties):
         # Shown again after the reload the apply triggers, for this figure only.
         self._applied_presets[self._figure_id] = str(preset)
         self.layout_preset_requested.emit(str(preset))
+
+    def _on_journal_width_selected(self, _index: int) -> None:
+        """The chosen column's width, the height scaled with it; the combo back on its prompt."""
+        width = self._journal_combo.currentData()
+        self._journal_combo.setCurrentIndex(0)
+        if not width:
+            return
+        old_width, old_height = self._fig_width_cm.value(), self._fig_height_cm.value()
+        self._fig_width_cm.setValue(float(width))
+        if old_width > 0:
+            self._fig_height_cm.setValue(round(old_height * float(width) / old_width, 2))
 
     def _on_mosaic_entered(self) -> None:
         """Request the mosaic typed, applied across every axis in the figure."""

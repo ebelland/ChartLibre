@@ -11061,3 +11061,58 @@ msgstr "Togli i valori tra due estremi - 10, 90 - così le due parti riempiono l
 
 msgid "Break"
 msgstr "Interruzione"
+
+msgid "Journal column…"
+msgstr "Colonna di rivista…"
+
+msgid "Journal"
+msgstr "Rivista"
+
+msgid "Set the width a journal's column asks for; the height keeps the proportions."
+msgstr "Imposta la larghezza chiesta da una colonna di rivista; l'altezza mantiene le proporzioni."
+
+msgid "Nature - one column (8.9 cm)"
+msgstr "Nature - una colonna (8,9 cm)"
+
+msgid "Nature - two columns (18.3 cm)"
+msgstr "Nature - due colonne (18,3 cm)"
+
+msgid "Science - one column (5.5 cm)"
+msgstr "Science - una colonna (5,5 cm)"
+
+msgid "Science - two columns (12.0 cm)"
+msgstr "Science - due colonne (12,0 cm)"
+
+msgid "Science - three columns (18.3 cm)"
+msgstr "Science - tre colonne (18,3 cm)"
+
+msgid "Cell - one column (8.5 cm)"
+msgstr "Cell - una colonna (8,5 cm)"
+
+msgid "Cell - 1.5 columns (11.4 cm)"
+msgstr "Cell - 1,5 colonne (11,4 cm)"
+
+msgid "Cell - two columns (17.4 cm)"
+msgstr "Cell - due colonne (17,4 cm)"
+
+msgid "PNAS - one column (8.7 cm)"
+msgstr "PNAS - una colonna (8,7 cm)"
+
+msgid "PNAS - two columns (17.8 cm)"
+msgstr "PNAS - due colonne (17,8 cm)"
+
+msgid "IEEE - one column (8.89 cm)"
+msgstr "IEEE - una colonna (8,89 cm)"
+
+msgid "IEEE - two columns (18.19 cm)"
+msgstr "IEEE - due colonne (18,19 cm)"
+
+msgid "APS - one column (8.6 cm)"
+msgstr "APS - una colonna (8,6 cm)"
+
+msgid "APS - two columns (17.8 cm)"
+msgstr "APS - due colonne (17,8 cm)"
+
+msgid "A4 page width, 2 cm margins (17.0 cm)"
+msgstr "Larghezza A4, margini di 2 cm (17,0 cm)"
+

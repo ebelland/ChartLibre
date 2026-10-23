@@ -37,3 +37,13 @@ def test_a_two_line_title_is_stored_with_a_typed_line_break(qapp) -> None:
     panel._axis_label_edit.setPlainText("Time\n(s)")
     panel._emit_axis_options_requested()
     assert sent and sent[-1]["label"] == "Time\\n(s)"
+
+
+def test_a_journal_column_sets_the_width_and_keeps_the_proportions(qapp) -> None:
+    panel = FigurePropertiesWidget(None)
+    panel._fig_width_cm.setValue(16.0)
+    panel._fig_height_cm.setValue(12.0)
+    panel._journal_combo.setCurrentIndex(panel._journal_combo.findData(8.9))
+    panel._on_journal_width_selected(panel._journal_combo.currentIndex())
+    assert panel._fig_width_cm.value() == 8.9 and abs(panel._fig_height_cm.value() - 6.68) < 0.01
+    assert panel._journal_combo.currentIndex() == 0
