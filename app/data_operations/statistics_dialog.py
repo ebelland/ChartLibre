@@ -40,6 +40,7 @@ from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
 from app.data.select_sql import projection_source
 from app.data.sqlite_repo import SqliteRepo
+from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, SPIN_MAX_WIDTH
 from app.plugin_api.data_operations.results import OperationResult
 from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
@@ -357,6 +358,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
     def build_model_selector(self) -> QWidget:
         panel = CardFrame(self, "statisticsModelCard")
         layout = panel.layout()
+        self.model_combo.setMaximumWidth(FIELD_MAX_WIDTH)
         layout.addWidget(self.model_combo)
         note = QLabel(
             _("Check one or more series. One-sample tests are calculated for "
@@ -368,17 +370,22 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         note.setWordWrap(True)
         note.setProperty("muted", True)
         layout.addWidget(note)
+        # Everything at the top: the space left goes below, not around the note.
+        layout.addStretch(1)
+        return panel
 
-        # Beside the model rather than among the parameters: what to draw is
-        # part of choosing what to compute, and the parameters below are the
-        # knobs of whichever model is chosen here.
+    def extra_tabs(self) -> list[tuple[QWidget, str]]:
+        """A Charts tab: whether to draw, and what (the start of todo O-01's Charts tab)."""
+        panel = CardFrame(self, "statisticsChartsCard")
         chart_form = QFormLayout()
         stdSizeAndlayout(chart_form)
         chart_form.addRow(self.create_chart_check)
         self._chart_label = QLabel(_("Chart:"), panel)
+        self.chart_type_combo.setMaximumWidth(FIELD_MAX_WIDTH)
         chart_form.addRow(self._chart_label, self.chart_type_combo)
-        layout.addLayout(chart_form)
-        return panel
+        panel.layout().addLayout(chart_form)
+        panel.layout().addStretch(1)
+        return [(panel, _("Charts"))]
 
     def build_parameter_selector(self) -> QWidget:
         panel = CardFrame(self, "statisticsParametersCard")
@@ -397,6 +404,15 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         self._distribution_label = QLabel(_("Distribution:"), panel)
         form.addRow(self._distribution_label, self.distribution_combo)
         form.addRow(self.exhaustive_check)
+        # As wide as their values need, not the whole tab (ParameterForm's widths).
+        for spin in (self.popmean_spin, self.trim_percent_spin, self.monte_carlo_resamples_spin,
+                     self.monte_carlo_batch_spin):
+            spin.setMaximumWidth(SPIN_MAX_WIDTH)
+        for combo in (self.alternative_combo, self.anderson_method_combo, self.rank_combo, self.distribution_combo):
+            combo.setMaximumWidth(FIELD_MAX_WIDTH)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        panel.layout().addStretch(1)
         self._parameter_form = form
         return panel
 

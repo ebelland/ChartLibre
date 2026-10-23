@@ -1,7 +1,6 @@
 """Widget factories and helpers: cards, titles, buttons, menus, dialog shells, sizing."""
 from __future__ import annotations
 
-import sys
 
 import html
 
@@ -626,15 +625,6 @@ def configure_combo_width(
 
     combo.setToolTip(combo.currentText())
     combo.currentTextChanged.connect(combo.setToolTip)
-    if sys.platform == "darwin":
-        # The pop-up's private container paints a grey menu panel inside the
-        # window macOS already frames: two frames (todo P-02). The app's sheet
-        # does not reach it; one on the container itself does. Set here, once
-        # per combo - an application-wide event filter doing it crashed
-        # PySide on objects being destroyed.
-        container = combo.view().parentWidget()
-        if container is not None and not container.styleSheet():
-            container.setStyleSheet("background: palette(base); border: none;")
     return combo
 
 

@@ -108,6 +108,36 @@ def resolve_app_style(preference: str | None = None) -> str:
     return lowered if lowered in APP_STYLE_QSS else APP_STYLE_AUTOMATIC
 
 
+_POPUP_CONTAINER_SHEET = "background: palette(base); border: none;"
+_combo_init_patched = False
+
+
+def _frameless_combo_popups() -> None:
+    """Give every combo's pop-up container a frameless sheet as the combo is made (todo P-02).
+
+    On macOS the container paints a grey menu panel inside the pop-up window,
+    which the system already frames with its rounded edge and shadow: two
+    frames. The application's sheet does not reach that private widget, a
+    sheet on the container itself does. Set once per combo, when it is built
+    (every combo here is built from Python, subclasses included) - not from
+    an application-wide event filter, which crashed PySide on objects being
+    destroyed.
+    """
+    global _combo_init_patched
+    if _combo_init_patched:
+        return
+    original = QtWidgets.QComboBox.__init__
+
+    def init(self: QtWidgets.QComboBox, *args: object, **kwargs: object) -> None:
+        original(self, *args, **kwargs)
+        container = self.view().parentWidget()
+        if container is not None and not container.styleSheet():
+            container.setStyleSheet(_POPUP_CONTAINER_SHEET)
+
+    QtWidgets.QComboBox.__init__ = init  # type: ignore[method-assign]
+    _combo_init_patched = True
+
+
 def apply_platform_style(
     app: QApplication, preference: str | None = None
 ) -> PlatformStyle:
@@ -161,6 +191,8 @@ def apply_platform_style(
         return PlatformStyle(system, None)
 
     app.setStyleSheet(themed)
+    if str(qss_name).startswith("macos_native"):
+        _frameless_combo_popups()
     return PlatformStyle(system, path)
 
 
