@@ -281,3 +281,23 @@ def test_vif_is_one_for_uncorrelated_factors_and_large_for_collinear_ones() -> N
     collinear = frame.assign(x2=lambda f: f["x1"] + np.random.default_rng(9).normal(0, 0.05, len(f)))
     vif = lm.fit_models(collinear, _spec())[0].estimates["VIF"].dropna()
     assert (vif > 100).all()
+
+
+def test_stop_ends_a_stepwise_fit_between_its_steps() -> None:
+    """Stop is polled inside a response's fit, not only between responses: a long stepwise stops."""
+    from app.analysis import Stopped
+
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame({name: rng.normal(size=60) for name in "ABCDE"})
+    frame["Y"] = 2 * frame["A"] + rng.normal(size=60)
+    factors = [lm.Factor(name, CONTINUOUS) for name in "ABCDE"]
+    calls = []
+
+    def stop_on_third() -> bool:
+        calls.append(1)
+        return len(calls) >= 3
+
+    spec = ModelSpec(factors, ["Y"], lm.factorial(factors, 2), personality="stepwise", direction="forward")
+    with pytest.raises(Stopped):
+        lm.fit_models(frame, spec, should_stop=stop_on_third)
+    assert len(calls) == 3

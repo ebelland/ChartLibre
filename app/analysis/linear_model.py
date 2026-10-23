@@ -240,8 +240,14 @@ def fit_models(
         elif spec.personality in CATEGORICAL_RESPONSE:
             fits.append(_fit_logistic(frame, spec, response))
         else:
-            fits.append(_fit_one(frame, spec, response))
+            fits.append(_fit_one(frame, spec, response, should_stop=should_stop))
     return fits
+
+
+def _check(should_stop: Callable[[], bool] | None) -> None:
+    """Raise Stopped when Stop was pressed: called between the slow steps of a fit."""
+    if should_stop is not None and should_stop():
+        raise Stopped()
 
 
 @dataclass(slots=True)
@@ -286,8 +292,9 @@ def _prepare(frame: pd.DataFrame, spec: ModelSpec, response: str, *, categorical
     return _Prepared(data, safe, codes, {f.name: f for f in spec.factors})
 
 
-def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit:
-    """Least squares - standard, or stepwise backward or forward."""
+def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str, *,
+             should_stop: Callable[[], bool] | None = None) -> ResponseFit:
+    """Least squares - standard, or stepwise backward or forward; *should_stop* polled between its steps."""
     import statsmodels.formula.api as smf
 
     prep = _prepare(frame, spec, response, categorical=False)
@@ -307,6 +314,7 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
             ]
             best: tuple[float, Term] | None = None
             for term in candidates:
+                _check(should_stop)
                 trial = chosen + [term]
                 model = smf.ols(prep.formula(trial), data=data).fit()
                 if model.df_resid <= 0:
@@ -321,6 +329,7 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
         terms = chosen
 
     while True:
+        _check(should_stop)
         model = smf.ols(prep.formula(terms), data=data).fit()
         tests = _effect_tests(model, terms, piece)
         if not stepwise or spec.direction == "forward" or model.df_resid <= 0:
@@ -335,16 +344,21 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
         terms.remove(worst)
         removed.append(worst)
 
+    _check(should_stop)
     robust, std_errors_note = _robust_refit(model, prep, terms, spec, frame)
+    _check(should_stop)
     estimates = _estimates(robust if robust is not None else model, terms, piece)
     estimates["VIF"] = _vif(model)
+    _check(should_stop)
     diagnostics = _diagnostics(model)
     anova, summary = _whole_model(model, data["y"])
     lack = _lack_of_fit(model, data, [prep.safe[f.name] for f in spec.factors])
+    _check(should_stop)
     try:
         studentized = pd.Series(model.get_influence().resid_studentized_internal, index=data.index)
     except Exception:  # noqa: BLE001 - a saturated model has none
         studentized = pd.Series(np.nan, index=data.index)
+    _check(should_stop)
     profile = _profile(model, data, spec.factors, prep.safe, prep.codes, terms)
     note = ""
     if model.df_resid <= 0:
