@@ -10956,3 +10956,99 @@ msgstr "Cornice"
 
 msgid "Draw a line round the whole figure"
 msgstr "Disegna una linea attorno a tutta la figura"
+
+msgid "Is it in control?"
+msgstr "È sotto controllo?"
+
+msgid "Is a process stable, or did something special happen? A control chart with its run rules, and the answer given in words."
+msgstr "Un processo è stabile o è successo qualcosa di speciale? Una carta di controllo con le sue regole, e la risposta a parole."
+
+msgid "The process measurements to watch."
+msgstr "Le misure del processo da sorvegliare."
+
+msgid "Yes: {measure} is in control - its {n} values stay between the limits ({lower:.4g} to {upper:.4g}) with no run of nine on one side."
+msgstr "Sì: {measure} è sotto controllo - i suoi {n} valori restano entro i limiti (da {lower:.4g} a {upper:.4g}) senza nove di fila dallo stesso lato."
+
+msgid "{patterns} points show a pattern worth a look (the other run rules), which a stable process also shows now and then."
+msgstr "{patterns} punti mostrano un andamento da guardare (le altre regole), che anche un processo stabile mostra ogni tanto."
+
+msgid "No: {measure} is not in control - one point signals a special cause."
+msgstr "No: {measure} non è sotto controllo - un punto segnala una causa speciale."
+
+msgid "No: {measure} is not in control - {count} points signal a special cause."
+msgstr "No: {measure} non è sotto controllo - {count} punti segnalano una causa speciale."
+
+msgid "At {when} ({value:.4g}): {rule}."
+msgstr "A {when} ({value:.4g}): {rule}."
+
+msgid "... and {more} more."
+msgstr "... e altri {more}."
+
+msgid "Individuals chart: centre {center:.4g}, limits at 3 sigma, sigma {sigma:.4g} from the average moving range. A special cause is a point beyond the limits or nine in a row on one side of the centre."
+msgstr "Carta dei valori individuali: centro {center:.4g}, limiti a 3 sigma, sigma {sigma:.4g} dalla media delle escursioni mobili. Una causa speciale è un punto oltre i limiti o nove di fila dallo stesso lato del centro."
+
+msgid "With {n} values the limits are rough: 20 or more make them trustworthy."
+msgstr "Con {n} valori i limiti sono approssimativi: con 20 o più diventano affidabili."
+
+msgid "In control means stable, not good: whether the values meet a specification is the process capability's question."
+msgstr "Sotto controllo vuol dire stabile, non buono: se i valori rispettano una specifica lo dice la capacità di processo."
+
+msgid "Has {measure} changed over time?"
+msgstr "{measure} è cambiato nel tempo?"
+
+msgid "Is {measure} normal?"
+msgstr "{measure} è normale?"
+
+msgid "Another measure of the same process"
+msgstr "Un'altra misura dello stesso processo"
+
+msgid "Signals"
+msgstr "Segnali"
+
+msgid "{measure}: control chart"
+msgstr "{measure}: carta di controllo"
+
+msgid "Is it normal?"
+msgstr "È normale?"
+
+msgid "Does a measure follow the normal (bell-shaped) distribution that t-tests, ANOVA and control charts assume? The test is chosen for you, and the answer is given in words."
+msgstr "Una misura segue la distribuzione normale (a campana) che t-test, ANOVA e carte di controllo presuppongono? Il test è scelto per te e la risposta è data a parole."
+
+msgid "The numbers whose distribution to judge."
+msgstr "I numeri di cui giudicare la distribuzione."
+
+msgid "Yes: {measure} can be taken as normal ({test} p = {p:.3g})."
+msgstr "Sì: {measure} si può considerare normale ({test} p = {p:.3g})."
+
+msgid "No: {measure} is not normal ({test} p = {p:.3g})."
+msgstr "No: {measure} non è normale ({test} p = {p:.3g})."
+
+msgid "Its shape: {shape}."
+msgstr "La sua forma: {shape}."
+
+msgid "Skewness {skew:.2f} and excess kurtosis {kurt:.2f}; a normal has 0 for both."
+msgstr "Asimmetria {skew:.2f} e curtosi in eccesso {kurt:.2f}; una normale ha 0 per entrambe."
+
+msgid "With {n} values the test seldom objects: a 'yes' here is weak evidence."
+msgstr "Con {n} valori il test obietta di rado: un 'sì' qui è una prova debole."
+
+msgid "With {n} values even a small departure is detected: if the points follow the Q-Q plot's line closely, t-tests and ANOVA are safe at this size."
+msgstr "Con {n} valori anche un piccolo scostamento viene rilevato: se i punti seguono da vicino la retta del grafico Q-Q, t-test e ANOVA sono sicuri a questa numerosità."
+
+msgid "On the Q-Q plot a normal sample follows the straight line; a curve is skew, an S is tails."
+msgstr "Nel grafico Q-Q un campione normale segue la retta; una curva indica asimmetria, una S le code."
+
+msgid "Its histogram, quantiles and fitted distributions: Distribution of {measure}"
+msgstr "Istogramma, quantili e distribuzioni adattate: Distribuzione di {measure}"
+
+msgid "Is {measure} different between groups?"
+msgstr "{measure} è diverso tra i gruppi?"
+
+msgid "Is {measure} in control?"
+msgstr "{measure} è sotto controllo?"
+
+msgid "{measure}: normal Q-Q plot"
+msgstr "{measure}: grafico Q-Q normale"
+
+msgid "Normal quantile"
+msgstr "Quantile normale"
