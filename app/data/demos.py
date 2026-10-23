@@ -313,9 +313,9 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "Quality - a gauge study, a skewed process and a vortex",
         "A measuring system and a process judged the way a quality engineer would, on simulated data with the "
         "variation built in known: Gage R&R of a diameter gauge (10 parts, 3 operators, 3 repeats) on its "
-        "Multi-Vari chart; a lognormal surface roughness - in control, not normal, its distribution fitted by "
-        "AIC, its capability by the percentile method against USL 3.2 um; and a vortex's divergence and curl "
-        "from Vector Field.",
+        "Multi-Vari chart; a lognormal surface roughness - not normal, so the individuals chart, whose limits "
+        "assume a normal, flags a high reading; its distribution fitted by AIC and its capability by the "
+        "percentile method against USL 3.2 um; and a vortex's divergence and curl from Vector Field.",
         (),
         builder="dev.demo.demo_quality:build_quality_demo",
         preview="Gage R&R",

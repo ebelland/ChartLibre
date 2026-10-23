@@ -6,8 +6,9 @@ Simulated, with the variation built in known, so the answers can be checked:
   much more than the gauge, one operator reads a little high. Drawn on the
   Multi-Vari chart.
 * A surface roughness Ra (um), 120 parts in production order, lognormal as
-  roughness is: Is it in control? (yes), Is it normal? (no - skewed to the
-  right), its Distribution with the best fit by AIC (lognormal), and the
+  roughness is: Is it normal? (no - skewed to the right), and so Is it in
+  control? flags a high reading - the individuals chart's limits assume a
+  normal, the lesson of a skewed process; its Distribution with the best fit by AIC (lognormal), and the
   Control Chart with its capability judged by the percentile method on a
   lognormal, against USL 3.2 um.
 * A vortex sampled on a grid - Vector Field: its divergence (none) and curl.
