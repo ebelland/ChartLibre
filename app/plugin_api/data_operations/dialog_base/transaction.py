@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping, Sequence
 import html
 from typing import Any
 
-from PySide6.QtGui import QCloseEvent
 
 from app.data.data_source import parse_roles, row_value
 from app.data.repo.operations import OPERATIONS_TABLE
@@ -371,20 +370,8 @@ class TransactionMixin:
 
         return self._run_operation(commit=True, then=done)
 
-    def reject(self) -> None:
-        """Close/Cancel rejects temporary Preview changes."""
-        self.stop()
-        self.remember_window()
+    def discard_unapplied(self) -> None:
+        """Close/Cancel: the Preview's changes rolled back, the axis or figure it made, the table's drawing."""
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
         self._discard_table_figure()
-        super().reject()
-
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Window close button also rejects temporary Preview changes."""
-        self.stop()
-        self.remember_window()
-        self.cancel_operation_changes()
-        self.discard_operation_artifacts()
-        self._discard_table_figure()
-        super().closeEvent(event)

@@ -283,3 +283,42 @@ class OperationShell:
                 except Exception:  # noqa: BLE001 - a stale value must not stop the window opening
                     applogger.exception("Could not restore %s's parameters", self.state_key())
         self.restore_state_extra(stored)
+
+    # ------------------------------------------------------------------
+    # The model, and leaving
+    # ------------------------------------------------------------------
+
+    def current_model(self, default: str | None = None) -> str:
+        """The selected model's key, or *default* while none is selected.
+
+        The item's data when it has any - a combo that shows translated names keeps the untranslated one
+        there, and that is what visible_for rules and the code compare against - otherwise its text. With
+        no *default*, the first of MODELS; "" for a window without a model.
+        """
+        combo = getattr(self, "model_combo", None)
+        if default is None:
+            default = next(iter(getattr(self, "MODELS", {}) or {}), "")
+        if combo is None:
+            return default
+        data = combo.currentData()
+        if data is not None and str(data):
+            return str(data)
+        return combo.currentText() or default
+
+    def discard_unapplied(self) -> None:
+        """Take back what a Preview wrote and OK never kept: the base's own way."""
+
+    def _leave(self) -> None:
+        self.stop()
+        self.remember_window()
+        self.discard_unapplied()
+
+    def reject(self) -> None:
+        """Cancel or Close: the calculation stopped, the choices kept, the Preview taken back."""
+        self._leave()
+        super().reject()  # type: ignore[misc]
+
+    def closeEvent(self, event: Any) -> None:  # noqa: N802 - Qt's name
+        """The window's close button: as Cancel."""
+        self._leave()
+        super().closeEvent(event)  # type: ignore[misc]

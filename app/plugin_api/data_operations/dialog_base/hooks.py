@@ -323,21 +323,6 @@ class BuilderHooksMixin:
         except (DatabaseError, ValueError):
             applogger.exception(f"Failed to label the {self.operation_label} result axis")
 
-    def current_model(self, default: str | None = None) -> str:
-        """The selected model's key, or *default* while none is selected.
-
-        The item's data when it has any - a combo that shows translated names
-        keeps the untranslated one there, and that is what visible_for rules
-        and the code compare against - otherwise its text. With no *default*,
-        the first of MODELS: the one the combo starts on.
-        """
-        data = self.model_combo.currentData()
-        if data is not None and str(data):
-            return str(data)
-        if default is None:
-            default = next(iter(self.MODELS), "")
-        return self.model_combo.currentText() or default
-
     def current_axis_name(self) -> str:
         """The name of the axis picked in the Data page."""
         return self.series_selector.selected_axis_name()

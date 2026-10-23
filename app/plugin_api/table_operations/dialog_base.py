@@ -36,7 +36,6 @@ from typing import Any, ClassVar
 
 import pandas as pd
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -413,10 +412,6 @@ class TableOperationDialogBase(OperationShell, QDialog):
     def parameter_values(self) -> dict[str, Any]:
         return dict(self._parameter_form.values()) if self._parameter_form is not None else {}
 
-    def current_model(self) -> str:
-        combo = getattr(self, "model_combo", None)
-        return str(combo.currentData()) if combo is not None else ""
-
     def problems(self) -> list[str]:
         """Why the operation cannot run as it stands; empty when it can."""
         if not self.table:
@@ -507,7 +502,7 @@ class TableOperationDialogBase(OperationShell, QDialog):
             return
         self._record(written, result)
         self.applied.emit()
-        self._remember()
+        self.remember_window()
         super().accept()
 
     def _record(self, written: Sequence[Mapping[str, Any]], result: Any) -> None:
@@ -709,18 +704,10 @@ class TableOperationDialogBase(OperationShell, QDialog):
     def parameter_forms(self) -> list[Any]:
         return [self._parameter_form] if self._parameter_form is not None else []
 
-    def _remember(self) -> None:
+    def remember_window(self) -> None:
+        """The shell's memory, and the columns' roles cast on this table."""
         self._remember_casting()
-        self.remember_window()
+        super().remember_window()
 
-    def reject(self) -> None:
-        self.stop()
+    def discard_unapplied(self) -> None:
         self._discard_preview()
-        self._remember()
-        super().reject()
-
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        self.stop()
-        self._discard_preview()
-        self._remember()
-        super().closeEvent(event)
