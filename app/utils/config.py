@@ -55,6 +55,8 @@ def _repo_root() -> Path:
 CONFIG_PATH = _repo_root().parent / "config.json"
 USER_CONFIG_PATH = _repo_root().parent / "user.json"
 MPLSTYLES_DIR = _repo_root().parent / "mplstyles"
+#: Figure templates (app.data.figure_templates), beside mplstyles.
+TEMPLATES_DIR = _repo_root().parent / "Templates"
 
 #: Where a user-authored plugin (a renderer, a data operation, a fit
 #: function) lives, one subfolder per kind, mirroring the shipped folder it
