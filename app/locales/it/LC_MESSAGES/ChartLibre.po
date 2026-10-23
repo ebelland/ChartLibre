@@ -11320,3 +11320,24 @@ msgstr "Dove si disegnano i grafici: in una figura a sé, o accanto alla figura 
 
 msgid "{operation} could not be drawn: {error}"
 msgstr "Impossibile disegnare {operation}: {error}"
+
+msgid "Fitted to each column: its curve on the histogram, the Q-Q plot against it, its parameters and goodness of fit in the report. Best fit: the one of these with the lowest AIC."
+msgstr "Adattata a ogni colonna: la sua curva sull'istogramma, il Q-Q plot rispetto a essa, i suoi parametri e la bontà di adattamento nel report. Migliore: quella fra queste con l'AIC più basso."
+
+msgid "Fitted {distribution}"
+msgstr "{distribution} adattata"
+
+msgid "{distribution} quantile plot"
+msgstr "Grafico dei quantili {distribution}"
+
+msgid "{distribution} quantiles"
+msgstr "Quantili {distribution}"
+
+msgid "Kolmogorov-Smirnov D"
+msgstr "D di Kolmogorov-Smirnov"
+
+msgid "Exponential"
+msgstr "Esponenziale"
+
+msgid "Prob > D"
+msgstr "Prob > D"

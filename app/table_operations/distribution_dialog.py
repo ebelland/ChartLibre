@@ -2,8 +2,11 @@
 
 Cast one or more columns as Y. The report gives, per column, the quantile
 table, the moments and the normality tests; OK writes them as tables and
-draws, per column, the histogram with its normal curve beside the normal
-Q-Q plot. The engine is app.analysis.distribution. Process capability is in
+draws, per column, the histogram with the chosen distribution's curve beside
+its Q-Q plot. The distribution (Parameters: normal by default, lognormal,
+Weibull, gamma, exponential, or the best of them by AIC) is fitted to each
+column and reported with its goodness of fit. The engine is
+app.analysis.distribution, the fits app.utils.distribution_fit. Process capability is in
 the Control Chart operation, which knows whether the process is stable.
 """
 from __future__ import annotations
@@ -12,17 +15,28 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from app.analysis import distribution as dist
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam
+from app.utils.distribution_fit import DistributionFit, fit_distributions
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
+#: The distributions offered, scipy names: the fitted one is drawn and reported.
+FITTED = (("Normal", "norm"), ("Lognormal", "lognorm"), ("Weibull", "weibull_min"), ("Gamma", "gamma"),
+          ("Exponential", "expon"))
+BEST = "best"
+
+
 @dataclass(slots=True)
 class DistributionReport:
     results: list[dist.DistributionResult]
+    #: The distribution fitted to each column, in the same order (None when it could not be fitted).
+    fits: list[DistributionFit | None]
 
 
 class DistributionDialog(TableOperationDialogBase):
@@ -47,13 +61,30 @@ class DistributionDialog(TableOperationDialogBase):
                    kinds=(CONTINUOUS, ORDINAL), minimum=1),
     )
 
+    PARAMETERS_TAB = "Distribution"
+    PARAMS = (
+        ChoiceParam("distribution", "Distribution:",
+                    choices=(*FITTED, ("Best fit (AIC)", BEST)), default_value="norm",
+                    tooltip="Fitted to each column: its curve on the histogram, the Q-Q plot against it, its "
+                            "parameters and goodness of fit in the report. Best fit: the one of these with the "
+                            "lowest AIC."),
+    )
+
     def __init__(self, **kwargs: Any) -> None:
         self.created_figure_ids: list[int] = []
         super().__init__(**kwargs)
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
-        del params, model
-        return DistributionReport([dist.distribution(frame, column) for column in casting.columns("response")])
+        del model
+        chosen = str(params.get("distribution") or "norm")
+        names = tuple(name for _label, name in FITTED) if chosen == BEST else (chosen,)
+        results, fits = [], []
+        for column in casting.columns("response"):
+            results.append(dist.distribution(frame, column))
+            values = pd.to_numeric(frame[column], errors="coerce").to_numpy(float)
+            found = fit_distributions(values[np.isfinite(values)], names)
+            fits.append(found[0] if found else None)
+        return DistributionReport(results, fits)
 
     # ------------------------------------------------------------------
     # The report
@@ -70,6 +101,14 @@ class DistributionDialog(TableOperationDialogBase):
             parts.append(report_html.section(_("Moments"), self.report_table(result.moments)))
             parts.append(report_html.section(_("Normality"), self.report_table(result.normality,
                                                                                 p_columns=("pvalue",))))
+            fit = report.fits[report.results.index(result)]
+            if fit is not None:
+                parts.append(report_html.section(
+                    _("Fitted {distribution}").format(distribution=_(_label(fit.name))),
+                    report_html.summary_table([
+                        *((f"{_('Parameter')} {index + 1}", value) for index, value in enumerate(fit.params)),
+                        (_("Kolmogorov-Smirnov D"), fit.ks_statistic), (_("Prob > D"), fit.pvalue),
+                        (_("AIC"), fit.aic)])))
             blocks.append(report_html.section(f"{result.column} (N = {result.n})", "".join(parts)))
         return "".join(blocks)
 
@@ -91,16 +130,24 @@ class DistributionDialog(TableOperationDialogBase):
         written: list[dict[str, Any]] = [{"table": name} for name in self.write_result_tables(tables).values()]
 
         panels = []
-        for result in report.results:
+        for result, fit in zip(report.results, report.fits):
             column = result.column
+            name = fit.name if fit is not None else "norm"
+            label = _(_label(name))
             sql, roles = self.series_select(table, {"value": column})
             panels.append(("Histogram", column, column, _("Density"),
-                           [(column, sql, roles, {})], {"distribution_fit": "norm"}))
-            panels.append(("Q-Q Plot", _("Normal quantile plot"), _("Normal quantiles"), column,
-                           [(column, sql, roles, {})]))
+                           [(column, sql, roles, {})], {"distribution_fit": name}))
+            panels.append(("Q-Q Plot", _("{distribution} quantile plot").format(distribution=label),
+                           _("{distribution} quantiles").format(distribution=label), column,
+                           [(column, sql, roles, {})], {"distribution": name}))
         columns = ", ".join(result.column for result in report.results)
         notes = self.report_document(report)
         figure_id = self.create_report_figure(f"{_(self.Name)} · {columns}", notes, panels)
         self.created_figure_ids = [figure_id]
         written.append({"figure": figure_id, "name": columns})
         return written
+
+
+def _label(name: str) -> str:
+    """The offered distribution's English name for a scipy name ("lognorm" -> "Lognormal")."""
+    return next((label for label, key in FITTED if key == name), name)

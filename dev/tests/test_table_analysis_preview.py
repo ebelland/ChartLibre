@@ -76,3 +76,23 @@ def test_new_axes_in_the_current_figure(qapp, repo: SqliteRepo) -> None:
         assert len(repo.load_figure_descriptor(current).axes) > 1
     finally:
         dialog.close()
+
+
+def test_distribution_fits_the_chosen_or_best_distribution(qapp, repo: SqliteRepo) -> None:
+    from app.table_operations.distribution_dialog import DistributionDialog
+
+    repo.import_dataframe(pd.DataFrame({"y": np.random.default_rng(1).lognormal(1.0, 0.6, 400)}), table_name="ln",
+                          normalize_columns=False)
+    dialog = DistributionDialog(repo=repo, table="ln")
+    try:
+        dialog.roles_widget.set_casting({"response": ["y"]})
+        chosen = {**dialog.parameter_values(), "distribution": "best"}
+        dialog.parameter_values = lambda: chosen
+        dialog.ok()
+        _wait(qapp, dialog)
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        options = {axis.name: axis.options for axis in figure.axes}
+        assert options["Histogram"]["distribution_fit"] == "lognorm"
+        assert options["Q-Q Plot"]["distribution"] == "lognorm"
+    finally:
+        dialog.close()
