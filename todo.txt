@@ -39,8 +39,8 @@ I-02  M  Importer plugins for a lab's own formats - EVALUATION AND PLAN: dev/pla
 I-03  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in New Chart, Id included;
          an Animation tab in Chart properties; a player; GIF/APNG/WebP/HTML/PNG frames, MP4 with ffmpeg).
          Waiting for the go; Q1-Q5 to answer.
-I-04     3D vector fields (divergence, curl); 3D parametric curves.
-         units with pint, uncertainty propagation.
+I-04     Next: 3D parametric curves x(t), y(t), z(t) - with I-06's expressions; units with pint and
+         uncertainty propagation (H-02) - needs a plan. (Vector Field, Quiver 3D done.)
 I-05   M  Small chart beside operation results.
 I-06   M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
 I-07   M  Reproducibility: re-run recorded operations; export a Python script (H-01).
