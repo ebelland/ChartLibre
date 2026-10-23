@@ -310,6 +310,18 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Quality and Process",
     ),
     DemoProject(
+        "Quality - a gauge study, a skewed process and a vortex",
+        "A measuring system and a process judged the way a quality engineer would, on simulated data with the "
+        "variation built in known: Gage R&R of a diameter gauge (10 parts, 3 operators, 3 repeats) on its "
+        "Multi-Vari chart; a lognormal surface roughness - in control, not normal, its distribution fitted by "
+        "AIC, its capability by the percentile method against USL 3.2 um; and a vortex's divergence and curl "
+        "from Vector Field.",
+        (),
+        builder="dev.demo.demo_quality:build_quality_demo",
+        preview="Gage R&R",
+        category="Quality and Process",
+    ),
+    DemoProject(
         "Time series - real data, the Nile and the airline passengers",
         "Two classic real series, their dates stored as text: the annual flow of the Nile 1871-1970, with "
         "the drop of about 1898 a time series model has to absorb, and the monthly airline passengers "

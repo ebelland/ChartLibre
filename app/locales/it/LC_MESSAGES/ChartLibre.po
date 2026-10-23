@@ -11347,3 +11347,9 @@ msgstr "Non è stato calcolato nulla."
 
 msgid "Nothing was written."
 msgstr "Non è stato scritto nulla."
+
+msgid "Quality - a gauge study, a skewed process and a vortex"
+msgstr "Qualità - uno studio del calibro, un processo asimmetrico e un vortice"
+
+msgid "A measuring system and a process judged the way a quality engineer would, on simulated data with the variation built in known: Gage R&R of a diameter gauge (10 parts, 3 operators, 3 repeats) on its Multi-Vari chart; a lognormal surface roughness - in control, not normal, its distribution fitted by AIC, its capability by the percentile method against USL 3.2 um; and a vortex's divergence and curl from Vector Field."
+msgstr "Un sistema di misura e un processo giudicati come farebbe un ingegnere della qualità, su dati simulati con una variazione nota: il Gage R&R di un calibro per diametri (10 parti, 3 operatori, 3 ripetizioni) sul suo grafico multi-vari; una rugosità superficiale lognormale - sotto controllo, non normale, con la distribuzione adattata per AIC e la capacità col metodo dei percentili rispetto a USL 3,2 um; e la divergenza e il rotore di un vortice da Campo vettoriale."
