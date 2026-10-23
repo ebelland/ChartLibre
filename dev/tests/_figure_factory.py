@@ -61,6 +61,7 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Image Plot",
     "Event Plot",
     "3D Line Plot",
+    "Quiver 3D",
     "3D Bar Chart",
     "Fishbone Diagram",
     "Q-Q Plot",
@@ -846,6 +847,19 @@ def _showcase_definitions() -> list[dict[str, Any]]:
                     "SELECT t AS x FROM src_series WHERE CAST(t AS INTEGER) % 53 = 0",
                     {},
                 ),
+            ],
+        },
+        {
+            "chart_type": "Quiver 3D",
+            "name": "Quiver 3D showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Quiver 3D", "projection": "3d"},
+            "series": [
+                (
+                    "field",
+                    "SELECT x, y, z, -y AS u, x AS v, 0.2 AS w, z AS color FROM src_scatter3d ORDER BY rowid LIMIT 60",
+                    {"length": 0.2},
+                )
             ],
         },
         {

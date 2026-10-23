@@ -11245,3 +11245,63 @@ msgstr "La distribuzione del processo per la capacità. Non normale: il metodo d
 
 msgid "Percentile method (ISO 22514-4): the fitted distribution's 0.135% and 99.865% points stand for -/+3 sigma, its median for the mean."
 msgstr "Metodo dei percentili (ISO 22514-4): i punti 0,135% e 99,865% della distribuzione adattata valgono -/+3 sigma, la sua mediana la media."
+
+msgid "Vector Field"
+msgstr "Campo vettoriale"
+
+msgid "A vector field sampled on a grid: its divergence (where it spreads out or gathers) and its curl (where and how fast it turns), in 2D or 3D."
+msgstr "Un campo vettoriale campionato su una griglia: la sua divergenza (dove si apre o si raccoglie) e il suo rotore (dove e quanto ruota), in 2D o 3D."
+
+msgid "The nodes' x."
+msgstr "La x dei nodi."
+
+msgid "The nodes' y."
+msgstr "La y dei nodi."
+
+msgid "Optional: the nodes' z, for a field in space."
+msgstr "Facoltativo: la z dei nodi, per un campo nello spazio."
+
+msgid "The field's x component."
+msgstr "La componente x del campo."
+
+msgid "The field's y component."
+msgstr "La componente y del campo."
+
+msgid "Optional: the field's z component, with Z."
+msgstr "Facoltativo: la componente z del campo, con Z."
+
+msgid "A field in space needs both Z and W; a flat one neither."
+msgstr "Un campo nello spazio vuole sia Z sia W; uno piano nessuno dei due."
+
+msgid "Each role needs a column of its own."
+msgstr "Ogni ruolo vuole una colonna sua."
+
+msgid "Quantity"
+msgstr "Grandezza"
+
+msgid "Divergence"
+msgstr "Divergenza"
+
+msgid "Curl"
+msgstr "Rotore"
+
+msgid "Curl magnitude"
+msgstr "Intensità del rotore"
+
+msgid "Central differences on the grid (numpy.gradient); one-sided at its edges, where they are less accurate."
+msgstr "Differenze centrali sulla griglia (numpy.gradient); unilaterali ai bordi, dove sono meno accurate."
+
+msgid "{n} nodes, {dims}D"
+msgstr "{n} nodi, {dims}D"
+
+msgid "The field, coloured by its divergence"
+msgstr "Il campo, colorato per divergenza"
+
+msgid "Its curl, coloured by its size"
+msgstr "Il suo rotore, colorato per intensità"
+
+msgid "Quiver 3D"
+msgstr "Frecce 3D"
+
+msgid "An arrow at each point in space showing a 3D vector field's direction and size (u, v, w)."
+msgstr "Una freccia in ogni punto dello spazio con direzione e intensità di un campo vettoriale 3D (u, v, w)."
