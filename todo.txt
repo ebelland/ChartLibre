@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-23
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 104,201 lines in 309 files; tests 21,621 lines in 189 files (updated at each commit).
+Size: app 104,693 lines in 312 files; tests 21,754 lines in 191 files (updated at each commit).
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
@@ -17,7 +17,6 @@ NEXT - INTERFACE
 - H-08  M  First run: open on Help me choose with a demo table; a 3-step tour of the rail.
 
 LATER
-- AN-06 M  Quality: Gage R&R, capability with non-normal fits, multi-vari.
 - AN-07 M  Profiler, desirability, contour profiler; D-optimal DOE.
 - AN-08 M  Survival: Cox, Weibull/lognormal life fits.
 - AN-09 M  Mixed models (REML); power and sample size.

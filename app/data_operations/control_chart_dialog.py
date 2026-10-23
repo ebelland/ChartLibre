@@ -80,7 +80,7 @@ from app.data.series_frame import SeriesFrame
 from app.utils.coercion import to_numbers
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam, TextParam
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
@@ -368,6 +368,12 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                   visible_for={"model": CAPABLE}),
         TextParam("target", "Target:", placeholder="none", tooltip="For Cpm; needs both limits.",
                   visible_for={"model": CAPABLE}),
+        ChoiceParam("distribution", "Distribution:", choices=(
+            ("Normal", "normal"), ("Best fit (AIC)", "best"), ("Lognormal", "lognormal"),
+            ("Weibull", "weibull"), ("Gamma", "gamma")),
+                    tooltip="The process' distribution for the capability. Not normal: the percentile method "
+                            "(ISO 22514-4) - Pp and Ppk from the fitted distribution's 0.135% and 99.865% points.",
+                    visible_for={"model": CAPABLE}),
     )
 
     Icon = """
@@ -603,7 +609,8 @@ class SeriesControlChartDialog(DataOperationDialogBase):
         if chart not in CAPABLE or (limits["lsl"] is None and limits["usl"] is None):
             return built
         # The chart's own sigma is the within one: moving range or subgroups.
-        return built, capability(y_values, sigma_within=built.sigma, **limits)
+        return built, capability(y_values, sigma_within=built.sigma, **limits,
+                                 distribution=str(params.get("distribution") or "normal"))
 
     def finish_series(
         self, name: str, outcome: Any, settings: tuple[str, dict[str, Any]]
@@ -864,10 +871,12 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                                             "stable process, so read these indices with care.")))
         limits = [(_(label), report_html.format_number(value)) for label, value in
                   (("LSL", capable.lsl), ("USL", capable.usl), ("Target", capable.target)) if value is not None]
+        normal = capable.distribution == "normal"
         parts.append(report_html.summary_table([
             *limits,
+            *(() if normal else ((_("Distribution"), _(capable.distribution.capitalize())),)),
             (_("Mean"), report_html.format_number(capable.mean)),
-            (_("Sigma (within)"), report_html.format_number(capable.sigma_within)),
+            *(((_("Sigma (within)"), report_html.format_number(capable.sigma_within)),) if normal else ()),
             (_("Sigma (overall)"), report_html.format_number(capable.sigma_overall)),
             *((name, report_html.format_number(value)) for name, value in capable.indices.items()),
         ]))
@@ -875,8 +884,11 @@ class SeriesControlChartDialog(DataOperationDialogBase):
         parts.append(report_html.table(
             tuple(_(c) for c in outside.columns),
             [(_(row[0]), *(report_html.format_number(v) for v in row[1:])) for row in outside.itertuples(index=False)],
-            align=("left", "right", "right", "right", "right"),
+            align=("left", *("right",) * (len(outside.columns) - 1)),
         ))
+        if not normal:
+            parts.append(report_html.note(_("Percentile method (ISO 22514-4): the fitted distribution's 0.135% and "
+                                            "99.865% points stand for -/+3 sigma, its median for the mean.")))
         if result.y.size < 30:
             parts.append(report_html.note(_("Fewer than 30 points: the capability indices are rough estimates.")))
         return report_html.section(_("Process capability"), *parts)

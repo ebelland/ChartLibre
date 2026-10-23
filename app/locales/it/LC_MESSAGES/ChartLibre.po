@@ -11230,3 +11230,18 @@ msgstr "Grafico multi-vari"
 
 msgid "Each value by an outer factor and an inner one, with the cell means joined and each group's mean: where the variation is - within, between cells, between groups."
 msgstr "Ogni valore per un fattore esterno e uno interno, con le medie di cella unite e la media di ogni gruppo: dove sta la variazione - dentro, tra celle, tra gruppi."
+
+msgid "Best fit (AIC)"
+msgstr "Migliore adattamento (AIC)"
+
+msgid "Lognormal"
+msgstr "Lognormale"
+
+msgid "Weibull"
+msgstr "Weibull"
+
+msgid "The process' distribution for the capability. Not normal: the percentile method (ISO 22514-4) - Pp and Ppk from the fitted distribution's 0.135% and 99.865% points."
+msgstr "La distribuzione del processo per la capacità. Non normale: il metodo dei percentili (ISO 22514-4) - Pp e Ppk dai punti 0,135% e 99,865% della distribuzione adattata."
+
+msgid "Percentile method (ISO 22514-4): the fitted distribution's 0.135% and 99.865% points stand for -/+3 sigma, its median for the mean."
+msgstr "Metodo dei percentili (ISO 22514-4): i punti 0,135% e 99,865% della distribuzione adattata valgono -/+3 sigma, la sua mediana la media."
