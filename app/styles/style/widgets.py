@@ -8,7 +8,7 @@ import html
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import QRect, QSize, Qt
-from PySide6.QtGui import QAction, QFont, QIcon, QPixmap, QTextOption
+from PySide6.QtGui import QAction, QIcon, QPixmap, QTextOption
 from PySide6.QtWidgets import (
     QBoxLayout,
     QCheckBox,
@@ -63,39 +63,14 @@ def create_section_title(text: str, parent: QWidget | None = None) -> QtWidgets.
     return label
 
 
-def create_compact_section_title(
-    text: str, parent: QWidget | None = None,
-) -> QtWidgets.QLabel:
-    """A section title one point smaller and demi-bold.
-
-    ``create_section_title`` alone (the QSS rule's own 11pt / weight 600) is
-    right for a dialog with one or two section headers. A panel that lists
-    several of them one after another - the Data Operations list's own
-    Analysis/Statistics/... headings - reads better with this shorter,
-    lighter version, which used to be a copy of this exact font math kept
-    inside ``DataOperationWidget``; other panels asking to match it is
-    what gave it this one home instead.
-    """
-    label = create_section_title(text, parent)
-    font = QFont(label.font())
-    point_size = font.pointSize()
-    if point_size > 0:
-        font.setPointSize(max(point_size - 1, 9))
-    else:
-        font.setPixelSize(12)
-    font.setWeight(QFont.Weight.DemiBold)
-    label.setFont(font)
-    return label
-
-
 class CardFrame(QFrame):
     """A rounded ``[card="true"]`` surface with its own layout pre-margined.
 
-    What ``create_card_widget()`` and ``apply_card_layout()`` did as two
+    What two separate calls used to do
     separate calls - the QSS side (the "card" property, no frame shape, an
     expanding size policy) and the layout side (margins, spacing) - always
     had to travel together, and a call site that built its own layout with
-    ``stdSizeAndlayout`` instead of ``apply_card_layout`` by mistake got a
+    ``stdSizeAndlayout`` instead of the card's own by mistake got a
     card with its content flush against the rounded border: cramped, not
     wrong enough to fail a review, and it happened more than once (axis
     kwargs, series properties, an operation dialog's model selector, all
@@ -534,23 +509,6 @@ def set_doc_link(label: QtWidgets.QLabel, title: str, url: str) -> None:
     label.setToolTip(clean_url)
 
 
-def apply_card_layout(
-    layout: QBoxLayout,
-    *,
-    margins: tuple[int, int, int, int] = MARGIN_CARD,
-    spacing: int = SPACING_DEFAULT,
-) -> None:
-    """Give a card's inner layout breathing room.
-
-    ``stdSizeAndlayout`` zeroes the margins, which is right for a *nested*
-    layout but wrong for the outermost layout inside a card: the card draws a
-    border and a background, and content flush against that border reads as
-    cramped.  Use this for the layout directly inside a create_card_widget().
-    """
-    layout.setContentsMargins(*margins)
-    layout.setSpacing(spacing)
-
-
 def apply_toolbox_header_metrics(
     toolbox: QtWidgets.QToolBox,
     *,
@@ -596,48 +554,6 @@ def apply_toolbox_header_metrics(
 #: there read as the section title crowding the header rather than as
 #: its own block.
 MARGIN_TOOLBOX_PAGE: tuple[int, int, int, int] = (10, 16, 10, 12)
-
-
-def apply_toolbox_page_metrics(
-    toolbox: QtWidgets.QToolBox,
-    *,
-    margins: tuple[int, int, int, int] = MARGIN_TOOLBOX_PAGE,
-) -> None:
-    """Give a QToolBox's pages a ground of their own, and room inside it.
-
-    Two things, both of which QSS alone cannot do here.
-
-    The *ground*: a page is a plain QWidget, so a stylesheet background on
-    it is parsed and never painted without ``WA_StyledBackground`` - the
-    long-standing Qt gotcha. The pages are marked ``toolboxPage`` and each
-    sheet then says what a page is: the window grey on macOS, where the
-    white cards inside it are System Settings' floating grouped boxes, and
-    white on Windows, where WinUI3 puts outlined cards on one continuous
-    white page. Without it the page inherited whatever was behind it and a
-    white card on a white page showed only its corners - which is how it
-    was reported.
-
-    The *room*: a page's own layout margins. QSS padding on a widget pads
-    the box its background is painted in, not the layout inside it, so the
-    inset that makes the cards float has to be set here.
-
-    Call after adding the items, like the header metrics.
-    """
-    for index in range(toolbox.count()):
-        page = toolbox.widget(index)
-        if page is None:
-            continue
-        page.setProperty("toolboxPage", True)
-        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        # Only where the page set none of its own: the properties panels
-        # already choose MARGIN_PANEL, and a helper called for the ground
-        # colour has no business overruling a margin somebody picked. A
-        # page with (0, 0, 0, 0) is one that never thought about it, which
-        # is exactly the flat-to-the-edges case this is here to fix.
-        layout = page.layout()
-        if layout is not None and layout.contentsMargins().isNull():
-            layout.setContentsMargins(*margins)
-        repolish_widget(page)
 
 
 def apply_dialog_shell(

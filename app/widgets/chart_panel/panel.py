@@ -312,7 +312,6 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
         self._notes_view.setVisible(False)
         self._restore_notes_state()
 
-        self._active_chart_widget: QWidget = self._canvas
         self._apply_background_color_to_widgets()
 
     def _configure_fixed_scroll_area(self) -> None:

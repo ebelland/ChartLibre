@@ -25,12 +25,6 @@ PREVIEW_DPI: int = get_constant("project_preview_dpi", 200)
 PREVIEW_KEY = "preview_path"
 
 
-def preview_file_for(project: Path) -> Path:
-    """Where *project*'s preview goes: ``<name>.preview.png`` beside it."""
-    project = Path(project)
-    return project.with_name(f"{project.stem}.preview.png")
-
-
 def resolve_preview(project: Path, entry: str | None) -> Path | None:
     """The preview file a ``preview_path`` *entry* names, if it exists."""
     if not entry:

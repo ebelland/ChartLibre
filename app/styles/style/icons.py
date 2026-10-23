@@ -1040,10 +1040,6 @@ def icon_from_action_spec(spec: "ActionSpec") -> QIcon:
     icon at all, which was a deliberate choice: three real icon sets cover
     every machine anyone actually runs, and a hand-drawn fallback for the
     rest is a maintenance burden charged to everybody.
-
-    ``report_icon_sources`` says which backend answers for each action on the
-    machine it runs on, and what is left under ``"none"`` is what nothing can
-    draw there.
     """
     if spec.svg:
         # Drawn for this action because no system glyph says it: preferred
@@ -1101,20 +1097,6 @@ def icon_source_for_action(spec: "ActionSpec") -> str:
         return "theme"
 
     return "none"
-
-
-def report_icon_sources() -> dict[str, list[str]]:
-    """Return the action ids each icon backend answers for, on this machine.
-
-    What lands under ``"none"`` is what this machine cannot draw at all - the
-    only report that matters now that there is no shipped fallback beneath the
-    three real icon sets. Run it, do not guess: a mistyped theme name fails
-    silently, because ``fromTheme`` returns a null icon and says nothing.
-    """
-    report: dict[str, list[str]] = {source: [] for source in ICON_SOURCES}
-    for action_id, spec in sorted(_catalog().items()):
-        report[icon_source_for_action(spec)].append(action_id)
-    return report
 
 
 def load_icon(icon: str | None) -> QIcon:

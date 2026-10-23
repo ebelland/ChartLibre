@@ -76,7 +76,6 @@ class DOEExperimentDialog(SettingsTableDialog):
         del figure_id  # Accepted for compatibility; DOE has no chart target.
         self._repo = repo
         self.created_table_name: str | None = None
-        self._preview_frame: pd.DataFrame | None = None
         self._refresh_pending = False
         self._building = True
         self._create_widgets()
@@ -473,13 +472,11 @@ class DOEExperimentDialog(SettingsTableDialog):
             request = self._read_request()
             frame = self.generate_matrix(request)
         except Exception as exc:  # noqa: BLE001 - Validation is displayed in the preview.
-            self._preview_frame = None
             self.ok_button.setEnabled(False)
             self.preview.setHtml(
                 f"<h3>{html.escape(_('Preview unavailable'))}</h3>"
                 f"<p style='color:#a40000'>{html.escape(str(exc))}</p>")
             return
-        self._preview_frame = frame
         self.ok_button.setEnabled(True)
         self.preview.setHtml(self._preview_html(frame, request))
 
@@ -560,7 +557,6 @@ class DOEExperimentDialog(SettingsTableDialog):
             applogger.error("DOE table creation failed: %s", exc)
             QMessageBox.warning(self, _(self.Name), str(exc))
             return
-        self._preview_frame = frame
         self.created_table_name = table_name
         self.table_created.emit(table_name)
         self.applied.emit()

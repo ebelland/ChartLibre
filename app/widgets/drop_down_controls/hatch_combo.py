@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtCore import QRect, QSize
 from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 

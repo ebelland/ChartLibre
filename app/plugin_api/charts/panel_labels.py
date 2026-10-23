@@ -52,7 +52,7 @@ def apply_panel_labels(ordered_axes: list[Any], options: dict[str, Any]) -> None
         text = label_text(style, index)
         if not text:
             continue
-        artist = ax.annotate(
+        ax.annotate(
             text,
             xy=(0.0, 1.0),
             xycoords="axes fraction",
@@ -64,4 +64,3 @@ def apply_panel_labels(ordered_axes: list[Any], options: dict[str, Any]) -> None
             fontweight="bold",
             annotation_clip=False,
         )
-        artist._dhub_panel_label = True  # noqa: SLF001 - our own attribute

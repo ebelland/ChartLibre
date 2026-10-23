@@ -52,7 +52,7 @@ class LayoutMixin:
         page = QWidget(self)
         page.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         page_layout = QVBoxLayout(page)
-        # Left null so apply_toolbox_page_metrics fills it with the page inset.
+        # Left null: the page's own inset (MARGIN_TOOLBOX_PAGE) is set where it is mounted.
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(0)
 
@@ -129,7 +129,7 @@ class LayoutMixin:
         for content, title in pages:
             page = self._toolbox_page(content)
             # The ground and the inset a toolbox page had (grey on macOS,
-            # white on Windows; see apply_toolbox_page_metrics).
+            # white on Windows; the toolboxPage rule in each sheet).
             page.setProperty("toolboxPage", True)
             page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             page.layout().setContentsMargins(*MARGIN_TOOLBOX_PAGE)

@@ -217,8 +217,6 @@ class FigurePropertiesWidget(BaseProperties):
         # _repo/_figure_id/_figure/_redraw_callback come from BaseProperties.
         #: Text of the style currently attached to the figure ("" = Matplotlib's own).
         self._style_text = ""
-        #: Path of the .mplstyle that text came from, when it matches one on disk.
-        self._style_path: Path | None = None
         #: The layout preset last applied to each figure, shown in its combo until another is picked.
         self._applied_presets: dict[int, str] = {}
 
@@ -986,7 +984,6 @@ class FigurePropertiesWidget(BaseProperties):
     def _set_style(self, text: str, path: Path | None) -> None:
         """Show a style in the text box; no signal is emitted."""
         self._style_text = text
-        self._style_path = path
         if path is not None:
             label = self._style_label_for_path(path)
         elif text.strip():

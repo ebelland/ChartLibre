@@ -10,15 +10,13 @@ parameters that cannot work, leaving everything else untouched.
 
 Public API:
     latex_available()                 - True when usetex can work
-    filter_latex_rcparams(mapping)    - drop unusable keys from a dict
-    filter_latex_style_text(text)     - same, for raw .mplstyle text
+    filter_latex_style_text(text)     - drop unusable keys from raw .mplstyle text
     latex_unavailable_reason()        - human-readable explanation, or ""
 """
 from __future__ import annotations
 
 import shutil
 from functools import lru_cache
-from typing import Any, Mapping
 
 from app.logs.logger import applogger
 
@@ -65,28 +63,6 @@ def is_latex_rcparam(key: str) -> bool:
     if name in LATEX_RCPARAM_KEYS:
         return True
     return any(name.startswith(prefix) for prefix in LATEX_RCPARAM_PREFIXES)
-
-
-def filter_latex_rcparams(params: Mapping[str, Any]) -> dict[str, Any]:
-    """Return *params* without LaTeX-dependent keys when LaTeX is missing.
-
-    When LaTeX is present the mapping is returned unchanged (as a plain dict).
-    """
-    result = dict(params)
-    if latex_available():
-        return result
-
-    dropped = [key for key in result if is_latex_rcparam(key)]
-    for key in dropped:
-        del result[key]
-
-    if dropped:
-        applogger.warning(
-            "%s; ignoring rcParams: %s",
-            latex_unavailable_reason(),
-            ", ".join(sorted(dropped)),
-        )
-    return result
 
 
 def filter_latex_style_text(text: str) -> str:

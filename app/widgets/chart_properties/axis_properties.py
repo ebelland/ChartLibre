@@ -16,7 +16,6 @@ from typing import Any, Final, TypeAlias, cast
 from PySide6.QtCore import QEvent, QObject, QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QPlainTextEdit,
-    QAbstractButton,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -116,11 +115,6 @@ class AxisPropertiesWidget(BaseProperties):
         self._kwargs_build_signature: tuple[Any, ...] | None = None
         self._limit_edits: dict[str, QLineEdit] = {}
         self._limit_auto_checks: dict[str, QCheckBox] = {}
-        # Rebuilt with the editor it sits on - see rebuild_kwargs_editor.
-        # create_action_button() and mark_icon_only() return a generic button
-        # instance rather than a QPushButton specifically, so the attribute must
-        # match that broader Qt type.
-        self._btn_reset_kwargs: QAbstractButton | None = None
         # Expanding/Expanding already set by BaseProperties.
         self.setMinimumHeight(0)
         self._build_ui()
@@ -1025,7 +1019,6 @@ class AxisPropertiesWidget(BaseProperties):
             )
         )
         if reset_button is not None:
-            self._btn_reset_kwargs = reset_button
             editor.add_search_row_widget(reset_button)
 
         self._kwargs_editor = editor

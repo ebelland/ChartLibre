@@ -137,7 +137,6 @@ class FitModelDialog(TableOperationDialogBase):
 
     def __init__(self, **kwargs: Any) -> None:
         self._terms: list[lm.Term] = []
-        self._terms_edited = False
         self.created_figure_ids: list[int] = []
         super().__init__(**kwargs)
 
@@ -326,7 +325,6 @@ class FitModelDialog(TableOperationDialogBase):
         if getattr(self, "_terms_table", None) != self.table_or_none():
             # Another table: start again from its design's model.
             self._terms_table = self.table_or_none()
-            self._terms_edited = False
             if hasattr(self, "_term_list"):
                 design = self.doe_design(self.table) or {}
                 self._apply_macro(_DOE_MACROS.get(str(design.get("model")), "main"), edited=False,
@@ -393,7 +391,6 @@ class FitModelDialog(TableOperationDialogBase):
             "factorial": lambda f: lm.factorial(f, degree),
             "surface": lm.response_surface,
         }[key](factors)
-        self._terms_edited = edited
         self._show_terms()
         if edited:
             super().inputs_changed()
@@ -402,7 +399,6 @@ class FitModelDialog(TableOperationDialogBase):
         for term in terms:
             if term not in self._terms:
                 self._terms.append(term)
-        self._terms_edited = True
         self._show_terms()
         super().inputs_changed()
 
@@ -421,7 +417,6 @@ class FitModelDialog(TableOperationDialogBase):
         rows = sorted((self._term_list.row(item) for item in self._term_list.selectedItems()), reverse=True)
         for row in rows:
             del self._terms[row]
-        self._terms_edited = True
         self._show_terms()
         super().inputs_changed()
 

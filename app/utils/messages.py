@@ -178,7 +178,7 @@ class MessageSpec:
         )
 
 # Read once from config.json and kept, because every message box would
-# otherwise re-read and re-parse the whole file.  reload_messages() drops it.
+# otherwise re-read and re-parse the whole file.
 _cache: dict[str, MessageSpec] | None = None
 
 
@@ -213,12 +213,6 @@ def catalog() -> dict[str, MessageSpec]:
 
     _cache = built
     return _cache
-
-
-def reload_messages() -> None:
-    """Forget the cached catalogue, so an edited config.json is picked up."""
-    global _cache
-    _cache = None
 
 
 def message(message_id: str) -> MessageSpec:

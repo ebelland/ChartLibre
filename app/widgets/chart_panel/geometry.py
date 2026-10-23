@@ -218,8 +218,6 @@ class GeometryMixin:
             )
             self._main_layout.addWidget(self._canvas, 1)
 
-        self._active_chart_widget = self._canvas
-
     def _move_canvas_to_fixed_page(self) -> None:
         """Put the canvas into the scroll area for FIXED mode."""
         self._remove_active_chart_widget_from_layout()
@@ -231,7 +229,6 @@ class GeometryMixin:
         self._main_layout.addWidget(self._fixed_scroll_area, 1)
         self._fixed_scroll_area.setVisible(True)
         self._fixed_scroll_area.raise_()
-        self._active_chart_widget = self._fixed_scroll_area
 
     def set_zoom_percent(self, percent: int) -> None:
         """Set FIXED-mode zoom and persist it to config.json."""
@@ -253,10 +250,6 @@ class GeometryMixin:
 
         self._persist_chart_panel_config()
         self._persist_view_state()
-
-    def background_color(self) -> str:
-        """Return the background colour used around the chart canvas."""
-        return self._background_color
 
     def _apply_background_color_to_widgets(self) -> None:
         """Apply the panel background without changing the Matplotlib figure.

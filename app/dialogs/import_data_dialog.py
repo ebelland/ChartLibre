@@ -258,7 +258,6 @@ class ImportDataDialog(SettingsTableDialog):
         #: The clipboard is read with rows and columns swapped.
         self._clipboard_transposed: bool = False
         self._path: str = ""
-        self._last_auto_table: str = ""
         self._picked_web_source: WebDataSource | None = None
 
         # Size and root padding come from the shared dialog shell.
@@ -922,7 +921,6 @@ class ImportDataDialog(SettingsTableDialog):
     def _set_default_table_name(self, path: str) -> None:
         auto = self._safe_table_name_from_filename(path)
         self._table.setText(auto)
-        self._last_auto_table = auto
 
     def _on_browse(self) -> None:
         path, _unused = QFileDialog.getOpenFileName(

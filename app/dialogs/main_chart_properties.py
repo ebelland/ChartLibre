@@ -64,7 +64,7 @@ class MainWindowChartProperties:
             (self._overlay_widget, _("Overlays"), _("Overlay properties")),
         ):
             # The ground and the room a toolbox page had: the window grey on
-            # macOS, white on Windows (see apply_toolbox_page_metrics).
+            # macOS, white on Windows (the toolboxPage rule in each sheet).
             page.setProperty("toolboxPage", True)
             page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             layout = page.layout()
