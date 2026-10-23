@@ -1,7 +1,7 @@
 ChartLibre TODO - updated 2026-10-23
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 103,699 lines in 308 files; tests 21,290 lines in 186 files (updated at each commit).
+Size: app 104,001 lines in 308 files; tests 21,445 lines in 186 files (updated at each commit).
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
@@ -45,7 +45,9 @@ I-04     3D vector fields (divergence, curl); 3D parametric curves.
 I-05   M  Small chart beside operation results.
 I-06   M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
 I-07   M  Reproducibility: re-run recorded operations; export a Python script (H-01).
-I-08   L  Multichart templates; signed macOS app, Windows installer.
+I-08   L  Figure templates (G-18, H-03) - PLAN: dev/plans/figure_templates_plan.txt (save a figure's design,
+          apply it to another figure or a new chart; waiting for the go, Q1-Q3 to answer).
+          Also: signed macOS app, Windows installer.
 
 [YOU]
 - A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
@@ -117,7 +119,7 @@ JMP
 - G-11  L  Text Explorer: word counts, n-grams, topics of a text column. Low for engineers.
 
 Matplotlib
-- G-18  S  Panel letters in an exported figure's template (with I-08 templates).
+- G-18  S  Panel letters in an exported figure's template: comes with the templates (I-08).
 
 scikit-learn
 - G-19  M  More learners: k-nearest neighbours, SVM (SVC/SVR), naive Bayes, HistGradientBoosting

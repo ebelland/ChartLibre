@@ -1,0 +1,49 @@
+FIGURE TEMPLATES - PLAN (G-18, with I-08 and H-03)            2026-10-23, waiting for the go
+
+WHAT IT IS FOR
+"Same chart for the next file": a figure's design - its layout, sizes, style,
+panel letters, every axis' scales/limits/ticks/labels and every series' look -
+kept as a template, then applied to another figure or to new data. G-18's last
+part (panel letters carried by a template) comes with it for free: the letters
+are figure options.
+
+WHAT A TEMPLATE HOLDS (and what it does not)
+- Holds: FigureDescriptor.options (size, DPI, layout mode, font scale, border,
+  panel_labels and position, shared gaps, mosaic), nrows/ncols, the embedded
+  style text; per axis (by position in the grid): name (chart type), options,
+  title/x/y/z labels, row/col span, sharing, twin_of; per series (by order on
+  its axis): options (style) only.
+- Does not hold: data - sql_query, roles, table names, generated-series markers.
+  A template is design, not content.
+- Stored as JSON (one file, *.cltemplate), so it can be shared, kept in user/templates/
+  and versioned; a project keeps its own list too (a table of the project), as custom
+  models will (I-06).
+
+THE INTERFACE (Figure properties > a "Template" card, below Style)
+- Save as template...  name it; saved to user/templates/<name>.cltemplate.
+- Apply template...    a list with each template's thumbnail; applies to the
+                       figure shown, one undo step.
+- On a new chart: New Chart gets a "Template" combo (None by default).
+Applying matches axes by position and series by order: extra axes in the
+template are added empty (no series), extra series on the figure keep their
+own style. The chart types are applied only where the axis has no series yet,
+or where the series' roles fit the new type; otherwise the type stays and a
+note says why.
+
+STEPS (each one a commit, tests with it)
+1. app/data/figure_templates.py: to_template(descriptor) -> dict, apply_template(repo,
+   figure_id, template) (one undo step), read/write JSON with a version number. No Qt.
+   Tests: round trip; data never copied; position matching; an incompatible chart type kept.
+2. Figure properties "Template" card: Save as / Apply, thumbnails (the template's own
+   render on placeholder data, as guided_thumbnails does).
+3. New Chart: Template combo.
+4. Batch over a folder (H-03's second half) - separate, later: open each file, make a
+   figure from the template, export. Its own plan when wanted.
+
+QUESTIONS
+Q1  Templates per user (user/templates/) only, or also inside the project? (Suggested: both,
+    user first.)
+Q2  Apply the chart type too, or only the look? (Suggested: type only where it fits, as above.)
+Q3  Ship a few templates (two-column paper figure with letters, poster, slide)? (Suggested: three.)
+
+EFFORT: L (steps 1-3 M, step 4 M).
