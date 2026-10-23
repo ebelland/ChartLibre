@@ -1,0 +1,83 @@
+ONE SHELL FOR EVERY ANALYSIS: A CHARTS TAB, AND PREVIEW FOR THE TABLE ANALYSES - PLAN      2026-10-24, waiting for the go
+
+WHAT WAS ASKED
+2. DataOperationDialogBase: a "Charts" tab in its tabs (Data | Model | Parameters | Charts) holding where
+   the result is drawn - new figure, new axis, current axis - and a check box per chart the operation can draw.
+3. Distribution and the other table analyses: on the same base, so Preview draws their charts as 2. says;
+   Distribution gets a choice of distribution (normal, lognormal...).
+
+WHAT IS THERE TODAY
+- Data operations (19, app/data_operations) derive from DataOperationDialogBase (a mixin package of 8
+  modules: layout, inputs, evaluation, results, transaction, hooks...). Data = the chart's series (or a
+  table's columns); Preview draws inside a savepoint, OK keeps it. Where the result goes is decided per
+  operation: 5 declare a "destination" parameter (Function, Calculus, Transform, Regression, GP), the others
+  hard-code it in resolve_target_axis_id (Fit: the source axis; Control Chart: a new axis...). What is drawn
+  is scattered: Fit's bands and extra charts in its Output tab, Control Chart's draw_limits/zones/signals in
+  Parameters, others fixed.
+- Table analyses (19 + 5 quick answers, app/table_operations) derive from TableOperationDialogBase, a
+  QDialog of its own: Data = column roles, Parameters, a report pane; computed in the background; no
+  Preview of a chart - OK writes tables and makes a new report figure (create_report_figure, panels).
+
+THE PROPOSAL - ONE SHELL, TWO KINDS OF DATA
+A literal "Distribution derives from DataOperationDialogBase" would drag the series machinery (series
+selector, per-series results, result tables per series) into analyses that read whole tables. Instead:
+
+  OperationShell (new, app/plugin_api/operation_shell/)  - the window both kinds share:
+      tabs (Data | Model | Parameters | Charts | extra), results pane, buttons (Preview, Revert, Copy, OK,
+      Cancel, Stop), background run with Stop, preview savepoint and its rollback, the Charts tab,
+      failure shown in the results pane, undo step on OK.
+  DataOperationDialogBase(OperationShell)   - Data = series selector / table columns (as now).
+  TableOperationDialogBase(OperationShell)  - Data = column roles (as now); compute(frame) unchanged.
+
+So every plugin keeps its own contract (compute / compute_results / apply_results); what changes is the
+shell around it. Both kinds then have the same tabs, the same Charts tab and the same Preview.
+
+THE CHARTS TAB (2.)
+- "Draw on": ( ) Current axis   ( ) New axis in this figure   ( ) New figure   - each operation declares
+  which it allows and its default (DESTINATIONS, DEFAULT_DESTINATION class attributes); the 5 "destination"
+  parameters and the hard-coded choices move here. A table analysis (no current axis of its own) offers
+  New figure (default) and New axis in the current figure.
+- "Charts": a check box per chart the operation can draw, declared by the plugin:
+      CHARTS = (ChartOption("curve", "Fitted curve", default=True), ChartOption("ci", "95% confidence band"),...)
+  read with self.chart_enabled("ci"). Moved here: Fit's bands and extra charts, Control Chart's limits /
+  centre / zones / signals, Distribution's histogram / Q-Q plot / box plot / CDF, Fit Model's
+  actual-by-predicted / residuals / profiler, and so on for each analysis.
+- The choices are recorded with the operation (todo R-03), under the keys the parameters have now, so
+  saved projects re-run the same.
+
+PREVIEW FOR THE TABLE ANALYSES (3.)
+- Preview computes, writes the result tables and draws the checked charts where "Draw on" says - inside the
+  preview savepoint, like the data operations; Revert or Cancel rolls it back; OK keeps it (one undo step).
+- apply_results(result) keeps its role; create_report_figure learns the destination (a new axis in the
+  current figure as well as a new figure) and draws only the checked panels.
+
+DISTRIBUTION (3.)
+- Model tab: "Distribution" - Normal (default), Lognormal, Weibull, Gamma, Exponential, Best fit (AIC),
+  from app/utils/distribution_fit (it already fits these). The histogram's overlay, the probability
+  (Q-Q) plot's reference and a goodness-of-fit table (Kolmogorov-Smirnov, Anderson-Darling, AIC) follow
+  the choice; the parameters of the fitted distribution in the report.
+- Charts tab: Histogram with the fitted density, Q-Q plot against the chosen distribution, Box plot, CDF.
+
+STEPS (each a commit, the suite green after each)
+1. OperationShell extracted from DataOperationDialogBase - no behaviour change; the data operations' tests
+   are the safety net.                                                                           (M)
+2. Charts tab in the shell: DESTINATIONS / DEFAULT_DESTINATION / CHARTS; the 19 data operations moved onto
+   it one by one (the 5 destination params, Fit's Output checks, Control Chart's draw_* params).  (M)
+3. TableOperationDialogBase rebuilt on the shell: same tabs, the report in the results pane, background
+   run and Stop kept; Preview draws (savepoint); the 24 table dialogs keep compute/apply_results.   (L)
+4. Charts declared for each table analysis (which panels it can draw).                          (M)
+5. Distribution: the distribution choice, overlay, Q-Q, goodness of fit.                         (S)
+Every dialog checked at 1280x720 (both styles) after 2 and 3.
+
+RISKS
+- Step 3 touches every table analysis and the quick answers: their tests (and the guided analysis, which
+  opens them with roles cast) are the net; done on a branch if preferred.
+- Recorded operations (R-03) and the macros that re-run them read parameter names: kept as they are.
+
+QUESTIONS
+Q1  The shared base rather than a literal subclass of DataOperationDialogBase - all right?
+Q2  The quick answers (Are there differences?, Has it changed?, Is it in control?, Is it normal?, What has
+    the most impact?) on the same shell too, with Preview? (Suggested: yes - same base, fewer tabs shown.)
+Q3  Distribution's default: Normal (as JMP) or Best fit (AIC)? (Suggested: Normal.)
+
+EFFORT: L overall (5 steps; 1-2 about two sessions, 3-5 about three).
