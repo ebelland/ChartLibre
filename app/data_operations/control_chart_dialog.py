@@ -326,7 +326,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             "draw_center",
             "Draw the centre line:",
             tooltip="The process mean the limits are built around.",
-            default_value=True, advanced=True),
+            default_value=True, tab="charts"),
         BoolParam(
             "draw_limits",
             "Draw the control limits:",
@@ -334,7 +334,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 "The upper and lower limits. Without them the chart is a run "
                 "chart - the points, but nothing to judge them against."
             ),
-            default_value=True, advanced=True),
+            default_value=True, tab="charts"),
         BoolParam(
             "draw_zones",
             "Draw the one and two sigma lines:",
@@ -342,12 +342,12 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 "The A/B/C zones the run rules are phrased in: \"two of three "
                 "beyond two sigma\" is a statement about a line worth seeing."
             ),
-            default_value=False, advanced=True),
+            default_value=False, tab="charts"),
         BoolParam(
             "draw_violations",
             "Highlight the flagged points:",
             tooltip="Draws the signalling points again as separate markers.",
-            default_value=True, advanced=True),
+            default_value=True, tab="charts"),
         BoolParam(
             "exclude_violations",
             "Exclude flagged points from the limits:",

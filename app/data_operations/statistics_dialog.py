@@ -374,18 +374,17 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         layout.addStretch(1)
         return panel
 
-    def extra_tabs(self) -> list[tuple[QWidget, str]]:
-        """A Charts tab: whether to draw, and what (the start of todo O-01's Charts tab)."""
-        panel = CardFrame(self, "statisticsChartsCard")
-        chart_form = QFormLayout()
+    def chart_widgets(self) -> list[QWidget]:
+        """Whether to draw, and what: in the Charts tab."""
+        box = QWidget(self)
+        chart_form = QFormLayout(box)
         stdSizeAndlayout(chart_form)
+        chart_form.setContentsMargins(0, 0, 0, 0)
         chart_form.addRow(self.create_chart_check)
-        self._chart_label = QLabel(_("Chart:"), panel)
+        self._chart_label = QLabel(_("Chart:"), box)
         self.chart_type_combo.setMaximumWidth(FIELD_MAX_WIDTH)
         chart_form.addRow(self._chart_label, self.chart_type_combo)
-        panel.layout().addLayout(chart_form)
-        panel.layout().addStretch(1)
-        return [(panel, _("Charts"))]
+        return [box]
 
     def build_parameter_selector(self) -> QWidget:
         panel = CardFrame(self, "statisticsParametersCard")

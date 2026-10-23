@@ -199,6 +199,10 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         restore_window_geometry(self, self._state_key)
         restore_dialog_state(self, self._state_key)
         self._restore_extra_state()
+        # Restored with its signals blocked: the model's documentation link
+        # still named the first model's ("Huber" linked to RANSAC's page).
+        if getattr(self, "_doc_link", None) is not None:
+            self._update_doc_link()
 
     #: Where the declared parameters and the table's columns are stored beside
     #: the entries; "@" is in no attribute's name, so restoring skips them.

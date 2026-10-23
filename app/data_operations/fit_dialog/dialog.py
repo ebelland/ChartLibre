@@ -453,7 +453,7 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         return outer
 
     def extra_tabs(self) -> list[tuple[QWidget, str]]:
-        """What the fit writes and draws, in a tab of its own: the Parameters tab is tall enough."""
+        """Where the fit writes its values, in a tab of its own: the Parameters tab is tall enough."""
         page = QWidget(self)
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -461,19 +461,26 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         self._output_table_edit.setToolTip(_("Name of the SQLite table where fitted values/residuals are saved."))
         output.card.layout().addWidget(self._output_table_edit)
         layout.addWidget(output)
-        curve = TitledCard(page, _("Fitted curve"))
+        layout.addStretch(1)
+        return [(page, _("Output"))]
+
+    def chart_widgets(self) -> list[QWidget]:
+        """What the fit draws - the curve, its bands, the extra charts - in the Charts tab."""
+        box = QWidget(self)
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(0, 0, 0, 0)
+        curve = TitledCard(box, _("Fitted curve"))
         curve_form = QFormLayout()
         curve_form.addRow(_("Points:"), self._curve_points_spin)
         curve_form.addRow(_("Extend:"), self._curve_extend_spin)
         curve.card.layout().addLayout(curve_form)
         layout.addWidget(curve)
-        bands = TitledCard(page, _("Bands on the fit"))
+        bands = TitledCard(box, _("Bands on the fit"))
         bands.card.layout().addWidget(self._confidence_band_check)
         bands.card.layout().addWidget(self._prediction_band_check)
         layout.addWidget(bands)
-        charts = TitledCard(page, _("Extra charts"), collapsible=True, collapsed=True)
+        charts = TitledCard(box, _("Extra charts"))
         charts.card.layout().addWidget(self._residual_chart_check)
         charts.card.layout().addWidget(self._fit_vs_measured_chart_check)
         layout.addWidget(charts)
-        layout.addStretch(1)
-        return [(page, _("Output"))]
+        return [box]
