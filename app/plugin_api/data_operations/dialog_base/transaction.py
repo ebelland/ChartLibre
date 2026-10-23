@@ -373,7 +373,7 @@ class TransactionMixin:
 
     def reject(self) -> None:
         """Close/Cancel rejects temporary Preview changes."""
-        self.stop_evaluation()
+        self.stop()
         self._remember_state()
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
@@ -382,7 +382,7 @@ class TransactionMixin:
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Window close button also rejects temporary Preview changes."""
-        self.stop_evaluation()
+        self.stop()
         self._remember_state()
         self.cancel_operation_changes()
         self.discard_operation_artifacts()

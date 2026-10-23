@@ -66,7 +66,7 @@ def test_the_dialog_draws_the_field(qapp, repo, dims: int) -> None:
         assert not dialog.problems()
         dialog.ok()
         deadline = time.monotonic() + 30
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])

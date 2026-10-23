@@ -53,7 +53,6 @@ from PySide6.QtWidgets import (
 
 from app.data import column_metadata
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
-from app.analysis import Stopped
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import OperationModel
 from app.plugin_api.data_operations.parameter_form import ParameterForm
@@ -67,7 +66,6 @@ from app.styles.style import (
 )
 from app.plugin_api.table_operations import next_steps
 from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole, ColumnRolesWidget
-from app.utils.background import BackgroundTask, run_in_background
 from app.utils.config import get_section, set_section
 from app.utils.dialog_state import (
     dialog_entries,
@@ -111,6 +109,8 @@ class TableOperationDialogBase(OperationShell, QDialog):
 
     #: Something was written into the project (an OK): the window refreshes.
     applied = Signal()
+    #: The Results pane's headline when the analysis fails.
+    FAILURE_HEADLINE: ClassVar[str] = "Nothing was computed."
     #: Preview drew its figure (its id), or took it away again (-1): the window shows or drops it.
     preview_drawn = Signal(int)
 
@@ -125,7 +125,6 @@ class TableOperationDialogBase(OperationShell, QDialog):
         self.row_ids = pd.Series(dtype="Int64")
         self._result: Any = None
         self._result_inputs: tuple[Any, ...] | None = None
-        self._task: BackgroundTask | None = None
         #: The figure the main window shows, for "Draw on: new axis in the current figure"; None: no such choice.
         self.current_figure_id: int | None = None
         #: A Preview's tables and figure are written inside a savepoint, rolled back by the next Preview,
@@ -313,12 +312,12 @@ class TableOperationDialogBase(OperationShell, QDialog):
         self.preview_button = create_action_button(parent=self, action_id="preview", action=self.preview, layout=buttons)
         self.stop_button = create_action_button(parent=self, action_id="operation_stop", action=self.stop, layout=buttons)
         self.stop_button.setVisible(False)
-        self._progress = QProgressBar(self)
-        self._progress.setRange(0, 0)
-        self._progress.setMaximumWidth(160)
-        self._progress.setTextVisible(False)
-        self._progress.setVisible(False)
-        buttons.addWidget(self._progress)
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setMaximumWidth(160)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setVisible(False)
+        buttons.addWidget(self.progress_bar)
         buttons.addStretch(1)
         create_action_button(parent=self, action_id="copy", action=self._results.copy_html_to_clipboard, layout=buttons)
         self.apply_button = create_action_button(parent=self, action_id="apply", action=self.ok, layout=buttons)
@@ -482,68 +481,27 @@ class TableOperationDialogBase(OperationShell, QDialog):
             self.created_figure_ids = []
         self.preview_drawn.emit(-1)
 
-    def stop(self) -> None:
-        if self._task is not None:
-            self._task.cancel()
-
-    def stop_requested(self) -> bool:
-        """True once Stop was pressed (or the window closed) during compute(); poll it in long loops."""
-        event = getattr(self, "_stop_event", None)
-        return event is not None and event.is_set()
+    def busy_widgets(self) -> list[QWidget]:
+        """Off while a calculation runs: the buttons, and the inputs it was started with."""
+        return [self.preview_button, self.apply_button, self._inputs_panel]
 
     def _run(self, then: Any) -> None:
         problems = self.problems()
         if problems:
             self._results.setText("\n".join(problems))
             return
-        if self._task is not None:
-            return
         frame, casting = self._frame.copy(), self.roles_widget.casting()
         params, model, inputs = self.parameter_values(), self.current_model(), self._inputs()
 
-        def finished(result: Any) -> None:
-            # Stop pressed too late for compute() to notice: the result is dropped all the same.
-            stopped = self._task is not None and self._task.cancel_event.is_set()
-            self._set_busy(False)
-            if stopped:
-                failed(Stopped())
-                return
+        def done(result: Any) -> None:
             self._result, self._result_inputs = result, inputs
-            try:
-                self.show_results(self.format_results(result))
-            except Exception as exc:  # noqa: BLE001 - shown like a failed run
-                failed(exc)
-                return
+            self.show_results(self.format_results(result))
             if then is not None:
                 then(result)
 
-        def failed(error: BaseException) -> None:
-            self._set_busy(False)
-            if isinstance(error, Stopped):
-                self._results.setText(_("Stopped. Nothing was changed."))
-                return
-            applogger.warning("%s failed: %s", self.Name, error)
-            self.show_failure(error, headline=_("Nothing was computed."))
-
-        self._set_busy(True)
-        # compute() takes no cancel argument (its signature is the plugins'
-        # contract), so Stop is offered through stop_requested(): a long
-        # compute polls it and raises app.analysis.Stopped.
-        self._stop_event = None
-
-        def work(cancel) -> Any:  # noqa: ANN001 - a threading.Event
-            self._stop_event = cancel
-            return self.compute(frame, casting, params, model)
-
-        self._task = run_in_background(work, finished, failed)
-
-    def _set_busy(self, busy: bool) -> None:
-        if not busy:
-            self._task = None
-        self.stop_button.setVisible(busy)
-        self._progress.setVisible(busy)
-        for widget in (self.preview_button, self.apply_button, self._inputs_panel):
-            widget.setEnabled(not busy)
+        # compute() takes no cancel argument (its signature is the plugins' contract): a long compute
+        # polls stop_requested() and raises app.analysis.Stopped.
+        self.run_job(lambda _cancel: self.compute(frame, casting, params, model), done)
 
     def _apply(self, result: Any) -> None:
         try:

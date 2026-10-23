@@ -110,7 +110,7 @@ def _run(app, repo, dialog_class, table: str, roles: dict, kinds: dict | None = 
             setup(dialog)
         dialog.ok()
         deadline = time.monotonic() + 120
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             app.processEvents()
             time.sleep(0.01)
         return int(dialog.created_figure_ids[0])

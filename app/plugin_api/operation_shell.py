@@ -10,7 +10,10 @@ they both did, each in its own words, lives here once:
   (show_failure);
 * the Apply in the project's history (record_in_history): what was read,
   written and reported, with the dialog and the version that did it;
-* the "Draw on" choices both Charts tabs offer, worded once.
+* the "Draw on" choices both Charts tabs offer, worded once;
+* the calculation in the background (run_job): the buttons off at once, Stop
+  and a progress bar once it has taken a moment, Stop polled by the
+  calculation (stop_requested), "Stopped" or the failure said at its end.
 
 A base derives from it beside QDialog and says where its results pane is
 (results_widget). No Qt object of its own: a mixin.
@@ -18,11 +21,14 @@ A base derives from it beside QDialog and says where its results pane is
 from __future__ import annotations
 
 import html
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from app import APP_VERSION
+from app.analysis import Stopped
 from app.logs.logger import applogger
+from app.utils.background import BackgroundTask, run_in_background
+from app.utils.config import get_constant
 from app.utils.i18n import _
 from app.widgets.html_results import looks_like_html
 
@@ -111,3 +117,106 @@ class OperationShell:
             )
         except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Could not record %s in the project's history", operation)
+
+    # ------------------------------------------------------------------
+    # The calculation in the background
+    # ------------------------------------------------------------------
+
+    #: How long a calculation runs before Stop and the progress bar appear: most end sooner.
+    BUSY_DELAY_MS: int = get_constant("background_busy_delay_ms", 300)
+    #: The Results pane's headline when the calculation fails.
+    FAILURE_HEADLINE: str = "Nothing was drawn."
+
+    def busy_widgets(self) -> list[Any]:
+        """What is switched off while a calculation runs: whatever would start a second one."""
+        return [self.preview_button, self.apply_button]  # type: ignore[attr-defined]
+
+    @property
+    def job_running(self) -> bool:
+        job: BackgroundTask | None = getattr(self, "_job", None)
+        return job is not None and job.running
+
+    def run_job(self, work: Callable[[Any], Any], on_done: Callable[[Any], None], *,
+                progress: Any = None) -> bool:
+        """Run *work(cancel_event)* in the background and hand its outcome to *on_done*, on the GUI thread.
+
+        False when a calculation is running already. *progress*: a [done, total] the work updates, shown
+        on the bar. *on_done* is not called when the run is stopped or fails: the reason is shown instead.
+        """
+        if self.job_running:
+            return False
+        self._job_progress = progress
+        self._set_job_running(True)
+
+        def finished(outcome: Any) -> None:
+            # Stopped, but the work ended before it looked: nothing is written all the same.
+            stopped = task.cancel_event.is_set()
+            self._set_job_running(False)
+            if stopped:
+                self._job_failed(Stopped())
+                return
+            try:
+                on_done(outcome)
+            except Exception as exc:  # noqa: BLE001 - shown like a failed run
+                self._job_failed(exc)
+
+        task = run_in_background(work, finished, self._job_failed)
+        self._job = task
+        return True
+
+    def stop(self) -> None:
+        """Ask the calculation to stop at its next step (and the window to close: nothing is written)."""
+        job: BackgroundTask | None = getattr(self, "_job", None)
+        if job is not None and job.running:
+            job.cancel()
+
+    def stop_requested(self) -> bool:
+        """True once Stop was pressed (or the window closed) during the calculation; poll it in long loops."""
+        job: BackgroundTask | None = getattr(self, "_job", None)
+        return job is not None and job.cancel_event.is_set()
+
+    def _job_failed(self, error: BaseException) -> None:
+        self._set_job_running(False)
+        if isinstance(error, Stopped):
+            self.show_results(_("Stopped. Nothing was changed."))
+            return
+        applogger.error("%s failed: %s", getattr(self, "Name", type(self).__name__), error)
+        self.show_failure(error, headline=_(self.FAILURE_HEADLINE))
+
+    def _set_job_running(self, running: bool) -> None:
+        # The buttons go off at once - a second click must not start a second run - but Stop and the
+        # bar wait: most runs end before they would have been read.
+        from PySide6.QtCore import QTimer
+
+        for widget in self.busy_widgets():
+            widget.setEnabled(not running)
+        timer = getattr(self, "_busy_timer", None)
+        if timer is None:
+            timer = self._busy_timer = QTimer(self)  # type: ignore[arg-type]
+            timer.setInterval(100)
+            timer.timeout.connect(self._show_progress)
+        if running:
+            self._busy_since = 0
+            timer.start()
+            return
+        timer.stop()
+        self.stop_button.setVisible(False)  # type: ignore[attr-defined]
+        self.progress_bar.setVisible(False)  # type: ignore[attr-defined]
+
+    def _show_progress(self) -> None:
+        """Every 100 ms of a run: Stop and the bar once it is slow, then the count."""
+        self._busy_since = getattr(self, "_busy_since", 0) + 100
+        if self._busy_since < self.BUSY_DELAY_MS:
+            return
+        bar = self.progress_bar  # type: ignore[attr-defined]
+        if not self.stop_button.isVisible():  # type: ignore[attr-defined]
+            self.stop_button.setVisible(True)  # type: ignore[attr-defined]
+            bar.setVisible(True)
+            self.show_results(_("Working... press Stop to end it early."))
+        progress = getattr(self, "_job_progress", None)
+        done, total = (progress[0], progress[1]) if progress else (0, 0)
+        if total > 1:
+            bar.setRange(0, total)
+            bar.setValue(done)
+        else:
+            bar.setRange(0, 0)  # one series, or work that does not count: busy, not a percentage

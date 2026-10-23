@@ -76,7 +76,7 @@ def test_ok_writes_the_scores_and_draws_the_charts(qapp, tmp_path) -> None:
         assert not dialog.problems()
         dialog.ok()
         deadline = time.monotonic() + 60
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
         assert {"Factor1", "Factor2"} <= set(repo.table_frame("_survey_factors").columns)

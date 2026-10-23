@@ -47,10 +47,10 @@ def test_a_categorical_result_and_no_impact() -> None:
 
 def _wait(qapp, dialog: ImpactDialog) -> None:
     deadline = time.monotonic() + 60
-    while dialog._task is not None and time.monotonic() < deadline:
+    while dialog.job_running and time.monotonic() < deadline:
         qapp.processEvents()
         time.sleep(0.01)
-    assert dialog._task is None
+    assert not dialog.job_running
 
 
 def test_ok_writes_the_ranking_and_draws_a_pareto(qapp, repo: SqliteRepo) -> None:

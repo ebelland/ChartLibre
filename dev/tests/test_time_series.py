@@ -80,7 +80,7 @@ def test_ok_writes_the_tables_and_draws_the_series_its_correlations_and_parts(qa
         assert not dialog.problems()
         dialog.ok()
         deadline = time.monotonic() + 60
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
         assert len(repo.table_frame("_shop_time_series_forecast")) == 12
@@ -155,7 +155,7 @@ def test_ok_with_an_input_draws_the_cross_correlation(qapp, tmp_path) -> None:
         dialog._parameter_form.set_values({"model": ts.AUTO})
         dialog.ok()
         deadline = time.monotonic() + 120
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
         assert len(repo.table_frame("_plant_time_series_ccf")) > 10

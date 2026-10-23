@@ -76,10 +76,10 @@ def test_rows_without_a_response_are_classified_and_without_a_covariate_are_not(
 
 def _wait(qapp, dialog: DiscriminantDialog) -> None:
     deadline = time.monotonic() + 60
-    while dialog._task is not None and time.monotonic() < deadline:
+    while dialog.job_running and time.monotonic() < deadline:
         qapp.processEvents()
         time.sleep(0.01)
-    assert dialog._task is None, "the computation did not finish"
+    assert not dialog.job_running, "the computation did not finish"
 
 
 def test_ok_writes_the_rows_and_draws_the_canonical_plot(qapp, repo: SqliteRepo) -> None:

@@ -24,7 +24,7 @@ def _plant() -> pd.DataFrame:
 
 def _wait(qapp, dialog) -> None:  # noqa: ANN001
     deadline = time.monotonic() + 60
-    while dialog._task is not None and time.monotonic() < deadline:
+    while dialog.job_running and time.monotonic() < deadline:
         qapp.processEvents()
         time.sleep(0.01)
 

@@ -98,7 +98,7 @@ def frame() -> pd.DataFrame:
 def _ok(qapp, dialog) -> None:
     dialog.ok()
     deadline = time.monotonic() + 30
-    while dialog._task is not None and time.monotonic() < deadline:
+    while dialog.job_running and time.monotonic() < deadline:
         qapp.processEvents()
         time.sleep(0.01)
 

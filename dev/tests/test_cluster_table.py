@@ -56,7 +56,7 @@ def test_ok_writes_the_clusters_and_draws_them(qapp, repo: SqliteRepo) -> None:
         assert not dialog.problems()
         dialog.ok()
         deadline = time.monotonic() + 60
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
         rows = repo.table_frame("_parts_clusters")
@@ -78,7 +78,7 @@ def test_ok_saves_clusterid_in_the_table_and_undo_takes_it_back(qapp, repo: Sqli
         dialog.roles_widget.set_casting({"response": ["width", "height"]})
         dialog.ok()
         deadline = time.monotonic() + 60
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
         saved = repo.table_frame("parts")["ClusterId"]

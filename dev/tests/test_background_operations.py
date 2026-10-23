@@ -217,7 +217,7 @@ def test_stop_shows_the_bar_and_then_writes_nothing(
     assert dialog.progress_bar.isVisible()
     assert dialog.progress_bar.maximum() == 2
 
-    dialog.stop_evaluation()
+    dialog.stop()
     release.set()
     _wait_for(lambda: not dialog.evaluating)
     assert not dialog.stop_button.isVisible()
@@ -276,7 +276,7 @@ def test_stop_appearing_does_not_move_the_other_buttons(
     _wait_for(lambda: dialog.stop_button.isVisible())
     qapp.processEvents()
     assert [button.geometry().getRect() for button in buttons] == before
-    dialog.stop_evaluation()
+    dialog.stop()
     release.set()
     _wait_for(lambda: not dialog.evaluating)
     qapp.processEvents()

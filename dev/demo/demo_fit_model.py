@@ -68,10 +68,10 @@ def _experiment():
 
 def _wait(app, dialog) -> None:
     deadline = time.monotonic() + 120
-    while dialog._task is not None and time.monotonic() < deadline:
+    while dialog.job_running and time.monotonic() < deadline:
         app.processEvents()
         time.sleep(0.01)
-    if dialog._task is not None:
+    if dialog.job_running:
         raise RuntimeError("Fit Model did not finish")
 
 

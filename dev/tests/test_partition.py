@@ -58,10 +58,10 @@ def test_a_validation_column_marks_the_rows_kept_out() -> None:
 
 def _wait(qapp, dialog: PartitionDialog) -> None:
     deadline = time.monotonic() + 60
-    while dialog._task is not None and time.monotonic() < deadline:
+    while dialog.job_running and time.monotonic() < deadline:
         qapp.processEvents()
         time.sleep(0.01)
-    assert dialog._task is None, "the computation did not finish"
+    assert not dialog.job_running, "the computation did not finish"
 
 
 @pytest.fixture

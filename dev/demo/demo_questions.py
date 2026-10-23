@@ -64,10 +64,10 @@ def _ask(app, repo: SqliteRepo, dialog_path: str, table: str, roles: dict[str, l
             raise RuntimeError("; ".join(problems))
         dialog.ok()
         deadline = time.monotonic() + 120
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             app.processEvents()
             time.sleep(0.01)
-        if dialog._task is not None or not dialog.created_figure_ids:
+        if dialog.job_running or not dialog.created_figure_ids:
             raise RuntimeError(f"{class_name} did not finish")
         applogger.info("Demo: %s on %s - figure %s.", class_name, table, dialog.created_figure_ids)
     finally:

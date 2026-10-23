@@ -197,7 +197,7 @@ class LayoutMixin:
         self.stop_button = create_action_button(
                                parent=self,
                                action_id="operation_stop",
-                               action=self.stop_evaluation,
+                               action=self.stop,
                                layout=action_row,
                            )
         self.stop_button.setVisible(False)

@@ -54,7 +54,7 @@ def test_ok_draws_the_values_with_the_change(qapp, repo: SqliteRepo) -> None:
         assert not dialog.problems()
         dialog.ok()
         deadline = time.monotonic() + 30
-        while dialog._task is not None and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
         assert {"Order", "Value", "Trend", "Segment", "Segment median"} <= set(repo.table_frame("_line_change").columns)

@@ -7,17 +7,12 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, ClassVar
 
-from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QWidget
 
-from app.analysis import Stopped
 from app.data.data_source import parse_roles, row_value
 from app.logs.logger import applogger
-from app.utils.background import BackgroundTask, run_in_background
 from app.utils.i18n import _
 
 from app.plugin_api.data_operations.dialog_base.common import OperationJob, SeriesOutcome, SeriesJob
-from app.utils.config import get_constant
 
 
 class EvaluationMixin:
@@ -160,9 +155,6 @@ class EvaluationMixin:
     #: Preview has finished by the time it returns. See dev/tests/conftest.py.
     BACKGROUND_ENABLED: ClassVar[bool] = True
 
-    #: How long a background run may take before Stop and the progress bar
-    #: appear: a run that ends sooner shows nothing, rather than a flicker.
-    BUSY_DELAY_MS: ClassVar[int] = get_constant("background_busy_delay_ms", 300)
 
     # -- Per series: the common case ------------------------------------
 
@@ -255,18 +247,10 @@ class EvaluationMixin:
         del job
         return list(outcome) if isinstance(outcome, (list, tuple)) else [outcome]
 
-    def busy_widgets(self) -> list[QWidget]:
-        """What is switched off while a background calculation runs.
-
-        Everything that would start a second run or act on stale results;
-        subclasses add their own buttons (the fit's Fit and Estimate).
-        """
-        return [self.preview_button, self.apply_button]
-
     @property
     def evaluating(self) -> bool:
-        task = getattr(self, "_evaluation_task", None)
-        return task is not None and task.running
+        """A calculation is running (OperationShell.job_running)."""
+        return self.job_running
 
     def evaluate(
         self,
@@ -277,13 +261,11 @@ class EvaluationMixin:
     ) -> None:
         """Compute the results and hand them to *on_results*, on the GUI thread.
 
-        In the background when *background* says so (RUN_IN_BACKGROUND when
-        it does not): busy_widgets() are off, Stop and a progress bar appear
-        once the run has taken BUSY_DELAY_MS, and closing the window stops the
-        run. *on_results* is not called when the run is stopped or fails; the
-        reason is shown instead.
+        In the background when *background* says so (RUN_IN_BACKGROUND when it does not), through
+        OperationShell.run_job: the series are counted on the progress bar, Stop is polled between them.
+        *on_results* is not called when the run is stopped or fails; the reason is shown instead.
         """
-        if self.evaluating:
+        if self.job_running:
             return
         job = self.prepare_job(**options)
         if job is None:
@@ -291,78 +273,6 @@ class EvaluationMixin:
         if not (self.RUN_IN_BACKGROUND if background is None else background):
             on_results(self.finish_job(job, job.run()))
             return
-
-        def finished(outcome: Any) -> None:
-            stopped = task.cancel_event.is_set()
-            self._set_evaluating(False)
-            if stopped:
-                # Asked to stop, but the job finished before it looked: the
-                # window may already be closing, so nothing is written.
-                self._on_evaluation_failed(Stopped())
-                return
-            try:
-                results = self.finish_job(job, outcome)
-            except Exception as exc:  # noqa: BLE001 - shown like a failed run
-                self._on_evaluation_failed(exc)
-                return
-            on_results(results)
-
-        self._evaluation_progress = getattr(job, "progress", None)
-        self._set_evaluating(True)
-        task = run_in_background(
-            lambda cancel: job.run(should_stop=cancel.is_set),
-            finished,
-            self._on_evaluation_failed,
-        )
-        self._evaluation_task = task
-
-    def stop_evaluation(self) -> None:
-        """Ask a background calculation to stop at its next step."""
-        task: BackgroundTask | None = getattr(self, "_evaluation_task", None)
-        if task is not None and task.running:
-            task.cancel()
-
-    def _on_evaluation_failed(self, error: BaseException) -> None:
-        self._set_evaluating(False)
-        if isinstance(error, Stopped):
-            self.set_results_text(_("Stopped. Nothing was changed."))
-            return
-        applogger.error(f"{self.operation_label} failed: {error}")
-        self.show_failure(error)
-
-    def _set_evaluating(self, running: bool) -> None:
-        # The buttons go off at once - a second click must not start a second
-        # run - but Stop and the bar wait: most runs end before they would
-        # have been read.
-        for widget in self.busy_widgets():
-            widget.setEnabled(not running)
-        timer = getattr(self, "_busy_timer", None)
-        if timer is None:
-            timer = self._busy_timer = QTimer(self)
-            timer.setInterval(100)
-            timer.timeout.connect(self._show_progress)
-        if running:
-            self._busy_since = 0
-            timer.start()
-            return
-        timer.stop()
-        self.stop_button.setVisible(False)
-        self.progress_bar.setVisible(False)
-
-    def _show_progress(self) -> None:
-        """Every 100 ms of a background run: Stop and the bar once it is slow, then the count."""
-        self._busy_since = getattr(self, "_busy_since", 0) + 100
-        if self._busy_since < self.BUSY_DELAY_MS:
-            return
-        if not self.stop_button.isVisible():
-            self.stop_button.setVisible(True)
-            self.progress_bar.setVisible(True)
-            self.set_results_text(_("Working... press Stop to end it early."))
-        progress = getattr(self, "_evaluation_progress", None)
-        done, total = (progress[0], progress[1]) if progress else (0, 0)
-        if total > 1:
-            self.progress_bar.setRange(0, total)
-            self.progress_bar.setValue(done)
-        else:
-            # One series, or a job that does not count: busy, not a percentage.
-            self.progress_bar.setRange(0, 0)
+        self.run_job(lambda cancel: job.run(should_stop=cancel.is_set),
+                     lambda outcome: on_results(self.finish_job(job, outcome)),
+                     progress=getattr(job, "progress", None))

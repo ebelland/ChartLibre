@@ -20,7 +20,7 @@ def _wait(qapp, dialog: FitModelDialog) -> None:
     deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         qapp.processEvents()
-        if dialog._task is None:
+        if not dialog.job_running:
             return
         time.sleep(0.01)
     raise AssertionError("the computation did not finish")

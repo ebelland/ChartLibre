@@ -51,10 +51,10 @@ def test_categories_are_compared_by_their_shares() -> None:
 
 def _wait(qapp, dialog) -> None:
     deadline = time.monotonic() + 30
-    while dialog._task is not None and time.monotonic() < deadline:
+    while dialog.job_running and time.monotonic() < deadline:
         qapp.processEvents()
         time.sleep(0.01)
-    assert dialog._task is None
+    assert not dialog.job_running
 
 
 @pytest.mark.parametrize(("measure", "chart"), [("weight", "Box Plot"), ("grade", "Mosaic Plot")])
