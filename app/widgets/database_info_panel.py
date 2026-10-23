@@ -73,27 +73,6 @@ class DatabaseInfoPanel(QWidget):
         self._card_layout.addWidget(self._form_host)
         self._build_form()
 
-        if optimize_action is not None:
-            # Lives here, not beside Query Builder (see main_window's own
-            # Query Builder section): it is a maintenance action against
-            # exactly the size/page stats the form above it shows - right
-            # below "Last modified", its own last row - rather than against
-            # the query workflow. Above the table list, not below it: it
-            # acts on the database file as a whole, not on any one table.
-            # Its own row, right-aligned, rather than beside the title -
-            # the title moved outside the card's border (see TitledCard)
-            # and an action button belongs inside it.
-            optimize_row = QHBoxLayout()
-            stdSizeAndlayout(optimize_row)
-            optimize_row.addStretch(1)
-            create_action_button(
-                parent=self._card,
-                action_id="optimize_db",
-                action=optimize_action,
-                layout=optimize_row,
-            )
-            self._card_layout.addLayout(optimize_row)
-
         self._table = QTableWidget(0, 3, self._card)
         self._table.setHorizontalHeaderLabels([_("Table"), _("Rows"), _("Linked")])
         header = self._table.horizontalHeader()
@@ -108,8 +87,23 @@ class DatabaseInfoPanel(QWidget):
         mark_editor_panel(self._table)
         self._card_layout.addWidget(self._table, 1)
 
-        root.addWidget(self._titled_card, 1)
+        if optimize_action is not None:
+            # Below the list of tables, right-aligned: the last thing in the
+            # card, after what it acts on - the file's figures above and the
+            # tables it holds. A maintenance action against the database file
+            # as a whole, so here and not beside Query Builder.
+            optimize_row = QHBoxLayout()
+            stdSizeAndlayout(optimize_row)
+            optimize_row.addStretch(1)
+            create_action_button(
+                parent=self._card,
+                action_id="optimize_db",
+                action=optimize_action,
+                layout=optimize_row,
+            )
+            self._card_layout.addLayout(optimize_row)
 
+        root.addWidget(self._titled_card, 1)
 
         self._reload_tables()
 
