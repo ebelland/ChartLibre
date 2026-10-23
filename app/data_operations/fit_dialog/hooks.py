@@ -130,4 +130,4 @@ class FitHooksMixin:
         for result in results:
             sections.append(report_html.section(f"{_('Series')}: {result.source_table}"))
             sections.extend(self._report_sections(result))
-        return report_html.document(_("Fit Curve"), results[0].model_name, *sections)
+        return self.results_document(results[0].model_name, *sections)

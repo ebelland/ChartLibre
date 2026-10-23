@@ -857,7 +857,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                                     self._capability_html(result))
             )
 
-        return report_html.document(_("Control Chart"), self._chart(), *sections)
+        return self.results_document(self._chart(), *sections)
 
     @staticmethod
     def _capability_html(result: ControlChartResult) -> str:

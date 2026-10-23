@@ -529,6 +529,5 @@ class SeriesRootsDialog(DataOperationDialogBase):
         # results[0].model, not self.current_model(): a 3D result's actual method
         # was always "Contour (matplotlib)" regardless of which 1D solver
         # happens to be selected in the combo right now.
-        return report_html.document(
-            _("Roots"), f"{results[0].model} — {subtitle}", *sections
+        return self.results_document(f"{results[0].model} — {subtitle}", *sections
         )

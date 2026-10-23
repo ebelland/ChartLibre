@@ -45,7 +45,6 @@ from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     DataOperationDialogBase,
 )
-from app.utils.i18n import _
 
 BASELINE_ASLS = "Asymmetric Least Squares (AsLS)"
 BASELINE_RUBBER = "Rubber band"
@@ -215,12 +214,3 @@ class SeriesBaselineDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'Baseline'
     RESULT_TABLE_VARIANT = None
 
-    def format_results(self, results: Sequence[BaselineResult]) -> str:
-        if not results:
-            return _("No results.")
-        lines = []
-        for result in results:
-            details = ", ".join(f"{key}={value:.4g}" if isinstance(value, float) else f"{key}={value}"
-                                 for key, value in result.metadata.items())
-            lines.append(f"{result.source_name}: {result.model} ({details})")
-        return "\n".join(lines)

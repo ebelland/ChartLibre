@@ -751,8 +751,7 @@ class SeriesSpectralDialog(DataOperationDialogBase):
             )
 
         first = results[0]
-        return report_html.document(
-            _("Spectral analysis"),
+        return self.results_document(
             first.model,
             report_html.section(
                 _("Estimates"),

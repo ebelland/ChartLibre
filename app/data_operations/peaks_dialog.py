@@ -454,4 +454,4 @@ class SeriesPeaksDialog(DataOperationDialogBase):
                 )
             )
 
-        return report_html.document(_("Peaks"), self.current_model(), *sections)
+        return self.results_document(self.current_model(), *sections)

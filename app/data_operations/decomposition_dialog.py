@@ -467,4 +467,4 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
                 )
             )
 
-        return report_html.document(_("Decomposition"), result.model, *sections)
+        return self.results_document(result.model, *sections)

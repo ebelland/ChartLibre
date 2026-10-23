@@ -297,9 +297,7 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
             for result in results
         ]
 
-        return report_html.document(
-            _("Gaussian Process"),
-            self._kernel(),
+        return self.results_document(self._kernel(),
             report_html.section(
                 _("Results"),
                 report_html.table(

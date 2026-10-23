@@ -22,7 +22,7 @@ including the same warning when the spacing is not uniform enough to trust.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -398,16 +398,6 @@ class SeriesFilterDialog(DataOperationDialogBase):
             f"Filter_axis{axis_id}_{result.source_name}_{FILTERS[result.model].tag}",
             fallback="Filter_Result",
         )
-
-    def format_results(self, results: Sequence[FilterResult]) -> str:
-        if not results:
-            return _("No results.")
-        lines = []
-        for result in results:
-            details = ", ".join(f"{key}={value}" for key, value in result.metadata.items())
-            lines.append(f"{result.source_name}: {result.model} ({details})")
-        return "\n".join(lines)
-
 
 def _apply_model(model: str, y: np.ndarray, fs: float, p: Mapping[str, Any]) -> tuple[np.ndarray, dict[str, Any]]:
     """Filter *y* with *model* and the settings *p* (see SeriesFilterDialog.series_settings)."""

@@ -307,9 +307,7 @@ class SeriesTransformDialog(DataOperationDialogBase):
             for result in results
         ]
 
-        return report_html.document(
-            _("Transform"),
-            self.current_model(),
+        return self.results_document(self.current_model(),
             report_html.section(
                 _("Results"),
                 report_html.table(

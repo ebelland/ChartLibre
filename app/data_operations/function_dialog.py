@@ -625,4 +625,4 @@ class SeriesFunctionDialog(DataOperationDialogBase):
 
             sections.append(report_html.section(result.function_name, *blocks))
 
-        return report_html.document(_("Function"), "", *sections)
+        return self.results_document("", *sections)

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -674,23 +674,6 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
             spline_degree=int(self._spline_degree_spin.value()),
             smoothing=float(self._smoothing_spin.value()),
         )
-
-    @staticmethod
-    def format_results(results: Sequence[FitResult]) -> str:
-        lines: list[str] = []
-        for result in results:
-            lines.append(result.source.name)
-            if result.metrics:
-                r2 = result.metrics.get("r2")
-                rmse = result.metrics.get("rmse")
-                if r2 is not None and np.isfinite(r2):
-                    lines.append(f"R² = {r2:.5g}")
-                if rmse is not None and np.isfinite(rmse):
-                    lines.append(f"RMSE = {rmse:.5g}")
-            else:
-                lines.append(_("Generated {count} points").format(count=len(result.x_eval)))
-            lines.append("")
-        return "\n".join(lines).strip()
 
     # ------------------------------------------------------------------
     # DataOperationDialogBase hooks

@@ -14,6 +14,7 @@ from app.data.data_source import parse_roles, row_value, resolve_role_column
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
 from app.utils.series_validation import SeriesIssue, clean_xy, errors, validate_xy
+from app.utils import report_html
 from app.utils.i18n import _
 
 from app.plugin_api.data_operations.dialog_base.common import generated_table_name, ResultSeriesSpec
@@ -433,12 +434,27 @@ class InputsMixin:
         raw = f"{self.__class__.__name__}_axis{axis_id}_{source_name}_{variant}"
         return generated_table_name(raw, fallback="Series_Result")
 
-    def format_results(self, results: Sequence[Any]) -> str:
-        """Return text for the results pane after apply.
+    def results_document(self, subtitle: str, *sections: str) -> str:
+        """The Results pane's document, the same frame for every operation: its name, *subtitle*, *sections*."""
+        return report_html.document(_(self.operation_label), subtitle, *sections)
 
-        Subclasses may override to reuse their richer preview formatting.
+    def format_results(self, results: Sequence[Any]) -> str:
+        """The Results pane: one section per result - its series, model and settings (OperationResult.to_html).
+
+        An operation with more to say overrides this and builds its sections, framed by results_document.
         """
-        return f"{len(results)} result(s)"
+        if not results:
+            return ""
+        sections = []
+        for result in results:
+            series = ", ".join(getattr(result, "series", ()) or ()) or str(getattr(result, "source_name", "") or "")
+            body = result.to_html() if hasattr(result, "to_html") else report_html.note(str(result))
+            metrics = getattr(result, "metrics", None)
+            if isinstance(metrics, Mapping) and metrics:
+                body += report_html.summary_table((str(key), value) for key, value in metrics.items())
+            sections.append(report_html.section(series or _("Result"), body))
+        model = str(getattr(results[0], "model_name", "") or "")
+        return self.results_document(model, *sections)
 
 
     def store_cached_results(self, results: Sequence[Any]) -> None:

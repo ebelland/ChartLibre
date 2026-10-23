@@ -904,11 +904,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'Smoothing'
     RESULT_TABLE_VARIANT = 'method'
 
-    def format_results(self, results: Sequence[SmoothResult]) -> str:
-        if not results:
-            return ""
-        return _("Preview for {count} smoothed series").format(count=len(results))
-
     @staticmethod
     def _source_series_id(series: SeriesChoice) -> int | None:
         source = series.source
