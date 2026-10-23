@@ -195,13 +195,6 @@
       "SegoeFluent": "e8a5",
       "ThemeIcon": "document-save-as"
     },
-    "export_xlsx": {
-      "text": "Export Excel",
-      "description": "Export as an Excel workbook",
-      "SFSymbol": "tablecells",
-      "SegoeFluent": "f232",
-      "ThemeIcon": "document-save-as"
-    },
     "fetch_url": {
       "text": "Fetch",
       "description": "Download the data at this web address",
@@ -232,13 +225,6 @@
         "x-office-database",
         "drive-harddisk"
       ]
-    },
-    "infer_params": {
-      "text": "Infer from expr",
-      "description": "Detect the parameter count from the expression",
-      "SFSymbol": "wand.and.stars",
-      "SegoeFluent": "e721",
-      "ThemeIcon": "system-run"
     },
     "info": {
       "text": "Info",
@@ -275,13 +261,6 @@
       "SegoeFluent": "F000",
       "ThemeIcon": "document-properties"
     },
-    "multi_peak": {
-      "text": "Multi-peak...",
-      "description": "Build a multi-peak expression",
-      "SFSymbol": "chart.xyaxis.line",
-      "SegoeFluent": "e710",
-      "ThemeIcon": "list-add"
-    },
     "measure": {
       "text": "Measure",
       "description": "Measure the distance and slope between two points",
@@ -302,13 +281,6 @@
       "SFSymbol": "house",
       "SegoeFluent": "e80f",
       "ThemeIcon": "go-home"
-    },
-    "nav_developer": {
-      "text": "Developer",
-      "description": "Show developer tools",
-      "SFSymbol": "chevron.left.forwardslash.chevron.right",
-      "SegoeFluent": "e943",
-      "ThemeIcon": "applications-system"
     },
     "nav_help": {
       "text": "Help",
@@ -344,13 +316,6 @@
       "SFSymbol": "tablecells",
       "SegoeFluent": "f232",
       "ThemeIcon": "x-office-spreadsheet"
-    },
-    "nav_menu": {
-      "text": "Menu",
-      "description": "Show main menu",
-      "SFSymbol": "line.horizontal.3",
-      "SegoeFluent": "e700",
-      "ThemeIcon": "open-menu"
     },
     "nav_file": {
       "text": "File",
@@ -462,20 +427,6 @@
       "SFSymbol": "clock.arrow.circlepath",
       "SegoeFluent": "E81C",
       "ThemeIcon": "document-open-recent"
-    },
-    "rcparam_add": {
-      "text": "Add",
-      "description": "Insert the selected rcParam into the editor",
-      "SFSymbol": "plus",
-      "SegoeFluent": "E710",
-      "ThemeIcon": "list-add"
-    },
-    "rcparam_delete": {
-      "text": "Remove",
-      "description": "Remove the selected property",
-      "SFSymbol": "trash",
-      "SegoeFluent": "E74D",
-      "ThemeIcon": "list-remove"
     },
     "rcparam_open": {
       "text": "Open",
@@ -914,13 +865,6 @@
       "SFSymbol": "sidebar.left",
       "SegoeFluent": "E8A0",
       "ThemeIcon": "view-sidebar"
-    },
-    "style_stack_to_editor": {
-      "text": "Load into editor",
-      "description": "Compute the stack's differences and load them into the parameter editor",
-      "SFSymbol": "arrow.right.square",
-      "SegoeFluent": "E72A",
-      "ThemeIcon": "go-next"
     }
   },
   "messages": {
@@ -1269,11 +1213,6 @@
       "title": "Data operation",
       "text": "No series selected."
     },
-    "series.open_docs_failed": {
-      "level": "info",
-      "title": "Documentation",
-      "text": "Could not open a browser. The documentation is at:\n{url}"
-    },
     "catalog.select_a_table": {
       "level": "info",
       "title": "Search",
@@ -1343,16 +1282,6 @@
       "level": "error",
       "title": "Save error",
       "text": "Could not save the style:\n{error}"
-    },
-    "style.stack_empty": {
-      "level": "info",
-      "title": "Style stack",
-      "text": "The style stack is empty."
-    },
-    "style.stack_failed": {
-      "level": "error",
-      "title": "Style stack",
-      "text": "Could not compute the stacked parameters:\n{error}"
     },
     "table.confirm_delete": {
       "level": "question",
