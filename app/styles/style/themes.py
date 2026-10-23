@@ -225,7 +225,12 @@ def apply_fusion_for_item_view_styling(view: QWidget) -> None:
     about a scroll bar was the reason for Fusion here; the selection and
     the header were.
     """
-    view.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+    # Owned by the view: QWidget.setStyle does not take ownership, and an
+    # unowned Python style was freed while the view still drew with it - a
+    # "QCommonStyle already deleted" seen at random, a crash at worst.
+    fusion = QtWidgets.QStyleFactory.create("Fusion")
+    fusion.setParent(view)
+    view.setStyle(fusion)
 
     application_style = QtWidgets.QApplication.style()
     for reader in ("verticalScrollBar", "horizontalScrollBar"):
