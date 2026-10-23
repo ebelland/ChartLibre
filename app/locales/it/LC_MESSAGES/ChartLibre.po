@@ -11052,3 +11052,12 @@ msgstr "{measure}: grafico Q-Q normale"
 
 msgid "Normal quantile"
 msgstr "Quantile normale"
+
+msgid "from, to"
+msgstr "da, a"
+
+msgid "Leave out the values between two ends - 10, 90 - so the two sides fill the axis: a few points far from the rest. Linear scale only; x and y."
+msgstr "Togli i valori tra due estremi - 10, 90 - così le due parti riempiono l'asse: pochi punti lontani dagli altri. Solo scala lineare; x e y."
+
+msgid "Break"
+msgstr "Interruzione"
