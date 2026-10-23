@@ -11146,3 +11146,87 @@ msgstr "Prolunga la curva oltre i dati, da ogni lato, di questa quota dell'inter
 
 msgid "Fitted curve"
 msgstr "Curva adattata"
+
+msgid "Gage R&R"
+msgstr "Gage R&R"
+
+msgid "How much of the variation the measuring system adds: repeatability and reproducibility by the ANOVA method, % of the study variation and of the tolerance, distinct categories."
+msgstr "Quanta variazione aggiunge il sistema di misura: ripetibilità e riproducibilità con il metodo ANOVA, % della variazione dello studio e della tolleranza, categorie distinte."
+
+msgid "Measurement"
+msgstr "Misura"
+
+msgid "The measured values."
+msgstr "I valori misurati."
+
+msgid "Part"
+msgstr "Parte"
+
+msgid "Which part each measurement is of."
+msgstr "A quale parte si riferisce ogni misura."
+
+msgid "Operator"
+msgstr "Operatore"
+
+msgid "Optional: who measured. Without it, repeatability alone."
+msgstr "Facoltativo: chi ha misurato. Senza, solo la ripetibilità."
+
+msgid "Tolerance (USL - LSL):"
+msgstr "Tolleranza (USL - LSL):"
+
+msgid "The width of the specification: adds each source's share of it (% Tolerance)."
+msgstr "L'ampiezza della specifica: aggiunge la quota di ogni sorgente (% Tolleranza)."
+
+msgid "The measurement, the part and the operator must be different columns."
+msgstr "Misura, parte e operatore devono essere colonne diverse."
+
+msgid "Variance components"
+msgstr "Componenti di varianza"
+
+msgid "Study"
+msgstr "Studio"
+
+msgid "Parts"
+msgstr "Parti"
+
+msgid "Operators"
+msgstr "Operatori"
+
+msgid "Measurements per part and operator"
+msgstr "Misure per parte e operatore"
+
+msgid "Distinct categories"
+msgstr "Categorie distinte"
+
+msgid "{measure} by part and operator"
+msgstr "{measure} per parte e operatore"
+
+msgid "The measuring system is acceptable: Gage R&R is {grr:.1f}% of the study variation (under 10%)."
+msgstr "Il sistema di misura è accettabile: il Gage R&R è il {grr:.1f}% della variazione dello studio (sotto il 10%)."
+
+msgid "The measuring system may be acceptable, depending on its use and cost: Gage R&R is {grr:.1f}% of the study variation (10% to 30%)."
+msgstr "Il sistema di misura può essere accettabile, secondo l'uso e il costo: il Gage R&R è il {grr:.1f}% della variazione dello studio (dal 10% al 30%)."
+
+msgid "The measuring system needs improving: Gage R&R is {grr:.1f}% of the study variation (over 30%)."
+msgstr "Il sistema di misura va migliorato: il Gage R&R è il {grr:.1f}% della variazione dello studio (oltre il 30%)."
+
+msgid "It tells {ndc} distinct categories of part apart; 5 or more is adequate."
+msgstr "Distingue {ndc} categorie di parti; 5 o più è adeguato."
+
+msgid "Most of the measuring error is {larger}."
+msgstr "La maggior parte dell'errore di misura è {larger}."
+
+msgid "The operator x part interaction was not significant (p > 0.25) and was pooled into the error."
+msgstr "L'interazione operatore x parte non era significativa (p > 0,25) ed è stata unita all'errore."
+
+msgid "Against the tolerance of {tolerance:g}, Gage R&R takes {tol:.1f}% of it."
+msgstr "Rispetto alla tolleranza di {tolerance:g}, il Gage R&R ne occupa il {tol:.1f}%."
+
+msgid "Study variation is {spread:g} standard deviations (AIAG); variance components by the ANOVA method."
+msgstr "La variazione dello studio è di {spread:g} deviazioni standard (AIAG); componenti di varianza con il metodo ANOVA."
+
+msgid "Multi-Vari Chart"
+msgstr "Grafico multi-vari"
+
+msgid "Each value by an outer factor and an inner one, with the cell means joined and each group's mean: where the variation is - within, between cells, between groups."
+msgstr "Ogni valore per un fattore esterno e uno interno, con le medie di cella unite e la media di ogni gruppo: dove sta la variazione - dentro, tra celle, tra gruppi."

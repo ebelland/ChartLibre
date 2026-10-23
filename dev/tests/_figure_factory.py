@@ -67,6 +67,7 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "P-P Plot",
     "Kaplan-Meier",
     "Interaction Plot",
+    "Multi-Vari Chart",
     "Mosaic Plot",
     "Forest Plot",
     "Pair Plot",
@@ -375,6 +376,13 @@ def _showcase_definitions() -> list[dict[str, Any]]:
             "labels": ("dose", "response"),
             "axis_options": {"title": "Interaction Plot", "error_bars": "ci"},
             "series": [("trial", "SELECT dose AS x, response AS y, sex AS trace FROM src_factorial", {})],
+        },
+        {
+            "chart_type": "Multi-Vari Chart",
+            "name": "Multi-vari showcase",
+            "labels": ("dose", "response"),
+            "axis_options": {"title": "Multi-Vari Chart"},
+            "series": [("trial", 'SELECT response AS y, dose AS x, sex AS "group" FROM src_factorial', {})],
         },
         {
             "chart_type": "Mosaic Plot",
