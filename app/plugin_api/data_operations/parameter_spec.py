@@ -48,6 +48,9 @@ class Param:
     ``advanced``: a setting nearly nobody changes. The form puts it in a
     closed "Advanced" frame under the others, opened from its arrow - the
     plugin only says which of its parameters are.
+
+    ``tab="charts"``: a choice of what to draw (a band, the limits) - the
+    dialog shows it in its Charts tab, beside where the result is drawn.
     """
 
     name: str
@@ -55,6 +58,8 @@ class Param:
     tooltip: str = ""
     visible_for: Mapping[str, Sequence[Any]] = field(default_factory=dict)
     advanced: bool = False
+    #: "charts": shown in the Charts tab (what is drawn) rather than among the Parameters.
+    tab: str = ""
 
     def is_visible(self, values: Mapping[str, Any]) -> bool:
         """Say whether this row should be shown for the current values."""

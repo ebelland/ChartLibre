@@ -178,6 +178,10 @@ class CalculusResult(TableResult):
 class SeriesCalculusDialog(DataOperationDialogBase):
     """Differentiate or integrate a chart series."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_AXIS
+
     MODELS = CALCULUS_MODELS
     MODEL_TOOLTIP = "Choose the calculation."
 
@@ -251,16 +255,6 @@ class SeriesCalculusDialog(DataOperationDialogBase):
                 ("Straight line between endpoints", BASELINE_ENDPOINTS),
             ),
             visible_for={"model": INTEGRALS},
-        ),
-        DataOperationDialogBase.destination_param(
-            tooltip=(
-                "A derivative or an integral rarely shares a scale with the "
-                "series it came from - d/dx of a slow drift is near zero "
-                "beside data in the thousands - so a new axis is the default. "
-                "Same axis overlays them when the ranges are comparable; a new "
-                "figure keeps the result out of this chart entirely."
-            ),
-            default=DataOperationDialogBase.DEST_NEW_AXIS,
         ),
         BoolParam(
             "simpson",

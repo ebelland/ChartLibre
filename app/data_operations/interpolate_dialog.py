@@ -227,6 +227,10 @@ class FitResult(TableResult):
 class SeriesInterpolateDialog(DataOperationDialogBase):
     """Compact series fitting/interpolation dialog for one chart panel."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
+
     MODELS = MODEL_NAMES
     MODEL_TOOLTIP = "Choose the fitting/interpolation model."
     Name: str  = "Interpolation"

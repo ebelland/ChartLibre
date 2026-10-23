@@ -126,6 +126,9 @@ class LayoutMixin:
         pages.append((self.model_panel, _("Model")))
         pages.append((self.parameters_panel, _("Parameters")))
         pages.extend(self.extra_tabs())
+        charts_tab = self.build_charts_tab()
+        if charts_tab is not None:
+            pages.append((charts_tab, _("Charts")))
         for content, title in pages:
             page = self._toolbox_page(content)
             # The ground and the inset a toolbox page had (grey on macOS,

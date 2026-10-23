@@ -93,6 +93,10 @@ class FunctionResult(TableResult):
 class SeriesFunctionDialog(DataOperationDialogBase):
     """Evaluate a scanned function over a range and add it to the chart."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
+
     Name: str = "Function"
     Description = "Plot a function"
 
@@ -140,14 +144,6 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             minimum=2,
             maximum=1_000_000,
             step=50,
-        ),
-        DataOperationDialogBase.destination_param(
-            tooltip=(
-                "A drawn function is usually meant to be compared with the "
-                "data, so the same axis is the default here. A new axis or "
-                "figure keeps it separate when the scales do not match."
-            ),
-            default=DataOperationDialogBase.DEST_SAME_AXIS,
         ),
         ChoiceParam(
             "spacing",

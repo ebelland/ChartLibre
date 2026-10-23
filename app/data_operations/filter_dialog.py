@@ -143,6 +143,10 @@ class FilterResult(XYResult):
 class SeriesFilterDialog(DataOperationDialogBase):
     """Filter, detrend or demodulate a series (scipy.signal)."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
+
     Name: str = "Filtering"
     Description = "Filter, detrend or demodulate a series (scipy.signal)"
 

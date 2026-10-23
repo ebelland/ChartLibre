@@ -84,6 +84,10 @@ class GPRegressionResult(TableResult):
 class SeriesGPRegressionDialog(DataOperationDialogBase):
     """Fit a Gaussian process to a series and draw its mean +/-2 sigma band."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_AXIS
+
     MODELS = GP_KERNELS
     MODEL_TOOLTIP = "Choose the kernel."
     MODEL_LABEL = "Kernel:"
@@ -121,13 +125,6 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
             default_value=1.0,
             minimum=1.0e-6,
             maximum=100.0,
-        ),
-        DataOperationDialogBase.destination_param(
-            tooltip=(
-                "A Gaussian process' mean and band rarely share a scale with "
-                "noisy source data, so a new axis is the default."
-            ),
-            default=DataOperationDialogBase.DEST_NEW_AXIS,
         ),
     )
 

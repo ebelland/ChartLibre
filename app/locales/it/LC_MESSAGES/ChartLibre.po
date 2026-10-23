@@ -11305,3 +11305,9 @@ msgstr "Frecce 3D"
 
 msgid "An arrow at each point in space showing a 3D vector field's direction and size (u, v, w)."
 msgstr "Una freccia in ogni punto dello spazio con direzione e intensità di un campo vettoriale 3D (u, v, w)."
+
+msgid "Current axis"
+msgstr "Asse corrente"
+
+msgid "Where the result is drawn: on the axis of its data, on a new axis beside it, or in a figure of its own."
+msgstr "Dove si disegna il risultato: sull'asse dei suoi dati, su un nuovo asse accanto, o in una figura a sé."

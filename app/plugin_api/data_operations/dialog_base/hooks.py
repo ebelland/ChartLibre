@@ -6,6 +6,7 @@ from typing import Any, ClassVar
 
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
@@ -20,7 +21,7 @@ from app.analysis.sampling import sampling_frequency
 from app.data.sqlite_repo import DatabaseError
 from app.styles.style import create_doc_link, CardFrame, stdSizeAndlayout
 from app.logs.logger import applogger
-from app.plugin_api.data_operations.parameter_form import ParameterForm
+from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, ParameterForm
 from app.plugin_api.data_operations.parameter_spec import Param, defaults
 from app.utils.i18n import _
 
@@ -123,9 +124,54 @@ class BuilderHooksMixin:
     #: still the right answer for a genuinely unusual control.
     PARAMS: tuple[Param, ...] = ()
 
+    #: Where the result may be drawn, in the Charts tab's "Draw on" list (DEST_* values); empty: no
+    #: choice - the operation decides (Fit draws on its data's axis). DEFAULT_DESTINATION is preselected.
+    DESTINATIONS: tuple[str, ...] = ()
+    DEFAULT_DESTINATION: str = ""
+
     def extra_tabs(self) -> list[tuple[QWidget, str]]:
         """Further (page, title) tabs after Parameters, for an operation with more to set."""
         return []
+
+    def chart_widgets(self) -> list[QWidget]:
+        """The operation's own controls of what is drawn, for the Charts tab (beside "Draw on")."""
+        return []
+
+    def build_charts_tab(self) -> QWidget | None:
+        """The Charts tab: "Draw on" (DESTINATIONS), the PARAMS marked tab="charts", chart_widgets().
+
+        None when the operation has none of the three.
+        """
+        chart_params = tuple(spec for spec in self.PARAMS if spec.tab == "charts")
+        widgets = self.chart_widgets()
+        if not (self.DESTINATIONS or chart_params or widgets):
+            return None
+        panel = CardFrame(self, "operationChartsCard")
+        layout = panel.layout()
+        if self.DESTINATIONS:
+            labels = {self.DEST_SAME_AXIS: _("Current axis"), self.DEST_NEW_AXIS: _("New axis in this figure"),
+                      self.DEST_NEW_FIGURE: _("New figure")}
+            self.destination_combo = QComboBox(panel)
+            for value in self.DESTINATIONS:
+                self.destination_combo.addItem(labels[value], value)
+            index = self.destination_combo.findData(self.DEFAULT_DESTINATION or self.DESTINATIONS[0])
+            self.destination_combo.setCurrentIndex(max(0, index))
+            self.destination_combo.setToolTip(_("Where the result is drawn: on the axis of its data, on a new "
+                                                "axis beside it, or in a figure of its own."))
+            self.destination_combo.setMaximumWidth(FIELD_MAX_WIDTH)
+            self.destination_combo.currentIndexChanged.connect(self.mark_results_stale)
+            row = QFormLayout()
+            stdSizeAndlayout(row)
+            row.addRow(_("Draw on:"), self.destination_combo)
+            layout.addLayout(row)
+        if chart_params:
+            self._chart_form_spec = ParameterForm(chart_params, self, on_change=self.mark_results_stale,
+                                                  context=self.parameter_context)
+            layout.addWidget(self._chart_form_spec.widget)
+        for widget in widgets:
+            layout.addWidget(widget)
+        layout.addStretch(1)
+        return panel
 
     def build_parameter_selector(self) -> QWidget:
         """Return the parameter editor widget for the left panel.
@@ -139,7 +185,7 @@ class BuilderHooksMixin:
             return QWidget(self)
 
         self._parameter_form_spec = ParameterForm(
-            self.PARAMS,
+            tuple(spec for spec in self.PARAMS if spec.tab != "charts"),
             self,
             on_change=self.mark_results_stale,
             context=self.parameter_context,
@@ -169,9 +215,15 @@ class BuilderHooksMixin:
         without a special case.
         """
         form = getattr(self, "_parameter_form_spec", None)
-        if form is None:
-            return defaults(self.PARAMS)
-        return form.values()
+        values = defaults(self.PARAMS) if form is None else dict(form.values())
+        charts = getattr(self, "_chart_form_spec", None)
+        if charts is not None:
+            values.update(charts.values())
+        if self.DESTINATIONS:
+            combo = getattr(self, "destination_combo", None)
+            values["destination"] = (str(combo.currentData()) if combo is not None
+                                     else self.DEFAULT_DESTINATION or self.DESTINATIONS[0])
+        return values
 
     def build_results_pane(self) -> QWidget:
         """Return the shared HTML results widget."""

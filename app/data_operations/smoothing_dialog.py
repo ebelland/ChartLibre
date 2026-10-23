@@ -315,6 +315,10 @@ def model_spec(method: str) ->ModelSpec |None:
 
 class SeriesSmoothingDialog(DataOperationDialogBase):
     """Smoothing dialog that follows the shared operation-dialog pattern."""
+
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
     Name: str = "Smoothing"
     Description = "Reduce noise"
 

@@ -71,6 +71,8 @@ def test_an_apply_is_recorded_with_its_inputs_and_outputs(qapp, repo: SqliteRepo
     # The dialog's own choices, not its buttons.
     assert record.entries == {
         "model_combo": dialog.model_combo.currentText(),
+        # Where the result was drawn: the Charts tab's "Draw on".
+        "destination_combo": dialog.destination_combo.currentText(),
         # Where the data came from: the chart's series, not a table's columns.
         "source_chart_radio": True,
         "source_table_radio": False,

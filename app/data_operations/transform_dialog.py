@@ -93,6 +93,10 @@ class TransformResult(XYResult):
 class SeriesTransformDialog(DataOperationDialogBase):
     """Rescale or reshape a chart series' Y values."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_AXIS
+
     MODELS = TRANSFORM_MODELS
     MODEL_TOOLTIP = 'Choose the transform.'
 
@@ -153,16 +157,6 @@ class SeriesTransformDialog(DataOperationDialogBase):
             tooltip="Divide by the interquartile range.",
             default_value=True,
             visible_for={"model": (TRANSFORM_ROBUST,)},
-        ),
-        DataOperationDialogBase.destination_param(
-            tooltip=(
-                "A transformed series is usually on a different scale than its "
-                "source (z-scores, quantiles, ...), so a new axis is the "
-                "default. Same axis overlays them when the ranges are "
-                "comparable; a new figure keeps the result out of this chart "
-                "entirely."
-            ),
-            default=DataOperationDialogBase.DEST_NEW_AXIS,
         ),
     )
 

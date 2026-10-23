@@ -108,6 +108,10 @@ class RegressionResult(XYResult):
 class SeriesRegressionDialog(DataOperationDialogBase):
     """Fit a robust or non-parametric regression model to a chart series."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
+
     MODELS = REGRESSION_MODELS
     MODEL_TOOLTIP = 'Choose the regression model.'
 
@@ -191,14 +195,6 @@ class SeriesRegressionDialog(DataOperationDialogBase):
             decimals=3,
             step=0.01,
             visible_for={"model": (REGRESSION_GRADIENT_BOOSTING,)},
-        ),
-        DataOperationDialogBase.destination_param(
-            tooltip=(
-                "A fitted curve usually shares its source's scale, so the same "
-                "axis overlays it directly on the data. A new axis or figure "
-                "keeps the two apart instead."
-            ),
-            default=DataOperationDialogBase.DEST_SAME_AXIS,
         ),
     )
 

@@ -530,7 +530,13 @@ class InputsMixin:
         produces a picture that is simply wrong.
         """
         del results
-        return selected_axis_id
+        if not self.DESTINATIONS:
+            return selected_axis_id
+        # "Draw on" (the Charts tab): a new axis or figure of the source axis' own kind.
+        descriptor = self._repo.load_figure_descriptor(self._figure_id)
+        chart_type = next((axis.name for axis in (descriptor.axes if descriptor else [])
+                           if int(axis.id) == int(selected_axis_id)), "Scatter Plot")
+        return self.resolve_destination_axis(selected_axis_id, chart_type=chart_type, title=self.operation_label)
 
     def create_result_axis(
         self,

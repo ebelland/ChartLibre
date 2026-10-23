@@ -85,6 +85,10 @@ class BaselineResult(TableResult):
 class SeriesBaselineDialog(DataOperationDialogBase):
     """Estimate and subtract the slow background under a series."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
+
     MODELS = BASELINE_MODELS
     MODEL_TOOLTIP = "Choose the baseline estimator."
     MODEL_LABEL = "Method:"

@@ -144,6 +144,10 @@ class DecompositionResult(TableResult):
 class SeriesDecompositionDialog(DataOperationDialogBase):
     """Decompose or embed several selected series, resampled onto one grid."""
 
+    #: Where the result goes: the Charts tab's "Draw on".
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_AXIS
+
     MODELS = DECOMPOSITION_ALL_MODELS
     MODEL_TOOLTIP = "Choose a decomposition (a curve per component) or a manifold embedding (a 2D scatter)."
 
