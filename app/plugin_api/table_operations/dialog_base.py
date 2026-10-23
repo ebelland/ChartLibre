@@ -110,6 +110,12 @@ class TableOperationDialogBase(QDialog):
 
     #: Something was written into the project (an OK): the window refreshes.
     applied = Signal()
+    #: Preview drew its figure (its id), or took it away again (-1): the window shows or drops it.
+    preview_drawn = Signal(int)
+
+    #: The Charts tab's "Draw on": a new figure, or new axes in the figure the window shows.
+    DRAW_NEW_FIGURE: ClassVar[str] = "new_figure"
+    DRAW_NEW_AXIS: ClassVar[str] = "new_axis"
 
     def __init__(self, *, repo: SqliteRepo, table: str | None = None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -119,6 +125,12 @@ class TableOperationDialogBase(QDialog):
         self._result: Any = None
         self._result_inputs: tuple[Any, ...] | None = None
         self._task: BackgroundTask | None = None
+        #: The figure the main window shows, for "Draw on: new axis in the current figure"; None: no such choice.
+        self.current_figure_id: int | None = None
+        #: A Preview's tables and figure are written inside a savepoint, rolled back by the next Preview,
+        #: by Cancel and before OK writes them for good.
+        self._preview_active = False
+        self._previewing = False
         #: The question a "What next?" link asked for: the main window opens it once this one is closed.
         self.next_request: next_steps.NextStep | None = None
         self._state_key = type(self).__name__
@@ -262,6 +274,7 @@ class TableOperationDialogBase(QDialog):
             parameters.title_label.hide()  # the tab says it, as in the data operations
             parameters.card.layout().addWidget(self._parameter_form.widget)
             self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(parameters)
+        self._build_charts_tab()
         self.roles_widget.finish_tabs()
         self.roles_widget.tabs.setCurrentIndex(0)
         # The standard ground under the frames, not the window's grey.
@@ -426,13 +439,48 @@ class TableOperationDialogBase(QDialog):
     # ------------------------------------------------------------------
 
     def preview(self) -> None:
-        self._run(then=None)
+        self._run(then=self._draw_preview)
 
     def ok(self) -> None:
+        # The preview's drawing goes; OK writes it again for good, with its undo step.
+        self._discard_preview()
         if self._result is not None and self._result_inputs == self._inputs():
             self._apply(self._result)
         else:
             self._run(then=self._apply)
+
+    def _draw_preview(self, result: Any) -> None:
+        """Write the result's tables and figure inside a savepoint, and have the window show them."""
+        self._discard_preview()
+        try:
+            self._repo.begin_preview_savepoint(f"preview_{self._state_key}")
+            self._previewing = True
+            self.apply_results(result)
+        except Exception as exc:  # noqa: BLE001 - shown like a failed run; the preview is undone
+            self._previewing = False
+            self._preview_active = True
+            self._discard_preview()
+            applogger.exception("%s: the preview could not be drawn", self.Name)
+            self._results.setText(_("{operation} could not be drawn: {error}").format(operation=_(self.Name),
+                                                                                        error=exc))
+            return
+        self._previewing = False
+        self._preview_active = True
+        figures = list(getattr(self, "created_figure_ids", []) or [])
+        self.preview_drawn.emit(int(figures[0]) if figures else -1)
+
+    def _discard_preview(self) -> None:
+        """Roll the Preview's tables and figure back, if there is one; the window drops them."""
+        if not self._preview_active:
+            return
+        self._preview_active = False
+        try:
+            self._repo.rollback_preview_savepoint()
+        except Exception:  # noqa: BLE001 - cleanup: must not hide what it follows
+            applogger.exception("%s: the preview could not be rolled back", self.Name)
+        if hasattr(self, "created_figure_ids"):
+            self.created_figure_ids = []
+        self.preview_drawn.emit(-1)
 
     def stop(self) -> None:
         if self._task is not None:
@@ -582,7 +630,10 @@ class TableOperationDialogBase(QDialog):
         repo = self._repo
         names = {key: self.result_table_name(key) for key in frames}
         # *also*: tables the analysis changes besides, in the same undo step (the source's ClusterId).
-        repo.snapshot_for_undo([*names.values(), *also, *repo.DESCRIPTOR_TABLES], label=f"{self.Name} on '{self.table}'")
+        # Not for a Preview: it is rolled back, and OK writes it again with its step.
+        if not self._previewing:
+            repo.snapshot_for_undo([*names.values(), *also, *repo.DESCRIPTOR_TABLES],
+                                   label=f"{self.Name} on '{self.table}'")
         for key, frame in frames.items():
             repo.import_dataframe(frame, table_name=names[key], normalize_columns=False)
         return names
@@ -631,13 +682,24 @@ class TableOperationDialogBase(QDialog):
         panels = available
 
         repo = self._repo
-        columns = 2 if len(panels) > 1 else 1
-        rows = max(1, math.ceil(len(panels) / columns))
-        figure_id = int(repo.create_figure_descriptor(
-            name=name, nrows=rows, ncols=columns,
-            options={FIGURE_VIEW_OPTIONS_KEY: {"notes_html": notes_html}},
-        ))
-        for index, (chart, title, x_label, y_label, series, *options) in enumerate(panels):
+        target = getattr(self, "current_figure_id", None) if self.draw_on() == self.DRAW_NEW_AXIS else None
+        descriptor = repo.load_figure_descriptor(int(target)) if target is not None else None
+        if descriptor is not None:
+            # New axes after the figure's own, its grid grown to show them.
+            figure_id = int(target)
+            columns = max(1, int(descriptor.ncols or 1))
+            first = max((int(axis.index) for axis in descriptor.axes), default=-1) + 1
+            rows = max(int(descriptor.nrows or 1), math.ceil((first + len(panels)) / columns))
+            repo.set_figure_grid(figure_id, nrows=rows, ncols=columns)
+        else:
+            first = 0
+            columns = 2 if len(panels) > 1 else 1
+            rows = max(1, math.ceil(len(panels) / columns))
+            figure_id = int(repo.create_figure_descriptor(
+                name=name, nrows=rows, ncols=columns,
+                options={FIGURE_VIEW_OPTIONS_KEY: {"notes_html": notes_html}},
+            ))
+        for index, (chart, title, x_label, y_label, series, *options) in enumerate(panels, start=first):
             axis_id = int(repo.create_axis_descriptor(
                 figure_id=figure_id, axis_index=index, chart_type=chart,
                 title=title, x_label=x_label, y_label=y_label, options=dict(options[0]) if options else {},
@@ -653,6 +715,33 @@ class TableOperationDialogBase(QDialog):
     # Leaving
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Charts tab
+    # ------------------------------------------------------------------
+
+    def _build_charts_tab(self) -> None:
+        """The Charts tab: where the report figure is drawn (a new figure, or new axes in the current one)."""
+        box = TitledCard(self._inputs_panel, _("Charts"))
+        box.title_label.hide()  # the tab says it
+        form = QFormLayout()
+        stdSizeAndlayout(form)
+        self.draw_on_combo = QComboBox(box)
+        self.draw_on_combo.addItem(_("New figure"), self.DRAW_NEW_FIGURE)
+        self.draw_on_combo.addItem(_("New axis in the current figure"), self.DRAW_NEW_AXIS)
+        self.draw_on_combo.setToolTip(_("Where the charts are drawn: a figure of their own, or beside the "
+                                        "figure the window shows."))
+        self.draw_on_combo.currentIndexChanged.connect(lambda _i: self.inputs_changed())
+        form.addRow(_("Draw on:"), self.draw_on_combo)
+        box.card.layout().addLayout(form)
+        self.roles_widget.add_tab(_("Charts")).addWidget(box)
+
+    def draw_on(self) -> str:
+        """The Charts tab's choice; a new figure when there is no current one to add to."""
+        combo = getattr(self, "draw_on_combo", None)
+        if getattr(self, "current_figure_id", None) is None or combo is None:
+            return self.DRAW_NEW_FIGURE
+        return str(combo.currentData() or self.DRAW_NEW_FIGURE)
+
     def _remember(self) -> None:
         self._remember_casting()
         save_dialog_state(self, self._state_key)
@@ -660,10 +749,12 @@ class TableOperationDialogBase(QDialog):
 
     def reject(self) -> None:
         self.stop()
+        self._discard_preview()
         self._remember()
         super().reject()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self.stop()
+        self._discard_preview()
         self._remember()
         super().closeEvent(event)

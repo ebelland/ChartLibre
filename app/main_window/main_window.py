@@ -1283,6 +1283,10 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             if chosen_x:
                 dialog.cast_explanatory(list(chosen_x))
         dialog.applied.connect(self.refresh)
+        panel = self._current_chart_panel()
+        dialog.current_figure_id = int(panel.figure_id) if panel is not None else None
+        # Preview draws while the dialog is open: its figure shown at once, dropped when it is rolled back.
+        dialog.preview_drawn.connect(self._on_analysis_preview)
         dialog.exec()
         figures = list(getattr(dialog, "created_figure_ids", []) or [])
         self._table_panel.reload()
@@ -1291,6 +1295,13 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         step = getattr(dialog, "next_request", None)
         if step is not None:
             self._open_next_step(step)
+
+    def _on_analysis_preview(self, figure_id: int) -> None:
+        """An analysis' Preview drew *figure_id* (shown), or rolled back (-1: the tabs as they were)."""
+        if figure_id >= 0:
+            self._reload_tabs(select_figure_id=int(figure_id))
+        else:
+            self._reload_tabs()
 
     def _open_next_step_url(self, url: str) -> None:
         """A "What next?" link clicked in a chart's notes."""

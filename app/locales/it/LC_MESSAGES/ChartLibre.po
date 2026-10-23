@@ -11311,3 +11311,12 @@ msgstr "Asse corrente"
 
 msgid "Where the result is drawn: on the axis of its data, on a new axis beside it, or in a figure of its own."
 msgstr "Dove si disegna il risultato: sull'asse dei suoi dati, su un nuovo asse accanto, o in una figura a sé."
+
+msgid "New axis in the current figure"
+msgstr "Nuovo asse nella figura corrente"
+
+msgid "Where the charts are drawn: a figure of their own, or beside the figure the window shows."
+msgstr "Dove si disegnano i grafici: in una figura a sé, o accanto alla figura che la finestra mostra."
+
+msgid "{operation} could not be drawn: {error}"
+msgstr "Impossibile disegnare {operation}: {error}"
