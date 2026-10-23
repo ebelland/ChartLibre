@@ -17,6 +17,9 @@ QMainWindow {
 
 QWidget#windowFrame {
   background: palette(base);
+  /* The 1px outline the comment above promises (issue #5): without it the
+     frameless window had no edge against a white desktop or window behind. */
+  border: 1px solid rgba(@SHADOW_RGB@, 0.28);
 }
 
 /* The navigation-rail toggle, left of the title: a flat glyph in the
