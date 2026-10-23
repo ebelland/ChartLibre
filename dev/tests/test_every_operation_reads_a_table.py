@@ -50,7 +50,7 @@ def test_the_operation_runs_on_a_tables_columns(qapp, repo: SqliteRepo, operatio
 
     dialog = operation(repo=repo, figure_id=figure_id, parent=None)
     # The window remembers Table on the way out: not for the next test.
-    monkeypatch.setattr(dialog, "_remember_state", lambda: None)
+    monkeypatch.setattr(dialog, "remember_window", lambda: None)
     try:
         dialog.source_table_radio.setChecked(True)
         dialog.table_source.set_spec("measures", "time", ["signal", "level"])

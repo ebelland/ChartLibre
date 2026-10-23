@@ -13,7 +13,9 @@ they both did, each in its own words, lives here once:
 * the "Draw on" choices both Charts tabs offer, worded once;
 * the calculation in the background (run_job): the buttons off at once, Stop
   and a progress bar once it has taken a moment, Stop polled by the
-  calculation (stop_requested), "Stopped" or the failure said at its end.
+  calculation (stop_requested), "Stopped" or the failure said at its end;
+* the window's memory (remember_window, restore_window): its size, its
+  choices and its parameters, kept in user.json between sessions.
 
 A base derives from it beside QDialog and says where its results pane is
 (results_widget). No Qt object of its own: a mixin.
@@ -220,3 +222,64 @@ class OperationShell:
             bar.setValue(done)
         else:
             bar.setRange(0, 0)  # one series, or work that does not count: busy, not a percentage
+
+    # ------------------------------------------------------------------
+    # The window's memory
+    # ------------------------------------------------------------------
+
+    #: Beside the entries in the stored state; "@" is in no attribute's name, so restoring skips them.
+    PARAMETERS_STATE: str = "@parameters"
+
+    def state_key(self) -> str:
+        """Where this window's choices are kept in user.json: its class name."""
+        return type(self).__name__
+
+    def geometry_key(self) -> str:
+        """Where its size is kept: the state key, unless the base keeps sizes per layout."""
+        return self.state_key()
+
+    def state_extra(self) -> dict[str, Any]:
+        """Further values a base keeps beside the entries and the parameters (a table source's columns)."""
+        return {}
+
+    def restore_state_extra(self, stored: Mapping[str, Any]) -> None:
+        """Put back what state_extra kept."""
+
+    def parameter_forms(self) -> list[Any]:
+        """The ParameterForms whose values are kept: the base's."""
+        return []
+
+    def remember_window(self) -> None:
+        """Keep the entries, the parameters and the size - from every exit path, when the choice is final."""
+        from app.utils.dialog_state import save_dialog_state, save_window_geometry
+
+        extra: dict[str, Any] = dict(self.state_extra())
+        forms = self.parameter_forms()
+        if forms:
+            values: dict[str, Any] = {}
+            for form in forms:
+                values.update(form.values())
+            extra[self.PARAMETERS_STATE] = values
+        try:
+            save_dialog_state(self, self.state_key(), extra)
+        except TypeError:
+            # A parameter that does not go into JSON: the entries all the same.
+            applogger.exception("Could not remember %s's parameters", self.state_key())
+            save_dialog_state(self, self.state_key())
+        save_window_geometry(self, self.geometry_key())
+
+    def restore_window(self) -> None:
+        """Put back the size, the entries and the parameters remembered; a stale value is logged, not raised."""
+        from app.utils.dialog_state import restore_dialog_state, restore_window_geometry, stored_dialog_state
+
+        restore_window_geometry(self, self.geometry_key())
+        restore_dialog_state(self, self.state_key())
+        stored = stored_dialog_state(self.state_key())
+        parameters = stored.get(self.PARAMETERS_STATE)
+        if isinstance(parameters, dict):
+            for form in self.parameter_forms():
+                try:
+                    form.set_values(parameters)
+                except Exception:  # noqa: BLE001 - a stale value must not stop the window opening
+                    applogger.exception("Could not restore %s's parameters", self.state_key())
+        self.restore_state_extra(stored)

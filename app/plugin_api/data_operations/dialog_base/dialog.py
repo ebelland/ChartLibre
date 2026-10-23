@@ -11,6 +11,7 @@ Subclasses provide operation-specific controls by overriding the builder hooks.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from PySide6.QtCore import Signal
@@ -19,16 +20,10 @@ from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QSizePolicy, QWid
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.styles.style import icon_from_svg_source, set_doc_link
-from app.logs.logger import applogger
 from app.utils.i18n import _
 from app.utils.dialog_state import (
     dialog_entries,
-    restore_dialog_state,
-    restore_window_geometry,
-    save_dialog_state,
-    save_window_geometry,
     set_dialog_entries,
-    stored_dialog_state,
 )
 from app.widgets.html_results import HtmlResultsView
 
@@ -198,52 +193,30 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         # What Revert goes back to: the entries as built, before any memory.
         self._default_entries = dialog_entries(self, inputs_only=True)
         self._default_parameters = self.parameter_values()
-        restore_window_geometry(self, self._state_key)
-        restore_dialog_state(self, self._state_key)
-        self._restore_extra_state()
+        self.restore_window()
         # Restored with its signals blocked: the model's documentation link
         # still named the first model's ("Huber" linked to RANSAC's page).
         if getattr(self, "_doc_link", None) is not None:
             self._update_doc_link()
 
-    #: Where the declared parameters and the table's columns are stored beside
-    #: the entries; "@" is in no attribute's name, so restoring skips them.
-    _PARAMETERS_STATE = "@parameters"
+    #: Where the table's columns are stored beside the entries ("@": no attribute's name).
     _TABLE_SOURCE_STATE = "@table_source"
 
-    def _remember_state(self) -> None:
-        """Persist entries, parameters and geometry to user.json.
+    def parameter_forms(self) -> list[Any]:
+        """The Parameters tab's form and the Charts tab's, whose values are kept."""
+        return [form for form in (getattr(self, "_parameter_form_spec", None), getattr(self, "_chart_form_spec", None))
+                if form is not None]
 
-        Called from every exit path - Apply, Close, the window button - because
-        the useful moment to record a choice is when the user leaves, not when
-        they make it.
-        """
-        extra: dict[str, Any] = {}
-        if getattr(self, "_parameter_form_spec", None) is not None:
-            extra[self._PARAMETERS_STATE] = self.parameter_values()
+    def state_extra(self) -> dict[str, Any]:
+        """The table the data came from, and its columns."""
         source = getattr(self, "table_source", None)
         if source is not None and source.table():
-            extra[self._TABLE_SOURCE_STATE] = {
-                "table": source.table(), "x": source.x_column(), "y": source.y_columns(),
-            }
-        try:
-            save_dialog_state(self, self._state_key, extra)
-        except TypeError:
-            # A parameter that does not go into JSON: the entries all the same.
-            applogger.exception("Could not remember %s's parameters", self._state_key)
-            save_dialog_state(self, self._state_key)
-        save_window_geometry(self, self._state_key)
+            return {self._TABLE_SOURCE_STATE: {"table": source.table(), "x": source.x_column(),
+                                               "y": source.y_columns()}}
+        return {}
 
-    def _restore_extra_state(self) -> None:
-        """The parameters and the table's columns stored beside the entries."""
-        stored = stored_dialog_state(self._state_key)
-        form = getattr(self, "_parameter_form_spec", None)
-        parameters = stored.get(self._PARAMETERS_STATE)
-        if form is not None and isinstance(parameters, dict):
-            try:
-                form.set_values(parameters)
-            except Exception:  # noqa: BLE001 - a stale value must not stop the window opening
-                applogger.exception("Could not restore %s's parameters", self._state_key)
+    def restore_state_extra(self, stored: Mapping[str, Any]) -> None:
+        """The table's columns back in the Data tab."""
         source = getattr(self, "table_source", None)
         chosen = stored.get(self._TABLE_SOURCE_STATE)
         if source is not None and isinstance(chosen, dict):

@@ -362,7 +362,7 @@ class TransactionMixin:
         *then* is told whether it was applied, once it has been - later, when
         the calculation runs in the background.
         """
-        self._remember_state()
+        self.remember_window()
 
         def done(applied: bool) -> None:
             self._applied = self._applied or applied
@@ -374,7 +374,7 @@ class TransactionMixin:
     def reject(self) -> None:
         """Close/Cancel rejects temporary Preview changes."""
         self.stop()
-        self._remember_state()
+        self.remember_window()
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
         self._discard_table_figure()
@@ -383,7 +383,7 @@ class TransactionMixin:
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Window close button also rejects temporary Preview changes."""
         self.stop()
-        self._remember_state()
+        self.remember_window()
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
         self._discard_table_figure()

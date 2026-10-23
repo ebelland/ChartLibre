@@ -488,7 +488,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         return self._run_statistics(verb="Preview")
 
     def apply(self) -> bool:
-        self._remember_state()
+        self.remember_window()
         return self._run_statistics(verb="Applied")
 
     def ok(self) -> None:

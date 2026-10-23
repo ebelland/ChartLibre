@@ -69,10 +69,6 @@ from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRo
 from app.utils.config import get_section, set_section
 from app.utils.dialog_state import (
     dialog_entries,
-    restore_dialog_state,
-    restore_window_geometry,
-    save_dialog_state,
-    save_window_geometry,
 )
 from app.utils import report_html
 from app.utils.i18n import _
@@ -141,8 +137,7 @@ class TableOperationDialogBase(OperationShell, QDialog):
         if self.Icon:
             self.setWindowIcon(icon_from_svg_source(self.Icon, size=32))
         self._build_ui()
-        restore_window_geometry(self, self._geometry_key)
-        restore_dialog_state(self, self._state_key)
+        self.restore_window()
         self._load_tables(table)
 
     # ------------------------------------------------------------------
@@ -707,10 +702,16 @@ class TableOperationDialogBase(OperationShell, QDialog):
             return self.DEST_NEW_FIGURE
         return str(combo.currentData() or self.DEST_NEW_FIGURE)
 
+    def geometry_key(self) -> str:
+        """The size is the layout's: a new layout starts from its own default, not from the old one's size."""
+        return self._geometry_key
+
+    def parameter_forms(self) -> list[Any]:
+        return [self._parameter_form] if self._parameter_form is not None else []
+
     def _remember(self) -> None:
         self._remember_casting()
-        save_dialog_state(self, self._state_key)
-        save_window_geometry(self, self._geometry_key)
+        self.remember_window()
 
     def reject(self) -> None:
         self.stop()
