@@ -88,7 +88,7 @@ Normal Mixtures), Time Series (ACF/PACF, STL, ARIMA, ETS), control charts (I-MR,
 run rules), capability, DOE (factorial, response surface, Latin hypercube), outliers, peaks,
 filters, spectra, GP regression, NIST-checked curve fitting, Kaplan-Meier, 40+ chart types.
 Items already listed above are named here, not repeated. Highest value first in each block.
-Suggested order overall: G-02, G-01, G-25, G-28, G-30, G-03, G-06, G-12, G-14.
+Suggested order overall: G-02, G-01, G-30, G-03, G-06.
 
 JMP
 - G-01  L  Graph Builder: drag columns onto X, Y, Group X/Y, Wrap, Overlay, Color, Size; change
