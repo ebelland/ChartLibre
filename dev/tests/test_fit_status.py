@@ -60,3 +60,15 @@ def test_a_hand_edited_parameter_is_reported_as_an_evaluation(dialog: SeriesFitD
     dialog._params_table.setItem(3, 1, QTableWidgetItem("2.5"))
     result = dialog.compute_results()[0]
     assert "Evaluated" in result.message
+
+
+def test_the_curve_is_drawn_smooth_and_past_the_data(dialog: SeriesFitDialog) -> None:
+    """Fitted curve > Points and Extend: rows of the curve alone, the measured ones untouched."""
+    dialog._curve_points_spin.setValue(101)
+    dialog._curve_extend_spin.setValue(10.0)
+    _fit(dialog)
+    frame = dialog.compute_results()[0].frame
+    curve = frame[frame["y"].isna()]
+    assert len(curve) == 101 and len(frame) - len(curve) == len(X)
+    assert curve["x"].min() < X.min() and curve["x"].max() > X.max()
+    np.testing.assert_allclose(curve["y_fit"], 10.0 / (1.0 + np.exp(-(curve["x"] - 3.0))), atol=1e-6)

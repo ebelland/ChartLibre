@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
+import pandas as pd
 from PySide6.QtWidgets import QWidget
 from app.analysis import fit as fit_engine
 
@@ -143,6 +144,8 @@ class FitRunMixin:
     ) -> SeriesFitResult:
         """Turn the engine's outcome into the dialog's result: frame, bands, report."""
         frame = self._build_output_frame(job, outcome.fit_values, outcome.residual)
+        if not job.is_2d and len(frame):
+            frame = self._with_curve_rows(job, frame, outcome.params)
         if not job.is_2d and outcome.dof > 0 and len(frame):
             # The band columns ride in the result table like fit and
             # residual do, so a saved result can be redrawn without the
@@ -192,6 +195,32 @@ class FitRunMixin:
             param_ci_high=outcome.ci_high,
             dof=outcome.dof,
         )
+
+    def _with_curve_rows(self, job: _FitJob, frame: pd.DataFrame, params: np.ndarray) -> pd.DataFrame:
+        """*frame* plus rows of the curve alone - evenly spaced x, past the data if asked; no measurement there.
+
+        The curve series reads x and y_fit over every row, so it is drawn smooth and as far as asked; the
+        residuals and the fit-vs-measured chart read y and residual, empty on these rows, and skip them.
+        """
+        count = int(self._curve_points_spin.value())
+        extend = float(self._curve_extend_spin.value()) / 100.0
+        if count <= 0 and extend <= 0:
+            return frame
+        x = frame["x"].to_numpy(float)
+        low, high = float(np.nanmin(x)), float(np.nanmax(x))
+        span = high - low
+        low, high = low - extend * span, high + extend * span
+        dense = np.linspace(low, high, max(count, 2) if count > 0 else 50)
+        try:
+            fitted = np.asarray(job.model(dense, np.asarray(params, dtype=float)), dtype=float)
+        except Exception:  # noqa: BLE001 - a model that cannot be evaluated there: the curve stays at the data
+            applogger.warning("The fitted curve could not be drawn between the data: drawn at the data only.")
+            return frame
+        extra = pd.DataFrame({"x": dense, "fit": fitted, "y_fit": fitted})
+        for column in frame.columns:
+            if column not in extra and frame[column].dtype == object:
+                extra[column] = frame[column].iloc[0]
+        return pd.concat([frame, extra], ignore_index=True)
 
     def build_extra_action_buttons(self, layout) -> None:
         """Add the Fit button next to Preview."""

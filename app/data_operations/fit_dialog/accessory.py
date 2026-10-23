@@ -47,7 +47,8 @@ class AccessoryChartsMixin:
         self, result: SeriesFitResult, table_name: str
     ) -> tuple[str, dict[str, str], str, str]:
         return (
-            f'SELECT x, residual AS y FROM "{table_name}" ORDER BY x',
+            # Measured rows only: the curve's own rows (Fitted curve > Points) have no residual.
+            f'SELECT x, residual AS y FROM "{table_name}" WHERE residual IS NOT NULL ORDER BY x',
             {"x": "x", "y": "y"},
             result.x_col or "x",
             _("residual"),
@@ -58,7 +59,7 @@ class AccessoryChartsMixin:
     ) -> tuple[str, dict[str, str], str, str]:
         fit_col, measured_col = ("z_fit", "z") if self._is_2d_fit() else ("y_fit", "y")
         return (
-            f'SELECT {fit_col} AS x, {measured_col} AS y FROM "{table_name}"',
+            f'SELECT {fit_col} AS x, {measured_col} AS y FROM "{table_name}" WHERE {measured_col} IS NOT NULL',
             {"x": "x", "y": "y"},
             _("fit"),
             result.target_col or _("measured"),

@@ -11134,3 +11134,15 @@ msgstr "Template salvato: {path}"
 
 msgid "Nothing was drawn."
 msgstr "Non è stato disegnato nulla."
+
+msgid "At the data"
+msgstr "Nei dati"
+
+msgid "How many points the fitted curve is drawn with, evenly spaced; 0 draws it only at the data's x."
+msgstr "Con quanti punti, equidistanti, si disegna la curva adattata; 0 la disegna solo nelle x dei dati."
+
+msgid "Draw the curve past the data, on each side, by this share of the data's x range: 10 % extrapolates a tenth either way."
+msgstr "Prolunga la curva oltre i dati, da ogni lato, di questa quota dell'intervallo delle x: 10 % estrapola un decimo per parte."
+
+msgid "Fitted curve"
+msgstr "Curva adattata"

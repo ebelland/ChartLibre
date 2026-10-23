@@ -16,6 +16,8 @@ from typing import Any, Callable
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QFormLayout,
+    QDoubleSpinBox,
     QHeaderView,
     QCheckBox,
     QComboBox,
@@ -235,6 +237,21 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
                 "points around the curve."
             )
         )
+        # The fitted curve drawn smooth and, if asked, past the data (1D fits).
+        self._curve_points_spin = QSpinBox(self)
+        self._curve_points_spin.setRange(0, 100_000)
+        self._curve_points_spin.setSingleStep(100)
+        self._curve_points_spin.setValue(200)
+        self._curve_points_spin.setSpecialValueText(_("At the data"))
+        self._curve_points_spin.setToolTip(_("How many points the fitted curve is drawn with, evenly spaced; "
+                                             "0 draws it only at the data's x."))
+        self._curve_extend_spin = QDoubleSpinBox(self)
+        self._curve_extend_spin.setRange(0.0, 1000.0)
+        self._curve_extend_spin.setDecimals(0)
+        self._curve_extend_spin.setSingleStep(10.0)
+        self._curve_extend_spin.setSuffix(" %")
+        self._curve_extend_spin.setToolTip(_("Draw the curve past the data, on each side, by this share of "
+                                             "the data's x range: 10 % extrapolates a tenth either way."))
         self._residual_axis_id: int | None = None
         self._fit_vs_measured_axis_id: int | None = None
         self._accessory_table_names: set[str] = set()
@@ -445,6 +462,12 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         self._output_table_edit.setToolTip(_("Name of the SQLite table where fitted values/residuals are saved."))
         output.card.layout().addWidget(self._output_table_edit)
         layout.addWidget(output)
+        curve = TitledCard(page, _("Fitted curve"))
+        curve_form = QFormLayout()
+        curve_form.addRow(_("Points:"), self._curve_points_spin)
+        curve_form.addRow(_("Extend:"), self._curve_extend_spin)
+        curve.card.layout().addLayout(curve_form)
+        layout.addWidget(curve)
         bands = TitledCard(page, _("Bands on the fit"))
         bands.card.layout().addWidget(self._confidence_band_check)
         bands.card.layout().addWidget(self._prediction_band_check)
