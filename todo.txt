@@ -7,9 +7,11 @@ NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
            repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
 NEXT - INTERFACE
-- O-01  L  One shell for every analysis: a Charts tab (draw on current axis / new axis / new figure,
-           a check box per chart) and Preview for the table analyses; Distribution's choice of
-           distribution. PLAN: dev/plans/operation_shell_plan.txt (waiting for the go, Q1-Q3).
+- O-01  M  One shell for every analysis, next: the two bases' common parts (results pane, buttons,
+           background run and Stop, failure shown, history record) into one OperationShell they both
+           derive from (dev/plans/operation_shell_plan.txt step 1). Done: Charts tab with "Draw on" and
+           what is drawn in both kinds, Preview for the table analyses, one Results document for the data
+           operations, Distribution's choice of distribution.
 - R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series
            over a saved query that keeps "_id"; dates and categories on x; the data filter
            ("show only Selected" on every chart of a table).
