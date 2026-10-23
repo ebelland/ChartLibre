@@ -10859,13 +10859,13 @@ msgstr "Casualità / indipendenza seriale"
 msgid "These tests read the values in the order they are in. A small p-value says the order is not random: a trend, a cycle or a memory from one value to the next."
 msgstr "Questi test leggono i valori nell'ordine in cui si trovano. Un p-value piccolo dice che l'ordine non è casuale: una tendenza, un ciclo o una memoria da un valore al successivo."
 
-msgid "Process - real data: oxide wafers and Newcomb's light measurements"
+msgid "Process - real data, oxide wafers and Newcomb's light measurements"
 msgstr "Processo - dati reali: wafer di ossido e misure della luce di Newcomb"
 
 msgid "Real measurements for statistical process control: the oxide thickness of 24 semiconductor wafers with three sites each, on an X-bar and R chart (a wafer is a subgroup) and as a one-way comparison by lot; and Newcomb's 66 measurements of the speed of light, in the order made, on an individuals chart - which flags his two famous low readings - and through the randomness tests of their order."
 msgstr "Misure reali per il controllo statistico di processo: lo spessore di ossido di 24 wafer di semiconduttore con tre siti ciascuno, su una carta X-barra e R (un wafer è un sottogruppo) e come confronto per lotto; e le 66 misure di Newcomb della velocità della luce, nell'ordine in cui furono fatte, su una carta dei valori individuali - che segnala le sue due famose letture basse - e attraverso i test di casualità del loro ordine."
 
-msgid "Time series - real data: the Nile and the airline passengers"
+msgid "Time series - real data, the Nile and the airline passengers"
 msgstr "Serie temporali - dati reali: il Nilo e i passeggeri aerei"
 
 msgid "Two classic real series, their dates stored as text: the annual flow of the Nile 1871-1970, with the drop of about 1898 a time series model has to absorb, and the monthly airline passengers 1949-1960, a trend with a growing season. Time Series gives each its forecast by the ARIMA the AIC chooses, its autocorrelations and the residual randomness tests (runs, turning points, Durbin-Watson, Ljung-Box)."

@@ -298,7 +298,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Guided Analysis",
     ),
     DemoProject(
-        "Process - real data: oxide wafers and Newcomb's light measurements",
+        "Process - real data, oxide wafers and Newcomb's light measurements",
         "Real measurements for statistical process control: the oxide thickness of 24 semiconductor wafers "
         "with three sites each, on an X-bar and R chart (a wafer is a subgroup) and as a one-way comparison "
         "by lot; and Newcomb's 66 measurements of the speed of light, in the order made, on an individuals "
@@ -310,7 +310,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Quality and Process",
     ),
     DemoProject(
-        "Time series - real data: the Nile and the airline passengers",
+        "Time series - real data, the Nile and the airline passengers",
         "Two classic real series, their dates stored as text: the annual flow of the Nile 1871-1970, with "
         "the drop of about 1898 a time series model has to absorb, and the monthly airline passengers "
         "1949-1960, a trend with a growing season. Time Series gives each its forecast by the ARIMA the AIC "
