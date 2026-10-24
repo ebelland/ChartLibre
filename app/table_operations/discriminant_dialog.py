@@ -71,9 +71,6 @@ class DiscriminantDialog(TableOperationDialogBase):
             priors=str(params.get("priors") or da.PROPORTIONAL),
         )
 
-    def report_subtitle(self, result: da.DiscriminantResult) -> str:
-        return f"{self.table} · {result.response}"
-
     def report_body(self, result: da.DiscriminantResult) -> str:
         blocks = [report_html.note(_(note)) for note in result.notes]
         method = _(dict(da.METHODS)[result.method])

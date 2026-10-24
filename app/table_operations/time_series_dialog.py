@@ -171,9 +171,6 @@ class TimeSeriesDialog(TableOperationDialogBase):
             result.residual_diagnostics = result.residual_diagnostics.loc[keep].reset_index(drop=True)
         return result
 
-    def report_subtitle(self, result: tsa.TimeSeriesResult) -> str:
-        return f"{self.table} · {result.measure}"
-
     def report_body(self, result: tsa.TimeSeriesResult) -> str:
         blocks = [report_html.note(_(note)) for note in result.notes]
         blocks.append(report_html.section(_("Summary"), report_html.summary_table(

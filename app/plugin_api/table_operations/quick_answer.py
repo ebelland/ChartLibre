@@ -37,8 +37,6 @@ def answer_html(answer: answers.Answer) -> str:
 class QuickAnswerDialogBase(TableOperationDialogBase):
     """A question on a measure, answered in words, with the table and the chart it rests on."""
 
-    #: The roles named after the table in the report's subtitle, joined by " / ".
-    SUBTITLE_ROLES: ClassVar[tuple[str, ...]] = ("response",)
     #: The key of the table OK writes (named after it and the source table).
     RESULT_TABLE: ClassVar[str] = "answer"
 
@@ -46,10 +44,6 @@ class QuickAnswerDialogBase(TableOperationDialogBase):
     def measure(self) -> str:
         """The column the question is about."""
         return self.column("response")
-
-    def report_subtitle(self, result: Any) -> str:
-        named = " / ".join(column for column in (self.column(role) for role in self.SUBTITLE_ROLES) if column)
-        return f"{self.table} · {named}"
 
     def report_body(self, result: Any) -> str:
         return answer_html(result) + self.answer_details(result)

@@ -71,9 +71,6 @@ class PLSDialog(TableOperationDialogBase):
                       components=components or None, folds=int(params.get("folds", 7)),
                       scale=bool(params.get("scale", False)))
 
-    def report_subtitle(self, result: pl.PLSResult) -> str:
-        return f"{self.table} · {', '.join(result.responses)}"
-
     def report_body(self, result: pl.PLSResult) -> str:
         blocks = [report_html.note(_(note)) for note in result.notes]
         blocks.append(report_html.section(_("Summary"), report_html.summary_table(

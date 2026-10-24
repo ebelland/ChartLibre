@@ -78,9 +78,6 @@ class FitYByXDialog(TableOperationDialogBase):
     # The report
     # ------------------------------------------------------------------
 
-    def report_subtitle(self, result: FitYByXReport) -> str:
-        return f"{self.table} · {result.results[0].y}"
-
     def report_body(self, report: FitYByXReport) -> str:
         blocks = []
         for result in report.results:

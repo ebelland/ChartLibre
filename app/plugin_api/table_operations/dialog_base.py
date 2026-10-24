@@ -86,6 +86,8 @@ class TableOperationDialogBase(OperationShell):
     Icon: ClassVar[str] = ""
 
     ROLES: ClassVar[tuple[ColumnRole, ...]] = ()
+    #: The roles whose columns the report's subtitle names after the table.
+    SUBTITLE_ROLES: ClassVar[tuple[str, ...]] = ("response",)
     #: Roles that may not share a column: (role, other role, message); "{columns}" in the message names them.
     DISTINCT_ROLES: ClassVar[tuple[tuple[str, str, str], ...]] = ()
     MODELS: ClassVar[Mapping[str, OperationModel]] = {}
@@ -145,9 +147,10 @@ class TableOperationDialogBase(OperationShell):
         raise NotImplementedError
 
     def report_subtitle(self, result: Any) -> str:
-        """The line under the title: the table, by default; an analysis adds its columns."""
+        """The line under the title: the table, then the columns of SUBTITLE_ROLES."""
         del result
-        return str(self.table)
+        named = " / ".join(", ".join(self.columns(role)) for role in self.SUBTITLE_ROLES if self.columns(role))
+        return f"{self.table} · {named}" if named else str(self.table)
 
     def report_document(self, result: Any) -> str:
         """The whole report: shown in Results, and kept as the notes of the figure OK draws."""

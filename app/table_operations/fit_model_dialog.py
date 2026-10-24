@@ -521,9 +521,6 @@ class FitModelDialog(TableOperationDialogBase):
         )
         return lm.fit_models(frame, spec, should_stop=self.stop_requested)
 
-    def report_subtitle(self, result: list[lm.ResponseFit]) -> str:
-        return f"{self.table} · {', '.join(fit.response for fit in result)}"
-
     def report_body(self, result: list[lm.ResponseFit]) -> str:
         return "".join(self._fit_report(fit) for fit in result)
 

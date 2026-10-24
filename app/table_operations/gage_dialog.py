@@ -70,9 +70,6 @@ class GageDialog(TableOperationDialogBase):
             (_("Distinct categories"), str(result.ndc))))))
         return "".join(blocks)
 
-    def report_subtitle(self, result: gage.GageStudy) -> str:
-        return f"{self.table} · {result.measure}"
-
     def apply_results(self, result: gage.GageStudy) -> list[dict[str, Any]]:
         name = self.write_result_tables({"gage": result.components})["gage"]
         roles = {"y": result.measure, "x": result.part}

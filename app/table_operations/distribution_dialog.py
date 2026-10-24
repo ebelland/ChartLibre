@@ -86,9 +86,6 @@ class DistributionDialog(TableOperationDialogBase):
     # The report
     # ------------------------------------------------------------------
 
-    def report_subtitle(self, result: DistributionReport) -> str:
-        return f"{self.table} · {', '.join(r.column for r in result.results)}"
-
     def report_body(self, report: DistributionReport) -> str:
         blocks = []
         for result in report.results:
