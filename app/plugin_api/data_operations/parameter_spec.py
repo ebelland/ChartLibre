@@ -32,7 +32,7 @@ without a window server.  The widget building lives in ``parameter_form``.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +54,9 @@ class Param:
 
     ``section``: a heading over this row and the ones after it that share it
     ("Bands on the fit"), hidden while none of them is shown.
+
+    ``visible_if``: a rule visible_for cannot say - "this model, or that
+    spacing" - as a function of the same values; both must hold.
     """
 
     name: str
@@ -65,13 +68,15 @@ class Param:
     tab: str = ""
     #: A heading over the rows that share it.
     section: str = ""
+    #: Shown only when this holds for the current values (beside visible_for).
+    visible_if: Callable[[Mapping[str, Any]], bool] | None = None
 
     def is_visible(self, values: Mapping[str, Any]) -> bool:
         """Say whether this row should be shown for the current values."""
         for other, allowed in self.visible_for.items():
             if values.get(other) not in tuple(allowed):
                 return False
-        return True
+        return self.visible_if is None or bool(self.visible_if(values))
 
     @property
     def default(self) -> Any:

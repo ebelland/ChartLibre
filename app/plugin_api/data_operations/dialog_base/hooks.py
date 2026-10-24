@@ -153,13 +153,18 @@ class BuilderHooksMixin:
         self._parameter_form_spec = ParameterForm(
             tuple(spec for spec in self.PARAMS if spec.tab != "charts"),
             self,
-            on_change=self.mark_results_stale,
+            on_change=self.parameters_changed,
             context=self.parameter_context,
         )
         # Kept under the name the base already uses for the hand-built form, so
         # set_row_visible and the state helpers keep working unchanged.
         self._parameter_form = self._parameter_form_spec.layout
         return self._parameter_form_spec.widget
+
+    def parameters_changed(self) -> None:
+        """A parameter changed: the results on screen are stale. An operation that follows a choice with
+        others (the starting values a model takes) overrides it and calls this."""
+        self.mark_results_stale()
 
     def parameter_context(self) -> Mapping[str, Any]:
         """Return values a ``visible_for`` rule may reference but not own.

@@ -22,23 +22,13 @@ import numpy as np
 import pandas as pd
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDoubleSpinBox,
-    QFormLayout,
-    QLabel,
-    QLineEdit,
     QMainWindow,
-    QPlainTextEdit,
-    QScrollArea,
-    QSizePolicy,
-    QSpinBox,
-    QWidget,
 )
 
 from app.data.data_source import parse_roles, resolve_role_column
 from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
 from app.plugin_api.data_operations.dialog_base import (
     CallJob,
     OperationModel,
@@ -62,7 +52,13 @@ from app.analysis.interpolation import (
     MODEL_SCIPY_PCHIP,
     MODEL_SCIPY_SPLINE,
     MODEL_SIGMOID,
+    SPACING_CHEBYSHEV,
     SPACING_CUSTOM,
+    SPACING_GEOMETRIC,
+    SPACING_INTEGER_STEP,
+    SPACING_LINEAR,
+    SPACING_LOG,
+    SPACING_ORIGINAL,
     InterpolationSettings,
     default_params,
     evaluation_range,
@@ -144,6 +140,50 @@ MODEL_NAMES: dict[str, InterpolationModel] = {
         group="interpolation",
     ),
 }
+
+_SPACINGS = (SPACING_LINEAR, SPACING_LOG, SPACING_GEOMETRIC, SPACING_ORIGINAL, SPACING_INTEGER_STEP,
+             SPACING_CHEBYSHEV, SPACING_CUSTOM)
+#: The spacings that build x over a range (the data's, extended, or one typed).
+_RANGED = {"spacing": tuple(spacing for spacing in _SPACINGS if spacing not in (SPACING_CUSTOM, SPACING_ORIGINAL))}
+_CURVE_FIT = {"model": tuple(name for name, spec in MODEL_NAMES.items() if spec.curve_fit)}
+_SPLINE = {"model": (MODEL_SCIPY_SPLINE,)}
+
+#: The settings, each shown for the models and the spacings that use it.
+INTERPOLATION_PARAMS = (
+    IntParam("degree", "Degree:", default_value=2, minimum=1, maximum=12, visible_for={"model": (MODEL_POLYNOMIAL,)},
+             tooltip="Polynomial degree for NumPy polyfit."),
+    IntParam("points", "Points:", default_value=600, minimum=10, maximum=200_000,
+             visible_for={"spacing": tuple(spacing for spacing in _RANGED["spacing"] if spacing != SPACING_INTEGER_STEP)},
+             tooltip="Number of generated points for continuous spacing modes."),
+    ChoiceParam("spacing", "X spacing:", choices=_SPACINGS, tooltip="Choose how generated X values are built."),
+    TextParam("x_range", "X range:", placeholder="auto, or start, stop", visible_for=_RANGED,
+              tooltip="Optional range as 'start, stop'. Empty = data range plus Extend."),
+    FloatParam("step", "Step:", default_value=1.0, minimum=1e-12, maximum=1e12, decimals=6, step=0.001,
+               visible_for={"spacing": (SPACING_INTEGER_STEP,)}, tooltip="Step size used by integer/fixed-step spacing."),
+    TextParam("custom_x", "Eval X:", placeholder="1, 2.5, 10 or one per line", visible_for={"spacing": (SPACING_CUSTOM,)},
+              tooltip="Explicit X values where Y is evaluated."),
+    FloatParam("extend", "Extend:", default_value=0.0, minimum=0.0, maximum=500.0, decimals=1, step=1.0, suffix=" %",
+               visible_for=_RANGED, tooltip="Extend automatic data range by this percent on both sides."),
+    BoolParam("extrapolate", "Allow extrapolation", default_value=True,
+              visible_if=lambda values: values.get("spacing") in _RANGED["spacing"] or values.get("model") in (
+                  MODEL_SCIPY_PCHIP, MODEL_SCIPY_AKIMA, MODEL_SCIPY_CUBIC, MODEL_SCIPY_SPLINE),
+              tooltip="Allow evaluation outside source data X range."),
+    ChoiceParam("spline_type", "Spline:", choices=("UnivariateSpline", "CubicSpline", "PCHIP", "Akima1D", "B-spline"),
+                visible_for=_SPLINE, tooltip="Spline algorithm for SciPy spline family."),
+    IntParam("spline_degree", "Spline k:", default_value=3, minimum=1, maximum=5,
+             visible_for={**_SPLINE, "spline_type": ("UnivariateSpline", "B-spline")},
+             tooltip="Spline degree k for UnivariateSpline/B-spline."),
+    ChoiceParam("cubic_bc", "Boundary:", choices=("not-a-knot", "natural", "clamped", "periodic"),
+                visible_if=lambda values: values.get("model") == MODEL_SCIPY_CUBIC or (
+                    values.get("model") == MODEL_SCIPY_SPLINE and values.get("spline_type") in ("CubicSpline", "B-spline")),
+                tooltip="Spline boundary condition."),
+    FloatParam("smoothing", "Smooth s:", default_value=0.0, minimum=0.0, maximum=1_000_000.0, decimals=3, step=0.1,
+               visible_for={**_SPLINE, "spline_type": ("UnivariateSpline",)}, tooltip="UnivariateSpline smoothing factor s."),
+    BoolParam("guess", "Guess starting parameters", default_value=True, visible_for=_CURVE_FIT,
+              tooltip="Guess starting parameters for nonlinear models."),
+    TextParam("start_params", "Start params:", placeholder='Example: {"a": 1.0, "b": 0.1}', visible_for=_CURVE_FIT,
+              tooltip="JSON starting parameters for nonlinear series_fit models."),
+)
 
 _TABLE_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
 
@@ -232,6 +272,7 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
     DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
 
     MODELS = MODEL_NAMES
+    PARAMS = INTERPOLATION_PARAMS
     MODEL_TOOLTIP = "Choose the fitting/interpolation model."
     Name: str  = "Interpolation"
     Description = "Fill missing values"
@@ -271,6 +312,9 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
         figure_id: int,
         parent: QMainWindow,
     ) -> None:
+        self._last_results: list[FitResult] = []
+        #: The model and "Guess" the starting values were last filled in for.
+        self._guessed_for: tuple[str, bool] | None = None
         super().__init__(
             repo=repo,
             figure_id=figure_id,
@@ -278,169 +322,13 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
             width=720,
             height=640
         )
-        self._refresh_model_defaults()
+        self._doc_link.setToolTip(_("Open NumPy/SciPy documentation for the model."))
+        self._guess_start_params()
         self.model_combo.setVisible(True)
-
-    def init_operation_widgets(self) -> None:
-        """Create interpolation controls before base builder hooks run."""
-        self._last_results: list[FitResult] = []
-        self._settings_form: QFormLayout | None = None
-
-        self._degree_spin = QSpinBox(self)
-        self._points_spin = QSpinBox(self)
-        self._spacing_combo = QComboBox(self)
-        self._range_edit = QLineEdit(self)
-        self._integer_step_spin = QDoubleSpinBox(self)
-        self._custom_x_edit = QLineEdit(self)
-        self._extend_spin = QDoubleSpinBox(self)
-        self._extrap_check = QCheckBox(_("Allow extrapolation"), self)
-        self._spline_type_combo = QComboBox(self)
-        self._spline_degree_spin = QSpinBox(self)
-        self._cubic_bc_combo = QComboBox(self)
-        self._smoothing_spin = QDoubleSpinBox(self)
-        self._guess_check = QCheckBox(_("Guess starting parameters"), self)
-        self._params_label = QLabel(_("Start params:"), self)
-        self._params_edit = QPlainTextEdit(self)
-        #self.series_selector.reload(select_all_series=False)
-
 
     # ------------------------------------------------------------------
     # UI
     # ------------------------------------------------------------------
-
-    def build_parameter_selector(self) -> QWidget:
-        settings = QWidget(self)
-        form = QFormLayout(settings)
-        self._settings_form = form
-        form.setContentsMargins(4, 4, 4, 4)
-        form.setHorizontalSpacing(6)
-        form.setVerticalSpacing(4)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self._degree_spin.setRange(1, 12)
-        self._degree_spin.setValue(2)
-        form.addRow(_("Degree:"), self._degree_spin)
-
-        self._points_spin.setRange(10, 200_000)
-        self._points_spin.setValue(600)
-        form.addRow(_("Points:"), self._points_spin)
-
-        self._spacing_combo.addItems([
-            "linspace",
-            "logspace",
-            "geomspace",
-            "original data X",
-            "integer step",
-            "chebyshev nodes",
-            "custom X values",
-        ])
-        form.addRow(_("X spacing:"), self._spacing_combo)
-
-        self._range_edit.setPlaceholderText(_("auto, or start, stop"))
-        form.addRow(_("X range:"), self._range_edit)
-
-        self._integer_step_spin.setRange(1e-12, 1e12)
-        self._integer_step_spin.setDecimals(6)
-        self._integer_step_spin.setValue(1.0)
-        form.addRow(_("Step:"), self._integer_step_spin)
-
-        self._custom_x_edit.setPlaceholderText(_("1, 2.5, 10 or one per line"))
-        form.addRow(_("Eval X:"), self._custom_x_edit)
-
-        self._extend_spin.setRange(0.0, 500.0)
-        self._extend_spin.setDecimals(1)
-        self._extend_spin.setSuffix(" %")
-        form.addRow(_("Extend:"), self._extend_spin)
-
-        self._extrap_check.setChecked(True)
-        form.addRow("", self._extrap_check)
-
-        self._spline_type_combo.addItems([
-            "UnivariateSpline",
-            "CubicSpline",
-            "PCHIP",
-            "Akima1D",
-            "B-spline",
-        ])
-        form.addRow(_("Spline:"), self._spline_type_combo)
-
-        self._spline_degree_spin.setRange(1, 5)
-        self._spline_degree_spin.setValue(3)
-        form.addRow(_("Spline k:"), self._spline_degree_spin)
-
-        self._cubic_bc_combo.addItems(["not-a-knot", "natural", "clamped", "periodic"])
-        form.addRow(_("Boundary:"), self._cubic_bc_combo)
-
-        self._smoothing_spin.setRange(0.0, 1_000_000.0)
-        self._smoothing_spin.setDecimals(3)
-        form.addRow(_("Smooth s:"), self._smoothing_spin)
-
-        self._guess_check.setChecked(True)
-        form.addRow("", self._guess_check)
-
-        self._params_edit.setMaximumHeight(64)
-        self._params_edit.setPlaceholderText(_('Example: {"a": 1.0, "b": 0.1}'))
-        form.addRow(self._params_label, self._params_edit)
-
-        for widget in (
-            self._range_edit,
-            self._custom_x_edit,
-            self._spacing_combo,
-            self._spline_type_combo,
-            self._cubic_bc_combo,
-            self._params_edit,
-        ):
-            widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-        scroll = QScrollArea(self)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(settings)
-        self._set_setting_tooltips()
-        return scroll
-
-    def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_model_defaults)
-        self._degree_spin.valueChanged.connect(self._refresh_model_defaults)
-        self._points_spin.valueChanged.connect(self.mark_results_stale)
-        self._spacing_combo.currentIndexChanged.connect(self._refresh_model_defaults)
-        self._range_edit.textChanged.connect(self.mark_results_stale)
-        self._integer_step_spin.valueChanged.connect(self.mark_results_stale)
-        self._custom_x_edit.textChanged.connect(self.mark_results_stale)
-        self._extend_spin.valueChanged.connect(self.mark_results_stale)
-        self._extrap_check.stateChanged.connect(self.mark_results_stale)
-        self._spline_type_combo.currentIndexChanged.connect(self._refresh_model_defaults)
-        self._spline_degree_spin.valueChanged.connect(self.mark_results_stale)
-        self._cubic_bc_combo.currentIndexChanged.connect(self.mark_results_stale)
-        self._smoothing_spin.valueChanged.connect(self.mark_results_stale)
-        self._guess_check.stateChanged.connect(self._refresh_model_defaults)
-        self._params_edit.textChanged.connect(self.mark_results_stale)
-
-    def _set_setting_tooltips(self) -> None:
-        self._doc_link.setToolTip(_("Open NumPy/SciPy documentation for the model."))
-        self._degree_spin.setToolTip(_("Polynomial degree for NumPy polyfit."))
-        self._points_spin.setToolTip(_("Number of generated points for continuous spacing modes."))
-        self._spacing_combo.setToolTip(_("Choose how generated X values are built."))
-        self._range_edit.setToolTip(_("Optional range as 'start, stop'. Empty = data range plus Extend."))
-        self._integer_step_spin.setToolTip(_("Step size used by integer/fixed-step spacing."))
-        self._custom_x_edit.setToolTip(_("Explicit X values where Y is evaluated."))
-        self._extend_spin.setToolTip(_("Extend automatic data range by this percent on both sides."))
-        self._extrap_check.setToolTip(_("Allow evaluation outside source data X range."))
-        self._spline_type_combo.setToolTip(_("Spline algorithm for SciPy spline family."))
-        self._spline_degree_spin.setToolTip(_("Spline degree k for UnivariateSpline/B-spline."))
-        self._cubic_bc_combo.setToolTip(_("Spline boundary condition."))
-        self._smoothing_spin.setToolTip(_("UnivariateSpline smoothing factor s."))
-        self._guess_check.setToolTip(_("Guess starting parameters for nonlinear models."))
-        self._params_edit.setToolTip(_("JSON starting parameters for nonlinear series_fit models."))
-
-    def _set_form_row_visible(self, field: QWidget, visible: bool) -> None:
-        field.setVisible(visible)
-        form = self._settings_form
-        if form is None:
-            return
-        label = form.labelForField(field)
-        if label is not None:
-            label.setVisible(visible)
 
     # ------------------------------------------------------------------
     # Descriptor loading
@@ -464,64 +352,27 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
     def _model_name(self) -> str:
         return str(self.model_combo.currentText())
 
-    def _refresh_model_defaults(self) -> None:
+    def _refresh_visibility(self, *_ignored: Any) -> None:
+        super()._refresh_visibility()
+        self._guess_start_params()
+
+    def parameters_changed(self) -> None:
+        self._guess_start_params()
+        super().parameters_changed()
+
+    def _guess_start_params(self) -> None:
+        """With "Guess" ticked, the model's own starting values in the box - once per model and tick, so what
+        is typed there afterwards stays. They are curve_fit's p0: only the fitted models take them."""
+        form = getattr(self, "_parameter_form_spec", None)
+        if form is None:
+            return
         model = self._model_name()
-        spacing = self._spacing_combo.currentText()
-        spline_type = self._spline_type_combo.currentText()
-
-        # Starting parameters are curve_fit's p0: the fitted models take them,
-        # interpolation has none to take.
-        uses_start_params = MODEL_NAMES[model].curve_fit
-        uses_poly_degree = model == MODEL_POLYNOMIAL
-        uses_spline_menu = model == MODEL_SCIPY_SPLINE
-        uses_spline_k = uses_spline_menu and spline_type in {
-            "UnivariateSpline",
-            "B-spline",
-        }
-        uses_smoothing = uses_spline_menu and spline_type == "UnivariateSpline"
-        uses_boundary = model == MODEL_SCIPY_CUBIC or (
-            uses_spline_menu and spline_type in {"CubicSpline", "B-spline"}
-        )
-
-        uses_custom_x = spacing == "custom X values"
-        uses_step = spacing == "integer step"
-        uses_points = spacing not in {
-            "custom X values",
-            "original data X",
-            "integer step",
-        }
-        uses_range = spacing not in {"custom X values", "original data X"}
-        uses_extrap = uses_range or model in {
-            MODEL_SCIPY_PCHIP,
-            MODEL_SCIPY_AKIMA,
-            MODEL_SCIPY_CUBIC,
-            MODEL_SCIPY_SPLINE,
-        }
-
-        self._set_form_row_visible(self._degree_spin, uses_poly_degree)
-        self._set_form_row_visible(self._points_spin, uses_points)
-        self._set_form_row_visible(self._range_edit, uses_range)
-        self._set_form_row_visible(self._integer_step_spin, uses_step)
-        self._set_form_row_visible(self._custom_x_edit, uses_custom_x)
-        self._set_form_row_visible(self._extend_spin, uses_range)
-        self._set_form_row_visible(self._extrap_check, uses_extrap)
-        self._set_form_row_visible(self._spline_type_combo, uses_spline_menu)
-        self._set_form_row_visible(self._spline_degree_spin, uses_spline_k)
-        self._set_form_row_visible(self._cubic_bc_combo, uses_boundary)
-        self._set_form_row_visible(self._smoothing_spin, uses_smoothing)
-        self._set_form_row_visible(self._guess_check, uses_start_params)
-        self._set_form_row_visible(self._params_edit, uses_start_params)
-        self._params_label.setVisible(uses_start_params)
-
-
-        if uses_start_params and self._guess_check.isChecked():
-            self._params_edit.blockSignals(True)
-            self._params_edit.setPlainText(
-                json.dumps(self._default_params_for_model(model), indent=2)
-            )
-            self._params_edit.blockSignals(False)
-
-        self.mark_results_stale()
+        guess = bool(form.values()["guess"])
+        if (model, guess) == self._guessed_for:
+            return
+        self._guessed_for = (model, guess)
+        if guess and MODEL_NAMES[model].curve_fit:
+            form.set_values({"start_params": json.dumps(self._default_params_for_model(model))})
 
     # ------------------------------------------------------------------
     # Computation
@@ -530,7 +381,7 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
     def _start_params(self) -> dict[str, float]:
         if not MODEL_NAMES[self._model_name()].curve_fit:
             return {}
-        text = self._params_edit.toPlainText().strip()
+        text = str(self.parameter_values()["start_params"]).strip()
         if not text:
             return {}
         try:
@@ -645,9 +496,10 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
         return numeric[0], numeric[1]
 
     def _evaluation_grid(self) -> _EvaluationGrid:
-        spacing = self._spacing_combo.currentText()
-        custom = parse_values(self._custom_x_edit.text()) if spacing == SPACING_CUSTOM else None
-        text = self._range_edit.text().strip()
+        p = self.parameter_values()
+        spacing = str(p["spacing"])
+        custom = parse_values(p["custom_x"]) if spacing == SPACING_CUSTOM else None
+        text = str(p["x_range"]).strip()
         explicit = None
         if text:
             values = parse_values(text)
@@ -655,24 +507,16 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
                 raise ValueError("X range must contain start and stop.")
             explicit = (float(values[0]), float(values[1]))
         return _EvaluationGrid(
-            spacing=spacing,
-            custom=custom,
-            explicit=explicit,
-            extend_percent=float(self._extend_spin.value()),
-            extrapolate=self._extrap_check.isChecked(),
-            count=int(self._points_spin.value()),
-            step=float(self._integer_step_spin.value()),
+            spacing=spacing, custom=custom, explicit=explicit, extend_percent=float(p["extend"]),
+            extrapolate=bool(p["extrapolate"]), count=int(p["points"]), step=float(p["step"]),
         )
 
     def _settings(self) -> InterpolationSettings:
-        """The model settings, read off the controls."""
+        """The model settings, read off the form."""
+        p = self.parameter_values()
         return InterpolationSettings(
-            degree=int(self._degree_spin.value()),
-            extrapolate=self._extrap_check.isChecked(),
-            cubic_bc=self._cubic_bc_combo.currentText(),
-            spline_type=self._spline_type_combo.currentText(),
-            spline_degree=int(self._spline_degree_spin.value()),
-            smoothing=float(self._smoothing_spin.value()),
+            degree=int(p["degree"]), extrapolate=bool(p["extrapolate"]), cubic_bc=str(p["cubic_bc"]),
+            spline_type=str(p["spline_type"]), spline_degree=int(p["spline_degree"]), smoothing=float(p["smoothing"]),
         )
 
     # ------------------------------------------------------------------

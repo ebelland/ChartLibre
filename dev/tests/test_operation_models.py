@@ -101,12 +101,12 @@ def test_interpolation_start_parameters_are_offered_for_the_fitted_models(qapp, 
         dialog.show()
         dialog.model_combo.setCurrentText(MODEL_EXPONENTIAL)
         qapp.processEvents()
-        assert not dialog._params_edit.isHidden()
+        assert not dialog._parameter_form_spec.field("start_params").isHidden()
         assert dialog._start_params() != {}
 
         dialog.model_combo.setCurrentText(MODEL_SCIPY_PCHIP)
         qapp.processEvents()
-        assert dialog._params_edit.isHidden()
+        assert dialog._parameter_form_spec.field("start_params").isHidden()
         assert dialog._start_params() == {}
     finally:
         dialog.close()
