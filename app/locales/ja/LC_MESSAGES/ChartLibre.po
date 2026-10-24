@@ -4113,3 +4113,6 @@ msgstr "プロジェクト"
 
 msgid "Recent"
 msgstr "最近"
+
+msgid "Demo project"
+msgstr "デモプロジェクト"

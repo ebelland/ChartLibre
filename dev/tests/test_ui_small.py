@@ -471,7 +471,7 @@ def test_a_recent_project_is_shown_before_it_is_opened(qapp, tmp_path: Path, mon
                if view._list.item(i).data(Qt.ItemDataRole.UserRole) == tmp_path / "Other study.dhub")
     view._list.setCurrentRow(row)
     assert opened == []  # selecting only shows it
-    text = view._info.text()
+    text = view._info.text() + view._description.text()
     assert "Marie Curie" in text and "Radium samples" in text
     assert not (tmp_path / "Other study.dhub.undo.db").exists()  # read, not opened
     view._open_selected()

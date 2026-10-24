@@ -1,7 +1,7 @@
 """The File panel's project lists: the demos and the projects opened lately.
 
-Both tabs share one view - a list, the selected project's picture and
-description under it, Open (and, for the recent projects, Clear list) under
+Both tabs share one view - a list; under it the selected project's picture
+with its details beside it, and its description in italics below; Open (and, for the recent projects, Clear list) under
 that. A click shows a project, read from the file without opening it; Open,
 or a double click, opens it. The recent list comes from user.json and is
 rebuilt on every :meth:`refresh`: it changes between visits to the panel.
@@ -45,7 +45,7 @@ from app.utils.i18n import _
 PREVIEW_SIZE = QSize(112, 70)
 
 #: Lines the description keeps in view; a longer one scrolls.
-DESCRIPTION_LINES = 5
+DESCRIPTION_LINES = 7
 
 
 class ProjectListView(QWidget):
@@ -87,29 +87,39 @@ class ProjectListView(QWidget):
         layout.addWidget(self._placeholder)
 
         self._details = QWidget(self)
-        # The picture over its description, which has the panel's whole width.
+        # The picture with its details beside it; the description, in
+        # italics, below them with the panel's whole width.
         details = QVBoxLayout(self._details)
         details.setContentsMargins(0, 0, 0, 0)
         details.setSpacing(6)
+        top = QHBoxLayout()
+        top.setSpacing(8)
         self._preview = QLabel(self._details)
         self._preview.setFixedSize(PREVIEW_SIZE)
         self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        details.addWidget(self._preview, 0, Qt.AlignmentFlag.AlignLeft)
+        top.addWidget(self._preview, 0, Qt.AlignmentFlag.AlignTop)
         self._info = QLabel(self._details)
-        self._info.setWordWrap(True)
+        # Not wrapped: short lines, and a wrapping label made the panel scroll.
         self._info.setTextFormat(Qt.TextFormat.RichText)
         self._info.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         self._info.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._info.setAutoFillBackground(False)
+        top.addWidget(self._info, 1)
+        details.addLayout(top)
+        self._description = QLabel(self._details)
+        self._description.setWordWrap(True)
+        self._description.setTextFormat(Qt.TextFormat.RichText)
+        self._description.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._description.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._description.setAutoFillBackground(False)
         # A box of fixed height, scrolling if the text is longer: a wrapping
         # label asks for height by width, and the panel grew a scroll bar.
         box = QScrollArea(self._details)
-        box.setWidget(self._info)
+        box.setWidget(self._description)
         box.setWidgetResizable(True)
         box.setFrameShape(QFrame.Shape.NoFrame)
         box.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         box.viewport().setAutoFillBackground(False)
-        box.setFixedHeight(self._info.fontMetrics().lineSpacing() * DESCRIPTION_LINES + 4)
+        box.setFixedHeight(self._description.fontMetrics().lineSpacing() * DESCRIPTION_LINES + 4)
         details.addWidget(box, 1)
         layout.addWidget(self._details)
 
@@ -141,8 +151,8 @@ class ProjectListView(QWidget):
     def refresh(self) -> None:
         """Fill the list again; the subclass's."""
 
-    def describe(self, data: object) -> tuple[bytes | None, str, bool]:
-        """The picture (PNG), the description (rich text) and whether it can be opened, for a row's *data*."""
+    def describe(self, data: object) -> tuple[bytes | None, str, str, bool]:
+        """For a row's *data*: the picture (PNG), the details and the description (plain text), and whether it can be opened."""
         raise NotImplementedError
 
     def _finish_refresh(self) -> None:
@@ -173,11 +183,13 @@ class ProjectListView(QWidget):
         self._preview.clear()
         if data is None:
             self._info.clear()
+            self._description.clear()
             self._open_button.setEnabled(False)
             return
-        png, text, openable = self.describe(data)
+        png, info, description, openable = self.describe(data)
         self._open_button.setEnabled(openable)
-        self._info.setText(text)
+        self._info.setText(info)
+        self._description.setText(f"<i>{html.escape(description)}</i>" if description else "")
         picture = QPixmap()
         if png:
             picture.loadFromData(png)
@@ -197,6 +209,8 @@ class DemoProjectsView(ProjectListView):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent, clearable=False)
+        # Rows a little apart: one line each, and many of them.
+        self._list.setSpacing(3)
         self.refresh()
 
     def refresh(self) -> None:
@@ -218,9 +232,10 @@ class DemoProjectsView(ProjectListView):
         self._list.blockSignals(False)
         self._finish_refresh()
 
-    def describe(self, data: object) -> tuple[bytes | None, str, bool]:
+    def describe(self, data: object) -> tuple[bytes | None, str, str, bool]:
         demo: DemoProject = data  # type: ignore[assignment]
-        return demo.preview_bytes, html.escape(_(demo.description)), True
+        info = f"<b>{html.escape(_(demo.category))}</b><br>{html.escape(_('Demo project'))}"
+        return demo.preview_bytes, info, _(demo.description), True
 
 
 class RecentProjectsView(ProjectListView):
@@ -253,7 +268,7 @@ class RecentProjectsView(ProjectListView):
         self._list.blockSignals(False)
         self._finish_refresh()
 
-    def describe(self, data: object) -> tuple[bytes | None, str, bool]:
+    def describe(self, data: object) -> tuple[bytes | None, str, str, bool]:
         """Picture and information of the project at *data*, read without opening it."""
         from app.data.repo.project_info import parse_references, read_project_info
         from app.dialogs.project_info_dialog import readable_date
@@ -261,7 +276,7 @@ class RecentProjectsView(ProjectListView):
 
         path = Path(str(data))
         if not path.is_file():
-            return None, html.escape(_("This file is no longer there: {path}").format(path=path)), False
+            return None, "", _("This file is no longer there: {path}").format(path=path), False
         info = read_project_info(path)
         png = project_preview_bytes(path, info.get("preview_path"))
         stat = path.stat()
@@ -269,28 +284,26 @@ class RecentProjectsView(ProjectListView):
         if info.get("author"):
             rows.append(html.escape(info["author"]))
         if info.get("created"):
-            rows.append(html.escape(_("Created {date}").format(date=readable_date(info["created"])[:10])))
+            rows.append(html.escape(_("Created {date}").format(date=readable_date(info["created"]).split(" ")[0])))
         modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d")
         rows.append(html.escape(_("Saved {date} · {size:.1f} MB").format(date=modified, size=stat.st_size / 1e6)))
         references = parse_references(info.get("references"))
         if references:
             rows.append(html.escape(_("{count} reference(s)").format(count=len(references))))
         notes = " ".join(info.get("notes", "").split())
-        if notes:
-            rows.append(f"<i>{html.escape(notes)}</i>")
-        return png, "<br>".join(rows), True
+        return png, "<br>".join(rows), notes, True
 
 
 class ProjectsTabs(QTabWidget):
-    """Demo | Recent: the two lists of the File panel."""
+    """Recent | Demo: the two lists of the File panel."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("fileProjectsTabs")
         self.demos = DemoProjectsView(self)
         self.recent = RecentProjectsView(self)
-        self.addTab(self.demos, _("Demo"))
         self.addTab(self.recent, _("Recent"))
+        self.addTab(self.demos, _("Demo"))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     @property

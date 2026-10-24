@@ -4389,3 +4389,6 @@ msgstr "Proyectos"
 
 msgid "Recent"
 msgstr "Recientes"
+
+msgid "Demo project"
+msgstr "Proyecto de demostración"
