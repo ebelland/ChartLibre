@@ -317,17 +317,9 @@ class SeriesPeaksDialog(DataOperationDialogBase):
             name=result.result_name,
             sql_query=sql_query,
             roles=roles,
-            style={
-                **self.generated_style_filter,
-                "source_name": result.source_name,
-                "model": result.model,
-                # Markers with no connecting line: the peaks are separate
-                # findings, and joining them would draw a curve through
-                # nothing.
-                "linestyle": "",
-                "marker": "v",
-                "markersize": 8.0,
-            },
+            # Markers with no connecting line: the peaks are separate findings, and joining them
+            # would draw a curve through nothing.
+            style=self.result_style(result, linestyle="", marker="v", markersize=8.0),
         )
 
     RESULT_TABLE_PREFIX = 'Peaks'

@@ -215,38 +215,14 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
         table_name: str,
         result: GPRegressionResult,
     ) -> Sequence[ResultSeriesSpec]:
+        """The posterior mean, and the band two standard deviations either side of it."""
         del axis_id
-        base_style = {
-            **self.generated_style_filter,
-            "source_name": result.source_name,
-            "model": result.model,
-        }
-        band_style = {
-            **base_style,
-            "linestyle": "--",
-            "linewidth": 1.0,
-            "marker": "",
-            "alpha": 0.6,
-        }
+        band = {"linestyle": "--", "linewidth": 1.0, "marker": "", "alpha": 0.6}
         return [
-            ResultSeriesSpec(
-                name=f"{result.source_name} - GP mean",
-                sql_query=f'SELECT x, mean AS y FROM "{table_name}" ORDER BY x',
-                roles={"x": "x", "y": "y"},
-                style={**base_style, "linestyle": "-", "linewidth": 1.8, "marker": ""},
-            ),
-            ResultSeriesSpec(
-                name=f"{result.source_name} - GP +2σ",
-                sql_query=f'SELECT x, upper AS y FROM "{table_name}" ORDER BY x',
-                roles={"x": "x", "y": "y"},
-                style=dict(band_style),
-            ),
-            ResultSeriesSpec(
-                name=f"{result.source_name} - GP -2σ",
-                sql_query=f'SELECT x, lower AS y FROM "{table_name}" ORDER BY x',
-                roles={"x": "x", "y": "y"},
-                style=dict(band_style),
-            ),
+            self.curve_spec(table_name, result, y="mean", name=f"{result.source_name} - GP mean",
+                            linestyle="-", linewidth=1.8, marker=""),
+            self.curve_spec(table_name, result, y="upper", name=f"{result.source_name} - GP +2σ", **band),
+            self.curve_spec(table_name, result, y="lower", name=f"{result.source_name} - GP -2σ", **band),
         ]
 
     RESULT_TABLE_PREFIX = 'GP'

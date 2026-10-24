@@ -37,7 +37,6 @@ from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatPara
 from app.plugin_api.data_operations.results import XYResult
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
-    ResultSeriesSpec,
     DataOperationDialogBase,
 )
 from app.utils import report_html
@@ -275,27 +274,6 @@ class SeriesRegressionDialog(DataOperationDialogBase):
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-
-    def result_series_spec(
-        self,
-        axis_id: int,
-        table_name: str,
-        result: RegressionResult,
-    ) -> ResultSeriesSpec:
-        del axis_id
-        return ResultSeriesSpec(
-            name=result.result_name,
-            sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
-            roles={"x": "x", "y": "y"},
-            style={
-                **self.generated_style_filter,
-                "source_name": result.source_name,
-                "model": result.model,
-                "linestyle": "-",
-                "linewidth": 1.6,
-                "marker": "",
-            },
-        )
 
     RESULT_TABLE_PREFIX = 'Regression'
     RESULT_TABLE_VARIANT = 'model'

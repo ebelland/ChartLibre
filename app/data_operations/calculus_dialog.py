@@ -555,25 +555,9 @@ class SeriesCalculusDialog(DataOperationDialogBase):
                 name=result.result_name,
                 sql_query=f'SELECT x, y, z FROM "{table_name}"',
                 roles={"x": "x", "y": "y", "z": "z"},
-                style={
-                    **self.generated_style_filter,
-                    "source_name": result.source_name,
-                    "model": result.model,
-                },
+                style=self.result_style(result),
             )
-        return ResultSeriesSpec(
-            name=result.result_name,
-            sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
-            roles={"x": "x", "y": "y"},
-            style={
-                **self.generated_style_filter,
-                "source_name": result.source_name,
-                "model": result.model,
-                "linestyle": "-",
-                "linewidth": 1.6,
-                "marker": "",
-            },
-        )
+        return self.curve_spec(table_name, result, **self.RESULT_STYLE)
 
     RESULT_TABLE_PREFIX = 'Calculus'
     RESULT_TABLE_VARIANT = 'model'

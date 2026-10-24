@@ -368,32 +368,11 @@ class SeriesRootsDialog(DataOperationDialogBase):
                 name=result.result_name,
                 sql_query=f'SELECT x, y, z, curve_index FROM "{table_name}" ORDER BY curve_index, rowid',
                 roles={"x": "x", "y": "y", "z": "z"},
-                style={
-                    **self.generated_style_filter,
-                    "source_name": result.source_name,
-                    "model": result.model,
-                    "level": result.level,
-                    "linestyle": "-",
-                    "marker": "",
-                },
+                style=self.result_style(result, level=result.level, linestyle="-", marker=""),
             )
-        return ResultSeriesSpec(
-            name=result.result_name,
-            sql_query=f'SELECT x, y FROM "{table_name}" ORDER BY x',
-            roles={"x": "x", "y": "y"},
-            style={
-                **self.generated_style_filter,
-                "source_name": result.source_name,
-                "model": result.model,
-                "level": result.level,
-                # Markers, no line: the crossings are separate findings,
-                # and joining them would draw a horizontal line at the
-                # level that looks like a series.
-                "linestyle": "",
-                "marker": "o",
-                "markersize": 7.0,
-            },
-        )
+        # Markers, no line: the crossings are separate findings, and joining them would draw a
+        # horizontal line at the level that looks like a series.
+        return self.curve_spec(table_name, result, level=result.level, linestyle="", marker="o", markersize=7.0)
 
     RESULT_TABLE_PREFIX = 'Roots'
     RESULT_TABLE_VARIANT = None

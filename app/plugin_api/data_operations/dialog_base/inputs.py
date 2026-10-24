@@ -382,9 +382,31 @@ class InputsMixin:
                 return method()
         raise NotImplementedError(f"{type(result).__name__} has no to_df()")
 
+    #: How result_series_spec draws a result: a line through its points.
+    RESULT_STYLE: Mapping[str, Any] = {"linestyle": "-", "linewidth": 1.6, "marker": ""}
+
+    def result_style(self, result: Any, **overrides: Any) -> dict[str, Any]:
+        """A generated series' style: this dialog's marks (generated_style_filter), the series and the model it
+        came from, then *overrides*."""
+        return {**self.generated_style_filter, "source_name": getattr(result, "source_name", ""),
+                "model": getattr(result, "model", ""), **overrides}
+
+    def curve_spec(self, table_name: str, result: Any, *, y: str = "y", name: str = "",
+                   **style: Any) -> ResultSeriesSpec:
+        """The result table's *y* column against x, in x order, as one series - named after the result unless
+        *name* says otherwise, styled by result_style and *style*."""
+        column = "y" if y == "y" else f"{y} AS y"
+        return ResultSeriesSpec(
+            name=name or result.result_name,
+            sql_query=f'SELECT x, {column} FROM "{table_name}" ORDER BY x',
+            roles={"x": "x", "y": "y"},
+            style=self.result_style(result, **style),
+        )
+
     def result_series_spec(self, axis_id: int, table_name: str, result: Any) -> ResultSeriesSpec:
-        """Build the chart-series descriptor for one saved result table."""
-        raise NotImplementedError
+        """The chart series of one saved result table: its y against x, drawn as RESULT_STYLE says."""
+        del axis_id
+        return self.curve_spec(table_name, result, **self.RESULT_STYLE)
 
     def result_series_specs(
         self,

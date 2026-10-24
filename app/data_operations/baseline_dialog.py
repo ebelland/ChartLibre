@@ -159,41 +159,19 @@ class SeriesBaselineDialog(DataOperationDialogBase):
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
-    def _series_style(self, result: BaselineResult, **overrides: Any) -> dict[str, Any]:
-        style: dict[str, Any] = {
-            **self.generated_style_filter,
-            "source_name": result.source_name,
-            "model": result.model,
-        }
-        style.update(overrides)
-        return style
-
     def result_series_spec(
         self, axis_id: int, table_name: str, result: BaselineResult,
     ) -> ResultSeriesSpec:
         del axis_id
-        return ResultSeriesSpec(
-            name=result.result_name,
-            sql_query=f'SELECT x, corrected AS y FROM "{table_name}" ORDER BY x',
-            roles={"x": "x", "y": "y"},
-            style=self._series_style(result, linestyle="-", linewidth=1.4, marker=""),
-        )
+        return self.curve_spec(table_name, result, y="corrected", linestyle="-", linewidth=1.4, marker="")
 
     def result_series_specs(
         self, axis_id: int, table_name: str, result: BaselineResult,
     ) -> Sequence[ResultSeriesSpec]:
         specs: list[ResultSeriesSpec] = []
         if self.parameter_values()["draw_baseline"]:
-            specs.append(
-                ResultSeriesSpec(
-                    name=f"{result.result_name} - baseline",
-                    sql_query=f'SELECT x, baseline AS y FROM "{table_name}" ORDER BY x',
-                    roles={"x": "x", "y": "y"},
-                    style=self._series_style(
-                        result, linestyle="--", linewidth=1.0, marker="", color="#9e9e9e"
-                    ),
-                )
-            )
+            specs.append(self.curve_spec(table_name, result, y="baseline", name=f"{result.result_name} - baseline",
+                                         linestyle="--", linewidth=1.0, marker="", color="#9e9e9e"))
         specs.append(self.result_series_spec(axis_id, table_name, result))
         return specs
 
