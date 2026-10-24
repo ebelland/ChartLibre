@@ -63,9 +63,6 @@ class PLSDialog(TableOperationDialogBase):
                   default_value=False, advanced=True),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -121,8 +118,4 @@ class PLSDialog(TableOperationDialogBase):
         sql, roles = self.series_select(names["rows"], {"x": f"Predicted {response}", "y": response})
         panels.append(("Scatter Plot", _("Actual by predicted"), f"Predicted {response}", response,
                        [(response, sql, roles, {})]))
-        notes = self.report_document(result)
-        figure_id = self.create_report_figure(f"PLS · {response}", notes, panels)
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": response})
-        return written
+        return self.draw_report(result, response, panels, written=written)

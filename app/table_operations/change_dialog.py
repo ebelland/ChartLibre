@@ -43,9 +43,6 @@ class ChangeDialog(TableOperationDialogBase):
                    maximum=1),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -63,7 +60,7 @@ class ChangeDialog(TableOperationDialogBase):
         return answer_html(result)
 
     def report_subtitle(self, result: ch.ChangeAnswer) -> str:
-        return f"{self.table} · {self.roles_widget.casting().columns('response')[0]}"
+        return f"{self.table} · {self.columns('response')[0]}"
 
     def next_steps(self, result: ch.ChangeAnswer) -> list[NextStep]:
         """On to its trend, season and forecast, to what drives it, or to another measure over the same time."""
@@ -109,7 +106,4 @@ class ChangeDialog(TableOperationDialogBase):
             if pd.notna(step) and step > pd.Timedelta(0):
                 options["gap_threshold"] = f"{int((5 * step).total_seconds())}s"
         panel = ("Time Series", _("{measure} over time").format(measure=measure), x_label, measure, series, options)
-        notes = self.report_document(result)
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {measure}", notes, [panel])
-        self.created_figure_ids = [figure_id]
-        return [{"table": name}, {"figure": figure_id, "name": measure}]
+        return self.draw_report(result, measure, [panel], written=[{"table": name}])

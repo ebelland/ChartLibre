@@ -55,9 +55,6 @@ class MultivariateDialog(TableOperationDialogBase):
                             "that keeps going one way, and are not swayed by outliers."),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
@@ -82,7 +79,4 @@ class MultivariateDialog(TableOperationDialogBase):
         columns = result.columns[:PAIR_PLOT_COLUMNS]
         sql = f"SELECT {', '.join(self.quoted(c) for c in columns)} FROM {self.quoted(self.table)}"
         panels = [("Pair Plot", _("Scatterplot matrix"), "", "", [(self.table, sql, {}, {})])]
-        figure_id = self.create_report_figure(f"Multivariate · {self.table}", self.report_document(result), panels)
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": self.table})
-        return written
+        return self.draw_report(result, self.table, panels, written=written)

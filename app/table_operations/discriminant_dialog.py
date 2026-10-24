@@ -60,9 +60,6 @@ class DiscriminantDialog(TableOperationDialogBase):
                             "or the same for every group."),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -119,12 +116,8 @@ class DiscriminantDialog(TableOperationDialogBase):
         names = {"rows": tables["discriminant"]}
         written: list[dict[str, Any]] = [{"table": name} for name in tables.values()]
 
-        notes = self.report_document(result)
-        figure_id = self.create_report_figure(f"Discriminant · {result.response}", notes,
-                                              [self._canonical_plot(result, names["rows"])])
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": result.response})
-        return written
+        return self.draw_report(result, result.response, [self._canonical_plot(result, names["rows"])],
+                                written=written)
 
     def _canonical_plot(self, result: da.DiscriminantResult, rows: str) -> tuple:
         """JMP's canonical plot: the rows on the first two canonical axes, a series per group.

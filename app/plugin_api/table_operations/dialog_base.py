@@ -120,6 +120,8 @@ class TableOperationDialogBase(OperationShell, QDialog):
         self.row_ids = pd.Series(dtype="Int64")
         self._result: Any = None
         self._result_inputs: tuple[Any, ...] | None = None
+        #: The figures the last Preview or OK drew (create_report_figure keeps it).
+        self.created_figure_ids: list[int] = []
         #: The figure the main window shows, for "Draw on: new axis in the current figure"; None: no such choice.
         self.current_figure_id: int | None = None
         #: A Preview's tables and figure are written inside a savepoint, rolled back by the next Preview,
@@ -194,9 +196,19 @@ class TableOperationDialogBase(OperationShell, QDialog):
     def apply_results(self, result: Any) -> list[dict[str, Any]]:
         """Write *result* into the project; return what was written, for the history.
 
-        Each entry is a dict such as ``{"table": name}`` or ``{"figure": id}``.
+        Each entry is a dict such as ``{"table": name}`` or ``{"figure": id}``;
+        draw_report makes the figure and the entry.
         """
         raise NotImplementedError
+
+    def column(self, role: str) -> str:
+        """The one column cast in *role* ("" when none is)."""
+        columns = self.columns(role)
+        return columns[0] if columns else ""
+
+    def columns(self, role: str) -> list[str]:
+        """The columns cast in *role*."""
+        return self.roles_widget.casting().columns(role)
 
     def build_extra_inputs(self, layout: QVBoxLayout) -> None:
         """Add the operation's own inputs under the roles (a model's effects, say); its parameters follow."""
@@ -445,6 +457,7 @@ class TableOperationDialogBase(OperationShell, QDialog):
         try:
             self._repo.begin_preview_savepoint(f"preview_{self._state_key}")
             self._previewing = True
+            self.created_figure_ids = []
             self.apply_results(result)
         except Exception as exc:  # noqa: BLE001 - shown like a failed run; the preview is undone
             self._previewing = False
@@ -455,8 +468,7 @@ class TableOperationDialogBase(OperationShell, QDialog):
             return
         self._previewing = False
         self._preview_active = True
-        figures = list(getattr(self, "created_figure_ids", []) or [])
-        self.preview_drawn.emit(int(figures[0]) if figures else -1)
+        self.preview_drawn.emit(self.created_figure_ids[0] if self.created_figure_ids else -1)
 
     def _discard_preview(self) -> None:
         """Roll the Preview's tables and figure back, if there is one; the window drops them."""
@@ -467,8 +479,7 @@ class TableOperationDialogBase(OperationShell, QDialog):
             self._repo.rollback_preview_savepoint()
         except Exception:  # noqa: BLE001 - cleanup: must not hide what it follows
             applogger.exception("%s: the preview could not be rolled back", self.Name)
-        if hasattr(self, "created_figure_ids"):
-            self.created_figure_ids = []
+        self.created_figure_ids = []
         self.preview_drawn.emit(-1)
 
     def busy_widgets(self) -> list[QWidget]:
@@ -495,6 +506,7 @@ class TableOperationDialogBase(OperationShell, QDialog):
 
     def _apply(self, result: Any) -> None:
         try:
+            self.created_figure_ids = []
             written = self.apply_results(result)
         except Exception as exc:  # noqa: BLE001 - reported, the dialog stays open
             applogger.exception("%s could not be written", self.Name)
@@ -659,7 +671,17 @@ class TableOperationDialogBase(OperationShell, QDialog):
                     axis_id=axis_id, series_index=position, name=series_name,
                     sql_query=sql, roles=roles, style=style,
                 )
+        self.created_figure_ids.append(figure_id)
         return figure_id
+
+    def draw_report(self, result: Any, title: str, panels: Sequence[tuple], *,
+                    written: Sequence[Mapping[str, Any]] = ()) -> list[dict[str, Any]]:
+        """The report figure of *result*: *panels*, with the report in its notes, named "<analysis> · <title>".
+
+        Returns the history entries: *written* (the tables), then the figure.
+        """
+        figure_id = self.create_report_figure(f"{_(self.Name)} · {title}", self.report_document(result), panels)
+        return [*(dict(entry) for entry in written), {"figure": figure_id, "name": title}]
 
     # ------------------------------------------------------------------
     # Leaving

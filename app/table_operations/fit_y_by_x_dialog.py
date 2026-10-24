@@ -57,9 +57,6 @@ class FitYByXDialog(TableOperationDialogBase):
         ColumnRole("factor", "X", "One report per column: continuous, or the groups.", minimum=1),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -117,11 +114,7 @@ class FitYByXDialog(TableOperationDialogBase):
         written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
         panels = [self._panel(result, names.get(f"{result.y}_by_{result.x}_curve")) for result in report.results]
         y = report.results[0].y
-        notes = self.report_document(report)
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {y}", notes, panels)
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": y})
-        return written
+        return self.draw_report(report, y, panels, written=written)
 
     def _panel(self, result: fyx.FitYByXResult, curve_table: str | None) -> tuple:
         table, y, x = self.table, result.y, result.x

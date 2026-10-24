@@ -45,9 +45,6 @@ class InControlDialog(TableOperationDialogBase):
                    maximum=1),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -65,7 +62,7 @@ class InControlDialog(TableOperationDialogBase):
         return answer_html(result)
 
     def report_subtitle(self, result: ic.ControlAnswer) -> str:
-        return f"{self.table} · {self.roles_widget.casting().columns('response')[0]}"
+        return f"{self.table} · {self.columns('response')[0]}"
 
     def next_steps(self, result: ic.ControlAnswer) -> list[NextStep]:
         """On to whether it drifted, whether it is normal (the limits assume it), or another measure."""
@@ -105,7 +102,4 @@ class InControlDialog(TableOperationDialogBase):
         options: dict[str, Any] = {"show_rolling": False}
         panel = ("Time Series", _("{measure}: control chart").format(measure=measure), x_label, measure, series,
                  options)
-        notes = self.report_document(result)
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {measure}", notes, [panel])
-        self.created_figure_ids = [figure_id]
-        return [{"table": name}, {"figure": figure_id, "name": measure}]
+        return self.draw_report(result, measure, [panel], written=[{"table": name}])

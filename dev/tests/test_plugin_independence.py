@@ -72,7 +72,7 @@ def test_a_report_leaves_out_a_chart_type_that_is_not_installed(qapp, tmp_path: 
         monkeypatch.setattr(axis_renderer_scanner, "renderers",
                             [r for r in axis_renderer_scanner.renderers if r["value"] != "Scatter Plot"])
         dialog = DifferencesDialog.__new__(DifferencesDialog)
-        dialog._repo = repo
+        dialog._repo, dialog.created_figure_ids = repo, []
         with caplog.at_level(logging.WARNING):
             figure_id = DifferencesDialog.create_report_figure(
                 dialog, "t", "<p>x</p>", [("Scatter Plot", "gone", "x", "y", [])])

@@ -156,7 +156,6 @@ class PartitionDialog(TableOperationDialogBase):
 
     def __init__(self, **kwargs: Any) -> None:
         self._auto = False
-        self.created_figure_ids: list[int] = []
         super().__init__(**kwargs)
 
     # ------------------------------------------------------------------
@@ -359,14 +358,8 @@ class PartitionDialog(TableOperationDialogBase):
                                   normalize_columns=False)
         written: list[dict[str, Any]] = [{"table": name} for name in names.values()]
 
-        self.created_figure_ids = []
         panels = self._panels(result, names, charts, layout)
-        if panels:
-            notes = self.report_document(result)
-            figure_id = self.create_report_figure(f"Partition · {result.response}", notes, panels)
-            self.created_figure_ids.append(figure_id)
-            written.append({"figure": figure_id, "name": result.response})
-        return written
+        return self.draw_report(result, result.response, panels, written=written) if panels else written
 
     def _panels(self, result: pt.PartitionResult, names: Mapping[str, str], charts: list[str],
                 layout: _GraphLayout | None = None) -> list[tuple]:

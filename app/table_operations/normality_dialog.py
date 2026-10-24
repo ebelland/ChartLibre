@@ -40,9 +40,6 @@ class NormalityDialog(TableOperationDialogBase):
                    kinds=(CONTINUOUS, ORDINAL), minimum=1, maximum=1),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del params, model
@@ -52,12 +49,12 @@ class NormalityDialog(TableOperationDialogBase):
         return answer_html(result)
 
     def report_subtitle(self, result: nm.NormalityAnswer) -> str:
-        return f"{self.table} · {self.roles_widget.casting().columns('response')[0]}"
+        return f"{self.table} · {self.columns('response')[0]}"
 
     def next_steps(self, result: nm.NormalityAnswer) -> list[NextStep]:
         """On to its whole distribution, to differences between groups, or to whether it is in control."""
         del result
-        measure = self.roles_widget.casting().columns("response")[0]
+        measure = self.columns("response")[0]
         steps = [self.next_step(_("Its histogram, quantiles and fitted distributions: Distribution of {measure}")
                                 .format(measure=measure), "Distribution", {"response": [measure]})]
         others = other_columns(self._frame.columns, leave_out=(measure,), limit=1)
@@ -69,7 +66,7 @@ class NormalityDialog(TableOperationDialogBase):
         return steps
 
     def apply_results(self, result: nm.NormalityAnswer) -> list[dict[str, Any]]:
-        measure = self.roles_widget.casting().columns("response")[0]
+        measure = self.columns("response")[0]
         name = self.write_result_tables({"normality": result.qq})["normality"]
         sql, roles = self.series_select(name, {"x": "Theoretical", "y": "Line"})
         series = [(_("Normal"), sql, roles, {"linestyle": "--", "marker": "", "color": "#c62828",
@@ -78,7 +75,4 @@ class NormalityDialog(TableOperationDialogBase):
         series.append((measure, sql, roles, {"linestyle": "", "marker": "o", "markersize": 4.0}))
         panel = ("Scatter Plot", _("{measure}: normal Q-Q plot").format(measure=measure),
                  _("Normal quantile"), measure, series)
-        notes = self.report_document(result)
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {measure}", notes, [panel])
-        self.created_figure_ids = [figure_id]
-        return [{"table": name}, {"figure": figure_id, "name": measure}]
+        return self.draw_report(result, measure, [panel], written=[{"table": name}])

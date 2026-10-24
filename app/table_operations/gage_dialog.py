@@ -51,9 +51,6 @@ class GageDialog(TableOperationDialogBase):
                   tooltip="The width of the specification: adds each source's share of it (% Tolerance)."),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -91,10 +88,7 @@ class GageDialog(TableOperationDialogBase):
         sql, series_roles = self.series_select(str(self.table), roles)
         panel = ("Multi-Vari Chart", _("{measure} by part and operator").format(measure=result.measure),
                  result.part, result.measure, [(result.measure, sql, series_roles, {})])
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {result.measure}", self.report_document(result),
-                                              [panel])
-        self.created_figure_ids = [figure_id]
-        return [{"table": name}, {"figure": figure_id, "name": result.measure}]
+        return self.draw_report(result, result.measure, [panel], written=[{"table": name}])
 
 
 def _verdict_html(result: gage.GageStudy) -> str:

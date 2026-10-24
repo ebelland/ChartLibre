@@ -67,9 +67,6 @@ class FactorAnalysisDialog(TableOperationDialogBase):
                             "correlate, when the traits they stand for do."),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -124,11 +121,8 @@ class FactorAnalysisDialog(TableOperationDialogBase):
                       for row in result.loadings.itertuples()]
             panels.append(("Scatter Plot", _("Factor loading plot"), "Factor1", "Factor2",
                            [(_("Columns"), sql, roles, {"marker": "o"})], {"lines": zero, "annotations": labels}))
-            by = self.roles_widget.casting().columns("by")
+            by = self.columns("by")
             panels.append(("Scatter Plot", _("Score plot"), "Factor1", "Factor2",
                            self.grouped_series(tables["factors"], "Factor1", "Factor2", by[0] if by else ""),
                            {"lines": zero}))
-        figure_id = self.create_report_figure(f"Factor Analysis · {self.table}", self.report_document(result), panels)
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": self.table})
-        return written
+        return self.draw_report(result, self.table, panels, written=written)

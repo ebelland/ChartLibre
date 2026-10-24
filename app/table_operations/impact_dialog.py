@@ -44,9 +44,6 @@ class ImpactDialog(TableOperationDialogBase):
         ColumnRole("factor", "Factors", "The columns that might drive it.", minimum=1),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -60,7 +57,7 @@ class ImpactDialog(TableOperationDialogBase):
         return im.impact(frame, casting.columns("response")[0], casting.columns("factor"))
 
     def report_subtitle(self, result: im.ImpactAnswer) -> str:
-        return f"{self.table} · {self.roles_widget.casting().columns('response')[0]}"
+        return f"{self.table} · {self.columns('response')[0]}"
 
     def report_body(self, result: im.ImpactAnswer) -> str:
         ranking = result.ranking.copy()
@@ -96,12 +93,9 @@ class ImpactDialog(TableOperationDialogBase):
         return steps
 
     def apply_results(self, result: im.ImpactAnswer) -> list[dict[str, Any]]:
-        response = self.roles_widget.casting().columns("response")[0]
+        response = self.columns("response")[0]
         name = self.write_result_tables({"impact": result.ranking})["impact"]
         sql, roles = self.series_select(name, {"Y": "Impact %", "X": "Factor"})
         panel = ("Pareto Chart", _("What has the most impact on {response}").format(response=response), "",
                  _("Impact %"), [(response, sql, roles, {})])
-        notes = self.report_document(result)
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {response}", notes, [panel])
-        self.created_figure_ids = [figure_id]
-        return [{"table": name}, {"figure": figure_id, "name": response}]
+        return self.draw_report(result, response, [panel], written=[{"table": name}])

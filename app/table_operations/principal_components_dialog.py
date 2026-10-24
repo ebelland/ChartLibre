@@ -88,9 +88,6 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
                             "Covariances let the columns with the widest spread lead, for columns in one unit."),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -100,7 +97,7 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
         return found
 
     def _row_series(self, table: str, x: str, y: str) -> list[tuple]:
-        by = self.roles_widget.casting().columns("by")
+        by = self.columns("by")
         return self.grouped_series(table, x, y, by[0] if by else "", max_groups=self.MAX_GROUPS)
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
@@ -145,11 +142,7 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
                 loading_series.append((column, sql, roles, {"marker": "o"}))
             panels.append(("Scatter Plot", _("Loading plot"), "Prin1", "Prin2", loading_series, zero))
             panels.append(self._biplot(result, tables["pca"], zero))
-        figure_id = self.create_report_figure(f"Principal Components · {self.table}", self.report_document(result),
-                                              panels)
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": self.table})
-        return written
+        return self.draw_report(result, self.table, panels, written=written)
 
     def _biplot(self, result: mv.PCAResult, table: str, zero: dict[str, Any]) -> tuple:
         """The rows' scores and, as arrows from the centre, the columns' loadings - scaled to the scores' spread."""

@@ -116,7 +116,4 @@ class DifferencesDialog(TableOperationDialogBase):
             sql, roles = self.series_select(table, {"x": group, "y": measure}, where=shown)
             panel = ("Mosaic Plot", _("{measure} by {group}").format(measure=measure, group=group), group, measure,
                      [(measure, sql, roles, {})])
-        notes = self.report_document(result)
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {measure}", notes, [panel])
-        self.created_figure_ids = [figure_id]
-        return [{"table": name}, {"figure": figure_id, "name": measure}]
+        return self.draw_report(result, measure, [panel], written=[{"table": name}])

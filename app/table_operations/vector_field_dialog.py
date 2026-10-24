@@ -44,9 +44,6 @@ class VectorFieldDialog(TableOperationDialogBase):
         ColumnRole("w", "W", "Optional: the field's z component, with Z.", kinds=(CONTINUOUS,), maximum=1),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def _columns(self) -> dict[str, str]:
         casting = self.roles_widget.casting()
@@ -103,6 +100,4 @@ class VectorFieldDialog(TableOperationDialogBase):
                 ("Quiver 3D", _("Its curl, coloured by its size"), columns["x"], columns["y"],
                  [(_("Curl"), curl_sql, curl_roles, {})]),
             ]
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {self.table}", self.report_document(result), panels)
-        self.created_figure_ids = [figure_id]
-        return [{"table": name}, {"figure": figure_id, "name": str(self.table)}]
+        return self.draw_report(result, str(self.table), panels, written=[{"table": name}])

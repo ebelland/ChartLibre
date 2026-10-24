@@ -78,9 +78,6 @@ class ClusteringDialog(TableOperationDialogBase):
                   default_value=True),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
@@ -133,7 +130,4 @@ class ClusteringDialog(TableOperationDialogBase):
             sql = (f"SELECT {columns}, 'Cluster ' || \"Cluster\" AS \"group\" FROM {self.quoted(tables['clusters'])} "
                    'WHERE "Cluster" IS NOT NULL ORDER BY "Cluster"')
             panels.append(("Parallel Plot", _("Cluster profiles"), "", "", [(_("Rows"), sql, {"group": "group"}, {})]))
-        figure_id = self.create_report_figure(f"Cluster Analysis · {self.table}", self.report_document(result), panels)
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": self.table})
-        return written
+        return self.draw_report(result, self.table, panels, written=written)

@@ -1,0 +1,63 @@
+THE ANALYSIS SECTION ON ITS BASE CLASSES - MOST CODE IN THE BASES, NONE WRITTEN TWICE - PLAN      2026-10-24, waiting for the go
+
+WHAT WAS ASKED
+Review the whole Analysis section (PySide6): the base classes used as far as they go, code reused, not repeated.
+
+WHAT IS THERE TODAY (measured)
+- Data operations: 19 dialogs, ~14,900 lines (app/data_operations), on DataOperationDialogBase (8 mixins, ~2,400 lines).
+- Table analyses and quick answers: 24 dialogs, ~4,000 lines (app/table_operations), on TableOperationDialogBase (720 lines).
+- Both bases share OperationShell (324 lines): destination, results, history, background job, window memory, leaving.
+- Computation: app/analysis, ~12,100 lines - mostly clean.
+
+WHAT IS STILL WRITTEN TWICE
+1. The window itself. Each base builds its own splitter, settings tabs, results pane (HtmlResultsView), button row
+   (Preview, Revert, Copy, OK, Cancel) and declares its own signals (applied, preview_drawn): layout.py and
+   table dialog_base.py do the same thing in two ways - which is why the two kinds still look slightly different.
+2. The Charts tab. Two builders (hooks.build_charts_tab / table _build_charts_tab) and four ways of saying which
+   charts to draw: chart_widgets() (Fit, Statistics), chart_checks() (Partition, Fit Model), CHART_PANELS (one box
+   per chart type, 9 table analyses), Param(tab="charts") (Control Chart). Partition and Fit Model each build the
+   same list of check boxes by hand.
+3. Parameter forms built by hand. 7 data operations build their controls, rows and show/hide logic themselves
+   (Smoothing ~40 controls, Interpolate, Spectral, Filter, Statistics, Cluster, part of Fit) where PARAMS with
+   visible_for does it for the others - the largest block of repeated code (several hundred lines each).
+4. The table analyses' report. 18 dialogs repeat: write the tables, series_select, panels, report_document,
+   create_report_figure, self.created_figure_ids = [...] (declared in 17 __init__ that do nothing else), return
+   [{"table"...}, {"figure"...}]; roles_widget.casting().columns(role)[0] written out 9 times.
+5. The quick answers (5 dialogs) share their shape - one measure, an answer in words, a chart, next steps - and
+   import answer_html from another dialog (differences_dialog).
+6. Small: format_results written by hand where OperationResult.to_html would do (Control Chart 84 lines, Cluster,
+   Geometry, Statistics - to check one by one); two helpers twice in app/analysis (finite, _ordered_levels).
+
+THE PROPOSAL - STEPS (each a commit, the suite green after each, every dialog checked at 1280x720)
+A. One window. OperationShell becomes the QDialog base of both kinds: it builds the splitter, the settings tabs
+   (each base gives its pages: Data/Model/Parameters for the data operations, the column roles for the table
+   analyses), the results pane, the standard buttons and Stop, and declares the signals once.        (M)
+B. One Charts tab, declared. CHARTS = (ChartOption("ci", "95% confidence band", default=True), ...) read with
+   self.chart_enabled("ci"); "Draw on" first, then the checks, built by the shell for both kinds. Replaces
+   chart_widgets, chart_checks, CHART_PANELS and the charts params; the choices keep their keys, so remembered
+   settings and recorded operations (R-03) re-run the same.                                             (M)
+C. Parameters declared, not built. Smoothing, Filter, Interpolate, Spectral, Cluster, Statistics and the rest of
+   Fit move to PARAMS (visible_for, advanced); ParameterForm learns what they need (section headings in a form,
+   choices that depend on another choice). Parameter names kept. One dialog per commit.                 (L)
+D. The table report in the base: draw_report(title, panels, tables) writes the tables, makes the figure, keeps
+   created_figure_ids (the 17 __init__ go) and returns the history entries; self.column(role) / columns(role).  (S)
+E. QuickAnswerDialogBase for the 5 quick answers: answer_html moved to plugin_api, the shared report body, title
+   and subtitle; each answer keeps only its compute, its chart and its next steps.                        (S)
+F. Leftovers: format_results through OperationResult where it fits; finite and _ordered_levels in one place.  (S)
+
+Expected: some 2,000-3,000 lines fewer, every analysis the same window, one way to declare charts and parameters.
+
+RISKS
+- A and C touch every dialog: the 1,271 tests and the guided analysis (which opens the analyses with roles cast)
+  are the net; the demos are rebuilt and compared after C.
+- The hooks are plugin API (plugin_api/): a plugin written against build_parameter_selector, chart_widgets or
+  chart_checks would break - see Q2.
+- Remembered dialog settings in user.json: parameter and chart keys unchanged.
+
+QUESTIONS
+Q1  OperationShell as the one QDialog base of both kinds (A) - all right?
+Q2  The old hooks (build_parameter_selector, chart_widgets, chart_checks, CHART_PANELS): drop them (no external
+    plugins yet), or keep them working for a release? (Suggested: drop.)
+Q3  Order: D, E, F first (small, quick), then A, B, C? (Suggested: yes.)
+
+EFFORT: L overall (D-F one session; A-B about two; C about two, one dialog at a time).

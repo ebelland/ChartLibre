@@ -70,9 +70,6 @@ class DistributionDialog(TableOperationDialogBase):
                             "lowest AIC."),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
@@ -141,11 +138,7 @@ class DistributionDialog(TableOperationDialogBase):
                            _("{distribution} quantiles").format(distribution=label), column,
                            [(column, sql, roles, {})], {"distribution": name}))
         columns = ", ".join(result.column for result in report.results)
-        notes = self.report_document(report)
-        figure_id = self.create_report_figure(f"{_(self.Name)} · {columns}", notes, panels)
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": columns})
-        return written
+        return self.draw_report(report, columns, panels, written=written)
 
 
 def _label(name: str) -> str:

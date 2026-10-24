@@ -1293,7 +1293,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         # Preview draws while the dialog is open: its figure shown at once, dropped when it is rolled back.
         dialog.preview_drawn.connect(self._on_analysis_preview)
         dialog.exec()
-        figures = list(getattr(dialog, "created_figure_ids", []) or [])
+        figures = list(dialog.created_figure_ids)
         self._table_panel.reload()
         if figures:
             self._reload_tabs(select_figure_id=figures[0])

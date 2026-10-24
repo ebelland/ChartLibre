@@ -132,9 +132,6 @@ class TimeSeriesDialog(TableOperationDialogBase):
         ),
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        self.created_figure_ids: list[int] = []
-        super().__init__(**kwargs)
 
     def problems(self) -> list[str]:
         found = super().problems()
@@ -277,7 +274,4 @@ class TimeSeriesDialog(TableOperationDialogBase):
                 parts.append((_(column), sql, roles, {"linestyle": "-", "marker": ""}))
             panels.append(("Time Series", _("Season ({n}) and remainder").format(n=result.season),
                            x_label, measure, parts, options))
-        figure_id = self.create_report_figure(f"Time Series · {measure}", self.report_document(result), panels)
-        self.created_figure_ids = [figure_id]
-        written.append({"figure": figure_id, "name": measure})
-        return written
+        return self.draw_report(result, measure, panels, written=written)

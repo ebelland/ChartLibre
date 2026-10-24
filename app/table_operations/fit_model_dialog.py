@@ -138,7 +138,6 @@ class FitModelDialog(TableOperationDialogBase):
 
     def __init__(self, **kwargs: Any) -> None:
         self._terms: list[lm.Term] = []
-        self.created_figure_ids: list[int] = []
         super().__init__(**kwargs)
 
     # ------------------------------------------------------------------
@@ -655,11 +654,9 @@ class FitModelDialog(TableOperationDialogBase):
                                   normalize_columns=False)
             written.append({"table": names["roc"]})
 
-        self.created_figure_ids = []
         if charts:
             # One figure for every response, so that all of them are shown.
             figure_id = self._make_figure(result, names, charts)
-            self.created_figure_ids.append(figure_id)
             written.append({"figure": figure_id, "name": ", ".join(fit.response for fit in result)})
         return written
 
@@ -723,5 +720,4 @@ class FitModelDialog(TableOperationDialogBase):
         for fit in result:
             for chart, title, *rest in self._panels(fit, names, charts):
                 panels.append((chart, f"{fit.response}: {title}" if len(result) > 1 else title, *rest))
-        notes = self.report_document(result)
-        return self.create_report_figure(f"Fit Model · {responses}", notes, panels)
+        return self.create_report_figure(f"{_(self.Name)} · {responses}", self.report_document(result), panels)
