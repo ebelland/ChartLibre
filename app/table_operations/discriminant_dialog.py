@@ -50,6 +50,7 @@ class DiscriminantDialog(TableOperationDialogBase):
         ColumnRole("covariate", "X, covariates", "The continuous measures that tell the groups apart.",
                    kinds=(CONTINUOUS,), minimum=1),
     )
+    DISTINCT_ROLES = (("response", "covariate", "{columns} is both Y and X."),)
     PARAMETERS_TAB = "Discriminant"
     PARAMS = (
         ChoiceParam("method", "Method:", choices=tuple((label, key) for key, label in da.METHODS),
@@ -59,15 +60,6 @@ class DiscriminantDialog(TableOperationDialogBase):
                     tooltip="How likely each group is before the measures are seen: its share of the rows, "
                             "or the same for every group."),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        overlap = set(casting.columns("response")) & set(casting.columns("covariate"))
-        if not found and overlap:
-            found.append(_("{columns} is both Y and X.").format(columns=", ".join(sorted(overlap))))
-        return found
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model

@@ -70,7 +70,6 @@ class DistributionDialog(TableOperationDialogBase):
                             "lowest AIC."),
     )
 
-
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
         chosen = str(params.get("distribution") or "norm")

@@ -44,7 +44,6 @@ class VectorFieldDialog(TableOperationDialogBase):
         ColumnRole("w", "W", "Optional: the field's z component, with Z.", kinds=(CONTINUOUS,), maximum=1),
     )
 
-
     def _columns(self) -> dict[str, str]:
         casting = self.roles_widget.casting()
         return {role: (casting.columns(role) or [""])[0] for role in ("x", "y", "z", "u", "v", "w")}

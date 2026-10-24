@@ -53,6 +53,7 @@ class FactorAnalysisDialog(TableOperationDialogBase):
         ColumnRole("by", "By", "Optional: a column of groups - species, batch, site; the score plot colours "
                                "the rows by it.", maximum=1),
     )
+    DISTINCT_ROLES = (("response", "by", "The By column cannot also be one of the columns."),)
     PARAMETERS_TAB = "Factor Analysis"
     PARAMS = (
         IntParam("factors", "Factors:", tooltip="0 takes as many as the correlations have eigenvalues above 1 "
@@ -66,14 +67,6 @@ class FactorAnalysisDialog(TableOperationDialogBase):
                             "column on few factors. Equamax: between the two. Promax: lets the factors "
                             "correlate, when the traits they stand for do."),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        if not found and set(casting.columns("response")) & set(casting.columns("by")):
-            found.append(_("The By column cannot also be one of the columns."))
-        return found
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model

@@ -55,7 +55,6 @@ class MultivariateDialog(TableOperationDialogBase):
                             "that keeps going one way, and are not swayed by outliers."),
     )
 
-
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model
         return mv.correlations(frame, casting.columns("response"), method=str(params.get("method") or mv.PEARSON))

@@ -16,13 +16,12 @@ import pandas as pd
 from app.analysis import in_control as ic
 from app.analysis.change import ROW_ORDER
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep
-from app.table_operations.differences_dialog import answer_html
 from app.utils.i18n import _
 
 
-class InControlDialog(TableOperationDialogBase):
+class InControlDialog(QuickAnswerDialogBase):
     Name = "Is it in control?"
     Description = ("Is a process stable, or did something special happen? A control chart with its run rules, "
                    "and the answer given in words.")
@@ -44,25 +43,13 @@ class InControlDialog(TableOperationDialogBase):
         ColumnRole("time", "Time or order", "Optional: dates, times or a run number. Without it, the rows' order.",
                    maximum=1),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        if not found and set(casting.columns("response")) & set(casting.columns("time")):
-            found.append(_("The measure and the time must be two different columns."))
-        return found
+    DISTINCT_ROLES = (("response", "time", "The measure and the time must be two different columns."),)
+    RESULT_TABLE = "control"
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del params, model
         time = casting.columns("time")
         return ic.is_in_control(frame, casting.columns("response")[0], time[0] if time else ROW_ORDER)
-
-    def report_body(self, result: ic.ControlAnswer) -> str:
-        return answer_html(result)
-
-    def report_subtitle(self, result: ic.ControlAnswer) -> str:
-        return f"{self.table} · {self.columns('response')[0]}"
 
     def next_steps(self, result: ic.ControlAnswer) -> list[NextStep]:
         """On to whether it drifted, whether it is normal (the limits assume it), or another measure."""
@@ -77,12 +64,12 @@ class InControlDialog(TableOperationDialogBase):
             self.next_step(_("Another measure of the same process"), "Is it in control?", {"time": time}),
         ]
 
-    def apply_results(self, result: ic.ControlAnswer) -> list[dict[str, Any]]:
-        casting = self.roles_widget.casting()
-        measure = casting.columns("response")[0]
-        time = casting.columns("time")
-        name = self.write_result_tables({"control": result.series})["control"]
+    def answer_table(self, result: ic.ControlAnswer) -> pd.DataFrame:
+        return result.series
 
+    def answer_chart(self, result: ic.ControlAnswer, name: str) -> tuple:
+        """The individuals chart: its limits, the values and the signals."""
+        measure = self.measure
         series = []
         for column, label, style in (
             ("UCL", "UCL", {"linestyle": "--", "color": "#c62828"}),
@@ -98,8 +85,7 @@ class InControlDialog(TableOperationDialogBase):
                                             where=f"{self.quoted('Signal')} IS NOT NULL")
             series.append((_("Signals"), sql, roles, {"linestyle": "", "marker": "o", "markersize": 9.0,
                                                       "color": "#c62828", "show_in_legend": False}))
-        x_label = time[0] if time else _("Row")
+        x_label = self.column("time") or _("Row")
         options: dict[str, Any] = {"show_rolling": False}
-        panel = ("Time Series", _("{measure}: control chart").format(measure=measure), x_label, measure, series,
-                 options)
-        return self.draw_report(result, measure, [panel], written=[{"table": name}])
+        return ("Time Series", _("{measure}: control chart").format(measure=measure), x_label, measure, series,
+                options)

@@ -56,14 +56,7 @@ class FitYByXDialog(TableOperationDialogBase):
         ColumnRole("response", "Y", "The response: its type and X's choose the analysis.", minimum=1, maximum=1),
         ColumnRole("factor", "X", "One report per column: continuous, or the groups.", minimum=1),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        if not found and set(casting.columns("response")) & set(casting.columns("factor")):
-            found.append(_("Y cannot also be an X."))
-        return found
+    DISTINCT_ROLES = (("response", "factor", "Y cannot also be an X."),)
 
     @staticmethod
     def _continuous(casting: ColumnCasting, column: str, *, as_response: bool) -> bool:

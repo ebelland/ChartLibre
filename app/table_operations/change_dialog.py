@@ -15,13 +15,12 @@ import pandas as pd
 
 from app.analysis import change as ch
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, other_columns
-from app.table_operations.differences_dialog import answer_html
 from app.utils.i18n import _
 
 
-class ChangeDialog(TableOperationDialogBase):
+class ChangeDialog(QuickAnswerDialogBase):
     Name = "Has it changed over time?"
     Description = ("Has a measure moved - a steady trend or a sudden change? The tests are chosen for you, "
                    "and the answer is given in words.")
@@ -42,25 +41,13 @@ class ChangeDialog(TableOperationDialogBase):
         ColumnRole("time", "Time or order", "Optional: dates, times or a run number. Without it, the rows' order.",
                    maximum=1),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        if not found and set(casting.columns("response")) & set(casting.columns("time")):
-            found.append(_("The measure and the time must be two different columns."))
-        return found
+    DISTINCT_ROLES = (("response", "time", "The measure and the time must be two different columns."),)
+    RESULT_TABLE = "change"
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del params, model
         time = casting.columns("time")
         return ch.has_changed(frame, casting.columns("response")[0], time[0] if time else ch.ROW_ORDER)
-
-    def report_body(self, result: ch.ChangeAnswer) -> str:
-        return answer_html(result)
-
-    def report_subtitle(self, result: ch.ChangeAnswer) -> str:
-        return f"{self.table} · {self.columns('response')[0]}"
 
     def next_steps(self, result: ch.ChangeAnswer) -> list[NextStep]:
         """On to its trend, season and forecast, to what drives it, or to another measure over the same time."""
@@ -77,12 +64,12 @@ class ChangeDialog(TableOperationDialogBase):
                                     {"time": time}))
         return steps
 
-    def apply_results(self, result: ch.ChangeAnswer) -> list[dict[str, Any]]:
-        casting = self.roles_widget.casting()
-        measure = casting.columns("response")[0]
-        time = casting.columns("time")
-        name = self.write_result_tables({"change": result.series})["change"]
+    def answer_table(self, result: ch.ChangeAnswer) -> pd.DataFrame:
+        return result.series
 
+    def answer_chart(self, result: ch.ChangeAnswer, name: str) -> tuple:
+        """The measure over time, with its trend or the medians before and after the step."""
+        measure = self.measure
         series = []
         sql, roles = self.series_select(name, {"x": "Order", "y": "Value"})
         series.append((measure, sql, roles, {"linestyle": "-", "marker": "o"}))
@@ -95,7 +82,7 @@ class ChangeDialog(TableOperationDialogBase):
                                                 where=f"{self.quoted('Segment')} = {self.literal(segment)}")
                 series.append((label, sql, roles, {"linestyle": "-", "marker": "", "color": "#d62728",
                                                    "linewidth": 2}))
-        x_label = time[0] if time else _("Row")
+        x_label = self.column("time") or _("Row")
         # No rolling average of its own: the trend or the two medians are the summary here.
         options: dict[str, Any] = {"show_rolling": False}
         if result.temporal:
@@ -105,5 +92,4 @@ class ChangeDialog(TableOperationDialogBase):
             step = moments.diff().median() if len(moments) > 1 else pd.NaT
             if pd.notna(step) and step > pd.Timedelta(0):
                 options["gap_threshold"] = f"{int((5 * step).total_seconds())}s"
-        panel = ("Time Series", _("{measure} over time").format(measure=measure), x_label, measure, series, options)
-        return self.draw_report(result, measure, [panel], written=[{"table": name}])
+        return ("Time Series", _("{measure} over time").format(measure=measure), x_label, measure, series, options)

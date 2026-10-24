@@ -260,22 +260,26 @@ def literal_string_list(node: ast.AST) -> list[str] | None:
 
 def directly_inherits_from(
     class_node: ast.ClassDef,
-    base_class_name: str,
+    base_class_name: str | tuple[str, ...],
 ) -> bool:
     """
-    Return True if class_node directly inherits from base_class_name.
+    Return True if class_node directly inherits from base_class_name (or one of them).
 
     Strictly matches:
         class X(BaseClass):
 
     Also supports:
         class X(module.BaseClass):
+
+    A family may have more than one base: the table analyses and the quick
+    answers, which derive from a base of their own.
     """
+    names = (base_class_name,) if isinstance(base_class_name, str) else tuple(base_class_name)
     for base in class_node.bases:
-        if isinstance(base, ast.Name) and base.id == base_class_name:
+        if isinstance(base, ast.Name) and base.id in names:
             return True
 
-        if isinstance(base, ast.Attribute) and base.attr == base_class_name:
+        if isinstance(base, ast.Attribute) and base.attr in names:
             return True
 
     return False
@@ -284,7 +288,7 @@ def directly_inherits_from(
 def discover_classes(
     *,
     root: Path,
-    base_class_name: str,
+    base_class_name: str | tuple[str, ...],
     value_attr: str | None = "Name",
     string_attrs: tuple[str, ...] = (),
     string_list_attrs: tuple[str, ...] = (),
@@ -367,7 +371,7 @@ def discover_classes(
 def discover_classes_merged(
     *,
     roots: tuple[Path, ...],
-    base_class_name: str,
+    base_class_name: str | tuple[str, ...],
     value_attr: str | None = "Name",
     string_attrs: tuple[str, ...] = (),
     string_list_attrs: tuple[str, ...] = (),

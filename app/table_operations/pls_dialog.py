@@ -49,6 +49,7 @@ class PLSDialog(TableOperationDialogBase):
         ColumnRole("predictor", "X", "The many measures to predict them from: a spectrum's columns.",
                    kinds=(CONTINUOUS, ORDINAL), minimum=2),
     )
+    DISTINCT_ROLES = (("response", "predictor", "{columns} is both Y and X."),)
     PARAMETERS_TAB = "PLS"
     PARAMS = (
         IntParam("components", "Components:", tooltip="0 chooses them by cross-validation: another component only while "
@@ -62,15 +63,6 @@ class PLSDialog(TableOperationDialogBase):
                                                                 "noise the weight of the bands.",
                   default_value=False, advanced=True),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        overlap = set(casting.columns("response")) & set(casting.columns("predictor"))
-        if not found and overlap:
-            found.append(_("{columns} is both Y and X.").format(columns=", ".join(sorted(overlap))))
-        return found
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model

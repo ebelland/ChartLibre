@@ -22,8 +22,8 @@ class PluginFamily:
 
     #: What the family is called in the log: "data operations".
     label: str
-    #: The base class its plugins derive from, by name.
-    base_class: str
+    #: The base class its plugins derive from, by name - or the bases, when the family has several.
+    base_class: str | tuple[str, ...]
     #: Where the built-in plugins are; the user's own folder is scanned after it.
     builtin_root: Path
     #: None: the built-in folder alone (a test's own library).

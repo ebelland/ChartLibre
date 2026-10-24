@@ -79,6 +79,7 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
         ColumnRole("by", "By", "Optional: a column of groups - species, batch, site; the score plot and the "
                                "biplot colour the rows by it.", maximum=1),
     )
+    DISTINCT_ROLES = (("response", "by", "The By column cannot also be one of the columns."),)
     #: More groups than this are one colour: a legend of fifty is no help.
     MAX_GROUPS = 20
     PARAMETERS_TAB = "Principal Components"
@@ -87,14 +88,6 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
                     tooltip="Correlations weigh every column the same, whatever its unit - the usual choice. "
                             "Covariances let the columns with the widest spread lead, for columns in one unit."),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        if not found and set(casting.columns("response")) & set(casting.columns("by")):
-            found.append(_("The By column cannot also be one of the columns."))
-        return found
 
     def _row_series(self, table: str, x: str, y: str) -> list[tuple]:
         by = self.columns("by")

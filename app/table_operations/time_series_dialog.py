@@ -56,6 +56,11 @@ class TimeSeriesDialog(TableOperationDialogBase):
                                         "cross-correlation says whether it leads or follows Y, and by how much.",
                    kinds=(CONTINUOUS, ORDINAL), maximum=1),
     )
+    DISTINCT_ROLES = (
+        ("response", "time", "The measure and the time must be two different columns."),
+        ("input", "response", "The input must be another column than the measure and the time."),
+        ("input", "time", "The input must be another column than the measure and the time."),
+    )
     PARAMETERS_TAB = "Time Series"
     PARAMS = (
         ChoiceParam("model", "Forecast:", choices=tuple((label, key) for key, label in tsa.MODELS),
@@ -131,16 +136,6 @@ class TimeSeriesDialog(TableOperationDialogBase):
             advanced=True,
         ),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        if not found and set(casting.columns("response")) & set(casting.columns("time")):
-            found.append(_("The measure and the time must be two different columns."))
-        if not found and set(casting.columns("input")) & set(casting.columns("response") + casting.columns("time")):
-            found.append(_("The input must be another column than the measure and the time."))
-        return found
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model

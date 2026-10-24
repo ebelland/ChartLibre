@@ -45,20 +45,13 @@ class GageDialog(TableOperationDialogBase):
         ColumnRole("operator", "Operator", "Optional: who measured. Without it, repeatability alone.",
                    kinds=(NOMINAL, ORDINAL), maximum=1),
     )
+    DISTINCT_ROLES = tuple((role, other, "The measurement, the part and the operator must be different columns.")
+                           for role, other in (("response", "part"), ("response", "operator"), ("part", "operator")))
     PARAMETERS_TAB = "Gage R&R"
     PARAMS = (
         TextParam("tolerance", "Tolerance (USL - LSL):", placeholder="optional",
                   tooltip="The width of the specification: adds each source's share of it (% Tolerance)."),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        used = casting.columns("response") + casting.columns("part") + casting.columns("operator")
-        if not found and len(set(used)) != len(used):
-            found.append(_("The measurement, the part and the operator must be different columns."))
-        return found
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del model

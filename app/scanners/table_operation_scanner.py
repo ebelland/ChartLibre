@@ -1,6 +1,6 @@
 """Discovery of table operations (the Analysis panel's plugins).
 
-Classes directly subclassing TableOperationDialogBase in app/table_operations
+Classes directly subclassing TableOperationDialogBase (or QuickAnswerDialogBase) in app/table_operations
 (and user/table_operations, for the user's own) are found by an AST scan at
 import time and loaded from disk when opened. How a family is found is
 app.scanners.plugin_family's; this declares what this one is.
@@ -17,7 +17,7 @@ USER_TABLE_OPERATIONS_DIR: Path = USER_CONTENT_DIR / "table_operations"
 
 FAMILY = PluginFamily(
     label="table operations (analyses)",
-    base_class="TableOperationDialogBase",
+    base_class=("TableOperationDialogBase", "QuickAnswerDialogBase"),
     builtin_root=Path(__file__).resolve().parent.parent / "table_operations",
     user_root=USER_TABLE_OPERATIONS_DIR,
     module_prefix="_dynamic_table_operation",

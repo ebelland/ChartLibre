@@ -130,6 +130,7 @@ class PartitionDialog(TableOperationDialogBase):
         ColumnRole("validation", "Validation",
                    "Optional: 1 (or Validation) on the rows kept out of the fit, to judge it.", maximum=1),
     )
+    DISTINCT_ROLES = (("response", "factor", "{columns} is both Y and X."),)
     #: The tree's own settings, beside the Split and Prune buttons.
     PARAMETERS_TAB = "Tree"
 
@@ -217,16 +218,6 @@ class PartitionDialog(TableOperationDialogBase):
 
     def charts(self) -> list[str]:
         return [key for key, check in self._chart_checks.items() if check.isChecked()]
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        if found:
-            return found
-        casting = self.roles_widget.casting()
-        overlap = set(casting.columns("response")) & set(casting.columns("factor"))
-        if overlap:
-            found.append(_("{columns} is both Y and X.").format(columns=", ".join(sorted(overlap))))
-        return found
 
     def _inputs(self) -> tuple[Any, ...]:
         return (*super()._inputs(), self._auto)

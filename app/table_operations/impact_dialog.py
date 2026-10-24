@@ -15,14 +15,13 @@ import pandas as pd
 
 from app.analysis import impact as im
 from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, is_level
-from app.table_operations.differences_dialog import answer_html
 from app.utils import report_html
 from app.utils.i18n import _
 
 
-class ImpactDialog(TableOperationDialogBase):
+class ImpactDialog(QuickAnswerDialogBase):
     Name = "What has the most impact?"
     Description = ("Which of many columns matters most for a result? The factors are ranked for you, "
                    "and the answer is given in words.")
@@ -43,26 +42,17 @@ class ImpactDialog(TableOperationDialogBase):
                                          "(pass/fail).", minimum=1, maximum=1),
         ColumnRole("factor", "Factors", "The columns that might drive it.", minimum=1),
     )
-
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        if not found and set(casting.columns("response")) & set(casting.columns("factor")):
-            found.append(_("The result cannot also be a factor."))
-        return found
+    DISTINCT_ROLES = (("response", "factor", "The result cannot also be a factor."),)
+    RESULT_TABLE = "impact"
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del params, model
         return im.impact(frame, casting.columns("response")[0], casting.columns("factor"))
 
-    def report_subtitle(self, result: im.ImpactAnswer) -> str:
-        return f"{self.table} · {self.columns('response')[0]}"
-
-    def report_body(self, result: im.ImpactAnswer) -> str:
+    def answer_details(self, result: im.ImpactAnswer) -> str:
         ranking = result.ranking.copy()
         ranking["Direction"] = [self._direction(value) for value in ranking["Direction"]]
-        return answer_html(result) + report_html.section(
+        return report_html.section(
             _("The factors, most impact first"), self.report_table(ranking, p_columns=("p-value",)))
 
     @staticmethod
@@ -92,10 +82,12 @@ class ImpactDialog(TableOperationDialogBase):
                                     {"factor": factors}))
         return steps
 
-    def apply_results(self, result: im.ImpactAnswer) -> list[dict[str, Any]]:
-        response = self.columns("response")[0]
-        name = self.write_result_tables({"impact": result.ranking})["impact"]
+    def answer_table(self, result: im.ImpactAnswer) -> pd.DataFrame:
+        return result.ranking
+
+    def answer_chart(self, result: im.ImpactAnswer, name: str) -> tuple:
+        """The factors' impact, as a Pareto chart."""
+        response = self.measure
         sql, roles = self.series_select(name, {"Y": "Impact %", "X": "Factor"})
-        panel = ("Pareto Chart", _("What has the most impact on {response}").format(response=response), "",
-                 _("Impact %"), [(response, sql, roles, {})])
-        return self.draw_report(result, response, [panel], written=[{"table": name}])
+        return ("Pareto Chart", _("What has the most impact on {response}").format(response=response), "",
+                _("Impact %"), [(response, sql, roles, {})])

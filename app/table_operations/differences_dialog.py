@@ -8,7 +8,6 @@ plots for numbers, a mosaic for categories - with the report in its notes.
 """
 from __future__ import annotations
 
-import html
 from collections.abc import Mapping
 from typing import Any
 
@@ -16,25 +15,13 @@ import pandas as pd
 
 from app.analysis import answers
 from app.plugin_api.table_operations.column_roles import NOMINAL, ORDINAL, ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, other_columns
 from app.utils import report_html
 from app.utils.i18n import _
 
 
-def answer_html(answer: answers.Answer) -> str:
-    """The sentences, translated: the first as the answer, the rest beneath it."""
-    def words(values: dict[str, Any]) -> dict[str, Any]:
-        # The size and the test's name are words too, in the window's language.
-        return {**values, **{key: _(values[key]) for key in ("size", "test", "unit") if key in values}}
-
-    lines = [_(template).format(**words(values)) for template, values in answer.sentences]
-    colour = "#1a7f37" if answer.verdict == answers.YES else "#57606a"
-    head = f"<p style='font-size:125%; color:{colour}'><b>{html.escape(lines[0])}</b></p>"
-    return head + "".join(f"<p>{html.escape(line)}</p>" for line in lines[1:])
-
-
-class DifferencesDialog(TableOperationDialogBase):
+class DifferencesDialog(QuickAnswerDialogBase):
     Name = "Are there differences?"
     Description = ("Is a measure different from one group to another? The right test is chosen for you, "
                    "and the answer is given in words.")
@@ -57,25 +44,16 @@ class DifferencesDialog(TableOperationDialogBase):
         ColumnRole("group", "Groups", "The column that says which group each row is in.",
                    kinds=(NOMINAL, ORDINAL), minimum=1, maximum=1),
     )
-
-    def problems(self) -> list[str]:
-        found = super().problems()
-        casting = self.roles_widget.casting()
-        if not found and set(casting.columns("response")) & set(casting.columns("group")):
-            found.append(_("The measure and the groups must be two different columns."))
-        return found
+    DISTINCT_ROLES = (("response", "group", "The measure and the groups must be two different columns."),)
+    SUBTITLE_ROLES = ("response", "group")
+    RESULT_TABLE = "differences"
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del params, model
         return answers.differences(frame, casting.columns("response")[0], casting.columns("group")[0])
 
-    def report_subtitle(self, result: answers.Answer) -> str:
-        casting = self.roles_widget.casting()
-        return f"{self.table} · {casting.columns('response')[0]} / {casting.columns('group')[0]}"
-
-    def report_body(self, result: answers.Answer) -> str:
+    def answer_details(self, result: answers.Answer) -> str:
         blocks = [
-            answer_html(result),
             report_html.section(_("The groups"), self.report_table(result.groups)),
             report_html.section(_("Details"), report_html.summary_table([
                 (_("Test"), _(result.test)),
@@ -88,8 +66,7 @@ class DifferencesDialog(TableOperationDialogBase):
     def next_steps(self, result: answers.Answer) -> list[NextStep]:
         """On to what drives the measure; or again, with another measure or another grouping."""
         del result
-        casting = self.roles_widget.casting()
-        measure, group = casting.columns("response")[0], casting.columns("group")[0]
+        measure, group = self.measure, self.column("group")
         factors = [group, *other_columns(self._frame.columns, leave_out=(measure, group), limit=7)]
         return [
             self.next_step(_("What has the most impact on {measure} - {group} and the other columns, ranked")
@@ -101,19 +78,19 @@ class DifferencesDialog(TableOperationDialogBase):
                            "Are there differences?", {"response": [measure]}),
         ]
 
-    def apply_results(self, result: answers.Answer) -> list[dict[str, Any]]:
-        repo, table = self._repo, self.table
-        casting = self.roles_widget.casting()
-        measure, group = casting.columns("response")[0], casting.columns("group")[0]
-        name = self.write_result_tables({"differences": result.groups})["differences"]
+    def answer_table(self, result: answers.Answer) -> pd.DataFrame:
+        return result.groups
+
+    def answer_chart(self, result: answers.Answer, table: str) -> tuple:
+        """Box plots of the measure by group, or a mosaic for categories - drawn from the source table."""
+        del table
+        measure, group = self.measure, self.column("group")
         # The chart leaves the hidden rows out, as the test did.
-        shown = 'COALESCE("Hide", 0) = 0' if repo.has_column(table, "Hide") else ""
+        shown = 'COALESCE("Hide", 0) = 0' if self._repo.has_column(self.table, "Hide") else ""
+        title = _("{measure} by {group}").format(measure=measure, group=group)
         if result.numeric:
-            sql, roles = self.series_select(table, {"value": measure, "group": group}, where=shown)
-            panel = ("Box Plot", _("{measure} by {group}").format(measure=measure, group=group), group, measure,
-                     [(measure, sql + f" ORDER BY {self.quoted(group)}", roles, {})])
-        else:
-            sql, roles = self.series_select(table, {"x": group, "y": measure}, where=shown)
-            panel = ("Mosaic Plot", _("{measure} by {group}").format(measure=measure, group=group), group, measure,
-                     [(measure, sql, roles, {})])
-        return self.draw_report(result, measure, [panel], written=[{"table": name}])
+            sql, roles = self.series_select(self.table, {"value": measure, "group": group}, where=shown)
+            return ("Box Plot", title, group, measure,
+                    [(measure, sql + f" ORDER BY {self.quoted(group)}", roles, {})])
+        sql, roles = self.series_select(self.table, {"x": group, "y": measure}, where=shown)
+        return ("Mosaic Plot", title, group, measure, [(measure, sql, roles, {})])

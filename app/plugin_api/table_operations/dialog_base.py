@@ -93,6 +93,8 @@ class TableOperationDialogBase(OperationShell, QDialog):
     Icon: ClassVar[str] = ""
 
     ROLES: ClassVar[tuple[ColumnRole, ...]] = ()
+    #: Roles that may not share a column: (role, other role, message); "{columns}" in the message names them.
+    DISTINCT_ROLES: ClassVar[tuple[tuple[str, str, str], ...]] = ()
     MODELS: ClassVar[Mapping[str, OperationModel]] = {}
     PARAMS: ClassVar[tuple[Param, ...]] = ()
     #: The tab the declared parameters go on: one of their own by default, or
@@ -430,7 +432,14 @@ class TableOperationDialogBase(OperationShell, QDialog):
             return [_("Choose a table.")]
         if self._frame.empty:
             return [_("The table has no visible rows.")]
-        return self.roles_widget.problems()
+        found = self.roles_widget.problems()
+        if found:
+            return found
+        for role, other, message in self.DISTINCT_ROLES:
+            overlap = set(self.columns(role)) & set(self.columns(other))
+            if overlap:
+                return [_(message).format(columns=", ".join(sorted(overlap)))]
+        return []
 
     def _inputs(self) -> tuple[Any, ...]:
         casting = self.roles_widget.casting()
