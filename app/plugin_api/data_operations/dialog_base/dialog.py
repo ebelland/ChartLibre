@@ -15,7 +15,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QComboBox, QFormLayout, QSizePolicy, QWidget
 
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
@@ -37,7 +37,7 @@ from app.plugin_api.operation_shell import OperationShell
 
 
 class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, InputsMixin, ResultsMixin,
-                              TransactionMixin, OperationShell, QDialog):
+                              TransactionMixin, OperationShell):
     """Abstract shell for all chart-data operation dialogs.
 
     Subclasses should:
@@ -84,11 +84,6 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
     <path d="M8.5 12h7"/>
     <path d="M12 8.5v7"/>
     """
-
-    applied = Signal()
-    #: Preview drew a new figure (its id), or took it away again (-1): the window shows or drops its tab,
-    #: as for the table analyses - otherwise "Draw on: New figure" previewed into a tab nobody saw.
-    preview_drawn = Signal(int)
 
     #: Emitted with the run's report, as HTML, once Apply has committed.
     #: The main window forwards it to the chart panel the operation ran on, so

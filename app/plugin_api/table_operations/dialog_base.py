@@ -35,17 +35,13 @@ from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
 import pandas as pd
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDialog,
     QFormLayout,
-    QHBoxLayout,
     QLabel,
-    QProgressBar,
     QSizePolicy,
-    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -58,8 +54,6 @@ from app.plugin_api.data_operations.parameter_form import ParameterForm
 from app.plugin_api.data_operations.parameter_spec import Param
 from app.styles.style import (
     TitledCard,
-    apply_dialog_shell,
-    create_action_button,
     icon_from_svg_source,
     stdSizeAndlayout,
 )
@@ -82,7 +76,7 @@ APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
 GENERATED_PREFIX = "_"
 
 
-class TableOperationDialogBase(OperationShell, QDialog):
+class TableOperationDialogBase(OperationShell):
     """Inputs on the left, the report on the right; Preview, Copy, OK, Close."""
 
     Name: ClassVar[str] = ""
@@ -104,12 +98,8 @@ class TableOperationDialogBase(OperationShell, QDialog):
     #: the old one is left behind (2: the inputs in tabs, 880 x 460).
     LAYOUT_VERSION: ClassVar[int] = 3
 
-    #: Something was written into the project (an OK): the window refreshes.
-    applied = Signal()
     #: The Results pane's headline when the analysis fails.
     FAILURE_HEADLINE: ClassVar[str] = "Nothing was computed."
-    #: Preview drew its figure (its id), or took it away again (-1): the window shows or drops it.
-    preview_drawn = Signal(int)
 
     #: The chart types the analysis draws panels of: with two or more, the Charts tab has a box for each,
     #: and the report figure leaves out the panels whose box is cleared.
@@ -289,55 +279,15 @@ class TableOperationDialogBase(OperationShell, QDialog):
         self._inputs_panel.setProperty("toolboxPage", True)
         self._inputs_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        # A standard frame: the title above the box, as the columns' and the roles'.
-        right = TitledCard(self, _("Results"), "tableOperationResultsCard")
-        right.layout().setStretchFactor(right.card, 1)
         self._results = HtmlResultsView(self)
         self._results.link_requested.connect(self._follow_link)
         self._results.setText(_("Cast the columns into their roles, then press Preview."))
-        right.card.layout().addWidget(self._results)
-        right.setMinimumWidth(260)
-
-        # In a titled frame like Results beside it, as the data operations'
-        # Settings (B-14): one box with the title above it, its cards
-        # flattened by the sheets (#operationSettingsCard) - it was a square
-        # block with no title, stuck to Results (B-15).
-        left = TitledCard(self, _("Settings"), "operationSettingsCard", margins=(6, 6, 6, 6))
-        left.layout().setStretchFactor(left.card, 1)
-        left.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        left.card.layout().addWidget(self._inputs_panel, 1)
-
-        splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.setChildrenCollapsible(False)
-        splitter.addWidget(left)
-        splitter.addWidget(right)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
         self._inputs_panel.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-
-        buttons = QHBoxLayout()
-        stdSizeAndlayout(buttons)
-        self.preview_button = create_action_button(parent=self, action_id="preview", action=self.preview, layout=buttons)
-        self.stop_button = create_action_button(parent=self, action_id="operation_stop", action=self.stop, layout=buttons)
-        self.stop_button.setVisible(False)
-        self.progress_bar = QProgressBar(self)
-        self.progress_bar.setRange(0, 0)
-        self.progress_bar.setMaximumWidth(160)
-        self.progress_bar.setTextVisible(False)
-        self.progress_bar.setVisible(False)
-        buttons.addWidget(self.progress_bar)
-        buttons.addStretch(1)
-        create_action_button(parent=self, action_id="copy", action=self._results.copy_html_to_clipboard, layout=buttons)
-        self.apply_button = create_action_button(parent=self, action_id="apply", action=self.ok, layout=buttons)
-        create_action_button(parent=self, action_id="close", action=self.reject, layout=buttons)
-
-        root = QVBoxLayout(self)
         # Small enough for a laptop: the inputs need about 520 px, the report
         # takes the rest, and screen_fit shrinks it further on a smaller screen.
         # Wider since the roles sit under the columns: three columns of room.
-        apply_dialog_shell(self, root, size=QSize(1000, 560))
-        root.addWidget(splitter, 1)
-        root.addLayout(buttons)
+        self.build_window(self._inputs_panel, self._results, copy=self._results.copy_html_to_clipboard,
+                          size=QSize(1000, 560))
 
     # ------------------------------------------------------------------
     # The table and its columns

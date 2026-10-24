@@ -9,11 +9,9 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
     QRadioButton,
     QScrollArea,
     QSizePolicy,
-    QSplitter,
     QStackedWidget,
     QTabWidget,
     QVBoxLayout,
@@ -22,12 +20,8 @@ from PySide6.QtWidgets import (
 
 from app.widgets.table_source_selector import TableSourceSelector
 from app.styles.style import (
-    apply_dialog_shell,
     MARGIN_TOOLBOX_PAGE,
     CardFrame,
-    TitledCard,
-    create_action_button,
-    stdSizeAndlayout,
 )
 from app.logs.logger import applogger
 from app.utils.i18n import _
@@ -145,98 +139,14 @@ class LayoutMixin:
         left_tabs.setCurrentIndex(0)
         self.left_tabs = left_tabs
 
-        # The title above the box, as in every other window.
-        right = TitledCard(self, _("Results"), "operationResultsCard")
-        right.layout().setStretchFactor(right.card, 1)
-        right.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        right.card.layout().addWidget(self._results_widget, 3)
-
-        # The tabs in a titled frame like Results beside it: the tab bar starts
-        # at the same height inside the white box instead of above it, with
-        # no white strip after the last tab (B-14). The pages' own cards are
-        # flattened inside it by the sheets (#operationSettingsCard).
-        left = TitledCard(self, _("Settings"), "operationSettingsCard", margins=(6, 6, 6, 6))
-        left.layout().setStretchFactor(left.card, 1)
-        left.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        left.card.layout().addWidget(left_tabs, 1)
-
-        splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.addWidget(left)
-        splitter.addWidget(right)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-        right.setMinimumWidth(380)
-
-        action_row = QHBoxLayout()
-        stdSizeAndlayout(action_row)
-
-        self.preview_button = create_action_button(
-                                  parent=self,
-                                  action_id="preview",
-                                  action=self.preview,
-                                  layout=action_row,
-                              )
-
-        # Back to the defaults, beside Preview: it acts on the entries only.
-        self.revert_button = create_action_button(
-                                 parent=self,
-                                 action_id="operation_revert",
-                                 action=self.revert_entries,
-                                 layout=action_row,
-                             )
-
-        # Operation-specific buttons go next to Preview, on the left: they act
-        # on the dialog's own state, unlike Apply/Close which end it.
-        self.build_extra_action_buttons(action_row)
-
-        # After every button that stays and before the stretch, which takes up the
-        # difference: put beside Preview they pushed Revert, Fit and the rest aside
-        # each time they appeared and again when they went (the Fit dialog's flicker).
-        # Shown only while a calculation runs in the background: every
-        # operation gets the same Stop, in the same place. See evaluate().
-        self.stop_button = create_action_button(
-                               parent=self,
-                               action_id="operation_stop",
-                               action=self.stop,
-                               layout=action_row,
-                           )
-        self.stop_button.setVisible(False)
-        # Beside Stop and shown with it. Busy (no percentage) for one series;
-        # a series at a time for several. See _show_progress.
-        self.progress_bar = QProgressBar(self)
-        self.progress_bar.setTextVisible(False)
-        self.progress_bar.setMaximumWidth(160)
-        self.progress_bar.setVisible(False)
-        action_row.addWidget(self.progress_bar)
-
-        action_row.addStretch(1)
-
-        self.copy_html_button = create_action_button(
-                                    parent=self,
-                                    action_id="copy",
-                                    action=self._results_label.copy_html_to_clipboard,
-                                    layout=action_row,
-                                )
-
-        self.apply_button = create_action_button(
-                                parent=self,
-                                action_id="apply",
-                                action=self.ok,
-                                layout=action_row,
-                            )
-
-        self.close_button = create_action_button(
-                                parent=self,
-                                action_id="close",
-                                action=self.reject,
-                                layout=action_row,
-                            )
-
-        root = QVBoxLayout(self)
-        # One helper owns dialog padding and size for every dialog in the app.
-        apply_dialog_shell(self, root, size=None)
-        root.addWidget(splitter, 1)
-        root.addLayout(action_row, 0)
+        self.build_window(
+            left_tabs,
+            self._results_widget,
+            copy=self._results_label.copy_html_to_clipboard,
+            revert=self.revert_entries,
+            extra_buttons=self.build_extra_action_buttons,
+            results_minimum_width=380,
+        )
 
 
     # ------------------------------------------------------------------

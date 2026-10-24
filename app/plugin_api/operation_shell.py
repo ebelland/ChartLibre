@@ -15,10 +15,13 @@ they both did, each in its own words, lives here once:
   and a progress bar once it has taken a moment, Stop polled by the
   calculation (stop_requested), "Stopped" or the failure said at its end;
 * the window's memory (remember_window, restore_window): its size, its
-  choices and its parameters, kept in user.json between sessions.
+  choices and its parameters, kept in user.json between sessions;
+* the window itself (build_window): Settings and Results side by side, and
+  the one row of buttons - Preview, Stop and its bar, Copy, OK, Cancel;
+* the signals the main window listens to (applied, preview_drawn).
 
-A base derives from it beside QDialog and says where its results pane is
-(results_widget). No Qt object of its own: a mixin.
+It is the QDialog both bases derive from. A base hands build_window its
+Settings and its Results pane, and says where that pane is (results_widget).
 """
 from __future__ import annotations
 
@@ -26,17 +29,26 @@ import html
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QProgressBar, QSizePolicy, QSplitter, QVBoxLayout, QWidget
+
 from app import APP_VERSION
 from app.analysis import Stopped
 from app.logs.logger import applogger
+from app.styles.style import TitledCard, apply_dialog_shell, create_action_button, stdSizeAndlayout
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.config import get_constant
 from app.utils.i18n import _
 from app.widgets.html_results import looks_like_html
 
 
-class OperationShell:
-    """The parts of an analysis window both kinds share."""
+class OperationShell(QDialog):
+    """The analysis window both kinds are: its layout, its buttons and its behaviour."""
+
+    #: Something was written into the project (a Preview, an OK, a rollback): the window refreshes.
+    applied = Signal()
+    #: Preview drew a new figure (its id), or took it away again (-1): the window shows or drops its tab.
+    preview_drawn = Signal(int)
 
     #: The places a result can be drawn, the same words in both Charts tabs.
     DEST_SAME_AXIS: str = "same_axis"
@@ -64,6 +76,90 @@ class OperationShell:
         combo.setMaximumWidth(FIELD_MAX_WIDTH)
         combo.currentIndexChanged.connect(lambda _index: on_change())
         return combo
+
+    # ------------------------------------------------------------------
+    # The window
+    # ------------------------------------------------------------------
+
+    def build_window(
+        self,
+        settings: QWidget,
+        results: QWidget,
+        *,
+        copy: Callable[[], Any],
+        revert: Callable[[], Any] | None = None,
+        extra_buttons: Callable[[QHBoxLayout], None] | None = None,
+        size: QSize | None = None,
+        results_minimum_width: int = 260,
+    ) -> None:
+        """Lay the window out: *settings* and *results* side by side, each titled, the buttons under them.
+
+        Preview, Revert (when there is *revert*), the operation's own (*extra_buttons*), then Stop and its
+        bar - shown only while a calculation runs - and, on the right, Copy (*copy*), OK and Cancel.
+        """
+        # The tabs in a titled frame like Results beside it: the tab bar starts
+        # at the same height inside the white box instead of above it (B-14).
+        # The pages' own cards are flattened inside it by the sheets (#operationSettingsCard).
+        left = TitledCard(self, _("Settings"), "operationSettingsCard", margins=(6, 6, 6, 6))
+        left.layout().setStretchFactor(left.card, 1)
+        left.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        left.card.layout().addWidget(settings, 1)
+
+        right = TitledCard(self, _("Results"), "operationResultsCard")
+        right.layout().setStretchFactor(right.card, 1)
+        right.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        right.card.layout().addWidget(results, 1)
+        right.setMinimumWidth(results_minimum_width)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        splitter.setChildrenCollapsible(False)
+        splitter.addWidget(left)
+        splitter.addWidget(right)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+
+        row = QHBoxLayout()
+        stdSizeAndlayout(row)
+        self.preview_button = create_action_button(parent=self, action_id="preview", action=self.preview, layout=row)
+        self.revert_button = None
+        if revert is not None:
+            # Back to the defaults, beside Preview: it acts on the entries only.
+            self.revert_button = create_action_button(parent=self, action_id="operation_revert", action=revert,
+                                                      layout=row)
+        if extra_buttons is not None:
+            # The operation's own, on the left: they act on the dialog's state, unlike OK and Cancel.
+            extra_buttons(row)
+        # After every button that stays and before the stretch, which takes up the
+        # difference: beside Preview they pushed the others aside each time they
+        # appeared and went (the Fit dialog's flicker). Shown only while a
+        # calculation runs (_set_job_running): every analysis has the same Stop.
+        self.stop_button = create_action_button(parent=self, action_id="operation_stop", action=self.stop, layout=row)
+        self.stop_button.setVisible(False)
+        # Busy (no percentage) for one piece of work; a count for several. See _show_progress.
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setMaximumWidth(160)
+        self.progress_bar.setVisible(False)
+        row.addWidget(self.progress_bar)
+        row.addStretch(1)
+        self.copy_html_button = create_action_button(parent=self, action_id="copy", action=copy, layout=row)
+        self.apply_button = create_action_button(parent=self, action_id="apply", action=self.ok, layout=row)
+        self.close_button = create_action_button(parent=self, action_id="close", action=self.reject, layout=row)
+
+        root = QVBoxLayout(self)
+        # One helper owns dialog padding and size for every dialog in the app.
+        apply_dialog_shell(self, root, size=size)
+        root.addWidget(splitter, 1)
+        root.addLayout(row, 0)
+
+    def preview(self) -> Any:
+        """Compute and draw, to be looked at: the base's."""
+        raise NotImplementedError
+
+    def ok(self) -> None:
+        """Compute if needed, write for good and close: the base's."""
+        raise NotImplementedError
 
     # ------------------------------------------------------------------
     # The Results pane
@@ -131,7 +227,7 @@ class OperationShell:
 
     def busy_widgets(self) -> list[Any]:
         """What is switched off while a calculation runs: whatever would start a second one."""
-        return [self.preview_button, self.apply_button]  # type: ignore[attr-defined]
+        return [self.preview_button, self.apply_button]
 
     @property
     def job_running(self) -> bool:
@@ -194,7 +290,7 @@ class OperationShell:
             widget.setEnabled(not running)
         timer = getattr(self, "_busy_timer", None)
         if timer is None:
-            timer = self._busy_timer = QTimer(self)  # type: ignore[arg-type]
+            timer = self._busy_timer = QTimer(self)
             timer.setInterval(100)
             timer.timeout.connect(self._show_progress)
         if running:
@@ -202,17 +298,17 @@ class OperationShell:
             timer.start()
             return
         timer.stop()
-        self.stop_button.setVisible(False)  # type: ignore[attr-defined]
-        self.progress_bar.setVisible(False)  # type: ignore[attr-defined]
+        self.stop_button.setVisible(False)
+        self.progress_bar.setVisible(False)
 
     def _show_progress(self) -> None:
         """Every 100 ms of a run: Stop and the bar once it is slow, then the count."""
         self._busy_since = getattr(self, "_busy_since", 0) + 100
         if self._busy_since < self.BUSY_DELAY_MS:
             return
-        bar = self.progress_bar  # type: ignore[attr-defined]
-        if not self.stop_button.isVisible():  # type: ignore[attr-defined]
-            self.stop_button.setVisible(True)  # type: ignore[attr-defined]
+        bar = self.progress_bar
+        if not self.stop_button.isVisible():
+            self.stop_button.setVisible(True)
             bar.setVisible(True)
             self.show_results(_("Working... press Stop to end it early."))
         progress = getattr(self, "_job_progress", None)
@@ -316,9 +412,9 @@ class OperationShell:
     def reject(self) -> None:
         """Cancel or Close: the calculation stopped, the choices kept, the Preview taken back."""
         self._leave()
-        super().reject()  # type: ignore[misc]
+        super().reject()
 
     def closeEvent(self, event: Any) -> None:  # noqa: N802 - Qt's name
         """The window's close button: as Cancel."""
         self._leave()
-        super().closeEvent(event)  # type: ignore[misc]
+        super().closeEvent(event)
