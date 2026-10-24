@@ -29,15 +29,12 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QWidget
 from app.analysis.baseline import (
     ASLS_MINIMUM_POINTS,
     METHOD_ASLS,
     METHOD_RUBBER_BAND,
     correct_baseline,
 )
-from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
@@ -126,19 +123,8 @@ class SeriesBaselineDialog(DataOperationDialogBase):
     Category: str = "Signal Processing"
     Order: int = 83
 
-    def __init__(
-        self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesBaselineDialog requires a repository instance.")
-        self._last_results: list[BaselineResult] = []
-        super().__init__(
-            repo=repo, figure_id=figure_id, parent=parent,
-            width=800, height=620,
-        )
-        self.series_selector.reload(select_all_series=True)
-        self._refresh_visibility()
-        self.mark_results_stale()
+    WINDOW_SIZE = (800, 620)
+    SELECTS_ALL_SERIES = True
 
     # ------------------------------------------------------------------
     # Computation

@@ -10,7 +10,6 @@ import numpy as np
 from app.logs.logger import applogger
 from app.utils.coercion import to_numeric_axis
 from app.plugin_api.data_operations.results import OperationResult
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, Param
 
 from app.plugin_api.data_operations.dialog_base.common import generated_table_name
 
@@ -24,34 +23,6 @@ class ResultsMixin:
 
     # The three places a generated result can go (DEST_*) are OperationShell's: the same words in every
     # analysis window.
-
-    @classmethod
-    def destination_param(
-        cls,
-        *,
-        name: str = "destination",
-        label: str = "Draw on:",
-        tooltip: str = "",
-        default: str | None = None,
-    ) -> Param:
-        """Return the declared destination choice, worded once.
-
-        Operations differ in *why* they default one way or another - a
-        derivative needs its own scale, a drawn function usually belongs
-        beside the data it is being compared with - so the default and the
-        tooltip are arguments, while the options themselves are not.
-        """
-        return ChoiceParam(
-            name,
-            label,
-            tooltip=tooltip,
-            choices=(
-                ("New axis in this figure", cls.DEST_NEW_AXIS),
-                ("Same axis as the source", cls.DEST_SAME_AXIS),
-                ("New figure", cls.DEST_NEW_FIGURE),
-            ),
-            default_value=default or cls.DEST_NEW_AXIS,
-        )
 
     def resolve_destination_axis(
         self,

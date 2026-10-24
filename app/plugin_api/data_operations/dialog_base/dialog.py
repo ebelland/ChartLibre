@@ -17,6 +17,7 @@ from typing import Any
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QComboBox, QFormLayout, QSizePolicy, QWidget
 
+from app.logs.logger import applogger
 from app.data.sqlite_repo import SqliteRepo
 from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.styles.style import icon_from_svg_source, set_doc_link
@@ -74,6 +75,11 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
     #: value while a spin box is being dragged or typed into.
     PENDING_RESULTS_MESSAGE: str = "Press Preview or OK to see the result."
 
+    #: The window's size when first opened; the size it is left at is remembered.
+    WINDOW_SIZE: tuple[int, int] = (900, 640)
+    #: Every series of the axis ticked at first: for an operation one usually runs on all of them.
+    SELECTS_ALL_SERIES: bool = False
+
     #: The operation's icon, as an SVG document.  Inline rather than a path to
     #: one: a file beside the module is a second thing to copy and a second
     #: thing to lose.  ``style.icon_from_svg_source`` renders it; an operation
@@ -112,15 +118,17 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         figure_id: int,
         title: str | None = None,
         parent: QWidget | None = None,
-        width: int = 900,
-        height: int = 640
+        width: int | None = None,
+        height: int | None = None,
     ) -> None:
+        if repo is None:
+            applogger.error("%s requires a repository instance.", type(self).__name__)
         super().__init__(parent)
 
         # The operation's own Name, as the Analysis panel, the catalogue and
         # the report call it (todo H-09) - not a second name of its own.
         self.setWindowTitle(_(title or str(getattr(type(self), "Name", "") or "Data Operation")))
-        self.resize(width, height)
+        self.resize(width or self.WINDOW_SIZE[0], height or self.WINDOW_SIZE[1])
 
         # The window icon is the operation's own artwork, set once here rather
         # than by each subclass.  Two of them had got it wrong exactly because
@@ -144,6 +152,10 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         #: the dialogs' own cleanup leave an applied result alone. Kept when a
         #: subclass set it before calling this constructor.
         self._applied: bool = getattr(self, "_applied", False)
+        #: The last run's results, and the axis or figure "Draw on" made for them (resolve_destination_axis).
+        self._last_results: list[Any] = []
+        self._result_axis_id: int | None = None
+        self._result_figure_id: int | None = None
         # Source series name -> was its x a timestamp column? Filled by
         # series_xy as each series is read, and read back by
         # restore_temporal_x when the result is written, so a result lands
@@ -182,6 +194,9 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         self._results_widget = self.build_results_pane()
 
         self._build_common_ui()
+        if self.model_combo.parent() is self:
+            # Not placed by the model selector (an operation with combos of its own): not a stray box at 0, 0.
+            self.model_combo.setVisible(False)
         self.connect_common_signals()
         self.connect_operation_signals()
 
@@ -196,6 +211,10 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         # still named the first model's ("Huber" linked to RANSAC's page).
         if getattr(self, "_doc_link", None) is not None:
             self._update_doc_link()
+        if self.SELECTS_ALL_SERIES:
+            self.series_selector.reload(select_all_series=True)
+        self._refresh_visibility()
+        self.mark_results_stale()
 
     #: Where the table's columns are stored beside the entries ("@": no attribute's name).
     _TABLE_SOURCE_STATE = "@table_source"

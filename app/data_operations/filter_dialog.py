@@ -27,9 +27,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-from PySide6.QtWidgets import (
-    QWidget,
-)
 from app.analysis.filtering import (
     AUTO_CUTOFF1,
     AUTO_CUTOFF2,
@@ -42,8 +39,6 @@ from app.analysis.filtering import (
     resolve_cutoffs,
     two_cutoffs,
 )
-from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.plugin_api.data_operations.results import XYResult
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.dialog_base import (
@@ -218,19 +213,8 @@ class SeriesFilterDialog(DataOperationDialogBase):
     Category: str = "Signal Processing"
     Order: int = 81
 
-    def __init__(
-        self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesFilterDialog requires a repository instance.")
-
-        self._last_results: list[FilterResult] = []
-        super().__init__(
-            repo=repo, figure_id=figure_id, parent=parent,
-            width=820, height=660,
-        )
-        self.series_selector.reload(select_all_series=True)
-        self.mark_results_stale()
+    WINDOW_SIZE = (820, 660)
+    SELECTS_ALL_SERIES = True
 
     # ------------------------------------------------------------------
     # UI

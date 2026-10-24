@@ -13,7 +13,7 @@ series shown in the dialog and is returned in metadata/callbacks.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -54,7 +54,6 @@ from app.analysis.smoothing import (
 )
 from app.data.data_source import parse_roles, row_value
 
-from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.dialog_base import (
@@ -430,35 +429,11 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
 
     PARAMS = SMOOTHING_PARAMS
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        applied_callback: Callable[[], None] | None = None,
-        table: str | None = None,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesSmoothingDialog requires a repository instance.")
+    WINDOW_SIZE = (720, 640)
 
-        self._repo: Any = repo
-        self._figure_id = int(figure_id)
-        self._applied_callback = applied_callback
-        self._initial_table = table
-        self._last_results: list[SmoothResult] = []
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=720,
-            height=640,
-        )
-        self.model_combo.setVisible(False)
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
         self._refresh_methods()
-        self._refresh_visibility()
-        self.mark_results_stale()
 
     def build_model_selector(self) -> QWidget:
         self.dimension_combo = QComboBox(self)
@@ -729,11 +704,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
             return int(source["id"])
         value = getattr(source, "id", None)
         return int(value) if value is not None else None
-
-    def operation_succeeded(self, *, commit: bool) -> None:
-        """Tell the owner window once the smoothing is applied."""
-        if commit and self._applied_callback is not None:
-            self._applied_callback()
 
     @staticmethod
     def results_to_dataframe(results: Sequence[SmoothResult]) -> pd.DataFrame:

@@ -31,10 +31,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import (
-    QFormLayout,
-    QWidget,
-)
 from app.analysis.spectral import (
     CORRELATION_NORMALISATIONS,
     DETREND_MODES,
@@ -57,7 +53,6 @@ from app.analysis.spectral import (
     estimate_pair,
 )
 from app.data.data_source import parse_roles, row_value
-from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 import html
 
@@ -262,44 +257,13 @@ class SeriesSpectralDialog(DataOperationDialogBase):
     Category: str = "Signal Processing"
     Order: int = 82
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error(
-                "SeriesSpectralDialog requires a repository instance.",
-                raise_error=True,
-            )
+    WINDOW_SIZE = (900, 680)
 
-        self._last_results: list[SpectralResult] = []
-        self._parameter_form: QFormLayout | None = None
-
-        # The axis this dialog adds to the current figure for its results.
-        # Created on the first Preview, kept across further previews, deleted
-        # on Close unless Apply has confirmed it.
-        self._result_axis_id: int | None = None
-        self._applied = False
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=900,
-            height=680,
-        )
-        self.setModal(True)
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
         self.series_selector.set_series_filter(self._has_query)
         self.series_selector.reload(select_all_series=False)
-        self._refresh_visibility()
-        self.mark_results_stale()
 
-    # ------------------------------------------------------------------
-    # Widgets
-    # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     # Input
     # ------------------------------------------------------------------

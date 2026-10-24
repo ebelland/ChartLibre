@@ -46,8 +46,6 @@ from app.analysis.function_plot import (
     evaluate_curve,
     evaluate_surface,
 )
-from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.results import TableResult
@@ -166,35 +164,16 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     Category: str = "Graph"
     Order: int = 5
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesFunctionDialog requires a repository instance.")
+    WINDOW_SIZE = (820, 680)
 
-        self._last_results: list[FunctionResult] = []
-        self._parameter_form: QFormLayout | None = None
+    def __init__(self, **kwargs: Any) -> None:
         self._scanner = FunctionScanner()
         # Surface (z = f(x, y)) functions, same split as the fit dialog: see
         # SurfaceFunctionScanner's docstring for why this is a second scanner
         # instance rather than a second base class check sprinkled around.
         self._surface_scanner = SurfaceFunctionScanner()
         self._selected_function: dict[str, Any] = {}
-        self._result_axis_id: int | None = None
-        self._result_figure_id: int | None = None
-        self._applied = False
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=820,
-            height=680,
-        )
+        super().__init__(**kwargs)
         self.axis_series_panel.setVisible(False)
         self._reload_function_tree()
         self.mark_results_stale()

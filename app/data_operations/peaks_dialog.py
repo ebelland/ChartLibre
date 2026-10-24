@@ -26,11 +26,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis import peaks as pk
 from app.analysis.peaks import Peak, PeakSettings, find_peaks_1d, find_peaks_2d
-from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
@@ -209,33 +206,8 @@ class SeriesPeaksDialog(DataOperationDialogBase):
     Category: str = "Curves"
     Order: int = 70
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesPeaksDialog requires a repository instance.")
-
-        self._last_results: list[PeakResult] = []
-        self._parameter_form: QFormLayout | None = None
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=780,
-            height=640,
-        )
-        self.series_selector.reload(select_all_series=True)
-        self._refresh_visibility()
-        self.mark_results_stale()
-
-    # ------------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------------
+    WINDOW_SIZE = (780, 640)
+    SELECTS_ALL_SERIES = True
 
     # ------------------------------------------------------------------
     # Computation

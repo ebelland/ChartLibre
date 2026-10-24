@@ -116,7 +116,7 @@ class ModelDataMixin:
 
     def _current_table(self) -> str:
         """Return a stable source table label for results/reporting."""
-        return self._initial_table or self._source_name or "selected_series"
+        return self._source_name or "selected_series"
 
     def _is_2d_fit(self) -> bool:
         """True when the selected model is a surface function z = f(x, y).

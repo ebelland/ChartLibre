@@ -59,7 +59,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QComboBox, QFormLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QWidget
 
 from app.analysis.capability import Capability, capability, parse_limit
 from app.analysis.control_charts import (
@@ -78,7 +78,6 @@ from app.analysis.control_charts import (
 from app.data.data_source import parse_roles, row_value, resolve_role_column
 from app.data.series_frame import SeriesFrame
 from app.utils.coercion import to_numbers
-from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
 from app.plugin_api.data_operations.results import TableResult
@@ -398,30 +397,12 @@ class SeriesControlChartDialog(DataOperationDialogBase):
     Category: str = "Quality and Process"
     Order: int = 60
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesControlChartDialog requires a repository instance.")
+    WINDOW_SIZE = (800, 680)
+    SELECTS_ALL_SERIES = True
 
-        self._last_results: list[ControlChartResult] = []
-        self._parameter_form: QFormLayout | None = None
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=800,
-            height=680,
-        )
-        self.series_selector.reload(select_all_series=True)
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
         self._refresh_size_columns()
-        self._refresh_visibility()
-        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI

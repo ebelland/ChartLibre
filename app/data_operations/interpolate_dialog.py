@@ -21,12 +21,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (
-    QMainWindow,
-)
 
 from app.data.data_source import parse_roles, resolve_role_column
-from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
 from app.plugin_api.data_operations.dialog_base import (
@@ -305,30 +301,14 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
     Order: int = 74
     applied = Signal()
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QMainWindow,
-    ) -> None:
-        self._last_results: list[FitResult] = []
+    WINDOW_SIZE = (720, 640)
+
+    def __init__(self, **kwargs: Any) -> None:
         #: The model and "Guess" the starting values were last filled in for.
         self._guessed_for: tuple[str, bool] | None = None
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=720,
-            height=640
-        )
+        super().__init__(**kwargs)
         self._doc_link.setToolTip(_("Open NumPy/SciPy documentation for the model."))
         self._guess_start_params()
-        self.model_combo.setVisible(True)
-
-    # ------------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------------
 
     # ------------------------------------------------------------------
     # Descriptor loading

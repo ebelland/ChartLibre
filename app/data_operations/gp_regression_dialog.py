@@ -14,10 +14,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis import gaussian_process as gp
-from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
@@ -140,32 +137,8 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
     Category: str = "Predictive and Specialized Modeling"
     Order: int = 35
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesGPRegressionDialog requires a repository instance.")
-
-        self._last_results: list[GPRegressionResult] = []
-        self._parameter_form: QFormLayout | None = None
-        self._result_axis_id: int | None = None
-        self._result_figure_id: int | None = None
-        self._applied = False
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=760,
-            height=640,
-        )
-        self.series_selector.reload(select_all_series=True)
-        self._refresh_visibility()
-        self.mark_results_stale()
+    WINDOW_SIZE = (760, 640)
+    SELECTS_ALL_SERIES = True
 
     # ------------------------------------------------------------------
     # UI

@@ -49,7 +49,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QWidget
 from app.analysis.roots import (
     INTERP_CUBIC,
     INTERP_LINEAR,
@@ -62,7 +61,6 @@ from app.analysis.roots import (
     find_level_curve,
     find_roots,
 )
-from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
@@ -260,32 +258,8 @@ class SeriesRootsDialog(DataOperationDialogBase):
     Category: str = "Curves"
     Order: int = 71
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesRootsDialog requires a repository instance.")
-
-        self._last_results: list[RootResult] = []
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=780,
-            height=640,
-        )
-        self.series_selector.reload(select_all_series=True)
-        self._refresh_visibility()
-        self.mark_results_stale()
-
-    # ------------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------------
+    WINDOW_SIZE = (780, 640)
+    SELECTS_ALL_SERIES = True
 
     # ------------------------------------------------------------------
     # Computation

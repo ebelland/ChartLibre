@@ -16,10 +16,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import (
-    QFormLayout,
-    QWidget,
-)
 from app.analysis.outliers import (
     OUTLIER_ELLIPTIC_ENVELOPE,
     OUTLIER_IQR,
@@ -34,7 +30,6 @@ from app.analysis.outliers import (
 )
 from app.data.data_source import parse_roles, row_value
 from app.data.select_sql import has_projection_alias, sql_insert_select_expression
-from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, ColorParam, FloatParam, IntParam
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
@@ -270,30 +265,16 @@ class SeriesOutlierDialog(DataOperationDialogBase):
     Category: str = "Screening"
     Order: int = 50
 
-    def __init__(self, *, repo: SqliteRepo, figure_id: int, parent: QWidget | None = None) -> None:
-        if repo is None:
-            applogger.error("SeriesOutlierDialog requires a repository instance.")
+    WINDOW_SIZE = (720, 640)
 
-        self._last_results: list[OutlierResult] = []
-        self._parameter_form: QFormLayout | None = None
-        self._preview_active = False
+    def __init__(self, **kwargs: Any) -> None:
         self._preview_hide_snapshots: dict[str, list[int]] = {}
         self._preview_series_sql: dict[int, str] = {}
         self._preview_state_tables: set[str] = set()
         self._preview_colour_snapshots: dict[str, dict[int, str] | None] = {}
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=720,
-            height=640,
-        )
-        self.setModal(True)
+        super().__init__(**kwargs)
         self.series_selector.set_series_filter(self._has_query)
         self._populate_axes()
-        self._refresh_visibility()
-        self.mark_results_stale()
 
     def _populate_axes(self) -> None:
         self.series_selector.reload(select_all_series=True)

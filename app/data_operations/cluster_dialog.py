@@ -25,7 +25,7 @@ series per cluster.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Final
 
@@ -61,7 +61,6 @@ from app.analysis.clustering import (
 )
 from app.data.data_source import parse_roles, resolve_role_column
 from app.data.select_sql import sql_insert_select_expression
-from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 from app.utils.messages import show_message
@@ -383,43 +382,14 @@ class SeriesClusterDialog(DataOperationDialogBase):
 
     PARAMS = CLUSTER_PARAMS
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        applied_callback: Callable[[], None] | None = None,
-        table: str | None = None,
-        parent: QWidget | None = None,
-    ) -> None:
+    WINDOW_SIZE = (760, 680)
 
-        if repo is None:
-            applogger.error("SeriesClusterDialog requires a repository instance.", raise_error=True)
-
-        self._repo: Any = repo
-        self._figure_id = int(figure_id)
-        self._applied_callback = applied_callback
-        self._initial_table = table
-        self._last_results: list[ClusterResult] = []
-        self._field_rows: dict[str, tuple[QWidget, QWidget]] = {}
-
+    def __init__(self, **kwargs: Any) -> None:
         # source table -> did a ClusterId column exist before the preview.
         self._cluster_snapshots: dict[str, bool] = {}
         # series id -> its SQL before the preview rewrote it.
         self._series_sql_snapshots: dict[int, str] = {}
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=760,
-            height=680,
-        )
-
-        self.model_combo.setVisible(False)
-        self._refresh_visibility()
-        self.mark_results_stale()
-
+        super().__init__(**kwargs)
 
     def build_model_selector(self) -> QWidget:
         self.method_combo = QComboBox(self)
@@ -1011,8 +981,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
         if commit:
             # Committed: the snapshots are no longer a safety net, just clutter.
             self.discard_operation_snapshots()
-        if self._applied_callback is not None:
-            self._applied_callback()
 
     def cancel_operation_changes(self, *, refresh: bool = True) -> None:
         """Undo a cluster preview.

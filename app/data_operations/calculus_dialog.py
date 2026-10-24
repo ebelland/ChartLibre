@@ -35,9 +35,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis import calculus as calc
-from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
 from app.plugin_api.data_operations.results import TableResult
@@ -277,39 +275,8 @@ class SeriesCalculusDialog(DataOperationDialogBase):
     Category: str = "Curves"
     Order: int = 72
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesCalculusDialog requires a repository instance.")
-
-        self._last_results: list[CalculusResult] = []
-        self._parameter_form: QFormLayout | None = None
-        # Created lazily on the first Preview/Apply that asks for it, and
-        # reused after, so adjusting the window repeatedly does not leave a
-        # trail of empty axes behind.
-        self._result_axis_id: int | None = None
-        self._result_figure_id: int | None = None
-        self._applied = False
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=760,
-            height=640,
-        )
-        self.series_selector.reload(select_all_series=True)
-        self._refresh_visibility()
-        self.mark_results_stale()
-
-    # ------------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------------
+    WINDOW_SIZE = (760, 640)
+    SELECTS_ALL_SERIES = True
 
     # ------------------------------------------------------------------
     # Computation

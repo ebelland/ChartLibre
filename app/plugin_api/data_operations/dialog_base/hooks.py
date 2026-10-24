@@ -5,12 +5,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
 from PySide6.QtWidgets import (
-    QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
-    QLabel,
-    QSizePolicy,
-    QSpinBox,
     QWidget,
 )
 import numpy as np
@@ -259,29 +255,6 @@ class BuilderHooksMixin:
         panel.layout().addWidget(form_widget)
         return panel
 
-    def add_field_row(
-        self, form: QFormLayout, key: str, label: str, widget: QWidget, tooltip: str = ""
-    ) -> None:
-        """Add one parameter row that show_field_rows can show or hide by *key*."""
-        row_widget = QWidget()
-        row_layout = QHBoxLayout(row_widget)
-        stdSizeAndlayout(row_layout)
-        row_layout.addWidget(widget)
-        row_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        label_widget = QLabel(label)
-        if tooltip:
-            widget.setToolTip(tooltip)
-            label_widget.setToolTip(tooltip)
-        form.addRow(label_widget, row_widget)
-        rows: dict[str, tuple[QWidget, QWidget]] = self.__dict__.setdefault("_field_rows", {})
-        rows[key] = (label_widget, row_widget)
-
-    def show_field_rows(self, visible: set[str] | frozenset[str]) -> None:
-        """Show the rows add_field_row made whose key is in *visible*, hide the rest."""
-        for key, (label_widget, row_widget) in getattr(self, "_field_rows", {}).items():
-            label_widget.setVisible(key in visible)
-            row_widget.setVisible(key in visible)
-
     # -- A result on an axis or figure of its own -------------------------
 
     def result_figure_name(self, results: Sequence[Any], what: str = "", source: str = "") -> str:
@@ -309,24 +282,6 @@ class BuilderHooksMixin:
         return self.series_selector.selected_axis_name()
 
     # -- Small controls, for operations that build their own forms ---------
-
-    @staticmethod
-    def int_spin(minimum: int, maximum: int, value: int) -> QSpinBox:
-        """A spin box over [minimum, maximum], set to *value*."""
-        widget = QSpinBox()
-        widget.setRange(minimum, maximum)
-        widget.setValue(value)
-        return widget
-
-    @staticmethod
-    def float_spin(minimum: float, maximum: float, value: float, decimals: int) -> QDoubleSpinBox:
-        """A decimal spin box, stepping by its last shown decimal (0.001 at most)."""
-        widget = QDoubleSpinBox()
-        widget.setRange(minimum, maximum)
-        widget.setValue(value)
-        widget.setDecimals(decimals)
-        widget.setSingleStep(10 ** -min(decimals, 3))
-        return widget
 
     # -- Sampling rate: the "derive it from x, or type it" pair -----------
 

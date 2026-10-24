@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis.transform import (
     KIND_POWER,
     KIND_QUANTILE,
@@ -25,8 +24,6 @@ from app.analysis.transform import (
     TransformSettings,
     transform_values,
 )
-from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
 from app.plugin_api.data_operations.results import XYResult
 from app.plugin_api.data_operations.dialog_base import (
@@ -171,36 +168,8 @@ class SeriesTransformDialog(DataOperationDialogBase):
     Category: str = "Transform"
     Order: int = 90
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesTransformDialog requires a repository instance.")
-
-        self._last_results: list[TransformResult] = []
-        self._parameter_form: QFormLayout | None = None
-        self._result_axis_id: int | None = None
-        self._result_figure_id: int | None = None
-        self._applied = False
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=760,
-            height=640,
-        )
-        self.series_selector.reload(select_all_series=True)
-        self._refresh_visibility()
-        self.mark_results_stale()
-
-    # ------------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------------
+    WINDOW_SIZE = (760, 640)
+    SELECTS_ALL_SERIES = True
 
     # ------------------------------------------------------------------
     # Computation

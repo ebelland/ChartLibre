@@ -26,10 +26,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFormLayout, QWidget
 from app.analysis import decomposition as dc
 from app.data.data_source import row_value
-from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
@@ -225,36 +223,7 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
     Category: str = "Multivariate Methods"
     Order: int = 41
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        if repo is None:
-            applogger.error("SeriesDecompositionDialog requires a repository instance.")
-
-        self._last_results: list[DecompositionResult] = []
-        self._parameter_form: QFormLayout | None = None
-        self._result_axis_id: int | None = None
-        self._result_figure_id: int | None = None
-        self._applied = False
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=780,
-            height=640,
-        )
-        self.series_selector.reload(select_all_series=False)
-        self._refresh_visibility()
-        self.mark_results_stale()
-
-    # ------------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------------
+    WINDOW_SIZE = (780, 640)
 
     # ------------------------------------------------------------------
     # Computation

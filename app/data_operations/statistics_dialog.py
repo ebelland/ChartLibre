@@ -34,7 +34,6 @@ from app.analysis import statistics as st
 from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
 from app.data.select_sql import projection_source
-from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.results import OperationResult
@@ -207,44 +206,21 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
     Category: str = "Basic Analysis"
     Order: int = 13
 
-    def __init__(
-        self,
-        repo: SqliteRepo,
-        figure_id: int,
-        parent: QWidget | None = None,
-    ) -> None:
-        # Set before super(): the base constructor calls the builder hooks,
-        # which reach these.
-        #
-        # The axis this dialog adds when asked to chart its results: created on
-        # the first Preview, reused afterwards, removed on Close unless Apply
-        # confirmed it.
-        self._result_axis_id: int | None = None
+    WINDOW_SIZE = (1060, 720)
+    # Most useful on several series at once: with all of them ticked, the All/Paired models show
+    # paired-sample results at once when there is more than one.
+    SELECTS_ALL_SERIES = True
+
+    def __init__(self, **kwargs: Any) -> None:
+        # Set before super(): the base constructor calls the builder hooks, which reach these. The chart this
+        # dialog adds when asked: created on the first Preview, reused, removed on Close unless Apply kept it.
         self._result_chart_type: str = ""
         self._result_axis_options: dict[str, Any] = {}
-        self._applied = False
-        self._fit_cache: dict[
-            tuple[bytes, int, bool, str], list[DistributionFit]
-        ] = {}
-
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=1060,
-            height=720,
-        )
-        self.set_doc_link(
-            "SciPy statistics",
-            "https://docs.scipy.org/doc/scipy/reference/stats.html#summary-statistics",
-        )
-
-        # Statistics is most useful as a multi-data operation.  Start with all
-        # series on the current axis checked so the All/Paired models immediately
-        # show paired-sample results when more than one series exists.
-        self.series_selector.select_all_series()
+        self._fit_cache: dict[tuple[bytes, int, bool, str], list[DistributionFit]] = {}
+        super().__init__(**kwargs)
+        self.set_doc_link("SciPy statistics",
+                          "https://docs.scipy.org/doc/scipy/reference/stats.html#summary-statistics")
         self._sync_model_controls()
-        self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI hooks

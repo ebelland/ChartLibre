@@ -33,7 +33,6 @@ from PySide6.QtWidgets import (
 )
 from app.plugin_api.functions.optimizers import DEFAULT_OPTIMIZER, LOSSES, OPTIMIZERS
 
-from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
 
@@ -124,27 +123,11 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
     Order: int = 34
     saved = Signal(str)
 
-    def __init__(
-        self,
-        *,
-        repo: SqliteRepo,
-        figure_id: int,
-        applied_callback: Callable[[], None] | None = None,
-        table: str | None = None,
-        parent: QWidget | None = None,
-    ) -> None:
-        super().__init__(
-            repo=repo,
-            figure_id=figure_id,
-            parent=parent,
-            width=900,
-            height=560
-        )
-        self.setModal(True)
-        self._applied_callback = applied_callback
-        self._initial_table = table
+    WINDOW_SIZE = (900, 560)
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
         self._refresh_default_output_name(force=True)
-        self.model_combo.setVisible(False)
 
     def init_operation_widgets(self) -> None:
         """Create fit controls before base builder hooks run.
@@ -154,7 +137,6 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         widget used by those builders must be created here.
         """
         self._applied_callback: Callable[[], None] | None = None
-        self._initial_table: str | None = None
         self._selected_model: dict[str, Any] = {}
         self._function_scanner = FunctionScanner()
         # Surface (z = f(x, y)) functions live in a second scanner rather
