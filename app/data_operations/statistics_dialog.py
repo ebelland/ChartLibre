@@ -25,12 +25,7 @@ import numpy as np
 import pandas as pd
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDoubleSpinBox,
-    QFormLayout,
     QLabel,
-    QSpinBox,
     QWidget,
 )
 
@@ -40,14 +35,14 @@ from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
 from app.data.select_sql import projection_source
 from app.data.sqlite_repo import SqliteRepo
-from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, SPIN_MAX_WIDTH
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
+from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.results import OperationResult
 from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     DataOperationDialogBase,
 )
-from app.styles.style import CardFrame, stdSizeAndlayout
+from app.styles.style import CardFrame
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.utils import report_html
@@ -170,6 +165,11 @@ class SeriesStatsResult(OperationResult):
         del dialog, axis_id
 
 
+def _models_with(*per_model: Mapping[str, Sequence[Any]]) -> tuple[str, ...]:
+    """The models with something in any of *per_model* (a chart, a distribution): a row's visible_for."""
+    return tuple(dict.fromkeys(model for table in per_model for model, entries in table.items() if entries))
+
+
 class SeriesStatisticsDialog(DataOperationDialogBase):
     """Read-only statistical summary and hypothesis-test dialog.
 
@@ -266,77 +266,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         self.model_combo.addItem(_("Survival (Kaplan-Meier, log-rank)"), "survival")
         self.model_combo.setToolTip(_("Choose which statistics section to display."))
 
-        # Which distribution the report ranks first and the histogram draws.
-        # "Best fit" rather than a fixed default: the point of the sweep is
-        # that the answer is not known in advance.
-        # Also filled per model: the normality model offers the two families
-        # its tests are about, the distribution model the whole sweep.
-        self.distribution_combo = QComboBox(self)
-        self.distribution_combo.setToolTip(
-            _("Which fitted distribution the histogram draws. Best fit follows "
-            "whichever candidate ranks first for the series.")
-        )
-
-        self.rank_combo = QComboBox(self)
-        self.rank_combo.addItem(_("AIC (penalises free parameters)"), "aic")
-        self.rank_combo.addItem(_("BIC (penalises them harder)"), "bic")
-        self.rank_combo.addItem(_("KS statistic (closest curve)"), "ks")
-        self.rank_combo.setToolTip(
-            _("How the candidates are ordered. AIC is the default because the "
-            "KS statistic alone always favours the distributions with the most "
-            "free parameters, whatever the data really is.")
-        )
-
-        self.exhaustive_check = QCheckBox(_("Try every SciPy distribution"), self)
-        self.exhaustive_check.setChecked(False)
-        self.exhaustive_check.setToolTip(
-            _("Fit all ~100 continuous distributions instead of the 15 common "
-            "ones. Considerably slower - seconds per refresh - and many of the "
-            "extra candidates fit no real measurement.")
-        )
-
-        self.popmean_spin = QDoubleSpinBox(self)
-        self.popmean_spin.setDecimals(8)
-        self.popmean_spin.setRange(-1.0e12, 1.0e12)
-        self.popmean_spin.setValue(0.0)
-        self.popmean_spin.setToolTip(_("Reference value for one-sample location tests."))
-
-        self.alternative_combo = QComboBox(self)
-        self.alternative_combo.addItem(_("Two-sided"), "two-sided")
-        self.alternative_combo.addItem(_("Greater"), "greater")
-        self.alternative_combo.addItem(_("Less"), "less")
-        self.alternative_combo.setToolTip(_("Alternative hypothesis for supported tests."))
-
-        self.trim_percent_spin = QSpinBox(self)
-        self.trim_percent_spin.setRange(0, 40)
-        self.trim_percent_spin.setValue(10)
-        self.trim_percent_spin.setSuffix(" %")
-        self.trim_percent_spin.setToolTip(_("Trim percentage used for trimmed mean."))
-
-        self.anderson_method_combo = QComboBox(self)
-        self.anderson_method_combo.addItem(_("Anderson p-value: interpolated"), "interpolate")
-        self.anderson_method_combo.addItem(_("Anderson p-value: Monte Carlo"), "monte_carlo")
-        self.anderson_method_combo.setToolTip(
-            _("Choose how Anderson-Darling p-values are calculated when supported by SciPy.")
-        )
-
-        self.monte_carlo_resamples_spin = QSpinBox(self)
-        self.monte_carlo_resamples_spin.setRange(100, 1_000_000)
-        self.monte_carlo_resamples_spin.setSingleStep(1000)
-        self.monte_carlo_resamples_spin.setValue(9999)
-        self.monte_carlo_resamples_spin.setToolTip(
-            _("Number of Monte Carlo resamples for Anderson-Darling p-values.")
-        )
-
-        self.monte_carlo_batch_spin = QSpinBox(self)
-        self.monte_carlo_batch_spin.setRange(0, 1_000_000)
-        self.monte_carlo_batch_spin.setSingleStep(1000)
-        self.monte_carlo_batch_spin.setValue(0)
-        self.monte_carlo_batch_spin.setSpecialValueText(_("Auto"))
-        self.monte_carlo_batch_spin.setToolTip(
-            _("Batch size for Monte Carlo resampling. Auto lets SciPy choose.")
-        )
-
     def build_model_selector(self) -> QWidget:
         panel = CardFrame(self, "statisticsModelCard")
         layout = panel.layout()
@@ -354,35 +283,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         layout.addWidget(note)
         # Everything at the top: the space left goes below, not around the note.
         layout.addStretch(1)
-        return panel
-
-    def build_parameter_selector(self) -> QWidget:
-        panel = CardFrame(self, "statisticsParametersCard")
-        form_widget = QWidget(panel)
-        form = QFormLayout(form_widget)
-        stdSizeAndlayout(form)
-        panel.layout().addWidget(form_widget)
-        form.addRow(_("Reference value:"), self.popmean_spin)
-        form.addRow(_("Alternative:"), self.alternative_combo)
-        form.addRow(_("Trimmed mean:"), self.trim_percent_spin)
-        form.addRow(_("Anderson method:"), self.anderson_method_combo)
-        form.addRow(_("MC resamples:"), self.monte_carlo_resamples_spin)
-        form.addRow(_("MC batch:"), self.monte_carlo_batch_spin)
-        self._rank_label = QLabel(_("Rank by:"), panel)
-        form.addRow(self._rank_label, self.rank_combo)
-        self._distribution_label = QLabel(_("Distribution:"), panel)
-        form.addRow(self._distribution_label, self.distribution_combo)
-        form.addRow(self.exhaustive_check)
-        # As wide as their values need, not the whole tab (ParameterForm's widths).
-        for spin in (self.popmean_spin, self.trim_percent_spin, self.monte_carlo_resamples_spin,
-                     self.monte_carlo_batch_spin):
-            spin.setMaximumWidth(SPIN_MAX_WIDTH)
-        for combo in (self.alternative_combo, self.anderson_method_combo, self.rank_combo, self.distribution_combo):
-            combo.setMaximumWidth(FIELD_MAX_WIDTH)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        panel.layout().addStretch(1)
-        self._parameter_form = form
         return panel
 
     def _sync_model_controls(self) -> None:
@@ -404,38 +304,16 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         if self.chart_form is not None:
             self.chart_form.set_choices("chart_type", [(chart_type, chart_type) for chart_type, _title in charts])
 
-        # The distribution choice only means something where a curve is drawn.
+        # The distributions the model's chart can draw (shown where there are some: the PARAMS' visible_for).
         distributions = self.DISTRIBUTIONS_BY_MODEL.get(model, ())
         if not distributions and has_chart:
             distributions = self.DEFAULT_DISTRIBUTIONS
-        for widget in (self._distribution_label, self.distribution_combo):
-            widget.setVisible(bool(distributions))
-
-        previous = str(self.distribution_combo.currentData() or "")
-        self.distribution_combo.clear()
-        for value, label in distributions:
-            self.distribution_combo.addItem(_(label), value)
-        restored = self.distribution_combo.findData(previous)
-        self.distribution_combo.setCurrentIndex(max(0, restored))
-
-        # Ranking and the exhaustive sweep only exist to order the candidates,
-        # so they belong to the one model that ranks them.
-        ranks = model == "distribution"
-        for widget in (self._rank_label, self.rank_combo, self.exhaustive_check):
-            widget.setVisible(ranks)
+        if self._parameter_form_spec is not None:
+            self._parameter_form_spec.set_choices("distribution", [(label, value) for value, label in distributions])
 
     def connect_operation_signals(self) -> None:
+        super().connect_operation_signals()  # the rows the model shows, and the results stale
         self.model_combo.currentIndexChanged.connect(lambda *_args: self._sync_model_controls())
-        self.model_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
-        self.popmean_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
-        self.alternative_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
-        self.trim_percent_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
-        self.anderson_method_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
-        self.monte_carlo_resamples_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
-        self.monte_carlo_batch_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
-        self.distribution_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
-        self.exhaustive_check.toggled.connect(lambda *_args: self.mark_results_stale())
-        self.rank_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
 
     # ------------------------------------------------------------------
     # Base pipeline overrides: read-only operation
@@ -475,17 +353,18 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             samples = self._selected_samples()
             if not samples:
                 raise ValueError("Select at least one source series.")
+        p = self.parameter_values()
         return [
             SeriesStatsResult(
                 tables=tables,
                 samples=samples,
-                popmean=float(self.popmean_spin.value()),
-                alternative=str(self.alternative_combo.currentData() or "two-sided"),
+                popmean=float(p["popmean"]),
+                alternative=str(p["alternative"] or "two-sided"),
                 model=str(self.model_combo.currentData() or "all"),
-                trim_percent=float(self.trim_percent_spin.value()) / 100.0,
-                distribution=str(self.distribution_combo.currentData() or "best"),
-                exhaustive=bool(self.exhaustive_check.isChecked()),
-                rank_by=str(self.rank_combo.currentData() or DEFAULT_RANK),
+                trim_percent=float(p["trim_percent"]) / 100.0,
+                distribution=str(p["distribution"] or "best"),
+                exhaustive=bool(p["exhaustive"]),
+                rank_by=str(p["rank_by"] or DEFAULT_RANK),
             )
         ]
 
@@ -748,10 +627,11 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
 
     def _anderson_options(self) -> dict[str, Any]:
         """The Anderson-Darling p-value settings, as the engine takes them."""
-        batch = int(self.monte_carlo_batch_spin.value())
+        p = self.parameter_values()
+        batch = int(p["monte_carlo_batch"])
         return {
-            "anderson_method": str(self.anderson_method_combo.currentData() or "interpolate"),
-            "resamples": int(self.monte_carlo_resamples_spin.value()),
+            "anderson_method": str(p["anderson_method"] or "interpolate"),
+            "resamples": int(p["monte_carlo_resamples"]),
             "batch": None if batch <= 0 else batch,
         }
 
@@ -831,7 +711,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                     (_("Alternative"), result.alternative),
                     (
                         _("Anderson method"),
-                        str(self.anderson_method_combo.currentData() or "interpolate"),
+                        str(self.parameter_values()["anderson_method"] or "interpolate"),
                     ),
                 ]
             )
@@ -1216,21 +1096,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         "survival": (("Kaplan-Meier", "Survival"),),
     }
 
-    #: The Charts tab: whether OK also draws a chart, and which - for a model one chart illustrates. Off by
-    #: default: the dialog is a report, and a chart appearing unasked in the figure is a side effect nobody
-    #: requested. The charts on offer follow the model (_sync_model_controls).
-    PARAMS = (
-        BoolParam("create_chart", "Add a chart", tab="charts",
-                  visible_for={"model": tuple(model for model, charts in CHARTS_BY_MODEL.items() if charts)},
-                  tooltip="Add an axis to the current figure showing the analysed series. "
-                          "Preview draws it; closing without applying removes it again."),
-        ChoiceParam("chart_type", "Chart:", tab="charts",
-                    visible_for={"model": tuple(model for model, charts in CHARTS_BY_MODEL.items() if charts),
-                                 "create_chart": (True,)},
-                    tooltip="Which chart to add. 'Match the model' picks the one that shows what the "
-                            "selected statistics measure."),
-    )
-
     #: Which distributions the chart may be asked to draw, per model.  The
     #: normality model offers exactly the two families its tests are about; the
     #: distribution model offers the ranked sweep and every curated name.
@@ -1248,6 +1113,53 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         ("", "None"),
         ("best", "Best fit"),
         ("top3", "Top 3 fits"),
+    )
+
+    #: The settings - the reference value and the tests' options, the distribution the chart draws and how the
+    #: candidates are ranked - each shown for the models that use it; then the Charts tab: whether OK also draws
+    #: a chart, and which. Off by default: the dialog is a report, and a chart appearing unasked in the figure is a
+    #: side effect nobody requested. The charts and distributions on offer follow the model (_sync_model_controls).
+    PARAMS = (
+        FloatParam("popmean", "Reference value:", default_value=0.0, minimum=-1.0e12, maximum=1.0e12, decimals=8,
+                   step=0.001, tooltip="Reference value for one-sample location tests."),
+        ChoiceParam("alternative", "Alternative:", choices=(("Two-sided", "two-sided"), ("Greater", "greater"),
+                                                            ("Less", "less")),
+                    tooltip="Alternative hypothesis for supported tests."),
+        IntParam("trim_percent", "Trimmed mean:", default_value=10, minimum=0, maximum=40, suffix=" %",
+                 tooltip="Trim percentage used for trimmed mean."),
+        ChoiceParam("anderson_method", "Anderson method:",
+                    choices=(("Anderson p-value: interpolated", "interpolate"),
+                             ("Anderson p-value: Monte Carlo", "monte_carlo")),
+                    tooltip="Choose how Anderson-Darling p-values are calculated when supported by SciPy."),
+        IntParam("monte_carlo_resamples", "MC resamples:", default_value=9999, minimum=100, maximum=1_000_000,
+                 step=1000, tooltip="Number of Monte Carlo resamples for Anderson-Darling p-values."),
+        IntParam("monte_carlo_batch", "MC batch:", default_value=0, minimum=0, maximum=1_000_000, step=1000,
+                 special_text="Auto", tooltip="Batch size for Monte Carlo resampling. Auto lets SciPy choose."),
+        # Ranking and the exhaustive sweep only exist to order the candidates: the one model that ranks them.
+        ChoiceParam("rank_by", "Rank by:", choices=(("AIC (penalises free parameters)", "aic"),
+                                                    ("BIC (penalises them harder)", "bic"),
+                                                    ("KS statistic (closest curve)", "ks")),
+                    visible_for={"model": ("distribution",)},
+                    tooltip="How the candidates are ordered. AIC is the default because the KS statistic alone "
+                            "always favours the distributions with the most free parameters, whatever the data "
+                            "really is."),
+        # Which distribution the report ranks first and the histogram draws: only where a curve is drawn.
+        ChoiceParam("distribution", "Distribution:",
+                    visible_for={"model": _models_with(CHARTS_BY_MODEL, DISTRIBUTIONS_BY_MODEL)},
+                    tooltip="Which fitted distribution the histogram draws. Best fit follows whichever candidate "
+                            "ranks first for the series."),
+        BoolParam("exhaustive", "Try every SciPy distribution", visible_for={"model": ("distribution",)},
+                  tooltip="Fit all ~100 continuous distributions instead of the 15 common ones. Considerably "
+                          "slower - seconds per refresh - and many of the extra candidates fit no real "
+                          "measurement."),
+        BoolParam("create_chart", "Add a chart", tab="charts",
+                  visible_for={"model": _models_with(CHARTS_BY_MODEL)},
+                  tooltip="Add an axis to the current figure showing the analysed series. "
+                          "Preview draws it; closing without applying removes it again."),
+        ChoiceParam("chart_type", "Chart:", tab="charts",
+                    visible_for={"model": _models_with(CHARTS_BY_MODEL), "create_chart": (True,)},
+                    tooltip="Which chart to add. 'Match the model' picks the one that shows what the "
+                            "selected statistics measure."),
     )
 
     def _axis_options(
