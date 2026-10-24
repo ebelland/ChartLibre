@@ -74,3 +74,32 @@ def test_the_chart_is_the_same_for_iso_and_day_first_text_dates(qapp, repo, read
         assert iso == day_first and iso[0] == 40
     finally:
         other.close()
+
+
+def test_the_preview_draws_on_a_new_axis_by_default(qapp, tmp_path, readings) -> None:
+    import time
+
+    from app.data.sqlite_repo import SqliteRepo
+    from app.data_operations.control_chart_dialog import SeriesControlChartDialog
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    repo.import_dataframe(pd.DataFrame({"x": np.arange(40.0), "v": readings}), table_name="t",
+                          normalize_columns=False)
+    figure = repo.create_figure_descriptor(name="f")
+    axis = repo.create_axis_descriptor(figure_id=figure, axis_index=0, chart_type="Time Series", title="v",
+                                       x_label="x", y_label="v", options={})
+    repo.create_series_descriptor(axis_id=axis, series_index=0, name="v", sql_query='SELECT x, v AS y FROM "t"',
+                                  roles={"x": "x", "y": "y"}, style={})
+    dialog = SeriesControlChartDialog(repo=repo, figure_id=figure, parent=None)
+    assert dialog.destination_combo.currentData() == dialog.DEST_NEW_AXIS
+    dialog.series_selector.select_all_series()
+    dialog.preview()
+    deadline = time.monotonic() + 30
+    while dialog.job_running and time.monotonic() < deadline:
+        qapp.processEvents()
+        time.sleep(0.01)
+    qapp.processEvents()
+    axes = repo.load_figure_descriptor(figure).axes
+    assert len(axes) == 2 and axes[1].series  # the chart on an axis of its own
+    dialog.close()
+    repo.close()

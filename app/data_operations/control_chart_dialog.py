@@ -284,6 +284,12 @@ class SeriesControlChartDialog(DataOperationDialogBase):
     # want far more; the report says so when the series is short.
     INPUT_MINIMUM_POINTS = 3
 
+    #: The Charts tab's "Draw on": a chart of its own by default - limits and
+    #: zones drawn over the source series would crowd it.
+    DESTINATIONS = (DataOperationDialogBase.DEST_NEW_AXIS, DataOperationDialogBase.DEST_NEW_FIGURE,
+                    DataOperationDialogBase.DEST_SAME_AXIS)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_AXIS
+
     PARAMS = (
         IntParam(
             "subgroup",
