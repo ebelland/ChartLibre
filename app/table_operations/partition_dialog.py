@@ -16,7 +16,7 @@ from typing import Any
 
 import pandas as pd
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from app.analysis import partition as pt
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
@@ -110,7 +110,6 @@ class PartitionDialog(TableOperationDialogBase):
         "leaves, column contributions and each row's leaf and prediction."
     )
     Category = "Predictive and Specialized Modeling"
-    CHART_PANELS = ('Bar Chart', 'Pareto Chart', 'Scatter Plot', 'Box Plot')
     Order = 30
     Icon = """
     <circle cx="12" cy="4.5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/>
@@ -164,6 +163,9 @@ class PartitionDialog(TableOperationDialogBase):
     # Inputs: Split, Prune, Automatic; the charts
     # ------------------------------------------------------------------
 
+    def chart_checks(self) -> QWidget | None:
+        return self._charts_box
+
     def build_extra_inputs(self, layout: QVBoxLayout) -> None:
         grow = TitledCard(self, _("Grow the tree"))
         row = QHBoxLayout()
@@ -185,8 +187,11 @@ class PartitionDialog(TableOperationDialogBase):
         grow.card.layout().addWidget(link)
         self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(grow)
 
-        charts = TitledCard(self, _("Charts to draw"))
-        grid = QVBoxLayout()
+        # The Charts tab shows them under "Draw on" (chart_checks).
+        self._charts_box = QWidget(self)
+        grid = QVBoxLayout(self._charts_box)
+        grid.setContentsMargins(0, 6, 0, 0)
+        # Spaced as a list of choices, not packed as a block of text.
         grid.setSpacing(10)
         self._chart_checks: dict[str, QCheckBox] = {}
         for key, label, ticked in CHARTS:
@@ -196,8 +201,6 @@ class PartitionDialog(TableOperationDialogBase):
             setattr(self, f"_chart_{key}", check)
             self._chart_checks[key] = check
             grid.addWidget(check)
-        charts.card.layout().addLayout(grid)
-        self.roles_widget.add_tab(_("Charts")).addWidget(charts)
 
     def _step(self, change: int) -> None:
         """Split or Prune: one split more or fewer, and the preview at once."""

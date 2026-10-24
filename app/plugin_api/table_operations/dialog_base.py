@@ -681,7 +681,11 @@ class TableOperationDialogBase(OperationShell, QDialog):
         form.addRow(_("Draw on:"), self.draw_on_combo)
         box.card.layout().addLayout(form)
         self._panel_checks: dict[str, QCheckBox] = {}
-        if len(self.CHART_PANELS) > 1:
+        own = self.chart_checks()
+        if own is not None:
+            # The analysis' own list of charts, under "Draw on", in place of a box per chart type.
+            box.card.layout().addWidget(own)
+        elif len(self.CHART_PANELS) > 1:
             for chart in self.CHART_PANELS:
                 check = QCheckBox(_(chart), box)
                 check.setChecked(True)
@@ -689,6 +693,10 @@ class TableOperationDialogBase(OperationShell, QDialog):
                 self._panel_checks[chart] = check
                 box.card.layout().addWidget(check)
         self.roles_widget.add_tab(_("Charts")).addWidget(box)
+
+    def chart_checks(self) -> QWidget | None:
+        """The analysis' own check box per chart, for the Charts tab; None: one per CHART_PANELS type."""
+        return None
 
     def draw_on(self) -> str:
         """The Charts tab's choice; a new figure when there is no current one to add to."""

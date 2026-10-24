@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QVBoxLayout,
+    QWidget,
 )
 
 from app.analysis import linear_model as lm
@@ -101,7 +102,6 @@ class FitModelDialog(TableOperationDialogBase):
         "for a designed experiment, or any table."
     )
     Category = "Fitting Linear Models"
-    CHART_PANELS = ('Scatter Plot', 'Q-Q Plot', 'Pareto Chart', 'Interaction Plot')
     Order = 20
     Icon = """
     <path d="M4 20V4"/><path d="M4 20h16"/>
@@ -166,6 +166,9 @@ class FitModelDialog(TableOperationDialogBase):
     # ------------------------------------------------------------------
     # The effects, under Y, and the charts
     # ------------------------------------------------------------------
+
+    def chart_checks(self) -> QWidget | None:
+        return self._charts_box
 
     def build_extra_inputs(self, layout: QVBoxLayout) -> None:
         # Personality and Emphasis first, top right as in JMP's launch window.
@@ -284,8 +287,10 @@ class FitModelDialog(TableOperationDialogBase):
         effects.setStretch(effects.count() - 1, 1)
         layout.addWidget(effects_card, 1)
 
-        charts = TitledCard(self, _("Charts to draw"))
-        grid = QVBoxLayout()
+        # The Charts tab shows them under "Draw on" (chart_checks).
+        self._charts_box = QWidget(self)
+        grid = QVBoxLayout(self._charts_box)
+        grid.setContentsMargins(0, 6, 0, 0)
         # Spaced as a list of choices, not packed as a block of text.
         grid.setSpacing(10)
         self._chart_checks: dict[str, QCheckBox] = {}
@@ -296,8 +301,6 @@ class FitModelDialog(TableOperationDialogBase):
             setattr(self, f"_chart_{key}", check)
             self._chart_checks[key] = check
             grid.addWidget(check)
-        charts.card.layout().addLayout(grid)
-        self.roles_widget.add_tab(_("Charts")).addWidget(charts)
         self._on_personality_changed()
 
     def table_or_none(self) -> str | None:
