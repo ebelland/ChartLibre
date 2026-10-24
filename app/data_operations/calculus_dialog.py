@@ -258,7 +258,7 @@ class SeriesCalculusDialog(DataOperationDialogBase):
         ),
         BoolParam(
             "simpson",
-            "Use Simpson's rule:",
+            "Simpson's rule:",
             tooltip=(
                 "More accurate on smooth data than the trapezoidal rule. "
                 "Assumes the curve is well approximated by parabolas."

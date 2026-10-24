@@ -1030,7 +1030,7 @@ msgstr "シリーズごとに最大この数のポイントを描画し、残り
 msgid "Draw figure frame"
 msgstr "図枠を描く"
 
-msgid "Draw the baseline:"
+msgid "Baseline:"
 msgstr "ベースラインを描きます。"
 
 msgid "Draw the estimated baseline itself."

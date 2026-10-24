@@ -214,8 +214,8 @@ msgstr "Preferenze dell'applicazione"
 msgid "Apply"
 msgstr "Applica"
 
-msgid "Apply Nelson rules:"
-msgstr "Applica le regole di Nelson:"
+msgid "Nelson rules:"
+msgstr "Regole di Nelson:"
 
 msgid "Apply multi-peak"
 msgstr "Applica multi-picco"
@@ -909,17 +909,17 @@ msgstr "Disegna su un nuovo asse:"
 msgid "Draw on:"
 msgstr "Disegna su:"
 
-msgid "Draw the centre line:"
-msgstr "Traccia la linea centrale:"
+msgid "Centre line:"
+msgstr "Linea centrale:"
 
-msgid "Draw the control limits:"
-msgstr "Traccia i limiti di controllo:"
+msgid "Control limits:"
+msgstr "Limiti di controllo:"
 
 msgid "Draw the located peaks as markers rather than writing a table of measurements."
 msgstr "Disegna i picchi individuati come marcatori invece di scrivere una tabella di misure."
 
-msgid "Draw the one and two sigma lines:"
-msgstr "Traccia le linee a uno e due sigma:"
+msgid "1 and 2 sigma lines:"
+msgstr "Linee a 1 e 2 sigma:"
 
 msgid "Draws the signalling points again as separate markers."
 msgstr "Ridisegna i punti che segnalano come marcatori separati."
@@ -984,8 +984,8 @@ msgstr "Esempio di funzione lineare definita dall'utente. Modificala o sostituis
 msgid "Example: {\"a\": 1.0, \"b\": 0.1}"
 msgstr "Esempio: {\"a\": 1.0, \"b\": 0.1}"
 
-msgid "Exclude flagged points from the limits:"
-msgstr "Escludi dai limiti i punti segnalati:"
+msgid "Exclude flagged points:"
+msgstr "Escludi i segnalati:"
 
 msgid "Explicit X values where Y is evaluated."
 msgstr "Valori X espliciti in cui viene valutata Y."
@@ -1350,8 +1350,8 @@ msgstr "Impossibile nascondere le righe"
 msgid "Hide spines"
 msgstr "Nascondi bordi"
 
-msgid "Highlight the flagged points:"
-msgstr "Evidenzia i punti segnalati:"
+msgid "Highlight flagged:"
+msgstr "Evidenzia segnalati:"
 
 msgid "Hill"
 msgstr "Hill"
@@ -2637,7 +2637,7 @@ msgid "Smoothing"
 msgstr "Smoothing"
 
 msgid "Smoothing window:"
-msgstr "Finestra di lisciamento:"
+msgstr "Finestra lisciamento:"
 
 msgid "Snippets"
 msgstr "Frammenti"
@@ -2742,7 +2742,7 @@ msgid "Spline k:"
 msgstr "k della Spline:"
 
 msgid "Spline smoothing:"
-msgstr "Lisciamento della spline:"
+msgstr "Lisciamento spline:"
 
 msgid "Spline:"
 msgstr "Spline:"
@@ -2781,7 +2781,7 @@ msgid "Subgroup size"
 msgstr "Dimensione del sottogruppo"
 
 msgid "Subgroup size:"
-msgstr "Dimensione del sottogruppo:"
+msgstr "Sottogruppo:"
 
 msgid "Subtract minimum"
 msgstr "Sottrai il minimo"
@@ -3052,8 +3052,8 @@ msgstr "Password per {username}@{host}:"
 msgid "Upper control limit"
 msgstr "Limite di controllo superiore"
 
-msgid "Use Simpson's rule:"
-msgstr "Usa il metodo di Simpson:"
+msgid "Simpson's rule:"
+msgstr "Metodo di Simpson:"
 
 msgid "Use a query"
 msgstr "Usa una query"
@@ -3161,7 +3161,7 @@ msgid "Wilcoxon signed-rank paired test"
 msgstr "Test appaiato di Wilcoxon dei ranghi con segno"
 
 msgid "Window size:"
-msgstr "Ampiezza della finestra:"
+msgstr "Ampiezza finestra:"
 
 msgid "Window:"
 msgstr "Finestra:"
@@ -9430,11 +9430,11 @@ msgstr "Sopra USL"
 msgid "Total outside"
 msgstr "Totale fuori"
 
-msgid "Lower spec limit (LSL):"
-msgstr "Limite di specifica inferiore (LSL):"
+msgid "Lower spec (LSL):"
+msgstr "Specifica inf. (LSL):"
 
-msgid "Upper spec limit (USL):"
-msgstr "Limite di specifica superiore (USL):"
+msgid "Upper spec (USL):"
+msgstr "Specifica sup. (USL):"
 
 msgid "Target:"
 msgstr "Target:"

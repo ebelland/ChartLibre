@@ -314,7 +314,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
         ),
         BoolParam(
             "nelson",
-            "Apply Nelson rules:",
+            "Nelson rules:",
             tooltip=(
                 "Flags runs, trends and other patterns that stay inside the "
                 "limits - the signals a limits-only chart misses. The zone "
@@ -324,12 +324,12 @@ class SeriesControlChartDialog(DataOperationDialogBase):
         ),
         BoolParam(
             "draw_center",
-            "Draw the centre line:",
+            "Centre line:",
             tooltip="The process mean the limits are built around.",
             default_value=True, tab="charts"),
         BoolParam(
             "draw_limits",
-            "Draw the control limits:",
+            "Control limits:",
             tooltip=(
                 "The upper and lower limits. Without them the chart is a run "
                 "chart - the points, but nothing to judge them against."
@@ -337,7 +337,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             default_value=True, tab="charts"),
         BoolParam(
             "draw_zones",
-            "Draw the one and two sigma lines:",
+            "1 and 2 sigma lines:",
             tooltip=(
                 "The A/B/C zones the run rules are phrased in: \"two of three "
                 "beyond two sigma\" is a statement about a line worth seeing."
@@ -345,12 +345,12 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             default_value=False, tab="charts"),
         BoolParam(
             "draw_violations",
-            "Highlight the flagged points:",
+            "Highlight flagged:",
             tooltip="Draws the signalling points again as separate markers.",
             default_value=True, tab="charts"),
         BoolParam(
             "exclude_violations",
-            "Exclude flagged points from the limits:",
+            "Exclude flagged points:",
             tooltip=(
                 "Recomputes the limits without the points they flagged - the "
                 "trial-limits-then-revised-limits pass every SPC text runs. "
@@ -358,11 +358,11 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 "have removed; otherwise it hides the problem."
             ),
             default_value=False, advanced=True),
-        TextParam("lsl", "Lower spec limit (LSL):", placeholder="none",
+        TextParam("lsl", "Lower spec (LSL):", placeholder="none",
                   tooltip="With a specification limit the report gives the process capability: Cp, Cpk, Pp, "
                           "Ppk and the share out of specification. Empty when there is none.",
                   visible_for={"model": CAPABLE}),
-        TextParam("usl", "Upper spec limit (USL):", placeholder="none",
+        TextParam("usl", "Upper spec (USL):", placeholder="none",
                   tooltip="With a specification limit the report gives the process capability: Cp, Cpk, Pp, "
                           "Ppk and the share out of specification. Empty when there is none.",
                   visible_for={"model": CAPABLE}),

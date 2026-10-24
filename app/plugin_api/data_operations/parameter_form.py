@@ -92,19 +92,28 @@ class ParameterForm:
         #: The closed "Advanced" frame, when any parameter is declared advanced.
         self.advanced_card: TitledCard | None = None
         advanced_form: QFormLayout | None = None
-        if any(param.advanced for param in self._params):
+        # One advanced parameter alone is no reason for a closed frame: it
+        # joins the others (Control Chart's one advanced check box was cut).
+        advanced_count = sum(1 for param in self._params if param.advanced)
+        if advanced_count > 1:
             self.advanced_card = TitledCard(self.widget, _("Advanced"), "parameterAdvancedCard",
                                             collapsible=True, collapsed=True)
             advanced_form = self._new_form(QWidget(self.advanced_card.card))
             self.advanced_card.card.layout().addWidget(advanced_form.parentWidget())
             column.addWidget(self.advanced_card)
+        # The rows at the top, the room left under them - not around them.
+        column.addStretch(1)
         self._forms: dict[str, QFormLayout] = {}
 
         for param in self._params:
             widget = self._build_widget(param)
             self._widgets[param.name] = widget
             form = advanced_form if param.advanced and advanced_form is not None else self.layout
-            form.addRow(_(param.label), widget)
+            if isinstance(param, BoolParam):
+                # As on the Mac: the box in the field column, its words on its right.
+                form.addRow("", widget)
+            else:
+                form.addRow(_(param.label), widget)
             self._forms[param.name] = form
 
         self.refresh_visibility()
@@ -114,6 +123,9 @@ class ParameterForm:
         form = QFormLayout(owner)
         form.setContentsMargins(0, 0, 0, 0)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        # Room between rows: the native macOS check box, drawn larger than
+        # its size hint, was cut at the bottom by the row under it.
+        form.setVerticalSpacing(8)
         return form
 
     # ------------------------------------------------------------------
@@ -153,7 +165,8 @@ class ParameterForm:
             widget.valueChanged.connect(self._changed)
 
         elif isinstance(param, BoolParam):
-            widget = QCheckBox("", self.widget)
+            widget = QCheckBox(_(param.label).rstrip(":"), self.widget)
+            widget.setMinimumHeight(widget.sizeHint().height() + 6)
             widget.setChecked(param.default)
             widget.toggled.connect(self._changed)
 

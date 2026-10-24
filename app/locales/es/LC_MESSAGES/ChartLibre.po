@@ -1030,7 +1030,7 @@ msgstr "Dibuja a lo sumo este número de puntos por serie, muestreando el resto.
 msgid "Draw figure frame"
 msgstr "Dibuja el marco de la figura"
 
-msgid "Draw the baseline:"
+msgid "Baseline:"
 msgstr "Dibuja la línea de base:"
 
 msgid "Draw the estimated baseline itself."
