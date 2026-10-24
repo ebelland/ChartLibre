@@ -61,3 +61,9 @@ Q2  The old hooks (build_parameter_selector, chart_widgets, chart_checks, CHART_
 Q3  Order: D, E, F first (small, quick), then A, B, C? (Suggested: yes.)
 
 EFFORT: L overall (D-F one session; A-B about two; C about two, one dialog at a time).
+
+STATUS 2026-10-24: done, a commit per step - D 824b13e, E a23928e, F 3896d45, A 222600d, B eeb27fe, C 2a517ea 0287fb1
+47a08dc 05078c5 5d2251a. About 960 lines fewer in app (105,182 -> 104,219), less than expected: much of what was
+"twice" was a few lines each time. Left as they are: Fit's own editors (model catalogue, parameter table with
+bounds and fixes, multi-peak builder - not a list of settings), the reports that are text or SQL (Cluster,
+Geometry, Statistics, Outliers) and Decomposition's (one result in several sections).
