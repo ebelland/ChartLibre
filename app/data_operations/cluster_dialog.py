@@ -32,10 +32,7 @@ from typing import Any, Final
 import pandas as pd
 from matplotlib import rcParams
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
-    QFormLayout,
-    QScrollArea,
     QWidget,
 )
 
@@ -69,16 +66,13 @@ from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 from app.utils.messages import show_message
 from app.plugin_api.data_operations.results import FrameResult
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
     SeriesJob,
     DataOperationDialogBase,
     SeriesOutcome,
-)
-from app.styles.style import (
-    CardFrame,
-    stdSizeAndlayout,
 )
 from app.utils.i18n import _
 
@@ -314,6 +308,48 @@ def _rc_cycle_color(cluster_id: int) -> str:
     return str(colors[(int(cluster_id) - 1) % len(colors)])
 
 
+def _kmeans(values: Mapping[str, Any]) -> bool:
+    return values.get("method") == CLUSTER_KMEANS
+
+
+def _hierarchical(values: Mapping[str, Any]) -> bool:
+    return values.get("method") == CLUSTER_HIERARCHICAL
+
+
+#: The settings, each shown for the family and the algorithm that use it.
+CLUSTER_PARAMS = (
+    IntParam("clusters", "Clusters:", default_value=4, minimum=1, maximum=10_000,
+             tooltip="Number of clusters to request."),
+    BoolParam("whiten", "Whiten features", default_value=True,
+              visible_if=lambda v: _kmeans(v) and v.get("tool") in (TOOL_WHITEN, TOOL_KMEANS, TOOL_KMEANS2),
+              tooltip="Normalize features by standard deviation before k-means."),
+    IntParam("kmeans_iter", "K-means iterations:", default_value=50, minimum=1, maximum=10_000, visible_if=_kmeans,
+             tooltip="Maximum k-means iterations."),
+    FloatParam("kmeans_thresh", "K-means threshold:", default_value=1e-5, minimum=0.0, maximum=1.0, decimals=8,
+               step=0.001, visible_if=_kmeans, tooltip="K-means convergence threshold."),
+    FloatParam("max_runtime_seconds", "Max runtime:", default_value=15.0, minimum=0.0, maximum=3600.0, decimals=1,
+               step=1.0, special_text="no timeout",
+               tooltip="Maximum seconds to wait for clustering. Use 0 for no timeout."),
+    ChoiceParam("linkage_method", "Linkage method:", choices=tuple(HIERARCHY_METHODS), default_value="ward",
+                visible_if=lambda v: _hierarchical(v) or v.get("tool") == SKLEARN_AGGLOMERATIVE),
+    ChoiceParam("metric", "Distance metric:", choices=tuple(HIERARCHY_METRICS), default_value="euclidean",
+                visible_if=lambda v: _hierarchical(v) or v.get("tool") in (
+                    SKLEARN_AGGLOMERATIVE, SKLEARN_DBSCAN, SKLEARN_OPTICS)),
+    ChoiceParam("criterion", "Cut criterion:", choices=tuple(HIERARCHY_CRITERIA), default_value="maxclust",
+                visible_if=_hierarchical),
+    FloatParam("distance_threshold", "Cut threshold:", default_value=0.0, minimum=0.0, maximum=1e18, decimals=6,
+               step=0.001, special_text="auto", visible_if=_hierarchical,
+               tooltip="Cut threshold for distance/inconsistent criteria. Leave at auto for median linkage "
+                       "distance."),
+    FloatParam("sklearn_eps", "Neighborhood radius:", default_value=0.5, minimum=0.0, maximum=1e18, decimals=6,
+               step=0.001, special_text="auto", visible_if=lambda v: v.get("tool") == SKLEARN_DBSCAN,
+               tooltip="Neighborhood radius for DBSCAN. 0 uses the default 0.5."),
+    IntParam("sklearn_min_samples", "Min samples:", default_value=5, minimum=1, maximum=1_000_000,
+             visible_if=lambda v: v.get("tool") in (SKLEARN_DBSCAN, SKLEARN_OPTICS),
+             tooltip="Minimum samples for DBSCAN/OPTICS core points."),
+)
+
+
 class SeriesClusterDialog(DataOperationDialogBase):
     """Dialog that clusters selected chart-series data and colors/splits clusters."""
     Name: str  = "Clustering"
@@ -344,6 +380,8 @@ class SeriesClusterDialog(DataOperationDialogBase):
     Goals: list[str] = ["groups"]
     Category: str = "Multivariate Methods"
     Order: int = 45
+
+    PARAMS = CLUSTER_PARAMS
 
     def __init__(
         self,
@@ -411,20 +449,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
             ],
         )
 
-    def build_parameter_selector(self) -> QWidget:
-        settings_widget = CardFrame(self, "clusterParamsCard")
-        form_widget = QWidget(settings_widget)
-        self.form = QFormLayout(form_widget)
-        stdSizeAndlayout(self.form)
-        self._add_parameter_rows()
-        settings_widget.layout().addWidget(form_widget)
-
-        scroll = QScrollArea(self)
-        stdSizeAndlayout(scroll)
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(settings_widget)
-        return scroll
-
     def connect_operation_signals(self) -> None:
         self.series_selector.selection_changed.connect(lambda *_args: self.mark_results_stale())
         self.series_selector.axis_changed.connect(lambda *_args: self.mark_results_stale())
@@ -437,82 +461,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
         self.feature_combo.currentIndexChanged.connect(self.mark_results_stale)
         self.render_mode_combo.currentIndexChanged.connect(self.mark_results_stale)
 
-        self.cluster_count_spin.valueChanged.connect(self.mark_results_stale)
-        self.kmeans_iter_spin.valueChanged.connect(self.mark_results_stale)
-        self.kmeans_thresh_spin.valueChanged.connect(self.mark_results_stale)
-        self.whiten_check.stateChanged.connect(self.mark_results_stale)
-        self.max_runtime_spin.valueChanged.connect(self.mark_results_stale)
-        self.linkage_method_combo.currentIndexChanged.connect(self.mark_results_stale)
-        self.metric_combo.currentIndexChanged.connect(self.mark_results_stale)
-        self.hierarchy_criterion_combo.currentIndexChanged.connect(self.mark_results_stale)
-        self.distance_threshold_spin.valueChanged.connect(self.mark_results_stale)
-        self.sklearn_eps_spin.valueChanged.connect(self.mark_results_stale)
-        self.sklearn_min_samples_spin.valueChanged.connect(self.mark_results_stale)
-
-
-    def init_operation_widgets(self) -> None:
-        self.cluster_count_spin = self.int_spin(1, 10_000, 4)
-        self.cluster_count_spin.setToolTip(_("Number of clusters to request."))
-
-        self.whiten_check = QCheckBox()
-        self.whiten_check.setChecked(True)
-        self.whiten_check.setToolTip(_("Normalize features by standard deviation before k-means."))
-
-        self.kmeans_iter_spin = self.int_spin(1, 10_000, 50)
-        self.kmeans_iter_spin.setToolTip(_("Maximum k-means iterations."))
-
-        self.kmeans_thresh_spin = self.float_spin(0.0, 1.0, 1e-5, 8)
-        self.kmeans_thresh_spin.setToolTip(_("K-means convergence threshold."))
-
-        self.max_runtime_spin = self.float_spin(0.0, 3600.0, 15.0, 1)
-        self.max_runtime_spin.setSpecialValueText(_("no timeout"))
-        self.max_runtime_spin.setToolTip(
-            _("Maximum seconds to wait for clustering. Use 0 for no timeout.")
-        )
-
-
-        self.linkage_method_combo = QComboBox()
-        self.linkage_method_combo.addItems(list(HIERARCHY_METHODS))
-        self.linkage_method_combo.setCurrentText("ward")
-
-        self.metric_combo = QComboBox()
-        self.metric_combo.addItems(list(HIERARCHY_METRICS))
-        self.metric_combo.setCurrentText("euclidean")
-
-        self.hierarchy_criterion_combo = QComboBox()
-        self.hierarchy_criterion_combo.addItems(list(HIERARCHY_CRITERIA))
-        self.hierarchy_criterion_combo.setCurrentText("maxclust")
-
-        self.distance_threshold_spin = self.float_spin(0.0, 1e18, 0.0, 6)
-        self.distance_threshold_spin.setSpecialValueText(_("auto"))
-        self.distance_threshold_spin.setToolTip(
-            _("Cut threshold for distance/inconsistent criteria. Leave at auto for median linkage distance.")
-        )
-
-        self.sklearn_eps_spin = self.float_spin(0.0, 1e18, 0.5, 6)
-        self.sklearn_eps_spin.setSpecialValueText(_("auto"))
-        self.sklearn_eps_spin.setToolTip(_("Neighborhood radius for DBSCAN. 0 uses the default 0.5."))
-
-        self.sklearn_min_samples_spin = self.int_spin(1, 1_000_000, 5)
-        self.sklearn_min_samples_spin.setToolTip(_("Minimum samples for DBSCAN/OPTICS core points."))
-
-
-    def _add_parameter_rows(self) -> None:
-        rows: tuple[tuple[str, str, QWidget], ...] = (
-            ("clusters", "Clusters:", self.cluster_count_spin),
-            ("whiten", "Whiten features:", self.whiten_check),
-            ("kmeans_iter", "K-means iterations:", self.kmeans_iter_spin),
-            ("kmeans_thresh", "K-means threshold:", self.kmeans_thresh_spin),
-            ("max_runtime", "Max runtime:", self.max_runtime_spin),
-            ("linkage_method", "Linkage method:", self.linkage_method_combo),
-            ("metric", "Distance metric:", self.metric_combo),
-            ("criterion", "Cut criterion:", self.hierarchy_criterion_combo),
-            ("distance_threshold", "Cut threshold:", self.distance_threshold_spin),
-            ("sklearn_eps", "Neighborhood radius:", self.sklearn_eps_spin),
-            ("sklearn_min_samples", "Min samples:", self.sklearn_min_samples_spin),
-        )
-        for key, label, widget in rows:
-            self.add_field_row(self.form, key, label, widget)
 
     def _refresh_tools(self) -> None:
         """Refresh the SciPy function list for the selected clustering family."""
@@ -527,29 +475,14 @@ class SeriesClusterDialog(DataOperationDialogBase):
         self.scipy_tool_combo.blockSignals(False)
         self._update_description_link()
 
-    def _refresh_visibility(self) -> None:
+    def parameter_context(self) -> Mapping[str, Any]:
+        """The family and the algorithm chosen: each setting shows for those that use it (CLUSTER_PARAMS)."""
+        return {"method": self.method_combo.currentText(), "tool": self.scipy_tool_combo.currentText()}
+
+    def _refresh_visibility(self, *_ignored: Any) -> None:
         if self.scipy_tool_combo.count() == 0:
             self._refresh_tools()
-
-        method = self.method_combo.currentText()
-        tool = self.scipy_tool_combo.currentText()
-        visible = {"clusters", "max_runtime"}
-
-        if method == CLUSTER_KMEANS:
-            visible.update({"kmeans_iter", "kmeans_thresh"})
-            if tool in {TOOL_WHITEN, TOOL_KMEANS, TOOL_KMEANS2}:
-                visible.add("whiten")
-        elif method == CLUSTER_HIERARCHICAL:
-            visible.update({"linkage_method", "metric", "criterion", "distance_threshold"})
-        else:
-            if tool in {SKLEARN_AGGLOMERATIVE}:
-                visible.update({"linkage_method", "metric"})
-            if tool in {SKLEARN_DBSCAN}:
-                visible.update({"metric", "sklearn_eps", "sklearn_min_samples"})
-            if tool in {SKLEARN_OPTICS}:
-                visible.update({"metric", "sklearn_min_samples"})
-
-        self.show_field_rows(visible)
+        super()._refresh_visibility()
         self._update_description_link()
 
     def _update_description_link(self) -> None:
@@ -559,24 +492,15 @@ class SeriesClusterDialog(DataOperationDialogBase):
         self.set_doc_link(title, url)
 
     def _params(self) -> dict[str, Any]:
+        params = self.parameter_values()
+        params.pop("destination", None)  # the Charts tab's: where, not how
         return {
             "method": self.method_combo.currentText(),
             "scipy_tool": self.scipy_tool_combo.currentText(),
             "feature_mode": self.feature_combo.currentText(),
             "render_mode": self.render_mode_combo.currentText(),
-            "clusters": self.cluster_count_spin.value(),
-            "whiten": self.whiten_check.isChecked(),
-            "kmeans_iter": self.kmeans_iter_spin.value(),
-            "kmeans_thresh": self.kmeans_thresh_spin.value(),
-            "linkage_method": self.linkage_method_combo.currentText(),
-            "metric": self.metric_combo.currentText(),
-            "criterion": self.hierarchy_criterion_combo.currentText(),
-            "distance_threshold": self.distance_threshold_spin.value(),
-            "max_runtime_seconds": self.max_runtime_spin.value(),
-            "sklearn_eps": self.sklearn_eps_spin.value(),
-            "sklearn_min_samples": self.sklearn_min_samples_spin.value(),
+            **params,
         }
-
 
     def _series_display_name(self, row: Any) -> str:
         return str(row["name"])
