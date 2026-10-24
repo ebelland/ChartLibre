@@ -14,6 +14,7 @@ step that gets forgotten when a ninth control is added.
 
 from __future__ import annotations
 
+import html
 from typing import Any, Callable, Mapping, Sequence
 
 from PySide6.QtWidgets import (
@@ -21,6 +22,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
+    QLabel,
     QLineEdit,
     QSpinBox,
     QVBoxLayout,
@@ -104,11 +106,21 @@ class ParameterForm:
         # The rows at the top, the room left under them - not around them.
         column.addStretch(1)
         self._forms: dict[str, QFormLayout] = {}
+        #: Each section's heading, and the rows under it.
+        self._sections: dict[str, tuple[QLabel, list[str]]] = {}
+        #: The choices a ChoiceParam has now, when set_choices replaced its declared ones.
+        self._choices: dict[str, tuple[tuple[str, Any], ...]] = {}
 
         for param in self._params:
             widget = self._build_widget(param)
             self._widgets[param.name] = widget
             form = advanced_form if param.advanced and advanced_form is not None else self.layout
+            if param.section:
+                if param.section not in self._sections:
+                    heading = QLabel(f"<b>{html.escape(_(param.section))}</b>", self.widget)
+                    form.addRow(heading)
+                    self._sections[param.section] = (heading, [])
+                self._sections[param.section][1].append(param.name)
             if isinstance(param, BoolParam):
                 # As on the Mac: the box in the field column, its words on its right.
                 form.addRow("", widget)
@@ -152,6 +164,8 @@ class ParameterForm:
             widget.setValue(param.default)
             if param.suffix:
                 widget.setSuffix(_(param.suffix))
+            if param.special_text:
+                widget.setSpecialValueText(_(param.special_text))
             widget.valueChanged.connect(self._changed)
 
         elif isinstance(param, FloatParam):
@@ -221,8 +235,32 @@ class ParameterForm:
         result: dict[str, Any] = {}
         for param in self._params:
             widget = self._widgets[param.name]
-            result[param.name] = param.coerce(self._read_widget(widget))
+            result[param.name] = self._coerce(param, self._read_widget(widget))
         return result
+
+    def _coerce(self, param: Param, value: Any) -> Any:
+        """*value* in *param*'s type - among the choices it has now, for one whose choices were set."""
+        choices = self._choices.get(param.name)
+        if choices is None:
+            return param.coerce(value)
+        values = [choice for _label, choice in choices]
+        return value if value in values else (values[0] if values else None)
+
+    def set_choices(self, name: str, choices: Sequence[tuple[str, Any]]) -> None:
+        """Offer *choices* ((label, value) pairs) in the ChoiceParam *name*: for choices that depend on another
+        (the charts a model can draw). The current value stays when it is still among them."""
+        widget = self._widgets[name]
+        assert isinstance(widget, QComboBox)
+        previous = widget.currentData()
+        self._choices[name] = tuple((str(label), value) for label, value in choices)
+        widget.blockSignals(True)
+        try:
+            widget.clear()
+            for label, value in self._choices[name]:
+                widget.addItem(_(label), value)
+            widget.setCurrentIndex(max(0, widget.findData(previous)))
+        finally:
+            widget.blockSignals(False)
 
     @staticmethod
     def _read_widget(widget: QWidget) -> Any:
@@ -244,7 +282,7 @@ class ParameterForm:
             if param.name not in values:
                 continue
             widget = self._widgets[param.name]
-            value = param.coerce(values[param.name])
+            value = self._coerce(param, values[param.name])
 
             widget.blockSignals(True)
             try:
@@ -286,6 +324,8 @@ class ParameterForm:
             label = self._forms.get(param.name, self.layout).labelForField(widget)
             if label is not None:
                 label.setVisible(visible)
+        for heading, names in self._sections.values():
+            heading.setVisible(any(not self._widgets[name].isHidden() for name in names))
         if self.advanced_card is not None:
             # No frame of nothing: shown while one of its rows is.
             self.advanced_card.setVisible(any(

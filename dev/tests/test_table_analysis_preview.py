@@ -69,7 +69,7 @@ def test_new_axes_in_the_current_figure(qapp, repo: SqliteRepo) -> None:
     dialog = _dialog(repo)
     try:
         dialog.current_figure_id = current
-        dialog.draw_on_combo.setCurrentIndex(dialog.draw_on_combo.findData(dialog.DEST_NEW_AXIS))
+        dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(dialog.DEST_NEW_AXIS))
         dialog.ok()
         _wait(qapp, dialog)
         assert _figures(repo) == [current]

@@ -64,8 +64,7 @@ def test_a_hand_edited_parameter_is_reported_as_an_evaluation(dialog: SeriesFitD
 
 def test_the_curve_is_drawn_smooth_and_past_the_data(dialog: SeriesFitDialog) -> None:
     """Fitted curve > Points and Extend: rows of the curve alone, the measured ones untouched."""
-    dialog._curve_points_spin.setValue(101)
-    dialog._curve_extend_spin.setValue(10.0)
+    dialog.chart_form.set_values({"curve_points": 101, "curve_extend": 10.0})
     _fit(dialog)
     frame = dialog.compute_results()[0].frame
     curve = frame[frame["y"].isna()]

@@ -202,7 +202,7 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
 
     def parameter_forms(self) -> list[Any]:
         """The Parameters tab's form and the Charts tab's, whose values are kept."""
-        return [form for form in (getattr(self, "_parameter_form_spec", None), getattr(self, "_chart_form_spec", None))
+        return [form for form in (getattr(self, "_parameter_form_spec", None), self.chart_form)
                 if form is not None]
 
     def state_extra(self) -> dict[str, Any]:

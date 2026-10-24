@@ -16,7 +16,6 @@ from typing import Any, Callable
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QDoubleSpinBox,
     QHeaderView,
     QCheckBox,
     QComboBox,
@@ -36,6 +35,7 @@ from app.plugin_api.functions.optimizers import DEFAULT_OPTIMIZER, LOSSES, OPTIM
 
 from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
+from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
 
 from app.styles.style import CardFrame, TitledCard, create_action_button, mark_editor_panel, stdSizeAndlayout
 from app.utils.i18n import _
@@ -80,6 +80,32 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
     INPUT_REQUIRES_SORTED_X = True
     INPUT_REQUIRES_UNIQUE_X = True
     INPUT_MINIMUM_POINTS = 2
+
+    #: The Charts tab: the curve, its bands, the extra charts. The accessory charts cost a new axis
+    #: each, so neither is drawn unless asked: judging a fit needs more than the curve on the data.
+    PARAMS = (
+        IntParam("curve_points", "Points:", default_value=200, minimum=0, maximum=100_000, step=100,
+                 special_text="At the data", tab="charts", section="Fitted curve",
+                 tooltip="How many points the fitted curve is drawn with, evenly spaced; "
+                         "0 draws it only at the data's x."),
+        FloatParam("curve_extend", "Extend:", default_value=0.0, minimum=0.0, maximum=1000.0, decimals=0,
+                   step=10.0, suffix=" %", tab="charts", section="Fitted curve",
+                   tooltip="Draw the curve past the data, on each side, by this share of "
+                           "the data's x range: 10 % extrapolates a tenth either way."),
+        BoolParam("confidence_band", "95% confidence band", tab="charts", section="Bands on the fit",
+                  tooltip="Shade where the true curve lies with 95% confidence, given the parameters' "
+                          "uncertainty. Narrow where the data pin the curve down, wide where they do not."),
+        BoolParam("prediction_band", "95% prediction band", tab="charts", section="Bands on the fit",
+                  tooltip="Shade where a new measurement would fall with 95% probability: the confidence "
+                          "band plus the scatter of the points around the curve."),
+        BoolParam("residual_chart", "Residuals vs. x", tab="charts", section="Extra charts",
+                  tooltip="Add a chart of the fit residuals (measured minus fit) on a new axis in this figure. "
+                          "The classic way to see a fit that looks good but has structure in what it left behind."),
+        BoolParam("fit_vs_measured_chart", "Measured vs. fit", tab="charts", section="Extra charts",
+                  tooltip="Add a chart of the measured values against the fitted values on a new axis in this "
+                          "figure. A perfect fit falls on the diagonal; how far points stray from it is the fit "
+                          "quality, independent of what x means."),
+    )
 
     Icon = """
     <path d="M4 18.5h16"/>
@@ -197,57 +223,6 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         self._lbl_spacing = QLabel(_("Spacing:"), self)
         self._combo_knot_spacing = QComboBox(self)
 
-        # Optional accessory charts: judging a fit needs more than the curve
-        # overlaid on the data, and neither picture is one this dialog draws
-        # by default - they cost a new axis each, so only appear when asked.
-        self._residual_chart_check = QCheckBox(_("Residuals vs. x"), self)
-        self._residual_chart_check.setToolTip(
-            _(
-                "Add a chart of the fit residuals (measured minus fit) on a "
-                "new axis in this figure. The classic way to see a fit that "
-                "looks good but has structure in what it left behind."
-            )
-        )
-        self._fit_vs_measured_chart_check = QCheckBox(_("Measured vs. fit"), self)
-        self._fit_vs_measured_chart_check.setToolTip(
-            _(
-                "Add a chart of the measured values against the fitted "
-                "values on a new axis in this figure. A perfect fit falls "
-                "on the diagonal; how far points stray from it is the fit "
-                "quality, independent of what x means."
-            )
-        )
-        self._confidence_band_check = QCheckBox(_("95% confidence band"), self)
-        self._confidence_band_check.setToolTip(
-            _(
-                "Shade where the true curve lies with 95% confidence, given "
-                "the parameters' uncertainty. Narrow where the data pin the "
-                "curve down, wide where they do not."
-            )
-        )
-        self._prediction_band_check = QCheckBox(_("95% prediction band"), self)
-        self._prediction_band_check.setToolTip(
-            _(
-                "Shade where a new measurement would fall with 95% "
-                "probability: the confidence band plus the scatter of the "
-                "points around the curve."
-            )
-        )
-        # The fitted curve drawn smooth and, if asked, past the data (1D fits).
-        self._curve_points_spin = QSpinBox(self)
-        self._curve_points_spin.setRange(0, 100_000)
-        self._curve_points_spin.setSingleStep(100)
-        self._curve_points_spin.setValue(200)
-        self._curve_points_spin.setSpecialValueText(_("At the data"))
-        self._curve_points_spin.setToolTip(_("How many points the fitted curve is drawn with, evenly spaced; "
-                                             "0 draws it only at the data's x."))
-        self._curve_extend_spin = QDoubleSpinBox(self)
-        self._curve_extend_spin.setRange(0.0, 1000.0)
-        self._curve_extend_spin.setDecimals(0)
-        self._curve_extend_spin.setSingleStep(10.0)
-        self._curve_extend_spin.setSuffix(" %")
-        self._curve_extend_spin.setToolTip(_("Draw the curve past the data, on each side, by this share of "
-                                             "the data's x range: 10 % extrapolates a tenth either way."))
         self._residual_axis_id: int | None = None
         self._fit_vs_measured_axis_id: int | None = None
         self._accessory_table_names: set[str] = set()
@@ -460,24 +435,3 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         layout.addWidget(output)
         layout.addStretch(1)
         return [(page, _("Output"))]
-
-    def chart_widgets(self) -> list[QWidget]:
-        """What the fit draws - the curve, its bands, the extra charts - in the Charts tab."""
-        box = QWidget(self)
-        layout = QVBoxLayout(box)
-        layout.setContentsMargins(0, 0, 0, 0)
-        curve = TitledCard(box, _("Fitted curve"))
-        curve_form = QFormLayout()
-        curve_form.addRow(_("Points:"), self._curve_points_spin)
-        curve_form.addRow(_("Extend:"), self._curve_extend_spin)
-        curve.card.layout().addLayout(curve_form)
-        layout.addWidget(curve)
-        bands = TitledCard(box, _("Bands on the fit"))
-        bands.card.layout().addWidget(self._confidence_band_check)
-        bands.card.layout().addWidget(self._prediction_band_check)
-        layout.addWidget(bands)
-        charts = TitledCard(box, _("Extra charts"))
-        charts.card.layout().addWidget(self._residual_chart_check)
-        charts.card.layout().addWidget(self._fit_vs_measured_chart_check)
-        layout.addWidget(charts)
-        return [box]

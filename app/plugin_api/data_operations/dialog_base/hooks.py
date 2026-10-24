@@ -132,36 +132,13 @@ class BuilderHooksMixin:
         """Further (page, title) tabs after Parameters, for an operation with more to set."""
         return []
 
-    def chart_widgets(self) -> list[QWidget]:
-        """The operation's own controls of what is drawn, for the Charts tab (beside "Draw on")."""
-        return []
-
     def build_charts_tab(self) -> QWidget | None:
-        """The Charts tab: "Draw on" (DESTINATIONS), the PARAMS marked tab="charts", chart_widgets().
-
-        None when the operation has none of the three.
-        """
-        chart_params = tuple(spec for spec in self.PARAMS if spec.tab == "charts")
-        widgets = self.chart_widgets()
-        if not (self.DESTINATIONS or chart_params or widgets):
-            return None
-        panel = CardFrame(self, "operationChartsCard")
-        layout = panel.layout()
-        if self.DESTINATIONS:
-            self.destination_combo = self.destination_combo_for(
-                panel, self.DESTINATIONS, self.DEFAULT_DESTINATION or self.DESTINATIONS[0], self.mark_results_stale)
-            row = QFormLayout()
-            stdSizeAndlayout(row)
-            row.addRow(_("Draw on:"), self.destination_combo)
-            layout.addLayout(row)
-        if chart_params:
-            self._chart_form_spec = ParameterForm(chart_params, self, on_change=self.mark_results_stale,
-                                                  context=self.parameter_context)
-            layout.addWidget(self._chart_form_spec.widget)
-        for widget in widgets:
-            layout.addWidget(widget)
-        layout.addStretch(1)
-        return panel
+        """The Charts tab: "Draw on" (DESTINATIONS), then the PARAMS marked tab="charts"; None when neither."""
+        return self.build_charts_page(
+            tuple(spec for spec in self.PARAMS if spec.tab == "charts"),
+            destinations=self.DESTINATIONS, default_destination=self.DEFAULT_DESTINATION,
+            on_change=self.mark_results_stale, context=self.parameter_context,
+        )
 
     def build_parameter_selector(self) -> QWidget:
         """Return the parameter editor widget for the left panel.
@@ -206,7 +183,7 @@ class BuilderHooksMixin:
         """
         form = getattr(self, "_parameter_form_spec", None)
         values = defaults(self.PARAMS) if form is None else dict(form.values())
-        charts = getattr(self, "_chart_form_spec", None)
+        charts = self.chart_form
         if charts is not None:
             values.update(charts.values())
         if self.DESTINATIONS:
@@ -248,14 +225,14 @@ class BuilderHooksMixin:
         self.model_combo.currentIndexChanged.connect(self.mark_results_stale)
 
     def _refresh_visibility(self, *_ignored: Any) -> None:
-        """Show the parameters the selected model uses: the PARAMS' visible_for rules.
+        """Show the parameters (and the charts) the selected model uses: the PARAMS' visible_for rules.
 
         Eight operations had this same body as their own; one that builds
         its controls by hand overrides it (or calls this, then adds its own).
         """
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.refresh_visibility()
+        for form in (getattr(self, "_parameter_form_spec", None), self.chart_form):
+            if form is not None:
+                form.refresh_visibility()
 
     # -- For operations that build their own controls ----------------------
 

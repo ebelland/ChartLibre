@@ -84,8 +84,7 @@ def test_preview_reports_and_ok_writes_the_results_and_the_figure(qapp, doe_tabl
         assert estimates["Factor_1*Factor_1"] == pytest.approx(1, abs=0.15)
         assert "Effect summary" in dialog.format_results(dialog._result)
 
-        dialog._chart_checks["qq"].setChecked(True)
-        dialog._chart_checks["interaction"].setChecked(True)
+        dialog.chart_form.set_values({"chart_qq": True, "chart_interaction": True})
         applied: list[bool] = []
         dialog.applied.connect(lambda: applied.append(True))
         dialog.ok()
@@ -190,7 +189,7 @@ def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, 
         assert any("nominal" in p for p in dialog.problems())
         dialog._personality.setCurrentIndex(dialog._personality.findData("nominal"))
         assert not dialog.problems()
-        assert not dialog._chart_checks["actual"].isEnabled()
+        assert dialog.chart_form.field("chart_actual").isHidden()  # a categorical Y: not offered
         assert dialog._family.isHidden() and dialog._emphasis.isHidden()
 
         dialog.preview()
@@ -200,7 +199,7 @@ def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, 
         # AN-19: the ROC curve of the first level, its area, the confusion matrix.
         assert set(fit.auc) == {"good"} and 0.5 <= fit.auc["good"] <= 1.0
         assert "AUC (good)" in fit.summary and int(fit.confusion.to_numpy().sum()) == int(fit.summary["Observations"])
-        assert dialog._chart_checks["roc"].isEnabled()
+        assert not dialog.chart_form.field("chart_roc").isHidden()  # offered for a categorical Y
         report = dialog.format_results(dialog._result)
         assert "Whole model test" in report and "Prob &gt; ChiSq" in report
 
@@ -293,7 +292,7 @@ def test_generalized_regression_lasso_drops_noise_and_ridge_keeps_every_term(qap
         dialog.cast_explanatory([f"x{i}" for i in range(8)])
         dialog._personality.setCurrentIndex(dialog._personality.findData("generalized"))
         assert not dialog._penalty.isHidden()
-        dialog._chart_checks["pareto"].setChecked(True)
+        dialog.chart_form.set_values({"chart_pareto": True})
         dialog.ok()
         _wait(qapp, dialog)
         assert "Std Magnitude" in dialog.format_results(dialog._result)
@@ -336,7 +335,7 @@ def test_several_responses_share_one_figure_and_one_report(qapp, doe_table) -> N
         dialog.roles_widget.assign("response", ["Response_1", "Response_2"])
         _select(dialog, "Factor_1", "Factor_2", "Factor_3")
         dialog._apply_macro("main", edited=True)
-        dialog._chart_checks["qq"].setChecked(True)
+        dialog.chart_form.set_values({"chart_qq": True})
         dialog.ok()
         _wait(qapp, dialog)
         assert len(dialog.created_figure_ids) == 1  # every response in it, not the first only

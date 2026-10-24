@@ -68,13 +68,13 @@ class AccessoryChartsMixin:
     def _sync_accessory_axis(
         self,
         *,
-        checkbox: QCheckBox,
+        wanted: bool,
         axis_id_attr: str,
         title: str,
         query_builder: Callable[[SeriesFitResult, str], tuple[str, dict[str, str], str, str]],
         results: Sequence[SeriesFitResult],
     ) -> None:
-        if not checkbox.isChecked():
+        if not wanted:
             self._remove_accessory_axis(axis_id_attr)
             return
         first = results[0]
@@ -114,7 +114,7 @@ class AccessoryChartsMixin:
     def _sync_accessory_charts(self, results: Sequence[SeriesFitResult]) -> None:
         if not results:
             return
-        if not (self._residual_chart_check.isChecked() or self._fit_vs_measured_chart_check.isChecked()):
+        if not (self.chart_enabled("residual_chart") or self.chart_enabled("fit_vs_measured_chart")):
             self._remove_accessory_axis("_residual_axis_id")
             self._remove_accessory_axis("_fit_vs_measured_axis_id")
             return
@@ -123,11 +123,11 @@ class AccessoryChartsMixin:
             self.write_result_table(table_name, result)
             self._accessory_table_names.add(table_name)
         self._sync_accessory_axis(
-            checkbox=self._residual_chart_check, axis_id_attr="_residual_axis_id",
+            wanted=self.chart_enabled("residual_chart"), axis_id_attr="_residual_axis_id",
             title=_("Residuals"), query_builder=self._residual_axis_query, results=results,
         )
         self._sync_accessory_axis(
-            checkbox=self._fit_vs_measured_chart_check, axis_id_attr="_fit_vs_measured_axis_id",
+            wanted=self.chart_enabled("fit_vs_measured_chart"), axis_id_attr="_fit_vs_measured_axis_id",
             title=_("Measured vs. fit"), query_builder=self._fit_vs_measured_axis_query, results=results,
         )
     def resolve_target_axis_id(

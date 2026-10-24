@@ -41,6 +41,7 @@ from app.data.data_source import row_value,parse_roles
 from app.data.select_sql import projection_source
 from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, SPIN_MAX_WIDTH
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
 from app.plugin_api.data_operations.results import OperationResult
 from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
@@ -265,25 +266,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         self.model_combo.addItem(_("Survival (Kaplan-Meier, log-rank)"), "survival")
         self.model_combo.setToolTip(_("Choose which statistics section to display."))
 
-        # Whether applying also draws a chart, and which one.  Off by default:
-        # the dialog is a report, and a chart appearing unasked in the figure
-        # is a side effect the user did not request.
-        self.create_chart_check = QCheckBox(_("Add a chart"), self)
-        self.create_chart_check.setChecked(False)
-        self.create_chart_check.setToolTip(
-            _("Add an axis to the current figure showing the analysed series. "
-            "Preview draws it; closing without applying removes it again.")
-        )
-
-        # Filled by _sync_model_controls, because what a chart can usefully
-        # show depends on which statistics were asked for.
-        self.chart_type_combo = QComboBox(self)
-        self.chart_type_combo.setEnabled(False)
-        self.chart_type_combo.setToolTip(
-            _("Which chart to add. 'Match the model' picks the one that shows "
-            "what the selected statistics measure.")
-        )
-
         # Which distribution the report ranks first and the histogram draws.
         # "Best fit" rather than a fixed default: the point of the sweep is
         # that the answer is not known in advance.
@@ -374,18 +356,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         layout.addStretch(1)
         return panel
 
-    def chart_widgets(self) -> list[QWidget]:
-        """Whether to draw, and what: in the Charts tab."""
-        box = QWidget(self)
-        chart_form = QFormLayout(box)
-        stdSizeAndlayout(chart_form)
-        chart_form.setContentsMargins(0, 0, 0, 0)
-        chart_form.addRow(self.create_chart_check)
-        self._chart_label = QLabel(_("Chart:"), box)
-        self.chart_type_combo.setMaximumWidth(FIELD_MAX_WIDTH)
-        chart_form.addRow(self._chart_label, self.chart_type_combo)
-        return [box]
-
     def build_parameter_selector(self) -> QWidget:
         panel = CardFrame(self, "statisticsParametersCard")
         form_widget = QWidget(panel)
@@ -430,15 +400,9 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
 
         charts = self.CHARTS_BY_MODEL.get(model, ())
         has_chart = bool(charts)
-        for widget in (self.create_chart_check, self._chart_label, self.chart_type_combo):
-            widget.setVisible(has_chart)
-
-        previous = str(self.chart_type_combo.currentData() or "")
-        self.chart_type_combo.clear()
-        for chart_type, _title in charts:
-            self.chart_type_combo.addItem(_(chart_type), chart_type)
-        restored = self.chart_type_combo.findData(previous)
-        self.chart_type_combo.setCurrentIndex(max(0, restored))
+        # Shown only for a model one chart illustrates: the PARAMS' visible_for.
+        if self.chart_form is not None:
+            self.chart_form.set_choices("chart_type", [(chart_type, chart_type) for chart_type, _title in charts])
 
         # The distribution choice only means something where a curve is drawn.
         distributions = self.DISTRIBUTIONS_BY_MODEL.get(model, ())
@@ -461,7 +425,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             widget.setVisible(ranks)
 
     def connect_operation_signals(self) -> None:
-        self.create_chart_check.toggled.connect(self.chart_type_combo.setEnabled)
         self.model_combo.currentIndexChanged.connect(lambda *_args: self._sync_model_controls())
         self.model_combo.currentIndexChanged.connect(lambda *_args: self.mark_results_stale())
         self.popmean_spin.valueChanged.connect(lambda *_args: self.mark_results_stale())
@@ -1182,7 +1145,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             formatted = self.format_results(results)
             self.publish_results(formatted)
 
-            if self.create_chart_check.isChecked():
+            if self.chart_enabled("create_chart"):
                 # On Preview as well, like every other operation dialog: a
                 # preview you cannot see is not a preview.  Closing without
                 # applying removes it again - see discard_operation_artifacts.
@@ -1252,6 +1215,21 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         "two_way": (("Interaction Plot", "Two-way ANOVA"),),
         "survival": (("Kaplan-Meier", "Survival"),),
     }
+
+    #: The Charts tab: whether OK also draws a chart, and which - for a model one chart illustrates. Off by
+    #: default: the dialog is a report, and a chart appearing unasked in the figure is a side effect nobody
+    #: requested. The charts on offer follow the model (_sync_model_controls).
+    PARAMS = (
+        BoolParam("create_chart", "Add a chart", tab="charts",
+                  visible_for={"model": tuple(model for model, charts in CHARTS_BY_MODEL.items() if charts)},
+                  tooltip="Add an axis to the current figure showing the analysed series. "
+                          "Preview draws it; closing without applying removes it again."),
+        ChoiceParam("chart_type", "Chart:", tab="charts",
+                    visible_for={"model": tuple(model for model, charts in CHARTS_BY_MODEL.items() if charts),
+                                 "create_chart": (True,)},
+                    tooltip="Which chart to add. 'Match the model' picks the one that shows what the "
+                            "selected statistics measure."),
+    )
 
     #: Which distributions the chart may be asked to draw, per model.  The
     #: normality model offers exactly the two families its tests are about; the
@@ -1323,7 +1301,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
 
         # The chosen entry, or the model's first, which is the one the list was
         # ordered to put there.
-        chosen = str(self.chart_type_combo.currentData() or "")
+        chosen = str(self.chart_value("chart_type") or "")
         chart_type, title = next(
             ((name, label) for name, label in charts if name == chosen), charts[0]
         )

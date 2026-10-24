@@ -146,8 +146,7 @@ def _run(repo: SqliteRepo, figure_id: int, model: str, *, chart: str = "") -> st
     dialog.series_selector.reload(select_all_series=True)
     dialog.model_combo.setCurrentIndex(dialog.model_combo.findData(model))
     if chart:
-        dialog.create_chart_check.setChecked(True)
-        dialog.chart_type_combo.setCurrentIndex(dialog.chart_type_combo.findData(chart))
+        dialog.chart_form.set_values({"create_chart": True, "chart_type": chart})
     assert dialog.apply()
     page = dialog.format_results(dialog.compute_results())
     dialog.close()

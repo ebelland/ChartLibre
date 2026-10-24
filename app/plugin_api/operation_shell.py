@@ -30,12 +30,24 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QProgressBar, QSizePolicy, QSplitter, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QProgressBar,
+    QSizePolicy,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app import APP_VERSION
 from app.analysis import Stopped
 from app.logs.logger import applogger
-from app.styles.style import TitledCard, apply_dialog_shell, create_action_button, stdSizeAndlayout
+from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, ParameterForm
+from app.plugin_api.data_operations.parameter_spec import Param
+from app.styles.style import CardFrame, TitledCard, apply_dialog_shell, create_action_button, stdSizeAndlayout
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.config import get_constant
 from app.utils.i18n import _
@@ -63,10 +75,6 @@ class OperationShell(QDialog):
 
     def destination_combo_for(self, parent: Any, values: Sequence[str], default: str, on_change: Any) -> Any:
         """The Charts tab's "Draw on" list: *values* (DEST_*), *default* selected, as wide as its words."""
-        from PySide6.QtWidgets import QComboBox
-
-        from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH
-
         combo = QComboBox(parent)
         for value in values:
             combo.addItem(self.destination_label(value), value)
@@ -76,6 +84,57 @@ class OperationShell(QDialog):
         combo.setMaximumWidth(FIELD_MAX_WIDTH)
         combo.currentIndexChanged.connect(lambda _index: on_change())
         return combo
+
+    # ------------------------------------------------------------------
+    # The Charts tab
+    # ------------------------------------------------------------------
+
+    #: The Charts tab's form: the parameters declared ``tab="charts"`` - a check box per chart the analysis
+    #: can draw, and how it is drawn. None when the analysis declares none.
+    chart_form: ParameterForm | None = None
+
+    def build_charts_page(
+        self,
+        chart_params: Sequence[Param],
+        *,
+        destinations: Sequence[str] = (),
+        default_destination: str = "",
+        on_change: Callable[[], Any],
+        context: Callable[[], Mapping[str, Any]] | None = None,
+    ) -> QWidget | None:
+        """The Charts tab: "Draw on" first (*destinations*), then the charts (*chart_params*); None if neither.
+
+        A chart a choice elsewhere makes impossible is hidden by its own ``visible_for``, read against
+        *context* (the response's type, the model...): the tab lists only what can be drawn.
+        """
+        if not (destinations or chart_params):
+            return None
+        panel = CardFrame(self, "operationChartsCard")
+        layout = panel.layout()
+        if destinations:
+            self.destination_combo = self.destination_combo_for(
+                panel, destinations, default_destination or destinations[0], on_change)
+            row = QFormLayout()
+            stdSizeAndlayout(row)
+            row.addRow(_("Draw on:"), self.destination_combo)
+            layout.addLayout(row)
+        if chart_params:
+            self.chart_form = ParameterForm(chart_params, self, on_change=on_change, context=context)
+            layout.addWidget(self.chart_form.widget)
+        layout.addStretch(1)
+        return panel
+
+    def chart_value(self, name: str, default: Any = None) -> Any:
+        """The Charts tab's *name* (a ``tab="charts"`` parameter); *default* when there is no such parameter."""
+        if self.chart_form is None or name not in self.chart_form.values():
+            return default
+        return self.chart_form.values()[name]
+
+    def chart_enabled(self, name: str) -> bool:
+        """Whether the chart *name* is ticked and can be drawn (not hidden); True for one not declared."""
+        if self.chart_form is None or name not in self.chart_form.values():
+            return True
+        return bool(self.chart_form.values()[name]) and not self.chart_form.field(name).isHidden()
 
     # ------------------------------------------------------------------
     # The window

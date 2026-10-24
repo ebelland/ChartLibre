@@ -16,10 +16,10 @@ from typing import Any
 
 import pandas as pd
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app.analysis import partition as pt
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.styles.style import TitledCard
 from app.plugin_api.table_operations.column_roles import CATEGORICAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
@@ -27,16 +27,17 @@ from app.utils import report_html
 from app.utils.i18n import _
 
 #: The charts OK can draw: (key, check box label, ticked by default).
-CHARTS: tuple[tuple[str, str, bool], ...] = (
-    ("partition", "Partition graph (continuous Y)", True),
-    ("box", "Box plots by leaf (continuous Y)", False),
-    ("contributions", "Column contributions", True),
-    ("history", "R² or misclassification by splits", True),
-    ("actual", "Actual by predicted (continuous Y)", True),
-    ("leaves", "Leaf means or shares", False),
-    ("importance", "Permutation importance", False),
-    ("dependence", "Partial dependence (most important factors)", False),
-    ("roc", "ROC curve (nominal Y)", True),
+#: The charts Partition can draw: key, label, ticked at first, and the Y it needs ("" for any).
+CHARTS: tuple[tuple[str, str, bool, str], ...] = (
+    ("partition", "Partition graph (continuous Y)", True, "continuous"),
+    ("box", "Box plots by leaf (continuous Y)", False, "continuous"),
+    ("contributions", "Column contributions", True, ""),
+    ("history", "R² or misclassification by splits", True, ""),
+    ("actual", "Actual by predicted (continuous Y)", True, "continuous"),
+    ("leaves", "Leaf means or shares", False, ""),
+    ("importance", "Permutation importance", False, ""),
+    ("dependence", "Partial dependence (most important factors)", False, ""),
+    ("roc", "ROC curve (nominal Y)", True, "categorical"),
 )
 
 _JMP_HELP = "https://www.jmp.com/support/help/en/18.0/index.shtml#page/jmp/"
@@ -153,6 +154,10 @@ class PartitionDialog(TableOperationDialogBase):
                    default_value=0.0, minimum=0.0, maximum=0.6, decimals=2, step=0.05, advanced=True),
         IntParam("seed", "Random seed:", tooltip="Which rows the validation share draws.",
                  default_value=1, minimum=0, maximum=1_000_000, advanced=True),
+        # The Charts tab: only the charts the Y allows are offered (chart_context).
+        *(BoolParam(f"chart_{key}", label, default_value=ticked, tab="charts",
+                    visible_for={"y": (y, "any")} if y else {})
+          for key, label, ticked, y in CHARTS),
     )
 
     def __init__(self, **kwargs: Any) -> None:
@@ -162,9 +167,6 @@ class PartitionDialog(TableOperationDialogBase):
     # ------------------------------------------------------------------
     # Inputs: Split, Prune, Automatic; the charts
     # ------------------------------------------------------------------
-
-    def chart_checks(self) -> QWidget | None:
-        return self._charts_box
 
     def build_extra_inputs(self, layout: QVBoxLayout) -> None:
         grow = TitledCard(self, _("Grow the tree"))
@@ -187,21 +189,6 @@ class PartitionDialog(TableOperationDialogBase):
         grow.card.layout().addWidget(link)
         self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(grow)
 
-        # The Charts tab shows them under "Draw on" (chart_checks).
-        self._charts_box = QWidget(self)
-        grid = QVBoxLayout(self._charts_box)
-        grid.setContentsMargins(0, 6, 0, 0)
-        # Spaced as a list of choices, not packed as a block of text.
-        grid.setSpacing(10)
-        self._chart_checks: dict[str, QCheckBox] = {}
-        for key, label, ticked in CHARTS:
-            check = QCheckBox(_(label))
-            check.setChecked(ticked)
-            # An attribute of its own, so the window remembers it.
-            setattr(self, f"_chart_{key}", check)
-            self._chart_checks[key] = check
-            grid.addWidget(check)
-
     def _step(self, change: int) -> None:
         """Split or Prune: one split more or fewer, and the preview at once."""
         assert self._parameter_form is not None
@@ -217,7 +204,7 @@ class PartitionDialog(TableOperationDialogBase):
         self.preview()
 
     def charts(self) -> list[str]:
-        return [key for key, check in self._chart_checks.items() if check.isChecked()]
+        return [key for key, *_rest in CHARTS if self.chart_enabled(f"chart_{key}")]
 
     def _inputs(self) -> tuple[Any, ...]:
         return (*super()._inputs(), self._auto)

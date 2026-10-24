@@ -51,6 +51,9 @@ class Param:
 
     ``tab="charts"``: a choice of what to draw (a band, the limits) - the
     dialog shows it in its Charts tab, beside where the result is drawn.
+
+    ``section``: a heading over this row and the ones after it that share it
+    ("Bands on the fit"), hidden while none of them is shown.
     """
 
     name: str
@@ -60,6 +63,8 @@ class Param:
     advanced: bool = False
     #: "charts": shown in the Charts tab (what is drawn) rather than among the Parameters.
     tab: str = ""
+    #: A heading over the rows that share it.
+    section: str = ""
 
     def is_visible(self, values: Mapping[str, Any]) -> bool:
         """Say whether this row should be shown for the current values."""
@@ -116,6 +121,8 @@ class IntParam(Param):
     step: int = 1
     odd_only: bool = False
     suffix: str = ""
+    #: Shown instead of the minimum, when it means something else ("At the data" for 0 points).
+    special_text: str = ""
 
     @property
     def default(self) -> int:

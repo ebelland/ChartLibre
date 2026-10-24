@@ -124,7 +124,7 @@ def analyses(scratch: Path) -> None:
 
     from app.data.sqlite_repo import SqliteRepo
     from app.table_operations.discriminant_dialog import DiscriminantDialog
-    from app.table_operations.partition_dialog import PartitionDialog
+    from app.table_operations.partition_dialog import CHARTS, PartitionDialog
     from app.table_operations.pls_dialog import PLSDialog
     from dev.demo.build_demos import TABLE_SOURCES
 
@@ -136,8 +136,7 @@ def analyses(scratch: Path) -> None:
 
     def tree_charts(dialog) -> None:
         dialog._parameter_form.set_values({"splits": 4})
-        for key, check in dialog._chart_checks.items():
-            check.setChecked(key in ("partition", "importance"))
+        dialog.chart_form.set_values({f"chart_{key}": key in ("partition", "importance") for key, *_rest in CHARTS})
 
     figure_id = _run(app, repo, PartitionDialog, "penguins",
                      {"response": ["body_mass_g"], "factor": ["species", "sex", "flipper_length_mm", "bill_depth_mm"]},

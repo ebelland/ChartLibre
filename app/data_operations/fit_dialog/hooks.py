@@ -89,11 +89,11 @@ class FitHooksMixin:
         specs = [self.result_series_spec(axis_id, table_name, result)]
         if result.fit_mode == "2D" or "ci_low" not in result.frame:
             return specs
-        for check, kind, label, alpha in (
-            (self._prediction_band_check, "pi", "95% prediction band", 0.12),
-            (self._confidence_band_check, "ci", "95% confidence band", 0.25),
+        for chart, kind, label, alpha in (
+            ("prediction_band", "pi", "95% prediction band", 0.12),
+            ("confidence_band", "ci", "95% confidence band", 0.25),
         ):
-            if not check.isChecked():
+            if not self.chart_enabled(chart):
                 continue
             specs.append(
                 ResultSeriesSpec(

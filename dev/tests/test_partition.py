@@ -9,7 +9,7 @@ import pytest
 
 from app.analysis.partition import NOMINAL, PartitionSpec, partition
 from app.data.sqlite_repo import SqliteRepo
-from app.table_operations.partition_dialog import PartitionDialog
+from app.table_operations.partition_dialog import CHARTS, PartitionDialog
 
 KINDS = {"temp": "continuous", "press": "continuous", "supplier": NOMINAL, "y": "continuous", "ok": NOMINAL}
 
@@ -113,8 +113,7 @@ def test_split_prune_and_ok_write_the_leaves_and_the_figure(qapp, repo: SqliteRe
 
 def test_box_plots_by_leaf(qapp, repo: SqliteRepo, dialog: PartitionDialog) -> None:
     dialog._parameter_form.set_values({"splits": 2})
-    for key, check in dialog._chart_checks.items():
-        check.setChecked(key == "box")
+    dialog.chart_form.set_values({f"chart_{key}": key == "box" for key, *_rest in CHARTS})
     dialog.ok()
     _wait(qapp, dialog)
     figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
@@ -173,8 +172,7 @@ def test_permutation_importance_and_partial_dependence_for_any_method(qapp, repo
     dialog = PartitionDialog(repo=repo, table="plant")
     try:
         dialog.roles_widget.set_casting({"response": ["y"], "factor": ["temp", "press", "supplier"]}, KINDS)
-        for key, check in dialog._chart_checks.items():
-            check.setChecked(key in ("importance", "dependence"))
+        dialog.chart_form.set_values({f"chart_{key}": key in ("importance", "dependence") for key, *_rest in CHARTS})
         dialog.ok()
         _wait(qapp, dialog)
         assert {"_plant_partition_importance", "_plant_partition_dependence"} <= set(repo.list_user_tables()["Table"])
@@ -203,8 +201,7 @@ def test_a_classification_tree_reports_and_draws_its_roc_curve(qapp, repo: Sqlit
     dialog = PartitionDialog(repo=repo, table="plant")
     try:
         dialog.roles_widget.set_casting({"response": ["ok"], "factor": ["temp", "press", "supplier"]}, KINDS)
-        for key, check in dialog._chart_checks.items():
-            check.setChecked(key == "roc")
+        dialog.chart_form.set_values({f"chart_{key}": key == "roc" for key, *_rest in CHARTS})
         dialog.ok()
         _wait(qapp, dialog)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])

@@ -202,8 +202,8 @@ class FitRunMixin:
         The curve series reads x and y_fit over every row, so it is drawn smooth and as far as asked; the
         residuals and the fit-vs-measured chart read y and residual, empty on these rows, and skip them.
         """
-        count = int(self._curve_points_spin.value())
-        extend = float(self._curve_extend_spin.value()) / 100.0
+        count = int(self.chart_value("curve_points", 200))
+        extend = float(self.chart_value("curve_extend", 0.0)) / 100.0
         if count <= 0 and extend <= 0:
             return frame
         x = frame["x"].to_numpy(float)

@@ -26,7 +26,6 @@ from typing import Any
 import pandas as pd
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QFormLayout,
     QHBoxLayout,
@@ -37,11 +36,10 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QVBoxLayout,
-    QWidget,
 )
 
 from app.analysis import linear_model as lm
-from app.plugin_api.data_operations.parameter_spec import FloatParam
+from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam
 from app.plugin_api.table_operations.column_roles import CATEGORICAL, CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.styles.style import TitledCard
@@ -59,14 +57,16 @@ _DOE_MACROS: dict[str, str] = {
 }
 
 #: The charts OK can draw, as (key, check box label, ticked by default).
-CHARTS: tuple[tuple[str, str, bool], ...] = (
-    ("actual", "Actual by predicted", True),
-    ("pareto", "Effects Pareto", True),
-    ("residual", "Residual by predicted", True),
-    ("qq", "Residual Q-Q", False),
-    ("profile", "Prediction profile", True),
-    ("roc", "ROC curve (categorical Y)", True),
-    ("interaction", "Interaction", False),
+#: The charts Fit Model can draw: key, label, ticked at first, and the Y it needs ("" for any) - a
+#: categorical Y is the logistic personalities'.
+CHARTS: tuple[tuple[str, str, bool, str], ...] = (
+    ("actual", "Actual by predicted", True, "continuous"),
+    ("pareto", "Effects Pareto", True, ""),
+    ("residual", "Residual by predicted", True, "continuous"),
+    ("qq", "Residual Q-Q", False, "continuous"),
+    ("profile", "Prediction profile", True, ""),
+    ("roc", "ROC curve (categorical Y)", True, "categorical"),
+    ("interaction", "Interaction", False, "continuous"),
 )
 
 
@@ -134,6 +134,10 @@ class FitModelDialog(TableOperationDialogBase):
             ),
             default_value=0.05, minimum=0.001, maximum=0.5, decimals=3, step=0.01,
         ),
+        # The Charts tab: only the charts the personality's Y allows are offered (chart_context).
+        *(BoolParam(f"chart_{key}", label, default_value=ticked, tab="charts",
+                    visible_for={"y": (y,)} if y else {})
+          for key, label, ticked, y in CHARTS),
     )
 
     def __init__(self, **kwargs: Any) -> None:
@@ -166,8 +170,10 @@ class FitModelDialog(TableOperationDialogBase):
     # The effects, under Y, and the charts
     # ------------------------------------------------------------------
 
-    def chart_checks(self) -> QWidget | None:
-        return self._charts_box
+    def chart_context(self) -> dict[str, Any]:
+        """The Y is the personality's: a logistic one models a categorical response."""
+        categorical = hasattr(self, "_personality") and self.personality() in lm.CATEGORICAL_RESPONSE
+        return {**super().chart_context(), "y": "categorical" if categorical else "continuous"}
 
     def build_extra_inputs(self, layout: QVBoxLayout) -> None:
         # Personality and Emphasis first, top right as in JMP's launch window.
@@ -285,21 +291,6 @@ class FitModelDialog(TableOperationDialogBase):
         effects_card.card.layout().addLayout(effects)
         effects.setStretch(effects.count() - 1, 1)
         layout.addWidget(effects_card, 1)
-
-        # The Charts tab shows them under "Draw on" (chart_checks).
-        self._charts_box = QWidget(self)
-        grid = QVBoxLayout(self._charts_box)
-        grid.setContentsMargins(0, 6, 0, 0)
-        # Spaced as a list of choices, not packed as a block of text.
-        grid.setSpacing(10)
-        self._chart_checks: dict[str, QCheckBox] = {}
-        for index, (key, label, ticked) in enumerate(CHARTS):
-            check = QCheckBox(_(label))
-            check.setChecked(ticked)
-            # An attribute of its own, so the window remembers it.
-            setattr(self, f"_chart_{key}", check)
-            self._chart_checks[key] = check
-            grid.addWidget(check)
         self._on_personality_changed()
 
     def table_or_none(self) -> str | None:
@@ -457,7 +448,6 @@ class FitModelDialog(TableOperationDialogBase):
     def _on_personality_changed(self) -> None:
         """Show what the personality asks for, offer the charts it can draw, link its documentation."""
         personality = self.personality()
-        categorical = personality in lm.CATEGORICAL_RESPONSE
         for widget, shown in (
             (self._emphasis, personality in ("standard", "stepwise")),
             (self._family, personality == "glm"),
@@ -471,14 +461,11 @@ class FitModelDialog(TableOperationDialogBase):
             label = self._form.labelForField(widget)
             if label is not None:
                 label.setVisible(shown)
-        for key, check in self._chart_checks.items():
-            usable = key in ("pareto", "profile", "roc") if categorical else key != "roc"
-            if usable and not check.isEnabled():
-                # Usable again: back to its default, not left as unusable made it.
-                check.setChecked(dict((k, ticked) for k, _label, ticked in CHARTS)[key])
-            check.setEnabled(usable)
-            if not usable:
-                check.setChecked(False)
+        y = self.chart_context()["y"]
+        if self.chart_form is not None and y != getattr(self, "_charts_y", y):
+            # The charts the new Y makes possible start from their defaults, not from what the other left.
+            self.chart_form.set_values({f"chart_{key}": ticked for key, _label, ticked, needs in CHARTS if needs == y})
+        self._charts_y = y
         links = [(_(label), url) for label, url in DOCS.get(personality, ())]
         if personality in ("standard", "stepwise"):
             links.append((_("Emphasis"), EMPHASIS_DOC))
@@ -492,11 +479,11 @@ class FitModelDialog(TableOperationDialogBase):
         """Tick the charts the emphasis opens with, as JMP's emphases choose their reports."""
         key = str(self._emphasis.currentData())
         charts = next((charts for k, _label, charts in EMPHASES if k == key), ())
-        for chart, check in self._chart_checks.items():
-            check.setChecked(chart in charts and check.isEnabled())
+        if self.chart_form is not None:
+            self.chart_form.set_values({f"chart_{key}": key in charts for key, *_rest in CHARTS})
 
     def charts(self) -> list[str]:
-        return [key for key, check in self._chart_checks.items() if check.isChecked() and check.isEnabled()]
+        return [key for key, *_rest in CHARTS if self.chart_enabled(f"chart_{key}")]
 
     def parameter_values(self) -> dict[str, Any]:
         """The parameters, and the model: its terms and the factors' types and coding."""

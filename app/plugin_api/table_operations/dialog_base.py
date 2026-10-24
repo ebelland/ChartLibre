@@ -37,7 +37,6 @@ from typing import Any, ClassVar
 import pandas as pd
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QFormLayout,
     QLabel,
@@ -51,14 +50,14 @@ from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import OperationModel
 from app.plugin_api.data_operations.parameter_form import ParameterForm
-from app.plugin_api.data_operations.parameter_spec import Param
+from app.plugin_api.data_operations.parameter_spec import BoolParam, Param
 from app.styles.style import (
     TitledCard,
     icon_from_svg_source,
     stdSizeAndlayout,
 )
 from app.plugin_api.table_operations import next_steps
-from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole, ColumnRolesWidget
+from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole, ColumnRolesWidget
 from app.utils.config import get_section, set_section
 from app.utils.dialog_state import (
     dialog_entries,
@@ -229,6 +228,9 @@ class TableOperationDialogBase(OperationShell):
         if self._result is not None:
             self._results.setText(_("The inputs changed: press Preview to compute again."))
         self._result = None
+        # A different Y or model offers other charts (chart_context).
+        for form in self.parameter_forms():
+            form.refresh_visibility()
 
     # ------------------------------------------------------------------
     # The window
@@ -266,8 +268,10 @@ class TableOperationDialogBase(OperationShell):
         self.roles_widget.columns_card_layout.insertLayout(0, table_row)
         self.build_extra_inputs(self.roles_widget.side_layout)
         self._parameter_form: ParameterForm | None = None
-        if self.PARAMS:
-            self._parameter_form = ParameterForm(self.PARAMS, self, on_change=self.inputs_changed)
+        parameters_only = tuple(spec for spec in self.PARAMS if spec.tab != "charts")
+        if parameters_only:
+            self._parameter_form = ParameterForm(parameters_only, self, on_change=self.inputs_changed,
+                                                 context=self.chart_context)
             parameters = TitledCard(self._inputs_panel, _("Parameters"))
             parameters.title_label.hide()  # the tab says it, as in the data operations
             parameters.card.layout().addWidget(self._parameter_form.widget)
@@ -374,7 +378,8 @@ class TableOperationDialogBase(OperationShell):
     # ------------------------------------------------------------------
 
     def parameter_values(self) -> dict[str, Any]:
-        return dict(self._parameter_form.values()) if self._parameter_form is not None else {}
+        """The parameters and the Charts tab's choices."""
+        return {key: value for form in self.parameter_forms() for key, value in form.values().items()}
 
     def problems(self) -> list[str]:
         """Why the operation cannot run as it stands; empty when it can."""
@@ -598,9 +603,7 @@ class TableOperationDialogBase(OperationShell):
                 continue
             available.append(panel)
         # The panels whose chart type is cleared in the Charts tab are left out.
-        checks = getattr(self, "_panel_checks", {})
-        panels = [panel for panel in available if checks.get(str(panel[0])) is None
-                  or checks[str(panel[0])].isChecked()]
+        panels = [panel for panel in available if self.chart_enabled(str(panel[0]))]
 
         repo = self._repo
         target = getattr(self, "current_figure_id", None) if self.draw_on() == self.DEST_NEW_AXIS else None
@@ -651,37 +654,32 @@ class TableOperationDialogBase(OperationShell):
     # ------------------------------------------------------------------
 
     def _build_charts_tab(self) -> None:
-        """The Charts tab: where the report figure is drawn (a new figure, or new axes in the current one)."""
+        """The Charts tab: where the report is drawn - a new figure, or new axes in the current one - then the
+        charts: the PARAMS marked tab="charts", or a box per chart type (CHART_PANELS) when it draws several."""
+        charts = tuple(spec for spec in self.PARAMS if spec.tab == "charts")
+        if not charts and len(self.CHART_PANELS) > 1:
+            charts = tuple(BoolParam(chart, chart, default_value=True, tab="charts") for chart in self.CHART_PANELS)
+        # A table analysis has no axis of its own.
+        page = self.build_charts_page(charts, destinations=(self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS),
+                                      on_change=self.inputs_changed, context=self.chart_context)
         box = TitledCard(self._inputs_panel, _("Charts"))
         box.title_label.hide()  # the tab says it
-        form = QFormLayout()
-        stdSizeAndlayout(form)
-        # A table analysis has no axis of its own: a new figure, or new axes in the figure the window shows.
-        self.draw_on_combo = self.destination_combo_for(box, (self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS),
-                                                        self.DEST_NEW_FIGURE, self.inputs_changed)
-        form.addRow(_("Draw on:"), self.draw_on_combo)
-        box.card.layout().addLayout(form)
-        self._panel_checks: dict[str, QCheckBox] = {}
-        own = self.chart_checks()
-        if own is not None:
-            # The analysis' own list of charts, under "Draw on", in place of a box per chart type.
-            box.card.layout().addWidget(own)
-        elif len(self.CHART_PANELS) > 1:
-            for chart in self.CHART_PANELS:
-                check = QCheckBox(_(chart), box)
-                check.setChecked(True)
-                check.toggled.connect(lambda _on: self.inputs_changed())
-                self._panel_checks[chart] = check
-                box.card.layout().addWidget(check)
+        box.card.layout().addWidget(page)
         self.roles_widget.add_tab(_("Charts")).addWidget(box)
 
-    def chart_checks(self) -> QWidget | None:
-        """The analysis' own check box per chart, for the Charts tab; None: one per CHART_PANELS type."""
-        return None
+    def chart_context(self) -> dict[str, Any]:
+        """What a chart's (or a parameter's) visible_for may read besides the form: the model, and the type
+        of the Y - "continuous", "categorical", or "any" while none is cast - so that only the charts that
+        can be drawn are offered."""
+        casting = self.roles_widget.casting()
+        response = self.column("response")
+        kind = casting.kinds.get(response) if response else None
+        y = "any" if kind is None else ("continuous" if kind == CONTINUOUS else "categorical")
+        return {"model": self.current_model(), "y": y}
 
     def draw_on(self) -> str:
         """The Charts tab's choice; a new figure when there is no current one to add to."""
-        combo = getattr(self, "draw_on_combo", None)
+        combo = getattr(self, "destination_combo", None)
         if getattr(self, "current_figure_id", None) is None or combo is None:
             return self.DEST_NEW_FIGURE
         return str(combo.currentData() or self.DEST_NEW_FIGURE)
@@ -691,7 +689,8 @@ class TableOperationDialogBase(OperationShell):
         return self._geometry_key
 
     def parameter_forms(self) -> list[Any]:
-        return [self._parameter_form] if self._parameter_form is not None else []
+        # getattr: the roles announce their first casting while the window is still being built.
+        return [form for form in (getattr(self, "_parameter_form", None), self.chart_form) if form is not None]
 
     def remember_window(self) -> None:
         """The shell's memory, and the columns' roles cast on this table."""
