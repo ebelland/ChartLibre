@@ -92,6 +92,8 @@ class FloatParam(Param):
     decimals: int = 3
     step: float = 0.1
     suffix: str = ""
+    #: Shown instead of the minimum, when it means something else ("auto").
+    special_text: str = ""
 
     @property
     def default(self) -> float:

@@ -11362,3 +11362,15 @@ msgstr "Recenti"
 
 msgid "Demo project"
 msgstr "Progetto demo"
+
+msgid "Process variance:"
+msgstr "Varianza del processo:"
+
+msgid "Measurement variance:"
+msgstr "Varianza della misura:"
+
+msgid "Initial covariance:"
+msgstr "Covarianza iniziale:"
+
+msgid "Centered"
+msgstr "Centrata"

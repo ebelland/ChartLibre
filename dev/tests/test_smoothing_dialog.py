@@ -47,7 +47,7 @@ def test_a_moving_average_over_a_ramp_comes_back_as_the_ramp(qapp, repo: SqliteR
     try:
         dialog.series_selector.reload(select_all_series=True)
         dialog.method_combo.setCurrentText(SMOOTH_MOVING_AVERAGE)
-        dialog.window_spin.setValue(5)
+        dialog._parameter_form_spec.set_values({"window": 5})
         result = dialog.compute_results()[0]
     finally:
         dialog.close()

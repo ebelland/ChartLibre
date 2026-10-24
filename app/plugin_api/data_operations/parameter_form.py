@@ -176,6 +176,8 @@ class ParameterForm:
             widget.setValue(param.default)
             if param.suffix:
                 widget.setSuffix(_(param.suffix))
+            if param.special_text:
+                widget.setSpecialValueText(_(param.special_text))
             widget.valueChanged.connect(self._changed)
 
         elif isinstance(param, BoolParam):

@@ -20,10 +20,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
-    QFormLayout,
-    QScrollArea,
     QWidget,
 )
 from app.analysis.smoothing import (
@@ -59,6 +56,7 @@ from app.data.data_source import parse_roles, row_value
 
 from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -68,10 +66,6 @@ from app.plugin_api.data_operations.dialog_base import (
 )
 from app.logs.logger import applogger
 from app.utils.messages import show_message
-from app.styles.style import (
-    CardFrame,
-    stdSizeAndlayout,
-)
 from app.utils.i18n import _
 from app.utils.coercion import to_numbers
 
@@ -309,6 +303,96 @@ def model_spec(method: str) ->ModelSpec |None:
         applogger.error(f"Unsupported smoothing method: {method}")
         return None
 
+def _shown_for(field: str) -> dict[str, tuple[str, ...]]:
+    """The methods that use *field* (ModelSpec.fields): its row is shown for them only."""
+    return {"method": tuple(name for name, spec in _ALL_MODELS.items() if field in spec.fields)}
+
+
+def _int(name: str, label: str, default: int, minimum: int, maximum: int, tooltip: str,
+         special_text: str = "") -> IntParam:
+    return IntParam(name, label, default_value=default, minimum=minimum, maximum=maximum,
+                    special_text=special_text, tooltip=tooltip, visible_for=_shown_for(name))
+
+
+def _float(name: str, label: str, default: float, minimum: float, maximum: float, decimals: int, tooltip: str,
+           special_text: str = "") -> FloatParam:
+    return FloatParam(name, label, default_value=default, minimum=minimum, maximum=maximum, decimals=decimals,
+                      step=10 ** -min(decimals, 3), special_text=special_text, tooltip=tooltip,
+                      visible_for=_shown_for(name))
+
+
+def _choice(name: str, label: str, choices: tuple[str, ...], tooltip: str) -> ChoiceParam:
+    return ChoiceParam(name, label, choices=choices, tooltip=tooltip, visible_for=_shown_for(name))
+
+
+#: Every method's settings; each row shows for the methods that list it (ModelSpec.fields).
+SMOOTHING_PARAMS = (
+    _int("window", "Window size:", 7, 3, 9999, "Window size, in points, used by the smoothing filter."),
+    BoolParam("centered", "Centered", default_value=True, visible_for=_shown_for("centered"),
+              tooltip="Center the window on each point instead of trailing it."),
+    _int("polyorder", "Polynomial order:", 2, 0, 10, "Polynomial order fit inside each Savitzky-Golay window."),
+    _int("deriv", "Derivative order:", 0, 0, 5, "Order of the derivative to compute (0 = smoothed value only)."),
+    _float("delta", "Delta:", 1.0, 1e-12, 1e12, 6, "Sample spacing used when computing derivatives."),
+    _float("sigma", "Sigma:", 2.0, 0.001, 1e6, 4, "Standard deviation of the Gaussian kernel."),
+    _float("sigma_x", "Sigma X:", 1.5, 0.001, 1e6, 4, "Standard deviation of the Gaussian kernel along X."),
+    _float("sigma_y", "Sigma Y:", 1.5, 0.001, 1e6, 4, "Standard deviation of the Gaussian kernel along Y."),
+    _float("sigma_z", "Sigma Z:", 1.5, 0.001, 1e6, 4, "Standard deviation of the Gaussian kernel along Z."),
+    _float("truncate", "Gaussian truncate:", 4.0, 0.1, 50.0, 2,
+           "Truncate the Gaussian kernel at this many standard deviations."),
+    _int("kernel", "Kernel size:", 5, 3, 9999, "Size, in points, of the moving kernel window."),
+    _int("kernel_x", "Kernel X:", 3, 3, 9999, "Kernel size along X."),
+    _int("kernel_y", "Kernel Y:", 3, 3, 9999, "Kernel size along Y."),
+    _int("kernel_z", "Kernel Z:", 3, 3, 9999, "Kernel size along Z."),
+    _float("noise", "Noise estimate:", 0.0, 0.0, 1e12, 6,
+           "Noise level estimate; leave at 'auto' to estimate from the data.", special_text="auto"),
+    _float("spline_s", "Smoothing factor:", 10.0, 0.0, 1e18, 4, "Smoothing factor: higher values produce a smoother spline."),
+    _int("spline_k", "Spline order:", 3, 1, 5, "Degree of the smoothing spline."),
+    _int("kx", "Spline order X:", 3, 1, 5, "Spline degree along X."),
+    _int("ky", "Spline order Y:", 3, 1, 5, "Spline degree along Y."),
+    _float("lowess_frac", "LOWESS fraction:", 0.25, 0.01, 1.0, 3,
+           "Fraction of points used for each local LOWESS regression."),
+    _int("lowess_it", "LOWESS iterations:", 3, 0, 20, "Number of robustifying iterations for LOWESS."),
+    _float("fft_cutoff_ratio", "FFT cutoff ratio:", 0.20, 0.001, 0.999, 3,
+           "Fraction of frequency components kept by the FFT low-pass filter."),
+    _float("butter_fs", "Sampling frequency:", 1.0, 1e-12, 1e12, 6, "Sampling frequency of the input data."),
+    _float("butter_cutoff", "Cutoff frequency:", 0.20, 1e-12, 1e12, 6, "Cutoff frequency of the Butterworth filter."),
+    _float("butter_high_cutoff", "High cutoff:", 0.40, 1e-12, 1e12, 6,
+           "Upper cutoff frequency for bandpass/bandstop filters."),
+    _int("butter_order", "Filter order:", 4, 1, 20, "Order of the Butterworth filter."),
+    _choice("butter_type", "Filter type:", ("lowpass", "highpass", "bandpass", "bandstop"), "Butterworth filter type."),
+    _choice("mode", "Boundary mode:", ("nearest", "reflect", "mirror", "constant", "wrap"),
+            "Boundary handling mode applied at the edges of the data."),
+    _choice("savgol_mode", "Edge mode:", ("interp", "mirror", "nearest", "constant", "wrap"),
+            "Edge handling mode for the Savitzky-Golay filter."),
+    _choice("wavelet", "Wavelet:", ("db2", "db4", "sym4", "coif1", "haar"), "Wavelet family used for wavelet denoising."),
+    _int("wavelet_level", "Wavelet level:", 0, 0, 20, "Decomposition level; 0 lets the algorithm choose automatically."),
+    _float("wavelet_threshold_factor", "Threshold factor:", 1.0, 0.01, 100.0, 3,
+           "Multiplier applied to the estimated noise threshold."),
+    _choice("wavelet_threshold_mode", "Threshold mode:", ("soft", "hard"),
+            "Soft or hard thresholding of wavelet coefficients."),
+    _float("whittaker_lambda", "Whittaker lambda:", 1000.0, 0.0, 1e12, 3,
+           "Smoothness penalty for the Whittaker smoother (higher = smoother)."),
+    _int("whittaker_order", "Difference order:", 2, 1, 5, "Order of the finite-difference penalty."),
+    _float("hp_lambda", "HP lambda:", 1600.0, 0.0, 1e12, 3, "Smoothness penalty for the Hodrick-Prescott filter."),
+    _float("tv_weight", "TV weight:", 0.15, 0.0, 1e6, 4, "Regularization weight for total-variation denoising."),
+    _float("kalman_process_variance", "Process variance:", 1e-4, 1e-12, 1e6, 8,
+           "Kalman filter: expected variance of the underlying process (model uncertainty)."),
+    _float("kalman_measurement_variance", "Measurement variance:", 1e-2, 1e-12, 1e6, 8,
+           "Kalman filter: expected variance of the measurement noise."),
+    _float("kalman_initial_covariance", "Initial covariance:", 1.0, 1e-12, 1e6, 8,
+           "Kalman filter: initial state covariance."),
+    _choice("rbf_kernel", "RBF kernel:", ("thin_plate_spline", "linear", "cubic", "quintic", "multiquadric",
+                                          "inverse_multiquadric", "inverse_quadratic", "gaussian"),
+            "Radial basis function kernel used for interpolation-based smoothing."),
+    _float("rbf_smoothing", "RBF smoothing:", 0.1, 0.0, 1e9, 4,
+           "Smoothing factor for the RBF interpolant (0 = exact interpolation)."),
+    _float("rbf_epsilon", "RBF epsilon:", 0.0, 0.0, 1e9, 4,
+           "Shape parameter for the RBF kernel; leave at 'auto' to estimate it.", special_text="auto"),
+    _int("rbf_neighbors", "RBF neighbors:", 0, 0, 1_000_000,
+         "Number of nearest neighbors used per point; 'all' uses the full dataset.", special_text="all"),
+)
+
+
 # ---------------------------------------------------------------------------
 # PySide6 dialog
 # ---------------------------------------------------------------------------
@@ -344,6 +428,8 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
     Category: str = "Signal Processing"
     Order: int = 80
 
+    PARAMS = SMOOTHING_PARAMS
+
     def __init__(
         self,
         *,
@@ -361,7 +447,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         self._applied_callback = applied_callback
         self._initial_table = table
         self._last_results: list[SmoothResult] = []
-        self._field_rows: dict[str, tuple[QWidget, QWidget]] = {}
 
         super().__init__(
             repo=repo,
@@ -390,22 +475,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         self._doc_link.setToolTip(_("Open documentation for the selected method."))
         return panel
 
-    def build_parameter_selector(self) -> QWidget:
-        settings_widget = CardFrame(self, "smoothingParamsCard")
-        form_widget = QWidget(settings_widget)
-        self.form = QFormLayout(form_widget)
-        stdSizeAndlayout(self.form)
-        self._add_parameter_rows()
-        settings_widget.layout().addWidget(form_widget)
-
-        scroll = QScrollArea(self)
-        stdSizeAndlayout(scroll)
-        scroll.setWidget(settings_widget)
-        return scroll
-
-    def build_results_pane(self) -> QWidget:
-        return super().build_results_pane()
-
     def connect_operation_signals(self) -> None:
         self.series_selector.selection_changed.connect(lambda *_args: self.mark_results_stale())
         self.series_selector.axis_changed.connect(lambda *_args: self.mark_results_stale())
@@ -413,210 +482,6 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         self.dimension_combo.currentIndexChanged.connect(self.mark_results_stale)
         self.method_combo.currentIndexChanged.connect(self._refresh_visibility)
         self.method_combo.currentIndexChanged.connect(self.mark_results_stale)
-
-    def init_operation_widgets(self) -> None:
-        """Create all parameter widgets once; visibility is managed dynamically."""
-        self.window_spin = self.int_spin(3, 9999, 7)
-        self.centered_check = QCheckBox()
-        self.centered_check.setChecked(True)
-        self.polyorder_spin = self.int_spin(0, 10, 2)
-        self.deriv_spin = self.int_spin(0, 5, 0)
-        self.delta_spin = self.float_spin(1e-12, 1e12, 1.0, 6)
-
-        self.sigma_spin = self.float_spin(0.001, 1e6, 2.0, 4)
-        self.sigma_x_spin = self.float_spin(0.001, 1e6, 1.5, 4)
-        self.sigma_y_spin = self.float_spin(0.001, 1e6, 1.5, 4)
-        self.sigma_z_spin = self.float_spin(0.001, 1e6, 1.5, 4)
-        self.truncate_spin = self.float_spin(0.1, 50.0, 4.0, 2)
-
-        self.kernel_spin = self.int_spin(3, 9999, 5)
-        self.kernel_x_spin = self.int_spin(3, 9999, 3)
-        self.kernel_y_spin = self.int_spin(3, 9999, 3)
-        self.kernel_z_spin = self.int_spin(3, 9999, 3)
-
-        self.noise_spin = self.float_spin(0.0, 1e12, 0.0, 6)
-        self.noise_spin.setSpecialValueText(_("auto"))
-
-        self.spline_s_spin = self.float_spin(0.0, 1e18, 10.0, 4)
-        self.spline_k_spin = self.int_spin(1, 5, 3)
-        self.kx_spin = self.int_spin(1, 5, 3)
-        self.ky_spin = self.int_spin(1, 5, 3)
-
-        self.lowess_frac_spin = self.float_spin(0.01, 1.0, 0.25, 3)
-        self.lowess_it_spin = self.int_spin(0, 20, 3)
-        self.fft_cutoff_spin = self.float_spin(0.001, 0.999, 0.20, 3)
-
-        self.butter_fs_spin = self.float_spin(1e-12, 1e12, 1.0, 6)
-        self.butter_cutoff_spin = self.float_spin(1e-12, 1e12, 0.20, 6)
-        self.butter_high_cutoff_spin = self.float_spin(1e-12, 1e12, 0.40, 6)
-        self.butter_order_spin = self.int_spin(1, 20, 4)
-        self.butter_type_combo = QComboBox()
-        self.butter_type_combo.addItems(["lowpass", "highpass", "bandpass", "bandstop"])
-
-        self.mode_combo = QComboBox()
-        self.mode_combo.addItems(["nearest", "reflect", "mirror", "constant", "wrap"])
-        self.savgol_mode_combo = QComboBox()
-        self.savgol_mode_combo.addItems(["interp", "mirror", "nearest", "constant", "wrap"])
-
-        self.wavelet_combo = QComboBox()
-        self.wavelet_combo.addItems(["db2", "db4", "sym4", "coif1", "haar"])
-        self.wavelet_level_spin = self.int_spin(0, 20, 0)
-        self.wavelet_threshold_factor_spin = self.float_spin(0.01, 100.0, 1.0, 3)
-        self.wavelet_threshold_mode_combo = QComboBox()
-        self.wavelet_threshold_mode_combo.addItems(["soft", "hard"])
-
-        self.whittaker_lambda_spin = self.float_spin(0.0, 1e12, 1000.0, 3)
-        self.whittaker_order_spin = self.int_spin(1, 5, 2)
-        self.hp_lambda_spin = self.float_spin(0.0, 1e12, 1600.0, 3)
-        self.tv_weight_spin = self.float_spin(0.0, 1e6, 0.15, 4)
-
-        self.kalman_process_variance_spin = self.float_spin(1e-12, 1e6, 1e-4, 8)
-        self.kalman_measurement_variance_spin = self.float_spin(1e-12, 1e6, 1e-2, 8)
-        self.kalman_initial_covariance_spin = self.float_spin(1e-12, 1e6, 1.0, 8)
-
-        self.rbf_kernel_combo = QComboBox()
-        self.rbf_kernel_combo.addItems(
-            [
-                "thin_plate_spline",
-                "linear",
-                "cubic",
-                "quintic",
-                "multiquadric",
-                "inverse_multiquadric",
-                "inverse_quadratic",
-                "gaussian",
-            ]
-        )
-        self.rbf_smoothing_spin = self.float_spin(0.0, 1e9, 0.1, 4)
-        self.rbf_epsilon_spin = self.float_spin(0.0, 1e9, 0.0, 4)
-        self.rbf_epsilon_spin.setSpecialValueText(_("auto"))
-        self.rbf_neighbors_spin = self.int_spin(0, 1_000_000, 0)
-        self.rbf_neighbors_spin.setSpecialValueText(_("all"))
-
-        self.preview_check = QCheckBox(_("Replace previous smoothing preview in chart"))
-        self.preview_check.setChecked(True)
-        self.preview_check.setToolTip(
-            _("When enabled, applying this dialog again replaces the previously generated preview series.")
-        )
-
-    _PARAMETER_TOOLTIPS: dict[str, str] = {
-        "window": "Window size, in points, used by the smoothing filter.",
-        "centered": "Center the window on each point instead of trailing it.",
-        "polyorder": "Polynomial order fit inside each Savitzky-Golay window.",
-        "deriv": "Order of the derivative to compute (0 = smoothed value only).",
-        "delta": "Sample spacing used when computing derivatives.",
-        "sigma": "Standard deviation of the Gaussian kernel.",
-        "sigma_x": "Standard deviation of the Gaussian kernel along X.",
-        "sigma_y": "Standard deviation of the Gaussian kernel along Y.",
-        "sigma_z": "Standard deviation of the Gaussian kernel along Z.",
-        "truncate": "Truncate the Gaussian kernel at this many standard deviations.",
-        "kernel": "Size, in points, of the moving kernel window.",
-        "kernel_x": "Kernel size along X.",
-        "kernel_y": "Kernel size along Y.",
-        "kernel_z": "Kernel size along Z.",
-        "noise": "Noise level estimate; leave at 'auto' to estimate from the data.",
-        "spline_s": "Smoothing factor: higher values produce a smoother spline.",
-        "spline_k": "Degree of the smoothing spline.",
-        "kx": "Spline degree along X.",
-        "ky": "Spline degree along Y.",
-        "lowess_frac": "Fraction of points used for each local LOWESS regression.",
-        "lowess_it": "Number of robustifying iterations for LOWESS.",
-        "fft_cutoff_ratio": "Fraction of frequency components kept by the FFT low-pass filter.",
-        "butter_fs": "Sampling frequency of the input data.",
-        "butter_cutoff": "Cutoff frequency of the Butterworth filter.",
-        "butter_high_cutoff": "Upper cutoff frequency for bandpass/bandstop filters.",
-        "butter_order": "Order of the Butterworth filter.",
-        "butter_type": "Butterworth filter type.",
-        "mode": "Boundary handling mode applied at the edges of the data.",
-        "savgol_mode": "Edge handling mode for the Savitzky-Golay filter.",
-        "wavelet": "Wavelet family used for wavelet denoising.",
-        "wavelet_level": "Decomposition level; 0 lets the algorithm choose automatically.",
-        "wavelet_threshold_factor": "Multiplier applied to the estimated noise threshold.",
-        "wavelet_threshold_mode": "Soft or hard thresholding of wavelet coefficients.",
-        "whittaker_lambda": "Smoothness penalty for the Whittaker smoother (higher = smoother).",
-        "whittaker_order": "Order of the finite-difference penalty.",
-        "hp_lambda": "Smoothness penalty for the Hodrick-Prescott filter.",
-        "tv_weight": "Regularization weight for total-variation denoising.",
-        "kalman_process_variance": "Expected variance of the underlying process (model uncertainty).",
-        "kalman_measurement_variance": "Expected variance of the measurement noise.",
-        "kalman_initial_covariance": "Initial state covariance for the Kalman filter.",
-        "rbf_kernel": "Radial basis function kernel used for interpolation-based smoothing.",
-        "rbf_smoothing": "Smoothing factor for the RBF interpolant (0 = exact interpolation).",
-        "rbf_epsilon": "Shape parameter for the RBF kernel; leave at 'auto' to estimate it.",
-        "rbf_neighbors": "Number of nearest neighbors used per point; 'all' uses the full dataset.",
-    }
-
-    def _add_parameter_rows(self) -> None:
-        """Add all parameter rows to the form; hidden rows stay in layout."""
-        rows: tuple[tuple[str, str, QWidget], ...] = (
-            ("window", "Window size:", self.window_spin),
-            ("centered", "Centered:", self.centered_check),
-            ("polyorder", "Polynomial order:", self.polyorder_spin),
-            ("deriv", "Derivative order:", self.deriv_spin),
-            ("delta", "Delta:", self.delta_spin),
-            ("sigma", "Sigma:", self.sigma_spin),
-            ("sigma_x", "Sigma X:", self.sigma_x_spin),
-            ("sigma_y", "Sigma Y:", self.sigma_y_spin),
-            ("sigma_z", "Sigma Z:", self.sigma_z_spin),
-            ("truncate", "Gaussian truncate:", self.truncate_spin),
-            ("kernel", "Kernel size:", self.kernel_spin),
-            ("kernel_x", "Kernel X:", self.kernel_x_spin),
-            ("kernel_y", "Kernel Y:", self.kernel_y_spin),
-            ("kernel_z", "Kernel Z:", self.kernel_z_spin),
-            ("noise", "Noise estimate:", self.noise_spin),
-            ("spline_s", "Smoothing factor:", self.spline_s_spin),
-            ("spline_k", "Spline order:", self.spline_k_spin),
-            ("kx", "Spline order X:", self.kx_spin),
-            ("ky", "Spline order Y:", self.ky_spin),
-            ("lowess_frac", "LOWESS fraction:", self.lowess_frac_spin),
-            ("lowess_it", "LOWESS iterations:", self.lowess_it_spin),
-            ("fft_cutoff_ratio", "FFT cutoff ratio:", self.fft_cutoff_spin),
-            ("butter_fs", "Sampling frequency:", self.butter_fs_spin),
-            ("butter_cutoff", "Cutoff frequency:", self.butter_cutoff_spin),
-            ("butter_high_cutoff", "High cutoff:", self.butter_high_cutoff_spin),
-            ("butter_order", "Filter order:", self.butter_order_spin),
-            ("butter_type", "Filter type:", self.butter_type_combo),
-            ("mode", "Boundary mode:", self.mode_combo),
-            ("savgol_mode", "Edge mode:", self.savgol_mode_combo),
-            ("wavelet", "Wavelet:", self.wavelet_combo),
-            ("wavelet_level", "Wavelet level:", self.wavelet_level_spin),
-            (
-                "wavelet_threshold_factor",
-                "Threshold factor:",
-                self.wavelet_threshold_factor_spin,
-            ),
-            (
-                "wavelet_threshold_mode",
-                "Threshold mode:",
-                self.wavelet_threshold_mode_combo,
-            ),
-            ("whittaker_lambda", "Whittaker lambda:", self.whittaker_lambda_spin),
-            ("whittaker_order", "Difference order:", self.whittaker_order_spin),
-            ("hp_lambda", "HP lambda:", self.hp_lambda_spin),
-            ("tv_weight", "TV weight:", self.tv_weight_spin),
-            (
-                "kalman_process_variance",
-                "Kalman process variance:",
-                self.kalman_process_variance_spin,
-            ),
-            (
-                "kalman_measurement_variance",
-                "Kalman measurement variance:",
-                self.kalman_measurement_variance_spin,
-            ),
-            (
-                "kalman_initial_covariance",
-                "Kalman initial covariance:",
-                self.kalman_initial_covariance_spin,
-            ),
-            ("rbf_kernel", "RBF kernel:", self.rbf_kernel_combo),
-            ("rbf_smoothing", "RBF smoothing:", self.rbf_smoothing_spin),
-            ("rbf_epsilon", "RBF epsilon:", self.rbf_epsilon_spin),
-            ("rbf_neighbors", "RBF neighbors:", self.rbf_neighbors_spin),
-        )
-
-        for key, label, widget in rows:
-            self.add_field_row(self.form, key, label, widget, self._PARAMETER_TOOLTIPS.get(key, ""))
 
     def _series_choice_from_row(self, row: Any) -> SeriesChoice|None:
         name = row_value(row, "name", "series_name", "label", "title", default="Series")
@@ -704,15 +569,13 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         self.method_combo.blockSignals(False)
         self._refresh_visibility()
 
-    def _refresh_visibility(self) -> None:
-        """Show only the settings required by the selected registry model."""
-        method = self.method_combo.currentText()
-        m=model_spec(method)
-        if m is None:
-            return
-        visible = m.fields if method else frozenset()
+    def parameter_context(self) -> Mapping[str, Any]:
+        """The method chosen: each setting shows for the methods that use it (SMOOTHING_PARAMS)."""
+        return {"method": self.method_combo.currentText()}
 
-        self.show_field_rows(visible)
+    def _refresh_visibility(self, *_ignored: Any) -> None:
+        """The selected method's settings, and its documentation."""
+        super()._refresh_visibility()
         self._update_description_link()
 
     def _update_description_link(self) -> None:
@@ -727,57 +590,14 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
             self.set_doc_link(spec.doc_title, spec.doc_url)
 
     def _params(self) -> dict[str, Any]:
-        """Collect current UI settings into a plain dict for metadata/reuse."""
-        return {
-            "window": self.window_spin.value(),
-            "centered": self.centered_check.isChecked(),
-            "polyorder": self.polyorder_spin.value(),
-            "deriv": self.deriv_spin.value(),
-            "delta": self.delta_spin.value(),
-            "sigma": self.sigma_spin.value(),
-            "sigma_x": self.sigma_x_spin.value(),
-            "sigma_y": self.sigma_y_spin.value(),
-            "sigma_z": self.sigma_z_spin.value(),
-            "truncate": self.truncate_spin.value(),
-            "kernel": self.kernel_spin.value(),
-            "kernel_x": self.kernel_x_spin.value(),
-            "kernel_y": self.kernel_y_spin.value(),
-            "kernel_z": self.kernel_z_spin.value(),
-            "noise": None if self.noise_spin.value() == 0.0 else self.noise_spin.value(),
-            "spline_s": self.spline_s_spin.value(),
-            "spline_k": self.spline_k_spin.value(),
-            "kx": self.kx_spin.value(),
-            "ky": self.ky_spin.value(),
-            "lowess_frac": self.lowess_frac_spin.value(),
-            "lowess_it": self.lowess_it_spin.value(),
-            "fft_cutoff_ratio": self.fft_cutoff_spin.value(),
-            "butter_fs": self.butter_fs_spin.value(),
-            "butter_cutoff": self.butter_cutoff_spin.value(),
-            "butter_high_cutoff": self.butter_high_cutoff_spin.value(),
-            "butter_order": self.butter_order_spin.value(),
-            "butter_type": self.butter_type_combo.currentText(),
-            "mode": self.mode_combo.currentText(),
-            "savgol_mode": self.savgol_mode_combo.currentText(),
-            "wavelet": self.wavelet_combo.currentText(),
-            "wavelet_level": self.wavelet_level_spin.value(),
-            "wavelet_threshold_factor": self.wavelet_threshold_factor_spin.value(),
-            "wavelet_threshold_mode": self.wavelet_threshold_mode_combo.currentText(),
-            "whittaker_lambda": self.whittaker_lambda_spin.value(),
-            "whittaker_order": self.whittaker_order_spin.value(),
-            "hp_lambda": self.hp_lambda_spin.value(),
-            "tv_weight": self.tv_weight_spin.value(),
-            "kalman_process_variance": self.kalman_process_variance_spin.value(),
-            "kalman_measurement_variance": self.kalman_measurement_variance_spin.value(),
-            "kalman_initial_covariance": self.kalman_initial_covariance_spin.value(),
-            "rbf_kernel": self.rbf_kernel_combo.currentText(),
-            "rbf_smoothing": self.rbf_smoothing_spin.value(),
-            "rbf_epsilon": (
-                None if self.rbf_epsilon_spin.value() == 0.0
-                else self.rbf_epsilon_spin.value()
-            ),
-            "rbf_neighbors": self.rbf_neighbors_spin.value(),
-            "replace_preview": self.preview_check.isChecked(),
-        }
+        """The settings, as the smoothing functions take them: 0 is "auto" for the noise and the RBF epsilon."""
+        params = self.parameter_values()
+        params.pop("destination", None)  # the Charts tab's: where, not how
+        for name in ("noise", "rbf_epsilon"):
+            if params.get(name) == 0.0:
+                params[name] = None
+        params["replace_preview"] = True
+        return params
 
     def prepare_job(self, **options: Any) -> SeriesJob | None:
         """Read the selected series and the controls; the smoothing itself runs in the job."""
