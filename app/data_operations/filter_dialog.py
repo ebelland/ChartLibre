@@ -28,10 +28,6 @@ from typing import Any
 
 import numpy as np
 from PySide6.QtWidgets import (
-    QComboBox,
-    QDoubleSpinBox,
-    QFormLayout,
-    QSpinBox,
     QWidget,
 )
 from app.analysis.filtering import (
@@ -39,7 +35,6 @@ from app.analysis.filtering import (
     AUTO_CUTOFF2,
     FIR_WINDOWS,
     IIR_FAMILIES,
-    IirTerms,
     analytic_signal,
     apply_detrend,
     apply_fir_filter,
@@ -50,6 +45,7 @@ from app.analysis.filtering import (
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.results import XYResult
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -124,6 +120,55 @@ DETREND_LABELS: dict[str, str] = {
 }
 
 
+def _choices(labels: dict[str, str]) -> tuple[tuple[str, str], ...]:
+    return tuple((label, value) for value, label in labels.items())
+
+
+_IIR = {"model": (FILTER_IIR,)}
+_FIR = {"model": (FILTER_FIR,)}
+_WITH_RESPONSE = {"model": tuple(name for name, spec in FILTERS.items() if spec.has_response)}
+
+#: The settings, each shown for the operations (and the families, the responses) it applies to.
+FILTER_PARAMS = (
+    *DataOperationDialogBase.sampling_rate_params(
+        {"model": tuple(name for name, spec in FILTERS.items() if spec.needs_fs)}),
+    ChoiceParam("family", "Family:", choices=_choices(IIR_FAMILY_LABELS), visible_for=_IIR,
+                tooltip="The filter family. Butterworth is maximally flat; "
+                        "Chebyshev/Elliptic trade ripple for a sharper roll-off."),
+    ChoiceParam("response", "Response:", choices=_choices(RESPONSE_LABELS), visible_for=_WITH_RESPONSE,
+                tooltip="Which band the filter keeps."),
+    IntParam("order", "Order:", default_value=4, minimum=1, maximum=20, visible_for=_IIR,
+             tooltip="Filter order. Higher is a sharper roll-off and more phase distortion before sosfiltfilt "
+                     "cancels it."),
+    IntParam("numtaps", "Taps:", default_value=101, minimum=3, maximum=20001, visible_for=_FIR,
+             tooltip="Number of FIR coefficients. More taps sharpen the transition band at the cost of needing "
+                     "more samples."),
+    ChoiceParam("window", "Window:", choices=FIR_WINDOWS, visible_for=_FIR,
+                tooltip="Taper applied to the FIR coefficients."),
+    # 0 is "Auto": a fraction of fs, worked out when the filter runs. A fixed default (it was 1) is in the
+    # units of x, and for a series dated in seconds fs is about 1e-5 - the default sat far above the
+    # Nyquist frequency and Preview failed until the user found the box.
+    FloatParam("cutoff1", "Cutoff:", default_value=0.0, minimum=0.0, maximum=1e12, decimals=6, step=0.001,
+               special_text="Auto", visible_for=_WITH_RESPONSE,
+               tooltip=f"Cutoff frequency (same units as fs). Auto is {AUTO_CUTOFF1:g} of the sampling frequency."),
+    FloatParam("cutoff2", "Second cutoff:", default_value=0.0, minimum=0.0, maximum=1e12, decimals=6, step=0.001,
+               special_text="Auto",
+               visible_for={**_WITH_RESPONSE, "response": tuple(key for key in RESPONSE_LABELS if two_cutoffs(key))},
+               tooltip=f"Second cutoff, for a bandpass/bandstop response. Auto is {AUTO_CUTOFF2:g} of the "
+                       "sampling frequency."),
+    FloatParam("ripple", "Ripple (dB):", default_value=1.0, minimum=0.001, maximum=20.0, decimals=3, step=0.1,
+               visible_for={**_IIR, "family": tuple(key for key, terms in IIR_FAMILIES.items() if terms.ripple)},
+               tooltip="Passband ripple, in dB (Chebyshev I / Elliptic)."),
+    FloatParam("atten", "Attenuation (dB):", default_value=40.0, minimum=1.0, maximum=200.0, decimals=1, step=1.0,
+               visible_for={**_IIR, "family": tuple(key for key, terms in IIR_FAMILIES.items() if terms.attenuation)},
+               tooltip="Minimum stopband attenuation, in dB (Chebyshev II / Elliptic)."),
+    ChoiceParam("analytic", "Output:", choices=_choices(ANALYTIC_LABELS), visible_for={"model": (FILTER_ANALYTIC,)},
+                tooltip="What to derive from the analytic signal."),
+    ChoiceParam("detrend", "Trend:", choices=_choices(DETREND_LABELS), visible_for={"model": (FILTER_DETREND,)},
+                tooltip="Linear removes a best-fit line; constant removes only the mean."),
+)
+
+
 @dataclass(slots=True)
 class FilterResult(XYResult):
     """One filtered/derived series for one source series."""
@@ -153,6 +198,7 @@ class SeriesFilterDialog(DataOperationDialogBase):
     MODELS = FILTERS
     MODEL_LABEL = "Operation:"
     MODEL_TOOLTIP = "Choose the operation."
+    PARAMS = FILTER_PARAMS
 
     INPUT_REQUIRES_SORTED_X = True
     INPUT_REQUIRES_UNIQUE_X = True
@@ -184,170 +230,22 @@ class SeriesFilterDialog(DataOperationDialogBase):
             width=820, height=660,
         )
         self.series_selector.reload(select_all_series=True)
-        self._refresh_visibility()
         self.mark_results_stale()
 
     # ------------------------------------------------------------------
     # UI
     # ------------------------------------------------------------------
-    def init_operation_widgets(self) -> None:
-        self.create_sampling_rate_widgets()
-        self._family_combo = QComboBox(self)
-        self._response_combo = QComboBox(self)
-        self._order_spin = QSpinBox(self)
-        self._numtaps_spin = QSpinBox(self)
-        self._window_combo = QComboBox(self)
-        self._cutoff1_spin = QDoubleSpinBox(self)
-        self._cutoff2_spin = QDoubleSpinBox(self)
-        self._ripple_spin = QDoubleSpinBox(self)
-        self._atten_spin = QDoubleSpinBox(self)
-        self._analytic_combo = QComboBox(self)
-        self._detrend_combo = QComboBox(self)
-
-    def build_parameter_selector(self) -> QWidget:
-        widget = QWidget(self)
-        self._parameter_form = QFormLayout(widget)
-        self._parameter_form.setContentsMargins(0, 0, 0, 0)
-        self._parameter_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-
-        self.add_sampling_rate_rows(self._parameter_form)
-
-        for value, label in IIR_FAMILY_LABELS.items():
-            self._family_combo.addItem(label, value)
-        self._family_combo.setToolTip(_("The filter family. Butterworth is maximally flat; "
-                                         "Chebyshev/Elliptic trade ripple for a sharper roll-off."))
-        self._parameter_form.addRow(_("Family:"), self._family_combo)
-
-        for value, label in RESPONSE_LABELS.items():
-            self._response_combo.addItem(label, value)
-        self._response_combo.setToolTip(_("Which band the filter keeps."))
-        self._parameter_form.addRow(_("Response:"), self._response_combo)
-
-        self._order_spin.setRange(1, 20)
-        self._order_spin.setValue(4)
-        self._order_spin.setToolTip(_("Filter order. Higher is a sharper roll-off "
-                                       "and more phase distortion before sosfiltfilt cancels it."))
-        self._parameter_form.addRow(_("Order:"), self._order_spin)
-
-        self._numtaps_spin.setRange(3, 20001)
-        self._numtaps_spin.setValue(101)
-        self._numtaps_spin.setToolTip(_("Number of FIR coefficients. More taps sharpen the "
-                                         "transition band at the cost of needing more samples."))
-        self._parameter_form.addRow(_("Taps:"), self._numtaps_spin)
-
-        self._window_combo.addItems(FIR_WINDOWS)
-        self._window_combo.setToolTip(_("Taper applied to the FIR coefficients."))
-        self._parameter_form.addRow(_("Window:"), self._window_combo)
-
-        # 0 is "Auto": a fraction of fs, worked out when the filter runs.
-        # A fixed default (it was 1) is in the units of x, and for a series
-        # dated in seconds fs is about 1e-5 - the default sat far above the
-        # Nyquist frequency and Preview failed until the user found the box.
-        for spin, tip, auto in (
-            (self._cutoff1_spin, _("Cutoff frequency (same units as fs)."), AUTO_CUTOFF1),
-            (self._cutoff2_spin, _("Second cutoff, for a bandpass/bandstop response."), AUTO_CUTOFF2),
-        ):
-            spin.setRange(0.0, 1e12)
-            spin.setDecimals(6)
-            spin.setSpecialValueText(_("Auto"))
-            spin.setValue(0.0)
-            spin.setToolTip(
-                tip + " " + _("Auto is {fraction:g} of the sampling frequency.").format(fraction=auto)
-            )
-        self._parameter_form.addRow(_("Cutoff:"), self._cutoff1_spin)
-        self._parameter_form.addRow(_("Second cutoff:"), self._cutoff2_spin)
-
-        self._ripple_spin.setRange(0.001, 20.0)
-        self._ripple_spin.setDecimals(3)
-        self._ripple_spin.setValue(1.0)
-        self._ripple_spin.setToolTip(_("Passband ripple, in dB (Chebyshev I / Elliptic)."))
-        self._parameter_form.addRow(_("Ripple (dB):"), self._ripple_spin)
-
-        self._atten_spin.setRange(1.0, 200.0)
-        self._atten_spin.setDecimals(1)
-        self._atten_spin.setValue(40.0)
-        self._atten_spin.setToolTip(_("Minimum stopband attenuation, in dB (Chebyshev II / Elliptic)."))
-        self._parameter_form.addRow(_("Attenuation (dB):"), self._atten_spin)
-
-        for value, label in ANALYTIC_LABELS.items():
-            self._analytic_combo.addItem(label, value)
-        self._analytic_combo.setToolTip(_("What to derive from the analytic signal."))
-        self._parameter_form.addRow(_("Output:"), self._analytic_combo)
-
-        for value, label in DETREND_LABELS.items():
-            self._detrend_combo.addItem(label, value)
-        self._detrend_combo.setToolTip(_("Linear removes a best-fit line; "
-                                          "constant removes only the mean."))
-        self._parameter_form.addRow(_("Trend:"), self._detrend_combo)
-
-        return widget
-
-    def connect_operation_signals(self) -> None:
-        self.model_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self._family_combo.currentIndexChanged.connect(self._refresh_visibility)
-        self._response_combo.currentIndexChanged.connect(self._refresh_visibility)
-
-        for combo in (
-            self.model_combo, self._family_combo, self._response_combo,
-            self._window_combo, self._analytic_combo, self._detrend_combo,
-        ):
-            combo.currentIndexChanged.connect(self.mark_results_stale)
-        for check in (self._fs_auto_check,):
-            check.toggled.connect(self.mark_results_stale)
-        for spin in (
-            self._fs_spin, self._order_spin, self._numtaps_spin,
-            self._cutoff1_spin, self._cutoff2_spin, self._ripple_spin, self._atten_spin,
-        ):
-            spin.valueChanged.connect(self.mark_results_stale)
-
-
-    def _refresh_visibility(self) -> None:
-        model = self.current_model()
-        spec = FILTERS[model]
-        is_iir = model == FILTER_IIR
-        is_fir = model == FILTER_FIR
-        needs_response = spec.has_response
-        needs_second_cutoff = needs_response and two_cutoffs(str(self._response_combo.currentData()))
-        family = IIR_FAMILIES.get(str(self._family_combo.currentData()), IirTerms())
-
-        self.set_row_visible(self._fs_auto_check, spec.needs_fs)
-        self.set_row_visible(self._fs_spin, spec.needs_fs and not self._fs_auto_check.isChecked())
-        self.set_row_visible(self._family_combo, is_iir)
-        self.set_row_visible(self._response_combo, needs_response)
-        self.set_row_visible(self._order_spin, is_iir)
-        self.set_row_visible(self._numtaps_spin, is_fir)
-        self.set_row_visible(self._window_combo, is_fir)
-        self.set_row_visible(self._cutoff1_spin, needs_response)
-        self.set_row_visible(self._cutoff2_spin, needs_second_cutoff)
-        self.set_row_visible(self._ripple_spin, is_iir and family.ripple)
-        self.set_row_visible(self._atten_spin, is_iir and family.attenuation)
-        self.set_row_visible(self._analytic_combo, model == FILTER_ANALYTIC)
-        self.set_row_visible(self._detrend_combo, model == FILTER_DETREND)
-
-
     # ------------------------------------------------------------------
     # Computation
     # ------------------------------------------------------------------
 
     def series_settings(self) -> tuple[str, dict[str, Any]]:
-        """The model and every control's value, read here so the run needs no widget."""
-        return self.current_model(), {
-            "family": str(self._family_combo.currentData()),
-            "family_text": self._family_combo.currentText(),
-            "response": str(self._response_combo.currentData()),
-            "response_text": self._response_combo.currentText(),
-            "order": int(self._order_spin.value()),
-            "numtaps": int(self._numtaps_spin.value()),
-            "window": self._window_combo.currentText(),
-            "cutoff1": float(self._cutoff1_spin.value()),
-            "cutoff2": float(self._cutoff2_spin.value()),
-            "ripple": float(self._ripple_spin.value()),
-            "atten": float(self._atten_spin.value()),
-            "analytic": str(self._analytic_combo.currentData()),
-            "analytic_text": self._analytic_combo.currentText(),
-            "detrend": str(self._detrend_combo.currentData()),
-            "detrend_text": self._detrend_combo.currentText(),
-        }
+        """The model and every setting, read here so the run needs no widget; the choices' words for the report."""
+        params = self.parameter_values()
+        for key, labels in (("family", IIR_FAMILY_LABELS), ("response", RESPONSE_LABELS),
+                            ("analytic", ANALYTIC_LABELS), ("detrend", DETREND_LABELS)):
+            params[f"{key}_text"] = labels.get(str(params[key]), str(params[key]))
+        return self.current_model(), params
 
     def read_series(self, row: Any, name: str) -> tuple[np.ndarray, np.ndarray, float]:
         """x, y and the sampling rate (1 for a model that does not use one)."""

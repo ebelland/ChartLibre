@@ -58,7 +58,7 @@ def test_the_dialog_applies_an_iir_lowpass(
     dialog = SeriesFilterDialog(repo=repo, figure_id=figure_id)
     try:
         dialog.model_combo.setCurrentText(FILTER_IIR)
-        dialog._cutoff1_spin.setValue(10.0)
+        dialog._parameter_form_spec.set_values({"cutoff1": 10.0})
 
         results = dialog.compute_results()
         assert len(results) == 1
@@ -109,7 +109,7 @@ def test_the_untouched_cutoff_works_on_a_series_dated_in_seconds(
     dialog = SeriesFilterDialog(repo=repo, figure_id=figure_id)
     try:
         dialog.model_combo.setCurrentText(FILTER_IIR)
-        assert dialog._cutoff1_spin.value() == 0.0  # Auto - nobody typed anything
+        assert dialog.parameter_values()["cutoff1"] == 0.0  # Auto - nobody typed anything
 
         result = dialog.compute_results()[0]
         fs = float(result.metadata["fs"])
@@ -129,12 +129,12 @@ def test_a_band_is_automatic_too_and_a_typed_cutoff_is_respected(
     dialog = SeriesFilterDialog(repo=repo, figure_id=figure_id)
     try:
         dialog.model_combo.setCurrentText(FILTER_IIR)
-        dialog._response_combo.setCurrentIndex(dialog._response_combo.findData("bandpass"))
+        dialog._parameter_form_spec.set_values({"response": "bandpass"})
         band = dialog.compute_results()[0]
         assert band.metadata["cutoff"] == f"{0.1 * FS:g} - {0.25 * FS:g}"
 
-        dialog._response_combo.setCurrentIndex(dialog._response_combo.findData("lowpass"))
-        dialog._cutoff1_spin.setValue(10.0)
+        dialog._parameter_form_spec.set_values({"response": "lowpass"})
+        dialog._parameter_form_spec.set_values({"cutoff1": 10.0})
         assert dialog.compute_results()[0].metadata["cutoff"] == 10.0
     finally:
         dialog.close()

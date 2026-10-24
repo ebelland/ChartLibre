@@ -75,7 +75,7 @@ def _low_pass_at_10_hz(dialog: Any) -> None:
     Auto (a tenth of fs) would already keep the 5 Hz tone; 10 Hz is chosen
     so the demo shows a cutoff somebody picked.
     """
-    dialog._cutoff1_spin.setValue(10.0)
+    dialog._parameter_form_spec.set_values({"cutoff1": 10.0})
 
 
 def _pchip(dialog: Any) -> None:

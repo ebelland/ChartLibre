@@ -5,7 +5,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
 from PySide6.QtWidgets import (
-    QCheckBox,
     QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
@@ -21,7 +20,7 @@ from app.data.sqlite_repo import DatabaseError
 from app.styles.style import create_doc_link, CardFrame, stdSizeAndlayout
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_form import ParameterForm
-from app.plugin_api.data_operations.parameter_spec import Param, defaults
+from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, Param, defaults
 from app.utils.i18n import _
 
 from app.plugin_api.data_operations.dialog_base.common import OperationModel
@@ -326,28 +325,23 @@ class BuilderHooksMixin:
 
     # -- Sampling rate: the "derive it from x, or type it" pair -----------
 
-    def create_sampling_rate_widgets(self, check_text: str = "") -> None:
-        """Create ``_fs_auto_check`` and ``_fs_spin``; call from init_operation_widgets."""
-        self._fs_auto_check = QCheckBox(check_text, self)
-        self._fs_spin = QDoubleSpinBox(self)
-
-    def add_sampling_rate_rows(self, form: QFormLayout) -> None:
-        """Set up the sampling-rate pair and add it to *form* as two rows."""
-        self._fs_auto_check.setChecked(True)
-        self._fs_auto_check.setToolTip(
-            _("Take the sampling frequency from the spacing of the x role.")
+    @staticmethod
+    def sampling_rate_params(visible_for: Mapping[str, Sequence[Any]]) -> tuple[Param, Param]:
+        """The sampling rate, for PARAMS: read off the x role's spacing, or typed - both shown where *visible_for*
+        says (the models that use one); read with sampling_rate."""
+        return (
+            BoolParam("fs_auto", "Sampling rate from x", default_value=True, visible_for=visible_for,
+                      tooltip="Take the sampling frequency from the spacing of the x role."),
+            FloatParam("fs", "fs:", default_value=1.0, minimum=1e-9, maximum=1e12, decimals=6, step=0.001,
+                       visible_for={**visible_for, "fs_auto": (False,)},
+                       tooltip="Samples per unit of x, used when not derived."),
         )
-        form.addRow(_("Sampling rate:"), self._fs_auto_check)
-        self._fs_spin.setRange(1e-9, 1e12)
-        self._fs_spin.setDecimals(6)
-        self._fs_spin.setValue(1.0)
-        self._fs_spin.setToolTip(_("Samples per unit of x, used when not derived."))
-        form.addRow(_("fs:"), self._fs_spin)
 
     def sampling_rate(self, x_values: np.ndarray, name: str) -> float:
         """fs in samples per unit of x: the typed one, or read off the x role."""
-        if not self._fs_auto_check.isChecked():
-            return float(self._fs_spin.value())
+        params = self.parameter_values()
+        if not params.get("fs_auto", True):
+            return float(params["fs"])
         fs, note = sampling_frequency(x_values)
         if note:
             applogger.warning(

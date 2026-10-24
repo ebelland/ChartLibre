@@ -32,11 +32,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDoubleSpinBox,
     QFormLayout,
-    QSpinBox,
     QWidget,
 )
 from app.analysis.spectral import (
@@ -68,6 +64,7 @@ import html
 from app.utils.messages import show_message
 from app.utils import report_html
 from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -174,10 +171,63 @@ class SpectralResult(TableResult):
         return pd.DataFrame({self.x_label: self.x, self.y_label: self.y})
 
 
+def _methods(keep: Any) -> dict[str, tuple[str, ...]]:
+    """The methods *keep(name, method)* holds for: a row's visible_for."""
+    return {"model": tuple(name for name, method in SPECTRAL_METHODS.items() if keep(name, method))}
+
+
+_WELCH = _methods(lambda _name, method: method.welch)
+_CORRELATION = _methods(lambda _name, method: not method.frequency)
+
+#: The settings, each shown for the methods that use it.
+SPECTRAL_PARAMS = (
+    *DataOperationDialogBase.sampling_rate_params(_methods(lambda _name, method: method.frequency)),
+    IntParam("nperseg", "Segment length:", default_value=256, minimum=8, maximum=1_048_576, visible_for=_WELCH,
+             tooltip="Samples per Welch segment. Longer segments resolve finer frequency detail; shorter ones "
+                     "average away more noise."),
+    FloatParam("overlap", "Segment overlap:", default_value=0.5, minimum=0.0, maximum=0.95, decimals=2, step=0.05,
+               visible_for=_WELCH, tooltip="Fraction of each segment shared with the next."),
+    ChoiceParam("window", "Window:", choices=WINDOWS, visible_for=_WELCH,
+                tooltip="Taper applied to each segment before the FFT."),
+    FloatParam("sigma", "Damping (sigma):", default_value=0.0, minimum=0.0, maximum=1e6, decimals=6, step=0.1,
+               visible_for={"model": (METHOD_LAPLACE,)},
+               tooltip="Damping sigma of the Laplace variable s = sigma + i*omega. Zero reduces the transform to "
+                       "the Fourier transform; increasing it weights early samples more and suppresses late ones, "
+                       "which is what makes a decaying or unstable signal integrable."),
+    FloatParam("wavelet_w0", "Morlet w0:", default_value=6.0, minimum=3.0, maximum=30.0, decimals=1, step=0.5,
+               visible_for={"model": (METHOD_WAVELET,)},
+               tooltip="Morlet central frequency w0. Higher values resolve frequency more finely at the cost of "
+                       "time resolution; 6 is the usual compromise and the value at which the wavelet is "
+                       "near-admissible."),
+    IntParam("wavelet_scales", "Scales:", default_value=64, minimum=8, maximum=512,
+             visible_for={"model": (METHOD_WAVELET,)},
+             tooltip="How many scales to evaluate between the longest period the record supports and the Nyquist "
+                     "frequency, spaced logarithmically."),
+    ChoiceParam("detrend", "Detrend:", choices=DETREND_MODES, visible_for=_WELCH,
+                tooltip="Remove a constant or linear trend from each segment first. A trend leaks into the lowest "
+                        "frequency bins and hides everything near it."),
+    ChoiceParam("scaling", "Scaling:", choices=("density", "spectrum"), visible_for={"model": (METHOD_PSD, METHOD_CSD)},
+                tooltip="density: power per unit frequency. spectrum: power per segment."),
+    # One-sided always for the STFT: a dominant frequency is a positive one.
+    BoolParam("one_sided", "One-sided spectrum", default_value=True,
+              visible_for=_methods(lambda name, method: method.welch and name != METHOD_STFT),
+              tooltip="Fold the negative frequencies onto the positive ones. Correct for real-valued signals."),
+    BoolParam("decibels", "Convert to decibels",
+              visible_for={"model": (METHOD_PSD, METHOD_CSD, METHOD_MAGNITUDE, METHOD_LAPLACE, METHOD_WAVELET)},
+              tooltip="Express the result as 10*log10 of the value."),
+    IntParam("max_lags", "Max lags:", default_value=0, minimum=0, maximum=1_000_000, special_text="all lags",
+             visible_for=_CORRELATION, tooltip="Largest lag to keep. 0 keeps every lag."),
+    ChoiceParam("correlation_norm", "Normalisation:", choices=CORRELATION_NORMALISATIONS, visible_for=_CORRELATION,
+                tooltip="unbiased divides by the overlap at each lag; biased divides by N; none returns the raw sum "
+                        "of products."),
+)
+
+
 class SeriesSpectralDialog(DataOperationDialogBase):
     """Compute spectra and correlations and attach them to the chart."""
 
     MODELS = SPECTRAL_METHODS
+    PARAMS = SPECTRAL_PARAMS
     MODEL_TOOLTIP = "Choose the spectral or correlation estimator."
     MODEL_LABEL = "Method:"
 
@@ -250,186 +300,6 @@ class SeriesSpectralDialog(DataOperationDialogBase):
     # ------------------------------------------------------------------
     # Widgets
     # ------------------------------------------------------------------
-    def init_operation_widgets(self) -> None:
-        """Create the controls before the base class builds the panels."""
-        self.create_sampling_rate_widgets(_("Derive from the x role"))
-        self._nperseg_spin = QSpinBox(self)
-        self._overlap_spin = QDoubleSpinBox(self)
-        self._window_combo = QComboBox(self)
-        self._detrend_combo = QComboBox(self)
-        self._scaling_combo = QComboBox(self)
-        self._onesided_check = QCheckBox(_("One-sided spectrum"), self)
-        self._db_check = QCheckBox(_("Convert to decibels"), self)
-        self._maxlags_spin = QSpinBox(self)
-        self._sigma_spin = QDoubleSpinBox(self)
-        self._wavelet_w0_spin = QDoubleSpinBox(self)
-        self._wavelet_scales_spin = QSpinBox(self)
-        self._corr_norm_combo = QComboBox(self)
-        self._parameter_form = None
-
-    def build_parameter_selector(self) -> QWidget:
-        """Parameters, shown and hidden per method by _refresh_visibility."""
-        widget = QWidget(self)
-        self._parameter_form = QFormLayout(widget)
-        self._parameter_form.setContentsMargins(0, 0, 0, 0)
-        self._parameter_form.setFieldGrowthPolicy(
-            QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow
-        )
-
-        self.add_sampling_rate_rows(self._parameter_form)
-
-        self._nperseg_spin.setRange(8, 1_048_576)
-        self._nperseg_spin.setValue(256)
-        self._nperseg_spin.setToolTip(
-            _("Samples per Welch segment. Longer segments resolve finer frequency "
-            "detail; shorter ones average away more noise.")
-        )
-        self._parameter_form.addRow(_("Segment length:"), self._nperseg_spin)
-
-        self._overlap_spin.setRange(0.0, 0.95)
-        self._overlap_spin.setDecimals(2)
-        self._overlap_spin.setSingleStep(0.05)
-        self._overlap_spin.setValue(0.5)
-        self._overlap_spin.setToolTip(_("Fraction of each segment shared with the next."))
-        self._parameter_form.addRow(_("Segment overlap:"), self._overlap_spin)
-
-        self._window_combo.addItems(WINDOWS)
-        self._window_combo.setToolTip(_("Taper applied to each segment before the FFT."))
-        self._parameter_form.addRow(_("Window:"), self._window_combo)
-
-        self._sigma_spin.setRange(0.0, 1e6)
-        self._sigma_spin.setDecimals(6)
-        self._sigma_spin.setSingleStep(0.1)
-        self._sigma_spin.setValue(0.0)
-        self._sigma_spin.setToolTip(
-            _("Damping sigma of the Laplace variable s = sigma + i*omega. "
-            "Zero reduces the transform to the Fourier transform; increasing it "
-            "weights early samples more and suppresses late ones, which is what "
-            "makes a decaying or unstable signal integrable.")
-        )
-        self._parameter_form.addRow(_("Damping (sigma):"), self._sigma_spin)
-
-        self._wavelet_w0_spin.setRange(3.0, 30.0)
-        self._wavelet_w0_spin.setDecimals(1)
-        self._wavelet_w0_spin.setSingleStep(0.5)
-        self._wavelet_w0_spin.setValue(6.0)
-        self._wavelet_w0_spin.setToolTip(
-            _("Morlet central frequency w0. Higher values resolve frequency more "
-            "finely at the cost of time resolution; 6 is the usual compromise "
-            "and the value at which the wavelet is near-admissible.")
-        )
-        self._parameter_form.addRow(_("Morlet w0:"), self._wavelet_w0_spin)
-
-        self._wavelet_scales_spin.setRange(8, 512)
-        self._wavelet_scales_spin.setValue(64)
-        self._wavelet_scales_spin.setToolTip(
-            _("How many scales to evaluate between the longest period the record "
-            "supports and the Nyquist frequency, spaced logarithmically.")
-        )
-        self._parameter_form.addRow(_("Scales:"), self._wavelet_scales_spin)
-
-        self._detrend_combo.addItems(DETREND_MODES)
-        self._detrend_combo.setToolTip(
-            _("Remove a constant or linear trend from each segment first. A trend "
-            "leaks into the lowest frequency bins and hides everything near it.")
-        )
-        self._parameter_form.addRow(_("Detrend:"), self._detrend_combo)
-
-        self._scaling_combo.addItems(("density", "spectrum"))
-        self._scaling_combo.setToolTip(
-            _("density: power per unit frequency. spectrum: power per segment.")
-        )
-        self._parameter_form.addRow(_("Scaling:"), self._scaling_combo)
-
-        self._onesided_check.setChecked(True)
-        self._onesided_check.setToolTip(
-            _("Fold the negative frequencies onto the positive ones. Correct for "
-            "real-valued signals.")
-        )
-        self._parameter_form.addRow("", self._onesided_check)
-
-        self._db_check.setToolTip(_("Express the result as 10*log10 of the value."))
-        self._parameter_form.addRow("", self._db_check)
-
-        self._maxlags_spin.setRange(0, 1_000_000)
-        self._maxlags_spin.setValue(0)
-        self._maxlags_spin.setSpecialValueText(_("all lags"))
-        self._maxlags_spin.setToolTip(_("Largest lag to keep. 0 keeps every lag."))
-        self._parameter_form.addRow(_("Max lags:"), self._maxlags_spin)
-
-        self._corr_norm_combo.addItems(CORRELATION_NORMALISATIONS)
-        self._corr_norm_combo.setToolTip(
-            _("unbiased divides by the overlap at each lag; biased divides by N; "
-            "none returns the raw sum of products.")
-        )
-        self._parameter_form.addRow(_("Normalisation:"), self._corr_norm_combo)
-
-        return widget
-
-    def connect_operation_signals(self) -> None:
-        """Mark the preview stale whenever a parameter changes."""
-        super().connect_operation_signals()
-        self._fs_auto_check.toggled.connect(self._refresh_visibility)
-        self._fs_auto_check.toggled.connect(self.mark_results_stale)
-
-        for widget in (
-            self._fs_spin,
-            self._overlap_spin,
-        ):
-            widget.valueChanged.connect(self.mark_results_stale)
-        for widget in (self._nperseg_spin, self._maxlags_spin):
-            widget.valueChanged.connect(self.mark_results_stale)
-        for widget in (
-            self._window_combo,
-            self._detrend_combo,
-            self._scaling_combo,
-            self._corr_norm_combo,
-        ):
-            widget.currentIndexChanged.connect(self.mark_results_stale)
-        for widget in (self._onesided_check, self._db_check):
-            widget.toggled.connect(self.mark_results_stale)
-        for widget in (
-            self._sigma_spin,
-            self._wavelet_w0_spin,
-            self._wavelet_scales_spin,
-        ):
-            widget.valueChanged.connect(self.mark_results_stale)
-
-    def _refresh_visibility(self) -> None:
-        """Show only the parameters the selected method actually uses."""
-        if self._parameter_form is None:
-            return
-
-        method = self.model_combo.currentText()
-        is_welch = SPECTRAL_METHODS[method].welch
-        is_frequency = SPECTRAL_METHODS[method].frequency
-        is_correlation = not is_frequency
-
-        self.set_row_visible(self._fs_auto_check, is_frequency)
-        self.set_row_visible(self._fs_spin, is_frequency and not self._fs_auto_check.isChecked())
-        self.set_row_visible(self._nperseg_spin, is_welch)
-        self.set_row_visible(self._overlap_spin, is_welch)
-        self.set_row_visible(self._window_combo, is_welch)
-        self.set_row_visible(self._detrend_combo, is_welch)
-        self.set_row_visible(self._scaling_combo, method in {METHOD_PSD, METHOD_CSD})
-        # One-sided always: a dominant frequency is a positive one.
-        self.set_row_visible(self._onesided_check, is_welch and method != METHOD_STFT)
-        self.set_row_visible(
-            self._db_check,
-            method in {
-                METHOD_PSD,
-                METHOD_CSD,
-                METHOD_MAGNITUDE,
-                METHOD_LAPLACE,
-                METHOD_WAVELET,
-            },
-        )
-        self.set_row_visible(self._maxlags_spin, is_correlation)
-        self.set_row_visible(self._corr_norm_combo, is_correlation)
-        self.set_row_visible(self._sigma_spin, method == METHOD_LAPLACE)
-        self.set_row_visible(self._wavelet_w0_spin, method == METHOD_WAVELET)
-        self.set_row_visible(self._wavelet_scales_spin, method == METHOD_WAVELET)
-
     # ------------------------------------------------------------------
     # Input
     # ------------------------------------------------------------------
@@ -471,21 +341,13 @@ class SeriesSpectralDialog(DataOperationDialogBase):
     # Computation
     # ------------------------------------------------------------------
     def _spectral_params(self, fs: float) -> SpectralParams:
-        """The estimate's settings, read off the controls."""
+        """The estimate's settings, read off the form."""
+        p = self.parameter_values()
         return SpectralParams(
-            fs=fs,
-            window=self._window_combo.currentText(),
-            nperseg=int(self._nperseg_spin.value()),
-            overlap=float(self._overlap_spin.value()),
-            detrend=self._detrend_combo.currentText(),
-            one_sided=bool(self._onesided_check.isChecked()),
-            scaling=self._scaling_combo.currentText(),
-            decibels=bool(self._db_check.isChecked()),
-            sigma=float(self._sigma_spin.value()),
-            wavelet_w0=float(self._wavelet_w0_spin.value()),
-            wavelet_scales=int(self._wavelet_scales_spin.value()),
-            correlation_norm=self._corr_norm_combo.currentText(),
-            max_lags=int(self._maxlags_spin.value()),
+            fs=fs, window=p["window"], nperseg=p["nperseg"], overlap=p["overlap"], detrend=p["detrend"],
+            one_sided=p["one_sided"], scaling=p["scaling"], decibels=p["decibels"], sigma=p["sigma"],
+            wavelet_w0=p["wavelet_w0"], wavelet_scales=p["wavelet_scales"],
+            correlation_norm=p["correlation_norm"], max_lags=p["max_lags"],
         )
 
     def compute_results(self) -> list[SpectralResult]:

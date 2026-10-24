@@ -11374,3 +11374,6 @@ msgstr "Covarianza iniziale:"
 
 msgid "Centered"
 msgstr "Centrata"
+
+msgid "Sampling rate from x"
+msgstr "Campionamento da x"
