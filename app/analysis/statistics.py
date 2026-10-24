@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 
 from app.analysis import NUMERICAL_FAILURES
-from app.analysis.randomness import all_diagnostics
+from app.analysis.randomness import all_diagnostics, finite
 from app.logs.logger import applogger
 from scipy import stats
 
@@ -42,12 +42,6 @@ def result_row(test: str, n: int, statistic: Any, pvalue: Any, note: str = "") -
 def note_row(test: str, n: int, note: str) -> dict[str, Any]:
     """A test that could not run, and why."""
     return {"test": test, "n": int(n), "statistic": np.nan, "pvalue": np.nan, "note": note}
-
-
-def finite(values: Any) -> np.ndarray:
-    """*values* as a float array with NaN and infinities removed."""
-    array = np.asarray(values, dtype=float)
-    return array[np.isfinite(array)]
 
 
 def _statistic(result: Any) -> float:

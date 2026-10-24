@@ -438,24 +438,53 @@ class InputsMixin:
         """The Results pane's document, the same frame for every operation: its name, *subtitle*, *sections*."""
         return report_html.document(_(self.operation_label), subtitle, *sections)
 
-    def format_results(self, results: Sequence[Any]) -> str:
-        """The Results pane: one section per result - its series, model and settings (OperationResult.to_html).
+    #: The Results pane as one table, a row per result (result_row gives the cells): (heading, alignment) per
+    #: column. Empty: a section per result instead (result_section).
+    RESULT_COLUMNS: tuple[tuple[str, str], ...] = ()
 
-        An operation with more to say overrides this and builds its sections, framed by results_document.
+    def format_results(self, results: Sequence[Any]) -> str:
+        """The Results pane, framed by results_document: the RESULT_COLUMNS table, else a section per result.
+
+        An operation says what it has to say through result_row or result_section; the frame, the empty
+        case and the subtitle are the same for all.
         """
         if not results:
-            return ""
-        sections = []
-        for result in results:
-            series = ", ".join(getattr(result, "series", ()) or ()) or str(getattr(result, "source_name", "") or "")
-            body = result.to_html() if hasattr(result, "to_html") else report_html.note(str(result))
-            metrics = getattr(result, "metrics", None)
-            if isinstance(metrics, Mapping) and metrics:
-                body += report_html.summary_table((str(key), value) for key, value in metrics.items())
-            sections.append(report_html.section(series or _("Result"), body))
-        model = str(getattr(results[0], "model_name", "") or "")
-        return self.results_document(model, *sections)
+            return report_html.note(_("No results."))
+        if self.RESULT_COLUMNS:
+            body = report_html.section(_("Results"), report_html.table(
+                tuple(_(heading) for heading, _align in self.RESULT_COLUMNS),
+                [self.result_row(result) for result in results],
+                align=tuple(align for _heading, align in self.RESULT_COLUMNS),
+                empty_message=_("No results for this selection."),
+            ))
+            return self.results_document(self.results_subtitle(results), body)
+        return self.results_document(self.results_subtitle(results),
+                                     *(self.result_section(result) for result in results))
 
+    def results_subtitle(self, results: Sequence[Any]) -> str:
+        """The line under the operation's name: the model chosen for a table of results, else the first's."""
+        if self.RESULT_COLUMNS:
+            return self.current_model()
+        return str(getattr(results[0], "model_name", "") or "")
+
+    def result_row(self, result: Any) -> Sequence[Any]:
+        """The cells of *result*'s row in the RESULT_COLUMNS table (HTML)."""
+        raise NotImplementedError
+
+    def result_section(self, result: Any) -> str:
+        """*result*'s section: its series, model and settings (OperationResult.to_html), and its metrics."""
+        series = ", ".join(getattr(result, "series", ()) or ()) or str(getattr(result, "source_name", "") or "")
+        body = result.to_html() if hasattr(result, "to_html") else report_html.note(str(result))
+        metrics = getattr(result, "metrics", None)
+        if isinstance(metrics, Mapping) and metrics:
+            body += report_html.summary_table((str(key), value) for key, value in metrics.items())
+        return report_html.section(series or _("Result"), body)
+
+    @staticmethod
+    def details(values: Mapping[str, Any], *, leave_out: Sequence[str] = ()) -> str:
+        """``key: value, ...`` of *values* that say something - the Detail cell of a results table."""
+        return ", ".join(f"{key}: {value}" for key, value in values.items()
+                         if key not in leave_out and value not in (None, ""))
 
     def store_cached_results(self, results: Sequence[Any]) -> None:
         """Store latest results using the existing dialog convention."""

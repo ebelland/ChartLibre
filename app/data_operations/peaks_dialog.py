@@ -361,94 +361,84 @@ class SeriesPeaksDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'Peaks'
     RESULT_TABLE_VARIANT = None
 
-    def format_results(self, results: Sequence[PeakResult]) -> str:
-        if not results:
-            return report_html.note(_("No results."))
+    def results_subtitle(self, results: Sequence[PeakResult]) -> str:
+        return self.current_model()
 
-        sections: list[str] = []
-        for result in results:
-            if not result.peaks:
-                sections.append(
-                    report_html.section(
-                        result.source_name,
-                        report_html.note(
-                            _(
-                                "No peaks passed the filter. Lower the minimum, "
-                                "or switch from height to prominence if the "
-                                "baseline is not at zero."
-                            )
-                        ),
-                    )
-                )
-                continue
-
-            if result.metadata.get("is_3d"):
-                grid_note = report_html.note(
+    def result_section(self, result: PeakResult) -> str:
+        """The peaks found on one series, or why there are none."""
+        if not result.peaks:
+            return report_html.section(
+                result.source_name,
+                report_html.note(
                     _(
-                        "This surface's points were not a complete x/y grid, "
-                        "so the peaks below were found on a linearly "
-                        "interpolated one - treat them as approximate."
+                        "No peaks passed the filter. Lower the minimum, "
+                        "or switch from height to prominence if the "
+                        "baseline is not at zero."
                     )
-                    if result.metadata.get("interpolated")
-                    else _("Found on the surface's own exact x/y grid.")
-                )
-                rows_3d = [
-                    (
-                        str(index + 1),
-                        report_html.format_number(peak.x),
-                        report_html.format_number(peak.y),
-                        report_html.format_number(peak.z),
-                        report_html.format_number(peak.prominence, digits=4),
-                        _("minimum") if peak.is_minimum else _("maximum"),
-                    )
-                    for index, peak in enumerate(result.peaks)
-                ]
-                sections.append(
-                    report_html.section(
-                        f"{result.source_name} \u2014 {len(result.peaks)}",
-                        grid_note,
-                        report_html.table(
-                            ("#", "x", "y", "z", _("Prominence"), _("Kind")),
-                            rows_3d,
-                            align=("right", "right", "right", "right", "right", "left"),
-                        ),
-                    )
-                )
-                continue
+                ),
+            )
 
-            rows = [
+        if result.metadata.get("is_3d"):
+            grid_note = report_html.note(
+                _(
+                    "This surface's points were not a complete x/y grid, "
+                    "so the peaks below were found on a linearly "
+                    "interpolated one - treat them as approximate."
+                )
+                if result.metadata.get("interpolated")
+                else _("Found on the surface's own exact x/y grid.")
+            )
+            rows_3d = [
                 (
                     str(index + 1),
                     report_html.format_number(peak.x),
                     report_html.format_number(peak.y),
+                    report_html.format_number(peak.z),
                     report_html.format_number(peak.prominence, digits=4),
-                    report_html.format_number(peak.width, digits=4),
-                    f"{report_html.format_number(peak.left_x)} .. "
-                    f"{report_html.format_number(peak.right_x)}",
                     _("minimum") if peak.is_minimum else _("maximum"),
                 )
                 for index, peak in enumerate(result.peaks)
             ]
-            sections.append(
-                report_html.section(
-                    f"{result.source_name} \u2014 {len(result.peaks)}",
-                    report_html.table(
-                        (
-                            "#",
-                            "x",
-                            "y",
-                            _("Prominence"),
-                            _("Width"),
-                            _("Half-prominence bounds"),
-                            _("Kind"),
-                        ),
-                        rows,
-                        align=(
-                            "right", "right", "right", "right", "right",
-                            "right", "left",
-                        ),
-                    ),
-                )
+            return report_html.section(
+                f"{result.source_name} \u2014 {len(result.peaks)}",
+                grid_note,
+                report_html.table(
+                    ("#", "x", "y", "z", _("Prominence"), _("Kind")),
+                    rows_3d,
+                    align=("right", "right", "right", "right", "right", "left"),
+                ),
             )
 
-        return self.results_document(self.current_model(), *sections)
+        rows = [
+            (
+                str(index + 1),
+                report_html.format_number(peak.x),
+                report_html.format_number(peak.y),
+                report_html.format_number(peak.prominence, digits=4),
+                report_html.format_number(peak.width, digits=4),
+                f"{report_html.format_number(peak.left_x)} .. "
+                f"{report_html.format_number(peak.right_x)}",
+                _("minimum") if peak.is_minimum else _("maximum"),
+            )
+            for index, peak in enumerate(result.peaks)
+        ]
+        return report_html.section(
+            f"{result.source_name} \u2014 {len(result.peaks)}",
+            report_html.table(
+                (
+                    "#",
+                    "x",
+                    "y",
+                    _("Prominence"),
+                    _("Width"),
+                    _("Half-prominence bounds"),
+                    _("Kind"),
+                ),
+                rows,
+                align=(
+                    "right", "right", "right", "right", "right",
+                    "right", "left",
+                ),
+            ),
+        )
+

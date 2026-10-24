@@ -779,89 +779,84 @@ class SeriesControlChartDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'ControlChart'
     RESULT_TABLE_VARIANT = 'chart'
 
-    def format_results(self, results: Sequence[ControlChartResult]) -> str:
-        if not results:
-            return report_html.note(_("No results."))
+    def results_subtitle(self, results: Sequence[ControlChartResult]) -> str:
+        return self._chart()
 
-        sections: list[str] = []
-        for result in results:
-            varies = result.limits_vary
-            summary_rows: list[tuple[str, Any]] = [
-                (_("Control chart"), result.chart),
-                (_("Points plotted"), result.y.size),
-            ]
-            if not CONTROL_CHARTS[result.chart].attribute:
-                summary_rows.append((_("Subgroup size"), result.subgroup_size))
-            summary_rows.append(
-                (_("Centre line"), report_html.format_number(result.center))
+    def result_section(self, result: ControlChartResult) -> str:
+        """The chart of one series: its limits, zones, signals, the verdict and the capability."""
+        varies = result.limits_vary
+        summary_rows: list[tuple[str, Any]] = [
+            (_("Control chart"), result.chart),
+            (_("Points plotted"), result.y.size),
+        ]
+        if not CONTROL_CHARTS[result.chart].attribute:
+            summary_rows.append((_("Subgroup size"), result.subgroup_size))
+        summary_rows.append(
+            (_("Centre line"), report_html.format_number(result.center))
+        )
+        summary_rows += [
+            (
+                _("Mean upper limit") if varies else _("Upper control limit"),
+                report_html.format_number(result.upper),
+            ),
+            (
+                _("Mean lower limit") if varies else _("Lower control limit"),
+                report_html.format_number(result.lower),
+            ),
+            (_("Sigma estimate"), report_html.format_number(result.sigma)),
+            (_("Estimator"), result.metadata.get("estimator", "")),
+        ]
+        summary_rows += [
+            (str(key), report_html.format_number(value)
+             if isinstance(value, float) else value)
+            for key, value in result.metadata.items()
+            if key != "estimator"
+        ]
+        summary = report_html.summary_table(summary_rows)
+
+        if varies:
+            zones = report_html.note(
+                _(
+                    "The limits move with the sample size, so the zone "
+                    "rules (Nelson 5-8) do not apply and were not run."
+                )
             )
-            summary_rows += [
-                (
-                    _("Mean upper limit") if varies else _("Upper control limit"),
-                    report_html.format_number(result.upper),
-                ),
-                (
-                    _("Mean lower limit") if varies else _("Lower control limit"),
-                    report_html.format_number(result.lower),
-                ),
-                (_("Sigma estimate"), report_html.format_number(result.sigma)),
-                (_("Estimator"), result.metadata.get("estimator", "")),
-            ]
-            summary_rows += [
-                (str(key), report_html.format_number(value)
-                 if isinstance(value, float) else value)
-                for key, value in result.metadata.items()
-                if key != "estimator"
-            ]
-            summary = report_html.summary_table(summary_rows)
+        else:
+            zones = ""
 
-            if varies:
-                zones = report_html.note(
-                    _(
-                        "The limits move with the sample size, so the zone "
-                        "rules (Nelson 5-8) do not apply and were not run."
+        if result.violations:
+            table = report_html.table(
+                (_("Point"), "x", "y", _("Rule"), _("Signal")),
+                [
+                    (
+                        str(violation.index + 1),
+                        report_html.format_number(violation.x),
+                        report_html.format_number(violation.y),
+                        ", ".join(str(rule) for rule in violation.rules),
+                        "; ".join(_(text) for text in violation.descriptions),
                     )
+                    for violation in result.violations
+                ],
+                align=("right", "right", "right", "right", "left"),
+            )
+            verdict = report_html.note(
+                _(
+                    "{count} of {total} points signal. The process is not "
+                    "in statistical control."
+                ).format(count=len(result.violations), total=result.y.size)
+            )
+        else:
+            table = ""
+            verdict = report_html.note(
+                _(
+                    "No points signal. The process is in statistical "
+                    "control - which says it is stable, not that it meets "
+                    "any specification."
                 )
-            else:
-                zones = ""
-
-            if result.violations:
-                table = report_html.table(
-                    (_("Point"), "x", "y", _("Rule"), _("Signal")),
-                    [
-                        (
-                            str(violation.index + 1),
-                            report_html.format_number(violation.x),
-                            report_html.format_number(violation.y),
-                            ", ".join(str(rule) for rule in violation.rules),
-                            "; ".join(_(text) for text in violation.descriptions),
-                        )
-                        for violation in result.violations
-                    ],
-                    align=("right", "right", "right", "right", "left"),
-                )
-                verdict = report_html.note(
-                    _(
-                        "{count} of {total} points signal. The process is not "
-                        "in statistical control."
-                    ).format(count=len(result.violations), total=result.y.size)
-                )
-            else:
-                table = ""
-                verdict = report_html.note(
-                    _(
-                        "No points signal. The process is in statistical "
-                        "control - which says it is stable, not that it meets "
-                        "any specification."
-                    )
-                )
-
-            sections.append(
-                report_html.section(result.source_name, summary, zones, verdict, table,
-                                    self._capability_html(result))
             )
 
-        return self.results_document(self._chart(), *sections)
+        return report_html.section(result.source_name, summary, zones, verdict, table,
+                                   self._capability_html(result))
 
     @staticmethod
     def _capability_html(result: ControlChartResult) -> str:

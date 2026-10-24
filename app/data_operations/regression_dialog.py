@@ -44,7 +44,6 @@ from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
 )
 from app.utils import report_html
-from app.utils.i18n import _
 
 # --- Models -------------------------------------------------------------
 
@@ -332,35 +331,10 @@ class SeriesRegressionDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'Regression'
     RESULT_TABLE_VARIANT = 'model'
 
-    def format_results(self, results: Sequence[RegressionResult]) -> str:
-        if not results:
-            return report_html.note(_("No results."))
+    RESULT_COLUMNS = (("Series", "left"), ("Model", "left"), ("Points", "right"), ("R²", "right"),
+                      ("Detail", "left"))
 
-        rows = [
-            (
-                result.source_name,
-                result.model,
-                report_html.format_number(result.y.size, digits=0),
-                report_html.format_number(result.metadata["r2"])
-                if "r2" in result.metadata
-                else "&mdash;",
-                ", ".join(
-                    f"{key}: {value}"
-                    for key, value in result.metadata.items()
-                    if key != "r2" and value not in (None, "")
-                ),
-            )
-            for result in results
-        ]
-
-        return self.results_document(self.current_model(),
-            report_html.section(
-                _("Results"),
-                report_html.table(
-                    (_("Series"), _("Model"), _("Points"), _("R²"), _("Detail")),
-                    rows,
-                    align=("left", "left", "right", "right", "left"),
-                    empty_message=_("No results for this selection."),
-                ),
-            ),
-        )
+    def result_row(self, result: RegressionResult) -> tuple[str, ...]:
+        r2 = report_html.format_number(result.metadata["r2"]) if "r2" in result.metadata else "&mdash;"
+        return (result.source_name, result.model, report_html.format_number(result.y.size, digits=0), r2,
+                self.details(result.metadata, leave_out=("r2",)))

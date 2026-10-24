@@ -424,107 +424,94 @@ class SeriesRootsDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'Roots'
     RESULT_TABLE_VARIANT = None
 
-    def format_results(self, results: Sequence[RootResult]) -> str:
-        if not results:
-            return report_html.note(_("No results."))
-
-        sections: list[str] = []
-        for result in results:
-            is_3d = bool(result.metadata.get("is_3d"))
-
-            if not result.roots:
-                message = (
-                    _(
-                        "The surface never reaches this level - z stays on "
-                        "one side of it everywhere on the grid."
-                    )
-                    if is_3d
-                    else _(
-                        "The series never crosses this level. Check "
-                        "the level against the data's range - a "
-                        "crossing no two samples straddle cannot be "
-                        "found from these samples."
-                    )
-                )
-                sections.append(
-                    report_html.section(result.source_name, report_html.note(message))
-                )
-                continue
-
-            if is_3d:
-                grid_note = report_html.note(
-                    _(
-                        "This surface's points were not a complete x/y grid, "
-                        "so this level curve was traced on a linearly "
-                        "interpolated one - treat it as approximate."
-                    )
-                    if result.metadata.get("interpolated")
-                    else _("Traced on the surface's own exact x/y grid.")
-                )
-                curves = int(result.metadata.get("curves", 0))
-                rows_3d = [
-                    (
-                        str(index + 1),
-                        str(root.curve_index + 1),
-                        report_html.format_number(root.x),
-                        report_html.format_number(root.y),
-                    )
-                    for index, root in enumerate(result.roots)
-                ]
-                heading = f"{result.source_name} — {curves} curve(s), {len(result.roots)} point(s)"
-                if result.metadata.get("truncated"):
-                    heading = f"{heading} ({_('truncated')})"
-                sections.append(
-                    report_html.section(
-                        heading,
-                        grid_note,
-                        report_html.table(
-                            ("#", _("Curve"), "x", "y"),
-                            rows_3d,
-                            align=("right", "right", "right", "right"),
-                        ),
-                    )
-                )
-                continue
-
-            rows = [
-                (
-                    str(index + 1),
-                    report_html.format_number(root.x),
-                    _("rising") if root.rising else _("falling"),
-                    root.method,
-                    str(root.iterations) if root.iterations else "-",
-                    report_html.format_number(root.y - result.level, digits=3),
-                )
-                for index, root in enumerate(result.roots)
-            ]
-            heading = f"{result.source_name} — {len(result.roots)}"
-            if result.metadata.get("truncated"):
-                heading = f"{heading} ({_('truncated')})"
-
-            sections.append(
-                report_html.section(
-                    heading,
-                    report_html.table(
-                        (
-                            "#",
-                            "x",
-                            _("Direction"),
-                            _("Solver"),
-                            _("Iterations"),
-                            _("Residual"),
-                        ),
-                        rows,
-                        align=("right", "right", "left", "left", "right", "right"),
-                    ),
-                )
-            )
-
-        subtitle = _("level {level}").format(
-            level=report_html.format_number(results[0].level)
-        )
+    def results_subtitle(self, results: Sequence[RootResult]) -> str:
+        level = _("level {level}").format(level=report_html.format_number(results[0].level))
         # results[0].model, not self.current_model(): a 3D result's actual method
         # was always "Contour (matplotlib)" regardless of which 1D solver
         # happens to be selected in the combo right now.
-        return self.results_document(f"{results[0].model} — {subtitle}", *sections
+        return f"{results[0].model} — {level}"
+
+    def result_section(self, result: RootResult) -> str:
+        """The crossings found on one series or surface, or why there are none."""
+        is_3d = bool(result.metadata.get("is_3d"))
+
+        if not result.roots:
+            message = (
+                _(
+                    "The surface never reaches this level - z stays on "
+                    "one side of it everywhere on the grid."
+                )
+                if is_3d
+                else _(
+                    "The series never crosses this level. Check "
+                    "the level against the data's range - a "
+                    "crossing no two samples straddle cannot be "
+                    "found from these samples."
+                )
+            )
+            return report_html.section(result.source_name, report_html.note(message))
+
+        if is_3d:
+            grid_note = report_html.note(
+                _(
+                    "This surface's points were not a complete x/y grid, "
+                    "so this level curve was traced on a linearly "
+                    "interpolated one - treat it as approximate."
+                )
+                if result.metadata.get("interpolated")
+                else _("Traced on the surface's own exact x/y grid.")
+            )
+            curves = int(result.metadata.get("curves", 0))
+            rows_3d = [
+                (
+                    str(index + 1),
+                    str(root.curve_index + 1),
+                    report_html.format_number(root.x),
+                    report_html.format_number(root.y),
+                )
+                for index, root in enumerate(result.roots)
+            ]
+            heading = f"{result.source_name} — {curves} curve(s), {len(result.roots)} point(s)"
+            if result.metadata.get("truncated"):
+                heading = f"{heading} ({_('truncated')})"
+            return report_html.section(
+                heading,
+                grid_note,
+                report_html.table(
+                    ("#", _("Curve"), "x", "y"),
+                    rows_3d,
+                    align=("right", "right", "right", "right"),
+                ),
+            )
+
+        rows = [
+            (
+                str(index + 1),
+                report_html.format_number(root.x),
+                _("rising") if root.rising else _("falling"),
+                root.method,
+                str(root.iterations) if root.iterations else "-",
+                report_html.format_number(root.y - result.level, digits=3),
+            )
+            for index, root in enumerate(result.roots)
+        ]
+        heading = f"{result.source_name} — {len(result.roots)}"
+        if result.metadata.get("truncated"):
+            heading = f"{heading} ({_('truncated')})"
+
+        return report_html.section(
+            heading,
+            report_html.table(
+                (
+                    "#",
+                    "x",
+                    _("Direction"),
+                    _("Solver"),
+                    _("Iterations"),
+                    _("Residual"),
+                ),
+                rows,
+                align=("right", "right", "left", "left", "right", "right"),
+            ),
         )
+

@@ -47,7 +47,6 @@ from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
 )
 from app.utils import report_html
-from app.utils.i18n import _
 
 # --- Models -----------------------------------------------------------
 
@@ -612,33 +611,10 @@ class SeriesCalculusDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'Calculus'
     RESULT_TABLE_VARIANT = 'model'
 
-    def format_results(self, results: Sequence[CalculusResult]) -> str:
-        if not results:
-            return report_html.note(_("No results."))
+    RESULT_COLUMNS = (("Series", "left"), ("Model", "left"), ("Points", "right"), ("Total", "right"),
+                      ("Detail", "left"))
 
-        rows = [
-            (
-                result.source_name,
-                result.model,
-                report_html.format_number(result.y.size, digits=0),
-                report_html.format_number(result.total)
-                if result.total is not None
-                else "&mdash;",
-                ", ".join(
-                    f"{key}: {value}" for key, value in result.metadata.items() if value
-                ),
-            )
-            for result in results
-        ]
-
-        return self.results_document(self.current_model(),
-            report_html.section(
-                _("Results"),
-                report_html.table(
-                    (_("Series"), _("Model"), _("Points"), _("Total"), _("Detail")),
-                    rows,
-                    align=("left", "left", "right", "right", "left"),
-                    empty_message=_("No results for this selection."),
-                ),
-            ),
-        )
+    def result_row(self, result: CalculusResult) -> tuple[str, ...]:
+        total = report_html.format_number(result.total) if result.total is not None else "&mdash;"
+        return (result.source_name, result.model, report_html.format_number(result.y.size, digits=0), total,
+                self.details(result.metadata))

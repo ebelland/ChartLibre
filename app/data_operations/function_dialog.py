@@ -571,56 +571,53 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             fallback="Function_Result",
         )
 
-    def format_results(self, results: Sequence[FunctionResult]) -> str:
-        if not results:
-            return report_html.note(_("No results."))
+    def results_subtitle(self, results: Sequence[FunctionResult]) -> str:
+        return ""
 
-        sections: list[str] = []
-        for result in results:
-            values = result.z if result.z is not None else result.y
-            is_surface = result.z is not None
-            finite = np.isfinite(values)
-            summary_rows: list[tuple[str, Any]] = [
-                (_("Function"), result.function_name),
-                (_("Points"), values.size),
-                (_("Range"), result.metadata.get("range", "")),
-                (_("Spacing"), result.metadata.get("spacing", "")),
-            ]
-            if finite.any():
-                summary_rows.extend(
+    def result_section(self, result: FunctionResult) -> str:
+        """The function: its points, ranges and parameters, and its expression."""
+        values = result.z if result.z is not None else result.y
+        is_surface = result.z is not None
+        finite = np.isfinite(values)
+        summary_rows: list[tuple[str, Any]] = [
+            (_("Function"), result.function_name),
+            (_("Points"), values.size),
+            (_("Range"), result.metadata.get("range", "")),
+            (_("Spacing"), result.metadata.get("spacing", "")),
+        ]
+        if finite.any():
+            summary_rows.extend(
+                [
+                    (
+                        _("z range") if is_surface else _("y range"),
+                        f"{report_html.format_number(float(np.min(values[finite])))}"
+                        f" .. "
+                        f"{report_html.format_number(float(np.max(values[finite])))}",
+                    ),
+                ]
+            )
+        if "undefined" in result.metadata:
+            summary_rows.append((_("Undefined points"), result.metadata["undefined"]))
+
+        blocks = [report_html.summary_table(summary_rows)]
+
+        if result.expression:
+            # raw_note, not note: expression is authored as HTML by the
+            # function class - "<b>Constant</b><br>y = C" - so escaping it
+            # shows the reader the tags instead of the formula.
+            blocks.append(report_html.raw_note(result.expression))
+
+        if result.params:
+            blocks.append(
+                report_html.table(
+                    (_("Parameter"), _("Value")),
                     [
-                        (
-                            _("z range") if is_surface else _("y range"),
-                            f"{report_html.format_number(float(np.min(values[finite])))}"
-                            f" .. "
-                            f"{report_html.format_number(float(np.max(values[finite])))}",
-                        ),
-                    ]
+                        (name, report_html.format_number(value))
+                        for name, value in result.params.items()
+                    ],
+                    align=("left", "right"),
+                    empty_message=_("This function takes no parameters."),
                 )
-            if "undefined" in result.metadata:
-                summary_rows.append((_("Undefined points"), result.metadata["undefined"]))
+            )
 
-            blocks = [report_html.summary_table(summary_rows)]
-
-            if result.expression:
-                # raw_note, not note: expression is authored as HTML by the
-                # function class - "<b>Constant</b><br>y = C" - so escaping it
-                # shows the reader the tags instead of the formula.
-                blocks.append(report_html.raw_note(result.expression))
-
-            if result.params:
-                blocks.append(
-                    report_html.table(
-                        (_("Parameter"), _("Value")),
-                        [
-                            (name, report_html.format_number(value))
-                            for name, value in result.params.items()
-                        ],
-                        align=("left", "right"),
-                        empty_message=_("This function takes no parameters."),
-                    )
-                )
-
-            sections.append(report_html.section(result.function_name, *blocks))
-
-        return self.results_document("", *sections)
+        return report_html.section(result.function_name, *blocks)

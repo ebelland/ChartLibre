@@ -26,7 +26,6 @@ from app.plugin_api.data_operations.dialog_base import (
 )
 from app.plugin_api.data_operations.parameter_spec import FloatParam
 from app.utils import report_html
-from app.utils.i18n import _
 
 KERNEL_RBF = "RBF"
 KERNEL_MATERN_32 = "Matern (nu=1.5)"
@@ -280,28 +279,13 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'GP'
     RESULT_TABLE_VARIANT = 'model'
 
-    def format_results(self, results: Sequence[GPRegressionResult]) -> str:
-        if not results:
-            return report_html.note(_("No results."))
+    RESULT_COLUMNS = (("Series", "left"), ("Kernel", "left"), ("Log marginal likelihood", "right"),
+                      ("Fitted kernel", "left"))
 
-        rows = [
-            (
-                result.source_name,
-                result.model,
+    def results_subtitle(self, results: Sequence[GPRegressionResult]) -> str:
+        return self._kernel()
+
+    def result_row(self, result: GPRegressionResult) -> tuple[str, ...]:
+        return (result.source_name, result.model,
                 report_html.format_number(result.metadata.get("log_marginal_likelihood")),
-                str(result.metadata.get("kernel", "")),
-            )
-            for result in results
-        ]
-
-        return self.results_document(self._kernel(),
-            report_html.section(
-                _("Results"),
-                report_html.table(
-                    (_("Series"), _("Kernel"), _("Log marginal likelihood"), _("Fitted kernel")),
-                    rows,
-                    align=("left", "left", "right", "left"),
-                    empty_message=_("No results for this selection."),
-                ),
-            ),
-        )
+                str(result.metadata.get("kernel", "")))

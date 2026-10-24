@@ -35,7 +35,6 @@ from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
 )
 from app.utils import report_html
-from app.utils.i18n import _
 
 # --- Models -------------------------------------------------------------
 
@@ -288,30 +287,8 @@ class SeriesTransformDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'Transform'
     RESULT_TABLE_VARIANT = 'model'
 
-    def format_results(self, results: Sequence[TransformResult]) -> str:
-        if not results:
-            return report_html.note(_("No results."))
+    RESULT_COLUMNS = (("Series", "left"), ("Model", "left"), ("Points", "right"), ("Detail", "left"))
 
-        rows = [
-            (
-                result.source_name,
-                result.model,
-                report_html.format_number(result.y.size, digits=0),
-                ", ".join(
-                    f"{key}: {value}" for key, value in result.metadata.items() if value not in (None, "")
-                ),
-            )
-            for result in results
-        ]
-
-        return self.results_document(self.current_model(),
-            report_html.section(
-                _("Results"),
-                report_html.table(
-                    (_("Series"), _("Model"), _("Points"), _("Detail")),
-                    rows,
-                    align=("left", "left", "right", "left"),
-                    empty_message=_("No results for this selection."),
-                ),
-            ),
-        )
+    def result_row(self, result: TransformResult) -> tuple[str, ...]:
+        return (result.source_name, result.model, report_html.format_number(result.y.size, digits=0),
+                self.details(result.metadata))
