@@ -86,6 +86,9 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
     """
 
     applied = Signal()
+    #: Preview drew a new figure (its id), or took it away again (-1): the window shows or drops its tab,
+    #: as for the table analyses - otherwise "Draw on: New figure" previewed into a tab nobody saw.
+    preview_drawn = Signal(int)
 
     #: Emitted with the run's report, as HTML, once Apply has committed.
     #: The main window forwards it to the chart panel the operation ran on, so

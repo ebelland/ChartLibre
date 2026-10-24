@@ -338,8 +338,22 @@ class ResultsMixin:
         """Notify the owner window that chart/data panes must refresh."""
         try:
             self.applied.emit()
+            self.sync_preview_figure()
         except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to emit preview refresh signal.")
+
+    def sync_preview_figure(self) -> None:
+        """Tell the window about the figure a Preview made: shown when there is one, dropped when it went."""
+        figure_id = getattr(self, "_result_figure_id", None)
+        if figure_id is not None and self._repo.get_figure_descriptor(int(figure_id)) is None:
+            figure_id = None
+        shown = getattr(self, "_preview_figure_shown", None)
+        if figure_id is not None and figure_id != shown:
+            self._preview_figure_shown = int(figure_id)
+            self.preview_drawn.emit(int(figure_id))
+        elif figure_id is None and shown is not None:
+            self._preview_figure_shown = None
+            self.preview_drawn.emit(-1)
 
     def _reset_preview_state_flags(self) -> None:
         """Clear in-memory preview bookkeeping after commit or rollback."""

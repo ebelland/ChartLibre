@@ -375,3 +375,4 @@ class TransactionMixin:
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
         self._discard_table_figure()
+        self.sync_preview_figure()

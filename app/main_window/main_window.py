@@ -1389,20 +1389,27 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             dialog.setWindowIcon(icon)
 
         dialog.applied.connect(self.refresh)
+        # A Preview drawn on a new figure: its tab shown while the dialog is open.
+        tabs_rebuilt: list[bool] = []
+        if hasattr(dialog, "preview_drawn"):  # a dialog of a plugin's own may not have it
+            dialog.preview_drawn.connect(lambda figure, rebuilt=tabs_rebuilt: (
+                rebuilt.append(True), self._on_analysis_preview(figure)))
         # Bind results to the panel active when the dialog was opened - or, on a
         # scratch chart, to the figure once its tab exists.
         published: list[str] = []
         if panel is not None:
+            # Found again by its figure: a Preview on a new figure rebuilds the tabs, and the panel with them.
             dialog.results_published.connect(
-                lambda markup, target=panel: target.set_notes_html(
-                    markup,
-                    append=True,
-                )
+                lambda markup, figure=figure_id: self._notes_to_figure(figure, markup)
             )
         else:
             dialog.results_published.connect(published.append)
         figures_before = {figure_id for figure_id, _name in self._repo.load_figures_from_db()}
         dialog.exec()
+        if tabs_rebuilt:
+            # The tabs were rebuilt under the dialog: the panel it opened on is a new one now.
+            self._reload_tabs(select_figure_id=figure_id)
+            panel = self._current_chart_panel()
         if panel is not None:
             panel.reload()
         elif published or not self._drop_scratch_figure(figure_id):
@@ -1507,6 +1514,14 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             if isinstance(panel, ChartPanel):
                 panel.show_selected_rows(list(tables))
         self._preview.show_selected_rows(list(tables))
+
+    def _notes_to_figure(self, figure_id: int, markup: str) -> None:
+        """Append *markup* to the notes of the chart tab of *figure_id*, if it is open."""
+        for index in range(self._tabs.count()):
+            widget = self._tabs.widget(index)
+            if isinstance(widget, ChartPanel) and widget.figure_id == figure_id:
+                widget.set_notes_html(markup, append=True)
+                return
 
     def _current_chart_panel(self) -> ChartPanel | None:
         """Return the currently selected chart panel, if any."""
