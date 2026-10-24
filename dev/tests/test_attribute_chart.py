@@ -142,8 +142,9 @@ def test_the_dialog_applies_a_p_chart_with_the_picked_size_column(
     finally:
         dialog.close()
 
-    series = repo.get_series(axis_id) or []
-    names = {str(row["name"]) for row in series}
+    # On an axis of its own (the Control Chart's "Draw on" default), in the same figure.
+    axes = repo.load_figure_descriptor(figure_id).axes
+    names = {str(series.name) for axis in axes for series in axis.series}
     # the points, plus UCL / LCL / CL / signals
     assert any(name.endswith(f"- {CHART_P.split(' ')[0]}") for name in names)
     assert any("UCL" in name for name in names)

@@ -222,7 +222,7 @@ def save_window_geometry(window: QWidget, key: str) -> None:
 
 
 def restore_window_geometry(window: QWidget, key: str) -> bool:
-    """Re-apply a remembered geometry; returns False when there is none.
+    """Re-apply a remembered geometry; returns False when there is none. A dialog's size only.
 
     The saved position is only honoured if it still lands on a screen: a window
     restored onto a monitor that has since been unplugged would be invisible
@@ -237,7 +237,13 @@ def restore_window_geometry(window: QWidget, key: str) -> bool:
     if width > 0 and height > 0:
         window.resize(width, height)
 
+    # A dialog keeps its size, not its place: as on the Mac, Qt shows it
+    # centred on the window it belongs to (on the screen when it has none).
+    from PySide6.QtWidgets import QDialog
+
     x, y = state.get("x"), state.get("y")
+    if isinstance(window, QDialog):
+        x = y = None
     if x is not None and y is not None and _is_on_a_screen(window, int(x), int(y)):
         window.move(int(x), int(y))
 
