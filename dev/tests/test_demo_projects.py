@@ -209,24 +209,23 @@ def test_a_loaded_demo_brings_its_preview(tmp_path: Path) -> None:
     assert not (tmp_path / f"{demo.file_name}.preview.png").exists()
 
 
-def test_load_demo_shows_the_selected_demos_picture(qapp) -> None:
-    from app.dialogs.load_demo_dialog import LoadDemoDialog
-
+def test_demo_tab_shows_the_selected_demos_picture(qapp) -> None:
     from PySide6.QtCore import Qt
 
-    dialog = LoadDemoDialog()
-    dialog.category.setCurrentIndex(0)  # All demos: every one, each category under its heading
-    rows = [row for row in range(dialog._list.count())
-            if dialog._list.item(row).data(Qt.ItemDataRole.UserRole) is not None]
-    assert len(rows) == len(DEMO_PROJECTS) and dialog._list.count() > len(DEMO_PROJECTS)
+    from app.widgets.recent_projects import PREVIEW_SIZE, DemoProjectsView
+
+    view = DemoProjectsView()
+    rows = [row for row in range(view._list.count())
+            if view._list.item(row).data(Qt.ItemDataRole.UserRole) is not None]
+    # Every demo, each category under its heading.
+    assert len(rows) == len(DEMO_PROJECTS) and view._list.count() > len(DEMO_PROJECTS)
     for row in (rows[0], rows[-1]):
-        dialog._list.setCurrentRow(row)
-        picture = dialog._preview.pixmap()
-        assert not picture.isNull() and picture.width() / picture.devicePixelRatio() <= dialog.PREVIEW_SIZE.width()
-    dialog.category.setCurrentIndex(dialog.category.findData("Guided Analysis"))
-    shown = [dialog._list.item(row).data(Qt.ItemDataRole.UserRole) for row in range(dialog._list.count())]
-    assert shown and all(demo.category == "Guided Analysis" for demo in shown)
-    dialog.close()
-    again = LoadDemoDialog()  # the category shown last
-    assert again.category.currentData() == "Guided Analysis"
-    again.close()
+        view._list.setCurrentRow(row)
+        picture = view._preview.pixmap()
+        assert not picture.isNull() and picture.width() / picture.devicePixelRatio() <= PREVIEW_SIZE.width()
+    opened = []
+    view.open_requested.connect(opened.append)
+    view._open_selected()
+    assert opened == [view._list.item(rows[-1]).data(Qt.ItemDataRole.UserRole)]
+    assert view._clear_button.isHidden()
+    view.close()

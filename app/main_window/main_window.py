@@ -43,7 +43,7 @@ from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_ico
 from app.widgets.guided_panel import GuidedAnalysisPanel
 from app.widgets.catalog_search import CatalogSearch
 from app.scanners.table_operation_scanner import import_class_from_file as import_table_operation
-from app.widgets.recent_projects import RecentProjectsView
+from app.widgets.recent_projects import ProjectsTabs
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.credits_dialog import CreditsDialog
 from app.widgets.database_info_panel import DatabaseInfoPanel
@@ -91,6 +91,7 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QMessageBox,
     QMainWindow,
+    QPushButton,
     QSizePolicy,
     QSplitter,
     QTabWidget,
@@ -642,12 +643,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             QMessageBox.warning(self, _("New Blank Table"), str(exc))
 
     def _create_file_page(self) -> NavPanel:
-        """Project, Save (and Export), Demo, Open recent.
+        """Project, Save (and Export), then the demos and the recent projects, a tab each.
 
         Import is on the New table page, with the other ways to make a
         table; Project info on the Project page, with what else is about the
-        open project. The demos say in a sentence what they do, under their
-        button.
+        open project. Every button of the panel has the same width.
         """
         page = NavPanel(self)
         page.add_buttons(_("Project"), [
@@ -660,13 +660,18 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             # A row of its own, with its sentence: three buttons did not fit the panel on Windows.
             NavButton("project_report", self._on_project_report, text=_("Export…"), described=True),
         ], object_name="fileSaveCard")
-        page.add_buttons(_("Demo"), [NavButton("load_demo", self._on_load_demo, described=True)],
-                         object_name="fileDemoCard")
-        self._recent_view = RecentProjectsView(page)
+        self._projects_tabs = ProjectsTabs(page)
+        self._recent_view = self._projects_tabs.recent
+        self._projects_tabs.demos.open_requested.connect(self._on_load_demo)
         self._recent_view.open_requested.connect(self._on_open_recent)
         self._recent_view.clear_requested.connect(self._on_clear_recent)
-        # The recent list takes whatever height the page has left.
-        page.add_frame(_("Open recent"), self._recent_view, object_name="fileRecentCard", stretch=1)
+        # The lists take whatever height the page has left.
+        page.add_frame(_("Projects"), self._projects_tabs, object_name="fileProjectsCard", stretch=1)
+        # One width for every button of the panel, the widest one's.
+        buttons = page.findChildren(QPushButton)
+        width = max(button.sizeHint().width() for button in buttons)
+        for button in buttons:
+            button.setFixedWidth(width)
         return page
 
     def _create_developer_page(self) -> NavPanel:

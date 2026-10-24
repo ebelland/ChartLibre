@@ -16,11 +16,10 @@ from typing import TYPE_CHECKING, Any, Callable, cast
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QWidget
 
-from app.data.demos import PROJECTS_DIR, copy_demo_project
+from app.data.demos import PROJECTS_DIR, DemoProject, copy_demo_project
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
 from app.dialogs.import_data_dialog import ImportDataDialog
-from app.dialogs.load_demo_dialog import LoadDemoDialog
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
 from app.logs.logger import applogger
 from app.utils.config import clear_recent_databases, get_constant, set_last_database
@@ -311,8 +310,8 @@ class MainWindowProject(_MainWindowProjectBase):
         self._project_info_asked = getattr(self, "_project_info_asked", set()) | {str(db_path)}
         self._on_project_info()
 
-    def _on_load_demo(self) -> None:
-        """Copy one of the shipped, pre-built demo projects, and open it.
+    def _on_load_demo(self, demo: DemoProject) -> None:
+        """Copy *demo*, one of the shipped, pre-built demo projects (the File panel's Demo tab), and open it.
 
         No "where to save it" dialog: that was the one step between picking a
         demo and seeing it, for a file whose name already says what it is and
@@ -327,11 +326,6 @@ class MainWindowProject(_MainWindowProjectBase):
         keep a demo under its own name has Save As for that once it is open,
         same as any other project.
         """
-        picker = LoadDemoDialog(self)
-        if not picker.exec() or picker.chosen is None:
-            return
-        demo = picker.chosen
-
         target = SqliteRepo.ensure_dhub_extension(PROJECTS_DIR / demo.path_name)
         applogger.info("Loading demo project %r into %s", demo.file_name, target)
         # The copy is made with the current project closed: it may be this

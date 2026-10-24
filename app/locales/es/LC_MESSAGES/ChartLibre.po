@@ -4383,3 +4383,9 @@ msgstr ""
 
 msgid "V"
 msgstr ""
+
+msgid "Projects"
+msgstr "Proyectos"
+
+msgid "Recent"
+msgstr "Recientes"

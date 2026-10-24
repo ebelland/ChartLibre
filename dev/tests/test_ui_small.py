@@ -468,7 +468,7 @@ def test_a_recent_project_is_shown_before_it_is_opened(qapp, tmp_path: Path, mon
     view.open_requested.connect(opened.append)
     view.refresh()
     row = next(i for i in range(view._list.count())
-               if view._list.item(i).data(Qt.ItemDataRole.UserRole) == str(tmp_path / "Other study.dhub"))
+               if view._list.item(i).data(Qt.ItemDataRole.UserRole) == tmp_path / "Other study.dhub")
     view._list.setCurrentRow(row)
     assert opened == []  # selecting only shows it
     text = view._info.text()

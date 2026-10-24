@@ -180,6 +180,8 @@ class NavPanel(QWidget):
         row: QHBoxLayout | None = None
         for button in buttons:
             if row is None or button.described:
+                if row is not None:
+                    row.addStretch(1)  # the row before, left-aligned too
                 row = QHBoxLayout()
                 stdSizeAndlayout(row)
                 layout.addLayout(row)

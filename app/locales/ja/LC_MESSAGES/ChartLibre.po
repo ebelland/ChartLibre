@@ -4107,3 +4107,9 @@ msgstr "{tables} テーブル、合計 {rows} 行"
 
 msgid "{table} · {count} response(s)"
 msgstr "{table} · {count} 件の回答"
+
+msgid "Projects"
+msgstr "プロジェクト"
+
+msgid "Recent"
+msgstr "最近"
