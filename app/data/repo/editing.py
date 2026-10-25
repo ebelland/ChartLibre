@@ -36,6 +36,17 @@ class EditingMixin(RepoHost):
     # each call opens an entry of its own, which is what a single edit from
     # anywhere else should do.
 
+    @ensure_connection_wrapper
+    def execute_change(self, sql: str, *, tables: Sequence[str], label: str) -> int:
+        """Run one statement that changes the data - written by the assistant, confirmed by the user - as one
+        Undo step over *tables*; the rows it changed (-1 when SQLite does not say)."""
+        assert self._con is not None
+        self.snapshot_for_undo(list(tables), label=label)
+        cursor = self._con.execute(sql)
+        self._commit()
+        self.invalidate_series_cache()
+        return int(cursor.rowcount)
+
     def has_integer_primary_key(self, table_name: str) -> bool:
         """Say whether this table's rowid is a column the user can see.
 

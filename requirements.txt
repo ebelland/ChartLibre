@@ -76,3 +76,11 @@ PyMySQL==1.2.0
 # as adjustText above, so its absence degrades rather than crashes.
 certifi==2026.7.22
 
+
+# Optional: the Assistant panel (app/ai, its provider a plugin in app/ai_providers).
+# Without anthropic the panel says how to enable Claude and the rest of the
+# application is the same; without keyring the API key is read from the
+# environment (ANTHROPIC_API_KEY) instead of the macOS Keychain or the Windows
+# Credential Manager. Both are pure Python, on every platform.
+anthropic==2.3.0
+keyring==25.7.0

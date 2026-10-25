@@ -11383,3 +11383,135 @@ msgstr "Le colonne di una tabella."
 
 msgid "The series a chart draws."
 msgstr "Le serie che un grafico disegna."
+
+msgid "API key"
+msgstr "Chiave API"
+
+msgid "Ask"
+msgstr "Chiedi"
+
+msgid "Ask about the data - e.g. Is body mass different between species?"
+msgstr "Chiedi sui dati - per esempio: la massa corporea è diversa tra le specie?"
+
+msgid "Ask an AI about the project's data - and, as Settings allow, have it run analyses or change the data"
+msgstr "Chiedi a un'IA sui dati del progetto - e, come le Impostazioni permettono, falle eseguire analisi o modificare i dati"
+
+msgid "Assistant"
+msgstr "Assistente"
+
+msgid "Automatic: the fast model for simple requests, the accurate one for the rest. Or always one of them."
+msgstr "Automatico: il modello veloce per le richieste semplici, quello accurato per le altre. Oppure sempre uno dei due."
+
+msgid "Conversation"
+msgstr "Conversazione"
+
+msgid "How many rows of a table the assistant may send as an example."
+msgstr "Quante righe di una tabella l'assistente può inviare come esempio."
+
+msgid "Kept by the system's keychain on this computer - never in a file or a project - and sent only to the provider."
+msgstr "Conservata dal portachiavi di sistema su questo computer - mai in un file o in un progetto - e inviata solo al fornitore."
+
+msgid "May"
+msgstr "Può"
+
+msgid "New conversation: the settings or the project changed."
+msgstr "Nuova conversazione: le impostazioni o il progetto sono cambiati."
+
+msgid "No API key: set it in Settings > Assistant (or in the environment)."
+msgstr "Nessuna chiave API: impostala in Impostazioni > Assistente (o nell'ambiente)."
+
+msgid "No assistant provider is installed."
+msgstr "Nessun fornitore per l'assistente è installato."
+
+msgid "Provider"
+msgstr "Fornitore"
+
+msgid "Sample rows"
+msgstr "Righe di esempio"
+
+msgid "Send questions and data to the provider"
+msgstr "Invia domande e dati al fornitore"
+
+msgid "Settings..."
+msgstr "Impostazioni..."
+
+msgid "The assistant sends questions and data from the project to {provider}. Allow it in Settings > Assistant."
+msgstr "L'assistente invia domande e dati del progetto a {provider}. Consentilo in Impostazioni > Assistente."
+
+msgid "The assistant sends your questions, the tables' columns and summaries - and sample rows, below - to the provider. Nothing is sent before this is checked."
+msgstr "L'assistente invia al fornitore le tue domande, le colonne e i riassunti delle tabelle - e le righe di esempio, qui sotto. Nulla viene inviato prima che questa casella sia spuntata."
+
+msgid "The assistant wants to change the project:"
+msgstr "L'assistente vuole modificare il progetto:"
+
+msgid "Thinking..."
+msgstr "Sto pensando..."
+
+msgid "What the assistant may do. Every change to the data is confirmed first and can be undone."
+msgstr "Cosa può fare l'assistente. Ogni modifica ai dati viene prima confermata e si può annullare."
+
+msgid "Without the keyring package the key is read from the environment (ANTHROPIC_API_KEY for Claude)."
+msgstr "Senza il pacchetto keyring la chiave viene letta dall'ambiente (ANTHROPIC_API_KEY per Claude)."
+
+msgid "You"
+msgstr "Tu"
+
+msgid "pip install keyring to keep it here"
+msgstr "pip install keyring per conservarla qui"
+
+msgid "{model} · {tokens_in} tokens in, {tokens_out} out"
+msgstr "{model} · {tokens_in} token in entrata, {tokens_out} in uscita"
+
+msgid "{provider} · {level}"
+msgstr "{provider} · {level}"
+
+msgid "Read only - answers in the panel"
+msgstr "Sola lettura - risposte nel pannello"
+
+msgid "Analyses - runs them, answers in the panel"
+msgstr "Analisi - le esegue, risposte nel pannello"
+
+msgid "Everything - the database included, each change confirmed"
+msgstr "Tutto - anche il database, ogni modifica confermata"
+
+msgid "Fast"
+msgstr "Veloce"
+
+msgid "Accurate"
+msgstr "Accurato"
+
+msgid "Send"
+msgstr "Invia"
+
+msgid "Send the question to the assistant"
+msgstr "Invia la domanda all'assistente"
+
+msgid "New conversation"
+msgstr "Nuova conversazione"
+
+msgid "Start again: the assistant forgets this conversation"
+msgstr "Ricomincia: l'assistente dimentica questa conversazione"
+
+msgid "Stopped."
+msgstr "Interrotto."
+
+msgid "The model declined to answer this request."
+msgstr "Il modello ha rifiutato di rispondere a questa richiesta."
+
+msgid "The answer was too long and was cut before a step could run."
+msgstr "La risposta era troppo lunga ed è stata interrotta prima che un passo potesse essere eseguito."
+
+msgid "The assistant was stopped: too many steps for one question."
+msgstr "L'assistente è stato fermato: troppi passi per una domanda."
+
+msgid "Install Anthropic's package to use Claude: pip install anthropic"
+msgstr "Installa il pacchetto di Anthropic per usare Claude: pip install anthropic"
+
+msgid "The API key was refused: check it in Settings > Assistant."
+msgstr "La chiave API è stata rifiutata: controllala in Impostazioni > Assistente."
+
+msgid "Too many requests for now: wait a moment and ask again."
+msgstr "Troppe richieste per ora: aspetta un momento e chiedi di nuovo."
+
+msgid "No connection to Anthropic: check the internet connection."
+msgstr "Nessuna connessione ad Anthropic: controlla la connessione a internet."

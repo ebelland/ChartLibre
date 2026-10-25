@@ -18,7 +18,10 @@ from pathlib import Path
 import matplotlib
 import pytest
 
-from app.logs.logger import AppLogger
+# The assistant's key lives in the system keychain: the tests never read or write the developer's.
+os.environ["PYTHON_KEYRING_BACKEND"] = "keyring.backends.null.Keyring"
+
+from app.logs.logger import AppLogger  # noqa: E402 - after the keychain is set aside
 
 # The tests log to a file of their own. They shared the application's -
 # app/logs/datahub.log - so its Log window showed the errors the tests cause

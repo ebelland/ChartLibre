@@ -43,6 +43,7 @@ from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_ico
 from app.widgets.guided_panel import GuidedAnalysisPanel
 from app.widgets.catalog_search import CatalogSearch
 from app.scanners.table_operation_scanner import import_class_from_file as import_table_operation
+from app.widgets.assistant_panel import AssistantPanel
 from app.widgets.recent_projects import ProjectsTabs
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.credits_dialog import CreditsDialog
@@ -406,6 +407,12 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         rail = getattr(self, "_left_panel", None)
         return None if rail is None else rail.title_bar
 
+    def _on_assistant_changed(self, figures: list) -> None:
+        """The assistant wrote into the project: the tables and charts again, a figure it made shown."""
+        if figures:
+            self._reload_tabs(select_figure_id=int(figures[-1]))
+        self.refresh()
+
     def _on_settings(self) -> None:
         """Open the application preferences.
 
@@ -420,6 +427,10 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if dialog.exec():
             self._build_app_menu()
             self._apply_developer_mode()
+        # The key, the consent or the permissions may have changed: the panel says what is missing.
+        assistant = getattr(self, "_assistant_panel", None)
+        if assistant is not None:
+            assistant.refresh()
 
     def _show_log_viewer(self) -> None:
         """Open a read-only viewer for recent in-memory log records.
@@ -757,6 +768,12 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         guided_panel.set_table(self._table_panel.current)
         self._guided_panel = guided_panel
         developer_panel = self._create_developer_page()
+        # The assistant: a conversation with an AI about the project (app.ai), its provider a plugin.
+        assistant_panel = self._assistant_panel = AssistantPanel(
+            self, repo=lambda: self._repo,
+            current_figure=lambda: getattr(self._current_chart_panel(), "figure_id", None))
+        assistant_panel.project_changed.connect(self._on_assistant_changed)
+        assistant_panel.settings_requested.connect(self._on_settings)
 
         sections: dict[str, dict[str, NavBarItem]] = {
             "Tools": {
@@ -789,6 +806,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                 "guided": NavBarItem(
                     _("Guided analysis"), self._accent_icon(self._navigation_icon("nav_guided")),
                     guided_panel, _("Find the function for what you want to find out"),
+                ),
+                "assistant": NavBarItem(
+                    _("Assistant"), self._navigation_icon("nav_assistant"), assistant_panel,
+                    _("Ask an AI about the project's data - and, as Settings allow, have it run analyses or change "
+                      "the data"),
                 ),
                 "developer": NavBarItem(
                     _("Project"), self._navigation_icon("database_info"), developer_panel,

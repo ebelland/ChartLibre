@@ -1,11 +1,16 @@
-ChartLibre TODO - updated 2026-10-23
+ChartLibre TODO - updated 2026-10-25
 One line per item, highest priority first. [YOU] = no code needed.
 Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 103,760 lines in 317 files; tests 22,161 lines in 193 files (updated at each commit).
+Size: app 104,995 lines in 326 files; tests 22,313 lines in 194 files (updated at each commit).
 
 NEXT - ANALYSIS (table operations, JMP-like)
 - R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
            repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
+NEXT - ASSISTANT (dev/plans/ai_chat_plan.txt)
+- AI-01 M  run_data_operation: the data operations as tools (Fit curve, Smooth...), as run_analysis does.
+- AI-02 S  Sent log in the panel: every request as it went; the cache hits shown (cache_read_input_tokens).
+- AI-03 S  Windows bundle: anthropic and keyring in the release builds; the key kept in the Credential
+           Manager, tried on the Windows build. The manual's chapter.
 NEXT - INTERFACE
 - R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series
            over a saved query that keeps "_id"; dates and categories on x; the data filter

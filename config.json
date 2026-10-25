@@ -303,6 +303,27 @@
       "SegoeFluent": "EA80",
       "ThemeIcon": "dialog-information"
     },
+    "nav_assistant": {
+      "text": "Assistant",
+      "description": "Ask an AI about the project's data - and, as Settings allow, have it run analyses or change the data",
+      "SFSymbol": "bubble.left.and.text.bubble.right",
+      "SegoeFluent": "E8BD",
+      "ThemeIcon": "dialog-question"
+    },
+    "assistant_send": {
+      "text": "Send",
+      "description": "Send the question to the assistant",
+      "SFSymbol": "paperplane",
+      "SegoeFluent": "E724",
+      "ThemeIcon": "mail-send"
+    },
+    "assistant_new": {
+      "text": "New conversation",
+      "description": "Start again: the assistant forgets this conversation",
+      "SFSymbol": "square.and.pencil",
+      "SegoeFluent": "E70F",
+      "ThemeIcon": "document-new"
+    },
     "nav_analysis": {
       "text": "Analysis",
       "description": "Models of a table's columns",

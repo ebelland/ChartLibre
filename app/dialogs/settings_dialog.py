@@ -29,7 +29,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from PySide6.QtWidgets import QCheckBox, QComboBox, QFormLayout, QLabel, QLineEdit, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QFormLayout, QLabel, QLineEdit, QSpinBox, QWidget
 
 from app.logs.logger import applogger
 from app.dialogs.two_panels_dialog_base import PanelDialog
@@ -211,6 +211,8 @@ class SettingsDialog(PanelDialog):
         self._mpl_style_combo.setToolTip(tr("The chart style of every figure that has none of its own."))
         form.addRow(tr("Default chart style"), self._mpl_style_combo)
 
+        self._build_assistant_section(card, forms)
+
         # What most people never change, closed - unless something in it is
         # not as it came (todo H-10).
         form = self._section(
@@ -322,6 +324,60 @@ class SettingsDialog(PanelDialog):
     # ------------------------------------------------------------------
     # Behaviour
     # ------------------------------------------------------------------
+    def _build_assistant_section(self, card: QWidget, forms: list[QFormLayout]) -> None:
+        """The assistant: its provider, the key (kept by the system), what it may do and what it may send."""
+        from app.ai import settings as assistant
+        from app.scanners.ai_provider_scanner import ai_providers, provider_class
+
+        form = self._section(tr("Assistant"), forms)
+        names = [str(entry["value"]) for entry in ai_providers]
+        self._assistant_provider = self._combo(card, [(name, name) for name in names], assistant.provider_name())
+        form.addRow(tr("Provider"), self._assistant_provider)
+        self._assistant_key_names = {str(entry["value"]): provider_class(entry).KEY_NAME for entry in ai_providers}
+        self._assistant_key = QLineEdit(card)
+        self._assistant_key.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
+        key_name = self._assistant_key_names.get(assistant.provider_name(), "")
+        self._assistant_key_loaded = assistant.api_key(key_name) if key_name else ""
+        self._assistant_key.setText(self._assistant_key_loaded)
+        if assistant.keychain_available():
+            self._assistant_key.setToolTip(tr("Kept by the system's keychain on this computer - never in a file "
+                                              "or a project - and sent only to the provider."))
+        else:
+            self._assistant_key.setEnabled(False)
+            self._assistant_key.setPlaceholderText(tr("pip install keyring to keep it here"))
+            self._assistant_key.setToolTip(tr("Without the keyring package the key is read from the environment "
+                                              "(ANTHROPIC_API_KEY for Claude)."))
+        form.addRow(tr("API key"), self._assistant_key)
+        self._assistant_permission = self._combo(card, [(key, tr(label)) for key, label in assistant.PERMISSIONS],
+                                                 assistant.permission())
+        self._assistant_permission.setToolTip(tr("What the assistant may do. Every change to the data is confirmed "
+                                                 "first and can be undone."))
+        form.addRow(tr("May"), self._assistant_permission)
+        self._assistant_consent = QCheckBox(tr("Send questions and data to the provider"), card)
+        self._assistant_consent.setToolTip(tr("The assistant sends your questions, the tables' columns and "
+                                              "summaries - and sample rows, below - to the provider. Nothing is "
+                                              "sent before this is checked."))
+        self._assistant_consent.setChecked(assistant.consented())
+        form.addRow(tr("Data"), self._assistant_consent)
+        self._assistant_rows = QSpinBox(card)
+        self._assistant_rows.setRange(0, 200)
+        self._assistant_rows.setValue(assistant.sample_rows())
+        self._assistant_rows.setSpecialValueText(tr("None"))
+        self._assistant_rows.setToolTip(tr("How many rows of a table the assistant may send as an example."))
+        form.addRow(tr("Sample rows"), self._assistant_rows)
+
+    def _save_assistant(self) -> None:
+        from app.ai import settings as assistant
+
+        provider = self._value(self._assistant_provider)
+        assistant.save(provider=provider, permission_level=self._value(self._assistant_permission),
+                       consent=self._assistant_consent.isChecked(), rows=self._assistant_rows.value(),
+                       assistant_mode=assistant.mode())
+        key = self._assistant_key.text().strip()
+        key_name = self._assistant_key_names.get(provider, "")
+        if key_name and self._assistant_key.isEnabled() and key != self._assistant_key_loaded:
+            assistant.set_api_key(key_name, key)
+
     def _save(self) -> None:
         """Write every preference, then close.
 
@@ -339,6 +395,7 @@ class SettingsDialog(PanelDialog):
         set_value(SQL_GUARD_KEY, bool(self._sql_guard_check.isChecked()))
         set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
         set_value(DEVELOPER_MODE_KEY, bool(self._developer_check.isChecked()))
+        self._save_assistant()
 
         applogger.info(
             "Settings saved: style=%s language=%s format=%s",
