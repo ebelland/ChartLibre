@@ -66,6 +66,11 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
     Preview used to re-fit, which made a starting guess impossible to see: the
     optimiser replaced it before anything reached the chart.
     """
+
+    #: The curve on its data's axis by default; a new axis or figure as the Charts tab says.
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS,
+                    DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
     Name: str = "Fit Curve"
     Description = "Fit data models"
 

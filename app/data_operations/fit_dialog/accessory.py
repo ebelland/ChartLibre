@@ -82,9 +82,10 @@ class AccessoryChartsMixin:
         _query, _roles, x_label, y_label = query_builder(first, first_table)
         axis_id = getattr(self, axis_id_attr)
         if axis_id is None:
+            # Beside the curve: on the new figure when it went to one.
             axis_id = self.create_result_axis(
                 chart_type="Scatter Plot", title=title, x_label=x_label,
-                y_label=y_label, options={"grid": True},
+                y_label=y_label, options={"grid": True}, figure_id=getattr(self, "_result_figure_id", None),
             )
             setattr(self, axis_id_attr, axis_id)
         for row in self._repo.get_series(axis_id) or []:
@@ -150,9 +151,11 @@ class AccessoryChartsMixin:
         and statistics dialogs create their result axis in this same hook for
         exactly this reason.
         """
+        # "Draw on": the source axis (the default), a new axis, or a new figure - the base's choice.
+        target = super().resolve_target_axis_id(selected_axis_id, results)  # type: ignore[misc]
         if results:
             self._sync_accessory_charts(results)
-        return selected_axis_id
+        return target
 
     def apply_results_to_axis(self, axis_id: int, results: Sequence[SeriesFitResult]) -> None:
         super().apply_results_to_axis(axis_id, results)
@@ -171,6 +174,10 @@ class AccessoryChartsMixin:
 
         table_names = set(self._accessory_table_names)
         self._accessory_table_names.clear()
+        # And any axis that reads only those tables, its id lost or not: left behind, it was an empty
+        # Residuals and an empty Measured vs. fit after Cancel.
+        self._remove_axes_reading(table_names)
+        super().discard_operation_artifacts()  # type: ignore[misc] - the new axis or figure "Draw on" made
         for table_name in table_names:
             try:
                 self._repo.delete_table(table_name)
@@ -178,6 +185,24 @@ class AccessoryChartsMixin:
                 applogger.exception(
                     "Failed to remove the accessory result table %s", table_name
                 )
+
+    def _remove_axes_reading(self, table_names: set[str]) -> None:
+        """Delete the figure's axes whose every series reads one of *table_names*, then fit its grid to the rest."""
+        if not table_names:
+            return
+        try:
+            descriptor = self._repo.load_figure_descriptor(self._figure_id)
+            doomed = [axis for axis in (descriptor.axes if descriptor else [])
+                      if axis.series and all(any(f'"{name}"' in str(series.sql_query or "") for name in table_names)
+                                             for series in axis.series)]
+            for axis in doomed:
+                self._repo.delete_axis(int(axis.id))
+            if doomed:
+                left = len(descriptor.axes) - len(doomed)
+                columns = max(1, min(int(descriptor.ncols or 1), left))
+                self._repo.set_figure_grid(self._figure_id, nrows=max(1, -(-left // columns)), ncols=columns)
+        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+            applogger.exception("Failed to remove the accessory axes left on the figure")
 
     def on_use_fit_results_as_initial(self) -> None:
         """Copy latest optimized fit parameters back to the Initial column."""
