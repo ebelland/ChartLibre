@@ -284,8 +284,8 @@ class RecentProjectsView(ProjectListView):
         if info.get("author"):
             rows.append(html.escape(info["author"]))
         if info.get("created"):
-            rows.append(html.escape(_("Created {date}").format(date=readable_date(info["created"]).split(" ")[0])))
-        modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d")
+            rows.append(html.escape(_("Created {date}").format(date=readable_date(info["created"], with_time=False))))
+        modified = readable_date(datetime.fromtimestamp(stat.st_mtime).isoformat(), with_time=False)
         rows.append(html.escape(_("Saved {date} · {size:.1f} MB").format(date=modified, size=stat.st_size / 1e6)))
         references = parse_references(info.get("references"))
         if references:

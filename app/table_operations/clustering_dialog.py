@@ -64,7 +64,7 @@ class ClusteringDialog(TableOperationDialogBase):
                             "and spread, each row with its most likely cluster."),
         IntParam("k", "Clusters (k):", tooltip="0 tries every k up to the maximum and keeps the one with the "
                                                "highest mean silhouette.",
-                 default_value=0, minimum=0, maximum=50),
+                 default_value=0, minimum=0, maximum=50, special_text="Automatic"),
         IntParam("k_max", "Largest k tried:", tooltip="With k at 0: k from 2 to this.",
                  default_value=8, minimum=2, maximum=50, advanced=True),
         BoolParam("standardize", "Columns standardized",

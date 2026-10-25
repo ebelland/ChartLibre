@@ -13,7 +13,7 @@ from datetime import datetime
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QDate, QDateTime, QLocale, QSize, Qt, QTime
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -43,13 +43,18 @@ AUTHOR_SETTING = "project_author"
 _STATE_KEY = "project_info_dialog"
 
 
-def readable_date(iso: str) -> str:
-    """An ISO 8601 timestamp as local date and time, or the text unchanged."""
+def readable_date(iso: str, *, with_time: bool = True) -> str:
+    """An ISO 8601 timestamp as local date (and time) written as this computer writes them, or the text
+    unchanged. Not strftime's %x: without a C locale set it is the American 10/25/26, in an Italian window."""
     try:
-        moment = datetime.fromisoformat(iso)
+        moment = datetime.fromisoformat(iso).astimezone()
     except (TypeError, ValueError):
         return iso
-    return moment.astimezone().strftime("%x %X")  # ("%Y-%m-%d %H:%M")
+    day = QDate(moment.year, moment.month, moment.day)
+    if not with_time:
+        return QLocale().toString(day, QLocale.FormatType.ShortFormat)
+    return QLocale().toString(QDateTime(day, QTime(moment.hour, moment.minute, moment.second)),
+                              QLocale.FormatType.ShortFormat)
 
 
 def default_author() -> str:
