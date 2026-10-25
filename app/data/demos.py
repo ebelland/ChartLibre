@@ -153,8 +153,8 @@ class DemoProject:
         return path if path.is_file() else None
 
 
-#: The demo set.  The first is the complete project - every chart type over
-#: every table - and the rest are one real dataset each.
+#: The demo set: a subject each, under its category - no figure in two of them. (The complete project of every
+#: figure was one more, every one of its figures already in another: build_demos --single still writes it.)
 #: Load demo's groups, in its drop-down's order: how to start, then by JMP's platforms.
 DEMO_CATEGORIES: tuple[str, ...] = (
     "Getting Started", "Guided Analysis", "Graph", "Basic Analysis", "Curves", "Signal Processing",
@@ -162,15 +162,6 @@ DEMO_CATEGORIES: tuple[str, ...] = (
 )
 
 DEMO_PROJECTS: tuple[DemoProject, ...] = (
-    DemoProject(
-        "Getting started - real data across every chart type",
-        "Twenty datasets, twenty-nine figures across every chart type "
-        "and six multi-axis layouts, and one saved query.",
-        (),
-        preview="Penguin flipper length - spread",
-        references=(REF_PENGUINS, REF_ANTIBIOTICS, REF_YEAST, REF_ANSCOMBE,),
-        category="Getting Started",
-    ),
     DemoProject(
         "Series styles - restyle a series and watch the chart change",
         "Seven charts for trying the live style preview: open a figure, select a series and "
