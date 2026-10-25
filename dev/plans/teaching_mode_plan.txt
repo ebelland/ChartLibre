@@ -1,0 +1,57 @@
+TEACHING MODE: "HOW TO READ THIS" IN EVERY REPORT (H-04) - PLAN      2026-10-25, waiting for the go
+
+WHAT WAS ASKED
+todo.txt H-04: each report with a "How to read this" box - what the p-value, R2, Cpk mean here, in two
+sentences. Students first.
+
+TODAY
+The quick answers (Are there differences?, Is it normal?, Is it in control?, What has the most impact?, Has it
+changed over time?) already answer in words, and say how they decided ("Welch t-test, p = 6e-15 - below 0.05
+is called a difference"). The platform reports (Distribution, Fit Y by X, Fit Model, Partition, PLS,
+Discriminant, Multivariate, Principal Components, Factor Analysis, Clustering, Time Series, Gage R&R...) and
+the data operations' (Statistics, Fit curve, Regression, Control chart...) give the numbers only.
+
+THE SHAPE
+1. One explainer per statistic, in one module (app/plugin_api/reading_guide.py), so a p-value is explained
+   the same way in every report: it takes the number and its context and returns two sentences about *this*
+   result, not a definition -
+     p_value(0.003, "the groups' means differ")  -> "p = 0.003: if the means were really equal, groups this
+        far apart would turn up 3 times in 1000 by chance. Below 0.05, so the difference is called real."
+     r_squared(0.81, y="mass")                     -> "R2 = 0.81: the model accounts for 81% of how much mass
+        varies; the other 19% it leaves unexplained."
+     cpk(1.8, ...)                                 -> "Cpk = 1.8: the nearest specification limit is 5.4
+        standard deviations from the mean (3 x Cpk); 1.33 is the usual minimum, so the process is capable."
+   About 25 of them cover the reports: p-value, confidence interval, mean and SD, t/F/chi-square, effect size
+   (Cohen's d, eta2), R2 and adjusted R2, RMSE, a coefficient and its p, VIF, correlation r, Cp/Cpk/Pp/Ppk,
+   %Gage R&R, normality (Shapiro-Wilk, Anderson-Darling), AUC, misclassification, silhouette, explained
+   variance and loadings, autocorrelation, control limits and run rules. Translated, numbers formatted as the
+   report formats them.
+2. One box per report, the same in all: report_html.reading_guide(lines) - a soft panel titled "How to read
+   this", the two or three statistics that report hinges on (not one line per number in it). Each analysis
+   says which through one hook, how_to_read(result) -> list[str] on the shared bases (the table analyses'
+   OperationShell, the data operations' base, the quick answers'); an analysis without it shows no box.
+3. A switch: Settings > Reports, "Explain the results (How to read this)" (Q1). Read when the report is made,
+   so the box is in the Results pane, in the figure's notes and in an exported report when it is on.
+4. Placed under the first section - the main result it explains - not at the bottom (Q2).
+
+STEPS (each a commit, the suite green after each)
+1. reading_guide with the explainers, report_html.reading_guide, the switch, the hook on the three bases;
+   the quick answers and Distribution, Fit Y by X, Fit Model.                                              (M)
+2. The other table analyses (Partition, PLS, Discriminant, Multivariate, PCA, Factor Analysis, Clustering,
+   Time Series, Gage R&R, Vector Field).                                                                    (S)
+3. The data operations: Statistics, Fit curve, Regression, Control chart, Spectral, Outliers.               (S)
+Tests: each explainer on known numbers (both sides of a threshold, a p below 1e-4, NaN), the box present and
+absent with the switch, one per analysis that its box names its own numbers. The manual: a "Reading a
+report" section that lists the same explanations.
+
+QUESTIONS
+Q1  The switch: on for a new install (students first) - or off, turned on by whoever teaches? (Suggested: on;
+    one click in Settings turns it off.)
+Q2  Where: under the main result (suggested) - or at the bottom, before "What next?"?
+Q3  In an exported report (HTML/PDF, the publication export): with the box when the switch is on (suggested) -
+    or never?
+Q4  Thresholds said as conventions ("0.05 is the usual line", "1.33 the usual minimum") - or also the
+    caveat that they are conventions, not laws, in a third sentence? (Suggested: say "usual" in the sentence,
+    no third one - two sentences, as asked.)
+
+EFFORT: M (about two sessions).
