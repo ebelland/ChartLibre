@@ -351,6 +351,9 @@ class SettingsDialog(PanelDialog):
         from app.scanners.ai_provider_scanner import ai_providers, provider_class
 
         form = self._section(tr("Assistant"), forms)
+        self._assistant_in_navigation = QCheckBox(tr("Show the Assistant in the navigation bar"), card)
+        self._assistant_in_navigation.setChecked(assistant.in_navigation())
+        form.addRow(tr("Navigation"), self._assistant_in_navigation)
         names = [str(entry["value"]) for entry in ai_providers]
         self._assistant_provider = self._combo(card, [(name, name) for name in names], assistant.provider_name())
         form.addRow(tr("Provider"), self._assistant_provider)
@@ -467,6 +470,7 @@ class SettingsDialog(PanelDialog):
     def _save_assistant(self) -> None:
         from app.ai import settings as assistant
 
+        assistant.set_in_navigation(self._assistant_in_navigation.isChecked())
         provider = self._value(self._assistant_provider)
         assistant.save(provider=provider, permission_level=self._value(self._assistant_permission),
                        consent=self._assistant_consent.isChecked(), rows=self._assistant_rows.value(),

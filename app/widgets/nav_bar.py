@@ -266,6 +266,8 @@ class NavigationBar(QWidget):
         self._items: dict[str, NavBarItem] = {}
         #: Widgets set in the rail under a row (a search field), by that row's key.
         self._row_widgets: dict[str, QWidget] = {}
+        #: Rows left out of the rail (a Settings choice): kept in the sections, not shown.
+        self._hidden_keys: set[str] = set()
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -370,6 +372,16 @@ class NavigationBar(QWidget):
         elif selected is not None:
             self._selected_key = None
             self.set_panel_visible(False)
+
+    def set_item_hidden(self, key: str, hidden: bool) -> None:
+        """Leave the row *key* out of the rail, or put it back; its panel goes with it, closed if it was open."""
+        if (key in self._hidden_keys) == hidden:
+            return
+        if hidden:
+            self._hidden_keys.add(key)
+        else:
+            self._hidden_keys.discard(key)
+        self.set_sections(self.sections())
 
     def set_row_widget(self, key: str, widget: QWidget) -> None:
         """Put *widget* in the rail right under the row *key*; shown while the rail has its labels."""
@@ -609,6 +621,8 @@ class NavigationBar(QWidget):
                 if key in keys_seen:
                     raise ValueError(f"Duplicate navigation key: {key}")
                 keys_seen.add(key)
+                if key in self._hidden_keys:
+                    continue
                 self._items[key] = nav_item
                 button = self._make_button(key, nav_item)
                 self._buttons[key] = button

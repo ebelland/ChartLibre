@@ -197,3 +197,24 @@ def test_the_demo_needs_neither_consent_nor_key(qapp, monkeypatch) -> None:
     panel = AssistantPanel(None, repo=lambda: None, current_figure=lambda: None)
     assert panel._send_button.isEnabled() and "Demo" in panel._note.text()
     panel.deleteLater()
+
+
+def test_the_assistant_can_be_left_out_of_the_navigation_bar(qapp, tmp_path: Path, monkeypatch) -> None:
+    """Settings > Assistant > Navigation: unticked, the row is gone from the rail - its panel closed if open."""
+    from app.data.sqlite_repo import SqliteRepo
+    from app.main_window.main_window import MainWindow
+
+    shown = {"value": False}
+    monkeypatch.setattr(settings, "in_navigation", lambda: shown["value"])
+    repo = SqliteRepo(db_path=tmp_path / "w.dhub")
+    window = MainWindow(repo, tmp_path / "w.dhub")
+    try:
+        rail = window._left_panel
+        assert rail.button("assistant") is None and rail.button("analysis") is not None
+        rail.set_item_hidden("assistant", False)
+        assert rail.button("assistant") is not None and rail.select("assistant")
+        rail.set_item_hidden("assistant", True)  # while open: closed with it
+        assert rail.button("assistant") is None and rail.selected_key is None
+    finally:
+        window.close()
+        repo.close()

@@ -43,6 +43,7 @@ from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_ico
 from app.widgets.guided_panel import GuidedAnalysisPanel
 from app.widgets.catalog_search import CatalogSearch
 from app.scanners.table_operation_scanner import import_class_from_file as import_table_operation
+from app.ai import settings as assistant_settings
 from app.widgets.assistant_panel import AssistantPanel
 from app.widgets.recent_projects import ProjectsTabs
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
@@ -427,6 +428,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if dialog.exec():
             self._build_app_menu()
             self._apply_developer_mode()
+        # Shown in the navigation bar or not (Settings > Assistant).
+        self._left_panel.set_item_hidden("assistant", not assistant_settings.in_navigation())
         # The key, the consent or the permissions may have changed: the panel says what is missing.
         assistant = getattr(self, "_assistant_panel", None)
         if assistant is not None:
@@ -847,6 +850,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         # The search sits in the rail under Workspace; its matches list under it while typing.
         navigation.set_row_widget("workspace", self._rail_search)
         navigation.set_hidden_panels_key("workspace")
+        navigation.set_item_hidden("assistant", not assistant_settings.in_navigation())
         navigation.action_clicked.connect(self._on_navigation_action)
         navigation.panel_changed.connect(self._on_navigation_panel_changed)
         navigation.bar_hidden_changed.connect(self._on_bar_hidden_changed)

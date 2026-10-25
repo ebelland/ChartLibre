@@ -29,6 +29,8 @@ PERMISSION_KEY = "assistant_permission"
 CONSENT_KEY = "assistant_consent"
 SAMPLE_ROWS_KEY = "assistant_sample_rows"
 MODE_KEY = "assistant_mode"
+#: Whether the Assistant has its row in the navigation bar (Settings > Assistant); shown by default.
+NAVIGATION_KEY = "assistant_in_navigation"
 #: Where the keychain files the keys.
 KEYRING_SERVICE = "ChartLibre"
 #: The provider's own variable, read when no key is kept: {key name: environment variable}.
@@ -56,6 +58,14 @@ def sample_rows() -> int:
 def mode() -> str:
     value = str(get_value(MODE_KEY, AUTO) or AUTO)
     return value if value in dict(MODES) else AUTO
+
+
+def in_navigation() -> bool:
+    return bool(get_value(NAVIGATION_KEY, True))
+
+
+def set_in_navigation(shown: bool) -> None:
+    set_value(NAVIGATION_KEY, bool(shown))
 
 
 def provider_name() -> str:
