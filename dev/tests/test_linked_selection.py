@@ -59,3 +59,38 @@ def test_a_box_on_one_chart_rings_the_same_rows_on_another_and_tints_them_in_the
         first.close()
         second.close()
         repo.close()
+
+
+def test_a_click_selects_a_point_shift_adds_or_takes_it_away_and_a_click_on_nothing_clears(qapp,
+                                                                                           tmp_path: Path) -> None:
+    from matplotlib.backend_bases import MouseEvent
+
+    repo = SqliteRepo(db_path=tmp_path / "c.dhub")
+    x = np.arange(10, dtype=float)
+    repo.import_dataframe(pd.DataFrame({"a": x, "b": x * 2.0}), table_name="t", normalize_columns=False)
+    panel = ChartPanel(repo, _scatter(repo, "c", 'SELECT "a" AS x, "b" AS y FROM "t"'))
+    try:
+        panel.resize(600, 400)
+        panel.ensure_rendered()
+        panel._on_toggle_select_mode(True)
+        axes = panel._canvas.figure.axes[0]
+
+        def click(x_data: float, y_data: float, key: str | None = None, to: tuple[float, float] | None = None) -> None:
+            start = axes.transData.transform((x_data, y_data))
+            end = axes.transData.transform(to) if to is not None else start
+            panel._on_box_select_press(MouseEvent("button_press_event", panel._canvas, *start, button=1, key=key))
+            panel._on_box_select_release(MouseEvent("button_release_event", panel._canvas, *end, button=1, key=key))
+
+        click(3.0, 6.0)
+        assert repo.selected_row_ids("t") == [4]
+        click(7.0, 14.0, key="shift")
+        assert repo.selected_row_ids("t") == [4, 8]
+        click(3.0, 6.0, key="shift")  # again: taken away
+        assert repo.selected_row_ids("t") == [8]
+        click(0.5, 0.5, key="shift", to=(1.5, 4.5))  # Shift-drag: the box added
+        assert repo.selected_row_ids("t") == [2, 8]
+        click(6.0, 2.0)  # on nothing: cleared
+        assert repo.selected_row_ids("t") == []
+    finally:
+        panel.close()
+        repo.close()

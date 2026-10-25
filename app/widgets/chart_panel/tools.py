@@ -381,15 +381,18 @@ class ToolsMixin:
         x_min, x_max = sorted((x0, x1))
         y_min, y_max = sorted((y0, y1))
         if x_min == x_max or y_min == y_max:
-            # A click, not a drag - nothing to select.
+            # A click, not a drag: the point under it selects its row - Shift adds it or takes it away - and
+            # a click on nothing clears the selection (R-07).
             self._last_selection = None
+            self._click_select(axes, event)
             self._canvas.draw_idle()
             return
 
         axis_id = int(getattr(axes, "_dhub_axis_id"))
         self._last_selection = self._collect_selection(axis_id, axes, x_min, x_max, y_min, y_max)
         if self._last_selection is not None:
-            self._select_table_rows(self._last_selection)
+            # Shift-drag: the box added to what is selected.
+            self._select_table_rows(self._last_selection, add="shift" in str(event.key or ""))
         self._canvas.draw_idle()
 
         if self._last_selection is None:
@@ -457,7 +460,63 @@ class ToolsMixin:
             "series": matches,
         }
 
-    def _select_table_rows(self, selection: dict[str, Any]) -> None:
+    #: How near a click must be to a point to take it, in pixels (of a screen at 1x).
+    CLICK_RADIUS_PX: Final[float] = 6.0
+
+    def _click_select(self, axes: Any, event: Any) -> None:
+        """A click with Select points on: its row only (Shift: in or out of the selection); nothing under it, none."""
+        shift = "shift" in str(event.key or "")
+        hit = self._row_under(axes, int(getattr(axes, "_dhub_axis_id")), float(event.x), float(event.y))
+        tables = self._row_tables()
+        if hit is None:
+            if shift:
+                return
+            cleared = [table for table in tables if self._repo.selected_row_ids(table)]
+            for table in cleared:
+                self._repo.select_rows(table, [])
+            if cleared:
+                self._draw_selected_rows()
+                self.rows_selected.emit(sorted(cleared))
+                self.selection_changed.emit(_("Selection cleared."))
+            return
+        table, row_id = hit
+        selected = set(self._repo.selected_row_ids(table))
+        selected = selected ^ {row_id} if shift else {row_id}
+        changed = {table}
+        if not shift:
+            for other in tables - {table}:
+                if self._repo.selected_row_ids(other):
+                    self._repo.select_rows(other, [])
+                    changed.add(other)
+        self._repo.select_rows(table, sorted(selected))
+        self._draw_selected_rows()
+        self.rows_selected.emit(sorted(changed))
+        self.selection_changed.emit(_("{count} row(s) of '{table}' selected.").format(count=len(selected),
+                                                                                        table=table))
+
+    def _row_under(self, axes: Any, axis_id: int, px: float, py: float) -> tuple[str, int] | None:
+        """The table and row of the point nearest (*px*, *py*) - display pixels - within CLICK_RADIUS_PX."""
+        radius = self.CLICK_RADIUS_PX * float(getattr(self._canvas, "device_pixel_ratio", 1) or 1)
+        best: tuple[float, str, int] | None = None
+        for row in self._repo.get_series(axis_id) or []:
+            sql = str(row["sql_query"] or "")
+            table = self._repo.row_table(sql)
+            if not table:
+                continue
+            rows = self._repo.series_rows(sql, json.loads(row["roles"]) if row["roles"] else {})
+            points = np.column_stack([rows["x"].to_numpy(float), rows["y"].to_numpy(float)]) if len(rows) else None
+            if points is None:
+                continue
+            shown = axes.transData.transform(points)
+            distance = np.hypot(shown[:, 0] - px, shown[:, 1] - py)
+            if not np.isfinite(distance).any():
+                continue
+            index = int(np.nanargmin(distance))
+            if distance[index] <= radius and (best is None or distance[index] < best[0]):
+                best = (float(distance[index]), table, int(rows[ROW_ID].iloc[index]))
+        return None if best is None else (best[1], best[2])
+
+    def _select_table_rows(self, selection: dict[str, Any], *, add: bool = False) -> None:
         """Mark the rows behind the selected points Selected in their tables, and show them (todo R-07).
 
         Only for a series whose query names its rows (the row id, ROW_ID);
@@ -474,7 +533,7 @@ class ToolsMixin:
                           & rows["y"].between(selection["y0"], selection["y1"])]
             by_table.setdefault(table, set()).update(int(i) for i in inside[ROW_ID])
         for table, ids in by_table.items():
-            self._repo.select_rows(table, sorted(ids))
+            self._repo.select_rows(table, sorted(ids), add=add)
         if by_table:
             self._draw_selected_rows()
             self.rows_selected.emit(sorted(by_table))
