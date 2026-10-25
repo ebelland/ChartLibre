@@ -11557,3 +11557,6 @@ msgstr "Cosa risponde il database:"
 
 msgid "written to the project; the report begins:"
 msgstr "scritto nel progetto; il report comincia così:"
+
+msgid "Try"
+msgstr "Prova"

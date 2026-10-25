@@ -725,6 +725,19 @@ def relax_minimum_width(root: QWidget, *, minimum: int = 0) -> QWidget:
     return root
 
 
+def keep_check_box_whole(box: QCheckBox) -> QCheckBox:
+    """Lay *box* out by its own rectangle, not by the style's layout rectangle; *box* back.
+
+    macOS' layout rectangle for a check box is not the box: a layout sized to it
+    left the box a few pixels past the bottom of a tight container - a form's
+    last row - and the square's edge and its words' lowest line (the tail of a p
+    or a g) were cut, in every analysis (seen in a native render). Elsewhere the
+    two rectangles are one and this changes nothing.
+    """
+    box.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect, True)
+    return box
+
+
 def stdSizeAndlayout(
     obj: QWidget | QBoxLayout | QFormLayout | QScrollArea | QPlainTextEdit,
     minimum_contents_length: int = 0,
@@ -788,6 +801,7 @@ def stdSizeAndlayout(
             QSizePolicy.Policy.Maximum,
             QSizePolicy.Policy.Fixed,
         )
+        keep_check_box_whole(obj)
         return
 
     if isinstance(obj, QComboBox):

@@ -150,13 +150,18 @@ class OperationShell(QDialog):
             self.destination_combo = self.destination_combo_for(
                 panel, destinations, default_destination or destinations[0],
                 lambda: (self.chart_form is not None and self.chart_form.refresh_visibility(), on_change()))
-            row = QFormLayout()
-            stdSizeAndlayout(row)
-            row.addRow(_("Draw on:"), self.destination_combo)
-            layout.addLayout(row)
         if chart_params:
             self.chart_form = ParameterForm(chart_params, self, on_change=on_change, context=context)
             layout.addWidget(self.chart_form.widget)
+        if destinations:
+            # In the charts' own form when there are some: their boxes under the combo, in its column.
+            if self.chart_form is not None:
+                self.chart_form.layout.insertRow(0, _("Draw on:"), self.destination_combo)
+            else:
+                row = QFormLayout()
+                stdSizeAndlayout(row)
+                row.addRow(_("Draw on:"), self.destination_combo)
+                layout.insertLayout(0, row)
         layout.addStretch(1)
         return panel
 

@@ -137,6 +137,7 @@ from app.styles.style.widgets import (  # noqa: F401
     create_section_title,
     create_toolbar_button,
     fit_spin_width,
+    keep_check_box_whole,
     mark_destructive_button,
     mark_editor_panel,
     mark_icon_only,

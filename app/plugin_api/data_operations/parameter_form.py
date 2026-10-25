@@ -39,7 +39,7 @@ from app.plugin_api.data_operations.parameter_spec import (
     Param,
     TextParam,
 )
-from app.styles.style import TitledCard
+from app.styles.style import TitledCard, keep_check_box_whole
 from app.utils.i18n import _
 from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
 
@@ -183,7 +183,7 @@ class ParameterForm:
 
         elif isinstance(param, BoolParam):
             widget = QCheckBox(_(param.label).rstrip(":"), self.widget)
-            widget.setMinimumHeight(widget.sizeHint().height() + 6)
+            keep_check_box_whole(widget)
             # No blue focus square around the box on macOS (the first box of a tab takes the focus).
             widget.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
             widget.setChecked(param.default)

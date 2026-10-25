@@ -359,7 +359,7 @@ class SettingsDialog(PanelDialog):
             self._assistant_key.setToolTip(tr("Without the keyring package the key is read from the environment "
                                               "(ANTHROPIC_API_KEY for Claude)."))
         # Test: the smallest request the provider answers, with the key as typed - before it is saved.
-        self._assistant_check = QPushButton(tr("Test"), card)
+        self._assistant_check = QPushButton(tr("Try"), card)
         self._assistant_check.setToolTip(tr("Sends the provider the smallest request it answers, with this key: "
                                             "whether the key, the account's credit and the connection work."))
         self._assistant_check.clicked.connect(self._check_assistant_key)

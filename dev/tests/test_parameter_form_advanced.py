@@ -1,6 +1,7 @@
 """A parameter declared advanced is in a closed "Advanced" frame under the others (its arrow opens it)."""
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 
 from app.plugin_api.data_operations.parameter_form import ParameterForm
@@ -36,3 +37,5 @@ def test_one_advanced_parameter_joins_the_others(qapp) -> None:
     assert form.advanced_card is None and form.layout.rowCount() == 2
     # As on the Mac: the check box carries its words on its right, no label beside it.
     assert form.field("x").text() == "X"
+    # Laid out by its own rectangle: macOS' layout one left a form's last box cut at the bottom.
+    assert form.field("x").testAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect)
