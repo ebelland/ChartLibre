@@ -295,7 +295,9 @@ class UndoStore:
     # ------------------------------------------------------------------
     def entries(self, connection: sqlite3.Connection) -> list[UndoEntry]:
         """Return what can be undone, most recent first."""
-        if not self._undo_path.exists():
+        # While a Preview's savepoint is open the undo file cannot be attached: nothing to offer then, and
+        # nothing wrong - the Edit menu asks again once the window closes.
+        if not self._undo_path.exists() or connection.in_transaction:
             return []
         try:
             with self._attached(connection):

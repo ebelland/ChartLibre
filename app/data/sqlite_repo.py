@@ -71,6 +71,23 @@ _SERIES_CACHE_DEFAULT_ENABLED = True
 _SERIES_CACHE_DEFAULT_MAX_ENTRIES = get_constant("series_cache_entries", 64)
 
 
+class _PreviewSafeConnection(sqlite3.Connection):
+    """A connection whose commit() waits while a Preview's savepoint is open (``holding``).
+
+    Whatever commits on its own - pandas' to_sql does, after every write it
+    makes - ended the savepoint, and the Preview the user then cancelled
+    stayed in the project: its tables, and its figure, which the window went
+    on showing after the rollback. The repository commits for real when the
+    savepoint is released.
+    """
+
+    holding: bool = False
+
+    def commit(self) -> None:
+        if not self.holding:
+            super().commit()
+
+
 @dataclass(slots=True)
 class SqliteRepo(
     TablesMixin,
@@ -190,6 +207,7 @@ class SqliteRepo(
             str(db_path),
             check_same_thread=False,
             isolation_level=None,  # Autocommit mode
+            factory=_PreviewSafeConnection,
         )
         self._is_connected = False
 
@@ -671,6 +689,7 @@ class SqliteRepo(
             safe_name = f"preview_{safe_name}"
         self._con.execute(f"SAVEPOINT {safe_name}")
         self._preview_savepoint_name = safe_name
+        self._hold_commits(True)
         applogger.info("Started preview savepoint: %s", safe_name)
         return safe_name
 
@@ -699,6 +718,7 @@ class SqliteRepo(
             )
         finally:
             self._preview_savepoint_name = None
+            self._hold_commits(False)
         if released:
             self._con.commit()
         return released
@@ -730,7 +750,13 @@ class SqliteRepo(
             )
         finally:
             self._preview_savepoint_name = None
+            self._hold_commits(False)
         return rolled_back
+
+    def _hold_commits(self, holding: bool) -> None:
+        """Make the connection's commit() wait (or not) - see _PreviewSafeConnection."""
+        if isinstance(self._con, _PreviewSafeConnection):
+            self._con.holding = holding
 
     def _commit(self) -> None:
         """Commit unless a UI preview savepoint is open.

@@ -96,3 +96,20 @@ def test_distribution_fits_the_chosen_or_best_distribution(qapp, repo: SqliteRep
         assert options["Q-Q Plot"]["distribution"] == "lognorm"
     finally:
         dialog.close()
+
+
+def test_a_preview_written_through_pandas_is_still_rolled_back(tmp_path) -> None:
+    """pandas' to_sql commits after it writes: that ended the Preview's savepoint, and a cancelled Preview
+    stayed in the project - its tables (Optimize found them unreferenced) and its figure."""
+    import datetime as dt
+
+    from app.data.sqlite_repo import SqliteRepo
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    repo.begin_preview_savepoint("preview_test")
+    # A date column: written by pandas, not by the repository's own executemany.
+    repo.import_dataframe(pd.DataFrame({"d": [dt.datetime(2024, 1, 1)], "v": [1.0]}), table_name="previewed",
+                          normalize_columns=False)
+    assert repo.rollback_preview_savepoint()
+    assert "previewed" not in set(repo.list_user_tables()["Table"])
+    repo.close()
