@@ -1,0 +1,42 @@
+DATA FROM A TABLE OR A CHART, AND "DRAW ON", FOR EVERY ANALYSIS - PLAN      2026-10-25, waiting for the go
+
+WHAT WAS ASKED
+1. Distribution, Fit Y by X and the other table analyses: always the choice of taking the data from a table or
+   from a chart - the choice in the base class.
+2. The Charts tab from the base: New figure / New axis / Current axis (where possible), None (where no chart is
+   needed, as Statistics).
+
+WHAT IS THERE TODAY
+- Data operations: Data from (o) Chart ( ) Table. Table = pick a table, an X and Ys: they are drawn as a figure of
+  their own and the operation runs on its series (layout._build_source_panel).
+- Table analyses: a table only (the Table combo above the columns).
+- Draw on: data operations as each declares (DESTINATIONS); table analyses New figure / New axis in the current
+  figure; Statistics None / New axis / New figure (done).
+
+THE PROPOSAL
+A. One choice, in OperationShell: "Data from: (o) Table ( ) Chart" above the inputs, built once, used by both kinds.
+B. Table analyses, Chart: the Table combo lists the charts' axes ("Figure · axis"), the current figure's first;
+   the analysis reads the axis' series as a table of its own:
+     - each series' y is a column named after the series;
+     - their x is one more column, named after the axis' x label, when the series share it (same points), else
+       one x column per series ("<series> x");
+     - only the points the chart shows (hidden rows left out, the series' own SQL: its filters, its expressions).
+   The columns are then cast in the roles as for a table. Results are written as "_<axis title>_<key>" tables.
+C. What cannot work from a chart is said, not hidden: an analysis that writes into its source table (Cluster
+   Analysis' ClusterId, Partition's leaf and prediction columns) writes them only into its result tables then.
+D. Draw on for the table analyses: New figure (default), New axis in the current figure, and Current axis when the
+   analysis draws a single panel of the current axis' kind (the quick answers, Fit Y by X on a scatter) - the
+   panel's series added to it. None where the report is the result (Multivariate, Factor Analysis, PLS, Gage R&R?
+   - see Q3): no figure, the tables and the report (kept in the project's history and shown in Results).
+
+STEPS (each a commit, the suite green after each)
+1. A + B: the source choice in the shell; chart-backed frames for the table analyses.          (M)
+2. C: the analyses that write back into their source, from a chart.                          (S)
+3. D: Current axis and None for the table analyses.                                          (M)
+
+QUESTIONS
+Q1  From a chart: the axis as the unit (all its series together) - or one series at a time? (Suggested: the axis.)
+Q2  Series with different x: one x column per series, as above - or line them up by x (a join)? (Suggested: as
+    above; a join silently drops points.)
+Q3  None: for which analyses? Without a figure, the report stays in Results and in the history only. (Suggested:
+    offer it to all, default New figure.)
