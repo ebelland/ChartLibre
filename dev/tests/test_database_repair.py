@@ -74,3 +74,18 @@ def test_deleting_or_renaming_a_table_touches_its_own_series_only(tmp_path: Path
         assert '"b"' in repo.get_series_sql_query(ids["b"])
     finally:
         repo.close()
+
+
+def test_an_analysis_table_nothing_uses_or_recorded_is_a_leftover(tmp_path: Path) -> None:
+    """What a Preview left behind when its savepoint was lost; a result an applied analysis recorded stays."""
+    import pandas as pd
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    try:
+        for name in ("_t_clusters", "_t_pls", "mine"):
+            repo.import_dataframe(pd.DataFrame({"v": [1.0]}), table_name=name, normalize_columns=False)
+        repo.record_operation(operation="PLS", dialog="pls_dialog:PLSDialog", parameters={}, entries={},
+                              sources=[], results=[{"table": "_t_pls"}], app_version="test")
+        assert repo._leftover_tables() == ["_t_clusters"]  # "mine" is the user's data: never offered
+    finally:
+        repo.close()

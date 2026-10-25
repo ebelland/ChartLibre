@@ -361,20 +361,29 @@ class MaintenanceMixin(RepoHost):
         return {str(row[0]) for row in self._con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
 
     def _leftover_tables(self) -> list[str]:
-        """Hidden "_name_" tables no series or saved query reads, and "__rebuild_" ones."""
+        """The tables the application made that nothing uses: "__rebuild_" ones, hidden "_name_" ones no series
+        or saved query reads, and an analysis' "_name" results that no series reads and no recorded operation
+        wrote - what a Preview left behind when its savepoint was lost (a commit ended it)."""
         assert self._con is not None
         names = [str(row[0]) for row in self._con.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").fetchall()]
         hidden = [n for n in names if n.startswith("__rebuild_")
-                  or (len(n) > 2 and n.startswith("_") and n.endswith("_") and not n.startswith("__"))]
+                  or (len(n) > 1 and n.startswith("_") and not n.startswith("__"))]
         if not hidden:
             return []
         sql_texts = [str(row[0] or "") for row in self._con.execute(
             "SELECT sql_query FROM __series_descriptors__").fetchall()]
         sql_texts += [str(saved.sql or "") for saved in self.list_queries()]
         used = " ".join(sql_texts)
+        written = " ".join(str(row[0] or "") for row in self._con.execute(
+            "SELECT results_json FROM __operations__").fetchall()) if "__operations__" in names else ""
+
+        def mentioned(name: str, text: str) -> bool:
+            return bool(re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text))
+
         return [n for n in hidden
-                if n.startswith("__rebuild_") or not re.search(rf"(?<!\w){re.escape(n)}(?!\w)", used)]
+                if n.startswith("__rebuild_")
+                or (not mentioned(n, used) and (n.endswith("_") or not mentioned(n, written)))]
 
     @ensure_connection_wrapper
     def repair_database(self) -> list[str]:
