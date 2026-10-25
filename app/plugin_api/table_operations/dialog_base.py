@@ -538,6 +538,15 @@ class TableOperationDialogBase(OperationShell):
         return report_html.table([_(str(c)) for c in frame.columns],
                                  self.report_rows(frame, p_columns=p_columns, digits=digits))
 
+    def snapshot_for_undo(self, tables: Sequence[str]) -> None:
+        """OK's undo step: *tables* as they were, before the analysis writes them ("<analysis> on '<table>'").
+
+        Not for a Preview: it is rolled back, and OK writes it again with its step - and a snapshot cannot be
+        taken inside the preview's savepoint anyway.
+        """
+        if not self._previewing:
+            self._repo.snapshot_for_undo(list(tables), label=f"{self.Name} on '{self.table}'")
+
     def result_table_name(self, key: str) -> str:
         """A free name for a table the analysis writes: "_penguins_pls_vip".
 
@@ -556,10 +565,7 @@ class TableOperationDialogBase(OperationShell):
         repo = self._repo
         names = {key: self.result_table_name(key) for key in frames}
         # *also*: tables the analysis changes besides, in the same undo step (the source's ClusterId).
-        # Not for a Preview: it is rolled back, and OK writes it again with its step.
-        if not self._previewing:
-            repo.snapshot_for_undo([*names.values(), *also, *repo.DESCRIPTOR_TABLES],
-                                   label=f"{self.Name} on '{self.table}'")
+        self.snapshot_for_undo([*names.values(), *also, *repo.DESCRIPTOR_TABLES])
         for key, frame in frames.items():
             repo.import_dataframe(frame, table_name=names[key], normalize_columns=False)
         return names

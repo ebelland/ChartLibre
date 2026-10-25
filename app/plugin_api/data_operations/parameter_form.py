@@ -17,6 +17,7 @@ from __future__ import annotations
 import html
 from typing import Any, Callable, Mapping, Sequence
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -183,6 +184,8 @@ class ParameterForm:
         elif isinstance(param, BoolParam):
             widget = QCheckBox(_(param.label).rstrip(":"), self.widget)
             widget.setMinimumHeight(widget.sizeHint().height() + 6)
+            # No blue focus square around the box on macOS (the first box of a tab takes the focus).
+            widget.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
             widget.setChecked(param.default)
             widget.toggled.connect(self._changed)
 

@@ -12,7 +12,7 @@ from scipy import stats
 from app.analysis import statistics as st
 from app.data.select_sql import projection_source
 from app.data.sqlite_repo import SqliteRepo
-from app.data_operations.statistics_dialog import SeriesStatisticsDialog
+from app.data_operations.statistics_dialog import _chart_param, SeriesStatisticsDialog
 
 # Agresti (2007), table 2.5: party identification by gender.
 PARTY = {("female", "Democrat"): 762, ("female", "Independent"): 327, ("female", "Republican"): 468,
@@ -146,7 +146,8 @@ def _run(repo: SqliteRepo, figure_id: int, model: str, *, chart: str = "") -> st
     dialog.series_selector.reload(select_all_series=True)
     dialog.model_combo.setCurrentIndex(dialog.model_combo.findData(model))
     if chart:
-        dialog.chart_form.set_values({"create_chart": True, "chart_type": chart})
+        dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(dialog.DEST_NEW_AXIS))
+        dialog.chart_form.set_values({_chart_param(chart): True})
     assert dialog.apply()
     page = dialog.format_results(dialog.compute_results())
     dialog.close()

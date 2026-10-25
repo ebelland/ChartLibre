@@ -169,10 +169,14 @@ class BuilderHooksMixin:
         operation's parameter visibility depends on which model is selected,
         and the combo belongs to this base rather than to ``PARAMS``.
         """
-        combo = getattr(self, "model_combo", None)
-        if combo is None:
-            return {}
-        return {"model": self.current_model()}
+        context: dict[str, Any] = {}
+        if getattr(self, "model_combo", None) is not None:
+            context["model"] = self.current_model()
+        destination = getattr(self, "destination_combo", None)
+        if destination is not None:
+            # "Draw on": a chart shown only while there is somewhere to draw it.
+            context["destination"] = str(destination.currentData())
+        return context
 
     def parameter_values(self) -> dict[str, Any]:
         """Return the declared parameters' current values, keyed by name.

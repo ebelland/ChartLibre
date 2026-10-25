@@ -66,12 +66,14 @@ class OperationShell(QDialog):
     DEST_SAME_AXIS: str = "same_axis"
     DEST_NEW_AXIS: str = "new_axis"
     DEST_NEW_FIGURE: str = "new_figure"
+    #: No chart at all: for an analysis whose result is its report (Statistics).
+    DEST_NONE: str = "none"
 
     @classmethod
     def destination_label(cls, value: str) -> str:
         """The Charts tab's wording of a "Draw on" choice."""
         return {cls.DEST_SAME_AXIS: _("Current axis"), cls.DEST_NEW_AXIS: _("New axis in the current figure"),
-                cls.DEST_NEW_FIGURE: _("New figure")}[value]
+                cls.DEST_NEW_FIGURE: _("New figure"), cls.DEST_NONE: _("None")}[value]
 
     def destination_combo_for(self, parent: Any, values: Sequence[str], default: str, on_change: Any) -> Any:
         """The Charts tab's "Draw on" list: *values* (DEST_*), *default* selected, as wide as its words."""
@@ -112,8 +114,10 @@ class OperationShell(QDialog):
         panel = CardFrame(self, "operationChartsCard")
         layout = panel.layout()
         if destinations:
+            # The charts a destination makes possible (none for "None") follow it.
             self.destination_combo = self.destination_combo_for(
-                panel, destinations, default_destination or destinations[0], on_change)
+                panel, destinations, default_destination or destinations[0],
+                lambda: (self.chart_form is not None and self.chart_form.refresh_visibility(), on_change()))
             row = QFormLayout()
             stdSizeAndlayout(row)
             row.addRow(_("Draw on:"), self.destination_combo)

@@ -35,7 +35,7 @@ from app.data.data_source import quote_identifier
 from app.data.data_source import row_value,parse_roles
 from app.data.select_sql import projection_source
 from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, Param
 from app.plugin_api.data_operations.results import OperationResult
 from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
@@ -164,6 +164,25 @@ class SeriesStatsResult(OperationResult):
         del dialog, axis_id
 
 
+def _chart_param(chart_type: str) -> str:
+    """The Charts tab's check box for *chart_type*."""
+    return "chart_" + chart_type.lower().replace(" ", "_").replace("-", "_")
+
+
+def _chart_params(charts_by_model: Mapping[str, Sequence[tuple[str, str]]]) -> tuple[Param, ...]:
+    """A check box per chart a model can draw, shown for those models while there is somewhere to draw it.
+    Ticked at first: one chart per model; the further views of a distribution (ECDF, Q-Q, P-P) are asked for."""
+    charts = dict.fromkeys(chart for entries in charts_by_model.values() for chart, _title in entries)
+    return tuple(
+        BoolParam(_chart_param(chart), chart, default_value=chart not in ("ECDF", "Q-Q Plot", "P-P Plot"), tab="charts",
+                  visible_for={"model": tuple(model for model, entries in charts_by_model.items()
+                                              if any(name == chart for name, _title in entries)),
+                               "destination": (DataOperationDialogBase.DEST_NEW_AXIS,
+                                               DataOperationDialogBase.DEST_NEW_FIGURE)})
+        for chart in charts
+    )
+
+
 def _models_with(*per_model: Mapping[str, Sequence[Any]]) -> tuple[str, ...]:
     """The models with something in any of *per_model* (a chart, a distribution): a row's visible_for."""
     return tuple(dict.fromkeys(model for table in per_model for model, entries in table.items() if entries))
@@ -207,6 +226,11 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
     Order: int = 13
 
     WINDOW_SIZE = (1060, 720)
+    #: No chart by default: the dialog is a report, and a chart appearing unasked in the figure is a side effect
+    #: nobody requested. Charts go beside the series or in a figure of their own, never onto the series' axis.
+    DESTINATIONS = (DataOperationDialogBase.DEST_NONE, DataOperationDialogBase.DEST_NEW_AXIS,
+                    DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NONE
     # Most useful on several series at once: with all of them ticked, the All/Paired models show
     # paired-sample results at once when there is more than one.
     SELECTS_ALL_SERIES = True
@@ -214,8 +238,10 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
     def __init__(self, **kwargs: Any) -> None:
         # Set before super(): the base constructor calls the builder hooks, which reach these. The chart this
         # dialog adds when asked: created on the first Preview, reused, removed on Close unless Apply kept it.
-        self._result_chart_type: str = ""
-        self._result_axis_options: dict[str, Any] = {}
+        #: The axes drawn, and what: chart type -> its options, and where.
+        self._result_axis_ids: list[int] = []
+        self._drawn_charts: dict[str, dict[str, Any]] = {}
+        self._drawn_destination = ""
         self._fit_cache: dict[tuple[bytes, int, bool, str], list[DistributionFit]] = {}
         super().__init__(**kwargs)
         self.set_doc_link("SciPy statistics",
@@ -276,9 +302,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
 
         charts = self.CHARTS_BY_MODEL.get(model, ())
         has_chart = bool(charts)
-        # Shown only for a model one chart illustrates: the PARAMS' visible_for.
-        if self.chart_form is not None:
-            self.chart_form.set_choices("chart_type", [(chart_type, chart_type) for chart_type, _title in charts])
 
         # The distributions the model's chart can draw (shown where there are some: the PARAMS' visible_for).
         distributions = self.DISTRIBUTIONS_BY_MODEL.get(model, ())
@@ -1001,12 +1024,10 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             formatted = self.format_results(results)
             self.publish_results(formatted)
 
-            if self.chart_enabled("create_chart"):
-                # On Preview as well, like every other operation dialog: a
-                # preview you cannot see is not a preview.  Closing without
-                # applying removes it again - see discard_operation_artifacts.
-                self._create_model_axis(results[0])
-                self.applied.emit()
+            # On Preview as well, like every other operation dialog: a preview you cannot see is not a
+            # preview. Closing without applying removes the charts again - see discard_operation_artifacts.
+            self._draw_model_charts(results[0])
+            self._refresh_after_preview_state_change()
 
             if verb == "Applied":
                 self._applied = True
@@ -1092,9 +1113,8 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
     )
 
     #: The settings - the reference value and the tests' options, the distribution the chart draws and how the
-    #: candidates are ranked - each shown for the models that use it; then the Charts tab: whether OK also draws
-    #: a chart, and which. Off by default: the dialog is a report, and a chart appearing unasked in the figure is a
-    #: side effect nobody requested. The charts and distributions on offer follow the model (_sync_model_controls).
+    #: candidates are ranked - each shown for the models that use it; then the Charts tab's check boxes, the
+    #: charts the model can draw. The distributions on offer follow the model (_sync_model_controls).
     PARAMS = (
         FloatParam("popmean", "Reference value:", default_value=0.0, minimum=-1.0e12, maximum=1.0e12, decimals=8,
                    step=0.001, tooltip="Reference value for one-sample location tests."),
@@ -1128,14 +1148,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                   tooltip="Fit all ~100 continuous distributions instead of the 15 common ones. Considerably "
                           "slower - seconds per refresh - and many of the extra candidates fit no real "
                           "measurement."),
-        BoolParam("create_chart", "Add a chart", tab="charts",
-                  visible_for={"model": _models_with(CHARTS_BY_MODEL)},
-                  tooltip="Add an axis to the current figure showing the analysed series. "
-                          "Preview draws it; closing without applying removes it again."),
-        ChoiceParam("chart_type", "Chart:", tab="charts",
-                    visible_for={"model": _models_with(CHARTS_BY_MODEL), "create_chart": (True,)},
-                    tooltip="Which chart to add. 'Match the model' picks the one that shows what the "
-                            "selected statistics measure."),
+        *_chart_params(CHARTS_BY_MODEL),
     )
 
     def _axis_options(
@@ -1167,84 +1180,63 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             options["alpha"] = 0.55
         return options
 
-    def _create_model_axis(self, result: SeriesStatsResult) -> None:
-        """Add an axis showing what the selected model measured.
+    def _draw_model_charts(self, result: SeriesStatsResult) -> None:
+        """The charts ticked for the model, an axis each, where "Draw on" says: beside the series or in a figure
+        of their own; none with "None".
 
-        Only when the user asked for a chart - the dialog's job is to report
-        numbers, and an axis appearing unrequested is a side effect.
-
-        Created on the first Preview and reused afterwards, so changing the
-        model or a parameter redraws the same axis instead of stacking a new
-        one each time.  Closing without Apply deletes it again, which is what
-        keeps a preview a preview: see discard_operation_artifacts.
-
-        The axis carries the same series the statistics were computed from, so
-        the numbers and the picture cannot disagree.
+        Drawn on Preview and redrawn only when the charts, their options or the place change. They carry the
+        series the statistics were computed from, so the numbers and the pictures cannot disagree. A model with
+        nothing to draw - "all" prints every section, and no one picture illustrates that - draws nothing.
         """
-        charts = self.CHARTS_BY_MODEL.get(result.model, ())
-        if not charts:
-            # A model with nothing to draw: "all" prints every section, and no
-            # one picture illustrates that.
+        destination = str(self.parameter_values().get("destination") or self.DEST_NONE)
+        charts = [(chart, title) for chart, title in self.CHARTS_BY_MODEL.get(result.model, ())
+                  if destination != self.DEST_NONE and self.chart_enabled(_chart_param(chart))]
+        drawn = {chart: self._axis_options(chart, result) for chart, _title in charts}
+        if drawn == self._drawn_charts and destination == self._drawn_destination and self._result_axis_ids:
             return
-
-        # The chosen entry, or the model's first, which is the one the list was
-        # ordered to put there.
-        chosen = str(self.chart_value("chart_type") or "")
-        chart_type, title = next(
-            ((name, label) for name, label in charts if name == chosen), charts[0]
-        )
-
-        options = self._axis_options(chart_type, result)
-
-        if (
-            self._result_axis_id is not None
-            and self._result_chart_type == chart_type
-            and self._result_axis_options == options
-        ):
-            return
-
-        # A different renderer needs different role columns, so the axis is
-        # rebuilt rather than re-labelled.
+        # A different renderer needs different role columns: the axes are rebuilt rather than re-labelled.
         self._remove_result_axis()
-
-        axis_id = self.create_result_axis(
-            chart_type=chart_type,
-            title=title,
-            x_label="" if chart_type != "ECDF" else "value",
-            y_label="",
-            options=options,
-        )
-        self._result_axis_id = axis_id
-        self._result_chart_type = chart_type
-        self._result_axis_options = options
-        rows = self._rows_for_statistics()
-        if result.model in FRAME_MODELS:
-            for row, table in zip(rows, result.tables):
-                self._attach_table_series(axis_id, row, table, result.model, chart_type)
+        if not charts:
             return
-        if result.model in ("paired", "correlation") and chart_type == "Scatter Plot":
-            # Every pair, not every series.  These two models test one sample
-            # against another, and the report already prints a row per pair -
-            # so charting each series against its own x would show something
-            # the statistics never looked at.
-            for left, right in itertools.combinations(rows, 2):
-                self._attach_series_pair(axis_id, left, right)
-        else:
-            for row in rows:
-                self._attach_source_series(axis_id, row, chart_type)
+        figure_id = None
+        if destination == self.DEST_NEW_FIGURE:
+            figure_id = self._result_figure_id = int(self._repo.create_figure_descriptor(
+                name=f"{_(self.Name)} · {result.model}", nrows=1, ncols=1))
+        rows = self._rows_for_statistics()
+        for chart_type, title in charts:
+            axis_id = self.create_result_axis(
+                chart_type=chart_type, title=title, x_label="value" if chart_type == "ECDF" else "", y_label="",
+                options=drawn[chart_type], figure_id=figure_id,
+            )
+            self._result_axis_ids.append(axis_id)
+            if result.model in FRAME_MODELS:
+                for row, table in zip(rows, result.tables):
+                    self._attach_table_series(axis_id, row, table, result.model, chart_type)
+                continue
+            if result.model in ("paired", "correlation") and chart_type == "Scatter Plot":
+                # Every pair, not every series.  These two models test one sample
+                # against another, and the report already prints a row per pair -
+                # so charting each series against its own x would show something
+                # the statistics never looked at.
+                for left, right in itertools.combinations(rows, 2):
+                    self._attach_series_pair(axis_id, left, right)
+            else:
+                for row in rows:
+                    self._attach_source_series(axis_id, row, chart_type)
+        self._drawn_charts, self._drawn_destination = drawn, destination
 
     def _remove_result_axis(self) -> None:
-        """Delete the axis this dialog added, if it added one."""
-        axis_id = self._result_axis_id
-        self._result_axis_id = None
-        self._result_chart_type = ""
-        self._result_axis_options = {}
-        if axis_id is None:
-            return
+        """Delete the axes this dialog added, or the figure it made for them."""
+        axis_ids, figure_id = list(self._result_axis_ids), self._result_figure_id
+        self._result_axis_ids, self._result_figure_id = [], None
+        self._drawn_charts, self._drawn_destination = {}, ""
         try:
-            self._repo.delete_axis(axis_id)
+            if figure_id is not None:
+                self._repo.delete_figure(int(figure_id))
+            for axis_id in ([] if figure_id is not None else axis_ids):
+                self._repo.delete_axis(axis_id)
         except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
-            applogger.exception("Failed to remove the statistics axis %s", axis_id)
+            applogger.exception("Failed to remove the statistics charts %s", axis_ids)
 
     def discard_operation_artifacts(self) -> None:
         """Remove the previewed chart when Apply never happened.

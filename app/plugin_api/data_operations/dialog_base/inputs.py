@@ -613,6 +613,7 @@ class InputsMixin:
         x_label: str = "",
         y_label: str = "",
         options: Mapping[str, Any] | None = None,
+        figure_id: int | None = None,
     ) -> int:
         """Add an axis to the current figure and return its id.
 
@@ -626,7 +627,7 @@ class InputsMixin:
         bury the original.  The figure's grid grows by one row to make room,
         because an axis outside the grid is never drawn.
         """
-        figure_id = self._figure_id
+        figure_id = self._figure_id if figure_id is None else int(figure_id)
         axis_index = self._repo.next_axis_index(figure_id)
 
         descriptor = self._repo.load_figure_descriptor(figure_id=figure_id)

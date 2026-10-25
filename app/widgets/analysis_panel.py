@@ -186,7 +186,8 @@ class AnalysisPanel(NavPanel):
         frame = self._lists[index].parentWidget()
         while frame is not None and not hasattr(frame, "title_label"):
             frame = frame.parentWidget()
-        return frame.title_label.text() if frame is not None else ""
+        label = getattr(frame, "title_label", None) if frame is not None else None
+        return label.text() if label is not None else ""
 
     def _open_item(self, item: QListWidgetItem | None) -> None:
         if item is None:

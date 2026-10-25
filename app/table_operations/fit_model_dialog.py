@@ -606,10 +606,7 @@ class FitModelDialog(TableOperationDialogBase):
             "roc": repo.free_hidden_table_name(f"{table}_fit_roc"),
         }
         charts = self.charts()
-        repo.snapshot_for_undo(
-            [*names.values(), *(repo.DESCRIPTOR_TABLES if charts else ())],
-            label=f"Fit Model on '{table}'",
-        )
+        self.snapshot_for_undo([*names.values(), *(repo.DESCRIPTOR_TABLES if charts else ())])
 
         frame = self._frame.copy()
         effects, profiles, curves = [], [], []

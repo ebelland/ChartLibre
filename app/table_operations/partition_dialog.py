@@ -295,7 +295,7 @@ class PartitionDialog(TableOperationDialogBase):
     # ------------------------------------------------------------------
 
     def apply_results(self, result: pt.PartitionResult) -> list[dict[str, Any]]:
-        repo, table = self._repo, self.table
+        repo = self._repo
         charts = self.charts()
         # A forest or a boosted model has no single tree: no leaves to write or draw.
         tree = not result.leaves.empty
@@ -307,10 +307,7 @@ class PartitionDialog(TableOperationDialogBase):
             *((("dependence", "_dependence"),) if not result.dependence.empty else ()),
             *((("roc", "_roc"),) if not result.roc.empty else ()),
         )}
-        repo.snapshot_for_undo(
-            [*names.values(), *(repo.DESCRIPTOR_TABLES if charts else ())],
-            label=f"Partition on '{table}'",
-        )
+        self.snapshot_for_undo([*names.values(), *(repo.DESCRIPTOR_TABLES if charts else ())])
 
         # Each row's leaf and prediction beside its data, like ClusterId.
         frame = self._frame.copy()

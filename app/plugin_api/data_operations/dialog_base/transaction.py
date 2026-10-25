@@ -194,6 +194,9 @@ class TransactionMixin:
             # this turned out to be.
             undo_entry: int | None = None
             if commit:
+                # The Preview's savepoint goes first: a snapshot cannot be taken inside a transaction,
+                # and OK writes everything again anyway.
+                self.cancel_operation_changes(refresh=False)
                 undo_entry = self._repo.snapshot_for_undo(
                     self._repo.DESCRIPTOR_TABLES,
                     label=f"Apply {self.operation_label}",
