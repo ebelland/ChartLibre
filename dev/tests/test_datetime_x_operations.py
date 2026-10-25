@@ -166,3 +166,22 @@ def test_a_result_computed_from_dates_is_written_back_as_dates(
     assert parsed.iloc[0].year == 2024
 
 
+
+
+def test_a_fit_of_a_dated_series_is_written_back_as_dates(qapp, repo: SqliteRepo, dated_figure) -> None:
+    """The fit's result names its series only through ``series`` (no source_name): its x came back
+    as seconds, and a chart of dates read them as days - the year -215941, and nothing drawn."""
+    from app.data_operations.fit_dialog import SeriesFitDialog
+
+    figure_id, axis_id = dated_figure
+    dialog = _dialog(SeriesFitDialog, repo, figure_id)
+    assert dialog.select_model("Linear")
+    dialog.on_estimate_initial_values()
+    dialog.evaluate(dialog._after_fit, background=False, optimise=True)
+    results = dialog.compute_results()
+    dialog.apply_results_to_axis(axis_id, results)
+
+    stored = repo.query_df(f'SELECT x FROM "{dialog.result_table_name(axis_id, results[0])}"')
+    parsed = parse_datetimes(stored["x"])
+    assert parsed.notna().all() and parsed.min().year in (2023, 2024)  # the curve runs a little past the data
+    dialog.close()

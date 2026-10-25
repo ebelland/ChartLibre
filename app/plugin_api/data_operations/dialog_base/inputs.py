@@ -516,6 +516,11 @@ class InputsMixin:
     def write_result_table(self, table_name: str, result: Any) -> None:
         """Persist one operation result to a normal SQLite table."""
         frame = self.restore_temporal_x(self.result_to_frame(result), result)
+        # An infinite value is no number to draw - a model overflowing far from its data (exp of a date in
+        # seconds): written as missing, so the chart leaves it out instead of scaling to it.
+        numeric = frame.select_dtypes(include="number").columns
+        if len(numeric):
+            frame[numeric] = frame[numeric].replace([np.inf, -np.inf], np.nan)
         self._repo.import_dataframe(frame, table_name=table_name, normalize_columns=False)
 
     def restore_temporal_x(self, frame: Any, result: Any) -> Any:
@@ -531,8 +536,10 @@ class InputsMixin:
         The renderers read them the same way they read the source (see
         ``coercion.coerce_axis``), which is what puts the two on one axis.
         """
-        source = str(getattr(result, "source_name", "") or "")
-        if not self._temporal_x_sources.get(source):
+        # The series it was computed from: source_name, or the series every result names (a fit has
+        # only that - its dated x was written as seconds, a chart of dates drawn at the year -215941).
+        sources = {str(getattr(result, "source_name", "") or ""), *map(str, getattr(result, "series", ()) or ())}
+        if not any(self._temporal_x_sources.get(source) for source in sources if source):
             return frame
 
         for column in ("x", "left_x", "right_x"):
