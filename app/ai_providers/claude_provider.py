@@ -48,6 +48,8 @@ def _readable(error: BaseException) -> str:
         return "Too many requests for now: wait a moment and ask again."
     if isinstance(error, anthropic.APIConnectionError):
         return "No connection to Anthropic: check the internet connection."
+    if isinstance(error, anthropic.BadRequestError) and "credit balance" in str(error.message).lower():
+        return "The account has no credit left: add some in Anthropic's Console (Billing)."
     if isinstance(error, anthropic.APIStatusError):
         return f"Anthropic answered with an error ({error.status_code}): {error.message}"
     return str(error)
@@ -137,6 +139,18 @@ class ClaudeProvider(AIProvider):
 
     def models(self) -> Mapping[str, str]:
         return {ACCURATE: OPUS, FAST: HAIKU}
+
+    def check(self, api_key: str) -> str:
+        # A few tokens of Haiku: the key, the account's credit and the connection, all three.
+        anthropic = _sdk()
+        try:
+            anthropic.Anthropic(api_key=api_key or None, max_retries=0, timeout=30).messages.create(
+                model=HAIKU, max_tokens=8, messages=[{"role": "user", "content": "Reply with: OK"}])
+        except anthropic.APIError as error:
+            return _readable(error)
+        except anthropic.AnthropicError as error:  # no key at all: the client says so before any request
+            return str(error) or type(error).__name__
+        return ""
 
     def classify(self, text: str, *, api_key: str) -> str:
         anthropic = _sdk()

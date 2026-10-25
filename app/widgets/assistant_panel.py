@@ -127,10 +127,10 @@ class AssistantPanel(NavPanel):
             problem = _("No assistant provider is installed.")
         elif provider.unavailable():
             problem = _(provider.unavailable())
-        elif not settings.consented():
+        elif provider.SENDS_DATA and not settings.consented():
             problem = _("The assistant sends questions and data from the project to {provider}. Allow it in "
                         "Settings > Assistant.").format(provider=provider.Name)
-        elif not settings.api_key(provider.KEY_NAME):
+        elif provider.KEY_NAME and not settings.api_key(provider.KEY_NAME):
             problem = _("No API key: set it in Settings > Assistant (or in the environment).")
         level = dict(settings.PERMISSIONS)[settings.permission()]
         self._note.setText(problem or _("{provider} · {level}").format(
@@ -143,7 +143,7 @@ class AssistantPanel(NavPanel):
         """The current conversation - a new one when the settings it was started with changed."""
         provider = _load_provider(settings.provider_name())
         wanted = (settings.provider_name(), settings.permission(), self._mode_combo.currentData(),
-                  settings.api_key(provider.KEY_NAME), id(self._repo()))
+                  settings.api_key(provider.KEY_NAME) if provider.KEY_NAME else "", id(self._repo()))
         if self._assistant is None or wanted != self._assistant_settings:
             if self._assistant is not None:
                 self._add_note(_("New conversation: the settings or the project changed."))

@@ -91,11 +91,19 @@ class AIProvider:
     #: How the provider is listed in Settings.
     Name: str = ""
     Description: str = ""
-    #: The account's key, kept by the system's keychain: the name it is filed under.
+    #: The account's key, kept by the system's keychain: the name it is filed under; "" when none is needed.
     KEY_NAME: str = ""
+    #: Whether the questions and the data leave the computer: then nothing is sent before the user consents.
+    SENDS_DATA: bool = True
 
     def unavailable(self) -> str:
         """Why the provider cannot be used here (a package missing...), or "" when it can."""
+        return ""
+
+    def check(self, api_key: str) -> str:
+        """Try *api_key* with the smallest request the service answers - on a worker thread: "" when it works,
+        else why not, in words the user can act on. The default: nothing to try."""
+        del api_key
         return ""
 
     def models(self) -> Mapping[str, str]:

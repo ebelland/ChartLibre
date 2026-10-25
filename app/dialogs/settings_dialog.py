@@ -29,7 +29,18 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from PySide6.QtWidgets import QCheckBox, QComboBox, QFormLayout, QLabel, QLineEdit, QSpinBox, QWidget
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.logs.logger import applogger
 from app.dialogs.two_panels_dialog_base import PanelDialog
@@ -347,7 +358,28 @@ class SettingsDialog(PanelDialog):
             self._assistant_key.setPlaceholderText(tr("pip install keyring to keep it here"))
             self._assistant_key.setToolTip(tr("Without the keyring package the key is read from the environment "
                                               "(ANTHROPIC_API_KEY for Claude)."))
-        form.addRow(tr("API key"), self._assistant_key)
+        # Test: the smallest request the provider answers, with the key as typed - before it is saved.
+        self._assistant_check = QPushButton(tr("Test"), card)
+        self._assistant_check.setToolTip(tr("Sends the provider the smallest request it answers, with this key: "
+                                            "whether the key, the account's credit and the connection work."))
+        self._assistant_check.clicked.connect(self._check_assistant_key)
+        self._assistant_check_task: Any = None
+        self._assistant_check_result = QLabel(card)
+        self._assistant_check_result.setWordWrap(True)
+        self._assistant_check_result.setProperty("muted", True)
+        self._assistant_check_result.hide()
+        key_field = QWidget(card)
+        key_column = QVBoxLayout(key_field)
+        key_column.setContentsMargins(0, 0, 0, 0)
+        key_row = QHBoxLayout()
+        key_row.setContentsMargins(0, 0, 0, 0)
+        key_row.addWidget(self._assistant_key, 1)
+        key_row.addWidget(self._assistant_check)
+        key_column.addLayout(key_row)
+        key_column.addWidget(self._assistant_check_result)
+        form.addRow(tr("API key"), key_field)
+        self._assistant_provider.currentIndexChanged.connect(self._assistant_provider_changed)
+        self._assistant_provider_changed()
         self._assistant_permission = self._combo(card, [(key, tr(label)) for key, label in assistant.PERMISSIONS],
                                                  assistant.permission())
         self._assistant_permission.setToolTip(tr("What the assistant may do. Every change to the data is confirmed "
@@ -365,6 +397,62 @@ class SettingsDialog(PanelDialog):
         self._assistant_rows.setSpecialValueText(tr("None"))
         self._assistant_rows.setToolTip(tr("How many rows of a table the assistant may send as an example."))
         form.addRow(tr("Sample rows"), self._assistant_rows)
+
+    def _assistant_provider_changed(self) -> None:
+        """A provider that needs no key (Demo): the key and its test are not for it."""
+        from app.ai import settings as assistant
+
+        needs_key = bool(self._assistant_key_names.get(self._value(self._assistant_provider)))
+        self._assistant_key.setEnabled(needs_key and assistant.keychain_available())
+        self._assistant_check.setEnabled(needs_key)
+        self._assistant_check_result.hide()
+
+    def _check_assistant_key(self) -> None:
+        """Try the key on a worker thread; say what came of it under the field."""
+        import shiboken6
+
+        from app.ai import settings as assistant
+        from app.scanners.ai_provider_scanner import ai_providers, provider_class
+        from app.utils.background import run_in_background
+
+        name = self._value(self._assistant_provider)
+        entry = next((entry for entry in ai_providers if entry["value"] == name), None)
+        if entry is None:
+            return
+        provider = provider_class(entry)()
+        key = self._assistant_key.text().strip() or assistant.api_key(provider.KEY_NAME)
+
+        def say(text: str) -> None:
+            if shiboken6.isValid(self._assistant_check_result):  # the dialog may be closed by now
+                self._assistant_check_result.setText(text)
+                self._assistant_check_result.show()
+                self._assistant_check.setEnabled(True)
+                self._grow_to_fit()
+
+        if provider.unavailable() or not key:
+            say(tr(provider.unavailable()) if provider.unavailable() else tr("Type the key first."))
+            return
+        self._assistant_check.setEnabled(False)
+        self._assistant_check_result.setText(tr("Trying the key..."))
+        self._assistant_check_result.show()
+        self._grow_to_fit()
+        self._assistant_check_task = run_in_background(
+            lambda _cancel: provider.check(key),
+            lambda problem: say(tr(problem) if problem else tr("The key works: {provider} answered.").format(
+                provider=name)),
+            lambda error: say(str(error) or type(error).__name__),
+        )
+
+    def _grow_to_fit(self) -> None:
+        """Taller when a wrapped line appeared since it opened: a shown window does not grow for one itself."""
+        layout = self.layout()
+        if layout is None:
+            return
+        layout.activate()
+        height = (layout.totalHeightForWidth(self.width()) if layout.hasHeightForWidth()
+                  else layout.totalSizeHint().height())
+        if height > self.height():
+            self.resize(self.width(), height)
 
     def _save_assistant(self) -> None:
         from app.ai import settings as assistant

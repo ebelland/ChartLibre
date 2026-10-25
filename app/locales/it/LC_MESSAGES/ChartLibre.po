@@ -11515,3 +11515,45 @@ msgstr "Troppe richieste per ora: aspetta un momento e chiedi di nuovo."
 
 msgid "No connection to Anthropic: check the internet connection."
 msgstr "Nessuna connessione ad Anthropic: controlla la connessione a internet."
+
+msgid "The account has no credit left: add some in Anthropic's Console (Billing)."
+msgstr "L'account non ha più credito: aggiungine nella Console di Anthropic (Billing)."
+
+msgid "**Demo** - a fixed script, not an AI: it shows what the assistant does with the project's tools. With a real provider the answer is written for your question."
+msgstr "**Demo** - un copione fisso, non un'IA: mostra cosa fa l'assistente con gli strumenti del progetto. Con un fornitore vero la risposta è scritta per la tua domanda."
+
+msgid "Sends the provider the smallest request it answers, with this key: whether the key, the account's credit and the connection work."
+msgstr "Invia al fornitore la richiesta più piccola a cui risponde, con questa chiave: dice se la chiave, il credito dell'account e la connessione funzionano."
+
+msgid "Column **{name}** added - Edit > Undo removes it."
+msgstr "Colonna **{name}** aggiunta - Modifica > Annulla la toglie."
+
+msgid "The analysis could not run: {error}"
+msgstr "L'analisi non è potuta partire: {error}"
+
+msgid "The change was declined: nothing was changed."
+msgstr "La modifica è stata rifiutata: non è cambiato nulla."
+
+msgid "The column could not be added: {error}"
+msgstr "Non è stato possibile aggiungere la colonna: {error}"
+
+msgid "The key works: {provider} answered."
+msgstr "La chiave funziona: {provider} ha risposto."
+
+msgid "The project has no tables yet: import one from File, then ask again."
+msgstr "Il progetto non ha ancora tabelle: importane una da File, poi chiedi di nuovo."
+
+msgid "The project has {count} tables; I looked at **{table}** ({rows} rows)."
+msgstr "Il progetto ha {count} tabelle; ho guardato **{table}** ({rows} righe)."
+
+msgid "Trying the key..."
+msgstr "Provo la chiave..."
+
+msgid "Type the key first."
+msgstr "Scrivi prima la chiave."
+
+msgid "What the database answers:"
+msgstr "Cosa risponde il database:"
+
+msgid "written to the project; the report begins:"
+msgstr "scritto nel progetto; il report comincia così:"
