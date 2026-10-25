@@ -1,0 +1,53 @@
+OLLAMA AS AN ASSISTANT PROVIDER - PLAN      2026-10-25, waiting for the go
+
+WHAT WAS ASKED
+"Come posso integrare Ollama nell'app e in assistente?" - the Assistant answered by a model running on this
+computer, through Ollama, beside Claude and Demo.
+
+WHAT IS THERE
+The Assistant talks to a provider plugin (app/plugin_api/ai/provider.py: AIProvider, ChatSession, ToolSpec,
+ToolCall, ToolResult, Turn); Claude and Demo are two of them in app/ai_providers. The tools, the permission
+levels, the confirmations and Undo are the application's, the same whoever answers. A provider that keeps the
+data on the computer says so (SENDS_DATA = False: no consent asked) and one with no key leaves KEY_NAME empty.
+
+THE SHAPE
+1. app/ai_providers/ollama_provider.py - OllamaProvider and its session, over Ollama's own HTTP API with the
+   standard library (urllib.request, as data_sources and machine_translation already do): no new dependency,
+   nothing to install but Ollama itself.
+   - The conversation: POST /api/chat with the messages, the tools (as Ollama's "function" tools: name,
+     description, the same JSON schema) and "stream": true; the answer read line by line (NDJSON), its text
+     passed on as it comes, the Stop button checked between lines.
+   - Tool calls: message.tool_calls (function name, arguments) become ToolCalls; their results go back as
+     "tool" messages. A call the model writes badly (a tool that is not there, arguments that are not an
+     object) goes back to it as an error, as the Claude provider does.
+   - unavailable(): "Ollama is not running at <address>: start it (ollama serve), or install it from
+     ollama.com" - asked of /api/version, quickly, so the panel says it before a question is typed.
+   - models(): the two chosen in Settings (Q1); classify() for Automatic: the fast one asked SIMPLE or COMPLEX,
+     as Claude's router does (Q4).
+   - check() (Settings' Try): the address answers and the model is installed (/api/tags).
+2. Settings > Assistant, when Ollama is the provider: the address (Q2), and the accurate and the fast model,
+   each a list of the models installed (read from /api/tags), the key field and its Try hidden.
+3. No key, and no consent while the address is this computer's (SENDS_DATA follows the address: another
+   machine's Ollama is data leaving the computer, Q2).
+4. Tests with a fake Ollama: a small local HTTP server in the test answering /api/chat with streamed lines and
+   a tool call - the conversation, the tool loop, Stop, a server that is not running, a model that is not
+   installed. Never a real Ollama.
+5. The manual: what Ollama is, the models that call tools (llama3.1, qwen2.5, mistral-nemo...), and the honest
+   limit: a small local model is far less reliable than Claude at several steps - choosing an analysis,
+   casting its columns, reading its report.
+
+STEPS (each a commit, the suite green after each)
+1. The provider and its session, streaming and tool calls, against the fake server.                     (M)
+2. Settings: the address, the two model lists, Try; unavailable() said in the panel.                   (S)
+3. The manual's paragraph.                                                                             (S)
+
+QUESTIONS
+Q1  Models: two lists in Settings - accurate and fast, the fast one the same as the accurate by default - or
+    one model for everything? (Suggested: two, the second optional; Automatic only when they differ.)
+Q2  The address: this computer only (localhost:11434) - or any address, for an Ollama on another machine of
+    the network? (Suggested: any, localhost by default; another machine's asks the consent, as Claude does.)
+Q3  The HTTP client: the standard library (suggested, no dependency) - or the optional `ollama` package?
+Q4  Automatic mode: the fast model routes, as with Claude (suggested) - or a fixed rule (a short question to
+    the fast model)?
+
+EFFORT: M (about one session).
