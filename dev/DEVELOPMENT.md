@@ -849,38 +849,23 @@ _("Delete {count} selected tables").format(count=n)   # dynamic content: format(
 ```
 
 Every user-facing string that reaches a widget — labels, tooltips, menu item
-text, dialog titles — must go through `_()`/`tr()`. A popup menu (or any
-other UI) built from bare Python strings will simply not translate; this is
-a common regression when a new menu is added by copying an existing
-`MenuItem(text="...", ...)` block without noticing the sibling entries
-already wrap `text` in `_()`. `dev/tests/test_localization.py` and
-`dev/tests/test_messages.py` check catalogue coverage; a string added to the
-code needs a matching `msgid`/`msgstr` pair appended to
-`app/locales/it/LC_MESSAGES/ChartLibre.po` (any position — the file is not
-order-sensitive, blank-line-separated blocks — see the existing entries for
-the exact format) to actually show translated, not just be translatable.
+text, dialog titles — must go through `_()`/`tr()`. A popup menu (or any other
+UI) built from bare Python strings will simply not translate; this is a common
+regression when a new menu is added by copying an existing
+`MenuItem(text="...", ...)` block without noticing the sibling entries already
+wrap `text` in `_()`. The catalogues
+(`app/locales/*/LC_MESSAGES/ChartLibre.po`) are kept by hand with Edit
+Localization (Project > Developer tools), which lists every `_()`/`tr()`
+literal in the source and every plugin's declared wording, and marks what a
+language is missing. No test checks what a catalogue covers: a new string
+shows in English until it is translated there.
 
-**Four sweeps, because a literal is not the only way text reaches a user.**
-`test_localization.py` walks the AST for `_("…")`/`tr("…")` literals, which
-is everything written inline. Text that lives as *data* is invisible to it
-and gets a sweep of its own in `test_icons_and_actions.py`:
-
-| Sweep | Covers |
-| --- | --- |
-| `test_every_translated_string_is_in_the_italian_catalogue` | every `_()`/`tr()` literal in the source |
-| `test_the_italian_locale_covers_every_action` | `config.json`'s action catalogue: every button's text and description |
-| `test_the_italian_locale_covers_every_operation` | every data operation's `Name` and `Description` |
-| `test_the_italian_locale_covers_every_renderer` | every chart type's `Name`, `Description` and `Category` |
-
-The last two exist because a plugin declares its wording on the class, so it
-reaches the screen as `tr(some_variable)` — the chart picker and the axis
-properties panel translate at the display site and keep the raw English name
-in `UserRole`/the signal, since that string is also the `chart_type` stored
-in the database. Translate what is read; never translate what is looked up.
-
-`dev/tests/test_messages.py` additionally checks that a translation keeps
-every `{placeholder}` its English original had — a dropped one is a silently
-wrong sentence, not a crash.
+Text that lives as *data* - a plugin's `Name`, `Description` and `Category`,
+`config.json`'s actions - reaches the screen as `tr(some_variable)`: the chart
+picker and the axis properties panel translate at the display site and keep
+the raw English name in `UserRole`/the signal, since that string is also the
+`chart_type` stored in the database. Translate what is read; never translate
+what is looked up.
 
 ## 10. `config.json` and `user.json`
 

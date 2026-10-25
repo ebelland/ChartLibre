@@ -2,15 +2,13 @@
 (todo.txt P3-5).
 
 Every row is a source string ``_()``/``tr()`` wraps somewhere in the app
-(``i18n.source_translator_calls()`` - the same AST sweep
-dev/tests/test_localization.py's own safety net runs) unioned with
-whatever the selected language's catalogue already has, so a string that
-is translated but no longer used anywhere still shows up to edit or
+(``i18n.source_translator_calls()``, an AST sweep of the source) unioned
+with whatever the selected language's catalogue already has, so a string
+that is translated but no longer used anywhere still shows up to edit or
 remove by hand, and a string used but never added to the catalogue shows
-up with an empty translation rather than silently failing the next full
-test run instead. "Missing only" filters to exactly that empty-
-translation case - what would otherwise only surface at
-`python -m pytest dev/tests/test_localization.py`.
+up with an empty translation. "Missing only" filters to exactly that
+empty-translation case - the catalogues are kept here, by hand; no test
+checks what they cover.
 
 Saving writes through :func:`app.utils.i18n._write_po` (round-trips
 losslessly with :func:`app.utils.i18n._parse_po`, see that function's own

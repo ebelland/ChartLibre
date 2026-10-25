@@ -217,11 +217,9 @@ def _write_po(
 def source_translator_calls(root: Path | None = None) -> set[str]:
     """Every literal string passed to ``_()``/``tr()`` anywhere under *root*.
 
-    The same AST sweep dev/tests/test_localization.py's own safety net
-    runs (its "every translated string is in the catalogue" test), exposed
-    here so a tool that wants to know what *should* be in a catalogue -
-    Edit Localization, the Developer-menu tool - has one implementation to
-    read rather than a second copy that can drift from the test's own.
+    What *should* be in a catalogue, for a tool that fills one - Edit
+    Localization, the Developer-menu tool. The catalogues are kept by hand
+    with it; no test checks what they cover.
     Only a literal string argument counts, same restriction as that test:
     ``_(some_variable)`` cannot be swept statically either way. The one
     exception is the class attributes a data operation's base translates
@@ -604,6 +602,5 @@ def tr(message: str) -> str:
 #: rebinds it, and every ``_("...")`` after that point raises *'int' object is
 #: not callable* - at runtime, in whichever dialog happens to open.  Bind
 #: throwaways to ``_unused`` in any module that imports this.
-#: ``test_localization`` fails if one slips back in.
 _ = tr
 
