@@ -1,0 +1,59 @@
+A CHAT WITH AN AI INSIDE CHARTLIBRE, ABLE TO ANALYSE AND CHANGE THE PROJECT - PLAN      2026-10-25, waiting for the go
+
+WHAT WAS ASKED
+A chat with Claude (or another AI) inside the application, with access to the analyses and to the tables - able to
+change them. Claude Haiku as well, for the simple operations. On Windows as on macOS.
+
+THE SHAPE
+1. A Chat panel in the navigation bar (beside File, Analysis...): the conversation, the answer streamed as it is
+   written, the tool calls shown as they run ("Distribution of body_mass_g on penguins..."), Stop. The request runs
+   on a worker thread (app.utils.background), as the analyses do: the window never freezes.
+2. Tools, not free code: the AI calls the application's own functions, run locally by it.
+   - Reading (no confirmation): list tables; a table's columns, types and summary (column_summary); a read-only SQL
+     query through the existing SQL guard, a row limit on what comes back; the figures and their series; a report.
+   - Analysing: run_analysis(name, table, roles, parameters) and run_data_operation(name, figure/axis, parameters).
+     Their schemas are built from the plugin catalogue - Name, Description, ROLES, PARAMS, MODELS, the "Data from"
+     and "Draw on" choices - so a plugin added is a tool at once, with no code here. compute() is already free of
+     widgets; the result is written as OK writes it (tables, figure, report, history).
+   - Changing (confirmation each time, in the chat: what it will do, OK / Cancel): a new chart; a computed column;
+     a filter or hidden rows; renaming; a table written from a query. Every one an Undo step (snapshot_for_undo),
+     recorded in the project's history like an analysis.
+3. Models: Claude Opus 5.5 (claude-opus-5-5) for the conversation and the analysis work; Claude Haiku 5.5
+   (claude-haiku-5-5, effort low) for the simple ones - a title for a chart, a table or column described, a report
+   summarised, the context of a large table condensed before it goes to Opus. See Q4 for how a request is routed.
+   Anthropic's Python SDK (anthropic), its tool runner with a confirmation gate before every changing tool;
+   adaptive thinking; streaming; the system prompt and the tool list cached (they are the same every message).
+4. Providers: an "AI provider" plugin family as the charts, functions and operations are - Claude the first one;
+   another provider is a plugin of its own. The tools, the confirmations, Undo and the privacy rules are the
+   application's, the same whoever answers.
+5. Privacy: the data leaves the computer - nothing is sent until the user has said yes once (Settings, with what is
+   sent explained); summaries and samples rather than whole tables (Q3); a Sent log in the panel: every request,
+   as it went.
+6. The key: in Settings, stored by the system - the macOS Keychain, the Windows Credential Manager - through the
+   keyring package, never in user.json; ANTHROPIC_API_KEY honoured when set.
+
+WINDOWS
+anthropic and keyring are pure Python with wheels for every platform; the worker thread, the panel and the HTML view
+are the application's own, already on Windows. Both packages go into requirements.txt as optional - the Chat panel
+says how to enable it when they are missing, as Edit Localization does for deep-translator - and into the macOS and
+Windows bundles built by the release workflow. Tested on the Windows build before the release.
+
+STEPS (each a commit, the suite green after each; the API never called by the tests - a fake provider)
+1. Provider family + Claude provider; key in keyring; Settings page (key, consent, models); requirements.   (M)
+2. Read tools + Chat panel (streaming, Stop, tool calls shown, Sent log).                                   (M)
+3. Analysis tools from the plugin catalogue (table analyses and data operations).                          (M)
+4. Changing tools with confirmation, each an Undo step; history.                                           (M)
+5. Haiku routing (Q4); prompt caching checked (cache_read_input_tokens); token use shown per conversation.  (S)
+6. Windows bundle check; the manual's chapter.                                                              (S)
+
+QUESTIONS
+Q1  Providers: Claude only for now, with the plugin family ready - or a second provider now too? (Suggested: Claude
+    only; the family makes a second one a plugin later.)
+Q2  What may the AI change: everything, each change confirmed - or charts and analyses only, never a table's own
+    data? (Suggested: everything, each confirmed, each undoable.)
+Q3  What is sent of a table: summaries and statistics only - or also sample rows (say 20)? (Suggested: summaries,
+    and sample rows only when the user allows it in Settings.)
+Q4  Haiku: chosen by the user (a "Fast / Accurate" switch in the panel) - or automatic (Haiku for the simple jobs
+    listed in 3, Opus for the conversation)? (Suggested: automatic, with the switch to force one or the other.)
+
+EFFORT: L overall (about three sessions).
