@@ -232,6 +232,7 @@ def render_figure_from_descriptor(
 
             _apply_axis_runtime_options(ax=ax, axis_desc=axis_desc)
             _apply_column_labels(ax=ax, axis_desc=axis_desc, repo=repo)
+            _keep_dates_in_range(ax, axis_desc)
 
         _apply_shared_z_ranges(all_axes, ax_by_id)
         _clear_redundant_shared_axis_labels(shared_axes)
@@ -1319,6 +1320,41 @@ def _x_labels_overlap(ax: Any, renderer: Any, angle: float = 0.0) -> bool:
         return gap * math.sin(math.radians(angle)) < line + 2
     boxes = [label.get_window_extent(renderer) for label in labels]
     return any(left.x1 + 2 > right.x0 for left, right in zip(boxes, boxes[1:]))
+
+
+#: The days since 1970 matplotlib can write as dates: the years 1 to 9999.
+_DATE_DAYS = (-719162.0, 2932896.0)
+
+
+def _keep_dates_in_range(ax: Any, axis_desc: AxisDescriptor) -> None:
+    """Keep a date axis' view within the years matplotlib can write.
+
+    A series whose x is numbers on an axis of dates is read as days: a fit
+    written in seconds once put its curve at the year -215941, every tick
+    failed and the whole figure with them - nothing drawn, the chart's own
+    series included. The view keeps to the x that are dates; what is outside
+    them is left out of sight, and the log says so.
+    """
+    from matplotlib.dates import DateLocator
+
+    if not isinstance(ax.xaxis.get_major_locator(), DateLocator):
+        return
+    low, high = sorted(ax.get_xlim())
+    if _DATE_DAYS[0] <= low and high <= _DATE_DAYS[1]:
+        return
+    xs = [np.asarray(line.get_xdata(orig=False), dtype=float) for line in ax.get_lines()]
+    for collection in ax.collections:
+        xs.append(np.asarray(collection.get_offsets(), dtype=float).reshape(-1, 2)[:, 0])
+        xs.extend(np.asarray(path.vertices, dtype=float)[:, 0] for path in collection.get_paths())
+    x = np.concatenate(xs) if xs else np.array([])
+    x = x[np.isfinite(x) & (x >= _DATE_DAYS[0]) & (x <= _DATE_DAYS[1])]
+    if x.size:
+        pad = (x.max() - x.min()) * 0.02 or 1.0
+        ax.set_xlim(x.min() - pad, x.max() + pad)
+    else:
+        ax.set_xlim(0.0, 1.0)
+    applogger.warning("Axis id=%r: x values that are not dates (outside the years 1-9999) are left out of view.",
+                      axis_desc.id)
 
 
 def _fit_x_tick_labels(figure: Figure, ax: Any, options: dict[str, Any]) -> None:

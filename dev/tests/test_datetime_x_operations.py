@@ -185,3 +185,24 @@ def test_a_fit_of_a_dated_series_is_written_back_as_dates(qapp, repo: SqliteRepo
     parsed = parse_datetimes(stored["x"])
     assert parsed.notna().all() and parsed.min().year in (2023, 2024)  # the curve runs a little past the data
     dialog.close()
+
+
+def test_a_series_whose_x_are_not_dates_does_not_blank_a_chart_of_dates(qapp, repo: SqliteRepo, dated_figure) -> None:
+    """A fit written in seconds before that was fixed is still in projects: on the date axis it was the year
+    -215941, every tick failed and nothing at all was drawn. The chart's own series are drawn now."""
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+
+    from app.plugin_api.charts.render_figure import render_figure_from_descriptor
+
+    figure_id, axis_id = dated_figure
+    repo.import_dataframe(pd.DataFrame({"x": np.linspace(-588297600.0, 2002665600.0, 50), "y": np.zeros(50)}),
+                          table_name="_old_fit", normalize_columns=False)
+    repo.create_series_descriptor(axis_id=axis_id, series_index=1, name="old fit",
+                                  sql_query='SELECT x, y FROM "_old_fit"', roles={"x": "x", "y": "y"}, style={})
+    figure = Figure()
+    FigureCanvasAgg(figure)
+    render_figure_from_descriptor(figure=figure, descriptor=repo.load_figure_descriptor(figure_id), repo=repo)
+    figure.canvas.draw()  # the ticks: what failed
+    low, high = figure.axes[0].get_xlim()
+    assert 19700 < low < high < 19830  # 2024's days since 1970: the dated series in view
