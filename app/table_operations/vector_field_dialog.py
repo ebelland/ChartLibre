@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from app.analysis import vector_calculus as vc
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -78,6 +79,10 @@ class VectorFieldDialog(TableOperationDialogBase):
 
     def report_subtitle(self, result: vc.FieldDerivatives) -> str:
         return f"{self.table} · {result.dims}D"
+
+    def how_to_read(self, result: vc.FieldDerivatives) -> list[str]:
+        del result
+        return [reading_guide.field_derivatives()]
 
     def apply_results(self, result: vc.FieldDerivatives) -> list[dict[str, Any]]:
         name = self.write_result_tables({"field": result.frame})["field"]

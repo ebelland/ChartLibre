@@ -16,6 +16,7 @@ import pandas as pd
 
 from app.analysis import discriminant as da
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -90,6 +91,17 @@ class DiscriminantDialog(TableOperationDialogBase):
                                           self.report_table(result.coefficients)))
         blocks.append(report_html.section(_("Group means"), self.report_table(result.means)))
         return report_html.section(_("Response {name}").format(name=result.response), *blocks)
+
+    def how_to_read(self, result: da.DiscriminantResult) -> list[str]:
+        summary = result.summary
+        return [
+            reading_guide.misclassification(summary.get("Misclassification rate"), count=summary.get("Misclassified"),
+                                            rows=summary.get("Rows")),
+            reading_guide.p_value(summary.get("Prob > F"),
+                                  null=_("the groups of {response} had the same means of {covariates}").format(
+                                      response=result.response, covariates=", ".join(result.covariates)),
+                                  shown=_("the groups differ on them")),
+        ]
 
     def apply_results(self, result: da.DiscriminantResult) -> list[dict[str, Any]]:
         # Each row's group, probabilities and canonical scores beside its data, as Partition does.

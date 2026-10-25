@@ -17,6 +17,7 @@ import pandas as pd
 
 from app.analysis import multivariate as mv
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -109,6 +110,14 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
         blocks.append(report_html.section(_("Loading matrix"), self.report_table(result.loadings, digits=4)))
         blocks.append(report_html.section(_("Eigenvectors"), self.report_table(result.eigenvectors, digits=4)))
         return "".join(blocks)
+
+    def how_to_read(self, result: mv.PCAResult) -> list[str]:
+        count = min(2, len(result.eigenvalues))
+        if not count:
+            return []
+        return [reading_guide.components(result.eigenvalues["Cum Percent"].iloc[count - 1], count=count,
+                                         columns=len(result.columns),
+                                         kept=result.summary.get("Components with eigenvalue > 1"))]
 
     def apply_results(self, result: mv.PCAResult) -> list[dict[str, Any]]:
         frame = self._frame.copy()

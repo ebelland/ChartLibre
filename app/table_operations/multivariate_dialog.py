@@ -15,6 +15,7 @@ import pandas as pd
 
 from app.analysis import multivariate as mv
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -72,6 +73,16 @@ class MultivariateDialog(TableOperationDialogBase):
         blocks.append(report_html.section(_("Pairwise correlations, strongest evidence first"),
                                           self.report_table(pairs, p_columns=("Prob>|t|",), digits=4)))
         return "".join(blocks)
+
+    def how_to_read(self, result: mv.CorrelationResult) -> list[str]:
+        pairs = result.pairs.sort_values("Prob>|t|", na_position="last")
+        if pairs.empty:
+            return []
+        top = pairs.iloc[0]
+        x, y = str(top["Variable"]), str(top["by Variable"])
+        return [reading_guide.correlation(top["Correlation"], x=x, y=y),
+                reading_guide.p_value(top["Prob>|t|"], null=_("{x} and {y} were not correlated").format(x=x, y=y),
+                                      shown=_("{x} and {y} are correlated").format(x=x, y=y))]
 
     def apply_results(self, result: mv.CorrelationResult) -> list[dict[str, Any]]:
         tables = self.write_result_tables({"correlations": result.matrix, "correlation_pairs": result.pairs})

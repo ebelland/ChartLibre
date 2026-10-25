@@ -19,6 +19,7 @@ import pandas as pd
 
 from app.analysis import time_series as tsa
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam, TextParam
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -201,6 +202,20 @@ class TimeSeriesDialog(TableOperationDialogBase):
         blocks.append(report_html.section(_("Autocorrelation, first 12 lags"),
                                           self.report_table(shown, p_columns=("Prob>Q",), digits=4)))
         return "".join(blocks)
+
+    def how_to_read(self, result: tsa.TimeSeriesResult) -> list[str]:
+        lines = []
+        tests = result.stationarity
+        if not tests.empty and "ADF (unit root)" in set(tests["Test"]):
+            adf = tests[tests["Test"] == "ADF (unit root)"].iloc[0]
+            lines.append(reading_guide.p_value(
+                adf["Prob"], null=_("{measure} wandered with no level to come back to").format(measure=result.measure),
+                shown=_("{measure} comes back to a stable level").format(measure=result.measure)))
+        if not result.candidates.empty:
+            runner_up = result.candidates["AIC"].iloc[1] if len(result.candidates) > 1 else None
+            lines.append(reading_guide.aic(result.candidates["AIC"].iloc[0], model=str(result.candidates["Model"].iloc[0]),
+                                           runner_up=runner_up))
+        return lines
 
     def apply_results(self, result: tsa.TimeSeriesResult) -> list[dict[str, Any]]:
         frames = {"time_series": result.rows, "time_series_acf": result.correlations}

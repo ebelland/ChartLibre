@@ -18,6 +18,7 @@ import pandas as pd
 
 from app.analysis import multivariate as mv
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, IntParam
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -89,6 +90,12 @@ class FactorAnalysisDialog(TableOperationDialogBase):
             blocks.append(report_html.section(_("Factor correlations"),
                                               self.report_table(result.factor_correlations, digits=3)))
         return "".join(blocks)
+
+    def how_to_read(self, result: mv.FactorResult) -> list[str]:
+        return [reading_guide.p_value(
+            result.summary.get("Prob>ChiSq"),
+            null=_("{count} factor(s) were enough to explain the correlations").format(count=result.factors),
+            shown=_("more factors are needed"))]
 
     def apply_results(self, result: mv.FactorResult) -> list[dict[str, Any]]:
         frame = self._frame.copy()

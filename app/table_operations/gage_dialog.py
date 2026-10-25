@@ -16,6 +16,7 @@ import pandas as pd
 from app.analysis import gage
 from app.analysis.capability import parse_limit
 from app.plugin_api.data_operations.parameter_spec import TextParam
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -70,6 +71,10 @@ class GageDialog(TableOperationDialogBase):
             (_("Measurements per part and operator"), report_html.format_number(result.replicates)),
             (_("Distinct categories"), str(result.ndc))))))
         return "".join(blocks)
+
+    def how_to_read(self, result: gage.GageStudy) -> list[str]:
+        return [reading_guide.gage(reading_guide.lookup(result.components, "Gage R&R", by="Source", value="% Study Var"),
+                                   categories=result.ndc)]
 
     def apply_results(self, result: gage.GageStudy) -> list[dict[str, Any]]:
         name = self.write_result_tables({"gage": result.components})["gage"]

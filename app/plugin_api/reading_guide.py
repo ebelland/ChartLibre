@@ -235,3 +235,107 @@ def control_limits(center: Any, lower: Any, upper: Any, *, signals: int) -> str:
     else:
         second = _("No signal: the variation looks like the process' own.")
     return f"{first} {second}"
+
+
+# ----------------------------------------------------------------------
+# Models that sort and predict
+# ----------------------------------------------------------------------
+
+def misclassification(rate: Any, *, count: Any, rows: Any) -> str:
+    value, wrong, total = _number(rate), _number(count), _number(rows)
+    if value is None or wrong is None or total is None:
+        return ""
+    return _("Misclassification {percent}%: the model puts {count} of {rows} rows in another group than their "
+             "own. These are the rows it was fitted to: on new rows it usually does a little worse.").format(
+        percent=_n(round(value * 100, 1)), count=int(wrong), rows=int(total))
+
+
+def q_squared(value: Any, *, r2: Any, y: str) -> str:
+    q, fitted = _number(value), _number(r2)
+    if q is None:
+        return ""
+    first = _("Q² = {value}: on rows left out of each fit, the model accounts for {percent}% of how much {y} "
+              "varies - its R² for prediction.").format(value=_n(q), percent=max(0, round(q * 100)), y=y)
+    if fitted is not None and fitted - q > 0.2:
+        second = _("Well below the R² of the fit ({r2}): part of what it learnt is noise; fewer components may "
+                   "predict better.").format(r2=_n(fitted))
+    else:
+        second = _("Close to the R² of the fit ({r2}): what it learnt holds on rows it has not seen.").format(
+            r2=_n(fitted)) if fitted is not None else ""
+    return f"{first} {second}".strip()
+
+
+def vip(value: Any, *, variable: str) -> str:
+    number = _number(value)
+    if number is None:
+        return ""
+    return _("VIP {value} for {variable}, the most important: how much it weighs in the components, against the "
+             "average variable's 1. Above 0.8, the usual line, a variable is worth keeping.").format(
+        value=_n(number), variable=variable)
+
+
+def components(percent: Any, *, count: int, columns: int, kept: Any) -> str:
+    value, above_one = _number(percent), _number(kept)
+    if value is None:
+        return ""
+    return _("The first {count} components carry {percent}% of the variation of the {columns} columns: a scatter "
+             "of them shows most of what the columns hold. An eigenvalue above 1 - more than one column's worth - "
+             "is the usual line for a component worth keeping: {kept} here.").format(
+        count=count, percent=round(value), columns=columns, kept=int(above_one) if above_one is not None else "-")
+
+
+def silhouette(value: Any, *, clusters: Any) -> str:
+    number, k = _number(value), _number(clusters)
+    if number is None or k is None:
+        return ""
+    return _("Mean silhouette {value} with {k} clusters: from -1 to 1, how much nearer a row is to its own "
+             "cluster than to the next one. Above 0.5 is usually called a clear structure, below 0.25 a weak "
+             "one.").format(value=_n(number), k=int(k))
+
+
+def share(portion: Any, *, factor: str) -> str:
+    """A factor's part of what a model explains (a tree's splits)."""
+    number = _number(portion)
+    if number is None:
+        return ""
+    return _("{factor} accounts for {percent}% of what the splits explain: the factor the tree leans on most. "
+             "A share is not a test - check that it holds on validation rows.").format(
+        factor=factor, percent=round(number * 100))
+
+
+# ----------------------------------------------------------------------
+# Measurement, series, fields
+# ----------------------------------------------------------------------
+
+def gage(percent: Any, *, categories: Any) -> str:
+    value, ndc = _number(percent), _number(categories)
+    if value is None:
+        return ""
+    first = _("Gage R&R {percent}% of the study variation: the part the measuring system adds itself. Under 10% "
+              "is usually called acceptable, 10 to 30% marginal, above 30% not.").format(percent=_n(round(value, 1)))
+    if ndc is None:
+        return first
+    second = _("{ndc} distinct categories: the system tells that many groups of parts apart - 5 or more is the "
+               "usual minimum.").format(ndc=int(ndc))
+    return f"{first} {second}"
+
+
+def aic(value: Any, *, model: str, runner_up: Any) -> str:
+    best, second = _number(value), _number(runner_up)
+    if best is None:
+        return ""
+    first = _("AIC {value} for {model}, the lowest of the models tried: AIC weighs the fit against the parameters "
+              "it takes, and lower is better.").format(value=_n(best), model=model)
+    if second is None:
+        return first
+    if second - best < 2:
+        rest = _("The next is less than 2 above it: the two fit about as well.")
+    else:
+        rest = _("The next is {gap} above it: a clear choice (more than 2, the usual line).").format(
+            gap=_n(second - best))
+    return f"{first} {rest}"
+
+
+def field_derivatives() -> str:
+    return _("Divergence: where the field spreads out (above 0) or gathers in (below 0) - a source or a sink. "
+             "Curl: where it turns, and which way - 0 where it flows without turning.")

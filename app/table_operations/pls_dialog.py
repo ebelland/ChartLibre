@@ -17,6 +17,7 @@ import pandas as pd
 
 from app.analysis import pls as pl
 from app.plugin_api.data_operations.parameter_spec import BoolParam, IntParam
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -80,6 +81,15 @@ class PLSDialog(TableOperationDialogBase):
         blocks.append(report_html.section(_("Variable importance (VIP), highest 15"), self.report_table(top)))
         blocks.append(report_html.section(_("Coefficients"), self.report_table(result.coefficients.head(50))))
         return "".join(blocks)
+
+    def how_to_read(self, result: pl.PLSResult) -> list[str]:
+        summary = result.summary
+        lines = [reading_guide.q_squared(summary.get("Q² (cross-validated)"), r2=summary.get("RSquare Y"),
+                                         y=", ".join(result.responses))]
+        if not result.vip.empty:
+            top = result.vip.sort_values("VIP", ascending=False).iloc[0]
+            lines.append(reading_guide.vip(top["VIP"], variable=str(top["Variable"])))
+        return lines
 
     def apply_results(self, result: pl.PLSResult) -> list[dict[str, Any]]:
         frame = self._frame.copy()

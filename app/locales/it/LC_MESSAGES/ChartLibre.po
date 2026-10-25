@@ -11716,3 +11716,69 @@ msgstr "Report"
 
 msgid "Explain"
 msgstr "Spiega"
+
+msgid "Divergence: where the field spreads out (above 0) or gathers in (below 0) - a source or a sink. Curl: where it turns, and which way - 0 where it flows without turning."
+msgstr "Divergenza: dove il campo si allarga (sopra 0) o si raccoglie (sotto 0) - una sorgente o un pozzo. Rotore: dove gira, e in che verso - 0 dove scorre senza girare."
+
+msgid "The next is less than 2 above it: the two fit about as well."
+msgstr "Il successivo è meno di 2 sopra: i due si adattano più o meno allo stesso modo."
+
+msgid "Misclassification {percent}%: the model puts {count} of {rows} rows in another group than their own. These are the rows it was fitted to: on new rows it usually does a little worse."
+msgstr "Errore di classificazione {percent}%: il modello mette {count} righe su {rows} in un gruppo diverso dal loro. Sono le righe su cui è stato adattato: su righe nuove di solito fa un po' peggio."
+
+msgid "Q² = {value}: on rows left out of each fit, the model accounts for {percent}% of how much {y} varies - its R² for prediction."
+msgstr "Q² = {value}: sulle righe escluse da ogni adattamento, il modello spiega il {percent}% di quanto {y} varia - il suo R² di previsione."
+
+msgid "VIP {value} for {variable}, the most important: how much it weighs in the components, against the average variable's 1. Above 0.8, the usual line, a variable is worth keeping."
+msgstr "VIP {value} per {variable}, la più importante: quanto pesa nelle componenti, contro l'1 della variabile media. Sopra 0,8, la soglia usuale, una variabile vale la pena di tenerla."
+
+msgid "The first {count} components carry {percent}% of the variation of the {columns} columns: a scatter of them shows most of what the columns hold. An eigenvalue above 1 - more than one column's worth - is the usual line for a component worth keeping: {kept} here."
+msgstr "Le prime {count} componenti portano il {percent}% della variazione delle {columns} colonne: un grafico a dispersione di queste mostra quasi tutto ciò che le colonne contengono. Un autovalore sopra 1 - più di quanto valga una colonna - è la soglia usuale per tenere una componente: qui {kept}."
+
+msgid "Mean silhouette {value} with {k} clusters: from -1 to 1, how much nearer a row is to its own cluster than to the next one. Above 0.5 is usually called a clear structure, below 0.25 a weak one."
+msgstr "Silhouette media {value} con {k} cluster: da -1 a 1, quanto una riga è più vicina al suo cluster che al successivo. Sopra 0,5 di solito si parla di una struttura netta, sotto 0,25 di una debole."
+
+msgid "{factor} accounts for {percent}% of what the splits explain: the factor the tree leans on most. A share is not a test - check that it holds on validation rows."
+msgstr "{factor} vale il {percent}% di ciò che le suddivisioni spiegano: il fattore su cui l'albero si appoggia di più. Una quota non è un test - verifica che regga sulle righe di validazione."
+
+msgid "Gage R&R {percent}% of the study variation: the part the measuring system adds itself. Under 10% is usually called acceptable, 10 to 30% marginal, above 30% not."
+msgstr "Gage R&R {percent}% della variazione dello studio: la parte che il sistema di misura aggiunge da sé. Sotto il 10% di solito è accettabile, dal 10 al 30% al limite, sopra il 30% no."
+
+msgid "{ndc} distinct categories: the system tells that many groups of parts apart - 5 or more is the usual minimum."
+msgstr "{ndc} categorie distinte: il sistema distingue altrettanti gruppi di parti - 5 o più è il minimo usuale."
+
+msgid "AIC {value} for {model}, the lowest of the models tried: AIC weighs the fit against the parameters it takes, and lower is better."
+msgstr "AIC {value} per {model}, il più basso dei modelli provati: l'AIC pesa l'adattamento contro i parametri che richiede, e più basso è meglio."
+
+msgid "Well below the R² of the fit ({r2}): part of what it learnt is noise; fewer components may predict better."
+msgstr "Ben sotto l'R² dell'adattamento ({r2}): parte di ciò che ha imparato è rumore; meno componenti potrebbero prevedere meglio."
+
+msgid "The next is {gap} above it: a clear choice (more than 2, the usual line)."
+msgstr "Il successivo è {gap} sopra: una scelta netta (più di 2, la soglia usuale)."
+
+msgid "Close to the R² of the fit ({r2}): what it learnt holds on rows it has not seen."
+msgstr "Vicino all'R² dell'adattamento ({r2}): ciò che ha imparato regge su righe che non ha visto."
+
+msgid "the groups differ on them"
+msgstr "i gruppi differiscono su queste"
+
+msgid "the groups of {response} had the same means of {covariates}"
+msgstr "i gruppi di {response} avessero le stesse medie di {covariates}"
+
+msgid "{x} and {y} were not correlated"
+msgstr "{x} e {y} non fossero correlate"
+
+msgid "{x} and {y} are correlated"
+msgstr "{x} e {y} sono correlate"
+
+msgid "more factors are needed"
+msgstr "servono più fattori"
+
+msgid "{count} factor(s) were enough to explain the correlations"
+msgstr "{count} fattore/i bastassero a spiegare le correlazioni"
+
+msgid "{measure} wandered with no level to come back to"
+msgstr "{measure} vagasse senza un livello a cui tornare"
+
+msgid "{measure} comes back to a stable level"
+msgstr "{measure} torna a un livello stabile"

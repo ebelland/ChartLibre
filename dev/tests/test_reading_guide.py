@@ -56,36 +56,70 @@ def test_the_box_goes_under_the_main_result() -> None:
 def _plant() -> pd.DataFrame:
     rng = np.random.default_rng(0)
     n = 120
-    frame = pd.DataFrame({"line": rng.choice(["A", "B", "C"], n), "temp": rng.uniform(0, 100, n)})
+    frame = pd.DataFrame({"line": rng.choice(["A", "B", "C"], n), "temp": rng.uniform(0, 100, n),
+                          "a": rng.normal(size=n), "b": rng.normal(size=n)})
+    frame["c"] = 0.8 * frame["a"] + rng.normal(0, 0.3, n)
     frame["y"] = 0.05 * frame["temp"] + frame["line"].map({"A": 0.0, "B": 2.0, "C": 4.0}) + rng.normal(0, 0.3, n)
+    frame["part"] = np.repeat([f"P{i}" for i in range(10)], 12)
+    frame["op"] = np.tile(np.repeat(["O1", "O2", "O3"], 4), 10)
+    frame["meas"] = frame["part"].str[1:].astype(float) + rng.normal(0, 0.2, n)
     return frame
+
+
+def _field() -> pd.DataFrame:
+    x, y = np.meshgrid(np.linspace(-1, 1, 6), np.linspace(-1, 1, 6))
+    return pd.DataFrame({"x": x.ravel(), "y": y.ravel(), "u": -y.ravel(), "v": x.ravel()})
 
 
 def _report(qapp, dialog, casting: dict) -> str:  # noqa: ANN001
     dialog.roles_widget.set_casting(casting)
     if hasattr(dialog, "_add_terms"):  # Fit Model: its effects added, as Add does
         dialog._add_terms([("temp",), ("line",)])
+    if type(dialog).__name__ == "TimeSeriesDialog":
+        from app.analysis import time_series as ts
+
+        dialog._parameter_form.set_values({"model": ts.AUTO})
     dialog.preview()
-    deadline = time.monotonic() + 60
+    deadline = time.monotonic() + 120
     while dialog.job_running and time.monotonic() < deadline:
         qapp.processEvents()
         time.sleep(0.01)
-    assert dialog._result is not None
+    assert dialog._result is not None, dialog.problems()
     return dialog.report_document(dialog._result)
 
 
-@pytest.mark.parametrize("module, name, casting, expected", [
-    ("differences_dialog", "DifferencesDialog", {"response": ["y"], "group": ["line"]}, "the groups of line"),
-    ("distribution_dialog", "DistributionDialog", {"response": ["y"]}, "interval for the mean of y"),
-    ("fit_y_by_x_dialog", "FitYByXDialog", {"response": ["y"], "factor": ["temp"]}, "R² = "),
-    ("fit_model_dialog", "FitModelDialog", {"response": ["y"]}, "LogWorth"),
+@pytest.mark.parametrize("module, name, table, casting, expected", [
+    ("differences_dialog", "DifferencesDialog", "plant", {"response": ["y"], "group": ["line"]}, "the groups of line"),
+    ("distribution_dialog", "DistributionDialog", "plant", {"response": ["y"]}, "interval for the mean of y"),
+    ("fit_y_by_x_dialog", "FitYByXDialog", "plant", {"response": ["y"], "factor": ["temp"]}, "R² = "),
+    ("fit_model_dialog", "FitModelDialog", "plant", {"response": ["y"]}, "LogWorth"),
+    ("partition_dialog", "PartitionDialog", "plant", {"response": ["y"], "factor": ["line", "temp", "a"]},
+     "of what the splits explain"),
+    ("pls_dialog", "PLSDialog", "plant", {"response": ["y"], "predictor": ["temp", "a", "b", "c"]}, "Q² = "),
+    ("discriminant_dialog", "DiscriminantDialog", "plant", {"response": ["line"], "covariate": ["y", "temp", "a"]},
+     "Misclassification"),
+    ("multivariate_dialog", "MultivariateDialog", "plant", {"response": ["a", "b", "c", "y"]}, "r = "),
+    ("principal_components_dialog", "PrincipalComponentsDialog", "plant", {"response": ["a", "b", "c", "y", "temp"]},
+     "The first 2 components"),
+    ("factor_analysis_dialog", "FactorAnalysisDialog", "plant", {"response": ["a", "b", "c", "y", "temp"]},
+     "factor(s) were enough"),
+    ("clustering_dialog", "ClusteringDialog", "plant", {"response": ["a", "c", "y"]}, "Mean silhouette"),
+    ("gage_dialog", "GageDialog", "plant", {"response": ["meas"], "part": ["part"], "operator": ["op"]}, "Gage R&amp;R"),
+    ("vector_field_dialog", "VectorFieldDialog", "field", {"x": ["x"], "y": ["y"], "u": ["u"], "v": ["v"]},
+     "Divergence"),
+    ("time_series_dialog", "TimeSeriesDialog", "shop", {"response": ["y"], "time": ["month"]}, "AIC"),
 ])
 def test_a_report_explains_its_own_numbers_unless_switched_off(qapp, repo: SqliteRepo, monkeypatch, module: str,
-                                                                 name: str, casting: dict, expected: str) -> None:
+                                                                 name: str, table: str, casting: dict,
+                                                                 expected: str) -> None:
     import importlib
 
+    from dev.tests.test_time_series import _seasonal_walk
+
     repo.import_dataframe(_plant(), table_name="plant", normalize_columns=False)
-    dialog = getattr(importlib.import_module(f"app.table_operations.{module}"), name)(repo=repo, table="plant")
+    repo.import_dataframe(_field(), table_name="field", normalize_columns=False)
+    repo.import_dataframe(_seasonal_walk(), table_name="shop", normalize_columns=False)
+    dialog = getattr(importlib.import_module(f"app.table_operations.{module}"), name)(repo=repo, table=table)
     try:
         report = _report(qapp, dialog, casting)
         assert "How to read this" in report and expected in report

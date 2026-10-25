@@ -19,6 +19,7 @@ import pandas as pd
 
 from app.analysis import cluster_table as ct
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -95,6 +96,9 @@ class ClusteringDialog(TableOperationDialogBase):
         blocks.append(report_html.section(_("Cluster means"), self.report_table(result.means, digits=5)))
         blocks.append(report_html.section(_("Choosing k"), self.report_table(result.k_table, digits=4)))
         return "".join(blocks)
+
+    def how_to_read(self, result: ct.ClusterResult) -> list[str]:
+        return [reading_guide.silhouette(result.summary.get("Mean silhouette"), clusters=result.summary.get("Clusters"))]
 
     def apply_results(self, result: ct.ClusterResult) -> list[dict[str, Any]]:
         rows = self._frame.copy()

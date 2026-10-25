@@ -21,6 +21,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 from app.analysis import partition as pt
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.styles.style import TitledCard
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CATEGORICAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -293,6 +294,20 @@ class PartitionDialog(TableOperationDialogBase):
     # ------------------------------------------------------------------
     # OK: the results into the project
     # ------------------------------------------------------------------
+
+    def how_to_read(self, result: pt.PartitionResult) -> list[str]:
+        lines = []
+        summary = result.summary
+        r2 = next((summary[key] for key in ("R² (validation)", "R² (training)") if key in summary), None)
+        if r2 is not None:
+            lines.append(reading_guide.r_squared(r2, y=result.response))
+        if result.auc:
+            level, area = next(iter(result.auc.items()))
+            lines.append(reading_guide.auc(area, level=str(level)))
+        if not result.contributions.empty:
+            top = result.contributions.sort_values("Portion", ascending=False).iloc[0]
+            lines.append(reading_guide.share(top["Portion"], factor=str(top["Column"])))
+        return lines
 
     def apply_results(self, result: pt.PartitionResult) -> list[dict[str, Any]]:
         repo = self._repo
