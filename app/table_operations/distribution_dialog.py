@@ -20,6 +20,7 @@ import pandas as pd
 
 from app.analysis import distribution as dist
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam
+from app.plugin_api import reading_guide
 from app.utils.distribution_fit import DistributionFit, fit_distributions
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
@@ -104,6 +105,20 @@ class DistributionDialog(TableOperationDialogBase):
                         (_("AIC"), fit.aic)])))
             blocks.append(report_html.section(f"{result.column} (N = {result.n})", "".join(parts)))
         return "".join(blocks)
+
+    def how_to_read(self, report: DistributionReport) -> list[str]:
+        result = report.results[0]
+        moments, column = result.moments, result.column
+        tested = result.normality[pd.to_numeric(result.normality["pvalue"], errors="coerce").notna()]
+        return [
+            reading_guide.interval(reading_guide.lookup(moments, "Lower 95% Mean", by="Moment"),
+                                   reading_guide.lookup(moments, "Upper 95% Mean", by="Moment"),
+                                   what=_("the mean of {column}").format(column=column)),
+            reading_guide.spread(reading_guide.lookup(moments, "Std Dev", by="Moment"),
+                                 reading_guide.lookup(moments, "Mean", by="Moment"), column=column),
+            reading_guide.normality(tested["pvalue"].iloc[0], test=str(tested["test"].iloc[0]), column=column)
+            if not tested.empty else "",
+        ]
 
     # ------------------------------------------------------------------
     # OK: tables and a figure

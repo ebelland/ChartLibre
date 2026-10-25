@@ -56,6 +56,7 @@ from app.styles.style import (
     icon_from_svg_source,
     stdSizeAndlayout,
 )
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations import chart_source, next_steps
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole, ColumnRolesWidget
 from app.utils.config import get_section, set_section
@@ -160,8 +161,22 @@ class TableOperationDialogBase(OperationShell):
 
     def report_document(self, result: Any) -> str:
         """The whole report: shown in Results, and kept as the notes of the figure OK draws."""
+        body = self.report_body(result)
+        box = ""
+        if reading_guide.enabled():
+            try:
+                box = report_html.reading_guide(_("How to read this"), self.how_to_read(result))
+            except Exception:  # noqa: BLE001 - the explanation is never the reason a report is not shown
+                applogger.exception("%s: could not explain the report.", type(self).__name__)
         return report_html.document(_(self.Name), self.report_subtitle(result),
-                                    self.report_body(result) + next_steps.section_html(self.next_steps(result)))
+                                    report_html.with_reading_guide(body, box)
+                                    + next_steps.section_html(self.next_steps(result)))
+
+    def how_to_read(self, result: Any) -> list[str]:
+        """The "How to read this" box (H-04): the two or three numbers the report hinges on, each in two
+        sentences (app.plugin_api.reading_guide); none by default."""
+        del result
+        return []
 
     def next_steps(self, result: Any) -> list[next_steps.NextStep]:
         """The questions this answer leads to, listed under "What next?" as links (G-02); none by default."""

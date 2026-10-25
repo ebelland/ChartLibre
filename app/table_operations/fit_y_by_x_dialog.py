@@ -16,6 +16,7 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import fit_y_by_x as fyx
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
@@ -87,6 +88,30 @@ class FitYByXDialog(TableOperationDialogBase):
                 parts.append(report_html.section(_(title), self.report_table(table, p_columns=p_columns)))
             blocks.append(report_html.section(f"{_(result.kind)}: {result.y} by {result.x}", "".join(parts)))
         return "".join(blocks)
+
+    def how_to_read(self, report: FitYByXReport) -> list[str]:
+        result = report.results[0]
+        y, x, tables = result.y, result.x, result.tables
+        guide = reading_guide
+        if result.kind == fyx.BIVARIATE:
+            fit = tables["Linear fit"]
+            return [guide.r_squared(guide.lookup(tables["Summary of fit"], "RSquare", by="Measure"), y=y),
+                    guide.slope(fit["Estimate"].iloc[1], fit["Lower 95%"].iloc[1], fit["Upper 95%"].iloc[1],
+                                y=y, x=x)]
+        if result.kind == fyx.ONEWAY:
+            return [guide.p_value(guide.lookup(tables["Tests"], "One-way ANOVA", by="test", value="pvalue"),
+                                  null=_("the groups of {x} had the same mean of {y}").format(x=x, y=y),
+                                  shown=_("the means differ"))]
+        if result.kind == fyx.CONTINGENCY:
+            return [guide.p_value(guide.lookup(tables["Tests"], "Pearson chi-squared", by="test", value="pvalue"),
+                                  null=_("{y} did not depend on {x}").format(y=y, x=x),
+                                  shown=_("{y} depends on {x}").format(y=y, x=x))]
+        whole = tables["Whole model test"]
+        areas = whole[whole["Measure"].astype(str).str.startswith("AUC (")]
+        return [guide.p_value(guide.lookup(whole, "Prob>ChiSq", by="Measure"),
+                              null=_("{x} did not change the odds of {y}").format(x=x, y=y),
+                              shown=_("{y} depends on {x}").format(y=y, x=x)),
+                guide.auc(areas["Value"].iloc[0], level=str(areas["Measure"].iloc[0])[5:-1]) if not areas.empty else ""]
 
     # ------------------------------------------------------------------
     # OK: tables and a figure

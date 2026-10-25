@@ -15,6 +15,7 @@ import pandas as pd
 
 from app.analysis import change as ch
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, other_columns
 from app.utils.i18n import _
@@ -48,6 +49,16 @@ class ChangeDialog(QuickAnswerDialogBase):
         del params, model
         time = casting.columns("time")
         return ch.has_changed(frame, casting.columns("response")[0], time[0] if time else ch.ROW_ORDER)
+
+    def how_to_read(self, result: ch.ChangeAnswer) -> list[str]:
+        measure = self.measure
+        return [
+            reading_guide.p_value(result.trend_p, null=_("{measure} had no trend").format(measure=measure),
+                                  shown=_("{measure} has a trend").format(measure=measure)),
+            reading_guide.p_value(result.change_p,
+                                  null=_("{measure} kept the same level throughout").format(measure=measure),
+                                  shown=_("{measure} shifted at one point").format(measure=measure)),
+        ]
 
     def next_steps(self, result: ch.ChangeAnswer) -> list[NextStep]:
         """On to its trend, season and forecast, to what drives it, or to another measure over the same time."""

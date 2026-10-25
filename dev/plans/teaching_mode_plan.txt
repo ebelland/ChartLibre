@@ -55,3 +55,9 @@ Q4  Thresholds said as conventions ("0.05 is the usual line", "1.33 the usual mi
     no third one - two sentences, as asked.)
 
 EFFORT: M (about two sessions).
+
+STATUS 2026-10-25: step 1 done - Q1 on, Q2 under the main result (a quick answer: under its sentences), Q3 in
+the exported report, Q4 the thresholds as "the usual line" inside the two sentences. reading_guide (p-value,
+normality, interval, spread, effect size, R2, RMSE, slope, correlation, AUC, LogWorth, control limits), the box
+(report_html.reading_guide, with_reading_guide), Settings > Reports > Explain, how_to_read on the table base:
+the five quick answers, Distribution, Fit Y by X, Fit Model. Left: steps 2 and 3.

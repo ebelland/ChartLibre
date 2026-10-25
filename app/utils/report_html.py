@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import html
 import math
+import re
 from collections.abc import Iterable, Sequence
 from typing import Any
 
@@ -159,7 +160,8 @@ def section(title: str, *blocks: str) -> str:
     """Return one titled section: a heading rule, then its blocks."""
     body = "".join(block for block in blocks if block)
     return (
-        f"<div style='margin:0 0 14px 0;'>"
+        # The class: where with_reading_guide finds a report's first section.
+        f"<div class='report-section' style='margin:0 0 14px 0;'>"
         f"<div style='font-weight:600;color:{_TEXT};border-bottom:2px solid {_RULE};"
         f"padding:0 0 3px 0;margin:0 0 8px 0;'>{html.escape(str(title))}</div>"
         f"{body}</div>"
@@ -191,6 +193,42 @@ def raw_note(markup: str) -> str:
         f"<div style='color:{_MUTED};padding:2px 0 8px 0;{_FONT}'>"
         f"{markup}</div>"
     )
+
+
+#: Where a report wants its "How to read this" box when that is not under its first section (a quick
+#: answer: under the answer's sentences, which are no section).
+READING_GUIDE_MARK = "<!--reading-guide-->"
+_DIV_TAG = re.compile(r"<div\b[^>]*>|</div>", re.IGNORECASE)
+
+
+def reading_guide(title: str, lines: Iterable[str]) -> str:
+    """The "How to read this" box (H-04): a soft panel, its title, a paragraph per number explained; "" for none."""
+    paragraphs = "".join(f"<p style='margin:4px 0;'>{html.escape(line)}</p>" for line in lines if line)
+    if not paragraphs:
+        return ""
+    return (
+        f"<div style='background:#f2f6fc;border-left:3px solid #4a7bd0;border-radius:4px;"
+        f"padding:6px 10px;margin:0 0 14px 0;{_FONT}color:{_TEXT};'>"
+        f"<div style='font-weight:600;margin:0 0 2px 0;'>{html.escape(title)}</div>{paragraphs}</div>"
+    )
+
+
+def with_reading_guide(body: str, box: str) -> str:
+    """*body* with *box* under its main result: at READING_GUIDE_MARK when it has one, else after its first
+    top-level section, else at its end."""
+    if READING_GUIDE_MARK in body:
+        return body.replace(READING_GUIDE_MARK, box, 1)
+    depth, in_section = 0, False
+    for match in _DIV_TAG.finditer(body):
+        if match.group(0).startswith("</"):
+            depth -= 1
+            if depth == 0 and in_section:
+                return body[:match.end()] + box + body[match.end():]
+        else:
+            if depth == 0:
+                in_section = "report-section" in match.group(0)
+            depth += 1
+    return body + box
 
 
 def document(title: str, subtitle: str = "", *sections: str) -> str:

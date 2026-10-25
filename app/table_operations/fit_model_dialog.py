@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 from app.analysis import linear_model as lm
 from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam
 from app.plugin_api.table_operations.column_roles import CATEGORICAL, CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
@@ -587,6 +588,20 @@ class FitModelDialog(TableOperationDialogBase):
                     levels=", ".join(fit.levels), first=fit.levels[0])))
         title = _("Response {name}").format(name=fit.response)
         return report_html.section(f"{title} · {_(dict(lm.PERSONALITIES)[fit.personality])}", *blocks)
+
+    def how_to_read(self, result: list[lm.ResponseFit]) -> list[str]:
+        fit = result[0]
+        lines = []
+        if fit.importance_column == "LogWorth" and not fit.effect_tests.empty:
+            top = fit.effect_tests.sort_values("LogWorth", ascending=False, na_position="last").iloc[0]
+            lines.append(reading_guide.logworth(top["LogWorth"], term=str(top["Term"])))
+        if fit.auc:
+            level, area = next(iter(fit.auc.items()))
+            lines.append(reading_guide.auc(area, level=str(level)))
+        else:
+            lines.append(reading_guide.r_squared(fit.summary.get("RSquare"), y=fit.response))
+            lines.append(reading_guide.rmse(fit.summary.get("Root Mean Square Error"), y=fit.response))
+        return lines
 
     # ------------------------------------------------------------------
     # OK: the results into the project

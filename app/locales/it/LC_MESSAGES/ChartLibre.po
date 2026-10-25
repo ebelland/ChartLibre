@@ -11560,3 +11560,159 @@ msgstr "scritto nel progetto; il report comincia così:"
 
 msgid "Try"
 msgstr "Prova"
+
+msgid "about {count} times in 100"
+msgstr "circa {count} volte su 100"
+
+msgid "about {count} times in 1000"
+msgstr "circa {count} volte su 1000"
+
+msgid "less than once in 1000"
+msgstr "meno di una volta su 1000"
+
+msgid "practically never"
+msgstr "praticamente mai"
+
+msgid "{p}: if {null}, a result at least this strong would come up by chance {how_often}."
+msgstr "{p}: se {null}, un risultato almeno così netto uscirebbe per caso {how_often}."
+
+msgid "Below {alpha}, the usual line, so the result is called real: {shown}."
+msgstr "Sotto {alpha}, la soglia usuale, quindi il risultato si considera reale: {shown}."
+
+msgid "Above {alpha}, the usual line: these data do not show that {shown}, which is not proof that {null}."
+msgstr "Sopra {alpha}, la soglia usuale: questi dati non mostrano che {shown}, il che non prova che {null}."
+
+msgid "{test}, {p}: values like these are common from a normal distribution, so nothing here says {column} is not normal. Below {alpha}, the usual line, it would say so."
+msgstr "{test}, {p}: valori come questi sono comuni in una distribuzione normale, quindi qui nulla dice che {column} non sia normale. Sotto {alpha}, la soglia usuale, lo direbbe."
+
+msgid "{test}, {p}: a normal distribution would rarely give values this far from its shape, so {column} is called not normal (below {alpha}, the usual line). Prefer the tests on ranks and medians to t and ANOVA, and look at the histogram for why: a long tail, two peaks."
+msgstr "{test}, {p}: una distribuzione normale darebbe di rado valori così lontani dalla sua forma, quindi {column} si considera non normale (sotto {alpha}, la soglia usuale). Meglio i test su ranghi e mediane che t e ANOVA; l'istogramma dice perché: una coda lunga, due picchi."
+
+msgid "{level}% interval for {what}: {low} to {high}. It is the range of values these rows leave plausible; more rows would narrow it."
+msgstr "Intervallo al {level}% per {what}: da {low} a {high}. Sono i valori che queste righe lasciano plausibili; più righe lo restringerebbero."
+
+msgid "Std Dev {sd}: a typical value of {column} lies about {sd} from its mean, {mean}. If the shape is normal, about two thirds of the values lie within one Std Dev of it, 95% within two."
+msgstr "Dev std {sd}: un valore tipico di {column} sta a circa {sd} dalla sua media, {mean}. Se la forma è normale, circa due terzi dei valori stanno entro una Dev std dalla media, il 95% entro due."
+
+msgid "the two means are {value} standard deviations apart"
+msgstr "le due medie distano {value} deviazioni standard"
+
+msgid "the groups account for {percent}% of the variation"
+msgstr "i gruppi spiegano il {percent}% della variazione"
+
+msgid "the strength of the link between the two, from 0 (none) to 1 (complete)"
+msgstr "la forza del legame tra le due, da 0 (nessuno) a 1 (completo)"
+
+msgid "large effect"
+msgstr "effetto grande"
+
+msgid "medium effect"
+msgstr "effetto medio"
+
+msgid "small effect"
+msgstr "effetto piccolo"
+
+msgid "negligible effect"
+msgstr "effetto trascurabile"
+
+msgid "{name} = {value}: {meaning}. By the usual marks ({small} small, {medium} medium, {large} large) it is a {size}: how much the difference matters, where p only says whether there is one."
+msgstr "{name} = {value}: {meaning}. Secondo le soglie usuali ({small} piccolo, {medium} medio, {large} grande) è un {size}: dice quanto conta la differenza, mentre p dice solo se c'è."
+
+msgid "R² = {value}: the fit accounts for {percent}% of how much {y} varies from row to row; the other {rest}% it leaves unexplained. Near 1 is a close fit - how close is enough depends on the field."
+msgstr "R² = {value}: il modello spiega il {percent}% di quanto {y} varia da riga a riga; il restante {rest}% resta non spiegato. Vicino a 1 è un adattamento stretto: quanto basti dipende dal campo."
+
+msgid "RMSE = {value}: a value of {y} predicted by the fit is typically off by about {value}, in {y}'s own units."
+msgstr "RMSE = {value}: un valore di {y} previsto dal modello sbaglia in genere di circa {value}, nelle unità di {y}."
+
+msgid "Slope {value}: {y} changes by about {value} for each unit of {x} (95% interval {low} to {high})."
+msgstr "Pendenza {value}: {y} cambia di circa {value} per ogni unità di {x} (intervallo al 95% da {low} a {high})."
+
+msgid "The interval leaves out 0, so the change is called real."
+msgstr "L'intervallo esclude lo 0, quindi il cambiamento si considera reale."
+
+msgid "The interval includes 0: these data do not show that {y} changes with {x}."
+msgstr "L'intervallo comprende lo 0: questi dati non mostrano che {y} cambi con {x}."
+
+msgid "r = {r}: {y} tends to rise as {x} rises; 1 or -1 would be a straight line, 0 no straight-line link. They share {percent}% of their variation (r²) - a link, not proof that one causes the other."
+msgstr "r = {r}: {y} tende a crescere al crescere di {x}; 1 o -1 sarebbe una retta, 0 nessun legame lineare. Condividono il {percent}% della loro variazione (r²): un legame, non la prova che l'una causi l'altra."
+
+msgid "r = {r}: {y} tends to fall as {x} rises; 1 or -1 would be a straight line, 0 no straight-line link. They share {percent}% of their variation (r²) - a link, not proof that one causes the other."
+msgstr "r = {r}: {y} tende a calare al crescere di {x}; 1 o -1 sarebbe una retta, 0 nessun legame lineare. Condividono il {percent}% della loro variazione (r²): un legame, non la prova che l'una causi l'altra."
+
+msgid "AUC = {value}: of a row that is {level} and one that is not, the model gives the first the higher probability {percent}% of the time. 0.5 is a coin toss, 1 never wrong; above 0.8 is usually called good."
+msgstr "AUC = {value}: presa una riga che è {level} e una che non lo è, il modello dà alla prima la probabilità più alta il {percent}% delle volte. 0,5 è il lancio di una moneta, 1 non sbaglia mai; sopra 0,8 di solito si considera buono."
+
+msgid "LogWorth {value} for {term}, the strongest effect: its p-value is about {p} (LogWorth is -log10 p). Above 2 - p below 0.01, the usual line for this ranking - an effect is called real."
+msgstr "LogWorth {value} per {term}, l'effetto più forte: il suo p-value è circa {p} (LogWorth è -log10 p). Sopra 2 - p sotto 0,01, la soglia usuale per questa classifica - un effetto si considera reale."
+
+msgid "Limits {lower} to {upper} around {center}: a stable process keeps nearly every point (997 in 1000) inside them - its mean ± 3 sigma, not a specification."
+msgstr "Limiti da {lower} a {upper} attorno a {center}: un processo stabile vi tiene dentro quasi ogni punto (997 su 1000) - sono la sua media ± 3 sigma, non una specifica."
+
+msgid "{count} signal(s) - a point outside, or a run on one side - point to a cause worth finding."
+msgstr "{count} segnale/i - un punto fuori, o una sequenza da un lato - indicano una causa da cercare."
+
+msgid "No signal: the variation looks like the process' own."
+msgstr "Nessun segnale: la variazione sembra quella propria del processo."
+
+msgid "the groups of {group} had the same {measure}"
+msgstr "i gruppi di {group} avessero valori uguali di {measure}"
+
+msgid "{measure} differs between them"
+msgstr "{measure} differisce tra i gruppi"
+
+msgid "{measure} did not depend on {group}"
+msgstr "{measure} non dipendesse da {group}"
+
+msgid "{measure} depends on {group}"
+msgstr "{measure} dipende da {group}"
+
+msgid "{factor} had no effect on {response}"
+msgstr "{factor} non avesse effetto su {response}"
+
+msgid "{factor} affects {response}"
+msgstr "{factor} influisce su {response}"
+
+msgid "{measure} had no trend"
+msgstr "{measure} non avesse alcuna tendenza"
+
+msgid "{measure} has a trend"
+msgstr "{measure} ha una tendenza"
+
+msgid "{measure} kept the same level throughout"
+msgstr "{measure} restasse allo stesso livello per tutto il tempo"
+
+msgid "{measure} shifted at one point"
+msgstr "{measure} ha cambiato livello a un certo punto"
+
+msgid "the mean of {column}"
+msgstr "la media di {column}"
+
+msgid "the means differ"
+msgstr "le medie differiscono"
+
+msgid "{x} did not change the odds of {y}"
+msgstr "{x} non cambiasse le probabilità di {y}"
+
+msgid "{y} depends on {x}"
+msgstr "{y} dipende da {x}"
+
+msgid "the groups of {x} had the same mean of {y}"
+msgstr "i gruppi di {x} avessero la stessa media di {y}"
+
+msgid "{y} did not depend on {x}"
+msgstr "{y} non dipendesse da {x}"
+
+msgid "How to read this"
+msgstr "Come leggerlo"
+
+msgid "A \"How to read this\" box in every report"
+msgstr "Un riquadro \"Come leggerlo\" in ogni report"
+
+msgid "Under each report's main result, two sentences on what its key numbers - a p-value, R², a Cpk - say about these data."
+msgstr "Sotto il risultato principale di ogni report, due frasi su cosa dicono di questi dati i suoi numeri chiave: un p-value, R², un Cpk."
+
+msgid "Reports"
+msgstr "Report"
+
+msgid "Explain"
+msgstr "Spiega"

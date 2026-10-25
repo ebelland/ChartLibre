@@ -164,3 +164,13 @@ def test_switching_language_actually_changes_the_strings() -> None:
 # ----------------------------------------------------------------------
 
 
+
+
+def test_an_empty_string_stays_empty() -> None:
+    """gettext translates "" as the catalogue's header: a report's blank column title read "Content-Type: ..."."""
+    previous = i18n.language()
+    try:
+        i18n.set_language("it")
+        assert i18n.tr("") == "" and i18n.tr("Mean") != ""
+    finally:
+        i18n.set_language(previous)

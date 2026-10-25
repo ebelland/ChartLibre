@@ -16,6 +16,7 @@ import pandas as pd
 from app.analysis import in_control as ic
 from app.analysis.change import ROW_ORDER
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep
 from app.utils.i18n import _
@@ -50,6 +51,9 @@ class InControlDialog(QuickAnswerDialogBase):
         del params, model
         time = casting.columns("time")
         return ic.is_in_control(frame, casting.columns("response")[0], time[0] if time else ROW_ORDER)
+
+    def how_to_read(self, result: ic.ControlAnswer) -> list[str]:
+        return [reading_guide.control_limits(result.center, result.lower, result.upper, signals=result.signals)]
 
     def next_steps(self, result: ic.ControlAnswer) -> list[NextStep]:
         """On to whether it drifted, whether it is normal (the limits assume it), or another measure."""

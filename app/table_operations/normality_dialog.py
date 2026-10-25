@@ -14,6 +14,7 @@ import pandas as pd
 
 from app.analysis import normality as nm
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, other_columns
 from app.utils.i18n import _
@@ -43,6 +44,9 @@ class NormalityDialog(QuickAnswerDialogBase):
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del params, model
         return nm.is_normal(frame, casting.columns("response")[0])
+
+    def how_to_read(self, result: nm.NormalityAnswer) -> list[str]:
+        return [reading_guide.normality(result.pvalue, test=result.test, column=self.measure)]
 
     def next_steps(self, result: nm.NormalityAnswer) -> list[NextStep]:
         """On to its whole distribution, to differences between groups, or to whether it is in control."""

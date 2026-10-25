@@ -15,6 +15,7 @@ import pandas as pd
 
 from app.analysis import impact as im
 from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, is_level
 from app.utils import report_html
@@ -64,6 +65,18 @@ class ImpactDialog(QuickAnswerDialogBase):
         if value.startswith("highest at "):
             return _("highest at {level}").format(level=value.removeprefix("highest at "))
         return ""
+
+    def how_to_read(self, result: im.ImpactAnswer) -> list[str]:
+        lines = []
+        if not result.ranking.empty:
+            first = result.ranking.iloc[0]
+            factor, response = str(first["Factor"]), self.measure
+            lines.append(reading_guide.p_value(
+                first["p-value"], null=_("{factor} had no effect on {response}").format(factor=factor, response=response),
+                shown=_("{factor} affects {response}").format(factor=factor, response=response)))
+        if result.numeric:
+            lines.append(reading_guide.r_squared(result.explained, y=self.measure))
+        return lines
 
     def next_steps(self, result: im.ImpactAnswer) -> list[NextStep]:
         """On to a model of the strongest factors, the differences across the first, or another result."""

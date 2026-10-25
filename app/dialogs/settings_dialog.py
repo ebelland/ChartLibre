@@ -222,6 +222,16 @@ class SettingsDialog(PanelDialog):
         self._mpl_style_combo.setToolTip(tr("The chart style of every figure that has none of its own."))
         form.addRow(tr("Default chart style"), self._mpl_style_combo)
 
+        # Every report's "How to read this" box (H-04): on for a new install - students first.
+        from app.plugin_api import reading_guide
+
+        form = self._section(tr("Reports"), forms)
+        self._how_to_read_check = QCheckBox(tr("A \"How to read this\" box in every report"), card)
+        self._how_to_read_check.setToolTip(tr("Under each report's main result, two sentences on what its key "
+                                              "numbers - a p-value, R², a Cpk - say about these data."))
+        self._how_to_read_check.setChecked(reading_guide.enabled())
+        form.addRow(tr("Explain"), self._how_to_read_check)
+
         self._build_assistant_section(card, forms)
 
         # What most people never change, closed - unless something in it is
@@ -481,6 +491,9 @@ class SettingsDialog(PanelDialog):
         set_value(CONFIG_SAVE_FORMAT, self._value(self._format_combo))
         set_value(DEFAULT_MPL_STYLE_KEY, self._value(self._mpl_style_combo))
         set_value(SQL_GUARD_KEY, bool(self._sql_guard_check.isChecked()))
+        from app.plugin_api import reading_guide
+
+        set_value(reading_guide.SETTING_KEY, bool(self._how_to_read_check.isChecked()))
         set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
         set_value(DEVELOPER_MODE_KEY, bool(self._developer_check.isChecked()))
         self._save_assistant()

@@ -19,6 +19,7 @@ import pandas as pd
 
 from app.analysis import answers
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.utils import report_html
 from app.utils.i18n import _
 
 
@@ -47,7 +48,8 @@ class QuickAnswerDialogBase(TableOperationDialogBase):
         return self.column("response")
 
     def report_body(self, result: Any) -> str:
-        return answer_html(result) + self.answer_details(result)
+        # How to read it: under the answer's sentences, above what the answer rests on.
+        return answer_html(result) + report_html.READING_GUIDE_MARK + self.answer_details(result)
 
     def answer_details(self, result: Any) -> str:
         """More under the answer, as HTML sections; nothing by default."""

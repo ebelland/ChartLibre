@@ -590,7 +590,9 @@ def tr(message: str) -> str:
     :data:`_` is the name call sites use; they are the same function, so both
     spellings are found by ``xgettext`` and either may be called.
     """
-    if _language == DEFAULT_LANGUAGE:
+    # "" too: gettext's translation of the empty string is the catalogue's header - a blank column
+    # title in a report read "Content-Type: text/plain; charset=UTF-8".
+    if _language == DEFAULT_LANGUAGE or not message:
         return message
     return _translation(_language).gettext(message)
 

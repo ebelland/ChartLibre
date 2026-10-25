@@ -15,6 +15,7 @@ import pandas as pd
 
 from app.analysis import answers
 from app.plugin_api.table_operations.column_roles import NOMINAL, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, other_columns
 from app.utils import report_html
@@ -62,6 +63,17 @@ class DifferencesDialog(QuickAnswerDialogBase):
             ])),
         ]
         return "".join(blocks)
+
+    def how_to_read(self, result: answers.Answer) -> list[str]:
+        measure, group = self.measure, self.column("group")
+        if result.numeric:
+            null = _("the groups of {group} had the same {measure}").format(group=group, measure=measure)
+            shown = _("{measure} differs between them").format(measure=measure)
+        else:
+            null = _("{measure} did not depend on {group}").format(measure=measure, group=group)
+            shown = _("{measure} depends on {group}").format(measure=measure, group=group)
+        return [reading_guide.p_value(result.pvalue, null=null, shown=shown),
+                reading_guide.effect_size(result.effect, name=result.effect_name)]
 
     def next_steps(self, result: answers.Answer) -> list[NextStep]:
         """On to what drives the measure; or again, with another measure or another grouping."""
