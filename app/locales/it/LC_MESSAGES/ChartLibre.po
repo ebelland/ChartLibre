@@ -11377,3 +11377,9 @@ msgstr "Centrata"
 
 msgid "Sampling rate from x"
 msgstr "Campionamento da x"
+
+msgid "A table's columns."
+msgstr "Le colonne di una tabella."
+
+msgid "The series a chart draws."
+msgstr "Le serie che un grafico disegna."

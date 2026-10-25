@@ -56,7 +56,7 @@ from app.styles.style import (
     icon_from_svg_source,
     stdSizeAndlayout,
 )
-from app.plugin_api.table_operations import next_steps
+from app.plugin_api.table_operations import chart_source, next_steps
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole, ColumnRolesWidget
 from app.utils.config import get_section, set_section
 from app.utils.dialog_state import (
@@ -115,6 +115,10 @@ class TableOperationDialogBase(OperationShell):
         self._result_inputs: tuple[Any, ...] | None = None
         #: The figures the last Preview or OK drew (create_report_figure keeps it).
         self.created_figure_ids: list[int] = []
+        #: OK's undo step, which every snapshot of the same OK extends.
+        self._undo_entry: int | None = None
+        #: Reading a chart: the name its axis' data is written under.
+        self._chart_table = ""
         #: The figure the main window shows, for "Draw on: new axis in the current figure"; None: no such choice.
         self.current_figure_id: int | None = None
         #: A Preview's tables and figure are written inside a savepoint, rolled back by the next Preview,
@@ -259,7 +263,7 @@ class TableOperationDialogBase(OperationShell):
         # Short: the column is narrow, and the label must keep its room.
         self._table_combo.setMinimumContentsLength(3)
         self._table_combo.currentIndexChanged.connect(self._on_table_changed)
-        table_label = QLabel(_("Table:"), self._inputs_panel)
+        table_label = self._table_label = QLabel(_("Table:"), self._inputs_panel)
         table_label.setMinimumWidth(table_label.sizeHint().width())
         table_row.addRow(table_label, self._table_combo)
         if self.MODELS:
@@ -269,6 +273,10 @@ class TableOperationDialogBase(OperationShell):
             self.model_combo.currentIndexChanged.connect(lambda _i: self.inputs_changed())
             table_row.addRow(QLabel(_("Model:"), self._inputs_panel), self.model_combo)
         self.roles_widget.columns_card_layout.insertLayout(0, table_row)
+        # Above it, where the columns come from: a table, or a chart's axis read as one (chart_source).
+        self.roles_widget.columns_card_layout.insertLayout(
+            0, self.build_source_choice(self._inputs_panel, from_chart=False,
+                                        on_change=lambda _chart: self._load_tables(None)))
         self.build_extra_inputs(self.roles_widget.side_layout)
         self._parameter_form: ParameterForm | None = None
         parameters_only = tuple(spec for spec in self.PARAMS if spec.tab != "charts")
@@ -301,18 +309,56 @@ class TableOperationDialogBase(OperationShell):
     # ------------------------------------------------------------------
 
     def _load_tables(self, preferred: str | None) -> None:
-        names = [str(name) for name in self._repo.list_user_tables()["Table"]]
-        self._table_combo.blockSignals(True)
-        self._table_combo.clear()
-        self._table_combo.addItems(names)
-        self._table_combo.blockSignals(False)
-        if preferred and preferred in names:
-            self._table_combo.setCurrentIndex(names.index(preferred))
+        """The tables - or, reading a chart, the charts' axes ("Figure · axis"), the current figure's first."""
+        combo = self._table_combo
+        combo.blockSignals(True)
+        combo.clear()
+        if self.reads_chart():
+            self._table_label.setText(_("Chart:"))
+            first = -1
+            for figure_id, figure_name in self._repo.load_figures_from_db():
+                descriptor = self._repo.load_figure_descriptor(figure_id)
+                for axis in (descriptor.axes if descriptor else []):
+                    if axis.series:
+                        if first < 0 and figure_id == self.current_figure_id:
+                            first = combo.count()
+                        combo.addItem(f"{figure_name} · {axis.title or _(axis.name)}", (figure_name, axis))
+            combo.setCurrentIndex(max(first, 0))
+        else:
+            self._table_label.setText(_("Table:"))
+            names = [str(name) for name in self._repo.list_user_tables()["Table"]]
+            combo.addItems(names)
+            if preferred and preferred in names:
+                combo.setCurrentIndex(names.index(preferred))
+        combo.blockSignals(False)
         self._on_table_changed()
 
     @property
     def table(self) -> str:
+        """The table read - or, reading a chart, the table its axis is written as (_write_chart_source)."""
+        if self.reads_chart():
+            return self._chart_table
         return self._table_combo.currentText()
+
+    def source_frame(self) -> pd.DataFrame:
+        """What the analysis reads: the table's visible rows, or the chosen axis' series (chart_source)."""
+        if self.reads_chart():
+            chosen = self._table_combo.currentData()
+            return chart_source.axis_frame(self._repo, chosen[1]) if chosen else pd.DataFrame()
+        return self.table_frame(self.table) if self.table else pd.DataFrame()
+
+    def _write_chart_source(self) -> None:
+        """Reading a chart: its axis written as a table, which the analysis reads and writes beside.
+
+        In OK's undo step, and rolled back with a Preview. Then the analysis is as on any table: its charts
+        select from it, its results are named after it, Cluster Analysis writes its ClusterId into it.
+        """
+        if not self.reads_chart() or not self.table:
+            return
+        self.snapshot_for_undo([self.table])
+        self._repo.import_dataframe(self._frame, table_name=self.table, normalize_columns=False)
+        ids = self._repo.query_df(f"SELECT * FROM {self.quoted(self.table)}", row_id=True)
+        self.row_ids = ids[ROW_ID].astype("Int64") if ROW_ID in ids.columns else pd.Series(dtype="Int64")
 
     def table_frame(self, table: str) -> pd.DataFrame:
         """*table*'s visible rows, without the application's own columns.
@@ -339,15 +385,18 @@ class TableOperationDialogBase(OperationShell):
         from app.dialogs.column_info_dialog import ColumnInfoDialog
 
         table = self.table
-        if not table:
-            return
+        if not table or self.reads_chart():
+            return  # a chart's data is a table only once the analysis writes it
         if ColumnInfoDialog(self._repo, table, column, self).exec():
             self._on_table_changed()
 
     def _on_table_changed(self, *_args: Any) -> None:
         self._remember_casting()
+        chosen = self._table_combo.currentData() if self.reads_chart() else None
+        # A free name now, the same through Preview and OK: what the axis' data is written as.
+        self._chart_table = self._repo.free_table_name(chart_source.axis_table_name(*chosen)) if chosen else ""
         table = self.table
-        self._frame = self.table_frame(table) if table else pd.DataFrame()
+        self._frame = self.source_frame()
         remembered = get_section(self._state_key).get("casting", {}).get(table) if table else None
         if remembered:
             roles, kinds = remembered.get("roles", {}), remembered.get("kinds", {})
@@ -425,6 +474,7 @@ class TableOperationDialogBase(OperationShell):
             self._repo.begin_preview_savepoint(f"preview_{self._state_key}")
             self._previewing = True
             self.created_figure_ids = []
+            self._write_chart_source()
             self.apply_results(result)
         except Exception as exc:  # noqa: BLE001 - shown like a failed run; the preview is undone
             self._previewing = False
@@ -474,6 +524,8 @@ class TableOperationDialogBase(OperationShell):
     def _apply(self, result: Any) -> None:
         try:
             self.created_figure_ids = []
+            self._undo_entry = None
+            self._write_chart_source()
             written = self.apply_results(result)
         except Exception as exc:  # noqa: BLE001 - reported, the dialog stays open
             applogger.exception("%s could not be written", self.Name)
@@ -545,7 +597,10 @@ class TableOperationDialogBase(OperationShell):
         taken inside the preview's savepoint anyway.
         """
         if not self._previewing:
-            self._repo.snapshot_for_undo(list(tables), label=f"{self.Name} on '{self.table}'")
+            # One step for all: the chart's data written as a table, the results and the figure.
+            entry = self._repo.snapshot_for_undo(list(tables), label=f"{self.Name} on '{self.table}'",
+                                                 entry_id=self._undo_entry)
+            self._undo_entry = entry if entry is not None else self._undo_entry
 
     def result_table_name(self, key: str) -> str:
         """A free name for a table the analysis writes: "_penguins_pls_vip".

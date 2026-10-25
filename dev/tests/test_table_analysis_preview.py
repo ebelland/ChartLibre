@@ -113,3 +113,42 @@ def test_a_preview_written_through_pandas_is_still_rolled_back(tmp_path) -> None
     assert repo.rollback_preview_savepoint()
     assert "previewed" not in set(repo.list_user_tables()["Table"])
     repo.close()
+
+
+def test_an_analysis_reads_a_charts_axis_as_a_table(qapp, tmp_path) -> None:
+    """Data from: Chart - the axis' series a column each, their shared x one; written as a table by Preview
+    (rolled back with it) and by OK, in OK's one undo step."""
+    import numpy as np
+
+    from app.data.sqlite_repo import SqliteRepo
+    from app.table_operations.distribution_dialog import DistributionDialog
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    rng = np.random.default_rng(1)
+    repo.import_dataframe(pd.DataFrame({"t": np.arange(40.0), "a": rng.normal(size=40), "b": rng.normal(size=40)}),
+                          table_name="t", normalize_columns=False)
+    figure = repo.create_figure_descriptor(name="Signals")
+    axis = repo.create_axis_descriptor(figure_id=figure, axis_index=0, chart_type="Scatter Plot", title="Two",
+                                       x_label="time", y_label="v", options={})
+    for index, name in enumerate("ab"):
+        repo.create_series_descriptor(axis_id=axis, series_index=index, name=name,
+                                      sql_query=f'SELECT t AS x, {name} AS y FROM "t"', roles={"x": "x", "y": "y"},
+                                      style={})
+    dialog = DistributionDialog(repo=repo, table="t")
+    try:
+        dialog.current_figure_id = figure
+        dialog.source_chart_radio.setChecked(True)
+        assert dialog.table == "Signals_Two" and list(dialog._frame.columns) == ["time", "a", "b"]
+        dialog.roles_widget.set_casting({"response": ["a", "b"]})
+        dialog.preview()
+        _wait(qapp, dialog)
+        assert "Signals_Two" in set(repo.list_user_tables()["Table"])
+        dialog._discard_preview()
+        assert "Signals_Two" not in set(repo.list_user_tables()["Table"])
+        dialog.ok()
+        _wait(qapp, dialog)
+        assert "Signals_Two" in set(repo.list_user_tables()["Table"])
+        assert [entry.label for entry in repo.undo_entries()] == ["Distribution on 'Signals_Two'"]
+    finally:
+        dialog.close()
+        repo.close()

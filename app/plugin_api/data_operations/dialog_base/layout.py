@@ -5,11 +5,7 @@ from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QButtonGroup,
     QFrame,
-    QHBoxLayout,
-    QLabel,
-    QRadioButton,
     QScrollArea,
     QSizePolicy,
     QStackedWidget,
@@ -168,20 +164,8 @@ class LayoutMixin:
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
-        row = QHBoxLayout()
-        row.addWidget(QLabel(_("Data from:"), panel))
-        self.source_chart_radio = QRadioButton(_("Chart"), panel)
-        self.source_chart_radio.setToolTip(_("The series the chart draws."))
-        self.source_table_radio = QRadioButton(_("Table"), panel)
-        self.source_table_radio.setToolTip(_("A table's columns, without drawing them first."))
-        group = QButtonGroup(panel)
-        group.addButton(self.source_chart_radio)
-        group.addButton(self.source_table_radio)
-        self.source_chart_radio.setChecked(True)
-        row.addWidget(self.source_chart_radio)
-        row.addWidget(self.source_table_radio)
-        row.addStretch(1)
-        layout.addLayout(row)
+        # A table's columns are drawn as a figure of their own first (_prepare_table_source).
+        layout.addLayout(self.build_source_choice(panel, from_chart=True, on_change=self._on_source_changed))
 
         self.table_source = TableSourceSelector(self._repo, panel)
         self._source_stack = QStackedWidget(panel)
@@ -189,7 +173,6 @@ class LayoutMixin:
         self._source_stack.addWidget(self.table_source)
         layout.addWidget(self._source_stack, 1)
 
-        self.source_table_radio.toggled.connect(self._on_source_changed)
         self.table_source.changed.connect(self._on_table_columns_changed)
         return panel
 

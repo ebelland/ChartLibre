@@ -31,11 +31,14 @@ from typing import Any
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QComboBox,
     QDialog,
     QFormLayout,
     QHBoxLayout,
+    QLabel,
     QProgressBar,
+    QRadioButton,
     QSizePolicy,
     QSplitter,
     QVBoxLayout,
@@ -86,6 +89,35 @@ class OperationShell(QDialog):
         combo.setMaximumWidth(FIELD_MAX_WIDTH)
         combo.currentIndexChanged.connect(lambda _index: on_change())
         return combo
+
+    # ------------------------------------------------------------------
+    # Where the data comes from
+    # ------------------------------------------------------------------
+
+    def build_source_choice(self, parent: QWidget, *, from_chart: bool, on_change: Callable[[bool], Any]) -> QHBoxLayout:
+        """"Data from: (o) Table ( ) Chart" - every analysis reads either; *from_chart* checked at first.
+
+        Sets source_table_radio and source_chart_radio; *on_change(from_chart)* follows the choice.
+        """
+        row = QHBoxLayout()
+        row.addWidget(QLabel(_("Data from:"), parent))
+        self.source_table_radio = QRadioButton(_("Table"), parent)
+        self.source_table_radio.setToolTip(_("A table's columns."))
+        self.source_chart_radio = QRadioButton(_("Chart"), parent)
+        self.source_chart_radio.setToolTip(_("The series a chart draws."))
+        group = QButtonGroup(parent)
+        for radio in (self.source_table_radio, self.source_chart_radio):
+            group.addButton(radio)
+            row.addWidget(radio)
+        row.addStretch(1)
+        (self.source_chart_radio if from_chart else self.source_table_radio).setChecked(True)
+        self.source_chart_radio.toggled.connect(on_change)
+        return row
+
+    def reads_chart(self) -> bool:
+        """Whether the data comes from a chart (Data from: Chart)."""
+        radio = getattr(self, "source_chart_radio", None)
+        return radio is not None and radio.isChecked()
 
     # ------------------------------------------------------------------
     # The Charts tab
