@@ -8,6 +8,7 @@ MainWindow: the menus (main_menus.py) and the File panel call these.
 from __future__ import annotations
 
 import gc
+import json
 import re
 from pathlib import Path
 from time import monotonic
@@ -51,6 +52,8 @@ if TYPE_CHECKING:
         def _refresh_undo_item(self) -> None: ...
         def _reload_tabs(self, select_figure_id: int | None = None) -> None: ...
         def _update_properties_for_current_chart(self) -> None: ...
+        def _reload_property_widgets(self) -> None: ...
+        def _current_chart_panel(self) -> Any: ...
         def _build_app_menu(self) -> None: ...
         def _update_window_title(self) -> None: ...
 else:
@@ -125,6 +128,7 @@ class MainWindowProject(_MainWindowProjectBase):
 
     def _on_undo(self) -> None:
         """Take back the last recorded change, and show the result."""
+        before = self._descriptor_state()
         entry = self._repo.undo_last()
         if entry is None:
             applogger.info("There is nothing to undo.")
@@ -132,10 +136,52 @@ class MainWindowProject(_MainWindowProjectBase):
             return
 
         applogger.info("Undid: %s", entry.describe())
+        # A colour, line or marker taken back on the chart shown: back on its lines, as the edit was - no
+        # render (S-01). Anything else: everything shown again from the database.
+        if set(entry.tables) <= set(self._repo.DESCRIPTOR_TABLES) and self._undo_style_live(before):
+            self._reload_property_widgets()
+            self._refresh_undo_item()
+            return
         # The entry just consumed - the menu then names the next one (or is
         # disabled). On macOS this rebuilds the bar; safe here because Cocoa
         # has already closed the menu before dispatching this.
         self._refresh_after_undo_or_repair()
+
+    def _descriptor_state(self) -> tuple[list[dict[str, Any]], dict[int, dict[str, Any]]] | None:
+        """The figures and axes as rows, and the series by id - what an Undo of a style is compared on."""
+        try:
+            figures_and_axes = [self._repo.query_df(f'SELECT * FROM "{table}" ORDER BY id').to_dict("records")
+                                for table in ("__figure_descriptors__", "__axis_descriptors__")]
+            series = self._repo.query_df('SELECT * FROM "__series_descriptors__"').to_dict("records")
+        except Exception:  # noqa: BLE001 - no state: the Undo shows everything again, as before
+            return None
+        return [*figures_and_axes[0], *figures_and_axes[1]], {int(row["id"]): row for row in series}
+
+    def _undo_style_live(self, before: tuple[list[dict[str, Any]], dict[int, dict[str, Any]]] | None) -> bool:
+        """Re-draw an Undo that changed only series styles on the chart shown, on its own lines; False to render."""
+        panel = self._current_chart_panel()
+        after = self._descriptor_state()
+        if before is None or after is None or panel is None or not hasattr(panel, "preview_series_style"):
+            return False
+        if before[0] != after[0] or set(before[1]) != set(after[1]):
+            return False
+        shown = {int(row["id"]) for row in after[0]
+                 if "figure_id" in row and "axis_index" in row and int(row["figure_id"]) == int(panel.figure_id)}
+        restyled = []
+        for series_id, old in before[1].items():
+            new = after[1][series_id]
+            if old == new:
+                continue
+            if any(old[key] != new[key] for key in old if key != "style_json") or int(new["axis_id"]) not in shown:
+                return False
+            old_style = json.loads(old["style_json"] or "{}")
+            new_style = json.loads(new["style_json"] or "{}")
+            changes = {key: new_style.get(key) for key in {*old_style, *new_style} if old_style.get(key) != new_style.get(key)}
+            if any(value is None for value in changes.values()):
+                return False  # back to the style's default: only a render knows it
+            restyled.append((int(new["axis_id"]), str(new["name"]), changes))
+        return bool(restyled) and all(panel.preview_series_style(axis_id, name, changes)
+                                      for axis_id, name, changes in restyled)
 
     def _refresh_after_undo_or_repair(self) -> None:
         """Tables, charts and Chart properties shown again from the database, and the Undo item updated."""

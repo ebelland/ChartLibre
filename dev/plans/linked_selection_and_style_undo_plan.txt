@@ -58,3 +58,9 @@ Q4  S-01 item 3, Undo/Redo live with no re-render: worth it - or is a re-render 
     live, as the edit was; it is what makes the undo feel like the edit.)
 
 EFFORT: S-01 S; R-07 M (about two sessions in all).
+
+STATUS 2026-10-25: the go given ("vai"), with the suggested answers - Q1 an empty click clears, Q2 charts only,
+Q3 one switch per table, Q4 live. Step 1 (S-01) done: each edit's Undo step named for its element and what it
+changed ("Colour of 'Monthly mean'", "Limits of the axis 'p'"), one step per element and property; an Undo of
+a style shown on the chart's own lines when only series styles of the chart shown changed. There is no Redo in
+the application, so item 3 is Undo only.

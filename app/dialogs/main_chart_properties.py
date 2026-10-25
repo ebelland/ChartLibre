@@ -36,6 +36,26 @@ PROPERTIES_REDRAW_DEBOUNCE_MS: int = get_constant("properties_redraw_debounce_ms
 class MainWindowChartProperties:
     """A part of MainWindow; ``self`` is the window."""
 
+    #: What a property is called in its Undo step (S-01): "Colour of 'Monthly mean'". Another key: its own
+    #: name, in words.
+    _PROPERTY_NAMES: dict[str, str] = {
+        "color": "Colour", "linestyle": "Line style", "linewidth": "Line width", "marker": "Marker",
+        "markersize": "Marker size", "alpha": "Opacity", "label": "Name", "sql_query": "Query", "title": "Title",
+        "x_label": "X label", "y_label": "Y label", "grid": "Grid", "legend": "Legend", "xscale": "X scale",
+        "yscale": "Y scale", "width": "Width", "height": "Height", "mpl_style": "Style",
+    }
+
+    @classmethod
+    def _undo_label(cls, keys: set[str], element: str) -> str:
+        """An edit's Undo step, named for what it changes and where (S-01). The same name within a moment is one
+        step (_snapshot_descriptors): a slider dragged stays one Undo; another property or element is another."""
+        if len(keys) == 1:
+            key = next(iter(keys))
+            what = _(cls._PROPERTY_NAMES[key]) if key in cls._PROPERTY_NAMES else key.replace("_", " ").capitalize()
+        else:
+            what = _("Properties")
+        return _("{what} of {element}").format(what=what, element=element)
+
     def _create_properties_control(self) -> QTabWidget:
         """Figure, Axis, Series and Overlays as tabs, each page scrolling on its own.
 
@@ -433,8 +453,10 @@ class MainWindowChartProperties:
         if self._properties_figure_id is None:
             return
 
-        self._snapshot_descriptors(_("Figure properties"))
         options = self._properties_figure_options()
+        edited = {key for key, value in payload.items()
+                  if key not in self._FIGURE_PAYLOAD_NON_OPTIONS and options.get(key) != value}
+        self._snapshot_descriptors(self._undo_label(edited, _("the figure")))
 
         for key, value in payload.items():
             if key in self._FIGURE_PAYLOAD_NON_OPTIONS:
@@ -559,6 +581,16 @@ class MainWindowChartProperties:
             self._reload_property_widgets()
             self._redraw_properties_chart()
 
+    def _axis_label(self, axis_id: int) -> str:
+        """The axis as an Undo step names it: "the axis 'Monthly CO2'", else by its place in the figure."""
+        descriptor = self._repo.load_figure_descriptor(self._properties_figure_id) \
+            if self._properties_figure_id is not None else None
+        for index, axis in enumerate(descriptor.axes if descriptor is not None else []):
+            if int(axis.id) == int(axis_id):
+                return _("the axis '{name}'").format(name=axis.title) if axis.title else \
+                    _("axis {number}").format(number=index + 1)
+        return _("the axis")
+
     def _on_axis_options_requested(self, payload: dict[str, Any]) -> None:
         """Persist the axis options the properties widget just emitted.
 
@@ -576,8 +608,10 @@ class MainWindowChartProperties:
         if axis_id_value is None:
             return
         axis_id = int(axis_id_value)
-        self._snapshot_descriptors(_("Axis properties"))
         options = self._repo.get_axis_options(axis_id) or {}
+        edited = {key for key, value in payload.items()
+                  if key not in self._AXIS_PAYLOAD_NON_OPTIONS and options.get(key) != value}
+        self._snapshot_descriptors(self._undo_label(edited, self._axis_label(axis_id)))
 
         for key, value in payload.items():
             if key in self._AXIS_PAYLOAD_NON_OPTIONS:
@@ -670,7 +704,13 @@ class MainWindowChartProperties:
         else:
             applogger.error("Series id=%r has invalid style.", series_desc.id)
             return
-        self._snapshot_descriptors(_("Series properties"))
+        edited = {key for key, value in payload.items()
+                  if key not in {"series_id", "also_series_ids", "sql_query"} and style.get(key) != value}
+        if str(payload.get("sql_query", "") or "").strip() not in ("", str(series_desc.sql_query or "").strip()):
+            edited.add("sql_query")
+        together = [self._properties_series_descriptor(int(i)) for i in payload.get("also_series_ids") or ()]
+        names = ", ".join(f"'{desc.name}'" for desc in (series_desc, *together) if desc is not None)
+        self._snapshot_descriptors(self._undo_label(edited, names))
         before = dict(style)
         # Same rule as the axis and figure handlers: everything the widget
         # sends is stored, minus the addressing keys.
