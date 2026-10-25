@@ -86,6 +86,8 @@ class TableOperationDialogBase(OperationShell):
     Icon: ClassVar[str] = ""
 
     ROLES: ClassVar[tuple[ColumnRole, ...]] = ()
+    #: Draws a single panel: "Draw on" offers the current axis too (the figure's axis of the panel's kind).
+    ONE_PANEL: ClassVar[bool] = False
     #: The roles whose columns the report's subtitle names after the table.
     SUBTITLE_ROLES: ClassVar[tuple[str, ...]] = ("response",)
     #: Roles that may not share a column: (role, other role, message); "{columns}" in the message names them.
@@ -645,7 +647,7 @@ class TableOperationDialogBase(OperationShell):
         sql, roles = self.series_select(table, {"x": x, "y": y})
         return [(_("Rows"), sql, roles, {})]
 
-    def create_report_figure(self, name: str, notes_html: str, panels: Sequence[tuple]) -> int:
+    def create_report_figure(self, name: str, notes_html: str, panels: Sequence[tuple]) -> int | None:
         """A figure of *panels*, two to a row, with *notes_html* in its notes; its id.
 
         Each panel is ``(chart type, title, x label, y label, series)``, and
@@ -670,8 +672,20 @@ class TableOperationDialogBase(OperationShell):
         panels = [panel for panel in available if self.chart_enabled(str(panel[0]))]
 
         repo = self._repo
-        target = getattr(self, "current_figure_id", None) if self.draw_on() == self.DEST_NEW_AXIS else None
+        draw_on = self.draw_on()
+        if draw_on == self.DEST_NONE:
+            return None  # the report is the result: it stays in Results and in the project's history
+        target = getattr(self, "current_figure_id", None) if draw_on != self.DEST_NEW_FIGURE else None
         descriptor = repo.load_figure_descriptor(int(target)) if target is not None else None
+        onto = next((axis for axis in (descriptor.axes if descriptor else []) if axis.name == panels[0][0]), None) \
+            if draw_on == self.DEST_SAME_AXIS and len(panels) == 1 else None
+        if onto is not None:
+            # Current axis: the one panel's series added to the figure's axis of its kind.
+            for position, (series_name, sql, roles, style) in enumerate(panels[0][4], start=len(onto.series)):
+                repo.create_series_descriptor(axis_id=int(onto.id), series_index=position, name=series_name,
+                                              sql_query=sql, roles=roles, style=style)
+            self.created_figure_ids.append(int(target))
+            return int(target)
         if descriptor is not None:
             # New axes after the figure's own, its grid grown to show them.
             figure_id = int(target)
@@ -707,7 +721,8 @@ class TableOperationDialogBase(OperationShell):
         Returns the history entries: *written* (the tables), then the figure.
         """
         figure_id = self.create_report_figure(f"{_(self.Name)} · {title}", self.report_document(result), panels)
-        return [*(dict(entry) for entry in written), {"figure": figure_id, "name": title}]
+        figure = [] if figure_id is None else [{"figure": figure_id, "name": title}]
+        return [*(dict(entry) for entry in written), *figure]
 
     # ------------------------------------------------------------------
     # Leaving
@@ -724,7 +739,10 @@ class TableOperationDialogBase(OperationShell):
         if not charts and len(self.CHART_PANELS) > 1:
             charts = tuple(BoolParam(chart, chart, default_value=True, tab="charts") for chart in self.CHART_PANELS)
         # A table analysis has no axis of its own.
-        page = self.build_charts_page(charts, destinations=(self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS),
+        # Current axis for an analysis of one panel (added onto the figure's axis of its kind); None for every one.
+        destinations = (self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS, *((self.DEST_SAME_AXIS,) if self.ONE_PANEL else ()),
+                        self.DEST_NONE)
+        page = self.build_charts_page(charts, destinations=destinations,
                                       on_change=self.inputs_changed, context=self.chart_context)
         box = TitledCard(self._inputs_panel, _("Charts"))
         box.title_label.hide()  # the tab says it
@@ -742,11 +760,12 @@ class TableOperationDialogBase(OperationShell):
         return {"model": self.current_model(), "y": y}
 
     def draw_on(self) -> str:
-        """The Charts tab's choice; a new figure when there is no current one to add to."""
+        """The Charts tab's choice; a new figure for one in the current figure when there is none to add to."""
         combo = getattr(self, "destination_combo", None)
-        if getattr(self, "current_figure_id", None) is None or combo is None:
+        chosen = str(combo.currentData() or self.DEST_NEW_FIGURE) if combo is not None else self.DEST_NEW_FIGURE
+        if chosen in (self.DEST_NEW_AXIS, self.DEST_SAME_AXIS) and getattr(self, "current_figure_id", None) is None:
             return self.DEST_NEW_FIGURE
-        return str(combo.currentData() or self.DEST_NEW_FIGURE)
+        return chosen
 
     def geometry_key(self) -> str:
         """The size is the layout's: a new layout starts from its own default, not from the old one's size."""

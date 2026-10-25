@@ -44,6 +44,7 @@ class MultivariateDialog(TableOperationDialogBase):
     )
     Goals: list[str] = ["relate", "explain"]
 
+    ONE_PANEL = True
     ROLES = (
         ColumnRole("response", "Y, columns", "The continuous columns to correlate, two by two.",
                    kinds=(CONTINUOUS, ORDINAL), minimum=2),

@@ -638,7 +638,8 @@ class FitModelDialog(TableOperationDialogBase):
         if charts:
             # One figure for every response, so that all of them are shown.
             figure_id = self._make_figure(result, names, charts)
-            written.append({"figure": figure_id, "name": ", ".join(fit.response for fit in result)})
+            if figure_id is not None:  # None: "Draw on: None"
+                written.append({"figure": figure_id, "name": ", ".join(fit.response for fit in result)})
         return written
 
     def _panels(self, fit: lm.ResponseFit, names: Mapping[str, str], charts: list[str]) -> list[tuple]:
@@ -691,7 +692,7 @@ class FitModelDialog(TableOperationDialogBase):
                                [one("results", {"x": a, "y": fit.response, "trace": b})]))
         return panels
 
-    def _make_figure(self, result: list[lm.ResponseFit], names: Mapping[str, str], charts: list[str]) -> int:
+    def _make_figure(self, result: list[lm.ResponseFit], names: Mapping[str, str], charts: list[str]) -> int | None:
         """One figure of the charts ticked for every response, two to a row, the reports in its notes.
 
         With several responses each chart's title says which it is.

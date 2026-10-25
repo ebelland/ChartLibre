@@ -37,6 +37,7 @@ def answer_html(answer: answers.Answer) -> str:
 class QuickAnswerDialogBase(TableOperationDialogBase):
     """A question on a measure, answered in words, with the table and the chart it rests on."""
 
+    ONE_PANEL = True
     #: The key of the table OK writes (named after it and the source table).
     RESULT_TABLE: ClassVar[str] = "answer"
 

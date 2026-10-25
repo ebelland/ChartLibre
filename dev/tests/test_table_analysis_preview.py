@@ -152,3 +152,35 @@ def test_an_analysis_reads_a_charts_axis_as_a_table(qapp, tmp_path) -> None:
     finally:
         dialog.close()
         repo.close()
+
+
+def test_draw_on_none_and_on_the_current_axis(qapp, tmp_path) -> None:
+    """None: the tables and the report, no figure. Current axis (an analysis of one panel): its series onto the
+    current figure's axis of the same kind."""
+    import numpy as np
+
+    from app.data.sqlite_repo import SqliteRepo
+    from app.table_operations.normality_dialog import NormalityDialog
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    repo.import_dataframe(pd.DataFrame({"v": np.random.default_rng(2).normal(size=60)}), table_name="t",
+                          normalize_columns=False)
+    figure = repo.create_figure_descriptor(name="F")
+    axis = repo.create_axis_descriptor(figure_id=figure, axis_index=0, chart_type="Scatter Plot", title="A",
+                                       x_label="", y_label="", options={})
+    repo.create_series_descriptor(axis_id=axis, series_index=0, name="v", sql_query='SELECT rowid AS x, v AS y FROM t',
+                                  roles={"x": "x", "y": "y"}, style={})
+    for destination, figures, series in (("none", 0, 1), ("same_axis", 1, 3)):
+        dialog = NormalityDialog(repo=repo, table="t")
+        try:
+            dialog.current_figure_id = figure
+            dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(destination))
+            dialog.roles_widget.set_casting({"response": ["v"]})
+            dialog.ok()
+            _wait(qapp, dialog)
+            assert len(dialog.created_figure_ids) == figures
+            assert len(repo.load_figure_descriptor(figure).axes[0].series) == series  # + the Q-Q plot's two
+        finally:
+            dialog.close()
+    assert len(repo.load_figures_from_db()) == 1
+    repo.close()

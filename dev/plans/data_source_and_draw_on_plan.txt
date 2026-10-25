@@ -40,3 +40,7 @@ Q2  Series with different x: one x column per series, as above - or line them up
     above; a join silently drops points.)
 Q3  None: for which analyses? Without a figure, the report stays in Results and in the history only. (Suggested:
     offer it to all, default New figure.)
+
+STATUS 2026-10-25: done - Q1 the axis, Q2 a column per series, Q3 None for all. 06385da (Data from in the shell; a chart's
+axis written as a table, so C - writing back into the source - needed nothing of its own), then Draw on: None for
+every table analysis, Current axis for the ones of one panel (quick answers, Discriminant, Multivariate, Gage R&R).

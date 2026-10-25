@@ -37,6 +37,7 @@ class GageDialog(TableOperationDialogBase):
     )
     Goals: list[str] = ["process"]
 
+    ONE_PANEL = True
     ROLES = (
         ColumnRole("response", "Measurement", "The measured values.", kinds=(CONTINUOUS, ORDINAL),
                    minimum=1, maximum=1),

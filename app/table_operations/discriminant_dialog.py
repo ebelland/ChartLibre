@@ -44,6 +44,7 @@ class DiscriminantDialog(TableOperationDialogBase):
     )
     Goals: list[str] = ["classify", "groups"]
 
+    ONE_PANEL = True
     ROLES = (
         ColumnRole("response", "Y, group", "The column whose groups the rows are classified into.",
                    kinds=(NOMINAL, ORDINAL), minimum=1, maximum=1),
