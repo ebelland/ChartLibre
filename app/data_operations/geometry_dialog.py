@@ -873,6 +873,11 @@ class SeriesGeometryDialog(DataOperationDialogBase):
         before_x = self.numeric_x(frame[x_col], name)
         before_y = self.numeric_y(frame[y_col])
         before_z = self.numeric_y(frame[z_col]) if z_col is not None else None
+        # A category on an axis (a bar chart's x) has no coordinates to move: said so, not "NaN to integer".
+        for column, coordinate in ((x_col, before_x), (y_col, before_y), (z_col, before_z)):
+            if coordinate is not None and not np.isfinite(coordinate).any():
+                raise ValueError(f"'{column}' has no numeric values: a geometric transform moves numbers, "
+                                 "not categories")
 
         values = dict(self.parameter_values())
         if bool(values.get("use_data_centre", True)):

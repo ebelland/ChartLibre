@@ -22,6 +22,7 @@ import re
 import weakref
 from typing import cast
 
+import shiboken6
 from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices
 from PySide6.QtWidgets import (
@@ -94,8 +95,6 @@ def _open_link(pane: object, url: str) -> None:
         return
 
     def deliver() -> None:
-        import shiboken6
-
         if isinstance(pane, HtmlResultsView) and shiboken6.isValid(pane):
             pane.link_requested.emit(url)
 
@@ -198,6 +197,10 @@ class HtmlResultsView(QWidget):
     clear_requested = Signal()
     #: A "What next?" link (app.plugin_api.table_operations.next_steps) was clicked.
     link_requested = Signal(str)
+    # Also on the class: the filter can be called on a pane whose attributes the collector has
+    # already cleared (a closed window not deleted yet).
+    _watched_window: QWidget | None = None
+    _parked = False
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Build the pane: the viewer and a small custom context menu."""
@@ -246,17 +249,19 @@ class HtmlResultsView(QWidget):
         return super().eventFilter(watched, event)
 
     def _park_viewer(self) -> None:
+        # Parked already: hidden again before this pane was shown (a window shown again with the
+        # pane on another tab, then closed) - its view is gone, deleted by the loop.
+        if self._parked or not shiboken6.isValid(self._viewer):
+            return
         view = self._viewer
         page = view.page() if hasattr(view, "page") else None
-        if self._parked or page is None:
+        if page is None:
             return  # a QTextBrowser needs none of this
         self._parked = True
         for item in (page, view):
             item.setParent(None)
             _PARKED.append(item)
             item.deleteLater()
-        import shiboken6
-
         # Only those the loop has deleted: a dropped wrapper of a live one would delete it itself.
         _PARKED[:] = [item for item in _PARKED if shiboken6.isValid(item)]
 
