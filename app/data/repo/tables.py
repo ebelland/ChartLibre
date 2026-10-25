@@ -819,30 +819,90 @@ class TablesMixin(RepoHost):
 
         For a series' query (todo R-07): a point drawn from it then names
         its table row. Left as it is when its rows are not rows of one table
-        - a saved query, a WITH, a join, a union, a grouping or an aggregate
-        - and when it selects the row id already, or ``*``.
+        - a WITH, a join, a union, a grouping or an aggregate - and when it
+        selects the row id already. A series over a saved query reads it as a
+        subquery (FROM (...) AS q): the row id is taken inside and passed out.
         """
         sql = str(sql_query or "").strip().rstrip(";")
-        if not self.is_table_backed_sql(sql) or has_projection_alias(sql, ROW_ID):
+        if has_projection_alias(sql, ROW_ID):
             return sql
-        if top_level_match(sql, r"\bgroup\s+by\b|\bjoin\b|\bunion\b|\bintersect\b|\bexcept\b"):
-            return sql
-        start = re.match(r"(?is)^\s*select\s+", sql)
-        from_match = top_level_from(sql)
-        if start is None or from_match is None or re.match(r"(?i)distinct\b", sql[start.end():]):
-            return sql
-        items = split_top_level_select_items(sql[start.end():from_match.start()])
-        aggregate = re.compile(r"(?i)^(?:count|sum|avg|min|max|total|group_concat)\s*\(")
-        if any(item == "*" or item.endswith(".*") or item.strip('"`[]') == ROW_ID or aggregate.match(item)
-               for item in items):
-            return sql
-        if top_level_match(sql[from_match.end():], r","):  # FROM a, b: a join
+        span = self.from_subquery(sql)
+        if span is not None:
+            return self._subquery_with_row_id(sql, span)
+        if not self.is_table_backed_sql(sql) or not self._one_row_per_row(sql):
             return sql
         column = self.row_id_column(self.query_source_table(sql))
         if column is None:
             return sql
         expression = _quote_ident(ROW_ID) if column == ROW_ID else f"{_quote_ident(column)} AS {_quote_ident(ROW_ID)}"
         return sql_insert_select_expression(sql, expression)
+
+    @staticmethod
+    def _select_items(sql: str) -> list[str] | None:
+        start = re.match(r"(?is)^\s*select\s+", sql)
+        from_match = top_level_from(sql)
+        if start is None or from_match is None:
+            return None
+        return split_top_level_select_items(sql[start.end():from_match.start()])
+
+    def _selects_row_id(self, sql: str) -> bool:
+        """Whether *sql* returns ROW_ID: the column itself, or another named so."""
+        items = self._select_items(sql) or []
+        return has_projection_alias(sql, ROW_ID) or any(item.strip('"`[]') == ROW_ID for item in items)
+
+    def _one_row_per_row(self, sql: str) -> bool:
+        """Whether each row *sql* returns is one row of what it reads: no grouping, join, union, DISTINCT,
+        aggregate or * - and it does not select the row id already."""
+        if top_level_match(sql, r"\bgroup\s+by\b|\bjoin\b|\bunion\b|\bintersect\b|\bexcept\b"):
+            return False
+        items = self._select_items(sql)
+        from_match = top_level_from(sql)
+        start = re.match(r"(?is)^\s*select\s+", sql)
+        if items is None or from_match is None or start is None or re.match(r"(?i)distinct\b", sql[start.end():]):
+            return False
+        aggregate = re.compile(r"(?i)^(?:count|sum|avg|min|max|total|group_concat)\s*\(")
+        if any(item == "*" or item.endswith(".*") or item.strip('"`[]') == ROW_ID or aggregate.match(item)
+               for item in items):
+            return False
+        return not top_level_match(sql[from_match.end():], r",")  # FROM a, b: a join
+
+    @staticmethod
+    def from_subquery(sql: str) -> tuple[int, int] | None:
+        """Where the subquery *sql* reads FROM is - (start, end) of its text inside the parentheses - or None."""
+        match = top_level_from(sql)
+        if match is None:
+            return None
+        start = match.end() + len(sql[match.end():]) - len(sql[match.end():].lstrip())
+        if sql[start:start + 1] != "(":
+            return None
+        depth, quote = 0, ""
+        for index in range(start, len(sql)):
+            char = sql[index]
+            if quote:
+                quote = "" if char == quote else quote
+            elif char in "'\"`":
+                quote = char
+            elif char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth == 0:
+                    return start + 1, index
+        return None
+
+    def _subquery_with_row_id(self, sql: str, span: tuple[int, int]) -> str:
+        inner = sql[span[0]:span[1]]
+        with_id = self.sql_with_row_id(inner)
+        everything = self._select_items(inner) == ["*"] and self.is_table_backed_sql(inner) \
+            and self.row_id_column(self.query_source_table(inner)) == ROW_ID
+        if not self._selects_row_id(with_id) and not everything:
+            return sql
+        rebuilt = sql[:span[0]] + with_id + sql[span[1]:]
+        if self._select_items(rebuilt) == ["*"]:
+            return rebuilt
+        if not self._one_row_per_row(rebuilt):
+            return sql
+        return sql_insert_select_expression(rebuilt, _quote_ident(ROW_ID))
 
     @staticmethod
     def _sql_with_where_clause(sql: str, clause: str) -> str:

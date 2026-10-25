@@ -102,6 +102,9 @@ class FlagsMixin(RepoHost):
         sql = str(sql_query or "").strip()
         if not sql:
             return None
+        span = self.from_subquery(sql)
+        if span is not None:  # a saved query read as a subquery: its own table
+            return self.row_table(sql[span[0]:span[1]])
         name = self.query_source_table(sql) if self.is_table_backed_sql(sql) else ""
         source = self.get_data_source(name) if name else None
         if source is not None and source.is_query:
@@ -114,9 +117,11 @@ class FlagsMixin(RepoHost):
 
     @ensure_connection_wrapper
     def series_rows(self, sql_query: str, roles: Mapping[str, Any]) -> pd.DataFrame:
-        """A series' rows with their table row id: ROW_ID, ``x``, ``y`` (numbers); empty when it has no ids.
+        """A series' rows with their table row id: ROW_ID, ``x``, ``y`` as stored; empty when it has no ids.
 
-        Read through the series' own query, so only the rows it draws.
+        Read through the series' own query, so only the rows it draws. Not
+        forced to numbers: dates and categories are put in a chart's units by
+        its axis (the chart panel), as its points were.
         """
         empty = pd.DataFrame(columns=[ROW_ID, "x", "y"])
         try:
@@ -129,8 +134,8 @@ class FlagsMixin(RepoHost):
             return empty
         return pd.DataFrame({
             ROW_ID: pd.to_numeric(frame[ROW_ID], errors="coerce"),
-            "x": pd.to_numeric(frame[x_col], errors="coerce"),
-            "y": pd.to_numeric(frame[y_col], errors="coerce"),
+            "x": frame[x_col],
+            "y": frame[y_col],
         }).dropna()
 
     @ensure_connection_wrapper

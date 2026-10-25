@@ -12,12 +12,13 @@ from app.widgets.chart_panel import ChartPanel
 from app.widgets.table_preview import LazyTableModel
 
 
-def _scatter(repo: SqliteRepo, name: str, sql: str) -> int:
+def _scatter(repo: SqliteRepo, name: str, sql: str, chart_type: str = "Scatter Plot",
+             roles: dict | None = None) -> int:
     figure_id = repo.create_figure_descriptor(name=name)
-    axis_id = repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+    axis_id = repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type=chart_type,
                                           title=name, x_label="x", y_label="y", options={})
     repo.create_series_descriptor(axis_id=axis_id, series_index=0, name=name, sql_query=sql,
-                                  roles={"x": "x", "y": "y"}, style={})
+                                  roles=roles or {"x": "x", "y": "y"}, style={})
     return figure_id
 
 
@@ -93,4 +94,59 @@ def test_a_click_selects_a_point_shift_adds_or_takes_it_away_and_a_click_on_noth
         assert repo.selected_row_ids("t") == []
     finally:
         panel.close()
+        repo.close()
+
+
+def test_a_series_over_a_saved_query_names_its_rows(tmp_path: Path) -> None:
+    from app.data.data_source import DataSource
+
+    repo = SqliteRepo(db_path=tmp_path / "q.dhub")
+    x = np.arange(10, dtype=float)
+    repo.import_dataframe(pd.DataFrame({"a": x, "b": x * 2.0}), table_name="t", normalize_columns=False)
+    try:
+        source = DataSource.query("big", 'SELECT "a", "b" FROM "t" WHERE "a" > 5')
+        sql = f'SELECT "a" AS x, "b" AS y FROM {source.from_clause()}'
+        with_id = repo.sql_with_row_id(sql)
+        assert with_id.count('"_id"') == 2 and repo.row_table(with_id) == "t"
+        rows = repo.series_rows(with_id, {"x": "x", "y": "y"})
+        assert sorted(rows["_id"].astype(int)) == [7, 8, 9, 10]
+        grouped = 'SELECT "a" AS x, COUNT(*) AS y FROM (SELECT "a" FROM "t") AS "q" GROUP BY "a"'
+        assert repo.sql_with_row_id(grouped) == grouped  # a point is not one row: left as it is
+    finally:
+        repo.close()
+
+
+def test_dates_and_categories_on_x_select_and_ring_their_rows(qapp, tmp_path: Path) -> None:
+    from matplotlib.backend_bases import MouseEvent
+
+    repo = SqliteRepo(db_path=tmp_path / "d.dhub")
+    days = pd.date_range("2024-01-01", periods=10).strftime("%Y-%m-%d")
+    repo.import_dataframe(pd.DataFrame({"day": days, "kind": list("ABCDEFGHIJ"), "v": np.arange(10, dtype=float)}),
+                          table_name="t", normalize_columns=False)
+    dated = ChartPanel(repo, _scatter(repo, "dated", 'SELECT "day" AS x, "v" AS y FROM "t"'))
+    named = ChartPanel(repo, _scatter(repo, "named", 'SELECT "kind" AS X, "v" AS Y FROM "t"', "Bar Chart",
+                                   {"X": "X", "Y": "Y"}))
+    try:
+        for panel in (dated, named):
+            panel.resize(600, 400)
+            panel.ensure_rendered()
+        axes = dated._canvas.figure.axes[0]
+        start, end = axes.xaxis.convert_units(np.array(["2024-01-03", "2024-01-05"], dtype="datetime64[D]"))
+        selection = dated._collect_selection(axes._dhub_axis_id, axes, float(start) - 0.1, float(end) + 0.1, -1, 100)
+        dated._select_table_rows(selection)
+        assert repo.selected_row_ids("t") == [3, 4, 5]
+        rings = [a for a in axes.collections if a.get_label() == dated.SELECTED_ROWS_LABEL]
+        assert rings and len(rings[0].get_offsets()) == 3
+
+        named._on_toggle_select_mode(True)
+        axes = named._canvas.figure.axes[0]
+        named._canvas.draw()
+        at = {label.get_text(): loc for loc, label in zip(axes.xaxis.get_ticklocs(), axes.xaxis.get_ticklabels())}
+        point = axes.transData.transform((float(at["H"]), 7.0))  # the top of the bar of H
+        named._on_box_select_press(MouseEvent("button_press_event", named._canvas, *point, button=1))
+        named._on_box_select_release(MouseEvent("button_release_event", named._canvas, *point, button=1))
+        assert repo.selected_row_ids("t") == [8]
+    finally:
+        dated.close()
+        named.close()
         repo.close()

@@ -7,12 +7,14 @@ from typing import Any, Final
 from PySide6.QtCore import QTimer
 
 import numpy as np
+import pandas as pd
 from matplotlib.patches import Rectangle
 
 from app.data.data_source import quote_identifier
 from app.data.sqlite_repo import ROW_ID
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import generated_table_name
+from app.utils.coercion import coerce_axis
 from app.utils.i18n import _
 
 from app.widgets.chart_panel.constants import LIVE_REFRESH_INTERVAL_MS
@@ -460,6 +462,28 @@ class ToolsMixin:
             "series": matches,
         }
 
+    def _axes_of(self, axis_id: int) -> Any:
+        return next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)
+
+    @staticmethod
+    def _in_axis_units(axis: Any, values: pd.Series) -> np.ndarray:
+        """*values* as *axis* draws them: dates and categories through its own units, as the renderer's points
+        were (R-07); NaN where it cannot place one."""
+        coerced, temporal = coerce_axis(values)
+        if temporal or coerced.notna().any():
+            try:
+                return np.asarray(axis.convert_units(np.asarray(coerced)), dtype=float)
+            except (TypeError, ValueError, KeyError):
+                return np.full(len(values), np.nan)
+        # Categories: Matplotlib's own, else where the renderer put them - the tick labelled with each.
+        text = values.astype(str)
+        try:
+            return np.asarray(axis.convert_units(np.asarray(text)), dtype=float)
+        except (TypeError, ValueError, KeyError):
+            ticks = {label.get_text(): float(loc) for loc, label in zip(axis.get_ticklocs(), axis.get_ticklabels())
+                     if label.get_text()}
+            return np.array([ticks.get(value, np.nan) for value in text], dtype=float)
+
     #: How near a click must be to a point to take it, in pixels (of a screen at 1x).
     CLICK_RADIUS_PX: Final[float] = 6.0
 
@@ -504,9 +528,10 @@ class ToolsMixin:
             if not table:
                 continue
             rows = self._repo.series_rows(sql, json.loads(row["roles"]) if row["roles"] else {})
-            points = np.column_stack([rows["x"].to_numpy(float), rows["y"].to_numpy(float)]) if len(rows) else None
-            if points is None:
+            if rows.empty:
                 continue
+            points = np.column_stack([self._in_axis_units(axes.xaxis, rows["x"]),
+                                      self._in_axis_units(axes.yaxis, rows["y"])])
             shown = axes.transData.transform(points)
             distance = np.hypot(shown[:, 0] - px, shown[:, 1] - py)
             if not np.isfinite(distance).any():
@@ -529,9 +554,12 @@ class ToolsMixin:
             if not table:
                 continue
             rows = self._repo.series_rows(info["sql_query"], info["roles"])
-            inside = rows[rows["x"].between(selection["x0"], selection["x1"])
-                          & rows["y"].between(selection["y0"], selection["y1"])]
-            by_table.setdefault(table, set()).update(int(i) for i in inside[ROW_ID])
+            axes = self._axes_of(int(selection["axis_id"]))
+            if axes is None or rows.empty:
+                continue
+            xs, ys = self._in_axis_units(axes.xaxis, rows["x"]), self._in_axis_units(axes.yaxis, rows["y"])
+            inside = (xs >= selection["x0"]) & (xs <= selection["x1"]) & (ys >= selection["y0"]) & (ys <= selection["y1"])
+            by_table.setdefault(table, set()).update(int(i) for i in rows[ROW_ID][inside])
         for table, ids in by_table.items():
             self._repo.select_rows(table, sorted(ids), add=add)
         if by_table:
@@ -594,7 +622,8 @@ class ToolsMixin:
                 if picked.empty:
                     continue
                 axes.scatter(
-                    picked["x"], picked["y"], s=110, facecolors="none", edgecolors=self.SELECT_COLOR,
+                    self._in_axis_units(axes.xaxis, picked["x"]), self._in_axis_units(axes.yaxis, picked["y"]),
+                    s=110, facecolors="none", edgecolors=self.SELECT_COLOR,
                     linewidths=1.6, zorder=9_000, label=self.SELECTED_ROWS_LABEL,
                 )
 
