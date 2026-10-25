@@ -65,6 +65,21 @@ class FitYByXDialog(TableOperationDialogBase):
         # Ordinal: a measure when it is the response, groups when it is the factor.
         return kind == CONTINUOUS or (as_response and kind == "ordinal")
 
+    #: The chart each analysis draws.
+    _CHART_OF = {fyx.BIVARIATE: "Scatter Plot", fyx.ONEWAY: "Box Plot", fyx.CONTINGENCY: "Mosaic Plot",
+                 fyx.LOGISTIC: "Scatter Plot"}
+
+    def charts_drawn(self) -> set[str] | None:
+        """The charts of the analyses the pairs call for: a scatter for two measures, a box plot for a measure
+        by groups, a mosaic for two categories."""
+        casting = self.roles_widget.casting()
+        ys, xs = casting.columns("response"), casting.columns("factor")
+        if not ys or not xs:
+            return None
+        y_continuous = self._continuous(casting, ys[0], as_response=True)
+        return {self._CHART_OF[fyx.analysis_for(y_continuous, self._continuous(casting, x, as_response=False))]
+                for x in xs}
+
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del params, model
         y = casting.columns("response")[0]

@@ -77,7 +77,7 @@ def test_a_report_leaves_out_a_chart_type_that_is_not_installed(qapp, tmp_path: 
             figure_id = DifferencesDialog.create_report_figure(
                 dialog, "t", "<p>x</p>", [("Scatter Plot", "gone", "x", "y", [])])
         assert any("not installed" in record.getMessage() for record in caplog.records)
-        assert repo.load_figure_descriptor(figure_id).axes == []
+        assert figure_id is None  # no panel left: no empty figure - the report stays in Results and the history
     finally:
         repo.close()
 

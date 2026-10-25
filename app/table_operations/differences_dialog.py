@@ -14,7 +14,7 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import answers
-from app.plugin_api.table_operations.column_roles import NOMINAL, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, other_columns
@@ -48,6 +48,14 @@ class DifferencesDialog(QuickAnswerDialogBase):
     DISTINCT_ROLES = (("response", "group", "The measure and the groups must be two different columns."),)
     SUBTITLE_ROLES = ("response", "group")
     RESULT_TABLE = "differences"
+
+    def charts_drawn(self) -> set[str] | None:
+        """A box plot for a measure, a mosaic for a category."""
+        response = self.column("response")
+        kind = self.roles_widget.casting().kinds.get(response) if response else None
+        if kind is None:
+            return None
+        return {"Box Plot"} if kind in (CONTINUOUS, ORDINAL) else {"Mosaic Plot"}
 
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del params, model

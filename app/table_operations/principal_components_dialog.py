@@ -16,7 +16,7 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import multivariate as mv
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
 from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
@@ -88,6 +88,12 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
         ChoiceParam("on", "On:", choices=tuple((label, key) for key, label in mv.PCA_ON),
                     tooltip="Correlations weigh every column the same, whatever its unit - the usual choice. "
                             "Covariances let the columns with the widest spread lead, for columns in one unit."),
+        # The charts, each its own box: all four are scatter plots, so a box per chart type could not tell them
+        # apart and none was offered.
+        BoolParam("chart_scree", "Scree plot", default_value=True, tab="charts"),
+        BoolParam("chart_scores", "Score plot", default_value=True, tab="charts"),
+        BoolParam("chart_loadings", "Loading plot", default_value=True, tab="charts"),
+        BoolParam("chart_biplot", "Biplot", default_value=True, tab="charts"),
     )
 
     def _row_series(self, table: str, x: str, y: str) -> list[tuple]:
@@ -129,21 +135,25 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
 
         sql, roles = self.series_select(tables["pca_eigenvalues"], {"x": "Number", "y": "Eigenvalue"})
         panels: list[tuple] = [("Scatter Plot", _("Scree plot"), _("Component"), _("Eigenvalue"),
-                                [(_("Eigenvalue"), sql, roles, {"linestyle": "-", "marker": "o"})])]
+                                [(_("Eigenvalue"), sql, roles, {"linestyle": "-", "marker": "o"})])] \
+            if self.chart_enabled("chart_scree") else []
         if len(result.scores.columns) >= 2:
             # The axes through zero: which side of the centre a row, or a column, falls on.
             zero = {"lines": [{"orientation": orientation, "value": 0.0,
                                "kwargs": {"color": "0.6", "linestyle": "--", "linewidth": 0.8}}
                               for orientation in ("horizontal", "vertical")]}
-            panels.append(("Scatter Plot", _("Score plot"), "Prin1", "Prin2",
-                           self._row_series(tables["pca"], "Prin1", "Prin2"), zero))
-            loading_series = []
-            for column in result.columns:
-                sql, roles = self.series_select(tables["pca_loadings"], {"x": "Prin1", "y": "Prin2"},
-                                                where=f'"Variable" = {self.literal(column)}')
-                loading_series.append((column, sql, roles, {"marker": "o"}))
-            panels.append(("Scatter Plot", _("Loading plot"), "Prin1", "Prin2", loading_series, zero))
-            panels.append(self._biplot(result, tables["pca"], zero))
+            if self.chart_enabled("chart_scores"):
+                panels.append(("Scatter Plot", _("Score plot"), "Prin1", "Prin2",
+                               self._row_series(tables["pca"], "Prin1", "Prin2"), zero))
+            if self.chart_enabled("chart_loadings"):
+                loading_series = []
+                for column in result.columns:
+                    sql, roles = self.series_select(tables["pca_loadings"], {"x": "Prin1", "y": "Prin2"},
+                                                    where=f'"Variable" = {self.literal(column)}')
+                    loading_series.append((column, sql, roles, {"marker": "o"}))
+                panels.append(("Scatter Plot", _("Loading plot"), "Prin1", "Prin2", loading_series, zero))
+            if self.chart_enabled("chart_biplot"):
+                panels.append(self._biplot(result, tables["pca"], zero))
         return self.draw_report(result, self.table, panels, written=written)
 
     def _biplot(self, result: mv.PCAResult, table: str, zero: dict[str, Any]) -> tuple:

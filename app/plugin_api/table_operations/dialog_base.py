@@ -688,8 +688,10 @@ class TableOperationDialogBase(OperationShell):
 
         repo = self._repo
         draw_on = self.draw_on()
-        if draw_on == self.DEST_NONE:
-            return None  # the report is the result: it stays in Results and in the project's history
+        if draw_on == self.DEST_NONE or not panels:
+            # The report is the result - no chart asked for, or every box cleared: no empty figure; the report
+            # stays in Results and in the project's history.
+            return None
         target = getattr(self, "current_figure_id", None) if draw_on != self.DEST_NEW_FIGURE else None
         descriptor = repo.load_figure_descriptor(int(target)) if target is not None else None
         onto = next((axis for axis in (descriptor.axes if descriptor else []) if axis.name == panels[0][0]), None) \
@@ -752,7 +754,12 @@ class TableOperationDialogBase(OperationShell):
         charts: the PARAMS marked tab="charts", or a box per chart type (CHART_PANELS) when it draws several."""
         charts = tuple(spec for spec in self.PARAMS if spec.tab == "charts")
         if not charts and len(self.CHART_PANELS) > 1:
-            charts = tuple(BoolParam(chart, chart, default_value=True, tab="charts") for chart in self.CHART_PANELS)
+            # Only the charts the columns cast can draw are offered (charts_drawn): a box for the others
+            # promised a chart that never came.
+            charts = tuple(BoolParam(chart, chart, default_value=True, tab="charts",
+                                     visible_if=lambda values, chart=chart: values.get("_charts") is None
+                                     or chart in values["_charts"])
+                           for chart in self.CHART_PANELS)
         # A table analysis has no axis of its own.
         # Current axis for an analysis of one panel (added onto the figure's axis of its kind); None for every one.
         destinations = (self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS, *((self.DEST_SAME_AXIS,) if self.ONE_PANEL else ()),
@@ -772,7 +779,12 @@ class TableOperationDialogBase(OperationShell):
         response = self.column("response")
         kind = casting.kinds.get(response) if response else None
         y = "any" if kind is None else ("continuous" if kind == CONTINUOUS else "categorical")
-        return {"model": self.current_model(), "y": y}
+        return {"model": self.current_model(), "y": y, "_charts": self.charts_drawn()}
+
+    def charts_drawn(self) -> set[str] | None:
+        """The CHART_PANELS the columns as cast can draw - only those are offered in the Charts tab; None
+        (the default) for all of them."""
+        return None
 
     def draw_on(self) -> str:
         """The Charts tab's choice; a new figure for one in the current figure when there is none to add to."""

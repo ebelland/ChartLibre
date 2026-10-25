@@ -132,3 +132,26 @@ def test_both_windows_write_their_tables_and_a_figure(qapp, repo, frame) -> None
     names = repo.list_table_names()
     assert "_data_flag_by_x_whole_model_test" in names and "_data_flag_by_group_tests" in names
     dialog.close()
+
+
+def test_fit_y_by_x_offers_only_the_charts_its_columns_draw(qapp, repo) -> None:
+    """All three boxes were ticked, and two measures drew one scatter: the boxes promised what never came."""
+    from app.table_operations.fit_y_by_x_dialog import FitYByXDialog
+
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame({"y": rng.normal(size=40), "x": rng.normal(size=40), "g": np.repeat(["a", "b"], 20),
+                          "h": np.tile(["u", "v"], 20)})
+    repo.import_dataframe(frame, table_name="t", normalize_columns=False)
+    dialog = FitYByXDialog(repo=repo, table="t")
+    try:
+        def offered(casting: dict, kinds: dict | None = None) -> set[str]:
+            dialog.roles_widget.set_casting(casting, kinds)
+            return {name for name in ("Scatter Plot", "Box Plot", "Mosaic Plot")
+                    if not dialog.chart_form.field(name).isHidden()}
+
+        assert offered({"response": ["y"], "factor": ["x"]}) == {"Scatter Plot"}
+        assert offered({"response": ["y"], "factor": ["g"]}) == {"Box Plot"}
+        assert offered({"response": ["y"], "factor": ["x", "g"]}) == {"Scatter Plot", "Box Plot"}
+        assert offered({"response": ["h"], "factor": ["g"]}) == {"Mosaic Plot"}
+    finally:
+        dialog.close()

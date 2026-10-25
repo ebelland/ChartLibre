@@ -59,6 +59,10 @@ class VectorFieldDialog(TableOperationDialogBase):
             found.append(_("Each role needs a column of its own."))
         return found
 
+    def charts_drawn(self) -> set[str] | None:
+        """A heat map of a plane's field, arrows in space for one with z."""
+        return {"Quiver 3D"} if self.roles_widget.casting().columns("z") else {"Heatmap"}
+
     def compute(self, frame: pd.DataFrame, casting: ColumnCasting, params: Mapping[str, Any], model: str) -> Any:
         del casting, params, model
         return vc.derivatives(frame, **self._columns())
