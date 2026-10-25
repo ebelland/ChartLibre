@@ -1,0 +1,60 @@
+LINKED SELECTION, NEXT (R-07) AND UNDO PER ELEMENT (S-01) - PLAN      2026-10-25, waiting for the go
+
+WHAT WAS ASKED
+todo.txt S-01 "Live style preview: Undo per element" and R-07 "Linked selection, next: a click on one point
+selects its row (Shift adds); a series over a saved query that keeps _id; dates and categories on x; the data
+filter (show only Selected on every chart of a table)".
+
+S-01 - UNDO PER ELEMENT                                                                                     (S)
+Today: every edit in Chart properties records the descriptors before it, labelled "Series properties", "Axis
+properties" or "Figure properties"; a run of the same label within 2 s is one step (a slider drag is one
+Undo). So a colour changed on series A and a marker on series B a second later are one step, and Edit > Undo
+says "Undo Series properties" - not what, not on which.
+1. The label names the element and what changed: "Colour of 'Monthly mean'", "Marker size of 'A', 'B'" (the
+   series edited together), "Limits of the X axis of 'p'", "Size of the figure". Worked out before the edit
+   (the payload against the stored style), so the snapshot taken before it carries it.
+2. One step per element and property: the 2 s coalescing keyed by (element, property), not by the label
+   alone - a drag on one slider stays one step; another property, or another element, starts a new one.
+3. Undo and Redo of a style-only step re-apply it live, as the edit was (colour, line style, marker, size:
+   the live preview, no re-render of the chart); anything else re-renders as now.
+
+R-07 - LINKED SELECTION, NEXT                                                                               (M)
+Today: with Select points on, a drag marks the rows behind the points Selected in their table; every chart
+of that table rings them and the table preview tints them - for a series reading one table directly, with x
+and y numbers. A click selects nothing.
+1. Click and Shift. A click on a point selects its row (the nearest drawn point within ~6 px), a click on an
+   empty spot clears the selection (Q1); Shift-click adds a point or takes it away; Shift-drag adds a box to
+   the selection. Same rings, same table preview, same status line.
+2. A saved query keeps the rows' id. A series over a saved query (SELECT x, y FROM (saved) AS q) gets the id
+   from inside it: the saved query's SQL is read with its table's row id (sql_with_row_id, the same rules - one
+   table, no grouping, join or aggregate), and the series' outer SELECT carries it. Its points then select and
+   ring like any other.
+3. Dates and categories on x. The rows behind a series are read as they are (not forced to numbers) and put
+   in the axis' own units by matplotlib, exactly as the renderer's points were: a Time Series, a bar or box
+   chart over categories ring and select their rows too. A box over categories takes the categories it
+   covers.
+4. Show only Selected - a data filter per table (Q2, Q3). A switch, on the chart's right-click menu and in the
+   table preview: every chart of that table draws only its Selected rows; the others are out of view, not
+   Hidden (no flag changes, nothing to undo but the switch). Kept in the project with the table. While it is
+   on, each such chart says so in its corner ("12 of 344 rows - Selected only") with a Show all link; a
+   selection made then narrows it further. Applied where a series' rows are read for drawing (render_figure),
+   by row id - so only for series that have ids (items 2 and 3 widen that).
+
+STEPS (each a commit, the suite green after each)
+1. S-01: the labels and the per-element steps; Undo/Redo of a style step live.                            (S)
+2. R-07: click, Shift-click, Shift-drag; clear on an empty click.                                          (S)
+3. R-07: the saved query's id; dates and categories through the axis' units.                              (S)
+4. R-07: Show only Selected - the switch, the project setting, the render filter, the corner note.         (M)
+Each with tests (the selection and the filter on a repo, the labels through the main window's snapshot);
+the native render checked for the rings on dates and categories; the manual's Window and Data sections.
+
+QUESTIONS
+Q1  A click on an empty spot of the chart: clears the selection (JMP) - or leaves it as it is? (Suggested:
+    clears; Shift-click on empty space leaves it.)
+Q2  Show only Selected: charts only (a view, as JMP's Local Data Filter "Show") - or also the analyses run on
+    that table (as JMP's Exclude)? (Suggested: charts only; the analyses keep reading every row not Hidden.)
+Q3  The switch: one per table, for all its charts (suggested) - or one per chart?
+Q4  S-01 item 3, Undo/Redo live with no re-render: worth it - or is a re-render after Undo fine? (Suggested:
+    live, as the edit was; it is what makes the undo feel like the edit.)
+
+EFFORT: S-01 S; R-07 M (about two sessions in all).
