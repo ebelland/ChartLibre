@@ -50,7 +50,14 @@ from app.analysis import Stopped
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, ParameterForm
 from app.plugin_api.data_operations.parameter_spec import Param
-from app.styles.style import CardFrame, TitledCard, apply_dialog_shell, create_action_button, stdSizeAndlayout
+from app.styles.style import (
+    CardFrame,
+    TitledCard,
+    apply_dialog_shell,
+    configure_combo_width,
+    create_action_button,
+    stdSizeAndlayout,
+)
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.config import get_constant
 from app.utils.i18n import _
@@ -86,6 +93,9 @@ class OperationShell(QDialog):
         combo.setCurrentIndex(max(0, combo.findData(default)))
         combo.setToolTip(_("Where the result is drawn: on the axis of its data, on a new axis beside it, or in "
                            "a figure of its own."))
+        # As narrow as the panel needs (its words elided, whole in the list that drops down), never wider
+        # than a field: at its words' width it pushed the Charts page past a narrow window's edge.
+        configure_combo_width(combo, follow_tooltip=False)
         combo.setMaximumWidth(FIELD_MAX_WIDTH)
         combo.currentIndexChanged.connect(lambda _index: on_change())
         return combo

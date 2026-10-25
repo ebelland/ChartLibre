@@ -592,6 +592,8 @@ def apply_dialog_shell(
 def configure_combo_width(
     combo: QComboBox,
     minimum_contents_length: int = 0,
+    *,
+    follow_tooltip: bool = True,
 ) -> QComboBox:
     """Make a combo fill the available width without dictating a minimum.
 
@@ -623,9 +625,21 @@ def configure_combo_width(
         combo.fontMetrics().horizontalAdvance("x") * characters + _COMBO_CHROME_WIDTH
     )
 
-    combo.setToolTip(combo.currentText())
-    combo.currentTextChanged.connect(combo.setToolTip)
+    if follow_tooltip:  # unless the combo says something of its own there
+        combo.setToolTip(combo.currentText())
+        combo.currentTextChanged.connect(combo.setToolTip)
+    # The list that drops down shows every choice whole, however narrow the box - and keeps doing so when
+    # the choices change.
+    _widen_popup(combo)
+    combo.model().rowsInserted.connect(lambda *_args, box=combo: _widen_popup(box))
+    combo.model().modelReset.connect(lambda box=combo: _widen_popup(box))
     return combo
+
+
+def _widen_popup(combo: QComboBox) -> None:
+    metrics = combo.fontMetrics()
+    widest = max((metrics.horizontalAdvance(combo.itemText(index)) for index in range(combo.count())), default=0)
+    combo.view().setMinimumWidth(widest + _COMBO_CHROME_WIDTH)
 
 
 def fit_spin_width(spin: QtWidgets.QAbstractSpinBox) -> None:

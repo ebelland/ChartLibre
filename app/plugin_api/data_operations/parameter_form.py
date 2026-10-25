@@ -39,7 +39,7 @@ from app.plugin_api.data_operations.parameter_spec import (
     Param,
     TextParam,
 )
-from app.styles.style import TitledCard, keep_check_box_whole
+from app.styles.style import TitledCard, configure_combo_width, keep_check_box_whole
 from app.utils.i18n import _
 from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
 
@@ -212,8 +212,11 @@ class ParameterForm:
             # Its longest name ("lightgoldenrodyellow") is no measure of the one shown.
             widget.setMaximumWidth(COLOR_MAX_WIDTH)
         elif isinstance(widget, QComboBox):
-            # As wide as its longest choice (the arrow included), never past the limit.
-            widget.setMaximumWidth(min(FIELD_MAX_WIDTH, max(widget.sizeHint().width(), SPIN_MAX_WIDTH)))
+            # As wide as its longest choice (the arrow included), never past the limit - and narrower when the
+            # panel is: its words elided, whole in the list that drops down.
+            widest = min(FIELD_MAX_WIDTH, max(widget.sizeHint().width(), SPIN_MAX_WIDTH))
+            configure_combo_width(widget, follow_tooltip=not param.tooltip)
+            widget.setMaximumWidth(widest)
         elif isinstance(widget, QLineEdit):
             widget.setMaximumWidth(FIELD_MAX_WIDTH)
         if param.tooltip:
