@@ -35,6 +35,7 @@ from app.analysis.regression import (
 )
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.results import XYResult
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     DataOperationDialogBase,
@@ -280,6 +281,10 @@ class SeriesRegressionDialog(DataOperationDialogBase):
 
     RESULT_COLUMNS = (("Series", "left"), ("Model", "left"), ("Points", "right"), ("R²", "right"),
                       ("Detail", "left"))
+
+    def how_to_read(self, results: Sequence[RegressionResult]) -> list[str]:
+        result = results[0]
+        return [reading_guide.r_squared((result.metadata or {}).get("r2"), y=result.source_name)]
 
     def result_row(self, result: RegressionResult) -> tuple[str, ...]:
         r2 = report_html.format_number(result.metadata["r2"]) if "r2" in result.metadata else "&mdash;"

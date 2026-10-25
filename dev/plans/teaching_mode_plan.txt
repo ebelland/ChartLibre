@@ -60,4 +60,7 @@ STATUS 2026-10-25: step 1 done - Q1 on, Q2 under the main result (a quick answer
 the exported report, Q4 the thresholds as "the usual line" inside the two sentences. reading_guide (p-value,
 normality, interval, spread, effect size, R2, RMSE, slope, correlation, AUC, LogWorth, control limits), the box
 (report_html.reading_guide, with_reading_guide), Settings > Reports > Explain, how_to_read on the table base:
-the five quick answers, Distribution, Fit Y by X, Fit Model. Left: steps 2 and 3.
+the five quick answers, Distribution, Fit Y by X, Fit Model.
+Step 2 done (the other ten table analyses). Step 3 done: results_report on the data operations' base,
+how_to_read in Statistics, Fit curve, Regression, Control chart (with Cpk), Outliers, Spectral. The Italian
+of step 3's sentences is left to the user (2026-10-25: "la farò io").

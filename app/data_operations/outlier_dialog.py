@@ -32,6 +32,7 @@ from app.data.data_source import parse_roles, row_value
 from app.data.select_sql import has_projection_alias, sql_insert_select_expression
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, ColorParam, FloatParam, IntParam
 from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -541,6 +542,10 @@ class SeriesOutlierDialog(DataOperationDialogBase):
         del axis_id, result
         return generated_table_name("Outlier_Hide_Flags")
 
+    def how_to_read(self, results: Sequence[OutlierResult]) -> list[str]:
+        result = results[0]
+        return [reading_guide.outliers(result.outlier_count, total=len(result.y), method=result.model)]
+
     def format_results(self, results: Sequence[OutlierResult]) -> str:
         return self._format_results(results, self._colour_choice())
 
@@ -695,7 +700,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
             else:
                 message = _("Preview: the outliers of {count} series are coloured {colour}.").format(
                     count=len(results), colour=colour)
-            self.set_results_html(self.format_results(results) + report_html.note(message))
+            self.set_results_html(self.results_report(results) + report_html.note(message))
             return True
         except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to preview outlier hide flags")
@@ -710,7 +715,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
             # chart's results pane once the change is kept.
             results = list(getattr(self, "_last_results", None) or [])
             if results:
-                formatted = self.format_results(results) or ""
+                formatted = self.results_report(results) or ""
                 if formatted:
                     self.results_published.emit(self.results_report_html(formatted, results))
                 self.record_applied(self._written_tables(results), formatted)

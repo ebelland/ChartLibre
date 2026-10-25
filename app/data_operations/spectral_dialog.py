@@ -60,6 +60,7 @@ from app.utils.messages import show_message
 from app.utils import report_html
 from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -544,6 +545,14 @@ class SeriesSpectralDialog(DataOperationDialogBase):
             roles={"x": "x", "y": "y"},
             style=style,
         )
+
+    def how_to_read(self, results: Sequence[SpectralResult]) -> list[str]:
+        result = results[0]
+        x, power = np.asarray(result.x, dtype=float), np.asarray(result.y, dtype=float)
+        usable = np.isfinite(power) & (x > 0)
+        if not usable.any():
+            return []
+        return [reading_guide.spectral_peak(x[usable][int(np.argmax(power[usable]))])]
 
     def format_results(self, results: Sequence[SpectralResult]) -> str:
         """Return an HTML summary of the computed estimates."""

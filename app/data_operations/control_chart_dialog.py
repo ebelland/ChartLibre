@@ -81,6 +81,7 @@ from app.utils.coercion import to_numbers
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
 from app.plugin_api.data_operations.results import TableResult
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
@@ -762,6 +763,17 @@ class SeriesControlChartDialog(DataOperationDialogBase):
 
     def results_subtitle(self, results: Sequence[ControlChartResult]) -> str:
         return self._chart()
+
+    def how_to_read(self, results: Sequence[ControlChartResult]) -> list[str]:
+        result = results[0]
+        lines = [reading_guide.control_limits(result.center, result.lower, result.upper,
+                                              signals=len(result.violations or ()))]
+        indices = result.capability.indices if result.capability is not None else {}
+        for name in ("Cpk", "Ppk"):
+            if name in indices:
+                lines.append(reading_guide.cpk(indices[name], name=name))
+                break
+        return lines
 
     def result_section(self, result: ControlChartResult) -> str:
         """The chart of one series: its limits, zones, signals, the verdict and the capability."""

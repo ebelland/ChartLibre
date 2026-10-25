@@ -129,3 +129,45 @@ def test_a_report_explains_its_own_numbers_unless_switched_off(qapp, repo: Sqlit
         assert "How to read this" not in dialog.report_document(dialog._result)
     finally:
         dialog.close()
+
+
+@pytest.fixture
+def series_figure(repo: SqliteRepo) -> int:
+    rng = np.random.default_rng(1)
+    n = 128
+    x = np.arange(n, dtype=float)
+    repo.import_dataframe(pd.DataFrame({"x": x, "y": 2 + 0.5 * x + rng.normal(0, 2, n) + 4 * np.sin(x / 3),
+                                        "z": rng.normal(10, 1, n)}), table_name="s", normalize_columns=False)
+    figure_id = int(repo.create_figure_descriptor(name="F"))
+    axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Scatter Plot", title="t",
+                                              x_label="x", y_label="y", options={}))
+    repo.create_series_descriptor(axis_id=axis_id, series_index=0, name="sig", sql_query="SELECT x, y FROM s",
+                                  roles={"x": "x", "y": "y"}, style={})
+    repo.create_series_descriptor(axis_id=axis_id, series_index=1, name="z", sql_query="SELECT x, z AS y FROM s",
+                                  roles={"x": "x", "y": "y"}, style={})
+    return figure_id
+
+
+@pytest.mark.parametrize("module, name, expected", [
+    ("regression_dialog", "SeriesRegressionDialog", "R² = "),
+    ("control_chart_dialog", "SeriesControlChartDialog", "a stable process keeps"),
+    ("outlier_dialog", "SeriesOutlierDialog", "values flagged by"),
+    ("statistics_dialog", "SeriesStatisticsDialog", "interval for the mean of"),
+    ("fit_dialog", "SeriesFitDialog", "RMSE = "),
+])
+def test_a_data_operation_explains_its_report(qapp, repo: SqliteRepo, series_figure: int, module: str, name: str,
+                                              expected: str) -> None:
+    import importlib
+
+    dialog = getattr(importlib.import_module(f"app.data_operations.{module}"), name)(repo=repo,
+                                                                                    figure_id=series_figure)
+    try:
+        dialog.series_selector.reload(select_all_series=True)
+        if name == "SeriesFitDialog":
+            assert dialog.select_model("Linear")
+            dialog.on_estimate_initial_values()
+            dialog.evaluate(dialog._after_fit, background=False, optimise=True)
+        report = dialog.results_report(dialog.compute_results())
+        assert "How to read this" in report and expected in report
+    finally:
+        dialog.close()

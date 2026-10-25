@@ -483,6 +483,26 @@ class InputsMixin:
         return self.results_document(self.results_subtitle(results),
                                      *(self.result_section(result) for result in results))
 
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """The "How to read this" box (H-04): the numbers the report hinges on, each in two sentences
+        (app.plugin_api.reading_guide); none by default."""
+        del results
+        return []
+
+    def results_report(self, results: Sequence[Any]) -> str:
+        """The Results pane: format_results, with the "How to read this" box under its first section."""
+        from app.plugin_api import reading_guide
+
+        report = self.format_results(results)
+        if not report or not results or not reading_guide.enabled():
+            return report
+        try:
+            box = report_html.reading_guide(_("How to read this"), self.how_to_read(results))
+        except Exception:  # noqa: BLE001 - the explanation is never the reason a report is not shown
+            applogger.exception("%s: could not explain the report.", type(self).__name__)
+            return report
+        return report_html.with_reading_guide(report, box)
+
     def results_subtitle(self, results: Sequence[Any]) -> str:
         """The line under the operation's name: the model chosen for a table of results, else the first's."""
         if self.RESULT_COLUMNS:

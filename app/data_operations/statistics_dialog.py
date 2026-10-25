@@ -37,6 +37,7 @@ from app.data.select_sql import projection_source
 from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, Param
 from app.plugin_api.data_operations.results import OperationResult
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     DataOperationDialogBase,
@@ -366,6 +367,31 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                 rank_by=str(p["rank_by"] or DEFAULT_RANK),
             )
         ]
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        result = results[0]
+        if not isinstance(result, SeriesStatsResult) or not result.samples:
+            return []
+        first, lines = result.samples[0], []
+        if result.model in ("all", "descriptive", "one_sample", "normality", "distribution", "randomness") \
+                and first.y.size > 2:
+            described = st.describe(first.y)
+            lines.append(reading_guide.interval(described["ci95_low"], described["ci95_high"],
+                                                what=_("the mean of {column}").format(column=first.name)))
+            tested = [row for row in st.normality_tests(first.y) if np.isfinite(row["pvalue"])]
+            if tested:
+                lines.append(reading_guide.normality(tested[0]["pvalue"], test=tested[0]["test"], column=first.name))
+        if result.model in ("all", "independent", "groups") and len(result.samples) >= 2:
+            tests = st.group_tests({sample.name: sample.y for sample in result.samples})
+            anova = next((row for row in tests if row["test"] == "One-way ANOVA"), None)
+            if anova is not None:
+                lines.append(reading_guide.p_value(anova["pvalue"], null=_("the series had the same mean"),
+                                                   shown=_("their means differ")))
+        second = result.samples[1] if len(result.samples) >= 2 else None
+        if result.model == "correlation" and second is not None and second.y.size == first.y.size:
+            lines.append(reading_guide.correlation(st.correlation_tests(first.y, second.y)[0]["statistic"],
+                                                   x=first.name, y=second.name))
+        return lines
 
     def format_results(self, results: Sequence[Any]) -> str:
         if not results:
@@ -1021,7 +1047,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                 show_message(self, "series.no_series_selected", title=self.operation_label)
                 return False
             self.store_cached_results(results)
-            formatted = self.format_results(results)
+            formatted = self.results_report(results)
             self.publish_results(formatted)
 
             # On Preview as well, like every other operation dialog: a preview you cannot see is not a

@@ -339,3 +339,37 @@ def aic(value: Any, *, model: str, runner_up: Any) -> str:
 def field_derivatives() -> str:
     return _("Divergence: where the field spreads out (above 0) or gathers in (below 0) - a source or a sink. "
              "Curl: where it turns, and which way - 0 where it flows without turning.")
+
+
+def cpk(value: Any, *, name: str = "Cpk") -> str:
+    """Cpk (within subgroups) or Ppk (overall): how far the nearest specification limit is, in sigmas."""
+    number = _number(value)
+    if number is None:
+        return ""
+    first = _("{name} = {value}: the nearest specification limit is {sigmas} standard deviations from the mean "
+              "(3 × {name}).").format(name=name, value=_n(number), sigmas=_n(round(3 * number, 2)))
+    if number >= 1.33:
+        second = _("Above 1.33, the usual minimum: the process is called capable.")
+    elif number >= 1:
+        second = _("Between 1 and 1.33: capable only just - the usual minimum is 1.33.")
+    else:
+        second = _("Below 1: parts outside the specification are to be expected; 1.33 is the usual minimum.")
+    return f"{first} {second}"
+
+
+def outliers(count: Any, *, total: Any, method: str) -> str:
+    flagged, rows = _number(count), _number(total)
+    if flagged is None or rows is None:
+        return ""
+    return _("{count} of {total} values flagged by {method}: unusually far from the rest by that rule. An outlier "
+             "is a question, not an error - look at its row before leaving it out.").format(
+        count=int(flagged), total=int(rows), method=method)
+
+
+def spectral_peak(frequency: Any) -> str:
+    number = _number(frequency)
+    if number is None or number <= 0:
+        return ""
+    return _("The strongest peak is at frequency {frequency}: a cycle every {period} units of x. A peak matters "
+             "when it stands well above its neighbours; in a short series one high bin is often noise.").format(
+        frequency=_n(number), period=_n(1 / number))

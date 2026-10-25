@@ -68,7 +68,7 @@ class TransactionMixin:
         """Refresh UI and update the results pane after Preview/Apply."""
         self.store_cached_results(results)
         self._refresh_after_preview_state_change()
-        formatted = self.format_results(results) or f"{verb}: {len(results)} result(s)."
+        formatted = self.results_report(results) or f"{verb}: {len(results)} result(s)."
         self.publish_results(formatted)
 
         # Applying is the point at which the report stops being scratch work,
@@ -236,7 +236,7 @@ class TransactionMixin:
             self.store_cached_results(results)
             self._refresh_after_preview_state_change()
             self.publish_results(
-                self.format_results(results)
+                self.results_report(results)
                 or f"Preview updated: {len(results)} result(s)."
             )
             return True
@@ -277,7 +277,7 @@ class TransactionMixin:
                 }
                 for result in results
             ]
-            report = self.format_results(results) or ""
+            report = self.results_report(results) or ""
         except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception(
                 f"Could not record {self.operation_label} in the project's history",

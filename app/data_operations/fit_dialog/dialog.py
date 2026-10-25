@@ -12,6 +12,7 @@ series and the parameter table, and lays the result out.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Callable
 
 from PySide6.QtCore import Qt, Signal
@@ -33,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 from app.plugin_api.functions.optimizers import DEFAULT_OPTIMIZER, LOSSES, OPTIMIZERS
 
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
 
@@ -124,6 +126,12 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
     saved = Signal(str)
 
     WINDOW_SIZE = (900, 560)
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        result = results[0]
+        metrics = getattr(result, "metrics", None) or {}
+        y = str(getattr(result, "source_table", "") or "y")
+        return [reading_guide.r_squared(metrics.get("r2"), y=y), reading_guide.rmse(metrics.get("rmse"), y=y)]
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
