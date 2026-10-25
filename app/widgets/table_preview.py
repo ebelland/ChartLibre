@@ -145,6 +145,8 @@ class TablePreviewPanel(QWidget):
     query_requested = Signal(str)
     #: Rows of these tables were marked Selected here: the charts ring them too (todo R-07).
     selected_rows_changed = Signal(list)
+    #: Show only Selected switched for the table shown: every chart of it draws again (R-07).
+    selected_only_changed = Signal(list)
 
     def __init__(self, parent: QWidget, repo:SqliteRepo) -> None:
         super().__init__(parent)
@@ -367,6 +369,17 @@ class TablePreviewPanel(QWidget):
         if column:
             self._add_flag_menu(menu, column, "Hide")
             self._add_flag_menu(menu, column, "Selected")
+        if lazy_model is not None:
+            table = str(self._table)
+            create_menu_item(
+                parent=self, icons=CONTEXT_MENU_ICONS, menu=menu, icon="select_points", checkable=True,
+                checked=self._repo.selected_only(table),
+                text=_("Show only the Selected rows on the charts"),
+                tooltip=_("Every chart of '{table}' draws only its rows marked Selected; the others stay, out of "
+                          "view - nothing is hidden, and analyses read every row.").format(table=table),
+                key=None, action=lambda checked=False, table=table: self._set_selected_only(table, checked),
+            )
+        if column or lazy_model is not None:
             menu.addSeparator()
 
         # The cells selected here; the whole table - edit, export, reload -
@@ -395,6 +408,11 @@ class TablePreviewPanel(QWidget):
             )
 
         return menu
+
+    def _set_selected_only(self, table: str, on: bool) -> None:
+        if self._repo is not None:
+            self._repo.set_selected_only(table, bool(on))
+            self.selected_only_changed.emit([table])
 
     # ------------------------------------------------------------------
     # Selection helpers

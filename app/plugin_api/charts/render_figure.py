@@ -856,6 +856,8 @@ def _load_series_df(
         return SeriesFrame()
 
     try:
+        # Show only Selected on the series' table: its other rows out of view (R-07).
+        sql = repo.sql_selected_only(sql)
         if downsample_threshold > 0:
             return repo.downsampled_series_frame(sql, threshold=downsample_threshold)
         return repo.series_frame(sql)

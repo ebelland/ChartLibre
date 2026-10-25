@@ -1,6 +1,7 @@
 """Interactive tools: crosshair, dragged annotations, box selection, live updates, ruler."""
 from __future__ import annotations
 
+import html
 import json
 from typing import Any, Final
 
@@ -491,7 +492,7 @@ class ToolsMixin:
         """A click with Select points on: its row only (Shift: in or out of the selection); nothing under it, none."""
         shift = "shift" in str(event.key or "")
         hit = self._row_under(axes, int(getattr(axes, "_dhub_axis_id")), float(event.x), float(event.y))
-        tables = self._row_tables()
+        tables = self.row_tables()
         if hit is None:
             if shift:
                 return
@@ -566,17 +567,41 @@ class ToolsMixin:
             self._draw_selected_rows()
             self.rows_selected.emit(sorted(by_table))
 
+    def selected_only_tables(self) -> list[str]:
+        """This chart's tables that show only their Selected rows (R-07's data filter)."""
+        return sorted(table for table in self.row_tables() if self._repo.selected_only(table))
+
+    def _set_selected_only(self, table: str, on: bool) -> None:
+        self._repo.set_selected_only(table, bool(on))
+        self.selected_only_changed.emit([table])
+
+    def _on_filter_note_link(self, url: str) -> None:
+        if url.startswith("show-all:"):
+            self._set_selected_only(url[len("show-all:"):], False)
+
+    def _update_filter_note(self) -> None:
+        """Over the chart, while one of its tables shows only its Selected rows: how many of how many, and the
+        way back."""
+        notes = []
+        for table in self.selected_only_tables():
+            notes.append(_("Only the Selected rows of '{table}': {count} of {total}.").format(
+                table=html.escape(table), count=len(self._repo.selected_row_ids(table)),
+                total=self._repo.row_count(table))
+                + f" <a href='show-all:{html.escape(table, quote=True)}'>{html.escape(_('Show all'))}</a>")
+        self._filter_note.setText("<br>".join(notes))
+        self._filter_note.setVisible(bool(notes))
+
     #: Label of the rings round the points whose rows are Selected.
     SELECTED_ROWS_LABEL: Final[str] = "_selected_rows"
 
     def show_selected_rows(self, tables: list[str] | None = None) -> None:
         """Ring again the points whose rows are Selected - after *tables* (None: any) changed elsewhere."""
-        if tables is not None and not set(tables) & self._row_tables():
+        if tables is not None and not set(tables) & self.row_tables():
             return
         self._draw_selected_rows()
         self._canvas.draw_idle()
 
-    def _row_tables(self) -> set[str]:
+    def row_tables(self) -> set[str]:
         tables: set[str] = set()
         for axes in self._canvas.figure.axes:
             axis_id = getattr(axes, "_dhub_axis_id", None)
@@ -610,8 +635,8 @@ class ToolsMixin:
             for row in self._repo.get_series(int(axis_id)) or []:
                 sql = str(row["sql_query"] or "")
                 table = self._repo.row_table(sql)
-                if not table:
-                    continue
+                if not table or self._repo.selected_only(table):
+                    continue  # showing only its Selected rows: every point is one, no ring needed
                 if table not in selected:
                     selected[table] = set(self._repo.selected_row_ids(table))
                 if not selected[table]:

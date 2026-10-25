@@ -150,3 +150,42 @@ def test_dates_and_categories_on_x_select_and_ring_their_rows(qapp, tmp_path: Pa
         dated.close()
         named.close()
         repo.close()
+
+
+def test_show_only_selected_draws_the_selected_rows_says_so_and_shows_all_again(qapp, tmp_path: Path) -> None:
+    repo = SqliteRepo(db_path=tmp_path / "f.dhub")
+    x = np.arange(10, dtype=float)
+    repo.import_dataframe(pd.DataFrame({"a": x, "b": x * 2.0}), table_name="t", normalize_columns=False)
+    panel = ChartPanel(repo, _scatter(repo, "f", 'SELECT "a" AS x, "b" AS y FROM "t"'))
+    try:
+        panel.resize(600, 400)
+        panel.ensure_rendered()
+        sql = repo.get_series(panel._canvas.figure.axes[0]._dhub_axis_id)[0]["sql_query"]
+        assert repo.sql_selected_only(sql) == sql.strip().rstrip(";")  # off: as it is
+        repo.set_selected_only("t", True)
+        assert repo.query_df(repo.sql_selected_only(sql)).empty  # on, nothing selected: nothing drawn
+        repo.select_rows("t", [3, 7])
+        assert len(repo.query_df(repo.sql_selected_only(sql))) == 2
+
+        texts = [action.text() for action in panel._build_actions_menu().actions()]
+        assert "Show only the Selected rows of 't'" in texts
+        changed: list[list[str]] = []
+        panel.selected_only_changed.connect(changed.append)
+        panel.reload()
+
+        def points() -> int:
+            return sum(len(a.get_offsets()) for a in panel._canvas.figure.axes[0].collections
+                       if getattr(a, "_dhub_series", None) == "f")
+
+        assert points() == 2 and not panel._filter_note.isHidden()
+        assert "2 of 10" in panel._filter_note.text() and "show-all:t" in panel._filter_note.text()
+        repo.select_rows("t", [1, 2, 3])  # a selection made then: what is shown, not a cached one
+        panel.reload()
+        assert points() == 3
+        panel._on_filter_note_link("show-all:t")
+        assert not repo.selected_only("t") and changed == [["t"]]
+        panel.reload()
+        assert points() == 10 and panel._filter_note.isHidden()
+    finally:
+        panel.close()
+        repo.close()

@@ -225,6 +225,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self._preview.chart_requested.connect(self._on_chart_from_columns)
         self._preview.histogram_requested.connect(self._on_histogram_from_column)
         self._preview.selected_rows_changed.connect(self._on_rows_selected)
+        self._preview.selected_only_changed.connect(self._on_selected_only_changed)
         self._preview.query_requested.connect(lambda sql: self._on_create_query_table(sql=sql))
         # Left-side pages.
         self._data_page = self._create_data_page()
@@ -1014,6 +1015,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                     lambda hit, source=panel: self._on_chart_object_clicked(source, hit)
                 )
                 panel.rows_selected.connect(self._on_rows_selected)
+                panel.selected_only_changed.connect(self._on_selected_only_changed)
                 panel.next_step_requested.connect(self._open_next_step_url)
                 self._tabs.addTab(panel, name)
         finally:
@@ -1534,12 +1536,24 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     # ------------------------------------------------------------------
 
     def _on_rows_selected(self, tables: list[str]) -> None:
-        """Rows of *tables* were marked Selected (a box on a chart, the preview): every chart and the preview show them (R-07)."""
+        """Rows of *tables* were marked Selected (a box on a chart, the preview): every chart and the preview show them (R-07).
+
+        A chart of a table that shows only its Selected rows draws again: the selection is what it shows."""
         for index in range(self._tabs.count()):
             panel = self._tabs.widget(index)
             if isinstance(panel, ChartPanel):
-                panel.show_selected_rows(list(tables))
+                if set(tables) & set(panel.selected_only_tables()):
+                    panel.reload()
+                else:
+                    panel.show_selected_rows(list(tables))
         self._preview.show_selected_rows(list(tables))
+
+    def _on_selected_only_changed(self, tables: list[str]) -> None:
+        """Show only Selected switched for *tables*: every chart of them draws again (R-07)."""
+        for index in range(self._tabs.count()):
+            panel = self._tabs.widget(index)
+            if isinstance(panel, ChartPanel) and set(tables) & panel.row_tables():
+                panel.reload()
 
     def _notes_to_figure(self, figure_id: int, markup: str) -> None:
         """Append *markup* to the notes of the chart tab of *figure_id*, if it is open."""

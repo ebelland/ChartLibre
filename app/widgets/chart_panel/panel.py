@@ -86,6 +86,8 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
     chart_object_clicked = Signal(dict)
     #: The tables whose Selected rows a box selection on this chart just set (todo R-07).
     rows_selected = Signal(list)
+    #: The tables whose Show only Selected this chart just switched (R-07): every chart of them draws again.
+    selected_only_changed = Signal(list)
     #: A "What next?" link in the notes (a report kept with the chart) was clicked: its URL.
     next_step_requested = Signal(str)
 
@@ -282,7 +284,16 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
         self._main_layout = QVBoxLayout(self._chart_area)
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self._main_layout.setSpacing(0)
+        # Show only Selected on one of the chart's tables: said over the chart, with the way back (R-07).
+        self._filter_note = QLabel(self._chart_area)
+        self._filter_note.setProperty("muted", True)
+        self._filter_note.setWordWrap(True)
+        self._filter_note.setTextFormat(Qt.TextFormat.RichText)
+        self._filter_note.setContentsMargins(8, 4, 8, 4)
+        self._filter_note.linkActivated.connect(self._on_filter_note_link)
+        self._filter_note.hide()
         self._main_layout.addWidget(self._top_row, 0)
+        self._main_layout.addWidget(self._filter_note, 0)
         self._main_layout.addWidget(self._canvas, 1)
 
         self._notes_html = ""
@@ -591,6 +602,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
             )
             self._make_data_artists_pickable()
             self._draw_selected_rows()
+            self._update_filter_note()
             self._connect_x_sync_callbacks()
 
             # Do not normalize again from len(self._figure.axes). Matplotlib can

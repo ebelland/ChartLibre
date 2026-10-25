@@ -64,3 +64,7 @@ Q3 one switch per table, Q4 live. Step 1 (S-01) done: each edit's Undo step name
 changed ("Colour of 'Monthly mean'", "Limits of the axis 'p'"), one step per element and property; an Undo of
 a style shown on the chart's own lines when only series styles of the chart shown changed. There is no Redo in
 the application, so item 3 is Undo only.
+Steps 2-4 (R-07) done: click, Shift-click, Shift-drag, an empty click clears; a saved query's row ids (the
+subquery), dates and categories through the axis' units (a bar chart's categories through its tick labels);
+Show only Selected per table - the chart's right-click menu and the table preview's, the note over the chart
+with Show all, the selection redrawn as it changes; rings left out where every point shown is Selected.

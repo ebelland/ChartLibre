@@ -138,6 +138,30 @@ class FlagsMixin(RepoHost):
             "y": frame[y_col],
         }).dropna()
 
+    #: The table setting that makes every chart of the table draw only its Selected rows (R-07's data filter).
+    SELECTED_ONLY_KEY = "show_selected_only"
+
+    def selected_only(self, table_name: str) -> bool:
+        """Whether every chart of *table_name* draws only its rows marked Selected (Show only Selected)."""
+        return bool(self.get_table_info(table_name).get(self.SELECTED_ONLY_KEY))
+
+    def set_selected_only(self, table_name: str, on: bool) -> None:
+        self.set_table_info(table_name, self.SELECTED_ONLY_KEY, True if on else None)
+
+    def sql_selected_only(self, sql_query: str) -> str:
+        """*sql_query* keeping only its Selected rows when its table shows only those; else as it is.
+
+        By the row id the series' query names (sql_with_row_id): the rows stay where they are, out of view -
+        nothing is Hidden, and the analyses read every row as before.
+        """
+        sql = str(sql_query or "").strip().rstrip(";")
+        table = self.row_table(sql)
+        if not table or not self.selected_only(table):
+            return sql
+        chosen = (f'SELECT rowid FROM {_quote_ident(table)} WHERE "Selected" = 1'
+                  if self.has_column(table, "Selected") else "SELECT NULL WHERE 0")
+        return f"SELECT * FROM ({sql}) WHERE {_quote_ident(ROW_ID)} IN ({chosen})"
+
     @ensure_connection_wrapper
     def select_rows(self, table_name: str, row_ids: Sequence[int], *, add: bool = False) -> int:
         """Mark exactly *row_ids* Selected - with *add*, as well as those already; how many are."""

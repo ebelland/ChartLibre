@@ -72,6 +72,16 @@ class MenusMixin:
                     checked=self._select_mode_enabled,
                     icon="select_points",
                 ),
+                # Show only Selected, for each table this chart reads rows of (R-07).
+                *(MenuItem(
+                    text=_("Show only the Selected rows of '{table}'").format(table=table),
+                    tooltip=_("Every chart of '{table}' draws only its rows marked Selected; the others stay, "
+                              "out of view - nothing is hidden, and analyses read every row.").format(table=table),
+                    callback=lambda checked, table=table: self._set_selected_only(table, checked),
+                    checkable=True,
+                    checked=self._repo.selected_only(table),
+                    icon="select_points",
+                ) for table in sorted(self.row_tables())),
                 MenuItem(
                     text=_("Live updates"),
                     tooltip=_("Redraw this chart every {seconds:g}s, for a source table a rig or an import keeps filling in.").format(
