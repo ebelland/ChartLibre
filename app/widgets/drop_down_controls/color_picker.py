@@ -8,6 +8,7 @@ from Qt as numbers, never as the text, and a value Qt cannot read is kept as it 
 """
 from __future__ import annotations
 
+import shiboken6
 from matplotlib.colors import to_hex, to_rgba
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
@@ -56,6 +57,14 @@ class ColorPickerButton(QPushButton):
         initial = (qcolor_from_matplotlib(self._color) if self._color else None) or QColor("#1f77b4")
         dialog = QColorDialog(initial, self)
         dialog.setOption(QColorDialog.ColorDialogOption.ShowAlphaChannel, True)
-        if dialog.exec() == QColorDialog.DialogCode.Accepted:
+        # Qt's own dialog, not macOS' colour panel: as a property editor's cell editor, this button lost the
+        # focus to the native panel, the editor was closed and deleted - and the dialog, its child, with it,
+        # inside exec(): the application crashed when exec() returned. Qt's dialog keeps the focus within.
+        dialog.setOption(QColorDialog.ColorDialogOption.DontUseNativeDialog, True)
+        accepted = dialog.exec() == QColorDialog.DialogCode.Accepted
+        if not shiboken6.isValid(self) or not shiboken6.isValid(dialog):
+            return  # the editor went while the dialog was open: nothing left to set
+        if accepted:
             self.set_color(matplotlib_hex(dialog.selectedColor()))
             self.colorChanged.emit(self._color)
+        dialog.deleteLater()

@@ -42,3 +42,28 @@ def test_a_chosen_colour_is_written_the_way_matplotlib_reads_it() -> None:
     assert matplotlib_hex(QColor(255, 0, 0, 128)) == "#ff000080"  # Qt's own text would be #80ff0000
     assert qcolor_from_matplotlib("nope") is None
     assert qcolor_from_matplotlib("C1").name() == "#ff7f0e"
+
+
+def test_the_colour_picker_survives_its_editor_closing_while_the_dialog_is_open(qapp, monkeypatch) -> None:
+    """As a property editor's cell editor, the button was deleted while its dialog was open (macOS' colour
+    panel took the focus, the cell closed its editor): the application crashed when the dialog returned."""
+    import shiboken6
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtWidgets import QColorDialog, QWidget
+
+    from app.widgets.drop_down_controls.color_picker import ColorPickerButton
+
+    holder = QWidget()
+    button = ColorPickerButton(holder)
+    seen: list[bool] = []
+
+    def exec_and_lose_the_editor(dialog: QColorDialog) -> int:
+        seen.append(dialog.testOption(QColorDialog.ColorDialogOption.DontUseNativeDialog))
+        button.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        return QColorDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(QColorDialog, "exec", exec_and_lose_the_editor)
+    button.click()
+    assert seen == [True] and not shiboken6.isValid(button)
+    holder.deleteLater()
