@@ -388,6 +388,17 @@ class HistogramAxisRenderer(BaseAxisRenderer):
     # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
+    @staticmethod
+    def _draw_rug(ax: Any, values: np.ndarray, colors: list[Any], orientation: str) -> None:
+        """Marked rows as ticks at the foot of the bars, each in its colour: a bar cannot show one row."""
+        if not len(values):
+            return
+        if orientation == "horizontal":
+            x, y, marker, transform = np.full(len(values), 0.015), values, "_", ax.get_yaxis_transform()
+        else:
+            x, y, marker, transform = values, np.full(len(values), 0.015), "|", ax.get_xaxis_transform()
+        ax.scatter(x, y, c=colors, marker=marker, s=160, linewidths=2.0, transform=transform, zorder=3)
+
     def render_axis(self, ax, series: list[SeriesData], options: dict) -> None:
         """Draw every data set of every visible series in one hist call."""
         base_kwargs = self.get_kwargs(options)
@@ -398,6 +409,8 @@ class HistogramAxisRenderer(BaseAxisRenderer):
         colors: list[Any] = []
         any_weights = False
         legend_wanted = False
+        #: The rows a colour marks (Outliers' "Colour them"): their values and colours, drawn as a rug.
+        rugs: list[tuple[np.ndarray, list[Any]]] = []
 
         for layer_index, sd in enumerate(series):
             style = dict(sd.style or {})
@@ -414,6 +427,11 @@ class HistogramAxisRenderer(BaseAxisRenderer):
             if not entries:
                 applogger.info("Series '%s' skipped: no finite values.", sd.name)
                 continue
+            marks = self.point_marks(sd.df)
+            if marks is not None:
+                marked_values = to_numbers(sd.df["value"])
+                keep = marks.notna() & marked_values.notna()
+                rugs.append((marked_values[keep].to_numpy(dtype=float), marks[keep].tolist()))
 
             if bool(style.get("show_in_legend", True)):
                 legend_wanted = True
@@ -508,6 +526,9 @@ class HistogramAxisRenderer(BaseAxisRenderer):
                 )
                 or legend_wanted
             )
+
+        for values, marked_colors in rugs:
+            self._draw_rug(ax, values, marked_colors, orientation)
 
         # The count axis is whichever one the bars grow along, so the label
         # follows the orientation rather than being pinned to x.

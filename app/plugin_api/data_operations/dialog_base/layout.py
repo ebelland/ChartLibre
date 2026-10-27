@@ -154,7 +154,7 @@ class LayoutMixin:
         self.table_source: TableSourceSelector | None = None
         #: The figure the table's columns were drawn on, and what they were.
         self._table_figure_id: int | None = None
-        self._table_figure_spec: tuple[str, str, tuple[str, ...]] | None = None
+        self._table_figure_spec: tuple[Any, ...] | None = None
         #: The figure the dialog was opened on, to go back to.
         self._chart_figure_id = self._figure_id
         if not (self.READS_TABLES and self.SHOWS_SERIES_SELECTOR and self.SHOWS_AXIS_SERIES_PAGE):
@@ -167,7 +167,7 @@ class LayoutMixin:
         # A table's columns are drawn as a figure of their own first (_prepare_table_source).
         layout.addLayout(self.build_source_choice(panel, from_chart=True, on_change=self._on_source_changed))
 
-        self.table_source = TableSourceSelector(self._repo, panel)
+        self.table_source = TableSourceSelector(self._repo, panel, charts=tuple(self.TABLE_CHARTS))
         self._source_stack = QStackedWidget(panel)
         self._source_stack.addWidget(self.series_selector)
         self._source_stack.addWidget(self.table_source)
@@ -230,9 +230,12 @@ class LayoutMixin:
         Preview: the figure stays until the window closes without Apply, or
         the columns change.
         """
-        spec = self.table_source.spec() if self.table_source is not None else None
-        if spec is None:
+        columns = self.table_source.spec() if self.table_source is not None else None
+        if columns is None:
             raise ValueError(_("Choose a table and at least one Y column."))
+        assert self.table_source is not None
+        chart = self.table_source.chart()
+        spec = (*columns, chart)
         if spec == self._table_figure_spec and self._table_figure_id is not None:
             if self._repo.get_figure_descriptor(int(self._table_figure_id)) is not None:
                 return
@@ -240,19 +243,22 @@ class LayoutMixin:
         self.discard_result_target()
         self._discard_table_figure()
 
-        table, x, ys = spec
-        x_label = x or _("Row")
+        table, x, ys = columns
+        one = ys[0] if len(ys) == 1 else ""
+        # A box plot's values go up; a histogram's along.
+        x_label, y_label = {"Box Plot": ("", one), "Violin Plot": ("", one),
+                            "Histogram": (one, _("Count"))}.get(chart, (x or _("Row"), one))
         figure_id = int(self._repo.create_figure_descriptor(
             name=f"{table}: {', '.join(ys)}", nrows=1, ncols=1,
         ))
         axis_id = int(self._repo.create_axis_descriptor(
-            figure_id=figure_id, axis_index=0, chart_type="Scatter Plot", title=table,
-            x_label=x_label, y_label=ys[0] if len(ys) == 1 else "", options={"grid": True},
+            figure_id=figure_id, axis_index=0, chart_type=chart, title=table,
+            x_label=x_label, y_label=y_label, options={"grid": True},
         ))
         for index, y in enumerate(ys):
+            sql, roles = TableSourceSelector.chart_series(chart, table, x, y)
             self._repo.create_series_descriptor(
-                axis_id=axis_id, series_index=index, name=y,
-                sql_query=TableSourceSelector.series_sql(table, x, y), roles={"x": "x", "y": "y"},
+                axis_id=axis_id, series_index=index, name=y, sql_query=sql, roles=roles,
             )
         applogger.info("%s: drew %s from table %s as figure %s.", self.operation_label, ", ".join(ys), table, figure_id)
         self._table_figure_id, self._table_figure_spec = figure_id, spec

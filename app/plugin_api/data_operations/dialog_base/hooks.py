@@ -111,6 +111,12 @@ class BuilderHooksMixin:
     #: _prepare_table_source), so the operation runs on series as always.
     READS_TABLES: bool = True
 
+    #: The charts a table's columns can be drawn as, the first the default:
+    #: with more than one, the Data page offers them ("Chart:"). Scatter Plot
+    #: reads x and y; a chart of one variable - Box Plot, Histogram - reads y
+    #: as its value too (TableSourceSelector.chart_series).
+    TABLE_CHARTS: tuple[str, ...] = ("Scatter Plot",)
+
     #: Declared parameters.  An operation that sets this gets its parameter
     #: form built, wired and read back for free; see ``parameter_spec``.
     #: Leaving it empty keeps the old behaviour, where the subclass overrides

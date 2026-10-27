@@ -991,6 +991,23 @@ class BaseAxisRenderer(Protocol):
             fallback_color=fallback_color,
         )
 
+    @staticmethod
+    def point_marks(df: SeriesFrame) -> pd.Series | None:
+        """The colour column when it marks some rows and not others: each marked row's colour, NaN elsewhere.
+
+        A scatter colours every point from it anyway. A chart that draws no point per row - a box plot, a
+        histogram - takes a colour on every row as its own, but a colour on some rows only as marking those
+        rows (the outliers Outliers coloured), and draws them apart in their colour.
+        """
+        if "color" not in df.columns:
+            return None
+        raw = pd.Series(df["color"])
+        marks = raw.where(raw.notna() & (raw.astype(str).str.strip() != ""))
+        valid = marks.dropna().map(lambda value: matplotlib.colors.is_color_like(value))
+        marks = marks.where(valid.reindex(marks.index, fill_value=False))
+        count = int(marks.notna().sum())
+        return marks if 0 < count < len(marks) else None
+
     def first_color_from_values(
         self,
         values: Any,

@@ -258,6 +258,7 @@ class BoxAxisRenderer(BaseAxisRenderer):
                 ]
             else:
                 sub_frames = [(series_label, value)]
+            marks = self.point_marks(sd.df)
 
             for category_label, sub_values in sub_frames:
                 data = sub_values.dropna().to_numpy(dtype=float)
@@ -272,12 +273,17 @@ class BoxAxisRenderer(BaseAxisRenderer):
                 if category_label not in category_labels:
                     category_labels.append(category_label)
 
+                marked = marks.loc[sub_values.dropna().index].dropna() if marks is not None else None
                 plot_items.append(
                     {
                         "category_label": category_label,
                         "series_label": series_label,
                         "data": data,
                         "style": style,
+                        # The rows a colour marks - Outliers' "Colour them" - each drawn in its colour.
+                        "marked_values": sub_values.loc[marked.index].to_numpy(dtype=float)
+                        if marked is not None else np.empty(0),
+                        "marked_colors": marked.tolist() if marked is not None else [],
                     }
                 )
 
@@ -470,6 +476,7 @@ class BoxAxisRenderer(BaseAxisRenderer):
                 showfliers=base_kwargs.get("showfliers", True),
             )
 
+            self._draw_marked_points(ax, item, position, vert, zorder_value)
             self._style_box(
                 box_result=box_result,
                 face_color=flat_color,
@@ -536,9 +543,21 @@ class BoxAxisRenderer(BaseAxisRenderer):
 
     def _series_box_color(self, df: SeriesFrame, style: dict[str, Any], layer_index: int) -> Any:
         fallback_color = self.series_color(style, layer_index)
-        if "color" in df.columns:
+        if "color" in df.columns and self.point_marks(df) is None:
             return self.first_color_from_values(df["color"], fallback_color=fallback_color)
         return fallback_color
+
+    @staticmethod
+    def _draw_marked_points(ax: Any, item: dict[str, Any], position: float, vert: bool, zorder: Any) -> None:
+        """The points a colour marks, at the box's position, over its fliers in the same place."""
+        values = item.get("marked_values")
+        if values is None or not len(values):
+            return
+        size = float(mpl.rcParams.get("boxplot.flierprops.markersize", 6.0) or 6.0) + 1.0
+        place = np.full(len(values), float(position))
+        x, y = (place, values) if vert else (values, place)
+        ax.scatter(x, y, c=list(item.get("marked_colors") or []), s=size ** 2, marker="o",
+                   zorder=(float(zorder) if zorder is not None else 2.0) + 0.5, edgecolors="none")
 
     def _style_box(
         self,

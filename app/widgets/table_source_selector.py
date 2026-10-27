@@ -30,6 +30,8 @@ from app.utils.i18n import _
 _APPLICATION_COLUMNS = frozenset({"Hide", "Selected"})
 #: X as the row's position, for a table with no column to plot against.
 ROW_NUMBER = ""
+#: The charts of one variable: y is drawn as their value (Box Plot, Histogram, Violin Plot).
+VALUE_CHARTS = frozenset({"Box Plot", "Histogram", "Violin Plot"})
 
 
 class TableSourceSelector(QWidget):
@@ -38,9 +40,15 @@ class TableSourceSelector(QWidget):
     #: The table or a column changed.
     changed = Signal()
 
-    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None) -> None:
+    def __init__(self, repo: SqliteRepo, parent: QWidget | None = None,
+                 charts: tuple[str, ...] = ("Scatter Plot",)) -> None:
         super().__init__(parent)
         self._repo = repo
+        #: The chart the columns are drawn as; offered when there is a choice.
+        self.chart_combo = QComboBox(self)
+        for chart in charts or ("Scatter Plot",):
+            self.chart_combo.addItem(_(chart), chart)
+        self.chart_combo.setToolTip(_("What the columns are drawn as, before the operation runs on them."))
 
         self.table_combo = QComboBox(self)
         self.x_combo = QComboBox(self)
@@ -66,6 +74,11 @@ class TableSourceSelector(QWidget):
             grid.addWidget(widget, row, 1)
         grid.addWidget(QLabel(_("Y:"), self), 2, 0, Qt.AlignmentFlag.AlignTop)
         grid.addWidget(self.y_list, 2, 1)
+        if self.chart_combo.count() > 1:
+            grid.addWidget(QLabel(_("Chart:"), self), 3, 0)
+            grid.addWidget(self.chart_combo, 3, 1)
+        else:
+            self.chart_combo.hide()
         grid.setColumnStretch(1, 1)
         note = QLabel(_("The columns are drawn as a chart of their own, which the operation then runs on."), self)
         note.setProperty("muted", True)
@@ -80,6 +93,7 @@ class TableSourceSelector(QWidget):
         self.table_combo.currentIndexChanged.connect(lambda _index: self._load_columns())
         self.x_combo.currentIndexChanged.connect(lambda _index: self.changed.emit())
         self.y_list.itemChanged.connect(lambda _item: self.changed.emit())
+        self.chart_combo.currentIndexChanged.connect(lambda _index: self.changed.emit())
         self.reload()
 
     def reload(self) -> None:
@@ -141,6 +155,13 @@ class TableSourceSelector(QWidget):
             if self.y_list.item(row).checkState() == Qt.CheckState.Checked
         ]
 
+    def chart(self) -> str:
+        """The chart the columns are drawn as."""
+        return str(self.chart_combo.currentData() or "Scatter Plot")
+
+    def set_chart(self, chart: str) -> None:
+        self.chart_combo.setCurrentIndex(max(0, self.chart_combo.findData(chart)))
+
     def spec(self) -> tuple[str, str, tuple[str, ...]] | None:
         """``(table, x, ys)``, or None until a table and a Y are chosen."""
         ys = tuple(self.y_columns())
@@ -162,6 +183,22 @@ class TableSourceSelector(QWidget):
             item.setCheckState(
                 Qt.CheckState.Checked if item.data(Qt.ItemDataRole.UserRole) in wanted else Qt.CheckState.Unchecked
             )
+
+    @classmethod
+    def chart_series(cls, chart: str, table: str, x: str, y: str) -> tuple[str, dict[str, str]]:
+        """A series' query and roles for one Y drawn as *chart*.
+
+        x and y always, which the operation reads; a chart of one variable gets y as its value too.
+        """
+        sql = cls.series_sql(table, x, y)
+        if chart not in VALUE_CHARTS:
+            return sql, {"x": "x", "y": "y"}
+        return sql.replace(" AS y FROM ", " AS y, " + cls._quoted(y) + " AS value FROM ", 1), \
+            {"x": "x", "y": "y", "value": "value"}
+
+    @staticmethod
+    def _quoted(name: str) -> str:
+        return '"' + name.replace('"', '""') + '"'
 
     @staticmethod
     def series_sql(table: str, x: str, y: str) -> str:

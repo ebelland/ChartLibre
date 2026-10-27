@@ -229,7 +229,9 @@ Flags the points of a series that do not belong with the rest, and either *hides
 
 The last four judge a point by its position relative to the others in (x, y), not by its value alone, so they can find points that are unusual for their x even when their y is ordinary. Both coordinates are rescaled robustly first, so x and y in different units weigh equally.
 
-*Action*: *Hide them* marks the rows in the table's `Hide` column, which every chart skips — the data stays in the table, and the rows can be un-hidden from the table editor (see @table-editor). *Colour them* keeps every point on the chart and draws the outliers in the chosen *colour*.
+*Action*: *Hide them* marks the rows in the table's `Hide` column, which every chart skips — the data stays in the table, and the rows can be un-hidden from the table editor (see @table-editor). *Colour them* keeps every point on the chart and draws the outliers in the chosen *colour* — on a box plot as points in that colour over the box, on a histogram as marks in that colour at the foot of the bars.
+
+From a table (*Data from: Table*), *Chart* draws the column first as a *Scatter Plot* against X, a *Box Plot* or a *Histogram* of its values; the outliers are then found and hidden or coloured on it.
 
 #refs("sklearn.ensemble.IsolationForest", "sklearn.neighbors.LocalOutlierFactor", "sklearn.svm.OneClassSVM", "sklearn.covariance.EllipticEnvelope", "scipy.ndimage.median_filter")
 #example("op_outliers")
