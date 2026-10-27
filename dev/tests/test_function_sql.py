@@ -130,15 +130,16 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
             assert "measures" in offered and "_Fit_Result" not in offered  # an operation's table: not offered
             assert dialog._select_renderer_by_name("Scatter Plot")
             panel = dialog._function_panel
-            assert panel.is_row_shown(panel._x) and not panel.is_row_shown(panel._y)
+            assert dialog._editor_form_layout.isRowVisible(panel) and not panel._ranges.isRowVisible(panel.y)
+            assert not panel.tabs.isTabVisible(0)  # the formula is the project's: not edited here
             assert panel.parameters() == {"a": 1.0, "b": 0.0}  # the stored values, to start from
             # x and y place themselves: no roles, groups or separate axes to choose.
             form = dialog._editor_form_layout
             assert not form.isRowVisible(dialog._roles_scroll) and not form.isRowVisible(dialog._combo_group)
             assert not dialog._axis_form_layout.isRowVisible(dialog._combo_axes_by)
             assert dialog._current_role_mapping()["x"] == "x" and dialog._current_role_mapping()["y"] == "y"
-            panel._values["a"].setValue(a)
-            panel._x.stop.setValue(stop)
+            panel.values.item(0, 1).setText(str(a))
+            panel.x.stop.setValue(stop)
             dialog._on_accept()
             result = dialog.chart_result
             assert result is not None
@@ -159,7 +160,7 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
     dialog = NewPlotTabDialog(repo, current_table="Plane")
     try:
         panel = dialog._function_panel
-        assert panel.is_row_shown(panel._y) and panel._y.grid() == GridRange(1.0, 2.0, 2)
+        assert panel._ranges.isRowVisible(panel.y) and panel.y.grid() == GridRange(1.0, 2.0, 2)
         assert dialog._columns_from_table() == ["x", "y", "z"]
         assert dialog._select_renderer_by_name("Surface Plot")
         assert dialog._current_role_mapping().get("z") == "z"
@@ -167,7 +168,8 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
         dialog._combo_table.setCurrentIndex(dialog._combo_table.findData("Line"))  # f(x): no z for a surface
         assert dialog._editor_form_layout.isRowVisible(dialog._roles_scroll)
         dialog._combo_table.setCurrentIndex(-1)  # no function: its rows hidden, the roles shown
-        assert not panel.is_row_shown(panel._x) and dialog._editor_form_layout.isRowVisible(dialog._roles_scroll)
+        assert not dialog._editor_form_layout.isRowVisible(panel)
+        assert dialog._editor_form_layout.isRowVisible(dialog._roles_scroll)
     finally:
         dialog.close()
 
@@ -217,8 +219,8 @@ def test_function_draws_a_stored_function_as_a_live_series(qapp, repo: SqliteRep
     try:
         dialog.series_selector.reload(select_all_series=True)
         dialog._apply_serialised(sympy_store.get(repo, "Ramp"))
-        assert dialog._function_params()[1].tolist() == [3.0]  # the stored value
-        dialog._set_param_rows(["a"], [2.0])
+        assert dialog._editor.parameters() == {"a": 3.0}  # the stored value
+        _values(dialog, a=2.0)
         dialog.preview()
         previewed = repo.get_series(axis_id)
         assert len(previewed) == 1 and repo.query_df(previewed[0]["sql_query"])["y"].tolist() == [0.0, 2.0, 4.0]
@@ -231,7 +233,7 @@ def test_function_draws_a_stored_function_as_a_live_series(qapp, repo: SqliteRep
     try:
         dialog.series_selector.reload(select_all_series=True)
         dialog._apply_serialised(sympy_store.get(repo, "Ramp"))
-        dialog._set_param_rows(["a"], [2.0])
+        _values(dialog, a=2.0)
         dialog.ok()
     finally:
         dialog.deleteLater()
@@ -299,6 +301,15 @@ def test_opening_a_project_that_draws_untrusted_functions_asks_once(qapp, tmp_pa
         repo.close()
 
 
+def _values(dialog, **values: float) -> None:
+    """Values typed in the editor's Parameters tab."""
+    table = dialog._editor.values
+    for row in range(table.rowCount()):
+        name = table.item(row, 0).text()
+        if name in values:
+            table.item(row, 1).setText(str(values[name]))
+
+
 def _function_dialog(repo: SqliteRepo):
     from app.data_operations.function_dialog import SeriesFunctionDialog
 
@@ -318,9 +329,9 @@ def test_function_opens_on_a_new_function_and_keeps_it_only_when_it_is_usable(qa
         assert dialog._current_function_name == "Function2"  # the first name free
         assert dialog._stored_combo.itemText(0) == "Function2 (new)"
         dialog._model_tabs.setCurrentIndex(1)
-        dialog._expr_symbols.setText("a")
-        dialog._expr_text.setPlainText("a*x")
-        dialog._set_param_rows(["a"], [3.0])
+        dialog._editor.symbols.setText("a")
+        dialog._editor.text.setPlainText("a*x")
+        _values(dialog, a=3.0)
         dialog.ok()
     finally:
         dialog.deleteLater()
@@ -339,11 +350,11 @@ def test_function_draws_an_expression_of_x_and_y_as_a_live_surface(qapp, repo: S
     dialog, axis_id = _function_dialog(repo)
     try:
         dialog._model_tabs.setCurrentIndex(1)
-        dialog._expr_symbols.setText("a")
-        dialog._expr_text.setPlainText("x*a + y")
-        dialog._set_param_rows(["a"], [2.0])
-        dialog.chart_form.set_values({"start": 0.0, "stop": 1.0, "points": 2,
-                                      "y_start": 10.0, "y_stop": 20.0, "y_points": 2})
+        dialog._editor.symbols.setText("a")
+        dialog._editor.text.setPlainText("x*a + y")
+        _values(dialog, a=2.0)
+        dialog._editor.x.set_grid(GridRange(0.0, 1.0, 2))
+        dialog._editor.y.set_grid(GridRange(10.0, 20.0, 2))
         result = dialog.compute_results()[0]
         assert result.z is not None and sorted(result.z.tolist()) == [10.0, 12.0, 20.0, 22.0]
         assert dialog.destination_combo.currentData() == dialog.DEST_NEW_FIGURE  # not on the curve's axis
@@ -371,14 +382,16 @@ def test_a_surface_goes_where_a_surface_can_and_as_the_chart_asked(qapp, repo: S
     try:
         offered = lambda: [dialog.destination_combo.itemData(i) for i in range(dialog.destination_combo.count())]
         dialog._model_tabs.setCurrentIndex(1)
-        dialog._expr_symbols.setText("a")
-        dialog._expr_text.setPlainText("x*a")
+        dialog._editor.symbols.setText("a")
+        dialog._editor.text.setPlainText("x*a")
         assert offered() == [dialog.DEST_SAME_AXIS, dialog.DEST_NEW_AXIS, dialog.DEST_NEW_FIGURE]
-        dialog._expr_text.setPlainText("x*a + y")  # a surface: not on the axis of a curve
+        dialog._editor.text.setPlainText("x*a + y")  # a surface: not on the axis of a curve
         assert offered() == [dialog.DEST_NEW_AXIS, dialog.DEST_NEW_FIGURE]
         assert dialog.destination_combo.currentData() == dialog.DEST_NEW_FIGURE
 
-        dialog.chart_form.set_values({"points": 10, "y_points": 10, "chart_type": "Surface Plot"})
+        dialog._editor.x.set_grid(GridRange(0.0, 10.0, 10))
+        dialog._editor.y.set_grid(GridRange(0.0, 10.0, 10))
+        dialog.chart_form.set_values({"chart_type": "Surface Plot"})
         assert dialog.preview()
         first = repo.load_figure_descriptor(int(dialog._result_figure_id)).axes[0]
         assert first.name == "Surface Plot"
@@ -397,7 +410,8 @@ def test_a_surface_goes_where_a_surface_can_and_as_the_chart_asked(qapp, repo: S
         asked: list[str] = []
         answers = [QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Ok]
         monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: (asked.append(a[2]), answers.pop(0))[1])
-        dialog.chart_form.set_values({"points": 400, "y_points": 400})
+        dialog._editor.x.set_grid(GridRange(0.0, 10.0, 400))
+        dialog._editor.y.set_grid(GridRange(0.0, 10.0, 400))
         assert not dialog.preview() and len(asked) == 1 and "160,000" in asked[0]
         assert dialog.preview() and len(asked) == 2
         assert dialog.preview() and len(asked) == 2
@@ -409,15 +423,14 @@ def test_function_computes_with_the_declared_parameters_and_names_an_undeclared_
     dialog, _axis_id = _function_dialog(repo)
     try:
         dialog._model_tabs.setCurrentIndex(1)
-        dialog._expr_symbols.setText("a")
-        dialog._expr_text.setPlainText("x*a + y")
-        dialog._set_param_rows([], [])  # Parameters out of step with the declaration
-        dialog.chart_form.set_values({"start": 0.0, "stop": 1.0, "points": 2, "y_start": 0.0, "y_stop": 1.0,
-                                      "y_points": 2})
+        dialog._editor.symbols.setText("a")
+        dialog._editor.text.setPlainText("x*a + y")
+        dialog._editor.x.set_grid(GridRange(0.0, 1.0, 2))
+        dialog._editor.y.set_grid(GridRange(0.0, 1.0, 2))
         result = dialog.compute_results()[0]
-        assert result.params == {"a": 1.0} and dialog._function_params()[0] == ["a"]  # the table follows
+        assert result.params == {"a": 1.0} and list(dialog._editor.parameters()) == ["a"]  # the rows: the declaration
 
-        dialog._expr_text.setPlainText("x*a + b")
+        dialog._editor.text.setPlainText("x*a + b")
         with pytest.raises(ValueError, match="b: not among the parameters"):
             dialog.compute_results()
     finally:
@@ -429,39 +442,45 @@ def test_function_reopens_on_the_remembered_function_with_its_parameters(qapp, r
                             "code_string": "x*a", "values": {"a": 4.0}})
     dialog, _axis_id = _function_dialog(repo)
     dialog._stored_combo.setCurrentIndex(dialog._stored_combo.findData("Kept"))
-    dialog._expr_text.setPlainText("x*a + 1")  # edited, not saved
+    dialog._editor.text.setPlainText("x*a + 1")  # edited, not saved
     dialog.remember_window()
     dialog.close()
 
     again, _axis_id = _function_dialog(repo)
     try:
-        assert again._current_function_name == "Kept" and again._expr_text.toPlainText() == "x*a"
-        assert again._function_params() [0] == ["a"] and again._function_params()[1].tolist() == [4.0]
+        assert again._current_function_name == "Kept" and again._editor.text.toPlainText() == "x*a"
+        assert again._editor.parameters() == {"a": 4.0}
     finally:
         again.close()
 
     # The new function remembered: a new one again, Parameters in step with it.
     again, _axis_id = _function_dialog(repo)
     again._stored_combo.setCurrentIndex(0)
-    again._expr_symbols.setText("b")
+    again._editor.symbols.setText("b")
     again.remember_window()
     again.close()
     third, _axis_id = _function_dialog(repo)
     try:
         assert third._stored_combo.currentIndex() == 0 and third._stored_combo.itemText(0).endswith("(new)")
-        assert third._expr_symbols.text() == "" and third._function_params()[0] == []
+        assert third._editor.symbols.text() == "" and third._editor.parameters() == {}
     finally:
         third.close()
 
 
-def test_the_stored_functions_bar_is_on_expression_and_code_only(qapp, repo: SqliteRepo) -> None:
+def test_the_stored_functions_bar_and_editor_are_on_the_function_tab_only(qapp, repo: SqliteRepo) -> None:
     dialog, _axis_id = _function_dialog(repo)
     try:
         dialog.show()
-        for index, shown in ((0, False), (1, True), (2, True), (0, False)):
+        assert [dialog._model_tabs.tabText(i) for i in range(dialog._model_tabs.count())] == ["Library", "Function"]
+        outer = next(i for i in range(dialog.left_tabs.count())
+                     if dialog.left_tabs.widget(i).isAncestorOf(dialog._params_table))
+        for index, shown in ((0, False), (1, True), (0, False)):
             dialog._model_tabs.setCurrentIndex(index)
             qapp.processEvents()
             assert dialog._stored_bar.isVisible() is shown
+            # The library's Parameters and ranges in Charts; a stored function has its own, in the editor.
+            assert dialog.left_tabs.isTabVisible(outer) is not shown
+            assert dialog.chart_form._widgets["start"].isHidden() is shown
             if shown:  # at the top of the page shown
                 assert dialog._model_tabs.widget(index).layout().indexOf(dialog._stored_bar) == 0
     finally:

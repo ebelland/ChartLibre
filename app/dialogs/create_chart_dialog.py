@@ -42,7 +42,7 @@ from app.styles.style import (
 )
 from app.utils.i18n import _, tr
 from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
-from app.widgets.function_source_panel import FunctionSourcePanel
+from app.widgets.function_editor import FunctionEditor
 from app.utils.config import get_constant
 
 
@@ -280,7 +280,8 @@ class NewPlotTabDialog(ColumnsDialog):
         self._combo_table = QComboBox()
         self._combo_table.setEditable(False)
         # A stored function as the source: its parameters and range, as this chart draws it.
-        self._function_panel = FunctionSourcePanel(self)
+        self._function_panel = FunctionEditor(self, formula=False)
+        self._function_panel.setMaximumHeight(190)  # a few parameters, the ranges: New Chart's height kept
 
         self._edit_series_name = QLineEdit()
         self._edit_series_name.setPlaceholderText(_("Series name"))
@@ -326,7 +327,8 @@ class NewPlotTabDialog(ColumnsDialog):
         editor_form_layout = QFormLayout(editor_form)
         stdSizeAndlayout(editor_form_layout)
         editor_form_layout.addRow(_("Data source:"), self._combo_table)
-        self._function_panel.insert_rows(editor_form_layout, editor_form_layout.rowCount())
+        editor_form_layout.addRow(_("Function:"), self._function_panel)
+        editor_form_layout.setRowVisible(self._function_panel, False)
         editor_form_layout.addRow(_("Series name:"), self._edit_series_name)
         editor_form_layout.addRow(_("Query:"), self._edit_sql)
         editor_form_layout.addRow(self._roles_scroll)
@@ -1114,7 +1116,11 @@ class NewPlotTabDialog(ColumnsDialog):
             return None
         source = self._repo.get_data_source(name)
         if source is not None and source.is_function and self._function_data is not None:
-            return DataSource.function(source.name, self._function_panel.source_sql())
+            from app.data_operations.sympy_store import source_sql  # SymPy: loaded when a function is chosen
+
+            panel = self._function_panel
+            return DataSource.function(source.name, source_sql(self._function_data, panel.parameters(),
+                                                               panel.x_range(), panel.y_range()))
         return source
 
     def _sync_function_source(self) -> None:
@@ -1125,7 +1131,7 @@ class NewPlotTabDialog(ColumnsDialog):
         self._function_data = data
         if data is not None:
             self._function_panel.load(data)
-        self._function_panel.set_shown(data is not None)
+        self._editor_form_layout.setRowVisible(self._function_panel, data is not None)
 
     def _columns_from_table(self) -> list[str]:
         """Return the columns of the selected source: a table, a saved query or a stored function."""

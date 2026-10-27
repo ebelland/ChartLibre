@@ -68,3 +68,8 @@ STATUS
    series' query (replace_function_sql), one Undo step ("Function of 'X'", descriptors and __sympy__); every
    chart of the function drawn again. A formula of another dimension than the series draws is refused in the
    card; an untrusted function is read-only, with Trust... The manual's Series paragraph.
+3. Done (layout chosen: "Libreria | Funzione"). Function: the inner tabs are Library and Function - the
+   Stored bar over a FunctionEditor (its Formula holds Expression or Code); on Function the outer Parameters
+   tab and the ranges in Charts (visible_for the library source) are out of sight, and the editor's values
+   and Range are what is computed and drawn. New Chart: a "Function" row, FunctionEditor without its Formula
+   tab; FunctionSourcePanel removed. The manual's Function and New Chart paragraphs.

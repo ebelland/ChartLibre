@@ -41,6 +41,7 @@ from app.utils.i18n import _
 from app.utils import report_html
 from app.data.data_source import DataSource
 from app.data.repo.function_sql import GridRange
+from app.widgets.function_editor import FunctionEditor
 from app.data_operations.sympy_store import (
     UntrustedFunction,
     _scientific_import,
@@ -137,24 +138,26 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     PARAMS = (
         FloatParam("start", "X from:", tooltip="Start of the range to evaluate over.",
                    default_value=0.0, minimum=-1.0e12, maximum=1.0e12, decimals=6, step=1.0,
-                   tab="charts"),
+                   tab="charts", visible_for={"source": ("library",)}),
         FloatParam("stop", "X to:", tooltip="End of the range to evaluate over.",
                    default_value=10.0, minimum=-1.0e12, maximum=1.0e12, decimals=6, step=1.0,
-                   tab="charts"),
+                   tab="charts", visible_for={"source": ("library",)}),
         IntParam("points", "X points:", tooltip="How densely to sample.",
-                 default_value=200, minimum=2, maximum=1_000_000, step=50, tab="charts"),
+                 default_value=200, minimum=2, maximum=1_000_000, step=50, tab="charts",
+                 visible_for={"source": ("library",)}),
         FloatParam("y_start", "Y from:", tooltip="Start of the y range for z = f(x, y).",
                    default_value=0.0, minimum=-1.0e12, maximum=1.0e12, decimals=6, step=1.0,
-                   tab="charts"),
+                   tab="charts", visible_for={"source": ("library",)}),
         FloatParam("y_stop", "Y to:", tooltip="End of the y range for z = f(x, y).",
                    default_value=10.0, minimum=-1.0e12, maximum=1.0e12, decimals=6, step=1.0,
-                   tab="charts"),
+                   tab="charts", visible_for={"source": ("library",)}),
         IntParam("y_points", "Y points:", tooltip="Number of y samples for z = f(x, y).",
-                 default_value=200, minimum=2, maximum=1_000_000, step=50, tab="charts"),
+                 default_value=200, minimum=2, maximum=1_000_000, step=50, tab="charts",
+                 visible_for={"source": ("library",)}),
         ChoiceParam("spacing", "Spacing:",
                     tooltip="Logarithmic spacing requires a range strictly above zero.",
                     choices=(("Linear", SPACING_LINEAR), ("Logarithmic", SPACING_LOG)),
-                    tab="charts"),
+                    tab="charts", visible_for={"source": ("library",)}),
         ChoiceParam(
             "chart_type", "Chart type:",
             tooltip="New axes and figures use this chart type. Same axis keeps the selected axis.",
@@ -199,24 +202,9 @@ class SeriesFunctionDialog(DataOperationDialogBase):
 
         self._model_tabs = QTabWidget(self)
         self._current_function_name = ""
-        self._expr_symbols = QLineEdit(self)
-        self._expr_description = QPlainTextEdit(self)
-        self._expr_description.setFixedHeight(72)
-        self._expr_description.setPlaceholderText(_("Optional description"))
-        self._expr_text = QPlainTextEdit(self)
-        self._expr_text.setPlaceholderText("x**2 + a*x + b")
-        self._expr_text.setFixedHeight(90)
-
-        self._code_description = QPlainTextEdit(self)
-        self._code_description.setFixedHeight(72)
-        self._code_description.setPlaceholderText(_("Optional description"))
-        self._code_text = QPlainTextEdit(self)
-        self._code_text.setPlaceholderText(
-            "def MyFunction(a, b):\n"
-            "    f_numeric = a*x**2 + b\n"
-            "    return f_numeric"
-        )
-        self._code_text.setMinimumHeight(140)
+        #: A stored function - Expression or Code - its formula, parameters' values and range (the Function tab).
+        self._editor = FunctionEditor(self)
+        self._editor.changed.connect(self._custom_model_changed)
 
         self._stored_combo = QComboBox(self)
         # As narrow as the panel: a name is short, and the popup shows it whole.
@@ -227,13 +215,6 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         self._new_name = ""
         #: The number of points last agreed to past POINTS_WARNING: not asked again for the same.
         self._points_confirmed = 0
-
-        for widget in (self._expr_symbols, self._expr_description, self._expr_text,
-                       self._code_description, self._code_text):
-            if isinstance(widget, QLineEdit):
-                widget.textChanged.connect(self._custom_model_changed)
-            else:
-                widget.textChanged.connect(self._custom_model_changed)
 
     def build_model_selector(self) -> QWidget:
         self.model_combo.setVisible(False)
@@ -255,49 +236,12 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         form.addRow(_("Docs:"), self._doc_link); ll.addWidget(docs)
 
-        expression = QWidget(self)
-        expression.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        ef = QFormLayout(expression)
-        ef.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        ef.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        ef.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-        ef.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
-        self._expr_symbols.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self._expr_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._expr_description.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        ef.addRow(_("Description:"), self._expr_description)
-        ef.addRow(_("Parameters:"), self._expr_symbols)
-        ef.addRow(_("Expression:"), self._expr_text)
-        expr_note = QLabel(_("x, y and z are implicit coordinates and must not be listed as parameters."), expression)
-        expr_note.setWordWrap(True)
-        expr_note.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        expr_note.setProperty("muted", True)
-        ef.addRow(expr_note)
-
-        code = QWidget(self)
-        code.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        cf = QFormLayout(code)
-        cf.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        cf.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        cf.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-        cf.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
-        self._code_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._code_description.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        cf.addRow(_("Description:"), self._code_description)
-        cf.addRow(_("Code:"), self._code_text)
-        code_note = QLabel(_("x, y and z are implicit coordinates and must not be listed as parameters."), code)
-        code_note.setWordWrap(True)
-        code_note.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        code_note.setProperty("muted", True)
-        cf.addRow(code_note)
-
-        # The stored functions - which one, New, Save, Import, Export - belong to Expression and Code, not to
-        # the library: one bar, at the top of whichever of the two is shown (_place_stored_bar). The function
-        # on one row, what to do with it on the next: on one row they were wider than the panel.
-        self._stored_bar = QWidget(self)
-        bar = QVBoxLayout(self._stored_bar)
-        margins = ef.contentsMargins()  # in line with the fields under it
-        bar.setContentsMargins(margins.left(), margins.top(), margins.right(), 0)
+        # The stored functions - which one, New, Save, Import, Export - over the editor of the one shown.
+        # The function on one row, what to do with it on the next: on one row they were wider than the panel.
+        function_page = QWidget(self)
+        page = QVBoxLayout(function_page); page.setContentsMargins(0, 0, 0, 0)
+        self._stored_bar = QWidget(function_page)
+        bar = QVBoxLayout(self._stored_bar); bar.setContentsMargins(0, 0, 0, 0)
         stored = QHBoxLayout()
         stored.addWidget(QLabel(_("Stored:"), self._stored_bar))
         self._stored_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -308,37 +252,22 @@ class SeriesFunctionDialog(DataOperationDialogBase):
                            (_("Import..."), self._import_text), (_("Export..."), self._export_text)):
             btn = QPushButton(text, self._stored_bar); btn.clicked.connect(slot); buttons.addWidget(btn)
         buttons.addStretch(1); bar.addLayout(buttons)
+        page.addWidget(self._stored_bar)
+        page.addWidget(self._editor, 1)
 
         self._model_tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._model_tabs.addTab(library, _("Library"))
-        for page, title in ((expression, _("Expression")), (code, _("Code"))):
-            holder = QWidget(self)
-            holder_layout = QVBoxLayout(holder); holder_layout.setContentsMargins(0, 0, 0, 0)
-            holder_layout.addWidget(page, 1)
-            self._model_tabs.addTab(holder, title)
+        self._model_tabs.addTab(function_page, _("Function"))
         self._model_tabs.currentChanged.connect(self._source_changed)
 
         root = QWidget(self); layout = QVBoxLayout(root); layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._model_tabs, 1)
-        self._place_stored_bar()
         self._refresh_stored_combo()
         if not self._current_function_name:
-            # A new function from the start: Expression and Code are ready to type into, no New first.
+            # A new function from the start: ready to type into, no New first.
             self._new_name = self._free_function_name()
             self._start_function(self._new_name)
         return root
-
-    def _place_stored_bar(self) -> None:
-        """The stored functions' bar at the top of Expression or Code, whichever is shown; not on Library."""
-        index = self._model_tabs.currentIndex()
-        if index in (1, 2):
-            layout = self._model_tabs.widget(index).layout()
-            if layout.indexOf(self._stored_bar) < 0:
-                previous = self._stored_bar.parentWidget()
-                if previous is not None and previous.layout() is not None:
-                    previous.layout().removeWidget(self._stored_bar)
-                layout.insertWidget(0, self._stored_bar)
-        self._stored_bar.setVisible(index in (1, 2))
 
     def _free_function_name(self) -> str:
         """Function1, Function2...: the first not stored yet."""
@@ -349,11 +278,9 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         return f"Function{number}"
 
     def _start_function(self, name: str) -> None:
-        """*name* as a new, empty function: what Expression and Code edit, stored at Save, Preview or OK."""
+        """*name* as a new, empty function: what the editor edits, stored at Save, Preview or OK."""
         self._current_function_name = name
-        self._expr_symbols.clear(); self._expr_description.clear(); self._expr_text.clear()
-        self._code_description.clear(); self._code_text.clear()
-        self._code_text.setPlaceholderText(f"def {name}(a, b):\n    f_numeric = a*x**2 + b\n    return f_numeric")
+        self._editor.load({"function_name": name, "source_type": "expression", "symbols": "", "code_string": ""})
         self._refresh_stored_combo()
         self._custom_model_changed()
 
@@ -366,7 +293,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         """
         super().restore_state_extra(stored)
         name = str(self._stored_combo.currentData() or "")
-        data = get_stored(self._repo, name) if name and self._model_tabs.currentIndex() != 0 else None
+        data = get_stored(self._repo, name) if name and self._model_tabs.currentIndex() == 1 else None
         if data is not None:
             self._apply_serialised(data)
         else:
@@ -411,9 +338,25 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     def connect_operation_signals(self) -> None:
         return None
 
+    def parameter_context(self) -> Mapping[str, Any]:
+        """The source too: the ranges in Charts are the library's; a stored function has its own (its Range)."""
+        return {**super().parameter_context(),
+                "source": "function" if self._model_tabs.currentIndex() == 1 else "library"}
+
+    def _sync_outer_tabs(self) -> None:
+        """Parameters (the outer tab) and the ranges in Charts are the library's: out of sight on Function."""
+        library = self._model_tabs.currentIndex() == 0
+        tabs = getattr(self, "left_tabs", None)
+        if tabs is not None:
+            for index in range(tabs.count()):
+                if tabs.widget(index).isAncestorOf(self._params_table):
+                    tabs.setTabVisible(index, library)
+        if self.chart_form is not None:
+            self.chart_form.refresh_visibility()
+
     # ---------- sources ----------
     def _source_changed(self, _index: int) -> None:
-        self._place_stored_bar()
+        self._sync_outer_tabs()
         if self._model_tabs.currentIndex() == 0:
             self._on_function_changed(self._function_tree.currentItem())
         else:
@@ -421,17 +364,8 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         self._sync_destinations()
 
     def _custom_model_changed(self, *_a: Any) -> None:
+        """The editor changed: where it can be drawn may have changed with it (a formula of y)."""
         self._sync_destinations()
-        idx = self._model_tabs.currentIndex()
-        if idx == 1:
-            names = self._parse_symbols(self._expr_symbols.text())
-            self._rebuild_param_names(names)
-        elif idx == 2:
-            try:
-                _name, params = self._validated_code_signature()
-                self._rebuild_param_names(params)
-            except Exception:
-                pass
         self.mark_results_stale()
 
     @staticmethod
@@ -444,7 +378,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         return names
 
     def _validated_code_signature(self) -> tuple[str, list[str]]:
-        code = self._code_text.toPlainText()
+        code = self._editor.text.toPlainText()
         wanted = self._current_function_name.strip()
         if not wanted or not wanted.isidentifier():
             raise ValueError("Function name must be a valid Python identifier.")
@@ -472,10 +406,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         Code typed or imported here is the user's own; a stored function from a project made elsewhere runs
         only once trusted on this computer (todo ID47).
         """
-        if self._model_tabs.currentIndex() == 1:
-            current = {"source_type": "expression", "code_string": self._expr_text.toPlainText()}
-        else:
-            current = {"source_type": "code", "code_string": self._code_text.toPlainText()}
+        current = {"source_type": self._editor.source_type(), "code_string": self._editor.text.toPlainText()}
         wanted = stored_fingerprint(current)
         stored = next((row for row in stored_untrusted(self._repo) if stored_fingerprint(row) == wanted), None)
         if stored is None:
@@ -488,27 +419,25 @@ class SeriesFunctionDialog(DataOperationDialogBase):
 
     def _check_without_running(self) -> None:
         """The model's text checked as text: an imported file's code is read here, not run."""
-        if self._model_tabs.currentIndex() == 1:
-            text = self._expr_text.toPlainText().strip()
-            if not text:
-                raise ValueError("Expression is required.")
-            ast.parse(text.replace("^", "**"), mode="eval")
-            return
-        self._validated_code_signature()
+        problem = self._editor.problem()
+        if problem:
+            raise ValueError(problem)
+        if self._editor.source_type() == "code":
+            self._validated_code_signature()
 
     def _custom_callable(self) -> tuple[str, Callable[..., Any], str, int]:
         """The function in the editor: its name, f(x, *params) - or f(x, y, *params) when it uses y - its text,
         and 1 or 2 for which."""
         self._check_project_code()
-        if self._model_tabs.currentIndex() == 1:
+        if self._editor.source_type() == "expression":
             name = self._current_function_name.strip()
             if not name:
                 raise ValueError("Function name is required.")
-            parameters = self._parse_symbols(self._expr_symbols.text())
+            parameters = self._parse_symbols(self._editor.symbols.text())
             x_symbol = sp.Symbol("x")
             parameter_symbols = [sp.Symbol(param) for param in parameters]
             local_symbols = {"x": x_symbol, "y": sp.Symbol("y"), "z": sp.Symbol("z"), **dict(zip(parameters, parameter_symbols))}
-            expr_text = self._expr_text.toPlainText().strip()
+            expr_text = self._editor.text.toPlainText().strip()
             expr = sp.sympify(expr_text, locals=local_symbols)
             unknown = sorted(str(symbol) for symbol in expr.free_symbols if str(symbol) not in local_symbols)
             if unknown:
@@ -522,20 +451,21 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         name, _params = self._validated_code_signature()
         # Restrictive globals: useful numerical/SymPy tools, no imports/builtins.
         env: dict[str, Any] = {"np": np, "numpy": np, "sp": sp, "sympy": sp, "__builtins__": {"__import__": _scientific_import}}
-        exec(compile(self._code_text.toPlainText(), "<sympy>", "exec"), env, env)
+        code = self._editor.text.toPlainText()
+        exec(compile(code, "<sympy>", "exec"), env, env)
         func = env.get(name)
         if not callable(func):
             raise ValueError(f"{name} is not callable.")
-        if self._uses_y(self._code_text.toPlainText(), name):
+        if self._uses_y(code, name):
             def surface(x_values: np.ndarray, y_values: np.ndarray, *params: float) -> Any:
                 env["x"], env["y"] = x_values, y_values
                 return func(*params)
-            return name, surface, self._code_text.toPlainText(), 2
+            return name, surface, code, 2
 
         def numeric(x_values: np.ndarray, *params: float) -> Any:
             env["x"] = x_values
             return func(*params)
-        return name, numeric, self._code_text.toPlainText(), 1
+        return name, numeric, code, 1
 
     @staticmethod
     def _uses_y(code: str, name: str) -> bool:
@@ -554,24 +484,28 @@ class SeriesFunctionDialog(DataOperationDialogBase):
 
     def _function_ndim(self) -> int:
         """2 for z = f(x, y), 1 for y = f(x): the library's function, or the editor's - read, never run."""
-        index = self._model_tabs.currentIndex()
-        try:
-            if index == 1:
-                tree = ast.parse(self._expr_text.toPlainText().replace("^", "**") or "0", mode="eval")
-                return 2 if any(isinstance(node, ast.Name) and node.id == "y" for node in ast.walk(tree)) else 1
-            if index == 2:
-                return 2 if self._uses_y(self._code_text.toPlainText(), self._current_function_name) else 1
-        except SyntaxError:
-            return 1
+        if self._model_tabs.currentIndex() == 1:
+            return self._editor.ndim()
         return 2 if self._is_2d_function() else 1
+
+    def _ranges(self) -> tuple[GridRange, GridRange]:
+        """Where to evaluate, x and y: the editor's Range on Function, the Charts tab's for the library."""
+        if self._model_tabs.currentIndex() == 1:
+            return self._editor.x_range(), self._editor.y.grid()
+        params = self.parameter_values()
+        spacing = str(params.get("spacing", SPACING_LINEAR))
+        return (GridRange(float(params.get("start", 0.0)), float(params.get("stop", 10.0)),
+                          int(params.get("points", 200)), spacing),
+                GridRange(float(params.get("y_start", 0.0)), float(params.get("y_stop", 10.0)),
+                          int(params.get("y_points", 200)), spacing))
 
     def confirm_run(self, *, commit: bool) -> bool:
         """Past POINTS_WARNING points, ask first: a live series is computed again each time it is drawn."""
         del commit
-        params = self.parameter_values()
-        count = int(params.get("points", 200))
+        x_grid, y_grid = self._ranges()
+        count = int(x_grid.points)
         if self._function_ndim() == 2:
-            count *= int(params.get("y_points", 200))
+            count *= int(y_grid.points)
         if count <= self.POINTS_WARNING or count == self._points_confirmed:
             return True
         answer = QMessageBox.warning(
@@ -651,20 +585,10 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         finally: self._params_table.blockSignals(False)
 
     def _editor_parameters(self) -> tuple[list[str], np.ndarray]:
-        """The parameters the editor's function declares, at their values in Parameters.
-
-        The declaration decides - the Parameters field of an Expression, the def's arguments in Code - and
-        the table follows it when it does not list them (a missing row was a call short of an argument).
-        """
-        if self._model_tabs.currentIndex() == 1:
-            declared = self._parse_symbols(self._expr_symbols.text())
-        else:
-            declared = self._validated_code_signature()[1]
-        names, values = self._function_params()
-        if names != declared:
-            self._rebuild_param_names(declared)
-            names, values = self._function_params()
-        return names, values
+        """The parameters the editor's function declares, at their values in its Parameters tab - whose rows
+        are made from the declaration (FunctionEditor), so none can be missing."""
+        values = self._editor.parameters()
+        return list(values), np.asarray(list(values.values()), dtype=float)
 
     def _function_params(self) -> tuple[list[str], np.ndarray]:
         names, values = [], []
@@ -724,34 +648,17 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             self._model_tabs.setCurrentIndex(1)
         self._start_function(name)
 
-    def _current_serialised(self) -> dict[str, str]:
+    def _current_serialised(self) -> dict[str, Any]:
         name = self._current_function_name.strip()
         if not name:
             raise ValueError("Create a new function or select a stored function first.")
-        idx = self._model_tabs.currentIndex()
-        names, numbers = self._function_params()
-        values = dict(zip(names, numbers.tolist()))
-        if idx == 1:
-            return {"values": values, "function_name": name, "source_type": "expression",
-                    "symbols": self._expr_symbols.text().strip(), "code_string": self._expr_text.toPlainText(),
-                    "description": self._expr_description.toPlainText(),
-                    "from": str(self.parameter_values().get("start", 0.0)),
-                    "to": str(self.parameter_values().get("stop", 10.0)),
-                    "points": str(self.parameter_values().get("points", 200)),
-                    "y_from": str(self.parameter_values().get("y_start", 0.0)),
-                    "y_to": str(self.parameter_values().get("y_stop", 10.0)),
-                    "y_points": str(self.parameter_values().get("y_points", 200))}
-        if idx == 2:
-            return {"values": values, "function_name": name, "source_type": "code",
-                    "symbols": ",".join(self._validated_code_signature()[1]), "code_string": self._code_text.toPlainText(),
-                    "description": self._code_description.toPlainText(),
-                    "from": str(self.parameter_values().get("start", 0.0)),
-                    "to": str(self.parameter_values().get("stop", 10.0)),
-                    "points": str(self.parameter_values().get("points", 200)),
-                    "y_from": str(self.parameter_values().get("y_start", 0.0)),
-                    "y_to": str(self.parameter_values().get("y_stop", 10.0)),
-                    "y_points": str(self.parameter_values().get("y_points", 200))}
-        raise ValueError("Library functions are read-only. Use New to create a stored function.")
+        if self._model_tabs.currentIndex() != 1:
+            raise ValueError("Library functions are read-only. Use New to create a stored function.")
+        data = self._editor.function_data()
+        data["function_name"] = name
+        if data["source_type"] == "code":
+            data["symbols"] = ",".join(self._validated_code_signature()[1])
+        return data
 
     def _save_current(self) -> None:
         try:
@@ -771,40 +678,15 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         except Exception as exc:
             self._show_error(_("Save function"), exc)
 
-    def _apply_serialised(self, data: Mapping[str, str]) -> None:
-        self._current_function_name = str(data.get("function_name", ""))
+    def _apply_serialised(self, data: Mapping[str, Any]) -> None:
+        """*data* (a stored function, or an imported one) in the editor: its formula, values and range."""
         kind = str(data.get("source_type", "")).lower()
-        if kind == "expression":
-            self._model_tabs.setCurrentIndex(1)
-            symbols = [token.strip() for token in str(data.get("symbols", "")).split(",") if token.strip() not in {"", "x", "y", "z"}]
-            self._expr_symbols.setText(",".join(symbols))
-            self._expr_description.setPlainText(data.get("description", ""))
-            self._expr_text.setPlainText(data.get("code_string", ""))
-        elif kind == "code":
-            self._model_tabs.setCurrentIndex(2)
-            self._code_description.setPlainText(data.get("description", ""))
-            self._code_text.setPlainText(data.get("code_string", ""))
-        else:
+        if kind not in ("expression", "code"):
             raise ValueError(f"Unsupported stored source type: {kind}")
-        range_values = {
-            "start": float(data.get("from", "0") or 0),
-            "stop": float(data.get("to", "10") or 10),
-            "points": int(float(data.get("points", "200") or 200)),
-            "y_start": float(data.get("y_from", "0") or 0),
-            "y_stop": float(data.get("y_to", "10") or 10),
-            "y_points": int(float(data.get("y_points", "200") or 200)),
-        }
-        form = getattr(self, "_parameter_form_spec", None)
-        if form is not None:
-            form.set_values(range_values)
-        chart_form = getattr(self, "chart_form", None)
-        if chart_form is not None and hasattr(chart_form, "set_values"):
-            chart_form.set_values(range_values)
+        self._current_function_name = str(data.get("function_name", ""))
+        self._model_tabs.setCurrentIndex(1)
+        self._editor.load(data)
         self._custom_model_changed()
-        stored = stored_values(data)
-        if stored:  # the parameters at the values kept with the function
-            names, numbers = self._function_params()
-            self._set_param_rows(names, [stored.get(name, float(value)) for name, value in zip(names, numbers)])
 
     def _export_text(self) -> None:
         try:
@@ -843,40 +725,37 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             return [FunctionResult(name, name, curve.x, curve.y,
                                    dict(zip(names, map(float, values))), str(payload.get("expression", "") or ""), metadata)]
 
-        params = self.parameter_values(); x_values = self._build_range(params)
+        x_grid, _y_grid = self._ranges()
+        x_values = build_range(x_grid.start, x_grid.stop, x_grid.points, x_grid.spacing)
         name, func, expression, ndim = self._custom_callable(); names, values = self._editor_parameters()
         if ndim == 2:
-            stored, source = self._live_source(params)
+            stored, source = self._live_source()
             def model(independent: np.ndarray, theta: np.ndarray) -> Any:
                 return func(independent[:, 0], independent[:, 1], *theta)
             return self._compute_surface_result({"name": name, "expression": expression}, model=model,
-                                                stored=stored, source_sql=source)
+                                                values=(names, values), stored=stored, source_sql=source)
         # Call directly so Expression/Code does not depend on scanner model classes.
         y = np.asarray(func(x_values, *values), dtype=float)
         if y.ndim == 0: y = np.full_like(x_values, float(y), dtype=float)
         try: y = np.broadcast_to(y, x_values.shape).astype(float, copy=False)
         except ValueError as exc: raise ValueError("Function result must be scalar or have the same shape as x.") from exc
         finite = np.isfinite(x_values) & np.isfinite(y)
-        metadata = {"spacing": str(params.get("spacing", SPACING_LINEAR)), "range": f"{x_values[0]:g} .. {x_values[-1]:g}"}
+        metadata = {"spacing": x_grid.spacing, "range": f"{x_values[0]:g} .. {x_values[-1]:g}"}
         dropped = int((~finite).sum())
         if dropped: metadata["undefined"] = dropped
-        stored, source = self._live_source(params)
+        stored, source = self._live_source()
         return [FunctionResult(name, name, x_values[finite], y[finite],
                                dict(zip(names, map(float, values))), expression, metadata,
                                stored=stored, source_sql=source)]
 
-    def _live_source(self, params: Mapping[str, Any]) -> tuple[dict[str, Any] | None, str]:
-        """The function in the editor as it will be stored, and its live series' query - over the range chosen.
+    def _live_source(self) -> tuple[dict[str, Any] | None, str]:
+        """The function in the editor as it will be stored, and its live series' query - over its range.
 
         None and "" when it has no name to be kept under: drawn as a table then, as a library function is.
         """
         try:
             stored = self._current_serialised()
-            spacing = str(params.get("spacing", SPACING_LINEAR))
-            x_grid = GridRange(float(params.get("start", 0.0)), float(params.get("stop", 10.0)),
-                               int(params.get("points", 200)), spacing)
-            y_grid = GridRange(float(params.get("y_start", 0.0)), float(params.get("y_stop", 10.0)),
-                               int(params.get("y_points", 200)), spacing)
+            x_grid, y_grid = self._ranges()
             return stored, stored_source_sql(stored, stored_values(stored), x_grid, y_grid)
         except (ValueError, SyntaxError):
             return None, ""
@@ -888,17 +767,13 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             self._refresh_stored_combo()
 
     def _compute_surface_result(self, payload: Mapping[str, Any], *, model: Callable[..., Any] | None = None,
+                                values: tuple[list[str], np.ndarray] | None = None,
                                 stored: dict[str, Any] | None = None, source_sql: str = "") -> list[FunctionResult]:
         """z = f(x, y) on the x by y grid: a library function's, or *model* - the editor's - with its live query."""
-        params = self.parameter_values()
-        x_lin = self._build_range(params)
-        y_lin = build_range(
-            float(params.get("y_start", 0.0)),
-            float(params.get("y_stop", 10.0)),
-            int(params.get("y_points", 200)),
-            str(params.get("spacing", SPACING_LINEAR)),
-        )
-        names, values = self._function_params()
+        x_range, y_range = self._ranges()
+        x_lin = build_range(x_range.start, x_range.stop, x_range.points, x_range.spacing)
+        y_lin = build_range(y_range.start, y_range.stop, y_range.points, y_range.spacing)
+        names, values = values if values is not None else self._function_params()
         if model is None:
             model = self._surface_scanner.make_model(dict(payload))
         x_grid, y_grid = np.meshgrid(x_lin, y_lin, indexing="xy")
@@ -911,7 +786,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         finite = np.isfinite(independent[:, 0]) & np.isfinite(independent[:, 1]) & np.isfinite(z_flat)
         undefined = int((~finite).sum())
         metadata: dict[str, Any] = {
-            "spacing": str(params.get("spacing", SPACING_LINEAR)),
+            "spacing": x_range.spacing,
             "range": (
                 f"x: {x_lin[0]:g} .. {x_lin[-1]:g} ({x_lin.size}); "
                 f"y: {y_lin[0]:g} .. {y_lin[-1]:g} ({y_lin.size})"
