@@ -62,3 +62,9 @@ STATUS
 1. Done. app/widgets/function_editor.py: FunctionEditor (a QFrame: Formula, Parameters, Range), RangeRow and
    number_box; function_sql gains parse_function_sql (a series' query read back: the function, its values,
    its x and y range) and replace_function_sql (the function query in it swapped, its columns kept).
+2. Done. Series (Chart properties): the Function card (TitledCard, collapsible, closed) shown for a function
+   series - FunctionEditor loaded from the stored function and the series' query; Apply saves the formula
+   (kind, parameters, text, description: the function's stored values and range kept) and rewrites this
+   series' query (replace_function_sql), one Undo step ("Function of 'X'", descriptors and __sympy__); every
+   chart of the function drawn again. A formula of another dimension than the series draws is refused in the
+   card; an untrusted function is read-only, with Trust... The manual's Series paragraph.

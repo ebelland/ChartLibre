@@ -60,3 +60,66 @@ def test_code_declares_its_parameters_in_its_def(qapp) -> None:
         assert "def Bump" in editor.problem()
     finally:
         editor.deleteLater()
+
+
+def test_series_properties_edit_a_function_series(qapp, tmp_path) -> None:
+    import time
+
+    from app.data.sqlite_repo import SqliteRepo
+    from app.data_operations import sympy_store
+    from app.main_window.main_window import MainWindow
+
+    def spin(seconds: float) -> None:
+        end = time.monotonic() + seconds
+        while time.monotonic() < end:
+            qapp.processEvents()
+
+    path = tmp_path / "f.dhub"
+    repo = SqliteRepo(db_path=path)
+    sympy_store.save(repo, {**LINE, "values": {"a": 2.0, "b": 1.0}})
+    source = repo.get_data_source("Line")
+    figure_id = repo.create_figure_descriptor(name="Line")
+    axis_id = repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+                                          title="Line", x_label="x", y_label="y", options={})
+    for index, name in enumerate(("mine", "other")):
+        repo.create_series_descriptor(axis_id=axis_id, series_index=index, name=name, roles={"x": "x", "y": "y"},
+                                      sql_query=f'SELECT "x" AS "x", "y" AS "y" FROM {source.from_clause()}',
+                                      style={})
+    window = MainWindow(repo, path)
+    try:
+        window.resize(1200, 760)
+        window.show()
+        window._left_panel.select("chart_properties")
+        spin(0.5)
+        series = window._series_widget
+        series.select_series_named("mine")
+        spin(0.1)
+        card, editor = series._function_section, series._function_editor
+        assert not card.isHidden() and "1 other series" in series._function_note.text()
+        assert editor.parameters() == {"a": 2.0, "b": 1.0} and editor.x_range().stop == 4.0
+
+        # This series' values and range; the project's formula.
+        editor.text.setPlainText("a*x**2 + b")
+        editor.values.item(0, 1).setText("3")
+        editor.x.stop.setValue(2.0)
+        series._apply_function()
+        spin(0.2)
+        mine, other = (window._properties_series_descriptor(i) for i in sorted(series._series_map))
+        assert repo.query_df(mine.sql_query)["y"].tolist() == [1.0, 1.75, 4.0, 7.75, 13.0]
+        assert repo.query_df(other.sql_query)["y"].tolist() == [1.0, 3.0, 9.0, 19.0, 33.0]  # its own values
+        assert sympy_store.stored_values(sympy_store.get(repo, "Line")) == {"a": 2.0, "b": 1.0}  # kept
+
+        # One Undo step: the formula and the query back as they were.
+        window._on_undo()
+        assert sympy_store.get(repo, "Line")["code_string"] == "a*x + b"
+        assert "4.0, 5" in window._properties_series_descriptor(mine.id).sql_query
+
+        # A formula of x and y on a series of y = f(x): said, nothing changed.
+        series.select_series_named("mine")
+        editor.text.setPlainText("a*x + y")
+        series._apply_function()
+        assert "f(x)" in series._function_note.text()
+        assert sympy_store.get(repo, "Line")["code_string"] == "a*x + b"
+    finally:
+        window.close()
+        repo.close()

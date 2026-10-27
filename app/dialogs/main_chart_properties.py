@@ -118,6 +118,7 @@ class MainWindowChartProperties:
         self._series_widget.series_options_requested.connect(self._on_series_options_requested)
         self._series_widget.series_order_requested.connect(self._on_series_order_requested)
         self._series_widget.series_delete_requested.connect(self._on_series_delete_requested)
+        self._series_widget.function_edit_requested.connect(self._on_function_edit_requested)
         self._overlay_widget.overlay_options_requested.connect(
             self._on_overlay_options_requested
         )
@@ -752,6 +753,38 @@ class MainWindowChartProperties:
         ):
             return
         self._redraw_properties_chart()
+
+    def _on_function_edit_requested(self, payload: dict[str, Any]) -> None:
+        """The Function card's Apply: the formula saved for the project, this series' query rewritten; one Undo step.
+
+        The function's stored values and range stay its own: what was edited in the card is this series'.
+        Every chart of the function is drawn again - the formula is theirs too.
+        """
+        from app.data.repo.function_sql import replace_function_sql
+        from app.data_operations import sympy_store
+
+        series_id = payload.get("series_id")
+        if series_id is not None:
+            series_desc = self._properties_series_descriptor(int(series_id))
+            edited = payload.get("function") or {}
+            stored = self._repo.get_sympy_function(str(edited.get("function_name", "")))
+            if series_desc is None or stored is None:
+                return
+            self._repo.snapshot_for_undo([*self._repo.DESCRIPTOR_TABLES, sympy_store.TABLE],
+                                         label=_("Function of '{name}'").format(name=series_desc.name))
+            function = {**stored, **{key: edited[key] for key in ("source_type", "symbols", "code_string",
+                                                                    "description") if key in edited}}
+            sympy_store.save(self._repo, function)
+            query = sympy_store.source_sql(function, payload.get("parameters") or {}, payload.get("x"),
+                                           payload.get("y"))
+            self._repo.update_series_sql_query(int(series_id),
+                                               replace_function_sql(str(series_desc.sql_query or ""), query))
+            self._refresh_undo_item()
+        self._reload_property_widgets()
+        self._redraw_properties_chart()
+        reload_charts = getattr(self, "_reload_function_charts", None)
+        if callable(reload_charts):
+            reload_charts()
 
     def _preview_series_style(self, series: str, changes: dict[str, Any]) -> bool:
         """A colour, line or marker edit shown on the chart's own lines - no render (S-01)."""

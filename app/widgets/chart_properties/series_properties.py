@@ -113,6 +113,8 @@ class SeriesPropertiesWidget(BaseProperties):
     series_options_requested = Signal(dict)
     series_order_requested = Signal(list)
     series_delete_requested = Signal(int)
+    #: Apply in the Function card: {"series_id", "function" (the formula), "parameters", "x", "y"}.
+    function_edit_requested = Signal(dict)
 
     # Fixed height, in visible lines, for the SQL query editor. A fixed
     # size rather than Expanding keeps the form layout stable regardless
@@ -190,6 +192,9 @@ class SeriesPropertiesWidget(BaseProperties):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         root.addWidget(self._options_section, 1)
+
+        self._function_section = self._build_function_section()
+        root.addWidget(self._function_section, 0)
 
         scroll = QScrollArea(self)
         scroll.setProperty("toolboxPage", True)
@@ -270,6 +275,94 @@ class SeriesPropertiesWidget(BaseProperties):
         layout.addWidget(row)
 
         return section
+
+    def _build_function_section(self) -> TitledCard:
+        """A function series' function: its formula, this series' values and range (FunctionEditor), Apply.
+
+        Shown only for a series that draws a stored function, closed until opened. The formula is the
+        project's - every chart of the function follows it; the values and the range are this series' own.
+        """
+        from PySide6.QtWidgets import QPushButton
+
+        from app.widgets.function_editor import FunctionEditor
+
+        section = TitledCard(self, _("Function"), "seriesFunctionCard", collapsible=True, collapsed=True)
+        layout = section.card.layout()
+        self._function_note = QLabel(section.card)
+        self._function_note.setWordWrap(True)
+        self._function_note.setProperty("muted", True)
+        self._function_editor = FunctionEditor(section.card)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        self._function_trust = QPushButton(_("Trust..."), section.card)
+        self._function_trust.setToolTip(_("Run the project's functions on this computer: their code is shown first."))
+        self._function_trust.clicked.connect(self._trust_function)
+        self._function_apply = QPushButton(_("Apply"), section.card)
+        self._function_apply.setToolTip(_("The formula for every chart of the function; the values and the range "
+                                          "for this series."))
+        self._function_apply.clicked.connect(self._apply_function)
+        buttons.addWidget(self._function_trust)
+        buttons.addWidget(self._function_apply)
+        layout.addWidget(self._function_note)
+        layout.addWidget(self._function_editor)
+        layout.addLayout(buttons)
+        #: The function query the series was loaded with (parse_function_sql), or None.
+        self._function_query: Any = None
+        section.hide()
+        return section
+
+    def _load_function(self, series_desc: SeriesDescriptorLike | None) -> None:
+        """The Function card for *series_desc*: shown with its function when it draws one, hidden otherwise."""
+        from app.data.repo.function_sql import function_names, parse_function_sql
+
+        sql = str(getattr(series_desc, "sql_query", "") or "") if series_desc is not None else ""
+        query = parse_function_sql(sql) if "chartlibre_function" in sql else None
+        stored = self._repo.get_sympy_function(query.name) if query is not None and self._repo is not None else None
+        self._function_query = query if stored is not None else None
+        self._function_section.setVisible(stored is not None)
+        if stored is None:
+            return
+        from app.data_operations import sympy_store
+
+        self._function_editor.load(stored, values=query.parameters, x=query.x, y=query.y)
+        trusted = sympy_store.is_trusted(stored)
+        self._function_editor.set_read_only(not trusted)
+        self._function_trust.setVisible(not trusted)
+        self._function_apply.setEnabled(trusted)
+        others = sum(1 for row in self._repo.list_series_dict()
+                     if int(row["id"]) != int(series_desc.id) and query.name in function_names([row["sql_query"]]))
+        notes = [_("'{name}': the formula is the project's - {count} other series draw it too.").format(
+            name=query.name, count=others) if others else
+            _("'{name}': the formula is the project's; the values and the range are this series'.").format(
+                name=query.name)]
+        if not trusted:
+            notes.append(_("Not trusted on this computer: shown, not run."))
+        self._function_note.setText(" ".join(notes))
+
+    def _apply_function(self) -> None:
+        """Apply: what is wrong said in the card, nothing sent; otherwise the edit, to the window."""
+        editor, query = self._function_editor, self._function_query
+        if query is None or self._current_series_id is None:
+            return
+        problem = editor.problem()
+        if not problem and (editor.ndim() == 2) != (query.y is not None):
+            problem = (_("This series draws z = f(x, y): the formula must use y.") if query.y is not None else
+                       _("This series draws y = f(x): a formula of x and y needs a chart of its own (Function)."))
+        if problem:
+            self._function_note.setText(problem)
+            return
+        self.function_edit_requested.emit({
+            "series_id": int(self._current_series_id), "function": editor.function_data(),
+            "parameters": editor.parameters(), "x": editor.x_range(), "y": editor.y_range(),
+        })
+
+    def _trust_function(self) -> None:
+        from app.dialogs.function_trust_dialog import ask_to_trust
+
+        if self._repo is not None and ask_to_trust(self, self._repo):
+            self._load_function(self._series_map.get(int(self._current_series_id))
+                                if self._current_series_id is not None else None)
+            self.function_edit_requested.emit({"series_id": None})  # only drawn again
 
     def _build_options_section(self) -> QWidget:
         """Create editable series style controls."""
@@ -642,6 +735,7 @@ class SeriesPropertiesWidget(BaseProperties):
             self._clear_series_fields()
             return
 
+        self._load_function(series_desc)
         with self._reloading_controls():
             self._current_series_id = int(series_desc.id)
             style = self._series_style(series_desc)
@@ -706,6 +800,8 @@ class SeriesPropertiesWidget(BaseProperties):
     def _clear_series_fields(self) -> None:
         """Clear form fields for the no-selection state."""
         self._stored_choices.clear()
+        self._function_section.hide()
+        self._function_query = None
         with self._reloading_controls():
             self._current_series_id = None
             self._legend_label_edit.clear()
