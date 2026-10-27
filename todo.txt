@@ -1,162 +1,80 @@
-ChartLibre TODO - updated 2026-10-25
-One line per item, highest priority first. [YOU] = no code needed.
-Effort: S one session, M 2-3, L 4+. Done work is in git history, not here.
-Size: app 105,422 lines in 327 files; tests 22,425 lines in 194 files (updated at each commit).
+# ChartLibre — Prioritized Roadmap
 
-NEXT - ANALYSIS (table operations, JMP-like)
-- R-04  L  Statistics gaps: VIF, leverage, AIC comparison; Bonferroni;
-           repeated-measures ANOVA, ANCOVA (Games-Howell and Dunn done in Fit Y by X).
-NEXT - ASSISTANT (dev/plans/ai_chat_plan.txt)
-- AI-01 M  run_data_operation: the data operations as tools (Fit curve, Smooth...), as run_analysis does.
-- AI-02 S  Sent log in the panel: every request as it went; the cache hits shown (cache_read_input_tokens).
-- AI-03 S  Windows bundle: anthropic and keyring in the release builds; the key kept in the Credential
-           Manager, tried on the Windows build. The manual's chapter.
-NEXT - INTERFACE
-- R-07  M  Linked selection, next: a click on one point selects its row (Shift adds); a series
-           over a saved query that keeps "_id"; dates and categories on x; the data filter
-           ("show only Selected" on every chart of a table).
-- S-01  S  Live style preview: Undo per element.
+**Audience:** engineers, scientists, and students who need an affordable desktop workflow from raw data to analysed, documented figures and reports.
 
-- H-11  M  Error messages that say what to do next, for import and SQL.
-- H-12  M  Windows parity: every dialog at 1366x768 and 125% scaling in CI.
-- H-08  M  First run: open on Help me choose with a demo table; a 3-step tour of the rail.
+## Scoring
 
-LATER
-- AN-07 M  Profiler, desirability, contour profiler; D-optimal DOE.
-- AN-08 M  Survival: Cox, Weibull/lognormal life fits.
-- AN-09 M  Mixed models (REML); power and sample size.
-- AN-12 M  Bootstrap CIs, permutation tests, cross-validation.
-- AN-13 M  Science: ODE kinetics, dose-response EC50, peak deconvolution.
-- AN-14 M  Response screening (many Y, FDR).
-- AN-24 M  Neural network (MLP).
-- R-02  M  Background computation: Outlier preview, Stop inside long loops.
-- R-13  S  Known-answer tests where NIST has no dataset.
+- **Priority:** 1 = highest expected user value; ranked by breadth of demand, workflow impact, and competitive gap.
+- **Complexity:** 1 = low; 5 = very high. This is a relative delivery estimate, not a schedule.
+- **Gap:** the main competing capability that users are likely to notice. `Core` means a foundational ChartLibre capability rather than a direct competitor gap.
 
+The order is a single recommended backlog. Related items have been merged, and completed work has been removed. “Requested most” is an informed proxy based on the stated audience and market gaps; validate the top ten with user interviews, issue tags, and usage data.
 
+| ID | Priority | Complexity | Initiative | Simplified scope | Main gap / user need |
+|---|---:|---:|---|---|---|
+| ID01 | 1 | 3 | **Save and apply prediction models** (G-02) | Save any fitted model with its preprocessing; score new rows or another table. | **JMP / scikit-learn**; turns analysis into a reusable workflow. |
+| ID02 | 2 | 3 | **Reproducible analysis** (H-01, I-07) | Re-run every recorded operation and export an equivalent Python script. | **Core**; essential for papers, theses, and lab records. |
+| ID03 | 3 | 4 | **Graph Builder** (G-01) | Build charts by dragging columns onto visual roles; change marks and grouping live. | **JMP**; a major discoverability and chart-authoring gap. |
+| ID04 | 4 | 3 | **Linked selection and local filtering** (R-07, G-04) | Click chart marks to select table rows; filter every chart/report for a table. | **JMP**; fundamental exploratory-analysis workflow. |
+| ID05 | 5 | 3 | **Templates and batch reporting** (H-03, I-08) | Apply a figure design and operations to new files; run a folder batch. | **JMP / Origin**; repeated lab workflows. |
+| ID06 | 6 | 2 | **Publication-ready export** (H-05) | Presets for journal sizes, embedded fonts, PDF/SVG, and Word/LaTex result tables. | **Origin / Matplotlib**; high-value final-mile workflow. |
+| ID07 | 7 | 3 | **Units and uncertainty propagation** (H-02) | Assign units to columns; carry them through axes, fits, and error calculations. | **Engineering/science tools**; critical for physical-science work. |
+| ID08 | 8 | 3 | **Model comparison and validation** (G-03, AN-12) | Compare models on shared validation data with R², RMSE, AUC, bootstrap, permutation, and cross-validation options. | **JMP / scikit-learn**; safer model choice. |
+| ID09 | 9 | 2 | **Plain-language errors and onboarding** (H-11, H-08) | Actionable import/SQL errors, a demo dataset, guided first-run flow, and product tour. | **Core**; improves activation and support load. |
+| ID10 | 10 | 2 | **Teaching explanations** (H-04) | Add short “How to read this” explanations to reports. | **Core**; differentiates ChartLibre for students. |
+| ID11 | 11 | 3 | **More instrument and scientific imports** (I-01) | Add priority formats: HDF5/NetCDF, TDMS, compressed JCAMP, and common instrument exports. | **Origin / lab software**; unlocks adoption, subject to sample files. |
+| ID12 | 12 | 3 | **Quality and measurement tools** (G-06) | Add EWMA, CUSUM, Levey–Jennings, rare-event charts, process screening, Bland–Altman, Deming, and Passing–Bablok. | **JMP / Minitab**; strong engineering and QA gap. |
+| ID13 | 13 | 2 | **Robust regression diagnostics** (R-04, G-25) | Add VIF, leverage, AIC comparison, WLS/GLS, and remaining ANOVA diagnostics. | **statsmodels / JMP**; makes existing modelling more trustworthy. |
+| ID14 | 14 | 2 | **Missing-data and model preprocessing** (G-22, G-24) | Table-level imputation plus saved scaling, encoding, and feature generation. | **scikit-learn**; prerequisite for reusable models. |
+| ID15 | 15 | 2 | **Nonparametric and distribution tests** (G-30, G-07) | Add Friedman, Mood median, Fligner–Killeen, Page trend, exact tests, tolerance/prediction intervals, TOST, and matched pairs. | **SciPy / JMP**; broad, low-effort statistical coverage. |
+| ID16 | 16 | 3 | **Reliability and survival analysis** (AN-08, G-08) | Add censored life distributions, life regression, reliability growth, and Cox models. | **JMP**; high-value specialist workflow. |
+| ID17 | 17 | 3 | **Hyperparameter tuning and ML metrics** (G-20, G-21) | Provide search, learning/validation curves, calibration and precision–recall views, and threshold tuning. | **scikit-learn**; makes ML results defensible. |
+| ID18 | 18 | 2 | **Tabulate report builder** (G-10) | Create drag-and-drop grouped summary tables without making an intermediate table. | **JMP**; frequent reporting need. |
+| ID19 | 19 | 3 | **More predictive models** (G-19, AN-24) | Add k-NN, SVM, naive Bayes, histogram gradient boosting, ensembles, and MLP. | **scikit-learn**; expands modelling choices after validation tooling. |
+| ID20 | 20 | 3 | **More GLM and robust models** (G-26, G-27) | Add negative-binomial, zero-inflated, gamma/Tweedie, GEE, quantile/robust regression, MANOVA, and Hotelling T². | **statsmodels**; specialist analysis coverage. |
+| ID21 | 21 | 3 | **Profiler, optimisation, and DOE expansion** (AN-07, G-05, G-32) | Add desirability/contour profilers, D-optimal and screening designs, Taguchi/mixture designs, and constrained optimisation. | **JMP / Minitab**; valuable industrial workflow. |
+| ID22 | 22 | 2 | **Background computation controls** (R-02) | Preview long operations and allow safe cancellation inside long loops. | **Core**; responsiveness on real datasets. |
+| ID23 | 23 | 2 | **Data-operation tools for the AI assistant** (AI-01) | Let the assistant execute approved data operations, not only analyses. | **Core / AI assistants**; useful after operation safety is clear. |
+| ID24 | 24 | 2 | **Signal and scientific modelling** (AN-13, G-31) | Add uneven-sampling spectra, resampling, filter response, deconvolution, ODE kinetics, dose response, and peak deconvolution. | **SciPy / Origin**; specialist scientific workflows. |
+| ID25 | 25 | 3 | **Time-series expansion** (G-29) | Add SARIMAX, VAR/Granger, state-space models, and rolling-origin validation. | **statsmodels**; advanced forecasting users. |
+| ID26 | 26 | 2 | **Importer plugin system** (I-02) | Let labs build, test, install, and manage importers for custom formats. | **Core / Origin**; scalable solution for long-tail formats. |
+| ID27 | 27 | 2 | **Project notebook export** (H-07) | Export charts, notes, and reports as shareable HTML. | **JMP / notebooks**; collaboration without requiring the app. |
+| ID28 | 28 | 2 | **Advanced clustering** (G-23) | Add row-level DBSCAN/HDBSCAN, spectral clustering, and Birch. | **scikit-learn**; moderate specialist gap. |
+| ID29 | 29 | 2 | **Spatial and circular analysis** (G-33, G-34) | Add spatial geometry/interpolation and circular statistics. | **SciPy**; niche scientific coverage. |
+| ID30 | 30 | 3 | **Live instrument data** (H-06) | Watch folders, append CSV/serial data, and feed live charts. | **Lab software**; requires clear device and reliability scope. |
+| ID31 | 31 | 3 | **Custom fit and function models** (I-06) | Support expression- and code-based models with parameters and project storage. | **Origin / SciPy**; powerful but needs safe UX. |
+| ID32 | 32 | 2 | **Animated charts** (I-03) | Animate a chosen dimension and export GIF/APNG/WebP/HTML/frames. | **Origin / Plotly**; presentation-oriented. |
+| ID33 | 33 | 3 | **3D parametric curves** (I-04) | Plot x(t), y(t), z(t), with units and uncertainty support. | **Scientific plotting tools**; narrow audience. |
+| ID34 | 34 | 2 | **Result mini-charts** (I-05) | Show a compact chart beside an operation result. | **Core**; polish and scanability. |
+| ID35 | 35 | 4 | **Functional Data Explorer** (G-09) | Analyse one curve per ID with smoothing, functional PCA, clusters, and shape models. | **JMP**; advanced, specialist capability. |
+| ID36 | 36 | 4 | **Mixed models and power analysis** (AN-09) | Add REML mixed models plus power and sample-size tools. | **JMP / statsmodels**; high value for research, complex delivery. |
+| ID37 | 37 | 2 | **Assistant transparency and Windows release polish** (AI-02, AI-03) | Show requests/cache activity; package Anthropic/keyring support and document secure key storage. | **Core**; improve trust and Windows usability. |
+| ID38 | 38 | 2 | **Windows UI parity** (H-12) | Test dialogs at 1366×768 and 125% scaling in CI. | **Core**; prevents platform-specific friction. |
+| ID39 | 39 | 1 | **Live style preview with element undo** (S-01) | Preview styling instantly and undo individual element changes. | **Core**; low-cost usability improvement. |
+| ID40 | 40 | 2 | **Known-answer test coverage** (R-13) | Add tests using verified reference results where NIST data is unavailable. | **Core**; quality investment, indirect user value. |
+| ID41 | 41 | 4 | **Text Explorer** (G-11) | Add word counts, n-grams, and topics for text columns. | **JMP**; weak fit for the primary audience. |
 
-IDEAS
+## User-owned / release-readiness tasks
 
-I-01  M  Import more formats (dev/plans/import_formats_plan.txt): Touchstone v2 and compressed JCAMP (SQZ/DIF); NI TDMS, HDF5/NetCDF, STDF, Igor, FCS,
-         EDF, SPC, OPUS, .xrdml, MDF4; oscilloscopes (Tektronix, LeCroy, Keysight); B1500 / 4200A
-         exports and KLARF - NEED THE OWNER'S SAMPLE FILES; manual's Import chapter table of formats.
-I-02  M  Importer plugins for a lab's own formats - EVALUATION AND PLAN: dev/plans/importer_plugins_plan.txt
-         (sniff for .csv/.txt, Importer Builder with "Try on a file", installed list; waiting for the go).
-I-03  M  Animated charts - PLAN: dev/plans/animations_plan.txt ("Animate by" in New Chart, Id included;
-         an Animation tab in Chart properties; a player; GIF/APNG/WebP/HTML/PNG frames, MP4 with ffmpeg).
-         Waiting for the go; Q1-Q5 to answer.
-I-04     Next: 3D parametric curves x(t), y(t), z(t) - with I-06's expressions; units with pint and
-         uncertainty propagation (H-02) - needs a plan. (Vector Field, Quiver 3D done.)
-I-05   M  Small chart beside operation results.
-I-06   M  Custom models in Fit and Function: Library | Expression (SymPy) | Code, parameters p[], saved in a table of the project, export/import text or XML. PLAN ONLY: dev/plans/custom_models_plan.txt (waiting for the go).
-I-07   M  Reproducibility: re-run recorded operations; export a Python script (H-01).
-I-08   M  Figure templates, next: a template chosen in New Chart; batch over a folder (H-03) - see
-          dev/plans/figure_templates_plan.txt. Also: signed macOS app, Windows installer.
+| ID | Priority | Complexity | Task | Simplified scope |
+|---|---:|---:|---|---|
+| ID42 | 1 | 1 | Move the project out of iCloud Desktop (A-04) | Use a local development folder such as `~/Developer`. |
+| ID43 | 2 | 1 | Improve GitHub presence (A-05) | Add description, topics, and social-preview image. |
+| ID44 | 3 | 2 | Test Linux (A-06) | Validate installation and core workflows on a supported distribution. |
+| ID45 | 4 | 3 | Package and distribution work (I-08) | Sign the macOS app and produce a Windows installer. |
 
-[YOU]
-- A-04 Move the project out of the iCloud Desktop (e.g. ~/Developer).
-- A-05 GitHub: description, topics, social preview.
-- A-06 Test Linux
+## Suggested near-term sequence
 
-HINTS (Claude's review, 2026-10-17)
-Who it is for. Engineers, scientists and students without a JMP/Origin/Minitab
-licence: the niche is real - a free desktop app that goes from a CSV to a
-fitted, documented chart and a report, with SQL underneath and Matplotlib's
-quality on top. Its strongest cards: the data stays a SQLite project (open,
-queryable, versionable), every result names the library function and the
-method (Computed with), the NIST-checked fits, the reports, the plugin model,
-and the Guided analysis for people who do not know the name of the test.
+1. **Foundation for repeatable work:** ID01, ID02, ID14, ID04.
+2. **Visible product differentiation:** ID03, ID05, ID06, ID07.
+3. **Statistical depth with broad reach:** ID08, ID13, ID15, ID12.
+4. **Specialist expansion:** imports/plugins, reliability, DOE, signal/science, ML and time series.
 
-Add (highest value first)
-- H-01 Reproducibility as a feature (R-03): every operation in the history
-  re-runnable, and "Export as Python script" (pandas + SciPy/statsmodels +
-  Matplotlib) - what a thesis, a paper or a lab notebook needs, and what
-  turns a GUI user into a learner.
-- H-02 Units and uncertainty: a unit per column (pint), carried into axis
-  labels and fits; values +/- error propagated - engineers and physics labs.
-- H-03 Templates: "same chart for the next file" - apply a figure's design
-  and operations to a new table (R-14), and batch over a folder of files.
-- H-04 Teaching mode: each report with a "How to read this" box (what the
-  p-value, R2, Cpk mean here, in two sentences) - students first.
-- H-05 Export for publication: figure size by journal column (85/180 mm),
-  fonts embedded, vector PDF/SVG at once; LaTeX/Word table of the results.
-- H-06 Data from instruments: a folder watcher / serial / CSV append feeds a
-  live chart (Live updates exists); common lab formats (Excel with metadata
-  blocks, .txt from spectrometers, HDF5).
-- H-07 Collaboration: a project-to-HTML "notebook" (charts + notes + reports)
-  to share without the app.
+## Notes on consolidation
 
-GAP ANALYSIS (Claude, 2026-10-20) - what JMP, Matplotlib, scikit-learn, statsmodels and SciPy offer
-that ChartLibre does not yet. Already there: Distribution, Fit Y by X, Fit Model (least squares,
-stepwise, logistic/ordinal, GLM, response surface), Multivariate, Principal Components, Factor
-Analysis, Discriminant, PLS, Partition (tree, forest, boosting), Cluster Analysis (K Means, Ward,
-Normal Mixtures), Time Series (ACF/PACF, STL, ARIMA, ETS), control charts (I-MR, X-bar, p/np/c/u,
-run rules), capability, DOE (factorial, response surface, Latin hypercube), outliers, peaks,
-filters, spectra, GP regression, NIST-checked curve fitting, Kaplan-Meier, 40+ chart types.
-Items already listed above are named here, not repeated. Highest value first in each block.
-Suggested order overall: G-02, G-01, G-30, G-03, G-06.
-
-JMP
-- G-01  L  Graph Builder: drag columns onto X, Y, Group X/Y, Wrap, Overlay, Color, Size; change
-           the element (points, line, box, bar, smoother, contour) live. JMP's most used platform;
-           New Chart is a dialog.
-- G-02  M  Save Prediction Formula: a fitted model (Fit Model, Partition, PLS, Discriminant, Fit
-           Y by X) kept in the project and applied to new rows or another table. Nothing saves a
-           model today.
-- G-03  M  Model Screening / Model Comparison: one Y fitted by least squares, tree, forest,
-           boosting, logistic (and MLP, AN-24) on the same validation rows; R2, RMSE, AUC side by side.
-- G-04  M  Local Data Filter: sliders and check boxes that show/select rows on every chart and
-           report of a table (with R-07).
-- G-05  M  DOE more: Plackett-Burman, definitive screening, mixture designs, Taguchi arrays,
-           Augment Design, Evaluate Design (power, aliasing, correlation map). With AN-07.
-- G-06  M  Quality more: EWMA, CUSUM, Levey-Jennings, rare-event (g, t) charts; Process Screening
-           (many columns at once); measurement agreement (Bland-Altman, Deming, Passing-Bablok).
-           With AN-06.
-- G-07  S  Distribution more: tolerance and prediction intervals; equivalence test (TOST);
-           Matched Pairs platform (difference vs mean plot).
-- G-08  M  Reliability: Life Distribution with censoring (Weibull, lognormal on probability
-           paper), Fit Life by X, Reliability Growth (Crow-AMSAA). With AN-08.
-- G-09  L  Functional Data Explorer: one curve per id, spline-smoothed, functional PCA, curve
-           clusters and a model of their shapes - fits the app's series side.
-- G-10  S  Tabulate: drag-and-drop summary report (statistics by row and column groups); today
-           Group and aggregate makes a new table.
-- G-11  L  Text Explorer: word counts, n-grams, topics of a text column. Low for engineers.
-
-Matplotlib
-
-scikit-learn
-- G-19  M  More learners: k-nearest neighbours, SVM (SVC/SVR), naive Bayes, HistGradientBoosting
-           (fast, takes missing values), stacking/voting. MLP is AN-24.
-- G-20  M  Hyperparameter tuning (GridSearchCV/RandomizedSearchCV), learning and validation
-           curves, nested cross-validation. With AN-12.
-- G-21  S  Classification metrics: precision-recall and calibration curves, per-class precision,
-           recall and F1, decision threshold tuning (ROC and confusion matrix exist).
-- G-22  M  Missing values in a table: SimpleImputer, KNNImputer, IterativeImputer (MICE) as a
-           table tool; Fill missing values works on one series only.
-- G-23  S  Cluster Analysis more: DBSCAN/HDBSCAN, spectral, Birch for table rows (DBSCAN exists
-           for series only).
-- G-24  S  Preprocessing kept with the model: scaling, one-hot/target encoding, polynomial
-           features (with G-02).
-
-statsmodels (mixed models AN-09, repeated measures/ANCOVA/VIF/leverage R-04, Cox AN-08, FDR AN-14)
-- G-25  M  Fit Model: residual diagnostics (Breusch-Pagan, White, Durbin-Watson, RESET, Jarque-Bera), VIF,
-           robust (HC1/HC3) and clustered standard errors done. Left: WLS/GLS (the ANOVA and lack of fit
-           assume unweighted least squares).
-- G-26  M  More models: negative binomial, zero-inflated Poisson, gamma/Tweedie GLM, GEE for
-           clustered rows, quantile regression (QuantReg), robust RLM.
-- G-27  M  MANOVA (Wilks, Pillai, Hotelling-Lawley, Roy) and Hotelling T2.
-- G-28  S  Categorical tests done: two-proportion z, McNemar, risk difference / relative risk / odds ratio with
-           CIs, Mantel-Haenszel over strata (role "strata") in the contingency model; Cochran's Q as an engine
-           function (no dialog yet: it needs k binary columns).
-- G-29  M  Time Series more: SARIMAX with exogenous X, VAR with Granger causality and impulse
-           response, unobserved components (state space), rolling-origin forecast validation.
-
-SciPy
-- G-30  S  Nonparametric tests: Friedman, Mood's median, Fligner-Killeen, Page trend, k-sample
-           Anderson-Darling, Barnard/Boschloo exact (Kruskal, Mann-Whitney, Wilcoxon, Dunn exist).
-- G-31  M  Signal more: Lomb-Scargle for uneven sampling, resample/decimate, the designed
-           filter's frequency response (freqz, Bode), deconvolution (with AN-13).
-- G-32  M  Optimize: the X that maximise a fitted Y within limits (scipy.optimize, the
-           Profiler's Maximize Desirability, AN-07); ODE models fitted to data (solve_ivp, AN-13).
-- G-33  S  Spatial: convex hull, Voronoi, nearest-neighbour distances (KDTree); RBF interpolation
-           of scattered points onto a grid.
-- G-34  S  Circular statistics (circmean, circstd, Rayleigh test) for angles, directions, phases.
+- R-07 and G-04 are one linked-selection/filtering initiative.
+- H-01 and I-07 are one reproducibility initiative.
+- H-03 and I-08 are one templates/batch initiative; signing and installers remain release work.
+- R-04 and G-25 overlap in regression diagnostics.
+- AN-07, G-05, and G-32 form one DOE/profiler/optimisation area.
+- Items described as already done in the source were excluded from the active roadmap.
