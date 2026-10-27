@@ -125,6 +125,11 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
             panel = dialog._function_panel
             assert panel.is_row_shown(panel._x) and not panel.is_row_shown(panel._y)
             assert panel.parameters() == {"a": 1.0, "b": 0.0}  # the stored values, to start from
+            # x and y place themselves: no roles, groups or separate axes to choose.
+            form = dialog._editor_form_layout
+            assert not form.isRowVisible(dialog._roles_scroll) and not form.isRowVisible(dialog._combo_group)
+            assert not dialog._axis_form_layout.isRowVisible(dialog._combo_axes_by)
+            assert dialog._current_role_mapping()["x"] == "x" and dialog._current_role_mapping()["y"] == "y"
             panel._values["a"].setValue(a)
             panel._x.stop.setValue(stop)
             dialog._on_accept()
@@ -149,8 +154,13 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
         panel = dialog._function_panel
         assert panel.is_row_shown(panel._y) and panel._y.grid() == GridRange(1.0, 2.0, 2)
         assert dialog._columns_from_table() == ["x", "y", "z"]
-        dialog._combo_table.setCurrentIndex(-1)  # no function: its rows hidden
-        assert not panel.is_row_shown(panel._x)
+        assert dialog._select_renderer_by_name("Surface Plot")
+        assert dialog._current_role_mapping().get("z") == "z"
+        assert not dialog._editor_form_layout.isRowVisible(dialog._roles_scroll)
+        dialog._combo_table.setCurrentIndex(dialog._combo_table.findData("Line"))  # f(x): no z for a surface
+        assert dialog._editor_form_layout.isRowVisible(dialog._roles_scroll)
+        dialog._combo_table.setCurrentIndex(-1)  # no function: its rows hidden, the roles shown
+        assert not panel.is_row_shown(panel._x) and dialog._editor_form_layout.isRowVisible(dialog._roles_scroll)
     finally:
         dialog.close()
 

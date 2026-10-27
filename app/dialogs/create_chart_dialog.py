@@ -213,6 +213,7 @@ class NewPlotTabDialog(ColumnsDialog):
         ))
         self._combo_axes_by.currentIndexChanged.connect(lambda _index: self._sync_controls())
         axis_layout.addRow(_("Separate axes by:"), self._combo_axes_by)
+        self._axis_form_layout = axis_layout
 
         axis_row = QWidget(fig_group.card)
         axis_row_layout = QHBoxLayout(axis_row)
@@ -1206,10 +1207,39 @@ class NewPlotTabDialog(ColumnsDialog):
         combo = getattr(self, "_combo_group", None)
         if layout is None or combo is None:
             return
-        own = "group" in self._role_combos
+        own = "group" in self._role_combos or self._roles_automatic()
         if own and combo.currentIndex() > 0:
             combo.setCurrentIndex(0)
         layout.setRowVisible(combo, not own)
+
+    def _roles_automatic(self) -> bool:
+        """A stored function's x, y (and z) go to the roles of the same name, with nothing else to choose.
+
+        Unless the chart needs a role the function has no column for - a histogram's values, a surface's z
+        from f(x): then the roles are shown.
+        """
+        if self._function_data is None:
+            return False
+        columns = {column.lower() for column in self._columns_from_table()}
+        return all(role.lower() in columns for role in self._renderer_role_names("required"))
+
+    def _show_roles(self) -> None:
+        """The roles, Group by and Separate axes by: hidden for a stored function, whose columns place themselves."""
+        layout = getattr(self, "_editor_form_layout", None)
+        if layout is None:
+            return
+        automatic = self._roles_automatic()
+        if automatic:
+            for role, combo in self._role_combos.items():
+                if role.lower() not in ("x", "y", "z") and combo.currentIndex() > 0:
+                    combo.blockSignals(True)
+                    combo.setCurrentIndex(0)
+                    combo.blockSignals(False)
+        layout.setRowVisible(self._roles_scroll, not automatic)
+        self._show_group_by()
+        if self._function_data is not None and self._combo_axes_by.currentIndex() > 0:
+            self._combo_axes_by.setCurrentIndex(0)
+        self._axis_form_layout.setRowVisible(self._combo_axes_by, self._function_data is None)
 
     def _rebuild_role_combos(self) -> None:
         """Rebuild the scrollable role panel for the selected renderer."""
@@ -1280,6 +1310,7 @@ class NewPlotTabDialog(ColumnsDialog):
                 and len(cols) > 1
             ):
                 self._role_combos[y_role].setCurrentIndex(2)
+        self._show_roles()
 
     def _on_chart_type_changed(
         self,
