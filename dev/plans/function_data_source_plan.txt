@@ -1,0 +1,61 @@
+A STORED FUNCTION AS A DATA SOURCE - LIVE, PARAMETRIC SERIES - PLAN      2026-10-27, waiting for the go
+
+WHAT WAS ASKED
+New Chart: a data source can be a __sympy__ function, with the same logic as the saved queries. How can the
+formula be passed so it is a parametric formula, regenerated at run time? The query on a result table is no use
+any more.
+
+TODAY
+A saved query is a DataSource of kind "query": its SQL is read as a subquery (from_clause) and everything
+downstream - New Chart, the series, the analyses, the data operations, the exports - only ever sees
+SELECT <columns> FROM <source>. Function draws a stored function by evaluating it once and writing a table that
+its series reads: change the formula or a parameter and the chart does not follow.
+
+THE IDEA: THE FORMULA EVALUATED BY SQLITE, AT EACH READ
+1. One SQL function, registered by the application on every project connection (sqlite3 create_function):
+       chartlibre_function(name, parameters_json, x [, y]) -> the function's value there
+   It runs the stored formula (sympy_store: lambdified once, kept compiled until the function is saved again).
+2. A function source's SQL makes the grid and calls it - nothing stored but the formula and its numbers:
+       WITH RECURSIVE i(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM i WHERE n < 199)
+       SELECT chartlibre_grid(n, 0, 10, 200, 'linear') AS x,
+              chartlibre_function('MyLine', '{"a": 2, "b": 1}', chartlibre_grid(n, 0, 10, 200, 'linear')) AS y
+       FROM i
+   (chartlibre_grid: the n-th point of a linear or log range - in Python, since SQLite's power() is not
+   always built in.) z = f(x, y): the x and y grids crossed, columns x, y, z.
+3. DataSource kind "function" (app/data/data_source.py), listed by list_data_sources beside the tables and the
+   queries; its from_clause is that SQL as a subquery - so New Chart, the series, Fit curve, the analyses, the
+   exports read it as they read a query, with no special case anywhere.
+4. Parametric: the parameter values and the range are in the series' own SQL, so two charts can draw one
+   function with different a, b or ranges (Q1). Save the function with a new formula and every chart of it
+   draws the new one at its next redraw: the series cache follows the database, and saving changes it.
+5. New Chart: a stored function in the source list (marked as one); choosing it shows its parameters with
+   their values and its range (x, and y for z = f(x, y)), prefilled from the store, instead of the column
+   filters; x / y / z go to the chart's roles as columns do.
+6. Function: draws a live function series - no result table (Q2).
+
+SAFETY (todo ID47 - first, Q4)
+At run time means at every redraw: opening a project draws its charts, and so runs its functions' code. A
+project's stored functions run only once its functions are trusted: asked the first time, the code shown,
+remembered on this computer for that project; functions made on this computer trusted at once. Not trusted, the
+SQL function returns NULL - the series is empty, and a note over the chart says why, with Trust.
+
+STEPS (each a commit, the suite green after each)
+1. The trust (ID47): asked once per project, remembered; the note with Trust.                         (S)
+2. chartlibre_function / chartlibre_grid on every connection; the compiled cache; sympy_store.series_sql
+   for a function, its parameters and its range.                                                      (M)
+3. DataSource kind "function", list_data_sources, from_clause; a stored parameter value per parameter
+   (Q1) - __sympy__ gains a "Values" column (p0 is all 1 today).                                       (S)
+4. New Chart: the function sources, their parameters and range.                                       (M)
+5. Function: a live series instead of a table; the manual.                                            (S)
+Tests: the SQL function and grid (linear, log, 2D), a series that follows a saved change, two charts of one
+function with different parameters, a fit on a function series, an untrusted project drawing nothing.
+
+QUESTIONS
+Q1  Parameter values: in each chart's series, the function's stored values as their defaults (suggested) - or
+    only the stored ones, the same for every chart?
+Q2  Function: a live series only (suggested) - or also "Save as table" for a fixed copy of the values?
+Q3  The library's functions (Gaussian, Logistic...) as sources too, by the same SQL function (suggested: yes,
+    later) - or stored functions only?
+Q4  The trust (ID47) as step 1, before any of this runs (suggested) - or later?
+
+EFFORT: M-L (about two sessions).
