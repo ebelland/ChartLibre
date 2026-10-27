@@ -26,7 +26,7 @@ from app.plugin_api.charts.base import BaseAxisRenderer
 from app.logs.logger import applogger
 from app.data.repo._common import ensure_read_only_select
 from app.data.sqlite_repo import SqliteRepo
-from app.data.data_source import quote_identifier
+from app.data.data_source import DataSource, quote_identifier
 from app.utils.messages import show_message
 from app.styles.style import (
     apply_toolbox_header_metrics,
@@ -42,6 +42,7 @@ from app.styles.style import (
 )
 from app.utils.i18n import _, tr
 from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
+from app.widgets.function_source_panel import FunctionSourcePanel
 from app.utils.config import get_constant
 
 
@@ -104,6 +105,8 @@ class NewPlotTabDialog(ColumnsDialog):
         self._renderer_class: type[BaseAxisRenderer] | None = None
         self._figure_name_user_modified = False
         self._axis_name_user_modified = False
+        #: The stored function chosen as the data source (its __sympy__ row), or None for a table or a query.
+        self._function_data: dict[str, Any] | None = None
 
         self.setModal(False)
 
@@ -275,6 +278,8 @@ class NewPlotTabDialog(ColumnsDialog):
         # Series editor.
         self._combo_table = QComboBox()
         self._combo_table.setEditable(False)
+        # A stored function as the source: its parameters and range, as this chart draws it.
+        self._function_panel = FunctionSourcePanel(self)
 
         self._edit_series_name = QLineEdit()
         self._edit_series_name.setPlaceholderText(_("Series name"))
@@ -320,6 +325,7 @@ class NewPlotTabDialog(ColumnsDialog):
         editor_form_layout = QFormLayout(editor_form)
         stdSizeAndlayout(editor_form_layout)
         editor_form_layout.addRow(_("Data source:"), self._combo_table)
+        self._function_panel.insert_rows(editor_form_layout, editor_form_layout.rowCount())
         editor_form_layout.addRow(_("Series name:"), self._edit_series_name)
         editor_form_layout.addRow(_("Query:"), self._edit_sql)
         editor_form_layout.addRow(self._roles_scroll)
@@ -368,6 +374,7 @@ class NewPlotTabDialog(ColumnsDialog):
         for renderer_list in self._lists_by_category.values():
             renderer_list.currentItemChanged.connect(self._on_chart_type_changed)
         self._combo_table.currentIndexChanged.connect(self._on_table_changed)
+        self._function_panel.changed.connect(self._update_sql)
         self._series_list.currentItemChanged.connect(self._on_series_selected)
 
         self._edit_figure_name.textEdited.connect(self._on_figure_name_edited)
@@ -756,14 +763,14 @@ class NewPlotTabDialog(ColumnsDialog):
         single string and resolves the kind through the repository.
         """
         self._combo_table.clear()
-        df = self._repo.list_data_sources()
+        df = self._repo.list_data_sources(functions=True)
         if df is None or df.empty:
             return
 
         for row in df.itertuples(index=False):
             name = str(row.Table)
-            is_query = str(getattr(row, "kind", "table")) == "query"
-            self._combo_table.addItem(f"{name}  (query)" if is_query else name, name)
+            kind = str(getattr(row, "kind", "table"))
+            self._combo_table.addItem(f"{name}  ({kind})" if kind in ("query", "function") else name, name)
 
         if self._combo_table.count() <= 0:
             return
@@ -1095,13 +1102,29 @@ class NewPlotTabDialog(ColumnsDialog):
     # ------------------------------------------------------------------
     # Columns / roles.
     # ------------------------------------------------------------------
-    def _columns_from_table(self) -> list[str]:
-        """Return the columns of the selected source, table or saved query."""
+    def _current_source(self) -> DataSource | None:
+        """The selected source; a stored function at the parameters and range chosen for this chart."""
         name = self._combo_table.currentData()
         if not isinstance(name, str) or not name:
-            return []
-
+            return None
         source = self._repo.get_data_source(name)
+        if source is not None and source.is_function and self._function_data is not None:
+            return DataSource.function(source.name, self._function_panel.source_sql())
+        return source
+
+    def _sync_function_source(self) -> None:
+        """A stored function chosen: its parameters and range shown, from the store; hidden for the rest."""
+        name = self._combo_table.currentData()
+        source = self._repo.get_data_source(name) if isinstance(name, str) and name else None
+        data = self._repo.get_sympy_function(source.name) if source is not None and source.is_function else None
+        self._function_data = data
+        if data is not None:
+            self._function_panel.load(data)
+        self._function_panel.set_shown(data is not None)
+
+    def _columns_from_table(self) -> list[str]:
+        """Return the columns of the selected source: a table, a saved query or a stored function."""
+        source = self._current_source()
         if source is None:
             return []
         return [str(column) for column in self._repo.data_source_columns(source)]
@@ -1115,11 +1138,7 @@ class NewPlotTabDialog(ColumnsDialog):
         the source was, and a saved query is re-executed on every render rather
         than frozen into a table.
         """
-        name = self._combo_table.currentData()
-        if not isinstance(name, str) or not name:
-            return ""
-
-        source = self._repo.get_data_source(name)
+        source = self._current_source()
         if source is None:
             return ""
 
@@ -1242,9 +1261,10 @@ class NewPlotTabDialog(ColumnsDialog):
             finally:
                 combo.blockSignals(False)
 
-        # Keep convenient defaults for common X/Y role names.
+        # Keep convenient defaults for common X/Y role names; a function's x, y (and z) on its roles.
         lower_to_role = {role.lower(): role for role in self._role_combos}
-        for role_name, column in zip(("x", "y", "z"), self._preferred_columns):
+        preferred = cols if self._function_data is not None else self._preferred_columns
+        for role_name, column in zip(("x", "y", "z"), preferred):
             role = lower_to_role.get(role_name)
             if role and column in cols and self._role_combos[role].currentData() is None:
                 self._role_combos[role].setCurrentIndex(self._role_combos[role].findData(column))
@@ -1295,6 +1315,7 @@ class NewPlotTabDialog(ColumnsDialog):
 
     def _on_table_changed(self, _index: int = 0) -> None:
         """Refresh role choices, SQL and automatic names when the data source changes."""
+        self._sync_function_source()
         self._populate_role_columns(self._columns_from_table())
         self._set_default_figure_name()
 

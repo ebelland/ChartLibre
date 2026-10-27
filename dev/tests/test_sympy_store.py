@@ -101,7 +101,7 @@ def test_a_function_of_x_and_y_keeps_its_y_range_and_an_older_store_gains_it(tmp
     repo = SqliteRepo(db_path=path)
     try:
         old = sympy_store.get(repo, "Old")
-        assert (old["y_from"], old["y_to"], old["y_points"]) == ("0.0", "10.0", "200")
+        assert (old["y_from"], old["y_to"], old["y_points"], old["values"]) == ("0.0", "10.0", "200", "")
     finally:
         repo.close()
 

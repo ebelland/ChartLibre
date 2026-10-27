@@ -90,6 +90,8 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
     selected_only_changed = Signal(list)
     #: A "What next?" link in the notes (a report kept with the chart) was clicked: its URL.
     next_step_requested = Signal(str)
+    #: The project's stored functions were trusted from this chart's note (todo ID47): the charts of them draw again.
+    functions_trusted = Signal()
 
     def __init__(
         self,

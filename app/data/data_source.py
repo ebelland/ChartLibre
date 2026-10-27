@@ -5,15 +5,18 @@ user picked, and a SQL fragment they can select from.  Before this existed the
 answer was always a physical table name pasted straight into an f-string, which
 is why saved queries could not be used anywhere.
 
-A :class:`DataSource` answers both questions for either kind:
+A :class:`DataSource` answers both questions for any kind:
 
-    table   -> ``"my_table"``
-    query   -> ``(SELECT ...) AS _src``
+    table     -> ``"my_table"``
+    query     -> ``(SELECT ...) AS _src``
+    function  -> ``(WITH RECURSIVE ... SELECT "x", chartlibre_function(...) AS "y" ...) AS _src``
 
 Everything downstream builds ``SELECT <cols> FROM {source.from_clause()}`` and
 stops caring which kind it got.  A saved query is therefore executed every time
 it is read - it is never materialised into a table or a VIEW - so editing the
-query updates every chart built on it.
+query updates every chart built on it. A stored function is read the same way: its query makes a grid and
+evaluates the function at each point (app/data/repo/function_sql), its parameters and range written in it - so
+each chart of it keeps its own, and saving the formula again redraws them all.
 """
 from __future__ import annotations
 
@@ -31,7 +34,7 @@ _IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 # underscore so it cannot collide with a user column name.
 QUERY_ALIAS: str = "_src"
 
-SourceKind = Literal["table", "query"]
+SourceKind = Literal["table", "query", "function"]
 
 
 def quote_identifier(name: str) -> str:
@@ -125,7 +128,7 @@ def row_value(row: object, *names: str, default: Any = None) -> Any:
 
 @dataclass(frozen=True, slots=True)
 class DataSource:
-    """A physical table or a saved query, addressed the same way."""
+    """A physical table, a saved query or a stored function, addressed the same way."""
 
     name: str
     kind: SourceKind = "table"
@@ -133,8 +136,13 @@ class DataSource:
 
     @property
     def is_query(self) -> bool:
-        """True for a saved query, False for a physical table."""
-        return self.kind == "query"
+        """True for a saved query or a stored function - read as a subquery - and False for a physical table."""
+        return self.kind in ("query", "function")
+
+    @property
+    def is_function(self) -> bool:
+        """True for a stored function: its query evaluates it on a grid."""
+        return self.kind == "function"
 
     @classmethod
     def table(cls, name: str) -> "DataSource":
@@ -145,6 +153,11 @@ class DataSource:
     def query(cls, name: str, sql: str) -> "DataSource":
         """Return a source for a saved query."""
         return cls(name=str(name), kind="query", sql=str(sql))
+
+    @classmethod
+    def function(cls, name: str, sql: str) -> "DataSource":
+        """Return a source for a stored function, *sql* its grid and values (function_sql)."""
+        return cls(name=str(name), kind="function", sql=str(sql))
 
     def from_clause(self, alias: str = QUERY_ALIAS) -> str:
         """Return the FROM fragment for this source.

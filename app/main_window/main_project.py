@@ -18,6 +18,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QWidget
 
 from app.data.demos import PROJECTS_DIR, DemoProject, copy_demo_project
+from app.data.repo.function_sql import function_names
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
 from app.dialogs.import_data_dialog import ImportDataDialog
@@ -243,6 +244,31 @@ class MainWindowProject(_MainWindowProjectBase):
         ).format(items=listed)
         QTimer.singleShot(0, lambda: QMessageBox.warning(self, _("SQL blocked"), text))
 
+    def _check_project_functions(self) -> None:
+        """Charts of stored functions this computer does not trust: asked about once the window is up (ID47).
+
+        Until then they draw empty; trusted, they draw again. Not trusted, each says so over the chart.
+        """
+        try:
+            used = function_names(str(row.get("sql_query") or "") for row in self._repo.list_series_dict())
+        except Exception:  # noqa: BLE001 - a check at opening: never stops the project from opening
+            applogger.exception("The project's function check failed.")
+            return
+        if used:
+            QTimer.singleShot(0, self._ask_to_trust_functions)
+
+    def _ask_to_trust_functions(self) -> None:
+        from app.data_operations import sympy_store
+        from app.dialogs.function_trust_dialog import ask_to_trust
+
+        try:
+            if not sympy_store.untrusted(self._repo):
+                return
+        except Exception:  # noqa: BLE001 - the project may have been closed meanwhile
+            return
+        if ask_to_trust(self, self._repo):
+            self._reload_function_charts()
+
     def _switch_database(
         self, db_path: Path, prepare: Callable[[], object] | None = None
     ) -> None:
@@ -296,6 +322,7 @@ class MainWindowProject(_MainWindowProjectBase):
             set_last_database(db_path)
 
             self._check_project_sql()
+            self._check_project_functions()
             self._table_panel.reload()
             self._reload_tabs()
             self._update_properties_for_current_chart()

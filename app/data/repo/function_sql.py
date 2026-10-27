@@ -17,8 +17,9 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
@@ -96,18 +97,29 @@ def function_sql(name: str, parameters: Mapping[str, float], x: GridRange, y: Gr
             f'FROM (SELECT {point("_i", x)} AS "x", {point("_j", y)} AS "y" FROM "_j" CROSS JOIN "_i")')
 
 
+_CALL = re.compile(FUNCTION + r"\(\s*'((?:[^']|'')*)'")
+
+
+def function_names(queries: Iterable[str]) -> set[str]:
+    """The stored functions these queries draw - read from their text, nothing run."""
+    return {match.replace("''", "'") for query in queries for match in _CALL.findall(str(query or ""))}
+
+
 @lru_cache(maxsize=64)
 def _parameters(text: str) -> dict[str, float]:
-    decoded = json.loads(text or "{}")
-    if not isinstance(decoded, dict):
+    try:
+        decoded = json.loads(text or "{}")
+        if not isinstance(decoded, dict):
+            return {}
+        return {str(key): float(value) for key, value in decoded.items()}
+    except (TypeError, ValueError):
         return {}
-    return {str(key): float(value) for key, value in decoded.items()}
 
 
 def register(con: sqlite3.Connection) -> None:
     """chartlibre_function and chartlibre_grid, on *con*."""
-    #: (fingerprint, parameter names) -> (model, parameter names, defaults, ndim): compiled once, while trusted.
-    models: dict[tuple[str, str], tuple[Any, list[str], list[float], int]] = {}
+    #: (fingerprint, parameter names) -> (model, parameter names, ndim): compiled once, while trusted.
+    models: dict[tuple[str, str], tuple[Any, list[str], int]] = {}
     #: The functions whose failure was logged: an error at every point of a grid is one line in the log.
     failed: set[str] = set()
 
@@ -125,11 +137,11 @@ def register(con: sqlite3.Connection) -> None:
     con.create_function(GRID, 5, grid_point, deterministic=True)
 
 
-def _value(con: sqlite3.Connection, models: dict[tuple[str, str], tuple[Any, list[str], list[float], int]],
+def _value(con: sqlite3.Connection, models: dict[tuple[str, str], tuple[Any, list[str], int]],
            name: str, parameters: str, x: Any, y: Any) -> float | None:
     if x is None:
         return None
-    row = con.execute('SELECT function_name, source_type, symbols, code_string FROM "__sympy__" '
+    row = con.execute('SELECT function_name, source_type, symbols, code_string, "Values" FROM "__sympy__" '
                       "WHERE function_name = ?", (name,)).fetchone()
     if row is None:
         return None
@@ -145,11 +157,12 @@ def _value(con: sqlite3.Connection, models: dict[tuple[str, str], tuple[Any, lis
         if not sympy_store.is_trusted(data):
             return None
         payload = sympy_store.payload(data)
-        entry = (sympy_store.make_model(payload), list(payload["params"]), list(payload["p0"]), int(payload["ndim"]))
+        entry = (sympy_store.make_model(payload), list(payload["params"]), int(payload["ndim"]))
         models[key] = entry
-    model, names, defaults, ndim = entry
-    given = _parameters(parameters)
-    theta = np.array([given.get(param, default) for param, default in zip(names, defaults)], dtype=float)
+    model, names, ndim = entry
+    # A parameter the query does not give: its stored value, read each time as the formula is.
+    given, stored = _parameters(parameters), _parameters(str(row[4] or ""))
+    theta = np.array([given.get(param, stored.get(param, 1.0)) for param in names], dtype=float)
     if ndim == 2:
         if y is None:
             return None

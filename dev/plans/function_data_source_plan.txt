@@ -76,3 +76,14 @@ Q4 the trust first.
    40,000 points in about 70 ms) and its compiled model kept by fingerprint, so a saved change is seen at
    once with no cache to clear. Untrusted, missing, or outside its domain: NULL. SymPy is loaded when a
    function is first evaluated, not when a project opens.
+3. Done. DataSource kind "function" (is_query too: read as a subquery, no special case downstream);
+   get_data_source resolves a stored function after the tables and the queries; list_data_sources lists them
+   only when asked (New Chart), not in the table list. __sympy__ gains "Values" (JSON), the parameters' stored
+   values: the defaults of a chart, of Fit's starting point and of the SQL function. sympy_store.source_sql.
+4. Done. New Chart: a function source marked "(function)", its Parameters, x range (and y range for f(x, y))
+   as rows of the series form, prefilled from the store; x / y / z on the roles. A chart of a function this
+   computer does not trust says so over it, with Trust...; opening a project whose charts draw one asks once
+   the window is up; trusted, the charts of functions draw again.
+5. Done. Function draws an Expression / Code function as a live series - no result table; Preview and OK
+   save the function as it is in the editor, inside the operation (Cancel takes it back). A library function
+   is still written as a table (Q3: later). The manual: Function and New Chart.

@@ -86,10 +86,10 @@ Five operations also work on surfaces: *Fit Curve*, *Function*, *Peaks*, *Roots*
 // ======================================================================
 == Graph
 
-=== Function — plot a function
+=== Function — plot a function <function>
 Evaluates a function from the same library as Fit over a range and draws it, with no data and nothing fitted. Choose the function, type its parameter values, the *start* and *stop* of the range, the number of *points* and the *spacing* (linear, or logarithmic for log axes). For a surface function, the range is a grid in x and y.
 
-Your own functions, a SymPy *Expression* or a Python *Code*, are kept in the project (*New*, *Save*, *Import*, *Export*) and Fit offers them under *Stored functions*. They run code on this computer when drawn or fitted, so the functions of a project made on another computer run only once trusted: their code is shown first, and the answer is remembered on this computer until the code changes. Functions saved on this computer are trusted already.
+Your own functions, a SymPy *Expression* or a Python *Code*, are kept in the project (*New*, *Save*, *Import*, *Export*) with their parameter values and range; Fit offers them under *Stored functions*, and New Chart as a data source. Function draws one as a live series: no table is written, the chart is evaluated from the function each time it is drawn, so saving it with a new formula redraws it. *Preview* and *OK* save the function as it is in the editor; *Cancel* takes that back too. They run code on this computer when drawn or fitted, so the functions of a project made on another computer run only once trusted: their code is shown first, and the answer is remembered on this computer until the code changes. Functions saved on this computer are trusted already.
 
 #use[Seeing the shape of a model before choosing it, drawing a theoretical or reference curve beside measurements, checking starting values before a fit, generating synthetic test data.]
 

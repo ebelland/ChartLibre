@@ -12,6 +12,7 @@ import pandas as pd
 from matplotlib.patches import Rectangle
 
 from app.data.data_source import quote_identifier
+from app.data.repo.function_sql import function_names
 from app.data.sqlite_repo import ROW_ID
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import generated_table_name
@@ -578,6 +579,29 @@ class ToolsMixin:
     def _on_filter_note_link(self, url: str) -> None:
         if url.startswith("show-all:"):
             self._set_selected_only(url[len("show-all:"):], False)
+        elif url == "trust-functions:":
+            from app.dialogs.function_trust_dialog import ask_to_trust
+
+            if ask_to_trust(self, self._repo):
+                self.functions_trusted.emit()
+
+    def drawn_functions(self) -> set[str]:
+        """The stored functions this chart draws (function data sources)."""
+        queries = []
+        for axes in self._canvas.figure.axes:
+            axis_id = getattr(axes, "_dhub_axis_id", None)
+            if axis_id is not None:
+                queries.extend(str(row["sql_query"] or "") for row in self._repo.get_series(int(axis_id)) or [])
+        return function_names(queries)
+
+    def untrusted_functions(self) -> list[str]:
+        """The stored functions this chart draws that this computer does not run: drawn empty (todo ID47)."""
+        used = self.drawn_functions()
+        if not used:
+            return []
+        from app.data_operations import sympy_store  # SymPy: loaded only for a chart of a function
+
+        return sorted(used & {row["function_name"] for row in sympy_store.untrusted(self._repo)})
 
     def _update_filter_note(self) -> None:
         """Over the chart, while one of its tables shows only its Selected rows: how many of how many, and the
@@ -588,6 +612,11 @@ class ToolsMixin:
                 table=html.escape(table), count=len(self._repo.selected_row_ids(table)),
                 total=self._repo.row_count(table))
                 + f" <a href='show-all:{html.escape(table, quote=True)}'>{html.escape(_('Show all'))}</a>")
+        untrusted = self.untrusted_functions()
+        if untrusted:
+            notes.append(_("Not drawn: {names} - the project's functions are not trusted on this computer.").format(
+                names=", ".join(f"'{html.escape(name)}'" for name in untrusted))
+                + f" <a href='trust-functions:'>{html.escape(_('Trust...'))}</a>")
         self._filter_note.setText("<br>".join(notes))
         self._filter_note.setVisible(bool(notes))
 

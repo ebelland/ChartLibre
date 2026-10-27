@@ -242,7 +242,8 @@ class QueriesMixin(RepoHost):
                 Description   TEXT NOT NULL DEFAULT '',
                 "YFrom"       REAL NOT NULL DEFAULT 0.0,
                 "YTo"         REAL NOT NULL DEFAULT 10.0,
-                YPoints       INTEGER NOT NULL DEFAULT 200
+                YPoints       INTEGER NOT NULL DEFAULT 200,
+                "Values"      TEXT NOT NULL DEFAULT ''
             )
             """
         )
@@ -256,6 +257,8 @@ class QueriesMixin(RepoHost):
             ("YFrom", 'ALTER TABLE __sympy__ ADD COLUMN "YFrom" REAL NOT NULL DEFAULT 0.0'),
             ("YTo", 'ALTER TABLE __sympy__ ADD COLUMN "YTo" REAL NOT NULL DEFAULT 10.0'),
             ("YPoints", "ALTER TABLE __sympy__ ADD COLUMN YPoints INTEGER NOT NULL DEFAULT 200"),
+            # The parameters' values, as JSON ({"a": 2.0}): a chart's defaults when the function is its source.
+            ("Values", """ALTER TABLE __sympy__ ADD COLUMN "Values" TEXT NOT NULL DEFAULT ''"""),
         )
         for column, statement in migrations:
             if column not in columns:
@@ -268,7 +271,7 @@ class QueriesMixin(RepoHost):
         assert self._con is not None
         rows = self._con.execute(
             "SELECT function_name, source_type, symbols, code_string, "
-            '"From", "To", Points, Description, "YFrom", "YTo", YPoints '
+            '"From", "To", Points, Description, "YFrom", "YTo", YPoints, "Values" '
             "FROM __sympy__ ORDER BY function_name COLLATE NOCASE"
         ).fetchall()
         return [
@@ -280,6 +283,7 @@ class QueriesMixin(RepoHost):
                 "from": str(row["From"]), "to": str(row["To"]),
                 "points": str(row["Points"]), "description": str(row["Description"] or ""),
                 "y_from": str(row["YFrom"]), "y_to": str(row["YTo"]), "y_points": str(row["YPoints"]),
+                "values": str(row["Values"] or ""),
             }
             for row in rows
         ]
@@ -290,7 +294,7 @@ class QueriesMixin(RepoHost):
         assert self._con is not None
         row = self._con.execute(
             "SELECT function_name, source_type, symbols, code_string, "
-            '"From", "To", Points, Description, "YFrom", "YTo", YPoints '
+            '"From", "To", Points, Description, "YFrom", "YTo", YPoints, "Values" '
             "FROM __sympy__ WHERE function_name = ?",
             (str(name).strip(),),
         ).fetchone()
@@ -304,6 +308,7 @@ class QueriesMixin(RepoHost):
             "from": str(row["From"]), "to": str(row["To"]),
             "points": str(row["Points"]), "description": str(row["Description"] or ""),
             "y_from": str(row["YFrom"]), "y_to": str(row["YTo"]), "y_points": str(row["YPoints"]),
+            "values": str(row["Values"] or ""),
         }
 
     @ensure_connection_wrapper
@@ -311,6 +316,7 @@ class QueriesMixin(RepoHost):
         self, function_name: str, source_type: str, symbols: str, code_string: str,
         from_value: float = 0.0, to_value: float = 10.0, points: int = 200,
         description: str = "", y_from_value: float = 0.0, y_to_value: float = 10.0, y_points: int = 200,
+        values: str = "",
     ) -> None:
         self.create_sympy_table()
         assert self._con is not None
@@ -318,8 +324,8 @@ class QueriesMixin(RepoHost):
             """
             INSERT INTO __sympy__
                 (function_name, source_type, symbols, code_string, "From", "To", Points, Description,
-                 "YFrom", "YTo", YPoints)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 "YFrom", "YTo", YPoints, "Values")
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(function_name) DO UPDATE SET
                 source_type = excluded.source_type,
                 symbols = excluded.symbols,
@@ -330,11 +336,12 @@ class QueriesMixin(RepoHost):
                 Description = excluded.Description,
                 "YFrom" = excluded."YFrom",
                 "YTo" = excluded."YTo",
-                YPoints = excluded.YPoints
+                YPoints = excluded.YPoints,
+                "Values" = excluded."Values"
             """,
             (function_name.strip(), source_type.strip(), symbols.strip(), code_string,
              float(from_value), float(to_value), int(points), description,
-             float(y_from_value), float(y_to_value), int(y_points)),
+             float(y_from_value), float(y_to_value), int(y_points), str(values or "")),
         )
         self._commit()
 

@@ -38,6 +38,8 @@ from app.plugin_api.data_operations.dialog_base import (
 from app.styles.style import create_doc_link, mark_editor_panel, set_doc_link
 from app.utils.i18n import _
 from app.utils import report_html
+from app.data.data_source import DataSource
+from app.data.repo.function_sql import GridRange
 from app.data_operations.sympy_store import (
     UntrustedFunction,
     _scientific_import,
@@ -46,6 +48,8 @@ from app.data_operations.sympy_store import (
     get as get_stored,
     rows as stored_rows,
     save as save_stored,
+    source_sql as stored_source_sql,
+    stored_values,
     untrusted as stored_untrusted,
 )
 
@@ -60,10 +64,29 @@ class FunctionResult(TableResult):
     expression: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
     z: np.ndarray | None = None
+    #: A stored function (Expression or Code): the function as saved, and the query of its live series - the
+    #: formula evaluated by SQLite at each draw, nothing written but the function (Q2 of the function data
+    #: source plan). Empty for a library function: its values are a table, as before.
+    stored: dict[str, Any] | None = None
+    source_sql: str = ""
 
     @property
     def model_name(self) -> str:
         return self.function_name
+
+    def preview(self, dialog: Any, axis_id: int) -> None:
+        if not self.source_sql:
+            TableResult.preview(self, dialog, axis_id)
+            return
+        dialog.store_function(self)
+        dialog.create_preview_series(axis_id, "", self)
+
+    def apply(self, dialog: Any, axis_id: int) -> None:
+        if not self.source_sql:
+            TableResult.apply(self, dialog, axis_id)
+            return
+        dialog.store_function(self)
+        dialog.create_result_series(axis_id, "", self)
 
     def to_df(self) -> pd.DataFrame:
         if self.z is not None:
@@ -521,8 +544,10 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         if not name:
             raise ValueError("Create a new function or select a stored function first.")
         idx = self._model_tabs.currentIndex()
+        names, numbers = self._function_params()
+        values = dict(zip(names, numbers.tolist()))
         if idx == 1:
-            return {"function_name": name, "source_type": "expression",
+            return {"values": values, "function_name": name, "source_type": "expression",
                     "symbols": self._expr_symbols.text().strip(), "code_string": self._expr_text.toPlainText(),
                     "description": self._expr_description.toPlainText(),
                     "from": str(self.parameter_values().get("start", 0.0)),
@@ -532,7 +557,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
                     "y_to": str(self.parameter_values().get("y_stop", 10.0)),
                     "y_points": str(self.parameter_values().get("y_points", 200))}
         if idx == 2:
-            return {"function_name": name, "source_type": "code",
+            return {"values": values, "function_name": name, "source_type": "code",
                     "symbols": ",".join(self._validated_code_signature()[1]), "code_string": self._code_text.toPlainText(),
                     "description": self._code_description.toPlainText(),
                     "from": str(self.parameter_values().get("start", 0.0)),
@@ -591,6 +616,10 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         if chart_form is not None and hasattr(chart_form, "set_values"):
             chart_form.set_values(range_values)
         self._custom_model_changed()
+        stored = stored_values(data)
+        if stored:  # the parameters at the values kept with the function
+            names, numbers = self._function_params()
+            self._set_param_rows(names, [stored.get(name, float(value)) for name, value in zip(names, numbers)])
 
     def _export_text(self) -> None:
         try:
@@ -640,8 +669,29 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         metadata = {"spacing": str(params.get("spacing", SPACING_LINEAR)), "range": f"{x_values[0]:g} .. {x_values[-1]:g}"}
         dropped = int((~finite).sum())
         if dropped: metadata["undefined"] = dropped
+        stored, source = self._live_source(params)
         return [FunctionResult(name, name, x_values[finite], y[finite],
-                               dict(zip(names, map(float, values))), expression, metadata)]
+                               dict(zip(names, map(float, values))), expression, metadata,
+                               stored=stored, source_sql=source)]
+
+    def _live_source(self, params: Mapping[str, Any]) -> tuple[dict[str, Any] | None, str]:
+        """The function in the editor as it will be stored, and its live series' query - over the range chosen.
+
+        None and "" when it has no name to be kept under: drawn as a table then, as a library function is.
+        """
+        try:
+            stored = self._current_serialised()
+            grid = GridRange(float(params.get("start", 0.0)), float(params.get("stop", 10.0)),
+                             int(params.get("points", 200)), str(params.get("spacing", SPACING_LINEAR)))
+            return stored, stored_source_sql(stored, stored_values(stored), grid)
+        except (ValueError, SyntaxError):
+            return None, ""
+
+    def store_function(self, result: FunctionResult) -> None:
+        """Keep the function a live series draws: saved inside the operation, so Cancel takes it back too."""
+        if result.stored is not None:
+            save_stored(self._repo, result.stored)
+            self._refresh_stored_combo()
 
     def _compute_surface_result(self, payload: Mapping[str, Any]) -> list[FunctionResult]:
         params = self.parameter_values()
@@ -717,6 +767,12 @@ class SeriesFunctionDialog(DataOperationDialogBase):
 
     def result_series_spec(self, axis_id: int, table_name: str, result: FunctionResult) -> ResultSeriesSpec:
         del axis_id
+        if result.source_sql:
+            source = DataSource.function(result.function_name, result.source_sql).from_clause()
+            return ResultSeriesSpec(name=result.result_name, sql_query=f'SELECT "x" AS "x", "y" AS "y" FROM {source}',
+                                    roles={"x": "x", "y": "y"},
+                                    style={**self.generated_style_filter, "function": result.function_name,
+                                           "linestyle": "-", "linewidth": 1.6, "marker": ""})
         if result.z is not None:
             return ResultSeriesSpec(name=result.result_name, sql_query=f'SELECT x, y, z FROM "{table_name}"',
                                     roles={"x": "x", "y": "y", "z": "z"},

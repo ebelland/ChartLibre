@@ -101,28 +101,30 @@ class TablesMixin(RepoHost):
     # Data sources: physical tables and saved queries
     # =====================================================================
 
-    def list_data_sources(self) -> pd.DataFrame:
-        """List tables and saved queries as one addressable list.
+    def list_data_sources(self, *, functions: bool = False) -> pd.DataFrame:
+        """List tables and saved queries - and, with *functions*, the stored functions - as one addressable list.
 
         Same columns as ``list_user_tables`` plus ``kind``, so the table list
         can render both without a second code path.  Saved queries have no
         import link and no source file; their SQL goes in ``source_path`` so it
-        can be shown as a tooltip.
+        can be shown as a tooltip. A stored function (kind "function") has its
+        formula there, and its description as its Notes.
         """
         tables = self.list_user_tables()
         tables = tables.assign(kind="table")
 
         queries = self.list_queries()
-        if not queries:
+        stored = self.list_sympy_functions() if functions else []
+        if not queries and not stored:
             return tables
 
         query_frame = pd.DataFrame(
             {
-                "Table": [query.name for query in queries],
-                "has_link": [False] * len(queries),
-                "Notes": [None] * len(queries),
-                "source_path": [query.sql for query in queries],
-                "kind": ["query"] * len(queries),
+                "Table": [query.name for query in queries] + [row["function_name"] for row in stored],
+                "has_link": [False] * (len(queries) + len(stored)),
+                "Notes": [None] * len(queries) + [row["description"] or None for row in stored],
+                "source_path": [query.sql for query in queries] + [row["code_string"] for row in stored],
+                "kind": ["query"] * len(queries) + ["function"] * len(stored),
             }
         )
 
@@ -131,11 +133,12 @@ class TablesMixin(RepoHost):
 
     @ensure_connection_wrapper
     def get_data_source(self, name: str) -> DataSource | None:
-        """Resolve a name to a table or a saved query.
+        """Resolve a name to a table, a saved query or a stored function.
 
         Tables win over queries when a name is used twice: the physical object
         is the one the rest of SQLite would resolve, so shadowing it here would
-        make the preview and a hand-written query disagree.
+        make the preview and a hand-written query disagree. Queries win over
+        functions, which came later.
         """
         assert self._con is not None
         clean = str(name or "").strip()
@@ -149,6 +152,14 @@ class TablesMixin(RepoHost):
         if saved is not None:
             return DataSource.query(saved.name, saved.sql)
 
+        stored = self.get_sympy_function(clean)
+        if stored is not None:
+            from app.data_operations.sympy_store import source_sql  # SymPy: loaded when a function is used
+
+            try:
+                return DataSource.function(stored["function_name"], source_sql(stored))
+            except (ValueError, SyntaxError):
+                applogger.exception("The stored function '%s' cannot be a data source", clean)
         return None
 
     @ensure_connection_wrapper

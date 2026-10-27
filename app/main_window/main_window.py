@@ -276,6 +276,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         # page would hide the data the window was just opened on.
         self._select_navigation("tables")
         self._check_project_sql()
+        self._check_project_functions()
         self._table_panel.reload()
         self._reload_tabs()
         self._update_properties_for_current_chart()
@@ -1016,6 +1017,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                 )
                 panel.rows_selected.connect(self._on_rows_selected)
                 panel.selected_only_changed.connect(self._on_selected_only_changed)
+                panel.functions_trusted.connect(self._reload_function_charts)
                 panel.next_step_requested.connect(self._open_next_step_url)
                 self._tabs.addTab(panel, name)
         finally:
@@ -1553,6 +1555,13 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         for index in range(self._tabs.count()):
             panel = self._tabs.widget(index)
             if isinstance(panel, ChartPanel) and set(tables) & panel.row_tables():
+                panel.reload()
+
+    def _reload_function_charts(self) -> None:
+        """The project's functions trusted: every chart of one draws again (todo ID47)."""
+        for index in range(self._tabs.count()):
+            panel = self._tabs.widget(index)
+            if isinstance(panel, ChartPanel) and panel.drawn_functions():
                 panel.reload()
 
     def _notes_to_figure(self, figure_id: int, markup: str) -> None:

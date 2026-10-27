@@ -53,6 +53,23 @@ def code_text(functions: Sequence[Mapping[str, Any]]) -> str:
     return "\n".join(parts)
 
 
+def ask_to_trust(parent: QWidget | None, repo: Any) -> bool:
+    """The project's functions not trusted here, asked about now; True once trusted, or with none to ask about."""
+    functions = sympy_store.untrusted(repo)
+    if not functions:
+        return True
+    return _ask(parent, repo, functions)
+
+
+def _ask(parent: QWidget | None, repo: Any, functions: Sequence[Mapping[str, Any]]) -> bool:
+    if FunctionTrustDialog(functions, parent).exec() != PanelDialog.DialogCode.Accepted:
+        return False
+    sympy_store.trust(functions)
+    # The charts of them were read empty: the database did not change, so the series cache would not know.
+    repo.invalidate_series_cache()
+    return True
+
+
 def allowed_to_run(parent: QWidget | None, repo: Any, function: Mapping[str, Any]) -> bool:
     """Whether *function* may run here: trusted already, or trusted now with the project's other functions.
 
@@ -63,8 +80,4 @@ def allowed_to_run(parent: QWidget | None, repo: Any, function: Mapping[str, Any
         return True
     wanted = sympy_store.fingerprint(function)
     others = [row for row in sympy_store.untrusted(repo) if sympy_store.fingerprint(row) != wanted]
-    functions = [function, *others]
-    if FunctionTrustDialog(functions, parent).exec() != PanelDialog.DialogCode.Accepted:
-        return False
-    sympy_store.trust(functions)
-    return True
+    return _ask(parent, repo, [function, *others])

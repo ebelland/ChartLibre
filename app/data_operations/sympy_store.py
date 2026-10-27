@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import json
 from collections.abc import Iterable, Mapping
 from typing import Any, Callable
 
 import numpy as np
 import sympy as sp
 
+from app.data.repo.function_sql import GridRange, function_sql
 from app.utils.config import get_value, set_value
 
 
@@ -79,8 +81,28 @@ def save(repo: Any, data: Mapping[str, str]) -> None:
         float(data.get("from", "0")), float(data.get("to", "10")),
         int(float(data.get("points", "200"))), str(data.get("description", "")),
         float(data.get("y_from", "0")), float(data.get("y_to", "10")), int(float(data.get("y_points", "200"))),
+        json.dumps(values, sort_keys=True) if (values := stored_values(data)) else "",
     )
     trust([data])  # made on this computer
+
+
+def stored_values(data: Mapping[str, Any]) -> dict[str, float]:
+    """The parameters' stored values ({"a": 2.0}): a mapping, or the "Values" column's JSON; {} for none."""
+    raw = data.get("values")
+    if not isinstance(raw, Mapping):
+        try:
+            raw = json.loads(str(raw or "") or "{}")
+        except ValueError:
+            return {}
+    if not isinstance(raw, Mapping):
+        return {}
+    values: dict[str, float] = {}
+    for key, value in raw.items():
+        try:
+            values[str(key)] = float(value)
+        except (TypeError, ValueError):
+            continue
+    return values
 
 
 def parameter_names(text: str) -> list[str]:
@@ -125,10 +147,29 @@ def payload(data: Mapping[str, str]) -> dict[str, Any]:
         raise ValueError(f"Unsupported stored source type: {kind}")
     return {
         "name": name, "description": str(data.get("description", "")) or "Stored SymPy function", "expression": code,
-        "params": params, "p0": [1.0] * len(params), "ndim": ndim,
+        "params": params, "p0": [stored_values(data).get(param, 1.0) for param in params], "ndim": ndim,
         "_sympy_stored": True, "source_type": kind, "symbols": ",".join(params), "code_string": code,
         "keywords": f"stored sympy {name}",
     }
+
+
+def source_sql(data: Mapping[str, Any], parameters: Mapping[str, float] | None = None,
+               x: GridRange | None = None, y: GridRange | None = None) -> str:
+    """A function's query as a data source: the stored parameter values and range, unless others are given.
+
+    Each chart keeps its own in its series' query (function_sql); the stored ones are where it starts.
+    """
+    info = payload(data)
+    values = dict(zip(info["params"], (float(value) for value in info["p0"])))
+    values.update({str(key): float(value) for key, value in (parameters or {}).items() if key in values})
+    if x is None:
+        x = GridRange(float(data.get("from", 0.0)), float(data.get("to", 10.0)), int(float(data.get("points", 200))))
+    if int(info["ndim"]) != 2:
+        return function_sql(info["name"], values, x)
+    if y is None:
+        y = GridRange(float(data.get("y_from", 0.0)), float(data.get("y_to", 10.0)),
+                      int(float(data.get("y_points", 200))))
+    return function_sql(info["name"], values, x, y)
 
 
 def catalog(repo: Any) -> list[dict[str, Any]]:
