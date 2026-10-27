@@ -104,3 +104,21 @@ def test_cancel_takes_the_accessory_axes_even_when_their_ids_were_lost(dialog: S
     dialog.reject()
     figure = dialog._repo.load_figure_descriptor(dialog._figure_id)
     assert len(figure.axes) == 1 and (figure.nrows, figure.ncols) == (1, 1)
+
+
+def test_changing_draw_on_takes_back_the_new_figure_and_the_next_fit_draws_where_asked(dialog: SeriesFitDialog) -> None:
+    """New figure, then Current axis: the figure made went at once; and the extra charts' axes, gone with it, were
+    reused - "FOREIGN KEY constraint failed", nothing drawn."""
+    repo = dialog._repo
+    before = {figure_id for figure_id, _name in repo.load_figures_from_db()}
+    combo = dialog.destination_combo
+    dialog.chart_form.set_values({"residual_chart": True, "fit_vs_measured_chart": True})
+    combo.setCurrentIndex(combo.findData(dialog.DEST_NEW_FIGURE))
+    _fit(dialog)
+    assert len({figure_id for figure_id, _name in repo.load_figures_from_db()} - before) == 1
+    combo.setCurrentIndex(combo.findData(dialog.DEST_SAME_AXIS))
+    assert {figure_id for figure_id, _name in repo.load_figures_from_db()} == before
+    _fit(dialog)
+    titles = [axis.title for axis in repo.load_figure_descriptor(dialog._figure_id).axes]
+    assert titles == ["points", "Residuals", "Measured vs. fit"]
+    assert "FOREIGN KEY" not in dialog.results_widget()._html

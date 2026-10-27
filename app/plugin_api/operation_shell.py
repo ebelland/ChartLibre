@@ -145,6 +145,7 @@ class OperationShell(QDialog):
         default_destination: str = "",
         on_change: Callable[[], Any],
         context: Callable[[], Mapping[str, Any]] | None = None,
+        on_destination_change: Callable[[], Any] | None = None,
     ) -> QWidget | None:
         """The Charts tab: "Draw on" first (*destinations*), then the charts (*chart_params*); None if neither.
 
@@ -159,7 +160,8 @@ class OperationShell(QDialog):
             # The charts a destination makes possible (none for "None") follow it.
             self.destination_combo = self.destination_combo_for(
                 panel, destinations, default_destination or destinations[0],
-                lambda: (self.chart_form is not None and self.chart_form.refresh_visibility(), on_change()))
+                lambda: (self.chart_form is not None and self.chart_form.refresh_visibility(),
+                         (on_destination_change or on_change)()))
         if chart_params:
             self.chart_form = ParameterForm(chart_params, self, on_change=on_change, context=context)
             layout.addWidget(self.chart_form.widget)

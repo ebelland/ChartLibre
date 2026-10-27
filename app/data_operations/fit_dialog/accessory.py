@@ -81,6 +81,10 @@ class AccessoryChartsMixin:
         first_table = self.result_table_name(0, first)
         _query, _roles, x_label, y_label = query_builder(first, first_table)
         axis_id = getattr(self, axis_id_attr)
+        if axis_id is not None and not self._axis_exists(int(axis_id)):
+            # Gone with the figure or the Preview it was made in: a series added to it was "FOREIGN KEY
+            # constraint failed", and nothing drawn.
+            axis_id = None
         if axis_id is None:
             # Beside the curve: on the new figure when it went to one.
             axis_id = self.create_result_axis(
@@ -185,6 +189,14 @@ class AccessoryChartsMixin:
                 applogger.exception(
                     "Failed to remove the accessory result table %s", table_name
                 )
+
+    def _axis_exists(self, axis_id: int) -> bool:
+        figures = {self._figure_id, getattr(self, "_result_figure_id", None)} - {None}
+        for figure_id in figures:
+            descriptor = self._repo.load_figure_descriptor(int(figure_id))
+            if descriptor is not None and any(int(axis.id) == axis_id for axis in descriptor.axes):
+                return True
+        return False
 
     def _remove_axes_reading(self, table_names: set[str]) -> None:
         """Delete the figure's axes whose every series reads one of *table_names*, then fit its grid to the rest."""

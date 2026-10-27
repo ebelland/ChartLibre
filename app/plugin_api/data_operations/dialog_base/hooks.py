@@ -133,6 +133,7 @@ class BuilderHooksMixin:
             tuple(spec for spec in self.PARAMS if spec.tab == "charts"),
             destinations=self.DESTINATIONS, default_destination=self.DEFAULT_DESTINATION,
             on_change=self.mark_results_stale, context=self.parameter_context,
+            on_destination_change=self.destination_changed,
         )
 
     def build_parameter_selector(self) -> QWidget:

@@ -42,10 +42,14 @@ class ResultsMixin:
         them if Apply never happens.
         """
         destination = str(self.parameter_values().get(parameter, self.DEST_NEW_AXIS))
+        if getattr(self, "_result_destination", destination) != destination:
+            # Made for another choice: not reused - taken back (destination_changed does it at once).
+            self.discard_result_target()
         if destination == self.DEST_SAME_AXIS:
             return selected_axis_id
 
         if getattr(self, "_result_axis_id", None) is None:
+            self._result_destination = destination
             if destination == self.DEST_NEW_FIGURE:
                 self._result_figure_id, self._result_axis_id = self.create_result_figure(
                     name=figure_name or title or self.operation_label,
@@ -96,6 +100,16 @@ class ResultsMixin:
         if axis_id is not None and int(axis_id) not in axis_ids:
             self._result_axis_id = None
             self._result_figure_id = None
+
+    def destination_changed(self) -> None:
+        """Draw on changed: the figure or axis drawn for the old choice - a new figure, say - is taken back at
+        once, its Preview with it, and the window drops its tab; the next Preview draws where now asked."""
+        made = getattr(self, "_result_axis_id", None) is not None or getattr(self, "_result_figure_id", None) is not None
+        if made or getattr(self, "_preview_active", False):
+            self.cancel_operation_changes(refresh=False)
+            self.discard_result_target()
+            self.sync_preview_figure()
+        self.mark_results_stale()
 
     def discard_result_target(self) -> None:
         """Remove an axis or figure this dialog made, when Apply never ran.
