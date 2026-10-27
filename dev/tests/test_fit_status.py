@@ -122,3 +122,22 @@ def test_changing_draw_on_takes_back_the_new_figure_and_the_next_fit_draws_where
     titles = [axis.title for axis in repo.load_figure_descriptor(dialog._figure_id).axes]
     assert titles == ["points", "Residuals", "Measured vs. fit"]
     assert "FOREIGN KEY" not in dialog.results_widget()._html
+
+
+def test_the_extra_charts_follow_their_boxes_at_each_preview(dialog: SeriesFitDialog) -> None:
+    """Made while the last Preview's savepoint was still open, an extra chart's axis was rolled back with it a
+    line later: Measured vs. fit never showed until OK - and, its id kept, the next series on it was "FOREIGN
+    KEY constraint failed"."""
+    def extra() -> list[str]:
+        return [axis.title for axis in dialog._repo.load_figure_descriptor(dialog._figure_id).axes][1:]
+
+    dialog.chart_form.field("residual_chart").setChecked(True)
+    _fit(dialog)
+    dialog.preview()
+    assert extra() == ["Residuals"]
+    dialog.chart_form.field("fit_vs_measured_chart").setChecked(True)
+    dialog.preview()
+    assert extra() == ["Residuals", "Measured vs. fit"]
+    dialog.chart_form.field("residual_chart").setChecked(False)
+    dialog.preview()
+    assert extra() == ["Measured vs. fit"] and "FOREIGN KEY" not in dialog.results_widget()._html

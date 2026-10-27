@@ -193,10 +193,13 @@ class TransactionMixin:
             # below, once their names are known - they depend on which axis
             # this turned out to be.
             undo_entry: int | None = None
+            # The last Preview's savepoint goes first, for OK and for a Preview alike: an axis made or
+            # synced below (resolve_target_axis_id - a new figure, Fit's extra charts) inside it was
+            # rolled back a line later, its id kept - the next series on it "FOREIGN KEY constraint
+            # failed", or the chart just never showed. And a snapshot cannot be taken inside a
+            # transaction; OK writes everything again anyway.
+            self.cancel_operation_changes(refresh=False)
             if commit:
-                # The Preview's savepoint goes first: a snapshot cannot be taken inside a transaction,
-                # and OK writes everything again anyway.
-                self.cancel_operation_changes(refresh=False)
                 undo_entry = self._repo.snapshot_for_undo(
                     self._repo.DESCRIPTOR_TABLES,
                     label=f"Apply {self.operation_label}",
@@ -228,7 +231,6 @@ class TransactionMixin:
                 )
                 return True
 
-            self.cancel_operation_changes(refresh=False)
             self.begin_preview_transaction()
             self.preview_results_to_axis(axis_id, results)
             self._preview_axis_ids.add(axis_id)

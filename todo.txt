@@ -58,7 +58,7 @@ The order is a single recommended backlog. Related items have been merged, and c
 
 | ID | Priority | Complexity | Fix | Scope |
 |---|---:|---:|---|---|
-| ID46 | 1 | 1 | **"FOREIGN KEY constraint failed" with Draw on: New figure - check on Windows** | Fit curve's cause found and fixed: its extra charts' axes, gone with their figure, were reused. A new figure made for one Draw on choice is now taken back when the choice changes. Interpolation's did not reproduce on macOS: try both on the Windows build. |
+| ID46 | 1 | 1 | **"FOREIGN KEY constraint failed" with Draw on: New figure - check on Windows** | Cause found and fixed: a Preview made or synced its target (a new figure, Fit's extra charts) while the last Preview's savepoint was still open, and rolled it back a line later, its id kept. Interpolation's did not reproduce on macOS: try both on the Windows build. |
 | ID47 | 2 | 2 | **Stored functions run code from the project** | Function's Expression and Code models are kept in the project (`__sympy__`) and run with `exec` / `sympify` when drawn or fitted; the import guard is no sandbox. Ask before running a project's stored function the first time (its code shown, "trust this project"). |
 | ID48 | 3 | 2 | **Analysis platform data source** | "From Figure": only the current figure's axes. "From Table": draw on a new figure by default. Every analysis opens on its Data tab. |
 | ID49 | 4 | 2 | **Outliers** | From a table: choose the chart - scatter, box plot or distribution. On a box plot, "Colour them" leaves the outliers black: colour the fliers. |
