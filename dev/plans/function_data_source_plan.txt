@@ -70,3 +70,9 @@ Q4 the trust first.
    Fit curve and Function ask first. Listing the functions no longer runs them (an expression's variables
    are read with ast, not sympify), and Function's Import and Export check the text without running it.
    The note over a chart comes with the function series (step 4).
+2. Done. app/data/repo/function_sql.py: chartlibre_grid and chartlibre_function on every project connection,
+   and function_sql(name, parameters, x range[, y range]) - a recursive CTE counting the grid, the function at
+   each point, x fastest for f(x, y). The formula is read from __sympy__ at each call (a primary-key read:
+   40,000 points in about 70 ms) and its compiled model kept by fingerprint, so a saved change is seen at
+   once with no cache to clear. Untrusted, missing, or outside its domain: NULL. SymPy is loaded when a
+   function is first evaluated, not when a project opens.

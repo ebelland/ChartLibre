@@ -58,6 +58,7 @@ from app.data.repo._common import (  # noqa: F401 - re-export
 from app.data.repo.descriptors import DescriptorsMixin
 from app.data.repo.editing import EditingMixin
 from app.data.repo.flags import FlagsMixin
+from app.data.repo.function_sql import register as register_function_sql
 from app.data.repo.maintenance import MaintenanceMixin
 from app.data.repo.operations import OperationsMixin
 from app.data.repo.project_info import ProjectInfoMixin
@@ -234,6 +235,8 @@ class SqliteRepo(
         self._is_connected = True
         # Cache row_factory for performance
         self._con.row_factory = sqlite3.Row
+        # A function source's query evaluates its stored function, at each read.
+        register_function_sql(self._con)
 
         # A new connection means new counters; nothing cached is trustworthy.
         self.invalidate_series_cache()
