@@ -25,37 +25,41 @@ def test_the_query_of_a_function_is_read_back_and_rewritten() -> None:
 def test_the_editor_shows_a_function_and_gives_it_back(qapp) -> None:
     editor = FunctionEditor()
     try:
-        assert [editor.tabs.tabText(i) for i in range(editor.tabs.count())] == ["Formula", "Parameters", "Range"]
         editor.load(LINE, values={"b": -3.0}, x=GridRange(0, 1, 3))
+        assert editor.symbols.text() == "a=2, b=-3"  # the parameters with their values, in one field
         assert editor.parameters() == {"a": 2.0, "b": -3.0}  # the chart's own, the stored ones for the rest
         assert editor.x_range() == GridRange(0, 1, 3) and editor.y_range() is None and editor.ndim() == 1
-        assert not editor._ranges.isRowVisible(editor.y)
+        assert not editor._form.isRowVisible(editor.y)
         data = editor.function_data()
         assert (data["function_name"], data["symbols"], data["code_string"], data["values"]) == \
             ("Line", "a,b", "a*x + b", {"a": 2.0, "b": -3.0})
 
-        # The rows follow the declaration: a parameter added, one taken away.
-        editor.symbols.setText("a, b, c")
-        assert editor.parameters() == {"a": 2.0, "b": -3.0, "c": 1.0}
-        editor.symbols.setText("a")
-        assert editor.parameters() == {"a": 2.0}
-        assert editor.problem() == "b: not among the parameters."
+        # A parameter added with its value; one with none, said under the field.
+        editor.symbols.setText("a=2, b=-3, c=0.5")
+        assert editor.parameters() == {"a": 2.0, "b": -3.0, "c": 0.5} and editor.problem() == ""
+        editor.symbols.setText("a=2, b")
+        assert editor.problem() == "b needs its value: b=1." == editor._symbols_note.text()
+        assert editor._symbols_note.property("problem")
+        editor.symbols.setText("a=2")
+        assert editor.problem() == "b: not among the parameters - add it with its value (b=1)."
         editor.text.setPlainText("a*sin(x) + y")  # sympy's sin is not a parameter; y makes it a surface
-        assert editor.problem() == "" and editor.ndim() == 2 and editor._ranges.isRowVisible(editor.y)
+        assert editor.problem() == "" and editor.ndim() == 2 and editor._form.isRowVisible(editor.y)
+        assert not editor._symbols_note.property("problem")
 
         editor.set_formula_visible(False)  # New Chart: values and range only
-        assert not editor.tabs.isTabVisible(0)
+        assert not editor._form.isRowVisible(editor.text) and editor._form.isRowVisible(editor.symbols)
     finally:
         editor.deleteLater()
 
 
-def test_code_declares_its_parameters_in_its_def(qapp) -> None:
+def test_code_takes_its_values_for_its_defs_parameters(qapp) -> None:
     editor = FunctionEditor()
     try:
-        editor.load({"function_name": "Bump", "source_type": "code", "symbols": "",
+        editor.load({"function_name": "Bump", "source_type": "code", "symbols": "", "values": '{"h": 2}',
                      "code_string": "def Bump(h, w):\n    f_numeric = h * np.exp(-(x / w) ** 2)\n    return f_numeric\n"})
-        assert editor.declared_parameters() == ["h", "w"] and list(editor.parameters()) == ["h", "w"]
-        assert not editor._form.isRowVisible(editor.symbols)  # a def lists its own
+        assert editor.symbols.text() == "h=2, w=1" and editor.declared_parameters() == ["h", "w"]
+        editor.symbols.setText("h=2")
+        assert editor.problem().startswith("w: the def's parameters need their values")
         editor.text.setPlainText("def Other(h):\n    return h\n")
         assert "def Bump" in editor.problem()
     finally:
@@ -100,7 +104,7 @@ def test_series_properties_edit_a_function_series(qapp, tmp_path) -> None:
 
         # This series' values and range; the project's formula.
         editor.text.setPlainText("a*x**2 + b")
-        editor.values.item(0, 1).setText("3")
+        editor.symbols.setText("a=3, b=1")
         editor.x.stop.setValue(2.0)
         series._apply_function()
         spin(0.2)

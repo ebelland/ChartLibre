@@ -269,6 +269,12 @@ QLabel[muted="true"] {
     color: rgba(@NEUTRAL_RGB@, 0.95);
 }
 
+/* What is wrong with an entry, said under it (FunctionEditor's parameters): red, as a risky setting is. */
+QLabel[problem="true"] {
+  color: #FF3B30;
+}
+
+
 
 /* ==========================================================
    Fluent Icon Styling

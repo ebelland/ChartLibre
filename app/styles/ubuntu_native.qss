@@ -183,3 +183,8 @@ QToolButton#cardDisclosure:pressed {
     background: transparent;
     padding: 0px;
 }
+
+/* What is wrong with an entry, said under it (FunctionEditor's parameters): red, as a risky setting is. */
+QLabel[problem="true"] {
+  color: #FF3B30;
+}

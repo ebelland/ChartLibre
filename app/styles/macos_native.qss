@@ -46,6 +46,12 @@ QLabel[muted="true"] {
   color: palette(mid);
 }
 
+/* What is wrong with an entry, said under it (FunctionEditor's parameters): red, as a risky setting is. */
+QLabel[problem="true"] {
+  color: #FF3B30;
+}
+
+
 QLabel[sectionTitle="true"] {
   color: palette(window-text);
   padding: 2px 0 4px 0;

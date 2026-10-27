@@ -20,6 +20,7 @@ import pandas as pd
 import sympy as sp
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QMenu,
     QComboBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
     QLineEdit, QMessageBox, QPushButton, QPlainTextEdit, QSizePolicy, QTableWidget,
     QTableWidgetItem, QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
@@ -181,7 +182,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     Goals: list[str] = []
     Category = "Graph"
     Order = 5
-    WINDOW_SIZE = (900, 760)
+    WINDOW_SIZE = (800, 700)
 
     def __init__(self, **kwargs: Any) -> None:
         self._scanner = FunctionScanner()
@@ -248,9 +249,15 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         stored.addWidget(self._stored_combo, 1)
         bar.addLayout(stored)
         buttons = QHBoxLayout()
-        for text, slot in ((_("New"), self._new_function), (_("Save"), self._save_current),
-                           (_("Import..."), self._import_text), (_("Export..."), self._export_text)):
+        for text, slot in ((_("New"), self._new_function), (_("Save"), self._save_current)):
             btn = QPushButton(text, self._stored_bar); btn.clicked.connect(slot); buttons.addWidget(btn)
+        # Import and Export, less often: in a menu, so the row fits a narrow panel.
+        more = QPushButton(_("More"), self._stored_bar)
+        menu = QMenu(more)
+        menu.addAction(_("Import..."), self._import_text)
+        menu.addAction(_("Export..."), self._export_text)
+        more.setMenu(menu)
+        buttons.addWidget(more)
         buttons.addStretch(1); bar.addLayout(buttons)
         page.addWidget(self._stored_bar)
         page.addWidget(self._editor, 1)
@@ -368,15 +375,6 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         self._sync_destinations()
         self.mark_results_stale()
 
-    @staticmethod
-    def _parse_symbols(text: str) -> list[str]:
-        names = [n.strip() for n in text.split(",") if n.strip()]
-        if len(set(names)) != len(names) or any(not n.isidentifier() for n in names):
-            raise ValueError("Parameters must be unique valid Python identifiers separated by commas.")
-        if {"x", "y", "z"}.intersection(names):
-            raise ValueError("x, y and z are implicit coordinates and cannot be model parameters.")
-        return names
-
     def _validated_code_signature(self) -> tuple[str, list[str]]:
         code = self._editor.text.toPlainText()
         wanted = self._current_function_name.strip()
@@ -433,7 +431,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             name = self._current_function_name.strip()
             if not name:
                 raise ValueError("Function name is required.")
-            parameters = self._parse_symbols(self._editor.symbols.text())
+            parameters = self._editor.declared_parameters()
             x_symbol = sp.Symbol("x")
             parameter_symbols = [sp.Symbol(param) for param in parameters]
             local_symbols = {"x": x_symbol, "y": sp.Symbol("y"), "z": sp.Symbol("z"), **dict(zip(parameters, parameter_symbols))}
@@ -587,6 +585,9 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     def _editor_parameters(self) -> tuple[list[str], np.ndarray]:
         """The parameters the editor's function declares, at their values in its Parameters tab - whose rows
         are made from the declaration (FunctionEditor), so none can be missing."""
+        problem = self._editor.problem()
+        if problem:
+            raise ValueError(problem)
         values = self._editor.parameters()
         return list(values), np.asarray(list(values.values()), dtype=float)
 

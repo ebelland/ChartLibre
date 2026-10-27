@@ -130,15 +130,15 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
             assert "measures" in offered and "_Fit_Result" not in offered  # an operation's table: not offered
             assert dialog._select_renderer_by_name("Scatter Plot")
             panel = dialog._function_panel
-            assert dialog._editor_form_layout.isRowVisible(panel) and not panel._ranges.isRowVisible(panel.y)
-            assert not panel.tabs.isTabVisible(0)  # the formula is the project's: not edited here
+            assert dialog._editor_form_layout.isRowVisible(panel) and not panel._form.isRowVisible(panel.y)
+            assert not panel._form.isRowVisible(panel.text)  # the formula is the project's: not edited here
             assert panel.parameters() == {"a": 1.0, "b": 0.0}  # the stored values, to start from
             # x and y place themselves: no roles, groups or separate axes to choose.
             form = dialog._editor_form_layout
             assert not form.isRowVisible(dialog._roles_scroll) and not form.isRowVisible(dialog._combo_group)
             assert not dialog._axis_form_layout.isRowVisible(dialog._combo_axes_by)
             assert dialog._current_role_mapping()["x"] == "x" and dialog._current_role_mapping()["y"] == "y"
-            panel.values.item(0, 1).setText(str(a))
+            panel.symbols.setText(f"a={a}, b=0")
             panel.x.stop.setValue(stop)
             dialog._on_accept()
             result = dialog.chart_result
@@ -160,7 +160,7 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
     dialog = NewPlotTabDialog(repo, current_table="Plane")
     try:
         panel = dialog._function_panel
-        assert panel._ranges.isRowVisible(panel.y) and panel.y.grid() == GridRange(1.0, 2.0, 2)
+        assert panel._form.isRowVisible(panel.y) and panel.y.grid() == GridRange(1.0, 2.0, 2)
         assert dialog._columns_from_table() == ["x", "y", "z"]
         assert dialog._select_renderer_by_name("Surface Plot")
         assert dialog._current_role_mapping().get("z") == "z"
@@ -302,12 +302,10 @@ def test_opening_a_project_that_draws_untrusted_functions_asks_once(qapp, tmp_pa
 
 
 def _values(dialog, **values: float) -> None:
-    """Values typed in the editor's Parameters tab."""
-    table = dialog._editor.values
-    for row in range(table.rowCount()):
-        name = table.item(row, 0).text()
-        if name in values:
-            table.item(row, 1).setText(str(values[name]))
+    """Values typed in the editor's Parameters field: a=2, b=1."""
+    from app.widgets.function_editor import format_assignments
+
+    dialog._editor.symbols.setText(format_assignments({**dialog._editor.parameters(), **values}))
 
 
 def _function_dialog(repo: SqliteRepo):
@@ -329,7 +327,7 @@ def test_function_opens_on_a_new_function_and_keeps_it_only_when_it_is_usable(qa
         assert dialog._current_function_name == "Function2"  # the first name free
         assert dialog._stored_combo.itemText(0) == "Function2 (new)"
         dialog._model_tabs.setCurrentIndex(1)
-        dialog._editor.symbols.setText("a")
+        dialog._editor.symbols.setText("a=1")
         dialog._editor.text.setPlainText("a*x")
         _values(dialog, a=3.0)
         dialog.ok()
@@ -350,7 +348,7 @@ def test_function_draws_an_expression_of_x_and_y_as_a_live_surface(qapp, repo: S
     dialog, axis_id = _function_dialog(repo)
     try:
         dialog._model_tabs.setCurrentIndex(1)
-        dialog._editor.symbols.setText("a")
+        dialog._editor.symbols.setText("a=1")
         dialog._editor.text.setPlainText("x*a + y")
         _values(dialog, a=2.0)
         dialog._editor.x.set_grid(GridRange(0.0, 1.0, 2))
@@ -382,7 +380,7 @@ def test_a_surface_goes_where_a_surface_can_and_as_the_chart_asked(qapp, repo: S
     try:
         offered = lambda: [dialog.destination_combo.itemData(i) for i in range(dialog.destination_combo.count())]
         dialog._model_tabs.setCurrentIndex(1)
-        dialog._editor.symbols.setText("a")
+        dialog._editor.symbols.setText("a=1")
         dialog._editor.text.setPlainText("x*a")
         assert offered() == [dialog.DEST_SAME_AXIS, dialog.DEST_NEW_AXIS, dialog.DEST_NEW_FIGURE]
         dialog._editor.text.setPlainText("x*a + y")  # a surface: not on the axis of a curve
@@ -423,7 +421,7 @@ def test_function_computes_with_the_declared_parameters_and_names_an_undeclared_
     dialog, _axis_id = _function_dialog(repo)
     try:
         dialog._model_tabs.setCurrentIndex(1)
-        dialog._editor.symbols.setText("a")
+        dialog._editor.symbols.setText("a=1")
         dialog._editor.text.setPlainText("x*a + y")
         dialog._editor.x.set_grid(GridRange(0.0, 1.0, 2))
         dialog._editor.y.set_grid(GridRange(0.0, 1.0, 2))
@@ -456,7 +454,7 @@ def test_function_reopens_on_the_remembered_function_with_its_parameters(qapp, r
     # The new function remembered: a new one again, Parameters in step with it.
     again, _axis_id = _function_dialog(repo)
     again._stored_combo.setCurrentIndex(0)
-    again._editor.symbols.setText("b")
+    again._editor.symbols.setText("b=1")
     again.remember_window()
     again.close()
     third, _axis_id = _function_dialog(repo)
