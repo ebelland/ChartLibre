@@ -98,6 +98,36 @@ def function_sql(name: str, parameters: Mapping[str, float], x: GridRange, y: Gr
 
 
 _CALL = re.compile(FUNCTION + r"\(\s*'((?:[^']|'')*)'")
+_CALL_WITH_VALUES = re.compile(FUNCTION + r"\(\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)'")
+_GRID_CALL = re.compile(GRID + r"\(\"(_[ij])\"\.n, ([^,]+), ([^,]+), (\d+), '(\w+)'\)")
+#: The query function_sql writes, as a series' query holds it (in parentheses, as its source).
+_FUNCTION_QUERY = re.compile(r'WITH RECURSIVE "_i"\(n\).*?FROM (?:"_j" CROSS JOIN )?"_i"\)', re.DOTALL)
+
+
+@dataclass(frozen=True, slots=True)
+class FunctionQuery:
+    """What a function source's query draws: the function, its parameters' values, its x and y range."""
+
+    name: str
+    parameters: dict[str, float]
+    x: GridRange
+    y: GridRange | None = None
+
+
+def parse_function_sql(sql: str) -> FunctionQuery | None:
+    """function_sql read back from *sql* (a series' query that has one), or None when it has none."""
+    call = _CALL_WITH_VALUES.search(str(sql or ""))
+    grids = {alias: GridRange(float(start), float(stop), int(points), spacing)
+             for alias, start, stop, points, spacing in _GRID_CALL.findall(str(sql or ""))}
+    if call is None or "_i" not in grids:
+        return None
+    return FunctionQuery(call.group(1).replace("''", "'"), _parameters(call.group(2).replace("''", "'")),
+                         grids["_i"], grids.get("_j"))
+
+
+def replace_function_sql(sql: str, query: str) -> str:
+    """*sql* with the function query in it replaced by *query* - the rest of it (its columns) kept."""
+    return _FUNCTION_QUERY.sub(lambda _match: query, str(sql), count=1)
 
 
 def function_names(queries: Iterable[str]) -> set[str]:

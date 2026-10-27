@@ -1,0 +1,64 @@
+ONE FUNCTION EDITOR - IN CHART PROPERTIES' SERIES AND IN FUNCTION - PLAN      2026-10-27, go given (the direction below)
+
+WHAT WAS ASKED
+Chart properties > Series: let the function of a function series be edited. Option 1: a collapsible section
+with the function's expression / code and its ranges. Better: one class, used there and in Function.
+
+TODAY
+- A function series is a live query: SELECT "x" AS "x", "y" AS "y" FROM (<function_sql>) AS "_src", the
+  function by name, this chart's parameter values (JSON) and its x / y range written in it; the formula is
+  read from __sympy__ at each draw.
+- Series shows that query as text: the numbers can be edited only by hand, in SQL, and the formula not at all.
+- The same things are edited in three places, three ways: Function (Expression / Code pages, the Parameters
+  table, the ranges on its Charts tab), New Chart (FunctionSourcePanel: parameters and ranges).
+
+THE CLASS: FunctionEditor (app/widgets/function_editor.py) - a QFrame with three tabs
+Given the function (a __sympy__ row) and, for a series, its own values and ranges:
+  Formula     Expression or Code: description, parameters (an expression's), the text. Checked as text (ast),
+              never run to be checked (todo ID47).
+  Parameters  One row per declared parameter, its value - the rows made from the declaration each time, never
+              kept apart from it (the empty Parameters table cannot come back).
+  Range       x: from / to / points / spacing; y the same, shown only when the formula uses y.
+  load(function, values=None, x=None, y=None); function_data() (what sympy_store.save takes); parameters();
+  x_range(); y_range(); ndim() (read, not run); show_formula(bool) (New Chart hides it); signal changed.
+
+WHERE IT GOES
+A. Series (Chart properties): a collapsible "Function" card, shown only for a function series, closed by
+   default, under Properties.
+   - Loaded from the stored function and from this series' query (its values and ranges read back from the
+     SQL function_sql wrote: function_sql gains its inverse, parse_function_sql).
+   - Apply (a button in the card): the formula is saved to __sympy__ - every chart of the function follows
+     (the card says how many other series draw it); this series' values and ranges rewrite its own query
+     only. One Undo step ("Function of 'X'"), as S-01's.
+   - A function this computer does not trust: the card shows its code read-only, with Trust... (ID47).
+B. Function: its Expression and Code pages become the editor's formula part, its Parameters tab the editor's
+   values for them (the Library keeps its own table), its ranges the editor's ranges. The Stored bar stays.
+C. New Chart: FunctionSourcePanel becomes the editor with the formula part hidden (values and ranges).
+
+STEPS (each a commit, the suite green after each)
+1. FunctionEditor and parse_function_sql, with their tests (load, round trip through the SQL, y shown only
+   for f(x, y), the rows always the declared parameters).                                           (M)
+2. Series: the Function card, Apply, Undo, Trust; the manual.                                         (M)
+3. Function and New Chart on the editor (FunctionSourcePanel removed).                                (M)
+
+QUESTIONS
+Q1  The formula edited in Series changes it for every chart that draws it (and for Fit): just say how many
+    other series draw it (suggested) - or ask to confirm when there are any?
+Q2  Values and ranges edited in Series: this series only (suggested) - or also kept as the function's stored
+    defaults?
+Q3  Apply with a button in the card (suggested: a half-typed formula would otherwise redraw on every key) -
+    or live, as the other properties are?
+Q4  Function and New Chart moved onto the class in this same work (suggested, step 3) - or Series first and
+    the rest later?
+
+EFFORT: M-L (about one session).
+
+DIRECTION (2026-10-27): "in pratica nota la funzione -> serie base 'editor funzione' che eredita da QPanel o
+Frame: 3 tab con stringa/codice, parametri e Range" - the class as above. Q1-Q4 unanswered: the suggested
+answers taken (say the other series, values and ranges for this series only, an Apply button, Function and
+New Chart moved onto it in step 3).
+
+STATUS
+1. Done. app/widgets/function_editor.py: FunctionEditor (a QFrame: Formula, Parameters, Range), RangeRow and
+   number_box; function_sql gains parse_function_sql (a series' query read back: the function, its values,
+   its x and y range) and replace_function_sql (the function query in it swapped, its columns kept).
