@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, QObject, QSize, Qt
 from PySide6.QtWidgets import (
     QFrame,
     QScrollArea,
@@ -21,6 +21,48 @@ from app.styles.style import (
 )
 from app.logs.logger import applogger
 from app.utils.i18n import _
+
+
+class _PageScroll(QScrollArea):
+    """A page that scrolls up and down, never sideways: as wide as its panel, and the panel as wide as it.
+
+    A QScrollArea asks for no width of its own, so a page wider than the panel - a row of buttons, a
+    combo with a minimum width - was cut at its edge, and moving the focus scrolled it sideways out of
+    sight. Here the page's narrowest is the area's narrowest: the panel (and the window) cannot be made
+    narrower than the controls, and with widgetResizable they stretch to the panel's width.
+    """
+
+    def setWidget(self, widget: QWidget) -> None:  # noqa: N802 - Qt's name
+        super().setWidget(widget)
+        widget.installEventFilter(self)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt's name
+        if watched is self.widget() and event.type() == QEvent.Type.LayoutRequest:
+            self.updateGeometry()
+        return super().eventFilter(watched, event)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's name
+        hint = super().minimumSizeHint()
+        page = self.widget()
+        if page is None:
+            return hint
+        margins = self.contentsMargins()
+        width = (page.minimumSizeHint().width() + margins.left() + margins.right()
+                 + self.verticalScrollBar().sizeHint().width())
+        return QSize(max(hint.width(), width), hint.height())
+
+
+class _OperationTabs(QTabWidget):
+    """The inputs' tabs: at least LEFT_MINIMUM wide, and as wide as the widest page needs.
+
+    Not setMinimumWidth: a layout takes an explicit minimum over the hint, and the pages were cut at 320.
+    """
+
+    LEFT_MINIMUM = 320
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's name
+        hint = super().minimumSizeHint()
+        return QSize(max(self.LEFT_MINIMUM, hint.width()), hint.height())
 
 
 class LayoutMixin:
@@ -63,8 +105,8 @@ class LayoutMixin:
 
     @staticmethod
     def _scrolled(page: QWidget, parent: QWidget) -> QScrollArea:
-        """*page* in a frameless vertical scroll area on the same ground."""
-        scroll = QScrollArea(parent)
+        """*page* in a frameless vertical scroll area on the same ground, as wide as the page needs."""
+        scroll = _PageScroll(parent)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -80,13 +122,12 @@ class LayoutMixin:
         """Build the common shell: the inputs as tabs on the left, the results on the right."""
         # Tabs, as Chart properties: the accordion's three stacked headers took
         # height and showed one section at a time all the same.
-        left_tabs = QTabWidget(self)
+        left_tabs = _OperationTabs(self)
         left_tabs.setObjectName("operationTabs")
         left_tabs.setDocumentMode(True)
         left_tabs.setUsesScrollButtons(True)
         left_tabs.setElideMode(Qt.TextElideMode.ElideNone)
         left_tabs.tabBar().setExpanding(False)
-        left_tabs.setMinimumWidth(320)
         left_tabs.setSizePolicy(
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding,
