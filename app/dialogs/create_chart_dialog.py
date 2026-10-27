@@ -771,6 +771,10 @@ class NewPlotTabDialog(ColumnsDialog):
         for row in df.itertuples(index=False):
             name = str(row.Table)
             kind = str(getattr(row, "kind", "table"))
+            if kind == "table" and name.startswith("_") and name != self._current_table:
+                # A table an operation wrote ("_..."): its chart has it already. Offered only when it is
+                # the table New Chart was opened on.
+                continue
             self._combo_table.addItem(f"{name}  ({kind})" if kind in ("query", "function") else name, name)
 
         if self._combo_table.count() <= 0:

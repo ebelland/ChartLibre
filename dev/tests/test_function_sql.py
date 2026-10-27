@@ -1,6 +1,7 @@
 """A stored function as SQL: its grid and its values computed by SQLite at each read (function_sql)."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -114,6 +115,10 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
     sympy_store.save(repo, {"function_name": "Line", "source_type": "expression", "symbols": "a, b",
                             "code_string": "a*x + b", "from": "0", "to": "2", "points": "3",
                             "values": {"a": 1.0, "b": 0.0}})
+    import pandas as pd
+
+    repo.import_dataframe(pd.DataFrame({"x": [1.0]}), table_name="_Fit_Result", normalize_columns=False)
+    repo.import_dataframe(pd.DataFrame({"x": [1.0]}), table_name="measures", normalize_columns=False)
     sympy_store.save(repo, {"function_name": "Plane", "source_type": "expression", "symbols": "c",
                             "code_string": "c*x*y", "y_from": "1", "y_to": "2", "y_points": "2"})
 
@@ -121,6 +126,8 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
         dialog = NewPlotTabDialog(repo, current_table="Line")
         try:
             assert dialog._combo_table.currentText() == "Line  (function)"
+            offered = [dialog._combo_table.itemData(i) for i in range(dialog._combo_table.count())]
+            assert "measures" in offered and "_Fit_Result" not in offered  # an operation's table: not offered
             assert dialog._select_renderer_by_name("Scatter Plot")
             panel = dialog._function_panel
             assert panel.is_row_shown(panel._x) and not panel.is_row_shown(panel._y)
@@ -290,3 +297,172 @@ def test_opening_a_project_that_draws_untrusted_functions_asks_once(qapp, tmp_pa
         window.close()
         window.deleteLater()
         repo.close()
+
+
+def _function_dialog(repo: SqliteRepo):
+    from app.data_operations.function_dialog import SeriesFunctionDialog
+
+    figure_id = repo.create_figure_descriptor(name="F")
+    axis_id = repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+                                          title="F", x_label="x", y_label="y", options={})
+    dialog = SeriesFunctionDialog(repo=repo, figure_id=figure_id, parent=None)
+    dialog.series_selector.reload(select_all_series=True)
+    return dialog, axis_id
+
+
+def test_function_opens_on_a_new_function_and_keeps_it_only_when_it_is_usable(qapp, repo: SqliteRepo) -> None:
+    sympy_store.save(repo, {"function_name": "Function1", "source_type": "expression", "symbols": "",
+                            "code_string": "x"})
+    dialog, axis_id = _function_dialog(repo)
+    try:
+        assert dialog._current_function_name == "Function2"  # the first name free
+        assert dialog._stored_combo.itemText(0) == "Function2 (new)"
+        dialog._model_tabs.setCurrentIndex(1)
+        dialog._expr_symbols.setText("a")
+        dialog._expr_text.setPlainText("a*x")
+        dialog._set_param_rows(["a"], [3.0])
+        dialog.ok()
+    finally:
+        dialog.deleteLater()
+    assert sympy_store.get(repo, "Function2")["code_string"] == "a*x"
+    assert repo.query_df(repo.get_series(axis_id)[0]["sql_query"])["y"].iloc[1] > 0
+
+    # Left empty, or wrong: not kept.
+    dialog, _axis_id = _function_dialog(repo)
+    assert dialog._current_function_name == "Function3"
+    repo.save_sympy_function("Function3", "expression", "", "a*(x")  # as a wrong one would be
+    dialog.reject()
+    assert sympy_store.get(repo, "Function3") is None and sympy_store.get(repo, "Function2") is not None
+
+
+def test_function_draws_an_expression_of_x_and_y_as_a_live_surface(qapp, repo: SqliteRepo) -> None:
+    dialog, axis_id = _function_dialog(repo)
+    try:
+        dialog._model_tabs.setCurrentIndex(1)
+        dialog._expr_symbols.setText("a")
+        dialog._expr_text.setPlainText("x*a + y")
+        dialog._set_param_rows(["a"], [2.0])
+        dialog.chart_form.set_values({"start": 0.0, "stop": 1.0, "points": 2,
+                                      "y_start": 10.0, "y_stop": 20.0, "y_points": 2})
+        result = dialog.compute_results()[0]
+        assert result.z is not None and sorted(result.z.tolist()) == [10.0, 12.0, 20.0, 22.0]
+        assert dialog.destination_combo.currentData() == dialog.DEST_NEW_FIGURE  # not on the curve's axis
+        dialog.ok()
+        figure_id = int(dialog._result_figure_id)
+    finally:
+        dialog.deleteLater()
+    assert repo.get_series(axis_id) == []
+    drawn = repo.load_figure_descriptor(figure_id).axes[0]
+    assert drawn.name == "Surface Plot"
+    series = repo.get_series(int(drawn.id))[0]
+    assert '"z"' in series["sql_query"] and json.loads(series["roles"])["z"] == "z"
+    frame = repo.query_df(series["sql_query"])
+    assert frame[["x", "y", "z"]].to_numpy().tolist() == [[0.0, 10.0, 10.0], [1.0, 10.0, 12.0],
+                                                         [0.0, 20.0, 20.0], [1.0, 20.0, 22.0]]
+
+
+def test_a_surface_goes_where_a_surface_can_and_as_the_chart_asked(qapp, repo: SqliteRepo, monkeypatch) -> None:
+    from matplotlib.figure import Figure
+    from PySide6.QtWidgets import QMessageBox
+
+    from app.plugin_api.charts.render_figure import render_figure_from_descriptor
+
+    dialog, _axis_id = _function_dialog(repo)
+    try:
+        offered = lambda: [dialog.destination_combo.itemData(i) for i in range(dialog.destination_combo.count())]
+        dialog._model_tabs.setCurrentIndex(1)
+        dialog._expr_symbols.setText("a")
+        dialog._expr_text.setPlainText("x*a")
+        assert offered() == [dialog.DEST_SAME_AXIS, dialog.DEST_NEW_AXIS, dialog.DEST_NEW_FIGURE]
+        dialog._expr_text.setPlainText("x*a + y")  # a surface: not on the axis of a curve
+        assert offered() == [dialog.DEST_NEW_AXIS, dialog.DEST_NEW_FIGURE]
+        assert dialog.destination_combo.currentData() == dialog.DEST_NEW_FIGURE
+
+        dialog.chart_form.set_values({"points": 10, "y_points": 10, "chart_type": "Surface Plot"})
+        assert dialog.preview()
+        first = repo.load_figure_descriptor(int(dialog._result_figure_id)).axes[0]
+        assert first.name == "Surface Plot"
+        figure = Figure()
+        render_figure_from_descriptor(figure=figure, descriptor=repo.load_figure_descriptor(int(dialog._result_figure_id)),
+                                      repo=repo)
+        assert figure.axes[0].collections  # the surface
+
+        # Another chart after a Preview: drawn as that chart, not on the first one's axes.
+        dialog.chart_form.set_values({"chart_type": "Filled Contour"})
+        assert dialog.preview()
+        again = repo.load_figure_descriptor(int(dialog._result_figure_id)).axes[0]
+        assert again.name == "Contour Plot"
+
+        # Too many points: asked first, nothing drawn on Cancel; once agreed, not asked again.
+        asked: list[str] = []
+        answers = [QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Ok]
+        monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: (asked.append(a[2]), answers.pop(0))[1])
+        dialog.chart_form.set_values({"points": 400, "y_points": 400})
+        assert not dialog.preview() and len(asked) == 1 and "160,000" in asked[0]
+        assert dialog.preview() and len(asked) == 2
+        assert dialog.preview() and len(asked) == 2
+    finally:
+        dialog.close()
+
+
+def test_function_computes_with_the_declared_parameters_and_names_an_undeclared_one(qapp, repo: SqliteRepo) -> None:
+    dialog, _axis_id = _function_dialog(repo)
+    try:
+        dialog._model_tabs.setCurrentIndex(1)
+        dialog._expr_symbols.setText("a")
+        dialog._expr_text.setPlainText("x*a + y")
+        dialog._set_param_rows([], [])  # Parameters out of step with the declaration
+        dialog.chart_form.set_values({"start": 0.0, "stop": 1.0, "points": 2, "y_start": 0.0, "y_stop": 1.0,
+                                      "y_points": 2})
+        result = dialog.compute_results()[0]
+        assert result.params == {"a": 1.0} and dialog._function_params()[0] == ["a"]  # the table follows
+
+        dialog._expr_text.setPlainText("x*a + b")
+        with pytest.raises(ValueError, match="b: not among the parameters"):
+            dialog.compute_results()
+    finally:
+        dialog.close()
+
+
+def test_function_reopens_on_the_remembered_function_with_its_parameters(qapp, repo: SqliteRepo) -> None:
+    sympy_store.save(repo, {"function_name": "Kept", "source_type": "expression", "symbols": "a",
+                            "code_string": "x*a", "values": {"a": 4.0}})
+    dialog, _axis_id = _function_dialog(repo)
+    dialog._stored_combo.setCurrentIndex(dialog._stored_combo.findData("Kept"))
+    dialog._expr_text.setPlainText("x*a + 1")  # edited, not saved
+    dialog.remember_window()
+    dialog.close()
+
+    again, _axis_id = _function_dialog(repo)
+    try:
+        assert again._current_function_name == "Kept" and again._expr_text.toPlainText() == "x*a"
+        assert again._function_params() [0] == ["a"] and again._function_params()[1].tolist() == [4.0]
+    finally:
+        again.close()
+
+    # The new function remembered: a new one again, Parameters in step with it.
+    again, _axis_id = _function_dialog(repo)
+    again._stored_combo.setCurrentIndex(0)
+    again._expr_symbols.setText("b")
+    again.remember_window()
+    again.close()
+    third, _axis_id = _function_dialog(repo)
+    try:
+        assert third._stored_combo.currentIndex() == 0 and third._stored_combo.itemText(0).endswith("(new)")
+        assert third._expr_symbols.text() == "" and third._function_params()[0] == []
+    finally:
+        third.close()
+
+
+def test_the_stored_functions_bar_is_on_expression_and_code_only(qapp, repo: SqliteRepo) -> None:
+    dialog, _axis_id = _function_dialog(repo)
+    try:
+        dialog.show()
+        for index, shown in ((0, False), (1, True), (2, True), (0, False)):
+            dialog._model_tabs.setCurrentIndex(index)
+            qapp.processEvents()
+            assert dialog._stored_bar.isVisible() is shown
+            if shown:  # at the top of the page shown
+                assert dialog._model_tabs.widget(index).layout().indexOf(dialog._stored_bar) == 0
+    finally:
+        dialog.close()

@@ -42,14 +42,20 @@ class ResultsMixin:
         them if Apply never happens.
         """
         destination = str(self.parameter_values().get(parameter, self.DEST_NEW_AXIS))
-        if getattr(self, "_result_destination", destination) != destination:
-            # Made for another choice: not reused - taken back (destination_changed does it at once).
+        wanted = (destination, str(chart_type), dict(options or {}))
+        made_for = getattr(self, "_result_made_for", None)
+        if getattr(self, "_result_destination", destination) != destination or (
+                getattr(self, "_result_axis_id", None) is not None and made_for not in (None, wanted)):
+            # Made for another choice - another place, or another chart: a Surface Plot asked for after a
+            # Preview drew a Wireframe kept the Wireframe's axis - not reused, taken back
+            # (destination_changed does it at once for the place).
             self.discard_result_target()
         if destination == self.DEST_SAME_AXIS:
             return selected_axis_id
 
         if getattr(self, "_result_axis_id", None) is None:
             self._result_destination = destination
+            self._result_made_for = wanted
             if destination == self.DEST_NEW_FIGURE:
                 self._result_figure_id, self._result_axis_id = self.create_result_figure(
                     name=figure_name or title or self.operation_label,
@@ -100,6 +106,31 @@ class ResultsMixin:
         if axis_id is not None and int(axis_id) not in axis_ids:
             self._result_axis_id = None
             self._result_figure_id = None
+
+    def offer_destinations(self, destinations: Sequence[str], default: str | None = None) -> None:
+        """Offer only *destinations* in "Draw on": a surface, say, cannot go on the axis of a curve.
+
+        The choice is kept while it is still offered; otherwise *default*, or the first, and the change is
+        followed as one the user made.
+        """
+        combo = getattr(self, "destination_combo", None)
+        wanted = [str(value) for value in destinations]
+        if combo is None or not wanted or [combo.itemData(i) for i in range(combo.count())] == wanted:
+            return
+        chosen = combo.currentData()
+        combo.blockSignals(True)
+        try:
+            combo.clear()
+            for value in wanted:
+                combo.addItem(self.destination_label(value), value)
+            target = chosen if chosen in wanted else (default if default in wanted else wanted[0])
+            combo.setCurrentIndex(max(0, combo.findData(target)))
+        finally:
+            combo.blockSignals(False)
+        if combo.currentData() != chosen:
+            if self.chart_form is not None:
+                self.chart_form.refresh_visibility()
+            self.destination_changed()
 
     def destination_changed(self) -> None:
         """Draw on changed: the figure or axis drawn for the old choice - a new figure, say - is taken back at

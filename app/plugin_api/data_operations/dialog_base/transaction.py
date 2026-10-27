@@ -118,6 +118,8 @@ class TransactionMixin:
             return succeeded
 
         try:
+            if not self.confirm_run(commit=commit):
+                return finish(False)
             if self.reads_table():
                 self._prepare_table_source()
             axis_id_value = self.series_selector.selected_axis_id()
@@ -309,6 +311,11 @@ class TransactionMixin:
             results=written,
             report=report,
         )
+
+    def confirm_run(self, *, commit: bool) -> bool:
+        """Whether Preview or Apply goes ahead: an operation that knows a run is heavy asks here first."""
+        del commit
+        return True
 
     def operation_succeeded(self, *, commit: bool) -> None:
         """Called once a Preview (commit False) or an Apply has gone through."""
