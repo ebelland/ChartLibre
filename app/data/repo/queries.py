@@ -239,7 +239,10 @@ class QueriesMixin(RepoHost):
                 "From"        REAL NOT NULL DEFAULT 0.0,
                 "To"          REAL NOT NULL DEFAULT 10.0,
                 Points        INTEGER NOT NULL DEFAULT 200,
-                Description   TEXT NOT NULL DEFAULT '' 
+                Description   TEXT NOT NULL DEFAULT '',
+                "YFrom"       REAL NOT NULL DEFAULT 0.0,
+                "YTo"         REAL NOT NULL DEFAULT 10.0,
+                YPoints       INTEGER NOT NULL DEFAULT 200
             )
             """
         )
@@ -249,6 +252,10 @@ class QueriesMixin(RepoHost):
             ("To", 'ALTER TABLE __sympy__ ADD COLUMN "To" REAL NOT NULL DEFAULT 10.0'),
             ("Points", 'ALTER TABLE __sympy__ ADD COLUMN Points INTEGER NOT NULL DEFAULT 200'),
             ("Description", "ALTER TABLE __sympy__ ADD COLUMN Description TEXT NOT NULL DEFAULT ''"),
+            # The y range of a function of x and y (z = f(x, y)), as From / To / Points are x's.
+            ("YFrom", 'ALTER TABLE __sympy__ ADD COLUMN "YFrom" REAL NOT NULL DEFAULT 0.0'),
+            ("YTo", 'ALTER TABLE __sympy__ ADD COLUMN "YTo" REAL NOT NULL DEFAULT 10.0'),
+            ("YPoints", "ALTER TABLE __sympy__ ADD COLUMN YPoints INTEGER NOT NULL DEFAULT 200"),
         )
         for column, statement in migrations:
             if column not in columns:
@@ -261,7 +268,7 @@ class QueriesMixin(RepoHost):
         assert self._con is not None
         rows = self._con.execute(
             "SELECT function_name, source_type, symbols, code_string, "
-            '"From", "To", Points, Description '
+            '"From", "To", Points, Description, "YFrom", "YTo", YPoints '
             "FROM __sympy__ ORDER BY function_name COLLATE NOCASE"
         ).fetchall()
         return [
@@ -272,6 +279,7 @@ class QueriesMixin(RepoHost):
                 "code_string": str(row["code_string"] or ""),
                 "from": str(row["From"]), "to": str(row["To"]),
                 "points": str(row["Points"]), "description": str(row["Description"] or ""),
+                "y_from": str(row["YFrom"]), "y_to": str(row["YTo"]), "y_points": str(row["YPoints"]),
             }
             for row in rows
         ]
@@ -282,7 +290,7 @@ class QueriesMixin(RepoHost):
         assert self._con is not None
         row = self._con.execute(
             "SELECT function_name, source_type, symbols, code_string, "
-            '"From", "To", Points, Description '
+            '"From", "To", Points, Description, "YFrom", "YTo", YPoints '
             "FROM __sympy__ WHERE function_name = ?",
             (str(name).strip(),),
         ).fetchone()
@@ -295,21 +303,23 @@ class QueriesMixin(RepoHost):
             "code_string": str(row["code_string"] or ""),
             "from": str(row["From"]), "to": str(row["To"]),
             "points": str(row["Points"]), "description": str(row["Description"] or ""),
+            "y_from": str(row["YFrom"]), "y_to": str(row["YTo"]), "y_points": str(row["YPoints"]),
         }
 
     @ensure_connection_wrapper
     def save_sympy_function(
         self, function_name: str, source_type: str, symbols: str, code_string: str,
         from_value: float = 0.0, to_value: float = 10.0, points: int = 200,
-        description: str = "",
+        description: str = "", y_from_value: float = 0.0, y_to_value: float = 10.0, y_points: int = 200,
     ) -> None:
         self.create_sympy_table()
         assert self._con is not None
         self._con.execute(
             """
             INSERT INTO __sympy__
-                (function_name, source_type, symbols, code_string, "From", "To", Points, Description)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (function_name, source_type, symbols, code_string, "From", "To", Points, Description,
+                 "YFrom", "YTo", YPoints)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(function_name) DO UPDATE SET
                 source_type = excluded.source_type,
                 symbols = excluded.symbols,
@@ -317,10 +327,14 @@ class QueriesMixin(RepoHost):
                 "From" = excluded."From",
                 "To" = excluded."To",
                 Points = excluded.Points,
-                Description = excluded.Description
+                Description = excluded.Description,
+                "YFrom" = excluded."YFrom",
+                "YTo" = excluded."YTo",
+                YPoints = excluded.YPoints
             """,
             (function_name.strip(), source_type.strip(), symbols.strip(), code_string,
-             float(from_value), float(to_value), int(points), description),
+             float(from_value), float(to_value), int(points), description,
+             float(y_from_value), float(y_to_value), int(y_points)),
         )
         self._commit()
 

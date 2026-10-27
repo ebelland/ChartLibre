@@ -76,3 +76,31 @@ def test_fit_curve_offers_the_stored_functions_and_fits_one(qapp, repo: SqliteRe
         np.testing.assert_allclose(dialog.compute_results()[0].params, [3.0, 2.0], atol=1e-6)
     finally:
         dialog.close()
+
+
+def test_a_function_of_x_and_y_keeps_its_y_range_and_an_older_store_gains_it(tmp_path: Path) -> None:
+    import sqlite3
+
+    path = tmp_path / "old.dhub"
+    repo = SqliteRepo(db_path=path)
+    sympy_store.save(repo, {**_expression("Plane", "a*x + b*y", "a, b"), "y_from": "-2", "y_to": "3",
+                            "y_points": "40"})
+    stored = sympy_store.get(repo, "Plane")
+    assert (stored["y_from"], stored["y_to"], stored["y_points"]) == ("-2.0", "3.0", "40")
+    repo.close()
+
+    # A project saved before the y range: its table gains the columns, at their defaults.
+    con = sqlite3.connect(path)
+    con.execute("DROP TABLE __sympy__")
+    con.execute("CREATE TABLE __sympy__ (function_name TEXT PRIMARY KEY, source_type TEXT NOT NULL, "
+                "symbols TEXT NOT NULL DEFAULT '', code_string TEXT NOT NULL)")
+    con.execute("INSERT INTO __sympy__ VALUES ('Old', 'expression', 'a', 'a*x')")
+    con.commit()
+    con.close()
+    repo = SqliteRepo(db_path=path)
+    try:
+        old = sympy_store.get(repo, "Old")
+        assert (old["y_from"], old["y_to"], old["y_points"]) == ("0.0", "10.0", "200")
+    finally:
+        repo.close()
+

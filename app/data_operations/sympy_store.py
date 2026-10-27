@@ -39,7 +39,8 @@ def save(repo: Any, data: Mapping[str, str]) -> None:
         str(data.get("symbols", "")),
         str(data["code_string"]),
         float(data.get("from", "0")), float(data.get("to", "10")),
-        int(data.get("points", "200")), str(data.get("description", "")),
+        int(float(data.get("points", "200"))), str(data.get("description", "")),
+        float(data.get("y_from", "0")), float(data.get("y_to", "10")), int(float(data.get("y_points", "200"))),
     )
 
 
