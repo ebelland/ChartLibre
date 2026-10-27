@@ -15,6 +15,7 @@ from app.data.data_source import row_value, parse_roles, resolve_role_column
 from app.logs.logger import applogger
 
 from app.utils.i18n import _
+from app.data_operations.sympy_store import catalog as stored_sympy_catalog, make_model as make_stored_sympy_model
 
 
 class ModelDataMixin:
@@ -39,6 +40,13 @@ class ModelDataMixin:
         for category, models in self._surface_scanner.catalog().items():
             merged.setdefault(category, []).extend(models)
             merged[category].sort(key=lambda item: str(item.get("name", "")).lower())
+        try:
+            stored = stored_sympy_catalog(self._repo)
+        except Exception:  # noqa: BLE001 - keep the built-in catalogue usable
+            applogger.exception("Could not load stored SymPy functions")
+            stored = []
+        if stored:
+            merged["Stored functions"] = sorted(stored, key=lambda item: str(item.get("name", "")).lower())
         return dict(sorted(merged.items(), key=lambda item: item[0].lower()))
 
     def _build_model_catalog(self) -> None:
@@ -444,6 +452,15 @@ class ModelDataMixin:
         p0, _unused, _unused, _unused = self._collect_params_from_table()
         if self._selected_model.get("_multi_peak"):
             return self._make_multi_peak_model(self._selected_model), p0
+        if self._selected_model.get("_sympy_stored"):
+            try:
+                return make_stored_sympy_model(self._selected_model), p0
+            except Exception:  # noqa: BLE001 - user-provided stored function
+                applogger.exception(
+                    "Failed to build stored SymPy function: %s",
+                    self._selected_model.get("name", ""),
+                )
+                return None
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
             return scanner.make_model(self._selected_model), p0

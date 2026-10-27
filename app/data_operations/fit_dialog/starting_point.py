@@ -58,7 +58,11 @@ class StartingPointMixin:
         None for the multi-peak builder, which is assembled here rather than
         discovered and so has no class to ask.
         """
-        if not self._selected_model or self._selected_model.get("_multi_peak"):
+        if (
+            not self._selected_model
+            or self._selected_model.get("_multi_peak")
+            or self._selected_model.get("_sympy_stored")
+        ):
             return None
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:

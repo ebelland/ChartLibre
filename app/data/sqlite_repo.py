@@ -646,6 +646,7 @@ class SqliteRepo(
 
         # Saved queries: see app/data/repo/queries.py.
         self.create_queries_table()
+        self.create_sympy_table()
 
         # A figure's last_modified follows every change to it, its axes or
         # their series, whichever code makes it.

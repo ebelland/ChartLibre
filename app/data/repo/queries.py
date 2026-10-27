@@ -222,4 +222,115 @@ class QueriesMixin(RepoHost):
         )
         return cur.rowcount > 0
 
+    # =====================================================================
+    # Stored SymPy/Python functions
+    # =====================================================================
+    @ensure_connection_wrapper
+    def create_sympy_table(self) -> None:
+        """Create the internal function store used by Function and Fit."""
+        assert self._con is not None
+        self._con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS __sympy__ (
+                function_name TEXT PRIMARY KEY,
+                source_type   TEXT NOT NULL,
+                symbols       TEXT NOT NULL DEFAULT '',
+                code_string   TEXT NOT NULL,
+                "From"        REAL NOT NULL DEFAULT 0.0,
+                "To"          REAL NOT NULL DEFAULT 10.0,
+                Points        INTEGER NOT NULL DEFAULT 200,
+                Description   TEXT NOT NULL DEFAULT '' 
+            )
+            """
+        )
+        columns = {str(row[1]) for row in self._con.execute("PRAGMA table_info(__sympy__)").fetchall()}
+        migrations = (
+            ("From", 'ALTER TABLE __sympy__ ADD COLUMN "From" REAL NOT NULL DEFAULT 0.0'),
+            ("To", 'ALTER TABLE __sympy__ ADD COLUMN "To" REAL NOT NULL DEFAULT 10.0'),
+            ("Points", 'ALTER TABLE __sympy__ ADD COLUMN Points INTEGER NOT NULL DEFAULT 200'),
+            ("Description", "ALTER TABLE __sympy__ ADD COLUMN Description TEXT NOT NULL DEFAULT ''"),
+        )
+        for column, statement in migrations:
+            if column not in columns:
+                self._con.execute(statement)
+
+
+    @ensure_connection_wrapper
+    def list_sympy_functions(self) -> list[dict[str, str]]:
+        self.create_sympy_table()
+        assert self._con is not None
+        rows = self._con.execute(
+            "SELECT function_name, source_type, symbols, code_string, "
+            '"From", "To", Points, Description '
+            "FROM __sympy__ ORDER BY function_name COLLATE NOCASE"
+        ).fetchall()
+        return [
+            {
+                "function_name": str(row["function_name"]),
+                "source_type": str(row["source_type"]),
+                "symbols": str(row["symbols"] or ""),
+                "code_string": str(row["code_string"] or ""),
+                "from": str(row["From"]), "to": str(row["To"]),
+                "points": str(row["Points"]), "description": str(row["Description"] or ""),
+            }
+            for row in rows
+        ]
+
+    @ensure_connection_wrapper
+    def get_sympy_function(self, name: str) -> dict[str, str] | None:
+        self.create_sympy_table()
+        assert self._con is not None
+        row = self._con.execute(
+            "SELECT function_name, source_type, symbols, code_string, "
+            '"From", "To", Points, Description '
+            "FROM __sympy__ WHERE function_name = ?",
+            (str(name).strip(),),
+        ).fetchone()
+        if row is None:
+            return None
+        return {
+            "function_name": str(row["function_name"]),
+            "source_type": str(row["source_type"]),
+            "symbols": str(row["symbols"] or ""),
+            "code_string": str(row["code_string"] or ""),
+            "from": str(row["From"]), "to": str(row["To"]),
+            "points": str(row["Points"]), "description": str(row["Description"] or ""),
+        }
+
+    @ensure_connection_wrapper
+    def save_sympy_function(
+        self, function_name: str, source_type: str, symbols: str, code_string: str,
+        from_value: float = 0.0, to_value: float = 10.0, points: int = 200,
+        description: str = "",
+    ) -> None:
+        self.create_sympy_table()
+        assert self._con is not None
+        self._con.execute(
+            """
+            INSERT INTO __sympy__
+                (function_name, source_type, symbols, code_string, "From", "To", Points, Description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(function_name) DO UPDATE SET
+                source_type = excluded.source_type,
+                symbols = excluded.symbols,
+                code_string = excluded.code_string,
+                "From" = excluded."From",
+                "To" = excluded."To",
+                Points = excluded.Points,
+                Description = excluded.Description
+            """,
+            (function_name.strip(), source_type.strip(), symbols.strip(), code_string,
+             float(from_value), float(to_value), int(points), description),
+        )
+        self._commit()
+
+    @ensure_connection_wrapper
+    def delete_sympy_function(self, name: str) -> bool:
+        self.create_sympy_table()
+        assert self._con is not None
+        cursor = self._con.execute(
+            "DELETE FROM __sympy__ WHERE function_name = ?", (str(name).strip(),)
+        )
+        self._commit()
+        return cursor.rowcount > 0
 

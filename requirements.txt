@@ -11,6 +11,8 @@ PyWavelets==1.10.0
 scikit-learn==1.9.1
 scipy==1.18.1
 statsmodels==0.15.0
+# Function's Expression and Code models, and the stored functions Fit curve offers (app.data_operations.sympy_store).
+sympy==1.14.0
 pytest==9.1.1
 
 # macOS only: SF Symbols are drawn through AppKit.  Without it the
