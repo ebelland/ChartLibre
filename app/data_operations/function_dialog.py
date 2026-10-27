@@ -39,11 +39,14 @@ from app.styles.style import create_doc_link, mark_editor_panel, set_doc_link
 from app.utils.i18n import _
 from app.utils import report_html
 from app.data_operations.sympy_store import (
+    UntrustedFunction,
     _scientific_import,
     ensure_table,
+    fingerprint as stored_fingerprint,
     get as get_stored,
     rows as stored_rows,
     save as save_stored,
+    untrusted as stored_untrusted,
 )
 
 
@@ -333,7 +336,38 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             raise ValueError("The function must return f_numeric.")
         return wanted, args
 
+    def _check_project_code(self) -> None:
+        """The editor holds one of the project's stored functions, not trusted here: ask before running it.
+
+        Code typed or imported here is the user's own; a stored function from a project made elsewhere runs
+        only once trusted on this computer (todo ID47).
+        """
+        if self._model_tabs.currentIndex() == 1:
+            current = {"source_type": "expression", "code_string": self._expr_text.toPlainText()}
+        else:
+            current = {"source_type": "code", "code_string": self._code_text.toPlainText()}
+        wanted = stored_fingerprint(current)
+        stored = next((row for row in stored_untrusted(self._repo) if stored_fingerprint(row) == wanted), None)
+        if stored is None:
+            return
+        from app.dialogs.function_trust_dialog import allowed_to_run
+
+        if not allowed_to_run(self, self._repo, stored):
+            raise UntrustedFunction(_("Not run: the function '{name}' is not trusted on this computer.").format(
+                name=stored.get("function_name", "")))
+
+    def _check_without_running(self) -> None:
+        """The model's text checked as text: an imported file's code is read here, not run."""
+        if self._model_tabs.currentIndex() == 1:
+            text = self._expr_text.toPlainText().strip()
+            if not text:
+                raise ValueError("Expression is required.")
+            ast.parse(text.replace("^", "**"), mode="eval")
+            return
+        self._validated_code_signature()
+
     def _custom_callable(self) -> tuple[str, Callable[..., Any], str]:
+        self._check_project_code()
         if self._model_tabs.currentIndex() == 1:
             name = self._current_function_name.strip()
             if not name:
@@ -560,7 +594,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
 
     def _export_text(self) -> None:
         try:
-            data = self._current_serialised(); self._custom_callable()
+            data = self._current_serialised(); self._check_without_running()
             path, selected_filter = QFileDialog.getSaveFileName(self, _("Export function"), f'{data["function_name"]}.pysym.txt', "PySym text (*.pysym.txt *.txt)")
             if path:
                 with open(path, "w", encoding="utf-8") as fh:
@@ -574,7 +608,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             with open(path, "r", encoding="utf-8") as fh: raw = fh.read()
             if not raw.startswith("PYSYM/1\n"): raise ValueError("Not a PYSYM/1 text file.")
             self._apply_serialised(json.loads(raw.split("\n", 1)[1]))
-            self._custom_callable()  # validate, but deliberately do not auto-save
+            self._check_without_running()  # validate, but deliberately do not auto-save
         except Exception as exc: self._show_error(_("Import function"), exc)
 
     def _show_error(self, title: str, exc: Exception) -> None:

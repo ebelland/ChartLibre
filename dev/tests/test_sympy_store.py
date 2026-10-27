@@ -52,6 +52,7 @@ def test_code_is_a_function_of_its_parameters_with_x_given(repo: SqliteRepo) -> 
     np.testing.assert_allclose(sympy_store.make_model(payload)(np.array([1.0, 2.0]), np.array([3.0, 1.0])), [4.0, 13.0])
     bad = {"function_name": "Bad", "source_type": "code", "symbols": "",
            "code_string": "def Bad(a):\n    import os\n    f_numeric = a\n    return f_numeric\n"}
+    sympy_store.trust([bad])  # trusted, the import guard still holds
     with pytest.raises(ImportError):
         sympy_store.make_model(sympy_store.payload(bad))(np.array([1.0]), np.array([1.0]))
 
@@ -104,3 +105,56 @@ def test_a_function_of_x_and_y_keeps_its_y_range_and_an_older_store_gains_it(tmp
     finally:
         repo.close()
 
+
+
+def test_a_function_from_another_computer_runs_only_once_trusted(qapp, repo: SqliteRepo, monkeypatch) -> None:
+    """todo ID47: a project's stored function runs code; made elsewhere, it is asked about first, its code shown."""
+    from app.data_operations.fit_dialog import SeriesFitDialog
+    from app.dialogs import function_trust_dialog
+    from app.dialogs.function_trust_dialog import FunctionTrustDialog
+
+    x = np.linspace(0.0, 4.0, 30)
+    repo.import_dataframe(pd.DataFrame({"x": x, "y": 5.0 * x}), table_name="points", normalize_columns=False)
+    code = "def Foreign(k):\n    f_numeric = k * x  # made on another computer\n    return f_numeric\n"
+    # Written as a project from elsewhere has it: straight into __sympy__, never saved here.
+    repo.save_sympy_function("Foreign", "code", "", code)
+    foreign = sympy_store.catalog(repo)[0]
+    assert [row["function_name"] for row in sympy_store.untrusted(repo)] == ["Foreign"]
+    with pytest.raises(sympy_store.UntrustedFunction):
+        sympy_store.make_model(foreign)
+
+    shown: list[str] = []
+
+    def answer(accepted: bool):
+        def exec_(dialog: FunctionTrustDialog) -> int:
+            shown.append(dialog._code.toPlainText())
+            return FunctionTrustDialog.DialogCode.Accepted if accepted else FunctionTrustDialog.DialogCode.Rejected
+        return exec_
+
+    figure_id = repo.create_figure_descriptor(name="Fit")
+    axis_id = repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+                                          title="points", x_label="x", y_label="y", options={})
+    repo.create_series_descriptor(axis_id=axis_id, series_index=0, name="points",
+                                  sql_query='SELECT "x", "y" FROM "points"', roles={"x": "x", "y": "y"}, style={})
+    dialog = SeriesFitDialog(repo=repo, figure_id=figure_id, parent=None)
+    try:
+        dialog.series_selector.reload(select_all_series=True)
+        assert dialog.select_model("Foreign")
+        monkeypatch.setattr(FunctionTrustDialog, "exec", answer(False))
+        assert dialog.prepare_job() is None  # not run
+        assert "made on another computer" in shown[-1] and not sympy_store.is_trusted(foreign)
+
+        monkeypatch.setattr(FunctionTrustDialog, "exec", answer(True))
+        dialog.evaluate(dialog._after_fit, background=False, optimise=True)
+        np.testing.assert_allclose(dialog.compute_results()[0].params, [5.0], atol=1e-6)
+        assert sympy_store.untrusted(repo) == [] and len(shown) == 2
+    finally:
+        dialog.close()
+
+    # Trusted once, remembered; changed elsewhere, a new function, asked about again.
+    assert function_trust_dialog.allowed_to_run(None, repo, foreign) and len(shown) == 2
+    repo.save_sympy_function("Foreign", "code", "", code.replace("k * x", "k * x + 1"))
+    assert [row["function_name"] for row in sympy_store.untrusted(repo)] == ["Foreign"]
+    # Saved on this computer, trusted at once.
+    sympy_store.save(repo, {**sympy_store.get(repo, "Foreign")})
+    assert sympy_store.untrusted(repo) == []

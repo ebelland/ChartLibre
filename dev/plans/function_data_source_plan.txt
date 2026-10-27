@@ -1,4 +1,4 @@
-A STORED FUNCTION AS A DATA SOURCE - LIVE, PARAMETRIC SERIES - PLAN      2026-10-27, waiting for the go
+A STORED FUNCTION AS A DATA SOURCE - LIVE, PARAMETRIC SERIES - PLAN      2026-10-27, go given
 
 WHAT WAS ASKED
 New Chart: a data source can be a __sympy__ function, with the same logic as the saved queries. How can the
@@ -59,3 +59,14 @@ Q3  The library's functions (Gaussian, Logistic...) as sources too, by the same 
 Q4  The trust (ID47) as step 1, before any of this runs (suggested) - or later?
 
 EFFORT: M-L (about two sessions).
+
+STATUS
+Answers (2026-10-27): Q1 per chart (the stored values as defaults); Q2 a live series only; Q3 the library later;
+Q4 the trust first.
+1. Done. The trust is kept by fingerprint (kind and code) in user.json, "trusted_functions": a function saved
+   on this computer is trusted at once, one from elsewhere is asked about with its code shown, the whole
+   project's untrusted functions in one question ("Trust and run" / "Don't run", the latter the default),
+   and asked again only if its code changes. make_model refuses an untrusted function (UntrustedFunction);
+   Fit curve and Function ask first. Listing the functions no longer runs them (an expression's variables
+   are read with ast, not sympify), and Function's Import and Export check the text without running it.
+   The note over a chart comes with the function series (step 4).

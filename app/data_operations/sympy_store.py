@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import ast
-from collections.abc import Mapping
+import hashlib
+from collections.abc import Iterable, Mapping
 from typing import Any, Callable
 
 import numpy as np
 import sympy as sp
+
+from app.utils.config import get_value, set_value
 
 
 def _scientific_import(name: str, globals: Any = None, locals: Any = None, fromlist: tuple[str, ...] = (), level: int = 0) -> Any:
@@ -18,6 +21,41 @@ def _scientific_import(name: str, globals: Any = None, locals: Any = None, froml
 
 TABLE = "__sympy__"
 IMPLICIT = ("x", "y", "z")
+#: The stored functions this computer runs, by fingerprint (user.json): those saved here, and those the user
+#: trusted when asked (todo ID47). A project's function runs code - sympify and exec - when drawn or fitted.
+TRUST_KEY = "trusted_functions"
+
+
+class UntrustedFunction(PermissionError):
+    """A stored function this computer was not told to run: made elsewhere, never trusted here."""
+
+
+def fingerprint(data: Mapping[str, Any]) -> str:
+    """What a function runs - its kind and its code - as one hash: edited elsewhere, it is a new function."""
+    text = "\0".join((str(data.get("source_type", "")).lower(), str(data.get("code_string", "")).strip()))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _trusted() -> set[str]:
+    value = get_value(TRUST_KEY, [])
+    return {str(item) for item in value} if isinstance(value, list) else set()
+
+
+def is_trusted(data: Mapping[str, Any]) -> bool:
+    return fingerprint(data) in _trusted()
+
+
+def trust(functions: Iterable[Mapping[str, Any]]) -> None:
+    """Remember on this computer that these functions may run."""
+    known = _trusted()
+    new = {fingerprint(data) for data in functions} - known
+    if new:
+        set_value(TRUST_KEY, sorted(known | new))
+
+
+def untrusted(repo: Any) -> list[dict[str, str]]:
+    """The project's stored functions this computer would not run."""
+    return [row for row in rows(repo) if not is_trusted(row)]
 
 
 def ensure_table(repo: Any) -> None:
@@ -42,6 +80,7 @@ def save(repo: Any, data: Mapping[str, str]) -> None:
         int(float(data.get("points", "200"))), str(data.get("description", "")),
         float(data.get("y_from", "0")), float(data.get("y_to", "10")), int(float(data.get("y_points", "200"))),
     )
+    trust([data])  # made on this computer
 
 
 def parameter_names(text: str) -> list[str]:
@@ -61,6 +100,15 @@ def _code_info(code: str, wanted: str) -> tuple[ast.FunctionDef, list[str], int]
     return node, params, ndim
 
 
+def _expression_names(code: str) -> set[str]:
+    """The names an expression uses, read without running it (sympify evaluates its text)."""
+    try:
+        tree = ast.parse(code.replace("^", "**"), mode="eval")
+    except SyntaxError:
+        return set()
+    return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+
+
 def payload(data: Mapping[str, str]) -> dict[str, Any]:
     name = str(data["function_name"])
     kind = str(data["source_type"]).lower()
@@ -68,10 +116,7 @@ def payload(data: Mapping[str, str]) -> dict[str, Any]:
     params = parameter_names(str(data.get("symbols", "")))
     ndim = 1
     if kind == "expression":
-        symbols = {coord: sp.Symbol(coord) for coord in IMPLICIT}
-        symbols.update({param: sp.Symbol(param) for param in params})
-        expr = sp.sympify(code, locals=symbols)
-        ndim = 2 if symbols["y"] in expr.free_symbols else 1
+        ndim = 2 if "y" in _expression_names(code) else 1
     elif kind == "code":
         _node, signature_params, ndim = _code_info(code, name)
         if not params:
@@ -91,7 +136,10 @@ def catalog(repo: Any) -> list[dict[str, Any]]:
 
 
 def make_model(data: Mapping[str, Any]) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
+    """The function as a model; UntrustedFunction, nothing run, when this computer was not told to run it."""
     name = str(data["name"])
+    if not is_trusted(data):
+        raise UntrustedFunction(f"The stored function '{name}' is not trusted on this computer.")
     kind = str(data["source_type"])
     params = parameter_names(str(data.get("symbols", "")))
     code = str(data["code_string"])

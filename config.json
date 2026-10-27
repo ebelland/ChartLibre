@@ -145,6 +145,20 @@
       "SegoeFluent": "E711",
       "ThemeIcon": "window-close"
     },
+    "dont_run": {
+      "text": "Don't run",
+      "description": "Leave the functions not run: what they draw stays empty",
+      "SFSymbol": "xmark.circle",
+      "SegoeFluent": "E711",
+      "ThemeIcon": "window-close"
+    },
+    "trust_functions": {
+      "text": "Trust and run",
+      "description": "Run these functions, now and whenever they are drawn or fitted on this computer",
+      "SFSymbol": "checkmark.shield",
+      "SegoeFluent": "E8FB",
+      "ThemeIcon": "media-playback-start"
+    },
     "down": {
       "text": "Down",
       "description": "Down",

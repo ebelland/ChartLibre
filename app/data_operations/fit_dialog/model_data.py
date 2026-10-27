@@ -453,6 +453,11 @@ class ModelDataMixin:
         if self._selected_model.get("_multi_peak"):
             return self._make_multi_peak_model(self._selected_model), p0
         if self._selected_model.get("_sympy_stored"):
+            from app.dialogs.function_trust_dialog import allowed_to_run
+
+            # The project's code: run only once trusted on this computer (todo ID47).
+            if not allowed_to_run(self, self._repo, self._selected_model):
+                return None
             try:
                 return make_stored_sympy_model(self._selected_model), p0
             except Exception:  # noqa: BLE001 - user-provided stored function
