@@ -74,10 +74,8 @@ class TableSourceSelector(QWidget):
             grid.addWidget(widget, row, 1)
         grid.addWidget(QLabel(_("Y:"), self), 2, 0, Qt.AlignmentFlag.AlignTop)
         grid.addWidget(self.y_list, 2, 1)
-        if self.chart_combo.count() > 1:
-            grid.addWidget(QLabel(_("Chart:"), self), 3, 0)
-            grid.addWidget(self.chart_combo, 3, 1)
-        else:
+        # The chart is picked on the Charts tab (the dialog places it there), not here with the columns.
+        if self.chart_combo.count() <= 1:
             self.chart_combo.hide()
         grid.setColumnStretch(1, 1)
         note = QLabel(_("The columns are drawn as a chart of their own, which the operation then runs on."), self)

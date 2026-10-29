@@ -24,7 +24,7 @@ def _operations() -> list[type[DataOperationDialogBase]]:
         module = importlib.import_module(f"app.data_operations.{path.stem}")
         for _name, cls in inspect.getmembers(module, inspect.isclass):
             if (issubclass(cls, DataOperationDialogBase) and cls.__module__ == module.__name__
-                    and cls.READS_TABLES and cls.SHOWS_SERIES_SELECTOR and cls.SHOWS_AXIS_SERIES_PAGE):
+                    and cls.FROM_DATA and cls.SHOWS_SERIES_SELECTOR and cls.SHOW_DATA):
                 found.append(cls)
     return found
 

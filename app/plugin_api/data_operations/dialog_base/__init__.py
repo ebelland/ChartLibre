@@ -1,8 +1,8 @@
 """The base of every series (data) operation dialog.
 
-DataOperationDialogBase (dialog.py) is built from mixins, one module per concern:
-builder hooks, layout and data source, evaluation, inputs, results, the preview
-transaction. The models and jobs are in common.py.
+DataOperationDialogBase (dialog.py) is built from three mixins, one module per part:
+ui.py (builder hooks, layout, the Data page), data.py (inputs, computing) and
+results.py (drawing results, the preview transaction). The models and jobs are in common.py.
 """
 from app.plugin_api.data_operations.dialog_base.dialog import DataOperationDialogBase
 from app.plugin_api.data_operations.dialog_base.common import OperationModel

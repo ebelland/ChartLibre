@@ -25,9 +25,8 @@ def generated_table_name(raw: str, *, fallback: str = "Result") -> str:
     safe = _TABLE_SAFE_RE.sub("_", str(raw).strip()).strip("_") or fallback
     return f"{GENERATED_TABLE_PREFIX}{safe}"
 
+
 @dataclass(frozen=True, slots=True, kw_only=True)
-
-
 class OperationModel:
     """One model an operation offers, as the Model combo lists it.
 
@@ -57,6 +56,7 @@ class ResultSeriesSpec:
     sql_query: str
     roles: Mapping[str, Any]
     style: Mapping[str, Any]
+
 
 class OperationJob(Protocol):
     """What prepare_job returns: an operation's inputs, read off the window.

@@ -16,9 +16,29 @@ import pandas as pd
 
 from app.data.data_source import parse_roles
 from app.data.descriptors import AxisDescriptor
+from app.utils.i18n import _
 
 #: The role that is what a series measures - its column is named after the series.
 MEASURE_ROLES = ("y", "value", "values", "z")
+
+
+def chart_axes(repo, current_figure_id: int | None) -> tuple[list[tuple[str, tuple[str, AxisDescriptor]]], int]:  # noqa: ANN001
+    """Every axis of the project that draws a series, as the "Chart:" list shows it: (label, (figure, axis)).
+
+    Also the index of the first axis of *current_figure_id* (0 when none is). The label is
+    "Figure · axis"; the analyses and the source list read the same entries from here.
+    """
+    entries: list[tuple[str, tuple[str, AxisDescriptor]]] = []
+    first = -1
+    for figure_id, figure_name in repo.load_figures_from_db():
+        descriptor = repo.load_figure_descriptor(figure_id)
+        for axis in (descriptor.axes if descriptor else []):
+            if not axis.series:
+                continue
+            if first < 0 and figure_id == current_figure_id:
+                first = len(entries)
+            entries.append((f"{figure_name} · {axis.title or _(axis.name)}", (figure_name, axis)))
+    return entries, max(first, 0)
 
 
 def axis_frame(repo, axis: AxisDescriptor) -> pd.DataFrame:  # noqa: ANN001 - a SqliteRepo

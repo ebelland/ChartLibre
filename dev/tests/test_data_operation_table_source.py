@@ -103,3 +103,18 @@ def test_the_window_remembers_its_parameters_and_columns_and_reverts(qapp, repo:
     finally:
         again.reject()
         clear_state("SeriesPeaksDialog")
+
+
+def test_a_tables_chart_is_picked_on_the_charts_tab_not_in_data(qapp, repo: SqliteRepo, chart_and_table: int) -> None:
+    from app.data_operations.outlier_dialog import SeriesOutlierDialog
+
+    dialog = SeriesOutlierDialog(repo=repo, figure_id=chart_and_table)
+    try:
+        combo = dialog.table_source.chart_combo
+        assert combo.count() == 3  # Scatter Plot, Box Plot, Histogram
+        tabs = dialog.left_tabs
+        pages = {tabs.tabText(i): tabs.widget(i) for i in range(tabs.count())}
+        assert pages["Charts"].isAncestorOf(combo)
+        assert not pages["Data"].isAncestorOf(combo)
+    finally:
+        dialog.close()

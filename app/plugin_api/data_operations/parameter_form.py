@@ -39,6 +39,7 @@ from app.plugin_api.data_operations.parameter_spec import (
     Param,
     TextParam,
 )
+from app.plugin_api.operation_panels import OperationPanel
 from app.styles.style import TitledCard, configure_combo_width, keep_check_box_whole
 from app.utils.i18n import _
 from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
@@ -57,7 +58,7 @@ FIELD_MAX_WIDTH: int = 260
 COLOR_MAX_WIDTH: int = 180
 
 
-class ParameterForm:
+class ParameterForm(OperationPanel):
     """A QFormLayout built from ``Param`` declarations."""
 
     def __init__(

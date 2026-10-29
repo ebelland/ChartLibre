@@ -66,6 +66,7 @@ from app.utils.dialog_state import (
 from app.utils import report_html
 from app.utils.i18n import _
 from app.widgets.html_results import HtmlResultsView
+from app.plugin_api.operation_panels import merged_values
 from app.plugin_api.operation_shell import OperationShell
 
 #: Columns the application keeps on every table for itself: never offered.
@@ -300,13 +301,17 @@ class TableOperationDialogBase(OperationShell):
         if parameters_only:
             self._parameter_form = ParameterForm(parameters_only, self, on_change=self.inputs_changed,
                                                  context=self.chart_context)
-            parameters = TitledCard(self._inputs_panel, _("Parameters"))
-            parameters.title_label.hide()  # the tab says it, as in the data operations
-            parameters.card.layout().addWidget(self._parameter_form.widget)
-            self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(parameters)
+            if self.SHOW_PARAMETERS:
+                parameters = TitledCard(self._inputs_panel, _("Parameters"))
+                parameters.title_label.hide()  # the tab says it, as in the data operations
+                parameters.card.layout().addWidget(self._parameter_form.widget)
+                self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(parameters)
+            else:
+                # Not shown, but its defaults are still what the calculation reads.
+                self._parameter_form.widget.hide()
         self._build_charts_tab()
         self.roles_widget.finish_tabs()
-        self.roles_widget.tabs.setCurrentIndex(0)
+        self._show_only_panels_switched_on()
         # The standard ground under the frames, not the window's grey.
         self._inputs_panel.setProperty("toolboxPage", True)
         self._inputs_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -332,15 +337,10 @@ class TableOperationDialogBase(OperationShell):
         combo.clear()
         if self.reads_chart():
             self._table_label.setText(_("Chart:"))
-            first = -1
-            for figure_id, figure_name in self._repo.load_figures_from_db():
-                descriptor = self._repo.load_figure_descriptor(figure_id)
-                for axis in (descriptor.axes if descriptor else []):
-                    if axis.series:
-                        if first < 0 and figure_id == self.current_figure_id:
-                            first = combo.count()
-                        combo.addItem(f"{figure_name} · {axis.title or _(axis.name)}", (figure_name, axis))
-            combo.setCurrentIndex(max(first, 0))
+            entries, first = chart_source.chart_axes(self._repo, self.current_figure_id)
+            for label, data in entries:
+                combo.addItem(label, data)
+            combo.setCurrentIndex(first)
         else:
             self._table_label.setText(_("Table:"))
             names = [str(name) for name in self._repo.list_user_tables()["Table"]]
@@ -448,7 +448,7 @@ class TableOperationDialogBase(OperationShell):
 
     def parameter_values(self) -> dict[str, Any]:
         """The parameters and the Charts tab's choices."""
-        return {key: value for form in self.parameter_forms() for key, value in form.values().items()}
+        return merged_values(self.parameter_forms())
 
     def problems(self) -> list[str]:
         """Why the operation cannot run as it stands; empty when it can."""
@@ -748,6 +748,17 @@ class TableOperationDialogBase(OperationShell):
     # ------------------------------------------------------------------
     # Charts tab
     # ------------------------------------------------------------------
+
+    def _show_only_panels_switched_on(self) -> None:
+        """Hide the Data, Parameters or Charts tab its SHOW_ switch turns off; open on the first one left."""
+        tabs = self.roles_widget.tabs
+        switched_off = {_("Data"): not self.SHOW_DATA, _("Charts"): not self.SHOW_CHART}
+        for index in range(tabs.count()):
+            title = tabs.tabText(index)
+            if title in switched_off:
+                tabs.setTabVisible(index, not switched_off[title])
+        # The Data tab first, when it is shown: the dialog opens on it.
+        tabs.setCurrentIndex(next((i for i in range(tabs.count()) if tabs.isTabVisible(i)), 0))
 
     def _build_charts_tab(self) -> None:
         """The Charts tab: where the report is drawn - a new figure, or new axes in the current one - then the

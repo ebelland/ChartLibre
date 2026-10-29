@@ -1,52 +1,48 @@
-"""Shared base dialog for chart-data operation panels.
+"""The base of every chart-data operation dialog (smoothing, interpolation, outlier removal, fitting...).
 
-The base class owns the common shell used by smoothing, interpolation, outlier
-removal and fitting dialogs:
+The window is OperationShell's (tabs on the left, results on the right, the buttons below). This class
+adds the parts an operation has in common, in three mixins, one module per part:
 
-- left side: tabs with the Axis/Series selector, the model selector and the parameters
-- right side: results pane and log output
-- bottom action buttons
+- ui.py: the builder hooks, the layout, and the Data page (a chart's series or a table's columns)
+- data.py: reading and validating the input series, computing, the result tables' formatting
+- results.py: drawing the results (axes, figures, previews) and the preview transaction
 
-Subclasses provide operation-specific controls by overriding the builder hooks.
+Subclasses provide operation-specific controls by overriding the builder hooks, and declare what the window
+shows and what it needs as the class attributes at the top of the class.
 """
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QComboBox, QFormLayout, QSizePolicy, QWidget
 
 from app.logs.logger import applogger
 from app.data.sqlite_repo import SqliteRepo
-from app.widgets.axis_series_selector import AxisSeriesSelector
+from app.plugin_api.data_operations.dialog_base.common import OperationModel
+from app.plugin_api.data_operations.dialog_base.data import DataMixin
+from app.plugin_api.data_operations.dialog_base.results import ResultsMixin
+from app.plugin_api.data_operations.dialog_base.ui import WindowMixin
+from app.plugin_api.data_operations.parameter_spec import Param
+from app.plugin_api.operation_shell import OperationShell
 from app.styles.style import icon_from_svg_source, set_doc_link
+from app.utils.dialog_state import dialog_entries, set_dialog_entries
 from app.utils.i18n import _
-from app.utils.dialog_state import (
-    dialog_entries,
-    set_dialog_entries,
-)
+from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.widgets.html_results import HtmlResultsView
 
-from app.plugin_api.data_operations.dialog_base.hooks import BuilderHooksMixin
-from app.plugin_api.data_operations.dialog_base.layout import LayoutMixin
-from app.plugin_api.data_operations.dialog_base.evaluation import EvaluationMixin
-from app.plugin_api.data_operations.dialog_base.inputs import InputsMixin
-from app.plugin_api.data_operations.dialog_base.results import ResultsMixin
-from app.plugin_api.data_operations.dialog_base.transaction import TransactionMixin
-from app.plugin_api.operation_shell import OperationShell
 
-
-class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, InputsMixin, ResultsMixin,
-                              TransactionMixin, OperationShell):
+class DataOperationDialogBase(WindowMixin, DataMixin, ResultsMixin, OperationShell):
     """Abstract shell for all chart-data operation dialogs.
 
     Subclasses should:
-    - create model controls in ``build_model_selector``;
-    - create parameter controls in ``build_parameter_selector``;
+    - declare their Name, Description, Icon and what they show (the attributes below);
+    - create model controls in ``build_model_selector`` (or set MODELS);
+    - create parameter controls in ``build_parameter_selector`` (or set PARAMS);
     - optionally override ``build_results_pane`` when a QLabel is not enough;
-    - implement ``compute_results``;
-    - provide generated-series metadata through the apply hooks below;
+    - implement ``compute_results`` (or ``compute_series``, through a job);
+    - provide generated-series metadata through the apply hooks;
     - connect operation-specific signals in ``connect_operation_signals``.
     """
     #: How the operation presents itself.  All three live on the class rather
@@ -96,6 +92,94 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
     #: the numbers end up beside the chart instead of disappearing with the
     #: dialog that produced them.
     results_published = Signal(str)
+
+    # -- The window's inputs: the figure, the series, the table's columns --
+    #: Whether the figure combo is disabled. True for every operation so far;
+    #: an operation that genuinely means to move between figures would have to
+    #: keep self._figure_id in step with it, which none currently does.
+    LOCK_FIGURE_SELECTION: bool = True
+
+    #: Whether the series list is shown. An operation that generates a series
+    #: rather than transforming one has nothing to select, and a picker it
+    #: never reads is worse than no picker.
+    SHOWS_SERIES_SELECTOR: bool = True
+
+    #: The charts a table's columns can be drawn as, the first the default:
+    #: with more than one, the Data page offers them ("Chart:"). Scatter Plot
+    #: reads x and y; a chart of one variable - Box Plot, Histogram - reads y
+    #: as its value too (TableSourceSelector.chart_series).
+    TABLE_CHARTS: tuple[str, ...] = ("Scatter Plot",)
+    #: Where the table's columns are stored beside the entries ("@": no attribute's name).
+    _TABLE_SOURCE_STATE = "@table_source"
+
+    # -- Model and parameters, and where the result is drawn ---------------
+    #: The models this operation offers, in the order the Model combo lists
+    #: them: name -> OperationModel. Setting it gives the operation the
+    #: standard selector - "Model:" with the combo, "Docs:" with a link kept
+    #: on the selected model - without writing build_model_selector.
+    MODELS: ClassVar[Mapping[str, OperationModel]] = {}
+
+    #: The combo's tooltip, when MODELS builds it.
+    MODEL_TOOLTIP: ClassVar[str] = "Choose the model."
+
+    #: The combo's label, when MODELS builds it ("Operation:", "Method:"...).
+    MODEL_LABEL: ClassVar[str] = "Model:"
+
+    #: Declared parameters.  An operation that sets this gets its parameter
+    #: form built, wired and read back for free; see ``parameter_spec``.
+    #: Leaving it empty keeps the old behaviour, where the subclass overrides
+    #: ``build_parameter_selector`` and builds the form by hand - which is
+    #: still the right answer for a genuinely unusual control.
+    PARAMS: tuple[Param, ...] = ()
+
+    #: Where the result may be drawn, in the Charts tab's "Draw on" list (DEST_* values); empty: no
+    #: choice - the operation decides (Fit draws on its data's axis). DEFAULT_DESTINATION is preselected.
+    DESTINATIONS: tuple[str, ...] = ()
+    DEFAULT_DESTINATION: str = ""
+
+    # -- What the input must be (INPUT_*, read by validate_input_xy) -------
+    #: What this operation needs of its input.  Subclasses override the ones
+    #: that matter to them; the defaults are the weakest useful set, so an
+    #: operation that says nothing still gets the empty/length/NaN checks
+    #: without having its input rejected for a shape it handles fine.
+    #:
+    #: See ``app/utils/series_validation.py`` for what each one catches.
+    INPUT_MINIMUM_POINTS: int = 2
+    INPUT_REQUIRES_SORTED_X: bool = False
+    INPUT_REQUIRES_UNIQUE_X: bool = False
+    INPUT_REQUIRES_UNIFORM_X: bool = False
+    INPUT_REQUIRES_VARYING_Y: bool = False
+
+    # -- How results are written and drawn ---------------------------------
+    #: How result_series_spec draws a result: a line through its points.
+    RESULT_STYLE: Mapping[str, Any] = {"linestyle": "-", "linewidth": 1.6, "marker": ""}
+
+    #: Result tables are named ``<prefix>_axis<id>_<series>[_<variant>]``,
+    #: where the variant is this attribute of the result (its model, its
+    #: method...) or nothing when None. An operation sets the two instead of
+    #: overriding result_table_name; the names are kept as they always were,
+    #: since a re-run replaces the table of the same name.
+    RESULT_TABLE_PREFIX: str = ""
+    RESULT_TABLE_VARIANT: str | None = "model"
+
+    #: The Results pane as one table, a row per result (result_row gives the cells): (heading, alignment) per
+    #: column. Empty: a section per result instead (result_section).
+    RESULT_COLUMNS: tuple[tuple[str, str], ...] = ()
+
+    # -- Computing: on which thread, and whether per series ----------------
+    #: Whether Preview and Apply compute on a worker thread. Only for an
+    #: operation that has a job (prepare_job or compute_series): the window
+    #: stays responsive, Stop appears with a progress bar if the run takes
+    #: more than a moment, and closing the window stops it.
+    RUN_IN_BACKGROUND: bool = False
+
+    #: Off switch for every operation at once - the tests turn it off so a
+    #: Preview has finished by the time it returns. See dev/tests/conftest.py.
+    BACKGROUND_ENABLED: ClassVar[bool] = True
+
+    #: Whether a series with a z role is read as a surface: read_series then
+    #: gives read_curve_or_surface's ``(is_surface, data)`` instead of x and y.
+    READS_SURFACES: bool = False
 
     def showEvent(self, event: Any) -> None:  # noqa: N802
         """Hide a results view no layout adopted.
@@ -216,9 +300,6 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         self._refresh_visibility()
         self.mark_results_stale()
 
-    #: Where the table's columns are stored beside the entries ("@": no attribute's name).
-    _TABLE_SOURCE_STATE = "@table_source"
-
     def parameter_forms(self) -> list[Any]:
         """The Parameters tab's form and the Charts tab's, whose values are kept."""
         return [form for form in (getattr(self, "_parameter_form_spec", None), self.chart_form)
@@ -239,8 +320,7 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         if source is not None and isinstance(chosen, dict):
             source.set_spec(str(chosen.get("table", "")), str(chosen.get("x", "")), chosen.get("y") or [])
         # Restored with its signals blocked: the page follows the radio here.
-        if getattr(self, "_source_stack", None) is not None:
-            self._source_stack.setCurrentIndex(1 if self.reads_table() else 0)
+        self._show_source_page()
 
     def revert_entries(self) -> None:
         """Every entry back to its default, as JMP's Revert: what the window had when first opened."""
@@ -248,19 +328,12 @@ class DataOperationDialogBase(BuilderHooksMixin, LayoutMixin, EvaluationMixin, I
         form = getattr(self, "_parameter_form_spec", None)
         if form is not None:
             form.set_values(self._default_parameters)
-        if getattr(self, "_source_stack", None) is not None:
-            self._source_stack.setCurrentIndex(1 if self.reads_table() else 0)
+        self._show_source_page()
         self._refresh_visibility()
         self.mark_results_stale()
 
-
     def _series_display_name(self, row: Any) -> str:
         return str(row["name"])
-
-    # ------------------------------------------------------------------
-    # Shared helpers
-    # ------------------------------------------------------------------
-
 
     def set_row_visible(self, field_widget: QWidget, visible: bool, *, form: QFormLayout | None = None) -> None:
         """Show or hide a form row together with its label.

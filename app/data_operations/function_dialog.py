@@ -131,7 +131,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     Description = "Plot a function"
     INPUT_MINIMUM_POINTS = 0
     SHOWS_SERIES_SELECTOR = False
-    SHOWS_AXIS_SERIES_PAGE = False
+    SHOW_DATA = False
 
     # Kept as declared parameters so the existing ParameterForm logic, value
     # validation and build_range() path remain untouched. The widget is moved

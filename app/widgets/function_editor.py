@@ -21,7 +21,7 @@ import math
 from collections.abc import Mapping
 from typing import Any
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import (
     QAbstractSpinBox,
@@ -112,6 +112,7 @@ class RangeRow(QWidget):
         self.spacing = QComboBox(self)
         self.spacing.addItem(_("Linear"), LINEAR)
         self.spacing.addItem(_("Log"), LOG)
+        stdSizeAndlayout(self.spacing, minimum_contents_length=6)  # "Linear" shown whole, not cut
         ends.addWidget(self.start, 1)
         ends.addWidget(QLabel(_("to"), self))
         ends.addWidget(self.stop, 1)
@@ -197,6 +198,8 @@ class FunctionEditor(QFrame):
         form = QFormLayout(self)
         stdSizeAndlayout(form)
         form.setContentsMargins(0, 0, 0, 0)
+        # Labels line up with the top of their field: x range: beside its From line, not between its two lines.
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         self.kind = QComboBox(self)
         self.kind.addItem(_("Expression"), EXPRESSION)
         self.kind.addItem(_("Code"), CODE)

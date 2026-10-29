@@ -44,8 +44,8 @@ TODO: describe what this operation computes and when to reach for it, the
 way every dialog under app/data_operations/ does at the top of its own
 file - app/data_operations/function_dialog.py is the smallest complete,
 hand-written example to read alongside this one, and
-DataOperationDialogBase's own docstring (app/data_operations/
-dialog_base/hooks.py) documents every hook below plus the ones left out here
+DataOperationDialogBase's own docstring (app/plugin_api/data_operations/
+dialog_base/dialog.py, and the mixins beside it) documents every hook below plus the ones left out here
 (build_model_selector, PARAMS/build_parameter_selector, ...) because their
 base-class defaults already do something reasonable - override one only
 once this operation actually needs it.

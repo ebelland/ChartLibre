@@ -50,6 +50,7 @@ from app.analysis import Stopped
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, ParameterForm
 from app.plugin_api.data_operations.parameter_spec import Param
+from app.plugin_api.operation_panels import merged_values
 from app.styles.style import (
     CardFrame,
     TitledCard,
@@ -78,6 +79,19 @@ class OperationShell(QDialog):
     DEST_NEW_FIGURE: str = "new_figure"
     #: No chart at all: for an analysis whose result is its report (Statistics).
     DEST_NONE: str = "none"
+
+    #: The panels the window shows. An operation turns one off when it has nothing to decide there: a
+    #: function's Data page (SHOW_DATA), a model it does not have, parameters or charts it does not offer.
+    SHOW_DATA: bool = True
+    SHOW_MODEL: bool = True
+    SHOW_PARAMETERS: bool = True
+    SHOW_CHART: bool = True
+    #: The data sources offered on the Data page: a table's columns (FROM_DATA), a chart's series
+    #: (FROM_CHART). With one of them off, the other is the source and its choice is not shown.
+    FROM_DATA: bool = True
+    FROM_CHART: bool = True
+    #: A stored function as the source. No analysis reads one yet, so the switch changes nothing.
+    FROM_FUNCTION: bool = False
 
     @classmethod
     def destination_label(cls, value: str) -> str:
@@ -120,7 +134,11 @@ class OperationShell(QDialog):
             group.addButton(radio)
             row.addWidget(radio)
         row.addStretch(1)
-        (self.source_chart_radio if from_chart else self.source_table_radio).setChecked(True)
+        # A source switched off (FROM_DATA, FROM_CHART) is not offered; the other one is the source.
+        self.source_table_radio.setVisible(self.FROM_DATA)
+        self.source_chart_radio.setVisible(self.FROM_CHART)
+        chart_first = (from_chart and self.FROM_CHART) or not self.FROM_DATA
+        (self.source_chart_radio if chart_first else self.source_table_radio).setChecked(True)
         self.source_chart_radio.toggled.connect(on_change)
         return row
 
@@ -464,10 +482,7 @@ class OperationShell(QDialog):
         extra: dict[str, Any] = dict(self.state_extra())
         forms = self.parameter_forms()
         if forms:
-            values: dict[str, Any] = {}
-            for form in forms:
-                values.update(form.values())
-            extra[self.PARAMETERS_STATE] = values
+            extra[self.PARAMETERS_STATE] = merged_values(forms)
         try:
             save_dialog_state(self, self.state_key(), extra)
         except TypeError:

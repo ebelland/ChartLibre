@@ -1,43 +1,52 @@
-"""The input series, read and validated: x/y, x/y/z, grids, origin."""
+"""What an operation reads and computes: the input series (validated and read), the result tables and their
+formatting, and the job run here or on a worker thread."""
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import inspect
 import json
+from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-
-from app.plugin_api.charts.grids import pivot_to_grid
-from app.data.data_source import parse_roles, row_value, resolve_role_column
+from app.data.data_source import parse_roles, resolve_role_column, row_value
 from app.logs.logger import applogger
-from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
-from app.utils.series_validation import SeriesIssue, clean_xy, errors, validate_xy
+from app.plugin_api.charts.grids import pivot_to_grid
 from app.utils import report_html
+from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
 from app.utils.i18n import _
+from app.utils.series_validation import SeriesIssue, clean_xy, errors, validate_xy
 
-from app.plugin_api.data_operations.dialog_base.common import generated_table_name, ResultSeriesSpec
+from app.plugin_api.data_operations.dialog_base.common import (
+    OperationJob,
+    ResultSeriesSpec,
+    SeriesJob,
+    SeriesOutcome,
+    generated_table_name,
+)
 
 
-class InputsMixin:
-    """The input series, read and validated: x/y, x/y/z, grids, origin. A part of DataOperationDialogBase (see dialog.py)."""
+def _xy_columns(frame: pd.DataFrame, roles: Mapping[str, Any]) -> tuple[str, str]:
+    """The x and y columns of a series' query: the ones its roles name, else the first two numeric ones."""
+    columns = [str(column) for column in frame.columns]
+    numeric = [str(column) for column in frame.columns if pd.api.types.is_numeric_dtype(frame[column])]
+    x_col = resolve_role_column(columns, roles, "x") or ""
+    y_col = resolve_role_column(columns, roles, "y") or ""
+    if x_col not in columns:
+        x_col = numeric[0] if numeric else columns[0]
+    if y_col not in columns:
+        y_col = numeric[1] if len(numeric) > 1 else x_col
+    return x_col, y_col
+
+
+class DataMixin:
+    """What an operation reads and computes. A part of DataOperationDialogBase."""
 
     # ------------------------------------------------------------------
     # Input validation
     # ------------------------------------------------------------------
-
-    #: What this operation needs of its input.  Subclasses override the ones
-    #: that matter to them; the defaults are the weakest useful set, so an
-    #: operation that says nothing still gets the empty/length/NaN checks
-    #: without having its input rejected for a shape it handles fine.
-    #:
-    #: See ``app/utils/series_validation.py`` for what each one catches.
-    INPUT_MINIMUM_POINTS: int = 2
-    INPUT_REQUIRES_SORTED_X: bool = False
-    INPUT_REQUIRES_UNIQUE_X: bool = False
-    INPUT_REQUIRES_UNIFORM_X: bool = False
-    INPUT_REQUIRES_VARYING_Y: bool = False
 
     def validate_input_xy(
         self,
@@ -140,6 +149,16 @@ class InputsMixin:
         exactly what this operation's INPUT_* flags declare it needs and
         reports whatever it changed.
         """
+        frame, roles = self._series_frame(row)
+        x_col, y_col = _xy_columns(frame, roles)
+        return self.prepare_input_xy(
+            self.numeric_x(frame[x_col], name),
+            self.numeric_y(frame[y_col]),
+            label=name,
+        )
+
+    def _series_frame(self, row: Any) -> tuple[pd.DataFrame, Mapping[str, Any]]:
+        """Run one series' SQL: its rows as a frame, and its roles. Raises when there is no query or no rows."""
         sql_query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
         if not sql_query:
             raise ValueError("the series has no SQL query")
@@ -147,27 +166,7 @@ class InputsMixin:
         frame = self._repo.query_df(sql_query)
         if frame.empty:
             raise ValueError("the series query returned no rows")
-
-        roles = parse_roles(row_value(row, "roles", default={}))
-        columns = [str(column) for column in frame.columns]
-        numeric = [
-            str(column)
-            for column in frame.columns
-            if pd.api.types.is_numeric_dtype(frame[column])
-        ]
-
-        x_col = resolve_role_column(columns, roles, "x") or ""
-        y_col = resolve_role_column(columns, roles, "y") or ""
-        if x_col not in columns:
-            x_col = numeric[0] if numeric else columns[0]
-        if y_col not in columns:
-            y_col = numeric[1] if len(numeric) > 1 else x_col
-
-        return self.prepare_input_xy(
-            self.numeric_x(frame[x_col], name),
-            self.numeric_y(frame[y_col]),
-            label=name,
-        )
+        return frame, parse_roles(row_value(row, "roles", default={}))
 
     def numeric_x(self, column: Any, name: str = "") -> np.ndarray:
         """Return an x column as floats, timestamps included, and remember.
@@ -266,32 +265,13 @@ class InputsMixin:
         this series is 3D before calling this, not to find out from the
         exception.
         """
-        sql_query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
-        if not sql_query:
-            raise ValueError("the series has no SQL query")
-
-        frame = self._repo.query_df(sql_query)
-        if frame.empty:
-            raise ValueError("the series query returned no rows")
-
-        roles = parse_roles(row_value(row, "roles", default={}))
+        frame, roles = self._series_frame(row)
         columns = [str(column) for column in frame.columns]
         z_col = str(roles.get("z") or "")
         if not z_col or z_col not in columns:
             raise ValueError("the series has no z role")
 
-        numeric = [
-            str(column)
-            for column in frame.columns
-            if pd.api.types.is_numeric_dtype(frame[column])
-        ]
-        x_col = resolve_role_column(columns, roles, "x") or ""
-        y_col = resolve_role_column(columns, roles, "y") or ""
-        if x_col not in columns:
-            x_col = numeric[0] if numeric else columns[0]
-        if y_col not in columns:
-            y_col = numeric[1] if len(numeric) > 1 else x_col
-
+        x_col, y_col = _xy_columns(frame, roles)
         x_values = np.asarray(self.numeric_x(frame[x_col], name), dtype=float).reshape(-1)
         y_values = np.asarray(self.numeric_y(frame[y_col]), dtype=float).reshape(-1)
         z_values = np.asarray(to_numeric_axis(frame[z_col]), dtype=float).reshape(-1)
@@ -382,9 +362,6 @@ class InputsMixin:
                 return method()
         raise NotImplementedError(f"{type(result).__name__} has no to_df()")
 
-    #: How result_series_spec draws a result: a line through its points.
-    RESULT_STYLE: Mapping[str, Any] = {"linestyle": "-", "linewidth": 1.6, "marker": ""}
-
     def result_style(self, result: Any, **overrides: Any) -> dict[str, Any]:
         """A generated series' style: this dialog's marks (generated_style_filter), the series and the model it
         came from, then *overrides*."""
@@ -428,14 +405,6 @@ class InputsMixin:
         """
         return [self.result_series_spec(axis_id, table_name, result)]
 
-    #: Result tables are named ``<prefix>_axis<id>_<series>[_<variant>]``,
-    #: where the variant is this attribute of the result (its model, its
-    #: method...) or nothing when None. An operation sets the two instead of
-    #: overriding result_table_name; the names are kept as they always were,
-    #: since a re-run replaces the table of the same name.
-    RESULT_TABLE_PREFIX: str = ""
-    RESULT_TABLE_VARIANT: str | None = "model"
-
     def result_table_name(self, axis_id: int, result: Any) -> str:
         """Return a safe table name for one result.
 
@@ -459,10 +428,6 @@ class InputsMixin:
     def results_document(self, subtitle: str, *sections: str) -> str:
         """The Results pane's document, the same frame for every operation: its name, *subtitle*, *sections*."""
         return report_html.document(_(self.operation_label), subtitle, *sections)
-
-    #: The Results pane as one table, a row per result (result_row gives the cells): (heading, alignment) per
-    #: column. Empty: a section per result instead (result_section).
-    RESULT_COLUMNS: tuple[tuple[str, str], ...] = ()
 
     def format_results(self, results: Sequence[Any]) -> str:
         """The Results pane, framed by results_document: the RESULT_COLUMNS table, else a section per result.
@@ -578,10 +543,9 @@ class InputsMixin:
                 )
         return frame
 
-    def remove_previous_generated_series(self, axis_id: int) -> int:
-        """Delete generated descriptors for this operation on the selected axis."""
+    def _remove_series_styled(self, axis_id: int, expected: Mapping[str, Any]) -> int:
+        """Delete the series of *axis_id* whose style has every key/value of *expected*; return how many."""
         removed = 0
-        expected = dict(self.generated_style_filter)
         for row in self._repo.get_series(axis_id) or []:
             try:
                 style = json.loads(str(row["style_json"] or "{}"))
@@ -590,6 +554,11 @@ class InputsMixin:
             if all(style.get(key) == value for key, value in expected.items()):
                 self._repo.delete_series(int(row["id"]))
                 removed += 1
+        return removed
+
+    def remove_previous_generated_series(self, axis_id: int) -> int:
+        """Delete generated descriptors for this operation on the selected axis."""
+        removed = self._remove_series_styled(axis_id, self.generated_style_filter)
         if removed:
             applogger.info(f"Removed {removed} previous {self.operation_label} generated series.")
         return removed
@@ -682,3 +651,231 @@ class InputsMixin:
             figure_id,
         )
         return axis_id
+
+    # ------------------------------------------------------------------
+    # Shared helpers
+    # ------------------------------------------------------------------
+
+    def selected_series(self) -> list[Any]:
+        if self.reads_table() and not getattr(self, "_switching_figure", False):
+            # The table's columns, drawn if they are not yet.
+            try:
+                self._prepare_table_source()
+            except ValueError:
+                return []
+        return self.series_selector.selected_series()
+
+    def _selected_series_row(self) -> Any:
+        rows = self.selected_series()
+
+        if not rows:
+            message = "Select one source series in the Data panel."
+            applogger.error(message)
+            raise ValueError(message)
+
+        if len(rows) > 1:
+            # A warning, not a message box: this runs on every Preview and
+            # every parameter tweak while two or more series are checked.
+            # The status bar shows it without asking to be dismissed.
+            name = row_value(rows[0], "name", default="first")
+            applogger.warning(
+                "%d series are selected; using only '%s'. Uncheck the "
+                "others, or reorder them, to use a different one.",
+                len(rows),
+                name,
+            )
+
+        return rows[0]
+
+    def set_results_text(self, text: str) -> None:
+        """Show results in the results pane: markup rendered, plain text escaped (OperationShell.show_results)."""
+        self.show_results(text)
+
+    def results_widget(self) -> Any:
+        """The Results pane, for OperationShell."""
+        return self._results_label
+
+    def set_results_html(self, markup: str) -> None:
+        """Show markup in the results pane."""
+        self.show_results(str(markup or ""))
+
+    def publish_results(self, formatted: str) -> None:
+        """Show ``format_results`` output: markup rendered, plain text escaped (OperationShell.show_results)."""
+        self.show_results(formatted)
+
+    def mark_results_stale(self, *_ignored: Any) -> None:
+        """Invalidate any previewed results without recomputing anything.
+
+        Wired wherever a control used to call refresh_results()/
+        _queue_refresh_results() straight away. Preview and OK are the only
+        paths left that actually run compute_results().
+        """
+        self.store_cached_results([])
+        self.publish_results(_(self.PENDING_RESULTS_MESSAGE))
+
+    # ------------------------------------------------------------------
+    # Shared generated-series apply pipeline
+    # ------------------------------------------------------------------
+    @property
+    def operation_label(self) -> str:
+        """Human readable operation name used in messages/logs: the operation's Name."""
+        return self.Name or self.windowTitle() or self.__class__.__name__
+
+    @property
+    def generated_style_filter(self) -> Mapping[str, Any]:
+        """Style key/value pairs identifying series generated by this dialog.
+
+        Example::
+
+            {"generated_smoothing": True, "smoothing_dialog": "series_smoothing"}
+
+        ``remove_previous_generated_series`` deletes only descriptors whose
+        ``style_json`` contains all these key/value pairs.
+
+        Derived from the source file's name by default - smoothing_dialog.py
+        gives the example above; an operation that is a package
+        (fit_dialog/dialog.py) takes its folder's name. The file, not the
+        module: the scanner loads a plugin under a module name of its own,
+        different every session (_dynamic_data_operation_..._<hash>), and
+        keys made from that were neither stable nor the ones the series were
+        stored with. Four operations predate the rule and keep their own
+        values, which are stored in existing projects.
+        """
+        path = Path(inspect.getfile(type(self)))
+        name = path.stem if path.stem.endswith("_dialog") else path.parent.name
+        stem = name.removesuffix("_dialog")
+        return {f"generated_{stem}": True, f"{stem}_dialog": f"series_{stem}"}
+
+    def compute_results(self) -> Sequence[Any]:
+        """Return operation-specific result objects for the selected series.
+
+        Preview and Apply call this, on the GUI thread, unless the operation
+        runs in the background (see evaluate). An operation that implements
+        prepare_job/finish_job - or, more simply, compute_series - gets it for
+        free; one that has not been split that way yet overrides this instead.
+        """
+        job = self.prepare_job()
+        if job is None:
+            return []
+        return self.finish_job(job, job.run())
+
+    # ------------------------------------------------------------------
+    # Evaluation: one way to compute, here or on a worker thread
+    # ------------------------------------------------------------------
+
+    # -- Per series: the common case ------------------------------------
+
+    def series_settings(self) -> Any:
+        """Everything compute_series needs besides the data, read on the GUI thread.
+
+        ``(model, parameters)`` for an operation with MODELS, else the parameters.
+        """
+        if self.MODELS:
+            return self.current_model(), self.parameter_values()
+        return self.parameter_values()
+
+    def read_series(self, row: Any, name: str) -> Any:
+        """One selected series' data, read on the GUI thread; x and y by default."""
+        if self.READS_SURFACES:
+            return self.read_curve_or_surface(row, name)
+        return self.series_xy(row, name)
+
+    def read_curve_or_surface(self, row: Any, name: str) -> tuple[bool, Any]:
+        """``(True, series_grid_xyz)`` for a series with a z role - a surface -
+        else ``(False, series_xy)``: for the operations that handle both."""
+        if parse_roles(row_value(row, "roles", default={})).get("z"):
+            return True, self.series_grid_xyz(row, name)
+        return False, self.series_xy(row, name)
+
+    def compute_series(self, name: str, data: Any, settings: Any) -> Any:
+        """The calculation for one series, on whatever thread runs the job.
+
+        Must not touch a widget, the repository or the logger's dialogs:
+        everything it needs arrives in *data* and *settings*. Whatever it
+        returns goes to finish_series, back on the GUI thread.
+        """
+        raise NotImplementedError
+
+    def finish_series(self, name: str, outcome: Any, settings: Any) -> Any:
+        """Turn compute_series' outcome into a result, on the GUI thread (notes go to the log here)."""
+        del name, settings
+        return outcome
+
+    def _computes_per_series(self) -> bool:
+        from app.plugin_api.data_operations.dialog_base.dialog import DataOperationDialogBase  # the class this is part of
+
+        return type(self).compute_series is not DataOperationDialogBase.compute_series
+
+    def prepare_job(self, **options: Any) -> OperationJob | None:
+        """Read the widgets into a job, on the GUI thread; None when there is nothing to do.
+
+        The job carries everything the calculation needs - data, parameters,
+        and whatever names the result will need later - so the window can be
+        changed while it runs without mixing two runs. *options* are the
+        operation's own (the fit's ``optimise``, for one).
+
+        An operation with compute_series gets a SeriesJob: the selected
+        series are read here, one by one, and a series that cannot be read
+        is reported with the ones that fail to compute.
+        """
+        if not self._computes_per_series():
+            raise NotImplementedError(
+                f"{type(self).__name__} implements neither prepare_job nor compute_results"
+            )
+        del options
+        settings = self.series_settings()
+        inputs: list[tuple[str, Any]] = []
+        errors: list[str] = []
+        for row in self.selected_series():
+            name = str(row_value(row, "name", "series_name", default="Series"))
+            try:
+                inputs.append((name, self.read_series(row, name)))
+            except Exception as exc:  # noqa: BLE001 - collected, then reported
+                errors.append(f"{name}: {exc}")
+        if not inputs and not errors:
+            return None
+        return SeriesJob(inputs, settings, self.compute_series, errors)
+
+    def finish_job(self, job: OperationJob, outcome: Any) -> Sequence[Any]:
+        """Turn a job's outcome into this dialog's results, on the GUI thread."""
+        if isinstance(job, SeriesJob) and isinstance(outcome, SeriesOutcome):
+            results = [self.finish_series(name, value, job.settings) for name, value in outcome.outcomes]
+            # One bad series should not hide the good ones; only when none
+            # worked is it an error.
+            if outcome.errors and not results:
+                raise ValueError("; ".join(outcome.errors))
+            for message in outcome.errors:
+                applogger.warning(message)
+            return results
+        del job
+        return list(outcome) if isinstance(outcome, (list, tuple)) else [outcome]
+
+    @property
+    def evaluating(self) -> bool:
+        """A calculation is running (OperationShell.job_running)."""
+        return self.job_running
+
+    def evaluate(
+        self,
+        on_results: Callable[[Sequence[Any]], None],
+        *,
+        background: bool | None = None,
+        **options: Any,
+    ) -> None:
+        """Compute the results and hand them to *on_results*, on the GUI thread.
+
+        In the background when *background* says so (RUN_IN_BACKGROUND when it does not), through
+        OperationShell.run_job: the series are counted on the progress bar, Stop is polled between them.
+        *on_results* is not called when the run is stopped or fails; the reason is shown instead.
+        """
+        if self.job_running:
+            return
+        job = self.prepare_job(**options)
+        if job is None:
+            return
+        if not (self.RUN_IN_BACKGROUND if background is None else background):
+            on_results(self.finish_job(job, job.run()))
+            return
+        self.run_job(lambda cancel: job.run(should_stop=cancel.is_set),
+                     lambda outcome: on_results(self.finish_job(job, outcome)),
+                     progress=getattr(job, "progress", None))

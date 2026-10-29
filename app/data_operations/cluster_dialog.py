@@ -472,9 +472,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
             **params,
         }
 
-    def _series_display_name(self, row: Any) -> str:
-        return str(row["name"])
-
     def _series_choice_from_row(self, row: Any) -> ClusterSeriesChoice:
         name = str(row["name"])
         sql_query = str(row["sql_query"])
