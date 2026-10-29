@@ -25,7 +25,7 @@ from app.plugin_api.data_operations.dialog_base.data import DataMixin
 from app.plugin_api.data_operations.dialog_base.results import ResultsMixin
 from app.plugin_api.data_operations.dialog_base.ui import WindowMixin
 from app.plugin_api.data_operations.parameter_spec import Param
-from app.plugin_api.operation_shell import OperationShell
+from app.plugin_api.analysis_base import AnalysisDialogBase
 from app.styles.style import icon_from_svg_source, set_doc_link
 from app.utils.dialog_state import dialog_entries, set_dialog_entries
 from app.utils.i18n import _
@@ -33,7 +33,7 @@ from app.widgets.axis_series_selector import AxisSeriesSelector
 from app.widgets.html_results import HtmlResultsView
 
 
-class DataOperationDialogBase(WindowMixin, DataMixin, ResultsMixin, OperationShell):
+class DataOperationDialogBase(WindowMixin, DataMixin, ResultsMixin, AnalysisDialogBase):
     """Abstract shell for all chart-data operation dialogs.
 
     Subclasses should:
@@ -51,6 +51,8 @@ class DataOperationDialogBase(WindowMixin, DataMixin, ResultsMixin, OperationShe
     #: and presentation that had to be registered elsewhere made that untrue.
     #: The scanner reads them straight out of the source, so none of it costs
     #: an import.
+    #: The data a chart-data operation picks: its series.
+    DATA_PICKER: ClassVar[str] = "series"
     Name: str = ""
     Description: str = ""
     #: The Data operations panel's section for it, and its place: sections are

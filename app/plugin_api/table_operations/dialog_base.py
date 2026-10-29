@@ -67,7 +67,7 @@ from app.utils import report_html
 from app.utils.i18n import _
 from app.widgets.html_results import HtmlResultsView
 from app.plugin_api.operation_panels import merged_values
-from app.plugin_api.operation_shell import OperationShell
+from app.plugin_api.analysis_base import AnalysisDialogBase
 
 #: Columns the application keeps on every table for itself: never offered.
 APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
@@ -77,9 +77,11 @@ APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
 GENERATED_PREFIX = "_"
 
 
-class TableOperationDialogBase(OperationShell):
+class TableOperationDialogBase(AnalysisDialogBase):
     """Inputs on the left, the report on the right; Preview, Copy, OK, Close."""
 
+    #: A table analysis picks its data as roles (ROLES), not as a chart's series.
+    DATA_PICKER: ClassVar[str] = "roles"
     Name: ClassVar[str] = ""
     Description: ClassVar[str] = ""
     Category: ClassVar[str] = ""
