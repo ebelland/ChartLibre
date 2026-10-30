@@ -29,6 +29,7 @@ to read.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Any, ClassVar
 
 import pandas as pd
@@ -79,6 +80,19 @@ APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
 GENERATED_PREFIX = "_"
 
 
+
+def _hidden_by_same_axis(spec: Any, first: str, same_axis: str) -> Any:
+    """*spec*, shown unless Same axis is chosen and it is not the first chart (the one that is drawn)."""
+    shown_if = spec.visible_if
+
+    def visible(values: Mapping[str, Any]) -> bool:
+        if values.get("_destination") == same_axis and spec.name != first:
+            return False
+        return shown_if is None or bool(shown_if(values))
+
+    return replace(spec, visible_if=visible)
+
+
 class TableOperationDialogBase(AnalysisDialogBase):
     """Inputs on the left, the report on the right; Preview, Copy, OK, Close."""
 
@@ -92,8 +106,6 @@ class TableOperationDialogBase(AnalysisDialogBase):
     Icon: ClassVar[str] = ""
 
     ROLES: ClassVar[tuple[ColumnRole, ...]] = ()
-    #: Draws a single panel: "Draw on" offers the current axis too (the figure's axis of the panel's kind).
-    ONE_PANEL: ClassVar[bool] = False
     #: The roles whose columns the report's subtitle names after the table.
     SUBTITLE_ROLES: ClassVar[tuple[str, ...]] = ("response",)
     #: Roles that may not share a column: (role, other role, message); "{columns}" in the message names them.
@@ -687,11 +699,13 @@ class TableOperationDialogBase(AnalysisDialogBase):
                                      visible_if=lambda values, chart=chart: values.get("_charts") is None
                                      or chart in values["_charts"])
                            for chart in self.CHART_PANELS)
-        # A table analysis has no axis of its own.
-        # Current axis for an analysis of one panel (added onto the figure's axis of its kind); None for every one.
-        destinations = (self.DEST_NEW_FIGURE, self.DEST_NEW_AXIS, *((self.DEST_SAME_AXIS,) if self.ONE_PANEL else ()),
-                        self.DEST_NONE)
-        page = self.build_charts_page(charts, destinations=destinations,
+        # Same axis draws the first chart only: while it is chosen, the other charts are hidden.
+        if charts:
+            first = charts[0].name
+            charts = tuple(_hidden_by_same_axis(spec, first, self.DEST_SAME_AXIS) for spec in charts)
+        # A table analysis has no axis of its own: the choices of where its report is drawn.
+        destinations = (self.DEST_SAME_AXIS, self.DEST_NEW_AXIS, self.DEST_NEW_FIGURE, self.DEST_NONE)
+        page = self.build_charts_page(charts, destinations=destinations, default_destination=self.DEST_NEW_FIGURE,
                                       on_change=self.inputs_changed, context=self.chart_context)
         box = TitledCard(self._inputs_panel, _("Charts"))
         box.title_label.hide()  # the tab says it

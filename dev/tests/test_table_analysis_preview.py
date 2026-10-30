@@ -135,7 +135,7 @@ def test_an_analysis_reads_a_charts_axis_as_a_table(qapp, tmp_path) -> None:
 
 
 def test_draw_on_none_and_on_the_current_axis(qapp, tmp_path) -> None:
-    """None: the tables and the report, no figure. Current axis (an analysis of one panel): its series onto the
+    """None: the tables and the report, no figure. Same axis (an analysis of one chart): its series onto the
     current figure's axis of the same kind."""
     import numpy as np
 

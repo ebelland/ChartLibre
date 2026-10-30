@@ -96,8 +96,13 @@ class OperationShell(QDialog):
     @classmethod
     def destination_label(cls, value: str) -> str:
         """The Charts tab's wording of a "Draw on" choice."""
-        return {cls.DEST_SAME_AXIS: _("Current axis"), cls.DEST_NEW_AXIS: _("New axis in the current figure"),
+        return {cls.DEST_SAME_AXIS: _("Same axis"), cls.DEST_NEW_AXIS: _("Same figure"),
                 cls.DEST_NEW_FIGURE: _("New figure"), cls.DEST_NONE: _("None")}[value]
+
+    def destination_chosen(self) -> str:
+        """The "Draw on" choice in the Charts tab (a DEST_* value); "" when there is no such list."""
+        combo = getattr(self, "destination_combo", None)
+        return str(combo.currentData() or "") if combo is not None else ""
 
     def destination_combo_for(self, parent: Any, values: Sequence[str], default: str, on_change: Any) -> Any:
         """The Charts tab's "Draw on" list: *values* (DEST_*), *default* selected, as wide as its words."""
@@ -105,8 +110,8 @@ class OperationShell(QDialog):
         for value in values:
             combo.addItem(self.destination_label(value), value)
         combo.setCurrentIndex(max(0, combo.findData(default)))
-        combo.setToolTip(_("Where the result is drawn: on the axis of its data, on a new axis beside it, or in "
-                           "a figure of its own."))
+        combo.setToolTip(_("Where the result is drawn: on the axis of its data (the first chart only), in the "
+                           "current figure as new axes, or in a figure of its own."))
         # As narrow as the panel needs (its words elided, whole in the list that drops down), never wider
         # than a field: at its words' width it pushed the Charts page past a narrow window's edge.
         configure_combo_width(combo, follow_tooltip=False)
@@ -181,7 +186,11 @@ class OperationShell(QDialog):
                 lambda: (self.chart_form is not None and self.chart_form.refresh_visibility(),
                          (on_destination_change or on_change)()))
         if chart_params:
-            self.chart_form = ParameterForm(chart_params, self, on_change=on_change, context=context)
+            # The "Draw on" choice is read by the charts' visibility rules (a chart hidden for Same axis).
+            def with_destination() -> Mapping[str, Any]:
+                return {**(context() if context is not None else {}), "_destination": self.destination_chosen()}
+
+            self.chart_form = ParameterForm(chart_params, self, on_change=on_change, context=with_destination)
             layout.addWidget(self.chart_form.widget)
         if destinations:
             # In the charts' own form when there are some: their boxes under the combo, in its column.

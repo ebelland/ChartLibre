@@ -99,6 +99,9 @@ class AnalysisDialogBase(OperationShell):
 
         repo = self._repo
         draw_on = self.draw_on()
+        if draw_on == self.DEST_SAME_AXIS:
+            # Same axis: the first chart ticked only; the others are not drawn.
+            panels = panels[:1]
         if draw_on == self.DEST_NONE or not panels:
             # The report is the result - no chart asked for, or every box cleared: no empty figure; the report
             # stays in Results and in the project's history.
@@ -106,9 +109,9 @@ class AnalysisDialogBase(OperationShell):
         target = getattr(self, "current_figure_id", None) if draw_on != self.DEST_NEW_FIGURE else None
         descriptor = repo.load_figure_descriptor(int(target)) if target is not None else None
         onto = next((axis for axis in (descriptor.axes if descriptor else []) if axis.name == panels[0][0]), None) \
-            if draw_on == self.DEST_SAME_AXIS and len(panels) == 1 else None
+            if draw_on == self.DEST_SAME_AXIS else None
         if onto is not None:
-            # Current axis: the one panel's series added to the figure's axis of its kind.
+            # Same axis: the panel's series added to the figure's axis of its kind.
             for position, (series_name, sql, roles, style) in enumerate(panels[0][4], start=len(onto.series)):
                 repo.create_series_descriptor(axis_id=int(onto.id), series_index=position, name=series_name,
                                               sql_query=sql, roles=roles, style=style)
