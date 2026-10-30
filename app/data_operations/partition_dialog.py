@@ -31,7 +31,7 @@ from app.plugin_api.table_operations.column_roles import (
     ColumnCasting,
     ColumnRole,
 )
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
 from app.utils.i18n import _
@@ -86,7 +86,7 @@ def _graph_layout(result: pt.PartitionResult) -> pt.LeafLayout:
     return pt.LeafLayout(layout.positions, layout.segments, layout.leaves.assign(label=labels), layout.mean)
 
 
-class PartitionDialog(TableOperationDialogBase):
+class PartitionDialog(RolesOperationDialogBase):
     """Partition: split the rows by the factors that best separate the response."""
 
     Name = "Partition"

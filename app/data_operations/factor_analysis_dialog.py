@@ -20,12 +20,12 @@ from app.analysis import multivariate as mv
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, IntParam
 from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
 
-class FactorAnalysisDialog(TableOperationDialogBase):
+class FactorAnalysisDialog(RolesOperationDialogBase):
     """Common factors: rotated loadings, communalities, each row's scores."""
 
     Name = "Factor Analysis"

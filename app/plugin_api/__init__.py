@@ -7,8 +7,9 @@ outside those folders, so that nothing in a plugin folder is anything but a
 plugin (or belongs to one):
 
     app.plugin_api.charts            BaseAxisRenderer, render_figure, grids, kwarg_spec ...
-    app.plugin_api.data_operations   DataOperationDialogBase, parameters, results
-    app.plugin_api.table_operations  TableOperationDialogBase, column roles, table profile
+    app.plugin_api.data_operations   DataOperationDialogBase, RolesOperationDialogBase (a table's columns
+                                     cast into roles), QuickAnswerDialogBase, parameters, results
+    app.plugin_api.table_operations  column roles, table profile, next steps (the roles' helpers)
     app.plugin_api.functions         base_function, optimizers, starting points
 
 These modules used to live inside the family folders. Plugins written then -
@@ -26,7 +27,7 @@ import sys
 MOVED: dict[str, tuple[str, ...]] = {
     "charts": ("axis_options", "base", "descriptor_grid", "grids", "kwarg_spec", "layout_presets", "render_figure"),
     "data_operations": ("dialog_base", "parameter_form", "parameter_spec", "results"),
-    "table_operations": ("column_roles", "dialog_base", "table_profile"),
+    "table_operations": ("column_roles", "table_profile"),
     "functions": ("base", "monte_carlo", "optimizers", "starting_point"),
 }
 
@@ -36,6 +37,12 @@ OLD_TO_NEW: dict[str, str] = {
     for family, names in MOVED.items()
     for name in names
 }
+# The table operations' bases are the data operations' since one engine runs both (dev/plans/one_engine_plan.txt).
+OLD_TO_NEW.update({
+    "app.table_operations.dialog_base": "app.plugin_api.data_operations.roles_base",
+    "app.plugin_api.table_operations.dialog_base": "app.plugin_api.data_operations.roles_base",
+    "app.plugin_api.table_operations.quick_answer": "app.plugin_api.data_operations.quick_answer",
+})
 
 
 class _Alias(importlib.abc.Loader):

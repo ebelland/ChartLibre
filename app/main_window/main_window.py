@@ -60,9 +60,6 @@ from app.main_window.main_frame import MainWindowFrame
 from app.main_window.main_menus import MainWindowMenus
 from app.main_window.main_project import MainWindowProject
 from app.scanners.data_operation_scanner import import_class_from_file
-from app.scanners.table_operation_scanner import (
-    import_class_from_file as import_table_operation,
-)
 from app.styles.style import (
     EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
@@ -479,6 +476,12 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
 
         if operation.get("name") == "NewPlotTabDialog":
             self._on_new_plot_tab(icon)
+            return
+        from app.scanners.data_operation_scanner import reads_roles
+
+        if reads_roles(operation):
+            # One family: an operation on a table's columns opens on the table, its columns cast.
+            self._on_table_operation_requested(operation)
             return
 
         dialog_class = import_class_from_file(operation)
@@ -1100,7 +1103,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
 
     def _guided_table(self, table: str) -> tuple[Any, dict[str, str]]:
         """A table as the analysis windows read it - visible rows, no application columns - and its SQL types."""
-        from app.plugin_api.table_operations.dialog_base import APPLICATION_COLUMNS
+        from app.plugin_api.data_operations.roles_base import APPLICATION_COLUMNS
 
         frame = self._repo.table_frame(table)
         if "Hide" in frame.columns:
@@ -1310,7 +1313,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         *roles* and *kinds* cast its columns beforehand: a question of the
         guided analysis opens its answer with the columns it asked about.
         """
-        dialog_class = import_table_operation(operation)
+        dialog_class = import_class_from_file(operation)
         if dialog_class is None:
             applogger.error("Could not load table operation class: %r", operation.get("name"))
             return
@@ -1369,21 +1372,20 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
                 return
             self._open_data_operation(dialog_class, plugin_icon(data), figure_id=step.figure)
             return
-        from app.scanners.table_operation_scanner import table_operations
+        from app.scanners.data_operation_scanner import reads_roles
 
-        operation = next((entry for entry in table_operations if entry.get("value") == step.operation), None)
-        data = next((entry for entry in data_operations if entry.get("value") == step.operation), None)
-        if operation is None and data is None:
+        operation = next((entry for entry in data_operations if entry.get("value") == step.operation), None)
+        if operation is None:
             applogger.warning("The next step's analysis %r is not installed.", step.operation)
             return
         if step.table not in set(self._repo.list_user_tables()["Table"].astype(str)):
             applogger.warning("The next step's table %r is not in the project any more.", step.table)
             return
         self._table_panel.select_table(step.table)
-        if operation is None:
-            self._open_data_operation_on_table(data, step.table, step.roles)
-        else:
+        if reads_roles(operation):
             self._on_table_operation_requested(operation, roles=step.roles, kinds=step.kinds)
+        else:
+            self._open_data_operation_on_table(operation, step.table, step.roles)
 
     def _open_data_operation_on_table(self, operation: dict, table: str, roles: Mapping[str, list[str]]) -> None:
         """Open a data operation on a table's columns: its response and its time, cast as its Data page reads them."""

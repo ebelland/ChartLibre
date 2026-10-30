@@ -88,7 +88,7 @@ def test_new_figure_makes_a_figure_of_every_chart(qapp, repo: SqliteRepo, histog
 
 def test_same_axis_hides_every_chart_but_the_first_in_the_charts_tab() -> None:
     from app.plugin_api.data_operations.parameter_spec import BoolParam
-    from app.plugin_api.table_operations.dialog_base import _hidden_by_same_axis
+    from app.plugin_api.data_operations.roles_base import _hidden_by_same_axis
 
     charts = (BoolParam("Histogram", "Histogram", default_value=True, tab="charts"),
               BoolParam("Q-Q Plot", "Q-Q Plot", default_value=True, tab="charts"))

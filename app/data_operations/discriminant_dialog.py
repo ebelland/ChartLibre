@@ -18,12 +18,12 @@ from app.analysis import discriminant as da
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam
 from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
 
-class DiscriminantDialog(TableOperationDialogBase):
+class DiscriminantDialog(RolesOperationDialogBase):
     """Discriminant analysis: classify the rows into the groups of Y from the X measures."""
 
     Name = "Discriminant"

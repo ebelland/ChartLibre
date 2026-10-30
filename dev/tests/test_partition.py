@@ -9,7 +9,7 @@ import pytest
 
 from app.analysis.partition import NOMINAL, PartitionSpec, partition
 from app.data.sqlite_repo import SqliteRepo
-from app.table_operations.partition_dialog import CHARTS, PartitionDialog
+from app.data_operations.partition_dialog import CHARTS, PartitionDialog
 
 KINDS = {"temp": "continuous", "press": "continuous", "supplier": NOMINAL, "y": "continuous", "ok": NOMINAL}
 

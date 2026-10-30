@@ -220,6 +220,11 @@ def _values_query(rows: Sequence[tuple[Any, Any]], *, category: bool) -> str:
     return " UNION ALL ".join(f"SELECT {x_sql(x)} AS {x_name}, {_number(y)} AS {y_name}" for x, y in rows)
 
 
+def _extra_axes(values: Mapping[str, Any]) -> bool:
+    """The report's charts are offered for Same figure and New figure: Same axis draws the clusters only."""
+    return values.get("_destination") != DataOperationDialogBase.DEST_SAME_AXIS
+
+
 def _kmeans(values: Mapping[str, Any]) -> bool:
     return values.get("method") == CLUSTER_KMEANS
 
@@ -266,12 +271,16 @@ CLUSTER_PARAMS = (
              visible_if=lambda v: v.get("tool") in (SKLEARN_DBSCAN, SKLEARN_OPTICS),
              tooltip="Minimum samples for DBSCAN/OPTICS core points."),
     BoolParam(CHART_PROJECTION, "Clusters on two principal components", default_value=True, tab="charts",
+              visible_if=_extra_axes,
               tooltip="The rows on the first two principal components of the features, coloured by cluster."),
     BoolParam(CHART_SILHOUETTE, "Silhouette by cluster", default_value=True, tab="charts",
+              visible_if=_extra_axes,
               tooltip="Each cluster's mean silhouette: near 1 well apart, near 0 on a border, below 0 misplaced."),
     BoolParam(CHART_MEANS, "Cluster means", default_value=True, tab="charts",
+              visible_if=_extra_axes,
               tooltip="Each feature's mean in each cluster."),
     BoolParam(CHART_K, "Choosing k", default_value=True, tab="charts",
+              visible_if=_extra_axes,
               tooltip="With automatic k: the mean silhouette of each k tried."),
 )
 
@@ -308,6 +317,11 @@ class SeriesClusterDialog(DataOperationDialogBase):
     Order: int = 45
 
     PARAMS = CLUSTER_PARAMS
+    #: Same axis: the clusters on the series' own axis, nothing else. Same figure and New figure add the
+    #: report's charts ticked in the Charts tab, as new axes of the current figure or in a figure of their own.
+    DESTINATIONS = (DataOperationDialogBase.DEST_SAME_AXIS, DataOperationDialogBase.DEST_NEW_AXIS,
+                    DataOperationDialogBase.DEST_NEW_FIGURE)
+    DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
 
     WINDOW_SIZE = (760, 680)
 
@@ -317,6 +331,8 @@ class SeriesClusterDialog(DataOperationDialogBase):
         # series id -> its SQL before the preview rewrote it.
         self._series_sql_snapshots: dict[int, str] = {}
         super().__init__(**kwargs)
+        # Same figure adds the report's charts to the figure the series are on.
+        self.current_figure_id = self._figure_id
 
     def build_model_selector(self) -> QWidget:
         self.method_combo = QComboBox(self)
@@ -809,8 +825,15 @@ class SeriesClusterDialog(DataOperationDialogBase):
                              {"marker": "o", "linestyle": "-"})]))
         return panels
 
+    def resolve_target_axis_id(self, selected_axis_id: int, results: Sequence[Any]) -> int:
+        """The clusters stay on their series' axis, whatever "Draw on" says: it places the report's charts."""
+        del results
+        return selected_axis_id
+
     def _draw_report_figures(self, results: Sequence[ClusterResult]) -> None:
-        """A figure of each series' report charts, with its report in the notes."""
+        """Each series' report charts: new axes of the current figure, or a figure of their own; none on Same axis."""
+        if self.draw_on() == self.DEST_SAME_AXIS:
+            return
         for result in self._unique_report_results(results):
             panels = self.report_panels(result)
             if panels:

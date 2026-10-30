@@ -18,12 +18,12 @@ from app.analysis.capability import parse_limit
 from app.plugin_api.data_operations.parameter_spec import TextParam
 from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
 
-class GageDialog(TableOperationDialogBase):
+class GageDialog(RolesOperationDialogBase):
     Name = "Gage R&R"
     Description = ("How much of the variation the measuring system adds: repeatability and reproducibility by "
                    "the ANOVA method, % of the study variation and of the tolerance, distinct categories.")

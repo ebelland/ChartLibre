@@ -9,7 +9,7 @@ import pytest
 
 from app.analysis import answers
 from app.data.sqlite_repo import SqliteRepo
-from app.table_operations.differences_dialog import DifferencesDialog
+from app.data_operations.differences_dialog import DifferencesDialog
 
 
 def _groups(shift: float = 2.0, n: int = 20, seed: int = 1) -> pd.DataFrame:

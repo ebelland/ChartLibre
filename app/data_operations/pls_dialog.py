@@ -24,12 +24,12 @@ from app.plugin_api.table_operations.column_roles import (
     ColumnCasting,
     ColumnRole,
 )
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
 
-class PLSDialog(TableOperationDialogBase):
+class PLSDialog(RolesOperationDialogBase):
     """Partial least squares: predict Y from many X that move together."""
 
     Name = "Partial Least Squares"

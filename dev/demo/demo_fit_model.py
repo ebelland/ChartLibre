@@ -80,7 +80,7 @@ def _run_fit(app, repo: SqliteRepo, *, responses: list[str], personality: str, e
     """Open Fit Model on the table, cast, choose, and press OK."""
     from PySide6.QtCore import Qt
 
-    from app.table_operations.fit_model_dialog import FitModelDialog
+    from app.data_operations.fit_model_dialog import FitModelDialog
 
     dialog = FitModelDialog(repo=repo, table=TABLE)
     try:

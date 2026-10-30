@@ -9,7 +9,7 @@ import pytest
 
 from app.analysis.cluster_table import KMEANS, METHODS, MIXTURES, WARD, cluster_columns
 from app.data.sqlite_repo import SqliteRepo
-from app.table_operations.clustering_dialog import ClusteringDialog
+from app.data_operations.clustering_dialog import ClusteringDialog
 
 
 def _blobs(n: int = 40) -> pd.DataFrame:

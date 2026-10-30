@@ -21,7 +21,7 @@ from app.analysis import cluster_table as ct
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
 from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -30,7 +30,7 @@ from app.utils.i18n import _
 CLUSTER_COLUMN = "ClusterId"
 
 
-class ClusteringDialog(TableOperationDialogBase):
+class ClusteringDialog(RolesOperationDialogBase):
     """K Means, hierarchical (Ward) or normal-mixture clusters of the rows."""
 
     Name = "Cluster Table"

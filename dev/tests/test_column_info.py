@@ -56,7 +56,7 @@ def test_the_dialog_renames_casts_and_describes_in_one_undo_step(qapp, repo: Sql
 
 
 def test_an_analysis_takes_the_forced_type_and_the_missing_codes(qapp, repo: SqliteRepo) -> None:
-    from app.table_operations.in_control_dialog import InControlDialog
+    from app.data_operations.in_control_dialog import InControlDialog
 
     repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
     cm.set_column_info(repo, "survey", "score", cm.ColumnInfo(missing=["-999"]))

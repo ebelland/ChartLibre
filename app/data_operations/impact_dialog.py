@@ -16,7 +16,7 @@ import pandas as pd
 from app.analysis import impact as im
 from app.plugin_api.table_operations.column_roles import ColumnCasting, ColumnRole
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
+from app.plugin_api.data_operations.quick_answer import QuickAnswerDialogBase
 from app.plugin_api.table_operations.next_steps import NextStep, is_level
 from app.utils import report_html
 from app.utils.i18n import _

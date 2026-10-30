@@ -34,9 +34,10 @@ def blobs(repo: SqliteRepo) -> int:
     return figure
 
 
-def _dialog(repo: SqliteRepo, figure: int, **values: object) -> SeriesClusterDialog:
+def _dialog(repo: SqliteRepo, figure: int, destination: str = "new_figure", **values: object) -> SeriesClusterDialog:
     dialog = SeriesClusterDialog(repo=repo, figure_id=figure, parent=None)
     dialog.series_selector.reload(select_all_series=True)
+    dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(destination))
     dialog._parameter_form_spec.set_values({"clusters": 3, **values})
     return dialog
 
@@ -128,4 +129,32 @@ def test_the_results_pane_explains_each_series_once_and_logs_no_error(qapp, repo
         assert errors.messages == []
     finally:
         applogger.removeHandler(errors)
+        dialog.close()
+
+
+def test_same_axis_colours_the_clusters_and_draws_no_other_chart(qapp, repo: SqliteRepo, blobs: int) -> None:
+    before = _figures(repo)
+    dialog = _dialog(repo, blobs, destination="same_axis")
+    try:
+        assert all(dialog.chart_form.field(name).isHidden()
+                   for name in ("chart_projection", "chart_silhouette", "chart_means", "chart_k"))
+        np.random.seed(0)
+        dialog.ok()
+        assert dialog.created_figure_ids == [] and _figures(repo) == before
+        assert [axis.title for axis in repo.load_figure_descriptor(blobs).axes] == ["blobs"]
+        assert "ClusterId" in repo.get_columns("blobs")
+    finally:
+        dialog.close()
+
+
+def test_same_figure_adds_the_report_charts_beside_the_clusters(qapp, repo: SqliteRepo, blobs: int) -> None:
+    before = _figures(repo)
+    dialog = _dialog(repo, blobs, destination="new_axis")
+    try:
+        np.random.seed(0)
+        dialog.ok()
+        assert _figures(repo) == before
+        assert [axis.title for axis in repo.load_figure_descriptor(blobs).axes] == [
+            "blobs", "Clusters on two principal components", "Silhouette by cluster", "Cluster means"]
+    finally:
         dialog.close()

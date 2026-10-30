@@ -49,7 +49,7 @@ from app.plugin_api.table_operations.column_roles import (
     ColumnCasting,
     ColumnRole,
 )
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
 from app.utils.i18n import _
@@ -100,7 +100,7 @@ EMPHASIS_DOC = _JMP_HELP + "standard-least-squares-options-in-the-fit-model-laun
 PROFILER_DOC = _JMP_HELP + "overview-of-the-prediction-profiler.shtml"
 
 
-class FitModelDialog(TableOperationDialogBase):
+class FitModelDialog(RolesOperationDialogBase):
     """Fit Model: responses on factors, by least squares."""
 
     Name = "Fit Model"

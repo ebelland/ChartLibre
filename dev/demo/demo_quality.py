@@ -101,13 +101,13 @@ def build_quality_demo(directory: Path = DEMO_DIR) -> Path:
         repo = SqliteRepo(db_path=path)
         for table, frame in (("gauge_study", gauge_study()), ("roughness", roughness()), ("vortex", vortex())):
             repo.import_dataframe(frame, table_name=table, normalize_columns=False)
-        _ask(app, repo, "app.table_operations.gage_dialog:GageDialog", "gauge_study",
+        _ask(app, repo, "app.data_operations.gage_dialog:GageDialog", "gauge_study",
              {"response": ["diameter_mm"], "part": ["part"], "operator": ["operator"]},
              params={"tolerance": "0.4"}, kinds={"part": "nominal", "operator": "nominal"})
-        _ask(app, repo, "app.table_operations.in_control_dialog:InControlDialog", "roughness",
+        _ask(app, repo, "app.data_operations.in_control_dialog:InControlDialog", "roughness",
              {"response": ["ra_um"], "time": ["day"]})
         _control_chart_with_capability(app, repo)
-        _ask(app, repo, "app.table_operations.vector_field_dialog:VectorFieldDialog", "vortex",
+        _ask(app, repo, "app.data_operations.vector_field_dialog:VectorFieldDialog", "vortex",
              {"x": ["x"], "y": ["y"], "u": ["u"], "v": ["v"]})
         repo.close()
         Path(f"{path}.undo.db").unlink(missing_ok=True)

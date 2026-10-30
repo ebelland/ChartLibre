@@ -18,7 +18,7 @@ from typing import Any, ClassVar
 import pandas as pd
 
 from app.analysis import answers
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -35,7 +35,7 @@ def answer_html(answer: answers.Answer) -> str:
     return head + "".join(f"<p>{html.escape(line)}</p>" for line in lines[1:])
 
 
-class QuickAnswerDialogBase(TableOperationDialogBase):
+class QuickAnswerDialogBase(RolesOperationDialogBase):
     """A question on a measure, answered in words, with the table and the chart it rests on."""
 
     #: The key of the table OK writes (named after it and the source table).

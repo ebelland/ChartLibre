@@ -123,9 +123,9 @@ def analyses(scratch: Path) -> None:
     from PySide6.QtWidgets import QApplication
 
     from app.data.sqlite_repo import SqliteRepo
-    from app.table_operations.discriminant_dialog import DiscriminantDialog
-    from app.table_operations.partition_dialog import CHARTS, PartitionDialog
-    from app.table_operations.pls_dialog import PLSDialog
+    from app.data_operations.discriminant_dialog import DiscriminantDialog
+    from app.data_operations.partition_dialog import CHARTS, PartitionDialog
+    from app.data_operations.pls_dialog import PLSDialog
     from dev.demo.build_demos import TABLE_SOURCES
 
     app = QApplication.instance() or QApplication([])

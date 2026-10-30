@@ -1,0 +1,36 @@
+ONE ENGINE: THE TABLE OPERATIONS INTO THE SERIES (DATA) OPERATIONS - PLAN                         2026-10-30
+
+WHAT WAS ASKED
+"Unico motore per series e table operations. Sposta tutto in series operations."
+
+WHERE IT STANDS
+- Already ported as real data operations (one series at a time, report-only or drawn from SQL values):
+  Distribution, Is it normal?, Has it changed over time?, Clustering (the uploaded dialog and math).
+- Still table operations (app/table_operations, 15): Are there differences?, What has the most impact?,
+  Is it in control?, Cluster Table, Discriminant, Factor Analysis, Fit Model, Fit Y by X, Gage R&R,
+  Multivariate, Partition, PLS, Principal Components, Time Series, Vector Field.
+  They read several columns in roles (group, factor, time, X list) - the data engine reads a series' x and y.
+- Shared already: AnalysisDialogBase (report figure, preview savepoints, draw_on), OperationShell (window,
+  Charts tab, Draw on, history), report_html, reading_guide, next_steps.
+
+STAGE 1 - ONE FAMILY (this step)
+1. The table operations' files move to app/data_operations; their base classes to
+   app/plugin_api/data_operations (roles_base.RolesOperationDialogBase, quick_answer.QuickAnswerDialogBase).
+2. One scanner: the data operations' family finds classes on DataOperationDialogBase, RolesOperationDialogBase
+   and QuickAnswerDialogBase; each entry says which base it is on ("base"). table_operation_scanner goes.
+3. The Analysis panel, the catalog, the AI tools and the main window read the one list; an operation on the
+   roles base opens on the table selected, its columns cast; the others on the current chart.
+4. Imports in the tests and demos follow; the suite green.
+
+STAGE 2 - ONE BASE (next)
+The roles base's window and pipeline folded into DataOperationDialogBase as its "roles" Data page (the
+ColumnRolesWidget beside the series selector, as the table source already is), one Preview/OK/undo/history
+path; RolesOperationDialogBase then a thin alias, and gone.
+
+STAGE 3 - EACH ANALYSIS AS A SERIES OPERATION WHERE IT IS ONE
+The analyses of one measure along x (In control, Time Series) read a series as Change does; the others keep
+their roles.
+
+RISKS
+- Remembered dialog state (user.json) is keyed by class name: names kept.
+- user/table_operations (the user's own analyses): read from user/data_operations from now on.

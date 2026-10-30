@@ -19,12 +19,12 @@ from app.plugin_api.table_operations.column_roles import (
     ColumnCasting,
     ColumnRole,
 )
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
 
-class VectorFieldDialog(TableOperationDialogBase):
+class VectorFieldDialog(RolesOperationDialogBase):
     Name = "Vector Field"
     Description = ("A vector field sampled on a grid: its divergence (where it spreads out or gathers) and its "
                    "curl (where and how fast it turns), in 2D or 3D.")

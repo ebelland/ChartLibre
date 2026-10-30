@@ -24,8 +24,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractItemView, QFrame, QListWidget, QListWidgetItem, QSizePolicy, QWidget
 
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
-from app.scanners.data_operation_scanner import data_operations
-from app.scanners.table_operation_scanner import table_operations
+from app.scanners.data_operation_scanner import data_operations, reads_roles
 from app.styles.style import icon_from_svg_source, load_icon
 from app.utils.i18n import _, tr
 from app.widgets.nav_bar import NavPanel
@@ -121,9 +120,10 @@ def plugin_icon(entry: dict) -> QIcon:
 def panel_entries() -> list[dict]:
     """Everything the panel lists: New chart, the data operations, the table analyses, the DOE."""
     entries = [plot_operation()]
-    entries += [{**operation, "kind": DATA} for operation in data_operations]
-    entries += [{**operation, "kind": TABLE} for operation in table_operations
-                if operation.get("category") != "Quick answers"]
+    # One family: an operation on a table's columns cast into roles opens on the table, the others on a chart.
+    entries += [{**operation, "kind": DATA} for operation in data_operations if not reads_roles(operation)]
+    entries += [{**operation, "kind": TABLE} for operation in data_operations
+                if reads_roles(operation) and operation.get("category") != "Quick answers"]
     entries += quality_charts()
     entries.append(doe_tool())
     return entries

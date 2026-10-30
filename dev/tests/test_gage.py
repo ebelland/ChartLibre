@@ -52,7 +52,7 @@ def test_without_operators_it_is_repeatability_alone() -> None:
 def test_the_dialog_reports_and_draws_a_multi_vari_chart(qapp, repo) -> None:
     import time
 
-    from app.table_operations.gage_dialog import GageDialog
+    from app.data_operations.gage_dialog import GageDialog
 
     repo.import_dataframe(_study(parts=8), table_name="msa", normalize_columns=False)
     dialog = GageDialog(repo=repo, table="msa")

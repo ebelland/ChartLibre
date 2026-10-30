@@ -7,10 +7,15 @@ from PySide6.QtWidgets import QPushButton
 
 from app.analysis import catalog
 from app.scanners.axis_renderer_scanner import renderers
-from app.scanners.data_operation_scanner import data_operations
-from app.scanners.table_operation_scanner import table_operations
+from app.scanners.data_operation_scanner import data_operations as operations
+from app.scanners.data_operation_scanner import reads_roles
 from app.widgets.catalog_search import CatalogSearch
 from app.widgets.guided_panel import GuidedAnalysisPanel
+
+
+#: One family (dev/plans/one_engine_plan.txt): the operations on a chart's series, and those on a table's columns.
+data_operations = [op for op in operations if not reads_roles(op)]
+table_operations = [op for op in operations if reads_roles(op)]
 
 
 def _names(entries) -> list[str]:

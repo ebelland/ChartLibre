@@ -8,7 +8,7 @@ import pytest
 
 from app.data import column_metadata as cm
 from app.data.sqlite_repo import SqliteRepo
-from app.table_operations.fit_model_dialog import FitModelDialog
+from app.data_operations.fit_model_dialog import FitModelDialog
 
 
 @pytest.fixture

@@ -31,12 +31,12 @@ from app.plugin_api.table_operations.column_roles import (
     ColumnCasting,
     ColumnRole,
 )
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
 
-class TimeSeriesDialog(TableOperationDialogBase):
+class TimeSeriesDialog(RolesOperationDialogBase):
     """Autocorrelation, seasonal decomposition and an ARIMA or ETS forecast of one measure."""
 
     Name = "Time Series"

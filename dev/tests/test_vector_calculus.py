@@ -45,7 +45,7 @@ def test_an_incomplete_grid_is_refused() -> None:
 def test_the_dialog_draws_the_field(qapp, repo, dims: int) -> None:
     import time
 
-    from app.table_operations.vector_field_dialog import VectorFieldDialog
+    from app.data_operations.vector_field_dialog import VectorFieldDialog
 
     g = np.linspace(-1, 1, 6)
     if dims == 2:

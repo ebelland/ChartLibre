@@ -33,9 +33,9 @@ CHANGE_TABLE = "global_temperature"
 
 #: (dialog module:class, table, roles) - one per quick answer, in the guided analysis's order.
 QUESTIONS: tuple[tuple[str, str, dict[str, list[str]]], ...] = (
-    ("app.table_operations.differences_dialog:DifferencesDialog", "penguins",
+    ("app.data_operations.differences_dialog:DifferencesDialog", "penguins",
      {"response": ["body_mass_g"], "group": ["species"]}),
-    ("app.table_operations.impact_dialog:ImpactDialog", "penguins",
+    ("app.data_operations.impact_dialog:ImpactDialog", "penguins",
      {"response": ["body_mass_g"],
       "factor": ["species", "sex", "island", "bill_length_mm", "bill_depth_mm", "flipper_length_mm"]}),
 )

@@ -199,14 +199,14 @@ class AssistantTools:
     def catalogue(self) -> dict[str, Any]:
         """The table analyses by name: their discovery entries."""
         if self._catalogue is None:
-            from app.scanners.table_operation_scanner import table_operations
+            from app.scanners.data_operation_scanner import data_operations, reads_roles
 
-            self._catalogue = {str(entry["value"]): entry for entry in table_operations}
+            self._catalogue = {str(entry["value"]): entry for entry in data_operations if reads_roles(entry)}
         return self._catalogue
 
     def _tool_list_analyses(self) -> str:
         from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
-        from app.scanners.table_operation_scanner import import_class_from_file
+        from app.scanners.data_operation_scanner import import_class_from_file
 
         lines = []
         for name, entry in sorted(self.catalogue().items()):
@@ -236,7 +236,7 @@ class AssistantTools:
                            draw_on: str = "new_figure") -> str:
         from PySide6.QtWidgets import QApplication
 
-        from app.scanners.table_operation_scanner import import_class_from_file
+        from app.scanners.data_operation_scanner import import_class_from_file
 
         entry = self.catalogue().get(analysis)
         if entry is None:

@@ -118,7 +118,7 @@ def test_a_report_explains_its_own_numbers_unless_switched_off(qapp, repo: Sqlit
     repo.import_dataframe(_plant(), table_name="plant", normalize_columns=False)
     repo.import_dataframe(_field(), table_name="field", normalize_columns=False)
     repo.import_dataframe(_seasonal_walk(), table_name="shop", normalize_columns=False)
-    dialog = getattr(importlib.import_module(f"app.table_operations.{module}"), name)(repo=repo, table=table)
+    dialog = getattr(importlib.import_module(f"app.data_operations.{module}"), name)(repo=repo, table=table)
     try:
         report = _report(qapp, dialog, casting)
         assert "How to read this" in report and expected in report

@@ -274,15 +274,22 @@ def directly_inherits_from(
     A family may have more than one base: the table analyses and the quick
     answers, which derive from a base of their own.
     """
+    return bool(inherited_base(class_node, base_class_name))
+
+
+def inherited_base(class_node: ast.ClassDef, base_class_name: str | tuple[str, ...]) -> str:
+    """The one of *base_class_name* that class_node directly inherits from; "" for none.
+
+    A family of several bases tells its plugins apart by it: a data operation on
+    a chart's series, or one on a table's columns cast into roles.
+    """
     names = (base_class_name,) if isinstance(base_class_name, str) else tuple(base_class_name)
     for base in class_node.bases:
         if isinstance(base, ast.Name) and base.id in names:
-            return True
-
+            return base.id
         if isinstance(base, ast.Attribute) and base.attr in names:
-            return True
-
-    return False
+            return base.attr
+    return ""
 
 
 def discover_classes(
@@ -343,6 +350,7 @@ def discover_classes(
                 "name": node.name,
                 "path": path.as_posix(),
                 "value": value if value is not None else node.name,
+                "base": inherited_base(node, base_class_name),
             }
 
             for attr_name in string_attrs:

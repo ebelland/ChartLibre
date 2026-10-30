@@ -16,12 +16,15 @@ from pathlib import Path
 from app.scanners.plugin_family import PluginFamily
 from app.utils.config import USER_DATA_OPERATIONS_DIR
 
+#: The operations on a table's columns cast into roles (once the table operations: one engine runs both).
+ROLES_BASES: tuple[str, ...] = ("RolesOperationDialogBase", "QuickAnswerDialogBase")
+
 #: Classes that directly inherit from DataOperationDialogBase, built-in first,
 #: so a name collision (which the Data Operation Builder already refuses to
 #: create) resolves to the built-in one rather than silently shadowing it.
 FAMILY = PluginFamily(
     label="data operations",
-    base_class="DataOperationDialogBase",
+    base_class=("DataOperationDialogBase", *ROLES_BASES),
     builtin_root=Path(__file__).resolve().parent.parent / "data_operations",
     user_root=USER_DATA_OPERATIONS_DIR,
     module_prefix="_dynamic_data_operation",
@@ -43,3 +46,8 @@ def import_class_from_file(operation: dict):
 
 # Scanned once at import time; the operation set is fixed for the process.
 data_operations: list[dict] = FAMILY.discover()
+
+
+def reads_roles(operation: dict) -> bool:
+    """Whether the operation reads a table's columns cast into roles (opened on a table, not a chart)."""
+    return str(operation.get("base", "")) in ROLES_BASES

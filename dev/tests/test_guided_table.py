@@ -55,14 +55,14 @@ def test_the_panel_follows_the_table(qapp) -> None:
 def test_a_question_opens_its_answer_with_the_columns_cast(qapp, tmp_path, monkeypatch) -> None:
     from app.data.sqlite_repo import SqliteRepo
     from app.main_window.main_window import MainWindow
-    from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+    from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 
     repo = SqliteRepo(db_path=tmp_path / "g.dhub")
     repo.import_dataframe(FRAME, table_name="lines", normalize_columns=False)
     window = MainWindow(repo, tmp_path / "g.dhub")
     cast = []
     # On the base: the scanner loads the operation's own class afresh from its file.
-    monkeypatch.setattr(TableOperationDialogBase, "exec", lambda self: cast.append(self.roles_widget.casting().roles) or 0)
+    monkeypatch.setattr(RolesOperationDialogBase, "exec", lambda self: cast.append(self.roles_widget.casting().roles) or 0)
     try:
         window._table_panel.reload()
         window._table_panel.select_table("lines")
@@ -135,13 +135,13 @@ def test_create_chart_makes_the_figure_and_an_analysis_opens_cast(qapp, tmp_path
     from app.data.sqlite_repo import SqliteRepo
     from app.main_window.main_window import MainWindow
     from app.plugin_api.table_operations import guided_plan
-    from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+    from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 
     repo = SqliteRepo(db_path=tmp_path / "x.dhub")
     repo.import_dataframe(FRAME, table_name="lines", normalize_columns=False)
     window = MainWindow(repo, tmp_path / "x.dhub")
     opened = []
-    monkeypatch.setattr(TableOperationDialogBase, "exec",
+    monkeypatch.setattr(RolesOperationDialogBase, "exec",
                         lambda self: opened.append(self.roles_widget.casting().roles) or 0)
     try:
         profile = table_profile.profile("lines", FRAME, DECLARED)

@@ -549,10 +549,15 @@ def build_catalog(
 
     The lists default to what the scanners found; tests pass their own.
     """
-    if table_operations is None:
-        from app.scanners.table_operation_scanner import table_operations
-    if data_operations is None:
-        from app.scanners.data_operation_scanner import data_operations
+    if table_operations is None or data_operations is None:
+        from app.scanners.data_operation_scanner import data_operations as found_operations
+        from app.scanners.data_operation_scanner import reads_roles
+
+        # One family: the analyses are its operations on a table's columns cast into roles.
+        if table_operations is None:
+            table_operations = [entry for entry in found_operations if reads_roles(entry)]
+        if data_operations is None:
+            data_operations = [entry for entry in found_operations if not reads_roles(entry)]
     if renderers is None:
         from app.scanners.axis_renderer_scanner import renderers
 

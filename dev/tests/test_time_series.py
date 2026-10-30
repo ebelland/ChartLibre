@@ -70,7 +70,7 @@ def test_ok_writes_the_tables_and_draws_the_series_its_correlations_and_parts(qa
     import time
 
     from app.data.sqlite_repo import SqliteRepo
-    from app.table_operations.time_series_dialog import TimeSeriesDialog
+    from app.data_operations.time_series_dialog import TimeSeriesDialog
 
     repo = SqliteRepo(db_path=tmp_path / "t.dhub")
     repo.import_dataframe(_monthly(), table_name="shop", normalize_columns=False)
@@ -144,7 +144,7 @@ def test_ok_with_an_input_draws_the_cross_correlation(qapp, tmp_path) -> None:
     import time
 
     from app.data.sqlite_repo import SqliteRepo
-    from app.table_operations.time_series_dialog import TimeSeriesDialog
+    from app.data_operations.time_series_dialog import TimeSeriesDialog
 
     repo = SqliteRepo(db_path=tmp_path / "x.dhub")
     repo.import_dataframe(_seasonal_walk(), table_name="plant", normalize_columns=False)

@@ -46,7 +46,7 @@ def _run(qapp, dialog) -> None:
 
 
 def test_in_control_draws_its_chart(qapp, repo: SqliteRepo) -> None:
-    from app.table_operations.in_control_dialog import InControlDialog
+    from app.data_operations.in_control_dialog import InControlDialog
 
     repo.import_dataframe(pd.DataFrame({"giorno": DAYS, "y": SHIFTED}), table_name="line", normalize_columns=False)
     dialog = InControlDialog(repo=repo, table="line")

@@ -18,7 +18,7 @@ import pandas as pd
 from app.analysis import fit_y_by_x as fyx
 from app.plugin_api import reading_guide
 from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -33,7 +33,7 @@ class FitYByXReport:
     results: list[fyx.FitYByXResult]
 
 
-class FitYByXDialog(TableOperationDialogBase):
+class FitYByXDialog(RolesOperationDialogBase):
     """One response against one or more factors, each pair analysed as its types call for."""
 
     Name = "Fit Y by X"

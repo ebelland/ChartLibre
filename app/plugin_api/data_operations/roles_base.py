@@ -93,7 +93,7 @@ def _hidden_by_same_axis(spec: Any, first: str, same_axis: str) -> Any:
     return replace(spec, visible_if=visible)
 
 
-class TableOperationDialogBase(AnalysisDialogBase):
+class RolesOperationDialogBase(AnalysisDialogBase):
     """Inputs on the left, the report on the right; Preview, Copy, OK, Close."""
 
     #: A table analysis picks its data as roles (ROLES), not as a chart's series.
@@ -742,3 +742,7 @@ class TableOperationDialogBase(AnalysisDialogBase):
 
     def discard_unapplied(self) -> None:
         self._discard_preview()
+
+
+#: The name this base had while the table operations were an engine of their own.
+TableOperationDialogBase = RolesOperationDialogBase

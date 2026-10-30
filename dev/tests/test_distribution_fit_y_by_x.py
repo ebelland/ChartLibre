@@ -104,7 +104,7 @@ def _ok(qapp, dialog) -> None:
 
 
 def test_fit_y_by_x_writes_its_tables_and_a_figure(qapp, repo, frame) -> None:
-    from app.table_operations.fit_y_by_x_dialog import FitYByXDialog
+    from app.data_operations.fit_y_by_x_dialog import FitYByXDialog
 
     repo.import_dataframe(frame, table_name="data", normalize_columns=False)
     kinds = {"x": "continuous", "y": "continuous", "group": "nominal", "flag": "nominal"}
@@ -127,7 +127,7 @@ def test_fit_y_by_x_writes_its_tables_and_a_figure(qapp, repo, frame) -> None:
 
 def test_fit_y_by_x_offers_only_the_charts_its_columns_draw(qapp, repo) -> None:
     """All three boxes were ticked, and two measures drew one scatter: the boxes promised what never came."""
-    from app.table_operations.fit_y_by_x_dialog import FitYByXDialog
+    from app.data_operations.fit_y_by_x_dialog import FitYByXDialog
 
     rng = np.random.default_rng(0)
     frame = pd.DataFrame({"y": rng.normal(size=40), "x": rng.normal(size=40), "g": np.repeat(["a", "b"], 20),

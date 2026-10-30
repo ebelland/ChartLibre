@@ -1,7 +1,7 @@
 """What every analysis window shares, whichever kind it is (todo O-01).
 
 The data operations (DataOperationDialogBase: a chart's series) and the table
-analyses (TableOperationDialogBase: a table's columns) differ in what they
+analyses (RolesOperationDialogBase: a table's columns) differ in what they
 read; around that, they are the same window and behave the same way. What
 they both did, each in its own words, lives here once:
 

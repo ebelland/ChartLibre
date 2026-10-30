@@ -7,9 +7,14 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 
-from app.scanners.data_operation_scanner import data_operations
-from app.scanners.table_operation_scanner import table_operations
+from app.scanners.data_operation_scanner import data_operations as operations
+from app.scanners.data_operation_scanner import reads_roles
 from app.widgets.analysis_panel import AnalysisPanel, group_by_category
+
+
+#: One family (dev/plans/one_engine_plan.txt): the operations on a chart's series, and those on a table's columns.
+data_operations = [op for op in operations if not reads_roles(op)]
+table_operations = [op for op in operations if reads_roles(op)]
 
 
 @pytest.fixture

@@ -38,10 +38,10 @@ def test_a_family_with_a_plugin_is_not_logged(tmp_path: Path, caplog) -> None:
 
 def test_the_shipped_plugins_are_found_in_every_family() -> None:
     from app.scanners.axis_renderer_scanner import renderers
-    from app.scanners.data_operation_scanner import data_operations
-    from app.scanners.table_operation_scanner import table_operations
+    from app.scanners.data_operation_scanner import data_operations, reads_roles
 
-    assert renderers and data_operations and table_operations
+    # One family finds both kinds: the operations on a chart's series and those on a table's columns.
+    assert renderers and data_operations and any(reads_roles(op) for op in data_operations)
     # Every data operation says where it lists.
     assert all(op.get("category") for op in data_operations)
 
@@ -65,7 +65,7 @@ def test_the_analysis_panel_groups_by_the_plugins_own_category(qapp) -> None:
 def test_a_report_leaves_out_a_chart_type_that_is_not_installed(qapp, tmp_path: Path, caplog, monkeypatch) -> None:
     from app.data.sqlite_repo import SqliteRepo
     from app.scanners import axis_renderer_scanner
-    from app.table_operations.differences_dialog import DifferencesDialog
+    from app.data_operations.differences_dialog import DifferencesDialog
 
     repo = SqliteRepo(db_path=tmp_path / "p.dhub")
     try:
@@ -85,9 +85,10 @@ def test_a_report_leaves_out_a_chart_type_that_is_not_installed(qapp, tmp_path: 
 def test_a_loaded_operation_marks_its_series_with_keys_from_its_file(qapp) -> None:
     """The scanner loads a plugin under a module name that changes every session; the
     generated-series keys must not: they are stored in projects and matched on re-apply."""
-    from app.scanners.data_operation_scanner import data_operations, import_class_from_file
+    from app.scanners.data_operation_scanner import data_operations, import_class_from_file, reads_roles
 
-    for operation in data_operations:
+    # The operations on a chart's series mark what they draw; those on a table's columns draw a report figure.
+    for operation in (op for op in data_operations if not reads_roles(op)):
         cls = import_class_from_file(operation)
         keys = cls.generated_style_filter.fget(cls.__new__(cls))
         assert not any("_dynamic" in str(key) or "_dynamic" in str(value) for key, value in keys.items()), keys

@@ -9,7 +9,7 @@ import pandas as pd
 from app.analysis.answers import NO, YES
 from app.analysis.impact import impact
 from app.data.sqlite_repo import SqliteRepo
-from app.table_operations.impact_dialog import ImpactDialog
+from app.data_operations.impact_dialog import ImpactDialog
 
 
 def _data(n: int = 200) -> pd.DataFrame:

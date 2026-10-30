@@ -6,7 +6,7 @@ import pandas as pd
 
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.outlier_dialog import SeriesOutlierDialog
-from app.table_operations.time_series_dialog import TimeSeriesDialog
+from app.data_operations.time_series_dialog import TimeSeriesDialog
 from app.utils.i18n import _
 
 

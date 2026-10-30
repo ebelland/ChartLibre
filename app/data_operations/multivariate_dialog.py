@@ -22,7 +22,7 @@ from app.plugin_api.table_operations.column_roles import (
     ColumnCasting,
     ColumnRole,
 )
-from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -30,7 +30,7 @@ from app.utils.i18n import _
 PAIR_PLOT_COLUMNS = 6
 
 
-class MultivariateDialog(TableOperationDialogBase):
+class MultivariateDialog(RolesOperationDialogBase):
     """Correlations of every pair of columns, with their p-values, and the scatterplot matrix."""
 
     Name = "Multivariate"

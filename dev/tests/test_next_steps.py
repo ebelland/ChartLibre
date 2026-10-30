@@ -9,8 +9,8 @@ import pandas as pd
 
 from app.data.sqlite_repo import SqliteRepo
 from app.plugin_api.table_operations import next_steps
-from app.table_operations.differences_dialog import DifferencesDialog
-from app.table_operations.impact_dialog import ImpactDialog
+from app.data_operations.differences_dialog import DifferencesDialog
+from app.data_operations.impact_dialog import ImpactDialog
 
 
 def _plant() -> pd.DataFrame:
