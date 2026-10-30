@@ -13,6 +13,7 @@ from __future__ import annotations
 import gc
 import re
 import warnings
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
@@ -1240,6 +1241,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
 
         if entry.kind == catalog.ANALYSIS:
             self._on_table_operation_requested(entry.payload, roles=roles, kinds=kinds)
+        elif entry.kind == catalog.SERIES and roles.get("response"):
+            self._open_data_operation_on_table(entry.payload, self._table_panel.current, roles)
         elif entry.kind == catalog.CHART:
             columns = [*roles.get("_x", [])[:1], *roles.get("response", [])]
             self._on_new_plot_tab(chart_type=str(entry.payload), columns=columns or None)
@@ -1369,14 +1372,28 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         from app.scanners.table_operation_scanner import table_operations
 
         operation = next((entry for entry in table_operations if entry.get("value") == step.operation), None)
-        if operation is None:
+        data = next((entry for entry in data_operations if entry.get("value") == step.operation), None)
+        if operation is None and data is None:
             applogger.warning("The next step's analysis %r is not installed.", step.operation)
             return
         if step.table not in set(self._repo.list_user_tables()["Table"].astype(str)):
             applogger.warning("The next step's table %r is not in the project any more.", step.table)
             return
         self._table_panel.select_table(step.table)
-        self._on_table_operation_requested(operation, roles=step.roles, kinds=step.kinds)
+        if operation is None:
+            self._open_data_operation_on_table(data, step.table, step.roles)
+        else:
+            self._on_table_operation_requested(operation, roles=step.roles, kinds=step.kinds)
+
+    def _open_data_operation_on_table(self, operation: dict, table: str, roles: Mapping[str, list[str]]) -> None:
+        """Open a data operation on a table's columns: its response and its time, cast as its Data page reads them."""
+        from app.scanners.data_operation_scanner import import_class_from_file
+
+        dialog_class = import_class_from_file(operation)
+        if dialog_class is None:
+            applogger.error("Could not load data operation class: %r", operation.get("name"))
+            return
+        self._open_data_operation(dialog_class, plugin_icon(operation), table_roles=(table, roles))
 
     def _scratch_figure(self) -> int | None:
         """An empty chart to open a data operation on when the project has none.
@@ -1413,6 +1430,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         icon: QIcon | None = None,
         *,
         figure_id: int | None = None,
+        table_roles: tuple[str, Mapping[str, list[str]]] | None = None,
     ) -> None:
         """Open one runtime data-operation dialog on the current chart, or on a scratch one.
 
@@ -1440,6 +1458,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         if icon is not None and not icon.isNull():
             dialog.setWindowIcon(icon)
 
+        if table_roles is not None:
+            self._cast_table_source(dialog, *table_roles)
         dialog.applied.connect(self.refresh)
         # A Preview drawn on a new figure: its tab shown while the dialog is open.
         tabs_rebuilt: list[bool] = []
@@ -1492,6 +1512,15 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         step = getattr(dialog, "next_request", None)
         if step is not None:
             self._open_next_step(step)
+
+    @staticmethod
+    def _cast_table_source(dialog: Any, table: str, roles: Mapping[str, list[str]]) -> None:
+        """Data from the table: its response is the Y, its time the X (else the row number)."""
+        source = getattr(dialog, "table_source", None)
+        if source is None or not roles.get("response"):
+            return
+        dialog.source_table_radio.setChecked(True)
+        source.set_spec(table, (roles.get("time") or [""])[0], [roles["response"][0]])
 
     def _on_credits(self) -> None:
         """Show who made this and what it is made of."""

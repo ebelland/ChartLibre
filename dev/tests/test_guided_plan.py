@@ -53,7 +53,7 @@ def test_groups_dates_and_many_measures(profile) -> None:
     assert [c.chart_type for c in gp.plan(profile, ["species"]).charts] == ["Pareto Chart", "Bar Chart"]
     assert _keys(gp.plan(profile, ["species", "island"])) == ["analysis:Fit Y by X"]
     timed = gp.plan(profile, ["day", "mass"])
-    assert timed.charts[0].chart_type == "Time Series" and _keys(timed) == ["analysis:Has it changed over time?"]
+    assert timed.charts[0].chart_type == "Time Series" and _keys(timed) == ["series:Has it changed over time?"]
     three = gp.plan(profile, ["mass", "flipper", "bill"])
     assert [c.chart_type for c in three.charts] == ["Pair Plot", "Scatter Plot"]
     assert _keys(three) == ["analysis:What has the most impact?", "analysis:Multivariate",

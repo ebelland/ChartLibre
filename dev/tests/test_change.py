@@ -1,8 +1,6 @@
 """Quick answer Q-03 "Has it changed over time?": a step, a drift, nothing - each told apart."""
 from __future__ import annotations
 
-import time
-
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -10,7 +8,7 @@ from scipy import stats
 from app.analysis.answers import NO, YES
 from app.analysis.change import has_changed, mann_kendall, pettitt
 from app.data.sqlite_repo import SqliteRepo
-from app.table_operations.change_dialog import ChangeDialog
+from app.data_operations.change_dialog import ChangeDialog
 
 RNG = np.random.default_rng(0)
 N = 60
@@ -46,18 +44,18 @@ def test_the_order_column_sorts_the_values() -> None:
     assert list(answer.series["Order"]) == list(range(N)) and answer.shape == "drift"
 
 
-def test_ok_draws_the_values_with_the_change(qapp, repo: SqliteRepo) -> None:
+def test_ok_draws_the_values_with_the_change_and_writes_no_table(qapp, repo: SqliteRepo) -> None:
     repo.import_dataframe(pd.DataFrame({"giorno": DAYS, "y": STEP}), table_name="line", normalize_columns=False)
-    dialog = ChangeDialog(repo=repo, table="line")
+    figure_id = int(repo.create_figure_descriptor(name="Line"))
+    axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+                                              title="line", x_label="giorno", y_label="y", options={}))
+    repo.create_series_descriptor(axis_id=axis_id, series_index=0, name="Line",
+                                  sql_query='SELECT giorno AS x, y AS y FROM "line"', roles={"x": "x", "y": "y"},
+                                  style={})
+    dialog = ChangeDialog(repo=repo, figure_id=figure_id)
     try:
-        dialog.roles_widget.set_casting({"response": ["y"], "time": ["giorno"]})
-        assert not dialog.problems()
         dialog.ok()
-        deadline = time.monotonic() + 30
-        while dialog.job_running and time.monotonic() < deadline:
-            qapp.processEvents()
-            time.sleep(0.01)
-        assert {"Order", "Value", "Trend", "Segment", "Segment median"} <= set(repo.table_frame("_line_change").columns)
+        assert set(repo.list_user_tables()["Table"]) == {"line"}
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Time Series"]
         assert len(figure.axes[0].series) == 3  # the values, the median before, the median after
@@ -68,5 +66,26 @@ def test_ok_draws_the_values_with_the_change(qapp, repo: SqliteRepo) -> None:
         drawn = Figure()
         render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)
         assert len(drawn.axes[0].lines) >= 3
+    finally:
+        dialog.close()
+
+
+def test_a_drift_draws_its_trend_line_and_its_next_step_names_the_table(qapp, repo: SqliteRepo) -> None:
+    repo.import_dataframe(pd.DataFrame({"t": np.arange(N), "y": DRIFT}), table_name="drift", normalize_columns=False)
+    figure_id = int(repo.create_figure_descriptor(name="Drift"))
+    axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+                                              title="drift", x_label="t", y_label="y", options={}))
+    repo.create_series_descriptor(axis_id=axis_id, series_index=0, name="Drift",
+                                  sql_query='SELECT t AS x, y AS y FROM "drift"', roles={"x": "x", "y": "y"}, style={})
+    dialog = ChangeDialog(repo=repo, figure_id=figure_id)
+    try:
+        (result,) = dialog.compute_results()
+        assert result.answer.shape == "drift"
+        dialog.ok()
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        assert [series.name for series in figure.axes[0].series] == ["Drift", "Trend"]
+        steps = dialog.next_steps(result)
+        assert steps[0].operation == "Time Series" and steps[0].table == "drift"
+        assert steps[0].roles == {"response": ["y"], "time": ["t"]}
     finally:
         dialog.close()

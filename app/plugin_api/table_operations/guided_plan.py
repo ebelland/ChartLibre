@@ -151,7 +151,7 @@ def plan(profile: TableProfile, columns: list[str], result: str | None = None) -
                              {"x": t, "y": m, "color": groups[0]})
         charts.append(idea)
         questions.append(QuestionIdea(
-            "analysis:Has it changed over time?", "Has “{m}” changed over time?",
+            "series:Has it changed over time?", "Has “{m}” changed over time?",
             "A steady trend or a sudden change: the tests are chosen for you.", {"m": m},
             {"response": [m], "time": [t]}))
     if len(measures) >= 2 and (len(measures) >= 3 or groups) and not times:

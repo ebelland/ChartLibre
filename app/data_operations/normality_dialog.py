@@ -30,11 +30,26 @@ from app.utils import report_html
 from app.utils.i18n import _
 
 #: The FROM of a series' query: the table it reads, quoted or bare, last in the query.
-_SOURCE = re.compile(r'\sFROM\s+("(?:[^"]|"")+"|\w+)(?:\s+ORDER\s+BY\s.*)?\s*$', re.IGNORECASE | re.DOTALL)
+_SOURCE = re.compile(r'\sFROM\s+("(?:[^"]|"")+"|\w+)(?=\s+(?:WHERE|ORDER|LIMIT|GROUP)\b|\s*$)',
+                     re.IGNORECASE)
+
+
+def source_column(query: str, alias: str) -> str:
+    """The table column a series' query puts under *alias* (x or y), or "" when it does not say."""
+    found = re.search(rf'("(?:[^"]|"")+"|\w+)\s+AS\s+{alias}\b', query, re.IGNORECASE)
+    if found is not None:
+        name = found.group(1)
+        return name[1:-1].replace('""', '"') if name.startswith('"') else name
+    # "SELECT x, y FROM t": the column is named as the alias, when the select list names it.
+    select = re.split(r"\sFROM\s", query, maxsplit=1, flags=re.IGNORECASE)[0]
+    return alias if re.search(rf'(?<![\w"]){alias}(?![\w"])', select) else ""
 
 
 def source_table(query: str) -> str:
-    """The table a series' query reads, or "" when it reads none that can be named."""
+    """The table a series' query reads, or "" when it reads none that can be named.
+
+    A series' query may carry the chart's own filter after the table (WHERE "Hide" = 0): the table is still the one.
+    """
     found = _SOURCE.search(query)
     if found is None:
         return ""
@@ -134,13 +149,12 @@ class NormalityDialog(DataOperationDialogBase):
                           .format(measure=measure), operation="Distribution", table="", roles={},
                           figure=self._figure_id)]
         table = source_table(result.query)
-        if table:
+        column = source_column(result.query, "y")
+        if table and column:
             steps.append(NextStep(label=_("Is {measure} different between groups?").format(measure=measure),
-                                  operation="Are there differences?", table=table,
-                                  roles={"response": [result.column]}))
+                                  operation="Are there differences?", table=table, roles={"response": [column]}))
             steps.append(NextStep(label=_("Is {measure} in control?").format(measure=measure),
-                                  operation="Is it in control?", table=table,
-                                  roles={"response": [result.column]}))
+                                  operation="Is it in control?", table=table, roles={"response": [column]}))
         return steps
 
     def format_results(self, results: Sequence[Any]) -> str:

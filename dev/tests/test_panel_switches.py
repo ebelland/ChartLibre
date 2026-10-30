@@ -6,7 +6,7 @@ import pandas as pd
 
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.outlier_dialog import SeriesOutlierDialog
-from app.table_operations.change_dialog import ChangeDialog
+from app.table_operations.time_series_dialog import TimeSeriesDialog
 from app.utils.i18n import _
 
 
@@ -65,7 +65,7 @@ def test_a_table_operation_hides_its_switched_off_tabs(qapp, repo: SqliteRepo) -
     repo.import_dataframe(pd.DataFrame({"giorno": range(10), "y": np.arange(10.0)}), table_name="line",
                           normalize_columns=False)
 
-    class NoParameters(ChangeDialog):
+    class NoParameters(TimeSeriesDialog):
         SHOW_PARAMETERS = False
 
     dialog = NoParameters(repo=repo, table="line")

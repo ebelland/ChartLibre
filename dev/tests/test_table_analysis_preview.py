@@ -22,11 +22,11 @@ def _figures(repo: SqliteRepo) -> list[int]:
 
 
 def _dialog(repo: SqliteRepo):
-    from app.table_operations.change_dialog import ChangeDialog
+    from app.table_operations.in_control_dialog import InControlDialog
 
     repo.import_dataframe(pd.DataFrame({"y": np.random.default_rng(0).normal(size=50)}), table_name="t",
                           normalize_columns=False)
-    dialog = ChangeDialog(repo=repo, table="t")
+    dialog = InControlDialog(repo=repo, table="t")
     dialog.roles_widget.set_casting({"response": ["y"]})
     return dialog
 
@@ -101,7 +101,7 @@ def test_an_analysis_reads_a_charts_axis_as_a_table(qapp, tmp_path) -> None:
     import numpy as np
 
     from app.data.sqlite_repo import SqliteRepo
-    from app.table_operations.change_dialog import ChangeDialog
+    from app.table_operations.in_control_dialog import InControlDialog
 
     repo = SqliteRepo(db_path=tmp_path / "p.dhub")
     rng = np.random.default_rng(1)
@@ -114,7 +114,7 @@ def test_an_analysis_reads_a_charts_axis_as_a_table(qapp, tmp_path) -> None:
         repo.create_series_descriptor(axis_id=axis, series_index=index, name=name,
                                       sql_query=f'SELECT t AS x, {name} AS y FROM "t"', roles={"x": "x", "y": "y"},
                                       style={})
-    dialog = ChangeDialog(repo=repo, table="t")
+    dialog = InControlDialog(repo=repo, table="t")
     try:
         dialog.current_figure_id = figure
         dialog.source_chart_radio.setChecked(True)
@@ -128,7 +128,7 @@ def test_an_analysis_reads_a_charts_axis_as_a_table(qapp, tmp_path) -> None:
         dialog.ok()
         _wait(qapp, dialog)
         assert "Signals_Two" in set(repo.list_user_tables()["Table"])
-        assert [entry.label for entry in repo.undo_entries()] == ["Has it changed over time? on 'Signals_Two'"]
+        assert [entry.label for entry in repo.undo_entries()] == ["Is it in control? on 'Signals_Two'"]
     finally:
         dialog.close()
         repo.close()
@@ -140,7 +140,7 @@ def test_draw_on_none_and_on_the_current_axis(qapp, tmp_path) -> None:
     import numpy as np
 
     from app.data.sqlite_repo import SqliteRepo
-    from app.table_operations.change_dialog import ChangeDialog
+    from app.table_operations.in_control_dialog import InControlDialog
 
     repo = SqliteRepo(db_path=tmp_path / "p.dhub")
     repo.import_dataframe(pd.DataFrame({"v": np.random.default_rng(2).normal(size=60)}), table_name="t",
@@ -152,7 +152,7 @@ def test_draw_on_none_and_on_the_current_axis(qapp, tmp_path) -> None:
                                   roles={"x": "x", "y": "y"}, style={})
     # A time series does not go on a scatter axis: the same-axis draw adds nothing to it.
     for destination, figures, series in (("none", 0, 1), ("same_axis", 1, 1)):
-        dialog = ChangeDialog(repo=repo, table="t")
+        dialog = InControlDialog(repo=repo, table="t")
         try:
             dialog.current_figure_id = figure
             dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(destination))

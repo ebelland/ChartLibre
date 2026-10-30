@@ -189,7 +189,7 @@ def questions(table: TableProfile) -> list[Question]:
     if table.measures and table.times:
         found.append(Question(
             template="Has “{measure}” changed over time?",
-            key="analysis:Has it changed over time?",
+            key="series:Has it changed over time?",
             roles={"response": [table.measures[0]], "time": [table.times[0]]},
             kinds={},
             values={"measure": table.measures[0]},

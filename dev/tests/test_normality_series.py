@@ -6,7 +6,11 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.data_operations.normality_dialog import NormalityDialog, source_table
+from app.data_operations.normality_dialog import (
+    NormalityDialog,
+    source_column,
+    source_table,
+)
 from app.plugin_api.table_operations import next_steps
 
 
@@ -63,9 +67,19 @@ def test_the_distribution_link_opens_on_the_same_figure(qapp, repo: SqliteRepo, 
 @pytest.mark.parametrize(("query", "table"), [
     ('SELECT x, y FROM "skew"', "skew"),
     ('SELECT t AS x, a AS y FROM t ORDER BY x', "t"),
+    ('SELECT rowid AS x, v AS y, "_id" FROM t WHERE "Hide" = 0', "t"),
     ('SELECT x, y FROM "my ""odd"" table"', 'my "odd" table'),
     ('SELECT x, y FROM a JOIN b ON a.id = b.id WHERE a.x > 0 AND b.y IN (SELECT 1)', ""),
     ("", ""),
 ])
 def test_source_table_names_the_table_a_series_reads(query: str, table: str) -> None:
     assert source_table(query) == table
+
+
+@pytest.mark.parametrize(("query", "alias", "column"), [
+    ('SELECT "t" AS x, "value" AS y FROM "skew" WHERE "Hide" = 0', "y", "value"),
+    ('SELECT x, y FROM "skew"', "y", "y"),
+    ('SELECT x, y FROM "skew"', "z", ""),
+])
+def test_source_column_names_the_table_column_behind_an_alias(query: str, alias: str, column: str) -> None:
+    assert source_column(query, alias) == column

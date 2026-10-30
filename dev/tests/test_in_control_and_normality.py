@@ -45,22 +45,17 @@ def _run(qapp, dialog) -> None:
         time.sleep(0.01)
 
 
-def test_both_dialogs_draw_their_chart(qapp, repo: SqliteRepo) -> None:
-    from app.table_operations.change_dialog import ChangeDialog
+def test_in_control_draws_its_chart(qapp, repo: SqliteRepo) -> None:
     from app.table_operations.in_control_dialog import InControlDialog
 
     repo.import_dataframe(pd.DataFrame({"giorno": DAYS, "y": SHIFTED}), table_name="line", normalize_columns=False)
-    for dialog_type, roles, table, axis_name in (
-        (InControlDialog, {"response": ["y"], "time": ["giorno"]}, "_line_control", "Time Series"),
-        (ChangeDialog, {"response": ["y"]}, "_line_change", "Time Series"),
-    ):
-        dialog = dialog_type(repo=repo, table="line")
-        try:
-            dialog.roles_widget.set_casting(roles)
-            assert not dialog.problems()
-            _run(qapp, dialog)
-            assert not repo.table_frame(table).empty
-            figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
-            assert [axis.name for axis in figure.axes] == [axis_name]
-        finally:
-            dialog.close()
+    dialog = InControlDialog(repo=repo, table="line")
+    try:
+        dialog.roles_widget.set_casting({"response": ["y"], "time": ["giorno"]})
+        assert not dialog.problems()
+        _run(qapp, dialog)
+        assert not repo.table_frame("_line_control").empty
+        figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
+        assert [axis.name for axis in figure.axes] == ["Time Series"]
+    finally:
+        dialog.close()

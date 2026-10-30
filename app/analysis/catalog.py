@@ -196,7 +196,7 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
                                   "with the canonical plot.", CATEGORICAL),
     ),
     "signal": (
-        ("analysis:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
+        ("series:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
                                                "and the answer is given in words.", NUMERIC),
         ("analysis:Time Series", "Its memory (autocorrelation), its trend and season, and a forecast with "
                                  "its prediction interval.", NUMERIC),
@@ -229,7 +229,7 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("chart:Interaction Plot", "See the interactions between factors.", NUMERIC),
     ),
     "process": (
-        ("analysis:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
+        ("series:Has it changed over time?", "A steady trend or a sudden change? The tests are chosen for you, "
                                                "and the answer is given in words.", NUMERIC),
         ("series:Control Chart", "Is the process stable? I-MR, X-bar, p, c, u charts; with specification "
                                  "limits, is it capable? Cp, Cpk, Pp, Ppk.", ANY),
