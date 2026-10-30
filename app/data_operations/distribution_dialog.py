@@ -168,10 +168,11 @@ class DistributionDialog(DataOperationDialogBase):
         body = "".join(parts)
         box = ""
         if reading_guide.enabled():
-            box = report_html.reading_guide(_("How to read this"), self.how_to_read(result))
+            box = report_html.reading_guide(_("How to read this"), self.reading_for(result))
         return report_html.section(f"{result.source_name} (N = {report.n})", report_html.with_reading_guide(body, box))
 
-    def how_to_read(self, result: DistributionSeriesResult) -> list[str]:
+    def reading_for(self, result: DistributionSeriesResult) -> list[str]:
+        """One series' "How to read this" lines, in its own section (the base's box stays empty)."""
         report = result.report
         moments, column = report.moments, result.source_name
         tested = report.normality[pd.to_numeric(report.normality["pvalue"], errors="coerce").notna()]

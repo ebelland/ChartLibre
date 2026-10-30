@@ -216,7 +216,7 @@ GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     "groups": (
         ("analysis:Cluster Table", "A table's rows grouped on its columns - k means, hierarchical, "
                                       "normal mixtures - k chosen by the silhouette.", NUMERIC),
-        ("series:Cluster Series", "k-means, DBSCAN, hierarchical on a chart's series: rows that are alike, coloured.",
+        ("series:Clustering", "k-means, DBSCAN, hierarchical on a chart's series: rows that are alike, coloured.",
          ANY),
         ("analysis:Principal Components", "A few directions that carry most of many columns' variation: "
                                           "the score plot shows the groups.", NUMERIC),

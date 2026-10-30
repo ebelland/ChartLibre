@@ -140,7 +140,7 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
         scale, reach = mv.biplot_scale(loadings, scores)
         annotations = []
         tips = loadings * scale
-        for name, (x, y), (label_x, label_y) in zip(result.columns, tips, mv.spread_labels(tips, reach)):
+        for name, (x, y), (label_x, label_y) in zip(result.columns, tips, mv.spread_labels(tips, reach), strict=True):
             annotations.append({"type": "arrow", "x": float(x), "y": float(y), "text": "",
                                 "kwargs": {"xytext": [0.0, 0.0], "textcoords": "data",
                                            "arrowprops": {"arrowstyle": "->", "color": "#c2410c", "lw": 1.2}}})

@@ -155,12 +155,13 @@ class ChangeDialog(DataOperationDialogBase):
         answer = result.answer
         box = ""
         if reading_guide.enabled():
-            box = report_html.reading_guide(_("How to read this"), self.how_to_read(result))
+            box = report_html.reading_guide(_("How to read this"), self.reading_for(result))
         body = report_html.section(f"{result.source_name} (N = {answer.rows})",
                                    report_html.with_reading_guide(answer_html(answer), box))
         return body + self.what_next(result)
 
-    def how_to_read(self, result: ChangeSeriesResult) -> list[str]:
+    def reading_for(self, result: ChangeSeriesResult) -> list[str]:
+        """One series' "How to read this" lines, in its own section (the base's box stays empty)."""
         answer, measure = result.answer, result.source_name
         return [
             reading_guide.p_value(answer.trend_p, null=_("{measure} had no trend").format(measure=measure),

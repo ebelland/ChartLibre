@@ -18,77 +18,95 @@ Notes
 -----
 This module reuses the shared DataOperationDialogBase preview/apply flow.
 Clustering overrides only the axis-application step because it updates source
-table ClusterId values and recolours the selected series.
+table ClusterId values and either recolors the selected series or creates split
+series per cluster.
+
+The report (app.analysis.cluster_series) gives each series its summary - the
+silhouette, Calinski-Harabasz and Davies-Bouldin scores -, a row per cluster
+with its size, silhouette and means, and the k tried when k is chosen
+automatically. Beside the clusters on their own chart, a figure of its own
+shows them on the first two principal components, the silhouette and the
+means by cluster and, with automatic k, the silhouette of each k tried.
 """
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Final
 
+import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import (
     QComboBox,
     QWidget,
 )
 
+from app.analysis.cluster_series import (
+    CLUSTER_BACKUP_COLUMN,
+    CLUSTER_COLUMN,
+    CLUSTER_HIERARCHICAL,
+    CLUSTER_KMEANS,
+    CLUSTER_SKLEARN,
+    RENDER_SEPARATE_SERIES,
+    ClusterResult,
+    ClusterSeriesChoice,
+    cluster_one,
+    cluster_table,
+    rc_cycle_color,
+    source_column_for_alias,
+    source_table_from_sql,
+    split_result_by_cluster,
+    sql_with_cluster_filter,
+    sql_with_clusterid_color,
+)
 from app.analysis.clustering import (
-    TOOL_WHITEN,
-    TOOL_VQ,
-    TOOL_KMEANS,
-    TOOL_KMEANS2,
+    SKLEARN_AGGLOMERATIVE,
+    SKLEARN_BIRCH,
+    SKLEARN_BISECTING_KMEANS,
+    SKLEARN_DBSCAN,
+    SKLEARN_GAUSSIAN_MIXTURE,
+    SKLEARN_KMEANS,
+    SKLEARN_MEANSHIFT,
+    SKLEARN_MINIBATCH_KMEANS,
+    SKLEARN_OPTICS,
+    SKLEARN_SPECTRAL,
     TOOL_FCLUSTER,
     TOOL_FCLUSTERDATA,
+    TOOL_KMEANS,
+    TOOL_KMEANS2,
     TOOL_LEADERS,
-    SKLEARN_KMEANS,
-    SKLEARN_MINIBATCH_KMEANS,
-    SKLEARN_BISECTING_KMEANS,
-    SKLEARN_AGGLOMERATIVE,
-    SKLEARN_DBSCAN,
-    SKLEARN_OPTICS,
-    SKLEARN_BIRCH,
-    SKLEARN_MEANSHIFT,
-    SKLEARN_SPECTRAL,
-    SKLEARN_GAUSSIAN_MIXTURE,
-    cluster_hierarchical,
-    cluster_kmeans,
-    cluster_sklearn,
-    numeric_matrix,
+    TOOL_VQ,
+    TOOL_WHITEN,
 )
 from app.data.data_source import parse_roles, resolve_role_column
-from app.data.select_sql import sql_insert_select_expression
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
-from app.utils.messages import show_message
-from app.plugin_api.data_operations.results import FrameResult
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
     SeriesJob,
-    DataOperationDialogBase,
     SeriesOutcome,
 )
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+)
+from app.plugin_api.table_operations.next_steps import NextStep
+from app.utils import report_html
+from app.utils.coercion import to_numbers
 from app.utils.i18n import _
-
-
-CLUSTER_KMEANS: Final[str] = "K-means / vector quantization"
-CLUSTER_HIERARCHICAL: Final[str] = "Hierarchical / agglomerative"
-CLUSTER_SKLEARN: Final[str] = "scikit-learn"
+from app.utils.messages import show_message
 
 FEATURE_XY: Final[str] = "X and Y"
 FEATURE_Y_ONLY: Final[str] = "Y only"
 FEATURE_XYZ: Final[str] = "X, Y and Z"
 FEATURE_ALL_NUMERIC: Final[str] = "All numeric columns"
 
-# Clustering writes into the user's own table, so a preview has to be able to
-# put the previous state back byte for byte.  The backup column is renamed
-# aside rather than copied: O(1) metadata, and it restores the original values
-# rather than a re-computed approximation.
-CLUSTER_COLUMN: Final[str] = "ClusterId"
-CLUSTER_BACKUP_COLUMN: Final[str] = "__ClusterId_preview_backup__"
+RENDER_COLORED_SERIES: Final[str] = "Single series colored by ClusterId"
 
 # The tool names are the engine's (app.analysis.clustering).
 
@@ -169,104 +187,37 @@ TOOL_DOCS: dict[str, str] = {
 }
 
 
-@dataclass(slots=True)
-class ClusterSeriesChoice:
-    """Selectable chart series descriptor materialized from a source query."""
-
-    name: str
-    frame: pd.DataFrame
-    x_col: str
-    y_col: str
-    z_col: str | None
-    roles: dict[str, Any]
-    source_table: str
-    source_x_column: str
-    source_sql_query: str
-    source: Any | None = None
+#: The charts of the report figure, each a box in the Charts tab.
+CHART_PROJECTION: Final[str] = "chart_projection"
+CHART_SILHOUETTE: Final[str] = "chart_silhouette"
+CHART_MEANS: Final[str] = "chart_means"
+CHART_K: Final[str] = "chart_k"
+#: The Bar Chart reads its columns by their role names: the categories as X, the heights as Y.
+BAR_ROLES: Final[dict[str, str]] = {"X": "X", "Y": "Y"}
+#: More clusters than this are not drawn as bars (DBSCAN can find hundreds): the table still lists them.
+MAX_BARS: Final[int] = 60
 
 
-@dataclass(slots=True)
-class ClusterResult(FrameResult):
-    """Clustering output for one source series or one generated cluster series."""
-
-    source_name: str
-    result_name: str
-    method: str
-    frame: pd.DataFrame
-    x_col: str
-    y_col: str
-    z_col: str | None
-    feature_columns: list[str]
-    metadata: dict[str, Any]
+def _quoted(name: str) -> str:
+    return '"' + str(name).replace('"', '""') + '"'
 
 
-    # Not a table of its own: clustering writes ClusterId into the source
-    # table and recolours the source series, as a batch - see
-    # SeriesClusterDialog.apply_results_to_axis, which both of these use.
-    def preview(self, dialog: Any, axis_id: int) -> None:
-        dialog.apply_results_to_axis(axis_id, [self])
-
-    def apply(self, dialog: Any, axis_id: int) -> None:
-        dialog.apply_results_to_axis(axis_id, [self])
-
-
-def _source_table_from_sql(sql_query: str) -> str:
-    match = re.search(
-        r'\bFROM\s+(?:"([^"]+)"|\[([^\]]+)\]|`([^`]+)`|([A-Za-z_][A-Za-z0-9_]*))',
-        str(sql_query),
-        flags=re.IGNORECASE,
-    )
-    if match is None:
-        applogger.error(
-            "Selected series SQL must contain the source table in a FROM clause.",
-            raise_error=True,
-        )
-        return ""
-    for group in match.groups():
-        if group:
-            return str(group)
-    applogger.error(
-        "Selected series source table could not be resolved.",
-        raise_error=True,
-    )
-    return ""
+def _number(value: Any) -> str:
+    """A value as SQL: a finite number, else NULL."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return "NULL"
+    return repr(number) if np.isfinite(number) else "NULL"
 
 
-def _source_column_for_alias(sql_query: str, alias: str) -> str:
-    quoted_alias = re.escape(str(alias))
-    alias_pattern = (
-        r'"' + quoted_alias + r'"'
-        r'|\[' + quoted_alias + r'\]'
-        r'|`' + quoted_alias + r'`'
-        r'|' + quoted_alias + r'(?=\s|,|$)'
-    )
-    pattern = (
-        r'(?:"([^"]+)"|\[([^\]]+)\]|`([^`]+)`|([A-Za-z_][A-Za-z0-9_]*))'
-        r'\s+AS\s+(?:' + alias_pattern + r')'
-    )
-    match = re.search(pattern, str(sql_query), flags=re.IGNORECASE)
-    if match is None:
-        applogger.error(
-            f'Selected series SQL must project a source field as "{alias}".',
-            raise_error=True,
-        )
-        return ""
-    for group in match.groups():
-        if group:
-            return str(group)
-    applogger.error(
-        f'Source field for alias "{alias}" could not be resolved.',
-        raise_error=True,
-    )
-    return ""
+def _values_query(rows: Sequence[tuple[Any, Any]], *, category: bool) -> str:
+    """The points as a query - bars of categories (X, Y) when *category*, else points (x, y)."""
+    def x_sql(value: Any) -> str:
+        return "'" + str(value).replace("'", "''") + "'" if category else _number(value)
 
-
-def _sql_with_clusterid_color(sql_query: str) -> str:
-    """Return SQL that exposes ClusterId through the scatter color role."""
-    return sql_insert_select_expression(
-        str(sql_query),
-        '"ClusterId" AS "color"',
-    )
+    x_name, y_name = ("X", "Y") if category else ("x", "y")
+    return " UNION ALL ".join(f"SELECT {x_sql(x)} AS {x_name}, {_number(y)} AS {y_name}" for x, y in rows)
 
 
 def _kmeans(values: Mapping[str, Any]) -> bool:
@@ -281,6 +232,12 @@ def _hierarchical(values: Mapping[str, Any]) -> bool:
 CLUSTER_PARAMS = (
     IntParam("clusters", "Clusters:", default_value=4, minimum=1, maximum=10_000,
              tooltip="Number of clusters to request."),
+    BoolParam("automatic_k", "Choose k automatically", default_value=False,
+              tooltip="Try every k from 2 to the largest and keep the one with the best mean silhouette. "
+                      "DBSCAN, OPTICS and MeanShift find their own number of clusters."),
+    IntParam("k_max", "Largest k:", default_value=8, minimum=2, maximum=50,
+             visible_if=lambda v: bool(v.get("automatic_k")),
+             tooltip="The largest number of clusters tried."),
     BoolParam("whiten", "Whiten features", default_value=True,
               visible_if=lambda v: _kmeans(v) and v.get("tool") in (TOOL_WHITEN, TOOL_KMEANS, TOOL_KMEANS2),
               tooltip="Normalize features by standard deviation before k-means."),
@@ -308,12 +265,20 @@ CLUSTER_PARAMS = (
     IntParam("sklearn_min_samples", "Min samples:", default_value=5, minimum=1, maximum=1_000_000,
              visible_if=lambda v: v.get("tool") in (SKLEARN_DBSCAN, SKLEARN_OPTICS),
              tooltip="Minimum samples for DBSCAN/OPTICS core points."),
+    BoolParam(CHART_PROJECTION, "Clusters on two principal components", default_value=True, tab="charts",
+              tooltip="The rows on the first two principal components of the features, coloured by cluster."),
+    BoolParam(CHART_SILHOUETTE, "Silhouette by cluster", default_value=True, tab="charts",
+              tooltip="Each cluster's mean silhouette: near 1 well apart, near 0 on a border, below 0 misplaced."),
+    BoolParam(CHART_MEANS, "Cluster means", default_value=True, tab="charts",
+              tooltip="Each feature's mean in each cluster."),
+    BoolParam(CHART_K, "Choosing k", default_value=True, tab="charts",
+              tooltip="With automatic k: the mean silhouette of each k tried."),
 )
 
 
 class SeriesClusterDialog(DataOperationDialogBase):
-    """Dialog that clusters selected chart-series data and colours clusters."""
-    Name: str  = "Cluster Series"
+    """Dialog that clusters selected chart-series data and colors/splits clusters."""
+    Name: str  = "Clustering"
     Description = "Group similar data"
 
     # Clustering reads an observation matrix, not a function of x, so order and
@@ -339,7 +304,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
         "segmentation segmentazione"
     )
     Goals: list[str] = ["groups"]
-    Category: str = "Clustering"
+    Category: str = "Multivariate Methods"
     Order: int = 45
 
     PARAMS = CLUSTER_PARAMS
@@ -365,12 +330,19 @@ class SeriesClusterDialog(DataOperationDialogBase):
         self.feature_combo.addItems([FEATURE_XY, FEATURE_Y_ONLY, FEATURE_XYZ, FEATURE_ALL_NUMERIC])
         self.feature_combo.setToolTip(_("Choose which numeric columns are used as clustering features."))
 
+        self.render_mode_combo = QComboBox(self)
+        self.render_mode_combo.addItems([RENDER_COLORED_SERIES, RENDER_SEPARATE_SERIES])
+        self.render_mode_combo.setToolTip(
+            _("Choose whether clusters are rendered as one point-colored series or as separate series.")
+        )
+
         return self.model_form_card(
             "clusterModelCard",
             [
                 (_("Family:"), self.method_combo),
                 (_("Algorithm:"), self.scipy_tool_combo),
                 (_("Features:"), self.feature_combo),
+                (_("Render as:"), self.render_mode_combo),
             ],
         )
 
@@ -384,6 +356,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
         self.scipy_tool_combo.currentIndexChanged.connect(self._refresh_visibility)
         self.scipy_tool_combo.currentIndexChanged.connect(self.mark_results_stale)
         self.feature_combo.currentIndexChanged.connect(self.mark_results_stale)
+        self.render_mode_combo.currentIndexChanged.connect(self.mark_results_stale)
 
 
     def _refresh_tools(self) -> None:
@@ -422,8 +395,12 @@ class SeriesClusterDialog(DataOperationDialogBase):
             "method": self.method_combo.currentText(),
             "scipy_tool": self.scipy_tool_combo.currentText(),
             "feature_mode": self.feature_combo.currentText(),
+            "render_mode": self.render_mode_combo.currentText(),
             **params,
         }
+
+    def _series_display_name(self, row: Any) -> str:
+        return str(row["name"])
 
     def _series_choice_from_row(self, row: Any) -> ClusterSeriesChoice:
         name = str(row["name"])
@@ -431,8 +408,8 @@ class SeriesClusterDialog(DataOperationDialogBase):
         if not sql_query:
             applogger.error("Selected series has no SQL query.", raise_error=True)
 
-        source_table = _source_table_from_sql(sql_query)
-        source_x_column = _source_column_for_alias(sql_query, "x")
+        source_table = source_table_from_sql(sql_query)
+        source_x_column = source_column_for_alias(sql_query, "x")
         frame = self._repo.query_df(sql_query)
         if frame.empty:
             applogger.error("Selected series query returned no rows.", raise_error=True)
@@ -535,13 +512,16 @@ class SeriesClusterDialog(DataOperationDialogBase):
         return self._cluster_one(series, feature_columns, axis_name, params, figure_id)
 
     def finish_job(self, job: Any, outcome: Any) -> list[ClusterResult]:
-        """The clustered series; failures reported together."""
+        """The clustered series - split one per cluster when asked; failures reported together."""
         if not isinstance(outcome, SeriesOutcome):
             return list(super().finish_job(job, outcome))
         _axis_name, params, _figure_id = job.settings
         results: list[ClusterResult] = []
         for _name, full_result in outcome.outcomes:
-            results.append(full_result)
+            if params["render_mode"] == RENDER_SEPARATE_SERIES:
+                results.extend(split_result_by_cluster(full_result))
+            else:
+                results.append(full_result)
         errors = outcome.errors
 
         if errors and not results:
@@ -566,75 +546,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
         figure_id: int,
     ) -> ClusterResult:
         """Cluster one series' rows; no widget, no repository - it runs in the background."""
-        features, finite_mask = numeric_matrix(series.frame, feature_columns)
-
-        method = str(params["method"])
-        if method == CLUSTER_KMEANS:
-            cluster_ids, metadata = cluster_kmeans(
-                features,
-                scipy_tool=str(params["scipy_tool"]),
-                clusters=int(params["clusters"]),
-                use_whiten=bool(params["whiten"]),
-                iterations=int(params["kmeans_iter"]),
-                threshold=float(params["kmeans_thresh"]),
-                timeout_seconds=float(params.get("max_runtime_seconds", 0.0)),
-            )
-        elif method == CLUSTER_HIERARCHICAL:
-            cluster_ids, metadata = cluster_hierarchical(
-                features,
-                scipy_tool=str(params["scipy_tool"]),
-                clusters=int(params["clusters"]),
-                linkage_method=str(params["linkage_method"]),
-                metric=str(params["metric"]),
-                criterion=str(params["criterion"]),
-                distance_threshold=float(params["distance_threshold"]),
-                timeout_seconds=float(params.get("max_runtime_seconds", 0.0)),
-            )
-        else:
-            cluster_ids, metadata = cluster_sklearn(
-                features,
-                sklearn_tool=str(params["scipy_tool"]),
-                clusters=int(params["clusters"]),
-                linkage_method=str(params["linkage_method"]),
-                metric=str(params["metric"]),
-                eps=float(params.get("sklearn_eps", 0.5)),
-                min_samples=int(params.get("sklearn_min_samples", 5)),
-                timeout_seconds=float(params.get("max_runtime_seconds", 0.0)),
-            )
-
-        output = series.frame.copy()
-        output["ClusterId"] = pd.Series([pd.NA] * len(output), dtype="Int64")
-        output.loc[finite_mask, "ClusterId"] = cluster_ids
-
-        metadata.update(
-            {
-                **dict(params),
-                "figure_id": figure_id,
-                "axis_name": axis_name,
-                "source_series_id": self._source_series_id(series),
-                "source_series_name": series.name,
-                "source_table": series.source_table,
-                "source_x_column": series.source_x_column,
-                "source_sql_query": series.source_sql_query,
-                "feature_columns": feature_columns,
-                "finite_rows": int(finite_mask.sum()),
-                "total_rows": int(len(output)),
-                "roles": series.roles,
-                "base_result_name": f"{series.name} - clusters",
-            }
-        )
-
-        return ClusterResult(
-            source_name=series.name,
-            result_name=f"{series.name} - clusters",
-            method=method,
-            frame=output,
-            x_col=series.x_col,
-            y_col=series.y_col,
-            z_col=series.z_col,
-            feature_columns=feature_columns,
-            metadata=metadata,
-        )
+        return cluster_one(series, feature_columns, axis_name, params, figure_id, self._source_series_id(series))
 
     def _snapshot_cluster_state(self, source_table: str) -> None:
         """Move the existing ClusterId aside before a preview overwrites it.
@@ -733,13 +645,43 @@ class SeriesClusterDialog(DataOperationDialogBase):
 
     def _colored_series_sql_query(self, table_name: str, result: ClusterResult) -> str:
         del table_name
-        return _sql_with_clusterid_color(str(result.metadata["source_sql_query"]))
+        return sql_with_clusterid_color(str(result.metadata["source_sql_query"]))
 
     def result_series_spec(self, axis_id: int, table_name: str, result: ClusterResult) -> ResultSeriesSpec:
         del axis_id
 
         roles = self._base_roles(result)
         roles.update({"ClusterId": "ClusterId", "cluster": "ClusterId"})
+
+        cluster_id = result.metadata.get("cluster_id")
+        is_split = bool(result.metadata.get("is_split_series", False))
+
+        if is_split and cluster_id is not None:
+            sql_query = sql_with_cluster_filter(
+                str(result.metadata["source_sql_query"]),
+                int(cluster_id),
+            )
+            color = rc_cycle_color(int(cluster_id))
+            style = {
+                "generated_clustering": True,
+                "clustering_dialog": "series_clustering",
+                "source_name": result.source_name,
+                "source_series_id": result.metadata.get("source_series_id"),
+                "method": result.method,
+                "features": result.feature_columns,
+                "cluster_id": int(cluster_id),
+                "color": color,
+                "marker": "o",
+                "linestyle": "",
+                "use_point_colors": False,
+                "render_mode": RENDER_SEPARATE_SERIES,
+            }
+            return ResultSeriesSpec(
+                name=result.result_name,
+                sql_query=sql_query,
+                roles=roles,
+                style=style,
+            )
 
         sql_query = self._colored_series_sql_query(table_name, result)
         roles.update({"color": "color"})
@@ -758,6 +700,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
                 "linestyle": "",
                 "use_point_colors": True,
                 "color_role": "color",
+                "render_mode": RENDER_COLORED_SERIES,
             },
         )
 
@@ -774,31 +717,105 @@ class SeriesClusterDialog(DataOperationDialogBase):
         return {"generated_clustering": True, "clustering_dialog": "series_clustering"}
 
     def format_results(self, results: Sequence[ClusterResult]) -> str:
-        """Return a plain-text preview summary only.
-
-        The preview deliberately avoids HTML because some result widgets display
-        markup as literal text depending on the Qt backend in use.
-        """
+        """Each clustered series' report, once even when it is split one series per cluster."""
         if not results:
             return ""
+        unique = self._unique_report_results(results)
+        subtitle = ", ".join(result.source_name for result in unique)
+        return self.results_document(subtitle, *(self.report_for(result) for result in unique))
 
-        unique_results = self._unique_report_results(results)
-        lines: list[str] = [_("Clustering preview")]
-        for result in unique_results:
-            ids = to_numbers(result.frame["ClusterId"])
-            valid_ids = ids.dropna().astype(int)
-            clusters_found = int(valid_ids.nunique()) if not valid_ids.empty else 0
-            total_rows = int(len(result.frame))
-            finite_rows = int(valid_ids.size)
-            feature_text = ", ".join(result.feature_columns)
-            lines.append(
-                "- " + _("{name}: {clusters} clusters, {clustered}/{total} clustered rows, "
-                         "tool={tool}, features={features}").format(
-                    name=result.source_name, clusters=clusters_found, clustered=finite_rows, total=total_rows,
-                    tool=result.metadata.get("scipy_tool", result.method), features=feature_text,
-                )
-            )
-        return "\n".join(lines)
+    def report_for(self, result: ClusterResult) -> str:
+        """One series' report: the scores, a row per cluster, the k tried, and what to do next."""
+        summary = result.summary
+        parts = [report_html.note(_(note)) for note in result.notes]
+        parts.append(report_html.section(_("Summary"), report_html.summary_table(
+            (_(key), report_html.format_number(value) if isinstance(value, (int, float, np.number))
+             else _(str(value))) for key, value in summary.items())))
+        parts.append(report_html.section(_("Clusters"), report_html.frame_table(
+            cluster_table(result).rename(columns=self.feature_names(result)), _, digits=4)))
+        if len(result.k_table) > 1:
+            parts.append(report_html.section(_("Choosing k"), report_html.frame_table(result.k_table, _, digits=4)))
+        box = ""
+        if reading_guide.enabled():
+            box = report_html.reading_guide(_("How to read this"), self.reading_for(result))
+        rows = summary.get("Rows clustered", len(result.frame))
+        body = report_html.section(f"{result.source_name} (N = {rows})",
+                                   report_html.with_reading_guide("".join(parts), box))
+        return body + self.what_next(result)
+
+    def reading_for(self, result: ClusterResult) -> list[str]:
+        """One series' "How to read this" lines, in its own section (the base's box stays empty)."""
+        return [reading_guide.silhouette(result.summary.get("Silhouette"), clusters=result.summary.get("Clusters"))]
+
+    @staticmethod
+    def feature_names(result: ClusterResult) -> dict[str, str]:
+        """Each feature's name in its table: the column a series' "AS x" stands for."""
+        query = str(result.metadata.get("source_sql_query") or "")
+        return {feature: source_column_for_alias(query, feature) for feature in result.feature_columns}
+
+    def next_steps(self, result: ClusterResult) -> list[NextStep]:
+        """Once the clusters are in the table: do they differ in the features they were made from?"""
+        table = str(result.metadata.get("source_table") or "")
+        query = str(result.metadata.get("source_sql_query") or "")
+        if not table:
+            return []
+        columns = {str(column) for column in self._repo.query_df(f"SELECT * FROM {_quoted(table)} LIMIT 0").columns}
+        steps = []
+        for feature in result.feature_columns[:2]:
+            column = source_column_for_alias(query, feature)
+            if column in columns:
+                steps.append(NextStep(label=_("Do the clusters differ in {column}?").format(column=column),
+                                      operation="Are there differences?", table=table,
+                                      roles={"response": [column], "group": [CLUSTER_COLUMN]},
+                                      kinds={CLUSTER_COLUMN: "nominal"}))
+        return steps
+
+    # ------------------------------------------------------------------
+    # The report figure
+    # ------------------------------------------------------------------
+
+    def report_panels(self, result: ClusterResult) -> list[tuple]:
+        """The report figure's charts that are ticked and have something to show."""
+        panels: list[tuple] = []
+        clusters = cluster_table(result)
+        components = np.asarray(result.pca.get("components", np.empty((0, 0))), dtype=float)
+        if self.chart_enabled(CHART_PROJECTION) and len(result.feature_columns) >= 2 and components.shape[0] >= 2:
+            mean = np.asarray(result.pca["mean"], dtype=float)
+
+            def axis(row: np.ndarray) -> str:
+                return " + ".join(f"({_quoted(feature)} - {_number(centre)}) * {_number(weight)}"
+                                  for feature, centre, weight in zip(result.feature_columns, mean, row, strict=True))
+
+            source = sql_with_clusterid_color(str(result.metadata["source_sql_query"]))
+            sql = f"SELECT {axis(components[0])} AS x, {axis(components[1])} AS y, color FROM ({source})"
+            panels.append(("Scatter Plot", _("Clusters on two principal components"), "Prin1", "Prin2",
+                           [(result.source_name, sql, {"x": "x", "y": "y", "color": "color"},
+                             {"marker": "o", "linestyle": "", "use_point_colors": True, "color_role": "color"})]))
+        if not clusters.empty and len(clusters) <= MAX_BARS:
+            if self.chart_enabled(CHART_SILHOUETTE) and clusters["Mean silhouette"].notna().any():
+                rows = list(zip(clusters["Cluster"], clusters["Mean silhouette"], strict=True))
+                panels.append(("Bar Chart", _("Silhouette by cluster"), _("Cluster"), _("Mean silhouette"),
+                               [(_("Silhouette"), _values_query(rows, category=True), BAR_ROLES, {})]))
+            features = [feature for feature in result.feature_columns if feature in clusters.columns]
+            names = self.feature_names(result)
+            if self.chart_enabled(CHART_MEANS) and features:
+                series = [(names[feature], _values_query(list(zip(clusters["Cluster"], clusters[feature], strict=True)),
+                                                  category=True), BAR_ROLES, {}) for feature in features]
+                panels.append(("Bar Chart", _("Cluster means"), _("Cluster"), _("Mean"), series))
+        if self.chart_enabled(CHART_K) and len(result.k_table) > 1 and "Silhouette" in result.k_table.columns:
+            rows = list(zip(result.k_table["k"], result.k_table["Silhouette"], strict=True))
+            panels.append(("Scatter Plot", _("Choosing k"), "k", _("Mean silhouette"),
+                           [(_("Silhouette"), _values_query(rows, category=False), {"x": "x", "y": "y"},
+                             {"marker": "o", "linestyle": "-"})]))
+        return panels
+
+    def _draw_report_figures(self, results: Sequence[ClusterResult]) -> None:
+        """A figure of each series' report charts, with its report in the notes."""
+        for result in self._unique_report_results(results):
+            panels = self.report_panels(result)
+            if panels:
+                self.create_report_figure(f"{_(self.Name)} · {result.source_name}",
+                                          self.results_document(result.source_name, self.report_for(result)), panels)
 
     @staticmethod
     def _unique_report_results(results: Sequence[ClusterResult]) -> list[ClusterResult]:
@@ -813,6 +830,9 @@ class SeriesClusterDialog(DataOperationDialogBase):
 
 
     def apply_results_to_axis(self, axis_id: int, results: Sequence[ClusterResult]) -> None:
+        if self.render_mode_combo.currentText() == RENDER_SEPARATE_SERIES:
+            self.remove_previous_generated_series(axis_id)
+
         updated_tables: set[str] = set()
         for result in results:
             source_table = str(result.metadata["source_table"])
@@ -820,6 +840,10 @@ class SeriesClusterDialog(DataOperationDialogBase):
                 self._write_cluster_ids_to_source_table(result)
                 updated_tables.add(source_table)
                 applogger.info(f"Updated ClusterId in selected table: {source_table}")
+
+            if self.render_mode_combo.currentText() == RENDER_SEPARATE_SERIES:
+                self.create_result_series(axis_id, source_table, result)
+                continue
 
             sql_query = self._colored_series_sql_query(source_table, result)
             source_series_id = result.metadata.get("source_series_id")
@@ -834,6 +858,8 @@ class SeriesClusterDialog(DataOperationDialogBase):
             self._repo.update_series_sql_query(source_series_id_int, sql_query)
             applogger.info(f"Updated selected series SQL for ClusterId color: {result.source_name}")
 
+        # After the ids are in the table: the report's charts read them.
+        self._draw_report_figures(results)
         self.applied.emit()
 
     def preview_results_to_axis(self, axis_id: int, results: Sequence[ClusterResult]) -> None:
@@ -841,7 +867,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
 
         Clustering is different from generated-table operations: the chart only
         changes after ClusterId is written to the source table and the selected
-        source series SQL is updated.
+        source series SQL is updated or generated split series are created.
         Therefore preview must use the same chart-update path as apply.
         """
         self.apply_results_to_axis(int(axis_id), results)
