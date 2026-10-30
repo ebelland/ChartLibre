@@ -28,7 +28,6 @@ to read.
 """
 from __future__ import annotations
 
-import html
 from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
@@ -587,27 +586,11 @@ class TableOperationDialogBase(AnalysisDialogBase):
 
     @staticmethod
     def report_rows(frame: pd.DataFrame, *, p_columns: Sequence[str] = (), digits: int = 6) -> list[list[str]]:
-        """*frame*'s rows as a report table's cells: text escaped, whole numbers and DF as
-        integers, the *p_columns* as p-values ("<.0001"), other numbers to *digits*."""
-        rows = []
-        for record in frame.itertuples(index=False):
-            cells = []
-            for column, value in zip(frame.columns, record):
-                if column in p_columns:
-                    cells.append(report_html.format_p_value(value))
-                elif isinstance(value, str):
-                    cells.append(html.escape(value))
-                elif column == "DF" or (isinstance(value, int) and not isinstance(value, bool)):
-                    cells.append("" if pd.isna(value) else str(int(value)))
-                else:
-                    cells.append(report_html.format_number(value, digits=digits))
-            rows.append(cells)
-        return rows
+        return report_html.frame_rows(frame, p_columns=p_columns, digits=digits)
 
     def report_table(self, frame: pd.DataFrame, *, p_columns: Sequence[str] = (), digits: int = 6) -> str:
         """*frame* as a report table, its column names translated."""
-        return report_html.table([_(str(c)) for c in frame.columns],
-                                 self.report_rows(frame, p_columns=p_columns, digits=digits))
+        return report_html.frame_table(frame, _, p_columns=p_columns, digits=digits)
 
     def snapshot_for_undo(self, tables: Sequence[str]) -> None:
         """OK's undo step: *tables* as they were, before the analysis writes them ("<analysis> on '<table>'").
@@ -729,14 +712,6 @@ class TableOperationDialogBase(AnalysisDialogBase):
         """The CHART_PANELS the columns as cast can draw - only those are offered in the Charts tab; None
         (the default) for all of them."""
         return None
-
-    def draw_on(self) -> str:
-        """The Charts tab's choice; a new figure for one in the current figure when there is none to add to."""
-        combo = getattr(self, "destination_combo", None)
-        chosen = str(combo.currentData() or self.DEST_NEW_FIGURE) if combo is not None else self.DEST_NEW_FIGURE
-        if chosen in (self.DEST_NEW_AXIS, self.DEST_SAME_AXIS) and getattr(self, "current_figure_id", None) is None:
-            return self.DEST_NEW_FIGURE
-        return chosen
 
     def geometry_key(self) -> str:
         """The size is the layout's: a new layout starts from its own default, not from the old one's size."""

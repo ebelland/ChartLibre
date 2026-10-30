@@ -141,7 +141,7 @@ ANY, NUMERIC, CATEGORICAL = "any", "numeric", "categorical"
 #: goal -> (catalogue key, why, the response it suits: ANY, NUMERIC or CATEGORICAL), best first.
 GUIDE: dict[str, tuple[tuple[str, str, str], ...]] = {
     "describe": (
-        ("analysis:Distribution", "Histogram, quantiles, moments and normality, one report per column.", NUMERIC),
+        ("series:Distribution", "Histogram, quantiles, moments and normality, one report per series.", NUMERIC),
         ("series:Statistics", "Mean, median, spread, quartiles and normality tests, in one report.", ANY),
         ("chart:Histogram", "The shape of the distribution: centre, spread, skew, several peaks.", NUMERIC),
         ("chart:Box Plot", "Median, quartiles and outliers at a glance - several columns side by side.", NUMERIC),
@@ -273,7 +273,7 @@ EQUIVALENTS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
         "Minitab": "Stat > Basic Statistics > Display Descriptive Statistics",
         "Origin / Excel": "Origin: Statistics > Descriptive Statistics; Excel: Data Analysis > Descriptive Statistics",
     }),
-    ("Distribution: quantiles, moments, normality", "Analysis > Distribution", "analysis:Distribution", {
+    ("Distribution: quantiles, moments, normality", "Analysis > Distribution", "series:Distribution", {
         "JMP": "Analyze > Distribution",
         "SPSS": "Analyze > Descriptive Statistics > Explore / Frequencies",
         "Minitab": "Stat > Basic Statistics > Graphical Summary",

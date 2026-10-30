@@ -28,6 +28,8 @@ import re
 from collections.abc import Iterable, Sequence
 from typing import Any
 
+import pandas as pd
+
 # JMP's threshold, and its notation: no leading zero, four decimals.
 P_VALUE_FLOOR: float = 1e-4
 
@@ -245,3 +247,27 @@ def document(title: str, subtitle: str = "", *sections: str) -> str:
         f"<html><head><meta charset='utf-8'></head><body style='{_FONT}color:{_TEXT};'>"
         f"{head}{''.join(sections)}</body></html>"
     )
+
+
+def frame_rows(frame: Any, *, p_columns: Sequence[str] = (), digits: int = 6) -> list[list[str]]:
+    """*frame*'s rows as a report table's cells: text escaped, whole numbers and DF as
+    integers, the *p_columns* as p-values ("<.0001"), other numbers to *digits*."""
+    rows = []
+    for record in frame.itertuples(index=False):
+        cells = []
+        for column, value in zip(frame.columns, record):
+            if column in p_columns:
+                cells.append(format_p_value(value))
+            elif isinstance(value, str):
+                cells.append(html.escape(value))
+            elif column == "DF" or (isinstance(value, int) and not isinstance(value, bool)):
+                cells.append("" if pd.isna(value) else str(int(value)))
+            else:
+                cells.append(format_number(value, digits=digits))
+        rows.append(cells)
+    return rows
+
+
+def frame_table(frame: Any, translate: Any, *, p_columns: Sequence[str] = (), digits: int = 6) -> str:
+    """*frame* as a report table, its column names passed through *translate*."""
+    return table([translate(str(c)) for c in frame.columns], frame_rows(frame, p_columns=p_columns, digits=digits))

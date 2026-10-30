@@ -108,8 +108,6 @@ def build_quality_demo(directory: Path = DEMO_DIR) -> Path:
              {"response": ["ra_um"], "time": ["day"]})
         _ask(app, repo, "app.table_operations.normality_dialog:NormalityDialog", "roughness",
              {"response": ["ra_um"]})
-        _ask(app, repo, "app.table_operations.distribution_dialog:DistributionDialog", "roughness",
-             {"response": ["ra_um"]}, params={"distribution": "best"})
         _control_chart_with_capability(app, repo)
         _ask(app, repo, "app.table_operations.vector_field_dialog:VectorFieldDialog", "vortex",
              {"x": ["x"], "y": ["y"], "u": ["u"], "v": ["v"]})

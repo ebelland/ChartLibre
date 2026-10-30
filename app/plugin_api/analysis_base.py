@@ -65,6 +65,14 @@ class AnalysisDialogBase(OperationShell):
         except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
             applogger.exception("Failed to commit the preview savepoint")
 
+    def draw_on(self) -> str:
+        """The Charts tab's choice; a new figure for one in the current figure when there is none to add to."""
+        combo = getattr(self, "destination_combo", None)
+        chosen = str(combo.currentData() or self.DEST_NEW_FIGURE) if combo is not None else self.DEST_NEW_FIGURE
+        if chosen in (self.DEST_NEW_AXIS, self.DEST_SAME_AXIS) and getattr(self, "current_figure_id", None) is None:
+            return self.DEST_NEW_FIGURE
+        return chosen
+
     def create_report_figure(self, name: str, notes_html: str, panels: Sequence[tuple]) -> int | None:
         """A figure of *panels*, two to a row, with *notes_html* in its notes; its id.
 

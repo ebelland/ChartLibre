@@ -70,8 +70,11 @@ GOAL_DEMOS: dict[str, tuple[Step, ...]] = {
     ),
     "build_describe_compare_demo": (
         ("chart", "employee_compensation", ["salary_eur"], 0),
-        ("ask", "app.table_operations.distribution_dialog:DistributionDialog", "employee_compensation",
-         {"response": ["salary_eur"]}),
+        ("operate", OperationDemo(
+            "Distribution - how the salaries are spread", "Salary against employee",
+            "employee_compensation",
+            "SELECT rowid AS x, salary_eur AS y FROM employee_compensation ORDER BY x",
+            {"x": "x", "y": "y"}, "employee", "salary (EUR)", "distribution_dialog:DistributionDialog")),
         ("ask", "app.table_operations.differences_dialog:DifferencesDialog", "employee_compensation",
          {"response": ["salary_eur"], "group": ["department"]}),
         ("ask", "app.table_operations.impact_dialog:ImpactDialog", "employee_compensation",
@@ -96,8 +99,6 @@ GOAL_DEMOS: dict[str, tuple[Step, ...]] = {
     ),
     "build_anomalies_demo": (
         ("chart", "transactions", ["transaction_amount"], 0),
-        ("ask", "app.table_operations.distribution_dialog:DistributionDialog", "transactions",
-         {"response": ["transaction_amount"]}),
         ("operate", OperationDemo(
             "Explore Outliers - the transactions that stand apart", "Amount against distance from home",
             "transactions",

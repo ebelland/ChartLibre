@@ -103,20 +103,11 @@ def _ok(qapp, dialog) -> None:
         time.sleep(0.01)
 
 
-def test_both_windows_write_their_tables_and_a_figure(qapp, repo, frame) -> None:
-    from app.table_operations.distribution_dialog import DistributionDialog
+def test_fit_y_by_x_writes_its_tables_and_a_figure(qapp, repo, frame) -> None:
     from app.table_operations.fit_y_by_x_dialog import FitYByXDialog
 
     repo.import_dataframe(frame, table_name="data", normalize_columns=False)
     kinds = {"x": "continuous", "y": "continuous", "group": "nominal", "flag": "nominal"}
-
-    dialog = DistributionDialog(repo=repo, table="data")
-    dialog.roles_widget.set_casting({"response": ["y"]}, kinds)
-    _ok(qapp, dialog)
-    assert dialog.created_figure_ids
-    quantiles = repo.query_df('SELECT * FROM "_data_distribution_quantiles"')
-    assert len(quantiles) == len(dist.QUANTILES)
-    dialog.close()
 
     dialog = FitYByXDialog(repo=repo, table="data")
     dialog.roles_widget.set_casting({"response": ["y"], "factor": ["x", "group"]}, kinds)

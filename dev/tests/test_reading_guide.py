@@ -90,7 +90,6 @@ def _report(qapp, dialog, casting: dict) -> str:  # noqa: ANN001
 
 @pytest.mark.parametrize("module, name, table, casting, expected", [
     ("differences_dialog", "DifferencesDialog", "plant", {"response": ["y"], "group": ["line"]}, "the groups of line"),
-    ("distribution_dialog", "DistributionDialog", "plant", {"response": ["y"]}, "interval for the mean of y"),
     ("fit_y_by_x_dialog", "FitYByXDialog", "plant", {"response": ["y"], "factor": ["temp"]}, "R² = "),
     ("fit_model_dialog", "FitModelDialog", "plant", {"response": ["y"]}, "LogWorth"),
     ("partition_dialog", "PartitionDialog", "plant", {"response": ["y"], "factor": ["line", "temp", "a"]},
