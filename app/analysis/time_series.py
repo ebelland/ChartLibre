@@ -501,3 +501,19 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
                             residual_diagnostics=residual_diagnostics,
                             stationarity=tests, candidates=candidates, cross=cross, input=input,
                             summary=summary, notes=notes)
+
+
+def gap_options(times: pd.Series) -> dict[str, str]:
+    """The line chart's gap threshold for dated rows: a gap is five typical steps, not the renderer's 2 h
+    (which cut daily values into dots). Empty when the times do not give a step."""
+    moments = pd.to_datetime(times, errors="coerce", format="mixed").dropna()
+    step = moments.diff().median() if len(moments) > 1 else pd.NaT
+    if pd.notna(step) and step > pd.Timedelta(0):
+        return {"gap_threshold": f"{int((5 * step).total_seconds())}s"}
+    return {}
+
+
+def strongest_lags(cross: pd.DataFrame, count: int = 8) -> pd.DataFrame:
+    """The cross-correlation rows, the strongest (by absolute prewhitened CCF) first, *count* of them."""
+    order = cross["Prewhitened CCF"].abs().sort_values(ascending=False).index
+    return cross.reindex(order).head(count)

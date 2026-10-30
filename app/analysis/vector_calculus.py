@@ -78,3 +78,13 @@ def derivatives(frame: pd.DataFrame, *, x: str, y: str, u: str, v: str, z: str =
     result = pd.DataFrame(out)
     return FieldDerivatives(frame=result.sort_values(["x", "y"] + (["z"] if three else [])).reset_index(drop=True),
                             dims=3 if three else 2)
+
+
+def summary_rows(result: FieldDerivatives) -> list[tuple[str, float, float, float]]:
+    """Each derived quantity's (name, min, mean, max) over the grid: divergence, and the curl."""
+    columns = ["divergence", "curl"] if result.dims == 2 else ["divergence", "curl_magnitude"]
+    rows = []
+    for column in columns:
+        values = result.frame[column].to_numpy(float)
+        rows.append((column, float(np.min(values)), float(np.mean(values)), float(np.max(values))))
+    return rows

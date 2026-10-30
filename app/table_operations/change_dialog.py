@@ -14,10 +14,16 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import change as ch
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.analysis import time_series as tsa
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
+from app.plugin_api.table_operations.column_roles import (
+    CONTINUOUS,
+    ORDINAL,
+    ColumnCasting,
+    ColumnRole,
+)
 from app.plugin_api.table_operations.next_steps import NextStep, other_columns
+from app.plugin_api.table_operations.quick_answer import QuickAnswerDialogBase
 from app.utils.i18n import _
 
 
@@ -97,10 +103,5 @@ class ChangeDialog(QuickAnswerDialogBase):
         # No rolling average of its own: the trend or the two medians are the summary here.
         options: dict[str, Any] = {"show_rolling": False}
         if result.temporal:
-            # The renderer breaks the line at gaps longer than 2 h by default,
-            # which cut daily values into dots; a gap is five typical steps.
-            moments = pd.to_datetime(result.series["Order"], errors="coerce", format="mixed").dropna()
-            step = moments.diff().median() if len(moments) > 1 else pd.NaT
-            if pd.notna(step) and step > pd.Timedelta(0):
-                options["gap_threshold"] = f"{int((5 * step).total_seconds())}s"
+            options.update(tsa.gap_options(result.series["Order"]))
         return ("Time Series", _("{measure} over time").format(measure=measure), x_label, measure, series, options)

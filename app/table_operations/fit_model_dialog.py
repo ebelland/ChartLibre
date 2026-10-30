@@ -39,9 +39,16 @@ from PySide6.QtWidgets import (
 )
 
 from app.analysis import linear_model as lm
-from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam
-from app.plugin_api.table_operations.column_roles import CATEGORICAL, CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api import reading_guide
+from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam
+from app.plugin_api.table_operations.column_roles import (
+    CATEGORICAL,
+    CONTINUOUS,
+    NOMINAL,
+    ORDINAL,
+    ColumnCasting,
+    ColumnRole,
+)
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
@@ -530,7 +537,7 @@ class FitModelDialog(TableOperationDialogBase):
         if fit.note:
             blocks.append(report_html.note(_(fit.note)))
         rank = fit.importance_column
-        effects = fit.effect_tests.sort_values(rank, ascending=False, na_position="last")
+        effects = lm.ranked_effects(fit.effect_tests, rank)
         with_p = fit.p_column in effects.columns
         blocks.append(report_html.section(
             _("Effect summary"),
@@ -593,7 +600,7 @@ class FitModelDialog(TableOperationDialogBase):
         fit = result[0]
         lines = []
         if fit.importance_column == "LogWorth" and not fit.effect_tests.empty:
-            top = fit.effect_tests.sort_values("LogWorth", ascending=False, na_position="last").iloc[0]
+            top = lm.ranked_effects(fit.effect_tests, "LogWorth").iloc[0]
             lines.append(reading_guide.logworth(top["LogWorth"], term=str(top["Term"])))
         if fit.auc:
             level, area = next(iter(fit.auc.items()))

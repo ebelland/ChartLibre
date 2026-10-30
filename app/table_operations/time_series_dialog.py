@@ -18,9 +18,19 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import time_series as tsa
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam, TextParam
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    IntParam,
+    TextParam,
+)
+from app.plugin_api.table_operations.column_roles import (
+    CONTINUOUS,
+    ORDINAL,
+    ColumnCasting,
+    ColumnRole,
+)
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
@@ -194,8 +204,7 @@ class TimeSeriesDialog(TableOperationDialogBase):
                 self.report_table(result.residual_diagnostics, p_columns=("Prob",), digits=4),
             ))
         if not result.cross.empty:
-            order = result.cross["Prewhitened CCF"].abs().sort_values(ascending=False).index
-            strongest = result.cross.reindex(order).head(8)
+            strongest = tsa.strongest_lags(result.cross)
             blocks.append(report_html.section(_("Cross-correlation with {input}, strongest lags").format(
                 input=result.input), self.report_table(strongest[["Lag", "Prewhitened CCF", "CCF"]], digits=4)))
         shown = result.correlations[["Lag", "ACF", "PACF", "Ljung-Box Q", "Prob>Q"]].head(12)
@@ -231,11 +240,7 @@ class TimeSeriesDialog(TableOperationDialogBase):
         x_label = result.time or _("Row")
         options: dict[str, Any] = {"show_rolling": False}
         if result.temporal:
-            # A gap is five typical steps, not the renderer's 2 h - which cut daily values into dots.
-            moments = pd.to_datetime(result.rows["Time"], errors="coerce", format="mixed").dropna()
-            step = moments.diff().median() if len(moments) > 1 else pd.NaT
-            if pd.notna(step) and step > pd.Timedelta(0):
-                options["gap_threshold"] = f"{int((5 * step).total_seconds())}s"
+            options.update(tsa.gap_options(result.rows["Time"]))
 
         sql, roles = self.series_select(rows, {"x": "Time", "y": measure})
         series = [(measure, sql, roles, {"linestyle": "-", "marker": "o", "markersize": 3})]

@@ -16,40 +16,17 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import multivariate as mv
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
+from app.plugin_api.table_operations.column_roles import (
+    CONTINUOUS,
+    ORDINAL,
+    ColumnCasting,
+    ColumnRole,
+)
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
-
-
-def spread_labels(tips, reach: float) -> list[tuple[float, float]]:  # noqa: ANN001 - an (n, 2) array
-    """Where each arrow's label goes: just past its tip, moved up or down off the labels already placed.
-
-    Two columns that load alike end in nearly the same place; their names,
-    put at the tips, were one smudge. Placed longest arrow first, each label
-    is nudged vertically - away from the one it would cover - until clear.
-    """
-    import numpy as np
-
-    tips = np.asarray(tips, float)
-    gap_x, gap_y = 0.25 * reach, 0.09 * reach
-    placed: list[tuple[float, float]] = []
-    positions: dict[int, tuple[float, float]] = {}
-    for index in np.argsort(-np.hypot(tips[:, 0], tips[:, 1])):
-        x, y = tips[index]
-        length = float(np.hypot(x, y)) or 1.0
-        label_x, label_y = x + 0.04 * reach * x / length, y + 0.04 * reach * y / length
-        for _attempt in range(8):
-            clash = next(((px, py) for px, py in placed
-                          if abs(px - label_x) < gap_x and abs(py - label_y) < gap_y), None)
-            if clash is None:
-                break
-            label_y = clash[1] + (gap_y if label_y >= clash[1] else -gap_y)
-        placed.append((label_x, label_y))
-        positions[int(index)] = (float(label_x), float(label_y))
-    return [positions[i] for i in range(len(tips))]
 
 
 class PrincipalComponentsDialog(TableOperationDialogBase):
@@ -160,11 +137,10 @@ class PrincipalComponentsDialog(TableOperationDialogBase):
         """The rows' scores and, as arrows from the centre, the columns' loadings - scaled to the scores' spread."""
         loadings = result.loadings[["Prin1", "Prin2"]].to_numpy(float)
         scores = result.scores[["Prin1", "Prin2"]].to_numpy(float)
-        reach = float(abs(scores).max()) if scores.size else 1.0
-        scale = 0.85 * reach / max(float(abs(loadings).max()), 1e-12)
+        scale, reach = mv.biplot_scale(loadings, scores)
         annotations = []
         tips = loadings * scale
-        for name, (x, y), (label_x, label_y) in zip(result.columns, tips, spread_labels(tips, reach)):
+        for name, (x, y), (label_x, label_y) in zip(result.columns, tips, mv.spread_labels(tips, reach)):
             annotations.append({"type": "arrow", "x": float(x), "y": float(y), "text": "",
                                 "kwargs": {"xytext": [0.0, 0.0], "textcoords": "data",
                                            "arrowprops": {"arrowstyle": "->", "color": "#c2410c", "lw": 1.2}}})

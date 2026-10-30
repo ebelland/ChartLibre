@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import html
 from collections.abc import Mapping
-from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
@@ -19,11 +18,21 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app.analysis import partition as pt
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
-from app.styles.style import TitledCard
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.column_roles import CATEGORICAL, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+)
+from app.plugin_api.table_operations.column_roles import (
+    CATEGORICAL,
+    ORDINAL,
+    ColumnCasting,
+    ColumnRole,
+)
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
+from app.styles.style import TitledCard
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -69,37 +78,12 @@ def _leaf_label(rule: str) -> str:
     return str(rule).replace(" & ", "\n")
 
 
-@dataclass(slots=True)
-class _GraphLayout:
-    """Where the partition graph puts things, in its 0..1 horizontal space."""
-
-    positions: pd.Series  # per row with a leaf
-    segments: pd.DataFrame  # Leaf, x, y: each leaf's mean, from its left edge to its right one
-    leaves: pd.DataFrame  # Leaf, start, mean, label
-    mean: float  # of all the training rows
-
-
-def _graph_layout(result: pt.PartitionResult) -> _GraphLayout:
-    """Each leaf as wide as its share of the rows, left to right as the tree has them; its rows evenly inside it."""
-    leaf = result.leaf.dropna().astype(int).sort_index(kind="stable").sort_values(kind="stable")
-    counts = leaf.value_counts().reindex(sorted(leaf.unique()))
-    widths = counts / counts.sum()
-    starts = widths.cumsum() - widths
-    rank = leaf.groupby(leaf).cumcount()
-    positions = starts.reindex(leaf).to_numpy() + (rank.to_numpy() + 0.5) / counts.reindex(leaf).to_numpy() \
-        * widths.reindex(leaf).to_numpy()
-    means = result.leaves.set_index("Leaf")["Mean"]
+def _graph_layout(result: pt.PartitionResult) -> pt.LeafLayout:
+    """The leaf layout, each leaf labelled with its rule."""
+    layout = pt.leaf_layout(result)
     rules = result.leaves.set_index("Leaf")["Rule"]
-    segments, leaves = [], []
-    for number, start in starts.items():
-        mean = float(means.get(number, float("nan")))
-        end = float(start + widths[number])
-        segments += [{"Leaf": number, "x": float(start), "y": mean}, {"Leaf": number, "x": end, "y": mean}]
-        leaves.append({"Leaf": number, "start": float(start), "mean": mean,
-                       "label": f"{number}. {_leaf_label(rules.get(number, ''))}"})
-    # The leaves' means weighted by their training rows: the mean of all of them.
-    mean = float(result.leaves["Mean"].mul(result.leaves["Count"]).sum() / max(result.leaves["Count"].sum(), 1))
-    return _GraphLayout(pd.Series(positions, index=leaf.index), pd.DataFrame(segments), pd.DataFrame(leaves), mean)
+    labels = [f"{number}. {_leaf_label(rules.get(number, ''))}" for number in layout.leaves["Leaf"]]
+    return pt.LeafLayout(layout.positions, layout.segments, layout.leaves.assign(label=labels), layout.mean)
 
 
 class PartitionDialog(TableOperationDialogBase):
@@ -305,7 +289,7 @@ class PartitionDialog(TableOperationDialogBase):
             level, area = next(iter(result.auc.items()))
             lines.append(reading_guide.auc(area, level=str(level)))
         if not result.contributions.empty:
-            top = result.contributions.sort_values("Portion", ascending=False).iloc[0]
+            top = pt.ranked_contributions(result.contributions).iloc[0]
             lines.append(reading_guide.share(top["Portion"], factor=str(top["Column"])))
         return lines
 
@@ -352,7 +336,7 @@ class PartitionDialog(TableOperationDialogBase):
         return self.draw_report(result, result.response, panels, written=written) if panels else written
 
     def _panels(self, result: pt.PartitionResult, names: Mapping[str, str], charts: list[str],
-                layout: _GraphLayout | None = None) -> list[tuple]:
+                layout: pt.LeafLayout | None = None) -> list[tuple]:
         """(chart type, title, x label, y label, [(series name, sql, roles, style)], options) per chart ticked."""
         panels = []
         nominal = result.kind == pt.NOMINAL
@@ -423,7 +407,7 @@ class PartitionDialog(TableOperationDialogBase):
     def _factor_is_nominal(self, factor: str) -> bool:
         return self.roles_widget.casting().kinds.get(factor) in CATEGORICAL
 
-    def _partition_graph(self, result: pt.PartitionResult, names: Mapping[str, str], layout: _GraphLayout) -> tuple:
+    def _partition_graph(self, result: pt.PartitionResult, names: Mapping[str, str], layout: pt.LeafLayout) -> tuple:
         """JMP's partition graph: Y by row, the rows grouped by leaf, each leaf as wide as its rows,
         a line at each leaf's mean labelled with its rule and a grey one at the mean of all rows."""
         role = self.quoted("Partition role")

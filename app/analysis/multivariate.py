@@ -348,3 +348,40 @@ def factor_analysis(frame: pd.DataFrame, columns: list[str], *, factors: int = 0
         if oblique else pd.DataFrame(),
         scores=scores, summary=summary, notes=notes,
     )
+
+
+def strongest_pairs(pairs: pd.DataFrame) -> pd.DataFrame:
+    """The pairwise correlations, strongest evidence first (smallest Prob>|t|); missing ones last."""
+    return pairs.sort_values("Prob>|t|", na_position="last")
+
+
+def biplot_scale(loadings: np.ndarray, scores: np.ndarray) -> tuple[float, float]:
+    """The factor that scales the loadings' arrows to the scores' spread, and that spread (the reach)."""
+    reach = float(abs(scores).max()) if scores.size else 1.0
+    return 0.85 * reach / max(float(abs(loadings).max()), 1e-12), reach
+
+
+def spread_labels(tips: np.ndarray, reach: float) -> list[tuple[float, float]]:
+    """Where each arrow's label goes: just past its tip, moved up or down off the labels already placed.
+
+    Two columns that load alike end in nearly the same place; their names,
+    put at the tips, were one smudge. Placed longest arrow first, each label
+    is nudged vertically - away from the one it would cover - until clear.
+    """
+    tips = np.asarray(tips, float)
+    gap_x, gap_y = 0.25 * reach, 0.09 * reach
+    placed: list[tuple[float, float]] = []
+    positions: dict[int, tuple[float, float]] = {}
+    for index in np.argsort(-np.hypot(tips[:, 0], tips[:, 1])):
+        x, y = tips[index]
+        length = float(np.hypot(x, y)) or 1.0
+        label_x, label_y = x + 0.04 * reach * x / length, y + 0.04 * reach * y / length
+        for _attempt in range(8):
+            clash = next(((px, py) for px, py in placed
+                          if abs(px - label_x) < gap_x and abs(py - label_y) < gap_y), None)
+            if clash is None:
+                break
+            label_y = clash[1] + (gap_y if label_y >= clash[1] else -gap_y)
+        placed.append((label_x, label_y))
+        positions[int(index)] = (float(label_x), float(label_y))
+    return [positions[i] for i in range(len(tips))]

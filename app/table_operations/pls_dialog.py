@@ -16,9 +16,14 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import pls as pl
-from app.plugin_api.data_operations.parameter_spec import BoolParam, IntParam
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.data_operations.parameter_spec import BoolParam, IntParam
+from app.plugin_api.table_operations.column_roles import (
+    CONTINUOUS,
+    ORDINAL,
+    ColumnCasting,
+    ColumnRole,
+)
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
@@ -77,7 +82,7 @@ class PLSDialog(TableOperationDialogBase):
         blocks.append(report_html.section(_("Summary"), report_html.summary_table(
             (_(key), report_html.format_number(value)) for key, value in result.summary.items())))
         blocks.append(report_html.section(_("Cross-validation"), self.report_table(result.cross_validation)))
-        top = result.vip.sort_values("VIP", ascending=False).head(15)
+        top = pl.ranked_vip(result.vip).head(15)
         blocks.append(report_html.section(_("Variable importance (VIP), highest 15"), self.report_table(top)))
         blocks.append(report_html.section(_("Coefficients"), self.report_table(result.coefficients.head(50))))
         return "".join(blocks)
@@ -87,7 +92,7 @@ class PLSDialog(TableOperationDialogBase):
         lines = [reading_guide.q_squared(summary.get("Q² (cross-validated)"), r2=summary.get("RSquare Y"),
                                          y=", ".join(result.responses))]
         if not result.vip.empty:
-            top = result.vip.sort_values("VIP", ascending=False).iloc[0]
+            top = pl.ranked_vip(result.vip).iloc[0]
             lines.append(reading_guide.vip(top["VIP"], variable=str(top["Variable"])))
         return lines
 

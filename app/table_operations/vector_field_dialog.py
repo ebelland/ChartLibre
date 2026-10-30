@@ -10,12 +10,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from app.analysis import vector_calculus as vc
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole
+from app.plugin_api.table_operations.column_roles import (
+    CONTINUOUS,
+    ColumnCasting,
+    ColumnRole,
+)
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
@@ -68,13 +71,9 @@ class VectorFieldDialog(TableOperationDialogBase):
         return vc.derivatives(frame, **self._columns())
 
     def report_body(self, result: vc.FieldDerivatives) -> str:
-        columns = ["divergence", "curl"] if result.dims == 2 else ["divergence", "curl_magnitude"]
-        rows = []
-        for column in columns:
-            values = result.frame[column].to_numpy(float)
-            rows.append((_(column.replace("_", " ").capitalize()), report_html.format_number(float(np.min(values))),
-                         report_html.format_number(float(np.mean(values))),
-                         report_html.format_number(float(np.max(values)))))
+        rows = [(_(column.replace("_", " ").capitalize()), report_html.format_number(low),
+                 report_html.format_number(mean), report_html.format_number(high))
+                for column, low, mean, high in vc.summary_rows(result)]
         table = report_html.table((_("Quantity"), _("Min"), _("Mean"), _("Max")), rows,
                                   align=("left", "right", "right", "right"))
         note = report_html.note(_("Central differences on the grid (numpy.gradient); one-sided at its edges, where "

@@ -147,3 +147,8 @@ def pls(frame: pd.DataFrame, responses: list[str], predictors: list[str], *, max
     return PLSResult(responses=list(responses), predictors=predictors, components=components, summary=summary,
                      cross_validation=cross_validation, vip=vip, loadings=loadings, coefficients=coefficients,
                      scores=scores, predicted=predicted, notes=notes)
+
+
+def ranked_vip(vip: pd.DataFrame) -> pd.DataFrame:
+    """The variable importance table, highest VIP first."""
+    return vip.sort_values("VIP", ascending=False)

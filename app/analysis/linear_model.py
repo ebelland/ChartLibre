@@ -1020,3 +1020,8 @@ def _lack_of_fit(model, data: pd.DataFrame, factor_columns: list[str]) -> pd.Dat
         ],
         columns=["Source", "DF", "Sum of Squares", "Mean Square", "F Ratio", "Prob > F"],
     )
+
+
+def ranked_effects(effects: pd.DataFrame, column: str) -> pd.DataFrame:
+    """The effect tests, the most important first by *column* (LogWorth, or the F ratio's p); missing last."""
+    return effects.sort_values(column, ascending=False, na_position="last")

@@ -99,7 +99,7 @@ def test_ml_tests_whether_the_factors_are_enough() -> None:
 
 
 def test_biplot_labels_of_arrows_ending_together_are_kept_apart() -> None:
-    from app.table_operations.principal_components_dialog import spread_labels
+    from app.analysis.multivariate import spread_labels
 
     tips = np.array([[2.0, 0.1], [2.0, 0.12], [-1.0, 1.5]])
     labels = spread_labels(tips, reach=2.5)

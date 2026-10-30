@@ -14,9 +14,14 @@ from typing import Any
 import pandas as pd
 
 from app.analysis import multivariate as mv
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam
+from app.plugin_api.table_operations.column_roles import (
+    CONTINUOUS,
+    ORDINAL,
+    ColumnCasting,
+    ColumnRole,
+)
 from app.plugin_api.table_operations.dialog_base import TableOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
@@ -68,13 +73,13 @@ class MultivariateDialog(TableOperationDialogBase):
         blocks.append(report_html.section(_("Summary"), report_html.summary_table(
             (_(key), report_html.format_number(value)) for key, value in result.summary.items())))
         blocks.append(report_html.section(_("Correlations"), self.report_table(result.matrix, digits=4)))
-        pairs = result.pairs.sort_values("Prob>|t|", na_position="last")
         blocks.append(report_html.section(_("Pairwise correlations, strongest evidence first"),
-                                          self.report_table(pairs, p_columns=("Prob>|t|",), digits=4)))
+                                          self.report_table(mv.strongest_pairs(result.pairs),
+                                                            p_columns=("Prob>|t|",), digits=4)))
         return "".join(blocks)
 
     def how_to_read(self, result: mv.CorrelationResult) -> list[str]:
-        pairs = result.pairs.sort_values("Prob>|t|", na_position="last")
+        pairs = mv.strongest_pairs(result.pairs)
         if pairs.empty:
             return []
         top = pairs.iloc[0]

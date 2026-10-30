@@ -552,3 +552,39 @@ def _ensemble(spec: PartitionSpec, complete: pd.DataFrame, x: np.ndarray, y: np.
     )
     _explain(result, model, x, y, train, valid, nominal, levels, orders or {})
     return result
+
+
+def ranked_contributions(contributions: pd.DataFrame) -> pd.DataFrame:
+    """The factors' contributions, the largest portion first."""
+    return contributions.sort_values("Portion", ascending=False)
+
+
+@dataclass(slots=True)
+class LeafLayout:
+    """Where the partition graph puts things, in its 0..1 horizontal space."""
+
+    positions: pd.Series  # per row with a leaf
+    segments: pd.DataFrame  # Leaf, x, y: each leaf's mean, from its left edge to its right one
+    leaves: pd.DataFrame  # Leaf, start, mean
+    mean: float  # of all the training rows
+
+
+def leaf_layout(result: PartitionResult) -> LeafLayout:
+    """Each leaf as wide as its share of the rows, left to right as the tree has them; its rows evenly inside it."""
+    leaf = result.leaf.dropna().astype(int).sort_index(kind="stable").sort_values(kind="stable")
+    counts = leaf.value_counts().reindex(sorted(leaf.unique()))
+    widths = counts / counts.sum()
+    starts = widths.cumsum() - widths
+    rank = leaf.groupby(leaf).cumcount()
+    positions = starts.reindex(leaf).to_numpy() + (rank.to_numpy() + 0.5) / counts.reindex(leaf).to_numpy() \
+        * widths.reindex(leaf).to_numpy()
+    means = result.leaves.set_index("Leaf")["Mean"]
+    segments, leaves = [], []
+    for number, start in starts.items():
+        mean = float(means.get(number, float("nan")))
+        end = float(start + widths[number])
+        segments += [{"Leaf": number, "x": float(start), "y": mean}, {"Leaf": number, "x": end, "y": mean}]
+        leaves.append({"Leaf": number, "start": float(start), "mean": mean})
+    # The leaves' means weighted by their training rows: the mean of all of them.
+    mean = float(result.leaves["Mean"].mul(result.leaves["Count"]).sum() / max(result.leaves["Count"].sum(), 1))
+    return LeafLayout(pd.Series(positions, index=leaf.index), pd.DataFrame(segments), pd.DataFrame(leaves), mean)
