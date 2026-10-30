@@ -46,13 +46,13 @@ def _run(qapp, dialog) -> None:
 
 
 def test_both_dialogs_draw_their_chart(qapp, repo: SqliteRepo) -> None:
+    from app.table_operations.change_dialog import ChangeDialog
     from app.table_operations.in_control_dialog import InControlDialog
-    from app.table_operations.normality_dialog import NormalityDialog
 
     repo.import_dataframe(pd.DataFrame({"giorno": DAYS, "y": SHIFTED}), table_name="line", normalize_columns=False)
     for dialog_type, roles, table, axis_name in (
         (InControlDialog, {"response": ["y"], "time": ["giorno"]}, "_line_control", "Time Series"),
-        (NormalityDialog, {"response": ["y"]}, "_line_normality", "Scatter Plot"),
+        (ChangeDialog, {"response": ["y"]}, "_line_change", "Time Series"),
     ):
         dialog = dialog_type(repo=repo, table="line")
         try:

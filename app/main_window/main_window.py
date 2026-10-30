@@ -12,12 +12,11 @@ from __future__ import annotations
 
 import gc
 import re
-from pathlib import Path
 import warnings
+from pathlib import Path
 from typing import Any, cast
 
 import pandas as pd
-
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QCloseEvent,
@@ -28,51 +27,54 @@ from PySide6.QtGui import (
     QPalette,
     QShortcut,
 )
+from PySide6.QtWidgets import (
+    QApplication,
+    QBoxLayout,
+    QCheckBox,
+    QInputDialog,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QTabWidget,
+)
+
 from app import APP_ICON, APP_NAME
-from app.widgets.chart_jump_bar import ChartJumpBar
-from app.main_window.custom_title_bar import CustomTitleBar
-from app.dialogs.log_viewer_dialog import LogViewerDialog
-from app.dialogs.main_chart_properties import MainWindowChartProperties
-from app.main_window.main_frame import MainWindowFrame
-from app.main_window.main_menus import MainWindowMenus
-from app.main_window.main_project import MainWindowProject
-from app.data.sqlite_repo import DatabaseError, SqliteRepo
-from app.widgets.chart_panel import ChartPanel
-from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
-from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_icon
-from app.widgets.guided_panel import GuidedAnalysisPanel
-from app.widgets.catalog_search import CatalogSearch
-from app.scanners.table_operation_scanner import import_class_from_file as import_table_operation
 from app.ai import settings as assistant_settings
-from app.widgets.assistant_panel import AssistantPanel
-from app.widgets.recent_projects import ProjectsTabs
-from app.dialogs.create_chart_dialog import NewPlotTabDialog
-from app.dialogs.credits_dialog import CreditsDialog
-from app.widgets.database_info_panel import DatabaseInfoPanel
-from app.developer_helpers.renderer_helper import RendererHelperDialog
+from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.developer_helpers.data_operation_helper import DataOperationBuilderDialog
 from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
 from app.developer_helpers.localization_helper import EditLocalizationDialog
+from app.developer_helpers.renderer_helper import RendererHelperDialog
+from app.dialogs.create_chart_dialog import NewPlotTabDialog
+from app.dialogs.credits_dialog import CreditsDialog
+from app.dialogs.log_viewer_dialog import LogViewerDialog
+from app.dialogs.main_chart_properties import MainWindowChartProperties
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
-from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget
-from app.widgets.chart_properties.overlay_properties import OverlayPropertiesWidget
-from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
-from app.widgets.chart_properties.series_properties import SeriesPropertiesWidget
+from app.logs.logger import applogger
+from app.main_window.custom_title_bar import CustomTitleBar
+from app.main_window.main_frame import MainWindowFrame
+from app.main_window.main_menus import MainWindowMenus
+from app.main_window.main_project import MainWindowProject
 from app.scanners.data_operation_scanner import import_class_from_file
+from app.scanners.table_operation_scanner import (
+    import_class_from_file as import_table_operation,
+)
 from app.styles.style import (
     EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
     IS_WINDOWS,
     PANEL_MIN_WIDTH,
-    action_presentation,
     SPACING_DEFAULT,
     SPLITTER_HANDLE_WIDTH,
     CardFrame,
+    action_presentation,
     icon_from_svg_source,
     relax_minimum_width,
 )
-from app.widgets.table_list import TableListPanel
-from app.widgets.table_preview import TablePreviewPanel
+from app.utils import column_summary
 from app.utils.config import (
     developer_mode,
     get_constant,
@@ -80,24 +82,24 @@ from app.utils.config import (
     set_section,
 )
 from app.utils.dialog_state import restore_window_geometry, save_window_geometry
-from app.utils.screen_fit import fit_on_show
-from app.utils.messages import show_message
-from app.utils import column_summary
-from app.logs.logger import applogger
 from app.utils.i18n import _
-from PySide6.QtWidgets import (
-    QApplication,
-    QBoxLayout,
-    QCheckBox,
-    QLabel,
-    QInputDialog,
-    QMessageBox,
-    QMainWindow,
-    QPushButton,
-    QSizePolicy,
-    QSplitter,
-    QTabWidget,
-)
+from app.utils.messages import show_message
+from app.utils.screen_fit import fit_on_show
+from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_icon
+from app.widgets.assistant_panel import AssistantPanel
+from app.widgets.catalog_search import CatalogSearch
+from app.widgets.chart_jump_bar import ChartJumpBar
+from app.widgets.chart_panel import ChartPanel
+from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget
+from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
+from app.widgets.chart_properties.overlay_properties import OverlayPropertiesWidget
+from app.widgets.chart_properties.series_properties import SeriesPropertiesWidget
+from app.widgets.database_info_panel import DatabaseInfoPanel
+from app.widgets.guided_panel import GuidedAnalysisPanel
+from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
+from app.widgets.recent_projects import ProjectsTabs
+from app.widgets.table_list import TableListPanel
+from app.widgets.table_preview import TablePreviewPanel
 
 # config.json keys for the remembered window layout.
 STATE_KEY: str = "main_window"
@@ -1347,7 +1349,23 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             self._open_next_step(step)
 
     def _open_next_step(self, step) -> None:  # noqa: ANN001 - a next_steps.NextStep
-        """Open the analysis a "What next?" link asks for, on its table, the columns cast (G-02)."""
+        """Open the analysis a "What next?" link asks for, on its table, the columns cast (G-02).
+
+        A data operation's step (it names a figure) opens on that figure instead.
+        """
+        from app.scanners.data_operation_scanner import (
+            data_operations,
+            import_class_from_file,
+        )
+
+        if step.figure is not None:
+            data = next((entry for entry in data_operations if entry.get("value") == step.operation), None)
+            dialog_class = import_class_from_file(data) if data is not None else None
+            if dialog_class is None:
+                applogger.warning("The next step's analysis %r is not installed.", step.operation)
+                return
+            self._open_data_operation(dialog_class, plugin_icon(data), figure_id=step.figure)
+            return
         from app.scanners.table_operation_scanner import table_operations
 
         operation = next((entry for entry in table_operations if entry.get("value") == step.operation), None)
@@ -1393,21 +1411,25 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         self,
         dialog_class: type,
         icon: QIcon | None = None,
+        *,
+        figure_id: int | None = None,
     ) -> None:
         """Open one runtime data-operation dialog on the current chart, or on a scratch one.
 
         With no chart in the project the operation opens on an empty chart that
-        is kept only if the operation drew something (or reported) on it.
+        is kept only if the operation drew something (or reported) on it. *figure_id*
+        names the chart instead (a "What next?" link to a data operation).
         """
-        panel = self._current_chart_panel()
+        panel = self._current_chart_panel() if figure_id is None else None
         scratch: int | None = None
-        if panel is None:
-            scratch = self._scratch_figure()
-            if scratch is None:
-                return
-            figure_id = scratch
-        else:
-            figure_id = panel.figure_id
+        if figure_id is None:
+            if panel is None:
+                scratch = self._scratch_figure()
+                if scratch is None:
+                    return
+                figure_id = scratch
+            else:
+                figure_id = panel.figure_id
 
         dialog = dialog_class(
             repo=self._repo,
@@ -1442,7 +1464,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             panel = self._current_chart_panel()
         if panel is not None:
             panel.reload()
-        elif published or not self._drop_scratch_figure(figure_id):
+        elif scratch is None or published or not self._drop_scratch_figure(figure_id):
             # Kept: it is a chart of the operation's now.
             self._reload_tabs(select_figure_id=figure_id)
             target = self._current_chart_panel()
@@ -1467,6 +1489,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         elif scratch is not None and scratch not in existing:
             self._reload_tabs()
         self._update_properties_for_current_chart()
+        step = getattr(dialog, "next_request", None)
+        if step is not None:
+            self._open_next_step(step)
 
     def _on_credits(self) -> None:
         """Show who made this and what it is made of."""

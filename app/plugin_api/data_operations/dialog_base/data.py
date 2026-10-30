@@ -14,11 +14,6 @@ import pandas as pd
 from app.data.data_source import parse_roles, resolve_role_column, row_value
 from app.logs.logger import applogger
 from app.plugin_api.charts.grids import pivot_to_grid
-from app.utils import report_html
-from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
-from app.utils.i18n import _
-from app.utils.series_validation import SeriesIssue, clean_xy, errors, validate_xy
-
 from app.plugin_api.data_operations.dialog_base.common import (
     OperationJob,
     ResultSeriesSpec,
@@ -26,6 +21,11 @@ from app.plugin_api.data_operations.dialog_base.common import (
     SeriesOutcome,
     generated_table_name,
 )
+from app.plugin_api.table_operations import next_steps
+from app.utils import report_html
+from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
+from app.utils.i18n import _
+from app.utils.series_validation import SeriesIssue, clean_xy, errors, validate_xy
 
 
 def _xy_columns(frame: pd.DataFrame, roles: Mapping[str, Any]) -> tuple[str, str]:
@@ -425,6 +425,15 @@ class DataMixin:
         raw = f"{self.__class__.__name__}_axis{axis_id}_{source_name}_{variant}"
         return generated_table_name(raw, fallback="Series_Result")
 
+    def next_steps(self, result: Any) -> list[next_steps.NextStep]:
+        """The questions this result leads to, as "What next?" links; none by default."""
+        del result
+        return []
+
+    def what_next(self, result: Any) -> str:
+        """The "What next?" section of *result*'s report, empty when turned off or there is none."""
+        return next_steps.section_html(self.next_steps(result)) if next_steps.enabled() else ""
+
     def results_document(self, subtitle: str, *sections: str) -> str:
         """The Results pane's document, the same frame for every operation: its name, *subtitle*, *sections*."""
         return report_html.document(_(self.operation_label), subtitle, *sections)
@@ -802,7 +811,9 @@ class DataMixin:
         return outcome
 
     def _computes_per_series(self) -> bool:
-        from app.plugin_api.data_operations.dialog_base.dialog import DataOperationDialogBase  # the class this is part of
+        from app.plugin_api.data_operations.dialog_base.dialog import (
+            DataOperationDialogBase,  # the class this is part of
+        )
 
         return type(self).compute_series is not DataOperationDialogBase.compute_series
 

@@ -50,12 +50,16 @@ class NextStep:
     table: str
     roles: dict[str, list[str]]
     kinds: dict[str, str] = field(default_factory=dict)
+    #: A data operation's step: the figure it opens on (its table is then empty).
+    figure: int | None = None
 
 
 def step_url(step: NextStep) -> str:
-    query = urlencode({"op": step.operation, "table": step.table, "roles": json.dumps(step.roles),
-                       "kinds": json.dumps(step.kinds)})
-    return f"https://{HOST}{PATH}?{query}"
+    values = {"op": step.operation, "table": step.table, "roles": json.dumps(step.roles),
+              "kinds": json.dumps(step.kinds)}
+    if step.figure is not None:
+        values["figure"] = str(step.figure)
+    return f"https://{HOST}{PATH}?{urlencode(values)}"
 
 
 def is_step_url(url: str) -> bool:
@@ -74,9 +78,11 @@ def parse_step(url: str) -> NextStep | None:
         kinds = {str(k): str(v) for k, v in json.loads(values.get("kinds", "{}")).items()}
     except (ValueError, AttributeError, TypeError):
         return None
-    if not values.get("op") or not values.get("table"):
+    if not values.get("op") or not (values.get("table") or values.get("figure")):
         return None
-    return NextStep(label="", operation=values["op"], table=values["table"], roles=roles, kinds=kinds)
+    figure = int(values["figure"]) if values.get("figure", "").isdigit() else None
+    return NextStep(label="", operation=values["op"], table=values.get("table", ""), roles=roles, kinds=kinds,
+                    figure=figure)
 
 
 def section_html(steps: Iterable[NextStep]) -> str:

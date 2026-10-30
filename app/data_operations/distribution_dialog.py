@@ -31,13 +31,34 @@ FITTED = (("Normal", "norm"), ("Lognormal", "lognorm"), ("Weibull", "weibull_min
 BEST = "best"
 
 
-def _label(name: str) -> str:
+def distribution_label(name: str) -> str:
     """The offered distribution's English name for a scipy name ("lognorm" -> "Lognormal")."""
     return next((label for label, key in FITTED if key == name), name)
 
 
-def _quoted(name: str) -> str:
+def quoted(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
+
+
+def series_values(dialog: DataOperationDialogBase, row: Any, name: str) -> tuple[Any, str, str]:
+    """A series' x and y, its query, and the column its y values come from."""
+    frame, roles = dialog._series_frame(row)
+    _x, y_column = _xy_columns(frame, roles)
+    query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
+    return dialog.series_xy(row, name), query, y_column
+
+
+def value_series(source_name: str, query: str, column: str) -> list[tuple]:
+    """The series of one column's values, as the figure's panels read them."""
+    value_query = f'SELECT {quoted(column)} AS value FROM ({query})'
+    return [(source_name, value_query, {"value": "value"}, {})]
+
+
+def qq_panel(source_name: str, series: list[tuple], key: str) -> tuple:
+    """The Q-Q plot of *series* against the distribution *key* (scipy name)."""
+    label = _(distribution_label(key))
+    return ("Q-Q Plot", _("{distribution} quantile plot").format(distribution=label),
+            _("{distribution} quantiles").format(distribution=label), source_name, series, {"distribution": key})
 
 
 @dataclass(slots=True)
@@ -67,14 +88,10 @@ class DistributionSeriesResult(OperationResult):
     def draw(self, dialog: DistributionDialog) -> None:
         """The histogram with the fitted curve, and the Q-Q plot against it, in a figure of their own."""
         key = self.fit.name if self.fit is not None else "norm"
-        label = _(_label(key))
-        value_query = f'SELECT {_quoted(self.column)} AS value FROM ({self.query})'
-        series = [(self.source_name, value_query, {"value": "value"}, {})]
+        series = value_series(self.source_name, self.query, self.column)
         panels = [
             ("Histogram", self.source_name, self.source_name, _("Density"), series, {"distribution_fit": key}),
-            ("Q-Q Plot", _("{distribution} quantile plot").format(distribution=label),
-             _("{distribution} quantiles").format(distribution=label), self.source_name, series,
-             {"distribution": key}),
+            qq_panel(self.source_name, series, key),
         ]
         dialog.create_report_figure(f"{_(dialog.Name)} · {self.source_name}",
                                     dialog.results_document(self.source_name, dialog.report_for(self)), panels)
@@ -112,10 +129,7 @@ class DistributionDialog(DataOperationDialogBase):
 
     def read_series(self, row: Any, name: str) -> Any:
         """The series' x and y, its query, and the column its y values come from."""
-        frame, roles = self._series_frame(row)
-        _x, y_column = _xy_columns(frame, roles)
-        query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
-        return self.series_xy(row, name), query, y_column
+        return series_values(self, row, name)
 
     def compute_series(self, name: str, data: Any, settings: Mapping[str, Any]) -> DistributionSeriesResult:
         (_x, y), query, column = data
@@ -146,7 +160,7 @@ class DistributionDialog(DataOperationDialogBase):
         if result.fit is not None:
             fit = result.fit
             parts.append(report_html.section(
-                _("Fitted {distribution}").format(distribution=_(_label(fit.name))),
+                _("Fitted {distribution}").format(distribution=_(distribution_label(fit.name))),
                 report_html.summary_table([
                     *((f"{_('Parameter')} {index + 1}", value) for index, value in enumerate(fit.params)),
                     (_("Kolmogorov-Smirnov D"), fit.ks_statistic), (_("Prob > D"), fit.pvalue),

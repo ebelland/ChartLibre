@@ -106,8 +106,6 @@ def build_quality_demo(directory: Path = DEMO_DIR) -> Path:
              params={"tolerance": "0.4"}, kinds={"part": "nominal", "operator": "nominal"})
         _ask(app, repo, "app.table_operations.in_control_dialog:InControlDialog", "roughness",
              {"response": ["ra_um"], "time": ["day"]})
-        _ask(app, repo, "app.table_operations.normality_dialog:NormalityDialog", "roughness",
-             {"response": ["ra_um"]})
         _control_chart_with_capability(app, repo)
         _ask(app, repo, "app.table_operations.vector_field_dialog:VectorFieldDialog", "vortex",
              {"x": ["x"], "y": ["y"], "u": ["u"], "v": ["v"]})

@@ -13,6 +13,7 @@ from app.data.repo.operations import OPERATIONS_TABLE
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base.common import generated_table_name
 from app.plugin_api.data_operations.results import OperationResult
+from app.plugin_api.table_operations import next_steps
 from app.utils.coercion import to_numeric_axis
 from app.utils.dialog_state import dialog_entries
 from app.utils.messages import show_message
@@ -494,7 +495,9 @@ class ResultsMixin:
         return finish(self._deliver_results(results, int(axis_id_value), commit=commit, inputs=inputs))
 
     def _runs_in_background(self) -> bool:
-        from app.plugin_api.data_operations.dialog_base.dialog import DataOperationDialogBase  # the class this is part of
+        from app.plugin_api.data_operations.dialog_base.dialog import (
+            DataOperationDialogBase,  # the class this is part of
+        )
 
         return bool(
             self.RUN_IN_BACKGROUND
@@ -669,6 +672,17 @@ class ResultsMixin:
 
     def ok(self) -> None:
         self.apply(then=lambda applied: self.accept() if applied else None)
+
+    def _follow_link(self, url: str) -> None:
+        """A "What next?" link clicked in Results: this result is kept (OK), then the next analysis opens."""
+        step = next_steps.parse_step(url)
+        if step is None:
+            return
+        self.next_request = step
+        if self._last_results:
+            self.ok()
+        else:
+            self.reject()
 
     def cancel(self) -> None:
         self.cancel_operation_changes()

@@ -16,16 +16,24 @@ from collections.abc import Mapping
 from typing import Any, ClassVar
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QComboBox, QFormLayout, QLabel, QLineEdit, QSizePolicy, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFormLayout,
+    QLabel,
+    QLineEdit,
+    QSizePolicy,
+    QWidget,
+)
 
-from app.logs.logger import applogger
 from app.data.sqlite_repo import SqliteRepo
+from app.logs.logger import applogger
+from app.plugin_api.analysis_base import AnalysisDialogBase
 from app.plugin_api.data_operations.dialog_base.common import OperationModel
 from app.plugin_api.data_operations.dialog_base.data import DataMixin
 from app.plugin_api.data_operations.dialog_base.results import ResultsMixin
 from app.plugin_api.data_operations.dialog_base.ui import WindowMixin
 from app.plugin_api.data_operations.parameter_spec import Param
-from app.plugin_api.analysis_base import AnalysisDialogBase
+from app.plugin_api.table_operations import next_steps
 from app.styles.style import icon_from_svg_source, set_doc_link
 from app.utils.dialog_state import dialog_entries, set_dialog_entries
 from app.utils.i18n import _
@@ -234,6 +242,9 @@ class DataOperationDialogBase(WindowMixin, DataMixin, ResultsMixin, AnalysisDial
 
         self._results_label = HtmlResultsView(self)
         self._results_view = self._results_label
+        self._results_view.link_requested.connect(self._follow_link)
+        #: The question a "What next?" link asked for: the main window opens it once this one is closed.
+        self.next_request: next_steps.NextStep | None = None
         self._preview_axis_ids: set[int] = set()
         self._preview_table_names: set[str] = set()
         self._preview_active = False
