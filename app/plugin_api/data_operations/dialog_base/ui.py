@@ -27,11 +27,15 @@ from app.data.sqlite_repo import DatabaseError
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_form import ParameterForm
 from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, Param, defaults
-from app.styles.style import MARGIN_TOOLBOX_PAGE, CardFrame, create_doc_link, stdSizeAndlayout
+from app.styles.style import MARGIN_TOOLBOX_PAGE, CardFrame, TitledCard, create_doc_link, stdSizeAndlayout
 from app.utils.i18n import _
 from app.widgets.table_source_selector import TableSourceSelector
 
-from app.plugin_api.data_operations.dialog_base.common import OperationModel
+from app.plugin_api.data_operations.dialog_base.common import (
+    GENERATED_TABLE_PREFIX,
+    OperationModel,
+    generated_table_name,
+)
 
 
 class _PageScroll(QScrollArea):
@@ -135,6 +139,42 @@ class WindowMixin:
     def extra_tabs(self) -> list[tuple[QWidget, str]]:
         """Further (page, title) tabs after Parameters, for an operation with more to set."""
         return []
+
+    # ------------------------------------------------------------------
+    # Graphics: the name of the table the result is written to
+    # ------------------------------------------------------------------
+    def build_output_page(self) -> QWidget:
+        """The Graphics page: the name of the curve's table, and the warning under it when it lacks the prefix."""
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        card = TitledCard(page, _("Curve"))
+        card.card.layout().addWidget(self._output_table_edit)
+        card.card.layout().addWidget(self._output_warning)
+        layout.addWidget(card)
+        layout.addStretch(1)
+        return page
+
+    def output_table_default(self) -> str:
+        """The name the output starts with: a generated table named "curve" (translated)."""
+        return generated_table_name(_("curve"), fallback="curve")
+
+    def _refresh_default_output_name(self, force: bool = False) -> None:
+        """Put the default name in the field: always when *force*, else only while it is empty."""
+        if force or not self._output_table_edit.text().strip():
+            self._output_table_edit.setText(self.output_table_default())
+
+    def _output_table_name(self) -> str:
+        """The name the result is written to: what the field holds, a generated table's prefix always added."""
+        return generated_table_name(
+            self._output_table_edit.text().strip() or self.output_table_default(),
+            fallback="curve",
+        )
+
+    def _check_output_name(self, text: str) -> None:
+        """Warn while the name lacks the generated table's prefix: it is added on save all the same."""
+        text = text.strip()
+        self._output_warning.setVisible(bool(text) and not text.startswith(GENERATED_TABLE_PREFIX))
 
     def build_charts_tab(self) -> QWidget | None:
         """The Charts tab: "Draw on" (DESTINATIONS), then the PARAMS marked tab="charts"; None when neither."""
@@ -411,6 +451,8 @@ class WindowMixin:
             pages.append((self.model_panel, _("Model")))
         if self.SHOW_PARAMETERS:
             pages.append((self.parameters_panel, _("Parameters")))
+        if self.SHOW_OUTPUT:
+            pages.append((self.build_output_page(), _("Graphics")))
         pages.extend(self.extra_tabs())
         charts_tab = self.build_charts_tab() if self.SHOW_CHART else None
         if charts_tab is None and self.SHOW_CHART and self._offers_table_chart():

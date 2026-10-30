@@ -20,7 +20,16 @@ from dataclasses import dataclass, field
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 from app.utils import report_html
+from app.utils.config import get_value
 from app.utils.i18n import _
+
+#: The Settings key of the "What next?" section (on by default); see enabled().
+SETTING_KEY = "reports_next_steps"
+
+
+def enabled() -> bool:
+    """Whether reports end with their "What next?" links."""
+    return bool(get_value(SETTING_KEY, True))
 
 #: Where a "What next?" link points: intercepted, never fetched (RFC 2606: .invalid never resolves).
 HOST = "chartlibre.invalid"

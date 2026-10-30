@@ -18,8 +18,7 @@ Notes
 -----
 This module reuses the shared DataOperationDialogBase preview/apply flow.
 Clustering overrides only the axis-application step because it updates source
-table ClusterId values and either recolors the selected series or creates split
-series per cluster.
+table ClusterId values and recolours the selected series.
 """
 
 from __future__ import annotations
@@ -30,7 +29,6 @@ from dataclasses import dataclass
 from typing import Any, Final
 
 import pandas as pd
-from matplotlib import rcParams
 from PySide6.QtWidgets import (
     QComboBox,
     QWidget,
@@ -91,9 +89,6 @@ FEATURE_ALL_NUMERIC: Final[str] = "All numeric columns"
 # rather than a re-computed approximation.
 CLUSTER_COLUMN: Final[str] = "ClusterId"
 CLUSTER_BACKUP_COLUMN: Final[str] = "__ClusterId_preview_backup__"
-
-RENDER_COLORED_SERIES: Final[str] = "Single series colored by ClusterId"
-RENDER_SEPARATE_SERIES: Final[str] = "Separate series per cluster"
 
 # The tool names are the engine's (app.analysis.clustering).
 
@@ -206,7 +201,7 @@ class ClusterResult(FrameResult):
 
 
     # Not a table of its own: clustering writes ClusterId into the source
-    # table and recolours or splits the source series, as a batch - see
+    # table and recolours the source series, as a batch - see
     # SeriesClusterDialog.apply_results_to_axis, which both of these use.
     def preview(self, dialog: Any, axis_id: int) -> None:
         dialog.apply_results_to_axis(axis_id, [self])
@@ -274,39 +269,6 @@ def _sql_with_clusterid_color(sql_query: str) -> str:
     )
 
 
-def _sql_with_cluster_filter(sql_query: str, cluster_id: int) -> str:
-    """Return source SQL filtered to one ClusterId.
-
-    Keeps ORDER BY/GROUP BY/HAVING/LIMIT/OFFSET clauses at the end by
-    inserting the ClusterId predicate into the WHERE section.
-    """
-    sql = str(sql_query).strip().rstrip(";")
-    cluster_clause = f'"ClusterId"={int(cluster_id)}'
-
-    boundary = re.search(
-        r"\b(GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT|OFFSET)\b",
-        sql,
-        flags=re.IGNORECASE,
-    )
-
-    if boundary is None:
-        head = sql
-        tail = ""
-    else:
-        head = sql[: boundary.start()].rstrip()
-        tail = " " + sql[boundary.start():].lstrip()
-
-    if re.search(r"\bWHERE\b", head, flags=re.IGNORECASE):
-        return f"{head} AND {cluster_clause}{tail}"
-
-    return f"{head} WHERE {cluster_clause}{tail}"
-
-
-def _rc_cycle_color(cluster_id: int) -> str:
-    colors = rcParams["axes.prop_cycle"].by_key().get("color", ["#1f77b4"])
-    return str(colors[(int(cluster_id) - 1) % len(colors)])
-
-
 def _kmeans(values: Mapping[str, Any]) -> bool:
     return values.get("method") == CLUSTER_KMEANS
 
@@ -350,8 +312,8 @@ CLUSTER_PARAMS = (
 
 
 class SeriesClusterDialog(DataOperationDialogBase):
-    """Dialog that clusters selected chart-series data and colors/splits clusters."""
-    Name: str  = "Clustering"
+    """Dialog that clusters selected chart-series data and colours clusters."""
+    Name: str  = "Cluster Series"
     Description = "Group similar data"
 
     # Clustering reads an observation matrix, not a function of x, so order and
@@ -377,7 +339,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
         "segmentation segmentazione"
     )
     Goals: list[str] = ["groups"]
-    Category: str = "Multivariate Methods"
+    Category: str = "Clustering"
     Order: int = 45
 
     PARAMS = CLUSTER_PARAMS
@@ -403,19 +365,12 @@ class SeriesClusterDialog(DataOperationDialogBase):
         self.feature_combo.addItems([FEATURE_XY, FEATURE_Y_ONLY, FEATURE_XYZ, FEATURE_ALL_NUMERIC])
         self.feature_combo.setToolTip(_("Choose which numeric columns are used as clustering features."))
 
-        self.render_mode_combo = QComboBox(self)
-        self.render_mode_combo.addItems([RENDER_COLORED_SERIES, RENDER_SEPARATE_SERIES])
-        self.render_mode_combo.setToolTip(
-            _("Choose whether clusters are rendered as one point-colored series or as separate series.")
-        )
-
         return self.model_form_card(
             "clusterModelCard",
             [
                 (_("Family:"), self.method_combo),
                 (_("Algorithm:"), self.scipy_tool_combo),
                 (_("Features:"), self.feature_combo),
-                (_("Render as:"), self.render_mode_combo),
             ],
         )
 
@@ -429,7 +384,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
         self.scipy_tool_combo.currentIndexChanged.connect(self._refresh_visibility)
         self.scipy_tool_combo.currentIndexChanged.connect(self.mark_results_stale)
         self.feature_combo.currentIndexChanged.connect(self.mark_results_stale)
-        self.render_mode_combo.currentIndexChanged.connect(self.mark_results_stale)
 
 
     def _refresh_tools(self) -> None:
@@ -468,7 +422,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
             "method": self.method_combo.currentText(),
             "scipy_tool": self.scipy_tool_combo.currentText(),
             "feature_mode": self.feature_combo.currentText(),
-            "render_mode": self.render_mode_combo.currentText(),
             **params,
         }
 
@@ -582,16 +535,13 @@ class SeriesClusterDialog(DataOperationDialogBase):
         return self._cluster_one(series, feature_columns, axis_name, params, figure_id)
 
     def finish_job(self, job: Any, outcome: Any) -> list[ClusterResult]:
-        """The clustered series - split one per cluster when asked; failures reported together."""
+        """The clustered series; failures reported together."""
         if not isinstance(outcome, SeriesOutcome):
             return list(super().finish_job(job, outcome))
         _axis_name, params, _figure_id = job.settings
         results: list[ClusterResult] = []
         for _name, full_result in outcome.outcomes:
-            if params["render_mode"] == RENDER_SEPARATE_SERIES:
-                results.extend(self._split_result_by_cluster(full_result))
-            else:
-                results.append(full_result)
+            results.append(full_result)
         errors = outcome.errors
 
         if errors and not results:
@@ -671,7 +621,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
                 "total_rows": int(len(output)),
                 "roles": series.roles,
                 "base_result_name": f"{series.name} - clusters",
-                "is_split_series": False,
             }
         )
 
@@ -686,36 +635,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
             feature_columns=feature_columns,
             metadata=metadata,
         )
-
-    def _split_result_by_cluster(self, result: ClusterResult) -> list[ClusterResult]:
-        ids = to_numbers(result.frame["ClusterId"])
-        cluster_ids = sorted(int(value) for value in ids.dropna().unique())
-        split_results: list[ClusterResult] = []
-
-        for cluster_id in cluster_ids:
-            metadata = dict(result.metadata)
-            metadata.update(
-                {
-                    "cluster_id": int(cluster_id),
-                    "is_split_series": True,
-                    "render_mode": RENDER_SEPARATE_SERIES,
-                }
-            )
-            split_results.append(
-                ClusterResult(
-                    source_name=result.source_name,
-                    result_name=f"{result.source_name} - Cluster {cluster_id}",
-                    method=result.method,
-                    frame=result.frame,
-                    x_col=result.x_col,
-                    y_col=result.y_col,
-                    z_col=result.z_col,
-                    feature_columns=list(result.feature_columns),
-                    metadata=metadata,
-                )
-            )
-
-        return split_results
 
     def _snapshot_cluster_state(self, source_table: str) -> None:
         """Move the existing ClusterId aside before a preview overwrites it.
@@ -822,36 +741,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
         roles = self._base_roles(result)
         roles.update({"ClusterId": "ClusterId", "cluster": "ClusterId"})
 
-        cluster_id = result.metadata.get("cluster_id")
-        is_split = bool(result.metadata.get("is_split_series", False))
-
-        if is_split and cluster_id is not None:
-            sql_query = _sql_with_cluster_filter(
-                str(result.metadata["source_sql_query"]),
-                int(cluster_id),
-            )
-            color = _rc_cycle_color(int(cluster_id))
-            style = {
-                "generated_clustering": True,
-                "clustering_dialog": "series_clustering",
-                "source_name": result.source_name,
-                "source_series_id": result.metadata.get("source_series_id"),
-                "method": result.method,
-                "features": result.feature_columns,
-                "cluster_id": int(cluster_id),
-                "color": color,
-                "marker": "o",
-                "linestyle": "",
-                "use_point_colors": False,
-                "render_mode": RENDER_SEPARATE_SERIES,
-            }
-            return ResultSeriesSpec(
-                name=result.result_name,
-                sql_query=sql_query,
-                roles=roles,
-                style=style,
-            )
-
         sql_query = self._colored_series_sql_query(table_name, result)
         roles.update({"color": "color"})
         return ResultSeriesSpec(
@@ -869,7 +758,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
                 "linestyle": "",
                 "use_point_colors": True,
                 "color_role": "color",
-                "render_mode": RENDER_COLORED_SERIES,
             },
         )
 
@@ -925,9 +813,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
 
 
     def apply_results_to_axis(self, axis_id: int, results: Sequence[ClusterResult]) -> None:
-        if self.render_mode_combo.currentText() == RENDER_SEPARATE_SERIES:
-            self.remove_previous_generated_series(axis_id)
-
         updated_tables: set[str] = set()
         for result in results:
             source_table = str(result.metadata["source_table"])
@@ -935,10 +820,6 @@ class SeriesClusterDialog(DataOperationDialogBase):
                 self._write_cluster_ids_to_source_table(result)
                 updated_tables.add(source_table)
                 applogger.info(f"Updated ClusterId in selected table: {source_table}")
-
-            if self.render_mode_combo.currentText() == RENDER_SEPARATE_SERIES:
-                self.create_result_series(axis_id, source_table, result)
-                continue
 
             sql_query = self._colored_series_sql_query(source_table, result)
             source_series_id = result.metadata.get("source_series_id")
@@ -960,7 +841,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
 
         Clustering is different from generated-table operations: the chart only
         changes after ClusterId is written to the source table and the selected
-        source series SQL is updated or generated split series are created.
+        source series SQL is updated.
         Therefore preview must use the same chart-update path as apply.
         """
         self.apply_results_to_axis(int(axis_id), results)

@@ -16,7 +16,7 @@ from collections.abc import Mapping
 from typing import Any, ClassVar
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QComboBox, QFormLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QComboBox, QFormLayout, QLabel, QLineEdit, QSizePolicy, QWidget
 
 from app.logs.logger import applogger
 from app.data.sqlite_repo import SqliteRepo
@@ -53,6 +53,9 @@ class DataOperationDialogBase(WindowMixin, DataMixin, ResultsMixin, AnalysisDial
     #: an import.
     #: The data a chart-data operation picks: its series.
     DATA_PICKER: ClassVar[str] = "series"
+    #: Whether the Graphics page is shown: the name of the table the result (the curve) is written to.
+    #: The base builds the field only for an operation that shows the page; that operation reads _output_table_name().
+    SHOW_OUTPUT: ClassVar[bool] = False
     Name: str = ""
     Description: str = ""
     #: The Data operations panel's section for it, and its place: sections are
@@ -269,6 +272,17 @@ class DataOperationDialogBase(WindowMixin, DataMixin, ResultsMixin, AnalysisDial
 
         # Shared model combo used by operation-specific model selectors.
         self.model_combo = QComboBox(self)
+        # The name of the table the result is written to, built before the subclass hooks so that
+        # the default can be set from them. Only with the Graphics page: a field nobody sees is not a
+        # choice the operation's history should record.
+        if self.SHOW_OUTPUT:
+            self._output_table_edit = QLineEdit(self)
+            self._output_table_edit.setToolTip(_("Name of the table the result is written to."))
+            self._output_warning = QLabel(
+                _("The name does not start with _: it is written as a generated table all the same."), self)
+            self._output_warning.setWordWrap(True)
+            self._output_warning.setVisible(False)
+            self._output_table_edit.textChanged.connect(self._check_output_name)
 
         # Subclasses create widgets here before build_* hooks run. A
         # subclass that builds its own form sets this in build_parameter_selector.

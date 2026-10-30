@@ -72,6 +72,8 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
                     DataOperationDialogBase.DEST_NEW_FIGURE)
     DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
     Name: str = "Fit Curve"
+    #: The fitted values and residuals are written to a curve's table: its name is on the Graphics page.
+    SHOW_OUTPUT: bool = True
     Description = "Fit data models"
 
     # least_squares needs residuals that actually vary: a flat y makes the
@@ -197,7 +199,6 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         # does not appear as an orphan widget in the dialog's top-left corner.
         self._results_table.hide()
         self._results_table.setVisible(False)
-        self._output_table_edit = QLineEdit(self)
         self._max_nfev_edit = QLineEdit("800", self)
         self._combo_weights = QComboBox(self)
         self._combo_optimizer = QComboBox(self)
@@ -419,14 +420,3 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         self._refresh_optimizer_help()
         return outer
 
-    def extra_tabs(self) -> list[tuple[QWidget, str]]:
-        """Where the fit writes its values, in a tab of its own: the Parameters tab is tall enough."""
-        page = QWidget(self)
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(0, 0, 0, 0)
-        output = TitledCard(page, _("Output table"))
-        self._output_table_edit.setToolTip(_("Name of the SQLite table where fitted values/residuals are saved."))
-        output.card.layout().addWidget(self._output_table_edit)
-        layout.addWidget(output)
-        layout.addStretch(1)
-        return [(page, _("Output"))]

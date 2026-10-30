@@ -552,11 +552,15 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
             # does not leave a spurious entry behind. The label is a plain
             # string, not translated - the same as delete_table's, so the two
             # undo entries read the same way until both are localised.
-            title = self._repo.get_figure_title(self._figure_id)
-            self._repo.snapshot_for_undo(
-                self._repo.DESCRIPTOR_TABLES,
-                label=f"Delete figure '{title}'" if title else "Delete figure",
-            )
+            # While a dialog's preview is open its savepoint holds the transaction,
+            # and the figure is only there for the preview: the dialog's close rolls
+            # it back, so there is nothing for the undo store to take back.
+            if not self._repo.preview_savepoint_active:
+                title = self._repo.get_figure_title(self._figure_id)
+                self._repo.snapshot_for_undo(
+                    self._repo.DESCRIPTOR_TABLES,
+                    label=f"Delete figure '{title}'" if title else "Delete figure",
+                )
             self._repo.delete_figure(figure_id=self._figure_id)
             self._deleted = True
             self.delete_requested.emit(self._figure_id)

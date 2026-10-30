@@ -402,45 +402,6 @@ class ResultsMixin:
     # ------------------------------------------------------------------
     # Preview transaction
     # ------------------------------------------------------------------
-    def begin_preview_transaction(self) -> None:
-        """Open the SAVEPOINT that makes a Preview undoable.
-
-        Why a database savepoint and not just artifact bookkeeping: removing the
-        preview series and temp tables only undoes what the *generated-table*
-        operations create.  Clustering writes a ClusterId column into the user's
-        own source table and rewrites the selected series' SQL, and outlier
-        removal flips hide flags on real rows - none of which the artifact
-        cleanup can reach.  With every preview write inside one savepoint,
-        Close rolls back whatever the operation did, whatever that was.
-
-        SqliteRepo._commit() suppresses commits while the savepoint is open, so
-        repository helpers that normally commit after each write stay inside it.
-        """
-        if self._repo.preview_savepoint_active:
-            return
-        self._repo.begin_preview_savepoint(
-            f"preview_{self.__class__.__name__}"
-        )
-
-    def rollback_preview_transaction(self) -> bool:
-        """Undo every database change made since the preview started."""
-        if not self._repo.preview_savepoint_active:
-            return False
-        try:
-            return bool(self._repo.rollback_preview_savepoint())
-        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
-            applogger.exception("Failed to roll back the preview savepoint")
-            return False
-
-    def commit_preview_transaction(self) -> None:
-        """Make the preview changes permanent."""
-        if not self._repo.preview_savepoint_active:
-            return
-        try:
-            self._repo.release_preview_savepoint()
-        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
-            applogger.exception("Failed to commit the preview savepoint")
-
     def _finalize_successful_operation(
         self,
         *,

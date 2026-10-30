@@ -125,8 +125,8 @@ class OperationShell(QDialog):
         """
         row = QHBoxLayout()
         row.addWidget(QLabel(_("Data from:"), parent))
-        self.source_table_radio = QRadioButton(_("Table"), parent)
-        self.source_table_radio.setToolTip(_("A table's columns."))
+        self.source_table_radio = QRadioButton(_("Table with roles"), parent)
+        self.source_table_radio.setToolTip(_("A table's columns, each in the role the operation reads it as (X, Y)."))
         self.source_chart_radio = QRadioButton(_("Chart"), parent)
         self.source_chart_radio.setToolTip(_("The series a chart draws."))
         group = QButtonGroup(parent)

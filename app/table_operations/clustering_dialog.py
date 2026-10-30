@@ -1,4 +1,4 @@
-"""Cluster Analysis (Analysis): a table's rows grouped on its columns, k chosen by the silhouette (AN-10).
+"""Cluster Table (Analysis): a table's rows grouped on its columns, k chosen by the silhouette (AN-10).
 
 As JMP's Analyze > Clustering - K Means Cluster, Hierarchical Cluster,
 Normal Mixtures - on a table's continuous columns rather than on a chart's
@@ -33,12 +33,12 @@ CLUSTER_COLUMN = "ClusterId"
 class ClusteringDialog(TableOperationDialogBase):
     """K Means, hierarchical (Ward) or normal-mixture clusters of the rows."""
 
-    Name = "Cluster Analysis"
+    Name = "Cluster Table"
     Description = (
         "Group the rows on several columns - K Means, Hierarchical (Ward) or Normal Mixtures - with k "
         "chosen by the silhouette; each cluster's size and means, its rows on the principal components."
     )
-    Category = "Multivariate Methods"
+    Category = "Clustering"
     CHART_PANELS = ('Scatter Plot', 'Parallel Plot')
     Order = 46
     Icon = """

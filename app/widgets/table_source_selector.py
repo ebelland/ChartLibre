@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QGridLayout,
     QLabel,
@@ -23,6 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.data.sqlite_repo import SqliteRepo
+from app.plugin_api.data_operations.dialog_base.common import GENERATED_TABLE_PREFIX
 from app.styles.style import apply_fusion_for_item_view_styling, mark_editor_panel, stdSizeAndlayout
 from app.utils.i18n import _
 
@@ -78,6 +80,11 @@ class TableSourceSelector(QWidget):
         if self.chart_combo.count() <= 1:
             self.chart_combo.hide()
         grid.setColumnStretch(1, 1)
+        # The tables a data operation wrote are hidden unless asked for: they are results, not data to start from.
+        self.show_generated_check = QCheckBox(_("Show generated tables"), self)
+        self.show_generated_check.setToolTip(
+            _("Also list the tables the data operations wrote (their names start with _).")
+        )
         note = QLabel(_("The columns are drawn as a chart of their own, which the operation then runs on."), self)
         note.setProperty("muted", True)
         note.setWordWrap(True)
@@ -85,6 +92,7 @@ class TableSourceSelector(QWidget):
         layout = QVBoxLayout(self)
         stdSizeAndlayout(layout)
         layout.addLayout(grid)
+        layout.addWidget(self.show_generated_check)
         layout.addWidget(note)
         layout.addStretch(1)
 
@@ -92,14 +100,18 @@ class TableSourceSelector(QWidget):
         self.x_combo.currentIndexChanged.connect(lambda _index: self.changed.emit())
         self.y_list.itemChanged.connect(lambda _item: self.changed.emit())
         self.chart_combo.currentIndexChanged.connect(lambda _index: self.changed.emit())
+        self.show_generated_check.toggled.connect(lambda _checked: self.reload())
         self.reload()
 
     def reload(self) -> None:
-        """List the project's tables again, keeping the one chosen."""
+        """List the project's tables again, keeping the one chosen; the generated ones only when asked for."""
         current = self.table_combo.currentText()
         self.table_combo.blockSignals(True)
         self.table_combo.clear()
-        self.table_combo.addItems([str(name) for name in self._repo.list_user_tables()["Table"]])
+        names = [str(name) for name in self._repo.list_user_tables()["Table"]]
+        if not self.show_generated_check.isChecked():
+            names = [name for name in names if not name.startswith(GENERATED_TABLE_PREFIX)]
+        self.table_combo.addItems(names)
         index = self.table_combo.findText(current)
         self.table_combo.setCurrentIndex(max(index, 0))
         self.table_combo.blockSignals(False)

@@ -29,8 +29,6 @@ to read.
 from __future__ import annotations
 
 import html
-
-import math
 from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
@@ -48,26 +46,31 @@ from PySide6.QtWidgets import (
 from app.data import column_metadata
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.logs.logger import applogger
+from app.plugin_api import reading_guide
+from app.plugin_api.analysis_base import AnalysisDialogBase
 from app.plugin_api.data_operations.dialog_base import OperationModel
 from app.plugin_api.data_operations.parameter_form import ParameterForm
 from app.plugin_api.data_operations.parameter_spec import BoolParam, Param
+from app.plugin_api.operation_panels import merged_values
+from app.plugin_api.table_operations import chart_source, next_steps
+from app.plugin_api.table_operations.column_roles import (
+    CONTINUOUS,
+    ColumnCasting,
+    ColumnRole,
+    ColumnRolesWidget,
+)
 from app.styles.style import (
     TitledCard,
     icon_from_svg_source,
     stdSizeAndlayout,
 )
-from app.plugin_api import reading_guide
-from app.plugin_api.table_operations import chart_source, next_steps
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole, ColumnRolesWidget
+from app.utils import report_html
 from app.utils.config import get_section, set_section
 from app.utils.dialog_state import (
     dialog_entries,
 )
-from app.utils import report_html
 from app.utils.i18n import _
 from app.widgets.html_results import HtmlResultsView
-from app.plugin_api.operation_panels import merged_values
-from app.plugin_api.analysis_base import AnalysisDialogBase
 
 #: Columns the application keeps on every table for itself: never offered.
 APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
@@ -119,14 +122,10 @@ class TableOperationDialogBase(AnalysisDialogBase):
         self.row_ids = pd.Series(dtype="Int64")
         self._result: Any = None
         self._result_inputs: tuple[Any, ...] | None = None
-        #: The figures the last Preview or OK drew (create_report_figure keeps it).
-        self.created_figure_ids: list[int] = []
         #: OK's undo step, which every snapshot of the same OK extends.
         self._undo_entry: int | None = None
         #: Reading a chart: the name its axis' data is written under.
         self._chart_table = ""
-        #: The figure the main window shows, for "Draw on: new axis in the current figure"; None: no such choice.
-        self.current_figure_id: int | None = None
         #: A Preview's tables and figure are written inside a savepoint, rolled back by the next Preview,
         #: by Cancel and before OK writes them for good.
         self._preview_active = False
@@ -171,9 +170,9 @@ class TableOperationDialogBase(AnalysisDialogBase):
                 box = report_html.reading_guide(_("How to read this"), self.how_to_read(result))
             except Exception:  # noqa: BLE001 - the explanation is never the reason a report is not shown
                 applogger.exception("%s: could not explain the report.", type(self).__name__)
+        what_next = next_steps.section_html(self.next_steps(result)) if next_steps.enabled() else ""
         return report_html.document(_(self.Name), self.report_subtitle(result),
-                                    report_html.with_reading_guide(body, box)
-                                    + next_steps.section_html(self.next_steps(result)))
+                                    report_html.with_reading_guide(body, box) + what_next)
 
     def how_to_read(self, result: Any) -> list[str]:
         """The "How to read this" box (H-04): the two or three numbers the report hinges on, each in two
@@ -370,7 +369,7 @@ class TableOperationDialogBase(AnalysisDialogBase):
         """Reading a chart: its axis written as a table, which the analysis reads and writes beside.
 
         In OK's undo step, and rolled back with a Preview. Then the analysis is as on any table: its charts
-        select from it, its results are named after it, Cluster Analysis writes its ClusterId into it.
+        select from it, its results are named after it, Cluster Table writes its ClusterId into it.
         """
         if not self.reads_chart() or not self.table:
             return
@@ -384,7 +383,7 @@ class TableOperationDialogBase(AnalysisDialogBase):
 
         Each row's id (R-07 ``_id``) is kept aside in ``row_ids``, in the
         frame's order: what an analysis writes back into the table's own rows
-        (Cluster Analysis's ClusterId) finds them by it.
+        (Cluster Table's ClusterId) finds them by it.
         """
         frame = self._repo.query_df(f"SELECT * FROM {self.quoted(table)}", row_id=True)
         if "Hide" in frame.columns:
@@ -465,6 +464,10 @@ class TableOperationDialogBase(AnalysisDialogBase):
             overlap = set(self.columns(role)) & set(self.columns(other))
             if overlap:
                 return [_(message).format(columns=", ".join(sorted(overlap)))]
+        # A chart destination with every chart cleared would draw an empty window: say so instead.
+        if self.CHART_PANELS and self.draw_on() != self.DEST_NONE \
+                and not any(self.chart_enabled(chart) for chart in self.CHART_PANELS):
+            return [_("No chart is ticked in the Charts tab: tick one, or choose not to draw a chart.")]
         return []
 
     def _inputs(self) -> tuple[Any, ...]:
@@ -490,7 +493,7 @@ class TableOperationDialogBase(AnalysisDialogBase):
         """Write the result's tables and figure inside a savepoint, and have the window show them."""
         self._discard_preview()
         try:
-            self._repo.begin_preview_savepoint(f"preview_{self._state_key}")
+            self.begin_preview_transaction(f"preview_{self._state_key}")
             self._previewing = True
             self.created_figure_ids = []
             self._write_chart_source()
@@ -511,10 +514,7 @@ class TableOperationDialogBase(AnalysisDialogBase):
         if not self._preview_active:
             return
         self._preview_active = False
-        try:
-            self._repo.rollback_preview_savepoint()
-        except Exception:  # noqa: BLE001 - cleanup: must not hide what it follows
-            applogger.exception("%s: the preview could not be rolled back", self.Name)
+        self.rollback_preview_transaction()
         self.created_figure_ids = []
         self.preview_drawn.emit(-1)
 
@@ -663,75 +663,6 @@ class TableOperationDialogBase(AnalysisDialogBase):
                 return series
         sql, roles = self.series_select(table, {"x": x, "y": y})
         return [(_("Rows"), sql, roles, {})]
-
-    def create_report_figure(self, name: str, notes_html: str, panels: Sequence[tuple]) -> int | None:
-        """A figure of *panels*, two to a row, with *notes_html* in its notes; its id.
-
-        Each panel is ``(chart type, title, x label, y label, series)``, and
-        optionally the axis options last (annotations, reference lines); each
-        series ``(name, sql, roles, style)`` - see series_select.
-        """
-        from app.scanners.axis_renderer_scanner import get_renderer
-        from app.widgets.chart_panel import FIGURE_VIEW_OPTIONS_KEY
-
-        # Chart types are plugins that can be removed: a panel whose chart type
-        # is not installed is left out (and logged) - the report is still made.
-        available = []
-        for panel in panels:
-            if get_renderer(str(panel[0])) is None:
-                applogger.warning(
-                    "%s: the chart type %r is not installed; the panel %r is left out.",
-                    self.Name, panel[0], panel[1],
-                )
-                continue
-            available.append(panel)
-        # The panels whose chart type is cleared in the Charts tab are left out.
-        panels = [panel for panel in available if self.chart_enabled(str(panel[0]))]
-
-        repo = self._repo
-        draw_on = self.draw_on()
-        if draw_on == self.DEST_NONE or not panels:
-            # The report is the result - no chart asked for, or every box cleared: no empty figure; the report
-            # stays in Results and in the project's history.
-            return None
-        target = getattr(self, "current_figure_id", None) if draw_on != self.DEST_NEW_FIGURE else None
-        descriptor = repo.load_figure_descriptor(int(target)) if target is not None else None
-        onto = next((axis for axis in (descriptor.axes if descriptor else []) if axis.name == panels[0][0]), None) \
-            if draw_on == self.DEST_SAME_AXIS and len(panels) == 1 else None
-        if onto is not None:
-            # Current axis: the one panel's series added to the figure's axis of its kind.
-            for position, (series_name, sql, roles, style) in enumerate(panels[0][4], start=len(onto.series)):
-                repo.create_series_descriptor(axis_id=int(onto.id), series_index=position, name=series_name,
-                                              sql_query=sql, roles=roles, style=style)
-            self.created_figure_ids.append(int(target))
-            return int(target)
-        if descriptor is not None:
-            # New axes after the figure's own, its grid grown to show them.
-            figure_id = int(target)
-            columns = max(1, int(descriptor.ncols or 1))
-            first = max((int(axis.index) for axis in descriptor.axes), default=-1) + 1
-            rows = max(int(descriptor.nrows or 1), math.ceil((first + len(panels)) / columns))
-            repo.set_figure_grid(figure_id, nrows=rows, ncols=columns)
-        else:
-            first = 0
-            columns = 2 if len(panels) > 1 else 1
-            rows = max(1, math.ceil(len(panels) / columns))
-            figure_id = int(repo.create_figure_descriptor(
-                name=name, nrows=rows, ncols=columns,
-                options={FIGURE_VIEW_OPTIONS_KEY: {"notes_html": notes_html}},
-            ))
-        for index, (chart, title, x_label, y_label, series, *options) in enumerate(panels, start=first):
-            axis_id = int(repo.create_axis_descriptor(
-                figure_id=figure_id, axis_index=index, chart_type=chart,
-                title=title, x_label=x_label, y_label=y_label, options=dict(options[0]) if options else {},
-            ))
-            for position, (series_name, sql, roles, style) in enumerate(series):
-                repo.create_series_descriptor(
-                    axis_id=axis_id, series_index=position, name=series_name,
-                    sql_query=sql, roles=roles, style=style,
-                )
-        self.created_figure_ids.append(figure_id)
-        return figure_id
 
     def draw_report(self, result: Any, title: str, panels: Sequence[tuple], *,
                     written: Sequence[Mapping[str, Any]] = ()) -> list[dict[str, Any]]:

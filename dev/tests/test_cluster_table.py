@@ -1,4 +1,4 @@
-"""AN-10 Cluster Analysis: three blobs put in the data come back as three clusters, k found by the silhouette."""
+"""AN-10 Cluster Table: three blobs put in the data come back as three clusters, k found by the silhouette."""
 from __future__ import annotations
 
 import time

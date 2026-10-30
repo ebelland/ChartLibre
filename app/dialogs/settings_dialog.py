@@ -224,6 +224,7 @@ class SettingsDialog(PanelDialog):
 
         # Every report's "How to read this" box (H-04): on for a new install - students first.
         from app.plugin_api import reading_guide
+        from app.plugin_api.table_operations import next_steps
 
         form = self._section(tr("Reports"), forms)
         self._how_to_read_check = QCheckBox(tr("A \"How to read this\" box in every report"), card)
@@ -231,6 +232,11 @@ class SettingsDialog(PanelDialog):
                                               "numbers - a p-value, R², a Cpk - say about these data."))
         self._how_to_read_check.setChecked(reading_guide.enabled())
         form.addRow(tr("Explain"), self._how_to_read_check)
+        self._what_next_check = QCheckBox(tr("A \"What next?\" section at the end of every table analysis"), card)
+        self._what_next_check.setToolTip(tr("Links that open the analysis that usually comes next, on the same "
+                                            "table and columns."))
+        self._what_next_check.setChecked(next_steps.enabled())
+        form.addRow(tr("Next"), self._what_next_check)
 
         self._build_assistant_section(card, forms)
 
@@ -496,8 +502,10 @@ class SettingsDialog(PanelDialog):
         set_value(DEFAULT_MPL_STYLE_KEY, self._value(self._mpl_style_combo))
         set_value(SQL_GUARD_KEY, bool(self._sql_guard_check.isChecked()))
         from app.plugin_api import reading_guide
+        from app.plugin_api.table_operations import next_steps
 
         set_value(reading_guide.SETTING_KEY, bool(self._how_to_read_check.isChecked()))
+        set_value(next_steps.SETTING_KEY, bool(self._what_next_check.isChecked()))
         set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
         set_value(DEVELOPER_MODE_KEY, bool(self._developer_check.isChecked()))
         self._save_assistant()

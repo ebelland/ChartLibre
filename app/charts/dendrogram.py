@@ -1,6 +1,6 @@
 """Dendrogram: the tree a hierarchical clustering builds, drawn as nested joins.
 
-Cluster Analysis (Ward) says which rows share a group; the tree says how
+Cluster Table (Ward) says which rows share a group; the tree says how
 they came together - which pairs merged first, how far apart the last two
 groups were, and so where a cut gives two, three or six clusters. The height
 of a join is the distance at which its two branches were merged: a long

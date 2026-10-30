@@ -18,7 +18,6 @@ from app.plugin_api.functions.starting_point import (
     clip_into_bounds,
 )
 
-from app.plugin_api.data_operations.dialog_base import generated_table_name
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.utils import report_html
@@ -408,23 +407,3 @@ class StartingPointMixin:
                 parts.append(f"{labels[key]}={value:.6g}")
         return ", ".join(parts)
 
-    def _default_output_table_name(self) -> str:
-        table = self._current_table() or "table"
-        target = self._source_y_col or "target"
-        model = self._model_name() or "fit"
-        return generated_table_name(f"Fit_{table}_{target}_{model}", fallback="Fit_Result")
-
-    def _refresh_default_output_name(self, force: bool = False) -> None:
-        if force or not self._output_table_edit.text().strip():
-            self._output_table_edit.setText(self._default_output_table_name())
-
-    def _output_table_name(self) -> str:
-        """Return the output table name, prefixed however the user typed it.
-
-        The field is editable, so the prefix is applied here rather than only
-        to the default: a hand-typed name is still a generated table.
-        """
-        return generated_table_name(
-            self._output_table_edit.text().strip() or self._default_output_table_name(),
-            fallback="Fit_Result",
-        )
