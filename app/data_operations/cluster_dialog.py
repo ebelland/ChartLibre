@@ -192,6 +192,9 @@ CHART_PROJECTION: Final[str] = "chart_projection"
 CHART_SILHOUETTE: Final[str] = "chart_silhouette"
 CHART_MEANS: Final[str] = "chart_means"
 CHART_K: Final[str] = "chart_k"
+CHART_PROFILES: Final[str] = "chart_profiles"
+#: The columns a profile draws at most: past these, the parallel plot is a blur.
+MAX_PROFILE_COLUMNS: Final[int] = 6
 #: The Bar Chart reads its columns by their role names: the categories as X, the heights as Y.
 BAR_ROLES: Final[dict[str, str]] = {"X": "X", "Y": "Y"}
 #: More clusters than this are not drawn as bars (DBSCAN can find hundreds): the table still lists them.
@@ -243,6 +246,9 @@ CLUSTER_PARAMS = (
     IntParam("k_max", "Largest k:", default_value=8, minimum=2, maximum=50,
              visible_if=lambda v: bool(v.get("automatic_k")),
              tooltip="The largest number of clusters tried."),
+    BoolParam("standardize", "Columns standardized", default_value=True,
+              tooltip="Each feature divided by its standard deviation, so that each counts the same whatever "
+                      "its unit - leave on unless the features share one unit and scale."),
     BoolParam("whiten", "Whiten features", default_value=True,
               visible_if=lambda v: _kmeans(v) and v.get("tool") in (TOOL_WHITEN, TOOL_KMEANS, TOOL_KMEANS2),
               tooltip="Normalize features by standard deviation before k-means."),
@@ -282,13 +288,19 @@ CLUSTER_PARAMS = (
     BoolParam(CHART_K, "Choosing k", default_value=True, tab="charts",
               visible_if=_extra_axes,
               tooltip="With automatic k: the mean silhouette of each k tried."),
+    BoolParam(CHART_PROFILES, "Cluster profiles", default_value=True, tab="charts",
+              visible_if=_extra_axes,
+              tooltip="Each row across the features as a parallel plot, coloured by its cluster."),
 )
 
 
 class SeriesClusterDialog(DataOperationDialogBase):
     """Dialog that clusters selected chart-series data and colors/splits clusters."""
     Name: str  = "Clustering"
-    Description = "Group similar data"
+    Description = (
+        "Group similar rows - k-means, hierarchical (Ward), normal mixtures, DBSCAN and more - with k chosen by "
+        "the silhouette; each cluster's size and means, its rows on the principal components."
+    )
 
     # Clustering reads an observation matrix, not a function of x, so order and
     # repeated x carry no meaning here and must not be rejected: two samples
@@ -309,8 +321,8 @@ class SeriesClusterDialog(DataOperationDialogBase):
     <path d="M12 16h4"/>
     """
     Keywords: str = (
-        "cluster raggruppamento gruppi groups k-means kmeans dbscan hierarchical gerarchico "
-        "segmentation segmentazione"
+        "cluster clustering raggruppamento gruppi groups k-means kmeans k means dbscan hierarchical gerarchico "
+        "ward normal mixtures miscele normali gaussian mixture silhouette segmentation segmentazione"
     )
     Goals: list[str] = ["groups"]
     Category: str = "Multivariate Methods"
@@ -797,10 +809,15 @@ class SeriesClusterDialog(DataOperationDialogBase):
         components = np.asarray(result.pca.get("components", np.empty((0, 0))), dtype=float)
         if self.chart_enabled(CHART_PROJECTION) and len(result.feature_columns) >= 2 and components.shape[0] >= 2:
             mean = np.asarray(result.pca["mean"], dtype=float)
+            count = len(result.feature_columns)
+            center = np.asarray(result.pca.get("center", np.zeros(count)), dtype=float)
+            scale = np.asarray(result.pca.get("scale", np.ones(count)), dtype=float)
 
             def axis(row: np.ndarray) -> str:
-                return " + ".join(f"({_quoted(feature)} - {_number(centre)}) * {_number(weight)}"
-                                  for feature, centre, weight in zip(result.feature_columns, mean, row, strict=True))
+                # The PCA saw each feature standardized: (value - center) / scale, then less its mean.
+                return " + ".join(
+                    f"(({_quoted(feature)} - {_number(c)}) / {_number(s)} - {_number(m)}) * {_number(weight)}"
+                    for feature, c, s, m, weight in zip(result.feature_columns, center, scale, mean, row, strict=True))
 
             source = sql_with_clusterid_color(str(result.metadata["source_sql_query"]))
             sql = f"SELECT {axis(components[0])} AS x, {axis(components[1])} AS y, color FROM ({source})"
@@ -818,6 +835,16 @@ class SeriesClusterDialog(DataOperationDialogBase):
                 series = [(names[feature], _values_query(list(zip(clusters["Cluster"], clusters[feature], strict=True)),
                                                   category=True), BAR_ROLES, {}) for feature in features]
                 panels.append(("Bar Chart", _("Cluster means"), _("Cluster"), _("Mean"), series))
+        if self.chart_enabled(CHART_PROFILES) and len(result.feature_columns) >= 2:
+            # Each row's profile across the features, coloured by its cluster.
+            shown = result.feature_columns[:MAX_PROFILE_COLUMNS]
+            names = self.feature_names(result)
+            source = sql_with_clusterid_color(str(result.metadata["source_sql_query"]))
+            columns = ", ".join(f"{_quoted(feature)} AS {_quoted(names.get(feature, feature))}" for feature in shown)
+            sql = (f"SELECT {columns}, 'Cluster ' || color AS \"group\" FROM ({source}) "
+                   "WHERE color IS NOT NULL ORDER BY color")
+            panels.append(("Parallel Plot", _("Cluster profiles"), "", "",
+                           [(_("Rows"), sql, {"group": "group"}, {})]))
         if self.chart_enabled(CHART_K) and len(result.k_table) > 1 and "Silhouette" in result.k_table.columns:
             rows = list(zip(result.k_table["k"], result.k_table["Silhouette"], strict=True))
             panels.append(("Scatter Plot", _("Choosing k"), "k", _("Mean silhouette"),

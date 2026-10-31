@@ -276,3 +276,45 @@ def test_the_contingency_report_adds_effect_measures_and_the_stratified_analysis
     for snippet in ("Effect measures", "Relative risk", "Two-proportion z", "McNemar", "Mantel-Haenszel over strata",
                     "Common odds ratio", "Breslow-Day", "S0"):
         assert snippet in text, snippet
+
+
+def test_three_paired_series_get_friedman_and_page_in_the_report() -> None:
+    """ID15: with three or more series, the paired section ends with the repeated-measures tests."""
+    from app.data_operations.statistics_dialog import SeriesStatisticsDialog, SeriesStatsResult, SeriesStatsSample
+
+    x = np.arange(8.0)
+    samples = [SeriesStatsSample(f"s{i}", x, x * (i + 1) + np.sin(x * i), np.arange(8)) for i in range(3)]
+    result = SeriesStatsResult(samples=samples, popmean=0.0, alternative="two-sided", model="paired", trim_percent=0.1)
+    report = SeriesStatisticsDialog.__new__(SeriesStatisticsDialog)._format_statistics_html(result)
+    assert "Friedman test" in report and "Page trend test" in report and "Kendall&#x27;s W" in report
+
+
+def test_one_series_draws_no_empty_pair_scatter(repo: SqliteRepo, project: dict[str, int]) -> None:
+    """A pair model with one series: no pair, so no Scatter axis - it was an empty one, or an empty new figure."""
+    figures = len(repo.load_figures_from_db())
+    for model in ("paired", "correlation"):
+        dialog = SeriesStatisticsDialog(repo=repo, figure_id=project["two_way"])
+        dialog.series_selector.reload(select_all_series=True)
+        dialog.model_combo.setCurrentIndex(dialog.model_combo.findData(model))
+        dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(dialog.DEST_NEW_FIGURE))
+        dialog.chart_form.set_values({_chart_param("Scatter Plot"): True})
+        assert dialog.apply()
+        dialog.close()
+    assert len(repo.load_figures_from_db()) == figures
+    assert _charts(repo, project["two_way"]) == ["Interaction Plot"]
+
+
+def test_cancel_takes_back_the_row_the_new_axis_added(repo: SqliteRepo, project: dict[str, int]) -> None:
+    """Draw on: New axis grows the grid to 2 x 1; Cancel deletes the axis and the grid is 1 x 1 again."""
+    figure_id = project["normality"]
+    dialog = SeriesStatisticsDialog(repo=repo, figure_id=figure_id)
+    dialog.series_selector.reload(select_all_series=True)
+    dialog.model_combo.setCurrentIndex(dialog.model_combo.findData("normality"))
+    dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(dialog.DEST_NEW_AXIS))
+    dialog.chart_form.set_values({_chart_param("Histogram"): True})
+    assert dialog.preview()
+    assert repo.load_figure_descriptor(figure_id=figure_id).nrows == 2
+    dialog.discard_unapplied()
+    dialog.close()
+    descriptor = repo.load_figure_descriptor(figure_id=figure_id)
+    assert (descriptor.nrows, len(descriptor.axes)) == (1, 1)

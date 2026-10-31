@@ -245,6 +245,12 @@ def _wait_for_background(dialog: Any, timeout: float = 180.0) -> None:
             break
         QApplication.processEvents()
         time.sleep(0.01)
+    # The worker done, its result still comes back through the event loop: the charts drawn and OK accepted
+    # a few turns later. Closed before, Clustering's report figure was lost.
+    grace = time.monotonic() + 5.0
+    while dialog.result() == 0 and time.monotonic() < grace:
+        QApplication.processEvents()
+        time.sleep(0.01)
     QApplication.processEvents()
 
 

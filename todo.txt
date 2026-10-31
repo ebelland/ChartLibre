@@ -1,6 +1,6 @@
 # ChartLibre — Prioritized Roadmap
 
-**State:** `app/` has 109,400 lines of code in 330 Python files; `dev/tests` has 24,591 lines in 212 files (measured at this commit).
+**State:** `app/` has 109,480 lines of code in 329 Python files; `dev/tests` has 24,943 lines in 213 files (measured at this commit).
 
 **Audience:** engineers, scientists, and students who need an affordable desktop workflow from raw data to analysed, documented figures and reports.
 
@@ -27,7 +27,7 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID12 | 12 | 3 | **Quality and measurement tools** (G-06) | Add EWMA, CUSUM, Levey–Jennings, rare-event charts, process screening, Bland–Altman, Deming, and Passing–Bablok. | **JMP / Minitab**; strong engineering and QA gap. |
 | ID13 | 13 | 2 | **Robust regression diagnostics** (R-04, G-25) | Add VIF, leverage, AIC comparison, WLS/GLS, and remaining ANOVA diagnostics. | **statsmodels / JMP**; makes existing modelling more trustworthy. |
 | ID14 | 14 | 2 | **Missing-data and model preprocessing** (G-22, G-24) | Table-level imputation plus saved scaling, encoding, and feature generation. | **scikit-learn**; prerequisite for reusable models. |
-| ID15 | 15 | 2 | **Nonparametric and distribution tests** (G-30, G-07) | Add Friedman, Mood median, Fligner–Killeen, Page trend, exact tests, tolerance/prediction intervals, TOST, and matched pairs. | **SciPy / JMP**; broad, low-effort statistical coverage. |
+| ID15 | 15 | 2 | **Nonparametric and distribution tests** (G-30, G-07) | Add exact tests, TOST equivalence, and matched pairs (Friedman, Mood median, Fligner–Killeen, Page trend, tolerance/prediction intervals are done). | **SciPy / JMP**; broad, low-effort statistical coverage. |
 | ID16 | 16 | 3 | **Reliability and survival analysis** (AN-08, G-08) | Add censored life distributions, life regression, reliability growth, and Cox models. | **JMP**; high-value specialist workflow. |
 | ID17 | 17 | 3 | **Hyperparameter tuning and ML metrics** (G-20, G-21) | Provide search, learning/validation curves, calibration and precision–recall views, and threshold tuning. | **scikit-learn**; makes ML results defensible. |
 | ID18 | 18 | 2 | **Tabulate report builder** (G-10) | Create drag-and-drop grouped summary tables without making an intermediate table. | **JMP**; frequent reporting need. |

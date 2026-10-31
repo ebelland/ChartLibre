@@ -356,7 +356,7 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "with the biplot, shows why; Factor Analysis finds a size factor and a bill-depth one.",
         (),
         builder="dev.demo.demo_goals:build_groups_demo",
-        preview="Cluster Analysis",
+        preview="Clustering",
         references=(REF_PENGUINS,),
         category="Guided Analysis",
     ),
@@ -630,6 +630,18 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         "the results pane below it, exactly as the operation leaves them.",
         (),
         builder="dev.demo.demo_operations:build_operations_demo",
+        category="Curves",
+    ),
+    DemoProject(
+        "SymPy functions - stored formulas differentiated, integrated and fitted",
+        "Formulas kept with the project (Tables panel, marked F) and drawn as live series: a damped "
+        "oscillation and its exact derivative, logistic growth and its exact integral - Calculus works on "
+        "the formula, not the points, and keeps each result as a function of its own - the stored Logistic "
+        "fitted to noisy measurements by Fit Curve, a family of Gaussians from one formula, and a saddle "
+        "as a function of x and y.",
+        (),
+        builder="dev.demo.demo_functions:build_functions_demo",
+        preview="Damped",
         category="Curves",
     ),
     DemoProject(

@@ -48,3 +48,33 @@ def test_split_gives_one_result_per_cluster_named_by_it() -> None:
     assert len(parts) == 3
     assert [part.result_name for part in parts] == [f"Blobs - Cluster {n}" for n in (1, 2, 3)]
     assert all(part.metadata["is_split_series"] for part in parts)
+
+
+def test_normal_mixtures_find_the_three_blobs_and_report_their_bic() -> None:
+    """The mixtures' table of k carries the BIC as well as the silhouette (it was Cluster Table's)."""
+    from app.analysis.clustering import SKLEARN_GAUSSIAN_MIXTURE
+
+    result = cs.cluster_one(_choice(_three_blobs()), ["x", "y"], "Axis",
+                            _params(method=cs.CLUSTER_SKLEARN, scipy_tool=SKLEARN_GAUSSIAN_MIXTURE,
+                                    linkage_method="ward", metric="euclidean", automatic_k=True, k_max=5), 1, None)
+    assert result.summary["Selected k"] == 3
+    bic = result.k_table.set_index("k")["BIC"]
+    assert bic.idxmin() == 3  # the mixtures' own criterion agrees with the silhouette
+
+
+def test_standardized_columns_count_the_same_whatever_their_unit() -> None:
+    """y in thousands drowns x unless the columns are standardized: two groups apart in x only are found then."""
+    rng = np.random.default_rng(3)
+    points = np.vstack([np.column_stack((rng.normal(cx, 0.1, 60), rng.normal(0, 1000, 60))) for cx in (0, 1)])
+    truth = np.repeat([0, 1], 60)
+
+    def agreement(standardize: bool) -> float:
+        result = cs.cluster_one(_choice(points), ["x", "y"], "Axis", _params(clusters=2, standardize=standardize),
+                                1, None)
+        labels = result.frame[cs.CLUSTER_COLUMN].to_numpy(dtype=int)
+        # The share of rows whose cluster matches their group, whatever number each cluster got.
+        return float(np.mean((labels == labels[0]) == (truth == 0)))
+
+    assert agreement(True) == 1.0 and agreement(False) < 0.9
+    result = cs.cluster_one(_choice(points), ["x", "y"], "Axis", _params(clusters=2, standardize=True), 1, None)
+    assert abs(result.means["y"].abs().max()) > 10  # the means stay in the columns' own units

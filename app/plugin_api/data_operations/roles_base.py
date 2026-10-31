@@ -241,6 +241,18 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         del table, frame
         return {}, {}
 
+    def chart_casting(self, frame: pd.DataFrame) -> dict[str, list[str]]:
+        """A chart's axis read as a table: its series are the response, its x the role after it - as drawn."""
+        columns = [str(column) for column in frame.columns]
+        response = next((role for role in self.ROLES if role.key == "response"), None)
+        other = next((role for role in self.ROLES if role.key != "response"), None)
+        if response is None or len(columns) < 2:
+            return {}
+        roles = {response.key: columns[1:][: response.maximum] if response.maximum else columns[1:]}
+        if other is not None:
+            roles[other.key] = columns[:1]
+        return roles
+
     def cast_explanatory(self, columns: list[str]) -> None:
         """Cast the guided analysis's X: into this analysis's role after the response.
 
@@ -322,6 +334,9 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         self.table_source = None
         self._table_figure_id, self._table_figure_spec = None, None
         self._chart_figure_id = self._figure_id
+        # The engine's series selector is not on this page: left a child of the window, it was drawn over
+        # its top-left corner.
+        self.series_selector.hide()
         # Scrolled: with several roles the page is taller than a laptop's window.
         return self._scrolled(self._inputs_panel, self)
 
@@ -373,7 +388,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         """Reading a chart: its axis written as a table, which the analysis reads and writes beside.
 
         In OK's undo step, and rolled back with a Preview. Then the analysis is as on any table: its charts
-        select from it, its results are named after it, Cluster Table writes its ClusterId into it.
+        select from it, its results are named after it, and written beside it.
         """
         if not self.reads_chart() or not self.table:
             return
@@ -387,7 +402,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
 
         Each row's id (R-07 ``_id``) is kept aside in ``row_ids``, in the
         frame's order: what an analysis writes back into the table's own rows
-        (Cluster Table's ClusterId) finds them by it.
+        (a cluster, a prediction) finds them by it.
         """
         frame = self._repo.query_df(f"SELECT * FROM {self.quoted(table)}", row_id=True)
         if "Hide" in frame.columns:
@@ -420,10 +435,13 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         table = self.table
         self._frame = self.source_frame()
         remembered = get_section(self._state_key).get("casting", {}).get(table) if table else None
-        if remembered:
+        # Remembered with every role empty is nothing remembered: the defaults are better than no columns.
+        if remembered and any(remembered.get("roles", {}).values()):
             roles, kinds = remembered.get("roles", {}), remembered.get("kinds", {})
         else:
             roles, kinds = self.default_casting(table, self._frame) if table else ({}, {})
+            if chosen and not roles:
+                roles = self.chart_casting(self._frame)
         declared = {str(row[1]): str(row[2] or "") for row in self._repo.table_info(table)} if table else {}
         # A modelling type forced in Column Info wins over the one remembered or guessed.
         forced = column_metadata.forced_kinds(column_metadata.column_info(self._repo, table)) if table else {}
@@ -629,6 +647,8 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         tables and the figure the analysis draws away together.
         """
         repo = self._repo
+        # A table with no columns (Tukey on groups of one value each) is no table: SQLite refuses "CREATE TABLE t ()".
+        frames = {key: frame for key, frame in frames.items() if len(frame.columns)}
         names = {key: self.result_table_name(key) for key in frames}
         # *also*: tables the analysis changes besides, in the same undo step (the source's ClusterId).
         self.snapshot_for_undo([*names.values(), *also, *repo.DESCRIPTOR_TABLES])

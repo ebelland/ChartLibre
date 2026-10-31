@@ -808,10 +808,14 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                 a, b, alignment = self._paired(left, right)
                 for test in st.paired_tests(a, b, alignment=alignment, alternative=result.alternative):
                     rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
-            parts.append(report_html.section(
-                _("Paired-sample tests"),
-                self._table(["Pair", "Test", "n", "Statistic", "p-value", "Note"], rows),
-            ))
+            section = self._table(["Pair", "Test", "n", "Statistic", "p-value", "Note"], rows)
+            if len(result.samples) > 2:
+                table, alignment = st.aligned_values([(sample.x, sample.y) for sample in result.samples])
+                section += self._table(["Groups", "Test", "n", "Statistic", "p-value", "Note"], [
+                    _html_test_row(_("All checked series"), test, self._format_number, self._format_pvalue)
+                    for test in st.repeated_tests(table, alignment=alignment)
+                ])
+            parts.append(report_html.section(_("Paired-sample tests"), section))
 
         if len(result.samples) > 1 and self._show_section(result.model, "independent"):
             rows = []
@@ -1217,6 +1221,10 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         destination = str(self.parameter_values().get("destination") or self.DEST_NONE)
         charts = [(chart, title) for chart, title in self.CHARTS_BY_MODEL.get(result.model, ())
                   if destination != self.DEST_NONE and self.chart_enabled(_chart_param(chart))]
+        rows = self._rows_for_statistics()
+        if result.model in ("paired", "correlation") and len(rows) < 2:
+            # One series against another: with one series there is no pair, and the axis would stay empty.
+            charts = [(chart, title) for chart, title in charts if chart != "Scatter Plot"]
         drawn = {chart: self._axis_options(chart, result) for chart, _title in charts}
         if drawn == self._drawn_charts and destination == self._drawn_destination and self._result_axis_ids:
             return
@@ -1228,7 +1236,6 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         if destination == self.DEST_NEW_FIGURE:
             figure_id = self._result_figure_id = int(self._repo.create_figure_descriptor(
                 name=f"{_(self.Name)} · {result.model}", nrows=1, ncols=1))
-        rows = self._rows_for_statistics()
         for chart_type, title in charts:
             axis_id = self.create_result_axis(
                 chart_type=chart_type, title=title, x_label="value" if chart_type == "ECDF" else "", y_label="",

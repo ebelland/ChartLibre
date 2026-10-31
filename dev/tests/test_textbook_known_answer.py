@@ -78,3 +78,56 @@ def test_correlation_and_slope_on_anscombe() -> None:
     slope = _row(rows, "Linear regression slope")
     assert slope["statistic"] == pytest.approx(0.5001, abs=5e-5)
     assert slope["pvalue"] == pytest.approx(0.00217, abs=5e-6)
+
+
+#: ``InsectSprays``: insects counted on plots treated with six sprays.
+INSECT_SPRAYS = {
+    "A": [10, 7, 20, 14, 14, 12, 10, 23, 17, 20, 14, 13], "B": [11, 17, 21, 11, 16, 14, 17, 17, 19, 21, 7, 13],
+    "C": [0, 1, 7, 2, 3, 1, 2, 1, 3, 0, 1, 4], "D": [3, 5, 12, 6, 4, 3, 5, 5, 5, 5, 2, 4],
+    "E": [3, 5, 3, 5, 3, 6, 1, 1, 3, 2, 6, 4], "F": [11, 9, 15, 22, 15, 16, 13, 10, 26, 26, 24, 13],
+}
+
+#: ``friedman.test``'s RoundingTimes (Hollander & Wolfe): 22 players, three ways of rounding first base.
+ROUNDING_TIMES = [
+    [5.40, 5.50, 5.55], [5.85, 5.70, 5.75], [5.20, 5.60, 5.50], [5.55, 5.50, 5.40], [5.90, 5.85, 5.70],
+    [5.45, 5.55, 5.60], [5.40, 5.40, 5.35], [5.45, 5.50, 5.35], [5.25, 5.15, 5.00], [5.85, 5.80, 5.70],
+    [5.25, 5.20, 5.10], [5.65, 5.55, 5.45], [5.60, 5.35, 5.45], [5.05, 5.00, 4.95], [5.50, 5.50, 5.40],
+    [5.45, 5.55, 5.50], [5.55, 5.55, 5.35], [5.45, 5.50, 5.55], [5.50, 5.45, 5.25], [5.65, 5.60, 5.40],
+    [5.70, 5.65, 5.55], [6.30, 6.30, 6.25],
+]
+
+
+def test_kruskal_and_fligner_on_insect_sprays() -> None:
+    """kruskal.test: chi-squared = 54.691, df = 5, p = 1.511e-10; fligner.test: med chi-squared = 14.483,
+    df = 5, p = 0.01282."""
+    rows = st.group_tests(INSECT_SPRAYS)
+    kruskal = _row(rows, "Kruskal-Wallis")
+    assert kruskal["statistic"] == pytest.approx(54.691, abs=5e-4)
+    assert kruskal["pvalue"] == pytest.approx(1.511e-10, rel=5e-4)
+    fligner = _row(rows, "Fligner-Killeen equal variances")
+    assert fligner["statistic"] == pytest.approx(14.483, abs=5e-4)
+    assert fligner["pvalue"] == pytest.approx(0.01282, abs=5e-6)
+    assert _row(rows, "Mood median test")["pvalue"] < 1e-6  # C, D, E all under the grand median
+
+
+def test_friedman_on_rounding_times() -> None:
+    """friedman.test(RoundingTimes): Friedman chi-squared = 11.143, df = 2, p-value = 0.003805."""
+    rows = st.repeated_tests(ROUNDING_TIMES)
+    friedman = _row(rows, "Friedman test")
+    assert friedman["statistic"] == pytest.approx(11.143, abs=5e-4)
+    assert friedman["pvalue"] == pytest.approx(0.003805, abs=5e-7)
+    assert _row(rows, "Page trend test")["pvalue"] > 0.5  # the times fall, they do not rise
+
+
+def test_prediction_and_tolerance_intervals() -> None:
+    """Prediction: mean +- t(0.975, n-1) s sqrt(1 + 1/n). Tolerance, 95% / 95%, n = 10: the exact k of
+    the tables is 3.379, Howe's approximation 3.382."""
+    values = [4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14]
+    prediction, tolerance = (row for row in st.one_sample_tests(values) if "interval" in row["test"])
+    assert prediction["statistic"] == pytest.approx(2.262157 * (1.1 ** 0.5), abs=5e-6)
+    assert tolerance["statistic"] == pytest.approx(3.379, rel=1e-3)
+
+
+def test_aligned_values_pair_on_shared_x() -> None:
+    table, alignment = st.aligned_values([([1, 2, 3], [10, 20, 30]), ([3, 2, 9], [33, 22, 99]), ([2, 3], [2.5, 3.5])])
+    assert alignment == "common X values" and table.tolist() == [[20, 22, 2.5], [30, 33, 3.5]]

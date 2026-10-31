@@ -233,6 +233,11 @@ class ResultsMixin:
         """
         self.discard_result_target()
 
+    def undo_tables(self, results: Sequence[Any]) -> list[str]:
+        """Tables OK changes besides the descriptors and the result tables, in its undo step (none by default)."""
+        del results
+        return []
+
     def apply_results_to_axis(self, axis_id: int, results: Sequence[Any]) -> None:
         """Write every result as a table plus a chart series on *axis_id*.
 
@@ -354,6 +359,10 @@ class ResultsMixin:
     def sync_preview_figure(self) -> None:
         """Tell the window about the figure a Preview made: shown when there is one, dropped when it went."""
         figure_id = getattr(self, "_result_figure_id", None)
+        if figure_id is None:
+            # A report figure (create_report_figure: Distribution, Is it normal?...) is in created_figure_ids.
+            made = [int(f) for f in getattr(self, "created_figure_ids", ()) if int(f) != int(self._figure_id)]
+            figure_id = made[-1] if made else None
         if figure_id is not None and self._repo.get_figure_descriptor(int(figure_id)) is None:
             figure_id = None
         shown = getattr(self, "_preview_figure_shown", None)
@@ -560,7 +569,7 @@ class ResultsMixin:
             if commit:
                 self._repo.snapshot_for_undo(
                     [self.result_table_name(axis_id, result) for result in results]
-                    + [OPERATIONS_TABLE],
+                    + [OPERATIONS_TABLE, *self.undo_tables(results)],
                     label=f"Apply {self.operation_label}",
                     entry_id=undo_entry,
                 )
@@ -743,5 +752,9 @@ class ResultsMixin:
         """Close/Cancel: the Preview's changes rolled back, the axis or figure it made, the table's drawing."""
         self.cancel_operation_changes()
         self.discard_operation_artifacts()
+        if not getattr(self, "_applied", False):
+            # The axes an operation drew outside the savepoint (create_result_axis) grew the grid a row each:
+            # deleted just now, the grid goes back too - else a 2x1 figure is left with one axis.
+            self._restore_original_grid()
         self._discard_table_figure()
         self.sync_preview_figure()

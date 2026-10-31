@@ -36,6 +36,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from app.analysis import calculus as calc
+from app.analysis import symbolic_calculus as symbolic
+from app.data.repo.function_sql import FunctionQuery, function_sql, parse_function_sql
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
 from app.plugin_api.data_operations.results import TableResult
@@ -45,6 +47,7 @@ from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
 )
 from app.utils import report_html
+from app.utils.i18n import _
 
 # --- Models -----------------------------------------------------------
 
@@ -160,6 +163,9 @@ class CalculusResult(TableResult):
     z: np.ndarray | None = None
     dz_dx: np.ndarray | None = None
     dz_dy: np.ndarray | None = None
+    #: An exact result's stored function (sympy_store's row), and the series' function query it is drawn on.
+    function: dict[str, Any] | None = None
+    query: FunctionQuery | None = None
 
     def to_df(self) -> pd.DataFrame:
         if self.z is not None:
@@ -263,6 +269,17 @@ class SeriesCalculusDialog(DataOperationDialogBase):
             default_value=False,
             visible_for={"model": (INTEGRAL_DEFINITE,)},
         ),
+        BoolParam(
+            "symbolic",
+            "Exact for a stored function",
+            tooltip=(
+                "A series drawn from a stored SymPy function is differentiated or integrated as a "
+                "formula - d/dx (a*x**2) = 2*a*x - rather than from its points; the result is a stored "
+                "function too. Off: as any series."
+            ),
+            default_value=True,
+            visible_if=lambda values: not CALCULUS_MODELS[str(values.get("model") or DERIV_SAVGOL)].surface,
+        ),
     )
 
     Icon = """
@@ -285,7 +302,25 @@ class SeriesCalculusDialog(DataOperationDialogBase):
     def read_series(self, row: Any, name: str) -> Any:
         if CALCULUS_MODELS[self.current_model()].surface:
             return self.series_grid_xyz(row, name)
+        self._stored_function_of(row, name)
         return self.series_xy(row, name)
+
+    def _stored_function_of(self, row: Any, name: str) -> None:
+        """The stored function a series draws, kept for compute_series (a worker: no repository there).
+
+        Only a formula (not code) of x alone, trusted on this computer: sympify reads its text, which runs it.
+        """
+        from app.data_operations import sympy_store
+
+        functions = self.__dict__.setdefault("_series_functions", {})
+        functions.pop(name, None)
+        query = parse_function_sql(str(row["sql_query"] or ""))
+        stored = sympy_store.get(self._repo, query.name) if query is not None and query.y is None else None
+        if stored is None or str(stored.get("source_type", "")).lower() != "expression":
+            return
+        info = sympy_store.payload(stored)
+        if int(info["ndim"]) == 1 and sympy_store.is_trusted(info):
+            functions[name] = (stored, list(info["params"]), query)
 
     def compute_series(
         self, name: str, data: Any, settings: tuple[str, dict[str, Any]]
@@ -294,7 +329,44 @@ class SeriesCalculusDialog(DataOperationDialogBase):
         if CALCULUS_MODELS[model].surface:
             return self._compute_one_3d(data, name, model)
         x_values, y_values = data
+        function = getattr(self, "_series_functions", {}).get(name)
+        if function is not None and params.get("symbolic", True):
+            try:
+                return self._compute_symbolic(name, x_values, model, params, *function)
+            except (ValueError, TypeError, ArithmeticError) as exc:
+                # No closed form, or a baseline only the points can take: as any series.
+                applogger.warning(f"{name}: computed from the points - {exc}")
         return self._compute_one(name, x_values, y_values, model, params)
+
+    def _compute_symbolic(self, name: str, x_values: np.ndarray, model: str, params: Mapping[str, Any],
+                          stored: Mapping[str, Any], parameters: list[str], query: FunctionQuery) -> CalculusResult:
+        """The derivative or integral of the series' formula; the curves a stored function of their own."""
+        expression, values = str(stored["code_string"]), query.parameters
+        if CALCULUS_MODELS[model].kind == "derivative":
+            order = int(params.get("order", 1)) if model in (DERIV_SAVGOL, DERIV_SPLINE) else 1
+            result_expression = symbolic.derivative(expression, parameters, order)
+            power = "²" if order == 2 else ""
+            suffix, result_name = f"_d{order}", f"{name} - d{power}y/dx{power}"
+        else:
+            if str(params.get("baseline", BASELINE_NONE)) != BASELINE_NONE:
+                raise ValueError("a baseline is taken from the points")
+            if model == INTEGRAL_DEFINITE:
+                total, exact = symbolic.definite(expression, parameters, values, float(x_values[0]),
+                                                 float(x_values[-1]))
+                return CalculusResult(
+                    source_name=name, result_name=f"{name} - area", model=model,
+                    x=np.array([float(x_values[0]), float(x_values[-1])]), y=np.array([total, total]), total=total,
+                    metadata={"symbolic": f"∫ {expression} dx from a_ to b_ = {exact}"})
+            result_expression = symbolic.antiderivative(expression, parameters, float(query.x.start))
+            suffix, result_name = "_int", f"{name} - ∫y dx"
+        y = symbolic.evaluate(result_expression, parameters, values, x_values)
+        function = {**dict(stored), "function_name": f"{stored['function_name']}{suffix}",
+                    "code_string": result_expression,
+                    "description": f"{result_name.split(' - ', 1)[-1]} of {stored['function_name']}"}
+        return CalculusResult(
+            source_name=name, result_name=result_name, model=model, x=x_values, y=y,
+            total=float(y[-1]) if CALCULUS_MODELS[model].kind == "integral" and y.size else None,
+            metadata={"symbolic": result_expression}, function=function, query=query)
 
     def _compute_one(
         self,
@@ -537,11 +609,36 @@ class SeriesCalculusDialog(DataOperationDialogBase):
         if unit_label:
             y_label = f"{y_label} (x in {unit_label}s)"
 
-        self.label_result_axis(title=str(first.model or ""), y_label=y_label)
+        # Exact: not the model's numerical method, which was not used; the formula is in the report.
+        exact = _("Exact derivative (SymPy)") if spec is not None and spec.kind == "derivative" \
+            else _("Exact integral (SymPy)")
+        title = exact if first.function is not None else str(first.model or "")
+        self.label_result_axis(title=title, y_label=y_label)
 
     # ------------------------------------------------------------------
     # Results
     # ------------------------------------------------------------------
+
+    def _save_result_functions(self, results: Sequence[Any]) -> None:
+        """The exact results as stored functions, named after theirs (Line_d1): their series draw them."""
+        from app.data_operations import sympy_store
+
+        for result in results:
+            if getattr(result, "function", None) is not None:
+                sympy_store.save(self._repo, result.function)
+
+    def undo_tables(self, results: Sequence[Any]) -> list[str]:
+        from app.data_operations import sympy_store
+
+        return [sympy_store.TABLE] if any(getattr(result, "function", None) for result in results) else []
+
+    def apply_results_to_axis(self, axis_id: int, results: Sequence[Any]) -> None:
+        self._save_result_functions(results)
+        super().apply_results_to_axis(axis_id, results)
+
+    def preview_results_to_axis(self, axis_id: int, results: Sequence[Any]) -> None:
+        self._save_result_functions(results)  # in the preview's savepoint: Cancel takes them away
+        super().preview_results_to_axis(axis_id, results)
 
     def result_series_spec(
         self,
@@ -550,6 +647,15 @@ class SeriesCalculusDialog(DataOperationDialogBase):
         result: CalculusResult,
     ) -> ResultSeriesSpec:
         del axis_id
+        function, query = result.function, result.query
+        if function is not None and query is not None:
+            # A live function series: the derivative of the function, on the grid and values the series had.
+            return ResultSeriesSpec(
+                name=result.result_name,
+                sql_query=function_sql(str(function["function_name"]), query.parameters, query.x),
+                roles={"x": "x", "y": "y"},
+                style=self.result_style(result, **self.RESULT_STYLE),
+            )
         if result.z is not None:
             return ResultSeriesSpec(
                 name=result.result_name,

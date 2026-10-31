@@ -102,7 +102,6 @@ def _report(qapp, dialog, casting: dict) -> str:  # noqa: ANN001
      "The first 2 components"),
     ("factor_analysis_dialog", "FactorAnalysisDialog", "plant", {"response": ["a", "b", "c", "y", "temp"]},
      "factor(s) were enough"),
-    ("clustering_dialog", "ClusteringDialog", "plant", {"response": ["a", "c", "y"]}, "Mean silhouette"),
     ("gage_dialog", "GageDialog", "plant", {"response": ["meas"], "part": ["part"], "operator": ["op"]}, "Gage R&amp;R"),
     ("vector_field_dialog", "VectorFieldDialog", "field", {"x": ["x"], "y": ["y"], "u": ["u"], "v": ["v"]},
      "Divergence"),

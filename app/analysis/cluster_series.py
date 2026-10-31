@@ -69,7 +69,8 @@ class ClusterResult(FrameResult):
     silhouettes: pd.Series
     projection: pd.DataFrame
     notes: list[str]
-    #: The projection's PCA, to draw it from the source rows: "components" (2 x features) and "mean" (features).
+    #: The projection's PCA, to draw it from the source rows: "components" (2 x features), "mean" (features), and
+    #: "center" / "scale" (features) - each column standardized as (value - center) / scale before it.
     pca: dict[str, Any] = field(default_factory=dict)
 
     def preview(self, dialog: Any, axis_id: int) -> None:
@@ -199,6 +200,14 @@ def cluster_one(series: ClusterSeriesChoice, feature_columns: list[str], axis_na
     features_raw, finite_mask_raw = numeric_matrix(series.frame, feature_columns)
     features = np.asarray(features_raw, dtype=np.float64)
     finite_mask = np.asarray(finite_mask_raw, dtype=np.bool_)
+    # Standardized, each column counts the same whatever its unit; the means reported stay in the columns' own.
+    center = np.zeros(features.shape[1])
+    scale = np.ones(features.shape[1])
+    if bool(params.get("standardize", False)) and len(features):
+        center = features.mean(axis=0)
+        spread = features.std(axis=0, ddof=1) if len(features) > 1 else np.zeros(features.shape[1])
+        scale = np.where(np.isfinite(spread) & (spread > 0), spread, 1.0)
+    raw_features, features = features, (features - center) / scale
     requested = int(params.get("clusters", 4))
     auto = bool(params.get("automatic_k", False))
     k_max = min(int(params.get("k_max", 8)), max(2, len(features) - 1))
@@ -227,6 +236,8 @@ def cluster_one(series: ClusterSeriesChoice, feature_columns: list[str], axis_na
     k_rows: list[dict[str, Any]] = []
     for k, _labels, trial_meta, metrics in trials:
         row: dict[str, Any] = {"k": k, **metrics, "Chosen": k == chosen_k}
+        if "bic" in trial_meta:
+            row["BIC"] = float(trial_meta["bic"])  # the mixtures': lower is better
         exact = trial_meta.get("estimator_diagnostics", {})
         if isinstance(exact, Mapping):
             for key, value in exact.items():
@@ -237,7 +248,7 @@ def cluster_one(series: ClusterSeriesChoice, feature_columns: list[str], axis_na
     output = series.frame.copy()
     output[CLUSTER_COLUMN] = pd.Series([pd.NA] * len(output), dtype="Int64")
     output.loc[finite_mask, CLUSTER_COLUMN] = cluster_ids
-    feature_frame = pd.DataFrame(features, columns=list(feature_columns))
+    feature_frame = pd.DataFrame(raw_features, columns=list(feature_columns))
     feature_frame[CLUSTER_COLUMN] = cluster_ids
     grouped = feature_frame.groupby(by=CLUSTER_COLUMN, as_index=False)
     means: pd.DataFrame = grouped[list(feature_columns)].mean(numeric_only=True)
@@ -289,7 +300,7 @@ def cluster_one(series: ClusterSeriesChoice, feature_columns: list[str], axis_na
         method=str(params["method"]), frame=output, x_col=series.x_col, y_col=series.y_col,
         z_col=series.z_col, feature_columns=feature_columns, metadata=metadata, summary=summary,
         pca={"components": np.asarray(pca_model.components_, dtype=float),
-             "mean": np.asarray(pca_model.mean_, dtype=float)},
+             "mean": np.asarray(pca_model.mean_, dtype=float), "center": center, "scale": scale},
         means=means, k_table=k_table, silhouettes=silhouettes, projection=projection, notes=notes)
 
 

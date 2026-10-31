@@ -140,7 +140,32 @@ def one_sample_tests(values: Any, *, popmean: float = 0.0, alternative: str = "t
         if trials > 0:
             res = stats.binomtest(positives, trials, p=0.5, alternative=alternative)
             tests.append(result_row(_("Sign test"), trials, positives, _named_pvalue(res), "positive signs"))
-    return tests
+    return tests + interval_rows(values)
+
+
+def interval_rows(values: Any, *, confidence: float = 0.95, coverage: float = 0.95) -> list[dict[str, Any]]:
+    """Where the next value falls (prediction interval) and where most values fall (tolerance interval).
+
+    Both assume a normal sample. The prediction interval is mean +- t s sqrt(1 + 1/n); the tolerance
+    interval covers *coverage* of the population with *confidence*, by Howe's approximation of the k
+    factor (NIST/SEMATECH handbook, 7.2.6.3) - within 0.1% of the exact tables from n = 10 on. The
+    interval is the note; the statistic is its half-width in standard deviations.
+    """
+    values = finite(values)
+    n = int(values.size)
+    if n < 3:
+        return []
+    mean, sd = float(np.mean(values)), float(np.std(values, ddof=1))
+    t_factor = float(stats.t.ppf(0.5 + confidence / 2.0, n - 1)) * float(np.sqrt(1.0 + 1.0 / n))
+    z = float(stats.norm.ppf(0.5 + coverage / 2.0))
+    k_factor = z * float(np.sqrt((n - 1) * (1.0 + 1.0 / n) / stats.chi2.ppf(1.0 - confidence, n - 1)))
+    level, share = round(confidence * 100), round(coverage * 100)
+    return [
+        result_row(_("Prediction interval ({level}%)").format(level=level), n, t_factor, np.nan,
+                   f"next value in {mean - t_factor * sd:.6g} .. {mean + t_factor * sd:.6g}"),
+        result_row(_("Tolerance interval ({share}% of values, {level}% confidence)").format(share=share, level=level),
+                   n, k_factor, np.nan, f"{mean - k_factor * sd:.6g} .. {mean + k_factor * sd:.6g}; normal"),
+    ]
 
 
 # ----------------------------------------------------------------------
@@ -460,10 +485,74 @@ def group_tests(groups: Mapping[str, Any]) -> list[dict[str, Any]]:
         tests.append(note_row(_("Kruskal-Wallis"), n, str(exc)))
 
     try:
+        res = stats.median_test(*arrays)
+        tests.append(result_row(_("Mood median test"), n, float(res.statistic), float(res.pvalue),
+                                f"df = {k - 1}; grand median = {float(res.median):.6g}"))
+    except ValueError as exc:
+        tests.append(note_row(_("Mood median test"), n, str(exc)))
+
+    try:
         res = stats.levene(*arrays, center="median")
         tests.append(result_row(_("Levene equal variances"), n, _statistic(res), _pvalue(res), "Brown-Forsythe (median)"))
     except ValueError as exc:
         tests.append(note_row(_("Levene equal variances"), n, str(exc)))
+
+    try:
+        res = stats.fligner(*arrays)
+        tests.append(result_row(_("Fligner-Killeen equal variances"), n, _statistic(res), _pvalue(res),
+                                f"df = {k - 1}; rank-based, robust to non-normal data"))
+    except ValueError as exc:
+        tests.append(note_row(_("Fligner-Killeen equal variances"), n, str(exc)))
+    return tests
+
+
+def aligned_values(samples: Sequence[tuple[Any, Any]]) -> tuple[np.ndarray, str]:
+    """Several samples side by side, one row per subject: on the x values all share, or by row order.
+
+    The k-sample form of paired_values; rows with a missing value are left out.
+    """
+    by_x: list[dict[float, float]] = []
+    for xs, ys in samples:
+        column: dict[float, float] = {}
+        for x_value, y_value in zip(xs, ys, strict=False):
+            if np.isfinite(x_value) and np.isfinite(y_value):
+                column.setdefault(float(x_value), float(y_value))
+        by_x.append(column)
+    shared = sorted(set.intersection(*(set(column) for column in by_x))) if by_x else []
+    if shared:
+        return np.array([[column[x] for column in by_x] for x in shared]), "common X values"
+    columns = [np.asarray(ys, dtype=float) for _xs, ys in samples]
+    n = min((column.size for column in columns), default=0)
+    table = np.column_stack([column[:n] for column in columns]) if n else np.empty((0, len(columns)))
+    return table[np.isfinite(table).all(axis=1)], "row order, truncated to common length"
+
+
+def repeated_tests(table: Any, *, alignment: str = "") -> list[dict[str, Any]]:
+    """k >= 3 conditions measured on the same subjects (one row each): do they share one centre?
+
+    Friedman's test ranks within each row - the repeated-measures Kruskal-Wallis - and Kendall's W
+    is its effect size. Page's test asks the sharper question of a trend in the columns' order.
+    """
+    values = np.asarray(table, dtype=float)
+    n, k = values.shape if values.ndim == 2 else (0, 0)
+    if k < 3:
+        return [note_row(_("Repeated-measures tests"), n, "Needs at least three series.")]
+    if n < 2:
+        return [note_row(_("Repeated-measures tests"), n, "Needs at least two rows with every series.")]
+    tests: list[dict[str, Any]] = []
+    try:
+        res = stats.friedmanchisquare(*values.T)
+        w = float(res.statistic) / (n * (k - 1))
+        tests.append(result_row(_("Friedman test"), n, _statistic(res), _pvalue(res),
+                                f"df = {k - 1}; Kendall's W = {w:.3g}; {alignment}"))
+    except ValueError as exc:
+        tests.append(note_row(_("Friedman test"), n, str(exc)))
+    try:
+        res = stats.page_trend_test(values)
+        tests.append(result_row(_("Page trend test"), n, float(res.statistic), float(res.pvalue),
+                                f"increasing in the series' order; {res.method}"))
+    except ValueError as exc:
+        tests.append(note_row(_("Page trend test"), n, str(exc)))
     return tests
 
 

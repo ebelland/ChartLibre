@@ -380,7 +380,8 @@ def cluster_sklearn(
         elif tool == SKLEARN_GAUSSIAN_MIXTURE:
             model = GaussianMixture(n_components=k, random_state=random_state)
             labels = model.fit_predict(matrix)
-            extra = {"converged": bool(model.converged_), "lower_bound": float(model.lower_bound_)}
+            extra = {"converged": bool(model.converged_), "lower_bound": float(model.lower_bound_),
+                     "bic": float(model.bic(matrix))}
         else:
             raise ValueError(f"Unsupported scikit-learn clustering algorithm: {tool}")
 

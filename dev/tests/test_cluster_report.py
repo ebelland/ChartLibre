@@ -72,20 +72,23 @@ def test_ok_draws_the_report_figure_and_its_charts_render(qapp, repo: SqliteRepo
         (figure_id,) = dialog.created_figure_ids
         figure = repo.load_figure_descriptor(figure_id)
         assert [axis.title for axis in figure.axes] == [
-            "Clusters on two principal components", "Silhouette by cluster", "Cluster means", "Choosing k"]
+            "Clusters on two principal components", "Silhouette by cluster", "Cluster means", "Cluster profiles",
+            "Choosing k"]
         assert [series.name for series in figure.axes[2].series] == ["a", "b"]  # the columns, not "x" and "y"
         drawn = Figure()
         render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)
-        assert len(drawn.axes) >= 4
+        assert len(drawn.axes) >= 5
         projection = repo.query_df(figure.axes[0].series[0].sql_query)
         assert len(projection) == 120 and set(projection["color"]) == {1, 2, 3}
+        profiles = repo.query_df(figure.axes[3].series[0].sql_query)  # each row across the columns, by cluster
+        assert len(profiles) == 120 and set(profiles["group"]) == {"Cluster 1", "Cluster 2", "Cluster 3"}
     finally:
         dialog.close()
 
 
 def test_a_chart_cleared_in_the_charts_tab_is_not_drawn(qapp, repo: SqliteRepo, blobs: int) -> None:
     dialog = _dialog(repo, blobs)
-    dialog.chart_form.set_values({"chart_projection": False, "chart_means": False})
+    dialog.chart_form.set_values({"chart_projection": False, "chart_means": False, "chart_profiles": False})
     try:
         np.random.seed(0)
         dialog.ok()
@@ -155,6 +158,7 @@ def test_same_figure_adds_the_report_charts_beside_the_clusters(qapp, repo: Sqli
         dialog.ok()
         assert _figures(repo) == before
         assert [axis.title for axis in repo.load_figure_descriptor(blobs).axes] == [
-            "blobs", "Clusters on two principal components", "Silhouette by cluster", "Cluster means"]
+            "blobs", "Clusters on two principal components", "Silhouette by cluster", "Cluster means",
+            "Cluster profiles"]
     finally:
         dialog.close()

@@ -160,9 +160,14 @@ GOAL_DEMOS: dict[str, tuple[Step, ...]] = {
          {"response": ["passengers_thousands"], "time": ["date"]}, {"model": "auto", "horizon": 24, "lags": 36}),
     ),
     "build_groups_demo": (
-        ("chart", "penguins", ["bill_length_mm", "bill_depth_mm"], 0),
-        ("ask", "app.data_operations.clustering_dialog:ClusteringDialog", "penguins",
-         {"response": PENGUIN_MEASURES}),
+        ("operate", OperationDemo(
+            "Clustering - the penguins in groups", "Bill depth against bill length", "penguins",
+            "SELECT bill_length_mm AS x, bill_depth_mm AS y FROM penguins",
+            {"x": "x", "y": "y"}, "bill length (mm)", "bill depth (mm)", "cluster_dialog:SeriesClusterDialog",
+            # k found by the silhouette: the groups are the question, and the report's charts say how sure.
+            setup=lambda dialog: (dialog._parameter_form_spec.set_values({"automatic_k": True}),
+                                  dialog.destination_combo.setCurrentIndex(
+                                      dialog.destination_combo.findData(dialog.DEST_NEW_AXIS))))),
         ("ask", "app.data_operations.principal_components_dialog:PrincipalComponentsDialog", "penguins",
          {"response": PENGUIN_MEASURES, "by": ["species"]}),
         ("ask", "app.data_operations.factor_analysis_dialog:FactorAnalysisDialog", "penguins",

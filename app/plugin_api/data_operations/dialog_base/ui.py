@@ -101,6 +101,7 @@ class WindowMixin:
         fills it itself.
         """
         if not self.MODELS:
+            self._bare_model_combo = True
             panel = CardFrame(self, "operationModelCard")
             layout = panel.layout()
             stdSizeAndlayout(self.model_combo)
@@ -404,6 +405,9 @@ class WindowMixin:
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setWidget(page)
+        # setWidget turns the page's own background fill on: a plain page (the roles' Data page) was then painted
+        # in the window's grey, a darker box on the sheet's ground. Left off, the ground shows through.
+        page.setAutoFillBackground(False)
         scroll.viewport().setProperty("toolboxPage", True)
         scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         # The sheet paints it; filled with the palette's window grey it was a darker box
@@ -414,14 +418,17 @@ class WindowMixin:
     def input_pages(self) -> list[tuple[QWidget, str]]:
         """The tabs before Charts, as (page, title): Data, Model, Parameters, Graphics, then extra_tabs.
 
-        A page its SHOW_ switch turns off is left out (Data, for an operation that selects nothing).
+        A page its SHOW_ switch turns off is left out (Data, for an operation that selects nothing), and so
+        is Model when there is no model to pick, and Parameters when there is none to set.
         """
         pages = []
         if self.SHOW_DATA:
             pages.append((self.axis_series_panel, _("Data")))
-        if self.SHOW_MODEL:
+        # The bare combo with nothing in it is no choice: an operation without models has no Model tab.
+        if self.SHOW_MODEL and not (getattr(self, "_bare_model_combo", False) and not self.model_combo.count()):
             pages.append((self.model_panel, _("Model")))
-        if self.SHOW_PARAMETERS:
+        # The bare widget of an operation without PARAMS has nothing on it: no Parameters tab either.
+        if self.SHOW_PARAMETERS and self.parameters_panel.layout() is not None:
             pages.append((self.parameters_panel, _("Parameters")))
         if self.SHOW_OUTPUT:
             pages.append((self.build_output_page(), _("Graphics")))
@@ -461,10 +468,17 @@ class WindowMixin:
             )
 
         pages = self.input_pages()
+        # A panel no page shows is still a child of the window: left as it is, it is drawn over the top-left corner.
+        for panel in (self.axis_series_panel, self.model_panel, self.parameters_panel):
+            if panel.parent() is self and all(panel is not content for content, _title in pages):
+                panel.hide()
         charts_tab = self.build_charts_tab() if self.SHOW_CHART else None
+        #: The Charts tab's index when a table's chart is all it holds: shown only while a table is read.
+        self._table_charts_index: int | None = None
+        table_charts_only = None
         if charts_tab is None and self.SHOW_CHART and self._offers_table_chart():
             # A table's chart is picked here even when the operation has no other chart to choose.
-            charts_tab = CardFrame(self, "operationChartsCard")
+            charts_tab = table_charts_only = CardFrame(self, "operationChartsCard")
         if charts_tab is not None:
             pages.append((charts_tab, _("Charts")))
             self._add_table_chart_choice(charts_tab)
@@ -483,9 +497,12 @@ class WindowMixin:
                 # table analyses' pages: a long parameter form set the whole
                 # window's minimum height, too tall for a laptop.
                 page = self._scrolled(page, left_tabs)
+            if content is table_charts_only:
+                self._table_charts_index = left_tabs.count()
             left_tabs.addTab(page, title)
         left_tabs.setCurrentIndex(data_index)
         self.left_tabs = left_tabs
+        self._show_table_charts_tab()
 
         self.build_window(
             left_tabs,
@@ -552,8 +569,15 @@ class WindowMixin:
         if getattr(self, "_source_stack", None) is not None:
             self._source_stack.setCurrentIndex(1 if self.reads_table() else 0)
 
+    def _show_table_charts_tab(self) -> None:
+        """A Charts tab that only picks a table's chart is empty while a chart is read: hidden then."""
+        index = getattr(self, "_table_charts_index", None)
+        if index is not None and getattr(self, "left_tabs", None) is not None:
+            self.left_tabs.setTabVisible(index, self.reads_table())
+
     def _on_source_changed(self, *_ignored: Any) -> None:
         self._show_source_page()
+        self._show_table_charts_tab()
         if getattr(self, "_table_chart_form", None) is not None:
             self._table_chart_form.setRowVisible(self._table_chart_combo, self.reads_table())
         if not self.reads_table() and self._table_figure_id is not None:
