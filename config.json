@@ -1183,6 +1183,11 @@
       "title": "Delete query",
       "text": "Delete the saved query '{name}'?\n\nCharts built on it will stop finding their data."
     },
+    "function.confirm_delete": {
+      "level": "question",
+      "title": "Delete function",
+      "text": "Delete the stored function '{name}'?\n\nCharts drawn from it will stop finding their data."
+    },
     "query.confirm_overwrite": {
       "level": "question",
       "title": "Save query",

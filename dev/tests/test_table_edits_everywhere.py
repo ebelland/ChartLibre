@@ -89,6 +89,27 @@ def test_a_saved_query_is_neither_edited_nor_duplicated(panel: TableListPanel, r
     assert "big_copy" not in repo.list_table_names()
 
 
+
+def test_a_stored_function_is_listed_as_a_source_marked_f_and_deleted_as_one(
+        panel: TableListPanel, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.data_operations import sympy_store
+
+    sympy_store.save(repo, {"function_name": "Line", "source_type": "expression", "symbols": "a",
+                            "code_string": "a*x", "values": {"a": 2.0}, "from": "0", "to": "2", "points": "3"})
+    panel.reload()
+    kinds = {panel._model.item(row, panel.COL_TABLE).text(): panel._model.item(row, panel.COL_HAS_LINK).data(
+        panel.ROLE_KIND) for row in range(panel._model.rowCount())}
+    assert kinds == {"people": "table", "big": "query", "Line": "function"}
+    _select(panel, "Line")
+    assert panel.selected_sources() == [("Line", "function")] and panel._selected_table() is None
+    # Its values, read as the preview reads a query.
+    source = repo.get_data_source("Line")
+    assert source is not None and source.is_function
+    assert repo.data_source_page(source, limit=10, offset=0)["y"].tolist() == [0.0, 2.0, 4.0]
+    monkeypatch.setattr(table_list_module, "ask", lambda _parent, key, **_values: key == "function.confirm_delete")
+    panel._delete_selected()
+    assert repo.get_sympy_function("Line") is None and "people" in repo.list_table_names()
+
 # ----------------------------------------------------------------------
 # N-06: Hide rows in the editor
 # ----------------------------------------------------------------------

@@ -48,12 +48,15 @@ def _is_generated(name: str) -> bool:
 # Link badge delegate
 # ---------------------------------------------------------------------------
 class _LinkDelegate(QStyledItemDelegate):
-    """Draws the source badge: a chain link for a linked table, "Q" for a query.
+    """Draws the source badge: a chain link for a linked table, "Q" for a query, "F" for a stored function.
 
-    One delegate for both because they occupy the same column and are mutually
-    exclusive - a saved query is never an import target - so a second column
-    would be empty in every row.
+    One delegate for all because they occupy the same column and are mutually
+    exclusive - a saved query or a function is never an import target - so a
+    second column would be empty in every row.
     """
+
+    #: The letter and its colour of each source that is not a table.
+    _LETTERS = {"query": ("Q", "#c2410c"), "function": ("F", "#7c3aed")}
 
     _BADGE_SIZE = 16
     _DOT_RADIUS = 4
@@ -74,16 +77,17 @@ class _LinkDelegate(QStyledItemDelegate):
 
         rect: PySide6.QtCore.QRect = option.rect
 
-        if bool(index.data(TableListPanel.ROLE_IS_QUERY)):
+        letter = self._LETTERS.get(str(index.data(TableListPanel.ROLE_KIND) or ""))
+        if letter is not None:
             painter.save()
-            painter.setPen(QColor("#c2410c"))
+            painter.setPen(QColor(letter[1]))
             font = painter.font()
             font.setBold(True)
             painter.setFont(font)
             painter.drawText(
                 rect,
                 PySide6.QtCore.Qt.AlignmentFlag.AlignCenter,
-                "Q",
+                letter[0],
             )
             painter.restore()
             return
@@ -158,6 +162,8 @@ class TableListPanel(QWidget):
     ROLE_TABLE_NAME = PySide6.QtCore.Qt.ItemDataRole.UserRole + 1
     ROLE_HAS_LINK = PySide6.QtCore.Qt.ItemDataRole.UserRole
     ROLE_IS_QUERY = PySide6.QtCore.Qt.ItemDataRole.UserRole + 2
+    #: What the row is: "table", "query" or "function" (a stored function, read as the query of its grid).
+    ROLE_KIND = PySide6.QtCore.Qt.ItemDataRole.UserRole + 3
 
     def __init__(self, repo:SqliteRepo,parent: QWidget ) -> None:
         super().__init__(parent)
@@ -235,7 +241,8 @@ class TableListPanel(QWidget):
         # but the header still says what it is when pointed at.
         link_header = model.horizontalHeaderItem(self.COL_HAS_LINK)
         if link_header is not None:
-            link_header.setToolTip(_("Link: a chain for a table linked to its source, Q for a saved query"))
+            link_header.setToolTip(_("Link: a chain for a table linked to its source, Q for a saved query, "
+                                     "F for a stored function"))
         return model
 
     def _configure_headers(self) -> None:
@@ -280,9 +287,9 @@ class TableListPanel(QWidget):
         try:
             self._model.removeRows(0, self._model.rowCount())
 
-            # Data sources, not tables: saved queries are listed alongside
-            # physical tables and rendered by the same row builder.
-            df: pd.DataFrame = self._repo.list_data_sources()
+            # Data sources, not tables: saved queries and stored functions are
+            # listed alongside physical tables and rendered by the same row builder.
+            df: pd.DataFrame = self._repo.list_data_sources(functions=True)
             for row in df.itertuples(index=False):
                 if not self._show_generated and _is_generated(str(row.Table)):
                     continue
@@ -314,7 +321,7 @@ class TableListPanel(QWidget):
     def _source_display_text(cls, is_query: bool, has_link: bool, source_path: str) -> str:
         """Return the Source column's own text for one row.
 
-        A saved query shows its SQL (collapsed to one line, truncated); a
+        A saved query shows its SQL, a stored function its formula (collapsed to one line, truncated); a
         database-backed link shows "connection -> table" rather than the
         raw "connection#table" list_data_sources/_link_display_path
         (import_data_dialog.py) store in source_path; a file or web link
@@ -343,24 +350,28 @@ class TableListPanel(QWidget):
         """Build the four QStandardItems for one row of the source dataframe."""
         table_name = str(row.Table)
         has_link = bool(row.has_link)
-        is_query = str(getattr(row, "kind", "table")) == "query"
+        kind = str(getattr(row, "kind", "table"))
+        is_query = kind == "query"
         source_path = "" if isna(row.source_path) else str(row.source_path)
         notes = "" if isna(row.Notes) else str(row.Notes)
 
         it_table = QStandardItem(table_name)
         it_table.setData(table_name, self.ROLE_TABLE_NAME)
         it_table.setData(is_query, self.ROLE_IS_QUERY)
+        it_table.setData(kind, self.ROLE_KIND)
         it_table.setEditable(False)
 
         # has_link is stored on UserRole; the delegate draws the icon/dot.
         it_link = QStandardItem()
         it_link.setData(has_link, self.ROLE_HAS_LINK)
         it_link.setData(is_query, self.ROLE_IS_QUERY)
-        it_link.setToolTip(_("Saved query") if is_query else (_("Linked to its source") if has_link else ""))
+        it_link.setData(kind, self.ROLE_KIND)
+        tips = {"query": _("Saved query"), "function": _("Stored function: its values on its range")}
+        it_link.setToolTip(tips.get(kind, _("Linked to its source") if has_link else ""))
         it_link.setEditable(False)
         it_link.setFlags(PySide6.QtCore.Qt.ItemFlag.ItemIsEnabled | PySide6.QtCore.Qt.ItemFlag.ItemIsSelectable)
 
-        source_text = self._source_display_text(is_query, has_link, source_path)
+        source_text = self._source_display_text(kind != "table", has_link, source_path)
         it_file = QStandardItem(source_text)
         # The short/truncated form goes in the cell; the full path or SQL
         # goes in the tooltip - list_data_sources puts a query's SQL in
@@ -372,7 +383,7 @@ class TableListPanel(QWidget):
             it_file.setForeground(QColor(128, 128, 128, 80))
 
         it_notes = QStandardItem(notes)
-        it_notes.setEditable(not is_query)
+        it_notes.setEditable(kind == "table")
 
         for item in (it_table, it_link, it_file, it_notes):
             item.setFlags(item.flags() | PySide6.QtCore.Qt.ItemFlag.ItemIsSelectable | PySide6.QtCore.Qt.ItemFlag.ItemIsEnabled)
@@ -430,30 +441,31 @@ class TableListPanel(QWidget):
                 tables.append(str(table))
         return tables
 
-    def selected_sources(self) -> list[tuple[str, bool]]:
-        """Return the selected rows as ``(name, is_query)``, in row order.
+    def selected_sources(self) -> list[tuple[str, str]]:
+        """Return the selected rows as ``(name, kind)`` - "table", "query" or "function" - in row order.
 
-        The list holds both kinds and they are deleted differently - a saved
-        query is a row in ``__queries__``, not a table, so DROP TABLE on its
-        name matches nothing and leaves it exactly where it was.
+        The list holds all three and they are deleted differently - a saved
+        query is a row in ``__queries__``, a function one in ``__sympy__``, not
+        a table, so DROP TABLE on its name matches nothing and leaves it exactly
+        where it was.
         """
         selection = self._view.selectionModel()
         if selection is None:
             return []
 
         rows = sorted({index.row() for index in selection.selectedRows(self.COL_TABLE)})
-        sources: list[tuple[str, bool]] = []
+        sources: list[tuple[str, str]] = []
         for row in rows:
             item = self._model.item(row, self.COL_TABLE)
             if item is None:
                 continue
             name = item.data(self.ROLE_TABLE_NAME)
             if name:
-                sources.append((str(name), bool(item.data(self.ROLE_IS_QUERY))))
+                sources.append((str(name), str(item.data(self.ROLE_KIND) or "table")))
         return sources
 
-    def _current_source(self) -> tuple[str, bool] | None:
-        """Return the current row as ``(name, is_query)``, or None."""
+    def _current_source(self) -> tuple[str, str] | None:
+        """Return the current row as ``(name, kind)``, or None."""
         row = self._current_row()
         if row < 0:
             return None
@@ -463,7 +475,7 @@ class TableListPanel(QWidget):
         name = item.data(self.ROLE_TABLE_NAME)
         if not name:
             return None
-        return str(name), bool(item.data(self.ROLE_IS_QUERY))
+        return str(name), str(item.data(self.ROLE_KIND) or "table")
 
     def _current_row(self) -> int:
         """Return the current row, falling back to the first selected row."""
@@ -543,7 +555,8 @@ class TableListPanel(QWidget):
         # Named for what is actually selected: "Delete selected tables" over a
         # saved query is a menu entry that promises the wrong thing.
         selected_sources = self.selected_sources()
-        has_query = any(is_query for _name, is_query in selected_sources)
+        has_query = any(kind != "table" for _name, kind in selected_sources)
+        has_function = any(kind == "function" for _name, kind in selected_sources)
         if len(selected_sources) > 1:
             delete_text = (
                 _("Delete selected items…") if has_query else _("Delete selected tables…")
@@ -558,7 +571,9 @@ class TableListPanel(QWidget):
         else:
             delete_text = _("Delete…")
             delete_tip = (
-                _("Delete the selected saved query")
+                _("Delete the selected stored function")
+                if has_function
+                else _("Delete the selected saved query")
                 if has_query
                 else _("Delete the selected table")
             )
@@ -606,14 +621,16 @@ class TableListPanel(QWidget):
                     icon="query_builder",
                 )
             )
-        items.append(
-            MenuItem(
-                text=_("Rename…"),
-                tooltip=_("Rename current table"),
-                callback=self._rename_table,
-                icon="rename",
+        if not has_function:
+            # A function is renamed in Function, where it is edited.
+            items.append(
+                MenuItem(
+                    text=_("Rename…"),
+                    tooltip=_("Rename current table"),
+                    callback=self._rename_table,
+                    icon="rename",
+                )
             )
-        )
         if len(selected_sources) == 1 and not has_query:
             items.append(
                 MenuItem(
@@ -686,7 +703,7 @@ class TableListPanel(QWidget):
         """The name of the selected saved query, when exactly one row is selected and it is one."""
         sources = self.selected_sources()
         current = self._current_source()
-        if len(sources) == 1 and current is not None and current[1]:
+        if len(sources) == 1 and current is not None and current[1] == "query":
             return current[0]
         return None
 
@@ -698,16 +715,16 @@ class TableListPanel(QWidget):
         (or a stale SQL preview in the tooltip) behind here.
         """
         current_source = self._current_source()
-        if self._repo is None or current_source is None or not current_source[1]:
+        if self._repo is None or current_source is None or current_source[1] != "query":
             return
-        name, _is_query = current_source
+        name, _kind = current_source
         QueryBuilderDialog(self._repo, query_name=name, parent=self.window()).exec()
         self.reload()
 
     def _selected_table(self) -> str | None:
         """The selected table's name, when exactly one table (not a query) is selected."""
         current = self._current_source()
-        if self._repo is None or current is None or current[1] or len(self.selected_sources()) != 1:
+        if self._repo is None or current is None or current[1] != "table" or len(self.selected_sources()) != 1:
             return None
         return current[0]
 
@@ -857,9 +874,9 @@ class TableListPanel(QWidget):
             applogger.exception(f"Link refresh failed: {exc}")
 
     def _delete_selected(self) -> None:
-        """Delete the selected tables and saved queries, after confirmation.
+        """Delete the selected tables, saved queries and stored functions, after confirmation.
 
-        Both kinds appear in this list and each needs its own call: deleting a
+        All three appear in this list and each needs its own call: deleting a
         saved query used to run DROP TABLE on its name, which matches nothing,
         so the row was still there when the list reloaded.
         """
@@ -877,10 +894,13 @@ class TableListPanel(QWidget):
             return
 
         try:
-            for name, is_query in sources:
-                if is_query:
+            for name, kind in sources:
+                if kind == "query":
                     self._repo.delete_query(name)
                     applogger.info("Deleted query '%s'.", name)
+                elif kind == "function":
+                    self._repo.delete_sympy_function(name)
+                    applogger.info("Deleted stored function '%s'.", name)
                 else:
                     self._repo.delete_table(name)
             self.reload()
@@ -892,7 +912,7 @@ class TableListPanel(QWidget):
         except Exception as exc:  # noqa: BLE001
             applogger.exception(f"Delete failed: {exc}")
 
-    def _confirm_delete(self, sources: list[tuple[str, bool]]) -> bool:
+    def _confirm_delete(self, sources: list[tuple[str, str]]) -> bool:
         """Ask before deleting, in the wording the selection deserves.
 
         A saved query gets its own question because its consequence is
@@ -900,19 +920,21 @@ class TableListPanel(QWidget):
         stops finding its data.
         """
         if len(sources) == 1:
-            name, is_query = sources[0]
-            if is_query:
+            name, kind = sources[0]
+            if kind == "query":
                 return ask(self, "query.confirm_delete", name=name)
+            if kind == "function":
+                return ask(self, "function.confirm_delete", name=name)
             return ask(self, "table.confirm_delete", table=name)
 
         preview = "\n".join(
-            f"- {name}" + (" (query)" if is_query else "")
-            for name, is_query in sources[:12]
+            f"- {name}" + (f" ({kind})" if kind != "table" else "")
+            for name, kind in sources[:12]
         )
         if len(sources) > 12:
             preview += f"\n... and {len(sources) - 12} more"
 
-        if any(is_query for _name, is_query in sources):
+        if any(kind != "table" for _name, kind in sources):
             return ask(
                 self, "source.confirm_delete_many", count=len(sources), sources=preview
             )
