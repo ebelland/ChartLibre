@@ -1,6 +1,6 @@
 # ChartLibre — Prioritized Roadmap
 
-**State:** `app/` has 109,400 lines of code in 330 Python files; `dev/tests` has 24,511 lines in 211 files (measured at this commit).
+**State:** `app/` has 109,400 lines of code in 330 Python files; `dev/tests` has 24,591 lines in 212 files (measured at this commit).
 
 **Audience:** engineers, scientists, and students who need an affordable desktop workflow from raw data to analysed, documented figures and reports.
 
@@ -51,8 +51,6 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID36 | 36 | 4 | **Mixed models and power analysis** (AN-09) | Add REML mixed models plus power and sample-size tools. | **JMP / statsmodels**; high value for research, complex delivery. |
 | ID37 | 37 | 2 | **Assistant transparency and Windows release polish** (AI-02, AI-03) | Show requests/cache activity; package Anthropic/keyring support and document secure key storage. | **Core**; improve trust and Windows usability. |
 | ID38 | 38 | 2 | **Windows UI parity** (H-12) | Test dialogs at 1366×768 and 125% scaling in CI. | **Core**; prevents platform-specific friction. |
-| ID39 | 39 | 1 | **Live style preview with element undo** (S-01) | Preview styling instantly and undo individual element changes. | **Core**; low-cost usability improvement. |
-| ID40 | 40 | 2 | **Known-answer test coverage** (R-13) | Add tests using verified reference results where NIST data is unavailable. | **Core**; quality investment, indirect user value. |
 | ID41 | 41 | 4 | **Text Explorer** (G-11) | Add word counts, n-grams, and topics for text columns. | **JMP**; weak fit for the primary audience. |
 
 ## Bugs from bugs.pptx (2026-10-27)
