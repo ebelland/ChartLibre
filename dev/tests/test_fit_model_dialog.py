@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt
 
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.doe_dialog import DOEExperimentDialog
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
+from app.plugin_api.data_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
 from app.data_operations.fit_model_dialog import FitModelDialog
 
 

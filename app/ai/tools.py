@@ -26,7 +26,7 @@ import pandas as pd
 from app.ai import settings
 from app.data.repo._common import is_read_only_select
 from app.plugin_api.ai.provider import ToolSpec
-from app.plugin_api.table_operations.column_roles import declared_kind, guess_kind
+from app.plugin_api.data_operations.column_roles import declared_kind, guess_kind
 
 #: The longest text a tool gives back; the rest is said to be cut.
 MAX_RESULT = 8000

@@ -1160,7 +1160,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     def _open_guided_wizard(self, table: str | None = None) -> None:
         """Help me choose (G-02): the wizard on *table* - the selected one by default."""
         from app.dialogs.guided_wizard_dialog import GuidedWizardDialog
-        from app.plugin_api.table_operations import table_profile
+        from app.plugin_api.data_operations import table_profile
 
         table = table or self._table_panel.current
         if not table or self._repo.get_data_source(table) is None:
@@ -1176,7 +1176,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
 
     def _create_guided_chart(self, table: str, idea: Any) -> int | None:
         """The wizard's chart, made at once and shown; its figure id."""
-        from app.plugin_api.table_operations import guided_plan
+        from app.plugin_api.data_operations import guided_plan
 
         try:
             figure_id = guided_plan.make_chart(self._repo, table, idea)
@@ -1348,7 +1348,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
 
     def _open_next_step_url(self, url: str) -> None:
         """A "What next?" link clicked in a chart's notes."""
-        from app.plugin_api.table_operations.next_steps import parse_step
+        from app.plugin_api.data_operations.next_steps import parse_step
 
         step = parse_step(url)
         if step is not None:

@@ -17,7 +17,7 @@ import pandas as pd
 
 from app.analysis import fit_y_by_x as fyx
 from app.plugin_api import reading_guide
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole
+from app.plugin_api.data_operations.column_roles import CONTINUOUS, ColumnCasting, ColumnRole
 from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _

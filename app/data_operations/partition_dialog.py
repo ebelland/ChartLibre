@@ -25,7 +25,7 @@ from app.plugin_api.data_operations.parameter_spec import (
     FloatParam,
     IntParam,
 )
-from app.plugin_api.table_operations.column_roles import (
+from app.plugin_api.data_operations.column_roles import (
     CATEGORICAL,
     ORDINAL,
     ColumnCasting,

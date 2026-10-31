@@ -1,6 +1,6 @@
 """What a plugin imports: the base classes and helpers of each plugin family.
 
-Charts, data operations, table operations and fit functions are plugins - a
+Charts, data operations and fit functions are plugins - a
 file dropped into a family's folder (app/<family>/ or user/<family>/) is the
 whole install, and deleting it the whole removal. What they share lives here,
 outside those folders, so that nothing in a plugin folder is anything but a
@@ -8,8 +8,8 @@ plugin (or belongs to one):
 
     app.plugin_api.charts            BaseAxisRenderer, render_figure, grids, kwarg_spec ...
     app.plugin_api.data_operations   DataOperationDialogBase, RolesOperationDialogBase (a table's columns
-                                     cast into roles), QuickAnswerDialogBase, parameters, results
-    app.plugin_api.table_operations  column roles, table profile, next steps (the roles' helpers)
+                                     cast into roles), QuickAnswerDialogBase, parameters, results; column
+                                     roles, table profile, next steps, guided plan (the roles' helpers)
     app.plugin_api.functions         base_function, optimizers, starting points
 
 These modules used to live inside the family folders. Plugins written then -
@@ -27,7 +27,6 @@ import sys
 MOVED: dict[str, tuple[str, ...]] = {
     "charts": ("axis_options", "base", "descriptor_grid", "grids", "kwarg_spec", "layout_presets", "render_figure"),
     "data_operations": ("dialog_base", "parameter_form", "parameter_spec", "results"),
-    "table_operations": ("column_roles", "table_profile"),
     "functions": ("base", "monte_carlo", "optimizers", "starting_point"),
 }
 
@@ -43,6 +42,13 @@ OLD_TO_NEW.update({
     "app.plugin_api.table_operations.dialog_base": "app.plugin_api.data_operations.roles_base",
     "app.plugin_api.table_operations.quick_answer": "app.plugin_api.data_operations.quick_answer",
 })
+# Their helpers too: app.plugin_api.table_operations is gone, its modules in app.plugin_api.data_operations.
+for _name in ("chart_source", "column_roles", "guided_plan", "next_steps", "table_profile"):
+    OLD_TO_NEW[f"app.table_operations.{_name}"] = f"app.plugin_api.data_operations.{_name}"
+    OLD_TO_NEW[f"app.plugin_api.table_operations.{_name}"] = f"app.plugin_api.data_operations.{_name}"
+# The packages themselves, so that their submodules can be found under them.
+OLD_TO_NEW["app.table_operations"] = "app.data_operations"
+OLD_TO_NEW["app.plugin_api.table_operations"] = "app.plugin_api.data_operations"
 
 
 class _Alias(importlib.abc.Loader):
@@ -64,10 +70,10 @@ class _OldPathFinder(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):  # noqa: ANN001
         new_name = OLD_TO_NEW.get(fullname)
         if new_name is None:
-            # A submodule of a moved package (app.data_operations.dialog_base.common).
-            for old, new in OLD_TO_NEW.items():
+            # A submodule of a moved package (app.data_operations.dialog_base.common): the longest old name wins.
+            for old in sorted(OLD_TO_NEW, key=len, reverse=True):
                 if fullname.startswith(old + "."):
-                    new_name = new + fullname[len(old):]
+                    new_name = OLD_TO_NEW[old] + fullname[len(old):]
                     break
         if new_name is None:
             return None

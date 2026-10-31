@@ -95,7 +95,7 @@ from app.plugin_api.data_operations.parameter_spec import (
     FloatParam,
     IntParam,
 )
-from app.plugin_api.table_operations.next_steps import NextStep
+from app.plugin_api.data_operations.next_steps import NextStep
 from app.utils import report_html
 from app.utils.coercion import to_numbers
 from app.utils.i18n import _

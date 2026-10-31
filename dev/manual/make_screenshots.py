@@ -235,7 +235,7 @@ def main() -> int:
 
     # 5. Help me choose: two columns of the penguins, and what they allow.
     from app.dialogs.guided_wizard_dialog import GuidedWizardDialog
-    from app.plugin_api.table_operations import table_profile
+    from app.plugin_api.data_operations import table_profile
 
     frame, declared = window._guided_table("penguins")
     wizard = GuidedWizardDialog("penguins", frame, table_profile.profile("penguins", frame, declared), parent=window)

@@ -4,8 +4,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from app.plugin_api.table_operations import guided_plan as gp
-from app.plugin_api.table_operations import table_profile
+from app.plugin_api.data_operations import guided_plan as gp
+from app.plugin_api.data_operations import table_profile
 
 
 @pytest.fixture

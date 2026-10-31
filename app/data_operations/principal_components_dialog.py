@@ -18,7 +18,7 @@ import pandas as pd
 from app.analysis import multivariate as mv
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
-from app.plugin_api.table_operations.column_roles import (
+from app.plugin_api.data_operations.column_roles import (
     CONTINUOUS,
     ORDINAL,
     ColumnCasting,

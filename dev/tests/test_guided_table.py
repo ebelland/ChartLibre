@@ -6,7 +6,7 @@ import pandas as pd
 from PySide6.QtWidgets import QPushButton, QWidget
 
 from app.analysis import catalog
-from app.plugin_api.table_operations import table_profile
+from app.plugin_api.data_operations import table_profile
 from app.widgets.guided_panel import GuidedAnalysisPanel
 
 FRAME = pd.DataFrame({
@@ -134,7 +134,7 @@ def test_not_sure_leads_to_the_goals_and_their_suggestions(qapp) -> None:
 def test_create_chart_makes_the_figure_and_an_analysis_opens_cast(qapp, tmp_path, monkeypatch) -> None:
     from app.data.sqlite_repo import SqliteRepo
     from app.main_window.main_window import MainWindow
-    from app.plugin_api.table_operations import guided_plan
+    from app.plugin_api.data_operations import guided_plan
     from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 
     repo = SqliteRepo(db_path=tmp_path / "x.dhub")

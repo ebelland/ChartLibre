@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from app.data.sqlite_repo import SqliteRepo
-from app.plugin_api.table_operations import next_steps
+from app.plugin_api.data_operations import next_steps
 from app.data_operations.differences_dialog import DifferencesDialog
 from app.data_operations.impact_dialog import ImpactDialog
 

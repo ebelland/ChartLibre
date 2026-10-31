@@ -41,7 +41,7 @@ from PySide6.QtWidgets import (
 from app.analysis import linear_model as lm
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam
-from app.plugin_api.table_operations.column_roles import (
+from app.plugin_api.data_operations.column_roles import (
     CATEGORICAL,
     CONTINUOUS,
     NOMINAL,

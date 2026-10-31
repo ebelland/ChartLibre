@@ -15,8 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.plugin_api.table_operations.column_roles import NOMINAL, ORDINAL
-from app.plugin_api.table_operations.table_profile import TableProfile
+from app.plugin_api.data_operations.column_roles import NOMINAL, ORDINAL
+from app.plugin_api.data_operations.table_profile import TableProfile
 from app.utils.i18n import _
 
 #: The most charts and questions offered for a choice of columns.

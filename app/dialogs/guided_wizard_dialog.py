@@ -39,9 +39,9 @@ from PySide6.QtWidgets import (
 from app.analysis import catalog
 from app.analysis.catalog import CatalogEntry
 from app.dialogs.two_panels_dialog_base import PanelDialog
-from app.plugin_api.table_operations import guided_plan, table_profile
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL
-from app.plugin_api.table_operations.table_profile import TableProfile
+from app.plugin_api.data_operations import guided_plan, table_profile
+from app.plugin_api.data_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL
+from app.plugin_api.data_operations.table_profile import TableProfile
 from app.styles.style import CardFrame, TitledCard, load_icon, mark_editor_panel
 from app.utils.config import get_section, set_section
 from app.utils.i18n import _

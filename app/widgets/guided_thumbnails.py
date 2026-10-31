@@ -15,7 +15,7 @@ from matplotlib.figure import Figure
 from PySide6.QtGui import QPixmap
 
 from app.logs.logger import applogger
-from app.plugin_api.table_operations.guided_plan import COUNT, ChartIdea
+from app.plugin_api.data_operations.guided_plan import COUNT, ChartIdea
 
 #: The thumbnail's size, in pixels.
 WIDTH, HEIGHT = 176, 120

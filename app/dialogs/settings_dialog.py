@@ -224,7 +224,7 @@ class SettingsDialog(PanelDialog):
 
         # Every report's "How to read this" box (H-04): on for a new install - students first.
         from app.plugin_api import reading_guide
-        from app.plugin_api.table_operations import next_steps
+        from app.plugin_api.data_operations import next_steps
 
         form = self._section(tr("Reports"), forms)
         self._how_to_read_check = QCheckBox(tr("A \"How to read this\" box in every report"), card)
@@ -502,7 +502,7 @@ class SettingsDialog(PanelDialog):
         set_value(DEFAULT_MPL_STYLE_KEY, self._value(self._mpl_style_combo))
         set_value(SQL_GUARD_KEY, bool(self._sql_guard_check.isChecked()))
         from app.plugin_api import reading_guide
-        from app.plugin_api.table_operations import next_steps
+        from app.plugin_api.data_operations import next_steps
 
         set_value(reading_guide.SETTING_KEY, bool(self._how_to_read_check.isChecked()))
         set_value(next_steps.SETTING_KEY, bool(self._what_next_check.isChecked()))

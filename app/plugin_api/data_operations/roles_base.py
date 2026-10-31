@@ -50,8 +50,8 @@ from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, 
 from app.plugin_api.data_operations.parameter_form import ParameterForm
 from app.plugin_api.data_operations.parameter_spec import BoolParam, Param
 from app.plugin_api.operation_panels import merged_values
-from app.plugin_api.table_operations import chart_source, next_steps
-from app.plugin_api.table_operations.column_roles import (
+from app.plugin_api.data_operations import chart_source, next_steps
+from app.plugin_api.data_operations.column_roles import (
     CONTINUOUS,
     ColumnCasting,
     ColumnRole,

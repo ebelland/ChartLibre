@@ -194,7 +194,7 @@ def _demo(builder: str) -> DemoProject:
 
 def _chart(repo: SqliteRepo, table: str, columns: list[str], index: int) -> None:
     """The chart Help me choose offers *index*-th for *columns*, made as Create chart makes it."""
-    from app.plugin_api.table_operations import guided_plan, table_profile
+    from app.plugin_api.data_operations import guided_plan, table_profile
 
     frame = repo.table_frame(table).drop(columns=["Hide", "Selected"], errors="ignore")
     declared = {str(row[1]): str(row[2] or "") for row in repo.table_info(table)}

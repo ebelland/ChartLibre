@@ -25,7 +25,7 @@ from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from app.plugin_api.data_operations.dialog_base.data import _xy_columns
 from app.plugin_api.data_operations.results import OperationResult
-from app.plugin_api.table_operations.next_steps import NextStep, other_columns
+from app.plugin_api.data_operations.next_steps import NextStep, other_columns
 from app.plugin_api.data_operations.quick_answer import answer_html
 from app.utils import report_html
 from app.utils.i18n import _

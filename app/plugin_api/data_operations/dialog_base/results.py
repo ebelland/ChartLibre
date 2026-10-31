@@ -13,7 +13,7 @@ from app.data.repo.operations import OPERATIONS_TABLE
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base.common import generated_table_name
 from app.plugin_api.data_operations.results import OperationResult
-from app.plugin_api.table_operations import next_steps
+from app.plugin_api.data_operations import next_steps
 from app.utils.coercion import to_numeric_axis
 from app.utils.dialog_state import dialog_entries
 from app.utils.messages import show_message

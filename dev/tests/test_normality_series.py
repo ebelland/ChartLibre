@@ -11,7 +11,7 @@ from app.data_operations.normality_dialog import (
     source_column,
     source_table,
 )
-from app.plugin_api.table_operations import next_steps
+from app.plugin_api.data_operations import next_steps
 
 
 @pytest.fixture

@@ -33,7 +33,7 @@ from app.plugin_api.data_operations.dialog_base.data import DataMixin
 from app.plugin_api.data_operations.dialog_base.results import ResultsMixin
 from app.plugin_api.data_operations.dialog_base.ui import WindowMixin
 from app.plugin_api.data_operations.parameter_spec import Param
-from app.plugin_api.table_operations import next_steps
+from app.plugin_api.data_operations import next_steps
 from app.styles.style import icon_from_svg_source, set_doc_link
 from app.utils.dialog_state import dialog_entries, set_dialog_entries
 from app.utils.i18n import _

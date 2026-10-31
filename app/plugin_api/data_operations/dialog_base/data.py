@@ -21,7 +21,7 @@ from app.plugin_api.data_operations.dialog_base.common import (
     SeriesOutcome,
     generated_table_name,
 )
-from app.plugin_api.table_operations import next_steps
+from app.plugin_api.data_operations import next_steps
 from app.utils import report_html
 from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
 from app.utils.i18n import _

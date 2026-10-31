@@ -95,3 +95,16 @@ def test_a_loaded_operation_marks_its_series_with_keys_from_its_file(qapp) -> No
     fit = next(op for op in data_operations if op["value"] == "Fit Curve")
     cls = import_class_from_file(fit)
     assert cls.generated_style_filter.fget(cls.__new__(cls)) == {"generated_fit": True, "fit_dialog": "series_fit"}
+
+
+def test_a_plugin_written_for_the_old_paths_still_imports() -> None:
+    """The user's own plugins import the table operations' bases and helpers by their old names."""
+    import importlib
+
+    for old, new in (
+        ("app.table_operations.dialog_base", "app.plugin_api.data_operations.roles_base"),
+        ("app.plugin_api.table_operations.column_roles", "app.plugin_api.data_operations.column_roles"),
+        ("app.table_operations.next_steps", "app.plugin_api.data_operations.next_steps"),
+        ("app.data_operations.dialog_base.common", "app.plugin_api.data_operations.dialog_base.common"),
+    ):
+        assert importlib.import_module(old) is importlib.import_module(new), old

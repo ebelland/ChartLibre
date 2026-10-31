@@ -21,8 +21,8 @@ from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 from app.analysis import catalog
 from app.analysis.catalog import CatalogEntry
 from app.logs.logger import applogger
-from app.plugin_api.table_operations import table_profile
-from app.plugin_api.table_operations.table_profile import TableProfile
+from app.plugin_api.data_operations import table_profile
+from app.plugin_api.data_operations.table_profile import TableProfile
 from app.utils.i18n import _
 from app.widgets.catalog_search import entry_icon
 from app.widgets.nav_bar import NavPanel

@@ -15,10 +15,10 @@ import pandas as pd
 
 from app.analysis import in_control as ic
 from app.analysis.change import ROW_ORDER
-from app.plugin_api.table_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.data_operations.column_roles import CONTINUOUS, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.quick_answer import QuickAnswerDialogBase
-from app.plugin_api.table_operations.next_steps import NextStep
+from app.plugin_api.data_operations.next_steps import NextStep
 from app.utils.i18n import _
 
 

@@ -88,7 +88,7 @@ def _open_link(pane: object, url: str) -> None:
     Handed on from the event loop, not from inside Chromium's navigation
     callback: what it opens - a dialog, its event loop - must not run there.
     """
-    from app.plugin_api.table_operations.next_steps import is_step_url
+    from app.plugin_api.data_operations.next_steps import is_step_url
 
     if not is_step_url(url):
         QDesktopServices.openUrl(QUrl(url))
@@ -195,7 +195,7 @@ class HtmlResultsView(QWidget):
     """Reusable HTML results pane with Copy-as-HTML support."""
 
     clear_requested = Signal()
-    #: A "What next?" link (app.plugin_api.table_operations.next_steps) was clicked.
+    #: A "What next?" link (app.plugin_api.data_operations.next_steps) was clicked.
     link_requested = Signal(str)
     # Also on the class: the filter can be called on a pane whose attributes the collector has
     # already cleared (a closed window not deleted yet).
