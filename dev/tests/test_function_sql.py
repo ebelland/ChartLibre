@@ -174,6 +174,24 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
         dialog.close()
 
 
+def test_new_chart_refuses_a_function_with_an_invalid_parameter_value(qapp, repo: SqliteRepo) -> None:
+    """The inline error in Function's Parameters must also stop Create."""
+    from app.dialogs.create_chart_dialog import NewPlotTabDialog
+
+    sympy_store.save(repo, {"function_name": "Line", "source_type": "expression", "symbols": "a",
+                            "code_string": "a*x", "values": {"a": 1.0}})
+    dialog = NewPlotTabDialog(repo, current_table="Line")
+    try:
+        dialog._function_panel.symbols.setText("a=")
+        assert dialog._function_panel.problem() == "a needs its value: a=1."
+
+        dialog._on_accept()
+
+        assert dialog.chart_result is None
+    finally:
+        dialog.close()
+
+
 def test_a_chart_of_an_untrusted_function_says_so_and_draws_once_trusted(qapp, repo: SqliteRepo, monkeypatch) -> None:
     from app.data.repo.function_sql import function_names
     from app.dialogs.function_trust_dialog import FunctionTrustDialog

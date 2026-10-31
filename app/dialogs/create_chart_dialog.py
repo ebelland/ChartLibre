@@ -1473,6 +1473,13 @@ class NewPlotTabDialog(ColumnsDialog):
     def _on_accept(self) -> None:
         """Validate and persist the figure/axis/series descriptors."""
         self._persist_editor_to_draft()
+        # The generated SQL can still be formed with a stored value while the Function panel's free-form
+        # assignments are invalid.  Do not let that silent fallback create a chart different from the one shown.
+        if self._function_data is not None:
+            problem = self._function_panel.problem()
+            if problem:
+                self._function_panel.symbols.setFocus()
+                return
         chart_type = self._selected_chart_type()
 
         drafts = self._ordered_drafts()
