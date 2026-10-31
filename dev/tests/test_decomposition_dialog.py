@@ -77,6 +77,20 @@ def test_pca_recovers_the_shared_signal_as_the_first_component(
     assert ratios[0] > 0.5
 
 
+def test_the_report_explains_the_variance_the_first_components_carry(
+    qapp, repo: SqliteRepo, correlated_figure
+) -> None:
+    """ID10: the decomposition report has its "How to read this" box."""
+    figure_id, _axis_id = correlated_figure
+    dialog = _dialog(repo, figure_id)
+    dialog.model_combo.setCurrentText(DECOMP_PCA)
+
+    results = dialog.compute_results()
+    report = dialog.results_report(results)
+
+    assert "How to read this" in report and "of the variation of the" in report
+
+
 # ----------------------------------------------------------------------
 # Manifold learning
 # ----------------------------------------------------------------------

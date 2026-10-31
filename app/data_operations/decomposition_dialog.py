@@ -37,6 +37,7 @@ from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     generated_table_name,
 )
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.parameter_spec import FloatParam, IntParam
 from app.utils import report_html
 from app.utils.i18n import _
@@ -434,3 +435,12 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
             )
 
         return self.results_document(result.model, *sections)
+
+    def how_to_read(self, results: Sequence[DecompositionResult]) -> list[str]:
+        result = results[0]
+        if result.kind == "manifold":
+            return [reading_guide.embedding(series=len(result.source_names))]
+        ratios = result.metadata.get("explained_variance_ratio") or []
+        count = min(2, len(ratios))
+        return [reading_guide.variance_share(sum(ratios[:count]) * 100.0, count=count,
+                                             series=len(result.source_names))]

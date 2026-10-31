@@ -284,6 +284,23 @@ def components(percent: Any, *, count: int, columns: int, kept: Any) -> str:
         count=count, percent=round(value), columns=columns, kept=int(above_one) if above_one is not None else "-")
 
 
+def variance_share(percent: Any, *, count: int, series: int) -> str:
+    """A decomposition of series (PCA, ICA...): how much of their variation its first components carry."""
+    value = _number(percent)
+    if value is None or not count:
+        return ""
+    return _("The first {count} component(s) carry {percent}% of the variation of the {series} series: drawn, "
+             "they show most of what the series hold. A component that adds only a few percent is mostly "
+             "noise.").format(count=count, percent=round(value), series=series)
+
+
+def embedding(*, series: int) -> str:
+    """A manifold embedding: the map keeps who is near whom, not the distances or the axes' units."""
+    return _("Each point is one sample of the {series} series, placed so that samples alike are near each other. "
+             "Read the groups and the paths the points draw: the axes have no unit, and far-apart distances "
+             "say little.").format(series=series)
+
+
 def silhouette(value: Any, *, clusters: Any) -> str:
     number, k = _number(value), _number(clusters)
     if number is None or k is None:
