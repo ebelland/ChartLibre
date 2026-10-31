@@ -30,9 +30,12 @@ own pages through input_pages) and its _run_operation: compute(frame, casting, p
 apply_results inside the preview's savepoint, or for good with its undo step and history record.
 The plugins' contract (compute, report_body, apply_results, build_extra_inputs) is unchanged.
 
-STAGE 3 - EACH ANALYSIS AS A SERIES OPERATION WHERE IT IS ONE
-The analyses of one measure along x (In control, Time Series) read a series as Change does; the others keep
-their roles.
+STAGE 3 - EACH ANALYSIS AS A SERIES OPERATION WHERE IT IS ONE (done)
+Is it in control? reads each series as Has it changed over time? does: its x orders the values, its y is the
+measure; the limits and the signals are drawn as values, no table is written (the line drawing is shared in
+quick_answer: points_query, measured_query). A table's column still opens it ("What next?" from Is it normal?),
+read as its series. Time Series keeps its roles: its X input and its intervention are columns of a table, and
+"Data from: Chart" already reads a chart's series for it, as for every analysis on roles.
 
 RISKS
 - Remembered dialog state (user.json) is keyed by class name: names kept.

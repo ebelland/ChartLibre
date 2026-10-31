@@ -8,10 +8,8 @@ app.analysis.change.
 """
 from __future__ import annotations
 
-import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 import numpy as np
@@ -26,30 +24,12 @@ from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from app.plugin_api.data_operations.dialog_base.data import _xy_columns
 from app.plugin_api.data_operations.results import OperationResult
 from app.plugin_api.data_operations.next_steps import NextStep, other_columns
-from app.plugin_api.data_operations.quick_answer import answer_html
+from app.plugin_api.data_operations.quick_answer import answer_html, measured_query, points_query
 from app.utils import report_html
 from app.utils.i18n import _
 
 #: The time column the test reads: a column of the series' own, never a name a measure can take.
 _TIME = "_time"
-
-
-def _quoted(name: str) -> str:
-    return '"' + name.replace('"', '""') + '"'
-
-
-def _literal(value: Any) -> str:
-    """A value as SQL: a number, a date or a text, or NULL when it is missing."""
-    if isinstance(value, (pd.Timestamp, datetime, np.datetime64)):
-        return "'" + pd.Timestamp(value).isoformat(sep=" ").replace("'", "''") + "'"
-    if isinstance(value, (int, float, np.number)) and not isinstance(value, bool):
-        return repr(float(value)) if math.isfinite(float(value)) else "NULL"
-    return "'" + str(value).replace("'", "''") + "'"
-
-
-def _points_query(points: Sequence[tuple[Any, Any]]) -> str:
-    """The points as a query of x and y: the line a trend or a median draws between its ends."""
-    return " UNION ALL ".join(f"SELECT {_literal(x)} AS x, {_literal(y)} AS y" for x, y in points)
 
 
 @dataclass(slots=True)
@@ -79,12 +59,12 @@ class ChangeSeriesResult(OperationResult):
     def draw(self, dialog: ChangeDialog) -> None:
         """The measure over time, with its trend line or the two medians, in a figure of its own."""
         name = self.source_name
-        measured = f"SELECT {_quoted(self.x_column)} AS x, {_quoted(self.y_column)} AS y FROM ({self.query})"
+        measured = measured_query(self.query, self.x_column, self.y_column)
         series = [(name, measured, {"x": "x", "y": "y"}, {"linestyle": "-", "marker": "o"})]
         frame = self.answer.series
         if self.answer.shape == "drift":
             ends = frame.iloc[[0, -1]]
-            series.append((_("Trend"), _points_query(list(zip(ends["Order"], ends["Trend"], strict=True))),
+            series.append((_("Trend"), points_query(list(zip(ends["Order"], ends["Trend"], strict=True))),
                            {"x": "x", "y": "y"}, {"linestyle": "--", "marker": "", "color": "#d62728"}))
         elif self.answer.shape == "step":
             for segment, label in (("Before", _("Before")), ("After", _("After"))):
@@ -93,7 +73,7 @@ class ChangeSeriesResult(OperationResult):
                     continue
                 points = [(part["Order"].iloc[0], part["Segment median"].iloc[0]),
                           (part["Order"].iloc[-1], part["Segment median"].iloc[-1])]
-                series.append((label, _points_query(points), {"x": "x", "y": "y"},
+                series.append((label, points_query(points), {"x": "x", "y": "y"},
                                {"linestyle": "-", "marker": "", "color": "#d62728", "linewidth": 2}))
         options: dict[str, Any] = {"show_rolling": False}
         if self.answer.temporal:

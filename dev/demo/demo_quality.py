@@ -29,7 +29,7 @@ import pandas as pd
 
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject
 from app.data.sqlite_repo import SqliteRepo
-from dev.demo.demo_questions import _ask
+from dev.demo.demo_questions import _ask, _ask_figure
 
 
 def _demo() -> DemoProject:
@@ -104,8 +104,8 @@ def build_quality_demo(directory: Path = DEMO_DIR) -> Path:
         _ask(app, repo, "app.data_operations.gage_dialog:GageDialog", "gauge_study",
              {"response": ["diameter_mm"], "part": ["part"], "operator": ["operator"]},
              params={"tolerance": "0.4"}, kinds={"part": "nominal", "operator": "nominal"})
-        _ask(app, repo, "app.data_operations.in_control_dialog:InControlDialog", "roughness",
-             {"response": ["ra_um"], "time": ["day"]})
+        _ask_figure(app, repo, "app.data_operations.in_control_dialog:InControlDialog", "roughness",
+                    x="day", y="ra_um")
         _control_chart_with_capability(app, repo)
         _ask(app, repo, "app.data_operations.vector_field_dialog:VectorFieldDialog", "vortex",
              {"x": ["x"], "y": ["y"], "u": ["u"], "v": ["v"]})

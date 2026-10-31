@@ -56,12 +56,12 @@ def test_the_dialog_renames_casts_and_describes_in_one_undo_step(qapp, repo: Sql
 
 
 def test_an_analysis_takes_the_forced_type_and_the_missing_codes(qapp, repo: SqliteRepo) -> None:
-    from app.data_operations.in_control_dialog import InControlDialog
+    from app.data_operations.time_series_dialog import TimeSeriesDialog
 
     repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
     cm.set_column_info(repo, "survey", "score", cm.ColumnInfo(missing=["-999"]))
     cm.set_column_info(repo, "survey", "sex", cm.ColumnInfo(kind="nominal", value_labels={"1": "m", "2": "f"}))
-    dialog = InControlDialog(repo=repo, table="survey")
+    dialog = TimeSeriesDialog(repo=repo, table="survey")
     try:
         assert dialog._frame["score"].isna().sum() == 2
         assert set(dialog._frame["sex"]) == {"m", "f"}

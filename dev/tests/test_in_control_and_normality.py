@@ -1,8 +1,6 @@
 """Quick answers "Is it in control?" and "Is it normal?": a stable and a shifted process, a normal and a skewed sample."""
 from __future__ import annotations
 
-import time
-
 import numpy as np
 import pandas as pd
 
@@ -37,25 +35,34 @@ def test_a_normal_sample_is_normal_and_a_skewed_one_is_named_skewed() -> None:
     assert np.all(np.diff(skewed.qq["Sample"]) >= 0) and len(skewed.qq) == 200
 
 
-def _run(qapp, dialog) -> None:
-    dialog.ok()
-    deadline = time.monotonic() + 30
-    while dialog.job_running and time.monotonic() < deadline:
-        qapp.processEvents()
-        time.sleep(0.01)
-
-
-def test_in_control_draws_its_chart(qapp, repo: SqliteRepo) -> None:
+def test_in_control_draws_its_chart_and_writes_no_table(qapp, repo: SqliteRepo) -> None:
     from app.data_operations.in_control_dialog import InControlDialog
 
     repo.import_dataframe(pd.DataFrame({"giorno": DAYS, "y": SHIFTED}), table_name="line", normalize_columns=False)
-    dialog = InControlDialog(repo=repo, table="line")
+    figure_id = int(repo.create_figure_descriptor(name="Line"))
+    axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Scatter Plot",
+                                              title="line", x_label="giorno", y_label="y", options={}))
+    repo.create_series_descriptor(axis_id=axis_id, series_index=0, name="Line",
+                                  sql_query='SELECT giorno AS x, y AS y FROM "line"', roles={"x": "x", "y": "y"},
+                                  style={})
+    dialog = InControlDialog(repo=repo, figure_id=figure_id)
     try:
-        dialog.roles_widget.set_casting({"response": ["y"], "time": ["giorno"]})
-        assert not dialog.problems()
-        _run(qapp, dialog)
-        assert not repo.table_frame("_line_control").empty
+        (result,) = dialog.compute_results()
+        assert result.answer.verdict == NO and result.answer.temporal
+        dialog.ok()
+        assert set(repo.list_user_tables()["Table"]) == {"line"}
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Time Series"]
+        assert [series.name for series in figure.axes[0].series] == ["UCL", "LCL", "CL", "Line", "Signals"]
+        from matplotlib.figure import Figure
+
+        from app.plugin_api.charts.render_figure import render_figure_from_descriptor
+
+        drawn = Figure()
+        render_figure_from_descriptor(figure=drawn, descriptor=figure, repo=repo)
+        assert len(drawn.axes[0].lines) >= 5
+        steps = dialog.next_steps(result)
+        assert [step.operation for step in steps] == ["Has it changed over time?", "Is it normal?"]
+        assert steps[0].table == "line" and steps[0].roles == {"response": ["y"], "time": ["giorno"]}
     finally:
         dialog.close()

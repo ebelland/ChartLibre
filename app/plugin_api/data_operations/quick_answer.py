@@ -13,8 +13,12 @@ panel finds the plugins by reading their source, not by importing them.
 from __future__ import annotations
 
 import html
+import math
+from collections.abc import Sequence
+from datetime import datetime
 from typing import Any, ClassVar
 
+import numpy as np
 import pandas as pd
 
 from app.analysis import answers
@@ -33,6 +37,31 @@ def answer_html(answer: answers.Answer) -> str:
     colour = "#1a7f37" if answer.verdict == answers.YES else "#57606a"
     head = f"<p style='font-size:125%; color:{colour}'><b>{html.escape(lines[0])}</b></p>"
     return head + "".join(f"<p>{html.escape(line)}</p>" for line in lines[1:])
+
+
+def quoted(name: str) -> str:
+    """*name* as an SQL identifier."""
+    return '"' + str(name).replace('"', '""') + '"'
+
+
+def literal(value: Any) -> str:
+    """A value as SQL: a number, a date or a text, or NULL when it is missing."""
+    if isinstance(value, (pd.Timestamp, datetime, np.datetime64)):
+        return "'" + pd.Timestamp(value).isoformat(sep=" ").replace("'", "''") + "'"
+    if isinstance(value, (int, float, np.number)) and not isinstance(value, bool):
+        return repr(float(value)) if math.isfinite(float(value)) else "NULL"
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def points_query(points: Sequence[tuple[Any, Any]]) -> str:
+    """The points as a query of x and y, written as values: the lines and marks a quick answer on a series
+    draws (a trend, a median, a control limit) need no table of their own."""
+    return " UNION ALL ".join(f"SELECT {literal(x)} AS x, {literal(y)} AS y" for x, y in points)
+
+
+def measured_query(query: str, x_column: str, y_column: str) -> str:
+    """A series' own values, its time as x and its measure as y."""
+    return f"SELECT {quoted(x_column)} AS x, {quoted(y_column)} AS y FROM ({query})"
 
 
 class QuickAnswerDialogBase(RolesOperationDialogBase):
