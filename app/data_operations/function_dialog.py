@@ -173,7 +173,6 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         self._scanner = FunctionScanner()
         self._surface_scanner = SurfaceFunctionScanner()
         self._selected_function: dict[str, Any] = {}
-        self._range_widget: QWidget | None = None
         super().__init__(**kwargs)
         self.axis_series_panel.setVisible(False)
         self._reload_function_tree()

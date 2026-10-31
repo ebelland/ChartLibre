@@ -13,7 +13,7 @@ series and the parameter table, and lays the result out.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, Callable
+from typing import Any
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -151,7 +151,6 @@ class SeriesFitDialog(GlobalFitMixin, ModelDataMixin, FitRunMixin, StartingPoint
         build_parameter_selector() during super().__init__().  Therefore every
         widget used by those builders must be created here.
         """
-        self._applied_callback: Callable[[], None] | None = None
         self._selected_model: dict[str, Any] = {}
         self._function_scanner = FunctionScanner()
         # Surface (z = f(x, y)) functions live in a second scanner rather

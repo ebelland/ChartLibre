@@ -459,18 +459,6 @@ class SeriesPropertiesWidget(BaseProperties):
 
         raw_layout.addLayout(form, 0)
 
-        # Important:
-        # If you have self.series_list in your real code, add it here,
-        # outside the QFormLayout, with stretch 1.
-        #
-        # self.series_list.setMinimumHeight(0)
-        # self.series_list.setMaximumHeight(16777215)
-        # self.series_list.setSizePolicy(
-        #     QSizePolicy.Policy.Expanding,
-        #     QSizePolicy.Policy.Expanding,
-        # )
-        # layout.addWidget(self.series_list, 1)
-
         return section
 
     # ------------------------------------------------------------------

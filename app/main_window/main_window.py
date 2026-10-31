@@ -519,7 +519,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         tab_bar.setUsesScrollButtons(True)
         tab_bar.setExpanding(False)
         tab_bar.setElideMode(Qt.TextElideMode.ElideNone)
-        #tab_bar.setExpanding(False)
         
         # Without this the bar still asks for the full width of every title.
         tab_bar.setMinimumWidth(300)

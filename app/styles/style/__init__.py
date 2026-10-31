@@ -101,7 +101,6 @@ from app.styles.style.icons import (  # noqa: F401
     substitute_ui_font,
     svg_icon_document,
     symbol_icon,
-    theme_icon_is_available,
     ui_font_family,
 )
 from app.styles.style.themes import (  # noqa: F401

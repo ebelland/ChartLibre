@@ -16,7 +16,6 @@ from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QP
 from PySide6.QtGui import QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu
 from app.data import column_metadata
-from app.data.data_source import quote_identifier as _quote_table
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.utils.config import get_constant
@@ -680,7 +679,6 @@ class LazyTableModel(QAbstractTableModel):
         super().__init__(parent)
         self._repo = repo
         self._table = table
-        self._table_q = _quote_table(table)
         self._columns: list[str] = []
         self._codes: list[str] = []
         self._formats: list[column_metadata.ColumnInfo | None] = []

@@ -407,11 +407,6 @@ def _create_theme_icon(name: str | None) -> QIcon:
     return icon
 
 
-def theme_icon_is_available(name: str | None) -> bool:
-    """True when the running desktop can actually supply this icon."""
-    return not _create_theme_icon(name).isNull()
-
-
 def _create_fluent_icon(
     glyph: str,
     *,
