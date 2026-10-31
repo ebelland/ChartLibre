@@ -479,14 +479,9 @@ class DatabasePragmaInfo:
     file_modified: datetime | None = None
 
     @property
-    def size_bytes(self) -> int:
-        """The database file's logical size - page_size x page_count."""
-        return self.page_size * self.page_count
-
-    @property
     def reclaimable_bytes(self) -> int:
-        """What VACUUM would free - the free pages already counted in
-        size_bytes but holding nothing live."""
+        """What VACUUM would free - the free pages, counted in the
+        file's size but holding nothing live."""
         return self.page_size * self.freelist_count
 
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 import sqlite3
 
 import numpy as np
-import pytest
 from scipy.spatial.transform import Rotation
 
 from app.analysis import geometry as g

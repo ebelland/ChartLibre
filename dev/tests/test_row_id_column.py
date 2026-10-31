@@ -93,7 +93,6 @@ def test_a_table_saved_from_a_query_or_a_grouping_has_its_row_ids(tmp_path: Path
 
 
 def test_a_series_query_selects_the_row_id_and_the_renderers_never_see_it(tmp_path: Path) -> None:
-    from app.data.descriptors import AxisDescriptor
     from app.plugin_api.charts.render_figure import _build_series_data_list
 
     repo = SqliteRepo(db_path=tmp_path / "p.dhub")

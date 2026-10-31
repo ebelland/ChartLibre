@@ -8,7 +8,6 @@ and teaches people to distrust it.
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from app.utils.series_validation import DUPLICATE_X, EMPTY, LENGTH_MISMATCH, UNSORTED_X, clean_xy, errors, validate_xy
 from dev.tests._cases import check_all

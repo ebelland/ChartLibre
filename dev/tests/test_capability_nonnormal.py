@@ -31,7 +31,6 @@ def test_normal_stays_the_default_and_a_negative_value_refuses_a_lognormal() -> 
 
 
 def test_the_control_chart_reports_a_lognormal_capability(qapp, repo) -> None:
-    import time
 
     import pandas as pd
 

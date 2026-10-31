@@ -50,7 +50,6 @@ from app.styles.style.catalogue import (  # noqa: F401
     action_menu_item,
 )
 from app.styles.style.icons import (  # noqa: F401
-    ICON_SOURCES,
     QSS_SYMBOLS,
     SVG_ICON_DOCUMENT,
     SYMBOL_INK_DARK,
@@ -98,7 +97,6 @@ from app.styles.style.icons import (  # noqa: F401
     ensure_icon_theme,
     icon_from_action_spec,
     icon_from_svg_source,
-    icon_source_for_action,
     load_icon,
     substitute_ui_font,
     svg_icon_document,

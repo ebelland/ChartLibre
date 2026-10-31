@@ -1,4 +1,6 @@
-"""The quick answers' base: a question answered in words - "Are there differences?", "Is it normal?"...
+"""The quick answers on a table's columns: a question answered in words - "Are there differences?", "What has
+the most impact?" (those on one series - "Is it normal?", "Has it changed over time?", "Is it in control?" - are
+data operations, and draw their lines with points_query and measured_query).
 
 Each picks its test itself and opens its report with the answer in a
 sentence (answer_html), then what the answer rests on. They share all but

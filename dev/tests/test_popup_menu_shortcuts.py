@@ -1,7 +1,6 @@
 """Off macOS the app menu is a popup: its shortcuts are carried by the window (UI-07)."""
 from __future__ import annotations
 
-import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.main_window import main_menus

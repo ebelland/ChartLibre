@@ -1,7 +1,6 @@
 """Heatmap clustered (G-14): rows and columns reordered so alike ones sit together, the trees beside them."""
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
 

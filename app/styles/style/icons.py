@@ -1066,39 +1066,6 @@ def icon_from_action_spec(spec: "ActionSpec") -> QIcon:
     return QIcon()
 
 
-#: Which backend answered for an action, in the order they are tried.
-ICON_SOURCES: tuple[str, ...] = ("svg", "sf_symbol", "segoe_fluent", "theme", "none")
-
-
-def icon_source_for_action(spec: "ActionSpec") -> str:
-    """Return which backend :func:`icon_from_action_spec` would use.
-
-    The same chain, asked rather than drawn. Kept beside it deliberately: two
-    implementations of one priority order would drift, and the whole point of
-    this is to be able to trust the answer.
-    """
-    if spec.svg and not icon_from_svg_source(spec.svg).isNull():
-        return "svg"
-
-    if _IS_MACOS and spec.sf_symbol and not _create_sf_symbol_icon(spec.sf_symbol).isNull():
-        return "sf_symbol"
-
-    if (
-        _IS_WINDOWS
-        and spec.segoe_fluent
-        and _is_fluent_glyph(spec.segoe_fluent)
-        and not _create_fluent_icon(spec.segoe_fluent, color=_symbol_tint()).isNull()
-    ):
-        return "segoe_fluent"
-
-    if any(
-        theme_icon_is_available(name) for name in _theme_icon_names(spec.theme_icon)
-    ):
-        return "theme"
-
-    return "none"
-
-
 def load_icon(icon: str | None) -> QIcon:
     """Return an icon for an action id, a Fluent glyph, or a theme name.
 

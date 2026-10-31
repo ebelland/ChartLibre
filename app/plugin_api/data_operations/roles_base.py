@@ -724,6 +724,3 @@ class RolesOperationDialogBase(DataOperationDialogBase):
     def discard_unapplied(self) -> None:
         self._discard_preview()
 
-
-#: The name this base had while the table operations were an engine of their own.
-TableOperationDialogBase = RolesOperationDialogBase

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QPushButton
 
 from app.analysis import catalog
 from app.scanners.axis_renderer_scanner import renderers

@@ -8,9 +8,7 @@ imported/exported as text files.
 from __future__ import annotations
 
 import ast
-import inspect
 import json
-import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Callable, cast
@@ -22,13 +20,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QMenu,
     QComboBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
-    QLineEdit, QMessageBox, QPushButton, QPlainTextEdit, QSizePolicy, QTableWidget,
+    QMessageBox, QPushButton, QSizePolicy, QTableWidget,
     QTableWidgetItem, QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
     QWidget,
 )
 
 from app.analysis.function_plot import (
-    SPACING_LINEAR, SPACING_LOG, build_range, evaluate_curve, evaluate_surface,
+    SPACING_LINEAR, SPACING_LOG, build_range, evaluate_curve,
 )
 from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
 from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
@@ -96,19 +94,6 @@ class FunctionResult(TableResult):
         if self.z is not None:
             return pd.DataFrame({"x": self.x, "y": self.y, "z": self.z})
         return pd.DataFrame({"x": self.x, "y": self.y})
-
-
-class _CallableModel:
-    """Small adapter matching the callable shape expected by evaluate_curve."""
-    def __init__(self, func: Callable[..., Any]):
-        self._func = func
-
-    def __call__(self, x: np.ndarray, *params: float) -> Any:
-        return self._func(x, *params)
-
-    # Some evaluators use eval() rather than __call__().
-    def eval(self, x: np.ndarray, *params: float) -> Any:
-        return self._func(x, *params)
 
 
 #: Function's surface charts, each as the renderer that draws it and that axis's options.
@@ -567,10 +552,6 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         defaults = [float(v) for v in (payload.get("p0") or [])]
         defaults += [1.0] * max(0, len(names) - len(defaults))
         self._set_param_rows(names, defaults)
-
-    def _rebuild_param_names(self, names: list[str]) -> None:
-        old, vals = self._function_params(); previous = dict(zip(old, vals.tolist()))
-        self._set_param_rows(names, [previous.get(n, 1.0) for n in names])
 
     def _set_param_rows(self, names: list[str], values: list[float]) -> None:
         self._params_table.blockSignals(True)
