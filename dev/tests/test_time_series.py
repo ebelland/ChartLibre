@@ -195,3 +195,43 @@ def test_prewhitening_removes_a_spurious_correlation() -> None:
     result = ts.analyse(pd.DataFrame({"a": first, "b": second}), "a", model=ts.NONE, input="b")
     assert result.cross["CCF"].abs().max() > 0.3  # two walks look related...
     assert result.cross["Prewhitened CCF"].abs().max() < 0.2  # ...until each is whitened
+
+
+def _led_by_x() -> pd.DataFrame:
+    """y follows x one step later; x drives, y does not drive x."""
+    rng = np.random.default_rng(0)
+    n = 150
+    x = np.cumsum(rng.normal(size=n))
+    y = np.r_[0.0, 0.8 * x[:-1]] + rng.normal(0, 0.5, n)
+    return pd.DataFrame({"y": y, "x": x, "t": np.arange(n)})
+
+
+def test_granger_finds_that_x_drives_y_and_not_the_other_way() -> None:
+    """ID25: a VAR of the two, differenced as the stationarity tests ask, each direction tested."""
+    result = ts.analyse(_led_by_x(), "y", "t", model=ts.NONE, input="x")
+    table = result.granger.set_index("Direction")
+    assert table.loc["x → y", "Prob>F"] < 1e-6 and table.loc["y → x", "Prob>F"] > 0.05
+
+
+def test_the_state_space_model_forecasts_a_trend_with_its_band() -> None:
+    rng = np.random.default_rng(2)
+    n = 80
+    frame = pd.DataFrame({"y": 2.0 + 0.5 * np.arange(n) + rng.normal(0, 0.3, n)})
+    result = ts.analyse(frame, "y", model=ts.STATE_SPACE, horizon=10)
+    assert result.summary["Model"] == "State space (local linear trend)"
+    forecast = result.forecast["Forecast"].to_numpy()
+    np.testing.assert_allclose(np.diff(forecast), 0.5, atol=0.05)  # the slope carried on
+    assert (result.forecast["Upper 95%"] > forecast).all()
+
+
+def test_rolling_origin_validation_compares_the_model_with_the_naive_forecast() -> None:
+    """An AR(1) with a strong pull to its mean: one step ahead, the model beats the last value."""
+    rng = np.random.default_rng(5)
+    y = np.zeros(200)
+    for i in range(1, 200):
+        y[i] = 0.3 * y[i - 1] + rng.normal()
+    result = ts.analyse(pd.DataFrame({"y": y}), "y", model=ts.ARIMA, order=(1, 0, 0), validate=True)
+    table = result.validation.set_index("Method")
+    assert table.loc["Model", "Forecasts"] == ts.VALIDATION_ORIGINS
+    assert table.loc["Model", "Relative to naive"] < 0.95
+    assert result.summary["Rolling-origin RMSE relative to naive"] == table.loc["Model", "Relative to naive"]

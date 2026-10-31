@@ -157,13 +157,16 @@ def test_the_arrows_go_through_the_columns_saving_each_on_the_way(qapp, repo: Sq
     try:
         assert not dialog.previous_button.isEnabled() and dialog.next_button.isEnabled()
         assert dialog.position.text() == f"Column 1 of {len(columns)}"
-        undo_steps = len(repo.undo_entries())
+        def last_step() -> int:  # the store keeps its last few steps: compared by the newest one's id, not a count
+            return max((entry.entry_id for entry in repo.undo_entries()), default=0)
+
+        before = last_step()
         dialog._go(1)  # nothing changed: nothing saved
-        assert dialog.name.text() == columns[1] and len(repo.undo_entries()) == undo_steps
+        assert dialog.name.text() == columns[1] and last_step() == before
         dialog.unit.setText("pts")
         dialog._go(-1)
         assert dialog.name.text() == columns[0] and cm.column_info(repo, "survey")[columns[1]].unit == "pts"
-        assert len(repo.undo_entries()) == undo_steps + 1
+        assert last_step() > before and repo.undo_entries()[0].label.startswith("Column Info of")
         for _step in columns[1:]:
             dialog._go(1)
         assert dialog.name.text() == columns[-1] and not dialog.next_button.isEnabled()

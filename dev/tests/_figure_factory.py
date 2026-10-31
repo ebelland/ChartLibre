@@ -52,6 +52,7 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Scatter Plot (3D)",
     "Heatmap",
     "Hexbin",
+    "Wafer Map",
     "Spectrogram",
     "Dendrogram",
     "Radar Chart",
@@ -820,6 +821,17 @@ def _showcase_definitions() -> list[dict[str, Any]]:
             "axis_options": {"title": "Hexbin", "gridsize": 20},
             "series": [
                 ("cloud", "SELECT x, y FROM src_xy", {}),
+            ],
+        },
+        {
+            "chart_type": "Wafer Map",
+            "name": "Wafer Map showcase",
+            "labels": ("x (mm)", "y (mm)"),
+            # The points as defects on a 100 mm wafer with its flat and dies; no colorbar (see Heatmap's).
+            "axis_options": {"title": "Wafer Map", "diameter": 100.0, "mark": "flat", "die_width": 10.0,
+                             "colorbar": False},
+            "series": [
+                ("defects", "SELECT x, y FROM src_xy", {}),
             ],
         },
         {

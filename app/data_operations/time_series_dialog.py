@@ -79,7 +79,8 @@ class TimeSeriesDialog(RolesOperationDialogBase):
                             "errors (q), with a season (P, D, Q) of its own. ARIMA, order chosen by AIC: the "
                             "differences from the stationarity tests, then the p, q, P, Q with the lowest AIC. "
                             "Exponential smoothing: a level, a trend and a season that each follow the newest "
-                            "values most."),
+                            "values most. State space: a level and a slope that wander a little each step (a "
+                            "local linear trend), with a season - estimated by the Kalman filter."),
         IntParam("p", "ARIMA p (autoregressive):", tooltip="How many past values the next depends on: the "
                                                          "lags where the PACF stands out.",
                  default_value=1, minimum=0, maximum=10),
@@ -113,6 +114,11 @@ class TimeSeriesDialog(RolesOperationDialogBase):
         ChoiceParam("intervention_kind", "Intervention:", choices=(("Step (lasting)", "step"),
                                                                    ("Pulse (one time)", "pulse")),
                     tooltip="A step lasts from then on; a pulse affects that one time only.", advanced=True),
+        BoolParam("validate", "Rolling-origin validation",
+                  tooltip="Each of the last values forecast one step ahead from only the values before it, "
+                          "the model refitted each time; its errors beside those of the naive forecast (the "
+                          "last value). Below 1 relative to naive: the model forecasts better than it.",
+                  default_value=True),
         IntParam("lags", "Lags:", tooltip="How far back the autocorrelations look.",
                  default_value=25, minimum=1, maximum=500, advanced=True),
         BoolParam(
@@ -164,6 +170,7 @@ class TimeSeriesDialog(RolesOperationDialogBase):
             intervention_kind=str(params.get("intervention_kind") or "step"),
             season=-1 if season == 0 else (0 if season == 1 else season),
             horizon=int(params.get("horizon", 12)), lags=int(params.get("lags", 25)),
+            validate=bool(params.get("validate", True)),
         )
         # BoolParam values are restored and saved by the operation framework with
         # the other declared PARAMS. Filter only the presentation table: the
@@ -195,6 +202,9 @@ class TimeSeriesDialog(RolesOperationDialogBase):
                                               self.report_table(result.candidates.head(10), digits=5)))
         if not result.forecast.empty:
             blocks.append(report_html.section(_("Forecast"), self.report_table(result.forecast, digits=5)))
+        if not result.validation.empty:
+            blocks.append(report_html.section(_("Rolling-origin validation, one step ahead"),
+                                              self.report_table(result.validation, digits=4)))
         if not result.stationarity.empty:
             blocks.append(report_html.section(_("Stationarity tests"),
                                               self.report_table(result.stationarity, p_columns=("Prob",), digits=4)))
@@ -207,6 +217,9 @@ class TimeSeriesDialog(RolesOperationDialogBase):
             strongest = tsa.strongest_lags(result.cross)
             blocks.append(report_html.section(_("Cross-correlation with {input}, strongest lags").format(
                 input=result.input), self.report_table(strongest[["Lag", "Prewhitened CCF", "CCF"]], digits=4)))
+        if not result.granger.empty:
+            blocks.append(report_html.section(_("Granger causality (VAR)"),
+                                              self.report_table(result.granger, p_columns=("Prob>F",), digits=4)))
         shown = result.correlations[["Lag", "ACF", "PACF", "Ljung-Box Q", "Prob>Q"]].head(12)
         blocks.append(report_html.section(_("Autocorrelation, first 12 lags"),
                                           self.report_table(shown, p_columns=("Prob>Q",), digits=4)))
@@ -224,6 +237,13 @@ class TimeSeriesDialog(RolesOperationDialogBase):
             runner_up = result.candidates["AIC"].iloc[1] if len(result.candidates) > 1 else None
             lines.append(reading_guide.aic(result.candidates["AIC"].iloc[0], model=str(result.candidates["Model"].iloc[0]),
                                            runner_up=runner_up))
+        if not result.granger.empty:
+            first = result.granger.iloc[0]
+            lines.append(reading_guide.p_value(
+                first["Prob>F"], null=_("{input}'s past added nothing to forecasting {measure}").format(
+                    input=result.input, measure=result.measure),
+                shown=_("{input}'s past helps forecast {measure} (Granger)").format(
+                    input=result.input, measure=result.measure)))
         return lines
 
     def apply_results(self, result: tsa.TimeSeriesResult) -> list[dict[str, Any]]:
@@ -234,6 +254,10 @@ class TimeSeriesDialog(RolesOperationDialogBase):
             frames["time_series_ccf"] = result.cross
         if not result.forecast.empty:
             frames["time_series_forecast"] = result.forecast
+        if not result.validation.empty:
+            frames["time_series_validation"] = result.validation
+        if not result.granger.empty:
+            frames["time_series_granger"] = result.granger
         tables = self.write_result_tables(frames)
         written: list[dict[str, Any]] = [{"table": name} for name in tables.values()]
         measure, rows = result.measure, tables["time_series"]

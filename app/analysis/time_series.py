@@ -37,11 +37,16 @@ ROW_ORDER = ""
 ARIMA = "arima"
 AUTO = "auto"
 ETS = "ets"
+STATE_SPACE = "state_space"
 NONE = "none"
 MODELS: tuple[tuple[str, str], ...] = (
     (ETS, "Exponential smoothing (ETS)"), (AUTO, "ARIMA, order chosen by AIC"),
-    (ARIMA, "ARIMA (p, d, q)(P, D, Q)"), (NONE, "No forecast"),
+    (ARIMA, "ARIMA (p, d, q)(P, D, Q)"), (STATE_SPACE, "State space (local linear trend)"), (NONE, "No forecast"),
 )
+#: Rolling-origin validation: at most this many one-step forecasts, each from the values before it.
+VALIDATION_ORIGINS = 20
+#: The VAR's largest order tried (AIC chooses below it).
+VAR_MAX_ORDER = 8
 #: The orders the automatic search tries: p and q up to this; P and Q up to 1.
 AUTO_MAX_ORDER = 2
 #: A season stronger than this (STL's seasonal strength, 0 to 1) is differenced once (Hyndman's rule).
@@ -72,6 +77,10 @@ class TimeSeriesResult:
     candidates: pd.DataFrame = field(default_factory=pd.DataFrame)
     #: Cross-correlation with the input: Lag, CCF, Upper band, Lower band (empty without an input).
     cross: pd.DataFrame = field(default_factory=pd.DataFrame)
+    #: With an input: Granger causality in a VAR of the two, each way - Direction, Order, F, DF, Prob>F.
+    granger: pd.DataFrame = field(default_factory=pd.DataFrame)
+    #: Rolling-origin validation: Method, Forecasts, MAE, RMSE, Relative to naive.
+    validation: pd.DataFrame = field(default_factory=pd.DataFrame)
     input: str = ""
     summary: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
@@ -187,6 +196,93 @@ def cross_correlation(y: np.ndarray, x: np.ndarray, lags: int) -> pd.DataFrame:
             values.append(float(np.sum(yc[: n + k] * xc[-k:])) / scale)
     band = 2.0 / np.sqrt(n)
     return pd.DataFrame({"Lag": np.arange(-lags, lags + 1), "CCF": values, "Upper band": band, "Lower band": -band})
+
+
+def granger(y: np.ndarray, x: np.ndarray, y_name: str, x_name: str, differences: int = 0) -> pd.DataFrame:
+    """Does each series help forecast the other, beyond its own past? A VAR of the two, its order by AIC.
+
+    *differences* (from the stationarity tests) are taken first: a VAR of two series that merely wander
+    finds causality that is not there.
+    """
+    from statsmodels.tsa.api import VAR
+
+    data = pd.DataFrame({y_name: y, x_name: x})
+    for _step in range(differences):
+        data = data.diff().dropna()
+    max_order = int(max(1, min(VAR_MAX_ORDER, len(data) // 10)))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model = VAR(data.reset_index(drop=True))
+        order = int(max(1, model.select_order(max_order).aic))
+        fitted = model.fit(order)
+    rows = []
+    for caused, causing in ((y_name, x_name), (x_name, y_name)):
+        test = fitted.test_causality(caused, [causing], kind="f")
+        rows.append({"Direction": f"{causing} → {caused}", "Order": order, "F": float(test.test_statistic),
+                     "DF": f"{int(test.df[0])}, {int(test.df[1])}", "Prob>F": float(test.pvalue)})
+    return pd.DataFrame(rows)
+
+
+def _fit(model: str, y: np.ndarray, *, order: tuple[int, int, int], seasonal: tuple[int, int, int], season: int,
+         exog: pd.DataFrame | None = None) -> Any:
+    """The model fitted to *y*: ARIMA (AUTO's chosen order too), ETS or the local-linear-trend state space."""
+    if model in (ARIMA, AUTO):
+        from statsmodels.tsa.arima.model import ARIMA as ArimaModel
+
+        return ArimaModel(y, exog=exog, order=tuple(int(v) for v in order),
+                          seasonal_order=(*seasonal, season) if season >= 2 and any(seasonal)
+                          else (0, 0, 0, 0)).fit()
+    if model == ETS:
+        from statsmodels.tsa.exponential_smoothing.ets import ETSModel
+
+        return ETSModel(pd.Series(y), error="add", trend="add", seasonal="add" if season >= 2 else None,
+                        seasonal_periods=season if season >= 2 else None).fit(disp=False)
+    if model == STATE_SPACE:
+        from statsmodels.tsa.statespace.structural import UnobservedComponents
+
+        return UnobservedComponents(y, exog=exog, level="local linear trend",
+                                    seasonal=season if season >= 2 else None).fit(disp=False)
+    raise ValueError(f"'{model}' is not one of {', '.join(key for key, _label in MODELS)}")
+
+
+def rolling_origin(y: np.ndarray, model: str, *, order: tuple[int, int, int], seasonal: tuple[int, int, int],
+                   season: int, origins: int = VALIDATION_ORIGINS) -> pd.DataFrame:
+    """One-step forecasts from the last *origins* origins, each fitted only to the values before it.
+
+    Beside them, the naive forecast (the last value) and, with a season, the seasonal naive one (a season
+    ago): a model that does not beat them forecasts nothing the data's last values did not already say.
+    """
+    n = y.size
+    origins = int(min(origins, max(0, n - max(10, 2 * season + 1))))
+    if origins < 2:
+        return pd.DataFrame()
+    actual, predicted, naive, seasonal_naive = [], [], [], []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for end in range(n - origins, n):
+            train = y[:end]
+            try:
+                fitted = _fit(model, train, order=order, seasonal=seasonal, season=season)
+                predicted.append(float(np.asarray(fitted.forecast(1), float)[0]))
+            except Exception:  # noqa: BLE001 - an origin the model cannot fit is left out, not the whole check
+                predicted.append(np.nan)
+            actual.append(y[end])
+            naive.append(train[-1])
+            seasonal_naive.append(train[-season] if season >= 2 else np.nan)
+    actual_values = np.asarray(actual)
+
+    def row(method: str, values: list[float]) -> dict[str, Any]:
+        errors = actual_values - np.asarray(values, float)
+        errors = errors[np.isfinite(errors)]
+        return {"Method": method, "Forecasts": int(errors.size), "MAE": float(np.mean(np.abs(errors))),
+                "RMSE": float(np.sqrt(np.mean(errors ** 2)))}
+
+    rows = [row("Model", predicted), row("Naive (last value)", naive)]
+    if season >= 2:
+        rows.append(row(f"Seasonal naive ({season} back)", seasonal_naive))
+    table = pd.DataFrame(rows)
+    table["Relative to naive"] = table["RMSE"] / table.loc[1, "RMSE"] if table.loc[1, "RMSE"] > 0 else np.nan
+    return table
 
 
 def _order(data: pd.DataFrame, time: str) -> tuple[pd.Series, bool]:
@@ -317,13 +413,15 @@ def _exogenous(data: pd.DataFrame, times: pd.Series, temporal: bool, input: str,
 def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: str = ARIMA,
             order: tuple[int, int, int] = (1, 0, 0), seasonal_order: tuple[int, int, int] = (0, 0, 0),
             season: int = -1, horizon: int = 12, lags: int = 25, input: str = "", input_in_model: bool = False,
-            intervention: str = "", intervention_kind: str = "step") -> TimeSeriesResult:
+            intervention: str = "", intervention_kind: str = "step", validate: bool = False) -> TimeSeriesResult:
     """*measure* in the order of *time*: autocorrelations, its decomposition and a forecast.
 
     *season* -1 finds it from the dates (none for numbers), 0 means none. *seasonal_order* (P, D, Q)
     applies with a season. *input*, another column, gives the cross-correlation with the measure and,
     *input_in_model*, enters an ARIMA at the lag its prewhitened cross-correlation peaks (a transfer
-    function). *intervention*, a time, adds a step (or pulse) from then on to an ARIMA.
+    function). *intervention*, a time, adds a step (or pulse) from then on to an ARIMA. With an input, a VAR
+    of the two tests Granger causality each way. *validate* forecasts the last values one step ahead from the
+    ones before them (rolling origin) and compares the model with the naive forecasts.
     """
     from statsmodels.stats.diagnostic import acorr_ljungbox
     from statsmodels.tsa.stattools import acf, pacf
@@ -379,6 +477,7 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
     tests, differences = stationarity(y)
     summary["Differences suggested (ADF, KPSS)"] = differences
     cross = pd.DataFrame()
+    granger_table = pd.DataFrame()
     lead = 0
     if input:
         x_values = data[input].to_numpy(float)
@@ -394,6 +493,14 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         notes.append(f"Lag k > 0: {measure} follows {input} by k steps; k < 0: it leads. Prewhitened: both "
                      f"filtered by {input}'s own AR({ar_order}), so that two series which merely wander do "
                      "not look related.")
+        try:
+            granger_table = granger(y, x_values, measure, input, differences=min(differences, 2))
+        except (ValueError, np.linalg.LinAlgError) as exc:
+            notes.append(f"Granger causality could not be tested: {exc}")
+        else:
+            if differences:
+                notes.append(f"Granger: the VAR is of the series differenced {differences} time(s), as the "
+                             "stationarity tests suggest.")
     exog, exog_future_parts, skip = _exogenous(data, times, temporal, input if input_in_model else "", lead,
                                                intervention, intervention_kind, notes)
     y_fit = y[skip:]
@@ -423,24 +530,18 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         alpha = 1 - CONFIDENCE
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # convergence chatter: the AIC and residuals say how it went
-            if model in (ARIMA, AUTO):
-                from statsmodels.tsa.arima.model import ARIMA as ArimaModel
-
-                fitted = ArimaModel(y_fit, exog=exog_fit, order=tuple(int(v) for v in order),
-                                    seasonal_order=(*seasonal, season) if season >= 2 and any(seasonal)
-                                    else (0, 0, 0, 0)).fit()
+            fitted = _fit(model, y_fit if model != ETS else y, order=order, seasonal=seasonal, season=season,
+                          exog=exog_fit if model != ETS else None)
+            if model in (ARIMA, AUTO, STATE_SPACE):
                 future_exog = exog_future_parts(horizon) if exog is not None else None
                 prediction = fitted.get_forecast(horizon, exog=future_exog).summary_frame(alpha=alpha)
                 mean, low, high = prediction["mean"], prediction["mean_ci_lower"], prediction["mean_ci_upper"]
                 fitted_values = np.concatenate([np.full(skip, np.nan), np.asarray(fitted.fittedvalues, float)])
                 names = list(fitted.param_names)
                 standard_errors, p_values = fitted.bse, fitted.pvalues
-                label = _arima_label(tuple(order), seasonal, season)
-            elif model == ETS:
-                from statsmodels.tsa.exponential_smoothing.ets import ETSModel
-
-                fitted = ETSModel(pd.Series(y), error="add", trend="add", seasonal="add" if season >= 2 else None,
-                                  seasonal_periods=season if season >= 2 else None).fit(disp=False)
+                label = _arima_label(tuple(order), seasonal, season) if model != STATE_SPACE else \
+                    "State space (local linear trend" + (f", season {season})" if season >= 2 else ")")
+            else:
                 prediction = fitted.get_prediction(start=n, end=n + horizon - 1).summary_frame(alpha=alpha)
                 mean, low, high = prediction["mean"], prediction["pi_lower"], prediction["pi_upper"]
                 fitted_values = fitted.fittedvalues
@@ -448,11 +549,10 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
                 standard_errors = getattr(fitted, "bse", np.full(len(names), np.nan))
                 p_values = getattr(fitted, "pvalues", np.full(len(names), np.nan))
                 label = "ETS (A, A" + (", A)" if season >= 2 else ", N)")
-            else:
-                raise ValueError(f"'{model}' is not one of {', '.join(key for key, _label in MODELS)}")
         residuals = y - np.asarray(fitted_values, dtype=float)
         # ARIMA's first fitted values only start the differencing (the first season's, too): left empty.
-        start = (skip + max(order[1], 1) + (season * seasonal[1] if season >= 2 else 0)) if model in (ARIMA, AUTO) else 0
+        start = (skip + max(order[1], 1) + (season * seasonal[1] if season >= 2 else 0)) if model in (ARIMA, AUTO) \
+            else (skip + 2 + (season if season >= 2 else 0)) if model == STATE_SPACE else 0  # the state's start-up
         shown_fitted, shown_residuals = np.asarray(fitted_values, dtype=float).copy(), residuals.copy()
         shown_fitted[:start], shown_residuals[:start] = np.nan, np.nan
         rows["Fitted"], rows["Residual"] = shown_fitted, shown_residuals
@@ -496,10 +596,18 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         except Exception as exc:  # noqa: BLE001 - the fitted model remains usable
             applogger.error(f"Residual randomness diagnostics failed: {exc}")
             notes.append(f"Residual randomness diagnostics could not be computed: {exc}")
+    validation = pd.DataFrame()
+    if validate and model != NONE:
+        if exog is not None:
+            notes.append("Rolling-origin validation is of the model without its input or intervention.")
+        validation = rolling_origin(y, model, order=tuple(int(v) for v in order), seasonal=seasonal, season=season)
+        if not validation.empty:
+            summary["Rolling-origin RMSE relative to naive"] = float(validation.loc[0, "Relative to naive"])
     return TimeSeriesResult(measure=measure, time=time, temporal=temporal, model=model, season=season,
                             rows=rows, correlations=correlations, forecast=forecast, parameters=parameters,
                             residual_diagnostics=residual_diagnostics,
                             stationarity=tests, candidates=candidates, cross=cross, input=input,
+                            granger=granger_table, validation=validation,
                             summary=summary, notes=notes)
 
 

@@ -1,6 +1,6 @@
 # ChartLibre — Prioritized Roadmap
 
-**State:** `app/` has 109,480 lines of code in 329 Python files; `dev/tests` has 24,943 lines in 213 files (measured at this commit).
+**State:** `app/` has 110,300 lines of code in 332 Python files; `dev/tests` has 25,134 lines in 214 files (measured at this commit).
 
 **Audience:** engineers, scientists, and students who need an affordable desktop workflow from raw data to analysed, documented figures and reports.
 
@@ -37,7 +37,6 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID22 | 22 | 2 | **Background computation controls** (R-02) | Preview long operations and allow safe cancellation inside long loops. | **Core**; responsiveness on real datasets. |
 | ID23 | 23 | 2 | **Data-operation tools for the AI assistant** (AI-01) | Let the assistant execute approved data operations, not only analyses. | **Core / AI assistants**; useful after operation safety is clear. |
 | ID24 | 24 | 2 | **Signal and scientific modelling** (AN-13, G-31) | Add uneven-sampling spectra, resampling, filter response, deconvolution, ODE kinetics, dose response, and peak deconvolution. | **SciPy / Origin**; specialist scientific workflows. |
-| ID25 | 25 | 3 | **Time-series expansion** (G-29) | Add SARIMAX, VAR/Granger, state-space models, and rolling-origin validation. | **statsmodels**; advanced forecasting users. |
 | ID26 | 26 | 2 | **Importer plugin system** (I-02) | Let labs build, test, install, and manage importers for custom formats. | **Core / Origin**; scalable solution for long-tail formats. |
 | ID27 | 27 | 2 | **Project notebook export** (H-07) | Export charts, notes, and reports as shareable HTML. | **JMP / notebooks**; collaboration without requiring the app. |
 | ID28 | 28 | 2 | **Advanced clustering** (G-23) | Add row-level DBSCAN/HDBSCAN, spectral clustering, and Birch. | **scikit-learn**; moderate specialist gap. |

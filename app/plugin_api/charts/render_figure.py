@@ -194,6 +194,8 @@ def render_figure_from_descriptor(
                 downsample_threshold=(
                     0
                     if chart_type in _GRID_REQUIRED_CHART_TYPES
+                    else downsample_threshold * DENSE_DOWNSAMPLE_FACTOR
+                    if _dense_chart(chart_type)
                     else max(downsample_threshold, POINT_DOWNSAMPLE_THRESHOLD)
                     if chart_type in _POINT_CHART_TYPES and downsample_threshold > 0
                     else downsample_threshold
@@ -752,7 +754,21 @@ DEFAULT_DOWNSAMPLE_THRESHOLD = get_constant("default_downsample_threshold", 1_00
 #: datasets are also typically far smaller than the row counts downsampling
 #: exists for, so these chart types simply skip it rather than decimating by
 #: unique x/y instead - not worth the extra machinery yet.
-_GRID_REQUIRED_CHART_TYPES = frozenset({"Surface Plot", "Contour Plot"})
+#: Wafer Map too: its contour is a grid, and each die or defect a datum of its own.
+_GRID_REQUIRED_CHART_TYPES = frozenset({"Surface Plot", "Contour Plot", "Wafer Map"})
+
+#: The renderers' categories whose data is a grid, a mesh or a cloud in 3D: thinned only past this factor
+#: times the figure's threshold - a thinned mesh has holes, a thinned cloud loses its surface, but a
+#: million-row one still has to draw.
+_DENSE_CATEGORIES = frozenset({"Gridded data", "Irregularly gridded data", "3D and volumetric data", "3D"})
+DENSE_DOWNSAMPLE_FACTOR = get_constant("dense_downsample_factor", 100)
+
+
+def _dense_chart(chart_type: str) -> bool:
+    """Whether *chart_type* is a grid, a mesh or a 3D chart (by its category), or needs a z."""
+    entry = get_renderer(chart_type) or {}
+    return str(entry.get("category") or "") in _DENSE_CATEGORIES or "z" in (entry.get("required") or [])
+
 
 #: Charts where every point is a datum - an outlier, a member of a cluster -
 #: rather than a sample of a curve: thinned out only past a far higher count,
@@ -859,6 +875,12 @@ def _load_series_df(
         # Show only Selected on the series' table: its other rows out of view (R-07).
         sql = repo.sql_selected_only(sql)
         if downsample_threshold > 0:
+            total = repo.series_row_count(sql)  # cached: the count the thinning sizes its stride by
+            if total > downsample_threshold:
+                applogger.warning(
+                    "Series '%s': %d rows, about %d drawn (one in %d). Raise the figure's downsample threshold "
+                    "(0: none) to draw them all.",
+                    series_desc.name, total, downsample_threshold, -(-total // downsample_threshold))
             return repo.downsampled_series_frame(sql, threshold=downsample_threshold)
         return repo.series_frame(sql)
     except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
@@ -1698,7 +1720,9 @@ def _normalize_axes_fill_policy(figure: Figure, fig_desc: FigureDescriptor) -> N
         try:
             axis_id = getattr(ax, "_dhub_axis_id", None)
             axis_options = options_by_id.get(axis_id, {}) if axis_id is not None else {}
-            if preserve_all or bool(axis_options.get("preserve_aspect_box", False)):
+            # The axis' option, or the renderer's own (a wafer is a circle, its box square: keep_aspect_box).
+            if preserve_all or bool(axis_options.get("preserve_aspect_box", False)) \
+                    or getattr(ax, "_dhub_keep_aspect_box", False):
                 continue
 
             # A polar axes keeps its own box (it overrides get_data_ratio, so "datalim" is refused).
