@@ -165,3 +165,31 @@ def test_draw_on_none_and_on_the_current_axis(qapp, tmp_path) -> None:
             dialog.close()
     assert len(repo.load_figures_from_db()) == 1
     repo.close()
+
+
+def test_data_from_chart_offers_only_the_current_figures_axes(qapp, tmp_path) -> None:
+    """ID48: "Data from: Chart" reads the figure the analysis was opened on - another figure's axes are not listed."""
+    from app.data.sqlite_repo import SqliteRepo
+    from app.data_operations.time_series_dialog import TimeSeriesDialog
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    repo.import_dataframe(pd.DataFrame({"t": np.arange(30.0), "a": np.random.default_rng(3).normal(size=30)}),
+                          table_name="t", normalize_columns=False)
+    figures = []
+    for name in ("Mine", "Other"):
+        figure = repo.create_figure_descriptor(name=name)
+        axis = repo.create_axis_descriptor(figure_id=figure, axis_index=0, chart_type="Scatter Plot", title=name,
+                                           x_label="t", y_label="a", options={})
+        repo.create_series_descriptor(axis_id=axis, series_index=0, name="a", sql_query='SELECT t AS x, a AS y FROM "t"',
+                                      roles={"x": "x", "y": "y"}, style={})
+        figures.append(figure)
+    dialog = TimeSeriesDialog(repo=repo, table="t", figure_id=figures[0])
+    try:
+        dialog.source_chart_radio.setChecked(True)
+        assert [dialog._table_combo.itemText(i) for i in range(dialog._table_combo.count())] == ["Mine · Mine"]
+        dialog.current_figure_id = None
+        dialog._load_tables(None)
+        assert dialog._table_combo.count() == 0 and "draws no series" in dialog.problems()[0]
+    finally:
+        dialog.close()
+        repo.close()

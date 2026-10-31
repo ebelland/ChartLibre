@@ -1,6 +1,6 @@
 # ChartLibre — Prioritized Roadmap
 
-**State:** `app/` has 109,291 lines of code in 330 Python files; `dev/tests` has 24,425 lines in 211 files (measured at this commit).
+**State:** `app/` has 109,373 lines of code in 330 Python files; `dev/tests` has 24,497 lines in 211 files (measured at this commit).
 
 **Audience:** engineers, scientists, and students who need an affordable desktop workflow from raw data to analysed, documented figures and reports.
 
@@ -58,12 +58,9 @@ The order is a single recommended backlog. Related items have been merged, and c
 
 ## Bugs from bugs.pptx (2026-10-27)
 
-| ID | Priority | Complexity | Fix | Scope |
-|---|---:|---:|---|---|
-| ID48 | 3 | 2 | **Analysis platform data source** | "From Figure": only the current figure's axes. "From Table": draw on a new figure by default. Every analysis opens on its Data tab. |
-| ID52 | 7 | 1 | **Column Info: move between columns** | Arrows at the top of Column Info (Table preview > Info) to go to the previous / next column without closing it (P-01). |
+No open item.
 
-Already fixed from the same deck: Fit Y by X offers only the charts it draws (18571a4); Fit curve has Draw on - axis, new axis, new figure - and Cancel takes its extra axes (5dc4616).
+Fixed from the same deck: Fit Y by X offers only the charts it draws (18571a4); Fit curve has Draw on - axis, new axis, new figure - and Cancel takes its extra axes (5dc4616); ID48 one engine for the analyses, "Data from: Chart" reads only the current figure's axes; ID52 Column Info's arrows go to the previous / next column.
 
 ## User-owned / release-readiness tasks
 

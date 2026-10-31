@@ -145,3 +145,29 @@ def test_the_preview_shows_value_labels_and_edits_the_stored_value(qapp, repo: S
     stored = [model.data(model.index(row, column), Qt.ItemDataRole.EditRole) for row in range(4)]
     assert shown == ["male", "female", "male", "3"]
     assert stored == ["1", "2", "1", "3"]  # editing and copying see the values
+
+
+def test_the_arrows_go_through_the_columns_saving_each_on_the_way(qapp, repo: SqliteRepo) -> None:
+    """ID52: previous / next column without closing; a changed column is saved first, one undo step each."""
+    from app.dialogs.column_info_dialog import ColumnInfoDialog
+
+    repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
+    columns = [str(row[1]) for row in repo.table_info("survey") if str(row[1]) not in ("Hide", "Selected", "_id")]
+    dialog = ColumnInfoDialog(repo, "survey", columns[0])
+    try:
+        assert not dialog.previous_button.isEnabled() and dialog.next_button.isEnabled()
+        assert dialog.position.text() == f"Column 1 of {len(columns)}"
+        undo_steps = len(repo.undo_entries())
+        dialog._go(1)  # nothing changed: nothing saved
+        assert dialog.name.text() == columns[1] and len(repo.undo_entries()) == undo_steps
+        dialog.unit.setText("pts")
+        dialog._go(-1)
+        assert dialog.name.text() == columns[0] and cm.column_info(repo, "survey")[columns[1]].unit == "pts"
+        assert len(repo.undo_entries()) == undo_steps + 1
+        for _step in columns[1:]:
+            dialog._go(1)
+        assert dialog.name.text() == columns[-1] and not dialog.next_button.isEnabled()
+        dialog.reject()  # a column was saved on the way: Close reports it, so the preview reloads
+        assert dialog.result() == dialog.DialogCode.Accepted
+    finally:
+        dialog.close()

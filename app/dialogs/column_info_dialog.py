@@ -11,13 +11,16 @@ Opened from a column's context menu in the table preview. What it changes:
 * value labels, which the analyses show in place of the codes.
 
 The description is kept with the table (app.data.column_metadata); OK is
-one undo step for all of it.
+one undo step for all of it. The arrows at the top go to the previous or next
+column without closing (P-01): the changes to this one are saved first, as OK
+saves them.
 """
 from __future__ import annotations
 
 from typing import Any
 
 import pandas as pd
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -31,6 +34,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
+    QToolButton,
     QWidget,
 )
 
@@ -48,6 +52,8 @@ MODELLING_TYPES: tuple[tuple[str, str], ...] = (
 )
 #: A column with more distinct values than this is not offered "Fill from the data".
 MAX_LABELLED_VALUES = 100
+#: The columns the application keeps on a table for itself: the arrows pass them by.
+APPLICATION_COLUMNS = frozenset({"Hide", "Selected", "_id"})
 
 
 class ColumnInfoDialog(PanelDialog):
@@ -56,42 +62,49 @@ class ColumnInfoDialog(PanelDialog):
     def __init__(self, repo: Any, table: str, column: str, parent: QWidget | None = None) -> None:
         super().__init__(parent, title=_("Column Info: {column}").format(column=column), size=None)
         self._repo, self._table, self._column = repo, table, column
-        self._info = cm.column_info(repo, table).get(column, cm.ColumnInfo())
-        declared = {str(row[1]): str(row[2] or "").upper() for row in repo.table_info(table)}
-        self._declared = declared.get(column, "")
-        values = repo.query_df(f'SELECT "{column.replace(chr(34), chr(34) * 2)}" AS v FROM '
-                               f'"{table.replace(chr(34), chr(34) * 2)}"')["v"]
-        self._values = values
+        #: Whether a column was saved while moving between them: Close then says so, as OK would.
+        self._saved = False
+        #: The table's columns in order, the application's own left out: the arrows go through them.
+        self._columns = [str(row[1]) for row in repo.table_info(table) if str(row[1]) not in APPLICATION_COLUMNS]
+
+        # -- Which column: the previous or the next one, without closing (P-01) - at the left of the bottom row,
+        # where they take no height of their own.
+        self.previous_button = QToolButton(self)
+        self.previous_button.setArrowType(Qt.ArrowType.LeftArrow)
+        self.previous_button.setToolTip(_("The previous column - the changes to this one are saved first"))
+        self.previous_button.clicked.connect(lambda: self._go(-1))
+        self.next_button = QToolButton(self)
+        self.next_button.setArrowType(Qt.ArrowType.RightArrow)
+        self.next_button.setToolTip(_("The next column - the changes to this one are saved first"))
+        self.next_button.clicked.connect(lambda: self._go(1))
+        self.position = QLabel("", self)
+        self.position.setProperty("muted", True)
+        for position, widget in enumerate((self.previous_button, self.next_button, self.position)):
+            self.action_row.insertWidget(position, widget)
 
         # -- The column: name and types.
         form = QFormLayout()
         stdSizeAndlayout(form)
         self.add_card(_("Column"), "columnInfoCard").layout().addLayout(form)
-        self.name = QLineEdit(column, self)
+        self.name = QLineEdit(self)
         form.addRow(_("Name:"), self.name)
         self.data_type = QComboBox(self)
-        for kind in CAST_TYPES:
-            self.data_type.addItem(kind, kind)
-        if self._declared and self._declared not in CAST_TYPES:
-            self.data_type.insertItem(0, self._declared, self._declared)
-        self.data_type.setCurrentIndex(max(0, self.data_type.findData(self._declared or "TEXT")))
         self.data_type.setToolTip(_("How the values are stored. Changing it converts them; a value that cannot "
                                     "be read in the new type is left empty."))
         form.addRow(_("Data type:"), self.data_type)
         self.modelling = QComboBox(self)
         for key, label in MODELLING_TYPES:
             self.modelling.addItem(_(label), key)
-        self.modelling.setCurrentIndex(max(0, self.modelling.findData(self._info.kind)))
         self.modelling.setToolTip(_("How the analyses take the column: as measurements (continuous), ordered "
                                     "levels (ordinal) or categories (nominal). Forced here, it is the column's "
                                     "type in every analysis."))
         form.addRow(_("Modelling type:"), self.modelling)
-        self.label = QLineEdit(self._info.label, self)
+        self.label = QLineEdit(self)
         form.addRow(_("Label:"), self.label)
-        self.unit = QLineEdit(self._info.unit or self._imported_unit(), self)
+        self.unit = QLineEdit(self)
         self.unit.setPlaceholderText(_("mm, °C, mV..."))
         form.addRow(_("Unit:"), self.unit)
-        self.notes = QPlainTextEdit(self._info.notes, self)
+        self.notes = QPlainTextEdit(self)
         self.notes.setFixedHeight(self.notes.fontMetrics().height() * 3 + 12)
         form.addRow(_("Notes:"), self.notes)
 
@@ -99,11 +112,9 @@ class ColumnInfoDialog(PanelDialog):
         self.format = QComboBox(self)
         for key, label in cm.FORMATS:
             self.format.addItem(_(label), key)
-        self.format.setCurrentIndex(max(0, self.format.findData(self._info.format)))
         self.format.setToolTip(_("How the values are shown in the table: the values themselves do not change."))
         self.decimals = QSpinBox(self)
         self.decimals.setRange(0, 15)
-        self.decimals.setValue(self._info.decimals)
         self.decimals.setSuffix(_(" dec."))
         format_row = QWidget(self)
         format_layout = QHBoxLayout(format_row)
@@ -111,7 +122,7 @@ class ColumnInfoDialog(PanelDialog):
         format_layout.addWidget(self.format, 1)
         format_layout.addWidget(self.decimals)
         form.addRow(_("Format:"), format_row)
-        self.pattern = QLineEdit(self._info.pattern, self)
+        self.pattern = QLineEdit(self)
         self.pattern.setToolTip(_("strftime codes: %d day, %m month, %Y year, %H:%M:%S time, %b month name."))
         form.addRow(_("Pattern:"), self.pattern)
         self._pattern_label = form.labelForField(self.pattern)
@@ -120,16 +131,15 @@ class ColumnInfoDialog(PanelDialog):
         form.addRow("", self.example)
         for signal in (self.format.currentIndexChanged, self.decimals.valueChanged, self.pattern.textChanged):
             signal.connect(lambda *_args: self._show_format())
-        self._show_format()
 
         # -- The values: what counts as missing, and their labels.
         values_card = self.add_card(_("Values"), "columnValuesCard", stretch=1)
-        summary = QLabel(self._summary(), values_card)
-        summary.setProperty("muted", True)
-        values_card.layout().addWidget(summary)
+        self.summary = QLabel("", values_card)
+        self.summary.setProperty("muted", True)
+        values_card.layout().addWidget(self.summary)
         missing_form = QFormLayout()
         stdSizeAndlayout(missing_form)
-        self.missing = QLineEdit(", ".join(self._info.missing), self)
+        self.missing = QLineEdit(self)
         self.missing.setPlaceholderText(_("-999, NA, n/d"))
         self.missing.setToolTip(_("Values that mean \"no value\", separated by commas: the analyses read them "
                                   "as empty."))
@@ -142,8 +152,6 @@ class ColumnInfoDialog(PanelDialog):
         self.labels.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.labels.setMinimumHeight(self.labels.verticalHeader().defaultSectionSize() * 4 + 30)
         self.labels.setToolTip(_("Value labels: the analyses show the label in place of the value (1 -> male)."))
-        for value, text in self._info.value_labels.items():
-            self._add_label_row(value, text)
         values_card.layout().addWidget(self.labels, 1)
         row = QHBoxLayout()
         stdSizeAndlayout(row)
@@ -161,6 +169,68 @@ class ColumnInfoDialog(PanelDialog):
 
         self.add_action("apply", self._apply, default=True)
         self.add_action("close", self.reject)
+        self._load(column)
+
+    # ------------------------------------------------------------------
+    # Which column
+    # ------------------------------------------------------------------
+
+    def _load(self, column: str) -> None:
+        """Show *column*: its name, types and description, its values, and where it is among the table's."""
+        repo, table = self._repo, self._table
+        self._column = column
+        self.setWindowTitle(_("Column Info: {column}").format(column=column))
+        self._info = cm.column_info(repo, table).get(column, cm.ColumnInfo())
+        declared = {str(row[1]): str(row[2] or "").upper() for row in repo.table_info(table)}
+        self._declared = declared.get(column, "")
+        self._values = repo.query_df(f'SELECT "{column.replace(chr(34), chr(34) * 2)}" AS v FROM '
+                                     f'"{table.replace(chr(34), chr(34) * 2)}"')["v"]
+        info = self._info
+        self.name.setText(column)
+        self.data_type.clear()
+        for kind in CAST_TYPES:
+            self.data_type.addItem(kind, kind)
+        if self._declared and self._declared not in CAST_TYPES:
+            self.data_type.insertItem(0, self._declared, self._declared)
+        self.data_type.setCurrentIndex(max(0, self.data_type.findData(self._declared or "TEXT")))
+        self.modelling.setCurrentIndex(max(0, self.modelling.findData(info.kind)))
+        self.label.setText(info.label)
+        self.unit.setText(info.unit or self._imported_unit())
+        self.notes.setPlainText(info.notes)
+        self.format.setCurrentIndex(max(0, self.format.findData(info.format)))
+        self.decimals.setValue(info.decimals)
+        self.pattern.setText(info.pattern)
+        self._show_format()
+        self.summary.setText(self._summary())
+        self.missing.setText(", ".join(info.missing))
+        self.labels.setRowCount(0)
+        for value, text in info.value_labels.items():
+            self._add_label_row(value, text)
+        index = self._columns.index(column) if column in self._columns else -1
+        self.position.setText(_("Column {number} of {count}").format(number=index + 1, count=len(self._columns))
+                              if index >= 0 else "")
+        self.previous_button.setEnabled(index > 0)
+        self.next_button.setEnabled(0 <= index < len(self._columns) - 1)
+        self._shown = self._state()
+
+    def _state(self) -> tuple[Any, ...]:
+        """What the dialog would save: compared with what it showed, whether anything changed."""
+        return self.name.text().strip(), str(self.data_type.currentData() or ""), self.info()
+
+    def _go(self, step: int) -> None:
+        """The previous (-1) or next (+1) column; this one's changes saved first - a failed save stays here."""
+        if self._state() != self._shown and not self._save():
+            return
+        index = self._columns.index(self._column) + step if self._column in self._columns else -1
+        if 0 <= index < len(self._columns):
+            self._load(self._columns[index])
+
+    def reject(self) -> None:
+        """Close: a column saved on the way (the arrows) counts as OK, so that what shows the table reloads."""
+        if self._saved:
+            self.accept()
+        else:
+            super().reject()
 
     # ------------------------------------------------------------------
     def _imported_unit(self) -> str:
@@ -224,10 +294,16 @@ class ColumnInfoDialog(PanelDialog):
                              pattern=self.pattern.text().strip() or cm.DEFAULT_DATE_PATTERN)
 
     def _apply(self) -> None:
+        """OK: this column saved, the dialog closed."""
+        if self._save():
+            self.accept()
+
+    def _save(self) -> bool:
+        """Write this column's name, type and description - one undo step; False, and told why, when it fails."""
         name = self.name.text().strip()
         if not name:
             show_message(self, "column_info.no_name")
-            return
+            return False
         repo, table, column = self._repo, self._table, self._column
         new_type = str(self.data_type.currentData() or "")
         try:
@@ -243,8 +319,11 @@ class ColumnInfoDialog(PanelDialog):
         except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the dialog stays open
             applogger.exception("Column Info of %s.%s could not be saved", table, column)
             show_message(self, "column_info.failed", error=exc)
-            return
+            return False
         if failed:
             show_message(self, "column_info.cast_failed", count=failed, kind=new_type)
-        self.column_name = name
-        self.accept()
+        if column in self._columns:
+            self._columns[self._columns.index(column)] = name
+        self._column = self.column_name = name
+        self._saved = True
+        return True

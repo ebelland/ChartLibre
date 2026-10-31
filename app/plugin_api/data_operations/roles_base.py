@@ -338,16 +338,14 @@ class RolesOperationDialogBase(DataOperationDialogBase):
     # ------------------------------------------------------------------
 
     def _load_tables(self, preferred: str | None) -> None:
-        """The tables - or, reading a chart, the charts' axes ("Figure · axis"), the current figure's first."""
+        """The tables - or, reading a chart, the current figure's axes ("Figure · axis")."""
         combo = self._table_combo
         combo.blockSignals(True)
         combo.clear()
         if self.reads_chart():
             self._table_label.setText(_("Chart:"))
-            entries, first = chart_source.chart_axes(self._repo, self.current_figure_id)
-            for label, data in entries:
+            for label, data in chart_source.chart_axes(self._repo, self.current_figure_id):
                 combo.addItem(label, data)
-            combo.setCurrentIndex(first)
         else:
             self._table_label.setText(_("Table:"))
             names = [str(name) for name in self._repo.list_user_tables()["Table"]]
@@ -460,6 +458,8 @@ class RolesOperationDialogBase(DataOperationDialogBase):
     def problems(self) -> list[str]:
         """Why the operation cannot run as it stands; empty when it can."""
         if not self.table:
+            if self.reads_chart():
+                return [_("The current figure draws no series: open the analysis on a chart, or read a table.")]
             return [_("Choose a table.")]
         if self._frame.empty:
             return [_("The table has no visible rows.")]

@@ -22,23 +22,19 @@ from app.utils.i18n import _
 MEASURE_ROLES = ("y", "value", "values", "z")
 
 
-def chart_axes(repo, current_figure_id: int | None) -> tuple[list[tuple[str, tuple[str, AxisDescriptor]]], int]:  # noqa: ANN001
-    """Every axis of the project that draws a series, as the "Chart:" list shows it: (label, (figure, axis)).
-
-    Also the index of the first axis of *current_figure_id* (0 when none is). The label is
-    "Figure · axis"; the analyses and the source list read the same entries from here.
-    """
-    entries: list[tuple[str, tuple[str, AxisDescriptor]]] = []
-    first = -1
-    for figure_id, figure_name in repo.load_figures_from_db():
-        descriptor = repo.load_figure_descriptor(figure_id)
-        for axis in (descriptor.axes if descriptor else []):
-            if not axis.series:
-                continue
-            if first < 0 and figure_id == current_figure_id:
-                first = len(entries)
-            entries.append((f"{figure_name} · {axis.title or _(axis.name)}", (figure_name, axis)))
-    return entries, max(first, 0)
+def chart_axes(repo, figure_id: int | None) -> list[tuple[str, tuple[str, AxisDescriptor]]]:  # noqa: ANN001
+    """The axes of *figure_id* - the figure the analysis was opened on - that draw a series, as the "Chart:"
+    list shows them: (label, (figure, axis)), the label "Figure · axis". Another figure's axes are not
+    offered: an analysis reads the chart it was opened from (todo ID48)."""
+    if figure_id is None:
+        return []
+    names = {int(row[0]): str(row[1] or "") for row in repo.load_figures_from_db()}
+    if int(figure_id) not in names:
+        return []
+    figure_name = names[int(figure_id)]
+    descriptor = repo.load_figure_descriptor(int(figure_id))
+    return [(f"{figure_name} · {axis.title or _(axis.name)}", (figure_name, axis))
+            for axis in (descriptor.axes if descriptor else []) if axis.series]
 
 
 def axis_frame(repo, axis: AxisDescriptor) -> pd.DataFrame:  # noqa: ANN001 - a SqliteRepo
