@@ -75,7 +75,7 @@ def dialog(qapp, repo: SqliteRepo):
 
 def test_split_prune_and_ok_write_the_leaves_and_the_figure(qapp, repo: SqliteRepo, dialog: PartitionDialog) -> None:
     assert not dialog.problems()
-    dialog._parameter_form.set_values({"splits": 1})
+    dialog._parameter_form_spec.set_values({"splits": 1})
     dialog._step(+1)  # Split
     _wait(qapp, dialog)
     assert dialog._result.splits == 2
@@ -112,7 +112,7 @@ def test_split_prune_and_ok_write_the_leaves_and_the_figure(qapp, repo: SqliteRe
 
 
 def test_box_plots_by_leaf(qapp, repo: SqliteRepo, dialog: PartitionDialog) -> None:
-    dialog._parameter_form.set_values({"splits": 2})
+    dialog._parameter_form_spec.set_values({"splits": 2})
     dialog.chart_form.set_values({f"chart_{key}": key == "box" for key, *_rest in CHARTS})
     dialog.ok()
     _wait(qapp, dialog)
@@ -124,7 +124,7 @@ def test_box_plots_by_leaf(qapp, repo: SqliteRepo, dialog: PartitionDialog) -> N
 
 def test_automatic_sets_the_split_count_it_chose(qapp, dialog: PartitionDialog) -> None:
     dialog.roles_widget.set_casting({"response": ["ok"], "factor": ["temp", "press", "supplier"]}, KINDS)
-    dialog._parameter_form.set_values({"validation_fraction": 0.3})
+    dialog._parameter_form_spec.set_values({"validation_fraction": 0.3})
     dialog._automatic()
     _wait(qapp, dialog)
     assert dialog._result.splits == 2
@@ -134,7 +134,7 @@ def test_automatic_sets_the_split_count_it_chose(qapp, dialog: PartitionDialog) 
 @pytest.mark.parametrize("method", ["forest", "boosted"])
 def test_a_forest_or_boosted_trees_fit_and_ok_writes_no_leaves(qapp, repo: SqliteRepo, dialog: PartitionDialog,
                                                               method: str) -> None:
-    dialog._parameter_form.set_values({"method": method, "trees": 40, "validation_fraction": 0.3})
+    dialog._parameter_form_spec.set_values({"method": method, "trees": 40, "validation_fraction": 0.3})
     dialog.preview()
     _wait(qapp, dialog)
     result = dialog._result

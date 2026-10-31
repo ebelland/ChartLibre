@@ -78,7 +78,7 @@ def _report(qapp, dialog, casting: dict) -> str:  # noqa: ANN001
     if type(dialog).__name__ == "TimeSeriesDialog":
         from app.analysis import time_series as ts
 
-        dialog._parameter_form.set_values({"model": ts.AUTO})
+        dialog._parameter_form_spec.set_values({"model": ts.AUTO})
     dialog.preview()
     deadline = time.monotonic() + 120
     while dialog.job_running and time.monotonic() < deadline:

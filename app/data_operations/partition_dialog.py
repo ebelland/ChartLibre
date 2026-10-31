@@ -176,10 +176,10 @@ class PartitionDialog(RolesOperationDialogBase):
 
     def _step(self, change: int) -> None:
         """Split or Prune: one split more or fewer, and the preview at once."""
-        assert self._parameter_form is not None
+        assert self._parameter_form_spec is not None
         splits = int(self.parameter_values().get("splits", 3)) + change
         self._auto = False
-        self._parameter_form.set_values({"splits": max(1, splits)})
+        self._parameter_form_spec.set_values({"splits": max(1, splits)})
         self.inputs_changed()
         self.preview()
 
@@ -223,9 +223,9 @@ class PartitionDialog(RolesOperationDialogBase):
         return pt.partition(frame, spec)
 
     def format_results(self, result: pt.PartitionResult) -> str:
-        if self._auto and self._parameter_form is not None and result.method == pt.TREE:
+        if self._auto and self._parameter_form_spec is not None and result.method == pt.TREE:
             # What Automatic chose becomes the count Split and Prune go on from.
-            self._parameter_form.set_values({"splits": result.splits})
+            self._parameter_form_spec.set_values({"splits": result.splits})
         return self.report_document(result)
 
     def report_subtitle(self, result: pt.PartitionResult) -> str:

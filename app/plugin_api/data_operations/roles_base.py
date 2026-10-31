@@ -28,12 +28,11 @@ to read.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from typing import Any, ClassVar
 
 import pandas as pd
-from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -47,8 +46,7 @@ from app.data import column_metadata
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api import reading_guide
-from app.plugin_api.analysis_base import AnalysisDialogBase
-from app.plugin_api.data_operations.dialog_base import OperationModel
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, OperationModel
 from app.plugin_api.data_operations.parameter_form import ParameterForm
 from app.plugin_api.data_operations.parameter_spec import BoolParam, Param
 from app.plugin_api.operation_panels import merged_values
@@ -60,8 +58,6 @@ from app.plugin_api.table_operations.column_roles import (
     ColumnRolesWidget,
 )
 from app.styles.style import (
-    TitledCard,
-    icon_from_svg_source,
     stdSizeAndlayout,
 )
 from app.utils import report_html
@@ -70,7 +66,6 @@ from app.utils.dialog_state import (
     dialog_entries,
 )
 from app.utils.i18n import _
-from app.widgets.html_results import HtmlResultsView
 
 #: Columns the application keeps on every table for itself: never offered.
 APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
@@ -93,8 +88,9 @@ def _hidden_by_same_axis(spec: Any, first: str, same_axis: str) -> Any:
     return replace(spec, visible_if=visible)
 
 
-class RolesOperationDialogBase(AnalysisDialogBase):
-    """Inputs on the left, the report on the right; Preview, Copy, OK, Close."""
+class RolesOperationDialogBase(DataOperationDialogBase):
+    """A data operation whose Data page casts a table's columns into roles: the same window and the same
+    Preview, OK, undo and history as every data operation, the calculation on the cast columns."""
 
     #: A table analysis picks its data as roles (ROLES), not as a chart's series.
     DATA_PICKER: ClassVar[str] = "roles"
@@ -116,8 +112,12 @@ class RolesOperationDialogBase(AnalysisDialogBase):
     #: one the operation built (a model's settings).
     PARAMETERS_TAB: ClassVar[str] = "Parameters"
     #: Raised when the window's layout changes, so a remembered size made for
-    #: the old one is left behind (2: the inputs in tabs, 880 x 460).
-    LAYOUT_VERSION: ClassVar[int] = 3
+    #: the old one is left behind (4: the data operations' window).
+    LAYOUT_VERSION: ClassVar[int] = 4
+    WINDOW_SIZE = (1000, 560)
+    #: The model is chosen beside the table, on the Data page.
+    SHOW_MODEL = False
+    PENDING_RESULTS_MESSAGE = "Cast the columns into their roles, then press Preview."
 
     #: The Results pane's headline when the analysis fails.
     FAILURE_HEADLINE: ClassVar[str] = "Nothing was computed."
@@ -126,9 +126,9 @@ class RolesOperationDialogBase(AnalysisDialogBase):
     #: and the report figure leaves out the panels whose box is cleared.
     CHART_PANELS: ClassVar[tuple[str, ...]] = ()
 
-    def __init__(self, *, repo: SqliteRepo, table: str | None = None, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._repo = repo
+    def __init__(self, *, repo: SqliteRepo, table: str | None = None, figure_id: int | None = None,
+                 parent: QWidget | None = None) -> None:
+        # Read by the hooks the base's constructor calls.
         self._frame = pd.DataFrame()
         self.row_ids = pd.Series(dtype="Int64")
         self._result: Any = None
@@ -137,21 +137,16 @@ class RolesOperationDialogBase(AnalysisDialogBase):
         self._undo_entry: int | None = None
         #: Reading a chart: the name its axis' data is written under.
         self._chart_table = ""
+        self._cast_table = ""
         #: A Preview's tables and figure are written inside a savepoint, rolled back by the next Preview,
         #: by Cancel and before OK writes them for good.
-        self._preview_active = False
         self._previewing = False
-        #: The question a "What next?" link asked for: the main window opens it once this one is closed.
-        self.next_request: next_steps.NextStep | None = None
-        self._state_key = type(self).__name__
         # The size is the layout's: a new layout starts from its own default
         # rather than from a size remembered for the old one.
-        self._geometry_key = f"{self._state_key}@{self.LAYOUT_VERSION}"
-        self.setWindowTitle(_(self.Name))
-        if self.Icon:
-            self.setWindowIcon(icon_from_svg_source(self.Icon, size=32))
-        self._build_ui()
-        self.restore_window()
+        self._geometry_key = f"{type(self).__name__}@{self.LAYOUT_VERSION}"
+        super().__init__(repo, figure_id if figure_id is not None else 0, parent=parent)
+        self.current_figure_id = figure_id
+        self._results.setText(_(self.PENDING_RESULTS_MESSAGE))
         self._load_tables(table)
 
     # ------------------------------------------------------------------
@@ -273,11 +268,10 @@ class RolesOperationDialogBase(AnalysisDialogBase):
     # The window
     # ------------------------------------------------------------------
 
-    def _build_ui(self) -> None:
-        # One page, as JMP's launch window: the table, its columns on the left,
-        # the roles - and whatever the operation adds, a model's effects, its
-        # parameters - in a column beside them. Tabs hid half the inputs and
-        # asked for the factors twice.
+    def init_operation_widgets(self) -> None:
+        """The Data page, as JMP's launch window: where the columns come from, the table (and the model), its
+        columns, and the boxes of the roles; then what the operation adds on pages of its own."""
+        self._results = self._results_label
         self._inputs_panel = QWidget(self)
         inputs_layout = QVBoxLayout(self._inputs_panel)
         inputs_layout.setContentsMargins(0, 0, 0, 0)
@@ -297,46 +291,47 @@ class RolesOperationDialogBase(AnalysisDialogBase):
         table_label.setMinimumWidth(table_label.sizeHint().width())
         table_row.addRow(table_label, self._table_combo)
         if self.MODELS:
-            self.model_combo = QComboBox(self._inputs_panel)
             for key in self.MODELS:
                 self.model_combo.addItem(_(key), key)
-            self.model_combo.currentIndexChanged.connect(lambda _i: self.inputs_changed())
             table_row.addRow(QLabel(_("Model:"), self._inputs_panel), self.model_combo)
         self.roles_widget.columns_card_layout.insertLayout(0, table_row)
         # Above it, where the columns come from: a table, or a chart's axis read as one (chart_source).
         self.roles_widget.columns_card_layout.insertLayout(
             0, self.build_source_choice(self._inputs_panel, from_chart=False,
                                         on_change=lambda _chart: self._load_tables(None)))
+        self._inputs_panel.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+
+    def build_model_selector(self) -> QWidget:
+        """No Model page: the model is chosen beside the table."""
+        return QWidget(self)
+
+    def build_parameter_selector(self) -> QWidget:
+        """The operation's own inputs (build_extra_inputs), then its parameters, on PARAMETERS_TAB's page."""
         self.build_extra_inputs(self.roles_widget.side_layout)
-        self._parameter_form: ParameterForm | None = None
         parameters_only = tuple(spec for spec in self.PARAMS if spec.tab != "charts")
         if parameters_only:
-            self._parameter_form = ParameterForm(parameters_only, self, on_change=self.inputs_changed,
-                                                 context=self.chart_context)
-            if self.SHOW_PARAMETERS:
-                parameters = TitledCard(self._inputs_panel, _("Parameters"))
-                parameters.title_label.hide()  # the tab says it, as in the data operations
-                parameters.card.layout().addWidget(self._parameter_form.widget)
-                self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(parameters)
-            else:
-                # Not shown, but its defaults are still what the calculation reads.
-                self._parameter_form.widget.hide()
-        self._build_charts_tab()
+            form = self._parameter_form_spec = ParameterForm(parameters_only, self, on_change=self.inputs_changed,
+                                                             context=self.chart_context)
+            self._parameter_form = form.layout
+            self.roles_widget.add_tab(_(self.PARAMETERS_TAB)).addWidget(form.widget)
         self.roles_widget.finish_tabs()
-        self._show_only_panels_switched_on()
-        # The standard ground under the frames, not the window's grey.
-        self._inputs_panel.setProperty("toolboxPage", True)
-        self._inputs_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        return self.roles_widget.take_page(_(self.PARAMETERS_TAB)) or QWidget(self)
 
-        self._results = HtmlResultsView(self)
-        self._results.link_requested.connect(self._follow_link)
-        self._results.setText(_("Cast the columns into their roles, then press Preview."))
-        self._inputs_panel.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-        # Small enough for a laptop: the inputs need about 520 px, the report
-        # takes the rest, and screen_fit shrinks it further on a smaller screen.
-        # Wider since the roles sit under the columns: three columns of room.
-        self.build_window(self._inputs_panel, self._results, copy=self._results.copy_html_to_clipboard,
-                          size=QSize(1000, 560))
+    def _build_source_panel(self) -> QWidget:
+        """The Data page: the table's columns cast into roles."""
+        self.table_source = None
+        self._table_figure_id, self._table_figure_spec = None, None
+        self._chart_figure_id = self._figure_id
+        # Scrolled: with several roles the page is taller than a laptop's window.
+        return self._scrolled(self._inputs_panel, self)
+
+    def input_pages(self) -> list[tuple[QWidget, str]]:
+        """Data, the operation's own pages (a model's effects), then the parameters' page."""
+        pages = [(self.axis_series_panel, _("Data"))] if self.SHOW_DATA else []
+        pages.extend(self.roles_widget.pages())
+        if self.SHOW_PARAMETERS and self.parameters_panel.layout() is not None:
+            pages.append((self.parameters_panel, _(self.PARAMETERS_TAB)))
+        return pages
 
     # ------------------------------------------------------------------
     # The table and its columns
@@ -489,18 +484,36 @@ class RolesOperationDialogBase(AnalysisDialogBase):
     # Running
     # ------------------------------------------------------------------
 
-    def preview(self) -> None:
-        self._run(then=self._draw_preview)
+    def _run_operation(self, *, commit: bool, then: Callable[[bool], None] | None = None) -> bool:
+        """Preview or OK (commit): compute on the cast columns - again only when the inputs changed since the
+        last run - then draw inside the preview's savepoint, or write for good with OK's undo step.
 
-    def ok(self) -> None:
-        # The preview's drawing goes; OK writes it again for good, with its undo step.
-        self._discard_preview()
-        if self._result is not None and self._result_inputs == self._inputs():
-            self._apply(self._result)
-        else:
-            self._run(then=self._apply)
+        *then* is told whether it went through, once the calculation is back.
+        """
+        def finish(succeeded: bool) -> bool:
+            if then is not None:
+                then(succeeded)
+            return succeeded
 
-    def _draw_preview(self, result: Any) -> None:
+        problems = self.problems()
+        if problems:
+            self._results.setText("\n".join(problems))
+            return finish(False)
+        if commit and self._result is not None and self._result_inputs == self._inputs():
+            return finish(self._apply(self._result))
+        frame, casting = self._frame.copy(), self.roles_widget.casting()
+        params, model, inputs = self.parameter_values(), self.current_model(), self._inputs()
+
+        def done(result: Any) -> None:
+            self._result, self._result_inputs = result, inputs
+            self.show_results(self.format_results(result))
+            finish(self._apply(result) if commit else self._draw_preview(result))
+
+        # compute() takes no cancel argument (its signature is the plugins' contract): a long compute
+        # polls stop_requested() and raises app.analysis.Stopped.
+        return self.run_job(lambda _cancel: self.compute(frame, casting, params, model), done)
+
+    def _draw_preview(self, result: Any) -> bool:
         """Write the result's tables and figure inside a savepoint, and have the window show them."""
         self._discard_preview()
         try:
@@ -515,10 +528,11 @@ class RolesOperationDialogBase(AnalysisDialogBase):
             self._discard_preview()
             applogger.exception("%s: the preview could not be drawn", self.Name)
             self.show_failure(exc)
-            return
+            return False
         self._previewing = False
         self._preview_active = True
         self.preview_drawn.emit(self.created_figure_ids[0] if self.created_figure_ids else -1)
+        return True
 
     def _discard_preview(self) -> None:
         """Roll the Preview's tables and figure back, if there is one; the window drops them."""
@@ -531,27 +545,11 @@ class RolesOperationDialogBase(AnalysisDialogBase):
 
     def busy_widgets(self) -> list[QWidget]:
         """Off while a calculation runs: the buttons, and the inputs it was started with."""
-        return [self.preview_button, self.apply_button, self._inputs_panel]
+        return [self.preview_button, self.apply_button, self.left_tabs]
 
-    def _run(self, then: Any) -> None:
-        problems = self.problems()
-        if problems:
-            self._results.setText("\n".join(problems))
-            return
-        frame, casting = self._frame.copy(), self.roles_widget.casting()
-        params, model, inputs = self.parameter_values(), self.current_model(), self._inputs()
-
-        def done(result: Any) -> None:
-            self._result, self._result_inputs = result, inputs
-            self.show_results(self.format_results(result))
-            if then is not None:
-                then(result)
-
-        # compute() takes no cancel argument (its signature is the plugins' contract): a long compute
-        # polls stop_requested() and raises app.analysis.Stopped.
-        self.run_job(lambda _cancel: self.compute(frame, casting, params, model), done)
-
-    def _apply(self, result: Any) -> None:
+    def _apply(self, result: Any) -> bool:
+        """OK: the preview's drawing goes, and the result is written again for good, with its undo step."""
+        self._discard_preview()
         try:
             self.created_figure_ids = []
             self._undo_entry = None
@@ -560,14 +558,13 @@ class RolesOperationDialogBase(AnalysisDialogBase):
         except Exception as exc:  # noqa: BLE001 - reported, the dialog stays open
             applogger.exception("%s could not be written", self.Name)
             self.show_failure(exc, headline=_("Nothing was written."))
-            return
+            return False
         self._record(written, result)
         self.applied.emit()
-        self.remember_window()
-        super().accept()
+        return True
 
     def _record(self, written: Sequence[Mapping[str, Any]], result: Any) -> None:
-        """The Apply in the project's history, like a data operation's (OperationShell.record_in_history)."""
+        """The OK in the project's history, as every data operation's (OperationShell.record_in_history)."""
         casting = self.roles_widget.casting()
         self.record_in_history(
             operation=self.Name,
@@ -578,9 +575,9 @@ class RolesOperationDialogBase(AnalysisDialogBase):
             report=self.format_results(result),
         )
 
-    def results_widget(self) -> Any:
-        """The Results pane, for OperationShell."""
-        return self._results
+    def mark_results_stale(self, *_ignored: Any) -> None:
+        """A choice changed (Draw on, the model): as any input."""
+        self.inputs_changed()
 
     # ------------------------------------------------------------------
     # Results as a figure: charts of the tables written, the report in its notes
@@ -677,18 +674,7 @@ class RolesOperationDialogBase(AnalysisDialogBase):
     # Charts tab
     # ------------------------------------------------------------------
 
-    def _show_only_panels_switched_on(self) -> None:
-        """Hide the Data, Parameters or Charts tab its SHOW_ switch turns off; open on the first one left."""
-        tabs = self.roles_widget.tabs
-        switched_off = {_("Data"): not self.SHOW_DATA, _("Charts"): not self.SHOW_CHART}
-        for index in range(tabs.count()):
-            title = tabs.tabText(index)
-            if title in switched_off:
-                tabs.setTabVisible(index, not switched_off[title])
-        # The Data tab first, when it is shown: the dialog opens on it.
-        tabs.setCurrentIndex(next((i for i in range(tabs.count()) if tabs.isTabVisible(i)), 0))
-
-    def _build_charts_tab(self) -> None:
+    def build_charts_tab(self) -> QWidget | None:
         """The Charts tab: where the report is drawn - a new figure, or new axes in the current one - then the
         charts: the PARAMS marked tab="charts", or a box per chart type (CHART_PANELS) when it draws several."""
         charts = tuple(spec for spec in self.PARAMS if spec.tab == "charts")
@@ -705,12 +691,8 @@ class RolesOperationDialogBase(AnalysisDialogBase):
             charts = tuple(_hidden_by_same_axis(spec, first, self.DEST_SAME_AXIS) for spec in charts)
         # A table analysis has no axis of its own: the choices of where its report is drawn.
         destinations = (self.DEST_SAME_AXIS, self.DEST_NEW_AXIS, self.DEST_NEW_FIGURE, self.DEST_NONE)
-        page = self.build_charts_page(charts, destinations=destinations, default_destination=self.DEST_NEW_FIGURE,
+        return self.build_charts_page(charts, destinations=destinations, default_destination=self.DEST_NEW_FIGURE,
                                       on_change=self.inputs_changed, context=self.chart_context)
-        box = TitledCard(self._inputs_panel, _("Charts"))
-        box.title_label.hide()  # the tab says it
-        box.card.layout().addWidget(page)
-        self.roles_widget.add_tab(_("Charts")).addWidget(box)
 
     def chart_context(self) -> dict[str, Any]:
         """What a chart's (or a parameter's) visible_for may read besides the form: the model, and the type
@@ -731,9 +713,8 @@ class RolesOperationDialogBase(AnalysisDialogBase):
         """The size is the layout's: a new layout starts from its own default, not from the old one's size."""
         return self._geometry_key
 
-    def parameter_forms(self) -> list[Any]:
-        # getattr: the roles announce their first casting while the window is still being built.
-        return [form for form in (getattr(self, "_parameter_form", None), self.chart_form) if form is not None]
+    def parameter_context(self) -> Mapping[str, Any]:
+        return self.chart_context()
 
     def remember_window(self) -> None:
         """The shell's memory, and the columns' roles cast on this table."""

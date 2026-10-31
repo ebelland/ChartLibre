@@ -23,7 +23,6 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
-    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -32,14 +31,12 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMenu,
     QPushButton,
-    QScrollArea,
     QSizePolicy,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from app.styles.style import MARGIN_TOOLBOX_PAGE, TitledCard
+from app.styles.style import TitledCard
 from app.utils.i18n import _
 
 CONTINUOUS = "continuous"
@@ -130,7 +127,7 @@ class ColumnRolesWidget(QWidget):
         self._columns: list[str] = []
         self._boxes: dict[str, QListWidget] = {}
 
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
@@ -199,76 +196,53 @@ class ColumnRolesWidget(QWidget):
         assert roles_layout is not None
         roles_layout.addLayout(right)
 
-        # Tabs, as the data operations' dialogs: the data first (the
-        # columns and their roles), then whatever the operation adds (a
-        # model's settings, its charts) - one page of all of it is taller
-        # than a laptop's screen.
-        self.tabs = QTabWidget(self)
-        self.tabs.setObjectName("operationTabs")
-        self.tabs.setDocumentMode(True)
-        self.tabs.setUsesScrollButtons(True)
-        self.tabs.setElideMode(Qt.TextElideMode.ElideNone)
-        self.tabs.tabBar().setExpanding(False)
-        self.tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._tab_layouts: dict[str, QVBoxLayout] = {}
-        data = self.add_tab(_("Data"))
+        # The columns and their roles are the window's Data page; what the operation adds (a model's
+        # effects, its settings) goes on pages of their own (add_tab), which the window shows as its tabs.
         # Their titles stay: inside the Settings frame the two are flattened
-        # into one surface, and without the tab bar (an analysis with no
-        # parameters) nothing else would say what each part is for.
-        data.addWidget(columns_card, 1)
-        data.addWidget(roles_card, 0)
-        #: Where the operation adds its own frames, on the tab after Data: a
-        #: model's effects.
-        side = self.add_tab(_("Roles"))
-        self.side_layout = side
-        layout.addWidget(self.tabs, 1)
+        # into one surface, and nothing else would say what each part is for.
+        layout.addWidget(columns_card, 1)
+        layout.addWidget(roles_card, 0)
+        self._pages: dict[str, QWidget] = {}
+        self._titles: dict[str, str] = {}
+        #: Where the operation adds its own frames, on the page after Data: a model's effects.
+        self.side_layout = self.add_tab(_("Roles"))
 
     def add_tab(self, title: str) -> QVBoxLayout:
-        """The layout of the tab *title*, made the first time it is asked for.
-
-        A page of titled frames on the standard ground, scrolled when the
-        window is shorter than it: frames are never squeezed on each other.
-        """
-        existing = self._tab_layouts.get(title)
+        """The layout of the page *title*, made the first time it is asked for: a column of titled frames."""
+        existing = self._pages.get(title)
         if existing is not None:
-            return existing
+            layout = existing.layout()
+            assert isinstance(layout, QVBoxLayout)
+            return layout
         page = QWidget()
-        page.setProperty("toolboxPage", True)
-        page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(*MARGIN_TOOLBOX_PAGE)
+        page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(10)
-        scroll = QScrollArea(self.tabs)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setWidget(page)
-        scroll.viewport().setProperty("toolboxPage", True)
-        scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        # The sheet paints it; filled with the palette's window grey it was a darker box
-        # inside the Settings frame - a panel in a panel.
-        scroll.viewport().setAutoFillBackground(False)
-        self.tabs.addTab(scroll, title)
-        self._tab_layouts[title] = page_layout
+        self._pages[title] = page
+        self._titles[title] = title
         return page_layout
 
     def finish_tabs(self) -> None:
         """Keep each page's frames at its top: the spare height goes below them,
         unless a frame already takes it (a list that should fill the page)."""
-        for page_layout in self._tab_layouts.values():
+        for page in self._pages.values():
+            page_layout = page.layout()
             if not any(page_layout.stretch(i) for i in range(page_layout.count())):
                 page_layout.addStretch(1)
-        self.tabs.setTabBarAutoHide(True)
-        # The operation's own tab goes when it added nothing to it, and the
-        # bar with it when Data is all there is.
-        roles_page = self._tab_layouts.get(_("Roles"))
-        if roles_page is not None and not any(
-                roles_page.itemAt(i).widget() is not None for i in range(roles_page.count())):
-            self.tabs.removeTab(1)  # Data is always the first
 
     def rename_extra_tab(self, title: str) -> None:
-        """Name the tab after Data (the operation's own frames, e.g. a model's effects)."""
-        self.tabs.setTabText(1, title)
+        """Name the page after Data (the operation's own frames, e.g. a model's effects)."""
+        self._titles[_("Roles")] = title
+
+    def pages(self) -> list[tuple[QWidget, str]]:
+        """The operation's pages, as (page, title), in the order made; a page it added nothing to is left out."""
+        return [(page, self._titles[key]) for key, page in self._pages.items()
+                if any(page.layout().itemAt(i).widget() is not None for i in range(page.layout().count()))]
+
+    def take_page(self, title: str) -> QWidget | None:
+        """The page *title*, out of pages(): the window places it itself (the parameters' page)."""
+        self._titles.pop(title, None)
+        return self._pages.pop(title, None)
 
     # -- Content ---------------------------------------------------------
 

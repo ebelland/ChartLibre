@@ -23,8 +23,9 @@ def _operations() -> list[type[DataOperationDialogBase]]:
     for path in sorted(Path(next(iter(package.__path__))).glob("*_dialog.py")):
         module = importlib.import_module(f"app.data_operations.{path.stem}")
         for _name, cls in inspect.getmembers(module, inspect.isclass):
+            # The operations on a table's columns in roles read nothing else (their own tests).
             if (issubclass(cls, DataOperationDialogBase) and cls.__module__ == module.__name__
-                    and cls.FROM_DATA and cls.SHOWS_SERIES_SELECTOR and cls.SHOW_DATA):
+                    and cls.DATA_PICKER == "series" and cls.FROM_DATA and cls.SHOWS_SERIES_SELECTOR and cls.SHOW_DATA):
                 found.append(cls)
     return found
 

@@ -1318,7 +1318,9 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             applogger.error("Could not load table operation class: %r", operation.get("name"))
             return
         current = self._table_panel.current
-        dialog = dialog_class(repo=self._repo, table=str(current) if current else None, parent=self)
+        panel = self._current_chart_panel()
+        dialog = dialog_class(repo=self._repo, table=str(current) if current else None,
+                              figure_id=int(panel.figure_id) if panel is not None else None, parent=self)
         if roles:
             roles = dict(roles)
             chosen_x = roles.pop("_x", None)
@@ -1326,8 +1328,6 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             if chosen_x:
                 dialog.cast_explanatory(list(chosen_x))
         dialog.applied.connect(self.refresh)
-        panel = self._current_chart_panel()
-        dialog.current_figure_id = int(panel.figure_id) if panel is not None else None
         # Preview draws while the dialog is open: its figure shown at once, dropped when it is rolled back.
         dialog.preview_drawn.connect(self._on_analysis_preview)
         dialog.exec()

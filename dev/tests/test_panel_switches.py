@@ -70,9 +70,9 @@ def test_a_table_operation_hides_its_switched_off_tabs(qapp, repo: SqliteRepo) -
 
     dialog = NoParameters(repo=repo, table="line")
     try:
-        titles = _tab_titles(dialog.roles_widget.tabs)
+        titles = _tab_titles(dialog.left_tabs)
         assert _("Data") in titles
         assert _("Parameters") not in titles
-        assert dialog.roles_widget.tabs.currentIndex() == 0  # opens on Data
+        assert dialog.left_tabs.currentIndex() == 0  # opens on Data
     finally:
         dialog.close()

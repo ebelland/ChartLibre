@@ -152,7 +152,7 @@ def test_ok_with_an_input_draws_the_cross_correlation(qapp, tmp_path) -> None:
     try:
         dialog.roles_widget.set_casting({"response": ["y"], "time": ["month"], "input": ["x"]})
         assert not dialog.problems()
-        dialog._parameter_form.set_values({"model": ts.AUTO})
+        dialog._parameter_form_spec.set_values({"model": ts.AUTO})
         dialog.ok()
         deadline = time.monotonic() + 120
         while dialog.job_running and time.monotonic() < deadline:

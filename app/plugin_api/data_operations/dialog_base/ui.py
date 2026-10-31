@@ -411,6 +411,23 @@ class WindowMixin:
         scroll.viewport().setAutoFillBackground(False)
         return scroll
 
+    def input_pages(self) -> list[tuple[QWidget, str]]:
+        """The tabs before Charts, as (page, title): Data, Model, Parameters, Graphics, then extra_tabs.
+
+        A page its SHOW_ switch turns off is left out (Data, for an operation that selects nothing).
+        """
+        pages = []
+        if self.SHOW_DATA:
+            pages.append((self.axis_series_panel, _("Data")))
+        if self.SHOW_MODEL:
+            pages.append((self.model_panel, _("Model")))
+        if self.SHOW_PARAMETERS:
+            pages.append((self.parameters_panel, _("Parameters")))
+        if self.SHOW_OUTPUT:
+            pages.append((self.build_output_page(), _("Graphics")))
+        pages.extend(self.extra_tabs())
+        return pages
+
     def _build_common_ui(self) -> None:
         """Build the common shell: the inputs as tabs on the left, the results on the right."""
         # Tabs, as Chart properties: the accordion's three stacked headers took
@@ -443,17 +460,7 @@ class WindowMixin:
                 QSizePolicy.Policy.Expanding,
             )
 
-        # The Axis / Series tab is left out for an operation that selects nothing.
-        pages = []
-        if self.SHOW_DATA:
-            pages.append((self.axis_series_panel, _("Data")))
-        if self.SHOW_MODEL:
-            pages.append((self.model_panel, _("Model")))
-        if self.SHOW_PARAMETERS:
-            pages.append((self.parameters_panel, _("Parameters")))
-        if self.SHOW_OUTPUT:
-            pages.append((self.build_output_page(), _("Graphics")))
-        pages.extend(self.extra_tabs())
+        pages = self.input_pages()
         charts_tab = self.build_charts_tab() if self.SHOW_CHART else None
         if charts_tab is None and self.SHOW_CHART and self._offers_table_chart():
             # A table's chart is picked here even when the operation has no other chart to choose.

@@ -22,10 +22,13 @@ STAGE 1 - ONE FAMILY (this step)
    roles base opens on the table selected, its columns cast; the others on the current chart.
 4. Imports in the tests and demos follow; the suite green.
 
-STAGE 2 - ONE BASE (next)
-The roles base's window and pipeline folded into DataOperationDialogBase as its "roles" Data page (the
-ColumnRolesWidget beside the series selector, as the table source already is), one Preview/OK/undo/history
-path; RolesOperationDialogBase then a thin alias, and gone.
+STAGE 2 - ONE BASE (done)
+RolesOperationDialogBase is a DataOperationDialogBase: the same window (_build_common_ui, its tabs, Revert,
+the Charts page), the same Preview / OK / Close path (preview -> _run_operation, ok -> apply -> accept,
+discard_unapplied). What it adds is the Data page (the ColumnRolesWidget, now a plain page; the operation's
+own pages through input_pages) and its _run_operation: compute(frame, casting, params, model) on a worker,
+apply_results inside the preview's savepoint, or for good with its undo step and history record.
+The plugins' contract (compute, report_body, apply_results, build_extra_inputs) is unchanged.
 
 STAGE 3 - EACH ANALYSIS AS A SERIES OPERATION WHERE IT IS ONE
 The analyses of one measure along x (In control, Time Series) read a series as Change does; the others keep

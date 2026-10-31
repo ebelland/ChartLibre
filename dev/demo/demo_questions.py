@@ -59,7 +59,7 @@ def _ask(app, repo: SqliteRepo, dialog_path: str, table: str, roles: dict[str, l
         if effects:
             dialog.cast_explanatory(list(effects))
         if params:
-            dialog._parameter_form.set_values(params)
+            dialog._parameter_form_spec.set_values(params)
         problems = dialog.problems()
         if problems:
             raise RuntimeError("; ".join(problems))
