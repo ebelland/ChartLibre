@@ -1,16 +1,16 @@
 """Fit-function scanner for SeriesFitDialog.
 
 The fit dialog is intentionally decoupled from concrete model definitions.
-Built-in functions live in ``app/functions/functions.py``, a hand-written
-example lives in ``app/functions/user_functions.py``, and a function the
-Function Creator (Developer menu) scaffolds lives in ``user/functions/``
-instead (kept out of the app's own shipped source, see
-``app.utils.config.USER_FUNCTIONS_DIR``) - this scanner reads all of
-``app/functions/`` plus that folder together.  Fit functions are a plugin
-family like the others (app.scanners.plugin_family): classes that directly
-inherit from ``base_function``, their name, category, parameters and
+The built-in functions are the SymPy library (``app.functions.library``,
+each with its estimator in ``app.functions.estimators``). Beside them, still
+read for one release (dev/plans/sympy_library_plan.txt, Q3), the classes on
+``base_function``: the hand-written examples in ``app/functions/`` and what
+the Function Creator (Developer menu) scaffolded into ``user/functions/``
+(see ``app.utils.config.USER_FUNCTIONS_DIR``) - a plugin family like the
+others (app.scanners.plugin_family), their name, category, parameters and
 starting values read from the source, the module imported only when a
-function is used.
+function is used. A note in the log asks to recreate a user's class as a
+SymPy function.
 """
 
 from __future__ import annotations
@@ -142,6 +142,10 @@ class FunctionScanner:
         entry = payload.get("discovery_entry")
         if not isinstance(entry, dict):
             raise ValueError("Function payload has no discovery_entry.")
+        if entry.get("library"):
+            from app.functions.library import function_class
+
+            return function_class(str(entry["library"]))
 
         cls = self._family().load(entry)
         if cls is None:
@@ -198,9 +202,20 @@ class FunctionScanner:
         )
 
     def _discover(self) -> list[FitFunctionSpec]:
-        entries = self._family().discover()
+        from app.functions import library
 
-        specs: list[FitFunctionSpec] = []
+        specs: list[FitFunctionSpec] = [
+            FitFunctionSpec(
+                name=str(entry["name"]), category=str(entry["category"]), description=str(entry["description"]),
+                keywords=str(entry.get("keywords", "")), goals=tuple(entry.get("goals", ())),
+                expression=str(entry.get("expression", "")), p0=tuple(float(v) for v in entry["values"]),
+                params=tuple(str(label) for label in entry["labels"]),
+                discovery_entry={"library": entry["name"], "name": entry["class_name"], "path": ""},
+                ndim=self.NDIM,
+            )
+            for entry in library.entries(ndim=self.NDIM)
+        ]
+        entries = self._family().discover()
         seen: set[tuple[str, str]] = set()
 
         for entry in entries:
@@ -221,6 +236,10 @@ class FunctionScanner:
                 if not callable(getattr(cls, "execute", None)):
                     applogger.warning("Fit function %s in %s has no execute(x, p); skipped.", cls_name, path)
                     continue
+
+            if self.extra_roots and Path(path).is_relative_to(self.extra_roots[0]):
+                applogger.info("Fit function %s (%s) is a Python class: still read in this release; recreate it "
+                               "as a SymPy function (Series Operations > Function) to keep it.", cls_name, path)
 
             def attr(key: str, default: Any) -> Any:
                 return entry.get(key) or (getattr(cls, key, default) if cls is not None else default) or default
@@ -310,10 +329,10 @@ class SurfaceFunctionScanner(FunctionScanner):
     discovery, caching, the catalog tree, filtering, model building - so this
     overrides only the three class attributes that describe the difference,
     rather than re-implementing ``_discover``/``make_model`` from scratch.
-    Built-ins live in ``app/functions/surface_functions.py``, a hand-written
-    example in ``app/functions/user_surface_functions.py``, and both are
-    scanned from the same ``app/functions/`` root ``FunctionScanner`` uses -
-    the base-class filter is what keeps the two libraries apart.
+    The built-ins are the library's entries with ndim 2; a hand-written
+    example class is in ``app/functions/user_surface_functions.py``, scanned
+    from the same ``app/functions/`` root ``FunctionScanner`` uses - the
+    base-class filter is what keeps the two kinds of classes apart.
     """
 
     BASE_CLASS_NAME: ClassVar[str] = "base_surface_function"

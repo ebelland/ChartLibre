@@ -1,4 +1,4 @@
-"""Write app/functions/library.py: the fit-function classes (app/functions) as SymPy expressions.
+"""Write app/functions/library.py: the old fit-function classes (dev/tests/legacy_functions) as SymPy expressions.
 
 Each class's execute() is run once with SymPy symbols in place of x, y and the parameters, and a stand-in
 for numpy and scipy.special that answers with SymPy: np.exp -> exp, np.where -> Piecewise, np.clip ->
@@ -22,9 +22,7 @@ from pathlib import Path
 
 import sympy as sp
 
-import app.functions.functions as basic
-import app.functions.nist_functions as nist
-import app.functions.surface_functions as surfaces
+from dev.tests.legacy_functions import basic, nist, surfaces
 
 TARGET = Path(__file__).resolve().parents[2] / "app" / "functions" / "library.py"
 POS, NZ, SAFE, FINITE = sp.Function("pos"), sp.Function("nz"), sp.Function("safe"), sp.Function("finite")
@@ -88,7 +86,8 @@ def _translate(cls: type, ndim: int) -> dict:
     taken: set[str] = set()
     names = [_identifier(label, taken) for label in labels]
     entry = {"name": cls.name, "category": cls.category, "description": cls.description,
-             "keywords": getattr(cls, "keywords", ""), "goals": list(getattr(cls, "goals", []) or []),
+             "keywords": getattr(cls, "keywords", ""), "expression": getattr(cls, "expression", ""),
+             "goals": list(getattr(cls, "goals", []) or []),
              "params": names, "labels": labels, "values": [float(v) for v in cls.p0], "ndim": ndim,
              "guess": cls.__name__ if "initial_guess" in cls.__dict__ else "", "class_name": cls.__name__}
     if cls.__name__ in _BY_HAND:

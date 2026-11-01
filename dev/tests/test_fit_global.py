@@ -181,23 +181,18 @@ def test_a_symbol_is_not_found_inside_another_and_never_inside_a_tag() -> None:
 
 
 def test_the_catalogue_formulas_get_most_of_their_parameters() -> None:
-    import importlib
-    import inspect
     import re
 
-    from app.plugin_api.functions.base import base_function
     from app.data_operations.fit_dialog.common import _expression_symbols
+    from app.functions import library
 
     placed = total = 0
-    for name in ("app.functions.functions", "app.functions.nist_functions"):
-        module = importlib.import_module(name)
-        for cls in vars(module).values():
-            if inspect.isclass(cls) and issubclass(cls, base_function) and cls is not base_function and cls.__module__ == name:
-                expression, params = getattr(cls, "expression", None), getattr(cls, "params", None)
-                if expression and params:
-                    symbols = _expression_symbols(re.sub(r"<[^>]+>", " ", str(expression)), list(params))
-                    placed += sum(symbol is not None for symbol in symbols)
-                    total += len(params)
+    for entry in library.entries(ndim=1):
+        expression, params = entry.get("expression"), entry["labels"]
+        if expression and params:
+            symbols = _expression_symbols(re.sub(r"<[^>]+>", " ", str(expression)), list(params))
+            placed += sum(symbol is not None for symbol in symbols)
+            total += len(params)
     assert placed / total > 0.9, (placed, total)
 
 

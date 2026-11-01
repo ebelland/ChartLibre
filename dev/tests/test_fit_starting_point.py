@@ -9,13 +9,19 @@ confident wrong one, not that the code runs.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
-from app.functions import functions as library
+from app.functions.library import function_class
 from app.plugin_api.functions.optimizers import OPTIMIZERS, TRUST_REGION, run_optimizer
 from app.plugin_api.functions.starting_point import choose_starting_point
 from dev.tests._cases import check_all
+
+#: The library functions these tests fit, as the fit dialog reads them.
+library = SimpleNamespace(**{name: function_class(name) for name in (
+    "cubic", "exponential_decay", "gaussian_peak", "linear", "logistic4", "michaelis_menten", "power_law", "quadratic")})
 
 X = np.linspace(0.5, 10.0, 240)
 

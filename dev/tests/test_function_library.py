@@ -9,10 +9,8 @@ import inspect
 import numpy as np
 import pytest
 
-import app.functions.functions as basic
-import app.functions.nist_functions as nist
-import app.functions.surface_functions as surfaces
 from app.functions import library
+from dev.tests.legacy_functions import basic, nist, surfaces
 
 
 def _classes() -> dict[str, type]:
@@ -75,3 +73,37 @@ def test_the_guards_keep_a_width_off_zero_as_the_classes_do() -> None:
     assert formula.has(library.pos)
     # Differentiated through the guard: d/dx stays a formula, no unevaluated Derivative left.
     assert not sp.diff(formula, sp.Symbol("x")).has(sp.Derivative)
+
+
+@pytest.mark.parametrize("entry", [entry for entry in library.ENTRIES if entry["guess"]],
+                         ids=lambda entry: entry["class_name"])
+def test_the_estimator_gives_the_classs_starting_values(entry: dict) -> None:
+    rng = np.random.default_rng(7)
+    old = CLASSES[entry["class_name"]]
+    new = library.function_class(entry["name"])
+    x = np.linspace(0.5, 10.0, 60)
+    p = np.asarray(entry["values"], dtype=float) * (1.0 + 0.1 * rng.standard_normal(len(entry["values"])))
+    if entry["ndim"] == 1:
+        y = old.execute(x, p) + 0.01 * rng.standard_normal(x.size)
+        expected, got = old.initial_guess(x, y), new.initial_guess(x, y)
+    else:
+        y = rng.uniform(0.5, 10.0, x.size)
+        z = old.execute(x, y, p) + 0.01 * rng.standard_normal(x.size)
+        expected, got = old.initial_guess(x, y, z), new.initial_guess(x, y, z)
+    assert (expected is None) == (got is None)
+    if expected is not None:
+        np.testing.assert_allclose(got, expected, rtol=1e-9, atol=1e-12)
+
+
+def test_the_fit_catalogue_offers_every_library_function_under_its_old_name() -> None:
+    from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
+
+    offered = {model["function_class"]: model for scanner in (FunctionScanner(extra_roots=()), SurfaceFunctionScanner(extra_roots=()))
+               for models in scanner.catalog().values() for model in models}
+    assert set(CLASSES) <= set(offered)
+    gaussian = offered["gaussian_peak"]
+    assert gaussian["params"] == list(CLASSES["gaussian_peak"].params)
+    model = FunctionScanner().make_model(gaussian)
+    np.testing.assert_allclose(model(np.array([4.0]), np.array(gaussian["p0"])),
+                               CLASSES["gaussian_peak"].execute(np.array([4.0]), np.array(gaussian["p0"])))
+    assert callable(getattr(FunctionScanner().load_class(gaussian), "initial_guess", None))

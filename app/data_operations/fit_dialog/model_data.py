@@ -25,10 +25,10 @@ class ModelDataMixin:
         """Return scanned fit functions grouped by category.
 
         The previous JSON catalog is intentionally removed.  All fit models are
-        now function classes discovered from app/functions/functions.py and
+        the SymPy library (app.functions.library) and the example classes in
         app/functions/user_functions.py through FunctionScanner, plus every
-        z = f(x, y) surface function from app/functions/surface_functions.py
-        and app/functions/user_surface_functions.py through
+        z = f(x, y) surface function of the library and of
+        app/functions/user_surface_functions.py through
         SurfaceFunctionScanner. The two catalogs are merged by category - a
         surface function's own categories ("Surfaces", "User surfaces") show
         up as ordinary top-level groups in the same tree, no separate UI

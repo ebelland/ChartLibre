@@ -31,7 +31,7 @@ NIST_DEMO = next(demo for demo in DEMO_PROJECTS if demo.builder.endswith(":build
 
 _VIEW_KEY = "view"
 
-#: Nonlinear problems and the Fit model that carries each one (app/functions/nist_functions.py).
+#: Nonlinear problems and the Fit model that carries each one (app.functions.library, from the NIST classes).
 NONLINEAR: tuple[tuple[str, str], ...] = (
     ("Misra1a", "Misra1a (NIST, lower difficulty)"),
     ("Gauss3", "Gauss3 (NIST, average difficulty)"),
