@@ -55,8 +55,13 @@ _qt_plugins_outside_dot_folder(os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt",
 # ----------------------------------------------------------------------
 # Logging
 # ----------------------------------------------------------------------
-from app.logs.logger import AppLogger, applogger
+from app.logs.logger import AppLogger, applogger, clear_log_file
+from app.utils.config import clear_log_at_start
+
 AppLogger.configure()
+if clear_log_at_start():
+    # Settings > Advanced: the log holds this session only.
+    clear_log_file()
 applogger.debug("Application starting...")
 from PySide6.QtWidgets import QApplication, QMessageBox
 

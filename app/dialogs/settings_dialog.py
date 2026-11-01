@@ -54,7 +54,16 @@ from app.styles.style import (
 )
 from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
 from app.plugin_api.charts.render_figure import DEFAULT_MPL_STYLE_KEY
-from app.utils.config import DEVELOPER_MODE_KEY, MPLSTYLES_DIR, developer_mode, get_language, get_value, set_value
+from app.utils.config import (
+    CLEAR_LOG_KEY,
+    DEVELOPER_MODE_KEY,
+    MPLSTYLES_DIR,
+    clear_log_at_start,
+    developer_mode,
+    get_language,
+    get_value,
+    set_value,
+)
 from app.utils.machine_translation import DEEPL_KEY_SETTING
 from app.utils.i18n import AUTO_LANGUAGE, available_languages, platform_language, tr
 
@@ -269,6 +278,12 @@ class SettingsDialog(PanelDialog):
         )
         self._developer_check.setChecked(developer_mode())
         form.addRow(tr("Developer mode"), self._developer_check)
+
+        self._clear_log_check = QCheckBox(tr("Clear the log at start"), card)
+        self._clear_log_check.setToolTip(tr("The log file is emptied each time the application starts, so it holds "
+                                            "the current session only."))
+        self._clear_log_check.setChecked(clear_log_at_start())
+        form.addRow(tr("Log"), self._clear_log_check)
 
         # The one secret in here: shown as dots, kept in user.json on this
         # computer - never in config.json or a project - and sent only to
@@ -540,6 +555,7 @@ class SettingsDialog(PanelDialog):
         set_value(next_steps.SETTING_KEY, bool(self._what_next_check.isChecked()))
         set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
         set_value(DEVELOPER_MODE_KEY, bool(self._developer_check.isChecked()))
+        set_value(CLEAR_LOG_KEY, bool(self._clear_log_check.isChecked()))
         self._save_assistant()
 
         applogger.info(
