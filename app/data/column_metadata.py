@@ -19,7 +19,9 @@ No Qt: the Column Info dialog and the table analyses both read it here.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
+import math
+
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -182,6 +184,31 @@ def format_value(value: Any, info: ColumnInfo) -> str:
             return f"{number:.{decimals}e}"
         return f"{number:,.{decimals}f}"
     return str(value)
+
+
+def best_text(value: Any, fits: Callable[[str], bool]) -> str:
+    """The Best format: *value* as stored when it *fits* the cell, else with as many significant digits as fit
+    (1/3 in a narrow column 0.333, in a wide one 0.333333333333) - then scientific, then "#" (a spreadsheet's
+    General format). Text that is not a number is shown as it is."""
+    text = "" if value is None else str(value)
+    if fits(text):
+        return text
+    try:
+        number = float(text)
+    except ValueError:
+        return text
+    if not math.isfinite(number):
+        return text
+    for digits in range(15, 0, -1):
+        shown = f"{number:.{digits}g}"
+        # "g" turns to scientific notation past 1e{digits}: kept only once nothing plainer fits.
+        if "e" not in shown and fits(shown):
+            return shown
+    for digits in range(6, -1, -1):
+        shown = f"{number:.{digits}e}"
+        if fits(shown):
+            return shown
+    return "#"
 
 
 def source_table_of(sql: str) -> str | None:

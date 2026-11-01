@@ -21,6 +21,22 @@ from app.styles.style import IS_MACOS, action_presentation
 JUMP_BAR_HEIGHT: int = 36
 
 
+def jump_arrow(parent: QWidget, action_id: str, callback, *, tooltip: str = "") -> QToolButton:
+    """A back or forward arrow as the charts' bar draws it (chart_previous / chart_next's icon, no frame):
+    the one look of "the previous one, the next one" wherever the window has it - Column Info too."""
+    icon, text, default_tooltip = action_presentation(action_id)
+    button = QToolButton(parent)
+    button.setObjectName("chartJumpArrow")
+    button.setIcon(icon)
+    button.setIconSize(QSize(20, 20))
+    button.setAutoRaise(True)
+    button.setAccessibleName(text)
+    button.setToolTip(tooltip or default_tooltip)
+    button.setFixedSize(28, 28)
+    button.clicked.connect(callback)
+    return button
+
+
 class ChartJumpBar(QFrame):
     """‹ › and a menu button naming the current chart."""
 
@@ -58,17 +74,7 @@ class ChartJumpBar(QFrame):
         self.set_charts([], -1)
 
     def _arrow(self, action_id: str, callback) -> QToolButton:
-        icon, text, tooltip = action_presentation(action_id)
-        button = QToolButton(self)
-        button.setObjectName("chartJumpArrow")
-        button.setIcon(icon)
-        button.setIconSize(QSize(20, 20))
-        button.setAutoRaise(True)
-        button.setAccessibleName(text)
-        button.setToolTip(tooltip)
-        button.setFixedSize(28, 28)
-        button.clicked.connect(callback)
-        return button
+        return jump_arrow(self, action_id, callback)
 
     def set_charts(self, names: Sequence[str], current: int) -> None:
         """Show *names* in the menu and *current* as the title."""

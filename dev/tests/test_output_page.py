@@ -55,3 +55,23 @@ def test_the_fit_window_names_its_result_on_its_one_charts_tab(qapp, repo) -> No
         assert dialog.left_tabs.widget(titles.index("Charts")).isAncestorOf(dialog._output_table_edit)
     finally:
         dialog.close()
+
+
+def test_the_report_is_copied_and_exported_from_its_menu_not_a_button(qapp, repo, tmp_path, monkeypatch) -> None:
+    """Right-click on the report: Copy, Export as HTML, Export as PDF - and no Copy button under it."""
+    from app.widgets import html_results
+
+    dialog = _fit(repo)
+    try:
+        assert dialog.copy_html_button is None
+        view = dialog._results_label
+        view.setHtml("<h1>Report</h1><p>Slope 2.0</p>")
+        shown: list = []
+        monkeypatch.setattr(html_results, "create_menu", lambda _parent, items, **_k: shown.extend(items) or
+                            type("M", (), {"exec": lambda *_a: None})())
+        view._show_context_menu(view.rect().center())
+        assert [item.action_id for item in shown] == ["copy", "results_export_html", "results_export_pdf"]
+        written = html_results.write_html_pdf("<h1>Report</h1><p>Slope 2.0</p>", tmp_path / "report")
+        assert written.name == "report.pdf" and written.read_bytes().startswith(b"%PDF")
+    finally:
+        dialog.close()

@@ -1,6 +1,6 @@
 # ChartLibre — Prioritized Roadmap
 
-**State:** `app/` has 110,943 lines of code in 335 Python files; `dev/tests` has 25,303 lines in 216 files (measured at this commit).
+**State:** `app/` has 111,539 lines of code in 338 Python files; `dev/tests` has 25,534 lines in 218 files (measured at this commit).
 
 **Audience:** engineers, scientists, and students who need an affordable desktop workflow from raw data to analysed, documented figures and reports.
 
@@ -24,7 +24,7 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID08 | 8 | 3 | **Model comparison and validation** (G-03, AN-12) | Compare models on shared validation data with R², RMSE, AUC, bootstrap, permutation, and cross-validation options. | **JMP / scikit-learn**; safer model choice. |
 | ID09 | 9 | 2 | **Plain-language errors and onboarding** (H-11, H-08) | Actionable import/SQL errors, a demo dataset, guided first-run flow, and product tour. | **Core**; improves activation and support load. |
 | ID11 | 11 | 3 | **More instrument and scientific imports** (I-01) | Add priority formats: HDF5/NetCDF, TDMS, compressed JCAMP, and common instrument exports. | **Origin / lab software**; unlocks adoption, subject to sample files. |
-| ID12 | 12 | 3 | **Quality and measurement tools** (G-06) | Add EWMA, CUSUM, Levey–Jennings, rare-event charts, process screening, Bland–Altman, Deming, and Passing–Bablok. | **JMP / Minitab**; strong engineering and QA gap. |
+| ID12 | 12 | 2 | **Quality and measurement tools** (G-06) | Add process screening (EWMA, CUSUM, Levey–Jennings with Westgard, g and t charts, Bland–Altman, Deming and Passing–Bablok are done). | **JMP / Minitab**; strong engineering and QA gap. |
 | ID13 | 13 | 2 | **Robust regression diagnostics** (R-04, G-25) | Add VIF, leverage, AIC comparison, WLS/GLS, and remaining ANOVA diagnostics. | **statsmodels / JMP**; makes existing modelling more trustworthy. |
 | ID14 | 14 | 2 | **Missing-data and model preprocessing** (G-22, G-24) | Table-level imputation plus saved scaling, encoding, and feature generation. | **scikit-learn**; prerequisite for reusable models. |
 | ID15 | 15 | 2 | **Nonparametric and distribution tests** (G-30, G-07) | Add exact tests, TOST equivalence, and matched pairs (Friedman, Mood median, Fligner–Killeen, Page trend, tolerance/prediction intervals are done). | **SciPy / JMP**; broad, low-effort statistical coverage. |

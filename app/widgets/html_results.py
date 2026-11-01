@@ -20,6 +20,7 @@ import atexit
 import html
 import re
 import weakref
+from pathlib import Path
 from typing import cast
 
 import shiboken6
@@ -191,6 +192,28 @@ def _hook_release() -> None:
     atexit.register(release_web_views)
 
 
+def write_html_pdf(html: str, path: str | Path, *, title: str = "") -> Path:
+    """*html* laid out on A4 pages and written as a PDF (its pictures, inline data: images, kept)."""
+    from PySide6.QtCore import QMarginsF, QSizeF
+    from PySide6.QtGui import QPageLayout, QPageSize, QPdfWriter, QTextDocument
+
+    target = Path(path)
+    if target.suffix.lower() != ".pdf":
+        target = target.with_name(target.name + ".pdf")
+    writer = QPdfWriter(str(target))
+    writer.setResolution(300)
+    writer.setTitle(title)
+    writer.setCreator("ChartLibre")
+    writer.setPageLayout(QPageLayout(QPageSize(QPageSize.PageSizeId.A4), QPageLayout.Orientation.Portrait,
+                                     QMarginsF(15, 15, 15, 15), QPageLayout.Unit.Millimeter))
+    document = QTextDocument()
+    document.setHtml(html)
+    page = writer.pageLayout().paintRect(QPageLayout.Unit.Point)
+    document.setPageSize(QSizeF(page.width(), page.height()))
+    document.print_(writer)
+    return target
+
+
 class HtmlResultsView(QWidget):
     """Reusable HTML results pane with Copy-as-HTML support."""
 
@@ -294,27 +317,14 @@ class HtmlResultsView(QWidget):
         anchor = source if isinstance(source, QWidget) else self
 
         has_content = bool(self._html.strip() or self._plain_text.strip())
+        # Copy, then the two ways out to a file: the report's own buttons are these (no Copy button below it).
         menu = create_menu(
             self,
             [
-                action_menu_item(
-                    "save",
-                    self.save_html_to_file,
-                    enabled=has_content,
-                    shortcut=None,
-                ),
-                action_menu_item(
-                    "clear",
-                    self.request_clear,
-                    enabled=has_content,
-                    shortcut=None,
-                ),
-                action_menu_item(
-                    "copy",
-                    self.copy_html_to_clipboard,
-                    enabled=has_content,
-                    shortcut=None,
-                ),
+                action_menu_item("copy", self.copy_html_to_clipboard, enabled=has_content, shortcut=None),
+                action_menu_item("results_export_html", self.save_html_to_file, enabled=has_content,
+                                 shortcut=None),
+                action_menu_item("results_export_pdf", self.save_pdf_to_file, enabled=has_content, shortcut=None),
             ],
         )
         menu.exec(anchor.mapToGlobal(pos))
@@ -422,7 +432,7 @@ class HtmlResultsView(QWidget):
             return
         file_path, _unused = QFileDialog.getSaveFileName(
             self,
-            _("Save HTML"),
+            _("Export as HTML"),
             "results.html",
             "HTML files (*.html *.htm);;Text files (*.txt);;All files (*)",
         )
@@ -432,6 +442,13 @@ class HtmlResultsView(QWidget):
         content = self._html if self._html.strip() else plain_to_html(self._plain_text)
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(content)
+
+    def save_pdf_to_file(self) -> None:
+        """Export as PDF: the report laid out on A4 pages, as Project > Report writes one."""
+        file_path, _selected = QFileDialog.getSaveFileName(self, _("Export as PDF"), "results.pdf",
+                                                           "PDF files (*.pdf);;All files (*)")
+        if file_path:
+            write_html_pdf(self._html if self._html.strip() else plain_to_html(self._plain_text), file_path)
 
     def copy_html_to_clipboard(self) -> None:
         """Put both an HTML and a plain-text flavour on the clipboard.

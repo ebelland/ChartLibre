@@ -541,6 +541,20 @@
       "SegoeFluent": "E703",
       "ThemeIcon": "document-save"
     },
+    "results_export_html": {
+      "text": "Export as HTML...",
+      "description": "Save the report as an HTML page",
+      "SFSymbol": "square.and.arrow.up",
+      "SegoeFluent": "E703",
+      "ThemeIcon": "document-save"
+    },
+    "results_export_pdf": {
+      "text": "Export as PDF...",
+      "description": "Save the report as a PDF document",
+      "SFSymbol": "doc.richtext",
+      "SegoeFluent": "EA90",
+      "ThemeIcon": "document-print"
+    },
     "save_as": {
       "text": "Save As...",
       "description": "Save the current database under a new name, and switch to it",

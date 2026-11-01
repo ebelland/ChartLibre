@@ -234,7 +234,8 @@ class OperationShell(QDialog):
         """Lay the window out: *settings* and *results* side by side, each titled, the buttons under them.
 
         Preview, Revert (when there is *revert*), the operation's own (*extra_buttons*), then Stop and its
-        bar - shown only while a calculation runs - and, on the right, Copy (*copy*), OK and Cancel.
+        bar - shown only while a calculation runs - and, on the right, OK and Cancel. *copy* is kept for the
+        callers: the report's own menu copies it now (HtmlResultsView).
         """
         # The tabs in a titled frame like Results beside it: the tab bar starts
         # at the same height inside the white box instead of above it (B-14).
@@ -282,7 +283,9 @@ class OperationShell(QDialog):
         self.progress_bar.setVisible(False)
         row.addWidget(self.progress_bar)
         row.addStretch(1)
-        self.copy_html_button = create_action_button(parent=self, action_id="copy", action=copy, layout=row)
+        # No Copy button: the report's right-click menu copies it, and exports it as HTML or PDF.
+        del copy
+        self.copy_html_button = None
         self.apply_button = create_action_button(parent=self, action_id="apply", action=self.ok, layout=row)
         self.close_button = create_action_button(parent=self, action_id="close", action=self.reject, layout=row)
 

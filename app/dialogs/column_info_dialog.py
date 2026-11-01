@@ -20,7 +20,6 @@ from __future__ import annotations
 from typing import Any
 
 import pandas as pd
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -34,15 +33,15 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
-    QToolButton,
     QWidget,
 )
 
 from app.data import column_metadata as cm
 from app.data.repo.table_tools import CAST_TYPES
-from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
 from app.logs.logger import applogger
 from app.styles.style import stdSizeAndlayout
+from app.widgets.chart_jump_bar import jump_arrow
 from app.utils.i18n import _
 from app.utils.messages import show_message
 
@@ -56,27 +55,27 @@ MAX_LABELLED_VALUES = 100
 APPLICATION_COLUMNS = frozenset({"Hide", "Selected", "_id"})
 
 
-class ColumnInfoDialog(PanelDialog):
+class ColumnInfoDialog(ColumnsDialog):
     """Edit one column of *table*: its name, types and description."""
 
     def __init__(self, repo: Any, table: str, column: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent, title=_("Column Info: {column}").format(column=column), size=None)
+        # Two columns, the column's description and its values side by side: one tall column was taller than
+        # a laptop's screen.
+        super().__init__(parent, title=_("Column Info: {column}").format(column=column), size=None,
+                         columns=(Column(), Column()))
         self._repo, self._table, self._column = repo, table, column
         #: Whether a column was saved while moving between them: Close then says so, as OK would.
         self._saved = False
         #: The table's columns in order, the application's own left out: the arrows go through them.
-        self._columns = [str(row[1]) for row in repo.table_info(table) if str(row[1]) not in APPLICATION_COLUMNS]
+        self._table_columns = [str(row[1]) for row in repo.table_info(table) if str(row[1]) not in APPLICATION_COLUMNS]
 
         # -- Which column: the previous or the next one, without closing (P-01) - at the left of the bottom row,
         # where they take no height of their own.
-        self.previous_button = QToolButton(self)
-        self.previous_button.setArrowType(Qt.ArrowType.LeftArrow)
-        self.previous_button.setToolTip(_("The previous column - the changes to this one are saved first"))
-        self.previous_button.clicked.connect(lambda: self._go(-1))
-        self.next_button = QToolButton(self)
-        self.next_button.setArrowType(Qt.ArrowType.RightArrow)
-        self.next_button.setToolTip(_("The next column - the changes to this one are saved first"))
-        self.next_button.clicked.connect(lambda: self._go(1))
+        # The arrows the charts' bar has: one look for "the previous one, the next one".
+        self.previous_button = jump_arrow(self, "chart_previous", lambda: self._go(-1), tooltip=_(
+            "The previous column - the changes to this one are saved first"))
+        self.next_button = jump_arrow(self, "chart_next", lambda: self._go(1), tooltip=_(
+            "The next column - the changes to this one are saved first"))
         self.position = QLabel("", self)
         self.position.setProperty("muted", True)
         for position, widget in enumerate((self.previous_button, self.next_button, self.position)):
@@ -85,7 +84,7 @@ class ColumnInfoDialog(PanelDialog):
         # -- The column: name and types.
         form = QFormLayout()
         stdSizeAndlayout(form)
-        self.add_card(_("Column"), "columnInfoCard").layout().addLayout(form)
+        self.add_column_card(0, _("Column"), "columnInfoCard").layout().addLayout(form)
         self.name = QLineEdit(self)
         form.addRow(_("Name:"), self.name)
         self.data_type = QComboBox(self)
@@ -133,7 +132,7 @@ class ColumnInfoDialog(PanelDialog):
             signal.connect(lambda *_args: self._show_format())
 
         # -- The values: what counts as missing, and their labels.
-        values_card = self.add_card(_("Values"), "columnValuesCard", stretch=1)
+        values_card = self.add_column_card(1, _("Values"), "columnValuesCard", stretch=1)
         self.summary = QLabel("", values_card)
         self.summary.setProperty("muted", True)
         values_card.layout().addWidget(self.summary)
@@ -206,11 +205,11 @@ class ColumnInfoDialog(PanelDialog):
         self.labels.setRowCount(0)
         for value, text in info.value_labels.items():
             self._add_label_row(value, text)
-        index = self._columns.index(column) if column in self._columns else -1
-        self.position.setText(_("Column {number} of {count}").format(number=index + 1, count=len(self._columns))
+        index = self._table_columns.index(column) if column in self._table_columns else -1
+        self.position.setText(_("Column {number} of {count}").format(number=index + 1, count=len(self._table_columns))
                               if index >= 0 else "")
         self.previous_button.setEnabled(index > 0)
-        self.next_button.setEnabled(0 <= index < len(self._columns) - 1)
+        self.next_button.setEnabled(0 <= index < len(self._table_columns) - 1)
         self._shown = self._state()
 
     def _state(self) -> tuple[Any, ...]:
@@ -221,9 +220,9 @@ class ColumnInfoDialog(PanelDialog):
         """The previous (-1) or next (+1) column; this one's changes saved first - a failed save stays here."""
         if self._state() != self._shown and not self._save():
             return
-        index = self._columns.index(self._column) + step if self._column in self._columns else -1
-        if 0 <= index < len(self._columns):
-            self._load(self._columns[index])
+        index = self._table_columns.index(self._column) + step if self._column in self._table_columns else -1
+        if 0 <= index < len(self._table_columns):
+            self._load(self._table_columns[index])
 
     def reject(self) -> None:
         """Close: a column saved on the way (the arrows) counts as OK, so that what shows the table reloads."""
@@ -322,8 +321,8 @@ class ColumnInfoDialog(PanelDialog):
             return False
         if failed:
             show_message(self, "column_info.cast_failed", count=failed, kind=new_type)
-        if column in self._columns:
-            self._columns[self._columns.index(column)] = name
+        if column in self._table_columns:
+            self._table_columns[self._table_columns.index(column)] = name
         self._column = self.column_name = name
         self._saved = True
         return True

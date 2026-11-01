@@ -174,3 +174,54 @@ def test_the_arrows_go_through_the_columns_saving_each_on_the_way(qapp, repo: Sq
         assert dialog.result() == dialog.DialogCode.Accepted
     finally:
         dialog.close()
+
+
+def test_the_best_format_shows_as_many_digits_as_the_column_is_wide() -> None:
+    def fits(width: int):
+        return lambda text: len(text) <= width
+
+    assert cm.best_text(1 / 3, fits(20)) == "0.3333333333333333"  # it fits as stored
+    assert cm.best_text(1 / 3, fits(8)) == "0.333333"
+    assert cm.best_text(1 / 3, fits(5)) == "0.333"
+    assert cm.best_text(123456789.123, fits(9)) == "123456789"
+    assert cm.best_text(123456789.123, fits(8)) == "1.23e+08"  # the integer digits no longer fit
+    assert cm.best_text(123456789.123, fits(3)) == "#"
+    assert cm.best_text("text that is long", fits(3)) == "text that is long"  # not a number: as it is
+
+
+def test_the_preview_fits_a_number_to_its_columns_width(qapp, repo: SqliteRepo) -> None:
+    from PySide6.QtWidgets import QStyleOptionViewItem
+
+    from app.widgets.table_preview import TablePreviewPanel
+
+    repo.import_dataframe(pd.DataFrame({"ratio": [1 / 3, 2 / 3], "name": ["a", "b"]}), table_name="t",
+                          normalize_columns=False)
+    panel = TablePreviewPanel(None, repo=repo)
+    panel.set_context(repo, "t")
+    qapp.processEvents()
+    model, delegate = panel.view.model(), panel.view.itemDelegate()
+    column = next(c for c in range(model.columnCount()) if model.column_name(c) == "ratio")
+
+    def shown(width: int) -> str:
+        option = QStyleOptionViewItem()
+        option.rect.setWidth(width)
+        option.fontMetrics = panel.view.fontMetrics()
+        delegate.initStyleOption(option, model.index(0, column))
+        return option.text
+
+    narrow, wide = shown(50), shown(400)
+    assert wide == str(1 / 3) and len(narrow) < len(wide) and narrow.startswith("0.3")
+    assert float(model.data(model.index(0, column))) == 1 / 3  # stored and copied whole
+
+
+def test_column_info_is_two_columns_with_the_charts_arrows(qapp, repo: SqliteRepo) -> None:
+    from app.dialogs.column_info_dialog import ColumnInfoDialog
+
+    repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
+    dialog = ColumnInfoDialog(repo, "survey", "score")
+    try:
+        assert dialog.column(0).isAncestorOf(dialog.name) and dialog.column(1).isAncestorOf(dialog.labels)
+        assert dialog.previous_button.objectName() == dialog.next_button.objectName() == "chartJumpArrow"
+        assert dialog.minimumSizeHint().height() <= 690
+    finally:
+        dialog.close()

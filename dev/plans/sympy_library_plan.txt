@@ -1,0 +1,90 @@
+ONE FUNCTION LOGIC: THE FUNCTION LIBRARY AS SYMPY FUNCTIONS - PLAN      2026-11-01, waiting for the go
+
+WHAT WAS ASKED
+Integrate the function library (app/functions/functions.py) with the __sympy__ logic - keep the __sympy__ logic
+only: 1. rewrite as SymPy the functions that can be rewritten, the initial-value estimate included; 2. let a
+__sympy__ function call those functions.
+
+WHAT IS THERE TODAY (measured)
+- Two logics for "a function with parameters":
+  a. The library: Python classes on base_function, found by app/scanners/functions_scanner.py - 62 curves in
+     functions.py, 5 surfaces, 5 NIST models, 2 user examples; plus the Function Creator (Developer menu)
+     scaffolding new classes into user/functions. Each has name, category, description, expression (HTML),
+     params, p0, execute(x, p) in numpy, and 21 of them an initial_guess(x, y).
+  b. __sympy__: a project's own functions (expression or code), parameters with their values, a range; drawn
+     live (function_sql), fitted (Fit's "Stored functions"), edited (Function, Chart properties), and exact in
+     Calculus.
+- Read by both: Fit Curve (catalogue), Function (Library tab), the guided analysis, function_creator_helper.
+- What the 72 library bodies use: numpy arithmetic; scipy.special erf (3), gammaln (4), gammainc (1),
+  betainc (1), wofz (1 - Voigt); guards _pos, _eps, _positive_x, np.where / clip / maximum (56 places).
+  SymPy has erf, loggamma, the regularized lower gamma and incomplete beta, Abs, Max, Min, Piecewise - only
+  wofz (the Faddeeva function, Voigt) has no SymPy form.
+
+THE SHAPE
+1. The library becomes data in the __sympy__ form.
+   app/functions/library.py: one entry per function - the same fields a __sympy__ row has (name, kind
+   "expression", symbols = the parameters with their p0 as values, code_string = the SymPy expression,
+   description, category, keywords, the default range) plus `guess`, the name of its estimator (step 2).
+   - The guards become SymPy: _pos(p) -> Abs(p) (or Max(p, eps) where 0 must stay out), _eps(d) ->
+     Piecewise((d, Abs(d) > eps), (eps, True)), np.where/clip/maximum -> Piecewise/Min/Max; scipy.special ->
+     erf, loggamma, lowergamma(a, x)/gamma(a), betainc_regularized. The HTML formula is written from the
+     expression (sympy.latex / pretty) rather than by hand.
+   - Parameter names become identifiers ("exponent n" -> n), the readable name kept as a label.
+   - What cannot be SymPy (Voigt: wofz) stays a library function of kind "code" - shipped, so trusted.
+   - The library is read-only and always trusted. A project uses a library function by name; drawn or
+     fitted, it is copied into the project's __sympy__ (marked origin: library), so a project file opened on
+     another computer, or an older version, still holds everything it draws (Q1).
+2. The initial values.
+   app/analysis/initial_guess.py: the 21 estimators moved out of the classes, unchanged, by name
+   ("polynomial", "peak", "sigmoid", "exponential", "power_law", "michaelis_menten"...), each taking
+   (x, y) and the function's parameter order.
+   For any function without one - a user's own __sympy__ function - a generic estimator, in three tries:
+   a. by the parameters' names and the data's features: amplitude/A/height -> the range of y, centre/x0/mu ->
+      the x of the peak (or of the half-height, for a step), width/sigma/fwhm -> the half-height width / 2.355,
+      offset/baseline/C -> the low end of y, rate/k -> 1 / the range of x, slope/m -> the end-to-end slope;
+   b. linearisation when the expression is linear in its parameters (SymPy says so): one least-squares solve,
+      exact;
+   c. else a short multi-start search from (a): a few dozen points in log scale around it, the best few
+      polished by least squares - bounded in time.
+   Fit's "Estimate" button and every fit start from it; the stored values stay what the user typed.
+3. A __sympy__ function calls other functions.
+   An expression may use any library or project function by name, with its arguments: Gaussian(x, A, mu, s)
+   + Linear(x, b, m). Read with sympify, each name bound to a sympy Lambda of that function's expression - so
+   the composite is one expression: drawn, fitted, differentiated and integrated exactly as any other.
+   A "code" function (Voigt, a user's code) enters as an implemented_function: numeric only, and Calculus
+   then says the derivative is from the points. Cycles (f calls g calls f) are refused when saved, by name.
+   Saving a function that others call checks they still read (the Function card already lists who draws it).
+4. One logic.
+   Fit Curve, Function, the guided analysis and the Assistant read one registry: the library plus the
+   project's __sympy__. The scanner of base_function classes, base_function/base_surface_function and the
+   duplicated paths in Fit (scanned vs stored models) go. The Function Creator writes a __sympy__ entry (or a
+   user library file of entries) instead of a Python class.
+5. Compatibility.
+   A fit saved with a library model names its class (Fit's history, a figure's fit series): the old names map
+   to the library entries (a table of aliases, as plugin_api keeps for moved modules). A user's own
+   base_function classes in user/functions are still read for one release, as "code" entries, with a note
+   asking to recreate them as SymPy (Q3).
+
+STEPS (each a commit, the suite green after each)
+1. library.py with the 72 translated; a test per function: the SymPy expression equals the old execute on
+   random points (and the guard cases: x <= 0, a zero denominator). Nothing switched over yet.          (L)
+2. initial_guess.py: the 21 estimators moved, the generic one added; tests - every library fit converges as
+   before on its test data; the generic one finds a Gaussian, a logistic and a decay it has never seen.  (M)
+3. Calling functions from a function: the Lambda binding, implemented_function for code, cycle refusal;
+   Calculus exact through a composite.                                                                  (M)
+4. The switch: Fit, Function, guided analysis and Assistant on the one registry; the copy into the
+   project on use; the aliases for saved fits; the scanner and the classes removed; the Function Creator
+   rewritten. The NIST certified values still met.                                                       (L)
+5. The demo "SymPy functions" gains a composite (a Gaussian peak on a linear baseline) fitted by its parts. (S)
+
+QUESTIONS
+Q1  A library function used in a project: copied into its __sympy__ (suggested: the file holds what it
+    draws, portable) - or referenced by name only (smaller, but a project depends on the library's version)?
+Q2  Voigt (no SymPy form): kept as a shipped "code" function (suggested) - or rewritten as the pseudo-Voigt
+    approximation, which is SymPy but not the same curve?
+Q3  Users' own base_function classes in user/functions: read as "code" entries for one release with a note
+    (suggested) - or converted once, automatically, where the body is plain numpy?
+Q4  The generic estimator's search: a fixed budget of about half a second (suggested) - or a setting?
+
+EFFORT: L (about three sessions). Risk: step 4 touches Fit's catalogue and its saved fits - the parity tests of
+step 1 and 2 are what make the switch safe.

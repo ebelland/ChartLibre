@@ -262,7 +262,7 @@ def test_stop_appearing_does_not_move_the_other_buttons(
     monkeypatch.setattr(cls, "compute_series", slow)
     dialog = _open(cls, repo, figure_id)
     dialog.show()
-    buttons = [dialog.preview_button, dialog.revert_button, dialog.copy_html_button, dialog.apply_button]
+    buttons = [dialog.preview_button, dialog.revert_button, dialog.apply_button]
     before = [button.geometry().getRect() for button in buttons]
     assert dialog.preview()
     _wait_for(lambda: dialog.stop_button.isVisible())

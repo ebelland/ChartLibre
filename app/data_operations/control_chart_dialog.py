@@ -75,6 +75,7 @@ from app.analysis.control_charts import (
     attribute_chart,
     variables_chart,
 )
+from app.analysis import special_charts as special
 from app.data.data_source import parse_roles, row_value, resolve_role_column
 from app.data.series_frame import SeriesFrame
 from app.utils.coercion import to_numbers
@@ -158,7 +159,24 @@ CONTROL_CHARTS: dict[str, ControlChartModel] = {
         needs_size_column=True,
     ),
 }
+CONTROL_CHARTS.update({
+    special.CHART_EWMA: ControlChartModel(
+        doc_title="EWMA chart", doc_url="https://en.wikipedia.org/wiki/EWMA_chart", group="small shifts"),
+    special.CHART_CUSUM: ControlChartModel(
+        doc_title="CUSUM", doc_url="https://en.wikipedia.org/wiki/CUSUM", group="small shifts"),
+    special.CHART_LEVEY_JENNINGS: ControlChartModel(
+        doc_title="Levey-Jennings chart and Westgard rules", group="laboratory",
+        doc_url="https://en.wikipedia.org/wiki/Laboratory_quality_control"),
+    special.CHART_G: ControlChartModel(
+        doc_title="g chart (rare events)", group="rare events",
+        doc_url="https://support.minitab.com/en-us/minitab/help-and-how-to/quality-and-process-improvement/control-charts/how-to/rare-event-charts/g-chart/before-you-start/overview/"),
+    special.CHART_T: ControlChartModel(
+        doc_title="t chart (rare events)", group="rare events",
+        doc_url="https://support.minitab.com/en-us/minitab/help-and-how-to/quality-and-process-improvement/control-charts/how-to/rare-event-charts/t-chart/before-you-start/overview/"),
+})
 SUBGROUPED = tuple(name for name, chart in CONTROL_CHARTS.items() if chart.subgrouped)
+#: The charts that take a target mean and a sigma (each estimated from the data when left empty).
+REFERENCED = (special.CHART_EWMA, special.CHART_CUSUM, special.CHART_LEVEY_JENNINGS)
 #: The charts with a process sigma to judge capability by: measurements, not their moving range or counts.
 CAPABLE = (CHART_INDIVIDUALS, CHART_XBAR_R, CHART_XBAR_S)
 
@@ -253,6 +271,8 @@ class ControlChartResult(TableResult):
                     for index, value in enumerate(self.y)
                 ],
                 **limits,
+                # CUSUM's second sum, -C-: drawn beside C+ (the points).
+                **({"cusum_low": self.metadata["low"]} if "low" in self.metadata else {}),
             }
         )
 
@@ -328,6 +348,24 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             ),
             default_value=True,
         ),
+        FloatParam("ewma_lambda", "EWMA weight (lambda):", default_value=0.2, minimum=0.01, maximum=1.0, decimals=2,
+                   step=0.05, visible_for={"model": (special.CHART_EWMA,)},
+                   tooltip="The newest value's weight: 0.05-0.25 for small shifts (smaller, smaller shifts); 1 is "
+                           "an individuals chart. Limits at the sigma above (2.7-3 with 0.1-0.2)."),
+        FloatParam("cusum_k", "CUSUM k (sigma):", default_value=0.5, minimum=0.0, maximum=3.0, decimals=2, step=0.25,
+                   visible_for={"model": (special.CHART_CUSUM,)},
+                   tooltip="Half the shift to detect, in sigmas: 0.5 for a shift of one sigma."),
+        FloatParam("cusum_h", "CUSUM h (sigma):", default_value=5.0, minimum=0.5, maximum=20.0, decimals=2, step=0.5,
+                   visible_for={"model": (special.CHART_CUSUM,)},
+                   tooltip="The decision interval: 4 or 5 sigmas, with k = 0.5."),
+        TextParam("process_mean", "Mean (target):", placeholder="from the data",
+                  visible_for={"model": REFERENCED},
+                  tooltip="EWMA and CUSUM: the target the process should stay at. Levey-Jennings: the control "
+                          "material's assigned mean. Empty: the data's own."),
+        TextParam("process_sigma", "Sigma:", placeholder="from the data",
+                  visible_for={"model": REFERENCED},
+                  tooltip="EWMA and CUSUM: the process sigma (empty: the moving range's). Levey-Jennings: the "
+                          "material's assigned standard deviation (empty: the data's)."),
         BoolParam(
             "draw_center",
             "Centre line:",
@@ -590,6 +628,8 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                 chart, x_values, counts, sizes, recommended_subgroups=RECOMMENDED_SUBGROUPS, **common
             )
         x_values, y_values = data
+        if chart in special.SPECIAL_CHARTS:
+            return self._special(chart, x_values, y_values, params)
         built = variables_chart(
             chart, x_values, y_values, subgroup=int(params.get("subgroup", 5)), **common
         )
@@ -599,6 +639,23 @@ class SeriesControlChartDialog(DataOperationDialogBase):
         # The chart's own sigma is the within one: moving range or subgroups.
         return built, capability(y_values, sigma_within=built.sigma, **limits,
                                  distribution=str(params.get("distribution") or "normal"))
+
+    @staticmethod
+    def _special(chart: str, x_values: np.ndarray, y_values: np.ndarray, params: dict[str, Any]) -> Any:
+        """EWMA, CUSUM, Levey-Jennings, g or t (app.analysis.special_charts)."""
+        mean, sigma = parse_limit(params.get("process_mean")), parse_limit(params.get("process_sigma"))
+        width = float(params.get("sigma_limit", 3.0))
+        if chart == special.CHART_EWMA:
+            return special.ewma_chart(x_values, y_values, lam=float(params.get("ewma_lambda", 0.2)), width=width,
+                                      target=mean, sigma=sigma)
+        if chart == special.CHART_CUSUM:
+            return special.cusum_chart(x_values, y_values, k=float(params.get("cusum_k", 0.5)),
+                                       h=float(params.get("cusum_h", 5.0)), target=mean, sigma=sigma)
+        if chart == special.CHART_LEVEY_JENNINGS:
+            return special.levey_jennings_chart(x_values, y_values, mean=mean, sd=sigma)
+        if chart == special.CHART_G:
+            return special.g_chart(x_values, y_values, width=width)
+        return special.t_chart(x_values, y_values, width=width, nelson=bool(params.get("nelson", False)))
 
     def finish_series(
         self, name: str, outcome: Any, settings: tuple[str, dict[str, Any]]
@@ -732,6 +789,14 @@ class SeriesControlChartDialog(DataOperationDialogBase):
                                       linewidth=1.2, color="#6a1b9a"))
 
         specs.append(self.result_series_spec(axis_id, table_name, result))
+        if "low" in result.metadata:
+            specs.append(ResultSeriesSpec(
+                name=f"{result.result_name} - C-",
+                sql_query=f'SELECT x, cusum_low AS y FROM "{table_name}" ORDER BY x',
+                roles={"x": "x", "y": "y"},
+                style=self._series_style(result, linestyle="-", linewidth=1.2, marker="o", markersize=3.0,
+                                         color="#1565c0"),
+            ))
 
         if bool(params.get("draw_violations", True)) and result.violations:
             specs.append(
@@ -803,7 +868,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             (str(key), report_html.format_number(value)
              if isinstance(value, float) else value)
             for key, value in result.metadata.items()
-            if key != "estimator"
+            if key != "estimator" and not isinstance(value, np.ndarray)  # a series (CUSUM's C-) is drawn, not listed
         ]
         summary = report_html.summary_table(summary_rows)
 

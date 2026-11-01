@@ -14,7 +14,7 @@ from pathlib import Path
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, Qt, Signal
 from PySide6.QtGui import QColor, QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu, QStyledItemDelegate
 from app.data import column_metadata
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
@@ -35,6 +35,22 @@ from app.data import sql_builders
 # Rows loaded when previewing a saved query.  A preview is for judging shape
 # and content, not for scrolling a whole result set.
 QUERY_PREVIEW_ROW_LIMIT: int = get_constant("query_preview_row_limit", 1000)
+
+
+class _BestFormatDelegate(QStyledItemDelegate):
+    """The Best format, sized to the cell: 1/3 is 0.333 in a narrow column and 0.333333333333 in a wide one
+    (column_metadata.best_text) - the stored value itself unchanged, edited and copied whole."""
+
+    PADDING = 10
+
+    def initStyleOption(self, option, index) -> None:  # noqa: N802 - Qt's name
+        super().initStyleOption(option, index)
+        model = index.model()
+        if not getattr(model, "shows_best", lambda _c: False)(index.column()):
+            return
+        room = option.rect.width() - self.PADDING
+        metrics = option.fontMetrics
+        option.text = column_metadata.best_text(option.text, lambda text: metrics.horizontalAdvance(text) <= room)
 
 
 def _type_code(decl_type: str | None) -> str:
@@ -168,6 +184,8 @@ class TablePreviewPanel(QWidget):
 
         self.view.horizontalHeader().setStretchLastSection(True)
         self.view.verticalHeader().setVisible(False)
+        # Best: a number with as many digits as its column's width shows, redrawn as the column is resized.
+        self.view.setItemDelegate(_BestFormatDelegate(self.view))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -715,6 +733,11 @@ class LazyTableModel(QAbstractTableModel):
 
     def column_name(self, index: int) -> str | None:
         return self._columns[index] if 0 <= index < len(self._columns) else None
+
+    def shows_best(self, index: int) -> bool:
+        """Whether column *index* is a number shown in the Best format: no format and no labels of its own."""
+        return (0 <= index < len(self._columns) and self._codes[index] in ("F", "I", "?")
+                and self._formats[index] is None)
 
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else self._row_count
