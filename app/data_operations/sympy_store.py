@@ -4,7 +4,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Callable
 
 import numpy as np
@@ -183,6 +183,30 @@ def source_sql(data: Mapping[str, Any], parameters: Mapping[str, float] | None =
         y = GridRange(float(data.get("y_from", 0.0)), float(data.get("y_to", 10.0)),
                       int(float(data.get("y_points", 200))))
     return function_sql(info["name"], values, x, y)
+
+
+def library_row(repo: Any, name: str, values: Sequence[float], x: GridRange, y: GridRange) -> dict[str, Any] | None:
+    """The library function *name* as the project row its live series draws - copied on use (Q1 of
+    dev/plans/sympy_library_plan.txt), so the project holds everything it draws. None for a code function
+    (Voigt), drawn as a table. Under its name as an identifier (Gaussian_peak); a project's own different
+    function of that name is kept, and the copy takes the next free one (Gaussian_peak_2).
+    """
+    from app.functions import library
+
+    entry = library.get(name)
+    if entry is None or entry.get("kind") != "expression":
+        return None
+    stem = library.identifier(str(entry["name"]))
+    function_name, number = stem, 2
+    while (existing := get(repo, function_name)) is not None and str(existing.get("code_string")) != entry["code"]:
+        function_name, number = f"{stem}_{number}", number + 1
+    return {
+        "function_name": function_name, "source_type": "expression", "symbols": ",".join(entry["params"]),
+        "code_string": str(entry["code"]), "description": f"{entry['name']} (from the library): {entry['description']}",
+        "from": str(x.start), "to": str(x.stop), "points": str(x.points),
+        "y_from": str(y.start), "y_to": str(y.stop), "y_points": str(y.points),
+        "values": {param: float(value) for param, value in zip(entry["params"], values, strict=True)},
+    }
 
 
 def catalog(repo: Any) -> list[dict[str, Any]]:

@@ -47,6 +47,7 @@ from app.data_operations.sympy_store import (
     ensure_table,
     fingerprint as stored_fingerprint,
     get as get_stored,
+    library_row,
     payload as stored_payload,
     rows as stored_rows,
     save as save_stored,
@@ -711,15 +712,18 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         if self._model_tabs.currentIndex() == 0:
             payload = self._selected_function
             if not payload: return []
-            if self._is_2d_function(payload): return self._compute_surface_result(payload)
-            params = self.parameter_values(); x_values = self._build_range(params)
             names, values = self._function_params()
+            stored, source = self._library_source(payload, values)
+            if self._is_2d_function(payload):
+                return self._compute_surface_result(payload, stored=stored, source_sql=source)
+            params = self.parameter_values(); x_values = self._build_range(params)
             model = self._scanner.make_model(dict(payload)); curve = evaluate_curve(model, x_values, values)
             metadata: dict[str, Any] = {"spacing": str(params.get("spacing", SPACING_LINEAR)), "range": f"{x_values[0]:g} .. {x_values[-1]:g}"}
             if curve.undefined: metadata["undefined"] = curve.undefined
             name = str(payload.get("name", "function"))
             return [FunctionResult(name, name, curve.x, curve.y,
-                                   dict(zip(names, map(float, values))), str(payload.get("expression", "") or ""), metadata)]
+                                   dict(zip(names, map(float, values))), str(payload.get("expression", "") or ""), metadata,
+                                   stored=stored, source_sql=source)]
 
         x_grid, _y_grid = self._ranges()
         x_values = build_range(x_grid.start, x_grid.stop, x_grid.points, x_grid.spacing)
@@ -743,6 +747,15 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         return [FunctionResult(name, name, x_values[finite], y[finite],
                                dict(zip(names, map(float, values))), expression, metadata,
                                stored=stored, source_sql=source)]
+
+    def _library_source(self, payload: Mapping[str, Any], values: Sequence[float]) -> tuple[dict[str, Any] | None, str]:
+        """A library function drawn: its copy into the project and its live series' query; None and "" for a code
+        function (Voigt), drawn as a table."""
+        x_grid, y_grid = self._ranges()
+        stored = library_row(self._repo, str(payload.get("name", "")), [float(v) for v in values], x_grid, y_grid)
+        if stored is None:
+            return None, ""
+        return stored, stored_source_sql(stored, stored_values(stored), x_grid, y_grid)
 
     def _live_source(self) -> tuple[dict[str, Any] | None, str]:
         """The function in the editor as it will be stored, and its live series' query - over its range.
