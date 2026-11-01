@@ -13,7 +13,7 @@ from __future__ import annotations
 import gc
 import re
 import warnings
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, cast
 
@@ -1432,8 +1432,11 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         *,
         figure_id: int | None = None,
         table_roles: tuple[str, Mapping[str, list[str]]] | None = None,
+        prepare: Callable[[Any], None] | None = None,
     ) -> None:
         """Open one runtime data-operation dialog on the current chart, or on a scratch one.
+
+        *prepare*, given the dialog before it is shown: what it opens on (Functions on a stored function).
 
         With no chart in the project the operation opens on an empty chart that
         is kept only if the operation drew something (or reported) on it. *figure_id*
@@ -1461,6 +1464,8 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
 
         if table_roles is not None:
             self._cast_table_source(dialog, *table_roles)
+        if prepare is not None:
+            prepare(dialog)
         dialog.applied.connect(self.refresh)
         # A Preview drawn on a new figure: its tab shown while the dialog is open.
         tabs_rebuilt: list[bool] = []
@@ -1564,6 +1569,17 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     def _on_edit_localization(self) -> None:
         """Open Edit Localization: browse/edit a translation catalogue."""
         EditLocalizationDialog(self).exec()
+
+    def edit_stored_function(self, name: str) -> None:
+        """Tables panel > Edit function...: the Functions operation, open on the stored function *name*."""
+        from app.scanners.data_operation_scanner import data_operations
+
+        entry = next((op for op in data_operations if op.get("name") == "SeriesFunctionDialog"), None)
+        dialog_class = import_class_from_file(entry) if entry is not None else None
+        if dialog_class is None:
+            applogger.error("The Functions operation is not installed: %r cannot be edited.", name)
+            return
+        self._open_data_operation(dialog_class, plugin_icon(entry), prepare=lambda dialog: dialog.edit_stored(name))
 
     def _on_data_operation_builder(self) -> None:
         """Open the Data Operation Builder: scaffold a new operation file."""

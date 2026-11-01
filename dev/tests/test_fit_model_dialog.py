@@ -1,7 +1,6 @@
 """Fit Model on a DOE table: the design casts the roles, Preview reports, OK writes and draws."""
 from __future__ import annotations
 
-import time
 from pathlib import Path
 
 import numpy as np
@@ -10,20 +9,16 @@ import pytest
 from PySide6.QtCore import Qt
 
 from app.data.sqlite_repo import SqliteRepo
-from app.dialogs.doe_dialog import DOEExperimentDialog
-from app.plugin_api.data_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
 from app.data_operations.fit_model_dialog import FitModelDialog
-
-
-def _wait(qapp, dialog: FitModelDialog) -> None:
-    """Until the background computation is done (the first statsmodels import takes seconds)."""
-    deadline = time.monotonic() + 60
-    while time.monotonic() < deadline:
-        qapp.processEvents()
-        if not dialog.job_running:
-            return
-        time.sleep(0.01)
-    raise AssertionError("the computation did not finish")
+from app.dialogs.doe_dialog import DOEExperimentDialog
+from app.plugin_api.data_operations.column_roles import (
+    CONTINUOUS,
+    NOMINAL,
+    ORDINAL,
+    declared_kind,
+    guess_kind,
+)
+from dev.tests._helpers import wait_for_job
 
 
 @pytest.fixture
@@ -76,7 +71,7 @@ def test_preview_reports_and_ok_writes_the_results_and_the_figure(qapp, doe_tabl
     dialog = FitModelDialog(repo=repo, table=name)
     try:
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         fit = dialog._result[0]
         estimates = fit.estimates.set_index("Term")["Estimate"]
         assert estimates["Factor_1"] == pytest.approx(2, abs=0.1)
@@ -88,7 +83,7 @@ def test_preview_reports_and_ok_writes_the_results_and_the_figure(qapp, doe_tabl
         applied: list[bool] = []
         dialog.applied.connect(lambda: applied.append(True))
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert applied == [True]
         tables = list(repo.list_user_tables()["Table"])
         assert f"_{name}_fit" in tables
@@ -193,7 +188,7 @@ def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, 
         assert dialog._family.isHidden() and dialog._emphasis.isHidden()
 
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         fit = dialog._result[0]
         assert fit.personality == "nominal" and fit.levels == ["good", "poor"]
         # AN-19: the ROC curve of the first level, its area, the confusion matrix.
@@ -204,7 +199,7 @@ def test_emphasis_ticks_the_charts_and_a_logistic_fit_reports_chi_squares(qapp, 
         assert "Whole model test" in report and "Prob &gt; ChiSq" in report
 
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Pareto Chart", "Scatter Plot", "Scatter Plot"]  # + ROC
         effects = repo.table_frame(f"_{name}_fit_effects_")
@@ -233,7 +228,7 @@ def test_a_text_response_of_the_design_is_nominal_and_fitted_by_logistic(qapp, d
         assert dialog.personality() == "nominal" and not dialog.problems()
         dialog._apply_macro("main", edited=True)  # 15 runs: a response surface would separate them
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert dialog._result[0].personality == "nominal"
 
         dialog.roles_widget.set_casting({"response": ["Response_1"]}, casting.kinds)
@@ -251,14 +246,14 @@ def test_a_poisson_glm_and_forward_stepwise(qapp, doe_table) -> None:
         assert not dialog._direction.isHidden()
         dialog._direction.setCurrentIndex(dialog._direction.findData("forward"))
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         kept = {lm_term for lm_term in dialog._result[0].terms}
         assert ("Factor_1",) in kept and ("Factor_3",) not in kept
 
         dialog._personality.setCurrentIndex(dialog._personality.findData("glm"))
         dialog._family.setCurrentIndex(dialog._family.findData("gamma"))
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert dialog._result[0].p_column == "Prob > ChiSq"
     finally:
         dialog.close()
@@ -294,7 +289,7 @@ def test_generalized_regression_lasso_drops_noise_and_ridge_keeps_every_term(qap
         assert not dialog._penalty.isHidden()
         dialog.chart_form.set_values({"chart_pareto": True})
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert "Std Magnitude" in dialog.format_results(dialog._result)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert "Pareto Chart" in [axis.name for axis in figure.axes]
@@ -312,7 +307,7 @@ def test_a_logistic_fit_draws_its_roc_curve(qapp, doe_table) -> None:
         dialog._apply_macro("main", edited=True)
         assert dialog.personality() == "nominal" and "roc" in dialog.charts()
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         curve = repo.table_frame(f"_{name}_fit_roc_")
         assert {"good", "Chance"} <= set(curve["Level"])
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
@@ -337,7 +332,7 @@ def test_several_responses_share_one_figure_and_one_report(qapp, doe_table) -> N
         dialog._apply_macro("main", edited=True)
         dialog.chart_form.set_values({"chart_qq": True})
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert len(dialog.created_figure_ids) == 1  # every response in it, not the first only
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         titles = [axis.title for axis in figure.axes]
@@ -356,7 +351,7 @@ def test_stop_reaches_the_fit_and_leaves_the_results_untouched(qapp, doe_table) 
     try:
         dialog.preview()
         dialog.stop()  # before the worker looks: the fit must give up, not finish
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert dialog._result is None
         assert dialog._results.toPlainText() == "Stopped. Nothing was changed." if hasattr(dialog._results, "toPlainText") else True
     finally:
@@ -369,7 +364,7 @@ def test_robust_standard_errors_and_the_residual_diagnostics_are_reported(qapp, 
     try:
         dialog._std_errors.setCurrentIndex(dialog._std_errors.findData("HC3"))
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         fit = dialog._result[0]
         assert "HC3" in fit.std_errors_note
         assert set(fit.diagnostics["Test"]) >= {"Durbin-Watson (autocorrelation)", "Jarque-Bera (normal residuals)"}

@@ -612,6 +612,15 @@ class TableListPanel(QWidget):
                     icon="document-edit",
                 )
             )
+        elif self._single_selected_function() is not None and callable(getattr(parent, "edit_stored_function", None)):
+            items.append(
+                MenuItem(
+                    text=_("Edit function…"),
+                    tooltip=_("Open this stored function in Functions: its formula, parameters and range"),
+                    callback=lambda: parent.edit_stored_function(self._single_selected_function() or ""),
+                    icon="document-edit",
+                )
+            )
         elif self._single_selected_query() is not None:
             items.append(
                 MenuItem(
@@ -704,6 +713,14 @@ class TableListPanel(QWidget):
         sources = self.selected_sources()
         current = self._current_source()
         if len(sources) == 1 and current is not None and current[1] == "query":
+            return current[0]
+        return None
+
+    def _single_selected_function(self) -> str | None:
+        """The name of the selected stored function, when exactly one row is selected and it is one."""
+        sources = self.selected_sources()
+        current = self._current_source()
+        if len(sources) == 1 and current is not None and current[1] == "function":
             return current[0]
         return None
 

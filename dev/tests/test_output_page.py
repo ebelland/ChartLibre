@@ -1,4 +1,4 @@
-"""The Graphics page: the curve's table name, in the base for every data operation; a warning without the prefix."""
+"""The result's name on the Charts tab, in the base for every data operation; a warning without the prefix."""
 from __future__ import annotations
 
 from app.data_operations.fit_dialog import SeriesFitDialog
@@ -46,12 +46,12 @@ def test_a_name_without_the_prefix_is_warned_and_still_written_as_generated(qapp
         dialog.close()
 
 
-def test_the_fit_window_has_a_graphics_tab(qapp, repo) -> None:
-    from PySide6.QtWidgets import QTabWidget
-
+def test_the_fit_window_names_its_result_on_its_one_charts_tab(qapp, repo) -> None:
+    """No Graphics tab of its own: the curve's name is the Charts tab's Result name, as every operation's."""
     dialog = _fit(repo)
     try:
-        titles = {tabs.tabText(i) for tabs in dialog.findChildren(QTabWidget) for i in range(tabs.count())}
-        assert "Graphics" in titles
+        titles = [dialog.left_tabs.tabText(i) for i in range(dialog.left_tabs.count())]
+        assert "Graphics" not in titles and titles.count("Charts") == 1
+        assert dialog.left_tabs.widget(titles.index("Charts")).isAncestorOf(dialog._output_table_edit)
     finally:
         dialog.close()

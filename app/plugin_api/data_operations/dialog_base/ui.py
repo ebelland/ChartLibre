@@ -142,19 +142,20 @@ class WindowMixin:
         return []
 
     # ------------------------------------------------------------------
-    # Graphics: the name of the table the result is written to
+    # The result's name, at the top of the Charts tab
     # ------------------------------------------------------------------
-    def build_output_page(self) -> QWidget:
-        """The Graphics page: the name of the curve's table, and the warning under it when it lacks the prefix."""
-        page = QWidget(self)
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(0, 0, 0, 0)
-        card = TitledCard(page, _("Curve"))
-        card.card.layout().addWidget(self._output_table_edit)
-        card.card.layout().addWidget(self._output_warning)
-        layout.addWidget(card)
-        layout.addStretch(1)
-        return page
+    def _add_output_name(self, charts_tab: QWidget) -> None:
+        """"Result name:" first on the Charts tab - what the operation writes is named there, "_" first."""
+        form = QFormLayout()
+        stdSizeAndlayout(form)
+        form.addRow(_("Result name:"), self._output_table_edit)
+        form.addRow("", self._output_warning)
+        charts_tab.layout().insertLayout(0, form)
+
+    def output_stem(self) -> str:
+        """The name typed for the results ("_" first), or "" for the automatic one."""
+        text = self._output_table_edit.text().strip()
+        return generated_table_name(text, fallback="Result") if text else ""
 
     def output_table_default(self) -> str:
         """The name the output starts with: a generated table named "curve" (translated)."""
@@ -430,8 +431,6 @@ class WindowMixin:
         # The bare widget of an operation without PARAMS has nothing on it: no Parameters tab either.
         if self.SHOW_PARAMETERS and self.parameters_panel.layout() is not None:
             pages.append((self.parameters_panel, _("Parameters")))
-        if self.SHOW_OUTPUT:
-            pages.append((self.build_output_page(), _("Graphics")))
         pages.extend(self.extra_tabs())
         return pages
 
@@ -473,6 +472,14 @@ class WindowMixin:
             if panel.parent() is self and all(panel is not content for content, _title in pages):
                 panel.hide()
         charts_tab = self.build_charts_tab() if self.SHOW_CHART else None
+        if charts_tab is None and self.SHOW_OUTPUT:
+            charts_tab = CardFrame(self, "operationChartsCard")  # the result's name needs a page
+        if charts_tab is not None:
+            self._add_output_name(charts_tab)
+        else:
+            # No Charts tab, nothing named: the field is not on any page - not loose on the window either.
+            self._output_table_edit.hide()
+            self._output_warning.hide()
         #: The Charts tab's index when a table's chart is all it holds: shown only while a table is read.
         self._table_charts_index: int | None = None
         table_charts_only = None

@@ -1,17 +1,19 @@
 """Discriminant analysis (AN-20): the numbers against scikit-learn and the known iris values; the dialog writes."""
 from __future__ import annotations
 
-import time
-
 import numpy as np
 import pandas as pd
 import pytest
 from sklearn.datasets import load_iris
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.discriminant_analysis import (
+    LinearDiscriminantAnalysis,
+    QuadraticDiscriminantAnalysis,
+)
 
 from app.analysis.discriminant import QUADRATIC, discriminant
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.discriminant_dialog import DiscriminantDialog
+from dev.tests._helpers import wait_for_job
 
 
 def _iris() -> tuple[pd.DataFrame, list[str]]:
@@ -74,12 +76,6 @@ def test_rows_without_a_response_are_classified_and_without_a_covariate_are_not(
     assert result.notes
 
 
-def _wait(qapp, dialog: DiscriminantDialog) -> None:
-    deadline = time.monotonic() + 60
-    while dialog.job_running and time.monotonic() < deadline:
-        qapp.processEvents()
-        time.sleep(0.01)
-    assert not dialog.job_running, "the computation did not finish"
 
 
 def test_ok_writes_the_rows_and_draws_the_canonical_plot(qapp, repo: SqliteRepo) -> None:
@@ -91,7 +87,7 @@ def test_ok_writes_the_rows_and_draws_the_canonical_plot(qapp, repo: SqliteRepo)
                                         {"species": "nominal", **{name: "continuous" for name in covariates}})
         assert not dialog.problems()
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         rows = repo.table_frame("_iris_discriminant")
         assert {"Predicted species", "Prob(setosa)", "Canonical1", "Canonical2"} <= set(rows.columns)
         assert {"_iris_discriminant_canonical", "_iris_discriminant_coefficients",

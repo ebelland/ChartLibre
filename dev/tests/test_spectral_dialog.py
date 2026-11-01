@@ -4,8 +4,6 @@ The arithmetic is tested in test_analysis_spectral.py.
 """
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,17 +11,11 @@ import pytest
 from app.analysis.spectral import METHOD_ACORR, METHOD_PSD, METHOD_XCORR
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.spectral_dialog import SeriesSpectralDialog
-from app.utils.dialog_state import clear_state
 
 FS = 200.0
 TONE_HZ = 25.0
 
 
-@pytest.fixture(autouse=True)
-def _no_persisted_dialog_state() -> Iterator[None]:
-    clear_state("SeriesSpectralDialog")
-    yield
-    clear_state("SeriesSpectralDialog")
 
 
 @pytest.fixture

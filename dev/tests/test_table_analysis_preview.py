@@ -1,20 +1,11 @@
 """Table analyses preview their charts (todo O-01): drawn inside a savepoint, rolled back, kept on OK."""
 from __future__ import annotations
 
-import time
-
 import numpy as np
 import pandas as pd
 
 from app.data.sqlite_repo import SqliteRepo
-
-
-def _wait(qapp, dialog) -> None:
-    deadline = time.monotonic() + 30
-    while dialog.job_running and time.monotonic() < deadline:
-        qapp.processEvents()
-        time.sleep(0.01)
-    qapp.processEvents()
+from dev.tests._helpers import wait_for_job
 
 
 def _figures(repo: SqliteRepo) -> list[int]:
@@ -37,10 +28,10 @@ def test_preview_draws_a_figure_that_cancel_takes_away(qapp, repo: SqliteRepo) -
     dialog.preview_drawn.connect(shown.append)
     try:
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert len(_figures(repo)) == 1 and shown[-1] in _figures(repo)
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert len(_figures(repo)) == 1  # the second preview replaced the first
         dialog.reject()
         assert _figures(repo) == [] and shown[-1] == -1
@@ -52,9 +43,9 @@ def test_ok_after_preview_keeps_one_figure_with_its_undo_step(qapp, repo: Sqlite
     dialog = _dialog(repo)
     try:
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert len(_figures(repo)) == 1
         repo.undo_last()
         assert _figures(repo) == []
@@ -71,7 +62,7 @@ def test_new_axes_in_the_current_figure(qapp, repo: SqliteRepo) -> None:
         dialog.current_figure_id = current
         dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(dialog.DEST_NEW_AXIS))
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert _figures(repo) == [current]
         assert len(repo.load_figure_descriptor(current).axes) > 1
     finally:
@@ -121,12 +112,12 @@ def test_an_analysis_reads_a_charts_axis_as_a_table(qapp, tmp_path) -> None:
         assert dialog.table == "Signals_Two" and list(dialog._frame.columns) == ["time", "a", "b"]
         dialog.roles_widget.set_casting({"response": ["a"]})
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert "Signals_Two" in set(repo.list_user_tables()["Table"])
         dialog._discard_preview()
         assert "Signals_Two" not in set(repo.list_user_tables()["Table"])
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert "Signals_Two" in set(repo.list_user_tables()["Table"])
         assert [entry.label for entry in repo.undo_entries()] == ["Time Series on 'Signals_Two'"]
     finally:
@@ -158,7 +149,7 @@ def test_draw_on_none_and_on_the_current_axis(qapp, tmp_path) -> None:
             dialog.destination_combo.setCurrentIndex(dialog.destination_combo.findData(destination))
             dialog.roles_widget.set_casting({"response": ["v"]})
             dialog.ok()
-            _wait(qapp, dialog)
+            wait_for_job(qapp, dialog)
             assert len(dialog.created_figure_ids) == figures
             assert len(repo.load_figure_descriptor(figure).axes[0].series) == series
         finally:

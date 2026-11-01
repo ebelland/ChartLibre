@@ -8,7 +8,6 @@ and a real (interpolated) series.
 from __future__ import annotations
 
 from collections.abc import Iterator
-
 from pathlib import Path
 
 import numpy as np
@@ -16,24 +15,11 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.utils.dialog_state import clear_state
 from app.data_operations.calculus_dialog import (
     DERIV_GRADIENT_SURFACE,
     INTEGRAL_VOLUME_SURFACE,
     SeriesCalculusDialog,
 )
-
-
-@pytest.fixture(autouse=True)
-def _no_persisted_dialog_state():
-    """SeriesCalculusDialog remembers its model_combo across runs (see
-    dialog_state.py) - a real user.json, not a per-test tmp file. Without
-    this, a surface model selected here leaks into any other test that
-    builds a fresh SeriesCalculusDialog and relies on its default model,
-    such as test_datetime_x_operations.py's dated-series check."""
-    clear_state("SeriesCalculusDialog")
-    yield
-    clear_state("SeriesCalculusDialog")
 
 
 def _bare() -> SeriesCalculusDialog:

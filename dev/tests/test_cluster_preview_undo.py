@@ -15,9 +15,8 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.data_operations.cluster_dialog import SeriesClusterDialog
-from app.utils.dialog_state import clear_state
+from app.logs.logger import applogger
 
 
 class _Errors(logging.Handler):
@@ -38,11 +37,6 @@ def errors() -> Iterator[_Errors]:
     applogger.removeHandler(handler)
 
 
-@pytest.fixture(autouse=True)
-def _fresh_dialog_state() -> Iterator[None]:
-    clear_state("SeriesClusterDialog")
-    yield
-    clear_state("SeriesClusterDialog")
 
 
 def _figure(repo: SqliteRepo, *, cluster_id: bool) -> int:

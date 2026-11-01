@@ -16,10 +16,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from app.data.sqlite_repo import SqliteRepo
 from app.analysis.control_charts import attribute_limits
-from app.data_operations.control_chart_dialog import CHART_C, CHART_P, CHART_U, SeriesControlChartDialog
-from app.utils.dialog_state import clear_state
+from app.data.sqlite_repo import SqliteRepo
+from app.data_operations.control_chart_dialog import (
+    CHART_C,
+    CHART_P,
+    CHART_U,
+    SeriesControlChartDialog,
+)
 
 # Montgomery, Introduction to Statistical Quality Control, Example 6.1:
 # 20 samples of n = 50, defective counts, p-bar = 0.214.
@@ -35,11 +39,6 @@ C_DEFECTS = np.array(
 )
 
 
-@pytest.fixture(autouse=True)
-def _no_persisted_dialog_state():
-    clear_state("SeriesControlChartDialog")
-    yield
-    clear_state("SeriesControlChartDialog")
 
 
 # ----------------------------------------------------------------------

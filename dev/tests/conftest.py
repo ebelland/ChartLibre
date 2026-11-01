@@ -6,13 +6,10 @@ Artifacts (databases, saved figures) go to the directory chosen by
 # dev/tests/conftest.py
 from __future__ import annotations
 
-import json
-
-from collections.abc import Iterator
-
 import os
 import sys
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
 
 import matplotlib
@@ -60,9 +57,10 @@ def _dialogs_start_from_their_defaults(_private_user_config):
     Smoothing on a table would otherwise change what the next one opens.
     """
     from app.utils import config
-    from app.utils.dialog_state import CONFIG_SECTION
+    from app.utils.dialog_state import CONFIG_SECTION, GEOMETRY_SECTION
 
     config.set_section(CONFIG_SECTION, {})
+    config.set_section(GEOMETRY_SECTION, {})
     # The table operations keep each table's casting (roles and column types)
     # in a section named after the dialog.
     for name, section in config.load_user_config().items():
@@ -73,28 +71,19 @@ def _dialogs_start_from_their_defaults(_private_user_config):
 
 @pytest.fixture(autouse=True, scope="session")
 def _private_user_config(tmp_path_factory: pytest.TempPathFactory):
-    """Point user.json at a copy for the whole run.
+    """Point user.json at an empty one of its own for the whole run: every setting at its default.
 
-    Dialogs and the main window remember their state in user.json when they
-    close - splitter sizes, the last connection, the last import - and the
-    tests close a great many of them. Against the real file that left the
-    developer's own window with its panels 47 px wide after a test run.
-    A copy, so tests still start from realistic settings.
+    Dialogs and the main window remember their state in user.json when they close - splitter sizes, the last
+    connection, the last import - and the tests close a great many of them. Against the real file that left the
+    developer's own window with its panels 47 px wide after a test run. Empty rather than a copy of it: a
+    developer's settings (developer mode, the Advanced section open, a remembered casting) made the same
+    suite pass on one machine and fail on another.
     """
     from app.utils import config
 
     real = config.USER_CONFIG_PATH
     copy = tmp_path_factory.mktemp("user_config") / "user.json"
-    if real.exists():
-        copy.write_bytes(real.read_bytes())
-        # The developer's own view, not a setting: with the rail collapsed
-        # (Workspace) every layout test measures a window nobody tests.
-        try:
-            settings = json.loads(copy.read_text(encoding="utf-8"))
-            settings.get("main_window", {}).pop("navigation_compact", None)
-            copy.write_text(json.dumps(settings, indent=2), encoding="utf-8")
-        except (OSError, ValueError, AttributeError):
-            pass
+    copy.write_text("{}", encoding="utf-8")
     config.USER_CONFIG_PATH = copy
     try:
         yield copy

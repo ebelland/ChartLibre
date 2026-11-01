@@ -7,7 +7,6 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.baseline_dialog import BASELINE_ASLS, SeriesBaselineDialog
-from app.utils.dialog_state import clear_state
 
 X = np.linspace(0.0, 100.0, 400)
 TRUE_BASELINE = 5.0 + 0.02 * X + 3.0 * np.sin(X / 30.0)
@@ -15,11 +14,6 @@ PEAKS = 10.0 * np.exp(-((X - 30.0) ** 2) / 4.0) + 15.0 * np.exp(-((X - 70.0) ** 
 NO_PEAK = PEAKS < 0.05
 
 
-@pytest.fixture(autouse=True)
-def _no_persisted_dialog_state():
-    clear_state("SeriesBaselineDialog")
-    yield
-    clear_state("SeriesBaselineDialog")
 
 
 # ----------------------------------------------------------------------

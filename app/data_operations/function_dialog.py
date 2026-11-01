@@ -581,6 +581,15 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         return names, np.asarray(values, dtype=float)
 
     # ---------- persistence ----------
+    def edit_stored(self, name: str) -> bool:
+        """Open on the stored function *name*, in the Function tab, to edit it; False when there is none."""
+        index = self._stored_combo.findData(name)
+        if index < 0:
+            return False
+        self._model_tabs.setCurrentIndex(1)
+        self._stored_combo.setCurrentIndex(index)  # loads it (_stored_selected)
+        return True
+
     def _refresh_stored_combo(self) -> None:
         current = self._current_function_name
         self._stored_combo.blockSignals(True)

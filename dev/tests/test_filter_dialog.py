@@ -6,7 +6,6 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.utils.dialog_state import clear_state
 from app.data_operations.filter_dialog import FILTER_IIR, SeriesFilterDialog
 
 FS = 200.0
@@ -20,14 +19,6 @@ EDGE = slice(150, -150)  # away from the filters' settling transients
 # ----------------------------------------------------------------------
 # The dialog, end to end
 # ----------------------------------------------------------------------
-@pytest.fixture(autouse=True)
-def _no_persisted_dialog_state():
-    """Dialog state (model/response/cutoffs) survives in the real config.json
-    across runs - reset it so these tests never inherit another run's combo
-    selection, and never leave one behind for the next."""
-    clear_state("SeriesFilterDialog")
-    yield
-    clear_state("SeriesFilterDialog")
 
 
 @pytest.fixture

@@ -1,16 +1,16 @@
 """G-02: each quick answer ends with "What next?" - links that open the next question, its columns cast."""
 from __future__ import annotations
 
-import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from app.data.sqlite_repo import SqliteRepo
-from app.plugin_api.data_operations import next_steps
 from app.data_operations.differences_dialog import DifferencesDialog
 from app.data_operations.impact_dialog import ImpactDialog
+from app.plugin_api.data_operations import next_steps
+from dev.tests._helpers import wait_for_job
 
 
 def _plant() -> pd.DataFrame:
@@ -22,11 +22,6 @@ def _plant() -> pd.DataFrame:
     return frame
 
 
-def _wait(qapp, dialog) -> None:  # noqa: ANN001
-    deadline = time.monotonic() + 60
-    while dialog.job_running and time.monotonic() < deadline:
-        qapp.processEvents()
-        time.sleep(0.01)
 
 
 def test_a_link_carries_the_whole_question() -> None:
@@ -46,7 +41,7 @@ def test_differences_leads_to_impact_and_offers_another_column(qapp, repo: Sqlit
     try:
         dialog.roles_widget.set_casting({"response": ["y"], "group": ["line"]})
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         steps = dialog.next_steps(dialog._result)
         assert [step.operation for step in steps] == ["What has the most impact?", "Are there differences?",
                                                       "Are there differences?"]
@@ -57,7 +52,7 @@ def test_differences_leads_to_impact_and_offers_another_column(qapp, repo: Sqlit
 
         # Clicked in Results: this answer is kept (OK) and the next one asked for.
         dialog._follow_link(next_steps.step_url(steps[0]))
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert dialog.next_request is not None and dialog.next_request.operation == "What has the most impact?"
         assert repo.table_frame("_plant_differences") is not None
     finally:
@@ -70,7 +65,7 @@ def test_impact_leads_to_a_model_of_the_strongest_factors(qapp, repo: SqliteRepo
     try:
         dialog.roles_widget.set_casting({"response": ["y"], "factor": ["line", "temp", "noise"]})
         dialog.preview()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         steps = dialog.next_steps(dialog._result)
         model = steps[0]
         assert model.operation == "Fit Model" and model.roles["response"] == ["y"]

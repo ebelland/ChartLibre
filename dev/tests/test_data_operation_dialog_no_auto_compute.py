@@ -21,16 +21,6 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.baseline_dialog import SeriesBaselineDialog
-from app.utils.dialog_state import clear_state
-
-
-@pytest.fixture(autouse=True)
-def _no_persisted_dialog_state():
-    for name in ("SeriesBaselineDialog", "SeriesClusterDialog", "SeriesSpectralDialog"):
-        clear_state(name)
-    yield
-    for name in ("SeriesBaselineDialog", "SeriesClusterDialog", "SeriesSpectralDialog"):
-        clear_state(name)
 
 
 @pytest.fixture

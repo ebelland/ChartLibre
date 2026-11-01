@@ -412,6 +412,10 @@ class DataMixin:
         a prefix; otherwise the class name and whatever model or method the
         result carries.
         """
+        stem = self.output_stem() if hasattr(self, "_output_table_edit") else ""
+        if stem:
+            # Named in the Charts tab: that name, and the series' so that several results do not collide.
+            return generated_table_name(f"{stem}_{getattr(result, 'source_name', 'Series')}", fallback="Result")
         prefix = self.RESULT_TABLE_PREFIX
         if prefix:
             raw = f"{prefix}_axis{axis_id}_{result.source_name}"

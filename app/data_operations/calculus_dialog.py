@@ -313,6 +313,7 @@ class SeriesCalculusDialog(DataOperationDialogBase):
         from app.data_operations import sympy_store
 
         functions = self.__dict__.setdefault("_series_functions", {})
+        self._result_stem = self.output_stem()  # read here, on the GUI thread: the worker reads no widget
         functions.pop(name, None)
         query = parse_function_sql(str(row["sql_query"] or ""))
         stored = sympy_store.get(self._repo, query.name) if query is not None and query.y is None else None
@@ -360,7 +361,9 @@ class SeriesCalculusDialog(DataOperationDialogBase):
             result_expression = symbolic.antiderivative(expression, parameters, float(query.x.start))
             suffix, result_name = "_int", f"{name} - ∫y dx"
         y = symbolic.evaluate(result_expression, parameters, values, x_values)
-        function = {**dict(stored), "function_name": f"{stored['function_name']}{suffix}",
+        # Named as the Charts tab's Result name says, when one is typed; else after the function (Curve_d1).
+        stem = getattr(self, "_result_stem", "")
+        function = {**dict(stored), "function_name": f"{stem or stored['function_name']}{suffix}",
                     "code_string": result_expression,
                     "description": f"{result_name.split(' - ', 1)[-1]} of {stored['function_name']}"}
         return CalculusResult(

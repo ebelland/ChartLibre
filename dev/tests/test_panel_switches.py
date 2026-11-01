@@ -180,3 +180,42 @@ def test_the_roles_data_page_is_on_the_tab_ground_not_a_darker_box(qapp, repo: S
         assert not dialog._inputs_panel.autoFillBackground()
     finally:
         dialog.close()
+
+
+def test_the_result_name_is_on_the_charts_tab_and_starts_with_an_underscore(qapp, repo: SqliteRepo) -> None:
+    """One Charts tab (Fit's Graphics tab is gone): its Result name, "_" first, names what the operation writes."""
+    from PySide6.QtGui import QValidator
+
+    from app.data_operations.calculus_dialog import SeriesCalculusDialog
+    from app.data_operations.fit_dialog import SeriesFitDialog
+    from app.data_operations.fit_y_by_x_dialog import FitYByXDialog
+
+    figure_id = _chart_and_table(repo)
+    fit = SeriesFitDialog(repo=repo, figure_id=figure_id, parent=None)
+    try:
+        titles = [fit.left_tabs.tabText(i) for i in range(fit.left_tabs.count())]
+        assert "Graphics" not in titles and titles.count(_("Charts")) == 1
+        assert fit._output_table_edit.text() == "_curve"
+        validator = fit._output_table_edit.validator()
+        assert validator.validate("curve", 0)[0] == QValidator.State.Invalid
+        assert validator.validate("_my curve", 0)[0] == QValidator.State.Invalid  # no spaces in a table name
+        assert validator.validate("_my_fit", 0)[0] == QValidator.State.Acceptable
+    finally:
+        fit.close()
+
+    calculus = SeriesCalculusDialog(repo=repo, figure_id=figure_id, parent=None)
+    try:
+        result = type("R", (), {"source_name": "signal", "model": "x"})()
+        assert calculus.result_table_name(1, result).startswith("_Calculus")  # empty: the automatic name
+        calculus._output_table_edit.setText("_slopes")
+        assert calculus.result_table_name(1, result) == "_slopes_signal"
+    finally:
+        calculus.close()
+
+    roles = FitYByXDialog(repo=repo, table="measures", parent=None)
+    try:
+        assert roles.result_table_name("means") == "_measures_means"
+        roles._output_table_edit.setText("_run1")
+        assert roles.result_table_name("means") == "_run1_means"
+    finally:
+        roles.close()

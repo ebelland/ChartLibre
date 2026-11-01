@@ -1,8 +1,6 @@
 """Quick answer Q-02 "What has the most impact?": the factor put in the data comes first, the noise last."""
 from __future__ import annotations
 
-import time
-
 import numpy as np
 import pandas as pd
 
@@ -10,6 +8,7 @@ from app.analysis.answers import NO, YES
 from app.analysis.impact import impact
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.impact_dialog import ImpactDialog
+from dev.tests._helpers import wait_for_job
 
 
 def _data(n: int = 200) -> pd.DataFrame:
@@ -45,12 +44,6 @@ def test_a_categorical_result_and_no_impact() -> None:
     assert noise.verdict == NO
 
 
-def _wait(qapp, dialog: ImpactDialog) -> None:
-    deadline = time.monotonic() + 60
-    while dialog.job_running and time.monotonic() < deadline:
-        qapp.processEvents()
-        time.sleep(0.01)
-    assert not dialog.job_running
 
 
 def test_ok_writes_the_ranking_and_draws_a_pareto(qapp, repo: SqliteRepo) -> None:
@@ -60,7 +53,7 @@ def test_ok_writes_the_ranking_and_draws_a_pareto(qapp, repo: SqliteRepo) -> Non
         dialog.roles_widget.set_casting({"response": ["y"], "factor": ["temp", "press", "supplier", "noise"]})
         assert not dialog.problems()
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         ranking = repo.table_frame("_plant_impact")
         assert ranking["Factor"].iloc[0] == "temp"
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])

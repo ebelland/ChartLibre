@@ -7,7 +7,6 @@ message; and Cancel puts everything back.
 """
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import Any, cast
 
 import matplotlib
@@ -16,14 +15,13 @@ matplotlib.use("Agg")
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import pytest  # noqa: E402
-from matplotlib.figure import Figure  # noqa: E402
 from matplotlib.colors import to_rgba as _to_rgba  # noqa: E402
+from matplotlib.figure import Figure  # noqa: E402
 
 import app.data_operations.outlier_dialog as outlier_module  # noqa: E402
-from app.plugin_api.charts.base import SeriesData  # noqa: E402
 from app.charts.scatter import ScatterAxisRenderer  # noqa: E402
-from app.data.series_frame import SeriesFrame  # noqa: E402
 from app.data.select_sql import has_projection_alias, sql_insert_select_expression  # noqa: E402
+from app.data.series_frame import SeriesFrame  # noqa: E402
 from app.data.sqlite_repo import SqliteRepo  # noqa: E402
 from app.data_operations.outlier_dialog import (  # noqa: E402
     ACTION_COLOUR,
@@ -31,9 +29,9 @@ from app.data_operations.outlier_dialog import (  # noqa: E402
     COLOUR_COLUMN,
     SeriesOutlierDialog,
 )
+from app.plugin_api.charts.base import SeriesData  # noqa: E402
 from app.plugin_api.data_operations.parameter_form import ParameterForm  # noqa: E402
 from app.plugin_api.data_operations.parameter_spec import ColorParam  # noqa: E402
-from app.utils.dialog_state import clear_state  # noqa: E402
 
 RED = "#d62728"
 
@@ -48,11 +46,6 @@ def to_rgba(colour: str) -> tuple[float, float, float, float]:
     return _to_rgba(cast(Any, colour))
 
 
-@pytest.fixture(autouse=True)
-def _no_persisted_dialog_state() -> Iterator[None]:
-    clear_state("SeriesOutlierDialog")
-    yield
-    clear_state("SeriesOutlierDialog")
 
 
 def _figure(repo: SqliteRepo, sql: str = "SELECT n AS x, v AS y FROM t", roles: dict | None = None) -> tuple[int, int]:

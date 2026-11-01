@@ -2,22 +2,12 @@
 components, the silhouette and the means by cluster - and a preview's figure gone with Close."""
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import numpy as np
 import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.cluster_dialog import SeriesClusterDialog
-from app.utils.dialog_state import clear_state
-
-
-@pytest.fixture(autouse=True)
-def _fresh_dialog_state() -> Iterator[None]:
-    clear_state("SeriesClusterDialog")
-    yield
-    clear_state("SeriesClusterDialog")
 
 
 @pytest.fixture

@@ -283,17 +283,24 @@ class DataOperationDialogBase(WindowMixin, DataMixin, ResultsMixin, AnalysisDial
 
         # Shared model combo used by operation-specific model selectors.
         self.model_combo = QComboBox(self)
-        # The name of the table the result is written to, built before the subclass hooks so that
-        # the default can be set from them. Only with the Graphics page: a field nobody sees is not a
-        # choice the operation's history should record.
-        if self.SHOW_OUTPUT:
-            self._output_table_edit = QLineEdit(self)
-            self._output_table_edit.setToolTip(_("Name of the table the result is written to."))
-            self._output_warning = QLabel(
-                _("The name does not start with _: it is written as a generated table all the same."), self)
-            self._output_warning.setWordWrap(True)
-            self._output_warning.setVisible(False)
-            self._output_table_edit.textChanged.connect(self._check_output_name)
+        # The name of what the operation writes (its tables, its functions), on the Charts tab of every
+        # operation: built before the subclass hooks so that the default can be set from them (Fit's "_curve").
+        # A generated name starts with "_" - the validator lets no other be typed; empty is the automatic one.
+        from PySide6.QtCore import QRegularExpression
+        from PySide6.QtGui import QRegularExpressionValidator
+
+        self._output_table_edit = QLineEdit(self)
+        self._output_table_edit.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^(_[^\s\"'`;]*)?$"), self._output_table_edit))
+        self._output_table_edit.setPlaceholderText(_("automatic"))
+        self._output_table_edit.setToolTip(_(
+            "The name of the tables (and functions) the operation writes, starting with _ as every generated "
+            "one does; each result adds its series' name to it. Empty: named automatically."))
+        self._output_warning = QLabel(
+            _("The name does not start with _: it is written as a generated table all the same."), self)
+        self._output_warning.setWordWrap(True)
+        self._output_warning.setVisible(False)
+        self._output_table_edit.textChanged.connect(self._check_output_name)
 
         # Subclasses create widgets here before build_* hooks run. A
         # subclass that builds its own form sets this in build_parameter_selector.

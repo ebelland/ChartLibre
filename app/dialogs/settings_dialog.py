@@ -240,11 +240,10 @@ class SettingsDialog(PanelDialog):
 
         self._build_assistant_section(card, forms)
 
-        # What most people never change, closed - unless something in it is
-        # not as it came (todo H-10).
-        form = self._section(
-            tr("Advanced"), forms, collapsible=True, collapsed=sql_guard_enabled() and not developer_mode()
-        )
+        # What most people never change, closed - unless the SQL guard is off, the one thing in it that is
+        # not as it came and matters (todo H-10). Developer mode alone does not open it: the Developer menu
+        # says it, and opened it made the window taller than a laptop's screen.
+        form = self._section(tr("Advanced"), forms, collapsible=True, collapsed=sql_guard_enabled())
         # Red: switching it off lets typed SQL change the database.
         self._sql_guard_check = QCheckBox(
             tr("Refuse SQL that would change the database"), card
@@ -397,6 +396,22 @@ class SettingsDialog(PanelDialog):
         key_column.addLayout(key_row)
         key_column.addWidget(self._assistant_check_result)
         form.addRow(tr("API key"), key_field)
+        # Each provider's own settings (Ollama's address and models...): the rows of the one chosen shown.
+        self._assistant_form = form
+        self._assistant_options: dict[str, dict[str, tuple[QLineEdit, str]]] = {}
+        for entry in ai_providers:
+            cls = provider_class(entry)
+            rows: dict[str, tuple[QLineEdit, str]] = {}
+            reader = cls()
+            for spec in cls.OPTIONS:
+                edit = QLineEdit(card)
+                value = reader.option(spec.key)
+                edit.setText(value)
+                edit.setPlaceholderText(spec.default)
+                edit.setToolTip(tr(spec.tooltip))
+                form.addRow(tr(spec.label), edit)
+                rows[spec.key] = (edit, value)
+            self._assistant_options[str(entry["value"])] = rows
         self._assistant_provider.currentIndexChanged.connect(self._assistant_provider_changed)
         self._assistant_provider_changed()
         self._assistant_permission = self._combo(card, [(key, tr(label)) for key, label in assistant.PERMISSIONS],
@@ -421,10 +436,15 @@ class SettingsDialog(PanelDialog):
         """A provider that needs no key (Demo): the key and its test are not for it."""
         from app.ai import settings as assistant
 
-        needs_key = bool(self._assistant_key_names.get(self._value(self._assistant_provider)))
+        chosen = self._value(self._assistant_provider)
+        needs_key = bool(self._assistant_key_names.get(chosen))
         self._assistant_key.setEnabled(needs_key and assistant.keychain_available())
-        self._assistant_check.setEnabled(needs_key)
+        options = getattr(self, "_assistant_options", {})
+        self._assistant_check.setEnabled(needs_key or bool(options.get(chosen)))
         self._assistant_check_result.hide()
+        for name, rows in options.items():
+            for edit, _value in rows.values():
+                self._assistant_form.setRowVisible(edit, name == chosen)
 
     def _check_assistant_key(self) -> None:
         """Try the key on a worker thread; say what came of it under the field."""
@@ -439,7 +459,10 @@ class SettingsDialog(PanelDialog):
         if entry is None:
             return
         provider = provider_class(entry)()
-        key = self._assistant_key.text().strip() or assistant.api_key(provider.KEY_NAME)
+        # Its settings as typed, not saved yet: Try is for them too.
+        provider.overrides = {key: edit.text().strip() for key, (edit, _value)
+                              in self._assistant_options.get(name, {}).items()}
+        key = (self._assistant_key.text().strip() or assistant.api_key(provider.KEY_NAME)) if provider.KEY_NAME else ""
 
         def say(text: str) -> None:
             if shiboken6.isValid(self._assistant_check_result):  # the dialog may be closed by now
@@ -448,17 +471,18 @@ class SettingsDialog(PanelDialog):
                 self._assistant_check.setEnabled(True)
                 self._grow_to_fit()
 
-        if provider.unavailable() or not key:
+        if provider.unavailable() or (provider.KEY_NAME and not key):
             say(tr(provider.unavailable()) if provider.unavailable() else tr("Type the key first."))
             return
         self._assistant_check.setEnabled(False)
-        self._assistant_check_result.setText(tr("Trying the key..."))
+        self._assistant_check_result.setText(tr("Trying the key...") if provider.KEY_NAME else tr("Trying..."))
         self._assistant_check_result.show()
         self._grow_to_fit()
         self._assistant_check_task = run_in_background(
             lambda _cancel: provider.check(key),
-            lambda problem: say(tr(problem) if problem else tr("The key works: {provider} answered.").format(
-                provider=name)),
+            lambda problem: say(tr(problem) if problem else (
+                tr("The key works: {provider} answered.") if provider.KEY_NAME else tr("{provider} answered.")
+            ).format(provider=name)),
             lambda error: say(str(error) or type(error).__name__),
         )
 
@@ -485,6 +509,14 @@ class SettingsDialog(PanelDialog):
         key_name = self._assistant_key_names.get(provider, "")
         if key_name and self._assistant_key.isEnabled() and key != self._assistant_key_loaded:
             assistant.set_api_key(key_name, key)
+        from app.scanners.ai_provider_scanner import ai_providers, provider_class
+        from app.utils.config import set_value
+
+        for entry in ai_providers:
+            cls = provider_class(entry)
+            for option_key, (edit, loaded) in self._assistant_options.get(str(entry["value"]), {}).items():
+                if edit.text().strip() != loaded:
+                    set_value(cls.option_key(option_key), edit.text().strip())
 
     def _save(self) -> None:
         """Write every preference, then close.

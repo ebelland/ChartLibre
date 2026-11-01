@@ -156,3 +156,52 @@ def test_cancel_puts_the_hidden_rows_back(
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *_a, **_k: QMessageBox.StandardButton.Yes))
     editor.reject()
     assert _hidden(repo) == []
+
+
+def test_a_stored_function_has_edit_which_opens_functions_on_it(
+        qapp, panel: TableListPanel, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Right-click > Edit function...: the Functions operation, on the Function tab with that function."""
+    from PySide6.QtWidgets import QWidget
+
+    from app.data_operations import sympy_store
+    from app.data_operations.function_dialog import SeriesFunctionDialog
+
+    sympy_store.save(repo, {"function_name": "Line", "source_type": "expression", "symbols": "a",
+                            "code_string": "a*x", "values": {"a": 2.0}})
+    edited: list[str] = []
+
+    class Window(QWidget):
+        def edit_stored_function(self, name: str) -> None:
+            edited.append(name)
+
+    window = Window()
+    panel.setParent(window)
+    panel.reload()
+    _select(panel, "Line")
+    shown: list = []
+    monkeypatch.setattr(table_list_module, "create_menu", lambda _parent, items, **_k: shown.extend(items) or
+                        type("M", (), {"exec": lambda *_a: None})())
+    panel._show_context_menu(panel._view.visualRect(panel._view.currentIndex()).center())
+    entry = next(item for item in shown if item is not None and item.text == "Edit function…")
+    entry.callback()
+    assert edited == ["Line"]
+    assert not any(item is not None and item.text in ("Edit table...", "Rename…") for item in shown)
+
+    figure_id = int(repo.create_figure_descriptor(name="F"))
+    dialog = SeriesFunctionDialog(repo=repo, figure_id=figure_id, parent=None)
+    try:
+        assert dialog.edit_stored("Line") and not dialog.edit_stored("Missing")
+        assert dialog._model_tabs.currentIndex() == 1 and dialog._stored_combo.currentData() == "Line"
+    finally:
+        dialog.close()
+    panel.setParent(None)
+
+
+def test_the_main_window_finds_the_functions_operation_it_opens() -> None:
+    from app.scanners.data_operation_scanner import (
+        data_operations,
+        import_class_from_file,
+    )
+
+    entry = next(op for op in data_operations if op.get("name") == "SeriesFunctionDialog")
+    assert hasattr(import_class_from_file(entry), "edit_stored")

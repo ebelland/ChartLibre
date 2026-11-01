@@ -1,8 +1,6 @@
 """Partition: the tree finds the structure put in the data; the dialog splits, prunes and writes."""
 from __future__ import annotations
 
-import time
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -10,6 +8,7 @@ import pytest
 from app.analysis.partition import NOMINAL, PartitionSpec, partition
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.partition_dialog import CHARTS, PartitionDialog
+from dev.tests._helpers import wait_for_job
 
 KINDS = {"temp": "continuous", "press": "continuous", "supplier": NOMINAL, "y": "continuous", "ok": NOMINAL}
 
@@ -56,12 +55,6 @@ def test_a_validation_column_marks_the_rows_kept_out() -> None:
     assert (result.role == "Validation").sum() == 100
 
 
-def _wait(qapp, dialog: PartitionDialog) -> None:
-    deadline = time.monotonic() + 60
-    while dialog.job_running and time.monotonic() < deadline:
-        qapp.processEvents()
-        time.sleep(0.01)
-    assert not dialog.job_running, "the computation did not finish"
 
 
 @pytest.fixture
@@ -77,16 +70,16 @@ def test_split_prune_and_ok_write_the_leaves_and_the_figure(qapp, repo: SqliteRe
     assert not dialog.problems()
     dialog._parameter_form_spec.set_values({"splits": 1})
     dialog._step(+1)  # Split
-    _wait(qapp, dialog)
+    wait_for_job(qapp, dialog)
     assert dialog._result.splits == 2
     dialog._step(-1)  # Prune
-    _wait(qapp, dialog)
+    wait_for_job(qapp, dialog)
     assert dialog._result.splits == 1
     report = dialog.format_results(dialog._result)
     assert "Leaf report" in report and "Column contributions" in report
 
     dialog.ok()
-    _wait(qapp, dialog)
+    wait_for_job(qapp, dialog)
     tables = set(repo.list_user_tables()["Table"])
     assert {"_process_partition", "_process_partition_leaves", "_process_partition_history",
             "_process_partition_contributions", "_process_partition_graph"} <= tables
@@ -115,7 +108,7 @@ def test_box_plots_by_leaf(qapp, repo: SqliteRepo, dialog: PartitionDialog) -> N
     dialog._parameter_form_spec.set_values({"splits": 2})
     dialog.chart_form.set_values({f"chart_{key}": key == "box" for key, *_rest in CHARTS})
     dialog.ok()
-    _wait(qapp, dialog)
+    wait_for_job(qapp, dialog)
     figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
     assert [axis.name for axis in figure.axes] == ["Box Plot"]
     groups = repo.query_df(figure.axes[0].series[0].sql_query)["group"]
@@ -126,7 +119,7 @@ def test_automatic_sets_the_split_count_it_chose(qapp, dialog: PartitionDialog) 
     dialog.roles_widget.set_casting({"response": ["ok"], "factor": ["temp", "press", "supplier"]}, KINDS)
     dialog._parameter_form_spec.set_values({"validation_fraction": 0.3})
     dialog._automatic()
-    _wait(qapp, dialog)
+    wait_for_job(qapp, dialog)
     assert dialog._result.splits == 2
     assert dialog.parameter_values()["splits"] == 2
 
@@ -136,7 +129,7 @@ def test_a_forest_or_boosted_trees_fit_and_ok_writes_no_leaves(qapp, repo: Sqlit
                                                               method: str) -> None:
     dialog._parameter_form_spec.set_values({"method": method, "trees": 40, "validation_fraction": 0.3})
     dialog.preview()
-    _wait(qapp, dialog)
+    wait_for_job(qapp, dialog)
     result = dialog._result
     assert result.method == method and result.leaves.empty
     assert result.summary["R² (validation)"] > 0.9
@@ -145,7 +138,7 @@ def test_a_forest_or_boosted_trees_fit_and_ok_writes_no_leaves(qapp, repo: Sqlit
     assert "Leaf report" not in dialog.format_results(result)
 
     dialog.ok()
-    _wait(qapp, dialog)
+    wait_for_job(qapp, dialog)
     tables = set(repo.list_user_tables()["Table"])
     assert "_process_partition_leaves" not in tables and "_process_partition_history" in tables
     assert "Leaf" not in repo.table_frame("_process_partition").columns
@@ -174,7 +167,7 @@ def test_permutation_importance_and_partial_dependence_for_any_method(qapp, repo
         dialog.roles_widget.set_casting({"response": ["y"], "factor": ["temp", "press", "supplier"]}, KINDS)
         dialog.chart_form.set_values({f"chart_{key}": key in ("importance", "dependence") for key, *_rest in CHARTS})
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         assert {"_plant_partition_importance", "_plant_partition_dependence"} <= set(repo.list_user_tables()["Table"])
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         names = [axis.name for axis in figure.axes]
@@ -203,7 +196,7 @@ def test_a_classification_tree_reports_and_draws_its_roc_curve(qapp, repo: Sqlit
         dialog.roles_widget.set_casting({"response": ["ok"], "factor": ["temp", "press", "supplier"]}, KINDS)
         dialog.chart_form.set_values({f"chart_{key}": key == "roc" for key, *_rest in CHARTS})
         dialog.ok()
-        _wait(qapp, dialog)
+        wait_for_job(qapp, dialog)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.title for axis in figure.axes] == ["ROC curve"]
         assert [s.name for s in figure.axes[0].series][-1] == "Chance"

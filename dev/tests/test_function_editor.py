@@ -127,3 +127,21 @@ def test_series_properties_edit_a_function_series(qapp, tmp_path) -> None:
     finally:
         window.close()
         repo.close()
+
+
+def test_the_parameters_note_is_as_tall_as_its_lines_not_the_cards_spare_height(qapp) -> None:
+    """Chart properties > Series > Function: in a tall card the note under Parameters took the space left."""
+    from PySide6.QtWidgets import QVBoxLayout, QWidget
+
+    from app.widgets.function_editor import FunctionEditor
+
+    holder = QWidget()
+    layout = QVBoxLayout(holder)
+    editor = FunctionEditor(holder)
+    layout.addWidget(editor)
+    holder.resize(320, 1100)
+    holder.show()
+    qapp.processEvents()
+    note = editor._symbols_note
+    assert note.height() <= note.heightForWidth(note.width()) + 2
+    holder.close()

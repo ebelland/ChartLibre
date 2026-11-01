@@ -185,9 +185,10 @@ class WaferMapDialog(DataOperationDialogBase):
 
     def _name_tables(self, result: WaferResult) -> dict[str, str]:
         if not result.tables:
-            stem = "".join(c if c.isalnum() else "_" for c in result.source_name)[:40]
+            source = "".join(c if c.isalnum() else "_" for c in result.source_name)[:40]
+            stem = self.output_stem() or f"Wafer_{source}"  # the Charts tab's Result name, when one is typed
             keys = ["points", "dies"] + (["grid"] if not result.grid.empty else [])
-            result.tables = {key: self._repo.free_table_name(f"Wafer_{stem}_{key}") for key in keys}
+            result.tables = {key: self._repo.free_table_name(f"{stem}_{key}") for key in keys}
         return result.tables
 
     def undo_tables(self, results: Sequence[Any]) -> list[str]:

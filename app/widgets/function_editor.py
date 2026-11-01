@@ -65,9 +65,9 @@ def number_box(parent: QWidget, value: float) -> QDoubleSpinBox:
     box.setStepType(QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
     box.setValue(float(value))
     # Qt sizes a spin box for its longest possible number - twelve digits and ten decimals here, a third of
-    # the panel: as wide as a usual number instead, and wider when there is room; typed, not stepped.
-    box.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-    box.setMinimumWidth(box.fontMetrics().horizontalAdvance("-00000.00") + 12)
+    # the panel: as wide as a usual number instead (and its arrows), wider when there is room. With no arrows
+    # (NoButtons) the app's macOS sheet gave the edit field a width of 1: the number was there, not shown.
+    box.setMinimumWidth(box.fontMetrics().horizontalAdvance("-00000.00") + 34)
     box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     return box
 
@@ -102,7 +102,7 @@ class RangeRow(QWidget):
         layout = QVBoxLayout(self)
         stdSizeAndlayout(layout)
         layout.setContentsMargins(0, 0, 0, 0)
-        ends, sampling = QHBoxLayout(), QHBoxLayout()
+        ends = QHBoxLayout()
         self.start = number_box(self, 0.0)
         self.stop = number_box(self, 10.0)
         self.points = QSpinBox(self)
@@ -111,16 +111,26 @@ class RangeRow(QWidget):
         self.spacing = QComboBox(self)
         self.spacing.addItem(_("Linear"), LINEAR)
         self.spacing.addItem(_("Log"), LOG)
-        stdSizeAndlayout(self.spacing, minimum_contents_length=6)  # "Linear" shown whole, not cut
+        # Shown whole in any language ("Lineare", "Logarithmisch"): as wide as its longest choice.
+        self.spacing.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.spacing.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.points.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         ends.addWidget(self.start, 1)
         ends.addWidget(QLabel(_("to"), self))
         ends.addWidget(self.stop, 1)
-        sampling.addWidget(self.points)
-        sampling.addWidget(QLabel(_("points"), self))
-        sampling.addWidget(self.spacing)
-        sampling.addStretch(1)
         layout.addLayout(ends)
-        layout.addLayout(sampling)
+        # Points and Scale a line each, labelled: Chart properties is narrow, and a label beside an expanding
+        # field was squeezed to nothing.
+        labels = [QLabel(text, self) for text in (_("Points:"), _("Scale:"))]
+        width = max(label.sizeHint().width() for label in labels)
+        for label, field in zip(labels, (self.points, self.spacing), strict=True):
+            label.setFixedWidth(width)
+            label.setBuddy(field)
+            row = QHBoxLayout()
+            row.addWidget(label)
+            row.addWidget(field)
+            row.addStretch(1)
+            layout.addLayout(row)
         for box in (self.start, self.stop):
             box.valueChanged.connect(self.changed)
         self.points.valueChanged.connect(self.changed)
@@ -210,6 +220,8 @@ class FunctionEditor(QFrame):
         self._symbols_note = QLabel(self)
         self._symbols_note.setWordWrap(True)
         self._symbols_note.setProperty("muted", True)
+        # As tall as its lines: a wrapped label left Preferred took the card's spare height (Chart properties).
+        self._symbols_note.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.text = _GrowingText(self)
         self._text_label = QLabel(_("Expression:"), self)
         self.x = RangeRow(self)

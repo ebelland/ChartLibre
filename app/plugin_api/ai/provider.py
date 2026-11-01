@@ -85,6 +85,16 @@ class ChatSession:
         raise NotImplementedError
 
 
+@dataclass(frozen=True, slots=True)
+class ProviderOption:
+    """A setting of the provider's own, a line in Settings > Assistant: an address, a model's name."""
+
+    key: str
+    label: str
+    default: str = ""
+    tooltip: str = ""
+
+
 class AIProvider:
     """An AI service the Assistant can talk to. Subclasses set Name and implement the methods below."""
 
@@ -95,6 +105,27 @@ class AIProvider:
     KEY_NAME: str = ""
     #: Whether the questions and the data leave the computer: then nothing is sent before the user consents.
     SENDS_DATA: bool = True
+    #: Its own settings, shown in Settings > Assistant when it is the provider (kept in user.json).
+    OPTIONS: tuple[ProviderOption, ...] = ()
+
+    def __init__(self) -> None:
+        #: Settings typed but not saved yet (Settings' Try): read before the saved ones.
+        self.overrides: dict[str, str] = {}
+
+    @classmethod
+    def option_key(cls, key: str) -> str:
+        """Where *key* is kept in user.json: assistant_<provider>_<key>."""
+        slug = "".join(c if c.isalnum() else "_" for c in cls.Name.lower()).strip("_")
+        return f"assistant_{slug}_{key}"
+
+    def option(self, key: str) -> str:
+        """The value of one of OPTIONS: typed in Settings and not saved yet, else saved, else its default."""
+        if key in self.overrides:
+            return str(self.overrides[key])
+        from app.utils.config import get_value
+
+        default = next((spec.default for spec in self.OPTIONS if spec.key == key), "")
+        return str(get_value(self.option_key(key), default) or default)
 
     def unavailable(self) -> str:
         """Why the provider cannot be used here (a package missing...), or "" when it can."""

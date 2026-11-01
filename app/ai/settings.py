@@ -34,7 +34,7 @@ NAVIGATION_KEY = "assistant_in_navigation"
 #: Where the keychain files the keys.
 KEYRING_SERVICE = "ChartLibre"
 #: The provider's own variable, read when no key is kept: {key name: environment variable}.
-ENVIRONMENT_KEYS = {"anthropic_api_key": "ANTHROPIC_API_KEY"}
+ENVIRONMENT_KEYS = {"anthropic_api_key": "ANTHROPIC_API_KEY", "github_models_token": "GITHUB_TOKEN"}
 
 
 def permission() -> str:

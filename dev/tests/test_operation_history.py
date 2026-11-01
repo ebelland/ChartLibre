@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -11,17 +11,9 @@ from PySide6.QtWidgets import QApplication
 
 from app import APP_VERSION
 from app.data.sqlite_repo import SqliteRepo
+from app.data_operations.transform_dialog import SeriesTransformDialog
 from app.dialogs.operation_history_dialog import OperationHistoryDialog, history_html
 from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
-from app.data_operations.transform_dialog import SeriesTransformDialog
-from app.utils.dialog_state import clear_state
-
-
-@pytest.fixture(autouse=True)
-def _fresh_dialog_state() -> Iterator[None]:
-    clear_state("SeriesTransformDialog")
-    yield
-    clear_state("SeriesTransformDialog")
 
 
 @pytest.fixture
@@ -76,6 +68,8 @@ def test_an_apply_is_recorded_with_its_inputs_and_outputs(qapp, repo: SqliteRepo
         # Where the data came from: the chart's series, not a table's columns.
         "source_chart_radio": True,
         "source_table_radio": False,
+        # The Charts tab's Result name: empty, the automatic one.
+        "output_table_edit": "",
     }
     assert [source["name"] for source in record.sources] == ["a", "b"]
     assert all('FROM "data"' in source["sql_query"] for source in record.sources)

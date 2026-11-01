@@ -637,7 +637,9 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         The leading underscore marks it generated, as the data operations'
         results are: the Tables list leaves it out until Show generated tables.
         """
-        return self._repo.free_table_name(f"{GENERATED_PREFIX}{self.table}_{key}")
+        # Named in the Charts tab ("_" first): that name instead of the table's.
+        stem = self.output_stem() or f"{GENERATED_PREFIX}{self.table}"
+        return self._repo.free_table_name(f"{stem}_{key}")
 
     def write_result_tables(self, frames: Mapping[str, pd.DataFrame], *, also: Sequence[str] = ()) -> dict[str, str]:
         """Each frame as a new table named after the source and its key ("_penguins_pls_vip"), one undo step.

@@ -10,7 +10,7 @@ import pkgutil
 import re
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -21,7 +21,6 @@ import app.data_operations as operations
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
-from app.utils.dialog_state import clear_state
 
 #: module, class: every operation that computes in the background.
 BACKGROUND_OPERATIONS = [
@@ -80,13 +79,6 @@ def figure_id(repo: SqliteRepo) -> int:
     return figure
 
 
-@pytest.fixture(autouse=True)
-def _fresh_dialog_state() -> Iterator[None]:
-    for _module, name in BACKGROUND_OPERATIONS:
-        clear_state(name)
-    yield
-    for _module, name in BACKGROUND_OPERATIONS:
-        clear_state(name)
 
 
 def _open(cls: type[DataOperationDialogBase], repo: SqliteRepo, figure_id: int) -> DataOperationDialogBase:

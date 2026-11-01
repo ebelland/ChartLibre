@@ -1,8 +1,6 @@
 """A data operation on a table's columns: drawn as a figure of their own, then run on it."""
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -11,13 +9,6 @@ from app.analysis.smoothing import SMOOTH_MOVING_AVERAGE
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.smoothing_dialog import SeriesSmoothingDialog
 from app.utils.dialog_state import clear_state
-
-
-@pytest.fixture(autouse=True)
-def _no_persisted_dialog_state() -> Iterator[None]:
-    clear_state("SeriesSmoothingDialog")
-    yield
-    clear_state("SeriesSmoothingDialog")
 
 
 @pytest.fixture
