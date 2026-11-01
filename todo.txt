@@ -1,6 +1,6 @@
 # ChartLibre — Prioritized Roadmap
 
-**State:** `app/` has 110,300 lines of code in 332 Python files; `dev/tests` has 25,134 lines in 214 files (measured at this commit).
+**State:** `app/` has 110,311 lines of code in 332 Python files; `dev/tests` has 25,134 lines in 214 files (measured at this commit).
 
 **Audience:** engineers, scientists, and students who need an affordable desktop workflow from raw data to analysed, documented figures and reports.
 
@@ -17,7 +17,7 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID01 | 1 | 3 | **Save and apply prediction models** (G-02) | Save any fitted model with its preprocessing; score new rows or another table. | **JMP / scikit-learn**; turns analysis into a reusable workflow. |
 | ID02 | 2 | 3 | **Reproducible analysis** (H-01, I-07) | Re-run every recorded operation and export an equivalent Python script. | **Core**; essential for papers, theses, and lab records. |
 | ID03 | 3 | 4 | **Graph Builder** (G-01) | Build charts by dragging columns onto visual roles; change marks and grouping live. | **JMP**; a major discoverability and chart-authoring gap. |
-| ID04 | 4 | 3 | **Linked selection and local filtering** (R-07, G-04) | Click chart marks to select table rows; filter every chart/report for a table. | **JMP**; fundamental exploratory-analysis workflow. |
+| ID04 | 4 | 2 | **Local data filtering** (G-04) | A filter by column values for every chart and report of a table (selecting rows on a chart and Show only Selected are done). | **JMP**; fundamental exploratory-analysis workflow. |
 | ID05 | 5 | 3 | **Templates and batch reporting** (H-03, I-08) | Apply a figure design and operations to new files; run a folder batch. | **JMP / Origin**; repeated lab workflows. |
 | ID06 | 6 | 2 | **Publication-ready export** (H-05) | Presets for journal sizes, embedded fonts, PDF/SVG, and Word/LaTex result tables. | **Origin / Matplotlib**; high-value final-mile workflow. |
 | ID07 | 7 | 3 | **Units and uncertainty propagation** (H-02) | Assign units to columns; carry them through axes, fits, and error calculations. | **Engineering/science tools**; critical for physical-science work. |
@@ -39,10 +39,9 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID24 | 24 | 2 | **Signal and scientific modelling** (AN-13, G-31) | Add uneven-sampling spectra, resampling, filter response, deconvolution, ODE kinetics, dose response, and peak deconvolution. | **SciPy / Origin**; specialist scientific workflows. |
 | ID26 | 26 | 2 | **Importer plugin system** (I-02) | Let labs build, test, install, and manage importers for custom formats. | **Core / Origin**; scalable solution for long-tail formats. |
 | ID27 | 27 | 2 | **Project notebook export** (H-07) | Export charts, notes, and reports as shareable HTML. | **JMP / notebooks**; collaboration without requiring the app. |
-| ID28 | 28 | 2 | **Advanced clustering** (G-23) | Add row-level DBSCAN/HDBSCAN, spectral clustering, and Birch. | **scikit-learn**; moderate specialist gap. |
+| ID28 | 28 | 1 | **Advanced clustering** (G-23) | Add HDBSCAN (DBSCAN, OPTICS, Birch and spectral clustering are in Clustering). | **scikit-learn**; moderate specialist gap. |
 | ID29 | 29 | 2 | **Spatial and circular analysis** (G-33, G-34) | Add spatial geometry/interpolation and circular statistics. | **SciPy**; niche scientific coverage. |
 | ID30 | 30 | 3 | **Live instrument data** (H-06) | Watch folders, append CSV/serial data, and feed live charts. | **Lab software**; requires clear device and reliability scope. |
-| ID31 | 31 | 3 | **Custom fit and function models** (I-06) | Support expression- and code-based models with parameters and project storage. | **Origin / SciPy**; powerful but needs safe UX. |
 | ID32 | 32 | 2 | **Animated charts** (I-03) | Animate a chosen dimension and export GIF/APNG/WebP/HTML/frames. | **Origin / Plotly**; presentation-oriented. |
 | ID33 | 33 | 3 | **3D parametric curves** (I-04) | Plot x(t), y(t), z(t), with units and uncertainty support. | **Scientific plotting tools**; narrow audience. |
 | ID34 | 34 | 2 | **Result mini-charts** (I-05) | Show a compact chart beside an operation result. | **Core**; polish and scanability. |
@@ -51,12 +50,6 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID37 | 37 | 2 | **Assistant transparency and Windows release polish** (AI-02, AI-03) | Show requests/cache activity; package Anthropic/keyring support and document secure key storage. | **Core**; improve trust and Windows usability. |
 | ID38 | 38 | 2 | **Windows UI parity** (H-12) | Test dialogs at 1366×768 and 125% scaling in CI. | **Core**; prevents platform-specific friction. |
 | ID41 | 41 | 4 | **Text Explorer** (G-11) | Add word counts, n-grams, and topics for text columns. | **JMP**; weak fit for the primary audience. |
-
-## Bugs from bugs.pptx (2026-10-27)
-
-No open item.
-
-Fixed from the same deck: Fit Y by X offers only the charts it draws (18571a4); Fit curve has Draw on - axis, new axis, new figure - and Cancel takes its extra axes (5dc4616); ID48 one engine for the analyses, "Data from: Chart" reads only the current figure's axes; ID52 Column Info's arrows go to the previous / next column.
 
 ## User-owned / release-readiness tasks
 

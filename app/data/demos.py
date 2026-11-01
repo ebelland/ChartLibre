@@ -645,6 +645,18 @@ DEMO_PROJECTS: tuple[DemoProject, ...] = (
         category="Curves",
     ),
     DemoProject(
+        "Wafer maps - thickness, sheet resistance, particles and die bins",
+        "Four semiconductor wafers run through Wafer Map: a 300 mm wafer's film thickness at 49 sites - its "
+        "contour, die means, die bins against the limits and the yield; a 150 mm wafer with its flat, its sheet "
+        "resistance read with the flat on the right and rotated into place; a 200 mm wafer's particle scan - a "
+        "scratch, a cluster, loose particles - counted per die with the defect density and Poisson yield; and a "
+        "100 mm wafer's line width, a site on each die, its hot spot binned high.",
+        (),
+        builder="dev.demo.demo_wafer:build_wafer_demo",
+        preview="Film thickness",
+        category="Quality and Process",
+    ),
+    DemoProject(
         "Designed experiment - a Box-Behnken design analysed with Fit Model",
         "A reaction studied with a Box-Behnken design - temperature, time and "
         "catalyst - kept with its table, so Analysis > Fit Model opens on it "

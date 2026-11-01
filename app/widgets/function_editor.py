@@ -1,7 +1,6 @@
 """A stored function, editable: its formula, its parameters with their values, and its range - one plain form.
 
-Function, New Chart and Chart properties > Series each edited some of these their own way; this is the one way
-(dev/plans/function_editor_plan.txt):
+Function, New Chart and Chart properties > Series each edited some of these their own way; this is the one way:
 
     Kind          Expression or Code
     Description   a line or two

@@ -36,7 +36,7 @@ OLD_TO_NEW: dict[str, str] = {
     for family, names in MOVED.items()
     for name in names
 }
-# The table operations' bases are the data operations' since one engine runs both (dev/plans/one_engine_plan.txt).
+# The table operations' bases are the data operations' since one engine runs both (ID48).
 OLD_TO_NEW.update({
     "app.table_operations.dialog_base": "app.plugin_api.data_operations.roles_base",
     "app.plugin_api.table_operations.dialog_base": "app.plugin_api.data_operations.roles_base",
