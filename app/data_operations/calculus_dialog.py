@@ -313,6 +313,8 @@ class SeriesCalculusDialog(DataOperationDialogBase):
         from app.data_operations import sympy_store
 
         functions = self.__dict__.setdefault("_series_functions", {})
+        # The project's functions, for the calls in a formula (read here, on the GUI thread).
+        self._project_functions = sympy_store.functions_by_name(self._repo)
         self._result_stem = self.output_stem()  # read here, on the GUI thread: the worker reads no widget
         functions.pop(name, None)
         query = parse_function_sql(str(row["sql_query"] or ""))
@@ -345,7 +347,7 @@ class SeriesCalculusDialog(DataOperationDialogBase):
         expression, values = str(stored["code_string"]), query.parameters
         if CALCULUS_MODELS[model].kind == "derivative":
             order = int(params.get("order", 1)) if model in (DERIV_SAVGOL, DERIV_SPLINE) else 1
-            result_expression = symbolic.derivative(expression, parameters, order)
+            result_expression = symbolic.derivative(expression, parameters, order, functions=self._project_functions)
             power = "²" if order == 2 else ""
             suffix, result_name = f"_d{order}", f"{name} - d{power}y/dx{power}"
         else:
@@ -353,14 +355,15 @@ class SeriesCalculusDialog(DataOperationDialogBase):
                 raise ValueError("a baseline is taken from the points")
             if model == INTEGRAL_DEFINITE:
                 total, exact = symbolic.definite(expression, parameters, values, float(x_values[0]),
-                                                 float(x_values[-1]))
+                                                 float(x_values[-1]), functions=self._project_functions)
                 return CalculusResult(
                     source_name=name, result_name=f"{name} - area", model=model,
                     x=np.array([float(x_values[0]), float(x_values[-1])]), y=np.array([total, total]), total=total,
                     metadata={"symbolic": f"∫ {expression} dx from a_ to b_ = {exact}"})
-            result_expression = symbolic.antiderivative(expression, parameters, float(query.x.start))
+            result_expression = symbolic.antiderivative(expression, parameters, float(query.x.start),
+                                                        functions=self._project_functions)
             suffix, result_name = "_int", f"{name} - ∫y dx"
-        y = symbolic.evaluate(result_expression, parameters, values, x_values)
+        y = symbolic.evaluate(result_expression, parameters, values, x_values, functions=self._project_functions)
         # Named as the Charts tab's Result name says, when one is typed; else after the function (Curve_d1).
         stem = getattr(self, "_result_stem", "")
         function = {**dict(stored), "function_name": f"{stem or stored['function_name']}{suffix}",

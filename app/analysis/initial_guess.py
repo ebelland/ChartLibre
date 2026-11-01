@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 
 import numpy as np
 import sympy as sp
@@ -135,7 +135,7 @@ def multi_start(model: Callable[[np.ndarray, np.ndarray], np.ndarray], start: Se
 
 
 def generic_guess(code: str, params: Sequence[str], values: Sequence[float], x: np.ndarray, y: np.ndarray, *,
-                  budget: float = BUDGET) -> list[float]:
+                  budget: float = BUDGET, functions: Mapping[str, Mapping] | None = None) -> list[float]:
     """Starting values for the expression *code* in *params* (stored *values*) from the data x, y."""
     from app.functions import library
 
@@ -144,10 +144,14 @@ def generic_guess(code: str, params: Sequence[str], values: Sequence[float], x: 
     x, y = x[keep], y[keep]
     if x.size < len(params) or x.size < 2:
         return [float(value) for value in values]
-    expression = sp.sympify(str(code).replace("^", "**"), locals=library.sympy_locals(list(params)))
+    expression = sp.sympify(str(code).replace("^", "**"),
+                            locals=library.sympy_locals(list(params), code=str(code), functions=functions))
     exact = linear_solution(expression, params, x, y)
     if exact is not None:
         return exact
-    entry = {"name": "guess", "kind": "expression", "code": str(code), "params": list(params), "ndim": 1}
-    model = library.numeric(entry)
+    symbols = [sp.Symbol(name) for name in params]
+    numeric = sp.lambdify((sp.Symbol("x"), *symbols), expression, modules=library.NUMPY_MODULES)
+
+    def model(xs: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return np.broadcast_to(np.asarray(numeric(xs, *p), dtype=float), xs.shape)
     return multi_start(model, from_names(params, values, x, y), x, y, budget=budget)

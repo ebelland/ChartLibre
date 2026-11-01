@@ -107,3 +107,23 @@ def test_cancel_after_preview_takes_the_derived_function_away(qapp, repo: Sqlite
         assert sympy_store.get(repo, "Curve_d1") is None
     finally:
         dialog.close()
+
+
+def test_has_it_changed_and_is_it_normal_on_a_function_series(qapp, repo: SqliteRepo) -> None:
+    """A function's query reads its own grid ("_i"): no table of the project, so no What next? step on one."""
+    from app.data_operations.change_dialog import ChangeDialog
+    from app.data_operations.normality_dialog import NormalityDialog, source_table
+
+    figure_id = _function_figure(repo, "a*x**3", "a", {"a": 2.0})
+    query = repo.load_figure_descriptor(figure_id).axes[0].series[0].sql_query
+    assert source_table(query) == "" and source_table('SELECT a AS x FROM "t"') == "t"
+    for cls in (ChangeDialog, NormalityDialog):
+        dialog = cls(repo=repo, figure_id=figure_id, parent=None)
+        try:
+            dialog.source_chart_radio.setChecked(True)
+            dialog.series_selector.select_all_series()
+            assert dialog.preview(), cls.__name__
+            html = dialog.format_results(dialog.compute_results())
+            assert "no such table" not in html
+        finally:
+            dialog.close()

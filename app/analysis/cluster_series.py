@@ -82,6 +82,11 @@ class ClusterResult(FrameResult):
 
 def source_table_from_sql(sql_query: str) -> str:
     """Resolve the source table referenced by a simple series SELECT."""
+    if re.match(r"\s*WITH\b", str(sql_query), re.IGNORECASE):
+        # A stored function's series reads its own grid ("_i"), no table of the project.
+        applogger.error("A stored function's series has no table to write its clusters to: cluster a table's "
+                        "columns, or the function's values saved as a table.", raise_error=True)
+        return ""
     match = re.search(
         r'\bFROM\s+(?:"([^"]+)"|\[([^\]]+)\]|`([^`]+)`|([A-Za-z_][A-Za-z0-9_]*))',
         str(sql_query),

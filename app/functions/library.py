@@ -103,9 +103,68 @@ NUMPY_MODULES: list[Any] = [{"pos": _pos, "nz": _nz, "safe": _safe, "finite": _f
                              "Min": _minimum}, "scipy", "numpy"]
 
 
-def sympy_locals(parameters: list[str], ndim: int = 1) -> dict[str, Any]:
-    """The names an expression of the library is read with: x (and y), its parameters, the guards."""
-    names: dict[str, Any] = {"x": sp.Symbol("x"), "y": sp.Symbol("y"), "z": sp.Symbol("z"), **GUARDS}
+def identifier(name: str) -> str:
+    """The name an expression calls a library function by: "Gaussian peak" -> Gaussian_peak."""
+    import re
+
+    return re.sub(r"\W+", "_", str(name)).strip("_")
+
+
+def called_names(code: str) -> list[str]:
+    """The names *code* calls as functions - Gaussian_peak(x, A, mu, s) - in order, once each."""
+    import re
+
+    return list(dict.fromkeys(re.findall(r"\b([A-Za-z_]\w*)\s*\(", str(code))))
+
+
+class CallError(ValueError):
+    """A function that calls itself (through others), or one that cannot be called here."""
+
+
+def _callable(name: str, params: list[str], ndim: int, code: str, kind: str, functions: Mapping[str, Mapping],
+              chain: tuple[str, ...]) -> Any:
+    """*name* as an expression calls it: a Lambda of its formula (exact through derivatives), or for code a
+    numeric function (implemented_function: no exact derivative)."""
+    variables = [sp.Symbol("x")] if ndim == 1 else [sp.Symbol("x"), sp.Symbol("y")]
+    symbols = [sp.Symbol(param) for param in params]
+    if kind == "expression":
+        body = sp.sympify(str(code).replace("^", "**"),
+                          locals=sympy_locals(params, ndim, code=code, functions=functions, chain=chain))
+        return sp.Lambda((*variables, *symbols), body)
+    numeric_function = numeric({"name": name, "kind": "code", "code": code, "params": params, "ndim": ndim})
+    implementation = (lambda x, *p: numeric_function(x, np.asarray(p, dtype=float))) if ndim == 1 else \
+        (lambda x, y, *p: numeric_function(x, y, np.asarray(p, dtype=float)))
+    from sympy.utilities.lambdify import implemented_function
+
+    return implemented_function(sp.Function(name), implementation)
+
+
+def sympy_locals(parameters: list[str], ndim: int = 1, *, code: str = "",
+                 functions: Mapping[str, Mapping] | None = None, chain: tuple[str, ...] = ()) -> dict[str, Any]:
+    """The names an expression is read with: x (and y), its parameters, the guards - and the functions *code*
+    calls: a project's own (*functions*, the __sympy__ rows by name: trusted, expression or code) or the
+    library's. *chain* is who is calling, to refuse a function that calls itself."""
+    names: dict[str, Any] = {"x": sp.Symbol("x"), "y": sp.Symbol("y"), "z": sp.Symbol("z")}
+    for name in called_names(code):
+        if name in GUARDS or name in parameters or hasattr(sp, name):
+            continue  # pos, a parameter, exp, sin...: not a function of the project or the library
+        if name in chain:
+            raise CallError(f"{' -> '.join((*chain, name))}: a function cannot call itself.")
+        row = (functions or {}).get(name)
+        if row is not None:
+            from app.data_operations import sympy_store
+
+            if not sympy_store.is_trusted(row):
+                raise CallError(f"'{name}' is not trusted on this computer: it cannot be called.")
+            info = sympy_store.payload(row)
+            names[name] = _callable(name, list(info["params"]), int(info["ndim"]), str(info["code_string"]),
+                                    str(info["source_type"]), functions or {}, (*chain, name))
+            continue
+        entry = get(name) or next((item for item in ENTRIES if identifier(item["name"]) == name), None)
+        if entry is not None:
+            names[name] = _callable(name, list(entry["params"]), int(entry["ndim"]), str(entry["code"]),
+                                    str(entry["kind"]), functions or {}, (*chain, name))
+    names.update(GUARDS)
     names.update({name: sp.Symbol(name) for name in parameters})
     del ndim
     return names
@@ -115,7 +174,8 @@ def expression(entry: Mapping[str, Any]) -> sp.Expr:
     """An "expression" entry's formula as SymPy, its guards as the functions pos, nz, safe and finite."""
     if entry.get("kind") != "expression":
         raise ValueError(f"'{entry.get('name')}' is a code function: it has no SymPy expression.")
-    return sp.sympify(str(entry["code"]), locals=sympy_locals(list(entry["params"]), int(entry.get("ndim", 1))))
+    return sp.sympify(str(entry["code"]), locals=sympy_locals(list(entry["params"]), int(entry.get("ndim", 1)),
+                                                              code=str(entry["code"]), chain=(str(entry["name"]),)))
 
 
 def numeric(entry: Mapping[str, Any]) -> Callable[..., np.ndarray]:

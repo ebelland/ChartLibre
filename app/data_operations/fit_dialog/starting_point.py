@@ -30,8 +30,8 @@ from app.data_operations.fit_dialog.common import _SurfaceInitialGuessAdapter, S
 class _StoredFunctionGuess:
     """A stored SymPy function's initial_guess, as a fit class has one: app.analysis.initial_guess's estimator."""
 
-    def __init__(self, payload: dict) -> None:
-        self._payload = payload
+    def __init__(self, payload: dict, functions: dict | None = None) -> None:
+        self._payload, self._functions = payload, functions
 
     def initial_guess(self, x: Any, y: Any) -> list[float] | None:
         from app.analysis.initial_guess import generic_guess
@@ -39,7 +39,8 @@ class _StoredFunctionGuess:
         payload = self._payload
         if str(payload.get("source_type", "")).lower() != "expression":
             return None  # code: nothing to read the parameters' roles from
-        return generic_guess(str(payload["code_string"]), list(payload["params"]), list(payload["p0"]), x, y)
+        return generic_guess(str(payload["code_string"]), list(payload["params"]), list(payload["p0"]), x, y,
+                             functions=self._functions)
 
 
 class StartingPointMixin:
@@ -74,7 +75,10 @@ class StartingPointMixin:
         """
         if self._selected_model and self._selected_model.get("_sympy_stored"):
             # A project's own function: the generic estimator reads its starting values off the data.
-            return _StoredFunctionGuess(self._selected_model) if not self._is_2d_fit() else None
+            from app.data_operations.sympy_store import functions_by_name
+
+            return (_StoredFunctionGuess(self._selected_model, functions_by_name(self._repo))
+                    if not self._is_2d_fit() else None)
         if not self._selected_model or self._selected_model.get("_multi_peak"):
             return None
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner

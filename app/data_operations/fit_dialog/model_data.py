@@ -459,7 +459,9 @@ class ModelDataMixin:
             if not allowed_to_run(self, self._repo, self._selected_model):
                 return None
             try:
-                return make_stored_sympy_model(self._selected_model), p0
+                from app.data_operations.sympy_store import functions_by_name
+
+                return make_stored_sympy_model(self._selected_model, functions_by_name(self._repo)), p0
             except Exception:  # noqa: BLE001 - user-provided stored function
                 applogger.exception(
                     "Failed to build stored SymPy function: %s",

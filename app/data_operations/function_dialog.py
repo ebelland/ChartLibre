@@ -418,17 +418,23 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             parameters = self._editor.declared_parameters()
             x_symbol = sp.Symbol("x")
             parameter_symbols = [sp.Symbol(param) for param in parameters]
-            local_symbols = {"x": x_symbol, "y": sp.Symbol("y"), "z": sp.Symbol("z"), **dict(zip(parameters, parameter_symbols))}
+            from app.data_operations.sympy_store import functions_by_name
+            from app.functions import library
+
             expr_text = self._editor.text.toPlainText().strip()
+            # Calls to the library's functions and the project's, resolved as every expression's are.
+            local_symbols = library.sympy_locals(list(parameters), code=expr_text,
+                                                 functions=functions_by_name(self._repo), chain=(name,))
             expr = sp.sympify(expr_text, locals=local_symbols)
             unknown = sorted(str(symbol) for symbol in expr.free_symbols if str(symbol) not in local_symbols)
             if unknown:
                 raise ValueError(_("{names}: not among the parameters. List it under Parameters - x, y and z "
                                    "are the coordinates.").format(names=", ".join(unknown)))
             if local_symbols["y"] in expr.free_symbols:  # z = f(x, y)
-                return (name, sp.lambdify((x_symbol, local_symbols["y"], *parameter_symbols), expr, modules="numpy"),
+                return (name, sp.lambdify((x_symbol, local_symbols["y"], *parameter_symbols), expr,
+                                          modules=library.NUMPY_MODULES),
                         expr_text, 2)
-            return name, sp.lambdify((x_symbol, *parameter_symbols), expr, modules="numpy"), expr_text, 1
+            return name, sp.lambdify((x_symbol, *parameter_symbols), expr, modules=library.NUMPY_MODULES), expr_text, 1
 
         name, _params = self._validated_code_signature()
         # Restrictive globals: useful numerical/SymPy tools, no imports/builtins.

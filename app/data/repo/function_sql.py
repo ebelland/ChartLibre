@@ -187,7 +187,13 @@ def _value(con: sqlite3.Connection, models: dict[tuple[str, str], tuple[Any, lis
         if not sympy_store.is_trusted(data):
             return None
         payload = sympy_store.payload(data)
-        entry = (sympy_store.make_model(payload), list(payload["params"]), int(payload["ndim"]))
+        # The functions it may call: the project's own, read here (a function's call to another is resolved
+        # once, when it is first drawn; the cache is per connection, as before).
+        others = {str(other[0]): {"function_name": other[0], "source_type": other[1], "symbols": other[2],
+                                  "code_string": other[3]}
+                  for other in con.execute('SELECT function_name, source_type, symbols, code_string '
+                                           'FROM "__sympy__"').fetchall()}
+        entry = (sympy_store.make_model(payload, others), list(payload["params"]), int(payload["ndim"]))
         models[key] = entry
     model, names, ndim = entry
     # A parameter the query does not give: its stored value, read each time as the formula is.
