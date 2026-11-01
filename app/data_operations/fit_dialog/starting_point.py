@@ -27,6 +27,21 @@ from app.utils.i18n import _
 from app.data_operations.fit_dialog.common import _SurfaceInitialGuessAdapter, SeriesFitResult, _FitJob
 
 
+class _StoredFunctionGuess:
+    """A stored SymPy function's initial_guess, as a fit class has one: app.analysis.initial_guess's estimator."""
+
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def initial_guess(self, x: Any, y: Any) -> list[float] | None:
+        from app.analysis.initial_guess import generic_guess
+
+        payload = self._payload
+        if str(payload.get("source_type", "")).lower() != "expression":
+            return None  # code: nothing to read the parameters' roles from
+        return generic_guess(str(payload["code_string"]), list(payload["params"]), list(payload["p0"]), x, y)
+
+
 class StartingPointMixin:
     """Algorithm and starting point: optimiser, loss, initial values; the results pane and output table. A part of SeriesFitDialog (see dialog.py)."""
 
@@ -57,11 +72,10 @@ class StartingPointMixin:
         None for the multi-peak builder, which is assembled here rather than
         discovered and so has no class to ask.
         """
-        if (
-            not self._selected_model
-            or self._selected_model.get("_multi_peak")
-            or self._selected_model.get("_sympy_stored")
-        ):
+        if self._selected_model and self._selected_model.get("_sympy_stored"):
+            # A project's own function: the generic estimator reads its starting values off the data.
+            return _StoredFunctionGuess(self._selected_model) if not self._is_2d_fit() else None
+        if not self._selected_model or self._selected_model.get("_multi_peak"):
             return None
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
