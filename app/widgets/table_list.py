@@ -283,6 +283,10 @@ class TableListPanel(QWidget):
 
         self._reloading = True
         selected_to_emit: str | None = None
+        # Kept across the reload by name: refreshed after Column Info, an edit or an import, the list stayed on
+        # its first row and the preview followed it.
+        current_before = self._current_source()
+        selected_before = [name for name, _kind in self.selected_sources()]
 
         try:
             self._model.removeRows(0, self._model.rowCount())
@@ -296,13 +300,7 @@ class TableListPanel(QWidget):
                 self._model.appendRow(self._build_row(row))
 
             if self._model.rowCount() > 0:
-                sm = self._view.selectionModel()
-                if sm is None or not sm.hasSelection():
-                    self._view.selectRow(0)
-                first_idx = self._model.index(0, self.COL_TABLE)
-                selected_to_emit = str(
-                    self._model.data(first_idx, PySide6.QtCore.Qt.ItemDataRole.DisplayRole)
-                )
+                selected_to_emit = self._reselect(selected_before, current_before[0] if current_before else None)
 
         except Exception as exc:  # noqa: BLE001 - surfaced via logger, not re-raised
             applogger.exception("Table list failed: %s", exc)
@@ -312,6 +310,26 @@ class TableListPanel(QWidget):
 
         if selected_to_emit:
             self.tableSelected.emit(selected_to_emit)
+
+    def _reselect(self, names: list[str], current: str | None) -> str:
+        """Select the rows named *names* again, *current* the current one; the first row when none is left.
+
+        Returns the current row's name, which the preview then shows.
+        """
+        rows = {str(self._model.item(row, self.COL_TABLE).data(self.ROLE_TABLE_NAME)): row
+                for row in range(self._model.rowCount())}
+        kept = [rows[name] for name in names if name in rows]
+        current_row = rows.get(current or "", kept[0] if kept else 0)
+        sm = self._view.selectionModel()
+        if sm is None:
+            self._view.selectRow(current_row)
+        else:
+            flags = PySide6.QtCore.QItemSelectionModel.SelectionFlag
+            sm.clearSelection()
+            for row in kept or [current_row]:
+                sm.select(self._model.index(row, self.COL_TABLE), flags.Select | flags.Rows)
+            sm.setCurrentIndex(self._model.index(current_row, self.COL_TABLE), flags.NoUpdate)
+        return str(self._model.item(current_row, self.COL_TABLE).data(self.ROLE_TABLE_NAME))
 
     #: How many characters of a query's SQL the Source column shows before
     #: cutting it off - the full text is always still in the tooltip.

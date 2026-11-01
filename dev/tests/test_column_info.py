@@ -225,3 +225,40 @@ def test_column_info_is_two_columns_with_the_charts_arrows(qapp, repo: SqliteRep
         assert dialog.minimumSizeHint().height() <= 690
     finally:
         dialog.close()
+
+
+def test_a_saved_query_and_a_stored_function_are_described_not_renamed(qapp, repo: SqliteRepo) -> None:
+    """Column Info on a query's or a function's column: its description kept, its name and type its SQL's."""
+    from app.data_operations import sympy_store
+    from app.dialogs.column_info_dialog import ColumnInfoDialog
+
+    repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
+    repo.save_query("high", 'SELECT sex, score FROM "survey" WHERE score > 0')
+    sympy_store.save(repo, {"function_name": "Line", "source_type": "expression", "symbols": "a",
+                            "code_string": "a*x", "values": {"a": 2.0}, "from": "0", "to": "2", "points": "3"})
+    for source, column, unit, kind in (("high", "score", "pt", "REAL"), ("Line", "y", "mV", "REAL")):
+        dialog = ColumnInfoDialog(repo, source, column)
+        try:
+            assert not dialog.name.isEnabled() and not dialog.data_type.isEnabled()
+            assert dialog.data_type.currentData() == kind
+            dialog.unit.setText(unit)
+            dialog._apply()
+            assert dialog.result() == dialog.DialogCode.Accepted
+        finally:
+            dialog.close()
+        assert cm.column_info(repo, source)[column].unit == unit
+    assert "score" in repo.table_frame("survey").columns  # the table itself untouched
+
+
+def test_the_preview_of_a_query_offers_column_info(qapp, repo: SqliteRepo) -> None:
+    from app.widgets.table_preview import TablePreviewPanel
+
+    repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
+    repo.save_query("high", 'SELECT sex, score FROM "survey" WHERE score > 0')
+    panel = TablePreviewPanel(None, repo=repo)
+    panel.set_context(repo, "high")
+    qapp.processEvents()
+    panel.view.setCurrentIndex(panel.view.model().index(0, 1))
+    menu = panel._build_context_menu(panel.view.visualRect(panel.view.model().index(0, 1)).center())
+    texts = [action.text() for action in menu.actions()]
+    assert "Column Info..." in texts and not any(text.startswith("Statistics of") for text in texts)

@@ -67,7 +67,16 @@ class ColumnInfoDialog(ColumnsDialog):
         #: Whether a column was saved while moving between them: Close then says so, as OK would.
         self._saved = False
         #: The table's columns in order, the application's own left out: the arrows go through them.
-        self._table_columns = [str(row[1]) for row in repo.table_info(table) if str(row[1]) not in APPLICATION_COLUMNS]
+        # A saved query or a stored function is described as a table is, but its columns are its SQL's or its
+        # formula's: their names and types are read, not changed here (_read_only).
+        source = repo.get_data_source(table)
+        self._read_only = bool(source is not None and source.is_query)
+        self._from = source.from_clause() if self._read_only else '"' + table.replace('"', '""') + '"'
+        if self._read_only:
+            self._table_columns = [str(name) for name in repo.query_df(f"SELECT * FROM {self._from} LIMIT 0").columns]
+        else:
+            self._table_columns = [str(row[1]) for row in repo.table_info(table)
+                                   if str(row[1]) not in APPLICATION_COLUMNS]
 
         # -- Which column: the previous or the next one, without closing (P-01) - at the left of the bottom row,
         # where they take no height of their own.
@@ -180,12 +189,21 @@ class ColumnInfoDialog(ColumnsDialog):
         self._column = column
         self.setWindowTitle(_("Column Info: {column}").format(column=column))
         self._info = cm.column_info(repo, table).get(column, cm.ColumnInfo())
-        declared = {str(row[1]): str(row[2] or "").upper() for row in repo.table_info(table)}
-        self._declared = declared.get(column, "")
-        self._values = repo.query_df(f'SELECT "{column.replace(chr(34), chr(34) * 2)}" AS v FROM '
-                                     f'"{table.replace(chr(34), chr(34) * 2)}"')["v"]
+        self._values = repo.query_df(f'SELECT "{column.replace(chr(34), chr(34) * 2)}" AS v FROM {self._from}')["v"]
+        if self._read_only:
+            # Its type as the query returns it: SQLite's REAL, INTEGER or TEXT.
+            dtype = self._values.dtype
+            self._declared = ("INTEGER" if pd.api.types.is_integer_dtype(dtype) else
+                              "REAL" if pd.api.types.is_float_dtype(dtype) else "TEXT")
+        else:
+            declared = {str(row[1]): str(row[2] or "").upper() for row in repo.table_info(table)}
+            self._declared = declared.get(column, "")
         info = self._info
         self.name.setText(column)
+        for field in (self.name, self.data_type):
+            field.setEnabled(not self._read_only)
+            if self._read_only:
+                field.setToolTip(_("A query's or a function's column: named and typed by its SQL or its formula."))
         self.data_type.clear()
         for kind in CAST_TYPES:
             self.data_type.addItem(kind, kind)
@@ -305,8 +323,11 @@ class ColumnInfoDialog(ColumnsDialog):
             return False
         repo, table, column = self._repo, self._table, self._column
         new_type = str(self.data_type.currentData() or "")
+        if self._read_only:
+            # A query's or a function's column: its description only - the name and the type are its SQL's.
+            name, new_type = column, self._declared
         try:
-            entry = repo.snapshot_for_undo([table, "__table_descriptors__"],
+            entry = repo.snapshot_for_undo(([] if self._read_only else [table]) + ["__table_descriptors__"],
                                            label=f"Column Info of '{column}' in '{table}'")
             failed = 0
             if new_type != self._declared and new_type in CAST_TYPES:
