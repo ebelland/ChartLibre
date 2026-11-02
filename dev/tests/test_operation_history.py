@@ -133,7 +133,7 @@ def test_a_background_apply_records_the_series_it_started_with(
     # The window stays editable while the job runs; what is recorded is
     # what was computed.
     dialog.series_selector.reload(select_all_series=False)
-    _wait_for(lambda: not dialog.evaluating)
+    _wait_for(lambda: not dialog.job_running)
     dialog.close()
 
     [record] = repo.operations()

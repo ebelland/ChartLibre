@@ -156,7 +156,7 @@ class StartingPointMixin:
 
         self._set_initial_params(start.values)
         applogger.info("Initial values from %s (cost %.6g)", start.source, start.cost)
-        self.set_results_text(self._estimate_report(start.source, start.cost))
+        self.show_results(self._estimate_report(start.source, start.cost))
 
     def _fill_global_initial_from_estimator(self, function_class: Any) -> bool:
         """The function's own estimate, series by series (a global fit)."""
@@ -203,7 +203,7 @@ class StartingPointMixin:
         self._set_initial_params(clip_into_bounds(theta, lb, ub))
         cost = float(sum(start.cost for start in starts))
         applogger.info("Initial values, series by series (total cost %.6g)", cost)
-        self.set_results_text(self._estimate_report(starts[0].source, cost))
+        self.show_results(self._estimate_report(starts[0].source, cost))
 
     @staticmethod
     def _estimate_report(source: str, cost: float) -> str:

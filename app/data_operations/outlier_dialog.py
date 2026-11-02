@@ -702,7 +702,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
             else:
                 message = _("Preview: the outliers of {count} series are coloured {colour}.").format(
                     count=len(results), colour=colour)
-            self.set_results_html(self.results_report(results) + report_html.note(message))
+            self.show_results(self.results_report(results) + report_html.note(message))
             return True
         except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to preview outlier hide flags")

@@ -70,7 +70,7 @@ class _OldPathFinder(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):  # noqa: ANN001
         new_name = OLD_TO_NEW.get(fullname)
         if new_name is None:
-            # A submodule of a moved package (app.data_operations.dialog_base.common): the longest old name wins.
+            # A submodule of a moved package (app.table_operations.<module>): the longest old name wins.
             for old in sorted(OLD_TO_NEW, key=len, reverse=True):
                 if fullname.startswith(old + "."):
                     new_name = OLD_TO_NEW[old] + fullname[len(old):]

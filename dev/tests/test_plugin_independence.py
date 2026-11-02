@@ -104,6 +104,6 @@ def test_a_plugin_written_for_the_old_paths_still_imports() -> None:
         ("app.table_operations.dialog_base", "app.plugin_api.data_operations.roles_base"),
         ("app.plugin_api.table_operations.column_roles", "app.plugin_api.data_operations.column_roles"),
         ("app.table_operations.next_steps", "app.plugin_api.data_operations.next_steps"),
-        ("app.data_operations.dialog_base.common", "app.plugin_api.data_operations.dialog_base.common"),
+        ("app.data_operations.dialog_base", "app.plugin_api.data_operations.dialog_base"),
     ):
         assert importlib.import_module(old) is importlib.import_module(new), old

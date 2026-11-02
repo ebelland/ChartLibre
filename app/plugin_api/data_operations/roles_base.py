@@ -46,7 +46,7 @@ from app.data import column_metadata
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, OperationModel
+from app.plugin_api.data_operations.dialog_base import GENERATED_TABLE_PREFIX, DataOperationDialogBase, OperationModel
 from app.plugin_api.data_operations.parameter_form import ParameterForm
 from app.plugin_api.data_operations.parameter_spec import BoolParam, Param
 from app.plugin_api.operation_panels import merged_values
@@ -69,11 +69,6 @@ from app.utils.i18n import _
 
 #: Columns the application keeps on every table for itself: never offered.
 APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
-
-
-#: What marks a table an analysis wrote (as the data operations' results): hidden from the Tables list by default.
-GENERATED_PREFIX = "_"
-
 
 
 def _hidden_by_same_axis(spec: Any, first: str, same_axis: str) -> Any:
@@ -434,7 +429,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         self._chart_table = self._repo.free_table_name(chart_source.axis_table_name(*chosen)) if chosen else ""
         table = self.table
         self._frame = self.source_frame()
-        remembered = get_section(self._state_key).get("casting", {}).get(table) if table else None
+        remembered = get_section(self.state_key()).get("casting", {}).get(table) if table else None
         # Remembered with every role empty is nothing remembered: the defaults are better than no columns.
         if remembered and any(remembered.get("roles", {}).values()):
             roles, kinds = remembered.get("roles", {}), remembered.get("kinds", {})
@@ -451,14 +446,14 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         self.inputs_changed()
 
     def _remember_casting(self) -> None:
-        table = getattr(self, "_cast_table", "")
+        table = self._cast_table
         if not table:
             return
-        section = get_section(self._state_key)
+        section = get_section(self.state_key())
         casting = self.roles_widget.casting()
         stored = dict(section.get("casting", {}))
         stored[table] = {"roles": casting.roles, "kinds": casting.kinds}
-        set_section(self._state_key, {**section, "casting": stored})
+        set_section(self.state_key(), {**section, "casting": stored})
 
     def doe_design(self, table: str) -> dict[str, Any] | None:
         """The design the DOE dialog recorded with *table*, if it made it."""
@@ -535,7 +530,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         """Write the result's tables and figure inside a savepoint, and have the window show them."""
         self._discard_preview()
         try:
-            self.begin_preview_transaction(f"preview_{self._state_key}")
+            self.begin_preview_transaction(f"preview_{self.state_key()}")
             self._previewing = True
             self.created_figure_ids = []
             self._write_chart_source()
@@ -582,7 +577,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         return True
 
     def _record(self, written: Sequence[Mapping[str, Any]], result: Any) -> None:
-        """The OK in the project's history, as every data operation's (OperationShell.record_in_history)."""
+        """The OK in the project's history, as every data operation's (record_in_history)."""
         casting = self.roles_widget.casting()
         self.record_in_history(
             operation=self.Name,
@@ -638,7 +633,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         results are: the Tables list leaves it out until Show generated tables.
         """
         # Named in the Charts tab ("_" first): that name instead of the table's.
-        stem = self.output_stem() or f"{GENERATED_PREFIX}{self.table}"
+        stem = self.output_stem() or f"{GENERATED_TABLE_PREFIX}{self.table}"
         return self._repo.free_table_name(f"{stem}_{key}")
 
     def write_result_tables(self, frames: Mapping[str, pd.DataFrame], *, also: Sequence[str] = ()) -> dict[str, str]:

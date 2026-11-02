@@ -20,7 +20,7 @@ from app.data.data_source import row_value
 from app.data_operations.normality_dialog import source_column, source_table
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
-from app.plugin_api.data_operations.dialog_base.data import _xy_columns
+from app.plugin_api.data_operations.dialog_base import xy_columns
 from app.plugin_api.data_operations.next_steps import NextStep
 from app.plugin_api.data_operations.quick_answer import answer_html, measured_query, points_query
 from app.plugin_api.data_operations.results import OperationResult
@@ -112,7 +112,7 @@ class InControlDialog(DataOperationDialogBase):
         """The series' order and values as its query returns them (dates kept as dates), its query, and the
         columns they come from."""
         frame, roles = self._series_frame(row)
-        x_column, y_column = _xy_columns(frame, roles)
+        x_column, y_column = xy_columns(frame, roles)
         query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
         return frame[x_column].to_numpy(), frame[y_column].to_numpy(), query, x_column, y_column
 

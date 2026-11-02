@@ -8,7 +8,7 @@ import pytest
 
 from app.data.sqlite_repo import SqliteRepo
 from app.data_operations.distribution_dialog import DistributionDialog
-from app.plugin_api.operation_shell import OperationShell
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def _draw(qapp, repo: SqliteRepo, figure_id: int, destination: str) -> Distribut
 
 def test_same_axis_adds_the_first_chart_to_its_axis_and_draws_no_other(qapp, repo: SqliteRepo,
                                                                     histogram_figure: int) -> None:
-    dialog = _draw(qapp, repo, histogram_figure, OperationShell.DEST_SAME_AXIS)
+    dialog = _draw(qapp, repo, histogram_figure, DataOperationDialogBase.DEST_SAME_AXIS)
     try:
         figure = repo.load_figure_descriptor(histogram_figure)
         assert [axis.name for axis in figure.axes] == ["Histogram"]  # no Q-Q plot beside it
@@ -54,7 +54,7 @@ def test_same_axis_without_an_axis_of_that_kind_adds_only_the_first_chart(qapp, 
     repo.create_series_descriptor(axis_id=axis_id, series_index=0, name="Points",
                                   sql_query='SELECT x, y FROM e', roles={"x": "x", "y": "y"}, style={})
     dialog = DistributionDialog(repo=repo, figure_id=figure_id)
-    dialog.draw_on = lambda: OperationShell.DEST_SAME_AXIS
+    dialog.draw_on = lambda: DataOperationDialogBase.DEST_SAME_AXIS
     dialog.current_figure_id = figure_id
     dialog.parameter_values = lambda: {"distribution": "norm"}
     try:
@@ -66,7 +66,7 @@ def test_same_axis_without_an_axis_of_that_kind_adds_only_the_first_chart(qapp, 
 
 
 def test_same_figure_adds_every_chart_as_new_axes(qapp, repo: SqliteRepo, histogram_figure: int) -> None:
-    dialog = _draw(qapp, repo, histogram_figure, OperationShell.DEST_NEW_AXIS)
+    dialog = _draw(qapp, repo, histogram_figure, DataOperationDialogBase.DEST_NEW_AXIS)
     try:
         figure = repo.load_figure_descriptor(histogram_figure)
         assert [axis.name for axis in figure.axes] == ["Histogram", "Histogram", "Q-Q Plot"]
@@ -76,7 +76,7 @@ def test_same_figure_adds_every_chart_as_new_axes(qapp, repo: SqliteRepo, histog
 
 
 def test_new_figure_makes_a_figure_of_every_chart(qapp, repo: SqliteRepo, histogram_figure: int) -> None:
-    dialog = _draw(qapp, repo, histogram_figure, OperationShell.DEST_NEW_FIGURE)
+    dialog = _draw(qapp, repo, histogram_figure, DataOperationDialogBase.DEST_NEW_FIGURE)
     try:
         assert len(dialog.created_figure_ids) == 1 and dialog.created_figure_ids[0] != histogram_figure
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
@@ -92,8 +92,8 @@ def test_same_axis_hides_every_chart_but_the_first_in_the_charts_tab() -> None:
 
     charts = (BoolParam("Histogram", "Histogram", default_value=True, tab="charts"),
               BoolParam("Q-Q Plot", "Q-Q Plot", default_value=True, tab="charts"))
-    first, second = (_hidden_by_same_axis(spec, "Histogram", OperationShell.DEST_SAME_AXIS) for spec in charts)
-    same_axis = {"_destination": OperationShell.DEST_SAME_AXIS}
-    new_figure = {"_destination": OperationShell.DEST_NEW_FIGURE}
+    first, second = (_hidden_by_same_axis(spec, "Histogram", DataOperationDialogBase.DEST_SAME_AXIS) for spec in charts)
+    same_axis = {"_destination": DataOperationDialogBase.DEST_SAME_AXIS}
+    new_figure = {"_destination": DataOperationDialogBase.DEST_NEW_FIGURE}
     assert first.is_visible(same_axis) and not second.is_visible(same_axis)
     assert first.is_visible(new_figure) and second.is_visible(new_figure)

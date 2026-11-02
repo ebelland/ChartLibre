@@ -133,7 +133,7 @@ def _preview(dialog: DataOperationDialogBase) -> list[object]:
     dialog.preview_results_to_axis = spy  # type: ignore[method-assign]
     np.random.seed(0)  # k-means starts from random centroids
     assert dialog.preview()
-    _wait_for(lambda: not dialog.evaluating)
+    _wait_for(lambda: not dialog.job_running)
     return delivered
 
 
@@ -180,7 +180,7 @@ def test_ok_closes_the_window_only_once_the_background_result_is_applied(
     dialog = _open(_dialog_class("transform_dialog", "SeriesTransformDialog"), repo, figure_id)
     dialog.show()
     dialog.ok()
-    assert dialog.evaluating
+    assert dialog.job_running
     assert dialog.isVisible()
     _wait_for(lambda: not dialog.isVisible())
     assert dialog.result() == QDialog.DialogCode.Accepted
@@ -211,7 +211,7 @@ def test_stop_shows_the_bar_and_then_writes_nothing(
 
     dialog.stop()
     release.set()
-    _wait_for(lambda: not dialog.evaluating)
+    _wait_for(lambda: not dialog.job_running)
     assert not dialog.stop_button.isVisible()
     assert not dialog.progress_bar.isVisible()
     assert dialog.preview_button.isEnabled()
@@ -226,7 +226,7 @@ def test_a_quick_run_never_shows_stop(qapp, repo: SqliteRepo, figure_id: int) ->
     dialog.show()
     shown: list[bool] = []
     assert dialog.preview()
-    _wait_for(lambda: (shown.append(dialog.stop_button.isVisible()) or not dialog.evaluating))
+    _wait_for(lambda: (shown.append(dialog.stop_button.isVisible()) or not dialog.job_running))
     assert not any(shown)
     assert dialog._preview_active
     dialog.close()
@@ -270,7 +270,7 @@ def test_stop_appearing_does_not_move_the_other_buttons(
     assert [button.geometry().getRect() for button in buttons] == before
     dialog.stop()
     release.set()
-    _wait_for(lambda: not dialog.evaluating)
+    _wait_for(lambda: not dialog.job_running)
     qapp.processEvents()
     assert [button.geometry().getRect() for button in buttons] == before
     dialog.close()
