@@ -56,6 +56,7 @@ __all__ = [
     "DEFAULT",
     "ERROR_BAR_KWARGS",
     "ERROR_BAR_ROLES",
+    "in_legend",
     "FIT_OPTIONS",
     "LEGEND_OPTIONS",
     "LINE_KWARGS",
@@ -200,6 +201,12 @@ class SeriesArtistTags:
                     artist._chartlibre_series = self._name  # noqa: SLF001 - our own attributes
                     if self._follows is not None:
                         artist._chartlibre_follows = self._follows  # noqa: SLF001
+
+
+def in_legend(artist: Any) -> bool:
+    """Whether *artist* gets a legend entry: visible, with a label that does not start with "_"."""
+    label = artist.get_label()
+    return isinstance(label, str) and bool(label) and not label.startswith("_") and bool(artist.get_visible())
 
 
 class BaseAxisRenderer:

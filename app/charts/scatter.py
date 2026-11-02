@@ -15,7 +15,7 @@ from matplotlib import rcParams
 from matplotlib.patches import Ellipse
 from matplotlib.transforms import Affine2D
 
-from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData
+from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData, in_legend
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numbers
 
@@ -30,11 +30,6 @@ def _reorder_error(error: Any, order: np.ndarray) -> Any:
         return None
     array = np.asarray(error)
     return array[..., order]
-
-def _in_legend(artist: Any) -> bool:
-    """Whether *artist* will have an entry in the legend: a visible artist with a label not starting with "_"."""
-    label = artist.get_label()
-    return isinstance(label, str) and bool(label) and not label.startswith("_") and bool(artist.get_visible())
 
 
 
@@ -557,7 +552,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             y_values,
             **scatter_kwargs,
         )
-        return _in_legend(scatter_collection)
+        return in_legend(scatter_collection)
 
     def _draw_line(self, ax, style: dict, x_values: np.ndarray, y_values: np.ndarray, line_style: Any,
                    flat_color: str, label: str | None) -> bool:
@@ -587,7 +582,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             y_values,
             **line_kwargs,
         )
-        return bool(line_list) and _in_legend(line_list[0])
+        return bool(line_list) and in_legend(line_list[0])
 
     def _draw_series_overlays(self, ax, series: list[SeriesData], options: dict) -> bool:
         """Each drawn series' ellipse and trend; True when one of them is in the legend."""

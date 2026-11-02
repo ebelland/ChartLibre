@@ -16,7 +16,7 @@ from matplotlib import rcParams
 from matplotlib.colors import to_rgba
 from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
 
-from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData
+from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData, in_legend
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
 from app.utils.coercion import coerce_axis, to_numbers
@@ -276,13 +276,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
             frame = self._insert_gaps(frame, gap_threshold, temporal=x_is_temporal)
 
             show_in_legend = bool(style.get("show_in_legend", True))
-            series_label = str(style.get("label", "") or "").strip()
-            if not series_label:
-                axis_label = base_kwargs.get("label")
-                if isinstance(axis_label, str) and axis_label.strip():
-                    series_label = axis_label.strip()
-                else:
-                    series_label = sd.name.strip()
+            series_label = self._series_label(sd, style, base_kwargs)
 
             marker_style, has_marker = self.series_marker(style, options)
             line_style, has_line = self.series_linestyle(style, options)
@@ -299,167 +293,27 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
 
             flat_color = self._series_line_color(sd.df, style, series_index)
 
-            common_line_kwargs: dict[str, Any] = dict(raw_plot_kwargs)
-
-            if has_line:
-                common_line_kwargs["linestyle"] = line_style
-
-            if has_marker:
-                common_line_kwargs["marker"] = marker_style
-            else:
-                common_line_kwargs["marker"] = "None"
-
-            if flat_color:
-                common_line_kwargs["color"] = flat_color
-
-            if "alpha" in style and style["alpha"] not in (None, ""):
-                common_line_kwargs["alpha"] = style["alpha"]
-
-            if "zorder" in style and style["zorder"] not in (None, ""):
-                common_line_kwargs["zorder"] = style["zorder"]
-
-            if "visible" in style:
-                common_line_kwargs["visible"] = bool(style["visible"])
-
-            linewidth_value = style.get("linewidth", style.get("line_width"))
-            if linewidth_value not in (None, ""):
-                common_line_kwargs["linewidth"] = linewidth_value
+            common_line_kwargs = self._common_line_kwargs(raw_plot_kwargs, style, has_line, line_style,
+                                                          has_marker, marker_style, flat_color)
 
             # Raw line/marker rendering:
             # - markers only if marker exists and no line
             # - line only if line exists and no marker
             # - both if both exist
             if show_raw and (has_line or has_marker):
-                raw_kwargs = dict(common_line_kwargs)
-
-                if show_in_legend and series_label:
-                    raw_kwargs["label"] = series_label
-                else:
-                    raw_kwargs["label"] = "_nolegend_"
-
-                if "color" in frame.columns:
-                    tags.follow(())  # coloured by the column
-                    # Cluster/color role: ax.plot can only use one color for the
-                    # whole artist, so draw same-color contiguous line segments
-                    # and color markers with scatter. This mirrors scatter-axis
-                    # behavior for discrete ClusterId values.
-                    if has_line:
-                        line_kwargs = dict(raw_kwargs)
-                        line_kwargs["marker"] = "None"
-                        line_kwargs.pop("color", None)
-                        legend_handles_found = (
-                            self._draw_color_segments(
-                                ax=ax,
-                                frame=frame,
-                                line_kwargs=line_kwargs,
-                                fallback_color=flat_color,
-                                show_legend=show_in_legend,
-                                label=series_label,
-                            )
-                            or legend_handles_found
-                        )
-
-                    if has_marker:
-                        marker_kwargs = dict(raw_kwargs)
-                        marker_kwargs.pop("linestyle", None)
-                        marker_kwargs.pop("color", None)
-                        marker_kwargs.pop("label", None)
-                        marker_kwargs.pop("marker", None)
-                        marker_kwargs["marker"] = marker_style
-                        marker_kwargs["label"] = "_nolegend_" if has_line else raw_kwargs.get("label", "_nolegend_")
-                        self._draw_colored_markers(
-                            ax=ax,
-                            frame=frame,
-                            marker_kwargs=marker_kwargs,
-                            fallback_color=flat_color,
-                            color_is_discrete=color_is_discrete,
-                        )
-                        if (
-                            not has_line
-                            and show_in_legend
-                            and series_label
-                        ):
-                            legend_handles_found = True
-                else:
-                    # If only marker is enabled, use no connecting line.
-                    if has_marker and not has_line:
-                        raw_kwargs["linestyle"] = "None"
-
-                    raw_lines = ax.plot(
-                        frame["x"].to_numpy(),
-                        frame["y"].to_numpy(dtype=float),
-                        **raw_kwargs,
-                    )
-                    if raw_lines:
-                        raw_artist = raw_lines[0]
-                        label_value = raw_artist.get_label()
-                        if (
-                            isinstance(label_value, str)
-                            and label_value
-                            and not label_value.startswith("_")
-                            and raw_artist.get_visible()
-                        ):
-                            legend_handles_found = True
+                legend_handles_found |= self._draw_raw(ax, tags, frame, common_line_kwargs, has_line, has_marker,
+                                                       marker_style, flat_color, color_is_discrete,
+                                                       series_label if show_in_legend else "")
 
             if marked_points is not None and len(marked_points[0]):
                 tags.follow(())  # each in its own colour
-                ax.scatter(
-                    marked_points[0],
-                    marked_points[1],
-                    c=marked_points[2],
-                    s=(rcParams["lines.markersize"] * 1.6) ** 2,
-                    zorder=3,
-                    label="_nolegend_",
-                )
+                self._draw_marked_points(ax, marked_points)
 
             if show_rolling:
                 tags.follow(("color", "marker", "markersize"))  # its own line style
-                rolling_kwargs = dict(common_line_kwargs)
-                rolling_linestyle = str(
-                    style.get(
-                        "rolling_linestyle",
-                        default_rolling_linestyle,
-                    )
-                    or default_rolling_linestyle
-                )
-                rolling_kwargs["linestyle"] = rolling_linestyle
-
-                # Rolling line should not show markers unless explicitly desired.
-                if not has_marker:
-                    rolling_kwargs["marker"] = "None"
-
-                if show_in_legend and series_label:
-                    if show_raw and (has_line or has_marker):
-                        rolling_kwargs["label"] = f"{series_label} (rolling)"
-                    else:
-                        rolling_kwargs["label"] = series_label
-                else:
-                    rolling_kwargs["label"] = "_nolegend_"
-
-                roll = (
-                    frame.set_index("x")["y"]
-                    .rolling(
-                        rolling_window,
-                        min_periods=max(2, rolling_window // 3),
-                    )
-                    .mean()
-                )
-
-                rolling_lines = ax.plot(
-                    roll.index.to_numpy(),
-                    roll.to_numpy(dtype=float),
-                    **rolling_kwargs,
-                )
-                if rolling_lines:
-                    rolling_artist = rolling_lines[0]
-                    label_value = rolling_artist.get_label()
-                    if (
-                        isinstance(label_value, str)
-                        and label_value
-                        and not label_value.startswith("_")
-                        and rolling_artist.get_visible()
-                    ):
-                        legend_handles_found = True
+                legend_handles_found |= self._draw_rolling(
+                    ax, frame, common_line_kwargs, style, default_rolling_linestyle, rolling_window, has_marker,
+                    series_label if show_in_legend else "", raw_drawn=show_raw and (has_line or has_marker))
 
         tags.done()
         # Only install date machinery when the axis really is temporal: on a
@@ -474,6 +328,155 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
             ax.legend()
         # Draw descriptor annotations after renderer-owned artists.
         self.apply_annotations(ax, options or {})
+
+    def _series_label(self, sd: SeriesData, style: dict, base_kwargs: dict) -> str:
+        """The series' legend label: its own, else the axis' label option, else its name."""
+        series_label = str(style.get("label", "") or "").strip()
+        if series_label:
+            return series_label
+        axis_label = base_kwargs.get("label")
+        if isinstance(axis_label, str) and axis_label.strip():
+            return axis_label.strip()
+        return sd.name.strip()
+
+    def _common_line_kwargs(self, plot_kwargs: dict, style: dict, has_line: bool, line_style: Any, has_marker: bool,
+                            marker_style: Any, flat_color: str) -> dict[str, Any]:
+        """The keywords the raw and the rolling line share: the axis' plot options and the series' own style."""
+        common_line_kwargs: dict[str, Any] = dict(plot_kwargs)
+
+        if has_line:
+            common_line_kwargs["linestyle"] = line_style
+
+        if has_marker:
+            common_line_kwargs["marker"] = marker_style
+        else:
+            common_line_kwargs["marker"] = "None"
+
+        if flat_color:
+            common_line_kwargs["color"] = flat_color
+
+        if "alpha" in style and style["alpha"] not in (None, ""):
+            common_line_kwargs["alpha"] = style["alpha"]
+
+        if "zorder" in style and style["zorder"] not in (None, ""):
+            common_line_kwargs["zorder"] = style["zorder"]
+
+        if "visible" in style:
+            common_line_kwargs["visible"] = bool(style["visible"])
+
+        linewidth_value = style.get("linewidth", style.get("line_width"))
+        if linewidth_value not in (None, ""):
+            common_line_kwargs["linewidth"] = linewidth_value
+        return common_line_kwargs
+
+    def _draw_raw(self, ax, tags: SeriesArtistTags, frame: pd.DataFrame, common_line_kwargs: dict, has_line: bool,
+                  has_marker: bool, marker_style: Any, flat_color: str, color_is_discrete: bool, label: str) -> bool:
+        """The series' own points and line; *label* empty keeps it out of the legend. True when it is in the legend."""
+        raw_kwargs = dict(common_line_kwargs)
+        raw_kwargs["label"] = label or "_nolegend_"
+        legend_handles_found = False
+
+        if "color" in frame.columns:
+            tags.follow(())  # coloured by the column
+            # Cluster/color role: ax.plot can only use one color for the
+            # whole artist, so draw same-color contiguous line segments
+            # and color markers with scatter. This mirrors scatter-axis
+            # behavior for discrete ClusterId values.
+            if has_line:
+                line_kwargs = dict(raw_kwargs)
+                line_kwargs["marker"] = "None"
+                line_kwargs.pop("color", None)
+                legend_handles_found = (
+                    self._draw_color_segments(
+                        ax=ax,
+                        frame=frame,
+                        line_kwargs=line_kwargs,
+                        fallback_color=flat_color,
+                        show_legend=bool(label),
+                        label=label,
+                    )
+                    or legend_handles_found
+                )
+
+            if has_marker:
+                marker_kwargs = dict(raw_kwargs)
+                marker_kwargs.pop("linestyle", None)
+                marker_kwargs.pop("color", None)
+                marker_kwargs.pop("label", None)
+                marker_kwargs.pop("marker", None)
+                marker_kwargs["marker"] = marker_style
+                marker_kwargs["label"] = "_nolegend_" if has_line else raw_kwargs.get("label", "_nolegend_")
+                self._draw_colored_markers(
+                    ax=ax,
+                    frame=frame,
+                    marker_kwargs=marker_kwargs,
+                    fallback_color=flat_color,
+                    color_is_discrete=color_is_discrete,
+                )
+                if not has_line and label:
+                    legend_handles_found = True
+        else:
+            # If only marker is enabled, use no connecting line.
+            if has_marker and not has_line:
+                raw_kwargs["linestyle"] = "None"
+
+            raw_lines = ax.plot(
+                frame["x"].to_numpy(),
+                frame["y"].to_numpy(dtype=float),
+                **raw_kwargs,
+            )
+            legend_handles_found = legend_handles_found or (bool(raw_lines) and in_legend(raw_lines[0]))
+        return legend_handles_found
+
+    def _draw_marked_points(self, ax, marked_points: tuple[Any, Any, list[Any]]) -> None:
+        """The points with a colour spec of their own (Outlier "Colour"), each a larger marker in that colour."""
+        ax.scatter(
+            marked_points[0],
+            marked_points[1],
+            c=marked_points[2],
+            s=(rcParams["lines.markersize"] * 1.6) ** 2,
+            zorder=3,
+            label="_nolegend_",
+        )
+
+    def _draw_rolling(self, ax, frame: pd.DataFrame, common_line_kwargs: dict, style: dict,
+                      default_rolling_linestyle: str, rolling_window: int, has_marker: bool, label: str,
+                      *, raw_drawn: bool) -> bool:
+        """The rolling mean of the series; True when it is in the legend."""
+        rolling_kwargs = dict(common_line_kwargs)
+        rolling_linestyle = str(
+            style.get(
+                "rolling_linestyle",
+                default_rolling_linestyle,
+            )
+            or default_rolling_linestyle
+        )
+        rolling_kwargs["linestyle"] = rolling_linestyle
+
+        # Rolling line should not show markers unless explicitly desired.
+        if not has_marker:
+            rolling_kwargs["marker"] = "None"
+
+        if label:
+            rolling_kwargs["label"] = f"{label} (rolling)" if raw_drawn else label
+        else:
+            rolling_kwargs["label"] = "_nolegend_"
+
+        roll = (
+            frame.set_index("x")["y"]
+            .rolling(
+                rolling_window,
+                min_periods=max(2, rolling_window // 3),
+            )
+            .mean()
+        )
+
+        rolling_lines = ax.plot(
+            roll.index.to_numpy(),
+            roll.to_numpy(dtype=float),
+            **rolling_kwargs,
+        )
+        return bool(rolling_lines) and in_legend(rolling_lines[0])
 
 
     def _draw_colored_markers(
