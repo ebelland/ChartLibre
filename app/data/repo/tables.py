@@ -1558,6 +1558,21 @@ class TablesMixin(_Host):
         ).fetchall()
         return [int(row[0]) for row in rows]
 
+    @ensure_connection_wrapper
+    def set_rows_hidden(self, table_name: str, row_ids: Sequence[int], hidden: bool) -> int:
+        """Hide (Hide = 1) or show again (Hide = 0) exactly *row_ids*; how many rows changed."""
+        assert self._con is not None
+        self.ensure_hide_column(table_name)
+        value = 1 if hidden else 0
+        before = self._con.total_changes
+        self._con.executemany(
+            f'UPDATE {_quote_ident(table_name)} SET "Hide" = ? WHERE rowid = ? AND COALESCE("Hide", 0) <> ?',
+            [(value, int(row_id), value) for row_id in row_ids],
+        )
+        changed = self._con.total_changes - before
+        self._commit()
+        return changed
+
     def ensure_hide_column(self, table_name: str) -> None:
         """Ensure a boolean-compatible Hide column exists on a user data table."""
         self.ensure_column(table_name=table_name,col_name="Hide",col_type="INTEGER")

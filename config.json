@@ -850,6 +850,20 @@
       "SegoeFluent": "E71C",
       "ThemeIcon": "view-filter"
     },
+    "preview_hide_rows": {
+      "text": "Hide selected rows",
+      "description": "Leave the selected rows out of every chart and analysis",
+      "SFSymbol": "eye.slash",
+      "SegoeFluent": "ED1A",
+      "ThemeIcon": "view-hidden"
+    },
+    "preview_show_rows": {
+      "text": "Show selected rows",
+      "description": "Bring the selected hidden rows back into the charts and analyses",
+      "SFSymbol": "eye",
+      "SegoeFluent": "E7B3",
+      "ThemeIcon": "view-visible"
+    },
     "table_hide_reset": {
       "text": "Reset Hide",
       "description": "Set Hide back to 0 on every row, so nothing is hidden",

@@ -144,3 +144,56 @@ def test_create_query_from_selection_selects_those_columns_and_rows(qapp, tmp_db
             selection.select(model.index(row, col), QItemSelectionModel.SelectionFlag.Select)
     panel._request_query()
     assert asked[-1].strip() == 'SELECT *\nFROM "t1"'
+
+
+#: A right-click on no cell: the selection stays what the menu acts on.
+OUTSIDE_CELLS = QPoint(-1, -1)
+
+
+def _select_rows(panel: TablePreviewPanel, rows: list[int]) -> None:
+    model = panel.view.model()
+    selection = panel.view.selectionModel()
+    selection.clearSelection()
+    for row in rows:
+        selection.select(model.index(row, 0), QItemSelectionModel.SelectionFlag.Select)
+
+
+def _action(menu, text: str):
+    return next(action for action in menu.actions() if action.text() == text)
+
+
+def test_selected_rows_are_hidden_and_shown_again_from_the_menu(qapp, tmp_db_path: Path) -> None:
+    from PySide6.QtCore import Qt
+
+    repo = _repo_with_table_and_query(tmp_db_path)
+    host = QWidget()
+    panel = TablePreviewPanel(parent=host, repo=repo)
+    panel.set_context(repo, "t1")
+    redrawn: list[bool] = []
+    panel.refresh.connect(lambda: redrawn.append(True))
+
+    _select_rows(panel, [0, 2])
+    menu = panel._build_context_menu(OUTSIDE_CELLS)
+    assert not _action(menu, "Show selected rows").isEnabled()  # nothing selected is hidden yet
+    _action(menu, "Hide selected rows").trigger()
+    assert sorted(repo.hidden_rowids("t1")) == [1, 3] and redrawn
+
+    model = panel.view.model()
+    hide = [model.column_name(c) for c in range(model.columnCount())].index("Hide")
+    assert model.index(0, hide).data() == "1"
+    assert model.index(0, 0).data(Qt.ItemDataRole.ForegroundRole) is not None  # greyed
+    assert model.index(1, 0).data(Qt.ItemDataRole.ForegroundRole) is None
+
+    _select_rows(panel, [2])
+    menu = panel._build_context_menu(OUTSIDE_CELLS)
+    assert _action(menu, "Show selected rows").isEnabled()
+    _action(menu, "Show selected rows").trigger()
+    assert repo.hidden_rowids("t1") == [1]
+
+
+def test_set_rows_hidden_counts_only_the_rows_it_changed(tmp_db_path: Path) -> None:
+    repo = _repo_with_table_and_query(tmp_db_path)
+    assert repo.set_rows_hidden("t1", [1, 2], True) == 2
+    assert repo.set_rows_hidden("t1", [1, 2, 3], True) == 1
+    assert repo.set_rows_hidden("t1", [2], False) == 1
+    assert sorted(repo.hidden_rowids("t1")) == [1, 3]
