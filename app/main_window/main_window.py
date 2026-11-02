@@ -1,29 +1,35 @@
 """Main application window: the navigation bar and its panels on the left, the charts on the right.
 
 The window is assembled here - the panels, the bar, the splitter, the chart
-tabs - and its larger concerns live in mixins of their own beside it:
-
-    main_menus.py             the menu bar, the app menu, Undo and Open recent
-    main_project.py           the project: new, open, save, demo, import, undo
-    main_chart_properties.py  the Chart properties tabs and what they ask for
-    main_frame.py             the frameless window's edges and dropped files
+tabs - and its larger concerns follow as sections of the one class: the menus
+(the menu bar, the app menu, Undo and Open recent), the Chart properties tabs,
+the project (new, open, save, demo, import, undo) and the frame (the frameless
+window's edges and dropped files).
 """
 from __future__ import annotations
 
 import gc
+import json
 import re
 import warnings
 from collections.abc import Callable, Mapping
+from functools import partial
 from pathlib import Path
-from typing import Any, cast
+from time import monotonic
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
-from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
+    QAction,
     QCloseEvent,
     QDesktopServices,
+    QDragEnterEvent,
+    QDragMoveEvent,
+    QDropEvent,
     QIcon,
     QKeySequence,
+    QMouseEvent,
     QPainter,
     QPalette,
     QShortcut,
@@ -32,57 +38,77 @@ from PySide6.QtWidgets import (
     QApplication,
     QBoxLayout,
     QCheckBox,
+    QFileDialog,
     QInputDialog,
     QLabel,
     QMainWindow,
+    QMenu,
+    QMenuBar,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QSplitter,
     QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
 from app import APP_ICON, APP_NAME
 from app.ai import settings as assistant_settings
+from app.data.demos import PROJECTS_DIR, DemoProject, copy_demo_project
+from app.data.repo._common import ensure_read_only_select
+from app.data.repo.function_sql import function_names
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
 from app.developer_helpers.data_operation_helper import DataOperationBuilderDialog
 from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
 from app.developer_helpers.localization_helper import EditLocalizationDialog
 from app.developer_helpers.renderer_helper import RendererHelperDialog
+from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.credits_dialog import CreditsDialog
+from app.dialogs.import_data_dialog import ImportDataDialog
 from app.dialogs.log_viewer_dialog import LogViewerDialog
-from app.dialogs.main_chart_properties import MainWindowChartProperties
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
 from app.logs.logger import applogger
 from app.main_window.custom_title_bar import CustomTitleBar
-from app.main_window.main_frame import MainWindowFrame
-from app.main_window.main_menus import MainWindowMenus
-from app.main_window.main_project import MainWindowProject
+from app.plugin_api.charts import layout_presets
 from app.scanners.data_operation_scanner import import_class_from_file
 from app.styles.style import (
     EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
     IS_WINDOWS,
+    MARGIN_TOOLBOX_PAGE,
     PANEL_MIN_WIDTH,
     SPACING_DEFAULT,
     SPLITTER_HANDLE_WIDTH,
     CardFrame,
+    MenuItem,
+    _pyobjc_core_is_safe_to_import,
+    action_menu_item,
     action_presentation,
+    create_menu,
+    create_menu_item,
     icon_from_svg_source,
     relax_minimum_width,
+    stdSizeAndlayout,
 )
 from app.utils import column_summary
 from app.utils.config import (
+    clear_recent_databases,
     developer_mode,
     get_constant,
+    get_recent_databases,
     get_section,
+    set_last_database,
     set_section,
 )
+from app.utils.data_sources import SERVER_DATABASE_QUERY_READERS, SERVER_DATABASE_READERS, is_importable
 from app.utils.dialog_state import restore_window_geometry, save_window_geometry
 from app.utils.i18n import _
-from app.utils.messages import show_message
+from app.utils.messages import ask, show_message
 from app.utils.screen_fit import fit_on_show
+from app.utils.startup import PROJECT_FILE_FILTER
 from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_icon
 from app.widgets.assistant_panel import AssistantPanel
 from app.widgets.catalog_search import CatalogSearch
@@ -98,6 +124,9 @@ from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
 from app.widgets.recent_projects import ProjectsTabs
 from app.widgets.table_list import TableListPanel
 from app.widgets.table_preview import TablePreviewPanel
+
+if TYPE_CHECKING:
+    from app.data.sqlite_repo import SqliteRepo
 
 # config.json keys for the remembered window layout.
 STATE_KEY: str = "main_window"
@@ -125,8 +154,51 @@ PANEL_DEFAULT_WIDTH: int = get_constant("panel_default_width", 340)
 CHART_SELECTION_TIMEOUT_MS: int = get_constant("chart_selection_timeout_ms", 15_000)
 
 
+# Coalescing window for property-driven chart reloads, in milliseconds.
+# Long enough to swallow a spinbox drag, short enough to feel immediate.
+PROPERTIES_REDRAW_DEBOUNCE_MS: int = get_constant("properties_redraw_debounce_ms", 120)
 
-class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, MainWindowFrame, QMainWindow):
+
+# A run of same-label descriptor snapshots inside this many seconds is
+# treated as one edit and recorded once. The auto-applying property panels
+# fire _snapshot_descriptors on every debounced change; without this a
+# single slider drag would leave a stack of identical "Figure properties"
+# undo entries in front of the state worth going back to.
+SNAPSHOT_COALESCE_SECONDS: float = get_constant("snapshot_coalesce_seconds", 2.0)
+
+
+def resize_edges(
+    pos: QPoint,
+    size: QSize,
+    margin: int,
+    *,
+    top: bool = True,
+    bottom: bool = True,
+    corner: int = 0,
+) -> Qt.Edge:
+    """Which edge(s) of a *size* rectangle *pos* is within *margin* of.
+
+    *top* and *bottom* say whether that side is an edge of the window at all:
+    a strip in the middle of it (the central area above the status bar) has no
+    edge there to drag. *corner* widens the left and right bands along the
+    bottom row to that many pixels, so the window's corner is as easy to grab
+    as the corner of a normal window (a 6 px square is a small target).
+    """
+    edges = Qt.Edge(0)
+    on_bottom = bottom and pos.y() >= size.height() - margin
+    side = max(margin, corner) if on_bottom else margin
+    if pos.x() <= side:
+        edges |= Qt.Edge.LeftEdge
+    elif pos.x() >= size.width() - side:
+        edges |= Qt.Edge.RightEdge
+    if top and pos.y() <= margin:
+        edges |= Qt.Edge.TopEdge
+    elif on_bottom:
+        edges |= Qt.Edge.BottomEdge
+    return edges
+
+
+class MainWindow(QMainWindow):
     """The navigation bar and its panels, and the chart tabs beside them.
 
     The window must stay shrinkable: so that no child pushes a large minimum
@@ -519,7 +591,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
         tab_bar.setUsesScrollButtons(True)
         tab_bar.setExpanding(False)
         tab_bar.setElideMode(Qt.TextElideMode.ElideNone)
-        
+
         # Without this the bar still asks for the full width of every title.
         tab_bar.setMinimumWidth(300)
         tab_bar.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
@@ -1114,7 +1186,7 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
     # ------------------------------------------------------------------
     # App menu actions
     # ------------------------------------------------------------------
-        
+
 
     def _on_chart_from_columns(self, table: str, columns: list) -> None:
         """New plot on *table*, with the preview's selected columns as x, y, z."""
@@ -1693,4 +1765,2077 @@ class MainWindow(MainWindowMenus, MainWindowChartProperties, MainWindowProject, 
             saved = sizes.get(key)
             if isinstance(saved, list) and len(saved) == splitter.count():
                 splitter.setSizes([int(value) for value in saved])
+
+    # ==================================================================
+    # Menus: the menu bar and its actions
+    # ==================================================================
+
+    #: Actions moved into the real macOS menu bar via QAction.MenuRole -
+    #: Preferences and About are relocated by Cocoa itself into the
+    #: application menu next to the apple, wherever they were declared, so
+    #: they read here exactly the way they read in the rail's popup menu.
+    _MACOS_MENU_ROLES: dict[str, QAction.MenuRole] = {
+        "settings": QAction.MenuRole.PreferencesRole,
+        "credits": QAction.MenuRole.AboutRole,
+    }
+
+    def _app_menu_items(self) -> list[tuple[str, list[MenuItem | None]]]:
+        """Return the app menu's contents, grouped the way macOS expects.
+
+        One list of (title, items) groups, shared by both places the menu
+        appears: flattened into one popup for the activity rail's "Menu"
+        button and every non-Mac platform (see _flatten_menu_groups), or
+        built into one QMenu per group for the real macOS menu bar (see
+        _build_macos_menu_bar). One source means the two cannot drift apart
+        the way a hand-kept second copy would.
+        """
+        return [
+            (
+                _("File"),
+                [
+                    action_menu_item("new", self._on_new_file),
+                    action_menu_item("open", self._on_open_database),
+                    self._recent_databases_item(),
+                    action_menu_item("import", self._on_import_data),
+                    None,
+                    action_menu_item("save", self._on_save, shortcut="Ctrl+S"),
+                    action_menu_item("save_as", self._on_save_as),
+                    None,
+                    action_menu_item("project_report", self._on_project_report),
+                ],
+            ),
+            (
+                _("Edit"),
+                [
+                    self._undo_item(),
+                    None,
+                    action_menu_item("copy", self._on_copy_chart),
+                ],
+            ),
+            (
+                _("Database"),
+                [
+                    action_menu_item("query_builder", self._on_query_builder),
+                    action_menu_item("optimize_db", self._on_optimize_db),
+                    None,
+                    action_menu_item("database_info", self._on_database_info),
+                ],
+            ),
+            (
+                _("Help"),
+                [
+                    # Only on macOS: PreferencesRole (_MACOS_MENU_ROLES) is
+                    # what actually pulls this out into the native apple
+                    # menu there, so it has to be declared somewhere for
+                    # Cocoa to relocate - "Help" is as good a place as any
+                    # a user never actually sees it listed under. Everywhere
+                    # else it would just be a second, redundant way to reach
+                    # what the rail's own dedicated Settings tile already
+                    # does one click away.
+                    *(
+                        [action_menu_item("settings", self._on_settings)]
+                        if IS_MACOS else []
+                    ),
+                    # Elsewhere the rail's Search row (below Workspace) is the way.
+                    *(
+                        [action_menu_item("search_functions", self.focus_search)]
+                        if IS_MACOS else []
+                    ),
+                    action_menu_item("user_manual", self._on_user_manual),
+                    None,
+                    action_menu_item("credits", self._on_credits),
+                ],
+            ),
+        ]
+
+    @staticmethod
+    def _flatten_menu_groups(
+        groups: list[tuple[str, list[MenuItem | None]]]
+    ) -> list[MenuItem | None]:
+        """One flat list for the popup: every group's items, a separator
+        between groups - the shape the popup already had before the real
+        macOS menu bar split it into File/Edit/Database/Help."""
+        flat: list[MenuItem | None] = []
+        for index, (_title, items) in enumerate(groups):
+            if index:
+                flat.append(None)
+            flat.extend(items)
+        return flat
+
+    def _undo_item(self) -> MenuItem:
+        """The Undo entry, naming the change it will take back.
+
+        "Undo" alone would not say whether it is about to bring back a
+        column, a table or a chart - and this undoes one recorded action
+        against the database, not the last thing the user touched
+        anywhere. Naming it is what keeps the two from being confused.
+        """
+        entries = self._repo.undo_entries() if self._repo is not None else []
+        latest = entries[0] if entries else None
+        _icon, label, tooltip = action_presentation("undo")
+        text = (
+            _("Undo: {what}").format(what=latest.label)
+            if latest is not None
+            else label
+        )
+        return MenuItem(
+            text=text,
+            tooltip=tooltip,
+            icon="undo",
+            shortcut="Ctrl+Z",
+            callback=self._on_undo,
+            action_id="undo",
+            enabled=latest is not None,
+        )
+
+    def _undo_actions(self) -> list[QAction]:
+        """Every Undo entry on screen: the rail's popup, and the macOS bar."""
+        menus: list[QMenu | None] = [self._app_menu]
+        if IS_MACOS:
+            menus.extend(
+                menu
+                for action in self.menuBar().actions()
+                if isinstance(menu := action.menu(), QMenu)
+            )
+
+        found: list[QAction] = []
+        for menu in menus:
+            if menu is None:
+                continue
+            try:
+                actions = menu.actions()
+            except RuntimeError:
+                # Rebuilding the macOS menu bar deletes the QMenu behind the
+                # File entry, and a shell of it can outlive that on the Python
+                # side. Nothing to refresh in a menu that is already gone.
+                continue
+            found.extend(
+                action for action in actions if str(action.data() or "") == "undo"
+            )
+        return found
+
+    def _undo_item_state(self) -> tuple[str, bool]:
+        """The Undo entry's text and whether it should be enabled, read fresh."""
+        entries = self._repo.undo_entries() if self._repo is not None else []
+        latest = entries[0] if entries else None
+        _icon, label, _tooltip = action_presentation("undo")
+        text = (
+            _("Undo: {what}").format(what=latest.label)
+            if latest is not None
+            else label
+        )
+        return text, latest is not None
+
+    def _sync_undo_item(self) -> None:
+        """Push the current Undo state onto the QAction objects on screen.
+
+        Enough on its own for the rail's popup, which is a live QMenu and is
+        wired to call this from ``aboutToShow``. Not enough for the native
+        macOS menu bar - see :meth:`_refresh_undo_item`.
+        """
+        text, enabled = self._undo_item_state()
+        for action in self._undo_actions():
+            action.setText(text)
+            action.setEnabled(enabled)
+
+    def _refresh_undo_item(self) -> None:
+        """Bring the Undo entry up to date after the stack changed.
+
+        Called straight after anything that records or consumes an undo entry
+        - the few UI refresh points every change funnels through
+        (_snapshot_descriptors, refresh, _on_chart_panel_deleted,
+        ChartPanel.figure_edited) and _on_undo - not every handler.
+
+        The native macOS menu bar makes this more than a property poke: it
+        caches each item's text and enabled state from the last time the menu
+        was built, never emits ``aboutToShow`` for its items, and so never
+        re-reads the QAction - _sync_undo_item's changes simply do not land
+        there. A full rebuild does land, and is the same hammer the
+        Open-recent list already swings on every change (_build_app_menu).
+        """
+        self._sync_undo_item()
+        if IS_MACOS:
+            self._build_app_menu()
+
+    def _recent_databases_item(self) -> MenuItem:
+        """The Open recent submenu, built from user.json's own list.
+
+        Every entry names one file, and the tooltip carries the folder it
+        is in: two projects called "analysis.dhub" in different places are
+        the normal case, and a menu of identical names is a menu of
+        guesses. Disabled rather than hidden when the list is empty, so
+        the menu keeps its shape between the first and the second launch.
+        """
+        recent = get_recent_databases()
+        items: list[MenuItem | None] = [
+            MenuItem(
+                text=path.name,
+                tooltip=str(path.parent),
+                icon="open",
+                callback=partial(self._on_open_recent, path),
+            )
+            for path in recent
+        ]
+        if items:
+            items.append(None)
+            items.append(
+                MenuItem(text=_("Clear menu"), callback=self._on_clear_recent)
+            )
+
+        return MenuItem(
+            text=_("Open recent"),
+            icon="open",
+            submenu=items,
+            enabled=bool(recent),
+        )
+
+    def _build_app_menu(self) -> None:
+        """Create the app menu, and place it where each platform expects it.
+
+        Everywhere else this is the popup the activity rail's "Menu" button
+        opens - there is no equivalent slot to move it into. On macOS it is
+        a real QMenuBar instead, which is what turns the menu bar next to the
+        apple from the bare running-process name into an actual menu: with no
+        QMenuBar at all, Cocoa still draws that bar, showing only the
+        process's own name (here, "Python", since this is not a signed .app
+        bundle) and a default Quit.
+
+        Rebuilt wholesale on every call - after Settings, since language and
+        theme are what changes underneath these, and after every undo-stack
+        change on macOS, whose native menu bar only reads the item list at
+        build time - rather than patched in place, which is simpler and is
+        exactly what already happened when this was only ever the popup.
+        """
+        previous = getattr(self, "_app_menu", None)
+        groups = self._app_menu_items()
+        # No self._file_menu: it only ever existed for the rail's own File
+        # popup button, which nav_file (a page now, not a popup) replaced.
+        self._help_menu = create_menu(self, list(groups[-1][1]))
+        self._help_menu.setTitle(_("Help & About"))
+        # The rail's Help tile holds whichever menu object existed when it
+        # was built, so a rebuild has to hand it the new one - otherwise
+        # the tile keeps popping up the menu from before the language or
+        # the undo stack changed. Guarded because the first build runs
+        # before the rail exists.
+        self._app_menu = create_menu(self, self._flatten_menu_groups(groups))
+        if previous is not None and IS_MACOS:
+            # It is parented to this window, so replacing the attribute is not
+            # enough to free it - and on macOS this runs on every undo-stack
+            # change, often enough for the leak to matter. Only macOS: off it,
+            # the activity-rail button still holds this exact object.
+            previous.deleteLater()
+        # The live popup can just re-read on open; _sync, not _refresh, so it
+        # never triggers the macOS menu-bar rebuild from a show handler.
+        self._app_menu.aboutToShow.connect(self._sync_undo_item)
+        if not IS_MACOS:
+            # Off macOS the menu is a popup from the rail, shown only while
+            # open: an action that lives only in it has no visible widget to
+            # carry its shortcut, so Ctrl+Z, Ctrl+S and the rest did nothing
+            # with the popup closed (UI-07). The window carries them, as the
+            # macOS hidden menus' actions are carried - the old ones dropped
+            # first when the menu is rebuilt.
+            for action in getattr(self, "_popup_shortcut_actions", []):
+                self.removeAction(action)
+            self._popup_shortcut_actions = [
+                action for action in self._app_menu.actions() if not action.shortcut().isEmpty()
+            ]
+            for action in self._popup_shortcut_actions:
+                self.addAction(action)
+
+        if IS_MACOS:
+            self._build_macos_menu_bar(groups)
+            # Cocoa rebuilds its own native menu items - overwriting any
+            # rename - at least once more after this call returns, somewhere
+            # between menu construction and the window's first activation.
+            # Measured, not documented anywhere: a rename applied immediately
+            # is gone again within 500ms, while one applied at 2s already
+            # survives. Rather than guess the exact moment, this reapplies a
+            # few times over the first two seconds and then stops.
+            for delay_ms in (0, 150, 400, 800, 1500, 2500):
+                QTimer.singleShot(delay_ms, self._rename_macos_native_app_menu_items)
+
+    def _build_macos_menu_bar(
+        self, groups: list[tuple[str, list[MenuItem | None]]]
+    ) -> None:
+        """Populate the real menu bar with one QMenu per group.
+
+        Settings and Credits do not stay wherever this puts them: Cocoa
+        pulls any action carrying MenuRole.PreferencesRole/AboutRole out
+        into the native application menu - the one already showing next to
+        the apple - wherever in the menu bar it was declared. Window is not
+        one of the groups: it holds no reusable MenuItem, only two Cocoa
+        window operations nothing else needs, so it is built directly here
+        instead, between the app's own menus and Help - the usual place on
+        a Mac.
+        """
+        menu_bar = self.menuBar()
+        menu_bar.clear()
+
+        # menu_bar.clear() above only lets go of menus it was actually
+        # holding - the hidden-but-alive File/Database menus below are
+        # never added to it, so without this every rebuild (every
+        # undo-stack change; see this method's own docstring) would pile up
+        # another orphaned QMenu plus another copy of the same shortcut
+        # re-registered on self, instead of replacing the previous one.
+        for action in getattr(self, "_macos_hidden_menu_actions", ()):
+            self.removeAction(action)
+        for menu in getattr(self, "_macos_hidden_menus", ()):
+            menu.deleteLater()
+        self._macos_hidden_menus: list[QMenu] = []
+        self._macos_hidden_menu_actions: list[QAction] = []
+
+        # File and Database are both covered by the nav rail's own pages
+        # now (_create_file_page/_create_developer_page) - a second, visible
+        # menu for the same actions would just be redundant chrome. Their
+        # items are still built (below, into a menu that is never added to
+        # the bar) and their shortcuts kept alive on the window itself
+        # (self.addAction), so Cmd+S and friends do not stop working just
+        # because the menu that used to carry them is gone from view.
+        hidden_titles = {_("File"), _("Database")}
+
+        for index, (title, items) in enumerate(groups):
+            if index == len(groups) - 1:
+                self._build_macos_window_menu(menu_bar)
+
+            hidden = title in hidden_titles
+            if hidden:
+                menu = QMenu(self)
+                menu.setTitle(title)
+            else:
+                menu = menu_bar.addMenu(title)
+            # Cocoa rarely delivers this for a menu-bar menu, and rebuilding
+            # the bar from inside a show handler would clear the menu
+            # mid-display - so _sync (a plain property poke), never _refresh.
+            menu.aboutToShow.connect(self._sync_undo_item)
+            for item in items:
+                if item is None:
+                    menu.addSeparator()
+                    continue
+
+                if item.submenu is not None:
+                    # The same helper the popup uses, so Open recent is one
+                    # list of files rendered twice rather than two lists that
+                    # can disagree.
+                    child = create_menu(self, item.submenu)
+                    child.setTitle(item.text)
+                    child.setEnabled(item.enabled)
+                    menu.addMenu(child)
+                    continue
+
+                create_menu_item(
+                    parent=self,
+                    menu=menu,
+                    icon=item.icon,
+                    checkable=item.checkable,
+                    text=item.text,
+                    tooltip=item.tooltip,
+                    key=item.shortcut,
+                    action=item.callback,
+                    action_id=item.action_id,
+                    checked=item.checked,
+                    enabled=item.enabled,
+                )
+
+            for action in menu.actions():
+                role = self._MACOS_MENU_ROLES.get(str(action.data() or ""))
+                if role is not None:
+                    action.setMenuRole(role)
+
+            if hidden:
+                # menu itself keeps every action in it alive regardless
+                # (append below); addAction is only for the ones whose
+                # shortcut has to keep firing with no visible menu left to
+                # carry it - Cmd+S and the rest of File/Database's own.
+                self._macos_hidden_menus.append(menu)
+                for action in menu.actions():
+                    if not action.shortcut().isEmpty():
+                        self.addAction(action)
+                        self._macos_hidden_menu_actions.append(action)
+
+    def _build_macos_window_menu(self, menu_bar: QMenuBar) -> None:
+        """Build the Window menu: Minimize and Zoom.
+
+        Neither is a reusable MenuItem - nothing else in the app ever needs
+        "minimize this window" - so, unlike every other menu, this one is
+        built directly against the QMenuBar rather than through
+        _app_menu_items/create_menu_item.
+        """
+        menu = menu_bar.addMenu(_("Window"))
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon=None,
+            checkable=False,
+            text=_("Minimize"),
+            tooltip=_("Minimize"),
+            key="Ctrl+M",
+            action=self.showMinimized,
+        )
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon=None,
+            checkable=False,
+            text=_("Zoom"),
+            tooltip=_("Zoom"),
+            key=None,
+            action=self._on_zoom,
+        )
+
+    #: Cocoa's own selectors for Hide and Quit - reliable regardless of
+    #: title, since neither is backed by a QAction of ours and both keep
+    #: these selectors on every Mac, in every language.  About is *not* in
+    #: here: it is backed by our own "credits" QAction, so Qt dispatches it
+    #: through the same generic "qt_itemFired:" selector as Preferences,
+    #: indistinguishable from it by selector alone.  It is matched by
+    #: position instead - see _rename_macos_native_app_menu_items.
+    _MACOS_APP_MENU_SELECTORS: dict[str, str] = {
+        "hide:": "Hide",
+        "terminate:": "Close",
+    }
+
+    def _rename_macos_native_app_menu_items(self) -> None:
+        """Strip the app name Cocoa insists on adding to About/Hide/Quit.
+
+        `QAction.MenuRole` moves an action into the native application menu,
+        but Cocoa then *replaces* its text with its own "About {name}" /
+        "Hide {name}" / "Quit {name}" template - not read from the QAction at
+        all, so nothing on the Qt side can change it.  The assumption in
+        main.py that QApplication.setApplicationName() controls "{name}" does
+        not hold here: measured directly, Cocoa's template uses
+        NSProcessInfo.processName (the running interpreter, "Python" for an
+        unsigned script) instead, which no public Qt or Cocoa API renames
+        without an actual .app bundle - only reaching past Qt into the
+        NSMenuItem itself can.
+
+        So this does not try to make the name correct - it removes it,
+        landing on the bare "About" / "Hide" / "Close" the request asked for.
+        Hide and Quit are matched by their native Cocoa action selector,
+        stable regardless of title or language.  About cannot be: it is
+        backed by our own "credits" QAction, so Qt dispatches it through the
+        same generic selector as Preferences.  Apple's own Human Interface
+        Guidelines fix the application menu's layout on every Mac - About
+        first, when present - which is the stable signal used here instead.
+
+        Deferred one event-loop turn past menu construction: Cocoa builds the
+        native menu from Qt's QMenuBar lazily, so nothing is there to rename
+        yet in the same call that builds it.
+        """
+        if not _pyobjc_core_is_safe_to_import():
+            return
+
+        # Offscreen (tests, scripts) there is no native menu bar to rename.
+        if QApplication.platformName() != "cocoa":
+            return
+
+        try:
+            import AppKit  # type: ignore[import-not-found]
+        except ImportError:
+            return
+
+        try:
+            app = getattr(AppKit, "NSApp", None)
+            if app is None:
+                ns_application = AppKit.NSApplication
+                app = ns_application.sharedApplication()
+
+            app_menu = app.mainMenu().itemAtIndex_(0).submenu()
+            if app_menu is None or app_menu.numberOfItems() == 0:
+                return
+
+            about_item = app_menu.itemAtIndex_(0)
+            if str(about_item.action() or "") == "qt_itemFired:":
+                about_item.setTitle_(_("About"))
+
+            for index in range(app_menu.numberOfItems()):
+                item = app_menu.itemAtIndex_(index)
+                selector = str(item.action()) if item.action() is not None else ""
+                bare_text = self._MACOS_APP_MENU_SELECTORS.get(selector)
+                if bare_text is not None:
+                    item.setTitle_(_(bare_text))
+        except Exception:  # noqa: BLE001 - an optional platform feature: absent or refusing is not an error
+            applogger.exception("Failed to rename the native macOS app menu items.")
+
+    # ==================================================================
+    # Chart properties: the properties panel beside the chart
+    # ==================================================================
+    #: What a property is called in its Undo step (S-01): "Colour of 'Monthly mean'". Another key: its own
+    #: name, in words.
+    _PROPERTY_NAMES: dict[str, str] = {
+        "color": "Colour", "linestyle": "Line style", "linewidth": "Line width", "marker": "Marker",
+        "markersize": "Marker size", "alpha": "Opacity", "label": "Name", "sql_query": "Query", "title": "Title",
+        "x_label": "X label", "y_label": "Y label", "grid": "Grid", "legend": "Legend", "xscale": "X scale",
+        "yscale": "Y scale", "width": "Width", "height": "Height", "mpl_style": "Style",
+    }
+
+    @classmethod
+    def _undo_label(cls, keys: set[str], element: str) -> str:
+        """An edit's Undo step, named for what it changes and where (S-01). The same name within a moment is one
+        step (_snapshot_descriptors): a slider dragged stays one Undo; another property or element is another."""
+        if len(keys) == 1:
+            key = next(iter(keys))
+            what = _(cls._PROPERTY_NAMES[key]) if key in cls._PROPERTY_NAMES else key.replace("_", " ").capitalize()
+        else:
+            what = _("Properties")
+        return _("{what} of {element}").format(what=what, element=element)
+
+    def _create_properties_control(self) -> QTabWidget:
+        """Figure, Axis, Series and Overlays as tabs, each page scrolling on its own.
+
+        Tabs rather than the accordion they were: four headers stacked
+        took about 200 px of the panel's height and showed one page at a
+        time all the same. Short names, so the four fit a narrow panel;
+        when they do not, the tab bar scrolls rather than eliding them.
+        """
+        self._figure_widget = FigurePropertiesWidget(self)
+        self._axis_widget = AxisPropertiesWidget(self)
+        self._series_widget = SeriesPropertiesWidget(self)
+        self._overlay_widget = OverlayPropertiesWidget(self)
+
+        control = QTabWidget(self)
+        control.setObjectName("propertiesTabs")
+        control.setDocumentMode(True)
+        control.setUsesScrollButtons(True)
+        control.setElideMode(Qt.TextElideMode.ElideNone)
+        control.tabBar().setExpanding(False)
+        # Last: annotations and reference lines are the finishing pass on a
+        # chart, done once the data, the axes and the series are right.
+        for page, title, tooltip in (
+            (self._figure_widget, _("Figure"), _("Figure properties")),
+            (self._axis_widget, _("Axis"), _("Axis properties")),
+            (self._series_widget, _("Series"), _("Series properties")),
+            (self._overlay_widget, _("Overlays"), _("Overlay properties")),
+        ):
+            # The ground and the room a toolbox page had: the window grey on
+            # macOS, white on Windows (the toolboxPage rule in each sheet).
+            page.setProperty("toolboxPage", True)
+            page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            layout = page.layout()
+            if layout is not None and layout.contentsMargins().isNull():
+                layout.setContentsMargins(*MARGIN_TOOLBOX_PAGE)
+            index = control.addTab(self._scrollable(page), title)
+            control.setTabToolTip(index, tooltip)
+        control.setCurrentIndex(0)
+        self._connect_property_signals()
+        self._clear_property_widgets()
+        return control
+
+    def _connect_property_signals(self) -> None:
+        """Connect property widgets to main-window persistence handlers."""
+        self._figure_widget.style_changed.connect(self._on_figure_style_changed)
+        self._figure_widget.style_applied_to_all.connect(self._on_style_applied_to_all)
+        self._figure_widget.grid_layout_requested.connect(self._on_grid_layout_requested)
+        self._figure_widget.layout_preset_requested.connect(self._on_layout_preset_requested)
+        self._figure_widget.layout_mosaic_requested.connect(self._on_layout_mosaic_requested)
+        self._figure_widget.template_requested.connect(self._on_template_requested)
+        self._figure_widget.template_save_requested.connect(self._on_template_save_requested)
+        self._figure_widget.figure_options_requested.connect(self._on_figure_options_requested)
+        self._axis_widget.axis_selected.connect(self._on_axis_selected)
+        # Chosen here, shown there: the chart highlights the axis or series for a moment (S-01).
+        self._axis_widget.axis_picked.connect(self._flash_on_chart)
+        self._series_widget.series_picked.connect(
+            lambda _series_id, name: self._flash_on_chart(self._axis_widget.current_axis_id(), name))
+        self._axis_widget.renderer_changed.connect(self._on_axis_renderer_changed)
+        self._axis_widget.axis_options_requested.connect(self._on_axis_options_requested)
+        self._axis_widget.axis_action_requested.connect(self._on_axis_action_requested)
+        self._series_widget.series_options_requested.connect(self._on_series_options_requested)
+        self._series_widget.series_order_requested.connect(self._on_series_order_requested)
+        self._series_widget.series_delete_requested.connect(self._on_series_delete_requested)
+        self._series_widget.function_edit_requested.connect(self._on_function_edit_requested)
+        self._overlay_widget.overlay_options_requested.connect(
+            self._on_overlay_options_requested
+        )
+
+    def _configure_properties_control(self) -> None:
+        """Keep the properties control shrink-friendly.
+
+        The properties pane is later wrapped in a scroll area so it can exceed
+        the available height without forcing the whole main window taller.
+        """
+        self._properties_control.setMinimumSize(0, 0)
+        self._properties_control.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Ignored,
+        )
+
+    def _scrollable(self, widget: QWidget) -> QScrollArea:
+        """Wrap *widget* in a QScrollArea with no minimum-height floor of
+        its own - see _create_left_stack for why every page that can grow
+        without bound needs this."""
+        scroll = QScrollArea(self)
+        stdSizeAndlayout(scroll)
+        scroll.setMinimumSize(0, 0)
+        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(widget)
+        return scroll
+
+    def _update_properties_for_current_chart(self) -> None:
+        """Connect the properties control to the currently selected chart."""
+        panel = self._current_chart_panel()
+        if panel is None :
+            self._clear_property_widgets()
+            return
+
+        # A no-op unless _reload_tabs built this panel with defer_render:
+        # this is the one place every "the current chart is now this panel"
+        # path converges (initial load, tab click, Undo, chart deletion),
+        # so it is where a still-unrendered tab's first render belongs.
+        panel.ensure_rendered()
+        self._set_property_widgets_connected(
+            figure_id=int(panel.figure_id),
+            figure=panel.figure,
+            redraw_callback=panel.reload,
+            panel=panel,
+        )
+
+    def _set_property_widgets_connected(
+        self,
+        *,
+        figure_id: int,
+        figure: Any,
+        redraw_callback: Any | None = None,
+        panel: ChartPanel | None = None,
+    ) -> None:
+        """Load the direct QToolBox property pages for one chart.
+
+        Why the property widgets get ``_redraw_properties_chart`` rather than the
+        panel's own ``reload``: a full rebuild costs a complete re-render, so
+        every redraw request from a spinbox or colour picker has to go through
+        the same debounce as the ones raised here.
+        """
+        self._properties_figure_id = int(figure_id)
+        self._properties_figure = figure
+        self._properties_redraw_callback = redraw_callback
+        self._properties_panel = panel
+        for widget in (
+            self._figure_widget,
+            self._axis_widget,
+            self._series_widget,
+            self._overlay_widget,
+        ):
+            widget.set_connected_figure(
+                repo=self._repo,
+                figure_id=figure_id,
+                figure=figure,
+                redraw_callback=self._redraw_properties_chart,
+            )
+        if panel is not None:
+            self._figure_widget.set_resize_mode_control(
+                panel.resize_mode, panel.set_resize_mode
+            )
+        current_axis_id = self._axis_widget.current_axis_id()
+        self._series_widget.set_current_axis_id(current_axis_id)
+        self._overlay_widget.set_axis(current_axis_id)
+        self._axis_widget.rebuild_kwargs_editor(current_axis_id)
+
+    def _clear_property_widgets(self) -> None:
+        """Clear all direct property pages."""
+        # Drop any pending redraw: its target chart is going away.
+        self._properties_redraw_timer.stop()
+        self._properties_figure_id = None
+        self._properties_figure = None
+        self._properties_redraw_callback = None
+        self._properties_panel = None
+        self._figure_widget.clear_connected_figure()
+        self._axis_widget.clear_connected_figure()
+        self._series_widget.clear_connected_figure()
+        self._overlay_widget.clear_connected_figure()
+        self._axis_widget.rebuild_kwargs_editor(None)
+
+    def _redraw_properties_chart(self) -> None:
+        """Request a reload of the chart connected to the property pages.
+
+        The request is debounced: dragging a spinbox emits a change per step and
+        each reload re-renders the whole figure, so without coalescing the UI
+        thread stalls for the duration of every intermediate value.  Same
+        pattern as the style editor's 300 ms timer, tightened to keep the chart
+        feeling live.
+        """
+        self._properties_redraw_timer.start(PROPERTIES_REDRAW_DEBOUNCE_MS)
+
+    def _flush_properties_chart_redraw(self) -> None:
+        """Run the debounced chart reload."""
+        if self._properties_redraw_callback is not None:
+            self._properties_redraw_callback()
+
+    def _reload_property_widgets(self) -> None:
+        """Reload direct property pages while preserving selected axis."""
+        if self._properties_figure_id is None or self._properties_figure is None:
+            return
+        current_axis_id = self._axis_widget.current_axis_id()
+        for widget in (
+            self._figure_widget,
+            self._axis_widget,
+            self._series_widget,
+            self._overlay_widget,
+        ):
+            widget.set_connected_figure(
+                repo=self._repo,
+                figure_id=self._properties_figure_id,
+                figure=self._properties_figure,
+                redraw_callback=self._properties_redraw_callback,
+            )
+        if self._properties_panel is not None:
+            self._figure_widget.set_resize_mode_control(
+                self._properties_panel.resize_mode, self._properties_panel.set_resize_mode
+            )
+        self._series_widget.set_current_axis_id(current_axis_id)
+        self._overlay_widget.set_axis(current_axis_id)
+        self._axis_widget.rebuild_kwargs_editor(current_axis_id)
+
+    def _properties_figure_options(self) -> dict[str, Any]:
+        """Return mutable figure options for the active property figure."""
+        if self._properties_figure_id is None:
+            return {}
+        desc = self._repo.load_figure_descriptor(self._properties_figure_id)
+        if desc is None:
+            return {}
+        if desc.options is None:
+            return {}
+        if isinstance(desc.options, dict):
+            return dict(desc.options)
+        applogger.error("Figure id=%r has invalid options.", desc.id)
+        return {}
+
+    def _properties_series_descriptor(self, series_id: int | None) -> Any | None:
+        """Return one series descriptor by id from the active figure."""
+        if self._properties_figure_id is None or series_id is None:
+            return None
+        desc = self._repo.load_figure_descriptor(self._properties_figure_id)
+        if desc is None or desc.axes is None:
+            return None
+        for axis_desc in desc.axes:
+            for series_desc in list(axis_desc.series or []):
+                if int(series_desc.id) == int(series_id):
+                    return series_desc
+        return None
+
+    def _axis_rows(self) -> list[tuple[int, int, str]]:
+        """Return axes for the active property figure."""
+        if self._properties_figure_id is None:
+            return []
+        return [
+            (int(axis_id), int(axis_index), str(title or ""))
+            for axis_id, axis_index, title in self._repo.list_axes_for_figure(
+                int(self._properties_figure_id)
+            )
+        ]
+
+    def _move_axis_descriptor(self, axis_id: int, delta: int) -> bool:
+        """Move one axis through repository-managed index swapping."""
+        rows = self._axis_rows()
+        ordered_ids = [axis_id_value for axis_id_value, _index, _title in rows]
+        if not ordered_ids or self._properties_figure_id is None:
+            return False
+        try:
+            current_index = ordered_ids.index(int(axis_id))
+        except ValueError:
+            return False
+        target_index = current_index + int(delta)
+        if target_index < 0 or target_index >= len(ordered_ids):
+            return False
+        self._repo.swap_axis_indexes(
+            figure_id=int(self._properties_figure_id),
+            first_axis_id=ordered_ids[current_index],
+            second_axis_id=ordered_ids[target_index],
+        )
+        return True
+
+    def _delete_axis_descriptor(self, axis_id: int) -> bool:
+        """Delete one axis through the repository."""
+        existing_axis_ids = {axis_id_value for axis_id_value, _index, _title in self._axis_rows()}
+        if int(axis_id) not in existing_axis_ids:
+            return False
+        self._repo.delete_axis(int(axis_id))
+        return True
+
+    def _on_figure_style_changed(self, style_text: str) -> None:
+        if self._properties_figure_id is None:
+            return
+        options = self._properties_figure_options()
+        style = str(style_text or "")
+        if style:
+            options["mpl_style"] = style
+        else:
+            options.pop("mpl_style", None)
+        self._repo.set_figure_options(self._properties_figure_id, options)
+        self._redraw_properties_chart()
+
+    def _on_style_applied_to_all(self, style_text: str) -> None:
+        """Every figure of the project takes *style_text* (or the default, when empty) - after asking; undoable."""
+        figures = [int(figure_id) for figure_id, _name in self._repo.load_figures_from_db()]
+        if not figures or not ask(self, "figure.confirm_style_to_all", count=len(figures)):
+            return
+        self._repo.snapshot_for_undo(list(self._repo.DESCRIPTOR_TABLES), label="Style applied to all figures")
+        style = str(style_text or "")
+        for figure_id in figures:
+            options = dict(self._repo.get_figure_options(figure_id) or {})
+            if style:
+                options["mpl_style"] = style
+            else:
+                options.pop("mpl_style", None)
+            self._repo.set_figure_options(figure_id, options)
+        self._reload_tabs(select_figure_id=self._properties_figure_id)
+
+    def _on_grid_layout_requested(self, nrows: int, ncols: int) -> None:
+        if self._properties_figure_id is None:
+            return
+        self._repo.set_figure_grid(
+            self._properties_figure_id,
+            nrows=int(nrows),
+            ncols=int(ncols),
+        )
+        self._redraw_properties_chart()
+
+    def _on_layout_mosaic_requested(self, text: str) -> None:
+        """Arrange every axis of the current figure as the mosaic *text* says; a mistake in it is said, not applied."""
+        if self._properties_figure_id is None:
+            return
+        figure_id = int(self._properties_figure_id)
+        axis_ids = [axis_id for axis_id, _axis_index, _title in self._repo.list_axes_for_figure(figure_id)]
+        try:
+            plan = layout_presets.plan_mosaic(text, axis_ids)
+        except ValueError as exc:
+            QMessageBox.warning(self, _("Mosaic"), str(exc))
+            return
+        self._snapshot_descriptors(_("Figure layout"))
+        self._repo.apply_axis_layout(
+            figure_id=figure_id,
+            nrows=plan.nrows,
+            ncols=plan.ncols,
+            placements=[(p.axis_id, p.axis_index, p.options) for p in plan.axes],
+        )
+        self._reload_property_widgets()
+        self._redraw_properties_chart()
+
+    def _on_template_requested(self, path: str) -> None:
+        """Lay the current figure out as the template at *path* says, one undo step; what it could not do, said."""
+        from app.data import figure_templates
+
+        if self._properties_figure_id is None:
+            return
+        try:
+            template = figure_templates.load(Path(path))
+        except ValueError as exc:
+            QMessageBox.warning(self, _("Template"), str(exc))
+            return
+        self._snapshot_descriptors(_("Figure template"))
+        notes = figure_templates.apply_template(self._repo, int(self._properties_figure_id), template)
+        for note in notes:
+            applogger.info(note)
+        self._reload_property_widgets()
+        self._redraw_properties_chart()
+
+    def _on_template_save_requested(self, name: str) -> None:
+        """The current figure's layout and settings saved as template *name*, in Templates/."""
+        from app.data import figure_templates
+
+        if self._properties_figure_id is None:
+            return
+        descriptor = self._repo.load_figure_descriptor(int(self._properties_figure_id))
+        if descriptor is None:
+            return
+        path = figure_templates.save(figure_templates.to_template(descriptor, name))
+        applogger.info(_("Template saved: {path}").format(path=path))
+
+    def _on_layout_preset_requested(self, preset: str) -> None:
+        """Arrange every axis of the current figure using *preset*.
+
+        The grid size and every axis's row_span/col_span/sharex/sharey/
+        twin_of come entirely from layout_presets.plan_layout - this only
+        supplies the one thing it cannot know on its own: which axes the
+        figure actually has, in the order the axis panel lists them.
+        """
+        if self._properties_figure_id is None:
+            return
+        figure_id = int(self._properties_figure_id)
+        axis_ids = [
+            axis_id
+            for axis_id, _axis_index, _title in self._repo.list_axes_for_figure(figure_id)
+        ]
+        plan = layout_presets.plan_layout(preset, axis_ids)
+        self._repo.apply_axis_layout(
+            figure_id=figure_id,
+            nrows=plan.nrows,
+            ncols=plan.ncols,
+            placements=[
+                (placement.axis_id, placement.axis_index, placement.options)
+                for placement in plan.axes
+            ],
+        )
+        self._reload_property_widgets()
+        self._redraw_properties_chart()
+
+    def _on_figure_options_requested(self, payload: dict[str, Any]) -> None:
+        """Persist the figure options the properties widget just emitted.
+
+        Same rule as the axis handler: store the whole payload rather than a
+        hand-listed subset, so a control added to the widget cannot silently
+        fail to persist. None removes the key.
+        """
+        if self._properties_figure_id is None:
+            return
+
+        options = self._properties_figure_options()
+        edited = {key for key, value in payload.items()
+                  if key not in self._FIGURE_PAYLOAD_NON_OPTIONS and options.get(key) != value}
+        self._snapshot_descriptors(self._undo_label(edited, _("the figure")))
+
+        for key, value in payload.items():
+            if key in self._FIGURE_PAYLOAD_NON_OPTIONS:
+                continue
+            if value is None or (key == "mpl_style" and not str(value)):
+                options.pop(key, None)
+            else:
+                options[key] = value
+
+        # "layout" is the older spelling; keep layout_mode authoritative.
+        options["layout_mode"] = str(
+            payload.get("layout_mode", payload.get("layout", "constrained"))
+            or "constrained"
+        )
+
+        self._repo.set_figure_options(self._properties_figure_id, options)
+        self._rename_figure_if_requested(payload)
+        self._redraw_properties_chart()
+
+    def _rename_figure_if_requested(self, payload: dict[str, Any]) -> None:
+        """Rename the figure and its chart tab when the payload carries a name."""
+        if self._properties_figure_id is None or "name" not in payload:
+            return
+
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            return
+
+        figure_id = int(self._properties_figure_id)
+        try:
+            descriptor = self._repo.load_figure_descriptor(figure_id)
+            if descriptor is None or str(descriptor.name) == name:
+                return
+            self._repo.set_figure_properties(
+                figure_id,
+                nrows=int(descriptor.nrows or 1),
+                ncols=int(descriptor.ncols or 1),
+                name=name,
+                options=descriptor.options or {},
+            )
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+            applogger.exception("Failed to rename figure_id=%s", figure_id)
+            return
+
+        self._update_tab_title(figure_id, name)
+
+    def _update_tab_title(self, figure_id: int, name: str) -> None:
+        """Retitle the chart tab that shows a given figure."""
+        for index in range(self._tabs.count()):
+            widget = self._tabs.widget(index)
+            if isinstance(widget, ChartPanel) and int(widget.figure_id) == figure_id:
+                self._tabs.setTabText(index, name)
+                self._tabs.setTabToolTip(index, name)
+                self._sync_chart_navigation()
+                return
+
+    def _on_chart_object_clicked(self, panel: Any, hit: dict[str, Any]) -> None:
+        """A click on the chart selects what it landed on here - when Chart properties is shown.
+
+        Outside every axis: the Figure page. On an axis: the Axis page on that
+        axis - on its X, Y or Z tab for a click on that coordinate's ticks or
+        label, on Properties for its title. On a series' line, points or bar:
+        the Series page on that series - with Shift, added to the series
+        edited together.
+        """
+        control = self._properties_control
+        if not control.isVisible() or panel is not self._current_chart_panel():
+            return
+        pages = [control.widget(index) for index in range(control.count())]
+
+        def show(widget: QWidget) -> None:
+            for index, page in enumerate(pages):
+                if page is widget or (isinstance(page, QScrollArea) and page.widget() is widget):
+                    control.setCurrentIndex(index)
+                    return
+
+        axis_id = hit.get("axis_id")
+        if axis_id is None or not self._axis_widget.select_axis(int(axis_id)):
+            show(self._figure_widget)
+            return
+        series = hit.get("series")
+        pick = self._series_widget.add_series_named if hit.get("add") else self._series_widget.select_series_named
+        if series and pick(str(series)):
+            show(self._series_widget)
+            return
+        part = hit.get("part")
+        if part:
+            self._axis_widget.show_coordinate(None if part == "title" else str(part))
+        show(self._axis_widget)
+
+    def _flash_on_chart(self, axis_id: int | None, series: str | None = None) -> None:
+        panel = self._current_chart_panel()
+        if panel is not None and axis_id is not None and hasattr(panel, "flash"):
+            panel.flash(int(axis_id), series)
+
+    def _on_axis_selected(self, axis_id: int) -> None:
+        self._series_widget.set_current_axis_id(axis_id)
+        # One axis selector in the application: the overlays panel edits
+        # whichever axis this one is on rather than carrying a second combo
+        # that could disagree with it.
+        self._overlay_widget.set_axis(axis_id)
+        self._axis_widget.rebuild_kwargs_editor(axis_id)
+
+    def _on_axis_renderer_changed(self, _renderer_name: str) -> None:
+        self._axis_widget.rebuild_kwargs_editor(self._axis_widget.current_axis_id())
+
+    def _on_axis_action_requested(self, payload: dict[str, Any]) -> None:
+        action = str(payload.get("action", "") or "").strip()
+        axis_id_value = payload.get("axis_id")
+        if axis_id_value is None:
+            return
+        axis_id = int(axis_id_value)
+        self._snapshot_descriptors(_("Axis: {action}").format(action=action))
+        changed = False
+        if action == "move_up":
+            changed = self._move_axis_descriptor(axis_id, -1)
+        elif action == "move_down":
+            changed = self._move_axis_descriptor(axis_id, 1)
+        elif action == "delete":
+            changed = self._delete_axis_descriptor(axis_id)
+        if changed:
+            self._reload_property_widgets()
+            self._redraw_properties_chart()
+
+    def _axis_label(self, axis_id: int) -> str:
+        """The axis as an Undo step names it: "the axis 'Monthly CO2'", else by its place in the figure."""
+        descriptor = self._repo.load_figure_descriptor(self._properties_figure_id) \
+            if self._properties_figure_id is not None else None
+        for index, axis in enumerate(descriptor.axes if descriptor is not None else []):
+            if int(axis.id) == int(axis_id):
+                return _("the axis '{name}'").format(name=axis.title) if axis.title else \
+                    _("axis {number}").format(number=index + 1)
+        return _("the axis")
+
+    def _on_axis_options_requested(self, payload: dict[str, Any]) -> None:
+        """Persist the axis options the properties widget just emitted.
+
+        Everything in the payload is stored, rather than a hand-listed subset.
+        Why: the previous version copied ~10 named keys, so every control added
+        to the widget was silently dropped here - it looked like the setting
+        did nothing and reset itself on the next panel switch, because it was
+        never written. A whitelist that has to be edited in a second file to
+        add a control is a bug waiting to happen twice.
+
+        None means "not configured" and is removed rather than persisted, so a
+        disabled control does not overwrite a real value with null.
+        """
+        axis_id_value = payload.get("axis_id")
+        if axis_id_value is None:
+            return
+        axis_id = int(axis_id_value)
+        options = self._repo.get_axis_options(axis_id) or {}
+        edited = {key for key, value in payload.items()
+                  if key not in self._AXIS_PAYLOAD_NON_OPTIONS and options.get(key) != value}
+        self._snapshot_descriptors(self._undo_label(edited, self._axis_label(axis_id)))
+
+        for key, value in payload.items():
+            if key in self._AXIS_PAYLOAD_NON_OPTIONS:
+                continue
+            if value is None:
+                options.pop(key, None)
+            else:
+                options[key] = value
+
+        # "hidden" is the legacy spelling the renderer still reads.
+        options["hidden"] = bool(payload.get("hide_axis", False))
+
+        renderer_name = str(payload.get("renderer", "") or "").strip()
+        if renderer_name:
+            options["renderer"] = renderer_name
+            options["renderer_name"] = renderer_name
+        else:
+            options.pop("renderer", None)
+            options.pop("renderer_name", None)
+        axis_kwargs = self._axis_widget.clean_kwargs()
+        if axis_kwargs:
+            options["axis_kwargs"] = axis_kwargs
+        else:
+            options.pop("axis_kwargs", None)
+        self._repo.set_axis_options(axis_id, options)
+        self._redraw_properties_chart()
+
+    def _on_overlay_options_requested(self, payload: dict[str, Any]) -> None:
+        """Persist the annotations, reference lines and measurements of one axis.
+
+        Its own handler rather than the axis one: that payload describes a
+        whole axis - renderer, projection, hide_axis - and is written as
+        such, so a partial one sent through it would clear what it left
+        out. This writes exactly the three keys it owns.
+        """
+        axis_id_value = payload.get("axis_id")
+        if axis_id_value is None:
+            return
+        axis_id = int(axis_id_value)
+
+        self._snapshot_descriptors(_("Overlay properties"))
+        options = self._repo.get_axis_options(axis_id) or {}
+        for key in ("annotations", "lines", "measurements"):
+            value = payload.get(key)
+            if not isinstance(value, list):
+                continue
+            # An empty list means "there are none now", which is a real
+            # edit - the user deleted the last row - so the key is removed
+            # rather than stored as [].
+            if value:
+                options[key] = value
+            else:
+                options.pop(key, None)
+
+        self._repo.set_axis_options(axis_id, options)
+        self._redraw_properties_chart()
+
+    def _on_series_order_requested(self, ordered_ids: list[int]) -> None:
+        axis_id_value = self._series_widget.current_axis_id()
+        if axis_id_value is None:
+            return
+        axis_id = int(axis_id_value)
+        self._snapshot_descriptors(_("Reorder series"))
+        options = self._repo.get_axis_options(axis_id) or {}
+        options["series_order"] = [int(series_id) for series_id in ordered_ids]
+        self._repo.set_axis_options(axis_id, options)
+        self._reload_property_widgets()
+        self._redraw_properties_chart()
+
+    def _on_series_delete_requested(self, series_id: int) -> None:
+        self._snapshot_descriptors(_("Delete series"))
+        self._repo.delete_series(int(series_id))
+        self._reload_property_widgets()
+        self._redraw_properties_chart()
+
+    def _on_series_options_requested(self, payload: dict[str, Any]) -> None:
+        series_id_value = payload.get("series_id")
+        if series_id_value is None:
+            return
+        series_id = int(series_id_value)
+        raw_series_desc = self._properties_series_descriptor(series_id)
+        if raw_series_desc is None:
+            applogger.error("Series descriptor id=%r not found.", series_id)
+            return
+        series_desc = cast(Any, raw_series_desc)
+        if series_desc.options is None:
+            style: dict[str, Any] = {}
+        elif isinstance(series_desc.options, dict):
+            style = dict(series_desc.options)
+        else:
+            applogger.error("Series id=%r has invalid style.", series_desc.id)
+            return
+        edited = {key for key, value in payload.items()
+                  if key not in {"series_id", "also_series_ids", "sql_query"} and style.get(key) != value}
+        if str(payload.get("sql_query", "") or "").strip() not in ("", str(series_desc.sql_query or "").strip()):
+            edited.add("sql_query")
+        together = [self._properties_series_descriptor(int(i)) for i in payload.get("also_series_ids") or ()]
+        names = ", ".join(f"'{desc.name}'" for desc in (series_desc, *together) if desc is not None)
+        self._snapshot_descriptors(self._undo_label(edited, names))
+        before = dict(style)
+        # Same rule as the axis and figure handlers: everything the widget
+        # sends is stored, minus the addressing keys.
+        for key, value in payload.items():
+            if key in {"series_id", "also_series_ids", "sql_query"}:
+                continue
+            if value is None:
+                style.pop(key, None)
+            else:
+                style[key] = value
+
+        sql_query = str(payload.get("sql_query", "") or "").strip()
+        self._repo.update_series_style(series_id, style)
+        try:
+            # Typed by hand in the Series properties: the SQL guard's moment.
+            if " " in sql_query:
+                ensure_read_only_select(sql_query)
+        except ValueError as exc:
+            QMessageBox.warning(self, _("SQL blocked"), str(exc))
+        else:
+            self._repo.update_series_sql_query(series_id, sql_query)
+        changes = {key: style.get(key) for key in {*before, *style} if before.get(key) != style.get(key)}
+        # The series edited together take the same change - all but a name.
+        shared = {key: value for key, value in changes.items() if key != "label"}
+        others = [self._properties_series_descriptor(int(i)) for i in payload.get("also_series_ids") or ()]
+        others = [desc for desc in others if desc is not None and shared]
+        for desc in others:
+            other_style = dict(desc.options) if isinstance(desc.options, dict) else {}
+            for key, value in shared.items():
+                if value is None:
+                    other_style.pop(key, None)
+                else:
+                    other_style[key] = value
+            self._repo.update_series_style(int(desc.id), other_style)
+        self._reload_property_widgets()
+        if sql_query == str(series_desc.sql_query or "").strip() and all(
+            self._preview_series_style(str(desc.name), changes if desc is series_desc else shared)
+            for desc in (series_desc, *others)
+        ):
+            return
+        self._redraw_properties_chart()
+
+    def _on_function_edit_requested(self, payload: dict[str, Any]) -> None:
+        """The Function card's Apply: the formula saved for the project, this series' query rewritten; one Undo step.
+
+        The function's stored values and range stay its own: what was edited in the card is this series'.
+        Every chart of the function is drawn again - the formula is theirs too.
+        """
+        from app.data.repo.function_sql import replace_function_sql
+        from app.data_operations import sympy_store
+
+        series_id = payload.get("series_id")
+        if series_id is not None:
+            series_desc = self._properties_series_descriptor(int(series_id))
+            edited = payload.get("function") or {}
+            stored = self._repo.get_sympy_function(str(edited.get("function_name", "")))
+            if series_desc is None or stored is None:
+                return
+            self._repo.snapshot_for_undo([*self._repo.DESCRIPTOR_TABLES, sympy_store.TABLE],
+                                         label=_("Function of '{name}'").format(name=series_desc.name))
+            function = {**stored, **{key: edited[key] for key in ("source_type", "symbols", "code_string",
+                                                                    "description") if key in edited}}
+            sympy_store.save(self._repo, function)
+            query = sympy_store.source_sql(function, payload.get("parameters") or {}, payload.get("x"),
+                                           payload.get("y"))
+            self._repo.update_series_sql_query(int(series_id),
+                                               replace_function_sql(str(series_desc.sql_query or ""), query))
+            self._refresh_undo_item()
+        self._reload_property_widgets()
+        self._redraw_properties_chart()
+        reload_charts = getattr(self, "_reload_function_charts", None)
+        if callable(reload_charts):
+            reload_charts()
+
+    def _preview_series_style(self, series: str, changes: dict[str, Any]) -> bool:
+        """A colour, line or marker edit shown on the chart's own lines - no render (S-01)."""
+        panel = self._properties_panel
+        axis_id = self._axis_widget.current_axis_id()
+        if panel is None or axis_id is None or not hasattr(panel, "preview_series_style"):
+            return False
+        if any(value is None for value in changes.values()):
+            return False  # back to the style's default: only a render knows it
+        return bool(panel.preview_series_style(int(axis_id), series, changes))
+
+    # ==================================================================
+    # Project: its info, report and history, undo, recent projects and checks
+    # ==================================================================
+    #: The project metadata panel is supplied by the composed MainWindow.
+    #: Declaring it here keeps the mixin type-checkable without changing the
+    #: runtime construction order of the window's widgets.
+    _database_info_panel: Any
+
+    #: How many database-check problems the message box lists inline before
+    #: it stops and points at Show Details, which holds all of them. Enough
+    #: that the usual report is complete on sight, few enough that a database
+    #: with hundreds of dangling references does not make a box taller than
+    #: the screen.
+    MAX_PROBLEMS_SHOWN: int = get_constant("max_problems_shown", 20)
+
+    def _on_project_info(self) -> None:
+        """Author, creation date and notes of the open project."""
+        if self._repo is None:
+            return
+        from app.dialogs.project_info_dialog import ProjectInfoDialog
+
+        if ProjectInfoDialog(self._repo, cast(QWidget, self)).exec():
+            self._database_info_panel.set_repo(self._repo)
+            self.statusBar().showMessage(_("Project info saved."), 4_000)
+
+    def _on_project_report(self) -> None:
+        from app.dialogs.project_report_dialog import ProjectReportDialog
+
+        dialog = ProjectReportDialog(self._repo, self)
+        if dialog.exec() and dialog.written is not None:
+            self.statusBar().showMessage(_("Report written: {path}").format(path=dialog.written), 10_000)
+
+    def _on_project_history(self) -> None:
+        from app.dialogs.operation_history_dialog import OperationHistoryDialog
+
+        OperationHistoryDialog(self._repo, None, self).exec()
+
+    def _snapshot_descriptors(self, label: str) -> None:
+        """Record the chart settings before an edit changes them.
+
+        Every descriptor table, not the one this edit will touch: they hold
+        a few rows each, so working out which is more expensive than
+        copying all four - and getting that wrong is an undo that restores
+        half of a change (todo.txt P2-11).
+
+        A run of identical labels inside SNAPSHOT_COALESCE_SECONDS is one
+        edit: the auto-applying property panels call this on every debounced
+        change, and only the first call - the one taken before the edit
+        began - has a pre-edit state worth keeping.
+        """
+        if self._repo is None:
+            return
+
+        now = monotonic()
+        if (
+            label == self._last_snapshot_label
+            and now - self._last_snapshot_at < SNAPSHOT_COALESCE_SECONDS
+        ):
+            self._last_snapshot_at = now
+            return
+        self._last_snapshot_label = label
+        self._last_snapshot_at = now
+        self._repo.snapshot_for_undo(self._repo.DESCRIPTOR_TABLES, label=label)
+        self._refresh_undo_item()
+
+    def _on_undo(self) -> None:
+        """Take back the last recorded change, and show the result."""
+        before = self._descriptor_state()
+        entry = self._repo.undo_last()
+        if entry is None:
+            applogger.info("There is nothing to undo.")
+            self._refresh_undo_item()
+            return
+
+        applogger.info("Undid: %s", entry.describe())
+        # A colour, line or marker taken back on the chart shown: back on its lines, as the edit was - no
+        # render (S-01). Anything else: everything shown again from the database.
+        if set(entry.tables) <= set(self._repo.DESCRIPTOR_TABLES) and self._undo_style_live(before):
+            self._reload_property_widgets()
+            self._refresh_undo_item()
+            return
+        # The entry just consumed - the menu then names the next one (or is
+        # disabled). On macOS this rebuilds the bar; safe here because Cocoa
+        # has already closed the menu before dispatching this.
+        self._refresh_after_undo_or_repair()
+
+    def _descriptor_state(self) -> tuple[list[dict[str, Any]], dict[int, dict[str, Any]]] | None:
+        """The figures and axes as rows, and the series by id - what an Undo of a style is compared on."""
+        try:
+            figures_and_axes = [self._repo.query_df(f'SELECT * FROM "{table}" ORDER BY id').to_dict("records")
+                                for table in ("__figure_descriptors__", "__axis_descriptors__")]
+            series = self._repo.query_df('SELECT * FROM "__series_descriptors__"').to_dict("records")
+        except Exception:  # noqa: BLE001 - no state: the Undo shows everything again, as before
+            return None
+        return [*figures_and_axes[0], *figures_and_axes[1]], {int(row["id"]): row for row in series}
+
+    def _undo_style_live(self, before: tuple[list[dict[str, Any]], dict[int, dict[str, Any]]] | None) -> bool:
+        """Re-draw an Undo that changed only series styles on the chart shown, on its own lines; False to render."""
+        panel = self._current_chart_panel()
+        after = self._descriptor_state()
+        if before is None or after is None or panel is None or not hasattr(panel, "preview_series_style"):
+            return False
+        if before[0] != after[0] or set(before[1]) != set(after[1]):
+            return False
+        shown = {int(row["id"]) for row in after[0]
+                 if "figure_id" in row and "axis_index" in row and int(row["figure_id"]) == int(panel.figure_id)}
+        restyled = []
+        for series_id, old in before[1].items():
+            new = after[1][series_id]
+            if old == new:
+                continue
+            if any(old[key] != new[key] for key in old if key != "style_json") or int(new["axis_id"]) not in shown:
+                return False
+            old_style = json.loads(old["style_json"] or "{}")
+            new_style = json.loads(new["style_json"] or "{}")
+            changes = {key: new_style.get(key) for key in {*old_style, *new_style} if old_style.get(key) != new_style.get(key)}
+            if any(value is None for value in changes.values()):
+                return False  # back to the style's default: only a render knows it
+            restyled.append((int(new["axis_id"]), str(new["name"]), changes))
+        return bool(restyled) and all(panel.preview_series_style(axis_id, name, changes)
+                                      for axis_id, name, changes in restyled)
+
+    def _refresh_after_undo_or_repair(self) -> None:
+        """Tables, charts and Chart properties shown again from the database, and the Undo item updated."""
+        self._table_panel.reload()
+        self._preview.clear()
+        self._reload_tabs()
+        self._update_properties_for_current_chart()
+        self._refresh_undo_item()
+
+    def _on_open_recent(self, db_path: Path) -> None:
+        """Open one remembered database."""
+        if not db_path.exists():
+            # Between building the menu and clicking it - or a file on a
+            # volume that has since been unmounted.
+            applogger.warning(
+                "That database is no longer there: %s",
+                db_path,
+            )
+            show_message(self, "database.open_failed", error=db_path)
+            self._build_app_menu()
+            self._recent_view.refresh()
+            return
+
+        applogger.info("Opening recent database: %s", db_path)
+        try:
+            self._switch_database(db_path)
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Failed to open database: %s", exc)
+            show_message(self, "database.open_failed", error=exc)
+
+    def _on_clear_recent(self) -> None:
+        """Forget the list. The database currently open is not affected."""
+        clear_recent_databases()
+        self._build_app_menu()
+        self._recent_view.refresh()
+
+    def _check_project_sql(self) -> None:
+        """Check the opened project's saved queries and series SQL, once.
+
+        Anything that would write is blocked (see SqliteRepo.scan_user_sql)
+        and listed in a warning shown once the window is up. Nothing is
+        changed in the file: fixing or deleting the query is the person's
+        call. user.json "sql_guard": false switches this off.
+        """
+        try:
+            found = self._repo.scan_user_sql()
+        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+            applogger.exception("The project SQL check failed.")
+            return
+        if not found:
+            return
+        listed = "\n".join(f"\u2022 {line}" for line in found[:12])
+        more = len(found) - 12
+        if more > 0:
+            listed += "\n" + _("...and {count} more.").format(count=more)
+        text = _(
+            "This project contains SQL that would change the database. It has been "
+            "blocked and will not run until it is edited:\n\n{items}"
+        ).format(items=listed)
+        QTimer.singleShot(0, lambda: QMessageBox.warning(self, _("SQL blocked"), text))
+
+    def _check_project_functions(self) -> None:
+        """Charts of stored functions this computer does not trust: asked about once the window is up (ID47).
+
+        Until then they draw empty; trusted, they draw again. Not trusted, each says so over the chart.
+        """
+        try:
+            used = function_names(str(row.get("sql_query") or "") for row in self._repo.list_series_dict())
+        except Exception:  # noqa: BLE001 - a check at opening: never stops the project from opening
+            applogger.exception("The project's function check failed.")
+            return
+        if used:
+            QTimer.singleShot(0, self._ask_to_trust_functions)
+
+    def _ask_to_trust_functions(self) -> None:
+        from app.data_operations import sympy_store
+        from app.dialogs.function_trust_dialog import ask_to_trust
+
+        try:
+            if not sympy_store.untrusted(self._repo):
+                return
+        except Exception:  # noqa: BLE001 - the project may have been closed meanwhile
+            return
+        if ask_to_trust(self, self._repo):
+            self._reload_function_charts()
+
+    def _switch_database(
+        self, db_path: Path, prepare: Callable[[], object] | None = None
+    ) -> None:
+        """Switch the UI to another database and rebind all dependent widgets.
+
+        *prepare* runs once the current database is closed and before
+        *db_path* is opened - the moment a file that may be the open one can
+        safely be replaced (Load demo, reloading the demo already open). If
+        it fails, the database that was open is opened again and the error
+        goes to the caller.
+        """
+        applogger.info("Switching database to %s", db_path)
+        # Updates are held on the window's contents, never on the window
+        # itself: on macOS, turning a top-level window's updates off and on
+        # again around the first switch of a session left it not painting at
+        # all - the new project's charts stayed blank (or showed the old
+        # ones) until the window was resized.
+        contents = self.centralWidget() or self
+        contents.setUpdatesEnabled(False)
+        try:
+            self._tabs.clear()
+            self._preview.clear()
+            QApplication.processEvents()
+
+            self._repo.close()
+            gc.collect()
+
+            QApplication.processEvents()
+
+            if prepare is not None:
+                try:
+                    prepare()
+                except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+                    self._repo = SqliteRepo(db_path=self._db_path)
+                    self._table_panel.set_repo(self._repo)
+                    self._database_info_panel.set_repo(self._repo)
+                    self._table_panel.reload()
+                    self._reload_tabs()
+                    raise
+
+            self._repo = SqliteRepo(db_path=db_path)
+            self._db_path = db_path
+            from app.dialogs.project_info_dialog import default_author
+
+            if default_author():
+                # A new project carries the author this computer remembers.
+                self._repo.set_project_info({"author": default_author()})
+            self._table_panel.set_repo(self._repo)
+            self._database_info_panel.set_repo(self._repo)
+            self._update_window_title()
+            set_last_database(db_path)
+
+            self._check_project_sql()
+            self._check_project_functions()
+            self._table_panel.reload()
+            self._reload_tabs()
+            self._update_properties_for_current_chart()
+            # set_last_database above has just put this file at the top of
+            # the recent list; the menu showing that list has to be rebuilt
+            # or it goes on showing the order from before the switch - same
+            # for the File page's own list.
+            self._build_app_menu()
+            self._recent_view.refresh()
+        finally:
+            contents.setUpdatesEnabled(True)
+        # A project opened, created or switched to: the Tables page, as the place to start.
+        self._select_navigation("tables")
+
+    def _on_new_file(self) -> None:
+        """Create a new database, safely replacing an existing file if possible."""
+        base_dir = str(self._db_path.parent) if self._db_path else ""
+        file_path, _unused = QFileDialog.getSaveFileName(
+            self,
+            _("New database"),
+            base_dir,
+            PROJECT_FILE_FILTER,
+        )
+        if not file_path:
+            return
+
+        db_path = SqliteRepo.ensure_dhub_extension(Path(file_path))
+        applogger.info("Creating new database: %s", db_path)
+
+        self._tabs.clear()
+        self._preview.clear()
+        QApplication.processEvents()
+
+        if self._repo:
+            self._repo.close()
+
+        gc.collect()
+        QApplication.processEvents()
+
+        try:
+            if db_path.exists():
+                db_path.unlink()
+
+            self._repo = SqliteRepo(db_path=db_path)
+            self._db_path = db_path
+            self._table_panel.set_repo(self._repo)
+            self._database_info_panel.set_repo(self._repo)
+            self._update_window_title()
+            set_last_database(db_path)
+            self._table_panel.reload()
+            self._reload_tabs()
+            self._select_navigation("tables")
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Failed to create database: %s", exc)
+            show_message(self, "database.create_failed", error=exc)
+            return
+        # A new project says who made it and what it is for from the start.
+        self._project_info_asked = getattr(self, "_project_info_asked", set()) | {str(db_path)}
+        self._on_project_info()
+
+    def _on_load_demo(self, demo: DemoProject) -> None:
+        """Copy *demo*, one of the shipped, pre-built demo projects (the File panel's Demo tab), and open it.
+
+        No "where to save it" dialog: that was the one step between picking a
+        demo and seeing it, for a file whose name already says what it is and
+        that nobody is expected to keep - the same reasoning that lets a first
+        run open straight into a fixed, well-known path with no dialog of its
+        own (see app.utils.startup.DEFAULT_DATABASE_NAME). The copy lands in
+        ``projects/`` beside the application (demos.PROJECTS_DIR), not
+        loose in the home directory: the copies are throwaway and one folder
+        holds all of them. Loading the same demo again overwrites its previous
+        copy in place, which is the point: it puts back the pristine version
+        rather than asking what to call a second one. Someone who wants to
+        keep a demo under its own name has Save As for that once it is open,
+        same as any other project.
+        """
+        target = SqliteRepo.ensure_dhub_extension(PROJECTS_DIR / demo.path_name)
+        applogger.info("Loading demo project %r into %s", demo.file_name, target)
+        # The copy is made with the current project closed: it may be this
+        # very file - loading the open demo again, to start over - and
+        # replacing a database under its own open connection left that
+        # connection's pending changes to be replayed onto the fresh copy.
+        try:
+            self._switch_database(target, prepare=lambda: copy_demo_project(demo, target))
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Failed to load demo project: %s", exc)
+            show_message(self, "demo.build_failed", error=exc)
+
+    def _on_open_database(self) -> None:
+        """Open an existing database and switch the current UI."""
+        base_dir = str(self._db_path.parent) if self._db_path else ""
+        file_path, _unused = QFileDialog.getOpenFileName(
+            self,
+            _("Open database"),
+            base_dir,
+            PROJECT_FILE_FILTER,
+        )
+        if not file_path:
+            return
+
+        db_path = Path(file_path)
+        applogger.info("Opening database: %s", db_path)
+
+        try:
+            self._switch_database(db_path)
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Failed to open database: %s", exc)
+            show_message(self, "database.open_failed", error=exc)
+
+    def _on_save(self) -> None:
+        """Fold the WAL into the .dhub file on disk, right now.
+
+        Not "there is unsaved work": every change already committed through
+        SQLite's WAL as it happened. But Cmd+S/Ctrl+S is a reflex, and this
+        is the honest thing an already-live database can do under it -
+        guarantee the file on disk is not waiting on a WAL checkpoint SQLite
+        would otherwise fold in on its own schedule. See SqliteRepo.checkpoint.
+        """
+        if self._repo is None:
+            return
+        self._ask_for_missing_project_info()
+        self._refresh_project_preview()
+        try:
+            self._repo.checkpoint()
+            self.statusBar().showMessage(_("Database saved."), 4_000)
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Checkpoint failed: %s", exc)
+
+    def _ask_for_missing_project_info(self) -> None:
+        """Open Project info when the project has no author or no notes.
+
+        Once per project and session: closing the window without filling it
+        in means "not now", and the next Save should not ask again.
+        """
+        if self._repo is None:
+            return
+        asked = getattr(self, "_project_info_asked", set())
+        key = str(self._repo.db_path)
+        info = self._repo.project_info()
+        if key in asked or (info.get("author") and info.get("notes")):
+            return
+        asked.add(key)
+        self._project_info_asked = asked
+        self._on_project_info()
+
+    def _refresh_project_preview(self) -> None:
+        """Draw the project's first figure again into its preview picture."""
+        if self._repo is None or self._repo.db_path is None:
+            return
+        try:
+            from app.utils.project_preview import write_project_preview
+
+            write_project_preview(self._repo)
+        except Exception as exc:  # noqa: BLE001 - a preview must never stop a save
+            applogger.warning("Could not draw the project preview: %s", exc)
+
+    def _on_save_as(self) -> None:
+        """Save a copy of the current database under a new name, and switch to it.
+
+        ``SqliteRepo.save_as`` uses VACUUM INTO rather than copying the .dhub
+        file: with WAL mode active, the file on disk is not the whole
+        database until its -wal side file is checkpointed into it, so a
+        plain filesystem copy could silently miss recent writes.
+        """
+        base_dir = str(self._db_path.parent) if self._db_path else ""
+        file_path, _unused = QFileDialog.getSaveFileName(
+            self,
+            _("Save database as"),
+            base_dir,
+            PROJECT_FILE_FILTER,
+        )
+        if not file_path:
+            return
+
+        target = SqliteRepo.ensure_dhub_extension(Path(file_path))
+        if self._db_path is not None and target == self._db_path:
+            return
+
+        applogger.info("Saving database as: %s", target)
+        self._ask_for_missing_project_info()
+        try:
+            saved_path = self._repo.save_as(target)
+            self._switch_database(saved_path)
+        except Exception as exc:  # noqa: BLE001
+            applogger.exception("Failed to save database as: %s", exc)
+            show_message(self, "database.save_as_failed", error=exc)
+            return
+        # The copy has its own name, so its own preview.
+        self._refresh_project_preview()
+
+    def _on_import_clipboard(self) -> None:
+        """Import what is on the clipboard: the dialog opens on it, for the preview."""
+        self._on_import_data(clipboard=True, transposed=self._clipboard_transposed.isChecked())
+
+    def _on_import_web(self) -> None:
+        """Import from a web address or a listed web source: the dialog opens on its Web frame."""
+        self._on_import_data(web=True)
+
+    def _on_import_data(
+        self, source_path: Path | None = None, *, clipboard: bool = False, transposed: bool = False,
+        web: bool = False,
+    ) -> None:
+        """Open the import dialog and refresh UI if import succeeds.
+
+        ``source_path`` is the file a drop arrived with; the dialog then opens
+        already showing it, with its preview and its default table name, which
+        is the whole point of dropping it rather than browsing for it.
+        """
+        dlg = ImportDataDialog(self._repo, parent=self, web=web)
+        # Only a path counts: a button's clicked(bool) arrives here as False, which
+        # used to be opened as a file called "False".
+        if isinstance(source_path, (str, Path)) and str(source_path):
+            dlg.load_file(source_path)
+        if clipboard and not dlg.load_clipboard(transposed):
+            return  # nothing on the clipboard: said, and no empty dialog left behind
+        if dlg.exec():
+            self._reload_tabs()
+            result = getattr(dlg, "import_result", None)
+            self._show_table(result.table_name if result is not None else None)
+
+    def _on_database_table_import(self) -> None:
+        """Import a table - or what a query returns - from another database, as a linked table."""
+        picker = ConnectDatabaseDialog(cast(QWidget, self))
+        if not picker.exec() or picker.connection is None:
+            return
+        if not picker.table and not picker.query:
+            return
+        connection = picker.connection
+        settings = connection.to_link_settings()
+        try:
+            if picker.query:
+                settings["query"] = picker.query
+                frame = SERVER_DATABASE_QUERY_READERS[connection.kind](
+                    connection, picker.query, skiprows=0, skipfooter=0
+                )
+            else:
+                settings["table"] = picker.table
+                _list_tables, read_table = SERVER_DATABASE_READERS[connection.kind]
+                frame = read_table(connection, picker.table, skiprows=0, skipfooter=0)
+        except Exception as exc:  # noqa: BLE001 - any driver's error, told to the user
+            applogger.exception("Database import failed")
+            show_message(cast(QWidget, self), "import.database_failed", error=exc)
+            return
+        if frame is None or frame.empty:
+            applogger.warning("The database returned no rows to import.")
+            return
+
+        # Named for the source table, as Import Data names a file's. A free
+        # name - "readings_2" when "readings" exists: import_into_sqlite
+        # would replace a table of the same name. "sqlite_" starts SQLite's
+        # own names, which it refuses.
+        base = re.sub(r"[^0-9A-Za-z_]+", "_", picker.table or f"{connection.display_name()}_query").strip("_")
+        if not base or base.lower().startswith("sqlite_") or base[0].isdigit():
+            base = f"db_{base}"
+        table_name = self._repo.free_table_name(base)
+        types = {str(column): ImportDataDialog._guess_sqlite_type(frame[column]) for column in frame.columns}
+        self._repo.snapshot_for_undo([table_name], label=f"Import '{table_name}'")
+        self._repo.import_into_sqlite(table_name, frame, types)
+        applogger.info("Imported %s from %s.", table_name, connection.display_name())
+        link_settings = {
+            "source": settings,
+            "read": {"skiprows": 0, "skip_last": 0, "header": True, "delimiter": None, "encoding": None},
+            "destination": {"table": table_name, "normalize_columns": False},
+            "columns": {"types": types},
+        }
+        if not self._repo.upsert_link(
+            table_name=table_name,
+            source_path=f"{connection.display_name()}#{picker.table or picker.query}",
+            settings=link_settings,
+        ):
+            applogger.warning("Failed to create link for imported table '%s'", table_name)
+        self._show_table(table_name)
+
+    def _on_create_query_table(self, *, sql: str | None = None) -> None:
+        dialog = QueryBuilderDialog(self._repo, initial_sql=sql, parent=self)
+        dialog.exec()
+        self._show_table(getattr(dialog, "created_table_name", None))
+
+    def _on_optimize_db(self) -> None:
+        """Check the database, report what it found, then compact it.
+
+        The findings go in the box twice on purpose: the problems inline, so
+        that what is wrong is readable without clicking anything, and the whole
+        grouped report - unreferenced tables included - behind Show Details,
+        where it scrolls and can be copied into a bug report.  The status bar
+        keeps the count, which is all it has room for.
+        """
+        # What can be fixed is offered first - stray descriptors, series and
+        # links to a table that is gone, tables the app left behind - then
+        # the file is checked again and compacted.
+        found = self._repo.check_database()
+        if found.fixable:
+            shown = found.fixable[: self.MAX_PROBLEMS_SHOWN]
+            more = len(found.fixable) - len(shown)
+            listing = "\n".join([*shown, *([_("...and {count} more.").format(count=more)] if more else [])])
+            if ask(self, "database.fix_problems", report=listing, default_yes=True):
+                fixed = self._repo.repair_database()
+                self.statusBar().showMessage(_("Fixed: {what}").format(what="; ".join(fixed)), 10_000)
+                self._refresh_after_undo_or_repair()
+        report = self._repo.optimize_db()
+        self.statusBar().showMessage(report.summary(), 10_000)
+
+        if report.is_healthy:
+            return
+
+        shown = report.problems[: self.MAX_PROBLEMS_SHOWN]
+        lines = [report.summary(), "", *shown]
+        remaining = len(report.problems) - len(shown)
+        if remaining > 0:
+            lines.append(
+                _("...and {count} more, under Show Details.").format(count=remaining)
+            )
+
+        show_message(
+            self,
+            "database.check_found_problems",
+            report="\n".join(lines),
+            details=report.details(),
+        )
+
+    # ==================================================================
+    # Frame: the central area, resizing from the edges, and dropped files
+    # ==================================================================
+    #: How close to an edge, in pixels, counts as "grab this edge to resize".
+    _RESIZE_MARGIN: int = 6
+
+    #: Width of the grab zone at each end of the window's bottom edge, where the corner is.
+    _RESIZE_CORNER: int = 14
+
+    #: Cursor shape for each edge/corner combination _resize_edge_at can
+    #: return. Absent from here (the interior, or a maximized window) means
+    #: the ordinary arrow.
+    _RESIZE_CURSORS: dict[Qt.Edge, Qt.CursorShape] = {
+        Qt.Edge.LeftEdge: Qt.CursorShape.SizeHorCursor,
+        Qt.Edge.RightEdge: Qt.CursorShape.SizeHorCursor,
+        Qt.Edge.TopEdge: Qt.CursorShape.SizeVerCursor,
+        Qt.Edge.BottomEdge: Qt.CursorShape.SizeVerCursor,
+        Qt.Edge.TopEdge | Qt.Edge.LeftEdge: Qt.CursorShape.SizeFDiagCursor,
+        Qt.Edge.BottomEdge | Qt.Edge.RightEdge: Qt.CursorShape.SizeFDiagCursor,
+        Qt.Edge.TopEdge | Qt.Edge.RightEdge: Qt.CursorShape.SizeBDiagCursor,
+        Qt.Edge.BottomEdge | Qt.Edge.LeftEdge: Qt.CursorShape.SizeBDiagCursor,
+    }
+
+    def _create_central_host(self) -> QWidget:
+        """Wrap the main splitter in a neutral central widget.
+
+        This prevents the top-level QMainWindow from taking an over-constrained
+        size hint directly from the splitter tree.
+        """
+        host = QWidget(self)
+        host.setMinimumSize(0, 0)
+        host.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
+
+        layout = QVBoxLayout(host)
+        stdSizeAndlayout(layout)
+        if IS_MACOS:
+            # Flush to the window's own edge: #leftPanelCard and
+            # #activityRail draw their own hairlines, and the NSWindow its
+            # own border and corners. The traffic lights sit in the rail's
+            # title strip.
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(0)
+        else:
+            layout.setContentsMargins(8, 8, 8, 8)
+            layout.setSpacing(8)
+        if IS_WINDOWS or IS_MACOS:
+            # FramelessWindowHint (see __init__) strips every bit of native
+            # chrome - border, corner, drop shadow - so without this the
+            # window has no visible edge at all against whatever is behind
+            # it. Each platform QSS draws a plain 1px outline on this object
+            # name (fluent_win11.qss, macos_native.qss); WA_StyledBackground
+            # is what makes a QWidget paint a QSS border at all rather than
+            # silently ignoring it. Keep this a plain fill with no border
+            # radius of its own on macOS: the window's real corners are
+            # rounded by its NSWindow layer (apply_native_macos_corner_
+            # radius), and a second curve painted here never lands on the
+            # same pixels as that one - which is the doubled edge along the
+            # top that the strip below used to show.
+            #
+            # No drop shadow here, unlike the elevated internal cards this
+            # replaced: a shadow effect needs room *outside* the widget it
+            # is attached to in order to render, and host fills the client
+            # area exactly - the OS window edge sits at host's own edge, so
+            # the shadow's bleed would just be clipped away. Giving it that
+            # room means making the window translucent and inset from its
+            # real (now larger, transparent) bounds, which also strands
+            # QMainWindow's own statusBar() - built by Qt outside
+            # centralWidget entirely - outside the inset border with no
+            # background of its own. Worth doing, not safely from here
+            # without a way to check it on an actual Windows/Mac build.
+            host.setObjectName("windowFrame")
+            host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            if IS_MACOS:
+                # The NSWindow draws its own edge and corners now; this only
+                # paints the fill beneath the translucent rail.
+                host.setProperty("nativeRounded", True)
+
+        if IS_WINDOWS:
+            # Windows only: a caption strip across the whole window, which
+            # is what a Windows 11 window has - icon and title on the left,
+            # min/max/close on the right, all of it draggable.
+            #
+            # macOS deliberately has none. Its traffic lights live at the
+            # top of the navigation rail instead (NavigationBar.__init__),
+            # so each column keeps its own background all the way to the
+            # window's top edge - grey for the rail, white for the panels
+            # beside it - the way Finder and System Settings look. A strip
+            # here would cut across all of them.
+            self._own_title_bar = CustomTitleBar(cast(Any, self), is_macos=False)
+            layout.addWidget(self._own_title_bar, 0)
+        layout.addWidget(self._main_split, 1)
+        return host
+
+    def _resize_edge_at(self, pos: QPoint, watched: QWidget | None = None) -> Qt.Edge:
+        """Return which edge(s) of the window *pos* is within the margin of.
+
+        *pos* is in the coordinates of *watched*, the widget eventFilter
+        below got the event for: _central_host (the default), or the status
+        bar. The status bar is not inside _central_host - QMainWindow puts it
+        below - so with it showing, the window's real bottom edge and both
+        bottom corners belong to the bar, and the host's own bottom band is
+        an interior one with nothing to resize.
+        """
+        bar = self.statusBar() if hasattr(self, "statusBar") else None
+        if bar is not None and bar.isVisible():
+            if watched is bar:
+                # The bar's top is the host's bottom: not an edge of the window.
+                return resize_edges(pos, bar.size(), self._RESIZE_MARGIN, top=False, corner=self._RESIZE_CORNER)
+            return resize_edges(pos, self._central_host.size(), self._RESIZE_MARGIN, bottom=False)
+        return resize_edges(pos, self._central_host.size(), self._RESIZE_MARGIN)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Give the frameless Windows window edge-drag resizing.
+
+        FramelessWindowHint (see __init__) leaves the OS with no resize
+        handles of its own to offer - this is the replacement, the same
+        margin-hit-test-plus-startSystemResize technique
+        CustomTitleBar.mousePressEvent already uses for the move case.
+        A maximized window is left alone: its edges are the screen's own
+        edges, and dragging those would resize the display area a user
+        grabbing what looks like a window border did not mean to touch.
+        """
+        if not (
+            IS_WINDOWS
+            and (watched is self._central_host or watched is self.statusBar())
+            and isinstance(event, QMouseEvent)
+            and not self.isMaximized()
+        ):
+            return super().eventFilter(watched, event)
+
+        edges = self._resize_edge_at(event.position().toPoint(), cast(QWidget, watched))
+        if event.type() == QEvent.Type.MouseMove:
+            cursor = self._RESIZE_CURSORS.get(edges, Qt.CursorShape.ArrowCursor)
+            cast(QWidget, watched).setCursor(cursor)
+        elif (
+            event.type() == QEvent.Type.MouseButtonPress
+            and event.button() == Qt.MouseButton.LeftButton
+            and edges
+        ):
+            handle = self.windowHandle()
+            if handle is not None:
+                handle.startSystemResize(edges)
+                return True
+        return super().eventFilter(watched, event)
+
+    @staticmethod
+    def dropped_paths(event: Any) -> list[Path]:
+        """Return the local files carried by a drag, in the order dropped.
+
+        Local files only: a drag from a browser carries a URL that names a
+        file on a web server, and ``toLocalFile`` returns an empty string for
+        it rather than something ``open()`` would fail on later.
+        """
+        data = event.mimeData()
+        if data is None or not data.hasUrls():
+            return []
+        return [
+            Path(local)
+            for url in data.urls()
+            if (local := url.toLocalFile())
+        ]
+
+    @classmethod
+    def accepted_drop(cls, paths: list[Path]) -> tuple[str, list[Path]]:
+        """Classify a drop as ``("database"|"import"|"", paths)``.
+
+        A ``.dhub`` is a project to open, anything the import readers know is
+        data to import, and everything else is refused - refused *before* the
+        cursor changes, so the window says no by not offering to accept it
+        rather than by a box after the fact.
+
+        A database wins over data files dropped with it, and only one at a
+        time: opening two projects at once has no meaning, and importing into
+        a database that is about to be closed has less.
+        """
+        databases = [path for path in paths if path.suffix.lower() == ".dhub"]
+        if len(databases) == 1:
+            return "database", databases
+
+        importable = [path for path in paths if is_importable(path)]
+        if importable and not databases:
+            return "import", importable
+
+        return "", []
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802 - Qt's name
+        """Accept a drag only when the drop would actually do something."""
+        kind, _paths = self.accepted_drop(self.dropped_paths(event))
+        if kind:
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802 - Qt's name
+        """Keep the acceptance while the cursor moves over the window."""
+        self.dragEnterEvent(event)
+
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802 - Qt's name
+        """Open a dropped project, or import dropped data files.
+
+        Several data files are handled one dialog at a time, in the order they
+        were dropped, and cancelling one stops the rest: cancel means "not
+        this", and the natural reading of it on the second of four files is
+        "stop", not "carry on with the next one".
+        """
+        kind, paths = self.accepted_drop(self.dropped_paths(event))
+        if not kind:
+            event.ignore()
+            return
+
+        event.acceptProposedAction()
+
+        if kind == "database":
+            applogger.info("Opening dropped database: %s", paths[0])
+            try:
+                self._switch_database(paths[0])
+            except Exception as exc:  # noqa: BLE001
+                applogger.exception("Failed to open the dropped database: %s", exc)
+                show_message(self, "database.open_failed", error=exc)
+            return
+
+        for path in paths:
+            applogger.info("Importing dropped file: %s", path)
+            if not self._import_one_dropped_file(path):
+                break
+
+    def _import_one_dropped_file(self, path: Path) -> bool:
+        """Import one dropped file; False when the user cancelled."""
+        dialog = ImportDataDialog(self._repo, parent=self)
+        dialog.load_file(path)
+        if not dialog.exec():
+            return False
+        self._table_panel.reload()
+        self._reload_tabs()
+        return True
 

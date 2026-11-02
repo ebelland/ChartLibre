@@ -17,8 +17,7 @@ import pandas as pd
 from app.analysis import distribution as dist
 from app.data.data_source import row_value
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
-from app.plugin_api.data_operations.dialog_base import xy_columns
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, xy_columns
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
 from app.plugin_api.data_operations.results import OperationResult
 from app.utils import report_html

@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.data.repo.project_info import PROJECT_INFO_TABLE
-from app.data.sqlite_repo import SqliteRepo
+from app.data.sqlite_repo import PROJECT_INFO_TABLE, SqliteRepo
 
 
 def test_a_new_project_is_dated_and_keeps_what_it_is_told(tmp_path: Path) -> None:
@@ -70,7 +69,7 @@ def test_the_report_names_the_author_and_carries_the_notes(qapp, tmp_path: Path)
 
 
 def test_references_round_trip_and_a_bare_string_is_a_citation() -> None:
-    from app.data.repo.project_info import dump_references, parse_references
+    from app.data.sqlite_repo import dump_references, parse_references
 
     entries = [{"citation": "Anscombe 1973", "doi": "10.1080/00031305.1973.10478966"}, {"citation": "  "}]
     text = dump_references(entries)

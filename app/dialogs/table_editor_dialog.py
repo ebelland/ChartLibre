@@ -44,14 +44,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
-from app.data.repo.table_tools import CAST_TYPES
+from app.data.sqlite_repo import CAST_TYPES, SqliteRepo
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
+from app.logs.logger import applogger
 from app.styles.style import (
+    TitledCard,
     action_presentation,
     create_action_button,
-    TitledCard,
     load_icon,
     mark_destructive_button,
     stdSizeAndlayout,
@@ -121,7 +120,7 @@ class EditableTableModel(LazyTableModel):
             | Qt.ItemFlag.ItemIsEditable
         )
 
-    def setData(self, index: QModelIndex | QPersistentModelIndex, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:
+    def setData(self, index: QModelIndex | QPersistentModelIndex, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:  # noqa: N802 - Qt's name
         if not index.isValid() or role != Qt.ItemDataRole.EditRole:
             return False
         column = self.column_name(index.column())

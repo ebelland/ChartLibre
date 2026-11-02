@@ -46,10 +46,6 @@ from app.data import column_metadata
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.dialog_base import GENERATED_TABLE_PREFIX, DataOperationDialogBase, OperationModel
-from app.plugin_api.data_operations.parameter_form import ParameterForm
-from app.plugin_api.data_operations.parameter_spec import BoolParam, Param
-from app.plugin_api.operation_panels import merged_values
 from app.plugin_api.data_operations import chart_source, next_steps
 from app.plugin_api.data_operations.column_roles import (
     CONTINUOUS,
@@ -57,6 +53,9 @@ from app.plugin_api.data_operations.column_roles import (
     ColumnRole,
     ColumnRolesWidget,
 )
+from app.plugin_api.data_operations.dialog_base import GENERATED_TABLE_PREFIX, DataOperationDialogBase, OperationModel
+from app.plugin_api.data_operations.parameter_form import ParameterForm, merged_values
+from app.plugin_api.data_operations.parameter_spec import BoolParam, Param
 from app.styles.style import (
     stdSizeAndlayout,
 )

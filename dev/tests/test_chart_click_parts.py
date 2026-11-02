@@ -51,7 +51,7 @@ def test_a_click_on_an_axis_ticks_or_title_names_that_part(panel: ChartPanel) ->
 
 def test_flash_highlights_an_axis_or_a_series_for_a_moment(panel: ChartPanel) -> None:
     """S-01, the other way: what Chart properties selects is shown on the chart, then gone."""
-    import app.widgets.chart_panel.picking as picking
+    import app.widgets.chart_panel.panel as picking
 
     panel.ensure_rendered()
     axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)

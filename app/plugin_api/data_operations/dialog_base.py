@@ -59,16 +59,14 @@ from app import APP_VERSION
 from app.analysis import Stopped
 from app.analysis.sampling import sampling_frequency
 from app.data.data_source import parse_roles, resolve_role_column, row_value
-from app.data.repo.operations import OPERATIONS_TABLE
-from app.data.sqlite_repo import DatabaseError, SqliteRepo
+from app.data.sqlite_repo import OPERATIONS_TABLE, DatabaseError, SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api import reading_guide
 from app.plugin_api.charts.grids import pivot_to_grid
 from app.plugin_api.data_operations import next_steps
-from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, ParameterForm
+from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, ParameterForm, merged_values
 from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, Param, defaults
 from app.plugin_api.data_operations.results import OperationResult
-from app.plugin_api.operation_panels import merged_values
 from app.styles.style import (
     MARGIN_TOOLBOX_PAGE,
     CardFrame,

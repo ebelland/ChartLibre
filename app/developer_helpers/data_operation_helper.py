@@ -21,7 +21,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.developer_helpers.developer_helper_base import DeveloperDialogBase, slug as _slug
+from app.developer_helpers.developer_helper_base import DeveloperDialogBase
+from app.developer_helpers.developer_helper_base import slug as _slug
 from app.utils.config import USER_DATA_OPERATIONS_DIR
 
 #: Where data_operation_scanner.py itself looks for the built-in

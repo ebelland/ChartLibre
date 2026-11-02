@@ -70,15 +70,12 @@ style.IS_MACOS = True
 from PySide6.QtCore import QCoreApplication, QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
-import app.main_window.main_frame as main_frame_module  # noqa: E402
-import app.main_window.main_menus as main_menus_module  # noqa: E402
 import app.main_window.main_window as main_window_module  # noqa: E402
 from app.data.demos import DEMO_PROJECTS, copy_demo_project  # noqa: E402
 from app.data.sqlite_repo import SqliteRepo  # noqa: E402
 from app.logs.logger import applogger  # noqa: E402
 
-for _module in (main_window_module, main_frame_module, main_menus_module):
-    _module.IS_MACOS = True
+main_window_module.IS_MACOS = True
 
 #: The manual's own folder: the figures sit beside the .typ that names them.
 OUTPUT_DIR = PROJECT_ROOT / "docs" / "manual" / "screenshots"

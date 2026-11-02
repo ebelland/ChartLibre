@@ -1,16 +1,18 @@
 """The fit dialog's result, its worker job and the helpers its parts share."""
 from __future__ import annotations
 
-from html import escape as html_escape
-from dataclasses import dataclass
-from typing import Any, Callable, Sequence
 import re
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from html import escape as html_escape
+from typing import Any
 
 import numpy as np
 import pandas as pd
-from app.analysis import fit as fit_engine
 
+from app.analysis import fit as fit_engine
 from app.plugin_api.data_operations.results import FrameResult
+
 
 class _SurfaceInitialGuessAdapter:
     """Adapt a surface function's 3-argument ``initial_guess`` to the plain

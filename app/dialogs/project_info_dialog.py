@@ -10,7 +10,6 @@ computer, so a new project starts with it already filled in.
 from __future__ import annotations
 
 from datetime import datetime
-
 from pathlib import Path
 
 from PySide6.QtCore import QDate, QDateTime, QLocale, QSize, Qt, QTime
@@ -28,10 +27,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.data.repo.project_info import dump_references, parse_references
-from app.data.sqlite_repo import DatabaseError, SqliteRepo
-from app.logs.logger import applogger
+from app.data.sqlite_repo import DatabaseError, SqliteRepo, dump_references, parse_references
 from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.logs.logger import applogger
 from app.styles.style import create_action_button, load_icon, stdSizeAndlayout
 from app.utils.config import get_value, set_value
 from app.utils.dialog_state import restore_window_geometry, save_window_geometry

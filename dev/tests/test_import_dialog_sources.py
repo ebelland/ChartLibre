@@ -99,7 +99,7 @@ def _import_database(repo: SqliteRepo, path: Path, monkeypatch: pytest.MonkeyPat
     from types import SimpleNamespace
 
     from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
-    from app.main_window.main_project import MainWindowProject
+    from app.main_window.main_window import MainWindow
     from app.utils.data_sources import DatabaseConnection
 
     def fake_exec(self: ConnectDatabaseDialog) -> bool:
@@ -112,7 +112,7 @@ def _import_database(repo: SqliteRepo, path: Path, monkeypatch: pytest.MonkeyPat
     window._repo = repo
     window._table_panel = SimpleNamespace(reload=lambda: None)
     window._show_table = lambda name=None: None
-    MainWindowProject._on_database_table_import(window)
+    MainWindow._on_database_table_import(window)
 
 
 def test_a_database_table_is_imported_and_linked_under_a_free_name(

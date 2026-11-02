@@ -127,7 +127,7 @@ class DemoProject:
     def info(self) -> dict[str, str]:
         """The built file's project information, read without opening it for
         writing; empty when it is not built or predates the information."""
-        from app.data.repo.project_info import read_project_info
+        from app.data.sqlite_repo import read_project_info
 
         return read_project_info(self.source_path)
 

@@ -15,8 +15,8 @@ from pathlib import Path
 import pytest
 
 from app.data.demos import DEMO_PROJECTS
-from dev.demo.build_demos import build_demo_project, build_demo_projects, _figure_specs, _multi_axis_figure_specs
 from app.data.sqlite_repo import SqliteRepo
+from dev.demo.build_demos import _figure_specs, _multi_axis_figure_specs, build_demo_project, build_demo_projects
 
 
 def _all_specs():
@@ -201,7 +201,7 @@ def test_a_loaded_demo_brings_its_preview(tmp_path: Path) -> None:
 
     demo = DEMO_PROJECTS[1]
     target = copy_demo_project(demo, tmp_path / demo.path_name)
-    from app.data.repo.project_info import read_project_preview
+    from app.data.sqlite_repo import read_project_preview
 
     assert target.is_file()
     # The picture is inside the project: the copy carries it, with no PNG beside it.

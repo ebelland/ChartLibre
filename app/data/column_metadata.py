@@ -20,7 +20,6 @@ No Qt: the Column Info dialog and the table analyses both read it here.
 from __future__ import annotations
 
 import math
-
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass, field
 from typing import Any

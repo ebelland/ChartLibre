@@ -14,8 +14,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.data.sqlite_repo import SqliteRepo
-from app.utils.project_report import render_figure_bytes
 from app.utils.config import get_constant
+from app.utils.project_report import render_figure_bytes
 
 #: Inches and dots per inch of a preview: 1280 x 800 pixels at 200 dpi.
 PREVIEW_SIZE_IN: tuple[float, float] = (6.4, 4.0)
@@ -54,7 +54,7 @@ def project_preview_bytes(project: Path, entry: str | None = None) -> bytes | No
 
     *entry* is the project's old ``preview_path`` info entry, when the caller has it.
     """
-    from app.data.repo.project_info import read_project_info, read_project_preview
+    from app.data.sqlite_repo import read_project_info, read_project_preview
 
     embedded = read_project_preview(Path(project))
     if embedded:

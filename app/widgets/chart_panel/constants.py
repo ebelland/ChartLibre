@@ -5,9 +5,8 @@ from typing import Any, Final
 
 from PySide6.QtCore import QSize
 
-from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS, before any canvas
-
 from app.utils.config import get_constant
+from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS, before any canvas
 
 TOOLBAR_ICON_SIZE: Final[QSize] = QSize(*get_constant("toolbar_icon_size", [24, 24]))
 TOOLBAR_ACTIONS_TO_REMOVE: Final[set[str]] = {"Save","Subplots", "Customize", "Configure subplots", "Edit axis", "Edit colors"}

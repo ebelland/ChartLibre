@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-
 from app.scanners.class_discovery import discover_classes_merged
 
 
@@ -63,8 +62,8 @@ def test_the_analysis_panel_groups_by_the_plugins_own_category(qapp) -> None:
 
 def test_a_report_leaves_out_a_chart_type_that_is_not_installed(qapp, tmp_path: Path, caplog, monkeypatch) -> None:
     from app.data.sqlite_repo import SqliteRepo
-    from app.scanners import axis_renderer_scanner
     from app.data_operations.differences_dialog import DifferencesDialog
+    from app.scanners import axis_renderer_scanner
 
     repo = SqliteRepo(db_path=tmp_path / "p.dhub")
     try:

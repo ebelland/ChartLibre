@@ -15,9 +15,9 @@ writer can hand them to Qt. No Qt here (todo R-09).
 from __future__ import annotations
 
 import base64
-from collections.abc import Sequence
 import html
 import io
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -129,7 +129,7 @@ def build_project_report(
         notes_html = html.escape(info["notes"]).replace("\n", "<br>")
         about_blocks.append(f"<p style='margin:8px 0 0 0;'>{notes_html}</p>")
     if not single:
-        from app.data.repo.project_info import parse_references
+        from app.data.sqlite_repo import parse_references
 
         items = []
         for entry in parse_references(info.get("references")):

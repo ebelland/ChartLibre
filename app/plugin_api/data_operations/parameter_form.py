@@ -15,7 +15,8 @@ step that gets forgotten when a ninth control is added.
 from __future__ import annotations
 
 import html
-from typing import Any, Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -39,11 +40,9 @@ from app.plugin_api.data_operations.parameter_spec import (
     Param,
     TextParam,
 )
-from app.plugin_api.operation_panels import OperationPanel
 from app.styles.style import TitledCard, configure_combo_width, keep_check_box_whole
 from app.utils.i18n import _
 from app.widgets.drop_down_controls.color_combo import MatplotlibColorCombo
-
 
 #: The narrowest a number box may become. Without it a box is as wide as
 #: its largest value needs - "-1000000000000.000000" for a range of 1e12 -
@@ -58,7 +57,7 @@ FIELD_MAX_WIDTH: int = 260
 COLOR_MAX_WIDTH: int = 180
 
 
-class ParameterForm(OperationPanel):
+class ParameterForm:
     """A QFormLayout built from ``Param`` declarations."""
 
     def __init__(
@@ -345,3 +344,11 @@ class ParameterForm(OperationPanel):
     def field(self, name: str) -> QWidget:
         """The control built for the parameter *name*."""
         return self._widgets[name]
+
+
+def merged_values(forms: Iterable[ParameterForm]) -> dict[str, Any]:
+    """Every form's values in one dict, the later forms' names winning a clash."""
+    merged: dict[str, Any] = {}
+    for form in forms:
+        merged.update(form.values())
+    return merged
