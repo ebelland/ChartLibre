@@ -888,7 +888,7 @@ class DataOperationDialogBase(QDialog):
 
         root = QVBoxLayout(self)
         # One helper owns dialog padding and size for every dialog in the app.
-        apply_dialog_shell(self, root)
+        apply_dialog_shell(self, root, size=None)  # the size is WINDOW_SIZE, set in __init__
         root.addWidget(splitter, 1)
         root.addLayout(row, 0)
 

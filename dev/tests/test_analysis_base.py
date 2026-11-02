@@ -16,3 +16,15 @@ def test_both_bases_are_one_window() -> None:
 def test_each_base_declares_the_data_it_picks() -> None:
     assert DataOperationDialogBase.DATA_PICKER == "series"
     assert RolesOperationDialogBase.DATA_PICKER == "roles"
+
+
+def test_the_window_opens_at_its_declared_size(qapp, repo) -> None:
+    """WINDOW_SIZE, not the shared dialog size: the layout must not resize the window it lays out."""
+    from app.data_operations.regression_dialog import SeriesRegressionDialog
+
+    figure_id = repo.create_figure_descriptor(name="Size")
+    dialog = SeriesRegressionDialog(repo=repo, figure_id=figure_id, parent=None)
+    try:
+        assert (dialog.width(), dialog.height()) == SeriesRegressionDialog.WINDOW_SIZE
+    finally:
+        dialog.close()
