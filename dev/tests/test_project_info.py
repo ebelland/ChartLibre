@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.data.sqlite_repo import PROJECT_INFO_TABLE, SqliteRepo
+from app.data.repo.project import PROJECT_INFO_TABLE
+from app.data.sqlite_repo import SqliteRepo
 
 
 def test_a_new_project_is_dated_and_keeps_what_it_is_told(tmp_path: Path) -> None:

@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.data.repo._common import _is_ident, _quote_ident
-from app.data.sqlite_repo import AGGREGATES
+from app.data.repo.project import AGGREGATES
 from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
 from app.styles.style import (
     action_presentation,

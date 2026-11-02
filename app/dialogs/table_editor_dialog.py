@@ -44,7 +44,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.data.sqlite_repo import CAST_TYPES, SqliteRepo
+from app.data.sqlite_repo import SqliteRepo
+from app.data.repo.project import CAST_TYPES
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.logs.logger import applogger
 from app.styles.style import (

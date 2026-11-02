@@ -32,7 +32,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.data import sql_builders as sb
-from app.data.sqlite_repo import AGGREGATES, ROW_ID, SqliteRepo
+from app.data.sqlite_repo import ROW_ID, SqliteRepo
+from app.data.repo.project import AGGREGATES
 from app.styles.style import apply_fusion_for_item_view_styling, stdSizeAndlayout
 from app.utils.config import get_constant
 from app.utils.i18n import _
