@@ -53,6 +53,7 @@ from app.data_operations.fit_dialog.common import (
     _SurfaceInitialGuessAdapter,
 )
 from app.data_operations.sympy_store import catalog as stored_sympy_catalog
+from app.data_operations.sympy_store import functions_by_name
 from app.data_operations.sympy_store import make_model as make_stored_sympy_model
 from app.logs.logger import applogger
 from app.plugin_api import reading_guide
@@ -105,6 +106,22 @@ def _merge_points_with_errors(
     merged_y = np.bincount(inverse, weights=weight * y) / total
     applogger.warning(f"{label}: {x.size - unique_x.size} repeated x merged into their weighted mean.")
     return unique_x, merged_y, 1.0 / np.sqrt(total)
+
+
+class _StoredFunctionGuess:
+    """A stored SymPy function's initial_guess, as a fit class has one: app.analysis.initial_guess's estimator."""
+
+    def __init__(self, payload: dict, functions: dict | None = None) -> None:
+        self._payload, self._functions = payload, functions
+
+    def initial_guess(self, x: Any, y: Any) -> list[float] | None:
+        from app.analysis.initial_guess import generic_guess
+
+        payload = self._payload
+        if str(payload.get("source_type", "")).lower() != "expression":
+            return None  # code: nothing to read the parameters' roles from
+        return generic_guess(str(payload["code_string"]), list(payload["params"]), list(payload["p0"]), x, y,
+                             functions=self._functions)
 
 
 class SeriesFitDialog(DataOperationDialogBase):
@@ -1347,11 +1364,11 @@ class SeriesFitDialog(DataOperationDialogBase):
     def _catalog_data(self) -> dict[str, list[dict[str, Any]]]:
         """Return scanned fit functions grouped by category.
 
-        The previous JSON catalog is intentionally removed.  All fit models are
-        now function classes discovered from app/functions/functions.py and
+        The previous JSON catalog is intentionally removed.  All fit models come
+        from the SymPy library (app.functions.library) and the example classes in
         app/functions/user_functions.py through FunctionScanner, plus every
-        z = f(x, y) surface function from app/functions/surface_functions.py
-        and app/functions/user_surface_functions.py through
+        z = f(x, y) surface function of the library and of
+        app/functions/user_surface_functions.py through
         SurfaceFunctionScanner. The two catalogs are merged by category - a
         surface function's own categories ("Surfaces", "User surfaces") show
         up as ordinary top-level groups in the same tree, no separate UI
@@ -1778,7 +1795,7 @@ class SeriesFitDialog(DataOperationDialogBase):
             if not allowed_to_run(self, self._repo, self._selected_model):
                 return None
             try:
-                return make_stored_sympy_model(self._selected_model), p0
+                return make_stored_sympy_model(self._selected_model, functions_by_name(self._repo)), p0
             except Exception:  # noqa: BLE001 - user-provided stored function
                 applogger.exception(
                     "Failed to build stored SymPy function: %s",
@@ -1858,11 +1875,11 @@ class SeriesFitDialog(DataOperationDialogBase):
         None for the multi-peak builder, which is assembled here rather than
         discovered and so has no class to ask.
         """
-        if (
-            not self._selected_model
-            or self._selected_model.get("_multi_peak")
-            or self._selected_model.get("_sympy_stored")
-        ):
+        if self._selected_model and self._selected_model.get("_sympy_stored"):
+            # A project's own function: the generic estimator reads its starting values off the data.
+            return (_StoredFunctionGuess(self._selected_model, functions_by_name(self._repo))
+                    if not self._is_2d_fit() else None)
+        if not self._selected_model or self._selected_model.get("_multi_peak"):
             return None
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
