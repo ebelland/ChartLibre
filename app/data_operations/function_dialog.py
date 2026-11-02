@@ -11,7 +11,7 @@ import ast
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, cast
+from typing import Any, Callable, ClassVar, cast
 
 import numpy as np
 import pandas as pd
@@ -165,7 +165,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
 
     Icon = '<path d="M4 20c4 0 4-16 8-16"/><path d="M12 4c4 0 4 16 8 16"/>'
     Keywords = "funzione formula expression espressione plot function grafico di funzione"
-    Goals: list[str] = []
+    Goals: ClassVar[list[str]] = []
     Category = "Graph"
     Order = 5
     WINDOW_SIZE = (800, 700)

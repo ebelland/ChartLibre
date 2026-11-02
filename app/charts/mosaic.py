@@ -17,7 +17,7 @@ Roles:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib import colormaps  # pyright: ignore[reportAttributeAccessIssue]
@@ -41,16 +41,16 @@ class MosaicAxisRenderer(BaseAxisRenderer):
         "optionally shaded by how far each is from independence."
     )
     Keywords: str = "mosaico contingency contingenza two categorical due categoriali crosstab tabella incrociata"
-    Goals: list[str] = ["compare", "relate"]
+    Goals: ClassVar[list[str]] = ["compare", "relate"]
     Link: str = "https://www.statsmodels.org/stable/generated/statsmodels.graphics.mosaicplot.mosaic.html"
 
-    RequiredRoles: list[str] = ["x", "y"]
-    OptionalRoles: list[str] = ["weight"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
+    OptionalRoles: ClassVar[list[str]] = ["weight"]
 
     #: One square to divide; a second table would be drawn over the first.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "edgecolor": {
             "default": "white",
             "type": str,

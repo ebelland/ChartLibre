@@ -9,7 +9,7 @@ Roles: a, b, c (the components); group, optional, colours the points.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -37,13 +37,13 @@ class TernaryAxisRenderer(BaseAxisRenderer):
         "component, grid lines every 10%."
     )
     Keywords: str = "ternary ternario diagramma ternario mixture miscela composition composizione triangle triangolo"
-    Goals: list[str] = ["relate", "describe"]
+    Goals: ClassVar[list[str]] = ["relate", "describe"]
     Link: str = "https://en.wikipedia.org/wiki/Ternary_plot"
 
-    RequiredRoles: list[str] = ["a", "b", "c"]
-    OptionalRoles: list[str] = ["group"]
+    RequiredRoles: ClassVar[list[str]] = ["a", "b", "c"]
+    OptionalRoles: ClassVar[list[str]] = ["group"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "s": {"default": 20.0, "type": float, "min": 0.5, "max": 500.0, "group": "Marker",
               "description": "Size of the points, in points squared."},
         "alpha": {"default": 0.85, "type": float, "min": 0.0, "max": 1.0, "group": "Marker",

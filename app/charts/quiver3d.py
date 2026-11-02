@@ -9,7 +9,7 @@ vector), or all of one length with ``normalize``.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib import colormaps
@@ -27,14 +27,14 @@ class Quiver3DAxisRenderer(BaseAxisRenderer):
     Category: str = "3D"
     Description: str = "An arrow at each point in space showing a 3D vector field's direction and size (u, v, w)."
     Keywords: str = "quiver 3d vector field campo vettoriale frecce arrows flusso flow"
-    Goals: list[str] = ["relate"]
+    Goals: ClassVar[list[str]] = ["relate"]
     Link: str = "https://matplotlib.org/stable/gallery/mplot3d/quiver3d.html"
     Projection: str = "3d"
 
-    RequiredRoles: list[str] = list(_ROLES)
-    OptionalRoles: list[str] = ["color"]
+    RequiredRoles: ClassVar[list[str]] = list(_ROLES)
+    OptionalRoles: ClassVar[list[str]] = ["color"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "length": {
             "default": 1.0, "type": float, "min": 0.0, "group": "Arrows",
             "description": "How long an arrow is per unit of the vector (or every arrow, with Normalize).",

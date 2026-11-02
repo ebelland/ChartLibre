@@ -16,7 +16,7 @@ import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -296,7 +296,7 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
         "interpolazione missing values valori mancanti fill riempi spline linear lineare resample "
         "ricampiona"
     )
-    Goals: list[str] = ["prepare", "signal"]
+    Goals: ClassVar[list[str]] = ["prepare", "signal"]
     Category: str = "Curves"
     Order: int = 74
     applied = Signal()

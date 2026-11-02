@@ -9,7 +9,7 @@ draws the same way.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -38,13 +38,13 @@ class WaferMapAxisRenderer(BaseAxisRenderer):
         "or dies coloured by a value: thickness maps, die bins, defect maps."
     )
     Keywords: str = "wafer fetta semiconductor semiconduttori die notch flat defect difetti particle particelle"
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
 
-    RequiredRoles: list[str] = ["x", "y"]
-    OptionalRoles: list[str] = ["value"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
+    OptionalRoles: ClassVar[list[str]] = ["value"]
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "display": {"default": POINTS, "type": [POINTS, CONTOUR, DIES], "group": "Wafer",
                     "description": "Points as they are, a contour of the value on a grid, or the dies filled."},
         "diameter": {"default": 300.0, "type": float, "min": 10.0, "max": 1000.0, "group": "Wafer",

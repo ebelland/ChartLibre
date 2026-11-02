@@ -326,7 +326,7 @@ class DataOperationDialogBase(QDialog):
     #: Words to find it by in the search (synonyms, English and Italian), and the
     #: guided analysis goals it serves (keys of app.analysis.catalog.GOALS).
     Keywords: str = ""
-    Goals: list[str] = []
+    Goals: ClassVar[list[str]] = []
 
     #: Shown in the results pane whenever a control changes, until Preview or
     #: OK actually computes something. Controls no longer trigger compute_results()

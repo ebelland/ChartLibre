@@ -12,7 +12,7 @@ without the events themselves reading as noise on a line or scatter chart.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -42,10 +42,10 @@ class EventPlotAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/basic/eventplot.html"
 
-    RequiredRoles: list[str] = ["x"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x"]
+    OptionalRoles: ClassVar[list[str]] = []
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "orientation": {
             "default": "horizontal",
             "type": ["horizontal", "vertical"],

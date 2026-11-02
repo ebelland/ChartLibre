@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import matplotlib
 import numpy as np
@@ -264,9 +264,9 @@ class BaseAxisRenderer:
     Category: str = "Pairwise data"
     Description: str = "Base class"
     Link:str=""
-    RequiredRoles: list[str] = []
-    OptionalRoles: list[str] = []
-    Kwargs: dict[str, Any] = {}
+    RequiredRoles: ClassVar[list[str]] = []
+    OptionalRoles: ClassVar[list[str]] = []
+    Kwargs: ClassVar[dict[str, Any]] = {}
 
     #: Settings the renderer reads itself, never forwarded to Matplotlib.
     #:
@@ -281,7 +281,7 @@ class BaseAxisRenderer:
     #:
     #: A renderer still on the single dict keeps working - :meth:`opt` falls
     #: back to ``Kwargs`` - so the conversion is one renderer at a time.
-    Options: dict[str, Any] = {}
+    Options: ClassVar[dict[str, Any]] = {}
 
     #: Series this renderer can draw on one axes; None means any number.
     #:

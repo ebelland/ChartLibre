@@ -14,7 +14,7 @@ many categories and causes there are, and the axes' own frame is switched off.
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -32,13 +32,13 @@ class FishboneAxisRenderer(BaseAxisRenderer):
         "category on bones that lead to the problem."
     )
     Keywords: str = "ishikawa diagram diagramma fishbone lisca di pesce causa effetto cause effect root cause causa radice"
-    Goals: list[str] = ["process", "explain"]
+    Goals: ClassVar[list[str]] = ["process", "explain"]
     Link: str = "https://matplotlib.org/stable/gallery/specialty_plots/ishikawa_diagram.html"
 
-    RequiredRoles: list[str] = ["category", "cause"]
-    OptionalRoles: list[str] = ["subcause"]
+    RequiredRoles: ClassVar[list[str]] = ["category", "cause"]
+    OptionalRoles: ClassVar[list[str]] = ["subcause"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "problem": {
             "default": "",
             "type": str,

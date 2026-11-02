@@ -15,7 +15,7 @@ should never come up blank because of it.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -56,10 +56,10 @@ class TextAxisRenderer(BaseAxisRenderer):
     Description: str = "Text labels at data points, spread apart to avoid overlap."
     Link: str = "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html"
 
-    RequiredRoles: list[str] = ["x", "y", "text"]
-    OptionalRoles: list[str] = ["color"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "text"]
+    OptionalRoles: ClassVar[list[str]] = ["color"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "fontsize": {
             "default": 10.0,
             "type": float,

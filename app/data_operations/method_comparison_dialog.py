@@ -9,7 +9,7 @@ The engine is app.analysis.method_comparison.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -46,7 +46,7 @@ class MethodComparisonDialog(RolesOperationDialogBase):
         "method comparison confronto metodi bland altman agreement accordo limits of agreement deming "
         "passing bablok regression bias laboratory laboratorio clsi ep09 validation validazione"
     )
-    Goals: list[str] = ["relate", "process"]
+    Goals: ClassVar[list[str]] = ["relate", "process"]
 
     ROLES = (
         ColumnRole("response", "Y, method tested", "The results of the method being tested.",

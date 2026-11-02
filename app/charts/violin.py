@@ -13,7 +13,7 @@ and legend code is its own.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib.patches import Patch
@@ -57,12 +57,12 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
     Category: str = "Statistical distributions"
     Description = "Show the estimated distribution of one or more samples."
     Keywords: str = "violino violin density densita groups gruppi"
-    Goals: list[str] = ["compare", "describe"]
+    Goals: ClassVar[list[str]] = ["compare", "describe"]
     Link: str = (
         "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.violinplot.html"
     )
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "direction": {
             "default": "vertical",
             "type": ["vertical", "horizontal"],

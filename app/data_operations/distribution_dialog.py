@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -110,7 +110,7 @@ class DistributionDialog(DataOperationDialogBase):
         "distribution distribuzione quantiles quantili percentiles percentili moments momenti "
         "normality normalità histogram istogramma"
     )
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
 
     DESTINATIONS = (DataOperationDialogBase.DEST_NONE, DataOperationDialogBase.DEST_NEW_FIGURE)
     DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_FIGURE

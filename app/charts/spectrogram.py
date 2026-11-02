@@ -10,7 +10,7 @@ power as a colour over time (x) and frequency (y).
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -39,16 +39,16 @@ class SpectrogramAxisRenderer(BaseAxisRenderer):
         "frequency appears, not only whether it does."
     )
     Keywords: str = "specgram stft short time fourier frequency time spettrogramma segnale vibration"
-    Goals: list[str] = ["signal"]
+    Goals: ClassVar[list[str]] = ["signal"]
     Link: str = "https://matplotlib.org/stable/gallery/images_contours_and_fields/specgram_demo.html"
 
-    RequiredRoles: list[str] = ["y"]
-    OptionalRoles: list[str] = ["x"]
+    RequiredRoles: ClassVar[list[str]] = ["y"]
+    OptionalRoles: ClassVar[list[str]] = ["x"]
 
     #: A second signal would be drawn over the first one's colours.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "NFFT": {
             "default": 256,
             "type": int,

@@ -11,7 +11,7 @@ app.analysis.multivariate.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -49,7 +49,7 @@ class PrincipalComponentsDialog(RolesOperationDialogBase):
         "principali eigenvalues autovalori loadings scores punteggi scree dimension reduction riduzione "
         "dimensionale"
     )
-    Goals: list[str] = ["explain", "groups"]
+    Goals: ClassVar[list[str]] = ["explain", "groups"]
 
     ROLES = (
         ColumnRole("response", "Y, columns", "The continuous columns whose variation is summed up.",

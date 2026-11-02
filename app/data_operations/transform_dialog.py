@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from app.analysis.transform import (
@@ -163,7 +163,7 @@ class SeriesTransformDialog(DataOperationDialogBase):
         "trasforma trasformazione log logarithm logaritmo box-cox normalize normalizza standardize "
         "standardizza scale scala rank"
     )
-    Goals: list[str] = ["prepare", "describe"]
+    Goals: ClassVar[list[str]] = ["prepare", "describe"]
     Category: str = "Transform"
     Order: int = 90
 

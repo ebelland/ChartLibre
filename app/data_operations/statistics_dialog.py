@@ -19,7 +19,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 import html
 import itertools
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -222,7 +222,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         "statistiche descriptive descrittive mean media median mediana standard deviation deviazione "
         "standard summary riepilogo min max quantile percentile"
     )
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
     Category: str = "Basic Analysis"
     Order: int = 13
 

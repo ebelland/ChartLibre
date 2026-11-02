@@ -8,7 +8,7 @@ line through it.
 """
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 import pandas as pd
@@ -62,9 +62,9 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
     Name = "Time Series"
     Category: str = "Pairwise data"
     Keywords: str = "serie temporale time series tempo trend andamento date"
-    Goals: list[str] = ["signal", "process"]
+    Goals: ClassVar[list[str]] = ["signal", "process"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "alpha": {
             "default": 0.8,
             "type": float,

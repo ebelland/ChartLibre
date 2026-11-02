@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -51,7 +51,7 @@ class FitYByXDialog(RolesOperationDialogBase):
         "pairwise comparisons confronti multipli contingency contingenza crosstabs chi-squared "
         "logistic logistica regression line retta correlation correlazione"
     )
-    Goals: list[str] = ["compare", "relate"]
+    Goals: ClassVar[list[str]] = ["compare", "relate"]
 
     ROLES = (
         ColumnRole("response", "Y", "The response: its type and X's choose the analysis.", minimum=1, maximum=1),

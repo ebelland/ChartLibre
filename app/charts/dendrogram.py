@@ -13,7 +13,7 @@ column) - and label, the leaf names (the row number when absent).
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -33,18 +33,18 @@ class DendrogramAxisRenderer(BaseAxisRenderer):
         "and where a cut gives a sensible number of groups."
     )
     Keywords: str = "hierarchical clustering ward linkage tree dendrogramma cluster albero gerarchico"
-    Goals: list[str] = ["groups"]
+    Goals: ClassVar[list[str]] = ["groups"]
     Link: str = "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.dendrogram.html"
 
-    RequiredRoles: list[str] = []
-    OptionalRoles: list[str] = [*PAIR_COLUMN_ROLES, "label"]
+    RequiredRoles: ClassVar[list[str]] = []
+    OptionalRoles: ClassVar[list[str]] = [*PAIR_COLUMN_ROLES, "label"]
 
     #: Two trees on one axis would be drawn over each other.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {}
+    Kwargs: ClassVar[dict[str, Any]] = {}
 
-    Options: dict[str, Any] = {
+    Options: ClassVar[dict[str, Any]] = {
         "method": {
             "default": "ward",
             "type": ["ward", "average", "complete", "single"],

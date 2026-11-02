@@ -16,7 +16,7 @@ import math
 from collections.abc import Callable, Sequence
 from dataclasses import replace
 from html import escape as html_escape
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 import pandas as pd
@@ -200,7 +200,7 @@ class SeriesFitDialog(DataOperationDialogBase):
         "fit fit curve adatta curva adattamento curve fitting curva regression regressione polynomial polinomio exponential "
         "esponenziale gaussian gaussiana sine model modello nonlinear non lineare trend tendenza"
     )
-    Goals: list[str] = ["relate", "predict"]
+    Goals: ClassVar[list[str]] = ["relate", "predict"]
     Category: str = "Predictive and Specialized Modeling"
     Order: int = 34
     saved = Signal(str)

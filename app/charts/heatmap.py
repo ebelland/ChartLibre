@@ -15,7 +15,7 @@ cells are then at their place in that order, labelled with their x and y.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -65,17 +65,17 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
         "between cells - the value actually measured in each one."
     )
     Keywords: str = "mappa di calore heat map matrix matrice correlation correlazione"
-    Goals: list[str] = ["relate"]
+    Goals: ClassVar[list[str]] = ["relate"]
     Link: str = "https://matplotlib.org/stable/plot_types/arrays/pcolormesh.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: A second scalar field would cover the first, not compare with it -
     #: same reasoning as Contour Plot.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "cmap": {
             "default": "viridis",
             "type": str,

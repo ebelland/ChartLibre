@@ -13,7 +13,7 @@ histogram.
 """
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, ClassVar
 
 import numpy as np
 
@@ -60,17 +60,17 @@ class HexbinAxisRenderer(BaseAxisRenderer):
         "with too many points to read individually actually piles up."
     )
     Keywords: str = "density densita many points molti punti 2d"
-    Goals: list[str] = ["relate"]
+    Goals: ClassVar[list[str]] = ["relate"]
     Link: str = "https://matplotlib.org/stable/plot_types/stats/hexbin.html"
 
-    RequiredRoles: list[str] = ["x", "y"]
-    OptionalRoles: list[str] = ["value"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
+    OptionalRoles: ClassVar[list[str]] = ["value"]
 
     #: A second series would draw a second, overlapping density map - not a
     #: comparison, just one obscuring the other.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "gridsize": {
             "default": 40,
             "type": int,

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -133,7 +133,7 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
         "gaussian process gp regression regressione gp processo gaussiano kriging uncertainty incertezza confidence band banda di "
         "confidenza"
     )
-    Goals: list[str] = ["predict", "relate"]
+    Goals: ClassVar[list[str]] = ["predict", "relate"]
     Category: str = "Predictive and Specialized Modeling"
     Order: int = 35
 

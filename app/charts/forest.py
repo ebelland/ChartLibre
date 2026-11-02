@@ -17,7 +17,7 @@ Roles:
 """
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from matplotlib.patches import Polygon
@@ -39,13 +39,13 @@ class ForestAxisRenderer(BaseAxisRenderer):
         "of no effect; summary rows as diamonds."
     )
     Keywords: str = "intervalli di confidenza confidence intervals estimates stime meta-analysis meta-analisi"
-    Goals: list[str] = ["compare"]
+    Goals: ClassVar[list[str]] = ["compare"]
     Link: str = "https://en.wikipedia.org/wiki/Forest_plot"
 
-    RequiredRoles: list[str] = ["label", "estimate", "lower", "upper"]
-    OptionalRoles: list[str] = ["weight", "summary"]
+    RequiredRoles: ClassVar[list[str]] = ["label", "estimate", "lower", "upper"]
+    OptionalRoles: ClassVar[list[str]] = ["weight", "summary"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "linewidth": {
             "default": 1.4,
             "type": float,
@@ -56,7 +56,7 @@ class ForestAxisRenderer(BaseAxisRenderer):
         },
     }
 
-    Options: dict[str, Any] = {
+    Options: ClassVar[dict[str, Any]] = {
         "null_value": {
             "default": 0.0,
             "type": float,

@@ -21,7 +21,7 @@ asked for.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from app.logs.logger import applogger
 from app.plugin_api.charts import kwarg_spec
@@ -57,8 +57,8 @@ class TableAxisRenderer(BaseAxisRenderer):
     Description: str = "A data table, rows and columns of text rather than a plot."
     Link: str = "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.table.html"
 
-    RequiredRoles: list[str] = []
-    OptionalRoles: list[str] = [
+    RequiredRoles: ClassVar[list[str]] = []
+    OptionalRoles: ClassVar[list[str]] = [
         "column_1", "column_2", "column_3", "column_4",
         "column_5", "column_6", "column_7", "column_8",
     ]
@@ -68,7 +68,7 @@ class TableAxisRenderer(BaseAxisRenderer):
 
     #: Forwarded verbatim to ``ax.table``.  Three keywords, where the schema
     #: used to hold six and remove three again on the way out.
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "loc": {
             "default": "center",
             "type": [
@@ -96,7 +96,7 @@ class TableAxisRenderer(BaseAxisRenderer):
     #: the application: ``ax.table`` has no such keyword, and the size is set
     #: on the returned Table afterwards - together with switching off the
     #: automatic sizing, which is the part that actually makes it take effect.
-    Options: dict[str, Any] = {
+    Options: ClassVar[dict[str, Any]] = {
         "fontsize": {
             "default": None,
             kwarg_spec.RCPARAM: "font.size",

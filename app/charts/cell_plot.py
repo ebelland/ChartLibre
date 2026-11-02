@@ -10,7 +10,7 @@ column); label, optional, names the rows on the left.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -29,18 +29,18 @@ class CellPlotAxisRenderer(BaseAxisRenderer):
         "own colour scale: runs, clusters and missing values across the table."
     )
     Keywords: str = "cell plot grafico a celle heat map mappa di calore table tabella colori"
-    Goals: list[str] = ["describe", "anomalies"]
+    Goals: ClassVar[list[str]] = ["describe", "anomalies"]
     Link: str = "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.pcolormesh.html"
 
-    RequiredRoles: list[str] = []
-    OptionalRoles: list[str] = [*PAIR_COLUMN_ROLES, "label"]
+    RequiredRoles: ClassVar[list[str]] = []
+    OptionalRoles: ClassVar[list[str]] = [*PAIR_COLUMN_ROLES, "label"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "cmap": {"default": "viridis", "type": str, "group": "Appearance",
                  "description": "The colour map: low values at its start, high at its end."},
     }
 
-    Options: dict[str, Any] = {
+    Options: ClassVar[dict[str, Any]] = {
         "scale": {
             "default": "column",
             "type": ["column", "common"],

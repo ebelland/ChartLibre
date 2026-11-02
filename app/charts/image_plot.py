@@ -16,7 +16,7 @@ every numeric column is a column of the image, by its own name.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -37,15 +37,15 @@ class ImagePlotAxisRenderer(BaseAxisRenderer):
         "value - or an image file, with a colorbar."
     )
     Keywords: str = "imshow matshow image matrix matrice immagine picture pixel grid camera"
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
     Link: str = "https://matplotlib.org/stable/plot_types/arrays/imshow.html"
 
-    RequiredRoles: list[str] = []
-    OptionalRoles: list[str] = ["label"]
+    RequiredRoles: ClassVar[list[str]] = []
+    OptionalRoles: ClassVar[list[str]] = ["label"]
 
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "cmap": {"default": "viridis", "type": str, "group": "Appearance",
                  "description": "Colormap the values are mapped through. Ignored for a colour image file."},
         "vmin": {"default": None, "type": float, "group": "Appearance",
@@ -64,7 +64,7 @@ class ImagePlotAxisRenderer(BaseAxisRenderer):
                   "description": "Opacity."},
     }
 
-    Options: dict[str, Any] = {
+    Options: ClassVar[dict[str, Any]] = {
         "image_file": {"default": None, "type": str, "group": "Source",
                        "description": "Path of an image file to show instead of the table's numbers."},
         "colorbar": {"default": True, "type": bool, "group": "Colorbar",

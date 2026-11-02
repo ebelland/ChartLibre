@@ -20,7 +20,7 @@ answer to pcolormesh.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib import rcParams
@@ -85,8 +85,8 @@ class TriplotAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/unstructured/triplot.html"
 
-    RequiredRoles: list[str] = ["x", "y"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     Kwargs: dict[str, Any] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
@@ -183,8 +183,8 @@ class TripcolorAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/unstructured/tripcolor.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: Two filled meshes over one set of axes hide each other.
     MaxSeries: int | None = 1
@@ -234,7 +234,7 @@ class TripcolorAxisRenderer(BaseAxisRenderer):
 
     #: Read here and never forwarded: a colorbar is a second Axes, not a
     #: keyword of the drawing call.
-    Options: dict[str, Any] = {
+    Options: ClassVar[dict[str, Any]] = {
         "colorbar": {
             # Off by default, as on the contour renderers and for their
             # reason: it is a second Axes taken out of this one's space, and

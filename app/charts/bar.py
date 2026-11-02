@@ -6,7 +6,7 @@ the optional ``X`` role; without it the row index is used.
 """
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import math
 import numpy as np
@@ -55,8 +55,8 @@ class BarAxisRenderer(BaseAxisRenderer):
     Orientation: Orientation = "vertical"
     Link="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar.html"
 
-    RequiredRoles: list[str] = ["Y"]
-    OptionalRoles: list[str] = ["X", "color", "YError", "XError", "Bottom", "Left"]
+    RequiredRoles: ClassVar[list[str]] = ["Y"]
+    OptionalRoles: ClassVar[list[str]] = ["X", "color", "YError", "XError", "Bottom", "Left"]
 
     #: Forwarded verbatim to ``bar``/``barh``.  Everything here is a keyword
     #: Matplotlib accepts, which is why there is nothing to remove before the

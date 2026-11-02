@@ -22,7 +22,7 @@ and nothing about axis creation changes for them.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -85,16 +85,16 @@ class ContourAxisRenderer(BaseAxisRenderer):
     Category: str = "Gridded data"
     Description: str = "Filled or line contours of z over a regular x/y grid."
     Keywords: str = "curve di livello contour isolinee surface superficie response surface"
-    Goals: list[str] = ["explain"]
+    Goals: ClassVar[list[str]] = ["explain"]
     Link: str = "https://matplotlib.org/stable/plot_types/arrays/contourf.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: A second scalar field would cover the first, not compare with it.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "levels": {
             "default": "",
             "type": str,
@@ -540,12 +540,12 @@ class ContourScatteredAxisRenderer(ContourAxisRenderer, BaseAxisRenderer):
     Description: str = "Filled or line contours for scattered (non-gridded) x/y/z data."
     Link: str = "https://matplotlib.org/stable/plot_types/unstructured/tricontourf.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: The options are the gridded renderer's, unchanged: everything from the
     #: levels to the labels means the same thing on a triangulation.
-    Kwargs: dict[str, Any] = dict(ContourAxisRenderer.Kwargs)
+    Kwargs: ClassVar[dict[str, Any]] = dict(ContourAxisRenderer.Kwargs)
 
     def render_axis(
         self,

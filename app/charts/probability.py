@@ -17,7 +17,7 @@ Roles:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -72,13 +72,13 @@ class QQPlotAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
         "distribution fits. Sharpest in the tails."
     )
     Keywords: str = "normal normale normality normalita quantili quantiles probability plot"
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
     Link: str = "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.probplot.html"
 
-    RequiredRoles: list[str] = ["value"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["value"]
+    OptionalRoles: ClassVar[list[str]] = []
 
-    Kwargs: dict[str, Any] = dict(ScatterAxisRenderer.Kwargs)
+    Kwargs: ClassVar[dict[str, Any]] = dict(ScatterAxisRenderer.Kwargs)
 
     Options: dict[str, Any] = merge(
         ScatterAxisRenderer.Options,
@@ -186,13 +186,13 @@ class PPPlotAxisRenderer(QQPlotAxisRenderer, BaseAxisRenderer):
         "mean the distribution fits. Sharpest in the middle."
     )
     Keywords: str = "normal normale probability probabilita distribution distribuzione"
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
     Link: str = "https://en.wikipedia.org/wiki/P%E2%80%93P_plot"
 
-    RequiredRoles: list[str] = ["value"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["value"]
+    OptionalRoles: ClassVar[list[str]] = []
 
-    Kwargs: dict[str, Any] = dict(ScatterAxisRenderer.Kwargs)
+    Kwargs: ClassVar[dict[str, Any]] = dict(ScatterAxisRenderer.Kwargs)
     Options: dict[str, Any] = merge(ScatterAxisRenderer.Options, _SHARED_OPTIONS)
 
     def compute(self, values: np.ndarray, options: dict[str, Any]) -> ProbabilityPlot:

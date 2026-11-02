@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -423,7 +423,7 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         "smussamento lisciatura noise rumore moving average media mobile savitzky-golay lowess loess "
         "filtro smooth"
     )
-    Goals: list[str] = ["signal"]
+    Goals: ClassVar[list[str]] = ["signal"]
     Category: str = "Signal Processing"
     Order: int = 80
 

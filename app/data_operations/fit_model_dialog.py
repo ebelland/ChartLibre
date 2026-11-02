@@ -21,7 +21,7 @@ from __future__ import annotations
 import html
 import math
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 from PySide6.QtCore import Qt
@@ -124,7 +124,7 @@ class FitModelDialog(RolesOperationDialogBase):
         "elastic net generalized regression regressione generalizzata penalized penalizzata "
         "regularization regolarizzazione"
     )
-    Goals: list[str] = ["explain", "predict", "classify", "compare", "experiment"]
+    Goals: ClassVar[list[str]] = ["explain", "predict", "classify", "compare", "experiment"]
 
     ROLES = (
         ColumnRole("response", "Y", "The columns to model: one model each.", minimum=1),

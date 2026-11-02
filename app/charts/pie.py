@@ -17,7 +17,7 @@ a hole - useful because the eye compares arc length better than area.
 """
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 
@@ -42,8 +42,8 @@ class PieAxisRenderer(BaseAxisRenderer):
     Honors per-series style fields: ``label``, ``visible``, ``color``.
     """
 
-    RequiredRoles: list[str] = ["value"]
-    OptionalRoles: list[str] = ["label", "explode"]
+    RequiredRoles: ClassVar[list[str]] = ["value"]
+    OptionalRoles: ClassVar[list[str]] = ["label", "explode"]
 
     #: A pie's wedges have to sum to one whole.
     MaxSeries: int | None = 1
@@ -58,7 +58,7 @@ class PieAxisRenderer(BaseAxisRenderer):
     #: Forwarded verbatim to ``ax.pie``.  These were already being assembled
     #: one by one into a dict of the same names; the schema now says so, and
     #: the assembly is a single call.
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "autopct": {
             # A deliberate deviation from Matplotlib, which draws no
             # percentages at all: a pie without them is a picture of a ratio

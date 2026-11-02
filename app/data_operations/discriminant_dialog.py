@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import html
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -43,7 +43,7 @@ class DiscriminantDialog(RolesOperationDialogBase):
         "discriminant discriminante lda qda linear discriminant analysis analisi discriminante "
         "classification classificazione canonical canonica wilks groups gruppi"
     )
-    Goals: list[str] = ["classify", "groups"]
+    Goals: ClassVar[list[str]] = ["classify", "groups"]
 
     ROLES = (
         ColumnRole("response", "Y, group", "The column whose groups the rows are classified into.",

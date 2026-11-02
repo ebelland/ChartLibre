@@ -16,7 +16,7 @@ Roles:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -37,13 +37,13 @@ class InteractionAxisRenderer(BaseAxisRenderer):
         "lines mean no interaction."
     )
     Keywords: str = "interazione interaction factors fattori means medie doe"
-    Goals: list[str] = ["explain", "experiment"]
+    Goals: ClassVar[list[str]] = ["explain", "experiment"]
     Link: str = "https://www.statsmodels.org/stable/generated/statsmodels.graphics.factorplots.interaction_plot.html"
 
-    RequiredRoles: list[str] = ["x", "y"]
-    OptionalRoles: list[str] = ["trace"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
+    OptionalRoles: ClassVar[list[str]] = ["trace"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "marker": {
             "default": "o",
             "type": str,

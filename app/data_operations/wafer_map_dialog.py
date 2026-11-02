@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -88,7 +88,7 @@ class WaferMapDialog(DataOperationDialogBase):
         "wafer fetta semiconductor semiconduttori die binning resa yield notch flat defect difetti particle "
         "particelle defect density uniformity uniformità thickness spessore map mappa"
     )
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
 
     DESTINATIONS = (DataOperationDialogBase.DEST_NONE, DataOperationDialogBase.DEST_NEW_FIGURE)
     DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_FIGURE

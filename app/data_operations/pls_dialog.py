@@ -11,7 +11,7 @@ actual by predicted. The engine is app.analysis.pls.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -47,7 +47,7 @@ class PLSDialog(RolesOperationDialogBase):
         "chemometrics chemiometria calibration calibrazione vip latent components componenti latenti "
         "multivariate calibration"
     )
-    Goals: list[str] = ["predict", "explain"]
+    Goals: ClassVar[list[str]] = ["predict", "explain"]
 
     ROLES = (
         ColumnRole("response", "Y", "The values to predict: a concentration, a property.",

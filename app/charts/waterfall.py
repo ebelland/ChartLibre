@@ -13,7 +13,7 @@ Roles: x the step's name, y its change, total optional (non-zero marks a total; 
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -32,22 +32,22 @@ class WaterfallAxisRenderer(BaseAxisRenderer):
         "end, with subtotals where marked."
     )
     Keywords: str = "waterfall bridge cascade running total variance cascata ponte profit"
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
     Link: str = "https://matplotlib.org/stable/gallery/lines_bars_and_markers/bar_label_demo.html"
 
-    RequiredRoles: list[str] = ["x", "y"]
-    OptionalRoles: list[str] = ["total"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
+    OptionalRoles: ClassVar[list[str]] = ["total"]
 
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "width": {"default": 0.7, "type": float, "min": 0.1, "max": 1.0, "step": 0.05, "group": "Appearance",
                   "description": "Width of each bar."},
         "edgecolor": {"default": None, "type": str, "kind": "color", "group": "Appearance",
                       "description": "Outline of each bar."},
     }
 
-    Options: dict[str, Any] = {
+    Options: ClassVar[dict[str, Any]] = {
         "up_color": {"default": "#2E9E6B", "type": str, "kind": "color", "group": "Colours",
                      "description": "Steps that add."},
         "down_color": {"default": "#D6453D", "type": str, "kind": "color", "group": "Colours",

@@ -45,7 +45,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -254,7 +254,7 @@ class SeriesRootsDialog(DataOperationDialogBase):
     <circle cx="8.4" cy="12" r="1.8"/>
     """
     Keywords: str = "radici zeri zeros crossing attraversamento threshold soglia level livello"
-    Goals: list[str] = ["signal"]
+    Goals: ClassVar[list[str]] = ["signal"]
     Category: str = "Curves"
     Order: int = 71
 

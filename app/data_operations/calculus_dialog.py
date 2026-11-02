@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -288,7 +288,7 @@ class SeriesCalculusDialog(DataOperationDialogBase):
     <path d="M14 19h5"/>
     """
     Keywords: str = "calcolo derivative derivata integral integrale differentiate integrate area slope pendenza"
-    Goals: list[str] = ["signal"]
+    Goals: ClassVar[list[str]] = ["signal"]
     Category: str = "Curves"
     Order: int = 72
 

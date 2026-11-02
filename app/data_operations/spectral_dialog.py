@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -254,7 +254,7 @@ class SeriesSpectralDialog(DataOperationDialogBase):
         "analisi spettrale fft fourier frequency frequenza spectrum spettro periodogram periodogramma "
         "welch power density densita spettrale"
     )
-    Goals: list[str] = ["signal"]
+    Goals: ClassVar[list[str]] = ["signal"]
     Category: str = "Signal Processing"
     Order: int = 82
 

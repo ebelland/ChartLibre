@@ -9,7 +9,7 @@ Pareto chart, with the report in its notes.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -36,7 +36,7 @@ class ImpactDialog(QuickAnswerDialogBase):
         "driver importance importanza influence influenza cause cosa conta what matters ranking "
         "classifica quick answer risposta rapida"
     )
-    Goals: list[str] = ["explain"]
+    Goals: ClassVar[list[str]] = ["explain"]
 
     ROLES = (
         ColumnRole("response", "Result", "What you want to explain: numbers (a yield, a time) or categories "

@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -220,7 +220,7 @@ class SeriesDecompositionDialog(DataOperationDialogBase):
         "decomposizione pca principal components componenti principali ica nmf t-sne tsne umap "
         "dimensionality reduction riduzione dimensionale embedding"
     )
-    Goals: list[str] = ["groups", "explain"]
+    Goals: ClassVar[list[str]] = ["groups", "explain"]
     Category: str = "Multivariate Methods"
     Order: int = 41
 

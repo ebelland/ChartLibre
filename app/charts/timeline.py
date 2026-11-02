@@ -12,7 +12,7 @@ the frame and decorates afterwards, which is what inheriting is for.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib import dates as mdates
@@ -46,10 +46,10 @@ class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
     #: Only the date is required.  The level is generated, and the text is
     #: optional - a timeline of unlabelled events is still a useful density
     #: picture of when things happened.
-    RequiredRoles: list[str] = ["x"]
-    OptionalRoles: list[str] = ["label", "y", "color", "size"]
+    RequiredRoles: ClassVar[list[str]] = ["x"]
+    OptionalRoles: ClassVar[list[str]] = ["label", "y", "color", "size"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         **ScatterAxisRenderer.Kwargs,
         "levels": {
             "default": 6,

@@ -11,7 +11,7 @@ heatmap's colour-only encoding is not enough to compare heights by eye.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -45,8 +45,8 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/gallery/mplot3d/bars3d.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: A second series of bars sharing the same (x, y) footprint would grow
     #: out of the first one rather than beside it - occlusion, not
@@ -113,7 +113,7 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
     )
 
     #: The camera, read here and applied to the axes rather than forwarded.
-    Options: dict[str, Any] = dict(VIEW_OPTIONS)
+    Options: ClassVar[dict[str, Any]] = dict(VIEW_OPTIONS)
 
     def render_axis(
         self,

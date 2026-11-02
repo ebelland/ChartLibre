@@ -6,7 +6,7 @@ ids; float columns go through a colormap.
 """
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 import pandas as pd
@@ -73,7 +73,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
     Category: str = "Pairwise data"
     Description = "Scatter Plot"
     Keywords: str = "dispersione scatter xy correlation correlazione punti points"
-    Goals: list[str] = ["relate"]
+    Goals: ClassVar[list[str]] = ["relate"]
     Link:str="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.scatter.html#matplotlib.axes.Axes.scatter"
 
     def _float_option(self, name: str, options: dict[str, Any], default: float = 0.0) -> float:
@@ -117,7 +117,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
         }
     )
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "confidence_ellipse": {
             "default": 0.0,
             "type": float,

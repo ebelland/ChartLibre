@@ -7,7 +7,7 @@ requires one ``bxp`` call per box.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import matplotlib as mpl
 import numpy as np
@@ -61,10 +61,10 @@ class BoxAxisRenderer(BaseAxisRenderer):
     Category: str = "Statistical distributions"
     Description = "Draw a box and whisker plot."
     Keywords: str = "box plot boxplot scatola baffi whisker quartili quartiles groups gruppi"
-    Goals: list[str] = ["compare", "describe"]
+    Goals: ClassVar[list[str]] = ["compare", "describe"]
     Link="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html"
     
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "notch": {
             "default": None,
             kwarg_spec.STYLE_DEFAULT: True,

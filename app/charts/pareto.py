@@ -15,7 +15,7 @@ things.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -40,16 +40,16 @@ class ParetoAxisRenderer(BarAxisRenderer, BaseAxisRenderer):
         "percentage line, for finding the few causes behind most of an effect."
     )
     Keywords: str = "pareto causes cause defects difetti 80/20 priority priorita"
-    Goals: list[str] = ["process", "describe"]
+    Goals: ClassVar[list[str]] = ["process", "describe"]
     Link: str = (
         "https://matplotlib.org/stable/gallery/lines_bars_and_markers/bar_label_demo.html"
     )
 
-    RequiredRoles: list[str] = ["Y"]
-    OptionalRoles: list[str] = ["X", "color", "YError", "XError", "Bottom", "Left"]
+    RequiredRoles: ClassVar[list[str]] = ["Y"]
+    OptionalRoles: ClassVar[list[str]] = ["X", "color", "YError", "XError", "Bottom", "Left"]
 
     #: Unchanged from the bar renderer: a Pareto chart draws bars.
-    Kwargs: dict[str, Any] = dict(BarAxisRenderer.Kwargs)
+    Kwargs: ClassVar[dict[str, Any]] = dict(BarAxisRenderer.Kwargs)
 
     #: The bar renderer's options, plus this chart's own.  These used to
     #: sit in Kwargs beside the real keywords and be removed again on the

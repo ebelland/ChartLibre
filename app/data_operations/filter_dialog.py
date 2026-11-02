@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from app.analysis.filtering import (
@@ -208,7 +208,7 @@ class SeriesFilterDialog(DataOperationDialogBase):
         "filtro filtraggio filter low-pass passa basso high-pass passa alto band-pass butterworth "
         "detrend trend demodulate scipy signal"
     )
-    Goals: list[str] = ["signal"]
+    Goals: ClassVar[list[str]] = ["signal"]
     Category: str = "Signal Processing"
     Order: int = 81
 

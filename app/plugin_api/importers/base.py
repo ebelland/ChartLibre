@@ -19,7 +19,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -51,11 +51,11 @@ class FileImporter:
     Name: str = ""
     Description: str = ""
     #: The suffixes it reads, lower case with the dot: [".s2p"].
-    Suffixes: list[str] = []
+    Suffixes: ClassVar[list[str]] = []
     #: Its group in the file chooser and the manual: "RF", "Statistics software"...
     Category: str = "Other"
     #: The packages it needs, by the name pip installs them by; empty for none.
-    Packages: list[str] = []
+    Packages: ClassVar[list[str]] = []
     Order: int = 100
 
     def datasets(self, path: str) -> list[str]:

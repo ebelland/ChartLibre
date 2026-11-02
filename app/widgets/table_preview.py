@@ -8,7 +8,7 @@ edit) that are implemented on the repository.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, Qt, Signal
@@ -625,7 +625,7 @@ class TablePreviewPanel(QWidget):
     #: Per flag column: the submenu's title, then its four labels - the
     #: verb, the comparison tooltip, the empty-cells item and its tooltip,
     #: the same-as-cell item and its tooltip.
-    _FLAG_MENU_TEXT: dict[str, tuple[str, str, str, str, str, str]] = {
+    _FLAG_MENU_TEXT: ClassVar[dict[str, tuple[str, str, str, str, str, str]]] = {
         "Hide": (
             "Hide rows by selected column",
             "Hide rows where {column} {operator} value",

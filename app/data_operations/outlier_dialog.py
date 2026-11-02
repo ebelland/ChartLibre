@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -264,7 +264,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
         "anomalies anomalie outlier valori anomali esclusi grubbs iqr z-score mahalanobis isolation "
         "forest"
     )
-    Goals: list[str] = ["anomalies"]
+    Goals: ClassVar[list[str]] = ["anomalies"]
     Category: str = "Screening"
     Order: int = 50
 

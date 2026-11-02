@@ -31,7 +31,7 @@ that comes from ``kwarg_spec`` directly rather than from another renderer.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib import rcParams
@@ -110,11 +110,11 @@ class QuiverAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/arrays/quiver.html"
 
-    RequiredRoles: list[str] = ["x", "y", "u", "v"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "u", "v"]
     #: A fifth column colours the arrows through the colormap - wind speed,
     #: vorticity, error magnitude - which is the usual reason a quiver plot
     #: is preferred to barbs.
-    OptionalRoles: list[str] = ["color"]
+    OptionalRoles: ClassVar[list[str]] = ["color"]
 
     Kwargs: dict[str, Any] = merge(
         _FIELD_KWARGS,
@@ -266,8 +266,8 @@ class StreamAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/arrays/streamplot.html"
 
-    RequiredRoles: list[str] = ["x", "y", "u", "v"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "u", "v"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: Streamlines from two fields over one set of axes cross each other and
     #: mean nothing; the second is reported and skipped.

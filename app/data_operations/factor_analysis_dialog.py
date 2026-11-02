@@ -12,7 +12,7 @@ the score plot. The engine is app.analysis.multivariate.factor_analysis.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -46,7 +46,7 @@ class FactorAnalysisDialog(RolesOperationDialogBase):
         "promax rotation rotazione loadings saturazioni communality comunalità maximum likelihood "
         "principal axis assi principali"
     )
-    Goals: list[str] = ["explain", "groups"]
+    Goals: ClassVar[list[str]] = ["explain", "groups"]
 
     ROLES = (
         ColumnRole("response", "Y, columns", "The continuous columns whose correlations the factors explain.",

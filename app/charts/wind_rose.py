@@ -15,7 +15,7 @@ Needs a polar axes, which ``Projection`` asks for.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -36,17 +36,17 @@ class WindRoseAxisRenderer(BaseAxisRenderer):
         "second value such as the speed. Also for any angle or hour of the day."
     )
     Keywords: str = "wind rose polar bar direction compass angle circular rosa dei venti direzione"
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
     Projection: str = "polar"
     Link: str = "https://matplotlib.org/stable/gallery/pie_and_polar_charts/polar_bar.html"
 
-    RequiredRoles: list[str] = ["x"]
-    OptionalRoles: list[str] = ["y"]
+    RequiredRoles: ClassVar[list[str]] = ["x"]
+    OptionalRoles: ClassVar[list[str]] = ["y"]
 
     #: A second series would be drawn over the first one's bars.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "edgecolor": {"default": "white", "type": str, "kind": "color", "group": "Appearance",
                       "description": "Outline of each bar."},
         "linewidth": {"default": 0.5, "type": float, "min": 0.0, "max": 5.0, "group": "Appearance",

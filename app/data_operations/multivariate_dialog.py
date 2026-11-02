@@ -9,7 +9,7 @@ engine is app.analysis.multivariate.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -48,7 +48,7 @@ class MultivariateDialog(RolesOperationDialogBase):
         "multivariate multivariata correlation correlazione correlations correlazioni pearson spearman kendall "
         "correlation matrix matrice di correlazione scatterplot matrix matrice di dispersione p-value"
     )
-    Goals: list[str] = ["relate", "explain"]
+    Goals: ClassVar[list[str]] = ["relate", "explain"]
 
     ROLES = (
         ColumnRole("response", "Y, columns", "The continuous columns to correlate, two by two.",

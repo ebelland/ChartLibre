@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -100,7 +100,7 @@ class InControlDialog(DataOperationDialogBase):
         "process nelson western electric run rules limiti limits ucl lcl special cause causa speciale "
         "quick answer risposta rapida"
     )
-    Goals: list[str] = ["process", "anomalies"]
+    Goals: ClassVar[list[str]] = ["process", "anomalies"]
 
     DESTINATIONS = (DataOperationDialogBase.DEST_NONE, DataOperationDialogBase.DEST_NEW_FIGURE)
     DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_FIGURE

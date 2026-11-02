@@ -31,7 +31,7 @@ import io
 import math
 from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from typing import Any, ClassVar, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -341,7 +341,7 @@ class SeriesGeometryDialog(DataOperationDialogBase):
     <path d="M14.5 4.5l6.2 6.2-6.2 6.2-6.2-6.2z"/>
     """
     Keywords: str = "geometria rotate ruota translate trasla scale scala mirror specchia coordinates coordinate"
-    Goals: list[str] = ["prepare"]
+    Goals: ClassVar[list[str]] = ["prepare"]
     Category: str = "Transform"
     Order: int = 91
 

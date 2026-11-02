@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import html
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -36,7 +36,7 @@ class GageDialog(RolesOperationDialogBase):
         "gage r&r gauge r&r msa measurement system analysis analisi del sistema di misura ripetibilità "
         "riproducibilità repeatability reproducibility variability chart operatori parti ndc"
     )
-    Goals: list[str] = ["process"]
+    Goals: ClassVar[list[str]] = ["process"]
 
     ROLES = (
         ColumnRole("response", "Measurement", "The measured values.", kinds=(CONTINUOUS, ORDINAL),

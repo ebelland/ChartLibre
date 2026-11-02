@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -107,7 +107,7 @@ class NormalityDialog(DataOperationDialogBase):
         "anderson darling q-q qq plot skewness asimmetria kurtosis curtosi distribution distribuzione "
         "quick answer risposta rapida"
     )
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
 
     DESTINATIONS = (DataOperationDialogBase.DEST_NONE, DataOperationDialogBase.DEST_NEW_FIGURE)
     DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_FIGURE

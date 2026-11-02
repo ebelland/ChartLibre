@@ -16,7 +16,7 @@ Roles:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -35,14 +35,14 @@ class MultiVariAxisRenderer(BaseAxisRenderer):
         "where the variation is - within, between cells, between groups."
     )
     Keywords: str = "multi-vari multivari variability chart variabilità gage r&r gauge misura operatori parti"
-    Goals: list[str] = ["process", "compare"]
+    Goals: ClassVar[list[str]] = ["process", "compare"]
     Link: str = "https://www.jmp.com/support/help/en/18.0/#page/jmp/variability-gauge-charts.shtml"
 
-    RequiredRoles: list[str] = ["y", "x"]
-    OptionalRoles: list[str] = ["group"]
+    RequiredRoles: ClassVar[list[str]] = ["y", "x"]
+    OptionalRoles: ClassVar[list[str]] = ["group"]
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "markersize": {
             "default": 4.0, "type": float, "min": 0.5, "max": 20.0, "group": "Points",
             "description": "Size of each value's point.",

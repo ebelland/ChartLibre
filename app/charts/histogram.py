@@ -19,7 +19,7 @@ Data sets come from two places, and both can be mixed in one axis:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -51,19 +51,19 @@ class HistogramAxisRenderer(BaseAxisRenderer):
 
     FILLS_FROM_STYLE = True
 
-    RequiredRoles: list[str] = ["value"]
-    OptionalRoles: list[str] = ["dataset", "weight", "color"]
+    RequiredRoles: ClassVar[list[str]] = ["value"]
+    OptionalRoles: ClassVar[list[str]] = ["dataset", "weight", "color"]
 
     Name: str = "Histogram"
     Category: str = "Statistical distributions"
     Description: str = "Histogram supporting multiple data sets."
     Keywords: str = "istogramma frequency frequenza distribution distribuzione bins classi"
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
     Link: str = (
         "https://matplotlib.org/stable/gallery/statistics/histogram_multihist.html"
     )
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "orientation": {
             "default": "vertical",
             "type": list(_ORIENTATIONS),

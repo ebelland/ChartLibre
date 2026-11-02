@@ -9,7 +9,7 @@ plots for numbers, a mosaic for categories - with the report in its notes.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -37,7 +37,7 @@ class DifferencesDialog(QuickAnswerDialogBase):
         "anova kruskal mann-whitney chi-squared chi quadrato significant significativo quick answer "
         "risposta rapida"
     )
-    Goals: list[str] = ["compare"]
+    Goals: ClassVar[list[str]] = ["compare"]
 
     ROLES = (
         ColumnRole("response", "Measure", "What to compare: numbers (a weight, a time) or categories (pass/fail).",

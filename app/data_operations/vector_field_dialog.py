@@ -8,7 +8,7 @@ with their divergence and curl, and draws them: in 2D a heatmap of each, in
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -37,7 +37,7 @@ class VectorFieldDialog(RolesOperationDialogBase):
     """
     Keywords: str = ("vector field campo vettoriale divergence divergenza curl rotore vorticity vorticità flow "
                      "flusso gradient gradiente 3d quiver")
-    Goals: list[str] = ["signal", "relate"]
+    Goals: ClassVar[list[str]] = ["signal", "relate"]
 
     ROLES = (
         ColumnRole("x", "X", "The nodes' x.", kinds=(CONTINUOUS,), minimum=1, maximum=1),

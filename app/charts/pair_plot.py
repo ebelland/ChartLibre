@@ -15,7 +15,7 @@ Roles:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib.lines import Line2D
@@ -38,13 +38,13 @@ class PairPlotAxisRenderer(BaseAxisRenderer):
         "on the diagonal and the correlations above it."
     )
     Keywords: str = "matrice di dispersione scatterplot matrix correlation correlazione multivariate multivariata"
-    Goals: list[str] = ["relate", "explain"]
+    Goals: ClassVar[list[str]] = ["relate", "explain"]
     Link: str = "https://pandas.pydata.org/docs/reference/api/pandas.plotting.scatter_matrix.html"
 
-    RequiredRoles: list[str] = []
-    OptionalRoles: list[str] = [*PAIR_COLUMN_ROLES, "group"]
+    RequiredRoles: ClassVar[list[str]] = []
+    OptionalRoles: ClassVar[list[str]] = [*PAIR_COLUMN_ROLES, "group"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "s": {
             "default": 6.0,
             "type": float,

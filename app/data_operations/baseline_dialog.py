@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -119,7 +119,7 @@ class SeriesBaselineDialog(DataOperationDialogBase):
     <path d="M3 19h18" stroke-dasharray="2 2"/>
     """
     Keywords: str = "correzione linea di base baseline background fondo spectrum spettro asls rubber band"
-    Goals: list[str] = ["signal"]
+    Goals: ClassVar[list[str]] = ["signal"]
     Category: str = "Signal Processing"
     Order: int = 83
 

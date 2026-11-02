@@ -11,7 +11,7 @@ column), and group, which colours the lines.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib.lines import Line2D
@@ -31,13 +31,13 @@ class ParallelPlotAxisRenderer(BaseAxisRenderer):
         "and outliers across many measurements at once."
     )
     Keywords: str = "parallel coordinates coordinate parallele grafico parallelo multivariate multivariata profile profilo"
-    Goals: list[str] = ["relate", "groups", "anomalies"]
+    Goals: ClassVar[list[str]] = ["relate", "groups", "anomalies"]
     Link: str = "https://pandas.pydata.org/docs/reference/api/pandas.plotting.parallel_coordinates.html"
 
-    RequiredRoles: list[str] = []
-    OptionalRoles: list[str] = [*PAIR_COLUMN_ROLES, "group"]
+    RequiredRoles: ClassVar[list[str]] = []
+    OptionalRoles: ClassVar[list[str]] = [*PAIR_COLUMN_ROLES, "group"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "linewidth": {"default": 0.8, "type": float, "min": 0.1, "max": 10.0, "group": "Line",
                       "description": "Width of each row's line."},
         "alpha": {"default": 0.5, "type": float, "min": 0.0, "max": 1.0, "group": "Line",

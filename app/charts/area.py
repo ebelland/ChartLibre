@@ -22,7 +22,7 @@ drawing is the honest version of the relationship.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -62,10 +62,10 @@ class StackplotAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/basic/stackplot.html"
 
-    RequiredRoles: list[str] = ["x", "y"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
+    OptionalRoles: ClassVar[list[str]] = []
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         **_SHARED_KWARGS,
         "baseline": {
             "default": "zero",
@@ -149,10 +149,10 @@ class StairsAxisRenderer(BaseAxisRenderer):
 
     #: ``y`` is the value per step.  ``x`` is optional and read as the *edges*,
     #: which is why there is one more of them than of the values.
-    RequiredRoles: list[str] = ["y"]
-    OptionalRoles: list[str] = ["x"]
+    RequiredRoles: ClassVar[list[str]] = ["y"]
+    OptionalRoles: ClassVar[list[str]] = ["x"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         **_SHARED_KWARGS,
         "fill": {
             "default": False,
@@ -250,13 +250,13 @@ class StemAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/basic/stem.html"
 
-    RequiredRoles: list[str] = ["x", "y"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: Only ``label`` of the shared appearance set: ``ax.stem`` takes a fixed
     #: signature and raises on any other keyword - it is a helper that builds
     #: three artists, not a single artist accepting the usual properties.
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "label": _SHARED_KWARGS["label"],
         "linefmt": {
             "default": None,
@@ -355,12 +355,12 @@ class FillBetweenAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/basic/fill_between.html"
 
-    RequiredRoles: list[str] = ["x", "y"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y"]
     #: ``y2`` is the other edge.  Without it the fill runs to ``baseline``,
     #: which is how "everything above zero" is drawn.
-    OptionalRoles: list[str] = ["y2"]
+    OptionalRoles: ClassVar[list[str]] = ["y2"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         **_SHARED_KWARGS,
         "baseline": {
             "default": 0.0,
@@ -458,10 +458,10 @@ class BarbsAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/plot_types/arrays/barbs.html"
 
-    RequiredRoles: list[str] = ["x", "y", "u", "v"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "u", "v"]
+    OptionalRoles: ClassVar[list[str]] = []
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         **_SHARED_KWARGS,
         "length": {
             "default": 7.0,

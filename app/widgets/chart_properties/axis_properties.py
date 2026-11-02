@@ -11,7 +11,7 @@ that used to apply an edit per widget on every axis change.
 """
 from __future__ import annotations
 
-from typing import Any, Final, TypeAlias, cast
+from typing import Any, ClassVar, Final, TypeAlias, cast
 
 from PySide6.QtCore import QEvent, QObject, QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
@@ -284,7 +284,7 @@ class AxisPropertiesWidget(BaseProperties):
     # Coordinates: one set of controls, applied to the X, Y, Z ticked
     # ------------------------------------------------------------------
     #: A coordinate's settings as the card shows them; min/max None is Auto.
-    _COORDINATE_DEFAULTS: dict[str, Any] = {
+    _COORDINATE_DEFAULTS: ClassVar[dict[str, Any]] = {
         "label": "", "scale": "linear", "base": 10.0, "invert": False, "secondary": "", "break": "",
         "tick_length": 0.0, "tick_rotation": 0.0, "tick_length_minor": 0.0, "tick_rotation_minor": 0.0,
         "min": None, "max": None,

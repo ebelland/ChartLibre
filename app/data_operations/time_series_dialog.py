@@ -13,7 +13,7 @@ The engine is app.analysis.time_series.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -56,7 +56,7 @@ class TimeSeriesDialog(RolesOperationDialogBase):
         "livellamento esponenziale holt winters acf pacf autocorrelation autocorrelazione ljung-box "
         "stl seasonal decomposition decomposizione stagionale season stagione trend"
     )
-    Goals: list[str] = ["signal", "predict"]
+    Goals: ClassVar[list[str]] = ["signal", "predict"]
 
     ROLES = (
         ColumnRole("response", "Y, time series", "The measure, one value per time.",

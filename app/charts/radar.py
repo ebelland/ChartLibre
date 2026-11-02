@@ -14,7 +14,7 @@ column), and group, which gives one polygon each. Needs a polar axes, which
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -33,14 +33,14 @@ class RadarAxisRenderer(BaseAxisRenderer):
         "compare, each column on its own scale."
     )
     Keywords: str = "radar spider web star polar profile ragnatela multivariate"
-    Goals: list[str] = ["compare", "relate"]
+    Goals: ClassVar[list[str]] = ["compare", "relate"]
     Projection: str = "polar"
     Link: str = "https://matplotlib.org/stable/gallery/specialty_plots/radar_chart.html"
 
-    RequiredRoles: list[str] = []
-    OptionalRoles: list[str] = [*PAIR_COLUMN_ROLES, "group"]
+    RequiredRoles: ClassVar[list[str]] = []
+    OptionalRoles: ClassVar[list[str]] = [*PAIR_COLUMN_ROLES, "group"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "linewidth": {"default": 1.5, "type": float, "min": 0.1, "max": 10.0, "group": "Line",
                       "description": "Width of each polygon's outline."},
         "alpha": {"default": 0.2, "type": float, "min": 0.0, "max": 1.0, "group": "Line",

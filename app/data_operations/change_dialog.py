@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -98,7 +98,7 @@ class ChangeDialog(DataOperationDialogBase):
         "gradino change point punto di cambiamento before after prima dopo mann-kendall pettitt sen "
         "slope stabile stable quick answer risposta rapida"
     )
-    Goals: list[str] = ["signal", "process"]
+    Goals: ClassVar[list[str]] = ["signal", "process"]
 
     DESTINATIONS = (DataOperationDialogBase.DEST_NONE, DataOperationDialogBase.DEST_NEW_FIGURE)
     DEFAULT_DESTINATION = DataOperationDialogBase.DEST_NEW_FIGURE

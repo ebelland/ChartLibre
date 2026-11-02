@@ -8,7 +8,7 @@ drawing the same intervals as Rectangle patches instead.
 """
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import numpy as np
 import pandas as pd
@@ -39,10 +39,10 @@ class BrokenBarAxisRenderer(BaseAxisRenderer):
     Orientation: Orientation = "horizontal"
     Link: str = "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.broken_barh.html"
 
-    RequiredRoles: list[str] = ["category", "start", "duration"]
-    OptionalRoles: list[str] = ["color"]
+    RequiredRoles: ClassVar[list[str]] = ["category", "start", "duration"]
+    OptionalRoles: ClassVar[list[str]] = ["color"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "band_height": {
             "default": 0.8,
             "type": float,

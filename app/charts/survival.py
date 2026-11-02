@@ -18,7 +18,7 @@ Roles:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -40,13 +40,13 @@ class KaplanMeierAxisRenderer(BaseAxisRenderer):
         "and the log-rank test between groups."
     )
     Keywords: str = "sopravvivenza survival reliability affidabilita censored censurati log-rank time to event"
-    Goals: list[str] = ["compare", "predict"]
+    Goals: ClassVar[list[str]] = ["compare", "predict"]
     Link: str = "https://en.wikipedia.org/wiki/Kaplan%E2%80%93Meier_estimator"
 
-    RequiredRoles: list[str] = ["time", "event"]
-    OptionalRoles: list[str] = ["group"]
+    RequiredRoles: ClassVar[list[str]] = ["time", "event"]
+    OptionalRoles: ClassVar[list[str]] = ["group"]
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "linewidth": {
             "default": 1.6,
             "type": float,

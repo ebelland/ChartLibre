@@ -55,7 +55,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -432,7 +432,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
         "capacità di processo process capability cp cpk pp ppk cpm spec limits limiti di specifica "
         "lsl usl ppm"
     )
-    Goals: list[str] = ["process", "anomalies"]
+    Goals: ClassVar[list[str]] = ["process", "anomalies"]
     Category: str = "Quality and Process"
     Order: int = 60
 

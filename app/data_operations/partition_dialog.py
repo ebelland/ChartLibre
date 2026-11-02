@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import html
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pandas as pd
 from PySide6.QtCore import Qt
@@ -107,7 +107,7 @@ class PartitionDialog(RolesOperationDialogBase):
         "regression tree cart split partizioni partizione segmentation segmentazione rules regole "
         "drivers importance importanza"
     )
-    Goals: list[str] = ["explain", "predict", "classify", "groups"]
+    Goals: ClassVar[list[str]] = ["explain", "predict", "classify", "groups"]
 
     ROLES = (
         ColumnRole("response", "Y", "The column to predict: continuous gives a regression tree, nominal a classification tree.",

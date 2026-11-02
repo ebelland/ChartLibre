@@ -16,7 +16,7 @@ from collections.abc import Callable, Mapping
 from functools import partial
 from pathlib import Path
 from time import monotonic
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, ClassVar, TYPE_CHECKING, cast
 
 import pandas as pd
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
@@ -1774,7 +1774,7 @@ class MainWindow(QMainWindow):
     #: Preferences and About are relocated by Cocoa itself into the
     #: application menu next to the apple, wherever they were declared, so
     #: they read here exactly the way they read in the rail's popup menu.
-    _MACOS_MENU_ROLES: dict[str, QAction.MenuRole] = {
+    _MACOS_MENU_ROLES: ClassVar[dict[str, QAction.MenuRole]] = {
         "settings": QAction.MenuRole.PreferencesRole,
         "credits": QAction.MenuRole.AboutRole,
     }
@@ -2189,7 +2189,7 @@ class MainWindow(QMainWindow):
     #: through the same generic "qt_itemFired:" selector as Preferences,
     #: indistinguishable from it by selector alone.  It is matched by
     #: position instead - see _rename_macos_native_app_menu_items.
-    _MACOS_APP_MENU_SELECTORS: dict[str, str] = {
+    _MACOS_APP_MENU_SELECTORS: ClassVar[dict[str, str]] = {
         "hide:": "Hide",
         "terminate:": "Close",
     }
@@ -2261,7 +2261,7 @@ class MainWindow(QMainWindow):
     # ==================================================================
     #: What a property is called in its Undo step (S-01): "Colour of 'Monthly mean'". Another key: its own
     #: name, in words.
-    _PROPERTY_NAMES: dict[str, str] = {
+    _PROPERTY_NAMES: ClassVar[dict[str, str]] = {
         "color": "Colour", "linestyle": "Line style", "linewidth": "Line width", "marker": "Marker",
         "markersize": "Marker size", "alpha": "Opacity", "label": "Name", "sql_query": "Query", "title": "Title",
         "x_label": "X label", "y_label": "Y label", "grid": "Grid", "legend": "Legend", "xscale": "X scale",
@@ -3612,7 +3612,7 @@ class MainWindow(QMainWindow):
     #: Cursor shape for each edge/corner combination _resize_edge_at can
     #: return. Absent from here (the interior, or a maximized window) means
     #: the ordinary arrow.
-    _RESIZE_CURSORS: dict[Qt.Edge, Qt.CursorShape] = {
+    _RESIZE_CURSORS: ClassVar[dict[Qt.Edge, Qt.CursorShape]] = {
         Qt.Edge.LeftEdge: Qt.CursorShape.SizeHorCursor,
         Qt.Edge.RightEdge: Qt.CursorShape.SizeHorCursor,
         Qt.Edge.TopEdge: Qt.CursorShape.SizeVerCursor,

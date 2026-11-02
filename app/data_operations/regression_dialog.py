@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from app.analysis.regression import (
@@ -204,7 +204,7 @@ class SeriesRegressionDialog(DataOperationDialogBase):
         "regressione robust robusta machine learning random forest gradient boosting svr huber ransac "
         "theil-sen ml"
     )
-    Goals: list[str] = ["relate", "predict"]
+    Goals: ClassVar[list[str]] = ["relate", "predict"]
     Category: str = "Predictive and Specialized Modeling"
     Order: int = 33
 

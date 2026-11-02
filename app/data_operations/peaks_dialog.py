@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -202,7 +202,7 @@ class SeriesPeaksDialog(DataOperationDialogBase):
         "picchi peak detection trova picchi maxima massimi width larghezza area prominence prominenza "
         "spectrum spettro"
     )
-    Goals: list[str] = ["signal"]
+    Goals: ClassVar[list[str]] = ["signal"]
     Category: str = "Curves"
     Order: int = 70
 

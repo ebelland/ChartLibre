@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any, ClassVar, Final
 
 import numpy as np
 import pandas as pd
@@ -324,7 +324,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
         "cluster clustering raggruppamento gruppi groups k-means kmeans k means dbscan hierarchical gerarchico "
         "ward normal mixtures miscele normali gaussian mixture silhouette segmentation segmentazione"
     )
-    Goals: list[str] = ["groups"]
+    Goals: ClassVar[list[str]] = ["groups"]
     Category: str = "Multivariate Methods"
     Order: int = 45
 

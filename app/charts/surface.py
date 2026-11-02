@@ -35,7 +35,7 @@ change for 3D support.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib import rcParams
@@ -86,11 +86,11 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
     Category: str = "3D and volumetric data"
     Description: str = "3D surface over a regular x/y grid."
     Keywords: str = "superficie 3d response surface superficie di risposta"
-    Goals: list[str] = ["explain"]
+    Goals: ClassVar[list[str]] = ["explain"]
     Link: str = "https://matplotlib.org/stable/gallery/mplot3d/surface3d.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: Two surfaces sharing one set of axes occlude each other.
     MaxSeries: int | None = 1
@@ -247,15 +247,15 @@ class TriSurfaceAxisRenderer(BaseAxisRenderer):
     Description: str = "3D triangulated surface for scattered (non-gridded) x/y/z data."
     Link: str = "https://matplotlib.org/stable/gallery/mplot3d/trisurf3d.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     #: Two surfaces sharing one set of axes occlude each other.
     MaxSeries: int | None = 1
 
     #: The gridded renderer's, without the two grid-only sampling keywords:
     #: ``plot_trisurf`` walks triangles, not rows and columns.
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         key: value
         for key, value in SurfaceAxisRenderer.Kwargs.items()
         if key not in ("rstride", "cstride")
@@ -273,7 +273,7 @@ class TriSurfaceAxisRenderer(BaseAxisRenderer):
     }
 
     #: No mask: it blanks cells of a grid, and there is no grid here.
-    Options: dict[str, Any] = dict(VIEW_OPTIONS)
+    Options: ClassVar[dict[str, Any]] = dict(VIEW_OPTIONS)
 
     def render_axis(
         self,
@@ -336,8 +336,8 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/gallery/mplot3d/scatter3d.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = ["color", "size"]
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = ["color", "size"]
 
     Kwargs: dict[str, Any] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
@@ -391,7 +391,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
     )
 
     #: The camera, read here and applied to the axes rather than forwarded.
-    Options: dict[str, Any] = dict(VIEW_OPTIONS)
+    Options: ClassVar[dict[str, Any]] = dict(VIEW_OPTIONS)
 
     def render_axis(
         self,
@@ -511,8 +511,8 @@ class Line3DAxisRenderer(BaseAxisRenderer):
     )
     Link: str = "https://matplotlib.org/stable/gallery/mplot3d/lines3d.html"
 
-    RequiredRoles: list[str] = ["x", "y", "z"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     Kwargs: dict[str, Any] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
@@ -537,7 +537,7 @@ class Line3DAxisRenderer(BaseAxisRenderer):
     )
 
     #: The camera, read here and applied to the axes rather than forwarded.
-    Options: dict[str, Any] = dict(VIEW_OPTIONS)
+    Options: ClassVar[dict[str, Any]] = dict(VIEW_OPTIONS)
 
     def render_axis(
         self,

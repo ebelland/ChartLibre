@@ -15,7 +15,7 @@ flows and lays out as many stages as it has.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from matplotlib.patches import PathPatch, Rectangle
@@ -60,20 +60,20 @@ class SankeyAxisRenderer(BaseAxisRenderer):
         "it went, and how it divided on the way."
     )
     Keywords: str = "sankey flow flows alluvial energy budget funnel flusso diagramma di flusso"
-    Goals: list[str] = ["describe"]
+    Goals: ClassVar[list[str]] = ["describe"]
     Link: str = "https://matplotlib.org/stable/api/sankey_api.html"
 
-    RequiredRoles: list[str] = ["source", "target", "value"]
-    OptionalRoles: list[str] = []
+    RequiredRoles: ClassVar[list[str]] = ["source", "target", "value"]
+    OptionalRoles: ClassVar[list[str]] = []
 
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = {
+    Kwargs: ClassVar[dict[str, Any]] = {
         "alpha": {"default": 0.45, "type": float, "min": 0.0, "max": 1.0, "step": 0.05, "group": "Appearance",
                   "description": "Opacity of the ribbons."},
     }
 
-    Options: dict[str, Any] = {
+    Options: ClassVar[dict[str, Any]] = {
         "node_width": {"default": 0.04, "type": float, "min": 0.005, "max": 0.2, "step": 0.005, "group": "Layout",
                        "description": "Width of a node, as a share of the picture's width."},
         "node_gap": {"default": 0.04, "type": float, "min": 0.0, "max": 0.3, "step": 0.01, "group": "Layout",
