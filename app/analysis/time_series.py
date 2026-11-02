@@ -410,22 +410,9 @@ def _exogenous(data: pd.DataFrame, times: pd.Series, temporal: bool, input: str,
     return exog, future_values, skip
 
 
-def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: str = ARIMA,
-            order: tuple[int, int, int] = (1, 0, 0), seasonal_order: tuple[int, int, int] = (0, 0, 0),
-            season: int = -1, horizon: int = 12, lags: int = 25, input: str = "", input_in_model: bool = False,
-            intervention: str = "", intervention_kind: str = "step", validate: bool = False) -> TimeSeriesResult:
-    """*measure* in the order of *time*: autocorrelations, its decomposition and a forecast.
-
-    *season* -1 finds it from the dates (none for numbers), 0 means none. *seasonal_order* (P, D, Q)
-    applies with a season. *input*, another column, gives the cross-correlation with the measure and,
-    *input_in_model*, enters an ARIMA at the lag its prewhitened cross-correlation peaks (a transfer
-    function). *intervention*, a time, adds a step (or pulse) from then on to an ARIMA. With an input, a VAR
-    of the two tests Granger causality each way. *validate* forecasts the last values one step ahead from the
-    ones before them (rolling origin) and compares the model with the naive forecasts.
-    """
-    from statsmodels.stats.diagnostic import acorr_ljungbox
-    from statsmodels.tsa.stattools import acf, pacf
-
+def _prepared(frame: pd.DataFrame, measure: str, time: str, input: str, season: int,
+              notes: list[str]) -> tuple[pd.DataFrame, pd.Series, bool, int]:
+    """The rows with a value, in time order, their times, whether those are dates, and the season length."""
     columns = [measure, time] if time else [measure]
     if input:
         columns.append(input)
@@ -436,7 +423,6 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
     data = data.dropna().reset_index(drop=True)
     if len(data) < 10:
         raise ValueError(f"{len(data)} values are too few for a time series: at least 10 are needed.")
-    notes: list[str] = []
     if time:
         times, temporal = _order(data, time)
         sort = np.argsort(times.to_numpy(), kind="stable")
@@ -453,16 +439,105 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         notes.append(f"A season of {season} needs at least {2 * season + 1} values: no seasonal part.")
         season = 0
 
-    lags = int(max(1, min(lags, n // 2 - 1)))
+    return data, times, temporal, season
+
+
+def _correlations(y: np.ndarray, lags: int) -> pd.DataFrame:
+    """ACF, PACF and Ljung-Box at each lag, with the 2/sqrt(n) band."""
+    from statsmodels.stats.diagnostic import acorr_ljungbox
+    from statsmodels.tsa.stattools import acf, pacf
+
     acf_values = acf(y, nlags=lags, fft=True)
     pacf_values = pacf(y, nlags=lags, method="ywm")
     ljung = acorr_ljungbox(y, lags=list(range(1, lags + 1)))
-    band = 2.0 / np.sqrt(n)
-    correlations = pd.DataFrame({
+    band = 2.0 / np.sqrt(y.size)
+    return pd.DataFrame({
         "Lag": np.arange(1, lags + 1), "ACF": acf_values[1:], "PACF": pacf_values[1:],
         "Ljung-Box Q": ljung["lb_stat"].to_numpy(), "Prob>Q": ljung["lb_pvalue"].to_numpy(),
         "Upper band": band, "Lower band": -band,
     })
+
+
+def _input_relation(y: np.ndarray, x_values: np.ndarray, measure: str, input: str, lags: int, differences: int,
+                    summary: dict[str, Any], notes: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, int]:
+    """The measure against the input: cross-correlations (plain and prewhitened), Granger causality each way,
+    and the lag at which the input leads it most."""
+    cross = cross_correlation(y, x_values, lags)
+    white_x, white_y, ar_order = prewhiten(x_values, y)
+    cross["Prewhitened CCF"] = cross_correlation(white_y, white_x, lags)["CCF"].to_numpy()
+    cross["Prewhitened band"] = 2.0 / np.sqrt(white_y.size)
+    strongest = cross.loc[cross["Prewhitened CCF"].abs().idxmax()]
+    summary[f"Strongest cross-correlation with {input}"] = (
+        f"{strongest['Prewhitened CCF']:.3f} at lag {int(strongest['Lag'])} (prewhitened)")
+    ahead = cross[cross["Lag"] >= 0]
+    lead = int(ahead.loc[ahead["Prewhitened CCF"].abs().idxmax(), "Lag"])
+    notes.append(f"Lag k > 0: {measure} follows {input} by k steps; k < 0: it leads. Prewhitened: both "
+                 f"filtered by {input}'s own AR({ar_order}), so that two series which merely wander do "
+                 "not look related.")
+    granger_table = pd.DataFrame()
+    try:
+        granger_table = granger(y, x_values, measure, input, differences=min(differences, 2))
+    except (ValueError, np.linalg.LinAlgError) as exc:
+        notes.append(f"Granger causality could not be tested: {exc}")
+    else:
+        if differences:
+            notes.append(f"Granger: the VAR is of the series differenced {differences} time(s), as the "
+                         "stationarity tests suggest.")
+    return cross, granger_table, lead
+
+
+def _residual_diagnostics(residual_values: np.ndarray, summary: dict[str, Any], notes: list[str]) -> pd.DataFrame:
+    """The randomness tests of a model's residuals; a pattern left behind is said in *notes*."""
+    residual_diagnostics = pd.DataFrame(columns=["Test", "n", "Statistic", "Prob", "Note"])
+    diagnostic_lag = min(10, max(1, residual_values.size // 5))
+    try:
+        diagnostics = all_diagnostics(
+            residual_values,
+            lags=tuple(dict.fromkeys((1, 5, diagnostic_lag))),
+            model_df=0,
+            centre=0.0,
+        )
+        residual_diagnostics = pd.DataFrame([
+            {"Test": item.test, "n": item.n, "Statistic": item.statistic,
+             "Prob": item.pvalue, "Note": item.note}
+            for item in diagnostics
+        ])
+        for item in diagnostics:
+            if not item.available:
+                applogger.warning(f"Residual diagnostic {item.test}: {item.note}")
+        ljung_rows = [item for item in diagnostics if item.test == f"Ljung-Box (lag {diagnostic_lag})"]
+        if ljung_rows and np.isfinite(ljung_rows[0].pvalue):
+            ljung_p = float(ljung_rows[0].pvalue)
+            summary["Residuals: Ljung-Box Prob>Q"] = ljung_p
+            if ljung_p < 0.05:
+                notes.append("The residuals are still autocorrelated (Ljung-Box p < 0.05): the model leaves "
+                             "a pattern behind - try another order, or a season.")
+    except Exception as exc:  # noqa: BLE001 - the fitted model remains usable
+        applogger.error(f"Residual randomness diagnostics failed: {exc}")
+        notes.append(f"Residual randomness diagnostics could not be computed: {exc}")
+    return residual_diagnostics
+
+
+def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: str = ARIMA,
+            order: tuple[int, int, int] = (1, 0, 0), seasonal_order: tuple[int, int, int] = (0, 0, 0),
+            season: int = -1, horizon: int = 12, lags: int = 25, input: str = "", input_in_model: bool = False,
+            intervention: str = "", intervention_kind: str = "step", validate: bool = False) -> TimeSeriesResult:
+    """*measure* in the order of *time*: autocorrelations, its decomposition and a forecast.
+
+    *season* -1 finds it from the dates (none for numbers), 0 means none. *seasonal_order* (P, D, Q)
+    applies with a season. *input*, another column, gives the cross-correlation with the measure and,
+    *input_in_model*, enters an ARIMA at the lag its prewhitened cross-correlation peaks (a transfer
+    function). *intervention*, a time, adds a step (or pulse) from then on to an ARIMA. With an input, a VAR
+    of the two tests Granger causality each way. *validate* forecasts the last values one step ahead from the
+    ones before them (rolling origin) and compares the model with the naive forecasts.
+    """
+    notes: list[str] = []
+    data, times, temporal, season = _prepared(frame, measure, time, input, season, notes)
+    y = data[measure].to_numpy(float)
+    n = y.size
+
+    lags = int(max(1, min(lags, n // 2 - 1)))
+    correlations = _correlations(y, lags)
 
     rows = pd.DataFrame({"Time": times.dt.strftime("%Y-%m-%d %H:%M:%S").str.replace(" 00:00:00", "")
                          if temporal else times, measure: y})
@@ -476,31 +551,10 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
                                "Season length": season or "none"}
     tests, differences = stationarity(y)
     summary["Differences suggested (ADF, KPSS)"] = differences
-    cross = pd.DataFrame()
-    granger_table = pd.DataFrame()
-    lead = 0
+    cross, granger_table, lead = pd.DataFrame(), pd.DataFrame(), 0
     if input:
-        x_values = data[input].to_numpy(float)
-        cross = cross_correlation(y, x_values, lags)
-        white_x, white_y, ar_order = prewhiten(x_values, y)
-        cross["Prewhitened CCF"] = cross_correlation(white_y, white_x, lags)["CCF"].to_numpy()
-        cross["Prewhitened band"] = 2.0 / np.sqrt(white_y.size)
-        strongest = cross.loc[cross["Prewhitened CCF"].abs().idxmax()]
-        summary[f"Strongest cross-correlation with {input}"] = (
-            f"{strongest['Prewhitened CCF']:.3f} at lag {int(strongest['Lag'])} (prewhitened)")
-        ahead = cross[cross["Lag"] >= 0]
-        lead = int(ahead.loc[ahead["Prewhitened CCF"].abs().idxmax(), "Lag"])
-        notes.append(f"Lag k > 0: {measure} follows {input} by k steps; k < 0: it leads. Prewhitened: both "
-                     f"filtered by {input}'s own AR({ar_order}), so that two series which merely wander do "
-                     "not look related.")
-        try:
-            granger_table = granger(y, x_values, measure, input, differences=min(differences, 2))
-        except (ValueError, np.linalg.LinAlgError) as exc:
-            notes.append(f"Granger causality could not be tested: {exc}")
-        else:
-            if differences:
-                notes.append(f"Granger: the VAR is of the series differenced {differences} time(s), as the "
-                             "stationarity tests suggest.")
+        cross, granger_table, lead = _input_relation(y, data[input].to_numpy(float), measure, input, lags,
+                                                     differences, summary, notes)
     exog, exog_future_parts, skip = _exogenous(data, times, temporal, input if input_in_model else "", lead,
                                                intervention, intervention_kind, notes)
     y_fit = y[skip:]
@@ -569,33 +623,7 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
         summary.update({"Model": label, "AIC": float(fitted.aic), "BIC": float(fitted.bic),
                         "RMSE of residuals": float(np.sqrt(np.mean(residuals[burn:] ** 2))),
                         "Forecast periods": horizon})
-        residual_values = residuals[burn:]
-        diagnostic_lag = min(10, max(1, residual_values.size // 5))
-        try:
-            diagnostics = all_diagnostics(
-                residual_values,
-                lags=tuple(dict.fromkeys((1, 5, diagnostic_lag))),
-                model_df=0,
-                centre=0.0,
-            )
-            residual_diagnostics = pd.DataFrame([
-                {"Test": item.test, "n": item.n, "Statistic": item.statistic,
-                 "Prob": item.pvalue, "Note": item.note}
-                for item in diagnostics
-            ])
-            for item in diagnostics:
-                if not item.available:
-                    applogger.warning(f"Residual diagnostic {item.test}: {item.note}")
-            ljung_rows = [item for item in diagnostics if item.test == f"Ljung-Box (lag {diagnostic_lag})"]
-            if ljung_rows and np.isfinite(ljung_rows[0].pvalue):
-                ljung_p = float(ljung_rows[0].pvalue)
-                summary["Residuals: Ljung-Box Prob>Q"] = ljung_p
-                if ljung_p < 0.05:
-                    notes.append("The residuals are still autocorrelated (Ljung-Box p < 0.05): the model leaves "
-                                 "a pattern behind - try another order, or a season.")
-        except Exception as exc:  # noqa: BLE001 - the fitted model remains usable
-            applogger.error(f"Residual randomness diagnostics failed: {exc}")
-            notes.append(f"Residual randomness diagnostics could not be computed: {exc}")
+        residual_diagnostics = _residual_diagnostics(residuals[burn:], summary, notes)
     validation = pd.DataFrame()
     if validate and model != NONE:
         if exog is not None:
