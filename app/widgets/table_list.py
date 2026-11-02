@@ -537,30 +537,7 @@ class TableListPanel(QWidget):
 
 
     def _show_context_menu(self, pos: PySide6.QtCore.QPoint) -> None:
-        clicked_index = self._view.indexAt(pos)
-        if clicked_index.isValid():
-            sm = self._view.selectionModel()
-            if sm is not None:
-                clicked_row = clicked_index.row()
-                clicked_table_index = self._model.index(clicked_row, self.COL_TABLE)
-
-                # Do not call selectRow() here. On a right-click it clears the
-                # existing multi-selection. Keep the selected rows exactly as
-                # they are and only move the current index used by Plot/Export.
-                sm.setCurrentIndex(
-                    clicked_table_index,
-                    PySide6.QtCore.QItemSelectionModel.SelectionFlag.NoUpdate,
-                )
-
-                # If the user opens the context menu with no selected rows,
-                # create a single selection for the clicked row.
-                if not sm.hasSelection():
-                    sm.select(
-                        clicked_table_index,
-                        PySide6.QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
-                        | PySide6.QtCore.QItemSelectionModel.SelectionFlag.Rows,
-                    )
-
+        self._select_clicked_row(pos)
         table, has_link = self._selected_row_info()
         selected_tables = self.selected_tables()
         if (not table and not selected_tables) or self._repo is None:
@@ -569,35 +546,13 @@ class TableListPanel(QWidget):
         if parent is None:
             return
 
-        fn = callable(getattr(parent, "_on_new_plot_tab", None))
-        # Named for what is actually selected: "Delete selected tables" over a
-        # saved query is a menu entry that promises the wrong thing.
         selected_sources = self.selected_sources()
         has_query = any(kind != "table" for _name, kind in selected_sources)
         has_function = any(kind == "function" for _name, kind in selected_sources)
-        if len(selected_sources) > 1:
-            delete_text = (
-                _("Delete selected items…") if has_query else _("Delete selected tables…")
-            )
-            delete_tip = (
-                _("Delete {count} selected items").format(count=len(selected_sources))
-                if has_query
-                else _("Delete {count} selected tables").format(
-                    count=len(selected_sources)
-                )
-            )
-        else:
-            delete_text = _("Delete…")
-            delete_tip = (
-                _("Delete the selected stored function")
-                if has_function
-                else _("Delete the selected saved query")
-                if has_query
-                else _("Delete the selected table")
-            )
+        delete_text, delete_tip = self._delete_texts(selected_sources)
 
         items: list[MenuItem | None] = []
-        if fn is not None:
+        if callable(getattr(parent, "_on_new_plot_tab", None)):
             items.append(
                 MenuItem(
                     # The Analysis panel's name for it: one action, one name (todo H-14).
@@ -614,40 +569,7 @@ class TableListPanel(QWidget):
             )
             items.append(None)
 
-        # The whole table is managed here; the data preview below works on
-        # the cells selected in it - an action belongs to one menu, not both.
-        # Editing: the table in the editor, a saved query in the Query
-        # Builder (opened empty from the menu bar and New Table).
-        if len(selected_sources) == 1 and not has_query:
-            items.append(
-                MenuItem(
-                    text=_("Edit table..."),
-                    tooltip=_(
-                        "Edit cells, add or delete rows and columns, change a "
-                        "column's type, and manage the Hide and ClusterId columns"
-                    ),
-                    callback=self._edit_table,
-                    icon="document-edit",
-                )
-            )
-        elif self._single_selected_function() is not None and callable(getattr(parent, "edit_stored_function", None)):
-            items.append(
-                MenuItem(
-                    text=_("Edit function…"),
-                    tooltip=_("Open this stored function in Functions: its formula, parameters and range"),
-                    callback=lambda: parent.edit_stored_function(self._single_selected_function() or ""),
-                    icon="document-edit",
-                )
-            )
-        elif self._single_selected_query() is not None:
-            items.append(
-                MenuItem(
-                    text=_("Edit query…"),
-                    tooltip=_("Open this saved query in the Query Builder"),
-                    callback=self._edit_selected_query,
-                    icon="query_builder",
-                )
-            )
+        items.extend(self._edit_items(parent, selected_sources, has_query))
         if not has_function:
             # A function is renamed in Function, where it is edited.
             items.append(
@@ -725,6 +647,100 @@ class TableListPanel(QWidget):
 
         menu = create_menu(self, items, icons=CONTEXT_MENU_ICONS)
         menu.exec(self._view.viewport().mapToGlobal(pos))
+
+    def _select_clicked_row(self, pos: PySide6.QtCore.QPoint) -> None:
+        """The row under a right-click made current, the selection kept; selected when nothing is."""
+        clicked_index = self._view.indexAt(pos)
+        if clicked_index.isValid():
+            sm = self._view.selectionModel()
+            if sm is not None:
+                clicked_row = clicked_index.row()
+                clicked_table_index = self._model.index(clicked_row, self.COL_TABLE)
+
+                # Do not call selectRow() here. On a right-click it clears the
+                # existing multi-selection. Keep the selected rows exactly as
+                # they are and only move the current index used by Plot/Export.
+                sm.setCurrentIndex(
+                    clicked_table_index,
+                    PySide6.QtCore.QItemSelectionModel.SelectionFlag.NoUpdate,
+                )
+
+                # If the user opens the context menu with no selected rows,
+                # create a single selection for the clicked row.
+                if not sm.hasSelection():
+                    sm.select(
+                        clicked_table_index,
+                        PySide6.QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
+                        | PySide6.QtCore.QItemSelectionModel.SelectionFlag.Rows,
+                    )
+
+    @staticmethod
+    def _delete_texts(selected_sources: list[tuple[str, str]]) -> tuple[str, str]:
+        """Delete's text and tooltip, named for what is selected."""
+        has_query = any(kind != "table" for _name, kind in selected_sources)
+        has_function = any(kind == "function" for _name, kind in selected_sources)
+        # Named for what is actually selected: "Delete selected tables" over a
+        # saved query is a menu entry that promises the wrong thing.
+        if len(selected_sources) > 1:
+            delete_text = (
+                _("Delete selected items…") if has_query else _("Delete selected tables…")
+            )
+            delete_tip = (
+                _("Delete {count} selected items").format(count=len(selected_sources))
+                if has_query
+                else _("Delete {count} selected tables").format(
+                    count=len(selected_sources)
+                )
+            )
+        else:
+            delete_text = _("Delete…")
+            delete_tip = (
+                _("Delete the selected stored function")
+                if has_function
+                else _("Delete the selected saved query")
+                if has_query
+                else _("Delete the selected table")
+            )
+        return delete_text, delete_tip
+
+    def _edit_items(self, parent: QWidget, selected_sources: list[tuple[str, str]], has_query: bool) -> list[MenuItem]:
+        """The Edit entry for the selection: the table, the stored function or the saved query."""
+        items: list[MenuItem] = []
+        # The whole table is managed here; the data preview below works on
+        # the cells selected in it - an action belongs to one menu, not both.
+        # Editing: the table in the editor, a saved query in the Query
+        # Builder (opened empty from the menu bar and New Table).
+        if len(selected_sources) == 1 and not has_query:
+            items.append(
+                MenuItem(
+                    text=_("Edit table..."),
+                    tooltip=_(
+                        "Edit cells, add or delete rows and columns, change a "
+                        "column's type, and manage the Hide and ClusterId columns"
+                    ),
+                    callback=self._edit_table,
+                    icon="document-edit",
+                )
+            )
+        elif self._single_selected_function() is not None and callable(getattr(parent, "edit_stored_function", None)):
+            items.append(
+                MenuItem(
+                    text=_("Edit function…"),
+                    tooltip=_("Open this stored function in Functions: its formula, parameters and range"),
+                    callback=lambda: parent.edit_stored_function(self._single_selected_function() or ""),
+                    icon="document-edit",
+                )
+            )
+        elif self._single_selected_query() is not None:
+            items.append(
+                MenuItem(
+                    text=_("Edit query…"),
+                    tooltip=_("Open this saved query in the Query Builder"),
+                    callback=self._edit_selected_query,
+                    icon="query_builder",
+                )
+            )
+        return items
 
     def _single_selected_query(self) -> str | None:
         """The name of the selected saved query, when exactly one row is selected and it is one."""
