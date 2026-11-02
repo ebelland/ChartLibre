@@ -274,6 +274,65 @@ class ImportDataDialog(SettingsTableDialog):
         left_layout = QVBoxLayout(left)
         stdSizeAndlayout(left_layout)
 
+        source = self._build_source_card(left, cfg)
+        left_layout.addWidget(source)
+
+        # -- What the file says about its rows: the instrument, the setup, the units (closed; shown
+        # only for a file whose importer gives any). Kept with the table's information on OK.
+        self._metadata_card = TitledCard(left, _("Metadata"), "importMetadataCard", collapsible=True, collapsed=True)
+        self._metadata_text = QLabel("", self._metadata_card.card)
+        self._metadata_text.setWordWrap(True)
+        self._metadata_text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._metadata_card.card.layout().addWidget(self._metadata_text)
+        self._metadata_card.setVisible(False)
+        left_layout.addWidget(self._metadata_card)
+
+        web = self._build_web_card(left)
+        left_layout.addWidget(web)
+        # One source per way in (B-09): a file here, the web from its own
+        # button on the New table page - the clipboard has its own too.
+        source.setVisible(not web_mode)
+        web.setVisible(web_mode)
+
+        self._read_card = self._build_read_card(left, cfg)
+        left_layout.addWidget(self._read_card)
+
+        left_layout.addWidget(self._build_values_card(left, cfg))
+
+        left_layout.addWidget(self._build_columns_card(left, cfg), 1)
+
+        # Scrolls rather than sets the dialog's minimum height: stacked, the
+        # cards needed 826 px, more than a 1366 x 768 laptop's screen has
+        # (the Columns card still takes whatever height is spare).
+        scroll = QScrollArea(self.settings_frame)
+        scroll.setObjectName("importSettingsScroll")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # The window's ground shows through: no grey band behind the frames.
+        scroll.setStyleSheet("QScrollArea#importSettingsScroll, QScrollArea#importSettingsScroll > QWidget > QWidget "
+                             "{ background: transparent; }")
+        left.setAutoFillBackground(False)
+        scroll.setWidget(left)
+        self.settings_frame.layout().addWidget(scroll, 1)
+
+        # ---------------- Right: preview ----------------
+        preview_card = self.add_content_card(_("Preview"), "importPreviewCard", stretch=1)
+        self._preview = TablePreviewPanel(preview_card, self._repo)
+        self._preview.refresh.connect(self._schedule_preview)
+        preview_card.layout().addWidget(self._preview, 1)
+
+        self._btn_ok = self.add_action("apply", self._on_accept, default=True)
+        self.add_action("close", self.reject)
+
+        # ---------------- Events & shortcuts ----------------
+
+        self._connect_option_signals()
+
+        self.file_name:str=""
+
+    def _build_source_card(self, left: QWidget, cfg: dict) -> TitledCard:
+        """The Source card: the file and, for a workbook, its sheet."""
         # -- Source: a file (the clipboard has its own button on the New table page); Excel's sheet.
         source = TitledCard(left, _("Source"), "importSourceCard")
         source_layout = source.card.layout()
@@ -314,18 +373,10 @@ class ImportDataDialog(SettingsTableDialog):
         if self._sheet_label is not None:
             self._sheet_label.setVisible(False)
         source_layout.addLayout(form)
-        left_layout.addWidget(source)
+        return source
 
-        # -- What the file says about its rows: the instrument, the setup, the units (closed; shown
-        # only for a file whose importer gives any). Kept with the table's information on OK.
-        self._metadata_card = TitledCard(left, _("Metadata"), "importMetadataCard", collapsible=True, collapsed=True)
-        self._metadata_text = QLabel("", self._metadata_card.card)
-        self._metadata_text.setWordWrap(True)
-        self._metadata_text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._metadata_card.card.layout().addWidget(self._metadata_text)
-        self._metadata_card.setVisible(False)
-        left_layout.addWidget(self._metadata_card)
-
+    def _build_web_card(self, left: QWidget) -> TitledCard:
+        """The Web card: a quick-pick source or an address, then Fetch."""
         # -- Web: a quick-pick source or an address, then Fetch.
         web = TitledCard(left, _("Web"), "importWebCard")
         web_layout = web.card.layout()
@@ -366,12 +417,10 @@ class ImportDataDialog(SettingsTableDialog):
             parent=web.card, action_id="fetch_url", action=self._on_fetch_url, layout=url_row
         )
         web_layout.addLayout(url_row)
-        left_layout.addWidget(web)
-        # One source per way in (B-09): a file here, the web from its own
-        # button on the New table page - the clipboard has its own too.
-        source.setVisible(not web_mode)
-        web.setVisible(web_mode)
+        return web
 
+    def _build_read_card(self, left: QWidget, cfg: dict) -> TitledCard:
+        """The Read options card: delimiter, encoding, header and rows to skip."""
         # -- Read options: closed - the delimiter and the encoding are found
         # by themselves, the header nearly always is the first row (todo H-10).
         read = TitledCard(left, _("Read options"), "importReadCard", collapsible=True, collapsed=True)
@@ -438,9 +487,10 @@ class ImportDataDialog(SettingsTableDialog):
                 read.card,
             )
         )
-        left_layout.addWidget(read)
-        self._read_card = read
+        return read
 
+    def _build_values_card(self, left: QWidget, cfg: dict) -> TitledCard:
+        """The Values card: missing-value codes and how the dates are written."""
         # -- Values: what is missing, how the dates are written (closed; for every source, the
         # importers' files too - unlike Read options).
         values = TitledCard(left, _("Values"), "importValuesCard", collapsible=True, collapsed=True)
@@ -468,13 +518,15 @@ class ImportDataDialog(SettingsTableDialog):
         self._empty_missing.setChecked(bool(cfg.get("empty_is_missing", True)))
         values_form.addRow("", self._empty_missing)
         values.card.layout().addLayout(values_form)
-        left_layout.addWidget(values)
         self._sync_date_format()
         self._date_order.currentIndexChanged.connect(lambda _i: (self._sync_date_format(), self._schedule_preview()))
         self._date_format.editingFinished.connect(self._schedule_preview)
         self._missing_codes.editingFinished.connect(self._schedule_preview)
         self._empty_missing.toggled.connect(lambda _on: self._schedule_preview())
+        return values
 
+    def _build_columns_card(self, left: QWidget, cfg: dict) -> TitledCard:
+        """The New table card: its name, and the columns the preview found with the type each will get."""
         # -- The new table: its name, then the columns the preview found and the type each will get.
         columns = TitledCard(left, _("New table"), "importColumnsCard")
         name_form = QFormLayout()
@@ -502,34 +554,10 @@ class ImportDataDialog(SettingsTableDialog):
         columns_layout = columns.layout()
         if isinstance(columns_layout, QBoxLayout):
             columns_layout.setStretch(columns_layout.count() - 1, 1)
-        left_layout.addWidget(columns, 1)
+        return columns
 
-        # Scrolls rather than sets the dialog's minimum height: stacked, the
-        # cards needed 826 px, more than a 1366 x 768 laptop's screen has
-        # (the Columns card still takes whatever height is spare).
-        scroll = QScrollArea(self.settings_frame)
-        scroll.setObjectName("importSettingsScroll")
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        # The window's ground shows through: no grey band behind the frames.
-        scroll.setStyleSheet("QScrollArea#importSettingsScroll, QScrollArea#importSettingsScroll > QWidget > QWidget "
-                             "{ background: transparent; }")
-        left.setAutoFillBackground(False)
-        scroll.setWidget(left)
-        self.settings_frame.layout().addWidget(scroll, 1)
-
-        # ---------------- Right: preview ----------------
-        preview_card = self.add_content_card(_("Preview"), "importPreviewCard", stretch=1)
-        self._preview = TablePreviewPanel(preview_card, self._repo)
-        self._preview.refresh.connect(self._schedule_preview)
-        preview_card.layout().addWidget(self._preview, 1)
-
-        self._btn_ok = self.add_action("apply", self._on_accept, default=True)
-        self.add_action("close", self.reject)
-
-        # ---------------- Events & shortcuts ----------------
-
+    def _connect_option_signals(self) -> None:
+        """Every read option re-reads the preview, a moment after it changes (the timer that waits for that)."""
         if hasattr(self, "_sheet"):
             self._sheet.currentIndexChanged.connect(lambda _=0: self._on_sheet_changed())  # type: ignore
 
@@ -545,8 +573,6 @@ class ImportDataDialog(SettingsTableDialog):
         self._preview_timer = QTimer(self)
         self._preview_timer.setSingleShot(True)
         self._preview_timer.timeout.connect(self._refresh_preview)  # type: ignore
-
-        self.file_name:str=""
 
     # ------------------------------------------------------------------
     # Preview
