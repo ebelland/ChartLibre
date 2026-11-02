@@ -13,7 +13,7 @@ that passes each selected series' data through unchanged, and the rest of
 the dialog shell (model selector, parameter form, preview pane) left at
 their base-class defaults for the user to override where their operation
 actually needs one. See DataOperationDialogBase's own docstring
-(app/plugin_api/data_operations/dialog_base/, hooks.py) for the full contract, and
+(app/plugin_api/data_operations/dialog_base.py) for the full contract, and
 app/data_operations/function_dialog.py for the smallest complete,
 hand-written dialog to read alongside it.
 """
@@ -21,7 +21,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.developer_helpers.developer_helper_base import DeveloperDialogBase, slug as _slug
+from app.developer_helpers.developer_helper_base import DeveloperDialogBase
+from app.developer_helpers.developer_helper_base import slug as _slug
 from app.utils.config import USER_DATA_OPERATIONS_DIR
 
 #: Where data_operation_scanner.py itself looks for the built-in
@@ -45,7 +46,7 @@ way every dialog under app/data_operations/ does at the top of its own
 file - app/data_operations/function_dialog.py is the smallest complete,
 hand-written example to read alongside this one, and
 DataOperationDialogBase's own docstring (app/plugin_api/data_operations/
-dialog_base/dialog.py, and the mixins beside it) documents every hook below plus the ones left out here
+dialog_base.py) documents every hook below plus the ones left out here
 (build_model_selector, PARAMS/build_parameter_selector, ...) because their
 base-class defaults already do something reasonable - override one only
 once this operation actually needs it.

@@ -10,9 +10,9 @@ import pytest
 from scipy.optimize import curve_fit
 
 from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.data_operations.fit_dialog import SeriesFitDialog
-from app.data_operations.fit_dialog.model_data import _merge_points_with_errors
+from app.data_operations.fit_dialog.dialog import _merge_points_with_errors
+from app.logs.logger import applogger
 
 RNG = np.random.default_rng(3)
 X = np.linspace(0.0, 10.0, 30)

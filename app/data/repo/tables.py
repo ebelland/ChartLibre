@@ -1,28 +1,36 @@
-"""The data itself: tables, what is in them, and how it gets there.
-
-Everything that reads or writes a *user* table rather than a descriptor -
-listing them, describing their columns, running queries against them,
-importing a DataFrame into one, the import links that say where a table
-came from, the Hide column the chart filters on, and renaming or deleting
-one (which has to reach into the series that draw it, hence
-_propagate_table_name).
-
-Part of ``SqliteRepo``; see ``app/data/repo/__init__.py``.
-"""
+"""The user tables: listing, reading, importing, renaming and deleting them, their Hide, Selected and
+ClusterId flags, and edits made by hand to cells, rows and columns."""
 from __future__ import annotations
 
 import json
 import re
 import sqlite3
 import struct
-from typing import Any, Literal
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
 from pandas._typing import DtypeArg
 
 from app import APP_NAME
-from app.data.data_source import DataSource, quote_identifier
+from app.data.data_source import DataSource, quote_identifier, resolve_role_column
+from app.data.repo._common import (
+    _RETURNS_ROWS_RE,
+    READ_FAILURES,
+    ROW_ID,
+    SavedQuery,
+    _dumps_json,
+    _is_ident,
+    _loads_json,
+    _quote_ident,
+    check_sql_expression,
+    descriptor_write_wrapper,
+    ensure_connection_wrapper,
+    is_read_only_select,
+    read_only,
+)
 from app.data.select_sql import (
     has_projection_alias,
     split_top_level_select_items,
@@ -30,33 +38,66 @@ from app.data.select_sql import (
     top_level_from,
     top_level_match,
 )
-from app.data.repo._common import (
-    READ_FAILURES,
-    ROW_ID,
-    RepoHost,
-    _RETURNS_ROWS_RE,
-    _dumps_json,
-    _is_ident,
-    _loads_json,
-    _quote_ident,
-    ensure_connection_wrapper,
-    check_sql_expression,
-    is_read_only_select,
-    read_only,
-)
 from app.logs.logger import applogger
 
+if TYPE_CHECKING:
 
-class TablesMixin(RepoHost):
-    """User tables: listing, reading, importing, renaming, deleting."""
+    class _Host:
+        """What this part uses of SqliteRepo: copies of the signatures, for the type checker only."""
+
+        _con: sqlite3.Connection | None
+        _is_connected: bool
+        _preview_savepoint_name: str | None
+        def _connect(self):
+            ...
+        def invalidate_series_cache(self) -> None:
+            ...
+        def refuse_if_blocked(self, sql: str | None) -> None:
+            ...
+        def _commit(self) -> None:
+            ...
+        @contextmanager
+        @ensure_connection_wrapper
+        def transaction(self, *, immediate: bool = False) -> Iterator[None]:
+            ...
+        def snapshot_for_undo(self, tables: Sequence[str], *, label: str, entry_id: int | None=None) -> int | None:
+            ...
+        @ensure_connection_wrapper
+        @descriptor_write_wrapper
+        def update_series_sql_query(self, series_id: int, sql_query: str) -> None:
+            ...
+        @ensure_connection_wrapper
+        def list_series_dict(self) -> list[dict[str, Any]]:
+            ...
+        @ensure_connection_wrapper
+        def get_series_sql_query(self, series_id: int) -> str | None:
+            ...
+        def _schema(self, table_name: str) -> list[tuple[str, str]]:
+            ...
+        @ensure_connection_wrapper
+        def get_query(self, name: str) -> SavedQuery | None:
+            ...
+        @ensure_connection_wrapper
+        def list_queries(self) -> list[SavedQuery]:
+            ...
+        @ensure_connection_wrapper
+        def list_sympy_functions(self) -> list[dict[str, str]]:
+            ...
+        @ensure_connection_wrapper
+        def get_sympy_function(self, name: str) -> dict[str, str] | None:
+            ...
+else:
+    _Host = object
+
+
+class TablesMixin(_Host):
+    """The user tables: listing, reading, importing, renaming and deleting them, their Hide, Selected and A part of SqliteRepo (sqlite_repo.py)."""
 
     __slots__ = ()
 
-    # =====================================================================
-    # Table listing and introspection
-    # =====================================================================
-
-
+    # ==================================================================
+    # Tables: User tables: listing, reading, importing, renaming, deleting.
+    # ==================================================================
     def list_user_tables(self, *, include_internal: bool = False) -> pd.DataFrame:
         """List all user tables with link status and notes.
 
@@ -96,10 +137,6 @@ class TablesMixin(RepoHost):
             return pd.DataFrame(columns=["Table", "has_link", "Notes", "source_path"])
         df["has_link"] = df["has_link"].astype(bool)
         return df
-
-    # =====================================================================
-    # Data sources: physical tables and saved queries
-    # =====================================================================
 
     def list_data_sources(self, *, functions: bool = False) -> pd.DataFrame:
         """List tables and saved queries - and, with *functions*, the stored functions - as one addressable list.
@@ -241,7 +278,6 @@ class TablesMixin(RepoHost):
             return False, "The query returns no columns."
         return True, f"{len(columns)} column(s): {', '.join(columns)}"
 
-
     @ensure_connection_wrapper
     def table_info(self, table: str) -> list[sqlite3.Row]:
         """``PRAGMA table_info`` of a table: one row per column, in order.
@@ -330,7 +366,6 @@ class TablesMixin(RepoHost):
             except sqlite3.Error:
                 applogger.exception("Could not give table '%s' its row id column.", table)
 
-
     @ensure_connection_wrapper
     def set_table_notes(self, table: str, notes: str) -> None:
         """Set notes for a table in __table_descriptors__."""
@@ -384,11 +419,6 @@ class TablesMixin(RepoHost):
         )
         self._commit()
 
-    # =====================================================================
-    # Query execution
-    # =====================================================================
-
-
     @property
     def is_open(self) -> bool:
         """True while the connection is open.
@@ -417,7 +447,6 @@ class TablesMixin(RepoHost):
         )
         return [tuple(row) for row in cursor.fetchall()]
 
-
     @ensure_connection_wrapper
     def row_count(self, table: str) -> int:
         """Return row count for a table (or 0 on error)."""
@@ -444,11 +473,10 @@ class TablesMixin(RepoHost):
             "settings": _loads_json(row["settings_json"]),
         }
 
-
     @ensure_connection_wrapper
     def query_df(self, sql: str, params: tuple[Any, ...] | None = None, *, row_id: bool = False) -> pd.DataFrame:
         """Execute SQL and return DataFrame (or empty DF for non-SELECT).
-        
+
         Detects SELECT/WITH/PRAGMA/EXPLAIN and returns data.
         For DDL/DML (CREATE/INSERT/UPDATE/DELETE), executes and returns empty DF.
         Rows come without the tables' row id column (ROW_ID) unless *row_id*.
@@ -469,7 +497,6 @@ class TablesMixin(RepoHost):
             self._con.execute(sql_text, params or ())
             return pd.DataFrame()
 
-
     # =====================================================================
     # DataFrame import
     # =====================================================================
@@ -483,13 +510,13 @@ class TablesMixin(RepoHost):
         dtype_overrides: DtypeArg | None = None,
     ) -> int:
         """Import DataFrame to SQLite table.
-        
+
         Args:
             df: DataFrame to import
             table_name: destination table name
             normalize_columns: if True, convert column names to lowercase with underscores
             dtype_overrides: optional dtype mappings for columns
-            
+
         Returns:
             Number of rows imported (or 0 on error)
         """
@@ -520,7 +547,6 @@ class TablesMixin(RepoHost):
         self.ensure_row_id(table)
         applogger.info(f"Imported {df.shape[0]} rows to {table_name}")
         return int(df.shape[0])
-
 
     #: What a column of plain Python values may hold for the direct write.
     _PLAIN_TYPES = (str, int, float, bool, type(None))
@@ -666,13 +692,6 @@ class TablesMixin(RepoHost):
             "settings": _loads_json(row["settings_json"]),
         }
 
-
-    # =====================================================================
-    # Columns
-    # =====================================================================
-
-               
-
     @ensure_connection_wrapper
     def ensure_column(self, table_name: str, col_name:str, col_type:str="INTEGER")-> None:
         """Add *col_name* to a table unless it is there already."""
@@ -688,7 +707,6 @@ class TablesMixin(RepoHost):
                 f"ALTER TABLE {table_sql} ADD COLUMN {_quote_ident(col_name)} {col_type}{default}"
             )
             self._commit()
-
 
     @ensure_connection_wrapper
     def rename_table_column(self, table_name: str, old_name: str, new_name: str) -> None:
@@ -755,7 +773,6 @@ class TablesMixin(RepoHost):
         assert self._con is not None
         if self.has_column(table_name, backup_name):
             self._drop_column(table_name, backup_name)
-
 
     def query_source_table(self, sql_query: str) -> str:
         """Best-effort extraction of the first table name after FROM."""
@@ -992,7 +1009,6 @@ class TablesMixin(RepoHost):
         self.ensure_hide_column(table_name)
         self.update_series_sql_query(int(series_id), filtered_sql)
 
-
     @ensure_connection_wrapper
     def list_table_names(self) -> list[str]:
         """Return every user table name, excluding this application's own."""
@@ -1098,10 +1114,10 @@ class TablesMixin(RepoHost):
         mode: Literal["rename", "delete"],
     ) -> None:
         """Update series queries after table rename/delete.
-        
+
         On rename: update FROM clauses in sql_query.
         On delete: remove affected series descriptors.
-        
+
         Called within a transaction; no explicit commit.
         """
         assert self._con is not None
@@ -1144,16 +1160,12 @@ class TablesMixin(RepoHost):
                     (series_id,),
                 )
 
-    # =====================================================================
-    # Advanced data import (with type coercion)
-    # =====================================================================
-
     @ensure_connection_wrapper
     def import_into_sqlite(
         self, table: str, df: pd.DataFrame, types: dict[str, str]
     ) -> None:
         """Import DataFrame with explicit type declarations.
-        
+
         Uses executemany with value normalization to handle Excel bytes/memoryview.
         """
         if not table:
@@ -1202,7 +1214,7 @@ class TablesMixin(RepoHost):
     @staticmethod
     def _normalize_sqlite_value(val: Any, decl: str) -> Any:
         """Normalize Python values for SQLite binding.
-        
+
         Handles:
           - numpy scalars -> Python native
           - pandas Timestamp -> datetime
@@ -1259,14 +1271,6 @@ class TablesMixin(RepoHost):
             return val
 
         return val
-    
-
-
-    # =====================================================================
-    # Runtime-attached table preview context-menu operations
-    # =====================================================================
-    # These are attached after the SqliteRepo class definition so the file remains
-    # drop-in even if the class layout changes.
 
     def delete_table_column(
         self, table_name: str, column_name: str, *, undo_entry: int | None = None
@@ -1306,7 +1310,6 @@ class TablesMixin(RepoHost):
             f"ALTER TABLE {_quote_ident(table_name)} DROP COLUMN {_quote_ident(column_name)}"
         )
         self._commit()
-
 
     def supports_sql_math(self) -> bool:
         """Whether this SQLite can evaluate cos(), radians() and friends.
@@ -1389,4 +1392,616 @@ class TablesMixin(RepoHost):
         column_sql = _quote_ident(name)
         self._con.execute(f"ALTER TABLE {table_sql} ADD COLUMN {column_sql} {declared}".rstrip())
         self._con.execute(f"UPDATE {table_sql} SET {column_sql} = {expr}")
+        self._commit()
+
+    # ==================================================================
+    # Flags: Hide, Selected and ClusterId: the 0/1 (or id) columns kept on a table.
+    # ==================================================================
+    @ensure_connection_wrapper
+    def clear_integer_column(self, table_name: str, col_name:str) -> None:
+        """Reset all Col values to False/0 for one user data table."""
+        assert self._con is not None
+        self.ensure_column(table_name=table_name,col_name=col_name,col_type="INTEGER")
+        self._con.execute(f"UPDATE {_quote_ident(table_name)} SET {_quote_ident(col_name)} = 0")
+        self._commit()
+
+    @ensure_connection_wrapper
+    def invert_flag(self, table_name: str, flag: str) -> int:
+        """Ensure the *flag* column exists and swap its 0s and 1s."""
+        assert self._con is not None
+        self.ensure_column(table_name=table_name, col_name=flag, col_type="INTEGER")
+        column = _quote_ident(flag)
+        cur = self._con.execute(
+            f'UPDATE {_quote_ident(table_name)} '
+            f'SET {column} = CASE WHEN COALESCE({column}, 0) = 0 THEN 1 ELSE 0 END'
+        )
+        self._commit()
+        return int(cur.rowcount or 0)
+
+    @ensure_connection_wrapper
+    def flag_rows_by_value(
+        self,
+        table_name: str,
+        flag: str,
+        column_name: str,
+        operator: str,
+        value: Any,
+    ) -> int:
+        """Set *flag* = 1 where *column_name* compares to a user-provided value."""
+        assert self._con is not None
+        self.ensure_column(table_name=table_name, col_name=flag, col_type="INTEGER")
+        op_map = {"=": "=", "!=": "!=", "<>": "!=", "<": "<", "<=": "<=", ">": ">", ">=": ">="}
+        sql_op = op_map.get(str(operator).strip())
+        if sql_op is None:
+            applogger.error(f"Unsupported operator: {operator}")
+        cur = self._con.execute(
+            f'UPDATE {_quote_ident(table_name)} SET {_quote_ident(flag)} = 1 '
+            f'WHERE {_quote_ident(column_name)} {sql_op} ?',
+            (value,),
+        )
+        self._commit()
+        return int(cur.rowcount or 0)
+
+    @ensure_connection_wrapper
+    def flag_rows_special(self, table_name: str, flag: str, column_name: str, mode: str) -> int:
+        """Set *flag* = 1 using a predefined special predicate."""
+        assert self._con is not None
+        self.ensure_column(table_name=table_name, col_name=flag, col_type="INTEGER")
+        column_sql = _quote_ident(column_name)
+        if mode == "null_or_empty":
+            predicate = f"{column_sql} IS NULL OR TRIM(CAST({column_sql} AS TEXT)) = ''"
+        else:
+            applogger.error(f"Unsupported mode: {mode}")
+            return 0
+        cur = self._con.execute(
+            f'UPDATE {_quote_ident(table_name)} SET {_quote_ident(flag)} = 1 WHERE {predicate}'
+        )
+        self._commit()
+        return int(cur.rowcount or 0)
+
+    def row_table(self, sql_query: str) -> str | None:
+        """The table whose row ids *sql_query* returns as ROW_ID - through a saved query too - or None."""
+        sql = str(sql_query or "").strip()
+        if not sql:
+            return None
+        span = self.from_subquery(sql)
+        if span is not None:  # a saved query read as a subquery: its own table
+            return self.row_table(sql[span[0]:span[1]])
+        name = self.query_source_table(sql) if self.is_table_backed_sql(sql) else ""
+        source = self.get_data_source(name) if name else None
+        if source is not None and source.is_query:
+            inner = str(source.sql or "")
+            name = self.query_source_table(inner) if self.is_table_backed_sql(inner) else ""
+            source = self.get_data_source(name) if name else None
+        if source is None or source.is_query or self.row_id_column(source.name) is None:
+            return None
+        return source.name
+
+    @ensure_connection_wrapper
+    def series_rows(self, sql_query: str, roles: Mapping[str, Any]) -> pd.DataFrame:
+        """A series' rows with their table row id: ROW_ID, ``x``, ``y`` as stored; empty when it has no ids.
+
+        Read through the series' own query, so only the rows it draws. Not
+        forced to numbers: dates and categories are put in a chart's units by
+        its axis (the chart panel), as its points were.
+        """
+        empty = pd.DataFrame(columns=[ROW_ID, "x", "y"])
+        try:
+            frame = self.query_df(f"SELECT * FROM ({str(sql_query).strip().rstrip(';')})", row_id=True)
+        except READ_FAILURES:
+            return empty
+        x_col = resolve_role_column(frame.columns, roles, "x")
+        y_col = resolve_role_column(frame.columns, roles, "y")
+        if ROW_ID not in frame.columns or not x_col or not y_col or frame.columns.duplicated().any():
+            return empty
+        return pd.DataFrame({
+            ROW_ID: pd.to_numeric(frame[ROW_ID], errors="coerce"),
+            "x": frame[x_col],
+            "y": frame[y_col],
+        }).dropna()
+
+    #: The table setting that makes every chart of the table draw only its Selected rows (R-07's data filter).
+    SELECTED_ONLY_KEY = "show_selected_only"
+
+    def selected_only(self, table_name: str) -> bool:
+        """Whether every chart of *table_name* draws only its rows marked Selected (Show only Selected)."""
+        return bool(self.get_table_info(table_name).get(self.SELECTED_ONLY_KEY))
+
+    def set_selected_only(self, table_name: str, on: bool) -> None:
+        self.set_table_info(table_name, self.SELECTED_ONLY_KEY, True if on else None)
+
+    def sql_selected_only(self, sql_query: str) -> str:
+        """*sql_query* keeping only its Selected rows when its table shows only those; else as it is.
+
+        By the row id the series' query names (sql_with_row_id): the rows stay where they are, out of view -
+        nothing is Hidden, and the analyses read every row as before.
+        """
+        sql = str(sql_query or "").strip().rstrip(";")
+        table = self.row_table(sql)
+        if not table or not self.selected_only(table):
+            return sql
+        chosen = (f'SELECT rowid FROM {_quote_ident(table)} WHERE "Selected" = 1'
+                  if self.has_column(table, "Selected") else "SELECT NULL WHERE 0")
+        return f"SELECT * FROM ({sql}) WHERE {_quote_ident(ROW_ID)} IN ({chosen})"
+
+    @ensure_connection_wrapper
+    def select_rows(self, table_name: str, row_ids: Sequence[int], *, add: bool = False) -> int:
+        """Mark exactly *row_ids* Selected - with *add*, as well as those already; how many are."""
+        assert self._con is not None
+        self.ensure_column(table_name=table_name, col_name="Selected", col_type="INTEGER")
+        table_sql = _quote_ident(table_name)
+        if not add:
+            self._con.execute(f'UPDATE {table_sql} SET "Selected" = 0 WHERE COALESCE("Selected", 0) <> 0')
+        self._con.executemany(
+            f'UPDATE {table_sql} SET "Selected" = 1 WHERE rowid = ?', [(int(i),) for i in row_ids]
+        )
+        self._commit()
+        return len(self.selected_row_ids(table_name))
+
+    @ensure_connection_wrapper
+    def row_position(self, table_name: str, row_id: int) -> int:
+        """Where row *row_id* is in *table_name*'s row order, from 0 - its row in the table preview."""
+        assert self._con is not None
+        row = self._con.execute(
+            f"SELECT COUNT(*) FROM {_quote_ident(table_name)} WHERE rowid < ?", (int(row_id),)
+        ).fetchone()
+        return int(row[0]) if row else 0
+
+    @ensure_connection_wrapper
+    def selected_row_ids(self, table_name: str) -> list[int]:
+        """The row ids of the rows of *table_name* marked Selected."""
+        assert self._con is not None
+        if not self.has_column(table_name, "Selected"):
+            return []
+        rows = self._con.execute(
+            f'SELECT rowid FROM {_quote_ident(table_name)} WHERE "Selected" = 1 ORDER BY rowid'
+        ).fetchall()
+        return [int(row[0]) for row in rows]
+
+    @ensure_connection_wrapper
+    def set_rows_hidden(self, table_name: str, row_ids: Sequence[int], hidden: bool) -> int:
+        """Hide (Hide = 1) or show again (Hide = 0) exactly *row_ids*; how many rows changed."""
+        assert self._con is not None
+        self.ensure_hide_column(table_name)
+        value = 1 if hidden else 0
+        before = self._con.total_changes
+        self._con.executemany(
+            f'UPDATE {_quote_ident(table_name)} SET "Hide" = ? WHERE rowid = ? AND COALESCE("Hide", 0) <> ?',
+            [(value, int(row_id), value) for row_id in row_ids],
+        )
+        changed = self._con.total_changes - before
+        self._commit()
+        return changed
+
+    def ensure_hide_column(self, table_name: str) -> None:
+        """Ensure a boolean-compatible Hide column exists on a user data table."""
+        self.ensure_column(table_name=table_name,col_name="Hide",col_type="INTEGER")
+
+    def clear_hide_column(self, table_name: str) -> None:
+        """Reset all Hide values to False/0 for one user data table."""
+        self.clear_integer_column(table_name=table_name,col_name="Hide")
+
+    @ensure_connection_wrapper
+    def count_hidden_rows(self, table_name: str) -> int:
+        """Return count of rows where Hide=1."""
+        assert self._con is not None
+        self.ensure_hide_column(table_name)
+        row = self._con.execute(
+            f'SELECT COUNT(*) FROM {_quote_ident(table_name)} WHERE "Hide" = 1'
+        ).fetchone()
+        return int(row[0]) if row else 0
+
+    @ensure_connection_wrapper
+    def hidden_rowids(self, table: str) -> list[int]:
+        """Return the rowids of the rows of *table* marked Hide."""
+        self.ensure_hide_column(table)
+        assert self._con is not None
+        rows = self._con.execute(f'SELECT rowid FROM {_quote_ident(table)} WHERE "Hide" = 1').fetchall()
+        return [int(row[0]) for row in rows]
+
+    @ensure_connection_wrapper
+    def mark_hide_rowids(
+        self,
+        *,
+        table_name: str,
+        rowids: Sequence[int],
+        clear_existing: bool = False,
+        scope_rowids: Sequence[int] | None = None,
+    ) -> int:
+        """Set Hide=True/1 for exact SQLite rowids and report matched totals.
+
+        *scope_rowids* are shown again first: the rows of the series being
+        processed, so a re-run replaces its own earlier choice and leaves
+        other series' hidden rows alone. ``clear_existing`` shows every row
+        of the table again instead.
+        """
+        assert self._con is not None
+        if clear_existing:
+            self.clear_hide_column(table_name)
+        else:
+            self.ensure_hide_column(table_name)
+        if scope_rowids is not None:
+            self._con.executemany(
+                f'UPDATE {_quote_ident(table_name)} SET "Hide" = 0 WHERE rowid = ?',
+                [(int(rowid),) for rowid in scope_rowids],
+            )
+        ids = [int(rowid) for rowid in rowids]
+        before = self._con.total_changes
+        self._con.executemany(
+            f'UPDATE {_quote_ident(table_name)} SET "Hide" = 1 WHERE rowid = ?',
+            [(rowid,) for rowid in ids],
+        )
+        updated_count = self._con.total_changes - before
+        self._commit()
+        hidden_count = self.count_hidden_rows(table_name)
+        applogger.info(
+            "Outlier Hide update table=%s requested=%d matched=%d hidden_total=%d",
+            table_name,
+            len(ids),
+            updated_count,
+            hidden_count,
+        )
+        return hidden_count
+
+    @ensure_connection_wrapper
+    def query_series_frame_for_hide(
+        self,
+        *,
+        sql_query: str,
+        roles: Mapping[str, Any],
+    ) -> pd.DataFrame:
+        """The rows a series draws, with their source rowid: ``__rowid__``, ``x``, ``y``.
+
+        Read through the series' own SQL, so its WHERE clause holds - one
+        ticker of three in the table, one species - and the roles name the
+        columns it returns, aliases included. The Hide filter is left out:
+        rows an earlier run hid are looked at again, since the new run
+        decides afresh which of the series' rows to hide.
+
+        It used to read the whole table and quote the role names as columns:
+        another series' rows were searched (and could be hidden), and a role
+        naming an alias ("date AS x") was read by SQLite as the text 'x', so
+        no point was usable and nothing was hidden (todo O-01).
+        """
+        assert self._con is not None
+        base = self.sql_without_hide_filter(sql_query)
+        if re.search(r"\bgroup\s+by\b|\bselect\s+distinct\b", base, flags=re.IGNORECASE):
+            raise ValueError(
+                "this series aggregates its rows (GROUP BY or DISTINCT), so a point "
+                "it draws is not one row of the table that could be hidden"
+            )
+        table_name = self.query_source_table(base)
+        self.ensure_hide_column(table_name)
+        frame = self.query_df(sql_insert_select_expression(base, 'rowid AS "__rowid__"'))
+
+        x_col = resolve_role_column(frame.columns, roles, "x") or ""
+        y_col = resolve_role_column(frame.columns, roles, "y") or ""
+        missing = [role for role, column in (("x", x_col), ("y", y_col)) if not column]
+        if missing:
+            raise ValueError(
+                f"the series' query returns no column for its {' and '.join(missing)} role "
+                f"(it returns {', '.join(str(c) for c in frame.columns if c != '__rowid__')})"
+            )
+        return pd.DataFrame(
+            {"__rowid__": frame["__rowid__"], "x": frame[x_col], "y": frame[y_col]}
+        )
+
+    @ensure_connection_wrapper
+    def ensure_preview_state_columns(self, table_name: str) -> None:
+        """Create/update temporary preview state columns for Hide preview.
+
+        ``Hide`` is the editable runtime column used by chart filtering.
+        ``__ChartLibrePreviewHide`` stores the pre-preview Hide state so Preview can
+        be rolled back without relying on UI-side SQL or direct connection use.
+        """
+        assert self._con is not None
+        table_sql = _quote_ident(table_name)
+        preview_col = _quote_ident("__ChartLibrePreviewHide")
+        self.ensure_hide_column(table_name)
+        self.ensure_column(
+            table_name=table_name,
+            col_name="__ChartLibrePreviewHide",
+            col_type="INTEGER",
+        )
+        self._con.execute(
+            f'UPDATE {table_sql} SET {preview_col} = COALESCE("Hide", 0)'
+        )
+        self._commit()
+
+    @ensure_connection_wrapper
+    def restore_preview_state_columns(self, table_name: str) -> None:
+        """Restore Hide values from the temporary preview state column."""
+        assert self._con is not None
+        table_sql = _quote_ident(table_name)
+        preview_col = _quote_ident("__ChartLibrePreviewHide")
+        if not self.has_column(table_name, "__ChartLibrePreviewHide"):
+            return
+        self.ensure_hide_column(table_name)
+        self._con.execute(
+            f'UPDATE {table_sql} SET "Hide" = COALESCE({preview_col}, 0)'
+        )
+        self._commit()
+
+    @ensure_connection_wrapper
+    def drop_preview_state_columns(self, table_name: str) -> None:
+        """Drop temporary preview state columns created for Hide preview."""
+        assert self._con is not None
+        if not self.has_column(table_name, "__ChartLibrePreviewHide"):
+            return
+        self._con.execute(
+            f'ALTER TABLE {_quote_ident(table_name)} '
+            f'DROP COLUMN {_quote_ident("__ChartLibrePreviewHide")}'
+        )
+        self._commit()
+
+    @ensure_connection_wrapper
+    def colour_snapshot(self, table_name: str, column: str) -> dict[int, str] | None:
+        """The colours held in *column* of a table, by rowid; None when there is no such column."""
+        assert self._con is not None
+        if column not in self.get_columns(table_name):
+            return None
+        rows = self._con.execute(
+            f"SELECT rowid, {_quote_ident(column)} FROM {_quote_ident(table_name)} "
+            f"WHERE {_quote_ident(column)} IS NOT NULL AND {_quote_ident(column)} != ''"
+        ).fetchall()
+        return {int(row[0]): str(row[1]) for row in rows}
+
+    @ensure_connection_wrapper
+    def set_row_colours(self, table_name: str, column: str, rowids: Sequence[int], colour: str) -> int:
+        """Give exactly *rowids* the text *colour* in *column*, and every other row none.
+
+        The column is created (TEXT) when it is not there. The chart reads
+        it as a per-point colour: a row with none is drawn in the series' own.
+        Returns how many rows were coloured.
+        """
+        assert self._con is not None
+        self.ensure_column(table_name, column, "TEXT")
+        table_sql, column_sql = _quote_ident(table_name), _quote_ident(column)
+        self._con.execute(f"UPDATE {table_sql} SET {column_sql} = NULL")
+        coloured = 0
+        for rowid in rowids:
+            cursor = self._con.execute(
+                f"UPDATE {table_sql} SET {column_sql} = ? WHERE rowid = ?", (str(colour), int(rowid))
+            )
+            coloured += max(0, int(cursor.rowcount or 0))
+        self._commit()
+        return coloured
+
+    @ensure_connection_wrapper
+    def restore_row_colours(self, table_name: str, column: str, snapshot: dict[int, str] | None) -> None:
+        """Put *column* back as a :meth:`colour_snapshot` found it: None drops the column."""
+        assert self._con is not None
+        if snapshot is None:
+            if column in self.get_columns(table_name):
+                self._con.execute(
+                    f"ALTER TABLE {_quote_ident(table_name)} DROP COLUMN {_quote_ident(column)}"
+                )
+                self._commit()
+            return
+        self.ensure_column(table_name, column, "TEXT")
+        table_sql, column_sql = _quote_ident(table_name), _quote_ident(column)
+        self._con.execute(f"UPDATE {table_sql} SET {column_sql} = NULL")
+        for rowid, colour in snapshot.items():
+            self._con.execute(f"UPDATE {table_sql} SET {column_sql} = ? WHERE rowid = ?", (colour, int(rowid)))
+        self._commit()
+
+    def set_ClusterId(self,source_table,source_x_column, x_values,cluster_values) -> None:
+        assert self._con is not None
+        quoted_table = _quote_ident(source_table)
+        quoted_x = _quote_ident(source_x_column)
+        for x_value, cluster_value in zip(x_values, cluster_values, strict=False):
+            if pd.notna(x_value) and pd.notna(cluster_value):
+                cluster_id:int = int(cluster_value)
+                self._con.execute(
+                    f'UPDATE {quoted_table} SET "ClusterId" = ? WHERE {quoted_x} = ?',
+                    (cluster_id, x_value),
+                )
+        self._commit()
+
+    # ==================================================================
+    # Editing: Cell, row and column edits made by hand.
+    # ==================================================================
+    @ensure_connection_wrapper
+    def execute_change(self, sql: str, *, tables: Sequence[str], label: str) -> int:
+        """Run one statement that changes the data - written by the assistant, confirmed by the user - as one
+        Undo step over *tables*; the rows it changed (-1 when SQLite does not say)."""
+        assert self._con is not None
+        self.snapshot_for_undo(list(tables), label=label)
+        cursor = self._con.execute(sql)
+        self._commit()
+        self.invalidate_series_cache()
+        return int(cursor.rowcount)
+
+    def has_integer_primary_key(self, table_name: str) -> bool:
+        """Say whether this table's rowid is a column the user can see.
+
+        ``INTEGER PRIMARY KEY`` makes a column *be* the rowid rather than
+        shadow it. Renumbering rowids to reorder rows would then be silently
+        rewriting the user's own key values, so the positional insert below
+        refuses on such a table rather than doing that quietly. The row id
+        this application gives every table (ROW_ID) is not one: renumbering
+        it is what it is there for.
+        """
+        return self.row_id_column(table_name) not in (None, ROW_ID)
+
+    @ensure_connection_wrapper
+    def update_table_cell(
+        self,
+        table_name: str,
+        rowid: int,
+        column_name: str,
+        value: Any,
+        *,
+        undo_entry: int | None = None,
+    ) -> None:
+        """Write one cell, addressed by rowid."""
+        assert self._con is not None
+        if column_name.lower() == "rowid":
+            raise ValueError("rowid is not editable")
+        self.snapshot_for_undo(
+            [table_name],
+            label=f"Edit '{column_name}' in '{table_name}'",
+            entry_id=undo_entry,
+        )
+        self._con.execute(
+            f"UPDATE {_quote_ident(table_name)} "
+            f"SET {_quote_ident(column_name)} = ? WHERE rowid = ?",
+            (value, int(rowid)),
+        )
+        self._commit()
+
+    @ensure_connection_wrapper
+    def append_table_row(self, table_name: str, *, undo_entry: int | None = None) -> int:
+        """Add one empty row at the end, and return its rowid."""
+        assert self._con is not None
+        self.snapshot_for_undo(
+            [table_name], label=f"Add a row to '{table_name}'", entry_id=undo_entry
+        )
+        table_sql = _quote_ident(table_name)
+        columns = self.get_columns(table_name)
+        if columns:
+            names = ", ".join(_quote_ident(name) for name in columns)
+            holes = ", ".join("NULL" for _unused in columns)
+            cursor = self._con.execute(
+                f"INSERT INTO {table_sql} ({names}) VALUES ({holes})"
+            )
+        else:
+            cursor = self._con.execute(f"INSERT INTO {table_sql} DEFAULT VALUES")
+        self._commit()
+        return int(cursor.lastrowid or 0)
+
+    @ensure_connection_wrapper
+    def insert_table_row_before(
+        self, table_name: str, rowid: int, *, undo_entry: int | None = None
+    ) -> int:
+        """Add one empty row immediately above *rowid*, and return its rowid.
+
+        A preview lists rows in rowid order, so "above" means "at a lower
+        rowid", and every rowid from there up has to move to make space. The
+        shift goes through negatives (``rowid -> -(rowid + 1)``, then back)
+        because a single ``rowid + 1`` pass collides with the row it is
+        about to move onto the moment SQLite reaches it.
+        """
+        assert self._con is not None
+        if self.has_integer_primary_key(table_name):
+            raise ValueError(
+                "this table's rowid is one of its own columns, so its rows "
+                "cannot be renumbered to make space - add the row at the end "
+                "instead"
+            )
+        self.snapshot_for_undo(
+            [table_name],
+            label=f"Insert a row into '{table_name}'",
+            entry_id=undo_entry,
+        )
+        table_sql = _quote_ident(table_name)
+        target = int(rowid)
+        self._con.execute(
+            f"UPDATE {table_sql} SET rowid = -(rowid + 1) WHERE rowid >= ?", (target,)
+        )
+        self._con.execute(f"UPDATE {table_sql} SET rowid = -rowid WHERE rowid < 0")
+
+        columns = self.get_columns(table_name)
+        if columns:
+            names = ", ".join(_quote_ident(name) for name in columns)
+            holes = ", ".join("NULL" for _unused in columns)
+            self._con.execute(
+                f"INSERT INTO {table_sql} (rowid, {names}) VALUES (?, {holes})",
+                (target,),
+            )
+        else:
+            self._con.execute(f"INSERT INTO {table_sql} (rowid) VALUES (?)", (target,))
+        self._commit()
+        return target
+
+    @ensure_connection_wrapper
+    def delete_table_rows(
+        self, table_name: str, rowids: Sequence[int], *, undo_entry: int | None = None
+    ) -> int:
+        """Delete the named rows, and return how many went."""
+        assert self._con is not None
+        wanted = [int(value) for value in rowids]
+        if not wanted:
+            return 0
+        self.snapshot_for_undo(
+            [table_name],
+            label=f"Delete {len(wanted)} row(s) from '{table_name}'",
+            entry_id=undo_entry,
+        )
+        holes = ", ".join("?" for _unused in wanted)
+        cursor = self._con.execute(
+            f"DELETE FROM {_quote_ident(table_name)} WHERE rowid IN ({holes})", wanted
+        )
+        self._commit()
+        return int(cursor.rowcount or 0)
+
+    @ensure_connection_wrapper
+    def insert_table_column(
+        self,
+        table_name: str,
+        column_name: str,
+        column_type: str = "REAL",
+        *,
+        before: str | None = None,
+        undo_entry: int | None = None,
+    ) -> None:
+        """Add a column, at the end or before an existing one.
+
+        ``ALTER TABLE ... ADD COLUMN`` can only append, which is fine until
+        someone wants the new column beside the one it belongs with. Any
+        other position means rebuilding the table in the new column order
+        and copying the rows across, so that is what this does - but only
+        when a position is actually asked for.
+
+        The rebuild keeps the rows and their rowids. It does not carry
+        indexes, triggers or constraints across; the tables this edits are
+        imported data, which have none.
+        """
+        assert self._con is not None
+        name = str(column_name or "").strip()
+        if not name:
+            raise ValueError("a column needs a name")
+        if not _is_ident(name):
+            raise ValueError(f"'{name}' is not a usable column name")
+
+        table_sql = _quote_ident(table_name)
+        existing = self.get_columns(table_name, with_id=True)
+        if name in existing:
+            raise ValueError(f"'{name}' is already a column of this table")
+
+        declared = str(column_type or "REAL").strip().upper() or "REAL"
+        if declared not in ("REAL", "INTEGER", "TEXT", "BLOB", "NUMERIC"):
+            declared = "REAL"
+
+        self.snapshot_for_undo(
+            [table_name],
+            label=f"Add column '{name}' to '{table_name}'",
+            entry_id=undo_entry,
+        )
+
+        if before is None or before not in existing:
+            self._con.execute(
+                f"ALTER TABLE {table_sql} ADD COLUMN {_quote_ident(name)} {declared}"
+            )
+            self._commit()
+            return
+
+        types = dict(self._schema(table_name))
+        types[name] = declared
+        order = list(existing)
+        order.insert(order.index(before), name)
+
+        temporary = f"__rebuild_{table_name}"
+        columns_sql = ", ".join(
+            f"{_quote_ident(column)} {types.get(column, '')}".strip() for column in order
+        )
+        copied = ", ".join(_quote_ident(column) for column in existing)
+        self._con.execute(f"DROP TABLE IF EXISTS {_quote_ident(temporary)}")
+        self._con.execute(f"CREATE TABLE {_quote_ident(temporary)} ({columns_sql})")
+        self._con.execute(
+            f"INSERT INTO {_quote_ident(temporary)} (rowid, {copied}) "
+            f"SELECT rowid, {copied} FROM {table_sql}"
+        )
+        self._con.execute(f"DROP TABLE {table_sql}")
+        self._con.execute(f"ALTER TABLE {_quote_ident(temporary)} RENAME TO {table_sql}")
         self._commit()

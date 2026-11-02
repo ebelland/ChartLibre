@@ -63,7 +63,7 @@ def test_the_report_is_copied_and_exported_from_its_menu_not_a_button(qapp, repo
 
     dialog = _fit(repo)
     try:
-        assert dialog.copy_html_button is None
+        assert not hasattr(dialog, "copy_html_button")
         view = dialog._results_label
         view.setHtml("<h1>Report</h1><p>Slope 2.0</p>")
         shown: list = []

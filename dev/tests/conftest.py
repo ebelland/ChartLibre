@@ -1,7 +1,7 @@
 """Shared pytest fixtures and options for the ChartLibre test suite.
 
 Artifacts (databases, saved figures) go to the directory chosen by
-``_artifacts_root``; set ``DHUB_TEST_ARTIFACTS`` to redirect them.
+``_artifacts_root``; set ``CHARTLIBRE_TEST_ARTIFACTS`` to redirect them.
 """
 # dev/tests/conftest.py
 from __future__ import annotations
@@ -21,7 +21,7 @@ os.environ["PYTHON_KEYRING_BACKEND"] = "keyring.backends.null.Keyring"
 from app.logs.logger import AppLogger  # noqa: E402 - after the keychain is set aside
 
 # The tests log to a file of their own. They shared the application's -
-# app/logs/datahub.log - so its Log window showed the errors the tests cause
+# app/logs/chartlibre.log - so its Log window showed the errors the tests cause
 # on purpose (a malformed web_sources.json, a preview rolled back twice) as if
 # the application had met them.
 AppLogger.reset()
@@ -95,7 +95,7 @@ def _artifacts_root() -> Path:
     """Return the directory that receives test artifacts.
 
     Resolution order:
-      1. ``DHUB_TEST_ARTIFACTS`` environment variable, when set;
+      1. ``CHARTLIBRE_TEST_ARTIFACTS`` environment variable, when set;
       2. ``C:/bin/dhub`` on Windows, the fixed location used on the dev machine;
       3. an in-repo ``dev/test_results`` folder;
       4. the system temp directory.
@@ -105,13 +105,13 @@ def _artifacts_root() -> Path:
     """
     candidates: list[Path] = []
 
-    override = os.environ.get("DHUB_TEST_ARTIFACTS", "").strip()
+    override = os.environ.get("CHARTLIBRE_TEST_ARTIFACTS", "").strip()
     if override:
         candidates.append(Path(override))
     if sys.platform.startswith("win"):
         candidates.append(Path("C:/bin/dhub"))
     candidates.append(Path(__file__).resolve().parents[1] / "test_results")
-    candidates.append(Path(tempfile.gettempdir()) / "dhub_test_results")
+    candidates.append(Path(tempfile.gettempdir()) / "chartlibre_test_results")
 
     for candidate in candidates:
         try:
@@ -129,7 +129,7 @@ def _artifacts_root() -> Path:
 
 @pytest.fixture(scope="session")
 def test_results_dir() -> Path:
-    base = _artifacts_root() / "dhub_tests"
+    base = _artifacts_root() / "chartlibre_tests"
     base.mkdir(parents=True, exist_ok=True)
     return base
 

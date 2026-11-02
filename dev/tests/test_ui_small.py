@@ -1,29 +1,29 @@
 """Small interface checks: font scale, log viewer, the new chart, screen fit, theme icons."""
 from __future__ import annotations
 
-from typing import Any, cast
-from types import SimpleNamespace
-import matplotlib
+import json
 import logging
+import re
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, cast
+
+import matplotlib
+import pandas as pd
 import pytest
+from PySide6.QtCore import QRect, Qt
+from PySide6.QtGui import QGuiApplication, QIcon
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout
+
 import app.dialogs.log_viewer_dialog as viewer_module
 import app.logs.logger as logger_module
-import pandas as pd
 import app.main_window.main_window as main_window_module
 from app.data.sqlite_repo import SqliteRepo
 from app.dialogs.create_chart_dialog import NewPlotTabResult
 from app.main_window.main_window import MainWindow
-from PySide6.QtCore import QRect, Qt
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout
 from app.styles.style import apply_dialog_shell
 from app.utils import screen_fit
-import json
-import re
-from PySide6.QtGui import QIcon
-
 
 # ======================================================================
 # todo N-12: one factor for every font of a figure, and one per axis.
@@ -77,7 +77,7 @@ def test_unset_or_silly_values_mean_no_change() -> None:
 # ======================================================================
 @pytest.fixture
 def log_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    path = tmp_path / "datahub.log"
+    path = tmp_path / "chartlibre.log"
     handler = RotatingFileHandler(path, encoding="utf-8")
     logger = logging.getLogger(logger_module._LOGGER_NAME)
     logger.addHandler(handler)

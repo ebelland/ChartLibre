@@ -15,8 +15,8 @@ from typing import Any
 
 from PySide6.QtWidgets import QWidget
 
-from app.data.repo.operations import OperationRecord
 from app.data.sqlite_repo import SqliteRepo
+from app.data.repo.project import OperationRecord
 from app.dialogs.two_panels_dialog_base import PanelDialog
 from app.styles.style import load_icon
 from app.utils import report_html

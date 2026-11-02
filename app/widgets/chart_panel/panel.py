@@ -6,15 +6,28 @@ FigureCanvasQTAgg is the scroll area's widget directly.
 """
 from __future__ import annotations
 
+import math
 from typing import Any, Final
 
-from PySide6.QtCore import QSize, Qt, QTimer, Signal
+import numpy as np
 import PySide6.QtGui
+from matplotlib import rcParams
+from matplotlib.backends.backend_qt import NavigationToolbar2QT
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from matplotlib.collections import PathCollection
+from matplotlib.colors import to_rgba
+from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from matplotlib.markers import MarkerStyle
+from matplotlib.patches import Patch, Rectangle, StepPatch, Wedge
+from PySide6.QtCore import QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
+    QMenu,
     QScrollArea,
     QSizePolicy,
     QSlider,
@@ -24,44 +37,125 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from matplotlib import rcParams
-from matplotlib.backends.backend_qt import NavigationToolbar2QT
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
-
-from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.styles.style import SPLITTER_HANDLE_WIDTH, create_toolbar_button
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
+from app.styles.style import SPLITTER_HANDLE_WIDTH, MenuItem, create_menu, create_menu_item, create_toolbar_button
+from app.styles.style import action as catalogue_action
 from app.utils.config import get_section, update_section
-from app.widgets.html_results import HtmlResultsView
-
+from app.utils.i18n import _
 from app.widgets.chart_panel.canvas import ChartCanvas
 from app.widgets.chart_panel.constants import (
-    TOOLBAR_ICON_SIZE,
-    TOOLBAR_ACTIONS_TO_REMOVE,
-    CONFIG_SECTION,
-    CONFIG_RESIZE_MODE,
-    CONFIG_MIN_ZOOM,
-    CONFIG_MAX_ZOOM,
-    CONFIG_INITIAL_ZOOM,
-    CONFIG_BACKGROUND_COLOR,
-    FIGURE_VIEW_OPTIONS_KEY,
-    RESIZE_MODES,
     CHART_AREA_MIN_HEIGHT,
-    NOTES_MIN_HEIGHT,
+    CONFIG_BACKGROUND_COLOR,
+    CONFIG_INITIAL_ZOOM,
+    CONFIG_MAX_ZOOM,
+    CONFIG_MIN_ZOOM,
+    CONFIG_RESIZE_MODE,
+    CONFIG_SECTION,
+    FIGURE_VIEW_OPTIONS_KEY,
     FIXED_MODE_SCREEN_DPI,
+    LIVE_REFRESH_INTERVAL_MS,
+    NOTES_FIRST_OPEN_MIN_HEIGHT,
+    NOTES_INITIAL_FRACTION,
+    NOTES_MIN_HEIGHT,
+    PICK_TOLERANCE_POINTS,
+    RESIZE_MODES,
+    TOOLBAR_ACTIONS_TO_REMOVE,
+    TOOLBAR_ICON_SIZE,
+    axis_text,
 )
-from app.widgets.chart_panel.notes import NotesMixin
-from app.widgets.chart_panel.picking import PickingMixin
-from app.widgets.chart_panel.hover import HoverMixin
-from app.widgets.chart_panel.tools import ToolsMixin
-from app.widgets.chart_panel.menus import MenusMixin
-from app.widgets.chart_panel.geometry import GeometryMixin
-from app.widgets.chart_panel.actions import ActionsMixin
+from app.widgets.chart_panel.tools import ChartToolsMixin
+from app.widgets.html_results import HtmlResultsView
+
+#: How long a selection made in Chart properties stays highlighted on the chart.
+FLASH_MS = 900
 
 
-class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, GeometryMixin, ActionsMixin, QFrame):
+#: The highlight's colour: the application's accent.
+FLASH_COLOR = "#2563EB"
+
+
+#: A series' style keys the chart can show by changing its lines and points, with no new render.
+PREVIEW_STYLE_SETTERS = frozenset({"color", "linestyle", "marker", "markersize"})
+
+
+#: A Stem Plot's style: one Matplotlib format string for each of its three parts.
+STEM_FMT_KEYS = frozenset({"linefmt", "markerfmt", "basefmt"})
+
+
+#: The values that mean "no line" or "no marker".
+_NONE_STYLES = frozenset({"", " ", "None", "none"})
+
+
+def _follows(artist: Any) -> frozenset[str]:
+    """The series' style keys *artist* takes (SeriesArtistTags.follow): all of them unless said."""
+    return getattr(artist, "_chartlibre_follows", PREVIEW_STYLE_SETTERS)
+
+
+def _style_steps(
+    artist: Any, changes: dict[str, Any], *, has_points: bool, sizes: bool, has_lines: bool = True
+) -> tuple[bool, list[Any]]:
+    """(whether *artist* can show *changes* as it is, the calls that do it).
+
+    A line keeps being a line and its markers markers; on a series drawn as
+    a line and points, the marker belongs to the points. A series drawn as
+    points only has no line to restyle: a line style that would draw one is for
+    the render to show (*has_lines* False), where it used to be ignored while the
+    edit was reported as shown.
+    """
+    steps: list[Any] = []
+    for key, value in changes.items():
+        if key not in _follows(artist):
+            continue
+        if isinstance(artist, Patch) and not isinstance(artist, Wedge):
+            # A step line (Stairs) and its legend swatch: an outline, and a fill if it has one.
+            if key == "color":
+                to_rgba(value)  # ValueError for a colour Matplotlib does not know
+                filled = artist.get_fill()
+                steps.append(lambda v=value, fill=filled: (artist.set_edgecolor(v), fill and artist.set_facecolor(v)))
+            elif key == "linestyle":
+                if str(value) in _NONE_STYLES or str(artist.get_linestyle()) in _NONE_STYLES:
+                    return False, []
+                steps.append(lambda v=value: artist.set_linestyle(v))
+        elif isinstance(artist, Line2D):
+            if key == "color":
+                to_rgba(value)  # ValueError for a colour Matplotlib does not know
+                steps.append(lambda v=value: artist.set_color(v))
+            elif key == "linestyle":
+                if str(value) in _NONE_STYLES or artist.get_linestyle() in _NONE_STYLES:
+                    return False, []
+                steps.append(lambda v=value: artist.set_linestyle(v))
+            elif not has_points:
+                if str(artist.get_marker()) in _NONE_STYLES or (key == "marker" and str(value) in _NONE_STYLES):
+                    return False, []
+                setter = artist.set_marker if key == "marker" else artist.set_markersize
+                steps.append(lambda v=value, set_=setter: set_(v))
+        else:  # the points
+            if key == "linestyle":
+                if not has_lines and str(value) not in _NONE_STYLES:
+                    return False, []  # it would add a line: only a render can
+                continue
+            if key == "color":
+                if artist.get_array() is not None:
+                    return False, []
+                to_rgba(value)  # ValueError for a colour Matplotlib does not know
+                follows = np.array_equal(artist.get_edgecolor(), artist.get_facecolor())
+                steps.append(lambda v=value, edge=follows: (artist.set_facecolor(v), edge and artist.set_edgecolor(v)))
+            elif key == "marker":
+                if str(value) in _NONE_STYLES:
+                    return False, []
+                style = MarkerStyle(value)
+                path = style.get_path().transformed(style.get_transform())
+                steps.append(lambda p=path: artist.set_paths([p]))
+            elif key == "markersize" and sizes:
+                if len(artist.get_sizes()) > 1:
+                    return False, []  # sized by a column
+                steps.append(lambda v=value: artist.set_sizes([float(v) ** 2]))
+    return True, steps
+
+
+class ChartPanel(ChartToolsMixin, QFrame):
     """Embed a repository-backed Matplotlib chart.
 
     Important sizing rule:
@@ -82,7 +176,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
     #: does not go looking for the window's: it says what was selected and lets
     #: whoever owns the window decide where that belongs.
     selection_changed = Signal(str)
-    #: A plain click on the chart: {"axis_id": int | None, "series": str | None} (see PickingMixin).
+    #: A plain click on the chart: {"axis_id": int | None, "series": str | None} (see the Picking section).
     chart_object_clicked = Signal(dict)
     #: The tables whose Selected rows a box selection on this chart just set (todo R-07).
     rows_selected = Signal(list)
@@ -462,7 +556,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
         self._zoom_slider.setTracking(False)
         self._zoom_slider.valueChanged.connect(self.set_zoom_percent)
 
-   
+
         layout.addWidget(self._zoom_slider, 0)
         layout.addWidget(self._zoom_label, 0)
 
@@ -512,7 +606,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    
+
     @property
     def figure_id(self) -> int:
         """Return the repository figure id rendered by this panel."""
@@ -573,7 +667,7 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
 
         return super().close()
 
-    def closeEvent(self, event: PySide6.QtGui.QCloseEvent) -> None:
+    def closeEvent(self, event: PySide6.QtGui.QCloseEvent) -> None:  # noqa: N802 - Qt's name
         """Keep default Qt close handling explicit for strict typing tools."""
         super().closeEvent(event)
 
@@ -718,3 +812,1233 @@ class ChartPanel(NotesMixin, PickingMixin, HoverMixin, ToolsMixin, MenusMixin, G
                 CONFIG_BACKGROUND_COLOR: self._background_color,
             },
         )
+
+    # ==================================================================
+    # Notes: The chart panel's notes: the HTML results pane under the chart.
+    # ==================================================================
+    # ------------------------------------------------------------------
+    # Notes / HTML results pane
+    # ------------------------------------------------------------------
+    def set_notes_html(self, markup: str, *, append: bool = False) -> None:
+        """Show HTML results below the chart, revealing the pane if needed."""
+        markup = str(markup or "")
+        if not markup.strip():
+            return
+
+        if append and self._notes_html.strip():
+            self._notes_html = f"{self._notes_html}<hr>{markup}"
+        else:
+            self._notes_html = markup
+
+        self._notes_view.setHtml(self._notes_html)
+        self._set_notes_visible(True)
+        self._persist_view_state()
+
+    def notes_html(self) -> str:
+        """Return the markup currently shown below the chart."""
+        return self._notes_html
+
+    def clear_notes(self) -> None:
+        """Empty and fully collapse the notes pane."""
+        self._notes_html = ""
+        self._notes_view.clear()
+        self._set_notes_visible(False)
+        self._persist_view_state()
+
+    def _restore_notes_state(self) -> None:
+        """Re-show persisted notes and splitter position for this figure."""
+        markup = getattr(self, "_pending_notes_html", "")
+        if not markup:
+            return
+
+        self._notes_html = markup
+        self._notes_view.setHtml(markup)
+        self._notes_view.setVisible(True)
+
+        sizes = getattr(self, "_pending_notes_sizes", None)
+        if sizes:
+            self._content_split.setSizes(sizes)
+
+    def _set_notes_visible(self, visible: bool) -> None:
+        """Show/hide notes and let users collapse the pane completely."""
+        was_visible = self._notes_view.isVisible()
+        self._notes_view.setVisible(visible)
+        if not visible:
+            sizes = self._content_split.sizes()
+            chart_height = max(CHART_AREA_MIN_HEIGHT, sum(sizes) if sizes else self.height())
+            self._content_split.setSizes([chart_height, 0])
+            self._schedule_canvas_geometry_sync(redraw=True, late=True)
+            return
+        if was_visible:
+            return
+
+        total = max(self.height(), CHART_AREA_MIN_HEIGHT + NOTES_FIRST_OPEN_MIN_HEIGHT)
+        notes_height = max(NOTES_FIRST_OPEN_MIN_HEIGHT, int(total * NOTES_INITIAL_FRACTION))
+        self._content_split.setSizes([total - notes_height, notes_height])
+        self._schedule_canvas_geometry_sync(redraw=True, late=True)
+
+    # ==================================================================
+    # Picking: Clicks on the chart: picking a point, a bar, a legend entry; scroll zoom.
+    # ==================================================================
+    def _on_scroll_zoom(self, event: Any) -> None:
+        """Zoom about the cursor on Ctrl/Cmd + wheel.
+
+        Modifier-gated deliberately.  In FIXED mode the canvas lives in a
+        QScrollArea and a bare wheel scrolls it, which is what a bare wheel
+        should do; taking that over would make the chart behave differently
+        from every other scrollable thing in the window.  Requiring the
+        modifier also means the two gestures never fight, in any mode.
+
+        Zooming about the cursor rather than about the centre is the whole
+        point: it is what lets you walk into a feature by pointing at it,
+        instead of alternating zoom and pan.
+        """
+        if event.inaxes is None or not event.step:
+            return
+        # Matplotlib reports held modifiers in event.key; on macOS Qt maps the
+        # Command key to Control, so this is Cmd there without special-casing.
+        if "control" not in str(event.key or ""):
+            return
+
+        # One notch in is a smaller window, one notch out a larger one.
+        factor = self.ZOOM_STEP if event.step > 0 else 1.0 / self.ZOOM_STEP
+
+        axes = event.inaxes
+        for get_limits, set_limits, position in (
+            (axes.get_xlim, axes.set_xlim, event.xdata),
+            (axes.get_ylim, axes.set_ylim, event.ydata),
+        ):
+            low, high = get_limits()
+            if position is None or not math.isfinite(position):
+                continue
+            # Each side is scaled by its own distance to the cursor, which is
+            # what keeps the point under the pointer fixed while the rest of
+            # the range closes in on it.
+            set_limits(
+                position - (position - low) * factor,
+                position + (high - position) * factor,
+            )
+
+        self._canvas.draw_idle()
+
+    #: A press and a release this close (pixels) are a click, not a drag.
+    CLICK_SLOP_PX = 4
+
+    def _on_object_click_press(self, event: Any) -> None:
+        self._object_click_at = (event.x, event.y) if event.button == 1 else None
+
+    def _on_object_click_release(self, event: Any) -> None:
+        """A plain left click on the chart: say which figure, axis and series it landed on.
+
+        Emitted as ``chart_object_clicked`` with ``axis_id`` (None outside every
+        axis: the figure), ``series`` (the series' name, or None) and ``part``
+        ("x", "y" or "z" for a click on that coordinate's ticks or label,
+        "title" on the axis' title, None inside the plotting area) and
+        ``add`` (Shift held: add the series to those edited together); the main
+        window selects that object in Chart properties when the panel is
+        shown. Not after a drag, nor while a navigation tool, box selection
+        or an annotation drag owns the mouse.
+        """
+        start = getattr(self, "_object_click_at", None)
+        self._object_click_at = None
+        if start is None or event.button != 1:
+            return
+        if abs(event.x - start[0]) > self.CLICK_SLOP_PX or abs(event.y - start[1]) > self.CLICK_SLOP_PX:
+            return
+        if str(getattr(self._toolbar, "mode", "")) != "" or getattr(self, "_select_mode_enabled", False):
+            return
+        axes, part = event.inaxes, None
+        if axes is None:
+            # Outside every plotting area may still be on an axis: its ticks,
+            # tick labels or label, or its title - not the figure.
+            axes, part = self._axis_part_at(event)
+        axis_id = getattr(axes, "_chartlibre_axis_id", None) if axes is not None else None
+        series = self._series_name_at(axes, event) if axis_id is not None and part is None else None
+        add = "shift" in str(event.key or "")
+        self.chart_object_clicked.emit({"axis_id": axis_id, "series": series, "part": part, "add": add})
+
+    def _on_escape_to_figure(self, event: Any) -> None:
+        """Esc on the chart goes back to the figure, as a click outside every axis would."""
+        if event.key != "escape":
+            return
+        if str(getattr(self._toolbar, "mode", "")) != "" or getattr(self, "_select_mode_enabled", False):
+            return
+        self.chart_object_clicked.emit({"axis_id": None, "series": None, "part": None})
+
+    def _axis_part_at(self, event: Any) -> tuple[Any, str | None]:
+        """(the axes, "x"/"y"/"z") for a click on an axis' ticks or labels, (the axes, "title")
+        on its title, (None, None) elsewhere."""
+        renderer = self._canvas.get_renderer()
+        # The canvas' figure: the one drawn, and so the one clicked.
+        for axes in self._canvas.figure.axes:
+            if getattr(axes, "_chartlibre_axis_id", None) is None:
+                continue
+            title = axes.title
+            if title.get_visible() and title.get_text() and title.get_window_extent(renderer).contains(event.x, event.y):
+                return axes, "title"
+            for coordinate in ("x", "y", "z"):
+                axis = getattr(axes, f"{coordinate}axis", None)
+                if axis is None or not axis.get_visible():
+                    continue
+                box = axis.get_tightbbox(renderer)
+                if box is not None and box.contains(event.x, event.y):
+                    return axes, coordinate
+        return None, None
+
+    @staticmethod
+    def _series_name_at(axes: Any, event: Any) -> str | None:
+        """The name of the series drawn under the click, from its artist's label."""
+        def named(label: Any) -> str | None:
+            text = str(label or "").strip()
+            return None if not text or text.startswith("_") else text
+
+        # Bars first: their patches carry no label, their container does.
+        for container in getattr(axes, "containers", []):
+            if any(getattr(patch, "contains", None) and patch.contains(event)[0] for patch in container):
+                name = named(container.get_label())
+                if name:
+                    return name
+        for artist in (*axes.lines, *axes.collections, *axes.patches):
+            try:
+                hit = artist.get_visible() and artist.contains(event)[0]
+            except Exception:  # noqa: BLE001 - an artist that cannot hit-test is simply not it
+                hit = False
+            name = named(artist.get_label()) if hit else None
+            if name:
+                return name
+        return None
+
+    def _make_data_artists_pickable(self) -> None:
+        """Arm picking on the lines and marker collections a render produced.
+
+        Done here rather than by the renderers because it is a *viewer*
+        decision, not a chart property: every renderer would otherwise have to
+        remember to opt in, and a figure saved by one version would come back
+        unpickable in another. Setting it after the render also covers the
+        renderers that draw through Matplotlib helpers we do not construct
+        ourselves.
+
+        Lines and collections report a point. Patches - bars and wedges - are
+        armed too but read out differently: a patch has no per-point index, so
+        the old code left them unpickable entirely and clicking a bar chart did
+        nothing at all. The fix is not to force them through the point path,
+        which would say "1 point" and mean the whole shape, but to report what
+        is actually meaningful about a bar: its category and its value. See
+        _describe_patch.
+
+        The legend is armed last, and for a different purpose: clicking a
+        legend entry toggles its series rather than reading anything out.
+        """
+        for axes in self._figure.axes:
+            for artist in (*axes.lines, *axes.collections):
+                artist.set_picker(PICK_TOLERANCE_POINTS)
+
+            # True, not a tolerance in points: a patch is a filled area, so
+            # "inside the shape" is the hit test, and a distance from its edge
+            # would make the middle of a tall bar unclickable.
+            for patch in axes.patches:
+                patch.set_picker(True)
+
+        self._make_legend_pickable()
+
+    def _make_legend_pickable(self) -> None:
+        """Let a click on a legend entry hide and show its series.
+
+        Wired here rather than at render time for the same reason as the data
+        artists: the legend is rebuilt by every render, so the connection has
+        to be re-established against the new handles each time.
+        """
+        self._legend_targets = {}
+
+        for axes in self._figure.axes:
+            legend = axes.get_legend()
+            if legend is None:
+                continue
+
+            handles = list(getattr(legend, "legend_handles", None) or [])
+            labels = [text.get_text() for text in legend.get_texts()]
+
+            # Map each legend handle back to the artists it stands for. Matched
+            # by label rather than by position: a renderer that draws a series
+            # as several artists - a line plus its error bars - produces one
+            # legend entry for the group, and toggling only the first would
+            # leave the error bars floating on their own.
+            by_label: dict[str, list[Any]] = {}
+            for artist in (*axes.lines, *axes.collections, *axes.patches):
+                label = str(artist.get_label() or "")
+                if label and not label.startswith("_"):
+                    by_label.setdefault(label, []).append(artist)
+
+            for handle, label in zip(handles, labels):
+                targets = by_label.get(str(label), [])
+                if not targets:
+                    continue
+                handle.set_picker(PICK_TOLERANCE_POINTS)
+                self._legend_targets[handle] = targets
+
+            for text in legend.get_texts():
+                # The label text is the larger target and the one people
+                # actually aim at; the swatch alone is a few pixels.
+                targets = by_label.get(str(text.get_text()), [])
+                if targets:
+                    text.set_picker(True)
+                    self._legend_targets[text] = targets
+
+    def _on_pick(self, event: Any) -> None:
+        """Describe the clicked point, or the clicked group of points.
+
+        Matplotlib reports a pick as an artist plus ``ind``, a list of the
+        indices under the cursor - one entry for a marker clicked on its own,
+        several where markers overlap or where a rubber-band selection covers
+        them. That single mechanism covers both cases the readout has to
+        distinguish, so there is no separate "multiple selection" path here:
+        one index reads out the value, several read out the summary.
+        """
+        artist = event.artist
+
+        # Legend first: a legend handle is also a line or a patch, so testing
+        # it after the data cases would read out the swatch's own coordinates
+        # instead of toggling the series.
+        if artist in getattr(self, "_legend_targets", {}):
+            self._toggle_series_visibility(artist)
+            return
+
+        # A patch carries no index, so it never reaches the point path below.
+        if isinstance(artist, Patch):
+            self._describe_patch(artist)
+            return
+
+        # ``or []`` would be the obvious way to default this, and it raises:
+        # ind is a NumPy array, and asking an array of more than one element
+        # whether it is true is ambiguous - so clicking a *group* of markers,
+        # the case this readout exists for, was the case that crashed. A
+        # single marker has one element, is unambiguous, and worked, which is
+        # why it survived. None is the only "no indices" ind can be.
+        raw_indices = getattr(event, "ind", None)
+        if raw_indices is None:
+            return
+        indices = [int(index) for index in np.atleast_1d(raw_indices)]
+        if not indices:
+            return
+
+        # A scatter is a PathCollection and carries its points as Nx2 offsets;
+        # a line carries two parallel sequences. Nothing else is made pickable.
+        if hasattr(artist, "get_offsets"):
+            points = artist.get_offsets()
+            pairs = [(float(points[i][0]), float(points[i][1])) for i in indices]
+        else:
+            x_data, y_data = artist.get_data()
+            pairs = [(float(x_data[i]), float(y_data[i])) for i in indices]
+
+        axes = artist.axes
+        # Matplotlib invents a label for an artist that was not given one -
+        # "_child0", "_collection2" - and marks decoration as "_nolegend_".
+        # Both start with an underscore by that convention, and neither is
+        # worth showing, so an underscore means "no name" here.
+        series = str(artist.get_label() or "").strip()
+        if not series or series.startswith("_"):
+            series = _("series")
+
+        if len(pairs) == 1:
+            x_value, y_value = pairs[0]
+            self.selection_changed.emit(
+                _("{series} — x: {x}, y: {y}").format(
+                    series=series,
+                    x=axis_text(axes.xaxis, x_value),
+                    y=axis_text(axes.yaxis, y_value),
+                )
+            )
+            return
+
+        self.selection_changed.emit(
+            _("{series} — {count} points, mean x: {x}, mean y: {y}").format(
+                series=series,
+                count=len(pairs),
+                x=axis_text(axes.xaxis, sum(x for x, _unused in pairs) / len(pairs)),
+                y=axis_text(axes.yaxis, sum(y for _unused, y in pairs) / len(pairs)),
+            )
+        )
+
+    def _toggle_series_visibility(self, handle: Any) -> None:
+        """Show or hide the series a legend entry stands for.
+
+        The legend entry itself is dimmed rather than removed, so a hidden
+        series still has something to click to bring it back - a legend that
+        deleted its own entry would be a one-way door.
+        """
+        targets = self._legend_targets.get(handle) or []
+        if not targets:
+            return
+
+        visible = not targets[0].get_visible()
+        for artist in targets:
+            artist.set_visible(visible)
+
+        handle.set_alpha(1.0 if visible else 0.25)
+
+        label = str(targets[0].get_label() or "").strip() or _("series")
+        self.selection_changed.emit(
+            _("{series} shown").format(series=label)
+            if visible
+            else _("{series} hidden").format(series=label)
+        )
+        self._canvas.draw_idle()
+
+    def _describe_patch(self, patch: Any) -> None:
+        """Read out a bar or a wedge by what it means, not by index.
+
+        A patch has no per-point index, which is why these were left
+        unpickable and clicking a bar chart did nothing. What is meaningful
+        about a bar is its category and its height, and both can be recovered
+        from the geometry: the tick label under its centre names it, and the
+        rectangle's height is the value.
+
+        A wedge carries its share in its angles rather than in a height, so it
+        reports a percentage instead.
+        """
+        axes = patch.axes
+        if axes is None:
+            return
+
+        series = str(patch.get_label() or "").strip()
+        if not series or series.startswith("_"):
+            series = ""
+
+        if isinstance(patch, Wedge):
+            share = abs(patch.theta2 - patch.theta1) / 360.0  # pyright: ignore[reportAttributeAccessIssue]
+            name = series or _("slice")
+            self.selection_changed.emit(
+                _("{series} — {percent:.1f}% of the total").format(
+                    series=name, percent=share * 100.0
+                )
+            )
+            return
+
+        if isinstance(patch, Rectangle):
+            width = float(patch.get_width())
+            height = float(patch.get_height())
+            if self._bar_is_horizontal(axes, patch):
+                value, value_axis = width, axes.xaxis
+                centre, category_axis = patch.get_y() + height / 2.0, axes.yaxis
+            else:
+                value, value_axis = height, axes.yaxis
+                centre, category_axis = patch.get_x() + width / 2.0, axes.xaxis
+
+            category = self._category_at(category_axis, centre)
+            label = " — ".join(part for part in (series, category) if part)
+            self.selection_changed.emit(
+                _("{label}: {value}").format(
+                    label=label or _("bar"),
+                    value=axis_text(value_axis, value),
+                )
+            )
+            return
+
+        if series:
+            self.selection_changed.emit(series)
+
+    @staticmethod
+    def _bar_is_horizontal(axes: Any, patch: Any) -> bool:
+        """Say whether a bar grows along x rather than along y.
+
+        Read from the BarContainer that owns the patch, which records the
+        orientation ax.bar/ax.barh gave it. Guessing from the rectangle's own
+        geometry does not work: a tall thin horizontal bar and a tall thin
+        vertical bar have the same shape, and only the container knows which
+        dimension is the value.
+
+        The geometric fallback is for a patch drawn directly rather than
+        through the bar helpers, where there is no container to ask.
+        """
+        for container in getattr(axes, "containers", []) or []:
+            if patch in list(getattr(container, "patches", []) or []):
+                return str(getattr(container, "orientation", "vertical")) == "horizontal"
+
+        # No container: a bar sits on its baseline, so the coordinate that is
+        # pinned to zero tells us which way it grows.
+        return float(patch.get_x()) == 0.0 and float(patch.get_y()) != 0.0
+
+    @staticmethod
+    def _category_at(axis: Any, position: float) -> str:
+        """Return the tick label at a position, or the position itself.
+
+        A categorical bar chart puts the category names in the tick labels and
+        the bars at integer positions, so the label under the bar's centre is
+        its name. A numeric bar chart has no such names, and there the position
+        formatted by the axis is the honest answer.
+        """
+        try:
+            locations = list(axis.get_ticklocs())
+            labels = [text.get_text() for text in axis.get_ticklabels()]
+            for location, label in zip(locations, labels):
+                if abs(float(location) - position) < 0.5 and label:
+                    return str(label)
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+            pass
+        return axis_text(axis, position)
+
+    # ------------------------------------------------------------------
+    # Chart properties -> chart: show what is selected there (S-01)
+    # ------------------------------------------------------------------
+    def flash(self, axis_id: int, series: str | None = None) -> bool:
+        """Highlight an axis (a frame round it) or one of its series (a halo under it), for a moment.
+
+        Drawn as extra artists over the real ones and removed after
+        FLASH_MS, so nothing of the chart itself changes. False when the
+        axis is not on this chart.
+        """
+        from PySide6.QtCore import QTimer
+
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) == int(axis_id)), None)
+        if axes is None:
+            return False
+        added: list[Any] = []
+        if series:
+            for line in axes.lines:
+                if str(line.get_label()) == series or str(line.get_label()).startswith(f"{series} "):
+                    halo, = axes.plot(line.get_xdata(), line.get_ydata(), color=FLASH_COLOR, alpha=0.35,
+                                      linewidth=float(line.get_linewidth()) + 6, solid_capstyle="round",
+                                      zorder=line.get_zorder() - 0.01, label="_flash")
+                    added.append(halo)
+            for collection in axes.collections:
+                offsets = getattr(collection, "get_offsets", lambda: [])()
+                if str(collection.get_label()) == series and len(offsets):
+                    sizes = collection.get_sizes()
+                    size = float(sizes[0]) if len(sizes) else 36.0
+                    added.append(axes.scatter(offsets[:, 0], offsets[:, 1], s=size * 4, color=FLASH_COLOR, alpha=0.3,
+                                              linewidths=0, zorder=collection.get_zorder() - 0.01, label="_flash"))
+        if not added:
+            added.append(axes.add_patch(Rectangle((0, 0), 1, 1, transform=axes.transAxes, fill=False,
+                                                  edgecolor=FLASH_COLOR, linewidth=2.5, clip_on=False,
+                                                  zorder=1000, label="_flash")))
+        self._canvas.draw_idle()
+
+        def clear() -> None:
+            for artist in added:
+                try:
+                    artist.remove()
+                except (ValueError, NotImplementedError):  # already gone with a redraw of the figure
+                    pass
+            self._canvas.draw_idle()
+
+        QTimer.singleShot(FLASH_MS, clear)
+        return True
+
+    def _preview_stem_style(self, axis_id: int, series: str, changes: dict[str, Any]) -> bool:
+        """A Stem Plot's linefmt / markerfmt / basefmt on the drawn stems, baseline and marker.
+
+        False - for a render - for an empty format (it means "follow the
+        style"), one Matplotlib refuses, a part the format string does not
+        say (a colour alone on a marker would need the cycle), or a chart
+        without the tagged artists.
+        """
+        from matplotlib.axes._base import _process_plot_format  # noqa: PLC0415 - the parser ax.stem itself uses
+
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) == int(axis_id)), None)
+        if axes is None:
+            return False
+        parts = {
+            a._chartlibre_stem: a
+            for a in axes.get_children()
+            if getattr(a, "_chartlibre_series", None) == series and hasattr(a, "_chartlibre_stem")
+        }
+        plan = []
+        for key, fmt in changes.items():
+            artist = parts.get(key)
+            if artist is None or not str(fmt).strip():
+                return False
+            try:
+                linestyle, marker, color = _process_plot_format(str(fmt))
+            except ValueError:
+                return False
+            if key == "linefmt":
+                if linestyle in (None, "None") or color is None:
+                    return False
+                plan.append(lambda a=artist, ls=linestyle, c=color: (a.set_color(c), a.set_linestyle(ls)))
+            else:
+                if marker in (None, "None") and key == "markerfmt":
+                    return False
+                if key == "markerfmt":
+                    plan.append(lambda a=artist, m=marker, c=color: (a.set_marker(m), c and a.set_color(c)))
+                else:
+                    if color is None:
+                        return False
+                    plan.append(lambda a=artist, c=color, ls=linestyle: (a.set_color(c), ls and a.set_linestyle(ls)))
+        for step in plan:
+            step()
+        self._canvas.draw_idle()
+        return True
+
+    def preview_series_style(self, axis_id: int, series: str, changes: dict[str, Any]) -> bool:
+        """Show a series' new colour, line style, marker or marker size on the chart as drawn - no render.
+
+        On the artists its renderer tagged with its name (SeriesArtistTags)
+        and its legend entry. False - for the caller to render the chart -
+        for any other key, a renderer that does not tag, a series drawn with
+        more than lines and points (error bars, bars, a band), a line or
+        points the edit would add or remove, colour-mapped points, or a value
+        Matplotlib refuses.
+        """
+        if changes and set(changes) <= STEM_FMT_KEYS:
+            return self._preview_stem_style(axis_id, series, changes)
+        if not changes or not set(changes) <= set(PREVIEW_STYLE_SETTERS):
+            return False
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) == int(axis_id)), None)
+        if axes is None:
+            return False
+        mine = [a for a in axes.get_children() if getattr(a, "_chartlibre_series", None) == series]
+        lines = [a for a in mine if isinstance(a, Line2D)]
+        points = [a for a in mine if isinstance(a, PathCollection)]
+        steps = [a for a in mine if isinstance(a, StepPatch)]
+        if not mine or len(lines) + len(points) + len(steps) != len(mine):
+            return False
+        if any(not any(key in _follows(a) for a in mine) for key in changes):
+            return False  # nothing drawn takes it: only a render can show it
+        labelled = {str(a.get_label()): a for a in mine if not str(a.get_label()).startswith("_")}
+        handles = []
+        for legend in (axes.get_legend(), *self._canvas.figure.legends):
+            for handle, text in zip(legend.legend_handles, legend.get_texts()) if legend is not None else ():
+                if text.get_text() in labelled:
+                    if not isinstance(handle, (Line2D, PathCollection, Patch)):
+                        return False
+                    handle._chartlibre_follows = _follows(labelled[text.get_text()])  # noqa: SLF001
+                    handles.append(handle)
+        has_points = any("marker" in _follows(a) for a in points)
+        try:
+            plan = [(a, *_style_steps(a, changes, has_points=has_points, sizes=a not in handles, has_lines=bool(lines)))
+                    for a in (*lines, *points, *steps, *handles)]
+        except ValueError:
+            return False
+        if any(not ok for _artist, ok, _steps in plan):
+            return False
+        try:
+            for _artist, _ok, steps in plan:
+                for step in steps:
+                    step()
+        except (TypeError, ValueError):
+            return False
+        self._canvas.draw_idle()
+        return True
+
+    # ==================================================================
+    # Hover: The readout that follows the pointer over the data.
+    # ==================================================================
+    #: How long the pointer must be still before the readout is recomputed.
+    #: Mouse motion arrives far faster than a hit test plus a blit can be done,
+    #: so handling every event makes the chart lag behind the cursor. 40ms is
+    #: below the ~100ms at which a response stops feeling immediate, and it
+    #: collapses a fast sweep across the plot into a handful of tests instead
+    #: of hundreds.
+    HOVER_INTERVAL_MS: Final[int] = 40
+
+    #: Pixels. Wider than the click tolerance: hovering is a coarse gesture and
+    #: nobody positions the pointer precisely before reading a value.
+    HOVER_TOLERANCE_PIXELS: Final[float] = 12.0
+
+    def _init_hover_readout(self) -> None:
+        """Prepare the throttle timer and the blitting state."""
+        self._hover_event: Any | None = None
+        self._hover_annotation: Any | None = None
+        self._hover_background: Any | None = None
+        self._hover_axes: Any | None = None
+
+        self._hover_timer = QTimer(self)
+        self._hover_timer.setSingleShot(True)
+        self._hover_timer.setInterval(self.HOVER_INTERVAL_MS)
+        self._hover_timer.timeout.connect(self._update_hover_readout)
+
+    def _on_motion(self, event: Any) -> None:
+        """Record the pointer and let the timer decide when to act.
+
+        Deliberately does no work: this runs on every mouse move, and a hit
+        test here would be the thing that makes the chart feel slow.
+        """
+        self._hover_event = event
+        if not self._hover_timer.isActive():
+            self._hover_timer.start()
+
+    def _draw_state(self) -> tuple[Any, ...]:
+        """What a draw of the figure right now would show: contents, pixels, dpi.
+
+        The size is the figure's in whole device pixels - the size of the
+        buffer a draw fills, which is what matters: a draw at one size is no
+        draw at another. (The figure follows its canvas to the pixel, FIXED
+        mode included - see _apply_figure_size_from_canvas.)
+        """
+        width, height = self._figure.bbox.size
+        return (self._content_revision, int(width), int(height), float(self._figure.dpi))
+
+    def _on_canvas_drawn(self, _event: Any) -> None:
+        """After every full draw: note what is on screen, and keep it for hovering.
+
+        The pixels just drawn are the background the hover readout blits over,
+        unless the readout or the crosshair is part of them. Taking them now -
+        a copy of the buffer - spares the first hover after every redraw a
+        second full draw of its own.
+        """
+        self._drawn_state = self._draw_state()
+        annotation = self._hover_annotation
+        if self._crosshair_enabled or (annotation is not None and annotation.get_visible()):
+            self._hover_background = None
+            return
+        try:
+            self._hover_background = self._canvas.copy_from_bbox(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
+        except (AttributeError, RuntimeError, ValueError):
+            self._hover_background = None
+
+    def _invalidate_hover_background(self) -> None:
+        """Drop the cached pixels after anything that repaints the canvas.
+
+        The background is a snapshot of the chart without the annotation on it.
+        Zooming, panning and resizing all invalidate it, and blitting a stale
+        one paints the old chart back over the new one.
+
+        Only the bitmap is dropped. The annotation artist itself survives a
+        repaint, and clearing _hover_axes here would make every hover rebuild
+        it and force the full draw that blitting exists to avoid - the blit
+        path would then never be reached at all.
+        """
+        self._hover_background = None
+
+    def _discard_hover_annotation(self) -> None:
+        """Forget the annotation artist itself, after the figure is cleared.
+
+        figure.clear() destroys every artist including this one, so the
+        reference left behind belongs to no axes and cannot be drawn.
+        """
+        self._hover_annotation = None
+        self._hover_axes = None
+        self._hover_background = None
+
+    def _update_hover_readout(self) -> None:
+        """Find the point under the pointer and draw its value beside it."""
+        event = self._hover_event
+        inaxes = getattr(event, "inaxes", None) if event is not None else None
+
+        if self._crosshair_enabled:
+            # Tracks the raw pointer position regardless of whether a data
+            # point is nearby - unlike the annotation below, which only
+            # shows for an actual hit. Always a full draw_idle() rather
+            # than the blit path: see _update_crosshair for why, and why
+            # that is safe to mix with the hover annotation's own blitting.
+            self._update_crosshair(event if inaxes is not None else None)
+
+        if inaxes is None:
+            self._hide_hover_annotation()
+            self._show_axis_part_hint(event)
+            return
+        self._show_axis_part_hint(None)
+
+        hit = self._nearest_point_to(event)
+        if hit is None:
+            self._hide_hover_annotation()
+            return
+
+        artist, x_value, y_value = hit
+        axes = inaxes
+
+        series = str(artist.get_label() or "").strip()
+        if not series or series.startswith("_"):
+            series = _("series")
+
+        text = _("{series}\nx: {x}\ny: {y}").format(
+            series=series,
+            x=axis_text(axes.xaxis, x_value),
+            y=axis_text(axes.yaxis, y_value),
+        )
+
+        annotation = self._hover_annotation_for(axes)
+        annotation.xy = (x_value, y_value)
+        annotation.set_text(text)
+        annotation.set_visible(True)
+        if self._crosshair_enabled:
+            # _update_crosshair already issued a draw_idle() this tick;
+            # blitting on top of it would restore a background captured
+            # before the crosshair moved - see the comment there.
+            self._canvas.draw_idle()
+        else:
+            self._blit_hover(axes, annotation)
+
+    def _show_axis_part_hint(self, event: Any) -> None:
+        """Over an axis' ticks, label or title: a pointing hand and what a click will edit (S-01).
+
+        Nothing is drawn - the cursor and the canvas' tooltip only - so
+        hovering stays as cheap as before. Left alone while a navigation tool
+        owns the cursor.
+        """
+        part = None
+        if event is not None and str(getattr(self._toolbar, "mode", "")) == "":
+            _axes, part = self._axis_part_at(event)
+        hints = {"x": _("X axis: click to edit it"), "y": _("Y axis: click to edit it"),
+                 "z": _("Z axis: click to edit it"), "title": _("Axis title: click to edit the axis")}
+        if part in hints:
+            self._canvas.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._canvas.setToolTip(hints[part])
+            self._axis_hint_shown = True
+        elif getattr(self, "_axis_hint_shown", False):
+            self._canvas.unsetCursor()
+            self._canvas.setToolTip("")
+            self._axis_hint_shown = False
+
+    def _nearest_point_to(self, event: Any) -> tuple[Any, float, float] | None:
+        """Return (artist, x, y) for the closest data point, or None.
+
+        Distance is measured in display pixels, not in data units: the two axes
+        rarely share a scale, and a chart of millivolts against seconds would
+        otherwise treat a step along x as thousands of times nearer than a step
+        along y.
+        """
+        axes = event.inaxes
+        best: tuple[float, Any, float, float] | None = None
+
+        for artist in (*axes.lines, *axes.collections):
+            if not artist.get_visible():
+                continue
+
+            try:
+                if hasattr(artist, "get_offsets"):
+                    points = np.asarray(artist.get_offsets(), dtype=float)
+                    if points.size == 0:
+                        continue
+                    xs, ys = points[:, 0], points[:, 1]
+                else:
+                    xs, ys = (np.asarray(a, dtype=float) for a in artist.get_data())
+                if xs.size == 0:
+                    continue
+
+                pixels = axes.transData.transform(np.column_stack([xs, ys]))
+            except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+                continue
+
+            offsets = pixels - np.array([event.x, event.y], dtype=float)
+            distances = np.hypot(offsets[:, 0], offsets[:, 1])
+            index = int(np.nanargmin(distances))
+            distance = float(distances[index])
+
+            if distance <= self.HOVER_TOLERANCE_PIXELS and (
+                best is None or distance < best[0]
+            ):
+                best = (distance, artist, float(xs[index]), float(ys[index]))
+
+        return None if best is None else (best[1], best[2], best[3])
+
+    def _hover_annotation_for(self, axes: Any) -> Any:
+        """Return the annotation artist, moving it to *axes* when needed.
+
+        One artist reused rather than one per axes: it is only ever visible in
+        the axes under the pointer, and a per-axes cache would have to be
+        invalidated on every re-render alongside everything else.
+        """
+        if self._hover_annotation is not None and self._hover_axes is axes:
+            return self._hover_annotation
+
+        if self._hover_annotation is not None:
+            try:
+                self._hover_annotation.remove()
+            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+                pass
+            # The annotation was part of the old axes' contents, so the cached
+            # background no longer matches what is on screen.
+            self._hover_background = None
+
+        annotation = axes.annotate(
+            "",
+            xy=(0.0, 0.0),
+            xytext=(12, 12),
+            textcoords="offset points",
+            ha="left",
+            va="bottom",
+            fontsize=8,
+            zorder=10_000,
+            bbox={"boxstyle": "round,pad=0.4", "fc": "#ffffe0", "ec": "#808080", "alpha": 0.95},
+            arrowprops={"arrowstyle": "-", "color": "#808080", "linewidth": 0.8},
+            annotation_clip=False,
+        )
+        annotation.set_visible(False)
+        self._hover_annotation = annotation
+        self._hover_axes = axes
+        return annotation
+
+    def _blit_hover(self, axes: Any, annotation: Any) -> None:
+        """Repaint only the annotation, over a cached copy of the chart.
+
+        This is the whole reason hovering is affordable. A full draw() re-runs
+        every renderer for every series; blitting restores a bitmap and draws
+        one text box, so the cost does not grow with the size of the data.
+        """
+        canvas = self._canvas
+        try:
+            if self._hover_background is None:
+                # Capture without the annotation, or it would be baked into
+                # the background and smear across the plot as the pointer moves.
+                annotation.set_visible(False)
+                canvas.draw()
+                self._hover_background = canvas.copy_from_bbox(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
+                annotation.set_visible(True)
+
+            canvas.restore_region(self._hover_background)
+            axes.draw_artist(annotation)
+            canvas.blit(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+            # Any backend that cannot blit still gets a correct, slower chart.
+            self._hover_background = None
+            canvas.draw_idle()
+
+    def _hide_hover_annotation(self) -> None:
+        """Take the readout away once the pointer leaves every point."""
+        annotation = self._hover_annotation
+        if annotation is None or not annotation.get_visible():
+            return
+
+        annotation.set_visible(False)
+        try:
+            if self._hover_background is not None:
+                self._canvas.restore_region(self._hover_background)
+                self._canvas.blit(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
+                return
+        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+            self._hover_background = None
+        self._canvas.draw_idle()
+
+    # ==================================================================
+    # Menus: The chart's menus: actions, right-click, reference lines and annotations added from them.
+    # ==================================================================
+    def _build_actions_menu(self) -> QMenu:
+        """Create the chart actions menu shared by button and canvas.
+
+        Fit / Fit proportional / Fixed used to live here as three checkable
+        entries kept in sync by comparing an action's (translated) label
+        against the resize mode - which meant the checkmarks stopped
+        matching anything the moment the interface language changed. The
+        choice is made from the Figure Properties panel now, as a combo
+        box next to the figure's other display settings; see
+        FigurePropertiesWidget.set_resize_mode_control.
+        """
+        menu = create_menu(
+            self,
+            [
+                MenuItem(_("Reload"), _("Reload chart"), None, self.reload,False,"reload"),
+                MenuItem(_("Copy"),_("Copy figure"),PySide6.QtGui.QKeySequence.StandardKey.Copy,self.copy_chart_to_clipboard,False,"copy"),
+                MenuItem(_("Save figure"),_("Save as picture"), PySide6.QtGui.QKeySequence.StandardKey.SaveAs,self.save_chart_as,False,"save"),
+                MenuItem(_("Export report…"), _("This chart and its notes as an HTML or PDF report, like File > Export for the whole project"), None, self.export_report, False, "project_report"),
+                MenuItem(_("Export view as CSV…"),_("Save the rows currently on screen as a CSV file"),None,self.export_view_as_csv,False,"export_csv"),
+                MenuItem(
+                    text=catalogue_action("graph_template").translated_text(),
+                    tooltip=catalogue_action("graph_template").translated_description(),
+                    icon="graph_template",
+                    submenu=[
+                        MenuItem(_("Save this look as a template…"), _("Keep this figure's style, axes and series look under a name"), None, self.save_as_template),
+                        MenuItem(_("Apply a template…"), _("Give this figure the look of a saved template; its data, titles and labels stay"), None, self.apply_saved_template),
+                        None,
+                        MenuItem(_("Delete a template…"), _("Forget a saved template"), None, self.delete_saved_template),
+                    ],
+                ),
+                None,
+                MenuItem(
+                    text=_("Crosshair"),
+                    tooltip=_("A guide line under the pointer, shared across every axes of this figure."),
+                    callback=self._on_toggle_crosshair,
+                    checkable=True,
+                    checked=self._crosshair_enabled,
+                    icon="crosshair",
+                ),
+                MenuItem(
+                    text=_("Link zoom/pan across axes"),
+                    tooltip=_("Zooming or panning one axes' x range applies it to every other axes of this figure too."),
+                    callback=self._on_toggle_link_x_zoom,
+                    checkable=True,
+                    checked=self._link_x_zoom_enabled,
+                    icon="zoom_fit",
+                ),
+                MenuItem(
+                    text=_("Select points"),
+                    tooltip=_("Drag a rectangle over the chart to select points, for hiding or splitting into a new series."),
+                    callback=self._on_toggle_select_mode,
+                    checkable=True,
+                    checked=self._select_mode_enabled,
+                    icon="select_points",
+                ),
+                # Show only Selected, for each table this chart reads rows of (R-07).
+                *(MenuItem(
+                    text=_("Show only the Selected rows of '{table}'").format(table=table),
+                    tooltip=_("Every chart of '{table}' draws only its rows marked Selected; the others stay, "
+                              "out of view - nothing is hidden, and analyses read every row.").format(table=table),
+                    callback=lambda checked, table=table: self._set_selected_only(table, checked),
+                    checkable=True,
+                    checked=self._repo.selected_only(table),
+                    icon="select_points",
+                ) for table in sorted(self.row_tables())),
+                MenuItem(
+                    text=_("Live updates"),
+                    tooltip=_("Redraw this chart every {seconds:g}s, for a source table a rig or an import keeps filling in.").format(
+                        seconds=LIVE_REFRESH_INTERVAL_MS / 1000
+                    ),
+                    callback=self._on_toggle_live_updates,
+                    checkable=True,
+                    checked=self._live_updates_enabled,
+                    icon="live_updates",
+                ),
+                None,
+                MenuItem(_("Delete"),_("Delete this figure"),PySide6.QtGui.QKeySequence.StandardKey.Delete,self.delete_chart,False,"delete"),
+            ],
+        )
+        return menu
+
+    def _show_context_menu(self, pos: QPoint) -> None:
+        """Show the actions menu, plus what can be done at the point clicked.
+
+        The cached menu covers the whole figure - reload, copy, save,
+        delete - and is the same wherever the click landed. The reference
+        lines are not: they are added *at* a value on one axis, so they
+        only appear when the click is inside an axes, and they name the
+        value they would use.
+        """
+        self.context_menu_for(pos).exec(self._canvas.mapToGlobal(pos))
+
+    def context_menu_for(self, pos: QPoint) -> QMenu:
+        """Return the menu a right-click at *pos* should open.
+
+        Built fresh every time, inside the axes or out: Crosshair and Link
+        zoom/pan are checkable, and a cached QMenu built once at __init__
+        would keep showing whatever checked state was true the first time
+        it was ever shown.
+        """
+        target = self._axis_at(pos)
+        if target is None:
+            return self._build_actions_menu()
+
+        axis_id, axes, x_value, y_value = target
+        menu = self._build_actions_menu()
+        menu.addSeparator()
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="add.vertical",
+            checkable=False,
+            text=_("Add vertical line at x = {value}").format(
+                value=axis_text(axes.xaxis, x_value)
+            ),
+            tooltip=_("A line across the whole axes, at this x."),
+            key=None,
+            action=lambda: self._add_reference_line(axis_id, "vertical", x_value),
+        )
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="add.horizontal",
+            checkable=False,
+            text=_("Add horizontal line at y = {value}").format(
+                value=axis_text(axes.yaxis, y_value)
+            ),
+            tooltip=_("A line along the whole axes, at this y."),
+            key=None,
+            action=lambda: self._add_reference_line(axis_id, "horizontal", y_value),
+        )
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="add.annotation",
+            checkable=False,
+            text=_("Add annotation here…"),
+            tooltip=_("A text note pinned to this point: x = {x}, y = {y}.").format(
+                x=axis_text(axes.xaxis, x_value),
+                y=axis_text(axes.yaxis, y_value),
+            ),
+            key=None,
+            action=lambda: self._add_annotation(axis_id, x_value, y_value),
+        )
+        menu.addSeparator()
+        self._add_measure_menu_items(menu, axes, axis_id, x_value, y_value)
+        self._add_selection_menu_items(menu, axis_id)
+        return menu
+
+    def _add_selection_menu_items(self, menu: QMenu, axis_id: int) -> None:
+        """Add "Hide"/"New series" for the pending box selection, if any.
+
+        Only shown for the axis the rectangle was drawn on - a selection
+        does not carry over to a right-click on a different axes.
+        """
+        selection = self._last_selection
+        if not selection or selection["axis_id"] != axis_id:
+            return
+
+        menu.addSeparator()
+        point_count = sum(len(info["x"]) for info in selection["series"].values())
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="hide_points",
+            checkable=False,
+            text=_("Hide {count} selected point(s)").format(count=point_count),
+            tooltip=_("Hide these points from this series without changing its data."),
+            key=None,
+            action=self._hide_selection,
+        )
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="add_series",
+            checkable=False,
+            text=_("New series from selection"),
+            tooltip=_("Add a new series holding only the selected points."),
+            key=None,
+            action=self._create_series_from_selection,
+        )
+
+    def _add_measure_menu_items(
+        self, menu: QMenu, axes: Any, axis_id: int, x_value: float, y_value: float
+    ) -> None:
+        """Add the ruler's two-click flow to a context menu.
+
+        "Measure to here" only appears once a start point is pending on
+        this same axes - measuring across two axes that may not even share
+        units would report a slope neither one means.
+        """
+        pending_here = (
+            self._ruler_start is not None and self._ruler_start[0] == axis_id
+        )
+        create_menu_item(
+            parent=self,
+            menu=menu,
+            icon="measure",
+            checkable=False,
+            text=_("Measure from here"),
+            tooltip=_("Start measuring the distance and slope to another point."),
+            key=None,
+            action=lambda: self._measure_from_here(axes, axis_id, x_value, y_value),
+        )
+        if pending_here:
+            create_menu_item(
+                parent=self,
+                menu=menu,
+                icon="measure",
+                checkable=False,
+                text=_("Measure to here"),
+                tooltip=_("Finish the measurement at this point."),
+                key=None,
+                action=lambda: self._measure_to_here(axes, axis_id, x_value, y_value),
+            )
+        if self._ruler_start is not None:
+            # A completed measurement is not cleared from here any more -
+            # it is stored on the axis (apply_measurements) and deleted
+            # from the Overlay panel's Measurements tab, the same way a
+            # reference line is. This only cancels a still-pending point.
+            create_menu_item(
+                parent=self,
+                menu=menu,
+                icon="clear",
+                checkable=False,
+                text=_("Cancel measurement"),
+                tooltip=_("Forget the pending point without finishing the measurement."),
+                key=None,
+                action=self._clear_ruler,
+            )
+
+    def _axis_at(self, pos: QPoint) -> tuple[int, Any, float, float] | None:
+        """Return (axis id, axes, x, y) for the axes under *pos*, or None.
+
+        The axis id comes off the axes itself: render_figure tags every one
+        it creates with ``_chartlibre_axis_id``, so a click maps back to the
+        descriptor without this panel keeping a second mapping that could
+        fall out of step with the figure.
+
+        Qt counts pixels from the top-left and Matplotlib from the
+        bottom-left; ``mouseEventCoords`` is Matplotlib's own conversion,
+        device pixel ratio included, and using it is what makes this agree
+        with the toolbar's cursor readout on a Retina screen.
+        """
+        try:
+            x_pixels, y_pixels = self._canvas.mouseEventCoords(pos)
+        except Exception:  # noqa: BLE001 - a backend without the helper
+            return None
+
+        # Last first: a twin axes is created after the axes it overlays and
+        # is the one on top, so it is the one a click belongs to.
+        for axes in reversed(list(self._figure.axes)):
+            axis_id = getattr(axes, "_chartlibre_axis_id", None)
+            if axis_id is None or not axes.bbox.contains(x_pixels, y_pixels):  # pyright: ignore[reportAttributeAccessIssue]
+                continue
+            try:
+                x_value, y_value = axes.transData.inverted().transform(
+                    (x_pixels, y_pixels)
+                )
+            except Exception:  # noqa: BLE001 - a 3D or polar axes may refuse
+                return None
+            return int(axis_id), axes, float(x_value), float(y_value)
+        return None
+
+    def _add_reference_line(
+        self, axis_id: int, orientation: str, value: float
+    ) -> None:
+        """Store one reference line on the axis, and redraw.
+
+        The same "lines" option the Overlay properties panel edits, so a
+        line dropped here can be restyled, moved or deleted there - see
+        BaseAxisRenderer.apply_reference_lines. Nothing about the style is
+        decided here: at the moment of the click the only thing known is
+        where.
+        """
+        try:
+            self._repo.snapshot_for_undo(
+                self._repo.DESCRIPTOR_TABLES,
+                label=_("Add {orientation} line").format(orientation=orientation),
+            )
+            options = dict(self._repo.get_axis_options(int(axis_id)) or {})
+            lines = list(options.get("lines") or [])
+            lines.append(
+                {"orientation": orientation, "value": float(value), "kwargs": {}}
+            )
+            options["lines"] = lines
+            self._repo.set_axis_options(int(axis_id), options)
+        except Exception:  # noqa: BLE001
+            applogger.exception("Could not add a reference line.")
+            return
+
+        applogger.info(
+            "Added a %s reference line at %g on axis %s", orientation, value, axis_id
+        )
+        self.reload()
+        self.figure_edited.emit()
+
+    def _add_annotation(self, axis_id: int, x_value: float, y_value: float) -> None:
+        """Prompt for text and pin a note to the clicked point, then redraw.
+
+        Writes the same "annotations" key the Overlay properties panel edits,
+        so a note dropped here can be restyled, moved or deleted there - see
+        BaseAxisRenderer.apply_annotations. Only the position and the text are
+        decided here; the type is a plain text note.
+        """
+        text, accepted = QInputDialog.getText(
+            self, _("Add annotation"), _("Annotation text:")
+        )
+        if not accepted or not text.strip():
+            return
+
+        try:
+            self._repo.snapshot_for_undo(
+                self._repo.DESCRIPTOR_TABLES,
+                label=_("Add annotation"),
+            )
+            options = dict(self._repo.get_axis_options(int(axis_id)) or {})
+            annotations = list(options.get("annotations") or [])
+            annotations.append(
+                {
+                    "x": float(x_value),
+                    "y": float(y_value),
+                    "type": "text",
+                    "text": text.strip(),
+                    "kwargs": {},
+                }
+            )
+            options["annotations"] = annotations
+            self._repo.set_axis_options(int(axis_id), options)
+        except Exception:  # noqa: BLE001
+            applogger.exception("Could not add an annotation.")
+            return
+
+        applogger.info(
+            "Added an annotation at (%g, %g) on axis %s", x_value, y_value, axis_id
+        )
+        self.reload()
+        self.figure_edited.emit()
+

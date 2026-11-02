@@ -931,7 +931,7 @@ the machine.
   SQLite itself for the SQL Geometry writes.
 - `tmp_db_path` / `test_results_dir` / `plots_dir` fixtures give each test an
   isolated `.dhub` path and a directory for saved plots
-  (`DHUB_TEST_ARTIFACTS` env var to redirect).
+  (`CHARTLIBRE_TEST_ARTIFACTS` env var to redirect).
 - Run the suite: `python -m pytest dev/tests -q` (add
   `QT_QPA_PLATFORM=offscreen` in a headless environment). The suite is
   deliberately small: one or two tests per feature, on results, saved data

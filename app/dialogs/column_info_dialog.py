@@ -37,13 +37,13 @@ from PySide6.QtWidgets import (
 )
 
 from app.data import column_metadata as cm
-from app.data.repo.table_tools import CAST_TYPES
+from app.data.repo.project import CAST_TYPES
 from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
 from app.logs.logger import applogger
 from app.styles.style import stdSizeAndlayout
-from app.widgets.chart_jump_bar import jump_arrow
 from app.utils.i18n import _
 from app.utils.messages import show_message
+from app.widgets.chart_jump_bar import jump_arrow
 
 #: The modelling types offered, "" first: the values decide.
 MODELLING_TYPES: tuple[tuple[str, str], ...] = (

@@ -10,13 +10,13 @@ meet is a ``ValueError``, a run past its time limit a ``TimeoutError``.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any, cast
 
 import numpy as np
 import pandas as pd
-from scipy.cluster import hierarchy
-from scipy.cluster import vq
+from scipy.cluster import hierarchy, vq
 
 from app.utils.coercion import to_numeric_axis
 
@@ -94,7 +94,7 @@ def run_with_timeout(
     if timeout <= 0.0:
         return func(*args, **kwargs)
 
-    executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="datahub-cluster")
+    executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="chartlibre-cluster")
     future = executor.submit(func, *args, **kwargs)
     try:
         return future.result(timeout=timeout)
@@ -314,14 +314,14 @@ def cluster_sklearn(
 
         try:
             from sklearn.cluster import (
+                DBSCAN,
+                OPTICS,
                 AgglomerativeClustering,
                 Birch,
                 BisectingKMeans,
-                DBSCAN,
                 KMeans,
                 MeanShift,
                 MiniBatchKMeans,
-                OPTICS,
                 SpectralClustering,
             )
             from sklearn.mixture import GaussianMixture

@@ -25,7 +25,7 @@ def test_a_failed_preview_says_why_in_the_results(qapp, repo: SqliteRepo) -> Non
         dialog.model_combo.setCurrentText("X-bar and R")
         dialog.preview()
         deadline = time.monotonic() + 10
-        while dialog.evaluating and time.monotonic() < deadline:
+        while dialog.job_running and time.monotonic() < deadline:
             qapp.processEvents()
             time.sleep(0.01)
         qapp.processEvents()

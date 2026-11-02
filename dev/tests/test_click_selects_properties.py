@@ -73,7 +73,7 @@ def test_clicks_select_the_figure_the_axis_and_the_series(qapp, tmp_path) -> Non
         payload = {"series_id": stored.id, "color": "#ff0000", "sql_query": stored.sql_query}
         window._on_series_options_requested(payload)
         assert not window._properties_redraw_timer.isActive()
-        points = next(a for a in axes.collections if getattr(a, "_dhub_series", None) == "high")
+        points = next(a for a in axes.collections if getattr(a, "_chartlibre_series", None) == "high")
         assert to_hex(points.get_facecolor()[0]) == "#ff0000"
         assert window._properties_series_descriptor(series._current_series_id).options["color"] == "#ff0000"
         window._on_series_options_requested({**payload, "label": "High"})
@@ -94,7 +94,7 @@ def test_clicks_select_the_figure_the_axis_and_the_series(qapp, tmp_path) -> Non
         assert window._properties_series_descriptor(low_id).options["color"] == "#00aa00"
         assert "label" not in (window._properties_series_descriptor(low_id).options or {})
         assert all(to_hex(a.get_facecolor()[0]) == "#00aa00" for a in axes.collections
-                   if getattr(a, "_dhub_series", None) in ("low", "high"))
+                   if getattr(a, "_chartlibre_series", None) in ("low", "high"))
         _click(panel, x_px, y_px, key="shift")  # again: taken out
         assert series.also_series_ids() == []
     finally:

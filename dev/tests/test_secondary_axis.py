@@ -28,13 +28,13 @@ def test_applied_once_per_render_and_replaced_on_a_redraw() -> None:
     options = {"secondary_x": "degC_degF", "secondary_y": "kg_lb"}
     secondary_axis.apply_secondary_axes(ax, options)
     secondary_axis.apply_secondary_axes(ax, options)
-    assert len(ax._dhub_secondary_axes) == 2
+    assert len(ax._chartlibre_secondary_axes) == 2
     assert len([child for child in ax.child_axes]) == 2
     secondary_axis.apply_secondary_axes(ax, {})
-    assert ax._dhub_secondary_axes == [] and not ax.child_axes
+    assert ax._chartlibre_secondary_axes == [] and not ax.child_axes
 
 
 def test_a_polar_axes_refuses_and_is_left_alone() -> None:
     ax = Figure().add_subplot(projection="polar")
     secondary_axis.apply_secondary_axes(ax, {"secondary_x": "degC_degF"})
-    assert ax._dhub_secondary_axes == []
+    assert ax._chartlibre_secondary_axes == []

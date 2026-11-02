@@ -38,11 +38,11 @@ already consistent when it was captured.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Iterator, Sequence
 
 from app.data.data_source import quote_identifier as _quote
 from app.logs.logger import applogger

@@ -17,8 +17,7 @@ import pandas as pd
 from app.analysis import distribution as dist
 from app.data.data_source import row_value
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
-from app.plugin_api.data_operations.dialog_base.data import _xy_columns
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, xy_columns
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
 from app.plugin_api.data_operations.results import OperationResult
 from app.utils import report_html
@@ -43,7 +42,7 @@ def quoted(name: str) -> str:
 def series_values(dialog: DataOperationDialogBase, row: Any, name: str) -> tuple[Any, str, str]:
     """A series' x and y, its query, and the column its y values come from."""
     frame, roles = dialog._series_frame(row)
-    _x, y_column = _xy_columns(frame, roles)
+    _x, y_column = xy_columns(frame, roles)
     query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
     return dialog.series_xy(row, name), query, y_column
 
