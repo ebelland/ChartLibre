@@ -71,12 +71,12 @@ def conversion_choices() -> list[tuple[str, str]]:
 
 def apply_secondary_axes(ax: Any, options: dict[str, Any]) -> None:
     """Draw the secondary x (top) and y (right) axes the options name; a re-draw replaces them."""
-    for old in getattr(ax, "_dhub_secondary_axes", ()):
+    for old in getattr(ax, "_chartlibre_secondary_axes", ()):
         try:
             old.remove()
         except (ValueError, NotImplementedError, AttributeError):
             pass
-    ax._dhub_secondary_axes = []  # noqa: SLF001 - our own attribute
+    ax._chartlibre_secondary_axes = []  # noqa: SLF001 - our own attribute
     if getattr(ax, "name", "rectilinear") != "rectilinear":
         return  # polar and 3D axes have no top or right edge to hang a scale on
     for axis, make, location in (("x", "secondary_xaxis", "top"), ("y", "secondary_yaxis", "right")):
@@ -94,4 +94,4 @@ def apply_secondary_axes(ax: Any, options: dict[str, Any]) -> None:
         except Exception:  # noqa: BLE001 - an axes that cannot: the setting is stored and ignored there
             applogger.info("The %s axis cannot take a secondary axis (%s).", axis, key)
             continue
-        ax._dhub_secondary_axes.append(secondary)  # noqa: SLF001
+        ax._chartlibre_secondary_axes.append(secondary)  # noqa: SLF001

@@ -58,7 +58,7 @@ def test_each_element_and_property_is_its_own_step_and_a_colour_comes_back_live(
         reloads = []
         monkeypatch.setattr(window, "_reload_tabs", lambda *args, **kwargs: reloads.append(args))
         window._on_undo()
-        points = next(a for a in panel._canvas.figure.axes[0].collections if getattr(a, "_dhub_series", None) == "low")
+        points = next(a for a in panel._canvas.figure.axes[0].collections if getattr(a, "_chartlibre_series", None) == "low")
         assert to_hex(points.get_facecolor()[0]) == "#ff0000" and not reloads
         assert window._current_chart_panel() is panel
     finally:

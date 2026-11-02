@@ -109,7 +109,7 @@ def build_questions_demo(directory: Path = DEMO_DIR) -> Path:
 
     app = QApplication.instance() or QApplication([])
     real_user_config = config.USER_CONFIG_PATH
-    config.USER_CONFIG_PATH = Path(tempfile.mkdtemp(prefix="dhub-demo-")) / "user.json"
+    config.USER_CONFIG_PATH = Path(tempfile.mkdtemp(prefix="chartlibre-demo-")) / "user.json"
     try:
         path = Path(directory) / _demo().path_name
         path.parent.mkdir(parents=True, exist_ok=True)

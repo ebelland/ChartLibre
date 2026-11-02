@@ -1,6 +1,6 @@
 """Application logger, with raise-on-log behaviour.
 
-``applogger`` is a singleton :class:`DataHubLogger` that writes to a rotating
+``applogger`` is a singleton :class:`ChartLibreLogger` that writes to a rotating
 file, mirrors records to a Qt signal for the in-app log viewer, puts WARNING
 and louder in the status bar, and can raise once a record is written:
 
@@ -12,10 +12,10 @@ It never opens a window: what a user must read goes through app.utils.messages.
 from __future__ import annotations
 
 import logging
-from logging.handlers import RotatingFileHandler
-from pathlib import Path
 import sys
 import traceback
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from types import TracebackType
 from typing import Any, Final, Self, cast
 
@@ -23,11 +23,11 @@ from PySide6.QtCore import QObject, QtMsgType, Signal, qInstallMessageHandler
 from PySide6.QtWidgets import QStatusBar
 
 _LOGGER_DIR: Final[Path] = Path(__file__).resolve().parent.parent / "logs"
-_LOGGER_NAME: Final[str] = "datahub"
+_LOGGER_NAME: Final[str] = "chartlibre"
 
 # Where the rotating file handler writes by default.  Public so the log viewer
 # can tell the user where the full log lives without rebuilding the path.
-LOG_FILE: Final[Path] = _LOGGER_DIR / "datahub.log"
+LOG_FILE: Final[Path] = _LOGGER_DIR / "chartlibre.log"
 
 ExceptionInfo = tuple[type[BaseException], BaseException, TracebackType | None]
 
@@ -101,7 +101,7 @@ class _CallerFilter(logging.Filter):
         return True
 
 
-class DataHubLogger(logging.Logger):
+class ChartLibreLogger(logging.Logger):
     """Logger whose calls can also raise, and reach the status bar.
 
     Usage examples:
@@ -252,7 +252,7 @@ class AppLogger:
     """Singleton application logger factory and GUI error reporter."""
 
     _instance: Self | None = None
-    _logger: DataHubLogger | None = None
+    _logger: ChartLibreLogger | None = None
     _configured: bool = False
     _hooks_installed: bool = False
     
@@ -271,7 +271,7 @@ class AppLogger:
         file_level: int = logging.WARNING,
         max_bytes: int = 1_000_000,
         backup_count: int = 3,
-    ) -> DataHubLogger:
+    ) -> ChartLibreLogger:
         """Configure and return the singleton application logger.
 
         Any call can pass ``raise_error=True`` to raise LoggedError once the
@@ -280,13 +280,13 @@ class AppLogger:
         if cls._configured and cls._logger is not None:
             return cls._logger
 
-        logging.setLoggerClass(DataHubLogger)
+        logging.setLoggerClass(ChartLibreLogger)
 
         log_dir.mkdir(parents=True, exist_ok=True)
         # LOG_FILE when the default directory is used; a relocated directory
         # (tests, a packaged build) keeps its own file.
         log_file: Path = log_dir / LOG_FILE.name
-        logger = cast(DataHubLogger, logging.getLogger(_LOGGER_NAME))
+        logger = cast(ChartLibreLogger, logging.getLogger(_LOGGER_NAME))
         logger.setLevel(logging.DEBUG)
         logger.propagate = False
 
@@ -336,7 +336,7 @@ class AppLogger:
         needs to point the logger at a different directory (tests, a relocated
         log folder) has to tear the current configuration down first.
         """
-        logger = cls._logger or cast(DataHubLogger, logging.getLogger(_LOGGER_NAME))
+        logger = cls._logger or cast(ChartLibreLogger, logging.getLogger(_LOGGER_NAME))
         for handler in list(logger.handlers):
             logger.removeHandler(handler)
             try:
@@ -348,7 +348,7 @@ class AppLogger:
         cls._configured = False
 
     @classmethod
-    def get_logger(cls) -> DataHubLogger:
+    def get_logger(cls) -> ChartLibreLogger:
         """Return the configured singleton logger, initialising it if needed."""
         if cls._logger is None:
             return cls.configure()
@@ -397,11 +397,11 @@ def format_exception(exc_info: ExceptionInfo) -> str:
 
 
 # Initialise ASAP at import time so module-level imports are always safe.
-applogger: DataHubLogger = AppLogger.configure()
+applogger: ChartLibreLogger = AppLogger.configure()
 AppLogger.install_exception_hooks()
 
 
-def get_logger() -> DataHubLogger:
+def get_logger() -> ChartLibreLogger:
     """Return the singleton application logger."""
     return AppLogger.get_logger()
 

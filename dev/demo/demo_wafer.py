@@ -142,7 +142,7 @@ def build_wafer_demo(directory: Path = DEMO_DIR) -> Path:
         applogger.warning("Demo: message not shown: %s", box.text()) or QMessageBox.StandardButton.Yes
     )
     real_user_config = config.USER_CONFIG_PATH
-    config.USER_CONFIG_PATH = Path(tempfile.mkdtemp(prefix="dhub-demo-")) / "user.json"
+    config.USER_CONFIG_PATH = Path(tempfile.mkdtemp(prefix="chartlibre-demo-")) / "user.json"
     try:
         path = Path(directory) / WAFER_DEMO.path_name
         path.parent.mkdir(parents=True, exist_ok=True)

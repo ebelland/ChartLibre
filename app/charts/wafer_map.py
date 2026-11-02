@@ -191,4 +191,4 @@ class WaferMapAxisRenderer(BaseAxisRenderer):
         ax.set_ylim(-reach, reach)
         # Square: a wafer is a circle.
         ax.set_aspect("equal", adjustable="box")
-        ax._dhub_keep_aspect_box = True  # render_figure turns "box" into "datalim" otherwise: x would widen
+        ax._chartlibre_keep_aspect_box = True  # render_figure turns "box" into "datalim" otherwise: x would widen

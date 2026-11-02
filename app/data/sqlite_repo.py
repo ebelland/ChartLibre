@@ -553,17 +553,17 @@ class SqliteRepo(TablesMixin, ProjectMixin):
         # OVER () numbers the rows in the query's own order - a curve's ORDER
         # BY x. "ORDER BY 1" inside a window is the constant 1, not the first
         # column, and kept an arbitrary set of rows.
-        keep = f"(__dhub_rn__ - 1) % {stride} = 0"
+        keep = f"(__chartlibre_rn__ - 1) % {stride} = 0"
         if has_projection_alias(sql_text, "color"):
             # A row given a colour of its own - an outlier, a cluster - is
             # what the chart is there to show: never thinned out.
             keep += " OR (\"color\" IS NOT NULL AND \"color\" <> '')"
         wrapped = (
             "SELECT * FROM ("
-            f"SELECT *, ROW_NUMBER() OVER () AS __dhub_rn__ FROM ({sql_text})"
+            f"SELECT *, ROW_NUMBER() OVER () AS __chartlibre_rn__ FROM ({sql_text})"
             f") WHERE {keep}"
         )
-        return self.series_frame(wrapped).drop_column("__dhub_rn__")
+        return self.series_frame(wrapped).drop_column("__chartlibre_rn__")
 
 
     @ensure_connection_wrapper

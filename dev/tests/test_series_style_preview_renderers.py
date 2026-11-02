@@ -30,7 +30,7 @@ def _series(name: str = "s", **columns: Any) -> SeriesData:
 
 def _draw(renderer: Any, series: list[SeriesData], *, projection: str | None = None) -> Any:
     axes = Figure().add_subplot(projection=projection)
-    axes._dhub_axis_id = 1
+    axes._chartlibre_axis_id = 1
     renderer.render_axis(axes, series, {})
     return axes
 
@@ -38,7 +38,7 @@ def _draw(renderer: Any, series: list[SeriesData], *, projection: str | None = N
 def test_stairs_takes_a_colour_and_a_line_style_without_a_render() -> None:
     axes = _draw(StairsAxisRenderer(), [_series()])
     (patch,) = [a for a in axes.get_children() if isinstance(a, StepPatch)]
-    assert patch._dhub_series == "s"
+    assert patch._chartlibre_series == "s"
     panel = _panel(axes)
     assert ChartPanel.preview_series_style(panel, 1, "s", {"color": "red"}) is True
     assert patch.get_edgecolor()[:3] == (1.0, 0.0, 0.0)
@@ -51,7 +51,7 @@ def test_stairs_takes_a_colour_and_a_line_style_without_a_render() -> None:
 def test_3d_line_takes_colour_and_line_style_without_a_render() -> None:
     frame = {"x": np.arange(6.0), "y": np.arange(6.0), "z": np.arange(6.0) ** 2}
     axes = _draw(Line3DAxisRenderer(), [_series(**frame)], projection="3d")
-    (line,) = [a for a in axes.get_children() if isinstance(a, Line2D) and getattr(a, "_dhub_series", None) == "s"]
+    (line,) = [a for a in axes.get_children() if isinstance(a, Line2D) and getattr(a, "_chartlibre_series", None) == "s"]
     panel = _panel(axes)
     assert ChartPanel.preview_series_style(panel, 1, "s", {"color": "green"}) is True
     assert line.get_color() == "green"
@@ -75,14 +75,14 @@ def test_3d_scatter_coloured_by_a_column_is_left_to_the_render() -> None:
 
 def test_ecdf_is_a_scatter_underneath_and_already_follows_the_preview() -> None:
     axes = _draw(EcdfAxisRenderer(), [_series(value=np.random.default_rng(0).normal(size=30))])
-    tagged = [a for a in axes.get_children() if getattr(a, "_dhub_series", None) == "s"]
+    tagged = [a for a in axes.get_children() if getattr(a, "_chartlibre_series", None) == "s"]
     assert tagged, "the ECDF's points carry the series name"
     assert ChartPanel.preview_series_style(_panel(axes), 1, "s", {"color": "red"}) is True
 
 
 def test_stem_takes_its_three_format_strings_without_a_render() -> None:
     axes = _draw(StemAxisRenderer(), [_series()])
-    parts = {a._dhub_stem: a for a in axes.get_children() if hasattr(a, "_dhub_stem")}
+    parts = {a._chartlibre_stem: a for a in axes.get_children() if hasattr(a, "_chartlibre_stem")}
     assert set(parts) == {"linefmt", "markerfmt", "basefmt"}
     panel = _panel(axes)
     assert ChartPanel.preview_series_style(panel, 1, "s", {"linefmt": "r--"}) is True

@@ -13,6 +13,7 @@ P2-17, without a ``pd.DataFrame`` built on the way: see
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import replace
@@ -20,25 +21,22 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any, Literal
 
-import math
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.ticker import NullLocator
 
-from app.plugin_api.charts.text_lines import display_text, multialignment
-from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
-from app.plugin_api.charts import axis_options, broken_axis, panel_labels, secondary_axis
-from app.plugin_api.charts.base import SeriesData
 from app.data.descriptors import AxisDescriptor, FigureDescriptor, SeriesDescriptor
 from app.data.series_frame import SeriesFrame
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.logs.logger import applogger
+from app.plugin_api.charts import axis_options, broken_axis, panel_labels, secondary_axis
+from app.plugin_api.charts.base import SeriesData
+from app.plugin_api.charts.text_lines import display_text, multialignment
+from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
+from app.utils.coercion import to_numbers
 from app.utils.config import MPLSTYLES_DIR, get_constant, get_value
 from app.utils.mpl_latex import filter_latex_style_text
-from app.utils.coercion import to_numbers
-
 
 LayoutMode = Literal["constrained", "compressed", "tight", "none"]
 
@@ -185,7 +183,7 @@ def render_figure_from_descriptor(
             # back to their descriptor by id - it cannot rely on the two
             # lists sharing an order once axes are created out of order
             # for one (base axes, then their twins).
-            ax._dhub_axis_id = int(axis_desc.id)  # noqa: SLF001 - our own attribute, not matplotlib's
+            ax._chartlibre_axis_id = int(axis_desc.id)  # noqa: SLF001 - our own attribute, not matplotlib's
 
             chart_type = str(axis_desc.name or "").strip()
             series_list = _build_series_data_list(
@@ -1021,7 +1019,7 @@ def _apply_column_labels(ax: Any, axis_desc: AxisDescriptor, repo: SqliteRepo) -
     from app.data.data_source import parse_roles
 
     options = axis_desc.options if isinstance(axis_desc.options, dict) else {}
-    if bool(options.get("hide_axis", options.get("hidden", False))) or getattr(ax, "_dhub_axis_off", False):
+    if bool(options.get("hide_axis", options.get("hidden", False))) or getattr(ax, "_chartlibre_axis_off", False):
         return
     wanted = {}
     for role, current, field_label in (
@@ -1081,7 +1079,7 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
 
     # A renderer that is a drawing rather than a plot (the fishbone) marks
     # its axes so the frame and ticks it switched off stay off.
-    if bool(options.get("hide_axis", options.get("hidden", False))) or getattr(ax, "_dhub_axis_off", False):
+    if bool(options.get("hide_axis", options.get("hidden", False))) or getattr(ax, "_chartlibre_axis_off", False):
         ax.set_axis_off()
     else:
         ax.set_axis_on()
@@ -1394,18 +1392,18 @@ def _fit_x_tick_labels(figure: Figure, ax: Any, options: dict[str, Any]) -> None
         return
     if any(label.get_rotation() for label in ax.get_xticklabels() if label.get_text()):
         return  # turned by the renderer already
-    ax._dhub_fit_x = ax.xaxis.get_major_formatter()  # noqa: SLF001 - our own attribute: the labels' own formatter
+    ax._chartlibre_fit_x = ax.xaxis.get_major_formatter()  # noqa: SLF001 - our own attribute: the labels' own formatter
     _refit_x_tick_labels(figure, ax)
     canvas = getattr(figure, "canvas", None)
-    if canvas is not None and not getattr(figure, "_dhub_fit_x_connected", False):
-        figure._dhub_fit_x_connected = True  # noqa: SLF001
+    if canvas is not None and not getattr(figure, "_chartlibre_fit_x_connected", False):
+        figure._chartlibre_fit_x_connected = True  # noqa: SLF001
         canvas.mpl_connect("resize_event", lambda _event, fig=figure: [
-            _refit_x_tick_labels(fig, each) for each in fig.axes if getattr(each, "_dhub_fit_x", None) is not None])
+            _refit_x_tick_labels(fig, each) for each in fig.axes if getattr(each, "_chartlibre_fit_x", None) is not None])
 
 
 def _refit_x_tick_labels(figure: Figure, ax: Any) -> None:
     """Back to level, unwrapped labels; then wrapped or turned if they overlap at the size now."""
-    formatter = ax._dhub_fit_x  # noqa: SLF001
+    formatter = ax._chartlibre_fit_x  # noqa: SLF001
     try:
         import textwrap
 
@@ -1718,11 +1716,11 @@ def _normalize_axes_fill_policy(figure: Figure, fig_desc: FigureDescriptor) -> N
 
     for ax in list(figure.axes):
         try:
-            axis_id = getattr(ax, "_dhub_axis_id", None)
+            axis_id = getattr(ax, "_chartlibre_axis_id", None)
             axis_options = options_by_id.get(axis_id, {}) if axis_id is not None else {}
             # The axis' option, or the renderer's own (a wafer is a circle, its box square: keep_aspect_box).
             if preserve_all or bool(axis_options.get("preserve_aspect_box", False)) \
-                    or getattr(ax, "_dhub_keep_aspect_box", False):
+                    or getattr(ax, "_chartlibre_keep_aspect_box", False):
                 continue
 
             # A polar axes keeps its own box (it overrides get_data_ratio, so "datalim" is refused).

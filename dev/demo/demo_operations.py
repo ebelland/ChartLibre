@@ -22,9 +22,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject
-from dev.demo.build_demos import TABLE_SOURCES, demo_style
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from dev.demo.build_demos import TABLE_SOURCES, demo_style
 
 #: The figure options key the chart panel keeps its results pane in.
 _VIEW_KEY = "view"
@@ -287,11 +287,9 @@ def _store_report(repo: SqliteRepo, figure_id: int, html: str) -> None:
 
 def build_operations_demo(directory: Path = DEMO_DIR) -> Path:
     """Write the Data Operations demo into *directory* and return its path."""
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QMessageBox
 
     import app.utils.config as config
-
-    from PySide6.QtWidgets import QMessageBox
 
     app = QApplication.instance() or QApplication([])
     # No one is there to click: a message box is logged instead of waited on.
@@ -300,7 +298,7 @@ def build_operations_demo(directory: Path = DEMO_DIR) -> Path:
         applogger.warning("Demo: message not shown: %s", box.text()) or QMessageBox.StandardButton.Yes
     )
     real_user_config = config.USER_CONFIG_PATH
-    scratch = Path(tempfile.mkdtemp(prefix="dhub-demo-")) / "user.json"
+    scratch = Path(tempfile.mkdtemp(prefix="chartlibre-demo-")) / "user.json"
     config.USER_CONFIG_PATH = scratch  # dialogs remember their settings here, not in the real file
     try:
         path = Path(directory) / OPERATIONS_DEMO.path_name

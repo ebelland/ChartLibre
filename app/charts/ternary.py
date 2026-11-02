@@ -69,7 +69,7 @@ class TernaryAxisRenderer(BaseAxisRenderer):
         names = [str(roles.get(key) or key.upper()) for key in ("a", "b", "c")]
 
         ax.set_axis_off()
-        ax._dhub_axis_off = True  # pyright: ignore[reportAttributeAccessIssue]
+        ax._chartlibre_axis_off = True  # pyright: ignore[reportAttributeAccessIssue]
         ax.set_aspect("equal")
         ax.plot([0, 1, 0.5, 0], [0, 0, _HEIGHT, 0], color="0.2", linewidth=1.0)
         step = int(self.opt_typed("grid_step", options) or 0)

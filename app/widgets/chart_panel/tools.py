@@ -180,7 +180,7 @@ class ChartToolsMixin(_Host):
 
         active_axes = event.inaxes
         for axes in self._figure.axes:
-            if not hasattr(axes, "_dhub_axis_id"):
+            if not hasattr(axes, "_chartlibre_axis_id"):
                 continue  # a colorbar or other helper axes, not a chart one
 
             vline = self._crosshair_vlines.get(axes)
@@ -235,7 +235,7 @@ class ChartToolsMixin(_Host):
         point that can move an axes' x range.
         """
         for axes in self._figure.axes:
-            if hasattr(axes, "_dhub_axis_id"):
+            if hasattr(axes, "_chartlibre_axis_id"):
                 axes.callbacks.connect("xlim_changed", self._on_axes_xlim_changed)  # pyright: ignore[reportAttributeAccessIssue]
 
     def _on_axes_xlim_changed(self, changed_axes: Any) -> None:
@@ -252,7 +252,7 @@ class ChartToolsMixin(_Host):
         self._syncing_x_limits = True
         try:
             for axes in self._figure.axes:
-                if axes is changed_axes or not hasattr(axes, "_dhub_axis_id"):
+                if axes is changed_axes or not hasattr(axes, "_chartlibre_axis_id"):
                     continue
                 if axes.get_xlim() != xlim:
                     axes.set_xlim(xlim)
@@ -280,12 +280,12 @@ class ChartToolsMixin(_Host):
         """Return (index, artist) for the axis annotation under *event*.
 
         Hit-tests only artists BaseAxisRenderer.apply_annotation tagged
-        with ``_dhub_annotation_index`` - the hover readout, a
+        with ``_chartlibre_annotation_index`` - the hover readout, a
         measurement's label, and any other Text this axes happens to carry
         are left alone; none of them are ever tagged.
         """
         for artist in axes.texts:
-            index = getattr(artist, "_dhub_annotation_index", None)
+            index = getattr(artist, "_chartlibre_annotation_index", None)
             if index is None:
                 continue
             try:
@@ -312,7 +312,7 @@ class ChartToolsMixin(_Host):
         if str(getattr(self._toolbar, "mode", "")) != "":
             return
 
-        axis_id = getattr(event.inaxes, "_dhub_axis_id", None)
+        axis_id = getattr(event.inaxes, "_chartlibre_axis_id", None)
         if axis_id is None:
             return
 
@@ -423,7 +423,7 @@ class ChartToolsMixin(_Host):
             return
         if event.inaxes is None or event.xdata is None or event.ydata is None:
             return
-        if not hasattr(event.inaxes, "_dhub_axis_id"):
+        if not hasattr(event.inaxes, "_chartlibre_axis_id"):
             return
 
         self._selection_start = (event.inaxes, float(event.xdata), float(event.ydata))
@@ -483,7 +483,7 @@ class ChartToolsMixin(_Host):
             self._canvas.draw_idle()
             return
 
-        axis_id = int(axes._dhub_axis_id)
+        axis_id = int(axes._chartlibre_axis_id)
         self._last_selection = self._collect_selection(axis_id, axes, x_min, x_max, y_min, y_max)
         if self._last_selection is not None:
             # Shift-drag: the box added to what is selected.
@@ -556,7 +556,7 @@ class ChartToolsMixin(_Host):
         }
 
     def _axes_of(self, axis_id: int) -> Any:
-        return next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)
+        return next((a for a in self._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) == int(axis_id)), None)
 
     @staticmethod
     def _in_axis_units(axis: Any, values: pd.Series) -> np.ndarray:
@@ -583,7 +583,7 @@ class ChartToolsMixin(_Host):
     def _click_select(self, axes: Any, event: Any) -> None:
         """A click with Select points on: its row only (Shift: in or out of the selection); nothing under it, none."""
         shift = "shift" in str(event.key or "")
-        hit = self._row_under(axes, int(axes._dhub_axis_id), float(event.x), float(event.y))
+        hit = self._row_under(axes, int(axes._chartlibre_axis_id), float(event.x), float(event.y))
         tables = self.row_tables()
         if hit is None:
             if shift:
@@ -680,7 +680,7 @@ class ChartToolsMixin(_Host):
         """The stored functions this chart draws (function data sources)."""
         queries = []
         for axes in self._canvas.figure.axes:
-            axis_id = getattr(axes, "_dhub_axis_id", None)
+            axis_id = getattr(axes, "_chartlibre_axis_id", None)
             if axis_id is not None:
                 queries.extend(str(row["sql_query"] or "") for row in self._repo.get_series(int(axis_id)) or [])
         return function_names(queries)
@@ -724,7 +724,7 @@ class ChartToolsMixin(_Host):
     def row_tables(self) -> set[str]:
         tables: set[str] = set()
         for axes in self._canvas.figure.axes:
-            axis_id = getattr(axes, "_dhub_axis_id", None)
+            axis_id = getattr(axes, "_chartlibre_axis_id", None)
             for row in (self._repo.get_series(int(axis_id)) or []) if axis_id is not None else []:
                 table = self._repo.row_table(str(row["sql_query"] or ""))
                 if table:
@@ -749,7 +749,7 @@ class ChartToolsMixin(_Host):
                 artist.remove()
         selected: dict[str, set[int]] = {}
         for axes in self._canvas.figure.axes:
-            axis_id = getattr(axes, "_dhub_axis_id", None)
+            axis_id = getattr(axes, "_chartlibre_axis_id", None)
             if axis_id is None or axes.name != "rectilinear":
                 continue
             for row in self._repo.get_series(int(axis_id)) or []:
@@ -2000,7 +2000,7 @@ class ChartToolsMixin(_Host):
         """
         rows: list[dict[str, Any]] = []
         for axes in self._figure.axes:
-            axis_id = getattr(axes, "_dhub_axis_id", None)
+            axis_id = getattr(axes, "_chartlibre_axis_id", None)
             if axis_id is None:
                 continue
             x_min, x_max = axes.get_xlim()

@@ -1676,16 +1676,16 @@ class TablesMixin(_Host):
         """Create/update temporary preview state columns for Hide preview.
 
         ``Hide`` is the editable runtime column used by chart filtering.
-        ``__DataHubPreviewHide`` stores the pre-preview Hide state so Preview can
+        ``__ChartLibrePreviewHide`` stores the pre-preview Hide state so Preview can
         be rolled back without relying on UI-side SQL or direct connection use.
         """
         assert self._con is not None
         table_sql = _quote_ident(table_name)
-        preview_col = _quote_ident("__DataHubPreviewHide")
+        preview_col = _quote_ident("__ChartLibrePreviewHide")
         self.ensure_hide_column(table_name)
         self.ensure_column(
             table_name=table_name,
-            col_name="__DataHubPreviewHide",
+            col_name="__ChartLibrePreviewHide",
             col_type="INTEGER",
         )
         self._con.execute(
@@ -1698,8 +1698,8 @@ class TablesMixin(_Host):
         """Restore Hide values from the temporary preview state column."""
         assert self._con is not None
         table_sql = _quote_ident(table_name)
-        preview_col = _quote_ident("__DataHubPreviewHide")
-        if not self.has_column(table_name, "__DataHubPreviewHide"):
+        preview_col = _quote_ident("__ChartLibrePreviewHide")
+        if not self.has_column(table_name, "__ChartLibrePreviewHide"):
             return
         self.ensure_hide_column(table_name)
         self._con.execute(
@@ -1711,11 +1711,11 @@ class TablesMixin(_Host):
     def drop_preview_state_columns(self, table_name: str) -> None:
         """Drop temporary preview state columns created for Hide preview."""
         assert self._con is not None
-        if not self.has_column(table_name, "__DataHubPreviewHide"):
+        if not self.has_column(table_name, "__ChartLibrePreviewHide"):
             return
         self._con.execute(
             f'ALTER TABLE {_quote_ident(table_name)} '
-            f'DROP COLUMN {_quote_ident("__DataHubPreviewHide")}'
+            f'DROP COLUMN {_quote_ident("__ChartLibrePreviewHide")}'
         )
         self._commit()
 

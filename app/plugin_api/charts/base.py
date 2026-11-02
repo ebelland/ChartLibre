@@ -10,17 +10,19 @@ the columns it needs and the series SQL is responsible for aliasing to them.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
 from typing import Any, Protocol
+
 import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import colormaps, rcParams  # pyright: ignore[reportAttributeAccessIssue]
 from matplotlib.colors import to_rgba
 
-from app.plugin_api.charts import kwarg_spec
 from app.data.series_frame import SeriesFrame
+from app.logs.logger import applogger
+from app.plugin_api.charts import kwarg_spec
 from app.plugin_api.charts.kwarg_spec import (
     ARTIST_ADVANCED_KWARGS,
     ARTIST_KWARGS,
@@ -37,7 +39,6 @@ from app.plugin_api.charts.kwarg_spec import (
     pick,
 )
 from app.plugin_api.charts.text_lines import display_text
-from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 
 # Re-exported deliberately.  Renderers are re-executed from disk by the
@@ -163,14 +164,14 @@ ERROR_BAR_KWARGS: dict[str, Any] = {
 
 
 class SeriesArtistTags:
-    """Marks what each series draws with its name, as ``artist._dhub_series``.
+    """Marks what each series draws with its name, as ``artist._chartlibre_series``.
 
     For the viewer to find a series' own lines and points again - the chart
     panel previews a style edit on them (S-01) - without relying on their
     labels, which a legend label or a companion line change. A renderer
     calls ``next(name)`` before each series and ``done()`` after the last;
     ``follow(keys)`` before a companion artist that takes only some of the
-    series' style (``_dhub_follows``; none: only a render redraws it).
+    series' style (``_chartlibre_follows``; none: only a render redraws it).
     """
 
     def __init__(self, ax: Any) -> None:
@@ -196,9 +197,9 @@ class SeriesArtistTags:
             if id(artist) not in self._seen:
                 self._seen.add(id(artist))
                 if self._name is not None:
-                    artist._dhub_series = self._name  # noqa: SLF001 - our own attributes
+                    artist._chartlibre_series = self._name  # noqa: SLF001 - our own attributes
                     if self._follows is not None:
-                        artist._dhub_follows = self._follows  # noqa: SLF001
+                        artist._chartlibre_follows = self._follows  # noqa: SLF001
 
 
 class BaseAxisRenderer(Protocol):
@@ -646,7 +647,7 @@ class BaseAxisRenderer(Protocol):
     ) -> Any | None:
         """Apply one text, boxed text or arrow annotation to *ax*.
 
-        Returns the artist actually drawn, tagged with ``_dhub_annotation_index``
+        Returns the artist actually drawn, tagged with ``_chartlibre_annotation_index``
         when *index* is given - ChartPanel's draggable-annotation handler
         (_annotation_artist_at) hit-tests exactly this attribute to tell a
         real axis annotation apart from the hover readout, a measurement's
@@ -686,7 +687,7 @@ class BaseAxisRenderer(Protocol):
                 **kwargs,
             )
             if index is not None:
-                artist._dhub_annotation_index = index
+                artist._chartlibre_annotation_index = index
             return artist
 
         if annotation_type == "boxed text":
@@ -697,7 +698,7 @@ class BaseAxisRenderer(Protocol):
 
         artist = ax.text(x, y, text, **kwargs)
         if index is not None:
-            artist._dhub_annotation_index = index
+            artist._chartlibre_annotation_index = index
         return artist
 
     # ------------------------------------------------------------------

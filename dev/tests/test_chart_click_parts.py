@@ -34,7 +34,7 @@ def test_a_click_on_an_axis_ticks_or_title_names_that_part(panel: ChartPanel) ->
 
     panel.ensure_rendered()
     panel._canvas.draw()
-    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
+    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) is not None)
     renderer = panel._canvas.get_renderer()
 
     def at(box) -> SimpleNamespace:
@@ -54,18 +54,18 @@ def test_flash_highlights_an_axis_or_a_series_for_a_moment(panel: ChartPanel) ->
     import app.widgets.chart_panel.panel as picking
 
     panel.ensure_rendered()
-    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
+    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) is not None)
     before = len(axes.patches) + len(axes.lines) + len(axes.collections)
     name = next(str(a.get_label()) for a in (*axes.collections, *axes.lines) if not str(a.get_label()).startswith("_"))
 
-    assert panel.flash(axes._dhub_axis_id, name)
+    assert panel.flash(axes._chartlibre_axis_id, name)
     assert len(axes.patches) + len(axes.lines) + len(axes.collections) > before
     end = time.monotonic() + picking.FLASH_MS / 1000 + 0.5
     while time.monotonic() < end:
         QApplication.processEvents()
     assert len(axes.patches) + len(axes.lines) + len(axes.collections) == before
 
-    assert panel.flash(axes._dhub_axis_id)  # no series: a frame round the axis
+    assert panel.flash(axes._chartlibre_axis_id)  # no series: a frame round the axis
     assert any(str(p.get_label()) == "_flash" for p in axes.patches)
     assert not panel.flash(-1)
     # Let it clear here: its timer would otherwise redraw this chart during the next test.
@@ -82,7 +82,7 @@ def test_hovering_an_axis_says_what_a_click_will_edit(panel: ChartPanel) -> None
 
     panel.ensure_rendered()
     panel._canvas.draw()
-    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
+    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) is not None)
     box = axes.xaxis.get_tightbbox(panel._canvas.get_renderer())
     panel._show_axis_part_hint(SimpleNamespace(x=(box.x0 + box.x1) / 2, y=(box.y0 + box.y1) / 2))
     assert panel._canvas.cursor().shape() == Qt.CursorShape.PointingHandCursor
@@ -107,18 +107,18 @@ def test_a_series_style_edit_shows_on_its_lines_without_a_render(panel: ChartPan
     from matplotlib.colors import to_hex
 
     panel.ensure_rendered()
-    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
-    axis_id = axes._dhub_axis_id
+    axes = next(a for a in panel._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) is not None)
+    axis_id = axes._chartlibre_axis_id
     # The showcase's points are coloured and sized by columns: only a render redoes those.
-    cloud = next(a for a in axes.collections if getattr(a, "_dhub_series", None))
-    assert not panel.preview_series_style(axis_id, cloud._dhub_series, {"color": "#ff0000"})
-    assert not panel.preview_series_style(axis_id, cloud._dhub_series, {"markersize": 9})
-    assert panel.preview_series_style(axis_id, cloud._dhub_series, {"marker": "s"})
+    cloud = next(a for a in axes.collections if getattr(a, "_chartlibre_series", None))
+    assert not panel.preview_series_style(axis_id, cloud._chartlibre_series, {"color": "#ff0000"})
+    assert not panel.preview_series_style(axis_id, cloud._chartlibre_series, {"markersize": 9})
+    assert panel.preview_series_style(axis_id, cloud._chartlibre_series, {"marker": "s"})
 
     # A series drawn as a line and points, as the Scatter Plot renderer tags them.
     line, = axes.plot([1, 2, 3], [1, 2, 3], linestyle="-", marker="None")
     points = axes.scatter([1, 2, 3], [1, 2, 3], s=36)
-    line._dhub_series = points._dhub_series = "manual"
+    line._chartlibre_series = points._chartlibre_series = "manual"
     assert panel.preview_series_style(axis_id, "manual", {"color": "#ff0000", "markersize": 9, "linestyle": "--"})
     assert to_hex(line.get_color()) == to_hex(points.get_facecolor()[0]) == "#ff0000"
     assert list(points.get_sizes()) == [81.0] and line.get_linestyle() == "--"
@@ -138,9 +138,9 @@ def test_a_time_series_edit_restyles_its_rolling_line_only_where_it_follows(qapp
     widget = ChartPanel(repo, ids["Time Series"])
     try:
         widget.ensure_rendered()
-        axes = next(a for a in widget._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) is not None)
-        raw, rolling = (l for l in axes.lines if getattr(l, "_dhub_series", None) == "second")
-        assert widget.preview_series_style(axes._dhub_axis_id, "second", {"color": "#ff0000", "linestyle": ":"})
+        axes = next(a for a in widget._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) is not None)
+        raw, rolling = (l for l in axes.lines if getattr(l, "_chartlibre_series", None) == "second")
+        assert widget.preview_series_style(axes._chartlibre_axis_id, "second", {"color": "#ff0000", "linestyle": ":"})
         assert to_hex(raw.get_color()) == to_hex(rolling.get_color()) == "#ff0000"
         assert raw.get_linestyle() == ":" and rolling.get_linestyle() == "--"
     finally:

@@ -36,7 +36,7 @@ def test_a_box_on_one_chart_rings_the_same_rows_on_another_and_tints_them_in_the
         tables: list[list[str]] = []
         first.rows_selected.connect(tables.append)
 
-        selection = first._collect_selection(axes._dhub_axis_id, axes, 2.5, 5.5, -1.0, 100.0)
+        selection = first._collect_selection(axes._chartlibre_axis_id, axes, 2.5, 5.5, -1.0, 100.0)
         first._select_table_rows(selection)
         assert repo.selected_row_ids("t") == [4, 5, 6] and tables == [["t"]]
 
@@ -132,7 +132,7 @@ def test_dates_and_categories_on_x_select_and_ring_their_rows(qapp, tmp_path: Pa
             panel.ensure_rendered()
         axes = dated._canvas.figure.axes[0]
         start, end = axes.xaxis.convert_units(np.array(["2024-01-03", "2024-01-05"], dtype="datetime64[D]"))
-        selection = dated._collect_selection(axes._dhub_axis_id, axes, float(start) - 0.1, float(end) + 0.1, -1, 100)
+        selection = dated._collect_selection(axes._chartlibre_axis_id, axes, float(start) - 0.1, float(end) + 0.1, -1, 100)
         dated._select_table_rows(selection)
         assert repo.selected_row_ids("t") == [3, 4, 5]
         rings = [a for a in axes.collections if a.get_label() == dated.SELECTED_ROWS_LABEL]
@@ -160,7 +160,7 @@ def test_show_only_selected_draws_the_selected_rows_says_so_and_shows_all_again(
     try:
         panel.resize(600, 400)
         panel.ensure_rendered()
-        sql = repo.get_series(panel._canvas.figure.axes[0]._dhub_axis_id)[0]["sql_query"]
+        sql = repo.get_series(panel._canvas.figure.axes[0]._chartlibre_axis_id)[0]["sql_query"]
         assert repo.sql_selected_only(sql) == sql.strip().rstrip(";")  # off: as it is
         repo.set_selected_only("t", True)
         assert repo.query_df(repo.sql_selected_only(sql)).empty  # on, nothing selected: nothing drawn
@@ -175,7 +175,7 @@ def test_show_only_selected_draws_the_selected_rows_says_so_and_shows_all_again(
 
         def points() -> int:
             return sum(len(a.get_offsets()) for a in panel._canvas.figure.axes[0].collections
-                       if getattr(a, "_dhub_series", None) == "f")
+                       if getattr(a, "_chartlibre_series", None) == "f")
 
         assert points() == 2 and not panel._filter_note.isHidden()
         assert "2 of 10" in panel._filter_note.text() and "show-all:t" in panel._filter_note.text()

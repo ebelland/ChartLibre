@@ -90,7 +90,7 @@ _NONE_STYLES = frozenset({"", " ", "None", "none"})
 
 def _follows(artist: Any) -> frozenset[str]:
     """The series' style keys *artist* takes (SeriesArtistTags.follow): all of them unless said."""
-    return getattr(artist, "_dhub_follows", PREVIEW_STYLE_SETTERS)
+    return getattr(artist, "_chartlibre_follows", PREVIEW_STYLE_SETTERS)
 
 
 def _style_steps(
@@ -952,7 +952,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             # Outside every plotting area may still be on an axis: its ticks,
             # tick labels or label, or its title - not the figure.
             axes, part = self._axis_part_at(event)
-        axis_id = getattr(axes, "_dhub_axis_id", None) if axes is not None else None
+        axis_id = getattr(axes, "_chartlibre_axis_id", None) if axes is not None else None
         series = self._series_name_at(axes, event) if axis_id is not None and part is None else None
         add = "shift" in str(event.key or "")
         self.chart_object_clicked.emit({"axis_id": axis_id, "series": series, "part": part, "add": add})
@@ -971,7 +971,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         renderer = self._canvas.get_renderer()
         # The canvas' figure: the one drawn, and so the one clicked.
         for axes in self._canvas.figure.axes:
-            if getattr(axes, "_dhub_axis_id", None) is None:
+            if getattr(axes, "_chartlibre_axis_id", None) is None:
                 continue
             title = axes.title
             if title.get_visible() and title.get_text() and title.get_window_extent(renderer).contains(event.x, event.y):
@@ -1289,7 +1289,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         """
         from PySide6.QtCore import QTimer
 
-        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) == int(axis_id)), None)
         if axes is None:
             return False
         added: list[Any] = []
@@ -1334,13 +1334,13 @@ class ChartPanel(ChartToolsMixin, QFrame):
         """
         from matplotlib.axes._base import _process_plot_format  # noqa: PLC0415 - the parser ax.stem itself uses
 
-        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) == int(axis_id)), None)
         if axes is None:
             return False
         parts = {
-            a._dhub_stem: a
+            a._chartlibre_stem: a
             for a in axes.get_children()
-            if getattr(a, "_dhub_series", None) == series and hasattr(a, "_dhub_stem")
+            if getattr(a, "_chartlibre_series", None) == series and hasattr(a, "_chartlibre_stem")
         }
         plan = []
         for key, fmt in changes.items():
@@ -1383,10 +1383,10 @@ class ChartPanel(ChartToolsMixin, QFrame):
             return self._preview_stem_style(axis_id, series, changes)
         if not changes or not set(changes) <= set(PREVIEW_STYLE_SETTERS):
             return False
-        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_dhub_axis_id", None) == int(axis_id)), None)
+        axes = next((a for a in self._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) == int(axis_id)), None)
         if axes is None:
             return False
-        mine = [a for a in axes.get_children() if getattr(a, "_dhub_series", None) == series]
+        mine = [a for a in axes.get_children() if getattr(a, "_chartlibre_series", None) == series]
         lines = [a for a in mine if isinstance(a, Line2D)]
         points = [a for a in mine if isinstance(a, PathCollection)]
         steps = [a for a in mine if isinstance(a, StepPatch)]
@@ -1401,7 +1401,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
                 if text.get_text() in labelled:
                     if not isinstance(handle, (Line2D, PathCollection, Patch)):
                         return False
-                    handle._dhub_follows = _follows(labelled[text.get_text()])  # noqa: SLF001
+                    handle._chartlibre_follows = _follows(labelled[text.get_text()])  # noqa: SLF001
                     handles.append(handle)
         has_points = any("marker" in _follows(a) for a in points)
         try:
@@ -1938,7 +1938,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         """Return (axis id, axes, x, y) for the axes under *pos*, or None.
 
         The axis id comes off the axes itself: render_figure tags every one
-        it creates with ``_dhub_axis_id``, so a click maps back to the
+        it creates with ``_chartlibre_axis_id``, so a click maps back to the
         descriptor without this panel keeping a second mapping that could
         fall out of step with the figure.
 
@@ -1955,7 +1955,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         # Last first: a twin axes is created after the axes it overlays and
         # is the one on top, so it is the one a click belongs to.
         for axes in reversed(list(self._figure.axes)):
-            axis_id = getattr(axes, "_dhub_axis_id", None)
+            axis_id = getattr(axes, "_chartlibre_axis_id", None)
             if axis_id is None or not axes.bbox.contains(x_pixels, y_pixels):  # pyright: ignore[reportAttributeAccessIssue]
                 continue
             try:

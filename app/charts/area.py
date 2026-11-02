@@ -26,10 +26,10 @@ from typing import Any
 
 import numpy as np
 
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesArtistTags, SeriesData
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesArtistTags, SeriesData
 from app.utils.coercion import to_numbers
 
 #: The options every renderer here understands, borrowed rather than retyped.
@@ -332,8 +332,8 @@ class StemAxisRenderer(BaseAxisRenderer):
                     ("markerfmt", container.markerline),
                     ("basefmt", container.baseline),
                 ):
-                    artist._dhub_series = sd.name  # noqa: SLF001 - our own attributes
-                    artist._dhub_stem = part  # noqa: SLF001
+                    artist._chartlibre_series = sd.name  # noqa: SLF001 - our own attributes
+                    artist._chartlibre_stem = part  # noqa: SLF001
             except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
                 applogger.exception("Stem Plot failed to draw series '%s'.", sd.name)
 
