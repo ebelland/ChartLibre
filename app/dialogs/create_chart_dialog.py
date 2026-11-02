@@ -110,9 +110,56 @@ class NewPlotTabDialog(ColumnsDialog):
 
         self.setModal(False)
 
-        # ------------------------------------------------------------------
-        # Left: renderer list.
-        # ------------------------------------------------------------------
+        self._build_renderer_list()
+        fig_group = self._build_target_card()
+        series_list_group = self._build_series_list_card()
+        editor_group = self._build_series_editor_card()
+
+        # Dialog buttons and layout.
+        #
+        # A card like the other two columns, not a plain QWidget: it used to
+        # be the one column with no white "card" surface of its own, so it
+        # showed the dialog's own grey background straight through - the
+        # "grigio e bianco" (grey and white) the panels looked inconsistent
+        # for was this column against the other two, not a shade mismatch
+        # within any one of them.
+        renderer_panel = TitledCard(self, _("Renderers"), "plotRendererCard")
+        renderer_panel.setMinimumWidth(220)
+        renderer_panel.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding,
+        )
+        renderer_layout = renderer_panel.card.layout()
+        renderer_layout.addWidget(self._search_types, 0)
+        renderer_layout.addWidget(self._types_toolbox, 1)
+        renderer_layout.addWidget(self._renderer_details, 0)
+
+        editor_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.column(0).layout().addWidget(renderer_panel, 1)
+        self.column(1).layout().addWidget(editor_group, 1)
+        self.column(2).layout().addWidget(fig_group, 0)
+        self.column(2).layout().addWidget(series_list_group, 1)
+        assert self.splitter is not None
+        self.splitter.setSizes([230, 430, 330])
+        self.add_action("apply", self._on_accept)
+        self.add_action("close", self.reject)
+
+        self._connect_signals()
+
+        self._reload_tables()
+        self._reload_axes()
+        self._sync_controls()
+        self._set_default_figure_name(force=True)
+        self._set_default_axis_name(force=True)
+        self._update_renderer_details()
+
+        # Start with one ready-to-edit series so the dialog is usable by
+        # default and the generated SQL is visible immediately.
+        self._on_add_series()
+        self._sync_series_mode()
+
+    def _build_renderer_list(self) -> None:
+        """Left column: the chart types by category, searchable, and the details of the one selected."""
         self._search_types = QLineEdit()
         self._search_types.setPlaceholderText(_("Search chart types..."))
         self._search_types.setToolTip(
@@ -135,9 +182,7 @@ class NewPlotTabDialog(ColumnsDialog):
             self.renderer = get_renderer(str(selected.data(Qt.ItemDataRole.UserRole)))
             self._renderer_class = self._load_renderer_class()
 
-        # ------------------------------------------------------------------
-        # Left: selected renderer details.
-        # ------------------------------------------------------------------
+        # The selected chart type: name, description, link.
         self._renderer_name = QLabel()
         self._renderer_name.setProperty("role", "subtitle")
         self._renderer_name.setStyleSheet("font-weight: 600;")
@@ -161,9 +206,8 @@ class NewPlotTabDialog(ColumnsDialog):
         renderer_details_layout.addWidget(self._renderer_link)
         self._renderer_details = renderer_details
 
-        # ------------------------------------------------------------------
-        # Left: target figure/axis.
-        # ------------------------------------------------------------------
+    def _build_target_card(self) -> TitledCard:
+        """The Target card: a new or the current figure, a new or an existing axis."""
         self._rb_new_figure = QRadioButton(_("Create new figure (new tab)"))
         self._rb_current_figure = QRadioButton(_("Use current figure"))
         self._rb_new_figure.setChecked(True)
@@ -222,10 +266,10 @@ class NewPlotTabDialog(ColumnsDialog):
         axis_row_layout.addWidget(self._combo_axes, 1)
         axis_layout.addRow(axis_row)
         fig_main.addWidget(axis_form)
+        return fig_group
 
-        # ------------------------------------------------------------------
-        # Series list.
-        # ------------------------------------------------------------------
+    def _build_series_list_card(self) -> TitledCard:
+        """The Series card: the series of the chart, added and removed."""
         self._series_list = QListWidget()
         self._series_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self._series_list.setAlternatingRowColors(True)
@@ -277,6 +321,10 @@ class NewPlotTabDialog(ColumnsDialog):
 
 
         # Series editor.
+        return series_list_group
+
+    def _build_series_editor_card(self) -> TitledCard:
+        """The series editor: its data source, name, query, roles and grouping."""
         self._combo_table = QComboBox()
         self._combo_table.setEditable(False)
         # A stored function as the source: its parameters and range, as this chart draws it.
@@ -336,40 +384,10 @@ class NewPlotTabDialog(ColumnsDialog):
         self._editor_form_layout = editor_form_layout
         self._show_group_by()
         editor_layout.addWidget(editor_form, 1)
+        return editor_group
 
-        # Dialog buttons and layout.
-        #
-        # A card like the other two columns, not a plain QWidget: it used to
-        # be the one column with no white "card" surface of its own, so it
-        # showed the dialog's own grey background straight through - the
-        # "grigio e bianco" (grey and white) the panels looked inconsistent
-        # for was this column against the other two, not a shade mismatch
-        # within any one of them.
-        renderer_panel = TitledCard(self, _("Renderers"), "plotRendererCard")
-        renderer_panel.setMinimumWidth(220)
-        renderer_panel.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Expanding,
-        )
-        renderer_layout = renderer_panel.card.layout()
-        renderer_layout.addWidget(self._search_types, 0)
-        renderer_layout.addWidget(self._types_toolbox, 1)
-        renderer_layout.addWidget(self._renderer_details, 0)
-
-        editor_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.column(0).layout().addWidget(renderer_panel, 1)
-        self.column(1).layout().addWidget(editor_group, 1)
-        self.column(2).layout().addWidget(fig_group, 0)
-        self.column(2).layout().addWidget(series_list_group, 1)
-        assert self.splitter is not None
-        self.splitter.setSizes([230, 430, 330])
-        self.add_action("apply", self._on_accept)
-        self.add_action("close", self.reject)
-    
-        # ------------------------------------------------------------------
-        # Wiring.
-        # ------------------------------------------------------------------
-
+    def _connect_signals(self) -> None:
+        """The controls' signals to their handlers."""
         self._rb_current_figure.toggled.connect(self._sync_controls)
         self._rb_new_axis.toggled.connect(self._sync_controls)
         self._rb_existing_axis.toggled.connect(self._sync_controls)
@@ -384,18 +402,6 @@ class NewPlotTabDialog(ColumnsDialog):
         self._edit_axis_name.textEdited.connect(self._on_axis_name_edited)
         self._edit_series_name.textEdited.connect(self._on_series_name_changed)
         self._edit_sql.textChanged.connect(self._on_sql_changed)
-
-        self._reload_tables()
-        self._reload_axes()
-        self._sync_controls()
-        self._set_default_figure_name(force=True)
-        self._set_default_axis_name(force=True)
-        self._update_renderer_details()
-
-        # Start with one ready-to-edit series so the dialog is usable by
-        # default and the generated SQL is visible immediately.
-        self._on_add_series()
-        self._sync_series_mode()
 
     @property
     def chart_result(self) -> NewPlotTabResult | None:
