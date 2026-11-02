@@ -1,14 +1,12 @@
-"""The repository, in parts.
+"""The repository's parts: SqliteRepo (app.data.sqlite_repo) and the two mixins it inherits.
 
-``SqliteRepo`` is one class and one import for the rest of the application
-- ``from app.data.sqlite_repo import SqliteRepo``, as it always was. What
-changed is where its methods live: a 3 300-line module is not something
-anyone reads, and the seams between its subjects were already marked by
-section comments (todo.txt N-5).
+- ``tables``: TablesMixin - the user tables, their flags, and edits made by hand;
+- ``project``: ProjectMixin - table tools, saved queries, maintenance, the
+  operations record and the project info;
+- ``_common``: the errors, reports, SQL guards and decorators shared with the
+  rest of the application; ``function_sql``: the SQL functions registered on
+  each connection.
 
-Each part here is a mixin with no state of its own and ``__slots__ = ()``,
-so the concrete class keeps the slots its dataclass declares - a typo in
-an attribute name still fails loudly instead of quietly creating one. The
-fields, the connection, the caches and the transactions stay on
-``SqliteRepo`` itself: they are what the parts share.
+Each mixin keeps no state of its own (``__slots__ = ()``); the fields, the
+connection, the caches and the transactions stay on SqliteRepo.
 """

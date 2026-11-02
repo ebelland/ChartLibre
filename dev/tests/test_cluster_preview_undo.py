@@ -67,7 +67,7 @@ def _figure(repo: SqliteRepo, *, cluster_id: bool) -> int:
 def _preview(dialog: SeriesClusterDialog) -> None:
     np.random.seed(0)  # k-means starts from random centroids
     assert dialog.preview()
-    assert not dialog.evaluating
+    assert not dialog.job_running
 
 
 @pytest.mark.parametrize("cluster_id", [False, True], ids=["new-column", "existing-column"])

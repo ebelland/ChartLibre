@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QPoint, QSize, Qt
 
-from app.main_window.main_frame import resize_edges
+from app.main_window.main_window import resize_edges
 
 SIZE = QSize(800, 600)
 MARGIN = 6

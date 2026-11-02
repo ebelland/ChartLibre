@@ -23,11 +23,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.logs.logger import applogger
 from app.plugin_api.charts import kwarg_spec
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
-from app.logs.logger import applogger
 from app.utils.config import get_constant
-
 
 #: How many rows a table draws before it stops and says so.
 #:
@@ -154,7 +153,7 @@ class TableAxisRenderer(BaseAxisRenderer):
         self._draw_table(ax, df, headers, merged)
         ax.axis("off")
         # Kept off after the axis options run (see render_figure).
-        ax._dhub_axis_off = True  # noqa: SLF001
+        ax._chartlibre_axis_off = True  # noqa: SLF001
         self.apply_annotations(ax, axis_options)
 
     def _columns_to_draw(self, sd: SeriesData) -> tuple[Any, list[str]]:

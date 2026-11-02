@@ -20,11 +20,10 @@ from app.analysis import time_series as tsa
 from app.data.data_source import row_value
 from app.data_operations.normality_dialog import source_column, source_table
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
-from app.plugin_api.data_operations.dialog_base.data import _xy_columns
-from app.plugin_api.data_operations.results import OperationResult
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, xy_columns
 from app.plugin_api.data_operations.next_steps import NextStep, other_columns
 from app.plugin_api.data_operations.quick_answer import answer_html, measured_query, points_query
+from app.plugin_api.data_operations.results import OperationResult
 from app.utils import report_html
 from app.utils.i18n import _
 
@@ -109,7 +108,7 @@ class ChangeDialog(DataOperationDialogBase):
     def read_series(self, row: Any, name: str) -> Any:
         """The series' x and y, its query, and the columns its time and measure come from."""
         frame, roles = self._series_frame(row)
-        x_column, y_column = _xy_columns(frame, roles)
+        x_column, y_column = xy_columns(frame, roles)
         query = str(row_value(row, "sql_query", "query", "sql", default="")).strip()
         return self.series_xy(row, name), query, x_column, y_column
 

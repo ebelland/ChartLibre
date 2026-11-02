@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 from matplotlib.figure import Figure
 
-from app.widgets.chart_panel.picking import PickingMixin, _style_steps
+from app.widgets.chart_panel.panel import ChartPanel, _style_steps
 
 
 def _points_only():
@@ -42,20 +42,20 @@ def _panel(axes) -> SimpleNamespace:
 
 def test_the_preview_declines_a_line_the_series_does_not_have() -> None:
     axes, cloud = _points_only()
-    axes._dhub_axis_id = 1
-    cloud._dhub_series = "s"
+    axes._chartlibre_axis_id = 1
+    cloud._chartlibre_series = "s"
     panel = _panel(axes)
-    assert PickingMixin.preview_series_style(panel, 1, "s", {"linestyle": "-"}) is False  # the chart is rendered
-    assert PickingMixin.preview_series_style(panel, 1, "s", {"linestyle": "default"}) is False
-    assert PickingMixin.preview_series_style(panel, 1, "s", {"markersize": 0.5}) is True  # points take a size
+    assert ChartPanel.preview_series_style(panel, 1, "s", {"linestyle": "-"}) is False  # the chart is rendered
+    assert ChartPanel.preview_series_style(panel, 1, "s", {"linestyle": "default"}) is False
+    assert ChartPanel.preview_series_style(panel, 1, "s", {"markersize": 0.5}) is True  # points take a size
 
 
 def test_the_preview_still_restyles_an_existing_line() -> None:
     axes = Figure().subplots()
     (line,) = axes.plot([0, 1, 2], [0, 1, 4], linestyle="-")
-    axes._dhub_axis_id = 1
-    line._dhub_series = "s"
-    assert PickingMixin.preview_series_style(_panel(axes), 1, "s", {"linestyle": "--"}) is True
+    axes._chartlibre_axis_id = 1
+    line._chartlibre_series = "s"
+    assert ChartPanel.preview_series_style(_panel(axes), 1, "s", {"linestyle": "--"}) is True
     assert line.get_linestyle() == "--"
     # "default" is not a Matplotlib style: the style sheet decides, so the render does.
-    assert PickingMixin.preview_series_style(_panel(axes), 1, "s", {"linestyle": "default"}) is False
+    assert ChartPanel.preview_series_style(_panel(axes), 1, "s", {"linestyle": "default"}) is False

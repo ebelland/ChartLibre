@@ -26,7 +26,8 @@ not a fallback the rest of the type quietly depends on.
 """
 from __future__ import annotations
 
-from typing import Any, Iterable, overload
+from collections.abc import Iterable
+from typing import Any, overload
 
 import numpy as np
 import pandas as pd
@@ -59,7 +60,7 @@ class _LocIndexer:
 
     __slots__ = ("_frame",)
 
-    def __init__(self, frame: "SeriesFrame") -> None:
+    def __init__(self, frame: SeriesFrame) -> None:
         self._frame = frame
 
     def __getitem__(self, key: tuple[Any, str]) -> pd.Series:
@@ -87,7 +88,7 @@ class SeriesFrame:
     # Construction / escape hatch
     # ------------------------------------------------------------------
     @classmethod
-    def from_rows(cls, columns: tuple[str, ...], rows: list[tuple[Any, ...]]) -> "SeriesFrame":
+    def from_rows(cls, columns: tuple[str, ...], rows: list[tuple[Any, ...]]) -> SeriesFrame:
         """Build straight from a sqlite3 cursor's column names and rows."""
         if not rows:
             return cls({name: np.array([], dtype=object) for name in columns})
@@ -95,7 +96,7 @@ class SeriesFrame:
         return cls({name: _typed_column(values) for name, values in zip(columns, by_column)})
 
     @classmethod
-    def from_pandas(cls, df: pd.DataFrame) -> "SeriesFrame":
+    def from_pandas(cls, df: pd.DataFrame) -> SeriesFrame:
         return cls({str(column): df[column].to_numpy() for column in df.columns})
 
     def to_pandas(self) -> pd.DataFrame:
@@ -128,8 +129,8 @@ class SeriesFrame:
     @overload
     def __getitem__(self, key: str) -> pd.Series: ...
     @overload
-    def __getitem__(self, key: Iterable[str]) -> "SeriesFrame": ...
-    def __getitem__(self, key: str | Iterable[str]) -> "pd.Series | SeriesFrame":
+    def __getitem__(self, key: Iterable[str]) -> SeriesFrame: ...
+    def __getitem__(self, key: str | Iterable[str]) -> pd.Series | SeriesFrame:
         if isinstance(key, str):
             return pd.Series(self._data[key], name=key)
         names = tuple(key)
@@ -160,7 +161,7 @@ class SeriesFrame:
             return default
         return self[column]
 
-    def copy(self) -> "SeriesFrame":
+    def copy(self) -> SeriesFrame:
         """A frame of this one's values that shares nothing with it.
 
         Every array is copied, because this is what ``SqliteRepo`` hands out
@@ -172,7 +173,7 @@ class SeriesFrame:
         clone._length = self._length
         return clone
 
-    def drop_column(self, column: str) -> "SeriesFrame":
+    def drop_column(self, column: str) -> SeriesFrame:
         """Return a frame without *column*, over the same arrays.
 
         A view, not a copy: the one caller is ``downsampled_series_frame``,

@@ -29,6 +29,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 import numpy as np
+
 from app.utils.config import get_constant
 
 JOIN_KINDS: tuple[str, ...] = ("INNER", "LEFT", "RIGHT", "FULL OUTER")

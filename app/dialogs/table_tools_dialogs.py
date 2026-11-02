@@ -6,10 +6,11 @@ or without a dialog in front of it.
 """
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import pandas as pd
-from PySide6.QtCore import QTimer, Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -29,7 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.data.repo._common import _is_ident, _quote_ident
-from app.data.repo.table_tools import AGGREGATES
+from app.data.repo.project import AGGREGATES
 from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
 from app.styles.style import (
     action_presentation,

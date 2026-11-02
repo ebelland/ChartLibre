@@ -20,8 +20,8 @@ from typing import Any
 import numpy as np
 from matplotlib.lines import Line2D
 
-from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.utils.coercion import to_numbers
 
 #: The variable slots the role panel offers.
@@ -167,7 +167,7 @@ class PairPlotAxisRenderer(BaseAxisRenderer):
 
         # The grid lives inside the axis' own area: the axis itself is hidden.
         ax.set_axis_off()
-        ax._dhub_axis_off = True  # pyright: ignore[reportAttributeAccessIssue]
+        ax._chartlibre_axis_off = True  # pyright: ignore[reportAttributeAccessIssue]
         n = len(variables)
         gap = 0.025
         size = (1.0 - gap * (n - 1)) / n

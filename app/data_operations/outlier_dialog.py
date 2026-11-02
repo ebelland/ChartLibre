@@ -16,6 +16,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+
 from app.analysis.outliers import (
     OUTLIER_ELLIPTIC_ENVELOPE,
     OUTLIER_IQR,
@@ -30,25 +31,24 @@ from app.analysis.outliers import (
 )
 from app.data.data_source import parse_roles, row_value
 from app.data.select_sql import has_projection_alias, sql_insert_select_expression
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, ColorParam, FloatParam, IntParam
-from app.plugin_api.data_operations.results import TableResult
+from app.logs.logger import applogger
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
-    DataOperationDialogBase,
     generated_table_name,
 )
-from app.logs.logger import applogger
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, ColorParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import TableResult
 from app.utils.coercion import to_numeric_axis
 
 # Fewer than this and every estimator here is meaningless: a median absolute
 # deviation over two points says nothing about either of them.
 MIN_POINTS: int = 3
-from app.utils.messages import show_message
 from app.utils import report_html
 from app.utils.i18n import _
-
+from app.utils.messages import show_message
 
 # The method names are the engine's (app.analysis.outliers).
 
@@ -702,7 +702,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
             else:
                 message = _("Preview: the outliers of {count} series are coloured {colour}.").format(
                     count=len(results), colour=colour)
-            self.set_results_html(self.results_report(results) + report_html.note(message))
+            self.show_results(self.results_report(results) + report_html.note(message))
             return True
         except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
             applogger.exception("Failed to preview outlier hide flags")

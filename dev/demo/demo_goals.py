@@ -209,12 +209,10 @@ def _chart(repo: SqliteRepo, table: str, columns: list[str], index: int) -> None
 
 
 def _build(builder: str, directory: Path) -> Path:
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QMessageBox
 
     import app.utils.config as config
     from dev.demo.build_demos import TABLE_SOURCES
-
-    from PySide6.QtWidgets import QMessageBox
 
     app = QApplication.instance() or QApplication([])
     # No one is there to click: a message box is logged instead of waited on.
@@ -223,7 +221,7 @@ def _build(builder: str, directory: Path) -> Path:
         applogger.warning("Demo: message not shown: %s", box.text()) or QMessageBox.StandardButton.Yes
     )
     real_user_config = config.USER_CONFIG_PATH
-    config.USER_CONFIG_PATH = Path(tempfile.mkdtemp(prefix="dhub-demo-")) / "user.json"
+    config.USER_CONFIG_PATH = Path(tempfile.mkdtemp(prefix="chartlibre-demo-")) / "user.json"
     steps = GOAL_DEMOS[builder]
     try:
         path = Path(directory) / _demo(builder).path_name
