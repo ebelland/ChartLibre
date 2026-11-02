@@ -335,7 +335,17 @@ class FigurePropertiesWidget(BaseProperties):
         lay.setContentsMargins(*MARGIN_PANEL)
         lay.setSpacing(12)
 
-        # ----- Name and notes -----
+        lay.addWidget(self._build_name_section())
+        lay.addWidget(self._build_view_section())
+        lay.addWidget(self._build_style_section())
+        lay.addWidget(self._build_grid_section())
+        lay.addWidget(self._build_options_section())
+
+        lay.addWidget(self._build_margins_section())
+        lay.addStretch(1)
+
+    def _build_name_section(self) -> QWidget:
+        """The Name and notes card."""
         # One card: a name is a line and the notes a few more, and two cards
         # spent a title and a frame's padding on each.
         # Notes are saved on their own, a moment after typing stops: they
@@ -366,9 +376,10 @@ class FigurePropertiesWidget(BaseProperties):
         self._note_timer.setInterval(700)
         self._note_timer.timeout.connect(self._save_note)
         self._note_edit.textChanged.connect(self._note_timer.start)
-        lay.addWidget(name_section)
+        return name_section
 
-        # ----- View -----
+    def _build_view_section(self) -> QWidget:
+        """The View card."""
         # How the panel shows this figure: the first thing to change when a
         # chart does not fit, so on its own above the style.
         view_section = TitledCard(self, _("View"), "figureViewCard")
@@ -385,9 +396,10 @@ class FigurePropertiesWidget(BaseProperties):
             self._on_resize_mode_selected
         )
         view_section.card.layout().addWidget(self._resize_mode_combo)
-        lay.addWidget(view_section)
+        return view_section
 
-        # ----- Style -----
+    def _build_style_section(self) -> QWidget:
+        """The Style card."""
         style_section = TitledCard(self, _("Style"), "figureStyleCard")
         style_section_lay = style_section.card.layout()
 
@@ -434,9 +446,10 @@ class FigurePropertiesWidget(BaseProperties):
         # and Edit stay - they are style actions, not "commit the form".
 
         style_section_lay.addWidget(style_buttons_row)
-        lay.addWidget(style_section)
+        return style_section
 
-        # ----- Grid -----
+    def _build_grid_section(self) -> QWidget:
+        """The Grid card."""
         grid_section = TitledCard(self, _("Grid"), "figureGridCard", collapsible=True)
         grid_section_lay = grid_section.card.layout()
 
@@ -563,10 +576,10 @@ class FigurePropertiesWidget(BaseProperties):
                 grid_section,
             )
         )
+        return grid_section
 
-        lay.addWidget(grid_section)
-
-        # ----- Figure options -----
+    def _build_options_section(self) -> QWidget:
+        """The Figure options card."""
         opts_section = TitledCard(self, _("Figure options"), "figureOptionsCard")
         opts_section_lay = opts_section.card.layout()
 
@@ -677,10 +690,8 @@ class FigurePropertiesWidget(BaseProperties):
                 opts_section,
             )
         )
-        lay.addWidget(opts_section)
+        return opts_section
 
-        lay.addWidget(self._build_margins_section())
-        lay.addStretch(1)
 
     def _build_margins_section(self) -> QWidget:
         """Spacing controls for the manual layout mode.
