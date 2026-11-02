@@ -15,7 +15,7 @@ collects the parameters and lays the results out.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 import html
 import itertools
@@ -727,7 +727,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         """Return the report: what was run, then one section per model part."""
         if result.model in FRAME_MODELS:
             return self._format_table_models_html(result)
-        sections: list[str] = [
+        parts: list[str] = [
             report_html.summary_table(
                 [
                     (_("Series"), len(result.samples)),
@@ -741,143 +741,46 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                 ]
             )
         ]
-        parts = sections
+        several = len(result.samples) > 1
+        show = lambda part: self._show_section(result.model, part)
+        test_columns = ["Test", "n", "Statistic", "p-value", "Note"]
 
-        if self._show_section(result.model, "descriptive"):
-            desc_rows = []
-            for sample in result.samples:
-                desc = st.describe(sample.y, trim_proportion=result.trim_percent)
-                desc_rows.append([
-                    html.escape(sample.name), str(desc.get("n", "")),
-                    self._format_number(desc.get("mean")), self._format_number(desc.get("trimmed_mean")),
-                    self._format_number(desc.get("gmean")), self._format_number(desc.get("hmean")),
-                    self._format_number(desc.get("median")), self._format_number(desc.get("mode")), str(desc.get("mode_count", "")),
-                    self._format_number(desc.get("std")), self._format_number(desc.get("var")), self._format_number(desc.get("sem")),
-                    self._format_number(desc.get("min")), self._format_number(desc.get("q1")), self._format_number(desc.get("q3")),
-                    self._format_number(desc.get("max")), self._format_number(desc.get("range")), self._format_number(desc.get("iqr")),
-                    self._format_number(desc.get("mad")), self._format_number(desc.get("skewness")), self._format_number(desc.get("kurtosis")),
-                    self._format_number(desc.get("entropy")),
-                    f"{self._format_number(desc.get('ci95_low'))} .. {self._format_number(desc.get('ci95_high'))}",
-                ])
-            parts.append(report_html.section(
-                _("Descriptive statistics"),
-                self._table([
-                "Series", "n", "Mean", "Trim mean", "GMean", "HMean", "Median", "Mode", "Mode n",
-                "Std", "Var", "SEM", "Min", "Q1", "Q3", "Max", "Range", "IQR", "MAD", "Skew", "Kurtosis", "Entropy", "95% CI mean",
-            ], desc_rows),
-            ))
-
-        if self._show_section(result.model, "one_sample"):
-            rows = []
-            for sample in result.samples:
-                for test in st.one_sample_tests(sample.y, popmean=result.popmean, alternative=result.alternative):
-                    rows.append(_html_test_row(sample.name, test, self._format_number, self._format_pvalue))
-            parts.append(report_html.section(
-                _("One-sample tests"),
-                self._table(["Series", "Test", "n", "Statistic", "p-value", "Note"], rows),
-            ))
-
-        if self._show_section(result.model, "normality"):
-            rows = []
-            for sample in result.samples:
-                for test in st.normality_tests(sample.y, **self._anderson_options()):
-                    rows.append(_html_test_row(sample.name, test, self._format_number, self._format_pvalue))
-            parts.append(report_html.section(
-                _("Normality / shape tests"),
-                self._table(["Series", "Test", "n", "Statistic", "p-value", "Note"], rows),
-            ))
-
-        if self._show_section(result.model, "randomness"):
-            rows = []
-            for sample in result.samples:
-                for test in st.randomness_tests(sample.y):
-                    rows.append(_html_test_row(sample.name, test, self._format_number, self._format_pvalue))
+        if show("descriptive"):
+            parts.append(self._descriptive_section(result))
+        if show("one_sample"):
+            parts.append(report_html.section(_("One-sample tests"), self._table(["Series", *test_columns], self._series_rows(
+                result, lambda sample: st.one_sample_tests(sample.y, popmean=result.popmean,
+                                                           alternative=result.alternative)))))
+        if show("normality"):
+            parts.append(report_html.section(_("Normality / shape tests"), self._table(["Series", *test_columns], self._series_rows(
+                result, lambda sample: st.normality_tests(sample.y, **self._anderson_options())))))
+        if show("randomness"):
             parts.append(report_html.section(
                 _("Randomness / serial independence"),
-                self._table(["Series", "Test", "n", "Statistic", "p-value", "Note"], rows)
+                self._table(["Series", *test_columns], self._series_rows(result, lambda sample: st.randomness_tests(sample.y)))
                 + report_html.note(_(
                     "These tests read the values in the order they are in. A small p-value says the "
                     "order is not random: a trend, a cycle or a memory from one value to the next."
                 )),
             ))
-
-        if len(result.samples) > 1 and self._show_section(result.model, "paired"):
-            rows = []
-            for left, right in itertools.combinations(result.samples, 2):
-                pair_name = _("{left} vs {right}").format(left=left.name, right=right.name)
-                a, b, alignment = self._paired(left, right)
-                for test in st.paired_tests(a, b, alignment=alignment, alternative=result.alternative):
-                    rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
-            section = self._table(["Pair", "Test", "n", "Statistic", "p-value", "Note"], rows)
-            if len(result.samples) > 2:
-                table, alignment = st.aligned_values([(sample.x, sample.y) for sample in result.samples])
-                section += self._table(["Groups", "Test", "n", "Statistic", "p-value", "Note"], [
-                    _html_test_row(_("All checked series"), test, self._format_number, self._format_pvalue)
-                    for test in st.repeated_tests(table, alignment=alignment)
-                ])
-            parts.append(report_html.section(_("Paired-sample tests"), section))
-
-        if len(result.samples) > 1 and self._show_section(result.model, "independent"):
-            rows = []
-            for left, right in itertools.combinations(result.samples, 2):
-                pair_name = _("{left} vs {right}").format(left=left.name, right=right.name)
-                for test in st.independent_tests(left.y, right.y, alternative=result.alternative):
-                    rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
-            parts.append(report_html.section(
-                _("Independent-sample tests"),
-                self._table(["Pair", "Test", "n", "Statistic", "p-value", "Note"], rows),
-            ))
-
-        if len(result.samples) > 1 and self._show_section(result.model, "groups"):
-            groups = {sample.name: sample.y for sample in result.samples}
-            rows = [
-                _html_test_row(_("All checked series"), test, self._format_number, self._format_pvalue)
-                for test in st.group_tests(groups)
-            ]
-            section = self._table(["Groups", "Test", "n", "Statistic", "p-value", "Note"], rows)
-            tukey = st.tukey_hsd(groups)
-            if tukey:
-                section += self._table(
-                    ["Pair", "Difference", "p (Tukey)", "95% CI low", "95% CI high"],
-                    [
-                        [
-                            html.escape(row["pair"]),
-                            self._format_number(row["difference"]),
-                            self._format_pvalue(row["pvalue"]),
-                            self._format_number(row["ci_low"]),
-                            self._format_number(row["ci_high"]),
-                        ]
-                        for row in tukey
-                    ],
-                )
-                section += report_html.note(_(
-                    "Tukey's p-values are already adjusted for the number of "
-                    "pairs, so each can be read against 0.05 on its own. Where "
-                    "Levene says the variances differ, read Welch's ANOVA rather "
-                    "than the classical one."
-                ))
-            parts.append(report_html.section(_("Group comparison (ANOVA)"), section))
-
-        if len(result.samples) > 1 and self._show_section(result.model, "correlation"):
-            rows = []
-            for left, right in itertools.combinations(result.samples, 2):
-                pair_name = _("{left} vs {right}").format(left=left.name, right=right.name)
-                a, b, alignment = self._paired(left, right)
-                for test in st.correlation_tests(a, b, alignment=alignment):
-                    rows.append(_html_test_row(pair_name, test, self._format_number, self._format_pvalue))
-            parts.append(report_html.section(
-                _("Correlation / association"),
-                self._table(["Pair", "Test", "n", "Statistic", "p-value", "Note"], rows),
-            ))
-
-        if self._show_section(result.model, "distribution"):
+        if several and show("paired"):
+            parts.append(report_html.section(_("Paired-sample tests"), self._paired_section(result)))
+        if several and show("independent"):
+            parts.append(report_html.section(_("Independent-sample tests"), self._table(["Pair", *test_columns], self._pair_rows(
+                result, lambda left, right: st.independent_tests(left.y, right.y, alternative=result.alternative)))))
+        if several and show("groups"):
+            parts.append(report_html.section(_("Group comparison (ANOVA)"), self._groups_section(result)))
+        if several and show("correlation"):
+            parts.append(report_html.section(_("Correlation / association"), self._table(["Pair", *test_columns], self._pair_rows(
+                result, self._correlation_tests))))
+        if show("distribution"):
             parts.append(
                 report_html.section(
                     _("Distribution fit"), self._distribution_section(result)
                 )
             )
 
-        if len(result.samples) < 2 and result.model in {"all", "paired", "independent", "groups", "correlation"}:
+        if not several and result.model in {"all", "paired", "independent", "groups", "correlation"}:
             parts.append(
                 report_html.note(_(
                     "Paired, independent, group and correlation sections need "
@@ -891,6 +794,96 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             _("{count} series").format(count=len(result.samples)),
             *parts,
         )
+
+    def _series_rows(self, result: SeriesStatsResult, tests_of: Callable[[Any], Any]) -> list[list[str]]:
+        """One row per test of each series: *tests_of(sample)* gives its tests."""
+        return [_html_test_row(sample.name, test, self._format_number, self._format_pvalue)
+                for sample in result.samples for test in tests_of(sample)]
+
+    def _pair_rows(self, result: SeriesStatsResult, tests_of: Callable[[Any, Any], Any]) -> list[list[str]]:
+        """One row per test of each pair of series: *tests_of(left, right)* gives its tests."""
+        rows = []
+        for left, right in itertools.combinations(result.samples, 2):
+            pair_name = _("{left} vs {right}").format(left=left.name, right=right.name)
+            rows.extend(_html_test_row(pair_name, test, self._format_number, self._format_pvalue)
+                        for test in tests_of(left, right))
+        return rows
+
+    def _correlation_tests(self, left: Any, right: Any) -> Any:
+        """The correlation tests of two series, on their aligned values."""
+        a, b, alignment = self._paired(left, right)
+        return st.correlation_tests(a, b, alignment=alignment)
+
+    def _descriptive_section(self, result: SeriesStatsResult) -> str:
+        """The Descriptive statistics section: one row per series."""
+        desc_rows = []
+        for sample in result.samples:
+            desc = st.describe(sample.y, trim_proportion=result.trim_percent)
+            desc_rows.append([
+                html.escape(sample.name), str(desc.get("n", "")),
+                self._format_number(desc.get("mean")), self._format_number(desc.get("trimmed_mean")),
+                self._format_number(desc.get("gmean")), self._format_number(desc.get("hmean")),
+                self._format_number(desc.get("median")), self._format_number(desc.get("mode")), str(desc.get("mode_count", "")),
+                self._format_number(desc.get("std")), self._format_number(desc.get("var")), self._format_number(desc.get("sem")),
+                self._format_number(desc.get("min")), self._format_number(desc.get("q1")), self._format_number(desc.get("q3")),
+                self._format_number(desc.get("max")), self._format_number(desc.get("range")), self._format_number(desc.get("iqr")),
+                self._format_number(desc.get("mad")), self._format_number(desc.get("skewness")), self._format_number(desc.get("kurtosis")),
+                self._format_number(desc.get("entropy")),
+                f"{self._format_number(desc.get('ci95_low'))} .. {self._format_number(desc.get('ci95_high'))}",
+            ])
+        return report_html.section(
+            _("Descriptive statistics"),
+            self._table([
+            "Series", "n", "Mean", "Trim mean", "GMean", "HMean", "Median", "Mode", "Mode n",
+            "Std", "Var", "SEM", "Min", "Q1", "Q3", "Max", "Range", "IQR", "MAD", "Skew", "Kurtosis", "Entropy", "95% CI mean",
+        ], desc_rows),
+        )
+
+    def _paired_section(self, result: SeriesStatsResult) -> str:
+        """The paired tests of each pair and, with more than two series, the repeated-measures tests."""
+        def tests(left: Any, right: Any) -> Any:
+            a, b, alignment = self._paired(left, right)
+            return st.paired_tests(a, b, alignment=alignment, alternative=result.alternative)
+
+        section = self._table(["Pair", "Test", "n", "Statistic", "p-value", "Note"], self._pair_rows(result, tests))
+        if len(result.samples) > 2:
+            table, alignment = st.aligned_values([(sample.x, sample.y) for sample in result.samples])
+            section += self._table(["Groups", "Test", "n", "Statistic", "p-value", "Note"], [
+                _html_test_row(_("All checked series"), test, self._format_number, self._format_pvalue)
+                for test in st.repeated_tests(table, alignment=alignment)
+            ])
+        return section
+
+    def _groups_section(self, result: SeriesStatsResult) -> str:
+        """ANOVA and the other group tests, then Tukey's pairs."""
+        groups = {sample.name: sample.y for sample in result.samples}
+        rows = [
+            _html_test_row(_("All checked series"), test, self._format_number, self._format_pvalue)
+            for test in st.group_tests(groups)
+        ]
+        section = self._table(["Groups", "Test", "n", "Statistic", "p-value", "Note"], rows)
+        tukey = st.tukey_hsd(groups)
+        if tukey:
+            section += self._table(
+                ["Pair", "Difference", "p (Tukey)", "95% CI low", "95% CI high"],
+                [
+                    [
+                        html.escape(row["pair"]),
+                        self._format_number(row["difference"]),
+                        self._format_pvalue(row["pvalue"]),
+                        self._format_number(row["ci_low"]),
+                        self._format_number(row["ci_high"]),
+                    ]
+                    for row in tukey
+                ],
+            )
+            section += report_html.note(_(
+                "Tukey's p-values are already adjusted for the number of "
+                "pairs, so each can be read against 0.05 on its own. Where "
+                "Levene says the variances differ, read Welch's ANOVA rather "
+                "than the classical one."
+            ))
+        return section
 
     # ------------------------------------------------------------------
     # Models that read columns by role (todo R-04)
