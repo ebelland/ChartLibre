@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any
 
 import matplotlib
 import numpy as np
@@ -202,7 +202,7 @@ class SeriesArtistTags:
                         artist._chartlibre_follows = self._follows  # noqa: SLF001
 
 
-class BaseAxisRenderer(Protocol):
+class BaseAxisRenderer:
     """Base class for every chart renderer: one chart type, one subclass.
 
     A renderer is discovered, described and driven entirely through its class
@@ -238,10 +238,9 @@ class BaseAxisRenderer(Protocol):
     :meth:`opt` / :meth:`get_kwargs`, never from ``options`` directly, so that
     per-series overrides and defaults resolve the same way everywhere.
 
-    The class is a ``Protocol`` so that renderers can be type-checked without
-    importing it at runtime; the scanner nonetheless matches on the literal
-    base name, so a renderer must list ``BaseAxisRenderer`` in its bases even
-    when it inherits behaviour from another renderer.
+    The scanner matches on the literal base name, so a renderer must list
+    ``BaseAxisRenderer`` in its bases even when it inherits behaviour from
+    another renderer.
     """
 
     Name: str = "Base"
