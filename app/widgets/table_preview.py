@@ -7,18 +7,30 @@ edit) that are implemented on the repository.
 """
 from __future__ import annotations
 
-from typing import Any
-
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, Qt, Signal
 from PySide6.QtGui import QColor, QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget, QFrame, QTableView, QHeaderView, QInputDialog, QVBoxLayout, QLineEdit, QMenu, QStyledItemDelegate
-from app.data import column_metadata
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QFrame,
+    QHeaderView,
+    QInputDialog,
+    QLineEdit,
+    QMenu,
+    QMessageBox,
+    QStyledItemDelegate,
+    QTableView,
+    QVBoxLayout,
+    QWidget,
+)
+
+from app.data import column_metadata, sql_builders
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.utils.config import get_constant
 from app.styles.style import (
     CONTEXT_MENU_ICONS,
     MenuItem,
@@ -26,11 +38,10 @@ from app.styles.style import (
     create_menu,
     create_menu_item,
 )
-from app.utils.messages import show_message
-from app.utils.i18n import _
 from app.utils.coercion import to_numbers
-from app.data import sql_builders
-
+from app.utils.config import get_constant
+from app.utils.i18n import _
+from app.utils.messages import show_message
 
 # Rows loaded when previewing a saved query.  A preview is for judging shape
 # and content, not for scrolling a whole result set.
@@ -121,10 +132,10 @@ class DataFrameTableModel(QAbstractTableModel):
         """Return the underlying DataFrame."""
         return self._frame
 
-    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802, B008 - Qt's name and signature
         return 0 if parent.isValid() else int(len(self._frame))
 
-    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802, B008 - Qt's name and signature
         return 0 if parent.isValid() else len(self._columns)
 
     def column_name(self, index: int) -> str | None:
@@ -141,7 +152,7 @@ class DataFrameTableModel(QAbstractTableModel):
             return None
         return "" if value is None else str(value)
 
-    def headerData(self, section: int, orientation, role: int = Qt.ItemDataRole.DisplayRole):  # noqa: N802
+    def headerData(self, section: int, orientation, role: int = Qt.ItemDataRole.DisplayRole):  # noqa: N802 - Qt's name and signature
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -197,7 +208,7 @@ class TablePreviewPanel(QWidget):
         copy.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         copy.activated.connect(self._copy_selection)
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt's name and signature
         if watched in (self.view, self.view.viewport()):
             event_type = event.type()
             if event_type == QEvent.Type.ContextMenu:
@@ -396,6 +407,23 @@ class TablePreviewPanel(QWidget):
                           "view - nothing is hidden, and analyses read every row.").format(table=table),
                 key=None, action=lambda checked=False, table=table: self._set_selected_only(table, checked),
             )
+            rows_selected = self._selected_block()[0]
+            if rows_selected:
+                menu.addSeparator()
+                create_menu_item(
+                    parent=self, icons=CONTEXT_MENU_ICONS, menu=menu, icon="preview_hide_rows", checkable=False,
+                    text=_("Hide selected rows"),
+                    tooltip=_("Leave the selected rows out of every chart and analysis (Hide = 1); they stay in "
+                              "the table, greyed."),
+                    key=None, action=lambda _=False: self._set_selected_rows_hidden(True),
+                )
+                show = create_menu_item(
+                    parent=self, icons=CONTEXT_MENU_ICONS, menu=menu, icon="preview_show_rows", checkable=False,
+                    text=_("Show selected rows"),
+                    tooltip=_("Bring the selected hidden rows back into the charts and analyses (Hide = 0)."),
+                    key=None, action=lambda _=False: self._set_selected_rows_hidden(False),
+                )
+                show.setEnabled(lazy_model.any_hidden(rows_selected))
         if column or lazy_model is not None:
             menu.addSeparator()
 
@@ -649,6 +677,25 @@ class TablePreviewPanel(QWidget):
             position = self._repo.row_position(self._table, ids[0])
             self.view.scrollTo(model.index(position, 0), QTableView.ScrollHint.PositionAtCenter)
 
+    def _set_selected_rows_hidden(self, hidden: bool) -> None:
+        """Hide, or show again, the rows that hold a selected cell; the charts redraw without (or with) them."""
+        model = self._model()
+        if model is None or self._repo is None or not self._table:
+            return
+        ids = [row_id for row in self._selected_block()[0] if (row_id := model.row_id(row)) is not None]
+        try:
+            changed = self._repo.set_rows_hidden(self._table, ids, hidden)
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+            applogger.exception("%s rows failed: %s", "Hide" if hidden else "Show", exc)
+            show_message(self, "preview.hide_rows_failed", error=exc)
+            return
+        applogger.info("%s: %d rows %s.", self._table, changed, "hidden" if hidden else "shown again")
+        if model.has_column("Hide"):
+            model.reread()  # where they are, the selection kept: Show undoes Hide on the same rows
+        else:
+            self._reload_model()  # the Hide column was just added
+        self.refresh.emit()
+
     def _flag_done(self, flag: str, count: int) -> None:
         if flag == "Selected" and self._table:
             self.selected_rows_changed.emit([self._table])
@@ -739,13 +786,13 @@ class LazyTableModel(QAbstractTableModel):
         return (0 <= index < len(self._columns) and self._codes[index] in ("F", "I", "?")
                 and self._formats[index] is None)
 
-    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802, B008 - Qt's name and signature
         return 0 if parent.isValid() else self._row_count
 
-    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802, B008 - Qt's name and signature
         return 0 if parent.isValid() else len(self._columns)
 
-    def headerData(self, section, orientation, role: int = Qt.ItemDataRole.DisplayRole):
+    def headerData(self, section, orientation, role: int = Qt.ItemDataRole.DisplayRole):  # noqa: N802 - Qt's name and signature
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -756,12 +803,17 @@ class LazyTableModel(QAbstractTableModel):
 
     #: The tint of a row marked Selected - by a box selection on a chart, or here.
     SELECTED_ROW_TINT = QColor(31, 119, 180, 46)
+    #: The text of a row marked Hide: readable, and plainly set apart.
+    HIDDEN_ROW_TEXT = QColor(128, 128, 128)
 
     def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
         if role == Qt.ItemDataRole.BackgroundRole:
             return self._selected_tint(index.row())
+        if role == Qt.ItemDataRole.ForegroundRole:
+            # A hidden row stays in the table, greyed: it is left out of the charts, not deleted.
+            return self.HIDDEN_ROW_TEXT if self._flag_value(index.row(), "Hide") == 1 else None
         if role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             return None
         row_index = index.row()
@@ -785,13 +837,32 @@ class LazyTableModel(QAbstractTableModel):
 
     def _selected_tint(self, row_index: int) -> QColor | None:
         """The row's tint when it is marked Selected; None otherwise."""
-        if "Selected" not in self._columns or row_index >= self._row_count:
+        return self.SELECTED_ROW_TINT if self._flag_value(row_index, "Selected") == 1 else None
+
+    def _flag_value(self, row_index: int, flag: str) -> Any:
+        """Row *row_index*'s *flag* column (Hide, Selected) as read; None when the table has none or the
+        row is not read yet - its text, read first, brings it."""
+        if flag not in self._columns or row_index >= self._row_count:
             return None
         chunk, offset = divmod(row_index, self._chunk_size)
         rows = self._cache.get(chunk)
         if rows is None or offset >= len(rows):
-            return None  # not read yet: its text, read first, brings it
-        return self.SELECTED_ROW_TINT if rows[offset][self._columns.index("Selected")] == 1 else None
+            return None
+        return rows[offset][self._columns.index(flag)]
+
+    def has_column(self, name: str) -> bool:
+        """Whether the table shown has the column *name* (Hide, Selected...)."""
+        return name in self._columns
+
+    def any_hidden(self, rows: list[int]) -> bool:
+        """Whether one of view rows *rows* is marked Hide."""
+        return any(self._flag_value(row, "Hide") == 1 for row in rows)
+
+    def reread(self) -> None:
+        """Read the rows again where they are: the values changed, not the rows or the columns."""
+        self.clear_cache()
+        if self._row_count and self._columns:
+            self.dataChanged.emit(self.index(0, 0), self.index(self._row_count - 1, len(self._columns) - 1))
 
     def _fetch_chunk(self, chunk_index: int) -> list[list[Any]]:
         last_rowid = self._chunk_rowid.get(chunk_index - 1, 0) if chunk_index > 0 else 0
