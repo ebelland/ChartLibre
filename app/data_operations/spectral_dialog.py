@@ -25,12 +25,14 @@ other data.
 """
 from __future__ import annotations
 
+import html
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
+
 from app.analysis.spectral import (
     CORRELATION_NORMALISATIONS,
     DETREND_MODES,
@@ -54,20 +56,23 @@ from app.analysis.spectral import (
 )
 from app.data.data_source import parse_roles, row_value
 from app.logs.logger import applogger
-import html
-
-from app.utils.messages import show_message
-from app.utils import report_html
-from app.plugin_api.data_operations.results import TableResult
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
-    DataOperationDialogBase,
 )
-from app.utils.i18n import _
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+)
+from app.plugin_api.data_operations.results import TableResult
+from app.utils import report_html
 from app.utils.coercion import column_of, to_numbers
+from app.utils.i18n import _
+from app.utils.messages import show_message
 
 # ----------------------------------------------------------------------
 # Methods

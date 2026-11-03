@@ -19,17 +19,17 @@ import pandas as pd
 
 from app.analysis import time_series as tsa
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.parameter_spec import (
-    BoolParam,
-    ChoiceParam,
-    IntParam,
-    TextParam,
-)
 from app.plugin_api.data_operations.column_roles import (
     CONTINUOUS,
     ORDINAL,
     ColumnCasting,
     ColumnRole,
+)
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    IntParam,
+    TextParam,
 )
 from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html

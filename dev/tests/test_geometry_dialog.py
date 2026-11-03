@@ -9,7 +9,6 @@ the pair that can drift apart silently.
 from __future__ import annotations
 
 from collections.abc import Iterator
-
 from pathlib import Path
 
 import numpy as np
@@ -17,7 +16,6 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.data_operations.geometry_dialog import (
     MATRIX,
     MIRROR,
@@ -28,6 +26,7 @@ from app.data_operations.geometry_dialog import (
     TRANSLATE,
     SeriesGeometryDialog,
 )
+from app.logs.logger import applogger
 
 #: A unit square plus a point off-centre, so a mirror and a shear have
 #: something asymmetric to move - four corners alone look the same after

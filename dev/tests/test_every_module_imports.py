@@ -14,7 +14,6 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-
 APP_DIR = Path(__file__).resolve().parents[2] / "app"
 
 # Not importable by design, and nothing else imports them either:

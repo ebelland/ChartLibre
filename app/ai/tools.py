@@ -242,7 +242,10 @@ class AssistantTools:
         if entry is None:
             raise ValueError(f"No analysis named '{analysis}'.")
         before = set(self._repo.list_user_tables()["Table"].astype(str))
-        dialog = import_class_from_file(entry)(repo=self._repo, table=table)
+        cls = import_class_from_file(entry)
+        if cls is None:  # its file went, or did not load: the log says why
+            raise ValueError(f"The analysis '{analysis}' could not be loaded; the log says why.")
+        dialog = cls(repo=self._repo, table=table)
         try:
             if dialog.table != table:
                 raise ValueError(f"No table named '{table}'.")

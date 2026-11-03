@@ -16,11 +16,11 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from app.data.series_frame import SeriesFrame
 
+from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.config import get_constant
 from app.utils.coercion import column_of, to_numbers
+from app.utils.config import get_constant
 
 #: The largest grid this will pivot, in cells.
 #:

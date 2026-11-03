@@ -1,9 +1,7 @@
 """Widget factories and helpers: cards, titles, buttons, menus, dialog shells, sizing."""
 from __future__ import annotations
 
-
 import html
-
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import QRect, QSize, Qt
@@ -18,28 +16,28 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMenu,
     QPlainTextEdit,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
-    QPushButton,
 )
+
 from app.logs.logger import applogger
+from app.styles.style.icons import action_presentation, load_icon
 from app.styles.style.metrics import (
+    _COMBO_CHROME_WIDTH,
     COMBO_MIN_CONTENTS_LENGTH,
     DIALOG_SIZES,
     IS_MACOS,
     MARGIN_CARD,
     MARGIN_DIALOG,
+    SPACING_DEFAULT,
     MenuCallback,
     MenuItem,
-    SPACING_DEFAULT,
     ShortcutLike,
-    _COMBO_CHROME_WIDTH,
 )
-from app.styles.style.icons import action_presentation, load_icon
-
 
 # UI helpers
 # ----------------------------------------------------------------------
@@ -752,7 +750,7 @@ def keep_check_box_whole(box: QCheckBox) -> QCheckBox:
     return box
 
 
-def stdSizeAndlayout(
+def stdSizeAndlayout(  # noqa: N802 - the helper's established name
     obj: QWidget | QBoxLayout | QFormLayout | QScrollArea | QPlainTextEdit,
     minimum_contents_length: int = 0,
     visible_lines:int = 5,
@@ -849,7 +847,7 @@ def stdSizeAndlayout(
     )
 
 
-def stdPlainTextEdit(
+def stdPlainTextEdit(  # noqa: N802 - the helper's established name
     editor: QPlainTextEdit,
     *,
     visible_lines: int = 5,

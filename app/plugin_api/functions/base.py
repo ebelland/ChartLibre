@@ -19,12 +19,13 @@ worth testing on their own.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar, List
+from typing import ClassVar
 
 import numpy as np
+from scipy.signal import find_peaks
 
 from app.analysis import NUMERICAL_FAILURES
-from scipy.signal import find_peaks
+
 
 def _safe_x(x: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     return np.where(np.abs(x) < eps, np.sign(x + eps) * eps, x)
@@ -190,7 +191,7 @@ def _exponential(x: np.ndarray, y: np.ndarray, growth:bool) ->  list[float]|None
     rate = float(slope) if growth else float(-slope)
     return [amplitude, rate, offset]
 
-def _polynomial_guess( x: np.ndarray,y: np.ndarray,degree) ->  List[float]|None:
+def _polynomial_guess( x: np.ndarray,y: np.ndarray,degree) ->  list[float]|None:
     if x.size < degree + 1:
         return None
     try:
@@ -228,7 +229,7 @@ class base_function:
         raise NotImplementedError
 
     @staticmethod
-    def initial_guess(x: np.ndarray, y: np.ndarray) -> List[float] | None:
+    def initial_guess(x: np.ndarray, y: np.ndarray) -> list[float] | None:
         """Return a starting point read off the data, or None.
 
         None rather than ``p0`` so that "I have no estimate" is distinguishable
@@ -271,7 +272,7 @@ class base_surface_function:
         raise NotImplementedError
 
     @staticmethod
-    def initial_guess(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> List[float] | None:
+    def initial_guess(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> list[float] | None:
         """Return a starting point read off the data, or None.
 
         See ``base_function.initial_guess`` for why None is a different

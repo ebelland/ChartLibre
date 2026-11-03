@@ -4,11 +4,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-
 from app.logs.logger import applogger
+from app.styles.style.metrics import MenuItem, ShortcutLike
 from app.utils.config import get_section
 from app.utils.i18n import tr
-from app.styles.style.metrics import MenuItem, ShortcutLike
 
 
 def _theme_icon_field(value: object) -> str | tuple[str, ...] | None:
@@ -55,7 +54,7 @@ class ActionSpec:
     svg: str | None = None
 
     @classmethod
-    def from_config(cls, action_id: str, entry: dict[str, Any]) -> "ActionSpec":
+    def from_config(cls, action_id: str, entry: dict[str, Any]) -> ActionSpec:
         return cls(
             action_id=action_id,
             text=str(entry.get("text") or action_id),

@@ -13,9 +13,9 @@ import pytest
 from scipy import stats
 
 from app.analysis.diagnostics import kaplan_meier, log_rank
-from app.plugin_api.charts.base import SeriesData
 from app.charts.survival import KaplanMeierAxisRenderer
 from app.data.series_frame import SeriesFrame
+from app.plugin_api.charts.base import SeriesData
 
 
 def _reference_km(time: np.ndarray, event: np.ndarray):

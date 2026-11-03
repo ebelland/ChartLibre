@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 
 import app.developer_helpers.developer_helper_base as common
+from app.developer_helpers.data_operation_helper import DataOperationBuilderDialog
 from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
 from app.developer_helpers.renderer_helper import RendererHelperDialog
-from app.developer_helpers.data_operation_helper import DataOperationBuilderDialog
 
 
 @pytest.fixture

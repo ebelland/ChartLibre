@@ -6,9 +6,9 @@ the optional ``X`` role; without it the row index is used.
 """
 from __future__ import annotations
 
+import math
 from typing import Any, ClassVar, Literal
 
-import math
 import numpy as np
 
 from app.plugin_api.charts import kwarg_spec
@@ -25,7 +25,6 @@ from app.plugin_api.charts.base import (
     pick,
 )
 from app.utils.coercion import column_of, to_numbers
-
 
 Orientation = Literal["vertical", "horizontal"]
 

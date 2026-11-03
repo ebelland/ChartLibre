@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 import numpy as np
+
 from app.analysis.filtering import (
     AUTO_CUTOFF1,
     AUTO_CUTOFF2,
@@ -39,13 +40,13 @@ from app.analysis.filtering import (
     resolve_cutoffs,
     two_cutoffs,
 )
-from app.plugin_api.data_operations.results import XYResult
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
 from app.plugin_api.data_operations.dialog_base import (
-    OperationModel,
     DataOperationDialogBase,
+    OperationModel,
     generated_table_name,
 )
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import XYResult
 from app.utils.i18n import _
 
 _SCIPY_DOCS = "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.{}.html"
@@ -174,7 +175,7 @@ class FilterResult(XYResult):
     y: np.ndarray
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    
+
 
 # ----------------------------------------------------------------------
 # The dialog

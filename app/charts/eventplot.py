@@ -16,8 +16,8 @@ from typing import Any, ClassVar
 
 import numpy as np
 
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.utils.coercion import column_of, to_numbers
 
 #: Options this renderer consumes itself, stripped before the rest reaches

@@ -14,14 +14,15 @@ from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
+
 from app.analysis import gaussian_process as gp
-from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
-    DataOperationDialogBase,
 )
 from app.plugin_api.data_operations.parameter_spec import FloatParam
+from app.plugin_api.data_operations.results import TableResult
 from app.utils import report_html
 
 KERNEL_RBF = "RBF"

@@ -11,11 +11,11 @@ from pathlib import Path
 import pytest
 from matplotlib.figure import Figure
 
-from app.scanners.axis_renderer_scanner import get_renderer, renderers
-from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.data.sqlite_repo import SqliteRepo
-from dev.tests._figure_factory import SHOWCASE_CHART_TYPES, create_renderer_showcase_db
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
+from app.scanners.axis_renderer_scanner import get_renderer, renderers
 from dev.tests._cases import check_all
+from dev.tests._figure_factory import SHOWCASE_CHART_TYPES, create_renderer_showcase_db
 
 
 @pytest.fixture(scope="module")

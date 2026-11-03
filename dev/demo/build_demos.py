@@ -26,21 +26,21 @@ output need pandas' read_csv/read_excel machinery.
 """
 from __future__ import annotations
 
-import json
-
 import argparse
+import json
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from app.plugin_api.charts import layout_presets
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject, project_side_files
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
+from app.plugin_api.charts import layout_presets
 
 #: The repository root: three levels above this file (dev/demo/build_demos.py).
 REPO_ROOT: Path = Path(__file__).resolve().parents[2]

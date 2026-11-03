@@ -29,30 +29,51 @@ import base64
 import html
 import io
 import math
-from datetime import datetime
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Mapping, Sequence
+from datetime import datetime
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QAbstractSpinBox, QGridLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QAbstractSpinBox,
+    QGridLayout,
+    QLabel,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.analysis import geometry as geo
-from app.plugin_api.charts.grids import pivot_to_grid
-from app.data.data_source import parse_roles, quote_identifier, row_value, resolve_role_column
+from app.data.data_source import (
+    parse_roles,
+    quote_identifier,
+    resolve_role_column,
+    row_value,
+)
 from app.logs.logger import applogger
-from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
+from app.plugin_api.charts.grids import pivot_to_grid
+from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
+    OperationModel,
+    ResultSeriesSpec,
+)
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+)
 from app.plugin_api.data_operations.results import OperationResult
-from app.plugin_api.data_operations.dialog_base import OperationModel, ResultSeriesSpec, DataOperationDialogBase
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
+from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
 from app.styles.style import CardFrame
 from app.utils import report_html
 from app.utils.config import get_constant
 from app.utils.i18n import _
+from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 
 ROTATE = "Rotate"
 TRANSLATE = "Translate"
@@ -771,7 +792,7 @@ class SeriesGeometryDialog(DataOperationDialogBase):
                     cos_sql = f"cos(radians({geo.number(angle)}))"
                     sin_sql = f"sin(radians({geo.number(angle)}))"
                     spelled = {(0, 0): cos_sql, (0, 1): f"-{sin_sql}", (1, 0): sin_sql, (1, 1): cos_sql}
-                    spell = lambda row, col: spelled.get((row, col))  # noqa: E731
+                    spell = lambda row, col: spelled.get((row, col))
             translation = (
                 (float(values.get("dx", 0.0)), float(values.get("dy", 0.0)), float(values.get("dz", 0.0)))
                 if model == ROTO_TRANSLATE

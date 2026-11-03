@@ -15,7 +15,6 @@ from app.logs.logger import applogger
 from app.scanners.plugin_family import PluginFamily
 from app.utils.config import USER_CHARTS_DIR
 
-
 # Chart types that have been renamed, old name -> current name.
 #
 # Why this exists: chart_type is stored per axis in the database, so renaming a

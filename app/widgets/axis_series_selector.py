@@ -16,9 +16,10 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Mapping, Sequence
-from functools import lru_cache
+from functools import cache
 from typing import Any, Final
 
+from matplotlib import rcParams
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter
 from PySide6.QtWidgets import (
@@ -32,7 +33,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from matplotlib import rcParams
 
 from app.data.sqlite_repo import SqliteRepo
 from app.styles.style import (
@@ -43,7 +43,6 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
-
 
 SeriesPredicate = Callable[[Any], bool]
 AxisMap = Mapping[str, Sequence[Any]]
@@ -56,7 +55,7 @@ _QT_MAX_WIDGET_HEIGHT: Final[int] = 16777215
 _SWATCH_SIZE: Final[int] = 14
 
 
-@lru_cache(maxsize=None)
+@cache
 def _color_swatch_icon(color: str) -> QIcon:
     """A small filled circle in *color*, for one row of the series list.
 

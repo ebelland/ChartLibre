@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """app.widgets.drop_down_controls.marker_combo
 
 MarkerStyleCombo
@@ -14,8 +13,9 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable
-from functools import lru_cache
+from functools import cache
 
+from matplotlib import rcParams
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import (
     QBrush,
@@ -26,13 +26,11 @@ from PySide6.QtGui import (
     QPen,
     QPolygonF,
 )
-from matplotlib import rcParams
 from PySide6.QtWidgets import QWidget
 
 from app.plugin_api.charts.kwarg_spec import DEFAULT
-from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 from app.styles.style import create_hidpi_pixmap
-
+from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 
 _ICON_SIZE = 16
 _MARKER_COLOR = "#3a3a3a"
@@ -491,7 +489,7 @@ def _draw_no_marker(pixmap) -> None:
         painter.end()
 
 
-@lru_cache(maxsize=None)
+@cache
 def _resolved_marker_icon(marker: str, *, faint: bool) -> QIcon:
     """Build (and cache) a preview icon for one concrete Matplotlib marker."""
     # Allocated at the display's pixel density: the coordinates below stay

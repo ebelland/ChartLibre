@@ -8,16 +8,15 @@ link can later be refreshed through exactly the same code path.
 from __future__ import annotations
 
 import re
-
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Callable
 
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt, QTimer
 from PySide6.QtWidgets import (
-    QBoxLayout,
     QApplication,
+    QBoxLayout,
     QCheckBox,
     QComboBox,
     QFileDialog,
@@ -34,25 +33,10 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from app.utils.config import get_import_data_dialog_config, set_import_data_dialog_config
-from app.data.sqlite_repo import SqliteRepo
-from app.widgets.pair_grid import PairGrid
-from app.widgets.table_preview import TablePreviewPanel
-from app.logs.logger import applogger
-from app.utils.messages import show_message
-from app.styles.style import (
-    fit_spin_width,
-    action_presentation,
-    create_action_button,
-    load_icon,
-    mark_editor_panel,
-    mark_icon_only,
-    stdSizeAndlayout,
-    TitledCard,
-)
-from app.utils.i18n import _
-from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
 
+from app.data.sqlite_repo import SqliteRepo
+from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
+from app.logs.logger import applogger
 
 # -----------------------------------------------------------------------------
 # Reading helpers
@@ -66,7 +50,19 @@ from app.dialogs.two_panels_dialog_base import PanelDialog, SettingsTableDialog
 # and app.main_window.main_window - keep working unchanged.
 # -----------------------------------------------------------------------------
 from app.plugin_api.importers.base import ALL_DATASETS, ImportedData
+from app.styles.style import (
+    TitledCard,
+    action_presentation,
+    create_action_button,
+    fit_spin_width,
+    load_icon,
+    mark_editor_panel,
+    mark_icon_only,
+    stdSizeAndlayout,
+)
 from app.utils import import_cleaning
+from app.utils.coercion import to_numbers
+from app.utils.config import get_import_data_dialog_config, set_import_data_dialog_config
 from app.utils.data_sources import (
     CLIPBOARD_SOURCE_NAME,
     IMPORT_FILE_FILTER,
@@ -74,18 +70,20 @@ from app.utils.data_sources import (
     add_user_web_source,
     file_datasets,
     file_importer,
-    read_imported,
     filename_from_url,
     is_valid_web_url,
     load_web_data_sources,
     read_any_file,
     read_clipboard_text,
-    transpose_delimited_text,
+    read_imported,
     read_web_url,
     remove_user_web_source,
+    transpose_delimited_text,
 )
-from app.utils.coercion import to_numbers
-
+from app.utils.i18n import _
+from app.utils.messages import show_message
+from app.widgets.pair_grid import PairGrid
+from app.widgets.table_preview import TablePreviewPanel
 
 #: The curated "Web source" quick-pick catalogue - see
 #: web_sources.json (in the ChartLibre folder) for the actual entries and
@@ -941,7 +939,7 @@ class ImportDataDialog(SettingsTableDialog):
         iter:int=1
         while self._repo.check_if_table_exists(nname):
             nname=name+"_"+str(iter)
-            iter+=1    
+            iter+=1
         return nname
 
     def _set_default_table_name(self, path: str) -> None:

@@ -29,19 +29,20 @@ from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
+
 from app.analysis.baseline import (
     ASLS_MINIMUM_POINTS,
     METHOD_ASLS,
     METHOD_RUBBER_BAND,
     correct_baseline,
 )
-from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
-from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
-    DataOperationDialogBase,
 )
+from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import TableResult
 
 BASELINE_ASLS = "Asymmetric Least Squares (AsLS)"
 BASELINE_RUBBER = "Rubber band"

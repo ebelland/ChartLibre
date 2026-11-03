@@ -19,17 +19,17 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app.analysis import partition as pt
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.parameter_spec import (
-    BoolParam,
-    ChoiceParam,
-    FloatParam,
-    IntParam,
-)
 from app.plugin_api.data_operations.column_roles import (
     CATEGORICAL,
     ORDINAL,
     ColumnCasting,
     ColumnRole,
+)
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+    IntParam,
 )
 from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.styles.style import TitledCard

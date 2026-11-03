@@ -19,11 +19,10 @@ from typing import Any, ClassVar
 
 import numpy as np
 
-from app.plugin_api.charts.base import merge
 from app.charts.bar import BarAxisRenderer
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData, merge
 from app.utils.coercion import column_of, to_numbers
 
 #: Label used for the bar that absorbs everything past ``max_categories``.

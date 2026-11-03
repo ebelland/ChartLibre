@@ -15,7 +15,6 @@ from typing import Any, ClassVar, Final, TypeAlias, cast
 
 from PySide6.QtCore import QEvent, QObject, QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
-    QPlainTextEdit,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -24,20 +23,20 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
     QSizePolicy,
     QSpinBox,
-    QPushButton,
     QStackedWidget,
     QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from app.widgets.font_scale_control import FontScaleControl
 from app.logs.logger import applogger
 from app.plugin_api.charts import axis_options, secondary_axis
-from app.plugin_api.charts.text_lines import display_text
 from app.plugin_api.charts.render_figure import AXIS_SCALE_LABELS, SUPPORTED_AXIS_SCALES
+from app.plugin_api.charts.text_lines import display_text
 from app.styles.style import (
     MARGIN_PANEL,
     CardFrame,
@@ -49,6 +48,7 @@ from app.styles.style import (
 from app.utils.messages import ask
 from app.widgets.chart_properties.base_properties import BaseProperties
 from app.widgets.dictionary_editor import DictEditorPanel
+from app.widgets.font_scale_control import FontScaleControl
 
 AxisDescriptorLike: TypeAlias = Any
 RendererConfig: TypeAlias = dict[str, Any]
@@ -56,6 +56,7 @@ AxisPayload: TypeAlias = dict[str, Any]
 
 from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
 from app.utils.i18n import _, tr
+
 MAX_QT_HEIGHT: int = 16_777_215
 
 # The editor offers exactly what the renderer knows how to apply, so the two
@@ -144,7 +145,7 @@ class AxisPropertiesWidget(BaseProperties):
     # ------------------------------------------------------------------
     # Setup helpers
     # ------------------------------------------------------------------
- 
+
     def _build_ui(self) -> None:
         """The axis selector, then tabs: Properties, X, Y, Z (one coordinate page, moved between them), Kwargs."""
         root = QVBoxLayout(self)
@@ -586,7 +587,7 @@ class AxisPropertiesWidget(BaseProperties):
         action_row = QWidget(section)
         action_layout = QHBoxLayout(action_row)
         stdSizeAndlayout(action_layout)
-        
+
         self._btn_move_up = create_action_button(
                                 parent=action_row,
                                 action_id="up",
@@ -1444,7 +1445,7 @@ class AxisPropertiesWidget(BaseProperties):
     # ------------------------------------------------------------------
     # Kwargs editor host helpers
     # ------------------------------------------------------------------
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt's name
         """Default event filter retained for compatibility."""
         return super().eventFilter(watched, event)
 

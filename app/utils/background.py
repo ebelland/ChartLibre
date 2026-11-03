@@ -34,7 +34,7 @@ from app.logs.logger import applogger
 
 
 class _Runner(QRunnable):
-    def __init__(self, task: "BackgroundTask") -> None:
+    def __init__(self, task: BackgroundTask) -> None:
         super().__init__()
         self._task = task
         # Deleted by us, not by the pool: the wrapper is held in the task.

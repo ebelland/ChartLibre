@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Compact colour editor backed by Qt's standard QColorDialog.
 
 The value is a Matplotlib colour as the user wrote it: a name ("red", "tab:blue"),

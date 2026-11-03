@@ -14,10 +14,10 @@ from typing import Any, ClassVar
 import pandas as pd
 
 from app.analysis import answers
-from app.plugin_api.data_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.quick_answer import QuickAnswerDialogBase
+from app.plugin_api.data_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
 from app.plugin_api.data_operations.next_steps import NextStep, other_columns
+from app.plugin_api.data_operations.quick_answer import QuickAnswerDialogBase
 from app.utils import report_html
 from app.utils.i18n import _
 

@@ -49,6 +49,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
+
 from app.analysis.roots import (
     INTERP_CUBIC,
     INTERP_LINEAR,
@@ -62,17 +63,17 @@ from app.analysis.roots import (
     find_roots,
 )
 from app.logs.logger import applogger
-from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
-    DataOperationDialogBase,
 )
 from app.plugin_api.data_operations.parameter_spec import (
     ChoiceParam,
     FloatParam,
     IntParam,
 )
+from app.plugin_api.data_operations.results import TableResult
 from app.utils import report_html
 from app.utils.i18n import _
 

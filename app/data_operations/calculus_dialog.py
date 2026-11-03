@@ -35,17 +35,18 @@ from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
+
 from app.analysis import calculus as calc
 from app.analysis import symbolic_calculus as symbolic
 from app.data.repo.function_sql import FunctionQuery, function_sql, parse_function_sql
 from app.logs.logger import applogger
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
-from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
-    DataOperationDialogBase,
 )
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
+from app.plugin_api.data_operations.results import TableResult
 from app.utils import report_html
 from app.utils.i18n import _
 

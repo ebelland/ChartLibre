@@ -22,8 +22,13 @@ import numpy as np
 
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis.diagnostics import cell_means
-from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import (
+    LEGEND_OPTIONS,
+    BaseAxisRenderer,
+    SeriesData,
+    merge,
+)
 from app.utils.coercion import column_of, to_numbers
 
 

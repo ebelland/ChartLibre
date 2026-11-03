@@ -102,15 +102,20 @@ class XYResult(TableResult):
     """A table result that is a curve: its ``x`` and ``y`` fields, as two columns."""
 
     __slots__ = ()
+    # Declared for the type checker: each subclass is a dataclass with these fields.
+    x: Any
+    y: Any
 
     def to_df(self) -> pd.DataFrame:
-        return pd.DataFrame({"x": getattr(self, "x"), "y": getattr(self, "y")})
+        return pd.DataFrame({"x": self.x, "y": self.y})
 
 
 class FrameResult(TableResult):
     """A table result that already holds its table, in a ``frame`` field."""
 
     __slots__ = ()
+    # Declared for the type checker: each subclass is a dataclass with this field.
+    frame: pd.DataFrame
 
     def to_df(self) -> pd.DataFrame:
-        return getattr(self, "frame")
+        return self.frame

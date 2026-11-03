@@ -15,16 +15,16 @@ from typing import Any, ClassVar
 
 import numpy as np
 
+from app.logs.logger import applogger
 from app.plugin_api.charts.base import (
     ARTIST_KWARGS,
+    VIEW_OPTIONS,
     BaseAxisRenderer,
     SeriesData,
-    VIEW_OPTIONS,
     merge,
     pick,
 )
 from app.plugin_api.charts.grids import finite_xyz
-from app.logs.logger import applogger
 
 
 class Bar3DAxisRenderer(BaseAxisRenderer):

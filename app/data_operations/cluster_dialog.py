@@ -89,13 +89,13 @@ from app.plugin_api.data_operations.dialog_base import (
     SeriesJob,
     SeriesOutcome,
 )
+from app.plugin_api.data_operations.next_steps import NextStep
 from app.plugin_api.data_operations.parameter_spec import (
     BoolParam,
     ChoiceParam,
     FloatParam,
     IntParam,
 )
-from app.plugin_api.data_operations.next_steps import NextStep
 from app.utils import report_html
 from app.utils.coercion import column_of, to_numbers
 from app.utils.i18n import _

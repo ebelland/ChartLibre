@@ -12,11 +12,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-
-from app.analysis import NUMERICAL_FAILURES
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import HuberRegressor, RANSACRegressor
+
+from app.analysis import NUMERICAL_FAILURES
 from app.utils.config import get_constant
 
 KIND_RANSAC = "ransac"

@@ -16,8 +16,6 @@ from dataclasses import dataclass, field
 from typing import Final, cast
 
 import numpy as np
-
-from app.analysis import NUMERICAL_FAILURES
 from scipy.interpolate import (
     Akima1DInterpolator,
     CubicSpline,
@@ -26,6 +24,8 @@ from scipy.interpolate import (
     make_interp_spline,
 )
 from scipy.optimize import curve_fit
+
+from app.analysis import NUMERICAL_FAILURES
 
 MODEL_POLYNOMIAL: Final[str] = "Polynomial"
 MODEL_LINEAR: Final[str] = "Linear"

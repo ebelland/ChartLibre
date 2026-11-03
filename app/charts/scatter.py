@@ -8,15 +8,21 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, cast
 
+import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
-import matplotlib.dates as mdates
 from matplotlib import rcParams
 from matplotlib.patches import Ellipse
 from matplotlib.transforms import Affine2D
 
-from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData, in_legend
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import (
+    ERROR_BAR_KWARGS,
+    BaseAxisRenderer,
+    SeriesArtistTags,
+    SeriesData,
+    in_legend,
+)
 from app.utils.coercion import coerce_axis, column_of, to_numbers
 
 

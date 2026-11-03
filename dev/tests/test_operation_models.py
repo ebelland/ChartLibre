@@ -1,13 +1,12 @@
 """Operations that declare MODELS get the standard Model combo and Docs link."""
 from __future__ import annotations
 
-from typing import Any, cast
-
 import importlib
 import inspect
 import pkgutil
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -15,13 +14,13 @@ import pytest
 
 import app.data_operations as package
 from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
-from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from app.data_operations.interpolate_dialog import (
     MODEL_EXPONENTIAL,
     MODEL_SCIPY_PCHIP,
     SeriesInterpolateDialog,
 )
+from app.logs.logger import applogger
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from dev.tests._cases import check_all
 
 

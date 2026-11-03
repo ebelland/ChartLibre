@@ -7,10 +7,10 @@ from __future__ import annotations
 import io
 import json
 import threading
-import zipfile
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from email.message import Message
 from pathlib import Path
 
@@ -210,7 +210,7 @@ class _Answer:
     def __init__(self, payload: dict) -> None:
         self._body = json.dumps(payload).encode("utf-8")
 
-    def __enter__(self) -> "_Answer":
+    def __enter__(self) -> _Answer:
         return self
 
     def __exit__(self, *_exc: object) -> None:

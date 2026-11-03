@@ -36,6 +36,8 @@ from typing import Any, ClassVar
 import numpy as np
 from matplotlib import rcParams
 
+from app.data.series_frame import SeriesFrame
+from app.logs.logger import applogger
 from app.plugin_api.charts.base import (
     ARTIST_KWARGS,
     CMAP_KWARGS,
@@ -45,8 +47,6 @@ from app.plugin_api.charts.base import (
     pick,
 )
 from app.plugin_api.charts.grids import pivot_to_grid
-from app.data.series_frame import SeriesFrame
-from app.logs.logger import applogger
 from app.utils.coercion import column_of, to_numbers
 
 #: The appearance keywords every field renderer here forwards. Deliberately

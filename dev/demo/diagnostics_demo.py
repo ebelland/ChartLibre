@@ -16,10 +16,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from app.analysis import statistics as st
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from app.analysis import statistics as st
 from app.utils import report_html
 from dev.demo.build_demos import FigureSpec, SeriesSpec, _create_figure, _penguins
 from dev.tests import _nist_strd as nist

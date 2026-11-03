@@ -29,6 +29,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.data.sqlite_repo import SqliteRepo
+from app.dialogs.query_operations import FORMS, OperationForm
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.logs.logger import applogger
 from app.styles.style import (
     create_action_button,
@@ -43,11 +45,9 @@ from app.utils.dialog_state import (
     save_dialog_state,
     save_window_geometry,
 )
+from app.utils.i18n import _
 from app.utils.messages import ask, show_message
 from app.widgets.table_preview import DataFrameTableModel
-from app.utils.i18n import _
-from app.dialogs.query_operations import FORMS, OperationForm
-from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 
 # Rows fetched by Run.  Enough to see whether the query is right, few enough
 # that pressing Run on a full-table select is not a mistake.

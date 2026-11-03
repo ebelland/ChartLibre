@@ -4,8 +4,8 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
-from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Callable
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any
 
 import numpy as np
 import sympy as sp

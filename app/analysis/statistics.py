@@ -19,15 +19,14 @@ from typing import Any, cast
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis.randomness import all_diagnostics, finite
 from app.logs.logger import applogger
 from app.utils.coercion import column_of
-from scipy import stats
-
-from app.utils.i18n import _
 from app.utils.config import get_constant
+from app.utils.i18n import _
 
 #: The alternatives SciPy's tests accept.
 
@@ -422,7 +421,7 @@ def independent_tests(a: Any, b: Any, *, alternative: str = "two-sided") -> list
         )
     ]
     res = stats.ttest_ind(a, b, equal_var=False, alternative=alternative)
-    welch_df = float(getattr(res, "df"))  # TtestResult.df is real; its stub does not list it
+    welch_df = float(cast(Any, res).df)  # TtestResult.df is real; its stub does not list it
     tests.append(result_row(_("Welch t-test"), n, _statistic(res), _pvalue(res), f"df = {welch_df:.4g}"))
     res = stats.ttest_ind(a, b, equal_var=True, alternative=alternative)
     tests.append(result_row(_("Student t-test (equal variances)"), n, _statistic(res), _pvalue(res), f"df = {na + nb - 2}"))
@@ -790,7 +789,7 @@ def cochrans_q(columns: Any) -> dict[str, Any]:
     mixed = frame[(frame.sum(axis=1) > 0) & (frame.sum(axis=1) < frame.shape[1])]
     result = q_test(frame.to_numpy(dtype=int))
     note = f"{len(mixed)} of {len(frame)} rows differ between the columns and carry the information"
-    return {"q": float(result.statistic), "df": int(result.df), "pvalue": float(result.pvalue), "n": int(len(frame)),
+    return {"q": float(result.statistic), "df": int(result.df), "pvalue": float(result.pvalue), "n": len(frame),
             "shares": {str(c): float(column_of(frame, c).mean()) for c in frame.columns}, "note": note}
 
 
@@ -902,7 +901,7 @@ def two_way_anova(first: Any, second: Any, response: Any) -> dict[str, Any]:
     balanced = bool(cells.nunique() == 1)
     return {
         "table": rows,
-        "n": int(len(frame)),
+        "n": len(frame),
         "balanced": balanced,
         "note": "Type II sums of squares" + ("" if balanced else "; unbalanced design"),
     }

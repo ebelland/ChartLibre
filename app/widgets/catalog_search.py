@@ -23,8 +23,8 @@ from PySide6.QtWidgets import (
 from app.analysis import catalog
 from app.analysis.catalog import CatalogEntry
 from app.styles.style import icon_from_svg_source, load_icon
-from app.utils.i18n import tr
 from app.utils.config import get_constant
+from app.utils.i18n import tr
 
 _ENTRY_ROLE = Qt.ItemDataRole.UserRole
 _ICON_SIZE = 18

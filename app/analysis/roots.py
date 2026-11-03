@@ -18,10 +18,10 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 import numpy as np
-
-from app.analysis import NUMERICAL_FAILURES
 from scipy.interpolate import CubicSpline, PchipInterpolator
 from scipy.optimize import brentq, newton, toms748
+
+from app.analysis import NUMERICAL_FAILURES
 
 SOLVER_BRENT = "Brent"
 SOLVER_BISECT = "Bisection"

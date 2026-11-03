@@ -15,10 +15,10 @@ collects the parameters and lays the results out.
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
 import html
 import itertools
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 import numpy as np
@@ -31,21 +31,26 @@ from PySide6.QtWidgets import (
 
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis import statistics as st
-from app.data.data_source import quote_identifier
-from app.data.data_source import row_value,parse_roles
+from app.data.data_source import parse_roles, quote_identifier, row_value
 from app.data.select_sql import projection_source
-from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, Param
-from app.plugin_api.data_operations.results import OperationResult
+from app.logs.logger import applogger
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
-    ResultSeriesSpec,
     DataOperationDialogBase,
+    ResultSeriesSpec,
 )
+from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+    Param,
+)
+from app.plugin_api.data_operations.results import OperationResult
 from app.styles.style import CardFrame
-from app.logs.logger import applogger
-from app.utils.messages import show_message
 from app.utils import report_html
+from app.utils.coercion import column_of, to_numbers
 from app.utils.distribution_fit import (
     CURATED_DISTRIBUTIONS,
     DEFAULT_RANK,
@@ -53,7 +58,7 @@ from app.utils.distribution_fit import (
     fit_distributions,
 )
 from app.utils.i18n import _
-from app.utils.coercion import column_of, to_numbers
+from app.utils.messages import show_message
 
 _SERIES_ROLE = Qt.ItemDataRole.UserRole
 

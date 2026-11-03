@@ -19,8 +19,8 @@ from typing import Any, ClassVar
 
 import pandas as pd
 
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.utils.coercion import column_of, to_numbers
 
 _ADJUST_TEXT_WARNED = False

@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.dialogs.settings_dialog import LANGUAGE_NAMES
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.logs.logger import applogger
 from app.styles.style import (
     create_action_button,
@@ -56,7 +57,6 @@ from app.styles.style import (
 from app.utils import i18n, machine_translation
 from app.utils.background import BackgroundTask, run_in_background
 from app.utils.config import get_value
-from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.utils.i18n import _
 from app.utils.messages import show_message
 

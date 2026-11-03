@@ -15,8 +15,8 @@ from PySide6.QtGui import QImage, QPageLayout, QPageSize, QPdfWriter, QTextDocum
 from PySide6.QtWidgets import QCheckBox, QComboBox, QFileDialog, QFormLayout, QLabel, QSpinBox, QWidget
 
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
-from app.logs.logger import applogger
 from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.logs.logger import applogger
 from app.styles.style import TitledCard, load_icon, stdSizeAndlayout
 from app.utils.dialog_state import restore_dialog_state, save_dialog_state
 from app.utils.i18n import _

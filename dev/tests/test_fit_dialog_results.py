@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 APP_DIR = Path(__file__).resolve().parents[2] / "app"
 # The Fit dialog is a package of modules now; their sources, together.
 FIT_SOURCE = "\n".join(

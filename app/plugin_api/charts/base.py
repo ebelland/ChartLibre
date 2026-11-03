@@ -387,11 +387,11 @@ class BaseAxisRenderer:
 
     def valid_series(
         self,
-        series: list["SeriesData"],
+        series: list[SeriesData],
         *,
         require_roles: bool = True,
         require_rows: bool = True,
-    ) -> list["SeriesData"]:
+    ) -> list[SeriesData]:
         """Return the series worth drawing: visible, mapped, and not empty.
 
         The same three conditions were written out in fifteen renderers and
@@ -415,11 +415,11 @@ class BaseAxisRenderer:
 
     def single_series(
         self,
-        series: list["SeriesData"],
+        series: list[SeriesData],
         *,
         reason: str = "",
         **kwargs: Any,
-    ) -> "SeriesData | None":
+    ) -> SeriesData | None:
         """Return the one series to draw, reporting the ones skipped.
 
         For the renderers that declare ``MaxSeries = 1``: a contour map, a

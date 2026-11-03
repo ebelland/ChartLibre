@@ -34,14 +34,17 @@ from app.styles.style import (
 from app.utils.i18n import _
 from app.widgets.drop_down_controls.color_combo import color_preview_icon
 from app.widgets.drop_down_controls.color_picker import ColorPickerButton
-from app.widgets.drop_down_controls.font_combo import MatplotlibFontCombo, font_preview_icon
-from app.widgets.drop_down_controls.line_combo import LineStyleCombo, line_style_preview_icon
 from app.widgets.drop_down_controls.colormap_combo import ColormapCombo, colormap_preview_icon
-from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo, marker_style_preview_icon
-from app.widgets.drop_down_controls.hatch_combo import HatchStyleCombo, hatch_preview_icon
 from app.widgets.drop_down_controls.edge_style_combo import (
-    CapStyleCombo, JoinStyleCombo, cap_style_preview_icon, join_style_preview_icon,
+    CapStyleCombo,
+    JoinStyleCombo,
+    cap_style_preview_icon,
+    join_style_preview_icon,
 )
+from app.widgets.drop_down_controls.font_combo import MatplotlibFontCombo, font_preview_icon
+from app.widgets.drop_down_controls.hatch_combo import HatchStyleCombo, hatch_preview_icon
+from app.widgets.drop_down_controls.line_combo import LineStyleCombo, line_style_preview_icon
+from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo, marker_style_preview_icon
 
 _KIND_BY_EXACT_KEY: dict[str, str] = {
     # Colour aliases and common artist kwargs.
@@ -233,7 +236,7 @@ def _group_for_key(key: str, meta: Mapping[str, Any], kind: str) -> str:
 class DictValueDelegate(QStyledItemDelegate):
     """Value delegate supplying type-aware inline editors."""
 
-    def __init__(self, panel: "DictEditorPanel", parent: QWidget | None = None) -> None:
+    def __init__(self, panel: DictEditorPanel, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._panel = panel
 

@@ -8,7 +8,6 @@ selected row" once a rowid no longer matches a position.
 from __future__ import annotations
 
 from collections.abc import Iterator
-
 from pathlib import Path
 
 import pandas as pd

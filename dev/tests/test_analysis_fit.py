@@ -105,9 +105,9 @@ def test_a_band_series_is_drawn_as_a_filled_region() -> None:
     from matplotlib.collections import PolyCollection
     from matplotlib.figure import Figure
 
+    from app.data.series_frame import SeriesFrame
     from app.plugin_api.charts.base import SeriesData
     from app.plugin_api.charts.render_figure import _draw_band
-    from app.data.series_frame import SeriesFrame
 
     ax = Figure().add_subplot()
     frame = SeriesFrame({"x": [3.0, 1.0, 2.0], "ci_low": [0.0, 0.0, 0.0], "ci_high": [1.0, 2.0, 3.0]})

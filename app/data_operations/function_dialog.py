@@ -9,52 +9,88 @@ from __future__ import annotations
 
 import ast
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, ClassVar, cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 import pandas as pd
 import sympy as sp
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QInputDialog,
+    QLabel,
     QMenu,
-    QComboBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
-    QMessageBox, QPushButton, QSizePolicy, QTableWidget,
-    QTableWidgetItem, QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
     QWidget,
 )
 
 from app.analysis.function_plot import (
-    SPACING_LINEAR, SPACING_LOG, build_range, evaluate_curve,
+    SPACING_LINEAR,
+    SPACING_LOG,
+    build_range,
+    evaluate_curve,
 )
-from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
-from app.plugin_api.data_operations.results import TableResult
-from app.plugin_api.data_operations.dialog_base import (
-    ResultSeriesSpec, DataOperationDialogBase, generated_table_name,
-)
-from app.styles.style import create_doc_link, mark_editor_panel, set_doc_link
-from app.logs.logger import applogger
-from app.utils.i18n import _
-from app.utils import report_html
 from app.data.data_source import DataSource
 from app.data.repo.function_sql import GridRange
-from app.widgets.function_editor import FunctionEditor
 from app.data_operations.sympy_store import (
     UntrustedFunction,
     _scientific_import,
     ensure_table,
-    fingerprint as stored_fingerprint,
-    get as get_stored,
     library_row,
-    payload as stored_payload,
-    rows as stored_rows,
-    save as save_stored,
-    source_sql as stored_source_sql,
     stored_values,
+)
+from app.data_operations.sympy_store import (
+    fingerprint as stored_fingerprint,
+)
+from app.data_operations.sympy_store import (
+    get as get_stored,
+)
+from app.data_operations.sympy_store import (
+    payload as stored_payload,
+)
+from app.data_operations.sympy_store import (
+    rows as stored_rows,
+)
+from app.data_operations.sympy_store import (
+    save as save_stored,
+)
+from app.data_operations.sympy_store import (
+    source_sql as stored_source_sql,
+)
+from app.data_operations.sympy_store import (
     untrusted as stored_untrusted,
 )
+from app.logs.logger import applogger
+from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
+    ResultSeriesSpec,
+    generated_table_name,
+)
+from app.plugin_api.data_operations.parameter_spec import (
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+)
+from app.plugin_api.data_operations.results import TableResult
+from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
+from app.styles.style import create_doc_link, mark_editor_panel, set_doc_link
+from app.utils import report_html
+from app.utils.i18n import _
+from app.widgets.function_editor import FunctionEditor
 
 
 @dataclass(slots=True)
@@ -698,7 +734,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         try:
             path, selected_filter = QFileDialog.getOpenFileName(self, _("Import function"), "", "PySym text (*.pysym.txt *.txt);;All files (*)")
             if not path: return
-            with open(path, "r", encoding="utf-8") as fh: raw = fh.read()
+            with open(path, encoding="utf-8") as fh: raw = fh.read()
             if not raw.startswith("PYSYM/1\n"): raise ValueError("Not a PYSYM/1 text file.")
             self._apply_serialised(json.loads(raw.split("\n", 1)[1]))
             self._check_without_running()  # validate, but deliberately do not auto-save

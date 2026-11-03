@@ -30,16 +30,16 @@ from typing import Any, ClassVar, cast
 
 import numpy as np
 
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
+from app.utils.coercion import column_of, to_numbers
 from app.utils.distribution_fit import (
     CURATED_DISTRIBUTIONS,
     curve_points,
     fits_for_spec,
 )
-from app.utils.coercion import column_of, to_numbers
 
 
 def ecdf_points(

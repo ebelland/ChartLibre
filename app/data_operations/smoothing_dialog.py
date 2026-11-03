@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QWidget,
 )
+
 from app.analysis.smoothing import (
     SMOOTH2D_GAUSSIAN,
     SMOOTH2D_MEDIAN,
@@ -53,21 +54,24 @@ from app.analysis.smoothing import (
     smooth_series,
 )
 from app.data.data_source import parse_roles, row_value
-
-from app.plugin_api.data_operations.results import TableResult
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
+from app.logs.logger import applogger
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
     SeriesJob,
-    DataOperationDialogBase,
     SeriesOutcome,
 )
-from app.logs.logger import applogger
-from app.utils.messages import show_message
-from app.utils.i18n import _
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+)
+from app.plugin_api.data_operations.results import TableResult
 from app.utils.coercion import column_of, to_numbers
-
+from app.utils.i18n import _
+from app.utils.messages import show_message
 
 # ---------------------------------------------------------------------------
 # Method constants and documentation links
@@ -540,7 +544,7 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         self.method_combo.addItems(models_for_dimension(self.dimension_combo.currentText()))
 
         old_index = self.method_combo.findText(current_method)
-        self.method_combo.setCurrentIndex(old_index if old_index >= 0 else 0)
+        self.method_combo.setCurrentIndex(max(old_index, 0))
         self.method_combo.blockSignals(False)
         self._refresh_visibility()
 

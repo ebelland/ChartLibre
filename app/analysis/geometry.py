@@ -98,7 +98,7 @@ class Motion:
         *,
         centre: tuple[float, float, float] = (0.0, 0.0, 0.0),
         translation: tuple[float, float, float] = (0.0, 0.0, 0.0),
-    ) -> "Motion":
+    ) -> Motion:
         return cls(
             np.eye(3) if matrix is None else np.asarray(matrix, dtype=float),
             np.asarray(centre, dtype=float),
@@ -113,7 +113,7 @@ class Motion:
         moved = self.matrix @ points + (self.centre + self.translation)[:, None]
         return (moved[0], moved[1]) if z is None else (moved[0], moved[1], moved[2])
 
-    def then(self, other: "Motion") -> "Motion":
+    def then(self, other: Motion) -> Motion:
         """This motion followed by *other*, as one motion about this centre."""
         matrix = other.matrix @ self.matrix
         # Where this motion sends its own centre, pushed through the other.

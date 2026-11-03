@@ -12,7 +12,6 @@ from collections.abc import Mapping, Sequence
 import numpy as np
 import sympy as sp
 
-
 #: The project's functions by name, for the calls in an expression (set by the caller for one calculation).
 Functions = Mapping[str, Mapping]
 

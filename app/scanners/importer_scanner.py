@@ -37,8 +37,12 @@ def importer_for(path: str | Path) -> dict[str, Any] | None:
 
 
 def load_importer(entry: dict[str, Any]):
-    """An instance of the importer an entry describes."""
-    return FAMILY.load(entry)()
+    """An instance of the importer an entry describes; ImportError when its file does not load."""
+    cls = FAMILY.load(entry)
+    if cls is None:  # its file went, or did not load: the log says why
+        raise ImportError(f"The importer '{entry.get('name', entry.get('path', '?'))}' could not be loaded; "
+                          "the log says why.")
+    return cls()
 
 
 def importer_suffixes() -> list[str]:

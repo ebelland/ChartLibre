@@ -42,8 +42,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.logs.logger import applogger
+from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
 from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.logs.logger import applogger
+from app.plugin_api.charts.render_figure import DEFAULT_MPL_STYLE_KEY
 from app.styles.style import (
     CONFIG_APP_STYLE,
     available_app_styles,
@@ -52,8 +54,6 @@ from app.styles.style import (
     resolve_app_style,
     stdSizeAndlayout,
 )
-from app.data.repo._common import SQL_GUARD_KEY, sql_guard_enabled
-from app.plugin_api.charts.render_figure import DEFAULT_MPL_STYLE_KEY
 from app.utils.config import (
     CLEAR_LOG_KEY,
     DEVELOPER_MODE_KEY,
@@ -64,8 +64,8 @@ from app.utils.config import (
     get_value,
     set_value,
 )
-from app.utils.machine_translation import DEEPL_KEY_SETTING
 from app.utils.i18n import AUTO_LANGUAGE, available_languages, platform_language, tr
+from app.utils.machine_translation import DEEPL_KEY_SETTING
 
 #: Config key and choices for the default chart export format.  The chart
 #: panel's save dialog offers all of them whatever is chosen here; this only
@@ -97,7 +97,7 @@ LANGUAGE_NAMES: dict[str, str] = {
     "en": "English",
     "it": "Italiano",
     "fr": "Français",
-    "es": "Español",    
+    "es": "Español",
     "de": "Deutsch",
     "pt": "Português",
     "zh": "中文",
@@ -416,6 +416,8 @@ class SettingsDialog(PanelDialog):
         self._assistant_options: dict[str, dict[str, tuple[QLineEdit, str]]] = {}
         for entry in ai_providers:
             cls = provider_class(entry)
+            if cls is None:  # its file went, or did not load (logged): no settings to show for it
+                continue
             rows: dict[str, tuple[QLineEdit, str]] = {}
             reader = cls()
             for spec in cls.OPTIONS:
@@ -471,9 +473,10 @@ class SettingsDialog(PanelDialog):
 
         name = self._value(self._assistant_provider)
         entry = next((entry for entry in ai_providers if entry["value"] == name), None)
-        if entry is None:
+        cls = provider_class(entry) if entry is not None else None
+        if cls is None:
             return
-        provider = provider_class(entry)()
+        provider = cls()
         # Its settings as typed, not saved yet: Try is for them too.
         provider.overrides = {key: edit.text().strip() for key, (edit, _value)
                               in self._assistant_options.get(name, {}).items()}

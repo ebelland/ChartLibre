@@ -140,7 +140,7 @@ class OllamaProvider(AIProvider):
         return self.option("address").strip() or DEFAULT_ADDRESS
 
     @property
-    def SENDS_DATA(self) -> bool:
+    def SENDS_DATA(self) -> bool:  # noqa: N802 - named as the constant it stands for
         return (urllib.parse.urlparse(self.address).hostname or "") not in _LOCAL_HOSTS
 
     def unavailable(self) -> str:

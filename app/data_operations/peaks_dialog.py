@@ -26,15 +26,16 @@ from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
+
 from app.analysis import peaks as pk
 from app.analysis.peaks import Peak, PeakSettings, find_peaks_1d, find_peaks_2d
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
-from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
-    DataOperationDialogBase,
 )
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import TableResult
 from app.utils import report_html
 from app.utils.i18n import _
 

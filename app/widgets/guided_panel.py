@@ -27,7 +27,6 @@ from app.utils.i18n import _
 from app.widgets.catalog_search import entry_icon
 from app.widgets.nav_bar import NavPanel
 
-
 #: The common charts, by the chart type and what each shows - the bars, the scatter, the distribution...
 COMMON_CHARTS: tuple[tuple[str, str], ...] = (
     ("Bar Chart", "Bars: a value per category"),
