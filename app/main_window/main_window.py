@@ -2991,7 +2991,7 @@ class MainWindow(QMainWindow):
         if series_id is not None:
             series_desc = self._properties_series_descriptor(int(series_id))
             edited = payload.get("function") or {}
-            stored = self._repo.get_sympy_function(str(edited.get("function_name", "")))
+            stored = sympy_store.get(self._repo, str(edited.get("function_name", "")))
             if series_desc is None or stored is None:
                 return
             self._repo.snapshot_for_undo([*self._repo.DESCRIPTOR_TABLES, sympy_store.TABLE],

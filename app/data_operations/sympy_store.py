@@ -61,11 +61,12 @@ def untrusted(repo: Any) -> list[dict[str, str]]:
 
 
 def rows(repo: Any) -> list[dict[str, str]]:
-    return list(repo.list_sympy_functions())
+    return [function.to_dict() for function in repo.list_sympy_functions()]
 
 
 def get(repo: Any, name: str) -> dict[str, str] | None:
-    return repo.get_sympy_function(name)
+    function = repo.get_sympy_function(name)
+    return function.to_dict() if function is not None else None
 
 
 def save(repo: Any, data: Mapping[str, str]) -> None:

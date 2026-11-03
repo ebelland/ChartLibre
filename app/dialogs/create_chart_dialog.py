@@ -1150,9 +1150,11 @@ class NewPlotTabDialog(ColumnsDialog):
 
     def _sync_function_source(self) -> None:
         """A stored function chosen: its parameters and range shown, from the store; hidden for the rest."""
+        from app.data_operations import sympy_store
+
         name = self._combo_table.currentData()
         source = self._repo.get_data_source(name) if isinstance(name, str) and name else None
-        data = self._repo.get_sympy_function(source.name) if source is not None and source.is_function else None
+        data = sympy_store.get(self._repo, source.name) if source is not None and source.is_function else None
         self._function_data = data
         if data is not None:
             self._function_panel.load(data)

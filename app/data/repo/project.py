@@ -20,6 +20,7 @@ from app.data.repo._common import (
     DatabasePragmaInfo,
     DatabaseReport,
     SavedQuery,
+    StoredFunction,
     _dumps_json,
     _is_ident,
     _loads_json,
@@ -29,6 +30,21 @@ from app.data.repo._common import (
 )
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
+
+#: The columns of __sympy__, in StoredFunction's order (their names are older than the class: kept for the
+#: projects already written).
+_FUNCTION_COLUMNS = ('function_name, source_type, symbols, code_string, "From", "To", Points, Description, '
+                     '"YFrom", "YTo", YPoints, "Values"')
+
+
+def _stored_function(row: Any) -> StoredFunction:
+    return StoredFunction(
+        name=str(row["function_name"]), source_type=str(row["source_type"]), symbols=str(row["symbols"] or ""),
+        code=str(row["code_string"] or ""), x_from=float(row["From"]), x_to=float(row["To"]),
+        x_points=int(row["Points"]), description=str(row["Description"] or ""), y_from=float(row["YFrom"]),
+        y_to=float(row["YTo"]), y_points=int(row["YPoints"]), values=str(row["Values"] or ""),
+    )
+
 
 #: The declared types a column can be changed to, in SQLite's own names.
 CAST_TYPES: tuple[str, ...] = ("REAL", "INTEGER", "TEXT")
@@ -900,48 +916,19 @@ class ProjectMixin(_Host):
                 self._con.execute(statement)
 
     @ensure_connection_wrapper
-    def list_sympy_functions(self) -> list[dict[str, str]]:
+    def list_sympy_functions(self) -> list[StoredFunction]:
+        """Return all stored functions ordered by name."""
         assert self._con is not None
-        rows = self._con.execute(
-            "SELECT function_name, source_type, symbols, code_string, "
-            '"From", "To", Points, Description, "YFrom", "YTo", YPoints, "Values" '
-            "FROM __sympy__ ORDER BY function_name COLLATE NOCASE"
-        ).fetchall()
-        return [
-            {
-                "function_name": str(row["function_name"]),
-                "source_type": str(row["source_type"]),
-                "symbols": str(row["symbols"] or ""),
-                "code_string": str(row["code_string"] or ""),
-                "from": str(row["From"]), "to": str(row["To"]),
-                "points": str(row["Points"]), "description": str(row["Description"] or ""),
-                "y_from": str(row["YFrom"]), "y_to": str(row["YTo"]), "y_points": str(row["YPoints"]),
-                "values": str(row["Values"] or ""),
-            }
-            for row in rows
-        ]
+        rows = self._con.execute(f"SELECT {_FUNCTION_COLUMNS} FROM __sympy__ ORDER BY function_name COLLATE NOCASE")
+        return [_stored_function(row) for row in rows.fetchall()]
 
     @ensure_connection_wrapper
-    def get_sympy_function(self, name: str) -> dict[str, str] | None:
+    def get_sympy_function(self, name: str) -> StoredFunction | None:
+        """Return a stored function by name."""
         assert self._con is not None
-        row = self._con.execute(
-            "SELECT function_name, source_type, symbols, code_string, "
-            '"From", "To", Points, Description, "YFrom", "YTo", YPoints, "Values" '
-            "FROM __sympy__ WHERE function_name = ?",
-            (str(name).strip(),),
-        ).fetchone()
-        if row is None:
-            return None
-        return {
-            "function_name": str(row["function_name"]),
-            "source_type": str(row["source_type"]),
-            "symbols": str(row["symbols"] or ""),
-            "code_string": str(row["code_string"] or ""),
-            "from": str(row["From"]), "to": str(row["To"]),
-            "points": str(row["Points"]), "description": str(row["Description"] or ""),
-            "y_from": str(row["YFrom"]), "y_to": str(row["YTo"]), "y_points": str(row["YPoints"]),
-            "values": str(row["Values"] or ""),
-        }
+        row = self._con.execute(f"SELECT {_FUNCTION_COLUMNS} FROM __sympy__ WHERE function_name = ?",
+                                (str(name).strip(),)).fetchone()
+        return _stored_function(row) if row is not None else None
 
     @ensure_connection_wrapper
     def save_sympy_function(

@@ -324,6 +324,36 @@ DatabaseError = sqlite3.Error
 READ_FAILURES: tuple[type[Exception], ...] = (sqlite3.Error, OSError, ValueError)
 
 @dataclass(slots=True)
+class StoredFunction:
+    """A stored function (a row of __sympy__): its formula, where it is drawn, its parameters' values.
+
+    to_dict() is the form the rest of the application reads (sympy_store's ``data``): the same keys, the
+    numbers as text, so a function's fingerprint - what this computer trusts - is the one it always had.
+    """
+
+    name: str
+    source_type: str
+    symbols: str
+    code: str
+    x_from: float = 0.0
+    x_to: float = 10.0
+    x_points: int = 200
+    description: str = ""
+    y_from: float = 0.0
+    y_to: float = 10.0
+    y_points: int = 200
+    values: str = ""
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "function_name": self.name, "source_type": self.source_type, "symbols": self.symbols,
+            "code_string": self.code, "from": str(self.x_from), "to": str(self.x_to),
+            "points": str(self.x_points), "description": self.description, "y_from": str(self.y_from),
+            "y_to": str(self.y_to), "y_points": str(self.y_points), "values": self.values,
+        }
+
+
+@dataclass(slots=True)
 class SavedQuery:
     """Stored SQL query descriptor."""
 

@@ -312,16 +312,15 @@ class SeriesPropertiesWidget(BaseProperties):
     def _load_function(self, series_desc: SeriesDescriptorLike | None) -> None:
         """The Function card for *series_desc*: shown with its function when it draws one, hidden otherwise."""
         from app.data.repo.function_sql import function_names, parse_function_sql
+        from app.data_operations import sympy_store
 
         sql = str(getattr(series_desc, "sql_query", "") or "") if series_desc is not None else ""
         query = parse_function_sql(sql) if "chartlibre_function" in sql else None
-        stored = self._repo.get_sympy_function(query.name) if query is not None and self._repo is not None else None
+        stored = sympy_store.get(self._repo, query.name) if query is not None and self._repo is not None else None
         self._function_query = query if stored is not None else None
         self._function_section.setVisible(stored is not None)
         if stored is None:
             return
-        from app.data_operations import sympy_store
-
         self._function_editor.load(stored, values=query.parameters, x=query.x, y=query.y)
         trusted = sympy_store.is_trusted(stored)
         self._function_editor.set_read_only(not trusted)

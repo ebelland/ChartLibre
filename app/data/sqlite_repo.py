@@ -48,6 +48,7 @@ from app.data.repo._common import (  # noqa: F401 - re-export
     DatabasePragmaInfo,
     DatabaseReport,
     SavedQuery,
+    StoredFunction,
     _dumps_json,
     _is_ident,
     _loads_json,

@@ -158,10 +158,10 @@ class TablesMixin(_Host):
 
         query_frame = pd.DataFrame(
             {
-                "Table": [query.name for query in queries] + [row["function_name"] for row in stored],
+                "Table": [query.name for query in queries] + [function.name for function in stored],
                 "has_link": [False] * (len(queries) + len(stored)),
-                "Notes": [None] * len(queries) + [row["description"] or None for row in stored],
-                "source_path": [query.sql for query in queries] + [row["code_string"] for row in stored],
+                "Notes": [None] * len(queries) + [function.description or None for function in stored],
+                "source_path": [query.sql for query in queries] + [function.code for function in stored],
                 "kind": ["query"] * len(queries) + ["function"] * len(stored),
             }
         )
@@ -195,7 +195,7 @@ class TablesMixin(_Host):
             from app.data_operations.sympy_store import source_sql  # SymPy: loaded when a function is used
 
             try:
-                return DataSource.function(stored["function_name"], source_sql(stored))
+                return DataSource.function(stored.name, source_sql(stored.to_dict()))
             except (ValueError, SyntaxError):
                 applogger.exception("The stored function '%s' cannot be a data source", clean)
         return None
