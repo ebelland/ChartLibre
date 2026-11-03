@@ -340,6 +340,15 @@ def developer_mode() -> bool:
     return bool(get_value(DEVELOPER_MODE_KEY, False))
 
 
+#: Settings > Advanced: the log file emptied when the application starts, so it holds this session only.
+CLEAR_LOG_KEY = "clear_log_at_start"
+
+
+def clear_log_at_start() -> bool:
+    """True when Settings' "Clear the log at start" is on."""
+    return bool(get_value(CLEAR_LOG_KEY, False))
+
+
 def get_last_database() -> Path | None:
     """Return the last opened database, or None if it is gone."""
     raw = get_value("last_database")

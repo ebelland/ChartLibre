@@ -4,7 +4,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -73,6 +73,7 @@ def get(repo: Any, name: str) -> dict[str, str] | None:
 
 
 def save(repo: Any, data: Mapping[str, str]) -> None:
+    check_calls(repo, data)
     repo.save_sympy_function(
         str(data["function_name"]),
         str(data["source_type"]),
@@ -84,6 +85,18 @@ def save(repo: Any, data: Mapping[str, str]) -> None:
         json.dumps(values, sort_keys=True) if (values := stored_values(data)) else "",
     )
     trust([data])  # made on this computer
+
+
+def check_calls(repo: Any, data: Mapping[str, Any]) -> None:
+    """Refuse a function that would call itself, through the others (library.CallError, saying who calls whom)."""
+    if str(data.get("source_type", "")).lower() != "expression":
+        return
+    from app.functions import library
+
+    name = str(data["function_name"])
+    functions = {**functions_by_name(repo), name: dict(data)}
+    params = parameter_names(str(data.get("symbols", "")))
+    library.sympy_locals(params, code=str(data["code_string"]), functions=functions, chain=(name,))
 
 
 def stored_values(data: Mapping[str, Any]) -> dict[str, float]:
@@ -172,12 +185,45 @@ def source_sql(data: Mapping[str, Any], parameters: Mapping[str, float] | None =
     return function_sql(info["name"], values, x, y)
 
 
+def library_row(repo: Any, name: str, values: Sequence[float], x: GridRange, y: GridRange) -> dict[str, Any] | None:
+    """The library function *name* as the project row its live series draws - copied on use (Q1 of
+    dev/plans/sympy_library_plan.txt), so the project holds everything it draws. None for a code function
+    (Voigt), drawn as a table. Under its name as an identifier (Gaussian_peak); a project's own different
+    function of that name is kept, and the copy takes the next free one (Gaussian_peak_2).
+    """
+    from app.functions import library
+
+    entry = library.get(name)
+    if entry is None or entry.get("kind") != "expression":
+        return None
+    stem = library.identifier(str(entry["name"]))
+    function_name, number = stem, 2
+    while (existing := get(repo, function_name)) is not None and str(existing.get("code_string")) != entry["code"]:
+        function_name, number = f"{stem}_{number}", number + 1
+    return {
+        "function_name": function_name, "source_type": "expression", "symbols": ",".join(entry["params"]),
+        "code_string": str(entry["code"]), "description": f"{entry['name']} (from the library): {entry['description']}",
+        "from": str(x.start), "to": str(x.stop), "points": str(x.points),
+        "y_from": str(y.start), "y_to": str(y.stop), "y_points": str(y.points),
+        "values": {param: float(value) for param, value in zip(entry["params"], values, strict=True)},
+    }
+
+
 def catalog(repo: Any) -> list[dict[str, Any]]:
     return [payload(row) for row in rows(repo)]
 
 
-def make_model(data: Mapping[str, Any]) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
-    """The function as a model; UntrustedFunction, nothing run, when this computer was not told to run it."""
+def functions_by_name(repo: Any) -> dict[str, dict[str, str]]:
+    """The project's functions by name: what an expression's calls to them are read from."""
+    return {str(row["function_name"]): row for row in rows(repo)}
+
+
+def make_model(data: Mapping[str, Any], functions: Mapping[str, Mapping] | None = None,
+               ) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
+    """The function as a model; UntrustedFunction, nothing run, when this computer was not told to run it.
+
+    *functions*: the project's, by name (functions_by_name) - what the expression may call besides the library.
+    """
     name = str(data["name"])
     if not is_trusted(data):
         raise UntrustedFunction(f"The stored function '{name}' is not trusted on this computer.")
@@ -187,12 +233,14 @@ def make_model(data: Mapping[str, Any]) -> Callable[[np.ndarray, np.ndarray], np
     ndim = int(data.get("ndim", 1))
 
     if kind == "expression":
-        x, y, z = sp.symbols("x y z")
+        from app.functions import library
+
+        x, y = sp.symbols("x y")
         p_symbols = [sp.Symbol(param) for param in params]
-        local = {"x": x, "y": y, "z": z, **dict(zip(params, p_symbols))}
+        local = library.sympy_locals(params, ndim, code=code, functions=functions, chain=(name,))
         expr = sp.sympify(code, locals=local)
         args = (x, y, *p_symbols) if ndim == 2 else (x, *p_symbols)
-        numeric = sp.lambdify(args, expr, modules="numpy")
+        numeric = sp.lambdify(args, expr, modules=library.NUMPY_MODULES)
 
         def model(independent: np.ndarray, theta: np.ndarray) -> np.ndarray:
             p = np.asarray(theta, dtype=float)

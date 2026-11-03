@@ -49,7 +49,10 @@ def source_table(query: str) -> str:
     """The table a series' query reads, or "" when it reads none that can be named.
 
     A series' query may carry the chart's own filter after the table (WHERE "Hide" = 0): the table is still the one.
+    A query with its own tables (WITH ...: a stored function's grid, "_i") reads none of the project's.
     """
+    if re.match(r"\s*WITH\b", str(query), re.IGNORECASE) or re.search(r"\(\s*WITH\b", str(query), re.IGNORECASE):
+        return ""
     found = _SOURCE.search(query)
     if found is None:
         return ""

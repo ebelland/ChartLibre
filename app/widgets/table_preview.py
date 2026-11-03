@@ -296,6 +296,14 @@ class TablePreviewPanel(QWidget):
             return None
         return model.column_name(index.column())
 
+    def _query_column_name(self) -> str | None:
+        """The current column of a saved query or a stored function on screen (no LazyTableModel): its header."""
+        model, index = self.view.model(), self.view.currentIndex()
+        if model is None or not index.isValid():
+            return None
+        header = model.headerData(index.column(), Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole)
+        return str(header) if header is not None else None
+
     def _show_context_menu(self, pos: QPoint) -> None:
         """Show the preview's right-click menu."""
         menu = self._build_context_menu(pos)
@@ -337,14 +345,14 @@ class TablePreviewPanel(QWidget):
         if clicked.isValid() and not (selection is not None and selection.isSelected(clicked)):
             self.view.setCurrentIndex(clicked)
 
-        column = self._current_column_name() if lazy_model is not None else None
+        column = self._current_column_name() if lazy_model is not None else self._query_column_name()
         items: list[MenuItem | None] = [
             # No shortcut on the item: Cmd/Ctrl+C is the view's own QShortcut
             # (see __init__), and a second binding would make both ambiguous.
             MenuItem(_("Copy"), callback=self._copy_selection, icon="copy"),
             None,
         ]
-        if column:
+        if column and lazy_model is not None:
             items.append(
                 MenuItem(
                     _("Statistics of '{column}'").format(column=column),
@@ -353,6 +361,7 @@ class TablePreviewPanel(QWidget):
                     tooltip=_("Count, empty cells, distinct values, and min, max, mean and median"),
                 )
             )
+        if column:
             items.append(
                 MenuItem(
                     _("Column Info..."),

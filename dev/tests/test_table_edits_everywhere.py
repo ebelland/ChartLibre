@@ -205,3 +205,12 @@ def test_the_main_window_finds_the_functions_operation_it_opens() -> None:
 
     entry = next(op for op in data_operations if op.get("name") == "SeriesFunctionDialog")
     assert hasattr(import_class_from_file(entry), "edit_stored")
+
+
+def test_a_reload_keeps_the_selected_row_not_the_first(panel: TableListPanel) -> None:
+    """After Column Info's OK (or any refresh) the list stayed selected on its first row, the preview with it."""
+    _select(panel, "big")
+    shown: list[str] = []
+    panel.tableSelected.connect(shown.append)
+    panel.reload()
+    assert panel.selected_sources() == [("big", "query")] and shown == ["big"]

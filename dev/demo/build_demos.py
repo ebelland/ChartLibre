@@ -780,7 +780,7 @@ def _surface_saddle_grid() -> pd.DataFrame:
 
 
 def _surface_bump_fit_result() -> pd.DataFrame:
-    """The Gaussian2D surface function (app.functions.surface_functions),
+    """The Gaussian2D surface function (app.functions.library),
     fitted with the same least-squares engine the Fit dialog's optimizers
     wrap, against the *scattered* bump table - then evaluated on a clean
     grid for a continuous demo surface.
@@ -794,7 +794,9 @@ def _surface_bump_fit_result() -> pd.DataFrame:
     """
     from scipy.optimize import least_squares
 
-    from app.functions.surface_functions import gaussian2d
+    from app.functions.library import function_class
+
+    gaussian2d = function_class("gaussian2d")
 
     scattered = _surface_bump_scattered()
     x = scattered["x"].to_numpy(dtype=float)

@@ -501,3 +501,21 @@ def test_the_stored_functions_bar_and_editor_are_on_the_function_tab_only(qapp, 
                 assert dialog._model_tabs.widget(index).layout().indexOf(dialog._stored_bar) == 0
     finally:
         dialog.close()
+
+
+def test_a_library_function_drawn_is_copied_into_the_project_and_drawn_from_it(repo: SqliteRepo) -> None:
+    from app.functions import library
+
+    gaussian = library.get("gaussian_peak")
+    values = [2.0, 1.0, 0.5, 0.1]
+    x = GridRange(0.0, 2.0, 5)
+    row = sympy_store.library_row(repo, "Gaussian peak", values, x, x)
+    assert row is not None and row["function_name"] == library.identifier(gaussian["name"])
+    sympy_store.save(repo, row)
+    drawn = _rows(repo, sympy_store.source_sql(row))
+    np.testing.assert_allclose(drawn[:, 1], library.numeric(gaussian)(drawn[:, 0], np.array(values)))
+    assert sympy_store.library_row(repo, "Gaussian peak", values, x, x)["function_name"] == row["function_name"]
+
+    sympy_store.save(repo, {**row, "code_string": "x"})  # the project's own, different, function of that name
+    assert sympy_store.library_row(repo, "Gaussian peak", values, x, x)["function_name"].endswith("_2")
+    assert sympy_store.library_row(repo, "Voigt peak", [1.0] * 5, x, x) is None  # code: drawn as a table

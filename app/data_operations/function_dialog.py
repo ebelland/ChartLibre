@@ -50,6 +50,7 @@ from app.data_operations.sympy_store import (
     UntrustedFunction,
     _scientific_import,
     ensure_table,
+    library_row,
     stored_values,
 )
 from app.data_operations.sympy_store import (
@@ -450,17 +451,23 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             parameters = self._editor.declared_parameters()
             x_symbol = sp.Symbol("x")
             parameter_symbols = [sp.Symbol(param) for param in parameters]
-            local_symbols = {"x": x_symbol, "y": sp.Symbol("y"), "z": sp.Symbol("z"), **dict(zip(parameters, parameter_symbols))}
+            from app.data_operations.sympy_store import functions_by_name
+            from app.functions import library
+
             expr_text = self._editor.text.toPlainText().strip()
+            # Calls to the library's functions and the project's, resolved as every expression's are.
+            local_symbols = library.sympy_locals(list(parameters), code=expr_text,
+                                                 functions=functions_by_name(self._repo), chain=(name,))
             expr = sp.sympify(expr_text, locals=local_symbols)
             unknown = sorted(str(symbol) for symbol in expr.free_symbols if str(symbol) not in local_symbols)
             if unknown:
                 raise ValueError(_("{names}: not among the parameters. List it under Parameters - x, y and z "
                                    "are the coordinates.").format(names=", ".join(unknown)))
             if local_symbols["y"] in expr.free_symbols:  # z = f(x, y)
-                return (name, sp.lambdify((x_symbol, local_symbols["y"], *parameter_symbols), expr, modules="numpy"),
+                return (name, sp.lambdify((x_symbol, local_symbols["y"], *parameter_symbols), expr,
+                                          modules=library.NUMPY_MODULES),
                         expr_text, 2)
-            return name, sp.lambdify((x_symbol, *parameter_symbols), expr, modules="numpy"), expr_text, 1
+            return name, sp.lambdify((x_symbol, *parameter_symbols), expr, modules=library.NUMPY_MODULES), expr_text, 1
 
         name, _params = self._validated_code_signature()
         # Restrictive globals: useful numerical/SymPy tools, no imports/builtins.
@@ -737,15 +744,18 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         if self._model_tabs.currentIndex() == 0:
             payload = self._selected_function
             if not payload: return []
-            if self._is_2d_function(payload): return self._compute_surface_result(payload)
-            params = self.parameter_values(); x_values = self._build_range(params)
             names, values = self._function_params()
+            stored, source = self._library_source(payload, values)
+            if self._is_2d_function(payload):
+                return self._compute_surface_result(payload, stored=stored, source_sql=source)
+            params = self.parameter_values(); x_values = self._build_range(params)
             model = self._scanner.make_model(dict(payload)); curve = evaluate_curve(model, x_values, values)
             metadata: dict[str, Any] = {"spacing": str(params.get("spacing", SPACING_LINEAR)), "range": f"{x_values[0]:g} .. {x_values[-1]:g}"}
             if curve.undefined: metadata["undefined"] = curve.undefined
             name = str(payload.get("name", "function"))
             return [FunctionResult(name, name, curve.x, curve.y,
-                                   dict(zip(names, map(float, values))), str(payload.get("expression", "") or ""), metadata)]
+                                   dict(zip(names, map(float, values))), str(payload.get("expression", "") or ""), metadata,
+                                   stored=stored, source_sql=source)]
 
         x_grid, _y_grid = self._ranges()
         x_values = build_range(x_grid.start, x_grid.stop, x_grid.points, x_grid.spacing)
@@ -769,6 +779,15 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         return [FunctionResult(name, name, x_values[finite], y[finite],
                                dict(zip(names, map(float, values))), expression, metadata,
                                stored=stored, source_sql=source)]
+
+    def _library_source(self, payload: Mapping[str, Any], values: Sequence[float]) -> tuple[dict[str, Any] | None, str]:
+        """A library function drawn: its copy into the project and its live series' query; None and "" for a code
+        function (Voigt), drawn as a table."""
+        x_grid, y_grid = self._ranges()
+        stored = library_row(self._repo, str(payload.get("name", "")), [float(v) for v in values], x_grid, y_grid)
+        if stored is None:
+            return None, ""
+        return stored, stored_source_sql(stored, stored_values(stored), x_grid, y_grid)
 
     def _live_source(self) -> tuple[dict[str, Any] | None, str]:
         """The function in the editor as it will be stored, and its live series' query - over its range.

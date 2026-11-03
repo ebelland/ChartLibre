@@ -31,9 +31,13 @@ import numpy as np
 import pytest
 
 from app.analysis.fit import fit_curve
-from app.analysis.interpolation import MODEL_POLYNOMIAL, InterpolationSettings, interpolate
+from app.analysis.interpolation import (
+    MODEL_POLYNOMIAL,
+    InterpolationSettings,
+    interpolate,
+)
 from app.analysis.statistics import describe, group_tests
-from app.functions.functions import linear, quadratic
+from app.functions.library import function_class
 from app.plugin_api.functions.optimizers import LEVENBERG, TRUST_REGION
 from dev.tests import _nist_strd as nist
 from dev.tests._cases import check_all
@@ -144,7 +148,8 @@ def test_the_interpolation_polynomial_reproduces_the_certified_coefficients() ->
     check_all(_the_interpolation_polynomial_reproduces_the_certified_coefficients, _CASES_THE_INTERPOLATION_POLYNOMIAL_REPRODUCES_THE_CERTIFIED_COEFFICIENTS)
 
 
-_CASES_THE_FIT_ENGINE_REPRODUCES_THE_CERTIFIED_LINEAR_FITS = [("Norris", linear), ("Pontius", quadratic)]
+_CASES_THE_FIT_ENGINE_REPRODUCES_THE_CERTIFIED_LINEAR_FITS = [("Norris", function_class("linear")),
+                                                                  ("Pontius", function_class("quadratic"))]
 
 
 def _the_fit_engine_reproduces_the_certified_linear_fits(name: str, function: type) -> None:
