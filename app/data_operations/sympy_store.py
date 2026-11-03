@@ -60,10 +60,6 @@ def untrusted(repo: Any) -> list[dict[str, str]]:
     return [row for row in rows(repo) if not is_trusted(row)]
 
 
-def ensure_table(repo: Any) -> None:
-    repo.create_sympy_table()
-
-
 def rows(repo: Any) -> list[dict[str, str]]:
     return list(repo.list_sympy_functions())
 

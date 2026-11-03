@@ -49,7 +49,6 @@ from app.data.repo.function_sql import GridRange
 from app.data_operations.sympy_store import (
     UntrustedFunction,
     _scientific_import,
-    ensure_table,
     library_row,
     stored_values,
 )
@@ -643,7 +642,6 @@ class SeriesFunctionDialog(DataOperationDialogBase):
             self._stored_combo.addItem(_("{name} (new)").format(name=current) if fresh
                                        else _("Select stored function..."), "")
             try:
-                ensure_table(self._repo)
                 available = stored_rows(self._repo)
             except Exception as exc:  # Do not prevent the Function dialog from opening.
                 available = []

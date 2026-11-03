@@ -709,6 +709,7 @@ class ProjectMixin(_Host):
             """,
             (clean_name, clean_sql, _dumps_json(settings)),
         )
+        self._commit()
         row = self._con.execute(
             "SELECT id FROM __queries__ WHERE name = ?",
             (clean_name,),
@@ -850,6 +851,7 @@ class ProjectMixin(_Host):
             "DELETE FROM __queries__ WHERE name = ?",
             (name,),
         )
+        self._commit()
         return cur.rowcount > 0
 
     # =====================================================================
@@ -857,7 +859,10 @@ class ProjectMixin(_Host):
     # =====================================================================
     @ensure_connection_wrapper
     def create_sympy_table(self) -> None:
-        """Create the internal function store used by Function and Fit."""
+        """Create the internal function store used by Function and Fit, and bring an older one up to date.
+
+        Called once, as the project opens (_create_system_tables), like create_queries_table.
+        """
         assert self._con is not None
         self._con.execute(
             """
@@ -896,7 +901,6 @@ class ProjectMixin(_Host):
 
     @ensure_connection_wrapper
     def list_sympy_functions(self) -> list[dict[str, str]]:
-        self.create_sympy_table()
         assert self._con is not None
         rows = self._con.execute(
             "SELECT function_name, source_type, symbols, code_string, "
@@ -919,7 +923,6 @@ class ProjectMixin(_Host):
 
     @ensure_connection_wrapper
     def get_sympy_function(self, name: str) -> dict[str, str] | None:
-        self.create_sympy_table()
         assert self._con is not None
         row = self._con.execute(
             "SELECT function_name, source_type, symbols, code_string, "
@@ -947,7 +950,6 @@ class ProjectMixin(_Host):
         description: str = "", y_from_value: float = 0.0, y_to_value: float = 10.0, y_points: int = 200,
         values: str = "",
     ) -> None:
-        self.create_sympy_table()
         assert self._con is not None
         self._con.execute(
             """
@@ -976,7 +978,6 @@ class ProjectMixin(_Host):
 
     @ensure_connection_wrapper
     def delete_sympy_function(self, name: str) -> bool:
-        self.create_sympy_table()
         assert self._con is not None
         cursor = self._con.execute(
             "DELETE FROM __sympy__ WHERE function_name = ?", (str(name).strip(),)
