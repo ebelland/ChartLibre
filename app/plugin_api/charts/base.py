@@ -908,7 +908,7 @@ class BaseAxisRenderer:
         not the flat array of objects the gather needs, and a style sheet is
         free to write its cycle either way.
         """
-        numeric = np.asarray(pd.to_numeric(values, errors="coerce"), dtype=float)
+        numeric = np.asarray(to_numbers(values), dtype=float)
         palette = self.palette_colors()
         fallback = fallback_color or palette[0]
 
@@ -948,7 +948,7 @@ class BaseAxisRenderer:
         *fallback_color* instead - as before, only resolved to RGBA so it
         can sit in the same array.
         """
-        numeric = np.asarray(pd.to_numeric(values, errors="coerce"), dtype=float)
+        numeric = np.asarray(to_numbers(values), dtype=float)
         palette = self.palette_colors()
         fallback = to_rgba(fallback_color or palette[0])  # pyright: ignore[reportArgumentType]
         finite = np.isfinite(numeric)

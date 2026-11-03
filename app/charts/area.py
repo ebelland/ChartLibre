@@ -85,8 +85,15 @@ class StackplotAxisRenderer(BaseAxisRenderer):
         },
     }
 
-    def render_axis(self, ax: Any, series: list[SeriesData], options: dict) -> None:
+    def render_axis(
+        self,
+        ax: Any,
+        series: list[SeriesData],
+        *,
+        options: dict | None = None,
+    ) -> None:
         """Stack every visible series over the x of the first one."""
+        options = options or {}
         base_kwargs = self.get_kwargs(options)
         show_legend = bool(base_kwargs.pop("show_legend", True))
 

@@ -26,6 +26,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from app.utils.coercion import to_numbers
 
 INFO_KEY = "columns"
 KINDS: tuple[str, ...] = ("continuous", "ordinal", "nominal")
@@ -101,9 +102,9 @@ def _matches(values: pd.Series, codes: list[str]) -> pd.Series:
     """Where *values* equal one of *codes*: as text, or as numbers (-999 matches -999.0)."""
     text = values.astype(str).str.strip()
     hits = text.isin([code.strip() for code in codes])
-    numbers = pd.to_numeric(pd.Series(codes), errors="coerce").dropna()
+    numbers = to_numbers(pd.Series(codes)).dropna()
     if not numbers.empty:
-        hits |= pd.to_numeric(values, errors="coerce").isin(numbers.to_numpy())
+        hits |= to_numbers(values).isin(numbers.to_numpy())
     return hits & values.notna()
 
 

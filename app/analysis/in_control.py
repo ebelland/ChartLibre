@@ -22,6 +22,7 @@ import pandas as pd
 from app.analysis import control_charts as cc
 from app.analysis.answers import NO, YES
 from app.analysis.change import ROW_ORDER, _order
+from app.utils.coercion import to_numbers
 
 #: Fewer values than this give rough limits: the answer says so.
 ROUGH_LIMITS_BELOW = 20
@@ -54,7 +55,7 @@ def is_in_control(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER) -> C
     """Is *measure* in statistical control along *time* (a column, or the rows' order when empty)?"""
     columns = [measure, time] if time else [measure]
     data = frame[columns].copy()
-    data[measure] = pd.to_numeric(data[measure], errors="coerce")
+    data[measure] = to_numbers(data[measure])
     data = data.dropna().reset_index(drop=True)
     if len(data) < 5:
         raise ValueError(f"{len(data)} values are too few for a control chart: at least 5 are needed.")

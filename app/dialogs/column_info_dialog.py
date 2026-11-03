@@ -44,6 +44,7 @@ from app.styles.style import stdSizeAndlayout
 from app.utils.i18n import _
 from app.utils.messages import show_message
 from app.widgets.chart_jump_bar import jump_arrow
+from app.utils.coercion import to_numbers
 
 #: The modelling types offered, "" first: the values decide.
 MODELLING_TYPES: tuple[tuple[str, str], ...] = (
@@ -288,7 +289,7 @@ class ColumnInfoDialog(ColumnsDialog):
         if len(distinct) > MAX_LABELLED_VALUES:
             show_message(self, "column_info.too_many_values", count=len(distinct), limit=MAX_LABELLED_VALUES)
             return
-        for value in sorted(distinct, key=lambda v: (pd.to_numeric(v, errors="coerce"), v)):
+        for value in sorted(distinct, key=lambda v: (to_numbers(v), v)):
             if value not in listed:
                 self._add_label_row(value, "")
 

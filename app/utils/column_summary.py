@@ -15,11 +15,12 @@ import numpy as np
 import pandas as pd
 
 from app.utils.i18n import _
+from app.utils.coercion import to_numbers
 
 
 def numeric_values(values: Any) -> np.ndarray:
     """The values that are numbers, as floats; text and empty cells dropped."""
-    numbers = pd.to_numeric(pd.Series(values), errors="coerce").to_numpy(dtype=float)
+    numbers = to_numbers(pd.Series(values)).to_numpy(dtype=float)
     return numbers[np.isfinite(numbers)]
 
 

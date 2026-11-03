@@ -124,6 +124,7 @@ from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
 from app.widgets.recent_projects import ProjectsTabs
 from app.widgets.table_list import TableListPanel
 from app.widgets.table_preview import TablePreviewPanel
+from app.utils.coercion import to_numbers
 
 if TYPE_CHECKING:
     from app.data.sqlite_repo import SqliteRepo
@@ -1178,7 +1179,7 @@ class MainWindow(QMainWindow):
 
         frame = self._repo.table_frame(table)
         if "Hide" in frame.columns:
-            frame = frame[pd.to_numeric(frame["Hide"], errors="coerce").fillna(0) == 0]
+            frame = frame[to_numbers(frame["Hide"]).fillna(0) == 0]
         frame = frame.drop(columns=[c for c in frame.columns if c in APPLICATION_COLUMNS])
         return frame, {str(row[1]): str(row[2] or "") for row in self._repo.table_info(table)}
 

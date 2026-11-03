@@ -36,6 +36,7 @@ import pandas as pd
 
 from app.analysis import Stopped
 from app.utils.config import get_constant
+from app.utils.coercion import to_numbers
 
 CONTINUOUS = "continuous"
 NOMINAL = "nominal"
@@ -212,7 +213,7 @@ def _contained(small: Term, big: Term) -> bool:
 
 def coding(factor: Factor, values: pd.Series) -> tuple[float, float]:
     """(centre, half range) of a continuous factor: from its low/high, else from the data."""
-    numbers = pd.to_numeric(values, errors="coerce").dropna()
+    numbers = to_numbers(values).dropna()
     low = factor.low if factor.low is not None else (float(numbers.min()) if len(numbers) else 0.0)
     high = factor.high if factor.high is not None else (float(numbers.max()) if len(numbers) else 1.0)
     half = (high - low) / 2.0
@@ -277,13 +278,13 @@ def _prepare(frame: pd.DataFrame, spec: ModelSpec, response: str, *, categorical
     if categorical:
         data["y"] = frame[response].astype("string")
     else:
-        data["y"] = pd.to_numeric(frame[response], errors="coerce")
+        data["y"] = to_numbers(frame[response])
     codes: dict[str, tuple[float, float]] = {}
     for f in spec.factors:
         if f.kind == CONTINUOUS:
             centre, half = coding(f, frame[f.name])
             codes[f.name] = (centre, half)
-            data[safe[f.name]] = (pd.to_numeric(frame[f.name], errors="coerce") - centre) / half
+            data[safe[f.name]] = (to_numbers(frame[f.name]) - centre) / half
         else:
             data[safe[f.name]] = frame[f.name].astype("string")
     data = data.dropna()
@@ -657,7 +658,7 @@ def _fit_glm(frame: pd.DataFrame, spec: ModelSpec, response: str) -> ResponseFit
 def _levels(values: pd.Series) -> list[str]:
     """A categorical response's levels: numerically when they are numbers, else alphabetically."""
     distinct = list(dict.fromkeys(values.astype("string")))
-    numbers = pd.to_numeric(pd.Series(distinct), errors="coerce")
+    numbers = to_numbers(pd.Series(distinct))
     if numbers.notna().all():
         return [distinct[i] for i in np.argsort(numbers.to_numpy(), kind="stable")]
     return sorted(distinct)

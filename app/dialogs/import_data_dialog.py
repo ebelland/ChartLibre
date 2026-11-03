@@ -874,7 +874,7 @@ class ImportDataDialog(SettingsTableDialog):
         if guess != "TEXT":
             return guess
         present = series.dropna()
-        numbers = pd.to_numeric(present.astype(str).str.strip(), errors="coerce")
+        numbers = to_numbers(present.astype(str).str.strip())
         if len(present) and numbers.notna().all():
             return "INTEGER" if bool((numbers % 1 == 0).all()) else "REAL"
         order, date_format, default = self._date_settings()

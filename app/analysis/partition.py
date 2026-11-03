@@ -23,6 +23,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from app.utils.config import get_constant
+from app.utils.coercion import to_numbers
 
 CONTINUOUS = "continuous"
 NOMINAL = "nominal"
@@ -139,7 +140,7 @@ def _encode(frame: pd.DataFrame, spec: PartitionSpec, target: np.ndarray, train:
             columns.append(text.map(codes).to_numpy(dtype=float))
             orders[name] = levels
         else:
-            columns.append(pd.to_numeric(frame[name], errors="coerce").to_numpy(dtype=float))
+            columns.append(to_numbers(frame[name]).to_numpy(dtype=float))
     return _Encoded(np.column_stack(columns) if columns else np.empty((len(frame), 0)), orders)
 
 
@@ -253,9 +254,9 @@ def partition(frame: pd.DataFrame, spec: PartitionSpec) -> PartitionResult:
     data = frame[used].copy()
     for name in spec.factors:
         if spec.kinds.get(name) != NOMINAL:
-            data[name] = pd.to_numeric(data[name], errors="coerce")
+            data[name] = to_numbers(data[name])
     if not nominal:
-        data[spec.response] = pd.to_numeric(data[spec.response], errors="coerce")
+        data[spec.response] = to_numbers(data[spec.response])
     complete = data.dropna(subset=[spec.response, *spec.factors])
     dropped = len(data) - len(complete)
     if len(complete) < 2 * max(1, spec.min_leaf):

@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 
 from app.styles.style import TitledCard
 from app.utils.i18n import _
+from app.utils.coercion import to_numbers
 
 CONTINUOUS = "continuous"
 ORDINAL = "ordinal"
@@ -106,7 +107,7 @@ def guess_kind(values: pd.Series) -> str:
         return ORDINAL
     if pd.api.types.is_float_dtype(present):
         return CONTINUOUS
-    numbers = pd.to_numeric(present, errors="coerce")
+    numbers = to_numbers(present)
     if numbers.notna().sum() < len(present):
         return NOMINAL
     return ORDINAL if bool(((numbers % 1) == 0).all()) else CONTINUOUS

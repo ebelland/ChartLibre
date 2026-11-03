@@ -19,6 +19,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+from app.utils.coercion import to_numbers
 
 
 @dataclass(slots=True)
@@ -30,7 +31,7 @@ class FieldDerivatives:
 
 
 def _axis_values(column: pd.Series, name: str) -> np.ndarray:
-    values = np.sort(pd.to_numeric(column, errors="coerce").dropna().unique())
+    values = np.sort(to_numbers(column).dropna().unique())
     if values.size < 2:
         raise ValueError(f"The field needs at least two distinct {name} values.")
     return values

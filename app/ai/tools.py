@@ -21,12 +21,12 @@ import time
 from collections.abc import Callable, Mapping
 from typing import Any
 
-import pandas as pd
 
 from app.ai import settings
 from app.data.repo._common import is_read_only_select
 from app.plugin_api.ai.provider import ToolSpec
 from app.plugin_api.data_operations.column_roles import declared_kind, guess_kind
+from app.utils.coercion import to_numbers
 
 #: The longest text a tool gives back; the rest is said to be cut.
 MAX_RESULT = 8000
@@ -159,7 +159,7 @@ class AssistantTools:
             values = frame[column]
             kind = declared_kind(declared.get(str(column))) or guess_kind(values)
             line = f"- {column} ({declared.get(str(column)) or 'no type'}, {kind}): {int(values.isna().sum())} missing"
-            numbers = pd.to_numeric(values, errors="coerce").dropna()
+            numbers = to_numbers(values).dropna()
             if len(numbers) and len(numbers) >= 0.9 * values.notna().sum():
                 line += (f"; min {numbers.min():.6g}, max {numbers.max():.6g}, mean {numbers.mean():.6g}, "
                          f"sd {numbers.std():.6g}")

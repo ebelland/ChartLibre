@@ -27,6 +27,7 @@ from scipy import stats
 
 from app.analysis.answers import ALPHA, NO, YES
 from app.utils.config import get_constant
+from app.utils.coercion import to_numbers
 
 #: Above this many values the O(n²) trend statistics run on an even subsample.
 MAX_PAIRS_N = get_constant("change_max_pairs", 4000)
@@ -91,7 +92,7 @@ def pettitt(values: np.ndarray) -> tuple[int, float]:
 def _order(data: pd.DataFrame, time: str) -> tuple[np.ndarray, bool]:
     """The order as numbers (days for dates) and whether it is a date."""
     values = data[time]
-    numbers = pd.to_numeric(values, errors="coerce")
+    numbers = to_numbers(values)
     if numbers.notna().all():
         return numbers.to_numpy(float), False
     dates = pd.to_datetime(values, errors="coerce", format="mixed")
@@ -104,7 +105,7 @@ def has_changed(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER) -> Cha
     """Has *measure* changed along *time* (a column, or the rows' order when empty)?"""
     columns = [measure, time] if time else [measure]
     data = frame[columns].copy()
-    data[measure] = pd.to_numeric(data[measure], errors="coerce")
+    data[measure] = to_numbers(data[measure])
     data = data.dropna().reset_index(drop=True)
     if len(data) < 8:
         raise ValueError(f"{len(data)} values are too few to see a change: at least 8 are needed.")

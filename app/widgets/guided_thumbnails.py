@@ -16,6 +16,7 @@ from PySide6.QtGui import QPixmap
 
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.guided_plan import COUNT, ChartIdea
+from app.utils.coercion import to_numbers
 
 #: The thumbnail's size, in pixels.
 WIDTH, HEIGHT = 176, 120
@@ -23,7 +24,7 @@ _COLOR = "#2563EB"
 
 
 def _numbers(values: pd.Series) -> np.ndarray:
-    array = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    array = to_numbers(values).to_numpy(dtype=float)
     return array[np.isfinite(array)]
 
 
@@ -61,7 +62,7 @@ def _draw(ax, idea: ChartIdea, frame: pd.DataFrame) -> None:
             heights = frame[x].dropna().astype(str).value_counts()
         else:
             function, of = idea.aggregates.get("Y", ("AVG", x))
-            heights = pd.to_numeric(frame[of], errors="coerce").groupby(frame[x].astype(str)).mean().dropna()
+            heights = to_numbers(frame[of]).groupby(frame[x].astype(str)).mean().dropna()
         if kind == "Pareto Chart":
             heights = heights.sort_values(ascending=False)
         heights = heights.head(12)
@@ -76,8 +77,8 @@ def _draw(ax, idea: ChartIdea, frame: pd.DataFrame) -> None:
         if kind == "Time Series":
             both[x_name] = pd.to_datetime(both[x_name], errors="coerce", format="mixed")
         else:
-            both[x_name] = pd.to_numeric(both[x_name], errors="coerce")
-        both[y_name] = pd.to_numeric(both[y_name], errors="coerce")
+            both[x_name] = to_numbers(both[x_name])
+        both[y_name] = to_numbers(both[y_name])
         both = both.dropna()
         if kind == "Hexbin" and len(both):
             ax.hexbin(both[x_name], both[y_name], gridsize=14, cmap="Blues", mincnt=1)

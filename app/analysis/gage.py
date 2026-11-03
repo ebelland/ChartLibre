@@ -28,6 +28,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from app.utils.coercion import to_numbers
 
 #: AIAG: the interaction is pooled into the error when its p-value is above this.
 POOL_INTERACTION_ABOVE = 0.25
@@ -85,7 +86,7 @@ def gage_rr(frame: pd.DataFrame, measure: str, part: str, operator: str = "",
     """The Gage R&R of *measure*, the parts in *part* and (optionally) the operators in *operator*."""
     columns = [measure, part] + ([operator] if operator else [])
     data = frame[columns].copy()
-    data[measure] = pd.to_numeric(data[measure], errors="coerce")
+    data[measure] = to_numbers(data[measure])
     data = data.dropna()
     data = pd.DataFrame({"y": data[measure].to_numpy(float), "P": data[part].astype(str).to_numpy(),
                          **({"O": data[operator].astype(str).to_numpy()} if operator else {})})

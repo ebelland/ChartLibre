@@ -28,6 +28,7 @@ import pandas as pd
 from scipy import stats
 
 from app.analysis.answers import ALPHA, NO, YES
+from app.utils.coercion import to_numbers
 
 #: A factor at or above this share of the impact, and not ruled out by its p-value,
 #: matters; below it, or with a p-value at or above ALPHA, it has little or no impact.
@@ -49,7 +50,7 @@ class ImpactAnswer:
 
 
 def _is_numeric(values: pd.Series) -> bool:
-    numbers = pd.to_numeric(values, errors="coerce")
+    numbers = to_numbers(values)
     return bool(numbers.notna().all()) and values.nunique() > 2
 
 
@@ -57,7 +58,7 @@ def _encode(data: pd.DataFrame, factors: list[str], numeric: dict[str, bool]) ->
     parts = []
     for name in factors:
         if numeric[name]:
-            parts.append(pd.to_numeric(data[name]).astype(float).rename(name))
+            parts.append(to_numbers(data[name], strict=True).astype(float).rename(name))
         else:
             parts.append(pd.get_dummies(data[name].astype(str), prefix=name, prefix_sep="\x1f", dtype=float))
     return pd.concat(parts, axis=1)
@@ -83,7 +84,7 @@ def _forest_importance(data: pd.DataFrame, response: str, factors: list[str], nu
     """Each factor's permutation importance on held-out rows, and the held-out score."""
     from sklearn.model_selection import KFold, StratifiedKFold
 
-    y = pd.to_numeric(data[response]).to_numpy(float) if numeric_response else data[response].astype(str).to_numpy()
+    y = to_numbers(data[response], strict=True).to_numpy(float) if numeric_response else data[response].astype(str).to_numpy()
     encoded = _encode(data, factors, numeric)
     rng = np.random.default_rng(seed)
     splitter = (KFold(FOLDS, shuffle=True, random_state=seed) if numeric_response
@@ -110,9 +111,9 @@ def _linear_pvalues(data: pd.DataFrame, response: str, factors: list[str],
     from statsmodels.formula.api import ols
 
     safe = {name: f"f{index}" for index, name in enumerate(factors)}
-    frame = pd.DataFrame({"y": pd.to_numeric(data[response]).astype(float)})
+    frame = pd.DataFrame({"y": to_numbers(data[response], strict=True).astype(float)})
     for name, alias in safe.items():
-        frame[alias] = pd.to_numeric(data[name]).astype(float) if numeric[name] else data[name].astype(str)
+        frame[alias] = to_numbers(data[name], strict=True).astype(float) if numeric[name] else data[name].astype(str)
     terms = [alias if numeric[name] else f"C({alias})" for name, alias in safe.items()]
     pvalues, slopes = {}, {}
     try:
@@ -136,7 +137,7 @@ def _univariate_pvalues(data: pd.DataFrame, response: str, factors: list[str],
     for name in factors:
         try:
             if numeric[name]:
-                groups = [pd.to_numeric(part).to_numpy(float) for _level, part in data[name].groupby(y)]
+                groups = [to_numbers(part, strict=True).to_numpy(float) for _level, part in data[name].groupby(y)]
                 found[name] = float(stats.kruskal(*groups).pvalue)
             else:
                 found[name] = float(stats.chi2_contingency(pd.crosstab(data[name].astype(str), y)).pvalue)
@@ -174,7 +175,7 @@ def impact(frame: pd.DataFrame, response: str, factors: list[str], *, seed: int 
         elif numeric[name]:
             directions[name] = "rises" if slopes.get(name, 0.0) > 0 else "falls"
         else:
-            means = pd.to_numeric(data[response]).groupby(data[name].astype(str)).mean()
+            means = to_numbers(data[response], strict=True).groupby(data[name].astype(str)).mean()
             directions[name] = f"highest at {means.idxmax()}"
     ranking = pd.DataFrame({
         "Factor": factors,

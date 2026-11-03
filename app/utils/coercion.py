@@ -26,15 +26,20 @@ _EPOCH = np.datetime64(0, "s")
 _ONE_SECOND = np.timedelta64(1, "s")
 
 
-def to_numbers(values: pd.Series) -> pd.Series:
-    """``pd.to_numeric(values, errors="coerce")``, for a column.
+def to_numbers(values: pd.Series, *, strict: bool = False) -> pd.Series:
+    """``pd.to_numeric(values, errors="coerce")``, for a column; *strict* raises on a value that is not a number.
 
     What pandas returns for a Series is a Series; its annotations promise
     only "a scalar, an array or a Series", so a type checker flagged every
     ``.notna()`` or ``.to_numpy()`` on the result. This says what the call
     already does, in the one place it can be said.
     """
-    return cast(pd.Series, pd.to_numeric(values, errors="coerce"))
+    return cast(pd.Series, pd.to_numeric(values, errors="raise" if strict else "coerce"))
+
+
+def column(frame: pd.DataFrame, name: object) -> pd.Series:
+    """``frame[name]``, said to be the one column it is: pandas' annotations allow a DataFrame too."""
+    return cast(pd.Series, frame[name])
 
 
 def coerce_axis(values: pd.Series) -> tuple[pd.Series, bool]:

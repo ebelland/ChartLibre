@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from app.plugin_api.importers.base import ALL_DATASETS, FileImporter, ImportedData, combine
+from app.utils.coercion import to_numbers
 
 # ----------------------------------------------------------------------
 # JCAMP-DX
@@ -124,8 +125,7 @@ class LabviewImporter(FileImporter):
                 width = max(map(len, table))
                 names = (columns or [])[:width] + [f"Column {k + 1}" for k in range(len(columns or []), width)]
                 frame = pd.DataFrame([row + [""] * (width - len(row)) for row in table], columns=names)
-                segments.append(frame.apply(lambda s: pd.to_numeric(s.str.replace(decimal, ".", regex=False),
-                                                                    errors="coerce")))
+                segments.append(frame.apply(lambda s: to_numbers(s.str.replace(decimal, ".", regex=False))))
             table, columns = [], None
 
         for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
@@ -230,8 +230,8 @@ def _pzfx_tables(path: str) -> dict[str, pd.DataFrame]:
         if columns:
             length = max(len(values) for values in columns.values())
             frame = pd.DataFrame({name: values + [""] * (length - len(values)) for name, values in columns.items()})
-            tables[title] = frame.apply(lambda s: pd.to_numeric(s, errors="coerce")
-                                        if pd.to_numeric(s.replace("", np.nan), errors="coerce").notna().sum()
+            tables[title] = frame.apply(lambda s: to_numbers(s)
+                                        if to_numbers(s.replace("", np.nan)).notna().sum()
                                         == s.replace("", np.nan).notna().sum() else s.replace("", np.nan))
     return tables
 

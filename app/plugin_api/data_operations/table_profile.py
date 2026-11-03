@@ -19,6 +19,7 @@ import pandas as pd
 from app.analysis import catalog
 from app.plugin_api.data_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
 from app.utils.config import get_constant
+from app.utils.coercion import to_numbers
 
 #: A column with at most this many levels groups the rows; an ordinal one with more is a measure.
 MAX_GROUP_LEVELS = get_constant("guided_max_group_levels", 20)
@@ -52,7 +53,7 @@ def _is_time(values: pd.Series, declared: str) -> bool:
     if present.empty or pd.api.types.is_numeric_dtype(present):
         return False
     sample = present.astype(str).head(200)
-    if pd.to_numeric(sample, errors="coerce").notna().mean() > 0.5:
+    if to_numbers(sample).notna().mean() > 0.5:
         return False
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

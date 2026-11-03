@@ -35,6 +35,7 @@ from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
 from app.utils.i18n import _
+from app.utils.coercion import to_numbers
 
 #: The charts OK can draw: (key, check box label, ticked by default).
 #: The charts Partition can draw: key, label, ticked at first, and the Y it needs ("" for any).
@@ -62,7 +63,7 @@ def _tree_kinds(casting: ColumnCasting, frame: pd.DataFrame) -> dict[str, str]:
     kinds = {}
     for name, kind in casting.kinds.items():
         if kind == ORDINAL:
-            numbers = name in frame and pd.to_numeric(frame[name].dropna(), errors="coerce").notna().all()
+            numbers = name in frame and to_numbers(frame[name].dropna()).notna().all()
             kinds[name] = pt.CONTINUOUS if numbers and name not in responses else pt.NOMINAL
         else:
             kinds[name] = pt.NOMINAL if kind in CATEGORICAL else pt.CONTINUOUS

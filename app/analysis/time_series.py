@@ -32,6 +32,7 @@ import numpy as np
 import pandas as pd
 from app.analysis.randomness import all_diagnostics
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 ROW_ORDER = ""
 ARIMA = "arima"
@@ -288,7 +289,7 @@ def rolling_origin(y: np.ndarray, model: str, *, order: tuple[int, int, int], se
 def _order(data: pd.DataFrame, time: str) -> tuple[pd.Series, bool]:
     """The time column as numbers or dates, and whether it is dates."""
     values = data[time]
-    numbers = pd.to_numeric(values, errors="coerce")
+    numbers = to_numbers(values)
     if numbers.notna().all():
         return numbers, False
     dates = pd.to_datetime(values, errors="coerce", format="mixed")
@@ -382,7 +383,7 @@ def _exogenous(data: pd.DataFrame, times: pd.Series, temporal: bool, input: str,
             when = pd.to_datetime(intervention.strip(), errors="coerce", dayfirst=True)
             moments = pd.DatetimeIndex(times)
         else:
-            when = pd.to_numeric(pd.Series([intervention.strip()]), errors="coerce").iloc[0]
+            when = to_numbers(pd.Series([intervention.strip()])).iloc[0]
             moments = pd.Index(times.to_numpy(float))
         if pd.isna(when):
             raise ValueError(f"The intervention '{intervention}' is not a {'date' if temporal else 'number'} "
@@ -417,9 +418,9 @@ def _prepared(frame: pd.DataFrame, measure: str, time: str, input: str, season: 
     if input:
         columns.append(input)
     data = frame[columns].copy()
-    data[measure] = pd.to_numeric(data[measure], errors="coerce")
+    data[measure] = to_numbers(data[measure])
     if input:
-        data[input] = pd.to_numeric(data[input], errors="coerce")
+        data[input] = to_numbers(data[input])
     data = data.dropna().reset_index(drop=True)
     if len(data) < 10:
         raise ValueError(f"{len(data)} values are too few for a time series: at least 10 are needed.")

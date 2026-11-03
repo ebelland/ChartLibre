@@ -39,6 +39,7 @@ from app.data.select_sql import (
     top_level_match,
 )
 from app.logs.logger import applogger
+from app.utils.coercion import to_numbers
 
 if TYPE_CHECKING:
 
@@ -1495,7 +1496,7 @@ class TablesMixin(_Host):
         if ROW_ID not in frame.columns or not x_col or not y_col or frame.columns.duplicated().any():
             return empty
         return pd.DataFrame({
-            ROW_ID: pd.to_numeric(frame[ROW_ID], errors="coerce"),
+            ROW_ID: to_numbers(frame[ROW_ID]),
             "x": frame[x_col],
             "y": frame[y_col],
         }).dropna()

@@ -20,6 +20,7 @@ from collections.abc import Iterable
 from typing import Any
 
 import pandas as pd
+from app.utils.coercion import to_numbers
 
 AUTO, DAY_FIRST, MONTH_FIRST, YEAR_FIRST, FORMAT = "auto", "dayfirst", "monthfirst", "yearfirst", "format"
 DATE_ORDERS: tuple[tuple[str, str], ...] = (
@@ -104,7 +105,7 @@ def looks_like_dates(series: pd.Series, order: str = AUTO, date_format: str = ""
     if not (pd.api.types.is_object_dtype(series) or pd.api.types.is_string_dtype(series)):
         return False
     sample = series.dropna().astype(str).head(200)
-    if sample.empty or pd.to_numeric(sample, errors="coerce").notna().all():
+    if sample.empty or to_numbers(sample).notna().all():
         return False
     shaped = sample.map(lambda v: bool(_DATE_LIKE.match(v) or _MONTH_NAME.search(v)))
     if shaped.mean() < 0.9:

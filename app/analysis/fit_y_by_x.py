@@ -29,6 +29,7 @@ import pandas as pd
 from scipy import stats
 
 from app.analysis import statistics as st
+from app.utils.coercion import to_numbers
 
 BIVARIATE, ONEWAY, CONTINGENCY, LOGISTIC = "Bivariate", "Oneway", "Contingency", "Logistic"
 
@@ -55,9 +56,9 @@ def fit_y_by_x(frame: pd.DataFrame, y: str, x: str, *, y_continuous: bool, x_con
     kind = analysis_for(y_continuous, x_continuous)
     data = frame[[y, x]].copy()
     if y_continuous:
-        data[y] = pd.to_numeric(data[y], errors="coerce")
+        data[y] = to_numbers(data[y])
     if x_continuous:
-        data[x] = pd.to_numeric(data[x], errors="coerce")
+        data[x] = to_numbers(data[x])
     complete = data.dropna()
     left_out = len(data) - len(complete)
     if len(complete) < 3:
