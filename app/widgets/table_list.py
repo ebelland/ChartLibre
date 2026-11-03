@@ -994,7 +994,13 @@ class TableListPanel(QWidget):
             name, kind = sources[0]
             if kind == "query":
                 return ask(self, "query.confirm_delete", name=name)
-            if kind == "function":
+            if kind == "function" and self._repo is not None:
+                charts = self._repo.charts_drawing_function(name)
+                if charts:
+                    listed = "\n".join(f"- {chart}" for chart in charts[:12])
+                    if len(charts) > 12:
+                        listed += "\n" + _("... and {count} more").format(count=len(charts) - 12)
+                    return ask(self, "function.confirm_delete_drawn", name=name, count=len(charts), charts=listed)
                 return ask(self, "function.confirm_delete", name=name)
             return ask(self, "table.confirm_delete", table=name)
 

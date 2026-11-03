@@ -1209,12 +1209,17 @@
     "query.confirm_delete": {
       "level": "question",
       "title": "Delete query",
-      "text": "Delete the saved query '{name}'?\n\nCharts built on it will stop finding their data."
+      "text": "Delete the saved query '{name}'?\n\nCharts built on it keep their data: each holds a copy of its SQL."
     },
     "function.confirm_delete": {
       "level": "question",
       "title": "Delete function",
-      "text": "Delete the stored function '{name}'?\n\nCharts drawn from it will stop finding their data."
+      "text": "Delete the stored function '{name}'?\n\nNo chart draws it."
+    },
+    "function.confirm_delete_drawn": {
+      "level": "question",
+      "title": "Delete function",
+      "text": "Delete the stored function '{name}'?\n\n{count} chart(s) draw it and will be empty:\n{charts}"
     },
     "query.confirm_overwrite": {
       "level": "question",

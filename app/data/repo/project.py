@@ -1031,6 +1031,17 @@ class ProjectMixin(_Host):
         return rewritten
 
     @ensure_connection_wrapper
+    def charts_drawing_function(self, name: str) -> list[str]:
+        """The charts that draw the stored function *name*, as "figure: series": empty once it is deleted."""
+        assert self._con is not None
+        call = "chartlibre_function('" + str(name).strip().replace("'", "''") + "'"
+        rows = self._con.execute(
+            "SELECT f.name AS figure, s.name AS series FROM __series_descriptors__ s "
+            "JOIN __axis_descriptors__ a ON a.id = s.axis_id JOIN __figure_descriptors__ f ON f.id = a.figure_id "
+            "WHERE instr(s.sql_query, ?) > 0 ORDER BY f.name, s.name", (call,)).fetchall()
+        return [f"{row['figure']}: {row['series']}" for row in rows]
+
+    @ensure_connection_wrapper
     def delete_sympy_function(self, name: str) -> bool:
         assert self._con is not None
         cursor = self._con.execute(

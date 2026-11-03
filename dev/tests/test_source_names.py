@@ -63,3 +63,21 @@ def test_a_query_and_a_function_are_renamed_with_their_charts(tmp_path) -> None:
             sympy_store.rename(repo, "Hump", "averages")
     finally:
         repo.close()
+
+
+def test_deleting_a_function_names_the_charts_it_empties(tmp_path) -> None:
+    from app.data.repo.function_sql import GridRange, function_sql
+
+    repo = SqliteRepo(db_path=tmp_path / "delete.dhub")
+    try:
+        repo.save_sympy_function("Line", "expression", "a", "a*x")
+        assert repo.charts_drawing_function("Line") == []
+        figure = repo.create_figure_descriptor(name="Calibration")
+        axis = repo.create_axis_descriptor(figure_id=figure, axis_index=0, chart_type="Scatter Plot", title="",
+                                           x_label="x", y_label="y", options={})
+        sql = f'SELECT "x" AS "x", "y" AS "y" FROM ({function_sql("Line", {"a": 1.0}, GridRange(0, 1, 2))}) AS "_s"'
+        repo.create_series_descriptor(axis_id=axis, series_index=0, name="model", roles={"x": "x", "y": "y"},
+                                      sql_query=sql, style={})
+        assert repo.charts_drawing_function("Line") == ["Calibration: model"]
+    finally:
+        repo.close()
