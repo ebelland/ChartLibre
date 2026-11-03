@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import pandas as pd
 from PySide6.QtWidgets import (
@@ -88,11 +88,11 @@ class RolesOperationDialogBase(DataOperationDialogBase):
 
     #: A table analysis picks its data as roles (ROLES), not as a chart's series.
     DATA_PICKER: ClassVar[str] = "roles"
-    Name: ClassVar[str] = ""
-    Description: ClassVar[str] = ""
-    Category: ClassVar[str] = ""
+    Name: str = ""
+    Description: str = ""
+    Category: str = ""
     #: Its place among the Analysis panel's entries: categories by their lowest Order.
-    Order: ClassVar[int] = 0
+    Order: int = 0
     Icon: ClassVar[str] = ""
 
     ROLES: ClassVar[tuple[ColumnRole, ...]] = ()
@@ -101,7 +101,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
     #: Roles that may not share a column: (role, other role, message); "{columns}" in the message names them.
     DISTINCT_ROLES: ClassVar[tuple[tuple[str, str, str], ...]] = ()
     MODELS: ClassVar[Mapping[str, OperationModel]] = {}
-    PARAMS: ClassVar[tuple[Param, ...]] = ()
+    PARAMS: tuple[Param, ...] = ()
     #: The tab the declared parameters go on: one of their own by default, or
     #: one the operation built (a model's settings).
     PARAMETERS_TAB: ClassVar[str] = "Parameters"
@@ -114,7 +114,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
     PENDING_RESULTS_MESSAGE = "Cast the columns into their roles, then press Preview."
 
     #: The Results pane's headline when the analysis fails.
-    FAILURE_HEADLINE: ClassVar[str] = "Nothing was computed."
+    FAILURE_HEADLINE: str = "Nothing was computed."
 
     #: The chart types the analysis draws panels of: with two or more, the Charts tab has a box for each,
     #: and the report figure leaves out the panels whose box is cleared.
@@ -174,7 +174,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         return report_html.document(_(self.Name), self.report_subtitle(result),
                                     report_html.with_reading_guide(body, box) + what_next)
 
-    def how_to_read(self, result: Any) -> list[str]:
+    def how_to_read(self, result: Any, /) -> list[str]:
         """The "How to read this" box (H-04): the two or three numbers the report hinges on, each in two
         sentences (app.plugin_api.reading_guide); none by default."""
         del result
@@ -206,7 +206,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         else:
             self.reject()
 
-    def format_results(self, result: Any) -> str:
+    def format_results(self, result: Any, /) -> str:
         """The report of *result*, as HTML (report_document unless an analysis does more)."""
         return self.report_document(result)
 
@@ -400,12 +400,12 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         """
         frame = self._repo.query_df(f"SELECT * FROM {self.quoted(table)}", row_id=True)
         if "Hide" in frame.columns:
-            frame = frame[pd.to_numeric(frame["Hide"], errors="coerce").fillna(0) == 0]
+            frame = frame[cast(pd.Series, pd.to_numeric(frame["Hide"], errors="coerce")).fillna(0) == 0]
         frame = frame.reset_index(drop=True)
         self.row_ids = frame[ROW_ID].astype("Int64") if ROW_ID in frame.columns else pd.Series(dtype="Int64")
         frame = frame.drop(columns=[c for c in frame.columns if c in APPLICATION_COLUMNS or c == ROW_ID])
         # Column Info (R-08): missing codes read as empty, value labels in place of their codes.
-        return column_metadata.apply_to_frame(frame, column_metadata.column_info(self._repo, table))
+        return column_metadata.apply_to_frame(cast(pd.DataFrame, frame), column_metadata.column_info(self._repo, table))
 
     def _open_column_info(self, column: str) -> None:
         """Column Info (R-08) from the column list: the description, then the table is read again.
@@ -557,7 +557,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
 
     def busy_widgets(self) -> list[QWidget]:
         """Off while a calculation runs: the buttons, and the inputs it was started with."""
-        return [self.preview_button, self.apply_button, self.left_tabs]
+        return [widget for widget in (self.preview_button, self.apply_button, self.left_tabs) if widget is not None]
 
     def _apply(self, result: Any) -> bool:
         """OK: the preview's drawing goes, and the result is written again for good, with its undo step."""
@@ -625,7 +625,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
                                                  entry_id=self._undo_entry)
             self._undo_entry = entry if entry is not None else self._undo_entry
 
-    def result_table_name(self, key: str) -> str:
+    def analysis_table_name(self, key: str) -> str:
         """A free name for a table the analysis writes: "_penguins_pls_vip".
 
         The leading underscore marks it generated, as the data operations'
@@ -645,7 +645,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         repo = self._repo
         # A table with no columns (Tukey on groups of one value each) is no table: SQLite refuses "CREATE TABLE t ()".
         frames = {key: frame for key, frame in frames.items() if len(frame.columns)}
-        names = {key: self.result_table_name(key) for key in frames}
+        names = {key: self.analysis_table_name(key) for key in frames}
         # *also*: tables the analysis changes besides, in the same undo step (the source's ClusterId).
         self.snapshot_for_undo([*names.values(), *also, *repo.DESCRIPTOR_TABLES])
         for key, frame in frames.items():
@@ -661,7 +661,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
     def grouped_series(self, table: str, x: str, y: str, by: str = "", *, max_groups: int = 20) -> list[tuple]:
         """The rows of *table* as one scatter series, or one per value of *by* (up to *max_groups*)."""
         if by and by in self._frame.columns:
-            levels = list(pd.unique(self._frame[by].dropna()))
+            levels = list(pd.unique(cast(pd.Series, self._frame[by]).dropna()))
             if 1 < len(levels) <= max_groups:
                 series = []
                 for level in sorted(levels, key=str):

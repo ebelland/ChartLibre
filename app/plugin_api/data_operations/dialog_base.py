@@ -29,13 +29,14 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar, Protocol
+from typing import Any, ClassVar, Protocol, cast
 
 import numpy as np
 import pandas as pd
 from PySide6.QtCore import QEvent, QObject, QRegularExpression, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QRegularExpressionValidator, QShowEvent
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QButtonGroup,
     QComboBox,
     QDialog,
@@ -43,6 +44,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QProgressBar,
     QRadioButton,
@@ -843,12 +845,12 @@ class DataOperationDialogBase(QDialog):
         # at the same height inside the white box instead of above it (B-14).
         # The pages' own cards are flattened inside it by the sheets (#operationSettingsCard).
         left = TitledCard(self, _("Settings"), "operationSettingsCard", margins=(6, 6, 6, 6))
-        left.layout().setStretchFactor(left.card, 1)
+        cast(QBoxLayout, left.layout()).setStretchFactor(left.card, 1)
         left.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         left.card.layout().addWidget(settings, 1)
 
         right = TitledCard(self, _("Results"), "operationResultsCard")
-        right.layout().setStretchFactor(right.card, 1)
+        cast(QBoxLayout, right.layout()).setStretchFactor(right.card, 1)
         right.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         right.card.layout().addWidget(self._results_widget, 1)
         right.setMinimumWidth(380)
@@ -1307,7 +1309,7 @@ class DataOperationDialogBase(QDialog):
         stdSizeAndlayout(form)
         form.addRow(_("Result name:"), self._output_table_edit)
         form.addRow("", self._output_warning)
-        charts_tab.layout().insertLayout(0, form)
+        cast(QBoxLayout, charts_tab.layout()).insertLayout(0, form)
 
     def output_stem(self) -> str:
         """The name typed for the results ("_" first), or "" for the automatic one."""
@@ -1648,7 +1650,7 @@ class DataOperationDialogBase(QDialog):
             # white on Windows; the toolboxPage rule in each sheet).
             page.setProperty("toolboxPage", True)
             page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            page.layout().setContentsMargins(*MARGIN_TOOLBOX_PAGE)
+            cast(QLayout, page.layout()).setContentsMargins(*MARGIN_TOOLBOX_PAGE)
             if content is not self.axis_series_panel:
                 # Scrolled when the window is shorter than the page, as the
                 # table analyses' pages: a long parameter form set the whole
@@ -1710,7 +1712,7 @@ class DataOperationDialogBase(QDialog):
         form = self._table_chart_form = QFormLayout()
         stdSizeAndlayout(form)
         form.addRow(_("Chart:"), self.table_source.chart_combo)
-        charts_tab.layout().insertLayout(0, form)
+        cast(QBoxLayout, charts_tab.layout()).insertLayout(0, form)
         form.setRowVisible(self.table_source.chart_combo, self.reads_table())
 
     def _show_source_page(self) -> None:
@@ -2055,7 +2057,7 @@ class DataOperationDialogBase(QDialog):
         x_col, y_col = xy_columns(frame, roles)
         x_values = np.asarray(self.numeric_x(frame[x_col], name), dtype=float).reshape(-1)
         y_values = np.asarray(self.numeric_y(frame[y_col]), dtype=float).reshape(-1)
-        z_values = np.asarray(to_numeric_axis(frame[z_col]), dtype=float).reshape(-1)
+        z_values = np.asarray(to_numeric_axis(cast(pd.Series, frame[z_col])), dtype=float).reshape(-1)
         return x_values, y_values, z_values
 
     def series_grid_xyz(
@@ -2223,7 +2225,7 @@ class DataOperationDialogBase(QDialog):
         """The Results pane's document, the same frame for every operation: its name, *subtitle*, *sections*."""
         return report_html.document(_(self.operation_label), subtitle, *sections)
 
-    def format_results(self, results: Sequence[Any]) -> str:
+    def format_results(self, results: Sequence[Any], /) -> str:
         """The Results pane, framed by results_document: the RESULT_COLUMNS table, else a section per result.
 
         An operation says what it has to say through result_row or result_section; the frame, the empty
@@ -2242,7 +2244,7 @@ class DataOperationDialogBase(QDialog):
         return self.results_document(self.results_subtitle(results),
                                      *(self.result_section(result) for result in results))
 
-    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+    def how_to_read(self, results: Sequence[Any], /) -> list[str]:
         """The "How to read this" box (H-04): the numbers the report hinges on, each in two sentences
         (app.plugin_api.reading_guide); none by default."""
         del results
@@ -2961,8 +2963,8 @@ class DataOperationDialogBase(QDialog):
         )
         # Not pd.to_numeric: a timestamp x would become all-NaN and the
         # caller would see an empty series (see utils.coercion).
-        raw_x = to_numeric_axis(source_df["x"])
-        raw_y = to_numeric_axis(source_df["y"])
+        raw_x = to_numeric_axis(cast(pd.Series, source_df["x"]))
+        raw_y = to_numeric_axis(cast(pd.Series, source_df["y"]))
         raw_rowids = source_df["__rowid__"].to_numpy(dtype=int)
 
         finite_mask = np.isfinite(raw_x) & np.isfinite(raw_y)

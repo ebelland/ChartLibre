@@ -214,8 +214,8 @@ def test_the_result_name_is_on_the_charts_tab_and_starts_with_an_underscore(qapp
 
     roles = FitYByXDialog(repo=repo, table="measures", parent=None)
     try:
-        assert roles.result_table_name("means") == "_measures_means"
+        assert roles.analysis_table_name("means") == "_measures_means"
         roles._output_table_edit.setText("_run1")
-        assert roles.result_table_name("means") == "_run1_means"
+        assert roles.analysis_table_name("means") == "_run1_means"
     finally:
         roles.close()
