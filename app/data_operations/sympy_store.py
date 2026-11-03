@@ -4,6 +4,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import re
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
@@ -82,6 +83,34 @@ def save(repo: Any, data: Mapping[str, str]) -> None:
         json.dumps(values, sort_keys=True) if (values := stored_values(data)) else "",
     )
     trust([data])  # made on this computer
+
+
+def callers(repo: Any, name: str) -> list[str]:
+    """The stored functions whose expression calls *name*."""
+    return sorted(str(row["function_name"]) for row in rows(repo)
+                  if str(row["function_name"]) != name and str(row.get("source_type", "")).lower() == "expression"
+                  and name in _expression_names(str(row.get("code_string", ""))))
+
+
+def rename(repo: Any, old: str, new: str) -> int:
+    """Rename the stored function *old* to *new*, and the series that draw it; returns how many series.
+
+    Refused while another function calls it (its formula would name a function that is gone). A function
+    written as code is a def of its name: the def is renamed with it, and a trusted function stays trusted.
+    """
+    data = get(repo, old)
+    if data is None:
+        raise ValueError(f"There is no stored function '{old}'.")
+    calling = callers(repo, old)
+    if calling:
+        raise ValueError(f"'{old}' is called by {', '.join(calling)}: rename it there first.")
+    code = None
+    if str(data.get("source_type", "")).lower() == "code":
+        code = re.sub(rf"(^\s*def\s+){re.escape(old)}(\s*\()", rf"\g<1>{new}\g<2>", str(data["code_string"]),
+                      count=1, flags=re.M)
+        if is_trusted(data):
+            trust([{**data, "code_string": code}])
+    return repo.rename_sympy_function(old, new, code)
 
 
 def check_calls(repo: Any, data: Mapping[str, Any]) -> None:

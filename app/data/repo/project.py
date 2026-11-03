@@ -875,6 +875,20 @@ class ProjectMixin(_Host):
         return self.next_source_name(str(base or "Query").strip() or "Query")
 
     @ensure_connection_wrapper
+    def rename_query(self, old_name: str, new_name: str) -> None:
+        """Rename a saved query. A series keeps working: what it reads is the query's SQL, copied into it."""
+        assert self._con is not None
+        old, new = str(old_name).strip(), str(new_name).strip()
+        if not new:
+            raise ValueError("A query needs a name.")
+        holder = self.source_kind(new)
+        if holder and new.lower() != old.lower():
+            raise ValueError(f"'{new}' is already the name of a {holder}: choose another name.")
+        if self._con.execute("UPDATE __queries__ SET name = ? WHERE name = ?", (new, old)).rowcount == 0:
+            raise ValueError(f"There is no saved query '{old}'.")
+        self._commit()
+
+    @ensure_connection_wrapper
     def delete_query(self, name: str) -> bool:
         """Delete a saved query by name."""
         assert self._con is not None
@@ -981,6 +995,40 @@ class ProjectMixin(_Host):
              float(y_from_value), float(y_to_value), int(y_points), str(values or "")),
         )
         self._commit()
+
+    @ensure_connection_wrapper
+    def rename_sympy_function(self, old_name: str, new_name: str, code: str | None = None) -> int:
+        """Rename a stored function and the series that draw it; *code* replaces its code (a def renamed with it).
+
+        Returns how many series were rewritten: a series names its function in its query
+        (chartlibre_function('name', ...)), which is how it is drawn at each read.
+        """
+        assert self._con is not None
+        old, new = str(old_name).strip(), str(new_name).strip()
+        if not new:
+            raise ValueError("A function needs a name.")
+        holder = self.source_kind(new)
+        if holder and new.lower() != old.lower():
+            raise ValueError(f"'{new}' is already the name of a {holder}: choose another name.")
+
+        def literal(text: str) -> str:
+            return "'" + text.replace("'", "''") + "'"
+
+        old_call, new_call = f"chartlibre_function({literal(old)}", f"chartlibre_function({literal(new)}"
+        rewritten = 0
+        with self.transaction(immediate=True):
+            cursor = self._con.execute(
+                "UPDATE __sympy__ SET function_name = ?, code_string = COALESCE(?, code_string) "
+                "WHERE function_name = ?", (new, code, old))
+            if cursor.rowcount == 0:
+                raise ValueError(f"There is no stored function '{old}'.")
+            rows = self._con.execute("SELECT id, sql_query FROM __series_descriptors__ WHERE instr(sql_query, ?) > 0",
+                                     (old_call,)).fetchall()
+            for row in rows:
+                self._con.execute("UPDATE __series_descriptors__ SET sql_query = ? WHERE id = ?",
+                                  (str(row["sql_query"]).replace(old_call, new_call), int(row["id"])))
+                rewritten += 1
+        return rewritten
 
     @ensure_connection_wrapper
     def delete_sympy_function(self, name: str) -> bool:

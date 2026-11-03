@@ -185,7 +185,8 @@ def test_a_stored_function_has_edit_which_opens_functions_on_it(
     entry = next(item for item in shown if item is not None and item.text == "Edit function…")
     entry.callback()
     assert edited == ["Line"]
-    assert not any(item is not None and item.text in ("Edit table...", "Rename…") for item in shown)
+    texts = [item.text for item in shown if item is not None]
+    assert "Edit table..." not in texts and "Rename…" in texts  # renamed here, with the charts that draw it
 
     figure_id = int(repo.create_figure_descriptor(name="F"))
     dialog = SeriesFunctionDialog(repo=repo, figure_id=figure_id, parent=None)

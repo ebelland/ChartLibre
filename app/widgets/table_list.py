@@ -580,12 +580,11 @@ class TableListPanel(QWidget):
             items.append(None)
 
         items.extend(self._edit_items(parent, selected_sources, has_query))
-        if not has_function:
-            # A function is renamed in Function, where it is edited.
+        if len(selected_sources) == 1:
             items.append(
                 MenuItem(
                     text=_("Rename…"),
-                    tooltip=_("Rename current table"),
+                    tooltip=_("Rename the selected table, saved query or stored function"),
                     callback=self._rename_table,
                     icon="rename",
                 )
@@ -849,25 +848,36 @@ class TableListPanel(QWidget):
             fn()
 
     def _rename_table(self) -> None:
-        """Rename a table and refresh dependent UI."""
-        table, _unused = self._selected_row_info()
-        new, ok = QInputDialog.getText(self,_("Rename table"),f"New name for table '{table}':",QLineEdit.EchoMode.Normal,table or "",)
-        if not ok:
+        """Rename the selected table, saved query or stored function, and refresh dependent UI."""
+        sources = self.selected_sources()
+        if len(sources) != 1 or self._repo is None:
             return
+        name, kind = sources[0]
+        new, ok = QInputDialog.getText(self, _("Rename"), _("New name for '{name}':").format(name=name),
+                                       QLineEdit.EchoMode.Normal, name)
         new = (new or "").strip()
-        if not new or new == table or  self._repo is None:
+        if not ok or not new or new == name:
             return
-
         try:
-            self._repo.rename_table(table or "", new)
-            self.reload()
-            self.changed.emit()
-            parent = self.window()
-            if parent is not None:
-                parent._table_panel.select_table(new) # type: ignore
+            if kind == "query":
+                self._repo.rename_query(name, new)
+            elif kind == "function":
+                from app.data_operations import sympy_store
 
-        except Exception as exc:  # noqa: BLE001
+                sympy_store.rename(self._repo, name, new)
+            else:
+                self._repo.rename_table(name, new)
+        except ValueError as exc:
+            QMessageBox.warning(self, _("Rename"), str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the list stays usable
             applogger.exception("Rename failed: %s", exc)
+            return
+        self.reload()
+        self.changed.emit()
+        parent = self.window()
+        if parent is not None and hasattr(parent, "_table_panel"):
+            parent._table_panel.select_table(new)  # type: ignore[attr-defined]
 
     def _export_table(self) -> None:
         """Save the selected table, or saved query's result, as CSV or Excel - the file type chosen."""
