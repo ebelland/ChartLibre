@@ -714,6 +714,9 @@ class ProjectMixin(_Host):
         if not clean_sql:
             applogger.error("Query SQL is required")
         ensure_read_only_select(clean_sql)
+        holder = self.source_kind(clean_name)
+        if holder in ("table", "function"):
+            raise ValueError(f"'{clean_name}' is already the name of a {holder}: choose another name.")
 
         self._con.execute(
             """
@@ -834,29 +837,42 @@ class ProjectMixin(_Host):
         return SavedQuery(id=None, name=clean_name, sql=clean_sql, settings={})
 
     @ensure_connection_wrapper
+    def source_kind(self, name: str) -> str:
+        """What holds *name* among the project's sources: "table", "query", "function", or "" for none.
+
+        Compared case-insensitively, as SQLite resolves a table name: the three share one namespace - the
+        Tables list, New Chart and a series' source all find a source by its name alone.
+        """
+        assert self._con is not None
+        clean = str(name or "").strip().lower()
+        if not clean:
+            return ""
+        if any(table.strip().lower() == clean for table in self.list_table_names()):
+            return "table"
+        for kind, table, column in (("query", "__queries__", "name"), ("function", "__sympy__", "function_name")):
+            if self._con.execute(f"SELECT 1 FROM {table} WHERE lower({column}) = ?", (clean,)).fetchone():
+                return kind
+        return ""
+
+    @ensure_connection_wrapper
+    def next_source_name(self, base: str, separator: str = " ") -> str:
+        """Return the first "<base><separator><n>" no table, saved query or stored function has."""
+        stem = str(base or "").strip() or "Source"
+        index = 1
+        while self.source_kind(f"{stem}{separator}{index}"):
+            index += 1
+        return f"{stem}{separator}{index}"
+
+    @ensure_connection_wrapper
     def next_query_name(self, base: str = "Query") -> str:
         """Return a free name for a new saved query, as ``"<base> <n>"``.
 
-        Free of *both* saved queries and tables.  A query named after a table
-        can never be selected - ``list_data_sources`` resolves the name against
-        the schema first, so the table always wins - which is why the builder
-        refuses such a name on Save; suggesting one here would be offering a
-        name that is about to be rejected.
-
-        Compared case-insensitively: SQLite resolves a table name whatever its
-        case, so "Query 1" would still be shadowed by a table called "query 1",
-        and two saved queries differing only in case are a trap for whoever has
-        to tell them apart in the list.
+        Free of tables, saved queries and stored functions (next_source_name). A query named after a table
+        can never be selected - ``list_data_sources`` resolves the name against the schema first, so the
+        table always wins - which is why the builder refuses such a name on Save; suggesting one here would
+        be offering a name that is about to be rejected.
         """
-        stem = str(base or "Query").strip() or "Query"
-
-        taken = {saved.name.strip().lower() for saved in self.list_queries()}
-        taken.update(name.strip().lower() for name in self.list_table_names())
-
-        index = 1
-        while f"{stem} {index}".lower() in taken:
-            index += 1
-        return f"{stem} {index}"
+        return self.next_source_name(str(base or "Query").strip() or "Query")
 
     @ensure_connection_wrapper
     def delete_query(self, name: str) -> bool:
@@ -938,6 +954,9 @@ class ProjectMixin(_Host):
         values: str = "",
     ) -> None:
         assert self._con is not None
+        holder = self.source_kind(function_name)
+        if holder in ("table", "query"):
+            raise ValueError(f"'{function_name.strip()}' is already the name of a {holder}: choose another name.")
         self._con.execute(
             """
             INSERT INTO __sympy__

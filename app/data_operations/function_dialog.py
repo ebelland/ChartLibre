@@ -297,12 +297,8 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         return root
 
     def _free_function_name(self) -> str:
-        """Function1, Function2...: the first not stored yet."""
-        taken = {row["function_name"] for row in stored_rows(self._repo)}
-        number = 1
-        while f"Function{number}" in taken:
-            number += 1
-        return f"Function{number}"
+        """Function1, Function2...: the first no table, query or function has."""
+        return self._repo.next_source_name("Function", separator="")
 
     def _start_function(self, name: str) -> None:
         """*name* as a new, empty function: what the editor edits, stored at Save, Preview or OK."""
