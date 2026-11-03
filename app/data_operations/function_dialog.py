@@ -480,7 +480,7 @@ class SeriesFunctionDialog(DataOperationDialogBase):
     def _ranges(self) -> tuple[GridRange, GridRange]:
         """Where to evaluate, x and y: the editor's Range on Function, the Charts tab's for the library."""
         if self._model_tabs.currentIndex() == 1:
-            return self._editor.x_range(), self._editor.y.grid()
+            return self._editor.x_range(), self._editor.y_row.grid()
         params = self.parameter_values()
         spacing = str(params.get("spacing", SPACING_LINEAR))
         return (GridRange(float(params.get("start", 0.0)), float(params.get("stop", 10.0)),

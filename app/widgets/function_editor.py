@@ -224,23 +224,23 @@ class FunctionEditor(QFrame):
         self._symbols_note.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.text = _GrowingText(self)
         self._text_label = QLabel(_("Expression:"), self)
-        self.x = RangeRow(self)
-        self.y = RangeRow(self)
+        self.x_row = RangeRow(self)
+        self.y_row = RangeRow(self)
         form.addRow(_("Kind:"), self.kind)
         form.addRow(_("Description:"), self.description)
         form.addRow(_("Parameters:"), self.symbols)
         form.addRow("", self._symbols_note)
         form.addRow(self._text_label, self.text)
-        form.addRow(_("x range:"), self.x)
-        form.addRow(_("y range:"), self.y)
+        form.addRow(_("x range:"), self.x_row)
+        form.addRow(_("y range:"), self.y_row)
         self._form = form
 
         self.kind.currentIndexChanged.connect(self._formula_changed)
         self.symbols.textChanged.connect(self._formula_changed)
         self.text.textChanged.connect(self._formula_changed)
         self.description.textChanged.connect(self.changed)
-        self.x.changed.connect(self.changed)
-        self.y.changed.connect(self.changed)
+        self.x_row.changed.connect(self.changed)
+        self.y_row.changed.connect(self.changed)
         self._formula = True
         self.set_formula_visible(formula)
         self._formula_changed()
@@ -290,9 +290,9 @@ class FunctionEditor(QFrame):
             for widget in widgets:
                 widget.blockSignals(False)
         self.text._fit()
-        self.x.set_grid(x or GridRange(float(function.get("from", 0.0)), float(function.get("to", 10.0)),
+        self.x_row.set_grid(x or GridRange(float(function.get("from", 0.0)), float(function.get("to", 10.0)),
                                        int(float(function.get("points", 200)))))
-        self.y.set_grid(y or GridRange(float(function.get("y_from", 0.0)), float(function.get("y_to", 10.0)),
+        self.y_row.set_grid(y or GridRange(float(function.get("y_from", 0.0)), float(function.get("y_to", 10.0)),
                                        int(float(function.get("y_points", 200)))))
         self._formula_changed()
 
@@ -367,14 +367,14 @@ class FunctionEditor(QFrame):
         return {name: values.get(name, stored.get(name, 1.0)) for name in names}
 
     def x_range(self) -> GridRange:
-        return self.x.grid()
+        return self.x_row.grid()
 
     def y_range(self) -> GridRange | None:
-        return self.y.grid() if self.ndim() == 2 else None
+        return self.y_row.grid() if self.ndim() == 2 else None
 
     def function_data(self) -> dict[str, Any]:
         """The function as sympy_store.save takes it: the formula, its values and its range as defaults."""
-        x, y = self.x.grid(), self.y.grid()
+        x, y = self.x_row.grid(), self.y_row.grid()
         values = self.parameters()
         return {
             "function_name": self._name, "source_type": self.source_type(),
@@ -416,5 +416,5 @@ class FunctionEditor(QFrame):
             self._symbols_note.setProperty("problem", bool(problem))
             self._symbols_note.style().unpolish(self._symbols_note)
             self._symbols_note.style().polish(self._symbols_note)
-        self._form.setRowVisible(self.y, self.ndim() == 2)
+        self._form.setRowVisible(self.y_row, self.ndim() == 2)
         self.changed.emit()

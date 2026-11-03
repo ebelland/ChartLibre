@@ -297,8 +297,8 @@ class BaseAxisRenderer:
     #: ones too.
     MaxSeries: int | None = None
 
-    def render_axis(self, ax, series: list[SeriesData]) -> None:
-        """Draw *series* onto the Matplotlib axes *ax*.
+    def render_axis(self, ax: Any, series: list[SeriesData], options: dict) -> None:
+        """Draw *series* onto the Matplotlib axes *ax*, with the axis' *options*.
 
         Called once per render with the series already loaded and ordered.
         Implementations own the axes completely: labels, limits and scales are

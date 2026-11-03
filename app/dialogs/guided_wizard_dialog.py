@@ -193,11 +193,11 @@ class GuidedWizardDialog(PanelDialog):
         layout.addWidget(self.heading)
         row = QHBoxLayout()
         self._result_label = QLabel(_("Which one is the result?"), page)
-        self.result = QComboBox(page)
-        self.result.setToolTip(_("The column the others might explain or predict."))
-        self.result.currentIndexChanged.connect(lambda _index: self._show_ideas())
+        self.result_combo = QComboBox(page)
+        self.result_combo.setToolTip(_("The column the others might explain or predict."))
+        self.result_combo.currentIndexChanged.connect(lambda _index: self._show_ideas())
         row.addWidget(self._result_label)
-        row.addWidget(self.result)
+        row.addWidget(self.result_combo)
         row.addStretch(1)
         layout.addLayout(row)
 
@@ -214,18 +214,18 @@ class GuidedWizardDialog(PanelDialog):
         return page
 
     def plan(self) -> guided_plan.Plan:
-        return guided_plan.plan(self._profile, self.chosen(), self.result.currentData())
+        return guided_plan.plan(self._profile, self.chosen(), self.result_combo.currentData())
 
     def _fill_results(self) -> None:
         results = guided_plan.plan(self._profile, self.chosen()).results
-        blocked = self.result.blockSignals(True)
-        self.result.clear()
+        blocked = self.result_combo.blockSignals(True)
+        self.result_combo.clear()
         for name in results:
-            self.result.addItem(name, name)
+            self.result_combo.addItem(name, name)
         if results:
-            self.result.setCurrentIndex(len(results) - 1)
-        self.result.blockSignals(blocked)
-        self.result.setVisible(bool(results))
+            self.result_combo.setCurrentIndex(len(results) - 1)
+        self.result_combo.blockSignals(blocked)
+        self.result_combo.setVisible(bool(results))
         self._result_label.setVisible(bool(results))
 
     def _show_ideas(self) -> None:

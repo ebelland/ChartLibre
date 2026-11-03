@@ -130,7 +130,7 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
             assert "measures" in offered and "_Fit_Result" not in offered  # an operation's table: not offered
             assert dialog._select_renderer_by_name("Scatter Plot")
             panel = dialog._function_panel
-            assert dialog._editor_form_layout.isRowVisible(panel) and not panel._form.isRowVisible(panel.y)
+            assert dialog._editor_form_layout.isRowVisible(panel) and not panel._form.isRowVisible(panel.y_row)
             assert not panel._form.isRowVisible(panel.text)  # the formula is the project's: not edited here
             assert panel.parameters() == {"a": 1.0, "b": 0.0}  # the stored values, to start from
             # x and y place themselves: no roles, groups or separate axes to choose.
@@ -139,7 +139,7 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
             assert not dialog._axis_form_layout.isRowVisible(dialog._combo_axes_by)
             assert dialog._current_role_mapping()["x"] == "x" and dialog._current_role_mapping()["y"] == "y"
             panel.symbols.setText(f"a={a}, b=0")
-            panel.x.stop.setValue(stop)
+            panel.x_row.stop.setValue(stop)
             dialog._on_accept()
             result = dialog.chart_result
             assert result is not None
@@ -160,7 +160,7 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
     dialog = NewPlotTabDialog(repo, current_table="Plane")
     try:
         panel = dialog._function_panel
-        assert panel._form.isRowVisible(panel.y) and panel.y.grid() == GridRange(1.0, 2.0, 2)
+        assert panel._form.isRowVisible(panel.y_row) and panel.y_row.grid() == GridRange(1.0, 2.0, 2)
         assert dialog._columns_from_table() == ["x", "y", "z"]
         assert dialog._select_renderer_by_name("Surface Plot")
         assert dialog._current_role_mapping().get("z") == "z"
@@ -369,8 +369,8 @@ def test_function_draws_an_expression_of_x_and_y_as_a_live_surface(qapp, repo: S
         dialog._editor.symbols.setText("a=1")
         dialog._editor.text.setPlainText("x*a + y")
         _values(dialog, a=2.0)
-        dialog._editor.x.set_grid(GridRange(0.0, 1.0, 2))
-        dialog._editor.y.set_grid(GridRange(10.0, 20.0, 2))
+        dialog._editor.x_row.set_grid(GridRange(0.0, 1.0, 2))
+        dialog._editor.y_row.set_grid(GridRange(10.0, 20.0, 2))
         result = dialog.compute_results()[0]
         assert result.z is not None and sorted(result.z.tolist()) == [10.0, 12.0, 20.0, 22.0]
         assert dialog.destination_combo.currentData() == dialog.DEST_NEW_FIGURE  # not on the curve's axis
@@ -405,8 +405,8 @@ def test_a_surface_goes_where_a_surface_can_and_as_the_chart_asked(qapp, repo: S
         assert offered() == [dialog.DEST_NEW_AXIS, dialog.DEST_NEW_FIGURE]
         assert dialog.destination_combo.currentData() == dialog.DEST_NEW_FIGURE
 
-        dialog._editor.x.set_grid(GridRange(0.0, 10.0, 10))
-        dialog._editor.y.set_grid(GridRange(0.0, 10.0, 10))
+        dialog._editor.x_row.set_grid(GridRange(0.0, 10.0, 10))
+        dialog._editor.y_row.set_grid(GridRange(0.0, 10.0, 10))
         dialog.chart_form.set_values({"chart_type": "Surface Plot"})
         assert dialog.preview()
         first = repo.load_figure_descriptor(int(dialog._result_figure_id)).axes[0]
@@ -426,8 +426,8 @@ def test_a_surface_goes_where_a_surface_can_and_as_the_chart_asked(qapp, repo: S
         asked: list[str] = []
         answers = [QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Ok]
         monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: (asked.append(a[2]), answers.pop(0))[1])
-        dialog._editor.x.set_grid(GridRange(0.0, 10.0, 400))
-        dialog._editor.y.set_grid(GridRange(0.0, 10.0, 400))
+        dialog._editor.x_row.set_grid(GridRange(0.0, 10.0, 400))
+        dialog._editor.y_row.set_grid(GridRange(0.0, 10.0, 400))
         assert not dialog.preview() and len(asked) == 1 and "160,000" in asked[0]
         assert dialog.preview() and len(asked) == 2
         assert dialog.preview() and len(asked) == 2
@@ -441,8 +441,8 @@ def test_function_computes_with_the_declared_parameters_and_names_an_undeclared_
         dialog._model_tabs.setCurrentIndex(1)
         dialog._editor.symbols.setText("a=1")
         dialog._editor.text.setPlainText("x*a + y")
-        dialog._editor.x.set_grid(GridRange(0.0, 1.0, 2))
-        dialog._editor.y.set_grid(GridRange(0.0, 1.0, 2))
+        dialog._editor.x_row.set_grid(GridRange(0.0, 1.0, 2))
+        dialog._editor.y_row.set_grid(GridRange(0.0, 1.0, 2))
         result = dialog.compute_results()[0]
         assert result.params == {"a": 1.0} and list(dialog._editor.parameters()) == ["a"]  # the rows: the declaration
 

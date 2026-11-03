@@ -29,7 +29,7 @@ def test_the_editor_shows_a_function_and_gives_it_back(qapp) -> None:
         assert editor.symbols.text() == "a=2, b=-3"  # the parameters with their values, in one field
         assert editor.parameters() == {"a": 2.0, "b": -3.0}  # the chart's own, the stored ones for the rest
         assert editor.x_range() == GridRange(0, 1, 3) and editor.y_range() is None and editor.ndim() == 1
-        assert not editor._form.isRowVisible(editor.y)
+        assert not editor._form.isRowVisible(editor.y_row)
         data = editor.function_data()
         assert (data["function_name"], data["symbols"], data["code_string"], data["values"]) == \
             ("Line", "a,b", "a*x + b", {"a": 2.0, "b": -3.0})
@@ -43,7 +43,7 @@ def test_the_editor_shows_a_function_and_gives_it_back(qapp) -> None:
         editor.symbols.setText("a=2")
         assert editor.problem() == "b: not among the parameters - add it with its value (b=1)."
         editor.text.setPlainText("a*sin(x) + y")  # sympy's sin is not a parameter; y makes it a surface
-        assert editor.problem() == "" and editor.ndim() == 2 and editor._form.isRowVisible(editor.y)
+        assert editor.problem() == "" and editor.ndim() == 2 and editor._form.isRowVisible(editor.y_row)
         assert not editor._symbols_note.property("problem")
 
         editor.set_formula_visible(False)  # New Chart: values and range only
@@ -105,7 +105,7 @@ def test_series_properties_edit_a_function_series(qapp, tmp_path) -> None:
         # This series' values and range; the project's formula.
         editor.text.setPlainText("a*x**2 + b")
         editor.symbols.setText("a=3, b=1")
-        editor.x.stop.setValue(2.0)
+        editor.x_row.stop.setValue(2.0)
         series._apply_function()
         spin(0.2)
         mine, other = (window._properties_series_descriptor(i) for i in sorted(series._series_map))

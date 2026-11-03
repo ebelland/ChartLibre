@@ -94,7 +94,7 @@ def test_the_wizard_offers_what_the_picked_columns_allow(qapp) -> None:
         wizard.choose(["peso", "linea"])
         assert wizard.preview.model().columnCount() == 2 and wizard._next.isEnabled()
         wizard._go_next()
-        assert not wizard.result.isVisibleTo(wizard)  # one measure: nothing to ask
+        assert not wizard.result_combo.isVisibleTo(wizard)  # one measure: nothing to ask
         charts = [card.property("chart_type") for card in wizard.findChildren(QWidget, "wizardChart")
                   if card.isVisibleTo(wizard)]
         assert charts == ["Box Plot", "Violin Plot", "Bar Chart"]
