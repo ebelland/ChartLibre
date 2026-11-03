@@ -28,7 +28,7 @@ from app.analysis import NUMERICAL_FAILURES
 from app.analysis.diagnostics import mosaic
 from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 class MosaicAxisRenderer(BaseAxisRenderer):
@@ -103,7 +103,7 @@ class MosaicAxisRenderer(BaseAxisRenderer):
         sd = self.single_series(series, reason="a mosaic divides one square")
         if sd is None:
             return
-        weight = to_numbers(sd.df["weight"]).to_numpy(dtype=float) if "weight" in sd.df.columns else None
+        weight = to_numbers(column_of(sd.df, "weight")).to_numpy(dtype=float) if "weight" in sd.df.columns else None
         try:
             result = mosaic(
                 np.asarray(sd.df["x"], dtype=object), np.asarray(sd.df["y"], dtype=object), weight,

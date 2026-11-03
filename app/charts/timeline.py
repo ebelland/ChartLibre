@@ -21,7 +21,7 @@ from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import coerce_axis, to_numbers
+from app.utils.coercion import coerce_axis, column_of, to_numbers
 
 
 class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
@@ -132,7 +132,7 @@ class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
             )
 
             if "y" in sd.df.columns:
-                y = to_numbers(sd.df["y"]).to_numpy(dtype=float)
+                y = to_numbers(column_of(sd.df, "y")).to_numpy(dtype=float)
             else:
                 # The alternating heights of the matplotlib example: successive
                 # events land on different levels, so neighbouring labels do

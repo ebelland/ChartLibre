@@ -67,7 +67,7 @@ from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
 )
 from app.utils.i18n import _
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 # ----------------------------------------------------------------------
 # Methods
@@ -285,7 +285,7 @@ class SeriesSpectralDialog(DataOperationDialogBase):
         if y_column not in frame.columns:
             raise ValueError(f"series '{name}' has no y role")
 
-        y_values = to_numbers(frame[y_column]).to_numpy(dtype=float)
+        y_values = to_numbers(column_of(frame, y_column)).to_numpy(dtype=float)
 
         x_column = str(roles.get("x", "x") or "x")
         if x_column in frame.columns:

@@ -66,7 +66,7 @@ from app.plugin_api.data_operations.dialog_base import (
 from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.utils.i18n import _
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 # ---------------------------------------------------------------------------
@@ -493,9 +493,9 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
         z_values = None
         values = None
         if z_col:
-            z_values = to_numbers(frame[z_col]).to_numpy(dtype=float)
+            z_values = to_numbers(column_of(frame, z_col)).to_numpy(dtype=float)
         if values_col:
-            values = to_numbers(frame[values_col]).to_numpy(dtype=float)
+            values = to_numbers(column_of(frame, values_col)).to_numpy(dtype=float)
 
         x_values = np.asarray(x_values, dtype=float).reshape(-1)
         y_values = np.asarray(y_values, dtype=float).reshape(-1)

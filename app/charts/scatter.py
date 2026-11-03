@@ -17,7 +17,7 @@ from matplotlib.transforms import Affine2D
 
 from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData, in_legend
 from app.logs.logger import applogger
-from app.utils.coercion import coerce_axis, to_numbers
+from app.utils.coercion import coerce_axis, column_of, to_numbers
 
 
 def _reorder_error(error: Any, order: np.ndarray) -> Any:
@@ -293,7 +293,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                 continue
 
             x, x_is_temporal = self._x_values(sd.df['x'])
-            y = to_numbers(sd.df['y'])
+            y = to_numbers(column_of(sd.df, 'y'))
             if x is None or y is None:
                 applogger.warning(f"Series { sd.name} skipped: required numeric 'x' and 'y' data not found.")
                 continue
@@ -310,7 +310,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             x_values = x[mask].to_numpy(dtype=float)
             y_values = y[mask].to_numpy(dtype=float)
             color_values, color_is_discrete = self._point_colors(sd, style, series_index, mask)
-            size_values = to_numbers(sd.df['size'])[mask].to_numpy(dtype=float) if 'size' in sd.df.columns else None
+            size_values = to_numbers(column_of(sd.df, 'size'))[mask].to_numpy(dtype=float) if 'size' in sd.df.columns else None
 
             # Optional sort by X ascending.
             order = np.arange(x_values.size)
@@ -593,7 +593,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
             if not self.ensure_required_roles(sd.df):
                 continue
             x = self._x_values(sd.df["x"])[0].to_numpy(dtype=float)
-            y = to_numbers(sd.df["y"]).to_numpy(dtype=float)
+            y = to_numbers(column_of(sd.df, "y")).to_numpy(dtype=float)
             mask = np.isfinite(x) & np.isfinite(y)
             if mask.sum() >= 3 and self._draw_overlays(
                 ax, x[mask], y[mask], {**options, **(sd.style or {})}

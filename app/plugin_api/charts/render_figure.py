@@ -34,7 +34,7 @@ from app.plugin_api.charts import axis_options, broken_axis, panel_labels, secon
 from app.plugin_api.charts.base import SeriesData
 from app.plugin_api.charts.text_lines import display_text, multialignment
 from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 from app.utils.config import MPLSTYLES_DIR, get_constant, get_value
 from app.utils.mpl_latex import filter_latex_style_text
 
@@ -806,7 +806,7 @@ def _build_series_data_list(
         roles = series_desc.roles if isinstance(series_desc.roles, dict) else {}
         ids = None
         if ROW_ID in df.columns:
-            ids = to_numbers(df[ROW_ID]).to_numpy()
+            ids = to_numbers(column_of(df, ROW_ID)).to_numpy()
             df = df.drop_column(ROW_ID)
         output.append(
             SeriesData(
@@ -829,7 +829,7 @@ def _draw_band(ax: Any, series: SeriesData) -> None:
         applogger.warning("Band %r needs x, y and y2 columns; not drawn.", series.name)
         return
     x, low, high = (
-        to_numbers(frame[column]).to_numpy(dtype=float) for column in columns
+        to_numbers(column_of(frame, column)).to_numpy(dtype=float) for column in columns
     )
     keep = np.isfinite(x) & np.isfinite(low) & np.isfinite(high)
     order = np.argsort(x[keep], kind="stable")

@@ -19,7 +19,7 @@ import numpy as np
 
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: Options this renderer consumes itself, stripped before the rest reaches
 #: ``ax.hexbin`` - which rejects anything it does not recognise.
@@ -172,13 +172,13 @@ class HexbinAxisRenderer(BaseAxisRenderer):
             )
             return
 
-        x = to_numbers(sd.df["x"]).to_numpy(dtype=float)
-        y = to_numbers(sd.df["y"]).to_numpy(dtype=float)
+        x = to_numbers(column_of(sd.df, "x")).to_numpy(dtype=float)
+        y = to_numbers(column_of(sd.df, "y")).to_numpy(dtype=float)
         finite = np.isfinite(x) & np.isfinite(y)
 
         value = None
         if "value" in sd.df.columns:
-            value = to_numbers(sd.df["value"]).to_numpy(dtype=float)
+            value = to_numbers(column_of(sd.df, "value")).to_numpy(dtype=float)
             finite &= np.isfinite(value)
             value = value[finite]
 

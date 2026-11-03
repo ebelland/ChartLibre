@@ -16,7 +16,7 @@ import numpy as np
 
 from app.logs.logger import applogger
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: Options this renderer consumes itself, stripped before the rest reaches ``ax.specgram``.
 _RENDERER_ONLY_KWARGS: tuple[str, ...] = ("sampling_rate", "colorbar", "colorbar_label")
@@ -111,8 +111,8 @@ class SpectrogramAxisRenderer(BaseAxisRenderer):
             applogger.warning("Series '%s' skipped: Spectrogram needs a y role.", sd.name)
             return
 
-        values = to_numbers(sd.df["y"]).to_numpy(dtype=float)
-        times = to_numbers(sd.df["x"]).to_numpy(dtype=float) if "x" in sd.df.columns else None
+        values = to_numbers(column_of(sd.df, "y")).to_numpy(dtype=float)
+        times = to_numbers(column_of(sd.df, "x")).to_numpy(dtype=float) if "x" in sd.df.columns else None
         finite = np.isfinite(values)
         if times is not None:
             finite &= np.isfinite(times)

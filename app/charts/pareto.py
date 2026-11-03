@@ -24,7 +24,7 @@ from app.charts.bar import BarAxisRenderer
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: Label used for the bar that absorbs everything past ``max_categories``.
 OTHER_LABEL: str = "Other"
@@ -135,7 +135,7 @@ class ParetoAxisRenderer(BarAxisRenderer, BaseAxisRenderer):
                 if "X" in frame.columns
                 else list(range(len(frame)))
             )
-            values = to_numbers(frame["Y"]).to_numpy(dtype=float)
+            values = to_numbers(column_of(frame, "Y")).to_numpy(dtype=float)
             for category, value in zip(categories, values):
                 if np.isfinite(value):
                     totals[category] = totals.get(category, 0.0) + float(value)

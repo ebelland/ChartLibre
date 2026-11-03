@@ -65,7 +65,7 @@ from app.utils.dialog_state import (
     dialog_entries,
 )
 from app.utils.i18n import _
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: Columns the application keeps on every table for itself: never offered.
 APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
@@ -401,7 +401,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         """
         frame = self._repo.query_df(f"SELECT * FROM {self.quoted(table)}", row_id=True)
         if "Hide" in frame.columns:
-            frame = frame[to_numbers(frame["Hide"]).fillna(0) == 0]
+            frame = frame[to_numbers(column_of(frame, "Hide")).fillna(0) == 0]
         frame = frame.reset_index(drop=True)
         self.row_ids = frame[ROW_ID].astype("Int64") if ROW_ID in frame.columns else pd.Series(dtype="Int64")
         frame = frame.drop(columns=[c for c in frame.columns if c in APPLICATION_COLUMNS or c == ROW_ID])

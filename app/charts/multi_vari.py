@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 class MultiVariAxisRenderer(BaseAxisRenderer):
@@ -76,7 +76,7 @@ class MultiVariAxisRenderer(BaseAxisRenderer):
         sd = self.single_series(series, reason="one study at a time")
         if sd is None:
             return
-        frame = pd.DataFrame({"y": to_numbers(sd.df["y"]), "x": sd.df["x"].astype(str)})
+        frame = pd.DataFrame({"y": to_numbers(column_of(sd.df, "y")), "x": sd.df["x"].astype(str)})
         frame["group"] = sd.df["group"].astype(str) if "group" in sd.df.columns else ""
         frame = frame.dropna(subset=["y"])
         if frame.empty:

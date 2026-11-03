@@ -20,7 +20,7 @@ import pandas as pd
 from scipy import stats
 
 from app.analysis.answers import ALPHA, NO, YES
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: Shapiro-Wilk's p-value is accurate up to this many values.
 SHAPIRO_MAX = 5000
@@ -47,7 +47,7 @@ class NormalityAnswer:
 
 def is_normal(frame: pd.DataFrame, measure: str) -> NormalityAnswer:
     """Can *measure* be taken as normally distributed?"""
-    values = to_numbers(frame[measure]).dropna().to_numpy(float)
+    values = to_numbers(column_of(frame, measure)).dropna().to_numpy(float)
     n = values.size
     if n < 3:
         raise ValueError(f"{n} values are too few to judge a distribution: at least 3 are needed.")

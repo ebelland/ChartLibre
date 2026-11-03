@@ -30,13 +30,14 @@ import math
 import warnings
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
 
 from app.analysis import Stopped
 from app.utils.config import get_constant
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 CONTINUOUS = "continuous"
 NOMINAL = "nominal"
@@ -278,13 +279,13 @@ def _prepare(frame: pd.DataFrame, spec: ModelSpec, response: str, *, categorical
     if categorical:
         data["y"] = frame[response].astype("string")
     else:
-        data["y"] = to_numbers(frame[response])
+        data["y"] = to_numbers(column_of(frame, response))
     codes: dict[str, tuple[float, float]] = {}
     for f in spec.factors:
         if f.kind == CONTINUOUS:
-            centre, half = coding(f, frame[f.name])
+            centre, half = coding(f, column_of(frame, f.name))
             codes[f.name] = (centre, half)
-            data[safe[f.name]] = (to_numbers(frame[f.name]) - centre) / half
+            data[safe[f.name]] = (to_numbers(column_of(frame, f.name)) - centre) / half
         else:
             data[safe[f.name]] = frame[f.name].astype("string")
     data = data.dropna()
@@ -352,7 +353,7 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str, *,
     estimates["VIF"] = _vif(model)
     _check(should_stop)
     diagnostics = _diagnostics(model)
-    anova, summary = _whole_model(model, data["y"])
+    anova, summary = _whole_model(model, column_of(data, "y"))
     lack = _lack_of_fit(model, data, [prep.safe[f.name] for f in spec.factors])
     _check(should_stop)
     try:
@@ -412,7 +413,7 @@ def _robust_refit(model, prep: _Prepared, terms: list[Term], spec: ModelSpec, fr
         note = (f"Standard errors clustered on {spec.cluster} ({len(set(codes))} clusters)"
                 + (f"; {dropped} row(s) without a cluster left out" if dropped else ""))
     else:
-        refit = smf.ols(prep.formula(terms), data=prep.data).fit(cov_type=kind)
+        refit = smf.ols(prep.formula(terms), data=prep.data).fit(cov_type=cast(Any, kind))
         note = f"Standard errors robust to unequal variances ({kind})"
     return refit, note + "; the effect tests and the analysis of variance are the classical ones."
 
@@ -487,13 +488,14 @@ def _fit_penalized(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respo
     Shrunk estimates have no standard errors or p-values: the effects are
     ranked by the size of their standardized estimates instead.
     """
-    import patsy
+    from patsy.highlevel import dmatrices
     from sklearn.linear_model import ElasticNetCV, LassoCV, RidgeCV
     from sklearn.model_selection import KFold
 
     prep = _prepare(frame, spec, response, categorical=False)
     terms = [tuple(t) for t in spec.terms]
-    y_frame, x_frame = patsy.dmatrices(prep.formula(terms), prep.data, return_type="dataframe")
+    # return_type="dataframe": pandas frames, whatever patsy's annotations say.
+    y_frame, x_frame = cast(Any, dmatrices(prep.formula(terms), prep.data, return_type="dataframe"))
     y = y_frame.iloc[:, 0].to_numpy(float)
     design = x_frame.drop(columns=["Intercept"], errors="ignore")
     if design.shape[1] == 0 or len(y) < CV_FOLDS + 2:
@@ -504,11 +506,11 @@ def _fit_penalized(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respo
     standard = (x - mean) / scale
     folds = KFold(CV_FOLDS, shuffle=True, random_state=0)
     if spec.penalty == "ridge":
-        model = RidgeCV(alphas=np.logspace(-4, 4, 81), cv=folds).fit(standard, y)
+        model = cast(Any, RidgeCV(alphas=np.logspace(-4, 4, 81), cv=folds)).fit(standard, y)
         alpha, l1_ratio = float(model.alpha_), 0.0
     elif spec.penalty == "elastic":
-        model = ElasticNetCV(l1_ratio=[0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 1.0], cv=folds, max_iter=20000,
-                             random_state=0).fit(standard, y)
+        model = cast(Any, ElasticNetCV)(l1_ratio=[0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 1.0], cv=folds, max_iter=20000,
+                                        random_state=0).fit(standard, y)
         alpha, l1_ratio = float(model.alpha_), float(model.l1_ratio_)
     else:
         model = LassoCV(cv=folds, max_iter=20000, random_state=0).fit(standard, y)
@@ -670,18 +672,18 @@ def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respon
     Each term's test is a likelihood ratio: the model refitted without it.
     Predictions give the probability of the first level.
     """
-    import patsy
     import statsmodels.api as sm
+    from patsy.highlevel import dmatrix
     from statsmodels.miscmodels.ordinal_model import OrderedModel
 
     prep = _prepare(frame, spec, response, categorical=True)
-    levels = _levels(prep.data["y"])
+    levels = _levels(column_of(prep.data, "y"))
     if len(levels) < 2:
         raise ValueError(f"{response}: a logistic model needs at least two levels")
     terms = [tuple(t) for t in spec.terms]
     ordinal = spec.personality == "ordinal"
-    codes = prep.data["y"].map({level: i for i, level in enumerate(levels)}).astype(int)
-    design = patsy.dmatrix(prep.formula(terms).split("~", 1)[1], prep.data, return_type="dataframe")
+    codes = column_of(prep.data, "y").map(dict(zip(levels, range(len(levels))))).astype(int)
+    design = cast(Any, dmatrix(prep.formula(terms).split("~", 1)[1], prep.data, return_type="dataframe"))
     slices = design.design_info.term_name_slices
 
     unstable: list[bool] = []
@@ -832,7 +834,7 @@ def _labels(columns: list[str], terms: list[Term], piece, slices) -> dict[str, s
 
 def _probability_profile(model, design: pd.DataFrame, prep: _Prepared, factors, terms) -> pd.DataFrame:
     """A binary logistic model's probability of the first level along each continuous factor."""
-    import patsy
+    from patsy.build import build_design_matrices
 
     used = {name for term in terms for name in term}
     held = {prep.safe[f.name]: (0.0 if f.kind == CONTINUOUS else prep.data[prep.safe[f.name]].mode().iloc[0])
@@ -844,7 +846,7 @@ def _probability_profile(model, design: pd.DataFrame, prep: _Prepared, factors, 
             continue
         new = pd.DataFrame({column: [value] * len(grid) for column, value in held.items()})
         new[prep.safe[f.name]] = grid
-        exog = patsy.build_design_matrices([design.design_info], new, return_type="dataframe")[0]
+        exog = build_design_matrices([design.design_info], new, return_type="dataframe")[0]
         p = np.asarray(model.predict(exog))
         centre, half = prep.codes[f.name]
         pieces.append(pd.DataFrame({"Factor": f.name, "Coded": grid, "Value": centre + grid * half,
@@ -889,9 +891,9 @@ def _profile(model, data: pd.DataFrame, factors: Sequence[Factor], safe: dict[st
 
 def _patsy_name(piece_text: str) -> str:
     """The name patsy gives the term *piece_text* (it rewrites ``I(x**2)`` as ``I(x ** 2)``)."""
-    import patsy
+    from patsy.desc import ModelDesc
 
-    return patsy.ModelDesc.from_formula("y ~ " + piece_text).rhs_termlist[-1].name()
+    return ModelDesc.from_formula("y ~ " + piece_text).rhs_termlist[-1].name()
 
 
 def _term_slices(model) -> dict[str, slice]:
@@ -907,13 +909,13 @@ def _term_slices(model) -> dict[str, slice]:
     info = (getattr(inner.data, "design_info", None) or getattr(inner.data, "model_spec", None)
             or getattr(inner, "design_info", None))
     if info is None:
-        import patsy
+        from patsy.highlevel import dmatrix
 
         formula = str(getattr(inner, "formula", "") or "")
         frame = getattr(inner.data, "frame", None)
         if "~" not in formula or frame is None:
             return {}
-        info = patsy.dmatrix(formula.split("~", 1)[1], frame, return_type="dataframe").design_info
+        info = cast(Any, dmatrix(formula.split("~", 1)[1], frame, return_type="dataframe")).design_info
     return dict(info.term_name_slices)
 
 

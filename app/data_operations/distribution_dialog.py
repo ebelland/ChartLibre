@@ -23,7 +23,7 @@ from app.plugin_api.data_operations.results import OperationResult
 from app.utils import report_html
 from app.utils.distribution_fit import DistributionFit, fit_distributions
 from app.utils.i18n import _
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: The distributions offered, scipy names: the fitted one is drawn and reported.
 FITTED = (("Normal", "norm"), ("Lognormal", "lognorm"), ("Weibull", "weibull_min"), ("Gamma", "gamma"),
@@ -175,7 +175,7 @@ class DistributionDialog(DataOperationDialogBase):
         """One series' "How to read this" lines, in its own section (the base's box stays empty)."""
         report = result.report
         moments, column = report.moments, result.source_name
-        tested = report.normality[to_numbers(report.normality["pvalue"]).notna()]
+        tested = report.normality[to_numbers(column_of(report.normality, "pvalue")).notna()]
         return [
             reading_guide.interval(reading_guide.lookup(moments, "Lower 95% Mean", by="Moment"),
                                    reading_guide.lookup(moments, "Upper 95% Mean", by="Moment"),

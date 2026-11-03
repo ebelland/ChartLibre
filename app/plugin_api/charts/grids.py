@@ -20,7 +20,7 @@ from app.data.series_frame import SeriesFrame
 
 from app.logs.logger import applogger
 from app.utils.config import get_constant
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: The largest grid this will pivot, in cells.
 #:
@@ -57,9 +57,9 @@ def pivot_to_grid(
     """
     frame = pd.DataFrame(
         {
-            "x": to_numbers(df[x_role]),
-            "y": to_numbers(df[y_role]),
-            "z": to_numbers(df[z_role]),
+            "x": to_numbers(column_of(df, x_role)),
+            "y": to_numbers(column_of(df, y_role)),
+            "z": to_numbers(column_of(df, z_role)),
         }
     ).dropna()
     if frame.empty:
@@ -127,8 +127,8 @@ def finite_xyz(
     a triangulation cannot place a point it has no coordinate for and a
     non-finite z makes every contour level it participates in meaningless.
     """
-    x = to_numbers(df[x_role]).to_numpy(dtype=float)
-    y = to_numbers(df[y_role]).to_numpy(dtype=float)
-    z = to_numbers(df[z_role]).to_numpy(dtype=float)
+    x = to_numbers(column_of(df, x_role)).to_numpy(dtype=float)
+    y = to_numbers(column_of(df, y_role)).to_numpy(dtype=float)
+    z = to_numbers(column_of(df, z_role)).to_numpy(dtype=float)
     finite = np.isfinite(x) & np.isfinite(y) & np.isfinite(z)
     return x[finite], y[finite], z[finite]

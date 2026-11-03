@@ -21,7 +21,7 @@ import pandas as pd
 
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 _ADJUST_TEXT_WARNED = False
 
@@ -140,8 +140,8 @@ class TextAxisRenderer(BaseAxisRenderer):
         layer_index: int,
     ) -> list[Any]:
         df = sd.df
-        xs = to_numbers(df["x"]).to_numpy(dtype=float)
-        ys = to_numbers(df["y"]).to_numpy(dtype=float)
+        xs = to_numbers(column_of(df, "x")).to_numpy(dtype=float)
+        ys = to_numbers(column_of(df, "y")).to_numpy(dtype=float)
         labels = df["text"].astype(str).tolist()
 
         fallback_color = str(self.opt("color", merged_options) or "") or self.series_color(

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 import warnings
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -37,8 +37,9 @@ def to_numbers(values: pd.Series, *, strict: bool = False) -> pd.Series:
     return cast(pd.Series, pd.to_numeric(values, errors="raise" if strict else "coerce"))
 
 
-def column(frame: pd.DataFrame, name: object) -> pd.Series:
-    """``frame[name]``, said to be the one column it is: pandas' annotations allow a DataFrame too."""
+def column_of(frame: Any, name: Any) -> pd.Series:
+    """``frame[name]``, said to be the one column it is: pandas' annotations allow a DataFrame too (and a
+    frame that came out of a filter or a ``dropna`` is itself annotated as "DataFrame or Series")."""
     return cast(pd.Series, frame[name])
 
 

@@ -53,7 +53,7 @@ from app.plugin_api.charts.base import (
 )
 from app.plugin_api.charts.grids import finite_xyz, pivot_to_grid
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 def _surface_kwargs(renderer: BaseAxisRenderer, options: dict[str, Any]) -> dict[str, Any]:
@@ -470,12 +470,12 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
         finite = np.isfinite(
             np.column_stack(
                 [
-                    to_numbers(frame[name]).to_numpy(dtype=float)
+                    to_numbers(column_of(frame, name)).to_numpy(dtype=float)
                     for name in ("x", "y", "z")
                 ]
             )
         ).all(axis=1)
-        values = to_numbers(frame[role]).to_numpy(dtype=float)
+        values = to_numbers(column_of(frame, role)).to_numpy(dtype=float)
         values = values[finite]
         if values.size != expected or not np.isfinite(values).all():
             applogger.info(

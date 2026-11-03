@@ -20,7 +20,7 @@ from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 class BoxAxisRenderer(BaseAxisRenderer):
@@ -230,7 +230,7 @@ class BoxAxisRenderer(BaseAxisRenderer):
             if not bool(style.get("visible", True)) or not self.ensure_required_roles(sd.df):
                 continue
 
-            value = to_numbers(sd.df["value"])
+            value = to_numbers(column_of(sd.df, "value"))
             if value is None:
                 applogger.warning(
                     "Series '%s' skipped: required numeric 'value' data not found.",

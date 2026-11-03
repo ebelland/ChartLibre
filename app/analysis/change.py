@@ -27,7 +27,7 @@ from scipy import stats
 
 from app.analysis.answers import ALPHA, NO, YES
 from app.utils.config import get_constant
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: Above this many values the O(n²) trend statistics run on an even subsample.
 MAX_PAIRS_N = get_constant("change_max_pairs", 4000)
@@ -105,7 +105,7 @@ def has_changed(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER) -> Cha
     """Has *measure* changed along *time* (a column, or the rows' order when empty)?"""
     columns = [measure, time] if time else [measure]
     data = frame[columns].copy()
-    data[measure] = to_numbers(data[measure])
+    data[measure] = to_numbers(column_of(data, measure))
     data = data.dropna().reset_index(drop=True)
     if len(data) < 8:
         raise ValueError(f"{len(data)} values are too few to see a change: at least 8 are needed.")

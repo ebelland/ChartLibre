@@ -29,7 +29,7 @@ from app.plugin_api.charts.base import (
     merge,
 )
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 # Where the percentage labels are placed, as a fraction of the radius.
 _DEFAULT_PCT_DISTANCE: float = 0.6
@@ -243,7 +243,7 @@ class PieAxisRenderer(BaseAxisRenderer):
         Non-finite and negative values are dropped: a negative wedge has no
         meaning in a pie, and Matplotlib would draw it as if it were positive.
         """
-        values = to_numbers(sd.df["value"])
+        values = to_numbers(column_of(sd.df, "value"))
         keep = values.notna() & (values > 0)
 
         dropped = int((~keep).sum())

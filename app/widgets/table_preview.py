@@ -38,7 +38,7 @@ from app.styles.style import (
     create_menu,
     create_menu_item,
 )
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 from app.utils.config import get_constant
 from app.utils.i18n import _
 from app.utils.messages import show_message
@@ -587,7 +587,7 @@ class TablePreviewPanel(QWidget):
                     columns=names,
                 )
                 for name in names:
-                    converted = to_numbers(frame[name])
+                    converted = to_numbers(column_of(frame, name))
                     if converted.notna().sum() == frame[name].replace("", None).notna().sum():
                         frame[name] = converted
             elif isinstance(model, DataFrameTableModel):

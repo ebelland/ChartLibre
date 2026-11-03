@@ -18,7 +18,7 @@ import numpy as np
 
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: Options this renderer consumes itself, stripped before the rest reaches
 #: ``ax.eventplot`` - which rejects anything it does not recognise.
@@ -133,7 +133,7 @@ class EventPlotAxisRenderer(BaseAxisRenderer):
                 )
                 continue
 
-            positions = to_numbers(sd.df["x"]).to_numpy(dtype=float)
+            positions = to_numbers(column_of(sd.df, "x")).to_numpy(dtype=float)
             positions = positions[np.isfinite(positions)]
             if positions.size == 0:
                 applogger.info("Series '%s' skipped: no finite events.", sd.name)

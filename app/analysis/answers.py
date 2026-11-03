@@ -22,7 +22,7 @@ from scipy import stats
 
 from app.analysis.statistics import cohens_d, tukey_hsd, welch_anova
 from app.utils.config import get_constant
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: Below this p-value a difference is called shown.
 ALPHA = get_constant("quick_answer_alpha", 0.05)
@@ -75,7 +75,7 @@ def differences(frame: pd.DataFrame, measure: str, group: str) -> Answer:
     """Is *measure* different between the groups of *group*?"""
     data = frame[[measure, group]].dropna()
     data = data.assign(**{group: data[group].astype(str)})
-    numbers = to_numbers(data[measure])
+    numbers = to_numbers(column_of(data, measure))
     numeric = bool(numbers.notna().all()) and data[measure].nunique() > 2
     if data[group].nunique() < 2:
         raise ValueError(f"{group} has fewer than two groups.")

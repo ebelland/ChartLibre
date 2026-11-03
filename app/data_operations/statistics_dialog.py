@@ -53,7 +53,7 @@ from app.utils.distribution_fit import (
     fit_distributions,
 )
 from app.utils.i18n import _
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 _SERIES_ROLE = Qt.ItemDataRole.UserRole
 
@@ -468,7 +468,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         if y_column is None:
             return None
 
-        y = to_numbers(frame[y_column]).to_numpy(dtype=float)
+        y = to_numbers(column_of(frame, y_column)).to_numpy(dtype=float)
         finite = np.isfinite(y)
         if not np.any(finite):
             return None
@@ -517,7 +517,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         ]
         for column in preferred:
             if column and column in frame.columns:
-                values = to_numbers(frame[column])
+                values = to_numbers(column_of(frame, column))
                 if values.notna().any():
                     return column
 
@@ -532,7 +532,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         for column in frame.columns:
             if str(column).strip().lower() in excluded:
                 continue
-            values = to_numbers(frame[column])
+            values = to_numbers(column_of(frame, column))
             count = int(values.notna().sum())
             if count > best_count:
                 best_column = str(column)
@@ -931,7 +931,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         return f"{int(round(number)):,}" if number == round(number) else f"{number:,.4g}"
 
     def _contingency_html(self, frame: pd.DataFrame, columns: Mapping[str, str], labels: Mapping[str, str]) -> str:
-        weights = to_numbers(frame[columns["weight"]]).to_numpy(dtype=float) if "weight" in columns else None
+        weights = to_numbers(column_of(frame, columns["weight"])).to_numpy(dtype=float) if "weight" in columns else None
         table = st.contingency_table(frame[columns["rows"]], frame[columns["columns"]], weights)
         headers = [f"{labels['rows']} / {labels['columns']}", *(str(c) for c in table.columns), _("Total")]
         rows = [
@@ -992,7 +992,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         )
 
     def _two_way_html(self, frame: pd.DataFrame, columns: Mapping[str, str], labels: Mapping[str, str]) -> str:
-        first, second, response = frame[columns["first"]], frame[columns["second"]], to_numbers(frame[columns["response"]])
+        first, second, response = frame[columns["first"]], frame[columns["second"]], to_numbers(column_of(frame, columns["response"]))
         anova = st.two_way_anova(first, second, response)
         names = {"A": labels["first"], "B": labels["second"], "A × B": f"{labels['first']} × {labels['second']}"}
         rows = [
@@ -1018,7 +1018,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
         del labels  # the groups are named by their values
         groups = frame[columns["group"]] if "group" in columns else None
         summary = st.survival_summary(
-            to_numbers(frame[columns["time"]]), to_numbers(frame[columns["event"]]), groups
+            to_numbers(column_of(frame, columns["time"])), to_numbers(column_of(frame, columns["event"])), groups
         )
         rows = [
             [html.escape(row["group"] or _("All")), str(row["n"]), str(row["events"]), str(row["censored"]),

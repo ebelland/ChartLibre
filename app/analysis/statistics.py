@@ -23,6 +23,7 @@ import pandas as pd
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis.randomness import all_diagnostics, finite
 from app.logs.logger import applogger
+from app.utils.coercion import column_of
 from scipy import stats
 
 from app.utils.i18n import _
@@ -485,7 +486,7 @@ def group_tests(groups: Mapping[str, Any]) -> list[dict[str, Any]]:
         tests.append(note_row(_("Kruskal-Wallis"), n, str(exc)))
 
     try:
-        res = stats.median_test(*arrays)
+        res = cast(Any, stats.median_test(*arrays))
         tests.append(result_row(_("Mood median test"), n, float(res.statistic), float(res.pvalue),
                                 f"df = {k - 1}; grand median = {float(res.median):.6g}"))
     except ValueError as exc:
@@ -636,7 +637,7 @@ def contingency_table(rows: Any, columns: Any, weights: Any = None) -> pd.DataFr
     column_codes, column_levels = pd.factorize(frame["column"], sort=False)
     counts = np.bincount(
         row_codes * len(column_levels) + column_codes,
-        weights=frame["weight"].to_numpy(dtype=float),
+        weights=column_of(frame, "weight").to_numpy(dtype=float),
         minlength=len(row_levels) * len(column_levels),
     ).reshape(len(row_levels), len(column_levels))
     table = pd.DataFrame(counts, index=pd.Index(row_levels, name="row"), columns=pd.Index(column_levels, name="column"))
@@ -729,7 +730,7 @@ def _two_by_two_tests(counts: np.ndarray, n: int) -> list[dict[str, Any]]:
     b, c = float(counts[0, 1]), float(counts[1, 0])
     if np.allclose(counts, np.rint(counts)):
         exact = b + c < 25
-        result = mcnemar(counts.astype(int), exact=exact, correction=True)
+        result = cast(Any, mcnemar(counts.astype(int), exact=exact, correction=True))
         rows.append(result_row(
             _("McNemar (paired)"), n, float(result.statistic), float(result.pvalue),
             f"discordant cells {b:g} and {c:g}; {'exact binomial' if exact else 'chi-squared with continuity correction'}; "
@@ -759,7 +760,7 @@ def two_by_two_measures(table: Any) -> list[dict[str, Any]]:
             "high": difference + 1.959964 * se, "note": f"risks {risks[0]:.4g} and {risks[1]:.4g}"}]
     corrected = bool(np.any(counts == 0))
     shown = counts + 0.5 if corrected else counts
-    measures = Table2x2(shown)
+    measures = cast(Any, Table2x2(shown))
     note = "0.5 added to every cell (a zero cell)" if corrected else ""
     for name, estimate, interval in (
         (_("Relative risk"), measures.riskratio, measures.riskratio_confint()),
@@ -782,7 +783,7 @@ def cochrans_q(columns: Any) -> dict[str, Any]:
     frame = pd.DataFrame(columns).apply(pd.to_numeric, errors="coerce").dropna()
     if frame.shape[1] < 3:
         raise ValueError("Cochran's Q needs at least three columns; McNemar's test is its two-column case.")
-    if not frame.isin([0, 1]).all().all():
+    if not bool(frame.isin([0, 1]).to_numpy().all()):
         raise ValueError("Cochran's Q needs columns that hold only 0 and 1.")
     if len(frame) < 2:
         raise ValueError("Cochran's Q needs at least two complete rows.")
@@ -790,7 +791,7 @@ def cochrans_q(columns: Any) -> dict[str, Any]:
     result = q_test(frame.to_numpy(dtype=int))
     note = f"{len(mixed)} of {len(frame)} rows differ between the columns and carry the information"
     return {"q": float(result.statistic), "df": int(result.df), "pvalue": float(result.pvalue), "n": int(len(frame)),
-            "shares": {str(c): float(frame[c].mean()) for c in frame.columns}, "note": note}
+            "shares": {str(c): float(column_of(frame, c).mean()) for c in frame.columns}, "note": note}
 
 
 def stratified_2x2(rows: Any, columns: Any, strata: Any, weights: Any = None) -> dict[str, Any]:
@@ -807,11 +808,11 @@ def stratified_2x2(rows: Any, columns: Any, strata: Any, weights: Any = None) ->
         "r": np.asarray(rows, dtype=object), "c": np.asarray(columns, dtype=object),
         "s": np.asarray(strata, dtype=object), "w": 1.0 if weights is None else np.asarray(weights, dtype=float),
     }).dropna()
-    row_levels, column_levels = _level_order(pd.unique(frame["r"])), _level_order(pd.unique(frame["c"]))
+    row_levels, column_levels = _level_order(column_of(frame, "r").unique()), _level_order(column_of(frame, "c").unique())
     if len(row_levels) != 2 or len(column_levels) != 2:
         raise ValueError("The Mantel-Haenszel analysis needs a 2x2 table: two levels of each variable.")
     tables, labels, skipped = [], [], 0
-    for level in _level_order(pd.unique(frame["s"])):
+    for level in _level_order(column_of(frame, "s").unique()):
         part = frame[frame["s"] == level]
         counts = np.zeros((2, 2))
         for i, row in enumerate(row_levels):
@@ -824,7 +825,7 @@ def stratified_2x2(rows: Any, columns: Any, strata: Any, weights: Any = None) ->
             skipped += 1
     if len(tables) < 2:
         raise ValueError("The Mantel-Haenszel analysis needs at least two strata with both rows and both columns present.")
-    model = StratifiedTable(tables)
+    model = cast(Any, StratifiedTable(tables))
     low, high = model.oddsratio_pooled_confint()
     null = model.test_null_odds(correction=True)
     equal = model.test_equal_odds(adjust=True)
@@ -864,10 +865,10 @@ def two_way_anova(first: Any, second: Any, response: Any) -> dict[str, Any]:
     frame = frame[frame["a"].notna() & frame["b"].notna() & np.isfinite(frame["y"].to_numpy(dtype=float))]
     frame["a"] = frame["a"].astype(str)
     frame["b"] = frame["b"].astype(str)
-    if frame["a"].nunique() < 2 or frame["b"].nunique() < 2:
+    if column_of(frame, "a").nunique() < 2 or column_of(frame, "b").nunique() < 2:
         raise ValueError("Each factor needs at least two levels.")
     cells = frame.groupby(["a", "b"]).size()
-    if len(cells) < frame["a"].nunique() * frame["b"].nunique():
+    if len(cells) < column_of(frame, "a").nunique() * column_of(frame, "b").nunique():
         raise ValueError("Some combinations of the two factors have no values: the interaction cannot be estimated.")
     if len(frame) <= len(cells):
         raise ValueError("Needs more than one value in some cell, to estimate the error.")

@@ -27,7 +27,7 @@ from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData, merge
 from app.charts.scatter import ScatterAxisRenderer
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: The options both plots share.
 _SHARED_OPTIONS: dict[str, Any] = {
@@ -140,7 +140,7 @@ class QQPlotAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
         plots: list[tuple[SeriesData, ProbabilityPlot]] = []
         for sd in self.valid_series(series):
             merged = self.merge_style(options, sd.style or {})
-            values = to_numbers(sd.df["value"]).to_numpy(dtype=float)
+            values = to_numbers(column_of(sd.df, "value")).to_numpy(dtype=float)
             try:
                 plots.append((sd, self.compute(values, merged)))
             except NUMERICAL_FAILURES as exc:

@@ -16,7 +16,7 @@ import numpy as np
 from app.analysis import wafer as wf
 from app.logs.logger import applogger
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 POINTS, CONTOUR, DIES = "points", "contour", "dies"
 #: The bins' colours: no data, pass, low, high.
@@ -90,9 +90,9 @@ class WaferMapAxisRenderer(BaseAxisRenderer):
         height = float(self.opt("die_height", style) or 0.0) or width
         offset = (float(self.opt("die_offset_x", style) or 0.0), float(self.opt("die_offset_y", style) or 0.0))
         if sd is not None and {"x", "y"} <= set(sd.df.columns):
-            x = to_numbers(sd.df["x"]).to_numpy(dtype=float)
-            y = to_numbers(sd.df["y"]).to_numpy(dtype=float)
-            value = to_numbers(sd.df["value"]).to_numpy(dtype=float) if "value" in sd.df.columns else None
+            x = to_numbers(column_of(sd.df, "x")).to_numpy(dtype=float)
+            y = to_numbers(column_of(sd.df, "y")).to_numpy(dtype=float)
+            value = to_numbers(column_of(sd.df, "value")).to_numpy(dtype=float) if "value" in sd.df.columns else None
             display = str(self.opt("display", style) or POINTS)
             if display == CONTOUR and value is not None:
                 self._contour(ax, x, y, value, style)

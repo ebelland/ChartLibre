@@ -27,7 +27,7 @@ from app.analysis import NUMERICAL_FAILURES
 from app.analysis.diagnostics import SurvivalCurve, kaplan_meier, log_rank
 from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 class KaplanMeierAxisRenderer(BaseAxisRenderer):
@@ -110,8 +110,8 @@ class KaplanMeierAxisRenderer(BaseAxisRenderer):
         """(label, style, time, event) per curve: one per series, or per group within it."""
         curves = []
         for sd in self.valid_series(series):
-            time = to_numbers(sd.df["time"]).to_numpy(dtype=float)
-            event = to_numbers(sd.df["event"]).to_numpy(dtype=float)
+            time = to_numbers(column_of(sd.df, "time")).to_numpy(dtype=float)
+            event = to_numbers(column_of(sd.df, "event")).to_numpy(dtype=float)
             if "group" not in sd.df.columns:
                 curves.append((sd.name, dict(sd.style or {}), time, event))
                 continue

@@ -15,7 +15,7 @@ import numpy as np
 from matplotlib import colormaps
 
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 _ROLES = ("x", "y", "z", "u", "v", "w")
 
@@ -68,11 +68,11 @@ class Quiver3DAxisRenderer(BaseAxisRenderer):
         kwargs = self.get_kwargs(options)
         cmap_name = str(kwargs.pop("cmap", None) or "viridis")
         for sd in self.valid_series(series):
-            values = np.column_stack([to_numbers(sd.df[role]).to_numpy(float) for role in _ROLES])
+            values = np.column_stack([to_numbers(column_of(sd.df, role)).to_numpy(float) for role in _ROLES])
             keep = np.all(np.isfinite(values), axis=1)
             colour_values = None
             if "color" in sd.df.columns:
-                colour_values = to_numbers(sd.df["color"]).to_numpy(float)
+                colour_values = to_numbers(column_of(sd.df, "color")).to_numpy(float)
                 keep &= np.isfinite(colour_values)
             values = values[keep]
             if not len(values):

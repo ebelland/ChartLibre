@@ -39,7 +39,7 @@ from app.utils.distribution_fit import (
     curve_points,
     fits_for_spec,
 )
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 def ecdf_points(
@@ -269,7 +269,7 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
         for sd in series:
             if "value" not in sd.df.columns:
                 continue
-            values = to_numbers(sd.df["value"]).to_numpy(dtype=float)
+            values = to_numbers(column_of(sd.df, "value")).to_numpy(dtype=float)
             values = values[np.isfinite(values)]
             if values.size < 3:
                 continue
@@ -314,10 +314,10 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
             )
             return None
 
-        values = to_numbers(sd.df["value"]).to_numpy(dtype=float)
+        values = to_numbers(column_of(sd.df, "value")).to_numpy(dtype=float)
         weights = None
         if "weight" in sd.df.columns:
-            weights = to_numbers(sd.df["weight"]).to_numpy(dtype=float)
+            weights = to_numbers(column_of(sd.df, "weight")).to_numpy(dtype=float)
 
         x_values, y_values = ecdf_points(
             values,

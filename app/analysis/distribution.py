@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from app.analysis import statistics as st
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: The quantiles shown, in percent, highest first (as JMP lists them).
 QUANTILES: tuple[float, ...] = (100.0, 99.5, 97.5, 90.0, 75.0, 50.0, 25.0, 10.0, 2.5, 0.5, 0.0)
@@ -74,7 +74,7 @@ def moments_table(values: np.ndarray, missing: int) -> pd.DataFrame:
 
 def distribution(frame: pd.DataFrame, column: str) -> DistributionResult:
     """The report of one numeric column."""
-    raw = to_numbers(frame[column])
+    raw = to_numbers(column_of(frame, column))
     values = raw.dropna().to_numpy(float)
     missing = int(raw.isna().sum())
     if values.size < 2:

@@ -14,7 +14,7 @@ from typing import Any, ClassVar
 import numpy as np
 
 from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 _HEIGHT = np.sqrt(3.0) / 2.0
 
@@ -91,7 +91,7 @@ class TernaryAxisRenderer(BaseAxisRenderer):
         kwargs = self.get_kwargs(options)
         drawn = 0
         for sd in valid:
-            a, b, c = (to_numbers(sd.df[key]).to_numpy(dtype=float) for key in ("a", "b", "c"))
+            a, b, c = (to_numbers(column_of(sd.df, key)).to_numpy(dtype=float) for key in ("a", "b", "c"))
             x, y = ternary_xy(a, b, c)
             if "group" in sd.df.columns:
                 groups = np.asarray(sd.df["group"], dtype=object)

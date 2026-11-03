@@ -84,7 +84,7 @@ from app.styles.style import (
 )
 from app.utils import report_html
 from app.utils.background import BackgroundTask, run_in_background
-from app.utils.coercion import coerce_axis, to_numbers, to_numeric_axis
+from app.utils.coercion import coerce_axis, column_of, to_numbers, to_numeric_axis
 from app.utils.config import get_constant
 from app.utils.dialog_state import (
     dialog_entries,
@@ -2325,7 +2325,7 @@ class DataOperationDialogBase(QDialog):
                 continue
             try:
                 frame[column] = pd.to_datetime(
-                    to_numbers(frame[column]),
+                    to_numbers(column_of(frame, column)),
                     unit="s",
                     errors="coerce",
                 )

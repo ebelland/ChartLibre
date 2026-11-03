@@ -24,7 +24,7 @@ from app.analysis.clustering import (
 from app.data.select_sql import sql_insert_select_expression
 from app.logs.logger import applogger
 from app.plugin_api.data_operations.results import FrameResult
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 CLUSTER_KMEANS: Final[str] = "K-means / vector quantization"
 CLUSTER_HIERARCHICAL: Final[str] = "Hierarchical / agglomerative"
@@ -313,7 +313,7 @@ def cluster_one(series: ClusterSeriesChoice, feature_columns: list[str], axis_na
 def split_result_by_cluster(result: ClusterResult) -> list[ClusterResult]:
     """Represent one clustered frame as a result descriptor per cluster."""
     numeric_ids: pd.Series = pd.Series(
-        to_numbers(result.frame[CLUSTER_COLUMN]),
+        to_numbers(column_of(result.frame, CLUSTER_COLUMN)),
         dtype="Float64",
     ).dropna()
     cluster_ids = sorted({
@@ -350,7 +350,7 @@ def split_result_by_cluster(result: ClusterResult) -> list[ClusterResult]:
 
 def cluster_table(result: ClusterResult) -> pd.DataFrame:
     """One row per cluster: its rows, its mean silhouette, its share of rows below zero, its features' means."""
-    ids = to_numbers(result.frame[CLUSTER_COLUMN])
+    ids = to_numbers(column_of(result.frame, CLUSTER_COLUMN))
     silhouettes = to_numbers(result.silhouettes)
     rows = []
     for cluster_id in sorted(int(value) for value in ids.dropna().unique()):

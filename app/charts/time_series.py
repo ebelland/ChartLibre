@@ -19,7 +19,7 @@ from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
 from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData, in_legend
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import coerce_axis, to_numbers
+from app.utils.coercion import coerce_axis, column_of, to_numbers
 
 
 class TimeSeriesAxisRenderer(BaseAxisRenderer):
@@ -219,7 +219,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                 continue
 
             x_axis, x_is_temporal = self._coerce_x_axis(sd.df["x"])
-            y_num = to_numbers(sd.df["y"])
+            y_num = to_numbers(column_of(sd.df, "y"))
 
             mask = x_axis.notna() & y_num.notna()
             x_axis = x_axis[mask]

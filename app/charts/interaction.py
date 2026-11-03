@@ -24,7 +24,7 @@ from app.analysis import NUMERICAL_FAILURES
 from app.analysis.diagnostics import cell_means
 from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 class InteractionAxisRenderer(BaseAxisRenderer):
@@ -116,7 +116,7 @@ class InteractionAxisRenderer(BaseAxisRenderer):
             try:
                 means = cell_means(
                     np.asarray(sd.df["x"], dtype=object),
-                    to_numbers(sd.df["y"]).to_numpy(dtype=float),
+                    to_numbers(column_of(sd.df, "y")).to_numpy(dtype=float),
                     trace,
                 )
             except NUMERICAL_FAILURES as exc:

@@ -26,7 +26,7 @@ from matplotlib.transforms import blended_transform_factory
 
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 class ForestAxisRenderer(BaseAxisRenderer):
@@ -101,12 +101,12 @@ class ForestAxisRenderer(BaseAxisRenderer):
         for index, sd in enumerate(self.valid_series(series)):
             colour = self.series_color(sd.style or {}, index)
             frame = sd.df
-            estimate = to_numbers(frame["estimate"]).to_numpy(dtype=float)
-            lower = to_numbers(frame["lower"]).to_numpy(dtype=float)
-            upper = to_numbers(frame["upper"]).to_numpy(dtype=float)
-            weight = to_numbers(frame["weight"]).to_numpy(dtype=float) if "weight" in frame.columns else np.ones(estimate.size)
+            estimate = to_numbers(column_of(frame, "estimate")).to_numpy(dtype=float)
+            lower = to_numbers(column_of(frame, "lower")).to_numpy(dtype=float)
+            upper = to_numbers(column_of(frame, "upper")).to_numpy(dtype=float)
+            weight = to_numbers(column_of(frame, "weight")).to_numpy(dtype=float) if "weight" in frame.columns else np.ones(estimate.size)
             summary = (
-                np.nan_to_num(to_numbers(frame["summary"]).to_numpy(dtype=float)) != 0
+                np.nan_to_num(to_numbers(column_of(frame, "summary")).to_numpy(dtype=float)) != 0
                 if "summary" in frame.columns else np.zeros(estimate.size, dtype=bool)
             )
             if rows:

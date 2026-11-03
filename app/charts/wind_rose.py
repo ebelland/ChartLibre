@@ -21,7 +21,7 @@ import numpy as np
 
 from app.logs.logger import applogger
 from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 _PERIOD = {"degrees": 360.0, "radians": 2 * np.pi, "hours": 24.0}
 
@@ -83,8 +83,8 @@ class WindRoseAxisRenderer(BaseAxisRenderer):
             applogger.warning("Wind rose: the axis is not polar; set the axis to polar and redraw.")
             return
 
-        direction = to_numbers(sd.df["x"]).to_numpy(dtype=float)
-        value = to_numbers(sd.df["y"]).to_numpy(dtype=float) if "y" in sd.df.columns else None
+        direction = to_numbers(column_of(sd.df, "x")).to_numpy(dtype=float)
+        value = to_numbers(column_of(sd.df, "y")).to_numpy(dtype=float) if "y" in sd.df.columns else None
         keep = np.isfinite(direction) & (np.isfinite(value) if value is not None else True)
         direction = direction[keep]
         value = value[keep] if value is not None else None

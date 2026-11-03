@@ -24,7 +24,7 @@ from app.plugin_api.charts.base import (
     merge,
     pick,
 )
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 Orientation = Literal["vertical", "horizontal"]
@@ -300,7 +300,7 @@ class BarAxisRenderer(BaseAxisRenderer):
             [float(category_pos[value]) for value in df["X"].tolist()],
             dtype=float,
         ) + offset
-        values = to_numbers(df["Y"]).to_numpy(dtype=float)
+        values = to_numbers(column_of(df, "Y")).to_numpy(dtype=float)
 
         if self.Orientation == "horizontal":
             left = df["Left"].to_numpy(dtype=float) if "Left" in df.columns else self.opt("left", merged_options)

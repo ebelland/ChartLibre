@@ -20,7 +20,7 @@ import numpy as np
 from app.charts.pair_plot import PAIR_COLUMN_ROLES, PairPlotAxisRenderer
 from app.logs.logger import applogger
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 class DendrogramAxisRenderer(BaseAxisRenderer):
@@ -102,7 +102,7 @@ class DendrogramAxisRenderer(BaseAxisRenderer):
             applogger.info("Dendrogram: '%s' has no numeric column to cluster the rows on.", sd.name)
             return
 
-        data = np.column_stack([to_numbers(sd.df[column]).to_numpy(dtype=float) for column, _name in variables])
+        data = np.column_stack([to_numbers(column_of(sd.df, column)).to_numpy(dtype=float) for column, _name in variables])
         labels = sd.df["label"].astype(str).to_numpy() if "label" in sd.df.columns else np.arange(1, len(data) + 1).astype(str)
         keep = np.isfinite(data).all(axis=1)
         data, labels = data[keep], labels[keep]

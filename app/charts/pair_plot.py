@@ -22,7 +22,7 @@ from matplotlib.lines import Line2D
 
 from app.logs.logger import applogger
 from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: The variable slots the role panel offers.
 PAIR_COLUMN_ROLES: list[str] = [f"column_{index}" for index in range(1, 7)]
@@ -115,7 +115,7 @@ class PairPlotAxisRenderer(BaseAxisRenderer):
         for column in sd.df.columns:
             if column in ("group", "label") or column in ("Hide", "Selected", "__rowid__"):
                 continue
-            values = to_numbers(sd.df[column]).to_numpy(dtype=float)
+            values = to_numbers(column_of(sd.df, column)).to_numpy(dtype=float)
             if np.isfinite(values).sum() >= 2:
                 numeric.append((column, column))
         return numeric[: len(PAIR_COLUMN_ROLES)]
@@ -127,7 +127,7 @@ class PairPlotAxisRenderer(BaseAxisRenderer):
             if not all(column in sd.df.columns for column, _name in variables):
                 applogger.info("Pair plot: series '%s' lacks some of the variables and was not drawn.", sd.name)
                 continue
-            matrix = np.column_stack([to_numbers(sd.df[column]).to_numpy(dtype=float) for column, _name in variables])
+            matrix = np.column_stack([to_numbers(column_of(sd.df, column)).to_numpy(dtype=float) for column, _name in variables])
             if "group" in sd.df.columns:
                 groups = np.asarray(sd.df["group"], dtype=object)
                 for value in dict.fromkeys(groups.tolist()):

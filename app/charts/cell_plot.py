@@ -64,9 +64,9 @@ class CellPlotAxisRenderer(BaseAxisRenderer):
             applogger.info("Cell plot: '%s' has no numeric column.", sd.name)
             return
         limit = int(self.opt_typed("max_rows", options) or 500)
-        from app.utils.coercion import to_numbers
+        from app.utils.coercion import column_of, to_numbers
 
-        matrix = np.column_stack([to_numbers(sd.df[column]).to_numpy(dtype=float) for column, _n in variables])[:limit]
+        matrix = np.column_stack([to_numbers(column_of(sd.df, column)).to_numpy(dtype=float) for column, _n in variables])[:limit]
         with np.errstate(all="ignore"):
             if str(self.opt("scale", options) or "column") == "column":
                 low, high = np.nanmin(matrix, axis=0), np.nanmax(matrix, axis=0)

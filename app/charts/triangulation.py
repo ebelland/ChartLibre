@@ -36,7 +36,7 @@ from app.plugin_api.charts.base import (
 from app.plugin_api.charts.grids import finite_xyz
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: The fewest points a triangulation can be built from.
 _MIN_TRIANGULATION_POINTS: int = 3
@@ -48,8 +48,8 @@ def _finite_xy(df: SeriesFrame) -> tuple[np.ndarray, np.ndarray]:
     ``grids.finite_xyz`` without the z, for the one renderer here that has
     no value column to drop rows on.
     """
-    x = to_numbers(df["x"]).to_numpy(dtype=float)
-    y = to_numbers(df["y"]).to_numpy(dtype=float)
+    x = to_numbers(column_of(df, "x")).to_numpy(dtype=float)
+    y = to_numbers(column_of(df, "y")).to_numpy(dtype=float)
     finite = np.isfinite(x) & np.isfinite(y)
     return x[finite], y[finite]
 

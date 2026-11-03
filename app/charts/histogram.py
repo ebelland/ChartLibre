@@ -30,7 +30,7 @@ from app.utils.distribution_fit import (
     curve_points,
     fits_for_spec,
 )
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 # Matplotlib histtypes, split by whether they draw patches or a line outline.
 _HISTTYPES: tuple[str, ...] = ("bar", "barstacked", "step", "stepfilled")
@@ -237,9 +237,9 @@ class HistogramAxisRenderer(BaseAxisRenderer):
         base_label = str(style.get("label", "") or "").strip() or sd.name.strip()
         color = self.series_color(style, layer_index)
 
-        values = to_numbers(sd.df["value"])
+        values = to_numbers(column_of(sd.df, "value"))
         weights = (
-            to_numbers(sd.df["weight"])
+            to_numbers(column_of(sd.df, "weight"))
             if "weight" in sd.df.columns
             else None
         )
@@ -429,7 +429,7 @@ class HistogramAxisRenderer(BaseAxisRenderer):
                 continue
             marks = self.point_marks(sd.df)
             if marks is not None:
-                marked_values = to_numbers(sd.df["value"])
+                marked_values = to_numbers(column_of(sd.df, "value"))
                 keep = marks.notna() & marked_values.notna()
                 rugs.append((marked_values[keep].to_numpy(dtype=float), marks[keep].tolist()))
 

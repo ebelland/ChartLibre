@@ -24,11 +24,11 @@ Without an operator column it is a repeatability study of the parts alone.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: AIAG: the interaction is pooled into the error when its p-value is above this.
 POOL_INTERACTION_ABOVE = 0.25
@@ -78,7 +78,7 @@ def _anova(data: pd.DataFrame, factors: list[str], interaction: bool) -> pd.Data
         names[f"C({factors[1]})"] = "operator"
         names[f"C({factors[0]}):C({factors[1]})"] = "operator x part"
     table.index = [names.get(str(index), str(index)) for index in table.index]
-    return table[["DF", "SS", "MS", "F", "Prob > F"]]
+    return cast(pd.DataFrame, table[["DF", "SS", "MS", "F", "Prob > F"]])
 
 
 def gage_rr(frame: pd.DataFrame, measure: str, part: str, operator: str = "",
@@ -86,15 +86,15 @@ def gage_rr(frame: pd.DataFrame, measure: str, part: str, operator: str = "",
     """The Gage R&R of *measure*, the parts in *part* and (optionally) the operators in *operator*."""
     columns = [measure, part] + ([operator] if operator else [])
     data = frame[columns].copy()
-    data[measure] = to_numbers(data[measure])
+    data[measure] = to_numbers(column_of(data, measure))
     data = data.dropna()
-    data = pd.DataFrame({"y": data[measure].to_numpy(float), "P": data[part].astype(str).to_numpy(),
-                         **({"O": data[operator].astype(str).to_numpy()} if operator else {})})
-    parts = int(data["P"].nunique())
-    operators = int(data["O"].nunique()) if operator else 1
+    data = pd.DataFrame({"y": column_of(data, measure).to_numpy(float), "P": column_of(data, part).astype(str).to_numpy(),
+                         **({"O": column_of(data, operator).astype(str).to_numpy()} if operator else {})})
+    parts = column_of(data, "P").nunique()
+    operators = column_of(data, "O").nunique() if operator else 1
     if parts < 2:
         raise ValueError("A gage study needs at least two parts.")
-    cells = data.groupby(["P", "O"] if operator else ["P"]).size()
+    cells = cast(pd.Series, data.groupby(["P", "O"] if operator else ["P"]).size())
     if int(cells.min()) < 2 and not operator:
         raise ValueError("Each part has to be measured at least twice: the repeats are what repeatability is.")
     replicates = float(cells.mean())
@@ -110,7 +110,7 @@ def gage_rr(frame: pd.DataFrame, measure: str, part: str, operator: str = "",
         if float(table.loc["operator x part", "Prob > F"]) > POOL_INTERACTION_ABOVE:
             table = _anova(data, factors, interaction=False)
             pooled = True
-    ms = table["MS"]
+    ms = {str(source): float(value) for source, value in column_of(table, "MS").items()}
     error = float(ms["error"])
     if operator:
         interaction = float(ms["operator x part"]) if "operator x part" in ms else error

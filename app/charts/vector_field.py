@@ -47,7 +47,7 @@ from app.plugin_api.charts.base import (
 from app.plugin_api.charts.grids import pivot_to_grid
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 #: The appearance keywords every field renderer here forwards. Deliberately
 #: not the scatter's whole set: a colour cycle and error bars mean nothing to
@@ -65,7 +65,7 @@ _EVEN_SPACING_TOLERANCE: float = 1e-6
 def _field_columns(df: SeriesFrame) -> tuple[np.ndarray, ...]:
     """Return x, y, u, v as float arrays, unparseable entries as NaN."""
     return tuple(
-        to_numbers(df[role]).to_numpy(dtype=float)
+        to_numbers(column_of(df, role)).to_numpy(dtype=float)
         for role in ("x", "y", "u", "v")
     )
 
@@ -235,7 +235,7 @@ class QuiverAxisRenderer(BaseAxisRenderer):
 
         columns = _field_columns(sd.df)
         mask = np.logical_and.reduce([np.isfinite(column) for column in columns])
-        values = to_numbers(sd.df["color"]).to_numpy(dtype=float)
+        values = to_numbers(column_of(sd.df, "color")).to_numpy(dtype=float)
         values = values[mask]
         if values.size != expected or not np.isfinite(values).all():
             applogger.info(

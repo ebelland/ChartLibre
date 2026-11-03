@@ -22,7 +22,7 @@ import numpy as np
 
 from app.logs.logger import applogger
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 _NOT_DATA = ("label", "Hide", "Selected", "__rowid__")
 
@@ -111,7 +111,7 @@ class ImagePlotAxisRenderer(BaseAxisRenderer):
         else:
             columns = [c for c in sd.df.columns if c not in _NOT_DATA]
             numeric = [
-                (column, to_numbers(sd.df[column]).to_numpy(dtype=float))
+                (column, to_numbers(column_of(sd.df, column)).to_numpy(dtype=float))
                 for column in columns
             ]
             numeric = [(column, values) for column, values in numeric if np.isfinite(values).any()]

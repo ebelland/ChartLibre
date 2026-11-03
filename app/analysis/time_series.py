@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 from app.analysis.randomness import all_diagnostics
 from app.logs.logger import applogger
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 ROW_ORDER = ""
 ARIMA = "arima"
@@ -418,9 +418,9 @@ def _prepared(frame: pd.DataFrame, measure: str, time: str, input: str, season: 
     if input:
         columns.append(input)
     data = frame[columns].copy()
-    data[measure] = to_numbers(data[measure])
+    data[measure] = to_numbers(column_of(data, measure))
     if input:
-        data[input] = to_numbers(data[input])
+        data[input] = to_numbers(column_of(data, input))
     data = data.dropna().reset_index(drop=True)
     if len(data) < 10:
         raise ValueError(f"{len(data)} values are too few for a time series: at least 10 are needed.")

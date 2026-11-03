@@ -19,7 +19,7 @@ import numpy as np
 
 from app.logs.logger import applogger
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 class WaterfallAxisRenderer(BaseAxisRenderer):
@@ -69,10 +69,10 @@ class WaterfallAxisRenderer(BaseAxisRenderer):
             return
         if not self.ensure_required_roles(sd.df):
             return
-        steps = to_numbers(sd.df["y"]).to_numpy(dtype=float)
+        steps = to_numbers(column_of(sd.df, "y")).to_numpy(dtype=float)
         names = sd.df["x"].astype(str).to_numpy()
         flags = (
-            np.nan_to_num(to_numbers(sd.df["total"]).to_numpy(dtype=float)) != 0
+            np.nan_to_num(to_numbers(column_of(sd.df, "total")).to_numpy(dtype=float)) != 0
             if "total" in sd.df.columns
             else np.zeros(len(steps), dtype=bool)
         )

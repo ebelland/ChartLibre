@@ -23,7 +23,7 @@ from matplotlib.path import Path
 
 from app.logs.logger import applogger
 from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 
 def _layers(flows: list[tuple[str, str, float]]) -> tuple[dict[str, int], list[tuple[str, str, float]]]:
@@ -95,7 +95,7 @@ class SankeyAxisRenderer(BaseAxisRenderer):
             return
         if not self.ensure_required_roles(sd.df):
             return
-        values = to_numbers(sd.df["value"]).to_numpy(dtype=float)
+        values = to_numbers(column_of(sd.df, "value")).to_numpy(dtype=float)
         sources = sd.df["source"].astype(str).to_numpy()
         targets = sd.df["target"].astype(str).to_numpy()
         flows = [(s, t, float(v)) for s, t, v in zip(sources, targets, values) if np.isfinite(v) and v > 0]

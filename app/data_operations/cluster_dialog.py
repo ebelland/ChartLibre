@@ -97,7 +97,7 @@ from app.plugin_api.data_operations.parameter_spec import (
 )
 from app.plugin_api.data_operations.next_steps import NextStep
 from app.utils import report_html
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 from app.utils.i18n import _
 from app.utils.messages import show_message
 
@@ -665,7 +665,7 @@ class SeriesClusterDialog(DataOperationDialogBase):
         self._snapshot_cluster_state(source_table)
         self._repo.ensure_column(source_table, "ClusterId")
 
-        cluster_values = to_numbers(result.frame["ClusterId"])
+        cluster_values = to_numbers(column_of(result.frame, "ClusterId"))
         x_values = result.frame[result.x_col]
         self._repo.clear_integer_column(source_table, "ClusterId")
         self._repo.set_ClusterId(source_table,source_x_column,x_values,cluster_values)

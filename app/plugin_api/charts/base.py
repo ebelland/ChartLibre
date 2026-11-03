@@ -39,7 +39,7 @@ from app.plugin_api.charts.kwarg_spec import (
     pick,
 )
 from app.plugin_api.charts.text_lines import display_text
-from app.utils.coercion import to_numbers
+from app.utils.coercion import column_of, to_numbers
 
 # Re-exported deliberately.  Renderers are re-executed from disk by the
 # renderer scanner while ``app.plugin_api.charts.base`` stays cached in sys.modules, so a
@@ -745,7 +745,7 @@ class BaseAxisRenderer:
         def _column(name: str) -> Any:
             if name not in df.columns:
                 return None
-            values = to_numbers(df[name])
+            values = to_numbers(column_of(df, name))
             if mask is not None:
                 values = values[mask]
             return np.clip(np.nan_to_num(values.to_numpy(dtype=float)), 0.0, None)
