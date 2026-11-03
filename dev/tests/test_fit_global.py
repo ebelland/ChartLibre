@@ -11,8 +11,8 @@ from PySide6.QtCore import Qt
 
 from app.analysis.fit import GlobalLayout, fit_curve, fit_separately, global_model
 from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
 from app.data_operations.fit_dialog import SeriesFitDialog
+from app.logs.logger import applogger
 
 X = np.linspace(0.0, 6.0, 40)
 RATES = (0.5, 1.5)
@@ -185,8 +185,8 @@ def test_the_catalogue_formulas_get_most_of_their_parameters() -> None:
     import inspect
     import re
 
-    from app.plugin_api.functions.base import base_function
     from app.data_operations.fit_dialog.common import _expression_symbols
+    from app.plugin_api.functions.base import base_function
 
     placed = total = 0
     for name in ("app.functions.functions", "app.functions.nist_functions"):

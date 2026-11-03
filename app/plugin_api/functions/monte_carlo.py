@@ -20,7 +20,8 @@ Pure numpy: no Qt, no repository, nothing that needs a window to test.
 """
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 

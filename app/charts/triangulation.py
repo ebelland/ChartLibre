@@ -25,6 +25,8 @@ from typing import Any
 import numpy as np
 from matplotlib import rcParams
 
+from app.data.series_frame import SeriesFrame
+from app.logs.logger import applogger
 from app.plugin_api.charts.base import (
     ARTIST_KWARGS,
     CMAP_KWARGS,
@@ -34,8 +36,6 @@ from app.plugin_api.charts.base import (
     pick,
 )
 from app.plugin_api.charts.grids import finite_xyz
-from app.data.series_frame import SeriesFrame
-from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 
 #: The fewest points a triangulation can be built from.

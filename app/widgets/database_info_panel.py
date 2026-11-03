@@ -11,7 +11,7 @@ its own Optimize DB action, rather than opening as its own modal window.
 """
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (

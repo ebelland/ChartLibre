@@ -17,13 +17,13 @@ import pandas as pd
 
 from app.analysis import multivariate as mv
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
 from app.plugin_api.data_operations.column_roles import (
     CONTINUOUS,
     ORDINAL,
     ColumnCasting,
     ColumnRole,
 )
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
 from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _

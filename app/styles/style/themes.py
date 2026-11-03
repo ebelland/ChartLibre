@@ -4,15 +4,15 @@ from __future__ import annotations
 import platform
 from pathlib import Path
 
-
 from PySide6 import QtWidgets
 from PySide6.QtWidgets import QApplication, QWidget
+
 from app.logs.logger import applogger
 from app.styles.palettes import themed_qss
-from app.utils.config import get_value
-from app.styles.style.metrics import PlatformStyle, _STYLES_DIR
-from app.styles.style.icons import _substitute_qss_symbols, substitute_ui_font
 from app.styles.style import icons as _icons
+from app.styles.style.icons import _substitute_qss_symbols, substitute_ui_font
+from app.styles.style.metrics import _STYLES_DIR, PlatformStyle
+from app.utils.config import get_value
 
 
 # Styles

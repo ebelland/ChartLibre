@@ -19,14 +19,13 @@ from typing import Any, cast
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis.randomness import all_diagnostics, finite
 from app.logs.logger import applogger
-from scipy import stats
-
-from app.utils.i18n import _
 from app.utils.config import get_constant
+from app.utils.i18n import _
 
 #: The alternatives SciPy's tests accept.
 
@@ -421,7 +420,7 @@ def independent_tests(a: Any, b: Any, *, alternative: str = "two-sided") -> list
         )
     ]
     res = stats.ttest_ind(a, b, equal_var=False, alternative=alternative)
-    welch_df = float(getattr(res, "df"))  # TtestResult.df is real; its stub does not list it
+    welch_df = float(cast(Any, res).df)  # TtestResult.df is real; its stub does not list it
     tests.append(result_row(_("Welch t-test"), n, _statistic(res), _pvalue(res), f"df = {welch_df:.4g}"))
     res = stats.ttest_ind(a, b, equal_var=True, alternative=alternative)
     tests.append(result_row(_("Student t-test (equal variances)"), n, _statistic(res), _pvalue(res), f"df = {na + nb - 2}"))

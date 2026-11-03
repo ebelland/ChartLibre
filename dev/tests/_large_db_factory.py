@@ -7,8 +7,8 @@ exercising the real code path.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Iterable, Iterator, Tuple
 
 import numpy as np
 
@@ -22,12 +22,12 @@ def ensure_dhub_extension(path: Path) -> Path:
 def _executemany(
     cur: sqlite3.Cursor,
     sql: str,
-    rows: Iterable[Tuple[object, ...]],
+    rows: Iterable[tuple[object, ...]],
     *,
     chunk_size: int = 50_000,
 ) -> None:
     """Execute many inserts in chunks to avoid large Python lists."""
-    buf: list[Tuple[object, ...]] = []
+    buf: list[tuple[object, ...]] = []
     for row in rows:
         buf.append(row)
         if len(buf) >= chunk_size:
@@ -220,15 +220,15 @@ def create_large_db(
         # --------------------------
         x_ts = np.arange(n_ts, dtype=float)
 
-        def rows_xy(x: np.ndarray, y: np.ndarray) -> Iterator[Tuple[object, ...]]:
+        def rows_xy(x: np.ndarray, y: np.ndarray) -> Iterator[tuple[object, ...]]:
             for xv, yv in zip(x, y):
                 yield (float(xv), float(yv), None, None, None)
 
-        def rows_scatter_xy(sc: np.ndarray) -> Iterator[Tuple[object, ...]]:
+        def rows_scatter_xy(sc: np.ndarray) -> Iterator[tuple[object, ...]]:
             for xv, yv in sc:
                 yield (float(xv), float(yv), None, None, None)
 
-        def rows_scatter_xycs(sc: np.ndarray, color: np.ndarray, size: np.ndarray) -> Iterator[Tuple[object, ...]]:
+        def rows_scatter_xycs(sc: np.ndarray, color: np.ndarray, size: np.ndarray) -> Iterator[tuple[object, ...]]:
             for (xv, yv), col, sz in zip(sc, color, size):
                 yield (float(xv), float(yv), float(col), float(sz), None)
 

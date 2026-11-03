@@ -29,30 +29,31 @@ import base64
 import html
 import io
 import math
-from datetime import datetime
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from datetime import datetime
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractSpinBox, QGridLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from app.analysis import geometry as geo
-from app.plugin_api.charts.grids import pivot_to_grid
-from app.data.data_source import parse_roles, quote_identifier, row_value, resolve_role_column
+from app.data.data_source import parse_roles, quote_identifier, resolve_role_column, row_value
 from app.logs.logger import applogger
-from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
-from app.plugin_api.data_operations.results import OperationResult
-from app.plugin_api.data_operations.dialog_base import OperationModel, ResultSeriesSpec, DataOperationDialogBase
+from app.plugin_api.charts.grids import pivot_to_grid
+from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, OperationModel, ResultSeriesSpec
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam
+from app.plugin_api.data_operations.results import OperationResult
+from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
 from app.styles.style import CardFrame
 from app.utils import report_html
 from app.utils.config import get_constant
 from app.utils.i18n import _
+from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 
 ROTATE = "Rotate"
 TRANSLATE = "Translate"

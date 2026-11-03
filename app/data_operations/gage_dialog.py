@@ -15,9 +15,9 @@ import pandas as pd
 
 from app.analysis import gage
 from app.analysis.capability import parse_limit
-from app.plugin_api.data_operations.parameter_spec import TextParam
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, ColumnCasting, ColumnRole
+from app.plugin_api.data_operations.parameter_spec import TextParam
 from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
 from app.utils.i18n import _

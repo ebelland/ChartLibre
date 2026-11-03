@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """app.widgets.drop_down_controls.line_combo
 
 LineStyleCombo
@@ -17,7 +16,7 @@ This module is intentionally standalone and PEP8 compliant.
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 
 from matplotlib import rcParams
 from PySide6.QtCore import QSize, Qt
@@ -82,7 +81,7 @@ def _line_icon(linestyle: str) -> QIcon:
     return _resolved_line_icon(resolved, faint=is_default)
 
 
-@lru_cache(maxsize=None)
+@cache
 def _resolved_line_icon(linestyle: str, *, faint: bool) -> QIcon:
     """Build (and cache) a preview icon for one concrete Matplotlib linestyle."""
     # Allocated at the display's pixel density: the coordinates below stay

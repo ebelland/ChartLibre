@@ -6,19 +6,20 @@ callback, which is debounced by the main window.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from matplotlib import rcParams
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QInputDialog,
-    QGridLayout,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,
+    QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QPlainTextEdit,
@@ -28,26 +29,23 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.dialogs.edit_mpl_styles_dialog import MplStyleEditorDialog, _sanitize_mplstyle_text
+from app.logs.logger import applogger
 from app.plugin_api.charts import layout_presets, panel_labels
 from app.plugin_api.charts.render_figure import (
     OPT_DOWNSAMPLE_THRESHOLD,
     OPT_SHARED_HORIZONTAL_SPACE,
     OPT_SHARED_VERTICAL_SPACE,
 )
-from app.dialogs.edit_mpl_styles_dialog import MplStyleEditorDialog, _sanitize_mplstyle_text
 from app.styles.style import (
-    load_icon,
     MARGIN_PANEL,
     TitledCard,
     create_action_button,
     fit_spin_width,
+    load_icon,
     stdSizeAndlayout,
 )
 from app.utils.config import MPLSTYLES_DIR
-from app.widgets.chart_properties.base_properties import BaseProperties
-from app.widgets.font_scale_control import FontScaleControl
-from app.widgets.pair_grid import PairGrid
-from app.widgets.chart_panel import RESIZE_MODE_CHOICES
 from app.utils.figure_metrics import (
     CM_PER_INCH,
     DEFAULT_FIGURE_DPI,
@@ -57,10 +55,13 @@ from app.utils.figure_metrics import (
     OPT_FIGURE_WIDTH_CM,
     figure_metrics_from_options,
 )
-
-from app.logs.logger import applogger
 from app.utils.hidpi import apply_configured_dpi
 from app.utils.i18n import _
+from app.widgets.chart_panel import RESIZE_MODE_CHOICES
+from app.widgets.chart_properties.base_properties import BaseProperties
+from app.widgets.font_scale_control import FontScaleControl
+from app.widgets.pair_grid import PairGrid
+
 
 def _read_text_any_encoding(path: Path) -> str:
     raw = path.read_bytes()
@@ -221,7 +222,7 @@ class FigurePropertiesWidget(BaseProperties):
         self._applied_presets: dict[int, str] = {}
 
         self._style_edit: QLineEdit
-       
+
         self._nrows_combo: QComboBox
         self._ncols_combo: QComboBox
         self._fig_dpi: QSpinBox

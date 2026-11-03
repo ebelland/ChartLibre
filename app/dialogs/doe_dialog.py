@@ -5,28 +5,40 @@ OK creates a new SQLite source table; Cancel makes no changes.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 import html
 import itertools
 import re
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import pandas as pd
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QAbstractItemView, QCheckBox, QComboBox,
-    QFormLayout, QGridLayout, QHeaderView, QLabel, QLineEdit, QMessageBox,
-    QSizePolicy, QSpinBox, QTableWidget,
-    QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget,
+    QAbstractItemView,
+    QCheckBox,
+    QComboBox,
+    QFormLayout,
+    QGridLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QSizePolicy,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
 
 from app.data.sqlite_repo import SqliteRepo
-from app.logs.logger import applogger
-from app.utils.i18n import _
-from app.styles.style import load_icon, mark_editor_panel, stdSizeAndlayout
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
+from app.logs.logger import applogger
+from app.styles.style import load_icon, mark_editor_panel, stdSizeAndlayout
 from app.utils.config import get_constant
+from app.utils.i18n import _
 
 _TABLE_RE = re.compile(r"[^A-Za-z0-9_]+")
 _MAX_PREVIEW_ROWS = get_constant("doe_preview_rows", 500)

@@ -15,9 +15,8 @@ touched.
 """
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import sqlite3
+from collections.abc import Iterator
 from pathlib import Path
 
 import pandas as pd
@@ -149,8 +148,8 @@ def window(qapp, repo: SqliteRepo, tmp_db_path: Path):
     """A window on a figure with one axis and one series."""
     import numpy as np
 
-    from app.main_window.main_window import MainWindow
     from app.logs.logger import applogger
+    from app.main_window.main_window import MainWindow
 
     repo.import_dataframe(
         pd.DataFrame({"x": np.arange(10.0), "y": np.arange(10.0)}),

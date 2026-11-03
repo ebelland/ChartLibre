@@ -2,22 +2,21 @@
 from __future__ import annotations
 
 import re
-import tempfile
 import sys
-from functools import lru_cache
+import tempfile
 from collections.abc import Callable
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-
 from PySide6.QtCore import QByteArray, QPointF, QRect, QRectF, QSize, Qt
-from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QGuiApplication, QIcon, QImage, QPainter, QPen, QPixmap
-from app.logs.logger import applogger
-from app.styles.style.metrics import _IS_MACOS, _IS_WINDOWS
-from app.styles.style.catalogue import ActionSpec, _catalog, action
+from PySide6.QtSvg import QSvgRenderer
 
+from app.logs.logger import applogger
+from app.styles.style.catalogue import ActionSpec, _catalog, action
+from app.styles.style.metrics import _IS_MACOS, _IS_WINDOWS
 
 # Icons
 # ----------------------------------------------------------------------
@@ -1007,7 +1006,7 @@ def symbol_icon(sf_symbol: str, theme_icon: str = "") -> QIcon:
     return QIcon()
 
 
-def icon_from_action_spec(spec: "ActionSpec") -> QIcon:
+def icon_from_action_spec(spec: ActionSpec) -> QIcon:
     """Return the icon for an action using the catalogue priority order.
 
     One rule, applied in order, and every step falls through when it produces

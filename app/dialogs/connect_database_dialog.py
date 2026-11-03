@@ -49,6 +49,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.data.repo._common import is_read_only_select
+from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 from app.logs.logger import applogger
 from app.styles.style import (
     configure_combo_width,
@@ -72,7 +73,6 @@ from app.utils.data_sources import (
 )
 from app.utils.i18n import _
 from app.utils.messages import show_message
-from app.dialogs.two_panels_dialog_base import SettingsTableDialog
 
 ENGINE_SQLITE = "sqlite"
 ENGINE_DHUB = "dhub"

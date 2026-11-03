@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Matplotlib Style Editor
 =======================
@@ -27,21 +26,22 @@ Serialization contract
   verbatim.
 """
 from __future__ import annotations
+
 import ast
-from collections.abc import Callable, Iterable
 import os
 import re
 import tempfile
+from collections.abc import Callable, Iterable
 from enum import Enum
-from typing import Any, cast
 from pathlib import Path
-
+from typing import Any, cast
 
 import cycler as _cycler
 import matplotlib as mpl
 import numpy as np
 
 from app.dialogs.two_panels_dialog_base import SettingsTableDialog
+from app.logs.logger import applogger
 from app.styles.style import (
     MARGIN_CARD,
     action_presentation,
@@ -50,7 +50,6 @@ from app.styles.style import (
     mark_icon_only,
     stdSizeAndlayout,
 )
-from app.logs.logger import applogger
 from app.utils.messages import show_message
 from app.utils.mpl_latex import is_latex_rcparam, latex_available, latex_unavailable_reason
 
@@ -58,19 +57,18 @@ mpl.use("QtAgg")
 from matplotlib import image as _mimage
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 from matplotlib.colors import is_color_like, to_rgba
 from matplotlib.figure import Figure
-
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import QWidget, QLabel, QFileDialog, QHBoxLayout, QVBoxLayout, QComboBox, QSizePolicy
+from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+
+from app.utils.i18n import _
+from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
 
 # ---------------------------------------------------------------------------
 # Optional external helpers (graceful fallbacks)
 # ---------------------------------------------------------------------------
-
 from app.widgets.dictionary_editor import DictEditorPanel
-from app.utils.i18n import _
 
 PREVIEW_KINDS: tuple[tuple[str, str], ...] = (
     ("Representative", "representative"),
@@ -397,7 +395,7 @@ _CYCLER_PATTERN = (
 )
 
 
-def _parse_cycler_text(raw: str) -> "_cycler.Cycler | None":
+def _parse_cycler_text(raw: str) -> _cycler.Cycler | None:
     """The cycler a "cycler('color', [...])" table string stands for; None if it is not one."""
     match = re.match(_CYCLER_PATTERN, raw)
     if not match:

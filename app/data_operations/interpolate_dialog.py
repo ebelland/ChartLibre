@@ -22,19 +22,6 @@ import numpy as np
 import pandas as pd
 from PySide6.QtCore import Signal
 
-from app.data.data_source import parse_roles, resolve_role_column
-from app.plugin_api.data_operations.results import TableResult
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
-from app.plugin_api.data_operations.dialog_base import (
-    CallJob,
-    OperationModel,
-    ResultSeriesSpec,
-    DataOperationDialogBase,
-    generated_table_name,
-)
-from app.logs.logger import applogger
-from app.utils.i18n import _
-
 from app.analysis.interpolation import (
     MODEL_EXPONENTIAL,
     MODEL_GAUSSIAN,
@@ -63,7 +50,18 @@ from app.analysis.interpolation import (
     interpolate,
     parse_values,
 )
-
+from app.data.data_source import parse_roles, resolve_role_column
+from app.logs.logger import applogger
+from app.plugin_api.data_operations.dialog_base import (
+    CallJob,
+    DataOperationDialogBase,
+    OperationModel,
+    ResultSeriesSpec,
+    generated_table_name,
+)
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
+from app.plugin_api.data_operations.results import TableResult
+from app.utils.i18n import _
 
 # The model names are the engine's (app.analysis.interpolation).
 

@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+
 from app.analysis.regression import (
     KIND_GRADIENT_BOOSTING,
     KIND_HUBER,
@@ -33,13 +34,13 @@ from app.analysis.regression import (
     RegressionSettings,
     fit_regression,
 )
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
-from app.plugin_api.data_operations.results import XYResult
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
-    OperationModel,
     DataOperationDialogBase,
+    OperationModel,
 )
+from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.results import XYResult
 from app.utils import report_html
 
 # --- Models -------------------------------------------------------------

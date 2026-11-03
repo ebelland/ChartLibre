@@ -5,17 +5,18 @@ participation), ordering, deletion, and the series SQL query.
 """
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
+from matplotlib import rcParams
 from PySide6.QtCore import QPointF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPen, QTextOption
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
-    QFrame,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -26,8 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from matplotlib import rcParams
-
+from app.logs.logger import applogger
 from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.styles.style import (
     MARGIN_PANEL,
@@ -36,15 +36,13 @@ from app.styles.style import (
     create_hidpi_pixmap,
     stdSizeAndlayout,
 )
+from app.utils.config import get_constant
+from app.utils.i18n import _
+from app.utils.messages import ask
 from app.widgets.chart_properties.base_properties import BaseProperties
 from app.widgets.drop_down_controls.color_combo import DEFAULT_COLOR_LABEL, MatplotlibColorCombo
 from app.widgets.drop_down_controls.line_combo import LineStyleCombo
 from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
-from app.logs.logger import applogger
-from app.utils.config import get_constant
-from app.utils.i18n import _
-from app.utils.messages import ask
-
 
 AxisDescriptorLike = Any
 SeriesDescriptorLike = Any
@@ -64,7 +62,7 @@ _SWATCH_PEN_STYLES: dict[str, Qt.PenStyle] = {
 }
 
 
-@lru_cache(maxsize=None)
+@cache
 def _series_swatch_icon(color: str, linestyle: str) -> QIcon:
     """A small colour/line-style preview for one row of the series combo.
 

@@ -18,8 +18,9 @@ briefly rendered at its empty-widget size (22x22) instead of its content's.
 """
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from typing import Any, Callable, Iterator
+from typing import Any
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtGui import QKeyEvent
@@ -34,7 +35,6 @@ from PySide6.QtWidgets import (
 )
 
 from app.styles.style import configure_combo_width
-
 from app.utils.config import get_constant
 
 #: How long the editor waits after the last control change before it applies

@@ -18,9 +18,9 @@ from typing import Any
 import numpy as np
 from matplotlib.patches import Patch
 
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.charts.box import BoxAxisRenderer
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 
 # The three marker collections violinplot can return, and the option that asks
 # for each.  Keeping them in one table is what makes the styling loop short.

@@ -11,39 +11,56 @@ scatter plot next to the words "Scatter Plot" is decoration, not information.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence, cast
+from typing import Any, cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QMessageBox, QListWidget, QListWidgetItem, QSizePolicy, QWidget, QHBoxLayout, QLabel, QRadioButton, QFormLayout, QLineEdit, QComboBox, QPlainTextEdit, QScrollArea, QToolBox
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPlainTextEdit,
+    QRadioButton,
+    QScrollArea,
+    QSizePolicy,
+    QToolBox,
+    QWidget,
+)
 
+from app.data.data_source import DataSource, quote_identifier
+from app.data.repo._common import ensure_read_only_select
+from app.data.sqlite_repo import SqliteRepo
+from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
+from app.logs.logger import applogger
+from app.plugin_api.charts.base import BaseAxisRenderer
 from app.scanners.axis_renderer_scanner import (
     get_renderer,
     import_class_from_file,
     renderers,
 )
-from app.plugin_api.charts.base import BaseAxisRenderer
-from app.logs.logger import applogger
-from app.data.repo._common import ensure_read_only_select
-from app.data.sqlite_repo import SqliteRepo
-from app.data.data_source import DataSource, quote_identifier
-from app.utils.messages import show_message
 from app.styles.style import (
-    apply_toolbox_header_metrics,
-    create_doc_link,
-    set_doc_link,
     CardFrame,
     TitledCard,
+    apply_toolbox_header_metrics,
     create_action_button,
+    create_doc_link,
     load_icon,
     mark_editor_panel,
+    set_doc_link,
     stdPlainTextEdit,
     stdSizeAndlayout,
 )
-from app.utils.i18n import _, tr
-from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
-from app.widgets.function_editor import FunctionEditor
 from app.utils.config import get_constant
+from app.utils.i18n import _, tr
+from app.utils.messages import show_message
+from app.widgets.function_editor import FunctionEditor
 
 
 @dataclass(slots=True)
@@ -287,7 +304,7 @@ class NewPlotTabDialog(ColumnsDialog):
         self._edit_series_name.setPlaceholderText(_("Series name"))
 
         self._edit_sql = QPlainTextEdit()
-        stdPlainTextEdit(self._edit_sql)     
+        stdPlainTextEdit(self._edit_sql)
         self._edit_sql.setPlaceholderText(_("SQL query (SELECT / WITH ...)"))
 
 
@@ -365,7 +382,7 @@ class NewPlotTabDialog(ColumnsDialog):
         self.splitter.setSizes([230, 430, 330])
         self.add_action("apply", self._on_accept)
         self.add_action("close", self.reject)
-    
+
         # ------------------------------------------------------------------
         # Wiring.
         # ------------------------------------------------------------------

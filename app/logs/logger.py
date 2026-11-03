@@ -255,7 +255,7 @@ class AppLogger:
     _logger: ChartLibreLogger | None = None
     _configured: bool = False
     _hooks_installed: bool = False
-    
+
 
     def __new__(cls) -> Self:
         if cls._instance is None:

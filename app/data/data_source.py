@@ -145,17 +145,17 @@ class DataSource:
         return self.kind == "function"
 
     @classmethod
-    def table(cls, name: str) -> "DataSource":
+    def table(cls, name: str) -> DataSource:
         """Return a source for a physical table."""
         return cls(name=str(name), kind="table", sql="")
 
     @classmethod
-    def query(cls, name: str, sql: str) -> "DataSource":
+    def query(cls, name: str, sql: str) -> DataSource:
         """Return a source for a saved query."""
         return cls(name=str(name), kind="query", sql=str(sql))
 
     @classmethod
-    def function(cls, name: str, sql: str) -> "DataSource":
+    def function(cls, name: str, sql: str) -> DataSource:
         """Return a source for a stored function, *sql* its grid and values (function_sql)."""
         return cls(name=str(name), kind="function", sql=str(sql))
 

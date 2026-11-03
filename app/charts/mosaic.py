@@ -26,8 +26,8 @@ from matplotlib.patches import Patch, Rectangle
 
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis.diagnostics import mosaic
-from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
 from app.utils.coercion import to_numbers
 
 

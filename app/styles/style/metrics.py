@@ -7,11 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QKeySequence
-from app.utils.config import get_constant
 
+from app.utils.config import get_constant
 
 # This module is in app/styles/style/; the UI directory is app/styles.
 _UI_DIR = Path(__file__).resolve().parent.parent
@@ -107,7 +106,7 @@ class MenuItem:
     #: Nested items, for an entry that opens a submenu rather than doing
     #: something - "Open recent" and its list of files. A submenu item's
     #: own callback is never called: Qt gives the entry to the submenu.
-    submenu: "list[MenuItem | None] | None" = None
+    submenu: list[MenuItem | None] | None = None
 
 
 # ----------------------------------------------------------------------

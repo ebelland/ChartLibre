@@ -9,7 +9,6 @@ those same options for a hand-built layout.
 """
 from __future__ import annotations
 
-
 from app.plugin_api.charts import layout_presets as lp
 from dev.tests._cases import check_all
 

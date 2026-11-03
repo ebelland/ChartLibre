@@ -8,7 +8,6 @@ editing it changes every chart built on it.
 from __future__ import annotations
 
 from collections.abc import Iterator
-
 from pathlib import Path
 
 import pytest

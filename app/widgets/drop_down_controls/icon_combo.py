@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """app.widgets.drop_down_controls.icon_combo
 
 IconComboBox

@@ -43,7 +43,6 @@ from app.styles.style import (
 )
 from app.utils.i18n import _
 
-
 _HTML_TAG_RE = re.compile(
     r"</?\s*("
     r"html|head|body|style|div|section|article|main|header|footer|"
@@ -140,7 +139,7 @@ def plain_to_html(text: str) -> str:
 
 
 #: Every web view still alive, so they can be torn down in order before Qt is.
-_WEB_VIEWS: "weakref.WeakSet[QWidget]" = weakref.WeakSet()
+_WEB_VIEWS: weakref.WeakSet[QWidget] = weakref.WeakSet()
 _RELEASE_HOOKED = False
 #: Views taken out of closed windows, held until their deferred deletion (or
 #: release_web_views at exit): parentless, a collected wrapper would delete
@@ -368,12 +367,12 @@ class HtmlResultsView(QWidget):
         )
         return browser
 
-    def setText(self, text: str) -> None:
+    def setText(self, text: str) -> None:  # noqa: N802 - Qt's name
         """Show plain text, escaped and line-broken into HTML."""
         self._plain_text = str(text or "")
         self.setHtml(plain_to_html(self._plain_text), plain_source=self._plain_text)
 
-    def setHtml(self, markup: str, *, plain_source: str = "") -> None:
+    def setHtml(self, markup: str, *, plain_source: str = "") -> None:  # noqa: N802 - Qt's name
         """Show HTML markup directly."""
         self._html = str(markup or "")
         self._plain_text = str(plain_source or "")
@@ -388,7 +387,7 @@ class HtmlResultsView(QWidget):
         if callable(setter):
             setter(self._html)
 
-    def setContent(self, content: str) -> None:
+    def setContent(self, content: str) -> None:  # noqa: N802 - Qt's name
         """Render HTML if content looks like markup, otherwise render as text.
 
         Use this from shared dialog code when callers may pass either plain text
@@ -404,15 +403,15 @@ class HtmlResultsView(QWidget):
         """Return the plain-text form, or HTML when HTML was set directly."""
         return self._plain_text if self._plain_text else self._html
 
-    def setWordWrap(self, _enabled: bool) -> None:
+    def setWordWrap(self, _enabled: bool) -> None:  # noqa: N802 - Qt's name
         """Accepted for QLabel compatibility; the viewer always wraps."""
         return None
 
-    def setAlignment(self, _alignment: Qt.AlignmentFlag) -> None:
+    def setAlignment(self, _alignment: Qt.AlignmentFlag) -> None:  # noqa: N802 - Qt's name
         """Accepted for QLabel compatibility; alignment comes from the markup."""
         return None
 
-    def setTextInteractionFlags(self, _flags: Qt.TextInteractionFlag) -> None:
+    def setTextInteractionFlags(self, _flags: Qt.TextInteractionFlag) -> None:  # noqa: N802 - Qt's name
         """Accepted for QLabel compatibility; the viewer sets its own flags."""
         return None
 

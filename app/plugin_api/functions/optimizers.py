@@ -31,8 +31,9 @@ Pure numpy/scipy - no Qt - so every method here is testable without a window.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 from scipy.optimize import (

@@ -10,7 +10,6 @@ from __future__ import annotations
 import numpy as np
 
 from app.analysis import NUMERICAL_FAILURES
-
 from app.plugin_api.functions.base import base_surface_function
 
 

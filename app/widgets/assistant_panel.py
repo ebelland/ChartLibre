@@ -39,7 +39,8 @@ def _load_provider(name: str) -> Any:
     from app.scanners.ai_provider_scanner import ai_providers, provider_class
 
     entry = next((entry for entry in ai_providers if entry["value"] == name), ai_providers[0] if ai_providers else None)
-    return provider_class(entry)() if entry is not None else None
+    cls = provider_class(entry) if entry is not None else None
+    return cls() if cls is not None else None  # None too when its file did not load (logged)
 
 
 class AssistantPanel(NavPanel):

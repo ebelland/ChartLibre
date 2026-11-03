@@ -21,6 +21,7 @@ from typing import Any, cast
 
 import numpy as np
 
+from app.logs.logger import applogger
 from app.plugin_api.charts import kwarg_spec
 from app.plugin_api.charts.base import (
     LEGEND_OPTIONS,
@@ -28,7 +29,6 @@ from app.plugin_api.charts.base import (
     SeriesData,
     merge,
 )
-from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
 
 # Where the percentage labels are placed, as a fraction of the radius.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Visual selectors for Matplotlib solid join and cap styles."""
 from __future__ import annotations
 

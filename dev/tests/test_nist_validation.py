@@ -36,8 +36,8 @@ from app.analysis.statistics import describe, group_tests
 from app.functions.functions import linear, quadratic
 from app.plugin_api.functions.optimizers import LEVENBERG, TRUST_REGION
 from dev.tests import _nist_strd as nist
-from dev.tests._nist_models import LOG_RESPONSE, MODELS
 from dev.tests._cases import check_all
+from dev.tests._nist_models import LOG_RESPONSE, MODELS
 
 # ----------------------------------------------------------------------
 # Nonlinear regression: the Fit engine

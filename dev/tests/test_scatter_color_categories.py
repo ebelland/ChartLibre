@@ -6,9 +6,9 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib.figure import Figure  # noqa: E402
 
-from app.plugin_api.charts.base import SeriesData  # noqa: E402
 from app.charts.scatter import ScatterAxisRenderer  # noqa: E402
 from app.data.series_frame import SeriesFrame  # noqa: E402
+from app.plugin_api.charts.base import SeriesData  # noqa: E402
 
 
 def _draw(colors: list[str]):

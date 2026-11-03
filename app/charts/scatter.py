@@ -8,15 +8,15 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
-import matplotlib.dates as mdates
 from matplotlib import rcParams
 from matplotlib.patches import Ellipse
 from matplotlib.transforms import Affine2D
 
-from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import ERROR_BAR_KWARGS, BaseAxisRenderer, SeriesArtistTags, SeriesData
 from app.utils.coercion import coerce_axis, to_numbers
 
 
@@ -379,7 +379,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                     size_values = size_values[order]
 
             show_in_legend = bool(style.get("show_in_legend", True))
-            
+
             series_label = str(style.get("label", "") or "").strip()
             if not series_label:
                 axis_label = str(self.opt("label", options) or "").strip()
@@ -529,7 +529,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                     scatter_kwargs["label"] = series_label
                 else:
                     scatter_kwargs.pop("label", None)
-                
+
                 scatter_collection = ax.scatter(
                     x_values,
                     y_values,
@@ -555,7 +555,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
 
                 # If line is drawn together with markers, keep the same marker
                 # on the line artist only when marker exists.
-  
+
                 line_kwargs["marker"] = "None"
 
                 if flat_color:

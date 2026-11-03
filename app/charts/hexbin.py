@@ -13,12 +13,13 @@ histogram.
 """
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.logs.logger import applogger
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.utils.coercion import to_numbers
 
 #: Options this renderer consumes itself, stripped before the rest reaches

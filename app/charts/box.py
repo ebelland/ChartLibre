@@ -15,11 +15,11 @@ import pandas as pd
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from app.plugin_api.charts import kwarg_spec
-from app.plugin_api.charts.kwarg_spec import DEFAULT
-from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
 from app.data.series_frame import SeriesFrame
 from app.logs.logger import applogger
+from app.plugin_api.charts import kwarg_spec
+from app.plugin_api.charts.base import BaseAxisRenderer, SeriesData
+from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.utils.coercion import to_numbers
 
 
@@ -63,7 +63,7 @@ class BoxAxisRenderer(BaseAxisRenderer):
     Keywords: str = "box plot boxplot scatola baffi whisker quartili quartiles groups gruppi"
     Goals: list[str] = ["compare", "describe"]
     Link="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html"
-    
+
     Kwargs: dict[str, Any] = {
         "notch": {
             "default": None,

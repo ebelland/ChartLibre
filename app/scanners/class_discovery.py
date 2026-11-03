@@ -15,14 +15,14 @@ from __future__ import annotations
 import ast
 import importlib.util
 import sys
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import Any
 
 from app.logs.logger import applogger
 
 
-@lru_cache(maxsize=None)
+@cache
 def _load_class(file_path: str, class_name: str, mtime_ns: int, module_prefix: str):
     """
     Import ``class_name`` from ``file_path`` exactly once per file revision.
@@ -78,7 +78,7 @@ def _load_class(file_path: str, class_name: str, mtime_ns: int, module_prefix: s
     return cls
 
 
-@lru_cache(maxsize=None)
+@cache
 def _resolved_path(raw_path: str) -> Path:
     """Resolve a discovery entry's path once per raw string, not per call.
 

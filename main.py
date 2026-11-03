@@ -29,6 +29,7 @@ def _qt_plugins_outside_dot_folder(plugins_dir: str) -> None:
         return  # not inside a dot-folder: nothing hides it
 
     import hashlib
+
     from PySide6 import __version__ as pyside_version
 
     key = hashlib.sha1(f"{plugins}|{pyside_version}".encode()).hexdigest()[:12]
@@ -56,6 +57,7 @@ _qt_plugins_outside_dot_folder(os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt",
 # Logging
 # ----------------------------------------------------------------------
 from app.logs.logger import AppLogger, applogger
+
 AppLogger.configure()
 applogger.debug("Application starting...")
 from PySide6.QtWidgets import QApplication, QMessageBox
@@ -63,7 +65,6 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from app import APP_NAME, APP_VERSION
 from app.data.sqlite_repo import SqliteRepo
 from app.main_window.main_window import MainWindow
-
 from app.styles.style import apply_platform_style, ensure_icon_theme
 from app.utils.config import get_language, set_last_database
 from app.utils.i18n import install_qt_translations, set_language

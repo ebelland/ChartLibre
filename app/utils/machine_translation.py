@@ -53,6 +53,7 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
 from app.utils.data_sources import _web_fetch_ssl_context
 
 #: The services offered, as (key, name shown in the dialog).

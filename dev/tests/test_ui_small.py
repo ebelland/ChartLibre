@@ -60,7 +60,7 @@ def test_the_figure_and_axis_factors_multiply() -> None:
     assert legend is not None
     assert legend.get_texts()[0].get_fontsize() == 30
     assert ax.xaxis.get_major_ticks()[0].label1.get_fontsize() == 30
-    suptitle = getattr(figure, "_suptitle")  # private, and not in the stubs
+    suptitle = figure._suptitle  # private, and not in the stubs
     assert suptitle.get_fontsize() == 20
 
 
@@ -151,7 +151,7 @@ def test_a_new_plot_becomes_the_current_tab(qapp, tmp_path: Path, monkeypatch) -
             self.chart_result: NewPlotTabResult | None = None
             self._repo = repo_
 
-        def setWindowIcon(self, _icon) -> None:
+        def setWindowIcon(self, _icon) -> None:  # noqa: N802 - Qt's name
             pass
 
         def exec(self) -> int:

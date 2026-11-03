@@ -5,12 +5,29 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-from pandas import isna
-
 import PySide6.QtCore
+from pandas import isna
 from PySide6.QtGui import QColor, QPainter, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QStyledItemDelegate, QWidget, QStyleOptionViewItem, QVBoxLayout, QTableView, QAbstractItemView, QFrame, QHeaderView, QFileDialog, QLineEdit, QInputDialog, QMessageBox
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QFileDialog,
+    QFrame,
+    QHeaderView,
+    QInputDialog,
+    QLineEdit,
+    QMessageBox,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
+    QTableView,
+    QVBoxLayout,
+    QWidget,
+)
 
+from app.data.sqlite_repo import DatabaseError, SqliteRepo
+from app.dialogs.operation_history_dialog import OperationHistoryDialog
+from app.dialogs.query_builder_dialog import QueryBuilderDialog
+from app.dialogs.table_editor_dialog import TableEditorDialog
+from app.logs.logger import applogger
 from app.styles.style import (
     CONTEXT_MENU_ICONS,
     MenuItem,
@@ -18,18 +35,11 @@ from app.styles.style import (
     create_menu,
     load_icon,
 )
-from app.dialogs.operation_history_dialog import OperationHistoryDialog
-from app.dialogs.query_builder_dialog import QueryBuilderDialog
-from app.dialogs.table_editor_dialog import TableEditorDialog
 from app.utils.config import get_section, update_section
-from app.data.sqlite_repo import DatabaseError, SqliteRepo
-from app.utils.import_runner import refresh_link
-from app.logs.logger import applogger
-from app.utils.messages import ask
 from app.utils.i18n import _
+from app.utils.import_runner import refresh_link
+from app.utils.messages import ask
 from app.widgets.analysis_panel import plot_operation, plugin_icon
-
-
 
 # Tables written by a data operation are prefixed, so the list can hide the
 # whole class of them without keeping a registry of what it produced.
@@ -113,7 +123,7 @@ class _LinkDelegate(QStyledItemDelegate):
                              self._DOT_RADIUS * 2, self._DOT_RADIUS * 2)
         painter.restore()
 
-    def sizeHint(self, option: QStyleOptionViewItem, index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex) -> PySide6.QtCore.QSize:
+    def sizeHint(self, option: QStyleOptionViewItem, index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex) -> PySide6.QtCore.QSize:  # noqa: N802 - Qt's name
         return PySide6.QtCore.QSize(36, 32)
 
 
@@ -123,11 +133,11 @@ class _LinkDelegate(QStyledItemDelegate):
 class _TableListModel(QStandardItemModel):
     """Model that writes Notes edits back to the repo as soon as they commit."""
 
-    def __init__(self, panel: "TableListPanel") -> None:
+    def __init__(self, panel: TableListPanel) -> None:
         super().__init__(panel)
         self._panel = panel
 
-    def setData(
+    def setData(  # noqa: N802 - Qt's name
         self,
         index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex,
         value: object,
@@ -230,7 +240,7 @@ class TableListPanel(QWidget):
             | QAbstractItemView.EditTrigger.EditKeyPressed
             | QAbstractItemView.EditTrigger.SelectedClicked
         )
-        
+
         return view
 
     def _build_model(self) -> _TableListModel:
@@ -961,7 +971,7 @@ class TableListPanel(QWidget):
             count=len(sources),
             tables=preview,
         )
-        
 
 
-    
+
+

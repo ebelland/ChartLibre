@@ -13,13 +13,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-
-from app.analysis import NUMERICAL_FAILURES, odd_window
 from scipy.ndimage import median_filter
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import OneClassSVM
+
+from app.analysis import NUMERICAL_FAILURES, odd_window
 
 OUTLIER_ZSCORE = "Z-score threshold"
 OUTLIER_IQR = "Interquartile range"

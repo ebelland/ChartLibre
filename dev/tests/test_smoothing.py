@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
-from app.analysis import smoothing as sm
-from dev.tests._cases import check_all
 import pandas as pd
-from app.analysis.smoothing import _moving_average
+import pytest
 
+from app.analysis import smoothing as sm
+from app.analysis.smoothing import _moving_average
+from dev.tests._cases import check_all
 
 # ======================================================================
 # The smoothing engine (app.analysis.smoothing): answers known in advance.

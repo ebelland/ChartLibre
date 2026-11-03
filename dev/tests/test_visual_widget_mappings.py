@@ -1,5 +1,6 @@
 """Regression coverage for artist aliases and dotted Matplotlib rcParams."""
 import pytest
+
 from app.widgets.dictionary_editor import _kind_for_key
 
 CASES = {

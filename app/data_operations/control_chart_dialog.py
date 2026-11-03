@@ -61,6 +61,7 @@ import numpy as np
 import pandas as pd
 from PySide6.QtWidgets import QComboBox, QWidget
 
+from app.analysis import special_charts as special
 from app.analysis.capability import Capability, capability, parse_limit
 from app.analysis.control_charts import (
     CHART_C,
@@ -75,22 +76,22 @@ from app.analysis.control_charts import (
     attribute_chart,
     variables_chart,
 )
-from app.analysis import special_charts as special
-from app.data.data_source import parse_roles, row_value, resolve_role_column
+from app.data.data_source import parse_roles, resolve_role_column, row_value
 from app.data.series_frame import SeriesFrame
-from app.utils.coercion import to_numbers
 from app.logs.logger import applogger
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
-from app.plugin_api.data_operations.results import TableResult
 from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
     OperationModel,
     ResultSeriesSpec,
-    DataOperationDialogBase,
 )
+from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
+from app.plugin_api.data_operations.results import TableResult
+from app.utils import report_html
+from app.utils.coercion import to_numbers
 from app.utils.config import get_constant
 from app.utils.i18n import _
-from app.utils import report_html
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ControlChartModel(OperationModel):

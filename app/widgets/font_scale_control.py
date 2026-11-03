@@ -11,8 +11,8 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QSpinBox, QWidget
 
-from app.utils.i18n import _
 from app.utils.config import get_constant
+from app.utils.i18n import _
 
 #: Allowed range, in percent; 100 is "as the style says".
 FONT_SCALE_MIN_PERCENT: int = get_constant("font_scale_min_percent", 50)

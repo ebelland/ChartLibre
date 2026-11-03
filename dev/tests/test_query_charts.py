@@ -8,14 +8,13 @@ because the string being plausible is not the same as the chart drawing.
 from __future__ import annotations
 
 from collections.abc import Iterator
-
 from pathlib import Path
 
 import pytest
 from matplotlib.figure import Figure
 
-from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.data.sqlite_repo import SqliteRepo
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
 
 @pytest.fixture

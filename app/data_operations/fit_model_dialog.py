@@ -40,7 +40,6 @@ from PySide6.QtWidgets import (
 
 from app.analysis import linear_model as lm
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam
 from app.plugin_api.data_operations.column_roles import (
     CATEGORICAL,
     CONTINUOUS,
@@ -49,6 +48,7 @@ from app.plugin_api.data_operations.column_roles import (
     ColumnCasting,
     ColumnRole,
 )
+from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam
 from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html

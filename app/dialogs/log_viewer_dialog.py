@@ -5,8 +5,8 @@ from pathlib import Path
 from PySide6.QtGui import QCloseEvent, QFontDatabase
 from PySide6.QtWidgets import QApplication, QLabel, QPlainTextEdit, QWidget
 
-from app.logs.logger import LOG_FILE, clear_log_file
 from app.dialogs.two_panels_dialog_base import PanelDialog
+from app.logs.logger import LOG_FILE, clear_log_file
 from app.styles.style import load_icon, mark_destructive_button, mark_editor_panel
 from app.utils.i18n import _
 from app.utils.messages import ask
@@ -80,5 +80,5 @@ class LogViewerDialog(PanelDialog):
         self._viewer.clear()
         self._caption.setText(_("The log was cleared."))
 
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt's name
         super().closeEvent(event)

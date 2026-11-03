@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """app.widgets.drop_down_controls.color_combo
 
 MatplotlibColorCombo
@@ -18,11 +17,7 @@ This module is intentionally standalone and PEP8 compliant.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from functools import lru_cache
-
-from PySide6.QtCore import QRect, QSize, Qt
-from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPen
-from PySide6.QtWidgets import QWidget
+from functools import cache, lru_cache
 
 from matplotlib import rcParams
 from matplotlib.colors import (
@@ -33,9 +28,12 @@ from matplotlib.colors import (
     to_hex,
     to_rgba,
 )
+from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPen
+from PySide6.QtWidgets import QWidget
 
-from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 from app.styles.style import create_hidpi_pixmap
+from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
 
 #: The first entry's stored value. An empty string, which every consumer
 #: already reads as "no explicit color": the renderer answers it with the
@@ -136,7 +134,7 @@ def _entry_icon(hex_color: str) -> QIcon:
     return _swatch_icon(hex_color)
 
 
-@lru_cache(maxsize=None)
+@cache
 def _swatch_icon(hex_color: str) -> QIcon:
     """Build (and cache) a small square swatch icon for *hex_color*."""
     if not hex_color:

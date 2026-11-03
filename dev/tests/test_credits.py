@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 from app.utils import credits
 from dev.tests._cases import check_all
 

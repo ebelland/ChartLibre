@@ -285,7 +285,7 @@ class TablePreviewPanel(QWidget):
             applogger.exception("Preview model init failed for source=%s: %s", self._table, exc)
             self.view.setModel(None)
 
-    def _model(self) -> "LazyTableModel | None":
+    def _model(self) -> LazyTableModel | None:
         model = self.view.model()
         return model if isinstance(model, LazyTableModel) else None
 
@@ -303,7 +303,7 @@ class TablePreviewPanel(QWidget):
             return
         menu.exec(self.view.viewport().mapToGlobal(pos))
 
-    def _build_context_menu(self, pos: QPoint) -> "QMenu | None":
+    def _build_context_menu(self, pos: QPoint) -> QMenu | None:
         """Build the right-click menu for *pos*, or None to show nothing.
 
         Split out from _show_context_menu so a test can inspect the built

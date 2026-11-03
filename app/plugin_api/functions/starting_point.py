@@ -23,14 +23,13 @@ user guess which one they have.
 """
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from collections.abc import Iterable
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 import numpy as np
 
 from app.logs.logger import applogger
-
 from app.plugin_api.functions.monte_carlo import monte_carlo_p0, sum_of_squares
 from app.utils.config import get_constant
 

@@ -10,9 +10,9 @@ from __future__ import annotations
 from typing import Any, cast
 
 import pytest
+import shiboken6
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
-import shiboken6
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QToolButton, QVBoxLayout, QWidget
 
 import app.styles.style as style

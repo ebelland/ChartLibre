@@ -55,8 +55,9 @@ def test_edit_query_opens_the_builder_on_the_selected_query(panel: TableListPane
 
 
 def test_ok_saves_and_closes_and_stays_open_on_a_bad_query(qapp, repo: SqliteRepo, monkeypatch: pytest.MonkeyPatch) -> None:
-    import app.dialogs.query_builder_dialog as builder_module
     from PySide6.QtWidgets import QDialog, QInputDialog
+
+    import app.dialogs.query_builder_dialog as builder_module
 
     repo.import_dataframe(pd.DataFrame({"a": [1, 2, 3]}), table_name="t", normalize_columns=False)
     monkeypatch.setattr(QInputDialog, "getText", staticmethod(lambda *_a, **_k: ("big_ones", True)))

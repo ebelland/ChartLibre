@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Visual Matplotlib hatch selector and reusable preview icons."""
 from __future__ import annotations
 

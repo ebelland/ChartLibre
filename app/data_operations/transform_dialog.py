@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+
 from app.analysis.transform import (
     KIND_POWER,
     KIND_QUANTILE,
@@ -24,12 +25,12 @@ from app.analysis.transform import (
     TransformSettings,
     transform_values,
 )
+from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
+    OperationModel,
+)
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
 from app.plugin_api.data_operations.results import XYResult
-from app.plugin_api.data_operations.dialog_base import (
-    OperationModel,
-    DataOperationDialogBase,
-)
 from app.utils import report_html
 
 # --- Models -------------------------------------------------------------
