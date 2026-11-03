@@ -50,7 +50,7 @@ class TernaryAxisRenderer(BaseAxisRenderer):
                   "description": "Opacity of the points."},
     }
 
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         LEGEND_OPTIONS,
         {
             "grid_step": {

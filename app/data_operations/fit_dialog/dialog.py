@@ -57,7 +57,12 @@ from app.data_operations.sympy_store import functions_by_name
 from app.data_operations.sympy_store import make_model as make_stored_sympy_model
 from app.logs.logger import applogger
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, ResultSeriesSpec, generated_table_name
+from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
+    OperationJob,
+    ResultSeriesSpec,
+    generated_table_name,
+)
 from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
 from app.plugin_api.functions.optimizers import BY_KEY, DEFAULT_OPTIMIZER, LOSSES, OPTIMIZERS
 from app.plugin_api.functions.starting_point import (
@@ -146,7 +151,7 @@ class SeriesFitDialog(DataOperationDialogBase):
     DEFAULT_DESTINATION = DataOperationDialogBase.DEST_SAME_AXIS
     Name: str = "Fit Curve"
     #: The fitted values and residuals are written to a curve's table: its name is on the Graphics page.
-    SHOW_OUTPUT: bool = True
+    SHOW_OUTPUT: ClassVar[bool] = True
     Description = "Fit data models"
 
     # least_squares needs residuals that actually vary: a flat y makes the
@@ -664,7 +669,7 @@ class SeriesFitDialog(DataOperationDialogBase):
                                              for series in axis.series)]
             for axis in doomed:
                 self._repo.delete_axis(int(axis.id))
-            if doomed:
+            if descriptor is not None and doomed:
                 left = len(descriptor.axes) - len(doomed)
                 columns = max(1, min(int(descriptor.ncols or 1), left))
                 self._repo.set_figure_grid(self._figure_id, nrows=max(1, -(-left // columns)), ncols=columns)
@@ -913,7 +918,7 @@ class SeriesFitDialog(DataOperationDialogBase):
     def busy_widgets(self) -> list[QWidget]:
         return [*super().busy_widgets(), self.fit_button, self._btn_estimate]
 
-    def prepare_job(self, *, optimise: bool = False) -> _FitJob | None:
+    def prepare_job(self, *, optimise: bool = False, **options: Any) -> _FitJob | None:
         """Read the data, the model and the parameter table into a job."""
         x_data, target_data, clean = self._load_fit_data()
         if x_data is None or target_data is None:
@@ -960,8 +965,9 @@ class SeriesFitDialog(DataOperationDialogBase):
     def _weights_key(self) -> str:
         return str(self._combo_weights.currentData() or "none")
 
-    def finish_job(self, job: _FitJob, outcome: fit_engine.CurveFit) -> list[SeriesFitResult]:
+    def finish_job(self, job: OperationJob, outcome: fit_engine.CurveFit) -> list[SeriesFitResult]:
         """The engine's outcome as this dialog's result; kept as _last_result."""
+        assert isinstance(job, _FitJob)  # the job prepare_job made
         if job.optimise and outcome.success:
             # Remembered so that Preview/OK, which only evaluate the table,
             # can still say the parameters they draw are a converged fit.
@@ -1248,6 +1254,8 @@ class SeriesFitDialog(DataOperationDialogBase):
     def _combine_estimates(self, estimates: list[np.ndarray | None]) -> np.ndarray | None:
         """Each series' own estimate as the table's rows; shared ones averaged."""
         layout = getattr(self, "_table_layout", None)
+        if layout is None:
+            return None
         current = self._collect_params_from_table()[0]
         per_series = current[layout.index].copy()
         found = [index for index, values in enumerate(estimates) if values is not None]
@@ -1255,7 +1263,7 @@ class SeriesFitDialog(DataOperationDialogBase):
             return None
         for series in found:
             per_series[series] = estimates[series]
-        mean = np.mean([estimates[series] for series in found], axis=0)
+        mean = np.mean([cast(np.ndarray, estimates[series]) for series in found], axis=0)
         theta = layout.expand(per_series)
         for row, (column, series) in enumerate(layout.entries()):
             if series is None:
@@ -1413,6 +1421,8 @@ class SeriesFitDialog(DataOperationDialogBase):
                 continue
             for j in range(cat.childCount()):
                 child = cat.child(j)
+                if child is None:
+                    continue
                 payload = child.data(0, Qt.ItemDataRole.UserRole)
                 words = str(payload.get("keywords", "")) if isinstance(payload, dict) else ""
                 # The name, or the words the function declares (its keywords).
@@ -1428,9 +1438,10 @@ class SeriesFitDialog(DataOperationDialogBase):
             return
         for i in range(self._models_tree.topLevelItemCount()):
             cat = self._models_tree.topLevelItem(i)
-            if cat is not None and cat.childCount():
+            first = cat.child(0) if cat is not None else None
+            if cat is not None and first is not None:
                 cat.setExpanded(True)
-                self._models_tree.setCurrentItem(cat.child(0))
+                self._models_tree.setCurrentItem(first)
                 return
 
     def select_model(self, name: str) -> bool:
@@ -1442,6 +1453,8 @@ class SeriesFitDialog(DataOperationDialogBase):
                 continue
             for j in range(cat.childCount()):
                 child = cat.child(j)
+                if child is None:
+                    continue
                 payload = child.data(0, Qt.ItemDataRole.UserRole)
                 label = payload.get("name", child.text(0)) if isinstance(payload, dict) else child.text(0)
                 if str(label).strip().lower() == wanted:
@@ -1994,6 +2007,8 @@ class SeriesFitDialog(DataOperationDialogBase):
     def _estimate_global_initial_values(self) -> None:
         """Estimate, series by series, from each series' own rows; shared ones averaged."""
         layout = self._table_layout
+        if layout is None:
+            return
         try:
             series = self._per_series_xy()
             model, _model_p0 = self._build_model(series[0][0], series[0][1]) or (None, None)

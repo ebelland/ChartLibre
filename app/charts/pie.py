@@ -135,7 +135,7 @@ class PieAxisRenderer(BaseAxisRenderer):
     #: these names is a keyword ``ax.pie`` accepts: the first three become
     #: entries in ``wedgeprops``, the colormap becomes an explicit list of
     #: colours, and the legend is drawn afterwards from the returned wedges.
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         LEGEND_OPTIONS,
         {
             "show_legend": {

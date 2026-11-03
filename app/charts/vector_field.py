@@ -116,7 +116,7 @@ class QuiverAxisRenderer(BaseAxisRenderer):
     #: is preferred to barbs.
     OptionalRoles: ClassVar[list[str]] = ["color"]
 
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         _FIELD_KWARGS,
         pick(CMAP_KWARGS, "cmap", "norm", "vmin", "vmax"),
         {
@@ -273,7 +273,7 @@ class StreamAxisRenderer(BaseAxisRenderer):
     #: mean nothing; the second is reported and skipped.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         pick(_FIELD_KWARGS, "zorder"),
         pick(CMAP_KWARGS, "cmap", "norm"),
         {

@@ -69,7 +69,7 @@ class InteractionAxisRenderer(BaseAxisRenderer):
         },
     }
 
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         LEGEND_OPTIONS,
         {
             "error_bars": {

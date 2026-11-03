@@ -53,7 +53,7 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
     #: comparison, exactly like the surfaces' MaxSeries.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible"),
         {
             "width": {

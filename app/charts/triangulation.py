@@ -88,7 +88,7 @@ class TriplotAxisRenderer(BaseAxisRenderer):
     RequiredRoles: ClassVar[list[str]] = ["x", "y"]
     OptionalRoles: ClassVar[list[str]] = []
 
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
         {
             "color": {
@@ -189,7 +189,7 @@ class TripcolorAxisRenderer(BaseAxisRenderer):
     #: Two filled meshes over one set of axes hide each other.
     MaxSeries: int | None = 1
 
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         pick(ARTIST_KWARGS, "alpha", "zorder", "visible", "rasterized"),
         pick(CMAP_KWARGS, "cmap", "norm", "vmin", "vmax"),
         {

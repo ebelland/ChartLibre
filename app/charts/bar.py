@@ -68,7 +68,7 @@ class BarAxisRenderer(BaseAxisRenderer):
     #: take them: its error bars are configured through ``ecolor``,
     #: ``capsize`` and nothing else, and the extra three would reach
     #: ``Rectangle.set`` and raise.
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         # label is the renderer's own: it resolves the legend text from the
         # series and passes it separately, so it is an Option, not a keyword.
         pick(ARTIST_KWARGS, "alpha", "zorder", "visible", "rasterized", "picker"),
@@ -124,7 +124,7 @@ class BarAxisRenderer(BaseAxisRenderer):
     #: of one bar.  Forwarding it would make every series as wide as the group
     #: and draw them on top of each other.  That is the difference the single
     #: dict could not express.
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         LEGEND_OPTIONS,
         {
             "width": {

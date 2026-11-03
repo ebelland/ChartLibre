@@ -96,7 +96,7 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
     MaxSeries: int | None = 1
 
     #: Forwarded verbatim to ``plot_surface``.
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         pick(CMAP_KWARGS, "cmap"),
         pick(ARTIST_KWARGS, "alpha"),
         {
@@ -154,7 +154,7 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
 
     #: Read here and never forwarded: the mask reshapes the data before it is
     #: drawn, and the camera is set on the axes afterwards.
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         VIEW_OPTIONS,
         {
             "circular_mask": {
@@ -339,7 +339,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
     RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
     OptionalRoles: ClassVar[list[str]] = ["color", "size"]
 
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
         pick(CMAP_KWARGS, "cmap", "norm", "vmin", "vmax"),
         {
@@ -514,7 +514,7 @@ class Line3DAxisRenderer(BaseAxisRenderer):
     RequiredRoles: ClassVar[list[str]] = ["x", "y", "z"]
     OptionalRoles: ClassVar[list[str]] = []
 
-    Kwargs: dict[str, Any] = merge(
+    Kwargs: ClassVar[dict[str, Any]] = merge(
         pick(ARTIST_KWARGS, "alpha", "label", "zorder", "visible", "rasterized"),
         LINE_KWARGS,
         {

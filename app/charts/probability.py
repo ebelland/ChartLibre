@@ -80,7 +80,7 @@ class QQPlotAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
 
     Kwargs: ClassVar[dict[str, Any]] = dict(ScatterAxisRenderer.Kwargs)
 
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         ScatterAxisRenderer.Options,
         _SHARED_OPTIONS,
         {
@@ -193,7 +193,7 @@ class PPPlotAxisRenderer(QQPlotAxisRenderer, BaseAxisRenderer):
     OptionalRoles: ClassVar[list[str]] = []
 
     Kwargs: ClassVar[dict[str, Any]] = dict(ScatterAxisRenderer.Kwargs)
-    Options: dict[str, Any] = merge(ScatterAxisRenderer.Options, _SHARED_OPTIONS)
+    Options: ClassVar[dict[str, Any]] = merge(ScatterAxisRenderer.Options, _SHARED_OPTIONS)
 
     def compute(self, values: np.ndarray, options: dict[str, Any]) -> ProbabilityPlot:
         return pp_plot(

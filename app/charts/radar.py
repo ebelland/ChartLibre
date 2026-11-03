@@ -47,7 +47,7 @@ class RadarAxisRenderer(BaseAxisRenderer):
                   "description": "Opacity of each polygon's fill. 0 draws outlines only."},
     }
 
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         LEGEND_OPTIONS,
         {
             "summary": {

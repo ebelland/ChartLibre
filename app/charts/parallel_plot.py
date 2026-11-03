@@ -44,7 +44,7 @@ class ParallelPlotAxisRenderer(BaseAxisRenderer):
                   "description": "Opacity of the lines: lower for many rows."},
     }
 
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         LEGEND_OPTIONS,
         {
             "scale": {

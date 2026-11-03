@@ -56,7 +56,7 @@ class ParetoAxisRenderer(BarAxisRenderer, BaseAxisRenderer):
     #: way out, through a PARETO_ONLY tuple whose comment had to warn that
     #: anything added to the schema had to be named there too.  Declaring
     #: them as options is that warning, enforced.
-    Options: dict[str, Any] = merge(
+    Options: ClassVar[dict[str, Any]] = merge(
         BarAxisRenderer.Options,
         {
             "cumulative_line": {
