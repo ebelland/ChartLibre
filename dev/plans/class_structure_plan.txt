@@ -1,0 +1,45 @@
+Class structure: review of the rest of the project (2026-11-02)
+==================================================================
+
+What is already settled (commits 18f2488, 2c8ee9e) and is NOT reopened here
+- A base with a single subclass is merged into it, unless it is used on its own.
+  The ones left are all used on their own: Stopped, QQPlot/BrokenBar/Box/Contour
+  renderers, FunctionScanner, base_function / base_surface_function, LazyTableModel.
+- Mixins only to keep a file near 2000 lines when the class passes ~4000:
+  SqliteRepo, ChartPanel. MainWindow (3841) and DataOperationDialogBase (3372)
+  stay one class each, in commented sections.
+
+What the review found
+1. BaseAxisRenderer(Protocol) - app/plugin_api/charts/base.py:205
+   A concrete base with code, subclassed by 48 renderers, declared as a
+   typing.Protocol. Every subclass is therefore an (explicit) protocol class:
+   misleading for readers and for pyright (isinstance, abstract members).
+   -> plain class (keep the docstring contract); if a structural type is wanted,
+      a separate small AxisRenderer Protocol with only what callers use.
+
+2. Methods too long to read as one unit (> 150 lines):
+     351  charts/scatter.py              ScatterAxisRenderer.render_axis
+     350  chart_properties/figure_properties.py  _build_ui
+     316  dialogs/create_chart_dialog.py  NewPlotTabDialog.__init__
+     314  dialogs/import_data_dialog.py   ImportDataDialog.__init__
+     297  charts/time_series.py          render_axis
+     198  analysis/time_series.py        analyse
+     188  widgets/table_list.py          _show_context_menu
+     167  data_operations/statistics_dialog.py  _format_statistics_html
+   -> split each into named private steps along its existing comment blocks
+      (_build_<card>() for the UIs, _draw_<part>() for the renderers,
+      one builder per menu group). No behaviour change; same widgets, same
+      object names, so tests and saved dialog state keep working.
+
+3. Mutable class attributes (ruff RUF012), e.g. Goals: list[str] = [...] on the
+   data operations: shared lists across instances of a class.
+   -> ClassVar[tuple[str, ...]] (they are read-only metadata).
+
+Order (one commit each, targeted tests after each, full suite at the end)
+  A. BaseAxisRenderer not a Protocol (+ pyright on app/charts)
+  B. the two render_axis
+  C. the three dialog constructors / _build_ui
+  D. analyse, _show_context_menu, _format_statistics_html
+  E. ClassVar metadata
+
+Out of scope: no new strings, no UI change, no translations.
