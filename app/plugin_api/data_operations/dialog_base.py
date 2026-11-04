@@ -918,7 +918,12 @@ class DataOperationDialogBase(QDialog):
         message = str(error) or type(error).__name__
         self._results_label.setHtml(
             "<p style='color:#a40000'><b>" + html.escape(headline or _("Nothing was drawn.")) + "</b></p>"
-            + "<p>" + html.escape(message) + "</p>")
+            + "<p>" + html.escape(message) + "</p>"
+            + self.failure_hint(error))
+
+    def failure_hint(self, error: BaseException | str) -> str:
+        """HTML added under a failure's message: how to put it right. Empty by default."""
+        return ""
 
     # ------------------------------------------------------------------
     # The project's history

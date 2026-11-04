@@ -519,3 +519,20 @@ def test_a_library_function_drawn_is_copied_into_the_project_and_drawn_from_it(r
     sympy_store.save(repo, {**row, "code_string": "x"})  # the project's own, different, function of that name
     assert sympy_store.library_row(repo, "Gaussian peak", values, x, x)["function_name"].endswith("_2")
     assert sympy_store.library_row(repo, "Voigt peak", [1.0] * 5, x, x) is None  # code: drawn as a table
+
+
+def test_a_failed_code_function_says_how_its_code_is_written(qapp, repo: SqliteRepo) -> None:
+    from app.data_operations.function_dialog import SeriesFunctionDialog
+
+    sympy_store.save(repo, {"function_name": "Gaussian", "source_type": "code", "symbols": "A",
+                            "code_string": "def Gaussian(A):\n    f_numeric = A * x\n    return f_numeric\n"})
+    figure_id = repo.create_figure_descriptor(name="F")
+    dialog = SeriesFunctionDialog(repo=repo, figure_id=figure_id, parent=None)
+    try:
+        dialog._apply_serialised(sympy_store.get(repo, "Gaussian"))
+        dialog.show_failure(ValueError("Code must define def Gaussian(...)."))
+        report = dialog.results_widget()._html
+        assert "def Gaussian(A, mu, s):" in report and "f_numeric" in report
+        assert dialog.failure_hint(sympy_store.UntrustedFunction("no")) == ""
+    finally:
+        dialog.deleteLater()

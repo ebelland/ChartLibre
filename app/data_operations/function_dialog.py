@@ -8,6 +8,7 @@ imported/exported as text files.
 from __future__ import annotations
 
 import ast
+import html
 import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -390,6 +391,25 @@ class SeriesFunctionDialog(DataOperationDialogBase):
         """The editor changed: where it can be drawn may have changed with it (a formula of y)."""
         self._sync_destinations()
         self.mark_results_stale()
+
+    def failure_hint(self, error: BaseException | str) -> str:
+        """A failed Code function: the shape its code must have, with an example."""
+        if self._editor.source_type() != "code" or isinstance(error, UntrustedFunction):
+            return ""
+        name = html.escape(self._current_function_name.strip() or "MyFunction")
+        example = (f"def {name}(A, mu, s):\n"
+                   "    f_numeric = A * np.exp(-(x - mu)**2 / (2 * s**2))\n"
+                   "    return f_numeric")
+        rules = [
+            _("Define def {name}(...) with the stored function's name.").format(name=name),
+            _("Its arguments are the parameters only: x and y are given, not passed."),
+            _("Put the result in f_numeric and return it."),
+            _("np (numpy) and sp (sympy) are ready to use; only numpy and sympy may be imported."),
+            _("Using y in the body makes it a surface f(x, y)."),
+        ]
+        return ("<p><b>" + html.escape(_("How to write the code")) + "</b></p><ul>"
+                + "".join(f"<li>{html.escape(rule)}</li>" for rule in rules) + "</ul>"
+                + "<pre>" + html.escape(example) + "</pre>")
 
     def _validated_code_signature(self) -> tuple[str, list[str]]:
         code = self._editor.text.toPlainText()
