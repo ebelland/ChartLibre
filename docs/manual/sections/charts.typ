@@ -173,12 +173,12 @@ Key settings: *levels* (how many stem heights to cycle through), *annotate*, *an
 Charts of how values are distributed, rather than of one value against another.
 
 === Histogram
-Counts values into equal-width bins. Several series — or one series split by a `dataset` column — share the same bins, so they can be compared directly; `weight` counts each row that many times.
+Counts values into equal-width bins, a number you choose or one a binning rule works out from the data. Several series — or one series split by a `dataset` column — share the same bins, so they can be compared directly; `weight` counts each row that many times.
 #roles[`value`][`dataset`, `weight`, `color`]
 #mpl("Axes.hist")
 #example("chart_histogram")
 #use[The first look at the shape of a sample: centre, spread, skew, several peaks.]
-Key settings: *bins*, *range min/max*, *histogram type* (side-by-side bars, stacked bars, step outline, filled step), *density* (normalise to compare samples of different sizes), *cumulative*, *log* count axis, and *distribution fit* to overlay fitted densities.
+Key settings: *bin method* (*count*: the number in *bins*; or worked out from the data — *auto*, *Freedman-Diaconis* for data with outliers, *Scott* or *Sturges* for near-normal data, *Rice*, *square root*, *Doane* for skewed data, *Stone* — once over every series together, so they still share their bins), *bins*, *range min/max*, *histogram type* (side-by-side bars, stacked bars, step outline, filled step), *density* (normalise to compare samples of different sizes), *cumulative*, *log* count axis, and *distribution fit* to overlay fitted densities.
 
 === Box Plot
 The five-number summary of each sample: a box from the first to the third quartile, a line at the median, whiskers reaching 1.5 × IQR (adjustable) and individual points beyond them. A `group` column turns one series into one box per group; without it, each series is a box.
