@@ -7,7 +7,6 @@ Opened from a column's context menu in the table preview. What it changes:
 * the modelling type forced - Continuous, Ordinal, Nominal - which every
   analysis then takes for the column, whatever its values suggest;
 * label, unit, notes;
-* missing value codes, which the analyses read as empty;
 * value labels, which the analyses show in place of the codes.
 
 The description is kept with the table (app.data.column_metadata); OK is
@@ -141,19 +140,12 @@ class ColumnInfoDialog(ColumnsDialog):
         for signal in (self.format.currentIndexChanged, self.decimals.valueChanged, self.pattern.textChanged):
             signal.connect(lambda *_args: self._show_format())
 
-        # -- The values: what counts as missing, and their labels.
+        # -- The values and their labels. Codes for missing values (-999, NA) are made empty cells in the
+        # data itself: the table editor's Fill missing values.
         values_card = self.add_column_card(1, _("Values"), "columnValuesCard", stretch=1)
         self.summary = QLabel("", values_card)
         self.summary.setProperty("muted", True)
         values_card.layout().addWidget(self.summary)
-        missing_form = QFormLayout()
-        stdSizeAndlayout(missing_form)
-        self.missing = QLineEdit(self)
-        self.missing.setPlaceholderText(_("-999, NA, n/d"))
-        self.missing.setToolTip(_("Values that mean \"no value\", separated by commas: the analyses read them "
-                                  "as empty."))
-        missing_form.addRow(_("Missing value codes:"), self.missing)
-        values_card.layout().addLayout(missing_form)
         self.labels = QTableWidget(0, 2, values_card)
         self.labels.setHorizontalHeaderLabels([_("Value"), _("Label")])
         self.labels.verticalHeader().setVisible(False)
@@ -220,7 +212,6 @@ class ColumnInfoDialog(ColumnsDialog):
         self.pattern.setText(info.pattern)
         self._show_format()
         self.summary.setText(self._summary())
-        self.missing.setText(", ".join(info.missing))
         self.labels.setRowCount(0)
         for value, text in info.value_labels.items():
             self._add_label_row(value, text)
@@ -306,7 +297,6 @@ class ColumnInfoDialog(ColumnsDialog):
                 labels[value.text().strip()] = text.text().strip()
         return cm.ColumnInfo(label=self.label.text().strip(), unit=self.unit.text().strip(),
                              notes=self.notes.toPlainText().strip(), kind=str(self.modelling.currentData() or ""),
-                             missing=[code.strip() for code in self.missing.text().split(",") if code.strip()],
                              value_labels=labels, format=str(self.format.currentData() or ""),
                              decimals=self.decimals.value(),
                              pattern=self.pattern.text().strip() or cm.DEFAULT_DATE_PATTERN)

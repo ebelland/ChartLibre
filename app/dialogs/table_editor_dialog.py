@@ -726,10 +726,11 @@ class TableEditorDialog(SettingsTableDialog):
             return
         method = str(dialog.method.currentData())
         value = dialog.value.text()
+        codes = dialog.missing_codes()
 
         def run() -> None:
             count = self._repo.fill_missing(
-                self._table, column, method, _number_or_text(value),
+                self._table, column, method, _number_or_text(value), codes=codes,
                 undo_entry=self._ensure_undo_entry(),
             )
             self._cells_bulk += count
