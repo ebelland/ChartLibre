@@ -76,6 +76,16 @@ SHOWCASE_CHART_TYPES: tuple[str, ...] = (
     "Parallel Plot",
     "Cell Plot",
     "Ternary Plot",
+    "Strip Plot",
+    "Lollipop Chart",
+    "Dumbbell Plot",
+    "Slope Chart",
+    "Ridgeline Plot",
+    "Joint Plot",
+    "2D Histogram",
+    "Bullet Chart",
+    "Calendar Heatmap",
+    "Treemap",
 )
 
 
@@ -120,7 +130,38 @@ def _create_source_tables(cur: sqlite3.Cursor, rng: np.random.Generator, n: int)
         CREATE TABLE src_factorial (dose TEXT, sex TEXT, response REAL);
         -- Effect estimates with their intervals: the forest plot.
         CREATE TABLE src_effects (study TEXT, estimate REAL, low REAL, high REAL, n REAL, pooled INTEGER);
+        -- Two values per category: the dumbbell and the slope chart.
+        CREATE TABLE src_pairs (label TEXT, before REAL, after REAL);
+        -- Measures against targets and bands: the bullet chart.
+        CREATE TABLE src_kpi (label TEXT, value REAL, target REAL, poor REAL, fair REAL, good REAL);
+        -- One value per day over two years: the calendar heatmap.
+        CREATE TABLE src_daily (day TEXT, amount REAL);
+        -- A two-level breakdown: the treemap.
+        CREATE TABLE src_budget (dept TEXT, line TEXT, amount REAL);
         """
+    )
+    cur.executemany(
+        "INSERT INTO src_pairs VALUES (?, ?, ?)",
+        [("North", 42.0, 51.0), ("South", 38.0, 35.5), ("East", 55.0, 61.0), ("West", 47.0, 44.0),
+         ("Centre", 30.0, 41.0), ("Islands", 25.0, 27.5)],
+    )
+    cur.executemany(
+        "INSERT INTO src_kpi VALUES (?, ?, ?, ?, ?, ?)",
+        [("Revenue", 270.0, 250.0, 150.0, 225.0, 300.0), ("Profit", 22.5, 27.0, 20.0, 25.0, 30.0),
+         ("New customers", 1650.0, 2100.0, 1400.0, 2000.0, 2500.0), ("Satisfaction", 4.4, 4.2, 3.5, 4.25, 5.0)],
+    )
+    days = np.arange(np.datetime64("2025-01-01"), np.datetime64("2026-12-31"))
+    weekday = (days.astype("datetime64[D]").view("int64") - 4) % 7
+    season = 10.0 + 4.0 * np.sin(2 * np.pi * np.arange(days.size) / 365.25)
+    amounts = season * np.where(weekday >= 5, 0.45, 1.0) + rng.gamma(2.0, 1.2, days.size)
+    cur.executemany("INSERT INTO src_daily VALUES (?, ?)",
+                    [(str(day), float(amount)) for day, amount in zip(days, amounts)])
+    cur.executemany(
+        "INSERT INTO src_budget VALUES (?, ?, ?)",
+        [("Research", "Staff", 420.0), ("Research", "Equipment", 180.0), ("Research", "Travel", 35.0),
+         ("Production", "Materials", 510.0), ("Production", "Energy", 140.0), ("Production", "Staff", 260.0),
+         ("Sales", "Staff", 190.0), ("Sales", "Marketing", 120.0), ("Sales", "Travel", 45.0),
+         ("Admin", "Rent", 95.0), ("Admin", "IT", 70.0), ("Admin", "Insurance", 25.0)],
     )
     # The 6-MP leukaemia trial (Freireich 1963), the textbook Kaplan-Meier example.
     treated = [(6, 1), (6, 1), (6, 1), (6, 0), (7, 1), (9, 0), (10, 1), (10, 0), (11, 0), (13, 1), (16, 1),
@@ -899,6 +940,77 @@ def _showcase_definitions() -> list[dict[str, Any]]:
                     {},
                 ),
             ],
+        },
+        {
+            "chart_type": "Strip Plot",
+            "name": "Strip showcase",
+            "labels": ("group", "measurement"),
+            "axis_options": {"title": "Strip Plot"},
+            "series": [("samples", "SELECT grp AS x, measurement AS y FROM src_samples WHERE rowid % 3 = 0", {})],
+        },
+        {
+            "chart_type": "Lollipop Chart",
+            "name": "Lollipop showcase",
+            "labels": ("amount", ""),
+            "axis_options": {"title": "Lollipop Chart", "sort": "descending"},
+            "series": [("amounts", "SELECT label AS x, amount AS y FROM src_categories", {})],
+        },
+        {
+            "chart_type": "Dumbbell Plot",
+            "name": "Dumbbell showcase",
+            "labels": ("sales", ""),
+            "axis_options": {"title": "Dumbbell Plot", "sort": "difference", "start_name": "2025",
+                             "end_name": "2026"},
+            "series": [("regions", "SELECT label, before AS start, after AS \"end\" FROM src_pairs", {})],
+        },
+        {
+            "chart_type": "Slope Chart",
+            "name": "Slope showcase",
+            "labels": ("", "sales"),
+            "axis_options": {"title": "Slope Chart", "start_name": "2025", "end_name": "2026"},
+            "series": [("regions", "SELECT label, before AS start, after AS \"end\" FROM src_pairs", {})],
+        },
+        {
+            "chart_type": "Ridgeline Plot",
+            "name": "Ridgeline showcase",
+            "labels": ("measurement", ""),
+            "axis_options": {"title": "Ridgeline Plot"},
+            "series": [("samples", 'SELECT grp AS "group", measurement AS y FROM src_samples', {})],
+        },
+        {
+            "chart_type": "Joint Plot",
+            "name": "Joint showcase",
+            "labels": ("x", "y"),
+            "axis_options": {"title": "Joint Plot"},
+            "series": [("cloud", "SELECT x, y FROM src_xy LIMIT 600", {})],
+        },
+        {
+            "chart_type": "2D Histogram",
+            "name": "2D histogram showcase",
+            "labels": ("x", "y"),
+            "axis_options": {"title": "2D Histogram"},
+            "series": [("cloud", "SELECT x, y FROM src_xy", {})],
+        },
+        {
+            "chart_type": "Bullet Chart",
+            "name": "Bullet showcase",
+            "labels": ("% of the good band", ""),
+            "axis_options": {"title": "Bullet Chart", "relative": True},
+            "series": [("kpi", "SELECT label, value, target, poor, fair, good FROM src_kpi", {})],
+        },
+        {
+            "chart_type": "Calendar Heatmap",
+            "name": "Calendar showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Calendar Heatmap"},
+            "series": [("daily", "SELECT day AS date, amount AS value FROM src_daily", {})],
+        },
+        {
+            "chart_type": "Treemap",
+            "name": "Treemap showcase",
+            "labels": ("", ""),
+            "axis_options": {"title": "Treemap"},
+            "series": [("budget", 'SELECT dept AS "group", line AS label, amount AS value FROM src_budget', {})],
         },
     ]
 
