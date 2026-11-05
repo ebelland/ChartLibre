@@ -20,6 +20,7 @@ from collections.abc import Iterable
 from typing import Any
 
 import pandas as pd
+
 from app.utils.coercion import to_numbers
 
 AUTO, DAY_FIRST, MONTH_FIRST, YEAR_FIRST, FORMAT = "auto", "dayfirst", "monthfirst", "yearfirst", "format"

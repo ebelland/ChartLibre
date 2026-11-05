@@ -40,10 +40,10 @@ from app.data.repo.project import CAST_TYPES
 from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
 from app.logs.logger import applogger
 from app.styles.style import stdSizeAndlayout
+from app.utils.coercion import to_numbers
 from app.utils.i18n import _
 from app.utils.messages import show_message
 from app.widgets.chart_jump_bar import jump_arrow
-from app.utils.coercion import to_numbers
 
 #: The modelling types offered, "" first: the values decide.
 MODELLING_TYPES: tuple[tuple[str, str], ...] = (
