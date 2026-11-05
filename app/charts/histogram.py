@@ -37,6 +37,50 @@ _HISTTYPES: tuple[str, ...] = ("bar", "barstacked", "step", "stepfilled")
 _ORIENTATIONS: tuple[str, ...] = ("vertical", "horizontal")
 
 
+
+#: The most bins a histogram draws, typed or worked out.
+MAX_BINS: int = 1000
+
+#: Bin method -> NumPy's estimator; "count" is the number typed in Bins.
+BIN_METHODS: dict[str, str] = {
+    "count": "", "auto": "auto", "freedman-diaconis": "fd", "scott": "scott", "sturges": "sturges",
+    "rice": "rice", "sqrt": "sqrt", "doane": "doane", "stone": "stone",
+}
+
+
+def shared_bins(datasets: list[np.ndarray], method: str, count: int,
+                bin_range: tuple[float, float] | None) -> int | np.ndarray:
+    """The bins every data set shares: *count* of them for "count", else the edges *method* works out from
+    all the values together (inside *bin_range*), at most MAX_BINS.
+
+    One set of edges for every data set, as with a typed count: bins that differ per data set could not
+    be compared bar by bar.
+    """
+    count = max(1, min(MAX_BINS, int(count)))
+    estimator = BIN_METHODS.get(str(method).strip().lower())
+    if estimator is None:
+        applogger.warning("Unknown histogram bin method %r; using %d bins.", method, count)
+        return count
+    if not estimator:
+        return count
+    values = np.concatenate([np.asarray(data, dtype=float).ravel() for data in datasets]) if datasets else np.empty(0)
+    values = values[np.isfinite(values)]
+    if bin_range is not None:
+        values = values[(values >= bin_range[0]) & (values <= bin_range[1])]
+    if values.size < 2 or np.ptp(values) == 0:
+        return count  # nothing to estimate a width from
+    try:
+        edges = np.histogram_bin_edges(values, bins=estimator, range=bin_range)
+    except (ValueError, MemoryError) as exc:
+        applogger.warning("The %s bin method failed (%s); using %d bins.", method, exc, count)
+        return count
+    if edges.size - 1 > MAX_BINS:
+        applogger.warning("The %s bin method asks for %d bins; drawing %d.", method, edges.size - 1, MAX_BINS)
+        low, high = (bin_range if bin_range is not None else (float(values.min()), float(values.max())))
+        return np.linspace(low, high, MAX_BINS + 1)
+    return edges
+
+
 class HistogramAxisRenderer(BaseAxisRenderer):
     """Renderer for histograms over one or more data sets.
 
@@ -73,14 +117,28 @@ class HistogramAxisRenderer(BaseAxisRenderer):
                 "horizontal: values on the y axis, counts to the right."
             ),
         },
+        "bin_method": {
+            "default": "count",
+            "type": list(BIN_METHODS),
+            "group": "Binning",
+            "description": (
+                "How the bins are chosen. 'count': the number in Bins. The others work it out from the "
+                "data: 'auto' the larger of Sturges and Freedman-Diaconis; 'freedman-diaconis' a width "
+                "from the interquartile range, robust to outliers; 'scott' from the standard deviation, "
+                "for near-normal data; 'sturges' log2(n) + 1 bins, for small near-normal samples; "
+                "'rice' 2 n^(1/3); 'sqrt' the square root of n; 'doane' Sturges corrected for skew; "
+                "'stone' the width that minimises an estimate of the error (slow on large data). "
+                "Worked out once over every data set together, inside the range."
+            ),
+        },
         "bins": {
             "default": 20,
             "type": int,
             "min": 1,
-            "max": 1000,
+            "max": MAX_BINS,
             "group": "Binning",
             "description": (
-                "Number of equal-width bins shared by every data set. "
+                "Number of equal-width bins shared by every data set, when Bin method is 'count'. "
                 "One shared binning is what allows the data sets to be compared."
             ),
         },
@@ -477,8 +535,10 @@ class HistogramAxisRenderer(BaseAxisRenderer):
             # look like the option was ignored.
             density = True
 
+        bin_range = self._bin_range(datasets, base_kwargs)
         hist_kwargs: dict[str, Any] = {
-            "bins": max(1, int(base_kwargs.get("bins", 20) or 20)),
+            "bins": shared_bins(datasets, str(base_kwargs.get("bin_method") or "count"),
+                                int(base_kwargs.get("bins", 20) or 20), bin_range),
             "orientation": orientation,
             "histtype": histtype,
             "stacked": bool(base_kwargs.get("stacked", False)),
@@ -489,9 +549,8 @@ class HistogramAxisRenderer(BaseAxisRenderer):
             "label": labels,
         }
 
-        bin_range = self._bin_range(datasets, base_kwargs)
-        if bin_range is not None:
-            hist_kwargs["range"] = bin_range
+        if bin_range is not None and not isinstance(hist_kwargs["bins"], np.ndarray):
+            hist_kwargs["range"] = bin_range  # edges worked out already lie inside it
 
         if any_weights:
             hist_kwargs["weights"] = weights
