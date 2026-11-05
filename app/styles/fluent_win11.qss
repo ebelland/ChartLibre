@@ -1241,15 +1241,14 @@ QDialog
    Section headers
    ---------------------------------------------------------- */
 
+/* Windows 11's "Body Strong": the section's name in the text's own colour,
+   semibold, a step above the body - not a small grey caption, which read
+   as a hint rather than as the heading of what is below it. */
 QLabel[sectionTitle="true"] {
-
-    color: rgba(@NEUTRAL_RGB@, 0.9);
-
+    color: palette(window-text);
     padding-top: 8px;
     padding-bottom: 4px;
-
-    font-size: 9pt;
-
+    font-size: 10.5pt;
     font-weight: 600;
 }
 
@@ -1563,4 +1562,50 @@ QAbstractItemView::indicator:indeterminate {
   background: palette(highlight);
   border: 1px solid palette(highlight);
   border-radius: 4px;
+}
+
+/* -------------------------------
+   Chart navigation: Matplotlib's bar is hidden (ChartNavigation in
+   chart_panel/panel.py) and its actions shown as one rounded group of
+   the platform's icons - reset, back, forward | pan, zoom - with the
+   active tool in the accent, and the cursor's coordinates beside it.
+-------------------------------- */
+
+QFrame#chartNavPill {
+  background: palette(base);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.10);
+  border-radius: 17px;
+}
+
+QFrame#chartNavSeparator {
+  background: rgba(@SHADOW_RGB@, 0.12);
+  border: none;
+}
+
+QFrame#chartNavPill QToolButton#chartToolButton {
+  background: transparent;
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  min-width: 28px;
+  max-width: 28px;
+  min-height: 28px;
+  max-height: 28px;
+}
+
+QFrame#chartNavPill QToolButton#chartToolButton:hover {
+  background: rgba(@SHADOW_RGB@, 0.06);
+}
+
+QFrame#chartNavPill QToolButton#chartToolButton:checked {
+  background: rgba(@ACCENT_RGB@, 0.18);
+}
+
+QFrame#chartNavPill QToolButton#chartToolButton:disabled {
+  background: transparent;
+}
+
+QLabel#chartCoordLabel {
+  color: rgba(@NEUTRAL_RGB@, 1.0);
+  padding: 0 4px;
 }

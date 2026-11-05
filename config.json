@@ -648,6 +648,41 @@
       "SegoeFluent": "E774",
       "ThemeIcon": "applications-internet"
     },
+    "chart_home": {
+      "text": "Reset view",
+      "description": "Back to the chart's whole view",
+      "SFSymbol": "house",
+      "SegoeFluent": "E80F",
+      "ThemeIcon": "go-home"
+    },
+    "chart_back": {
+      "text": "Previous view",
+      "description": "The view before the last pan or zoom",
+      "SFSymbol": "arrow.backward",
+      "SegoeFluent": "E72B",
+      "ThemeIcon": "go-previous"
+    },
+    "chart_forward": {
+      "text": "Next view",
+      "description": "The view after this one, when you went back",
+      "SFSymbol": "arrow.forward",
+      "SegoeFluent": "E72A",
+      "ThemeIcon": "go-next"
+    },
+    "chart_pan": {
+      "text": "Pan",
+      "description": "Drag to move the view; right-drag to zoom. x or y held fixes that axis",
+      "SFSymbol": "arrow.up.and.down.and.arrow.left.and.right",
+      "SegoeFluent": "E7C2",
+      "ThemeIcon": "transform-move"
+    },
+    "chart_zoom": {
+      "text": "Zoom to rectangle",
+      "description": "Drag a rectangle to zoom into it. x or y held fixes that axis",
+      "SFSymbol": "plus.magnifyingglass",
+      "SegoeFluent": "E71E",
+      "ThemeIcon": "zoom-in"
+    },
     "zoom_fit": {
       "text": "Zoom to fit",
       "description": "Fit the whole chart in the panel",
