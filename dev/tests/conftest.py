@@ -69,6 +69,26 @@ def _dialogs_start_from_their_defaults(_private_user_config):
     yield
 
 
+@pytest.fixture(autouse=True, scope="module")
+def _no_windows_left_from_the_last_file():
+    """A file's leftover windows go with it.
+
+    Tests rarely delete what they open, and every widget alive is repolished when a style sheet is applied:
+    by the end of a run one apply took 50 seconds, a third of the whole suite.
+    """
+    yield
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        return
+    for widget in QApplication.topLevelWidgets():
+        widget.close()
+        widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _private_user_config(tmp_path_factory: pytest.TempPathFactory):
     """Point user.json at an empty one of its own for the whole run: every setting at its default.
