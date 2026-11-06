@@ -1046,12 +1046,37 @@ class AxisPropertiesWidget(BaseProperties):
         self.set_kwargs_widget(editor)
 
     def clean_kwargs(self) -> dict[str, Any]:
-        """Commit and return non-empty kwargs values."""
+        """Commit and return the kwargs values, the empty ones left out - unless leaving one out would uncover a
+        value stored outside the panel.
+
+        A report figure (Distribution, Statistics) keeps some settings in the axis' own options rather than in
+        ``axis_kwargs`` - the histogram's ``distribution_fit``, say. Those are read after ``axis_kwargs``, so a
+        setting cleared here and dropped came back from there: emptying the fit drew the Normal curve again.
+        For those the cleared setting is written as its default, which wins.
+        """
         if self._kwargs_editor is None:
             return {}
         self._kwargs_editor.commit_pending_edits()
         values = cast(dict[str, Any], self._kwargs_editor.get_values())
-        return {key: value for key, value in values.items() if value != ""}
+        stored = self._options_below_kwargs()
+        schema = self._kwargs_editor.config
+        cleaned: dict[str, Any] = {}
+        for key, value in values.items():
+            if value != "":
+                cleaned[key] = value
+            elif key in stored:
+                # Cleared over a stored value: the setting's own default, said explicitly so it wins.
+                meta = schema.get(key)
+                cleaned[key] = meta.get("default") if isinstance(meta, dict) else None
+        return cleaned
+
+    def _options_below_kwargs(self) -> set[str]:
+        """The settings the axis keeps with a value in its own options, read after ``axis_kwargs``."""
+        if self._repo is None or self._kwargs_build_signature is None:
+            return set()
+        options = self._repo.get_axis_options(int(self._kwargs_build_signature[0])) or {}
+        return {str(key) for key, value in options.items()
+                if key not in ("axis_kwargs", "renderer_options") and value not in (None, "")}
 
     def _reset_kwargs_to_defaults(self) -> None:
         """Reset every row of the kwargs editor to "leave it to the style".
