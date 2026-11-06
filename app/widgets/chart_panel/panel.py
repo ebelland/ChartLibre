@@ -424,6 +424,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         # splitter child so the HTML results pane can be resized and collapsed
         # independently from the chart display.
         self._chart_area = QWidget(self)
+        self._chart_area.setObjectName("chartArea")
         self._chart_area.setMinimumHeight(CHART_AREA_MIN_HEIGHT)
         self._chart_area.setSizePolicy(
             QSizePolicy.Policy.Expanding,

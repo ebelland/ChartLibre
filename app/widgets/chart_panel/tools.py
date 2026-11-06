@@ -1290,7 +1290,13 @@ class ChartToolsMixin(_Host):
 
         # Style sheets make the background deterministic even when the app-wide
         # QSS disables palette painting for QFrame/QScrollArea descendants.
-        self.setStyleSheet(f"QFrame#ChartPanel {{ background-color: {color_name}; }}")
+        # The chart area by name too: the panel's own sheet re-polishes its
+        # children, which put the window's palette back on it and left the
+        # toolbar row a lighter grey strip above the desk.
+        self.setStyleSheet(
+            f"QFrame#ChartPanel {{ background-color: {color_name}; }} "
+            f"QWidget#chartArea {{ background-color: {color_name}; }}"
+        )
         self._fixed_scroll_area.setStyleSheet("QScrollArea#chartScrollArea { "
             f"background-color: {color_name}; border: none; "
             "}"
