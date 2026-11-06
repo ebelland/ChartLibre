@@ -694,6 +694,11 @@ def _symbol_tint() -> str:
     return SYMBOL_INK_LIGHT if _ACTIVE_THEME_IS_DARK else SYMBOL_INK_DARK
 
 
+def theme_is_dark() -> bool:
+    """Whether the theme this application applied is a dark one (see :func:`_symbol_tint` for why not the palette)."""
+    return _ACTIVE_THEME_IS_DARK
+
+
 def _opaque_bounding_rect(pixmap: QPixmap) -> QRect:
     """Return the bounding rectangle of a pixmap's non-transparent pixels.
 

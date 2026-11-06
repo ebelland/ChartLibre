@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import gc
 import json
+import logging
 import re
 import warnings
 from collections.abc import Callable, Mapping
@@ -30,8 +31,6 @@ from PySide6.QtGui import (
     QIcon,
     QKeySequence,
     QMouseEvent,
-    QPainter,
-    QPalette,
     QShortcut,
 )
 from PySide6.QtWidgets import (
@@ -70,7 +69,7 @@ from app.dialogs.credits_dialog import CreditsDialog
 from app.dialogs.import_data_dialog import ImportDataDialog
 from app.dialogs.log_viewer_dialog import LogViewerDialog
 from app.dialogs.query_builder_dialog import QueryBuilderDialog
-from app.logs.logger import applogger
+from app.logs.logger import applogger, log_events
 from app.main_window.custom_title_bar import CustomTitleBar
 from app.plugin_api.charts import layout_presets
 from app.scanners.data_operation_scanner import import_class_from_file
@@ -87,11 +86,13 @@ from app.styles.style import (
     _pyobjc_core_is_safe_to_import,
     action_menu_item,
     action_presentation,
+    colored_icon,
     create_menu,
     create_menu_item,
     icon_from_svg_source,
     relax_minimum_width,
     stdSizeAndlayout,
+    theme_is_dark,
 )
 from app.utils import column_summary
 from app.utils.config import (
@@ -197,6 +198,12 @@ def resize_edges(
     elif on_bottom:
         edges |= Qt.Edge.BottomEdge
     return edges
+
+
+def _first_line(message: str, limit: int = 160) -> str:
+    """The first line of a log message, cut to *limit* characters: a status bar has one line."""
+    line = next((part.strip() for part in str(message or "").splitlines() if part.strip()), "")
+    return line if len(line) <= limit else line[: limit - 1] + "\u2026"
 
 
 class MainWindow(QMainWindow):
@@ -341,7 +348,7 @@ class MainWindow(QMainWindow):
             status_bar = self.statusBar()
             status_bar.setMouseTracking(True)
             status_bar.installEventFilter(self)
-            for label in (self._status_project, self._status_context, self._status_state):
+            for label in (self._status_project, self._status_context, self._status_state, self._status_dot):
                 label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
         # Default page: the tables, not whatever happens to be first in the
@@ -365,19 +372,31 @@ class MainWindow(QMainWindow):
 
         applogger.debug("Main window initialized")
 
-    _STATUS_BAR_COLORS = {
-        "normal": "#007ACC",
-        "success": "#16825D",
-        "busy": "#B35C00",
-        "warning": "#9A6700",
-        "error": "#C42B1C",
+    #: The status bar's states, light theme then dark: background, top border, text, dot.
+    #: A quiet bar in the window's own colour while all is well - the solid blue
+    #: strip it was drew the eye to the one place with nothing to read - and a
+    #: coloured one only when there is something to see: amber for a warning,
+    #: red for an error, until it is dismissed.
+    _STATUS_BAR_STATES: ClassVar[dict[str, tuple[tuple[str, str, str, str], tuple[str, str, str, str]]]] = {
+        "normal": (("palette(window)", "rgba(0, 0, 0, 0.08)", "#4A5263", "#22A06B"),
+                   ("palette(window)", "rgba(255, 255, 255, 0.10)", "#B9C0CB", "#3FCF8E")),
+        "success": (("palette(window)", "rgba(0, 0, 0, 0.08)", "#16704A", "#22A06B"),
+                    ("palette(window)", "rgba(255, 255, 255, 0.10)", "#5BD69A", "#3FCF8E")),
+        "busy": (("palette(window)", "rgba(0, 0, 0, 0.08)", "#1D4FB8", "#2F6FE4"),
+                 ("palette(window)", "rgba(255, 255, 255, 0.10)", "#8DB4FF", "#4C8DF6")),
+        "warning": (("#FEF6E4", "#F3D9A4", "#7A4D05", "#B54708"),
+                    ("#3A2E12", "#6B5320", "#F5D58A", "#F0B429")),
+        "error": (("#FDECEC", "#F4B4B0", "#912018", "#C4320A"),
+                  ("#3A1D1D", "#6E2B2B", "#FFB4AB", "#FF6B5E")),
     }
+    #: A warning fades back to Ready after this long; an error stays until dismissed.
+    _STATUS_WARNING_MS = 8_000
 
     def _configure_status_bar(self) -> None:
         bar = self.statusBar()
         bar.setObjectName("vscodeStatusBar")
         bar.setSizeGripEnabled(False)
-        bar.setFixedHeight(24)
+        bar.setFixedHeight(26)
         # The bar's own edge padding, and the only way to get it: QStatusBar
         # is one of the widgets whose QSS box model Qt only honours for
         # background and border, so a "padding" in the sheet below is
@@ -392,23 +411,88 @@ class MainWindow(QMainWindow):
         self._status_context = QLabel(_("ChartLibre"), bar)
         self._status_state = QLabel(_("Ready"), bar)
         self._status_state.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._status_state.setObjectName("statusState")
+        self._status_dot = QLabel(bar)
+        self._status_dot.setObjectName("statusDot")
+        self._status_dot.setFixedSize(8, 8)
+        # With an error only: the log it came from, and a way back to Ready.
+        # Links rather than buttons: a label sits on the bar's text line, where
+        # a tool button's own frame put it a few pixels lower.
+        self._status_actions = QLabel(bar)
+        self._status_actions.setObjectName("statusActions")
+        self._status_actions.setTextFormat(Qt.TextFormat.RichText)
+        self._status_actions.setText(
+            f'<a href="log">{_("Show log")}</a>&nbsp;&nbsp;&nbsp;<a href="dismiss" title="{_("Dismiss")}">\u2715</a>'
+        )
+        self._status_actions.linkActivated.connect(self._on_status_action)
+        self._status_actions.hide()
+        self._status_timer = QTimer(self)
+        self._status_timer.setSingleShot(True)
+        self._status_timer.timeout.connect(lambda: self._set_status_state("normal", _("Ready")))
+        self._status_current = "normal"
         bar.addWidget(self._status_project, 0)
         bar.addWidget(self._status_context, 1)
+        bar.addPermanentWidget(self._status_dot, 0)
         bar.addPermanentWidget(self._status_state, 0)
+        bar.addPermanentWidget(self._status_actions, 0)
         self._set_status_state("normal")
+        log_events.record_emitted.connect(self._on_log_record_for_status)
+
+    def _on_status_action(self, link: str) -> None:
+        """A link in the status bar: open the log, or dismiss the error."""
+        if link == "log":
+            self._show_log_viewer()
+        self._set_status_state("normal", _("Ready"))
+
+    def _on_log_record_for_status(self, _formatted: str, level: int, message: str) -> None:
+        """Turn the status bar amber on a warning and red on an error, saying what happened.
+
+        Only what was logged at WARNING or above: an INFO line is not news. A
+        warning does not replace an error still showing, which is the one that
+        needs reading. Qt's own warnings ("This plugin does not support ...")
+        are about the toolkit, not about anything the person did, and stay in
+        the log only - a Qt critical is still an error.
+        """
+        if level < logging.ERROR and str(message).startswith(("Qt warning:", "Qt info:", "Qt debug:")):
+            return
+        if level >= logging.ERROR:
+            self._set_status_state("error", _first_line(message))
+        elif level >= logging.WARNING and self._status_current != "error":
+            self._set_status_state("warning", _first_line(message), timeout_ms=self._STATUS_WARNING_MS)
+        else:
+            return
+        # The logger also writes every message at the bar's left for a few
+        # seconds; this one is said on the right, in colour, and stays - the
+        # left keeps the project's name instead of the same words twice.
+        QTimer.singleShot(0, self.statusBar().clearMessage)
 
     def _set_status_state(self, state: str = "normal", message: str | None = None, timeout_ms: int = 0) -> None:
-        color = self._STATUS_BAR_COLORS.get(state, self._STATUS_BAR_COLORS["normal"])
+        """Colour the status bar for *state* and show *message* in it; after *timeout_ms*, back to Ready."""
+        if state not in self._STATUS_BAR_STATES:
+            state = "normal"
+        background, border, text, dot = self._STATUS_BAR_STATES[state][1 if theme_is_dark() else 0]
         stylesheet = (
-            f"QStatusBar#vscodeStatusBar {{ background: {color}; color: white; border: none; }} "
+            f"QStatusBar#vscodeStatusBar {{ background: {background}; color: {text}; border: none; "
+            f"border-top: 1px solid {border}; }} "
             "QStatusBar#vscodeStatusBar::item { border: none; } "
-            "QStatusBar#vscodeStatusBar QLabel { color: white; background: transparent; padding: 0 4px; }"
+            f"QStatusBar#vscodeStatusBar QLabel {{ color: {text}; background: transparent; padding: 0 4px; }} "
+            f"QStatusBar#vscodeStatusBar QLabel#statusDot {{ background: {dot}; border-radius: 4px; padding: 0; }} "
         )
         self.statusBar().setStyleSheet(stylesheet)
+        self._status_current = state
+        alarming = state == "error"
+        # The links in the bar's own text colour, bold: blue on red would not read.
+        self._status_actions.setText(
+            f'<a href="log" style="color:{text}; font-weight:600;">{_("Show log")}</a>&nbsp;&nbsp;&nbsp;'
+            f'<a href="dismiss" style="color:{text}; text-decoration:none;">\u2715</a>'
+        )
+        self._status_actions.setVisible(alarming)
+        self._status_timer.stop()
         if message is not None:
             self._status_state.setText(message)
+            self._status_state.setToolTip(message if alarming or state == "warning" else "")
             if timeout_ms > 0:
-                QTimer.singleShot(timeout_ms, lambda: self._set_status_state("normal", _("Ready")))
+                self._status_timer.start(timeout_ms)
 
     def _update_window_title(self) -> None:
         """Show the active project beside ChartLibre in every title surface.
@@ -814,21 +898,32 @@ class MainWindow(QMainWindow):
         icon, _text, _tooltip = action_presentation(action_id)
         return icon
 
-    @staticmethod
-    def _accent_icon(icon: QIcon) -> QIcon:
-        """*icon* drawn in the accent colour, at the sizes the rail uses."""
-        accent = QApplication.palette().color(QPalette.ColorRole.Highlight)
-        tinted = QIcon()
-        for size in (16, 20, 24, 32, 48):
-            pixmap = icon.pixmap(size, size)
-            if pixmap.isNull():
-                continue
-            painter = QPainter(pixmap)
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
-            painter.fillRect(pixmap.rect(), accent)
-            painter.end()
-            tinted.addPixmap(pixmap)
-        return tinted if not tinted.isNull() else icon
+    #: Each rail row's colour, light theme then dark. A rail of grey icons
+    #: all alike is read word by word; a colour per row is found by eye, and
+    #: stays the same row's in every theme. The hues are the chart style's,
+    #: so the window and the charts in it agree.
+    _RAIL_COLOURS: ClassVar[dict[str, tuple[str, str]]] = {
+        "nav_workspace": ("#5B6474", "#A9B1BD"),
+        "nav_file": ("#C26A12", "#F2A65A"),
+        "nav_data": ("#2F6FE4", "#6EA0FF"),
+        "nav_new_table": ("#0E7F8D", "#4CC9D8"),
+        "nav_chart_options": ("#6A4BD6", "#A893FF"),
+        "nav_analysis": ("#178A58", "#4DD293"),
+        "nav_guided": ("#B7791F", "#F0C04A"),
+        "nav_assistant": ("#C2417A", "#F27BB0"),
+        "database_info": ("#3E5A8A", "#8FA9D6"),
+        "nav_help": ("#5B6474", "#A9B1BD"),
+        "settings": ("#5B6474", "#A9B1BD"),
+    }
+
+    @classmethod
+    def _rail_icon(cls, action_id: str) -> QIcon:
+        """The rail's icon for *action_id*, drawn in that row's colour."""
+        icon = cls._navigation_icon(action_id)
+        colours = cls._RAIL_COLOURS.get(action_id)
+        if colours is None:
+            return icon
+        return colored_icon(icon, colours[1] if theme_is_dark() else colours[0], 20)
 
     def _create_navigation(self) -> NavigationBar:
         """Create the bar and panel host from one section dictionary."""
@@ -861,42 +956,42 @@ class MainWindow(QMainWindow):
         sections: dict[str, dict[str, NavBarItem]] = {
             "Tools": {
                 "workspace": NavBarItem(
-                    _("Workspace"), self._navigation_icon("nav_workspace"), None,
+                    _("Workspace"), self._rail_icon("nav_workspace"), None,
                     _("Hide the panel"),
                 ),
                 "file": NavBarItem(
-                    _("File"), self._navigation_icon("nav_file"), file_panel,
+                    _("File"), self._rail_icon("nav_file"), file_panel,
                     _("New, open, import and save"),
                 ),
                 "tables": NavBarItem(
-                    _("Tables"), self._navigation_icon("nav_data"), tables_panel,
+                    _("Tables"), self._rail_icon("nav_data"), tables_panel,
                     _("Show data tables"),
                 ),
                 "new_table": NavBarItem(
-                    _("New table"), self._navigation_icon("nav_new_table"), new_table_panel,
+                    _("New table"), self._rail_icon("nav_new_table"), new_table_panel,
                     _("Create a new table"),
                 ),
                 "chart_properties": NavBarItem(
-                    _("Chart properties"), self._navigation_icon("nav_chart_options"),
+                    _("Chart properties"), self._rail_icon("nav_chart_options"),
                     chart_properties_panel, _("Edit the current chart"),
                 ),
                 "analysis": NavBarItem(
-                    _("Analysis"), self._navigation_icon("nav_analysis"),
+                    _("Analysis"), self._rail_icon("nav_analysis"),
                     analysis_panel, _("Every analysis and data operation, by category, as JMP's Analyze menu"),
                 ),
-                # After Analysis, in the accent colour: the way in for someone
+                # After Analysis, in amber like a hint: the way in for someone
                 # who does not know which analysis to choose.
                 "guided": NavBarItem(
-                    _("Guided analysis"), self._accent_icon(self._navigation_icon("nav_guided")),
+                    _("Guided analysis"), self._rail_icon("nav_guided"),
                     guided_panel, _("Find the function for what you want to find out"),
                 ),
                 "assistant": NavBarItem(
-                    _("Assistant"), self._navigation_icon("nav_assistant"), assistant_panel,
+                    _("Assistant"), self._rail_icon("nav_assistant"), assistant_panel,
                     _("Ask an AI about the project's data - and, as Settings allow, have it run analyses or change "
                       "the data"),
                 ),
                 "developer": NavBarItem(
-                    _("Project"), self._navigation_icon("database_info"), developer_panel,
+                    _("Project"), self._rail_icon("database_info"), developer_panel,
                     _("The project's information, history, database and log - and, in developer mode, the tools for extending the app"),
                 ),
             },
@@ -905,13 +1000,13 @@ class MainWindow(QMainWindow):
             # macOS has Help in its menu bar; elsewhere the rail is the menu.
             sections["Settings"] = {
                 "help": NavBarItem(
-                    _("Help"), self._navigation_icon("nav_help"), None,
+                    _("Help"), self._rail_icon("nav_help"), None,
                     _("User manual and credits"),
                 ),
             }
         if IS_WINDOWS:
             sections.setdefault("Settings", {})["settings"] = NavBarItem(
-                _("Settings"), self._navigation_icon("settings"), None,
+                _("Settings"), self._rail_icon("settings"), None,
                 _("Open application settings"),
             )
 

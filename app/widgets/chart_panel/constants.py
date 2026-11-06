@@ -17,6 +17,11 @@ CONFIG_MIN_ZOOM: Final[str] = "min_zoom_percent"
 CONFIG_MAX_ZOOM: Final[str] = "max_zoom_percent"
 CONFIG_INITIAL_ZOOM: Final[str] = "initial_zoom_percent"
 CONFIG_BACKGROUND_COLOR: Final[str] = "background_color"
+#: The chart panel's background setting that follows the theme: the desk the figure lies on.
+BACKGROUND_AUTO: Final[str] = "auto"
+#: The desk colour, light theme then dark: a cool grey a step off the window's,
+#: so a white figure stands out from it as a page does from a desk.
+DESK_COLOURS: Final[tuple[str, str]] = ("#e6e9ee", "#141517")
 CONFIG_COPY_DPI: Final[str] = "copy_dpi"
 FIGURE_VIEW_OPTIONS_KEY: Final[str] = "view"
 RESIZE_MODES: Final[tuple[str, ...]] = ("FIT", "FIT_PROPORTIONAL", "FIXED")

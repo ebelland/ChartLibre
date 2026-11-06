@@ -249,6 +249,10 @@ EXTRA_THEME_ICON_NAMES: frozenset[str] = frozenset(
         # The user manual: freedesktop's own name for "open the help
         # document", which is exactly what this action does.
         "help-contents",
+        # The chart's Pan tool: no standard name means "move the view";
+        # Breeze and Papirus ship this one, and where a theme has none the
+        # button keeps Matplotlib's own move icon (ChartNavigation).
+        "transform-move",
         # Connecting to a server database: the freedesktop Status icon for
         # network activity, the closest standard name to what this does.
         "network-transmit-receive",

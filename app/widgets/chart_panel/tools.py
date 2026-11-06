@@ -43,9 +43,11 @@ from app.utils.hidpi import apply_configured_dpi, inches_to_logical, logical_to_
 from app.utils.i18n import _
 from app.utils.messages import ask, show_message
 from app.widgets.chart_panel.constants import (
+    BACKGROUND_AUTO,
     CONFIG_COPY_DPI,
     CONFIG_SECTION,
     DEFAULT_ASPECT_RATIO,
+    DESK_COLOURS,
     FIXED_MODE_SCREEN_DPI,
     LIVE_REFRESH_INTERVAL_MS,
 )
@@ -1105,11 +1107,21 @@ class ChartToolsMixin(_Host):
 
         return super().eventFilter(watched, event)
 
-    def _fill_background(self, widget: QWidget) -> None:
-        """Fill a widget's whole rect with the configured background colour."""
+    def _resolved_background_color(self) -> PySide6.QtGui.QColor:
+        """The colour around the figure: the theme's desk for "auto", else the configured one."""
+        if str(self._background_color).strip().lower() == BACKGROUND_AUTO:
+            window = QApplication.palette().color(PySide6.QtGui.QPalette.ColorRole.Window)
+            return PySide6.QtGui.QColor(DESK_COLOURS[1] if window.lightness() < 128 else DESK_COLOURS[0])
         color = PySide6.QtGui.QColor(self._background_color)
         if not color.isValid():
-            color = PySide6.QtGui.QColor("#ffffff")
+            applogger.warning("Invalid background color %r: the theme's is used.", self._background_color)
+            self._background_color = BACKGROUND_AUTO
+            return self._resolved_background_color()
+        return color
+
+    def _fill_background(self, widget: QWidget) -> None:
+        """Fill a widget's whole rect with the configured background colour."""
+        color = self._resolved_background_color()
 
         painter = PySide6.QtGui.QPainter(widget)
         try:
@@ -1265,12 +1277,7 @@ class ChartToolsMixin(_Host):
         viewport on top of this: one existed, returned True, and cancelled this
         erase - see eventFilter.
         """
-        qcolor = PySide6.QtGui.QColor(self._background_color)
-        if not qcolor.isValid():
-            qcolor = PySide6.QtGui.QColor("#ffffff")
-            self._background_color = qcolor.name()
-            applogger.warning("Invalid background color")
-
+        qcolor = self._resolved_background_color()
         color_name = qcolor.name()
 
         for widget in self._background_painted_widgets():
@@ -1283,7 +1290,13 @@ class ChartToolsMixin(_Host):
 
         # Style sheets make the background deterministic even when the app-wide
         # QSS disables palette painting for QFrame/QScrollArea descendants.
-        self.setStyleSheet(f"QFrame#ChartPanel {{ background-color: {color_name}; }}")
+        # The chart area by name too: the panel's own sheet re-polishes its
+        # children, which put the window's palette back on it and left the
+        # toolbar row a lighter grey strip above the desk.
+        self.setStyleSheet(
+            f"QFrame#ChartPanel {{ background-color: {color_name}; }} "
+            f"QWidget#chartArea {{ background-color: {color_name}; }}"
+        )
         self._fixed_scroll_area.setStyleSheet("QScrollArea#chartScrollArea { "
             f"background-color: {color_name}; border: none; "
             "}"
@@ -1292,10 +1305,11 @@ class ChartToolsMixin(_Host):
 
     def _background_painted_widgets(self) -> tuple[QWidget, ...]:
         """Return widgets that should show the chosen background colour."""
+        # Not the notes pane under the chart: it is a page of text, on the
+        # base colour like every other, not part of the desk.
         return (
             self,
             self._chart_area,
-            self._notes_view,
             self._fixed_scroll_area,
             self._fixed_scroll_area.viewport(),
         )
