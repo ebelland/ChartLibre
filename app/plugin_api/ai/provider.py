@@ -105,6 +105,8 @@ class AIProvider:
     KEY_NAME: str = ""
     #: Whether the questions and the data leave the computer: then nothing is sent before the user consents.
     SENDS_DATA: bool = True
+    #: Whether it may only read the project, whatever the permission chosen: too small a model for more.
+    READ_ONLY: bool = False
     #: Its own settings, shown in Settings > Assistant when it is the provider (kept in user.json).
     OPTIONS: tuple[ProviderOption, ...] = ()
 

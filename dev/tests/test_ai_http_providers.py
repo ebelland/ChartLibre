@@ -212,3 +212,41 @@ def test_an_address_without_its_scheme_is_still_another_machines() -> None:
     assert provider.address == "http://192.168.1.20:11434" and provider.SENDS_DATA
     provider.overrides = {"address": "localhost:11434"}
     assert provider.address == "http://localhost:11434" and not provider.SENDS_DATA
+
+
+_FAKE_HELPER = """
+import json, sys
+for line in sys.stdin:
+    m = json.loads(line)
+    if m["type"] == "user":
+        print(json.dumps({"type": "text", "turn": m["turn"], "text": "Looking."}), flush=True)
+        print(json.dumps({"type": "tool_call", "turn": m["turn"], "name": "list_tables", "input": {}}), flush=True)
+        turn = m["turn"]
+    elif m["type"] == "tool_result":
+        kind = "context" if m["content"] == "big" else None
+        reply = {"type": "error", "turn": turn, "kind": kind} if kind else {"type": "done", "turn": turn}
+        print(json.dumps(reply), flush=True)
+"""
+
+
+def test_foundation_models_runs_tools_through_its_helper(tmp_path, monkeypatch) -> None:
+    import sys
+
+    from app.ai_providers import foundation_models_provider as module
+
+    script = tmp_path / "helper.py"
+    script.write_text(_FAKE_HELPER, encoding="utf-8")
+    monkeypatch.setattr(module, "helper_command", lambda: [sys.executable, str(script)])
+    provider = module.FoundationModelsProvider()
+    assert not provider.SENDS_DATA and provider.READ_ONLY
+    session = provider.start(api_key="", system="You help.", tools=TOOLS)
+    turn = session.send(model="m", user_text="Tables?", on_text=lambda _t: None, cancel=threading.Event())
+    assert turn.stop == "tools" and turn.text == "Looking." and turn.tool_calls[0].name == "list_tables"
+    done = session.send(model="m", tool_results=[ToolResult(turn.tool_calls[0].id, "a")], on_text=lambda _t: None,
+                        cancel=threading.Event())
+    assert done.stop == "done"
+    turn = session.send(model="m", user_text="Again", on_text=lambda _t: None, cancel=threading.Event())
+    with pytest.raises(RuntimeError, match="start a new one"):
+        session.send(model="m", tool_results=[ToolResult(turn.tool_calls[0].id, "big")], on_text=lambda _t: None,
+                     cancel=threading.Event())
+

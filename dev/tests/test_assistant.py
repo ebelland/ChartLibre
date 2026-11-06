@@ -218,3 +218,10 @@ def test_the_assistant_can_be_left_out_of_the_navigation_bar(qapp, tmp_path: Pat
     finally:
         window.close()
         repo.close()
+
+
+def test_the_analyses_can_be_listed(qapp, repo) -> None:
+    tools, _made = _tools(repo)
+    text, failed = tools.run("list_analyses", {}, settings.ANALYSES)
+    assert not failed and "Are there differences?" in text
+

@@ -215,7 +215,7 @@ class AssistantTools:
             for role in getattr(cls, "ROLES", ()):
                 most = f"at most {role.maximum}" if role.maximum else "any number"
                 lines.append(f"  role {role.key} ({role.label}): {', '.join(role.kinds)}; at least {role.minimum}, "
-                             f"{most} - {role.description}")
+                             f"{most} - {role.tooltip or role.label}")
             for param in getattr(cls, "PARAMS", ()):
                 if isinstance(param, ChoiceParam):
                     kind = "one of " + ", ".join(str(value) for _label, value in param.labelled_choices())
@@ -247,6 +247,9 @@ class AssistantTools:
             raise ValueError(f"The analysis '{analysis}' could not be loaded; the log says why.")
         dialog = cls(repo=self._repo, table=table)
         try:
+            if dialog.reads_chart():  # the dialog remembers it was last used on a chart: the assistant names a table
+                dialog.source_table_radio.setChecked(True)
+                dialog._load_tables(table)
             if dialog.table != table:
                 raise ValueError(f"No table named '{table}'.")
             dialog.current_figure_id = self._current_figure()
