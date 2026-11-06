@@ -30,6 +30,7 @@ from app.data.repo._common import (
 )
 from app.logs.logger import applogger
 from app.utils.coercion import to_numbers
+from app.utils.import_cleaning import matches_missing
 
 #: The columns of __sympy__, in StoredFunction's order (their names are older than the class: kept for the
 #: projects already written).
@@ -50,8 +51,8 @@ def _stored_function(row: Any) -> StoredFunction:
 CAST_TYPES: tuple[str, ...] = ("REAL", "INTEGER", "TEXT")
 
 
-#: How fill_missing can fill a gap.
-FILL_METHODS: tuple[str, ...] = ("constant", "mean", "median", "previous", "linear")
+#: How fill_missing can fill a gap; "null" leaves it a real empty cell (a code such as -999 made NULL).
+FILL_METHODS: tuple[str, ...] = ("constant", "mean", "median", "previous", "linear", "null")
 
 
 #: Aggregates group_aggregate offers, as SQL function names.
@@ -459,14 +460,18 @@ class ProjectMixin(_Host):
         method: str,
         value: Any = None,
         *,
+        codes: Sequence[str] = (),
         undo_entry: int | None = None,
     ) -> int:
         """Fill the empty cells of one column, in row order. Returns how many were filled.
 
+        Empty is NULL, blank text, and a cell holding one of the missing-value
+        *codes* (-999, NA, n/a: the case ignored, numbers by value).
         ``constant`` writes *value*; ``mean`` and ``median`` use the column's
-        own numbers; ``previous`` carries the last value down; ``linear``
-        interpolates between the numbers either side (gaps at the ends stay
-        empty - there is nothing to interpolate from).
+        own numbers, the codes left out; ``previous`` carries the last value
+        down; ``linear`` interpolates between the numbers either side (gaps at
+        the ends stay empty - there is nothing to interpolate from); ``null``
+        makes the codes and the blank text real empty cells.
         """
         if method not in FILL_METHODS:
             raise ValueError(f"unknown fill method '{method}'")
@@ -479,8 +484,20 @@ class ProjectMixin(_Host):
             return 0
         rowids = [int(row[0]) for row in rows]
         raw = pd.Series([row[1] for row in rows], dtype=object)
-        empty = raw.isna() | (raw.astype(str).str.strip() == "")
+        empty = raw.isna() | (raw.astype(str).str.strip() == "") | matches_missing(raw, codes)
 
+        if method == "null":
+            # Only what is not NULL yet: a code or blank text becomes a real empty cell.
+            updates_null = [(None, rowids[i]) for i in range(len(rowids)) if empty.iat[i] and raw.iat[i] is not None]
+            if not updates_null:
+                return 0
+            self.snapshot_for_undo(
+                [table_name], label=f"Empty the missing-value codes of '{column_name}' in '{table_name}'",
+                entry_id=undo_entry,
+            )
+            self._con.executemany(f"UPDATE {table_sql} SET {column} = ? WHERE rowid = ?", updates_null)
+            self._commit()
+            return len(updates_null)
         if method == "constant":
             filled = raw.where(~empty, value)
         elif method in ("mean", "median", "linear"):

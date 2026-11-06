@@ -20,6 +20,7 @@ from collections.abc import Iterable
 from typing import Any
 
 import pandas as pd
+
 from app.utils.coercion import to_numbers
 
 AUTO, DAY_FIRST, MONTH_FIRST, YEAR_FIRST, FORMAT = "auto", "dayfirst", "monthfirst", "yearfirst", "format"
@@ -40,6 +41,21 @@ _MONTH_NAME = re.compile(r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|ge
 def parse_missing(text: str) -> list[str]:
     """The codes in a comma-separated field."""
     return [code.strip() for code in str(text or "").split(",") if code.strip()]
+
+
+def matches_missing(values: pd.Series, codes: Iterable[str]) -> pd.Series:
+    """Where *values* hold one of the missing-value *codes*: as text, the case ignored ("na" is "NA"), or as
+    a number (-999 matches -999.0). Empty cells are no match: they are missing already."""
+    wanted = [str(code).strip() for code in codes if str(code).strip()]
+    hits = pd.Series(False, index=values.index)
+    if not wanted:
+        return hits
+    text = values.astype("string").str.strip().str.lower()
+    hits |= text.isin([code.lower() for code in wanted]).fillna(False).astype(bool)
+    numbers = to_numbers(pd.Series(wanted)).dropna()
+    if not numbers.empty:
+        hits |= to_numbers(values).isin(numbers.to_numpy()).fillna(False).astype(bool)
+    return hits & values.notna()
 
 
 def clean_missing(frame: pd.DataFrame, codes: Iterable[str] = DEFAULT_MISSING, *,
